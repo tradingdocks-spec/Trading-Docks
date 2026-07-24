@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,19 +14,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trading Docks | MTG Collection Management",
+  title: {
+    default: "Trading Docks",
+    template: "%s | Trading Docks",
+  },
   description:
-    "Manage your Magic: The Gathering collection, inventory, sales, analytics, and marketplace workflows.",
+    "Manage inventory, marketplace listings, pricing, and sales from one connected card-selling workspace.",
 };
+
+type RootLayoutProps = Readonly<{
+  children: React.ReactNode;
+}>;
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: RootLayoutProps) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[#03080c] font-sans antialiased`}
+      >
         {children}
       </body>
     </html>
