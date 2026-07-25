@@ -1,18 +1,8 @@
 import type { ReactNode } from "react";
 
-import { DashboardShell } from "@/components/dashboard/shell/DashboardShell";
-import { SystemProvider } from "@/components/dashboard/system/SystemProvider";
+import { DashboardShell } from "@/components/dashboard-v2/shell/DashboardShell";
 
-type DashboardLayoutProps = {
-  children: ReactNode;
-};
-
-export default function DashboardLayout({
-  children,
-}: DashboardLayoutProps) {
-  return (
-    <SystemProvider>
-      <DashboardShell>{children}</DashboardShell>
-    </SystemProvider>
-  );
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return <DashboardShell>{children}</DashboardShell>;
 }
+

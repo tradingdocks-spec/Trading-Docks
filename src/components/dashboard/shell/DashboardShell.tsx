@@ -1,10 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
 
-import { useSidebar } from "@/components/dashboard/hooks/useSidebar";
-import { Sidebar } from "@/components/dashboard/shell/Sidebar/Sidebar";
-import { Topbar } from "@/components/dashboard/shell/Topbar/Topbar";
+import { Sidebar } from "./Sidebar/Sidebar";
+import { Topbar } from "./Topbar/Topbar";
 
 type DashboardShellProps = {
   children: ReactNode;
@@ -13,38 +13,32 @@ type DashboardShellProps = {
 export function DashboardShell({
   children,
 }: DashboardShellProps) {
-  const {
-    isCollapsed,
-    isMobileOpen,
-    toggleCollapsed,
-    openMobile,
-    closeMobile,
-  } = useSidebar();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#040b10] text-white">
+    <div className="min-h-screen bg-[#02090f] text-white">
       <Sidebar
-        collapsed={isCollapsed}
-        mobileOpen={isMobileOpen}
-        onToggleCollapsed={toggleCollapsed}
-        onCloseMobile={closeMobile}
+        collapsed={collapsed}
+        mobileOpen={mobileOpen}
+        onToggleCollapsed={() => setCollapsed((value) => !value)}
+        onCloseMobile={() => setMobileOpen(false)}
       />
 
       <Topbar
-        sidebarCollapsed={isCollapsed}
-        onOpenMobileSidebar={openMobile}
+        sidebarCollapsed={collapsed}
+        onOpenMobileSidebar={() => setMobileOpen(true)}
       />
 
       <div
         className={[
-          "min-h-screen pt-16 transition-[padding-left] duration-300",
-          isCollapsed ? "lg:pl-[76px]" : "lg:pl-[244px]",
+          "min-h-screen pt-[72px] transition-[padding-left] duration-300",
+          collapsed ? "lg:pl-[88px]" : "lg:pl-[252px]",
         ].join(" ")}
       >
-        <main className="min-h-[calc(100vh-4rem)]">
-          {children}
-        </main>
+        <main className="min-h-[calc(100vh-72px)]">{children}</main>
       </div>
     </div>
   );
 }
+

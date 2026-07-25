@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -18,7 +19,6 @@ import {
 } from "lucide-react";
 
 import { login } from "@/app/actions/auth";
-import { TradingDocksMark } from "@/components/brand/trading-docks-logo";
 
 type SignInPageProps = {
   searchParams: Promise<{
@@ -53,18 +53,18 @@ function FeatureCard({
   description,
 }: FeatureCardProps) {
   return (
-    <div className="group rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-400/30 hover:bg-cyan-400/[0.055]">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 transition group-hover:border-cyan-300/40 group-hover:bg-cyan-400/15">
+    <div className="feature-card group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] px-3.5 py-3 transition duration-500 hover:-translate-y-1 hover:border-cyan-300/30 hover:bg-cyan-400/[0.055] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_34px_rgba(0,0,0,0.18),0_0_24px_rgba(34,211,238,0.04)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(103,232,249,0.08),transparent_30%)] opacity-0 transition duration-500 group-hover:opacity-100" />
+
+      <div className="relative flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 transition duration-500 group-hover:-translate-y-0.5 group-hover:border-cyan-300/40 group-hover:bg-cyan-400/15 group-hover:text-cyan-200">
           {icon}
         </div>
 
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-white">
-            {title}
-          </h3>
+          <h3 className="text-xs font-semibold text-white">{title}</h3>
 
-          <p className="mt-0.5 truncate text-[10px] text-slate-500">
+          <p className="mt-1 truncate text-[10px] text-slate-400 tracking-[0.02em]">
             {description}
           </p>
         </div>
@@ -133,6 +133,37 @@ function FloatingModule({
             {detail}
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function LiveActivityTicker() {
+  const updates = [
+    "Inventory synced",
+    "248 cards imported",
+    "eBay listings updated",
+    "Marketplace prices refreshed",
+    "Mana Pool connected",
+  ];
+
+  return (
+    <div className="mt-3 flex h-5 items-center overflow-visible">
+      <span className="status-indicator relative mr-2 flex h-2.5 w-2.5 shrink-0 items-center justify-center">
+        <span className="status-halo absolute h-3.5 w-3.5 rounded-full bg-emerald-400/20 blur-[5px]" />
+        <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-300" />
+      </span>
+
+      <div className="relative h-4 flex-1 overflow-hidden">
+        {updates.map((update, index) => (
+          <span
+            key={update}
+            className="live-activity-item absolute inset-0 flex items-center text-[9px] font-medium text-slate-500"
+            style={{ animationDelay: `${index * 3}s` }}
+          >
+            {update}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -337,12 +368,23 @@ export default async function SignInPage({
         }
 
         @keyframes sweep {
-          0% {
-            transform: translateX(-150%) skewX(-18deg);
+          0%, 76% {
+            transform: translateX(-170%) skewX(-16deg);
+            opacity: 0;
           }
 
-          68%, 100% {
-            transform: translateX(350%) skewX(-18deg);
+          80% {
+            opacity: 0.22;
+          }
+
+          92% {
+            transform: translateX(320%) skewX(-16deg);
+            opacity: 0.12;
+          }
+
+          96%, 100% {
+            transform: translateX(320%) skewX(-16deg);
+            opacity: 0;
           }
         }
 
@@ -394,6 +436,223 @@ export default async function SignInPage({
           }
         }
 
+        @keyframes liveActivityCycle {
+          0%, 16% {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+
+          20%, 32% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+
+          36%, 100% {
+            opacity: 0;
+            transform: translateY(-8px);
+          }
+        }
+
+        @keyframes ctaReflection {
+          0%, 72% {
+            transform: translateX(-180%) skewX(-18deg);
+            opacity: 0;
+          }
+
+          76% {
+            opacity: 0.9;
+          }
+
+          90% {
+            transform: translateX(420%) skewX(-18deg);
+            opacity: 0.55;
+          }
+
+          94%, 100% {
+            transform: translateX(420%) skewX(-18deg);
+            opacity: 0;
+          }
+        }
+
+        @keyframes orbitDriftOne {
+          0%, 100% {
+            transform: translate3d(0, 0, 0);
+            opacity: 0.18;
+          }
+
+          50% {
+            transform: translate3d(90px, -38px, 0);
+            opacity: 0.5;
+          }
+        }
+
+        @keyframes orbitDriftTwo {
+          0%, 100% {
+            transform: translate3d(0, 0, 0);
+            opacity: 0.16;
+          }
+
+          50% {
+            transform: translate3d(-72px, 52px, 0);
+            opacity: 0.44;
+          }
+        }
+
+        @keyframes streamFlow {
+          0% {
+            background-position: 0 0;
+            opacity: 0.08;
+          }
+
+          100% {
+            background-position: 72px 0;
+            opacity: 0.16;
+          }
+        }
+
+        .live-activity-item {
+          opacity: 0;
+          animation: liveActivityCycle 15s ease-in-out infinite;
+        }
+
+        .premium-cta {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
+        }
+
+        .premium-cta::before {
+          content: "";
+          position: absolute;
+          inset: -55% auto -55% -35%;
+          width: 28%;
+          background: linear-gradient(
+            105deg,
+            transparent,
+            rgba(255, 255, 255, 0.48),
+            transparent
+          );
+          filter: blur(8px);
+          animation: ctaReflection 20s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+          pointer-events: none;
+        }
+
+        .signature-dot-one,
+        .signature-dot-two,
+        .signature-dot-three {
+          position: absolute;
+          height: 3px;
+          width: 3px;
+          border-radius: 999px;
+          background: rgba(103, 232, 249, 0.75);
+          box-shadow: 0 0 12px rgba(34, 211, 238, 0.42);
+          pointer-events: none;
+        }
+
+        .signature-dot-one {
+          left: 48%;
+          top: 18%;
+          animation: orbitDriftOne 18s ease-in-out infinite;
+        }
+
+        .signature-dot-two {
+          left: 57%;
+          top: 66%;
+          animation: orbitDriftTwo 24s ease-in-out infinite;
+        }
+
+        .signature-dot-three {
+          left: 38%;
+          top: 78%;
+          animation: orbitDriftOne 28s ease-in-out infinite reverse;
+        }
+
+        .data-streams {
+          background-image:
+            linear-gradient(90deg, transparent 0 48%, rgba(103,232,249,0.08) 50%, transparent 52%),
+            linear-gradient(90deg, transparent 0 48%, rgba(59,130,246,0.05) 50%, transparent 52%);
+          background-size: 72px 1px, 96px 1px;
+          background-repeat: repeat-x;
+          animation: streamFlow 20s linear infinite alternate;
+        }
+
+        @keyframes syncTimeOne {
+          0%, 30% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+
+          33%, 100% {
+            opacity: 0;
+            transform: translateY(-7px);
+          }
+        }
+
+        @keyframes syncTimeTwo {
+          0%, 31% {
+            opacity: 0;
+            transform: translateY(7px);
+          }
+
+          34%, 63% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+
+          66%, 100% {
+            opacity: 0;
+            transform: translateY(-7px);
+          }
+        }
+
+        @keyframes syncTimeThree {
+          0%, 64% {
+            opacity: 0;
+            transform: translateY(7px);
+          }
+
+          67%, 96% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+
+          100% {
+            opacity: 0;
+            transform: translateY(-7px);
+          }
+        }
+
+        .sync-time {
+          opacity: 0;
+        }
+
+        .sync-time-one {
+          animation: syncTimeOne 180s linear infinite;
+        }
+
+        .sync-time-two {
+          animation: syncTimeTwo 180s linear infinite;
+        }
+
+        .sync-time-three {
+          animation: syncTimeThree 180s linear infinite;
+        }
+
+        @keyframes statusPulse {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.7;
+          }
+          50% {
+            transform: scale(1.18);
+            opacity: 1;
+          }
+        }
+
+        .status-halo {
+          animation: statusPulse 4.8s ease-in-out infinite;
+        }
+
         .ambient-glow {
           animation: ambientGlow 10s ease-in-out infinite;
         }
@@ -443,7 +702,8 @@ export default async function SignInPage({
         }
 
         .dashboard-sweep {
-          animation: sweep 8s ease-in-out infinite;
+          animation: sweep 36s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+          will-change: transform, opacity;
         }
 
         .chart-line {
@@ -496,8 +756,30 @@ export default async function SignInPage({
           .chart-area,
           .chart-point,
           .chart-pulse,
-          .secure-icon {
+          .secure-icon,
+          .live-activity-item,
+          .premium-cta::before,
+          .signature-dot-one,
+          .signature-dot-two,
+          .signature-dot-three,
+          .data-streams,
+          .sync-time-one,
+          .sync-time-two,
+          .sync-time-three {
             animation: none !important;
+          }
+          .status-halo {
+            animation: none !important;
+          }
+
+          .sync-time-one {
+            opacity: 1;
+            transform: none;
+          }
+
+          .sync-time-two,
+          .sync-time-three {
+            opacity: 0;
           }
 
           .chart-line {
@@ -537,19 +819,45 @@ export default async function SignInPage({
         className="pointer-events-none absolute left-[53%] top-1/2 hidden h-[70%] w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-cyan-300/10 to-transparent lg:block"
       />
 
-      <div className="desktop-scale relative mx-auto grid min-h-screen w-full max-w-[1360px] grid-cols-1 px-5 py-7 sm:px-8 lg:h-screen lg:min-h-0 lg:grid-cols-[1.08fr_0.92fr] lg:items-center lg:gap-12 lg:px-8 lg:py-4 xl:gap-16">
+      <div
+        aria-hidden="true"
+        className="data-streams pointer-events-none absolute left-[34%] top-[18%] hidden h-px w-[34%] lg:block"
+      />
+
+      <span aria-hidden="true" className="signature-dot-one hidden lg:block" />
+      <span aria-hidden="true" className="signature-dot-two hidden lg:block" />
+      <span aria-hidden="true" className="signature-dot-three hidden lg:block" />
+
+      <div className="desktop-scale relative mx-auto grid min-h-screen w-full max-w-[1360px] grid-cols-1 px-5 py-7 sm:px-8 lg:h-screen lg:min-h-0 lg:grid-cols-[1.12fr_0.88fr] lg:items-center lg:gap-12 lg:px-8 lg:py-4 xl:gap-16">
         <section className="hidden h-full min-h-0 items-center lg:flex">
           <div className="w-full max-w-[640px]">
             <div className="flex items-center gap-3">
               <Link
                 href="/"
                 aria-label="Return to Trading Docks home"
-                className="inline-flex items-center gap-2.5"
+                className="group inline-flex items-center gap-3"
               >
-                <TradingDocksMark className="h-8 w-8" />
+                <span className="relative flex h-[60px] w-[60px] shrink-0 items-center justify-center">
+                  <span className="absolute inset-1 rounded-[20px] bg-cyan-400/[0.15] blur-xl transition duration-500 group-hover:bg-cyan-300/[0.24]" />
 
-                <span className="text-xs font-semibold tracking-wide text-white">
-                  Trading Docks
+                  <Image
+                    src="/trading-docks-mark.png"
+                    alt=""
+                    width={1024}
+                    height={1024}
+                    priority
+                    className="relative h-[60px] w-[60px] object-contain transition duration-500 group-hover:-translate-y-0.5 group-hover:scale-[1.045]"
+                  />
+                </span>
+
+                <span className="flex flex-col">
+                  <span className="text-[15px] font-semibold tracking-[-0.025em] text-white">
+                    Trading Docks
+                  </span>
+
+                  <span className="mt-0.5 text-[7px] font-medium uppercase tracking-[0.24em] text-slate-600">
+                    Collectibles OS
+                  </span>
                 </span>
               </Link>
 
@@ -564,10 +872,10 @@ export default async function SignInPage({
               </div>
             </div>
 
-            <h1 className="mt-4 max-w-[630px] text-[clamp(2.45rem,3.8vw,3.8rem)] font-semibold leading-[0.98] tracking-[-0.055em] text-white">
-              Your entire collectibles business,
-              <span className="mt-1 block bg-gradient-to-r from-cyan-200 via-cyan-300 to-sky-500 bg-clip-text text-transparent">
-                connected in one place.
+            <h1 className="mt-4 max-w-[630px] text-[clamp(2.45rem,3.8vw,3.8rem)] font-semibold leading-[0.96] tracking-[-0.058em] text-white">
+              Run your collectibles business
+              <span className="mt-3 block bg-gradient-to-r from-cyan-200 via-cyan-300 to-sky-500 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(34,211,238,0.05)]">
+                from one place.
               </span>
             </h1>
 
@@ -576,6 +884,8 @@ export default async function SignInPage({
               bulk inventory, listings, sales, pricing, and exact storage
               locations from one complete inventory and operations platform.
             </p>
+
+            <LiveActivityTicker />
 
             <div className="mt-4 grid grid-cols-2 gap-2">
               <FeatureCard
@@ -606,7 +916,7 @@ export default async function SignInPage({
             <div className="relative mt-3">
               <div
                 aria-hidden="true"
-                className="ambient-glow pointer-events-none absolute -inset-8 rounded-[45px] bg-cyan-500/[0.1] blur-[65px]"
+                className="ambient-glow pointer-events-none absolute -inset-24 rounded-[72px] bg-cyan-500/[0.09] blur-[125px]"
               />
 
               <FloatingModule
@@ -633,15 +943,27 @@ export default async function SignInPage({
                 icon={<Search className="h-3.5 w-3.5" />}
               />
 
-              <div className="dashboard-float relative rounded-[20px] border border-cyan-300/20 bg-white/[0.04] p-1 shadow-[0_24px_75px_rgba(0,0,0,0.5),0_0_45px_rgba(34,211,238,0.09)] backdrop-blur-xl">
-                <div className="dashboard-sweep pointer-events-none absolute inset-y-0 left-0 z-20 w-16 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+              <div className="dashboard-float relative scale-[1.055] overflow-hidden rounded-[20px] border border-cyan-300/20 bg-white/[0.04] p-1 shadow-[0_24px_75px_rgba(0,0,0,0.5),0_0_45px_rgba(34,211,238,0.09)] backdrop-blur-xl">
+                <div className="dashboard-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.018] to-transparent blur-[10px]" />
 
                 <div className="relative overflow-hidden rounded-[16px] border border-white/[0.08] bg-[#071017]/95 px-3 py-2.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[7px] font-medium uppercase tracking-[0.16em] text-slate-500">
-                        Inventory workspace
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[7px] font-medium uppercase tracking-[0.16em] text-slate-500">
+                          Inventory workspace
+                        </p>
+
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/10 bg-emerald-300/[0.035] px-2 py-0.5 text-[6px] font-semibold text-emerald-300">
+                          <span className="h-1 w-1 rounded-full bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.8)]" />
+                          Last sync
+                          <span className="relative inline-block h-2.5 min-w-[46px] overflow-hidden align-middle">
+                            <span className="sync-time sync-time-one absolute inset-0">Just now</span>
+                            <span className="sync-time sync-time-two absolute inset-0">1 minute ago</span>
+                            <span className="sync-time sync-time-three absolute inset-0">2 minutes ago</span>
+                          </span>
+                        </span>
+                      </div>
 
                       <p className="mt-0.5 text-sm font-semibold text-white">
                         Business overview
@@ -777,16 +1099,34 @@ export default async function SignInPage({
           </div>
         </section>
 
-        <section className="flex w-full items-center justify-center lg:h-full lg:min-h-0">
+        <section className="flex w-full items-center justify-center lg:h-full lg:min-h-0 lg:-translate-x-5">
           <div className="w-full max-w-[410px]">
             <Link
               href="/"
-              className="mb-6 flex items-center justify-center gap-3 lg:hidden"
+              aria-label="Return to Trading Docks home"
+              className="group mb-6 flex items-center justify-center gap-3 lg:hidden"
             >
-              <TradingDocksMark className="h-9 w-9" />
+              <span className="relative flex h-[60px] w-[60px] shrink-0 items-center justify-center">
+                <span className="absolute inset-1 rounded-[20px] bg-cyan-400/[0.15] blur-xl transition duration-500 group-hover:bg-cyan-300/[0.24]" />
 
-              <span className="text-base font-semibold text-white">
-                Trading Docks
+                <Image
+                  src="/trading-docks-mark.png"
+                  alt=""
+                  width={1024}
+                  height={1024}
+                  priority
+                  className="relative h-[60px] w-[60px] object-contain transition duration-500 group-hover:-translate-y-0.5 group-hover:scale-[1.045]"
+                />
+              </span>
+
+              <span className="flex flex-col text-left">
+                <span className="text-base font-semibold tracking-[-0.025em] text-white">
+                  Trading Docks
+                </span>
+
+                <span className="mt-0.5 text-[8px] font-medium uppercase tracking-[0.24em] text-slate-600">
+                  Collectibles OS
+                </span>
               </span>
             </Link>
 
@@ -796,8 +1136,8 @@ export default async function SignInPage({
                 className="ambient-glow pointer-events-none absolute -inset-9 rounded-[50px] bg-cyan-500/[0.11] blur-[65px]"
               />
 
-              <div className="relative rounded-[26px] border border-cyan-300/20 bg-white/[0.04] p-1 shadow-[0_30px_90px_rgba(0,0,0,0.55),0_0_50px_rgba(34,211,238,0.09)] backdrop-blur-2xl">
-                <div className="dashboard-sweep pointer-events-none absolute inset-y-0 left-0 z-20 w-16 bg-gradient-to-r from-transparent via-white/[0.035] to-transparent" />
+              <div className="relative overflow-hidden rounded-[26px] border border-cyan-300/20 bg-white/[0.04] p-1 shadow-[0_30px_90px_rgba(0,0,0,0.55),0_0_50px_rgba(34,211,238,0.09)] backdrop-blur-2xl">
+                <div className="dashboard-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.015] to-transparent blur-[10px]" />
 
                 <div className="relative overflow-hidden rounded-[21px] border border-white/[0.08] bg-[#071017]/95 px-6 py-5">
                   <div
@@ -886,7 +1226,7 @@ export default async function SignInPage({
 
                       <button
                         type="submit"
-                        className="group flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 via-cyan-400 to-cyan-300 px-4 text-xs font-semibold text-slate-950 shadow-[0_10px_26px_rgba(6,182,212,0.24)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(6,182,212,0.36)] focus:outline-none focus:ring-4 focus:ring-cyan-400/20"
+                        className="premium-cta group flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-4 text-xs font-semibold text-slate-950 shadow-[0_14px_32px_rgba(6,182,212,0.26),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_40px_rgba(6,182,212,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] focus:outline-none focus:ring-4 focus:ring-cyan-400/20"
                       >
                         Sign in
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
