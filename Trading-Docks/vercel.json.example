@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/tcgcsv/sync",
+      "schedule": "30 20 * * *"
+    }
+  ]
+}
