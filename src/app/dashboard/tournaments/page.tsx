@@ -1,4 +1,4 @@
-import { TournamentsWorkspace } from "@/components/dashboard-v2/business/TournamentsWorkspace";
+import { TournamentsWorkspace } from "@/components/dashboard/business/TournamentsWorkspace";
 
 export default function TournamentsPage() {
   return <TournamentsWorkspace />;

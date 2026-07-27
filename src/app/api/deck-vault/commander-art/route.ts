@@ -3,7 +3,7 @@ import {
   NextResponse,
 } from "next/server";
 
-export const revalidate = 86_400;
+export const revalidate = 86400;
 
 export async function GET(request: NextRequest) {
   const name =
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         Accept: "application/json",
         "User-Agent": "TradingDocks-DeckVault/2.0",
       },
-      next: { revalidate: 86_400 },
+      next: { revalidate: 86400 },
     },
   );
 

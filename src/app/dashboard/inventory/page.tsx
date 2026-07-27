@@ -1,4 +1,4 @@
-import { InventoryWorkspace } from "@/components/dashboard-v2/inventory/InventoryWorkspace";
+import { InventoryWorkspace } from "@/components/dashboard/inventory/InventoryWorkspace";
 
 export default function InventoryPage() {
   return <InventoryWorkspace />;

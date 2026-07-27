@@ -1,4 +1,4 @@
-import { CalendarWorkspace } from "@/components/dashboard-v2/business/CalendarWorkspace";
+import { CalendarWorkspace } from "@/components/dashboard/business/CalendarWorkspace";
 
 export default function CalendarPage() {
   return <CalendarWorkspace />;

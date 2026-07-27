@@ -1,4 +1,4 @@
-import { PayrollWorkspace } from "@/components/dashboard-v2/business/PayrollWorkspace";
+import { PayrollWorkspace } from "@/components/dashboard/business/PayrollWorkspace";
 
 export default function PayrollPage() {
   return <PayrollWorkspace />;

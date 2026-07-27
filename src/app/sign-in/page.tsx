@@ -23,6 +23,8 @@ import { login } from "@/app/actions/auth";
 type SignInPageProps = {
   searchParams: Promise<{
     error?: string;
+    success?: string;
+    next?: string;
   }>;
 };
 
@@ -298,7 +300,7 @@ function PortfolioChart() {
 export default async function SignInPage({
   searchParams,
 }: SignInPageProps) {
-  const { error } = await searchParams;
+  const { error, success, next } = await searchParams;
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#03080c] text-white lg:h-screen lg:min-h-0 lg:overflow-hidden">
@@ -1176,7 +1178,17 @@ export default async function SignInPage({
                       </div>
                     ) : null}
 
+                    {success ? (
+                      <div
+                        role="status"
+                        className="mt-3 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-200"
+                      >
+                        {success}
+                      </div>
+                    ) : null}
+
                     <form action={login} className="mt-4 space-y-3">
+                      <input name="next" type="hidden" value={next ?? ""} />
                       <div>
                         <label
                           htmlFor="email"

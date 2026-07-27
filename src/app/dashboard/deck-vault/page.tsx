@@ -1,4 +1,4 @@
-import { DeckVaultHome } from "@/components/dashboard-v2/deck-vault/DeckVaultHome";
+import { DeckVaultHome } from "@/components/dashboard/deck-vault/DeckVaultHome";
 
 export default function DeckVaultPage() {
   return <DeckVaultHome />;

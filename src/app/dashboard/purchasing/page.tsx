@@ -1,4 +1,4 @@
-import { PurchasingOverview } from "@/components/dashboard-v2/purchasing/PurchasingOverview";
+import { PurchasingOverview } from "@/components/dashboard/purchasing/PurchasingOverview";
 
 export default function PurchasingPage() {
   return <PurchasingOverview />;

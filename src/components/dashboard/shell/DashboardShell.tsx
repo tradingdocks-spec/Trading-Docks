@@ -3,37 +3,47 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { Sidebar } from "./Sidebar/Sidebar";
-import { Topbar } from "./Topbar/Topbar";
-
-type DashboardShellProps = {
-  children: ReactNode;
-};
+import { Sidebar } from "./Sidebar";
+import { Topbar } from "./Topbar";
 
 export function DashboardShell({
   children,
-}: DashboardShellProps) {
+  accountType,
+  inventoryModules,
+  userName,
+  isOwner,
+}: {
+  children: ReactNode;
+  accountType: string;
+  inventoryModules: string[];
+  userName: string;
+  isOwner: boolean;
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#02090f] text-white">
       <Sidebar
+        accountType={accountType}
+        inventoryModules={inventoryModules}
+        userName={userName}
+        isOwner={isOwner}
         collapsed={collapsed}
         mobileOpen={mobileOpen}
-        onToggleCollapsed={() => setCollapsed((value) => !value)}
         onCloseMobile={() => setMobileOpen(false)}
+        onToggle={() => setCollapsed((value) => !value)}
       />
 
       <Topbar
-        sidebarCollapsed={collapsed}
-        onOpenMobileSidebar={() => setMobileOpen(true)}
+        collapsed={collapsed}
+        onOpenMobile={() => setMobileOpen(true)}
       />
 
       <div
         className={[
           "min-h-screen pt-[72px] transition-[padding-left] duration-300",
-          collapsed ? "lg:pl-[88px]" : "lg:pl-[252px]",
+          collapsed ? "lg:pl-[88px]" : "lg:pl-[258px]",
         ].join(" ")}
       >
         <main className="min-h-[calc(100vh-72px)]">{children}</main>
@@ -41,4 +51,3 @@ export function DashboardShell({
     </div>
   );
 }
-

@@ -7,7 +7,7 @@ import {
   searchSealedProducts,
 } from "@/lib/tcgcsv/client";
 
-export const revalidate = 86_400;
+export const revalidate = 86400;
 
 export async function GET(request: NextRequest) {
   const query =

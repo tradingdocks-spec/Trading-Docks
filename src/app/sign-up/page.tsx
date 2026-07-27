@@ -25,6 +25,8 @@ type SignUpPageProps = {
   searchParams: Promise<{
     error?: string;
     success?: string;
+    email?: string;
+    trial?: string;
   }>;
 };
 
@@ -134,7 +136,7 @@ function FloatingModule({
 export default async function SignUpPage({
   searchParams,
 }: SignUpPageProps) {
-  const { error, success } = await searchParams;
+  const { error, success, email } = await searchParams;
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#03080c] text-white lg:h-screen lg:min-h-0 lg:overflow-hidden">
@@ -822,6 +824,7 @@ export default async function SignUpPage({
                               name="email"
                               type="email"
                               autoComplete="email"
+                              defaultValue={email ?? ""}
                               required
                               placeholder="you@example.com"
                               className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-cyan-400/50 focus:bg-cyan-400/[0.035] focus:ring-4 focus:ring-cyan-400/10"

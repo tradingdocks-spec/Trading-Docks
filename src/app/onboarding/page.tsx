@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { TradingDocksMark } from "@/components/brand/trading-docks-logo";
+import { completeOnboarding } from "@/app/actions/workspace";
 
 type AccountType =
   | "collector"
@@ -402,6 +403,8 @@ export default function OnboardingPage() {
     "singles",
     "binders",
   ]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const progress = useMemo(() => {
     if (step === 1) {
@@ -454,6 +457,24 @@ export default function OnboardingPage() {
 
     if (step < 3) {
       setStep((current) => current + 1);
+    }
+  }
+
+  async function finishOnboarding() {
+    if (!accountType || modules.length === 0 || saving) return;
+
+    setSaving(true);
+    setSaveError("");
+
+    try {
+      await completeOnboarding({ accountType, modules });
+    } catch (error) {
+      setSaving(false);
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "We could not save your workspace. Please try again.",
+      );
     }
   }
 
@@ -885,16 +906,23 @@ export default function OnboardingPage() {
                     />
                   </button>
                 ) : (
-                  <Link
-                    href="/dashboard"
+                  <button
+                    type="button"
+                    onClick={finishOnboarding}
+                    disabled={saving}
                     className="group inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 via-cyan-400 to-cyan-300 px-5 text-[11px] font-semibold text-slate-950 shadow-[0_12px_32px_rgba(6,182,212,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(6,182,212,0.42)]"
                   >
-                    Enter dashboard
+                    {saving ? "Saving workspace..." : "Enter dashboard"}
 
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                  </Link>
+                  </button>
                 )}
               </div>
+              {saveError ? (
+                <p className="mt-3 text-right text-[11px] text-rose-300">
+                  {saveError}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>

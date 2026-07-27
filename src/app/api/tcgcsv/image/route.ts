@@ -8,7 +8,7 @@ const ALLOWED_HOSTS = new Set([
   "product-images.tcgplayer.com",
 ]);
 
-export const revalidate = 86_400;
+export const revalidate = 86400;
 
 export async function GET(request: NextRequest) {
   const value =
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       "User-Agent": "TradingDocks/1.0",
     },
     next: {
-      revalidate: 86_400,
+      revalidate: 86400,
     },
   });
 

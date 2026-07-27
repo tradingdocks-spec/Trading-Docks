@@ -1,6 +1,6 @@
 import { Tags } from "lucide-react";
 
-import { PageScaffold } from "@/components/dashboard/shared/PageScaffold";
+import { PageScaffold } from "@/components/dashboard/common/PageScaffold";
 
 export default function OrganizationPage() {
   return (
@@ -10,12 +10,11 @@ export default function OrganizationPage() {
       description="Build searchable binders, boxes, shelves, rooms, and Chaos Sort workflows."
       icon={Tags}
       stats={[
-        { label: "Active binders", value: "18", detail: "All locations searchable" },
-    { label: "Boxes indexed", value: "74", detail: "Including bulk storage" },
-    { label: "Cards matched", value: "12,846", detail: "Through Chaos Sort" },
-    { label: "Unassigned items", value: "312", detail: "Awaiting placement" }
+        { label: "Active binders", value: "0", detail: "No binders created" },
+        { label: "Boxes indexed", value: "0", detail: "No boxes indexed" },
+        { label: "Cards matched", value: "0", detail: "No cards organized" },
+        { label: "Unassigned items", value: "0", detail: "No items awaiting placement" }
       ]}
     />
   );
 }
-

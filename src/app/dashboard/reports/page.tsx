@@ -1,4 +1,4 @@
-import { ReportsWorkspace } from "@/components/dashboard-v2/business/ReportsWorkspace";
+import { ReportsWorkspace } from "@/components/dashboard/business/ReportsWorkspace";
 
 export default function ReportsPage() {
   return <ReportsWorkspace />;

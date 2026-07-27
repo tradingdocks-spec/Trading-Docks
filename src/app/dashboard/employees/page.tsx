@@ -1,4 +1,4 @@
-import { EmployeesWorkspace } from "@/components/dashboard-v2/business/EmployeesWorkspace";
+import { EmployeesWorkspace } from "@/components/dashboard/business/EmployeesWorkspace";
 
 export default function EmployeesPage() {
   return <EmployeesWorkspace />;

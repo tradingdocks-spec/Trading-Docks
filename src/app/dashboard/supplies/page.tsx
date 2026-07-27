@@ -1,4 +1,4 @@
-import { SuppliesWorkspace } from "@/components/dashboard-v2/business/SuppliesWorkspace";
+import { SuppliesWorkspace } from "@/components/dashboard/business/SuppliesWorkspace";
 
 export default function SuppliesPage() {
   return <SuppliesWorkspace />;

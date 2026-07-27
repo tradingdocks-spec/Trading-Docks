@@ -5,6 +5,7 @@ import {
 
 import {
   loadMarketPayload,
+  MARKET_REFRESH_SECONDS,
   type GameId,
 } from "@/lib/market-engine";
 
@@ -15,6 +16,7 @@ const GAME_IDS: GameId[] = [
   "one-piece",
 ];
 
+// Next.js requires this segment configuration to be statically analyzable.
 export const revalidate = 300;
 
 export async function GET(
@@ -36,7 +38,7 @@ export async function GET(
   return NextResponse.json(payload, {
     headers: {
       "Cache-Control":
-        "public, s-maxage=300, stale-while-revalidate=900",
+        `public, s-maxage=${MARKET_REFRESH_SECONDS}, stale-while-revalidate=${MARKET_REFRESH_SECONDS * 3}`,
     },
   });
 }
