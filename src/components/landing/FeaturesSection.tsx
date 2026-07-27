@@ -17,7 +17,8 @@ export function FeaturesSection() {
             Every part of your business, in one workspace.
           </h2>
           <p className="mt-5 text-base leading-7 text-[#8296aa]">
-            Inventory. Pricing. Orders. Analytics. Automation. Marketplace sync.
+            Move from knowing what you own to knowing where it is, what it is worth,
+            and what needs your attention next.
           </p>
         </div>
 

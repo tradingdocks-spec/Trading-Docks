@@ -23,14 +23,16 @@ import { accountStorageKey } from "@/lib/account-storage";
 
 const FORMATS = [
   "All Formats",
-  "Commander",
+  "EDH",
+  "Pauper EDH",
   "Standard",
   "Modern",
   "Pioneer",
   "Legacy",
   "Vintage",
+  "Alchemy",
+  "Premodern",
   "Pauper",
-  "Brawl",
 ];
 
 export function DeckVaultHome() {

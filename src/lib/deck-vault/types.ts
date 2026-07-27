@@ -7,17 +7,16 @@ export type ManaColor =
   | "C";
 
 export type DeckFormat =
-  | "Commander"
+  | "EDH"
+  | "Pauper EDH"
   | "Standard"
   | "Modern"
   | "Pioneer"
   | "Legacy"
   | "Vintage"
-  | "Pauper"
-  | "Brawl"
-  | "Oathbreaker"
-  | "Duel Commander"
-  | "Canadian Highlander";
+  | "Alchemy"
+  | "Premodern"
+  | "Pauper";
 
 export type DeckCard = {
   id: string;
@@ -39,12 +38,17 @@ export type DeckCard = {
   legalityMessage?: string;
   tokenNames?: string[];
   inventoryMatches?: InventoryMatch[];
+  ownedQuantity?: number;
 };
 
 export type InventoryMatch = {
   inventoryId: string;
   quantity: number;
   location: string;
+  locationId?: string;
+  locationType?: string;
+  binderPage?: number;
+  binderSlot?: string;
   condition: string;
   printing?: string;
   platform?: "TCGplayer" | "eBay" | "ManaPool" | "Shopify" | "Unlisted";

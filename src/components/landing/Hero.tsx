@@ -18,7 +18,7 @@ const FEATURE_POINTS = [
 
 const LIVE_STATS = [
   "+248 cards imported today",
-  "126 active listings",
+  "126 listings updated",
   "18 price updates",
 ];
 
@@ -120,4 +120,3 @@ export function Hero() {
     </section>
   );
 }
-

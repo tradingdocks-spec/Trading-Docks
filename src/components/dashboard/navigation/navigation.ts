@@ -161,6 +161,18 @@ export const dashboardNavigation: NavigationGroup[] = [
             title: "Mana Pool",
             href: "/dashboard/marketplaces/mana-pool",
           },
+          {
+            title: "CardSphere",
+            href: "/dashboard/marketplaces?channel=cardsphere",
+          },
+          {
+            title: "CardTrader",
+            href: "/dashboard/marketplaces?channel=cardtrader",
+          },
+          {
+            title: "Misprint (Pokémon)",
+            href: "/dashboard/marketplaces?channel=misprint",
+          },
         ],
       },
       {

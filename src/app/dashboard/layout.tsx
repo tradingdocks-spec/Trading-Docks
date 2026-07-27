@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { LegacyAccountDataCleanup } from "@/components/dashboard/account/LegacyAccountDataCleanup";
-import { DashboardShell } from "@/components/dashboard/shell/DashboardShell";
+import { TieredDashboardShell } from "@/components/dashboard/shell/TieredDashboardShell";
 import { createClient } from "@/lib/supabase/server";
+import { getEffectivePlan } from "@/lib/effective-plan";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
@@ -21,11 +22,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       : {};
   const isOwner =
     user.email?.trim().toLowerCase() === "tradingdocks@gmail.com";
+  const effectivePlan = await getEffectivePlan();
 
   return (
     <LegacyAccountDataCleanup userId={user.id}>
-      <DashboardShell
-        accountType={typeof preferences.account_type === "string" ? preferences.account_type : "collector"}
+      <TieredDashboardShell
+        accountType={effectivePlan}
         inventoryModules={
           Array.isArray(preferences.inventory_modules)
             ? preferences.inventory_modules.filter(
@@ -41,7 +43,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         isOwner={isOwner}
       >
         {children}
-      </DashboardShell>
+      </TieredDashboardShell>
     </LegacyAccountDataCleanup>
   );
 }

@@ -18,7 +18,8 @@ export function FinalCTA() {
             </h2>
 
             <p className="mt-5 max-w-2xl text-base leading-7 text-[#8296aa]">
-              Inventory. Pricing. Orders. Analytics. Automation. Marketplace sync.
+              Start with your collection today, then unlock deeper selling and store
+              operations as your business grows.
             </p>
           </div>
 
@@ -26,7 +27,7 @@ export function FinalCTA() {
             href="/sign-up"
             className="primary-button group relative inline-flex h-12 items-center justify-center gap-3 overflow-hidden rounded-2xl px-7 text-sm font-semibold text-[#00131a]"
           >
-            <span className="relative z-10">Get started for free</span>
+            <span className="relative z-10">Create your workspace</span>
             <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-[3px]" />
           </Link>
         </div>

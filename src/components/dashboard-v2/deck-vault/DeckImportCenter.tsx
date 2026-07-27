@@ -43,17 +43,16 @@ type ResolvedPayload = {
 };
 
 const formats: DeckFormat[] = [
-  "Commander",
+  "EDH",
+  "Pauper EDH",
   "Standard",
   "Modern",
   "Pioneer",
   "Legacy",
   "Vintage",
+  "Alchemy",
+  "Premodern",
   "Pauper",
-  "Brawl",
-  "Oathbreaker",
-  "Duel Commander",
-  "Canadian Highlander",
 ];
 
 export function DeckImportCenter() {
@@ -64,7 +63,7 @@ export function DeckImportCenter() {
   const [url, setUrl] = useState("");
   const [fileName, setFileName] = useState("");
   const [deckName, setDeckName] = useState("Imported Deck");
-  const [format, setFormat] = useState<DeckFormat>("Commander");
+  const [format, setFormat] = useState<DeckFormat>("EDH");
   const [source, setSource] = useState("Plain text");
   const [status, setStatus] = useState<"idle" | "loading-url" | "resolving" | "error">("idle");
   const [error, setError] = useState("");
@@ -75,6 +74,7 @@ export function DeckImportCenter() {
   const [secondaryCommander, setSecondaryCommander] = useState<ScryfallCardResult | null>(null);
   const [selectingSecondary, setSelectingSecondary] = useState(false);
   const [commanderSearching, setCommanderSearching] = useState(false);
+  const isCommanderFormat = format === "EDH" || format === "Pauper EDH";
 
   const parsed = useMemo(() => parseDeckList(value), [value]);
   const totalQuantity = parsed.reduce((sum, card) => sum + card.quantity, 0);
@@ -175,6 +175,14 @@ export function DeckImportCenter() {
   }
 
   function entriesWithCommander() {
+    if (!isCommanderFormat) {
+      return parsed.map((entry) =>
+        entry.board === "commander"
+          ? { ...entry, board: "main" as Board }
+          : entry,
+      );
+    }
+
     const selected = [
       selectedCommander,
       secondaryCommander,
@@ -380,13 +388,23 @@ export function DeckImportCenter() {
                     </label>
                     <label>
                       <span className="text-[12px] font-semibold text-slate-300">Format</span>
-                      <select value={format} onChange={(event) => setFormat(event.target.value as DeckFormat)} className="mt-2 h-12 w-full rounded-xl border border-white/[0.075] bg-[#071721] px-4 text-[14px] text-white outline-none">
+                      <select value={format} onChange={(event) => {
+                        const nextFormat = event.target.value as DeckFormat;
+                        setFormat(nextFormat);
+                        if (nextFormat !== "EDH" && nextFormat !== "Pauper EDH") {
+                          setSelectedCommander(null);
+                          setSecondaryCommander(null);
+                          setSelectingSecondary(false);
+                          setCommanderQuery("");
+                          setCommanderResults([]);
+                        }
+                      }} className="mt-2 h-12 w-full rounded-xl border border-white/[0.075] bg-[#071721] px-4 text-[14px] text-white outline-none">
                         {formats.map((item) => <option key={item}>{item}</option>)}
                       </select>
                     </label>
                   </div>
 
-                  <section className="mt-5 rounded-2xl border border-violet-300/[0.12] bg-violet-400/[0.025] p-4">
+                  {isCommanderFormat ? <section className="mt-5 rounded-2xl border border-violet-300/[0.12] bg-violet-400/[0.025] p-4">
                     <div className="flex items-start gap-3">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-300/[0.14] bg-violet-400/[0.05]">
                         <Crown className="h-5 w-5 text-violet-200" />
@@ -612,7 +630,7 @@ export function DeckImportCenter() {
                         </div>
                       ) : null}
                     </div>
-                  </section>
+                  </section> : null}
 
                   <label className="mt-5 block">
                     <span className="text-[12px] font-semibold text-slate-300">Decklist</span>
@@ -685,7 +703,7 @@ export function DeckImportCenter() {
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <Preview label="Unique cards" value={String(parsed.length)} />
                 <Preview label="Total quantity" value={String(totalQuantity)} />
-                <Preview label="Commander" value={String(commanderCount)} />
+                {isCommanderFormat ? <Preview label="Commander" value={String(commanderCount)} /> : null}
                 <Preview label="Sideboard" value={String(sideboardCount)} />
                 <Preview label="Source" value={source} />
                 <Preview label="Format" value={format} />
@@ -696,7 +714,7 @@ export function DeckImportCenter() {
               <p className="text-[18px] font-semibold">Recognition Checklist</p>
               <div className="mt-4 space-y-3">
                 <Checklist label="Quantity and card name" complete={parsed.length > 0} />
-                <Checklist label="Commander section" complete={commanderCount > 0 || format !== "Commander"} />
+                {isCommanderFormat ? <Checklist label="Commander section" complete={commanderCount > 0} /> : null}
                 <Checklist label="Set and collector numbers" complete={parsed.some((card) => card.setCode || card.collectorNumber)} optional />
                 <Checklist label="Sideboard or maybeboard" complete={parsed.some((card) => card.board === "sideboard" || card.board === "maybeboard")} optional />
               </div>
@@ -762,8 +780,11 @@ function detectSource(value: string, fileName = "") {
 }
 
 function normalizeFormat(value?: string): DeckFormat {
-  const found = formats.find((item) => item.toLowerCase() === String(value ?? "").toLowerCase());
-  return found ?? "Commander";
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === "commander" || normalized === "edh") return "EDH";
+  if (normalized === "pauper commander" || normalized === "pauper edh" || normalized === "pedh") return "Pauper EDH";
+  const found = formats.find((item) => item.toLowerCase() === normalized);
+  return found ?? "EDH";
 }
 
 function ModeButton({ icon: Icon, label, detail, active, onClick }: { icon: React.ComponentType<{ className?: string }>; label: string; detail: string; active: boolean; onClick: () => void }) {

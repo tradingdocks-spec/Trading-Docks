@@ -124,13 +124,16 @@ const LAYOUTS: Array<[LayoutId, string]> = [
 ];
 
 const ACCOUNT_PLAN: Record<string, Plan> = {
+  free: "starter",
   collector: "starter",
   seller: "pro",
+  business: "business",
   store: "business",
   "large-seller": "business",
 };
 
 const ACCOUNT_LABEL: Record<string, string> = {
+  free: "Free",
   collector: "Collector",
   seller: "Online Seller",
   store: "Local Game Store",
@@ -146,12 +149,12 @@ export function ModularWorkspace({
   inventoryModules: string[];
   initialLayouts?: unknown;
 }) {
-  const [plan, setPlan] = useState<Plan>(ACCOUNT_PLAN[accountType] ?? "pro");
-  const isCollector = accountType === "collector";
-  const baseLayouts = isCollector ? COLLECTOR_LAYOUTS : DEFAULT_LAYOUTS;
+  const plan = ACCOUNT_PLAN[accountType] ?? "starter";
+  const isPersonal = accountType === "free" || accountType === "collector";
+  const baseLayouts = isPersonal ? COLLECTOR_LAYOUTS : DEFAULT_LAYOUTS;
   const [layoutId, setLayoutId] = useState<LayoutId>("home");
   const [layouts, setLayouts] = useState<Record<LayoutId, Widget[]>>(() => {
-    if (isCollector) return COLLECTOR_LAYOUTS;
+    if (isPersonal) return COLLECTOR_LAYOUTS;
     if (!initialLayouts || typeof initialLayouts !== "object") return baseLayouts;
     return { ...baseLayouts, ...(initialLayouts as Partial<Record<LayoutId, Widget[]>>) };
   });
@@ -211,8 +214,6 @@ export function ModularWorkspace({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!isCollector ? <PlanSelector plan={plan} onChange={setPlan} /> : null}
-
             <button
               type="button"
               onClick={() => setEditing((value) => !value)}
@@ -250,7 +251,7 @@ export function ModularWorkspace({
         <div className="mt-6 flex flex-col gap-3 border-t border-white/[0.06] pt-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             {LAYOUTS.filter(
-              ([id]) => !isCollector || ["home", "inventory", "analytics"].includes(id),
+              ([id]) => !isPersonal || ["home", "inventory", "analytics"].includes(id),
             ).map(([id, label]) => (
               <button
                 key={id}
@@ -272,7 +273,7 @@ export function ModularWorkspace({
           <div className="flex items-center gap-3 text-[10px] text-slate-600">
             <span>{widgets.length} modules</span>
             <span className="capitalize">
-              {isCollector ? "Collector" : `${plan} plan`}
+              {accountType === "business" ? "Store plan" : `${ACCOUNT_LABEL[accountType] ?? "Free"} plan`}
             </span>
           </div>
         </div>

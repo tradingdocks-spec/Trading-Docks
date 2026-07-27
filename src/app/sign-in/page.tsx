@@ -18,7 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 
-import { login } from "@/app/actions/auth";
+import { login, loginWithGoogle } from "@/app/actions/auth";
 
 type SignInPageProps = {
   searchParams: Promise<{
@@ -1187,7 +1187,31 @@ export default async function SignInPage({
                       </div>
                     ) : null}
 
-                    <form action={login} className="mt-4 space-y-3">
+                    <form action={loginWithGoogle} className="mt-4">
+                      <input name="next" type="hidden" value={next ?? ""} />
+                      <button
+                        type="submit"
+                        className="flex h-11 w-full items-center justify-center gap-3 rounded-[12px] border border-white/15 bg-white px-4 text-xs font-semibold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-white/15"
+                      >
+                        <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.55h3.24c1.9-1.75 2.98-4.33 2.98-7.42Z" />
+                          <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.63-2.35l-3.24-2.55c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.77-5.61-4.14H3.04v2.63A10 10 0 0 0 12 22Z" />
+                          <path fill="#FBBC05" d="M6.39 13.92A6 6 0 0 1 6.08 12c0-.67.11-1.32.31-1.92V7.45H3.04A10 10 0 0 0 2 12c0 1.64.39 3.2 1.04 4.55l3.35-2.63Z" />
+                          <path fill="#EA4335" d="M12 5.94c1.47 0 2.79.5 3.82 1.49l2.87-2.87A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.96 5.45l3.35 2.63C7.18 7.71 9.39 5.94 12 5.94Z" />
+                        </svg>
+                        Continue with Google
+                      </button>
+                    </form>
+
+                    <div className="my-4 flex items-center gap-3">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
+                      <span className="text-[9px] uppercase tracking-[0.18em] text-slate-500">
+                        or use email
+                      </span>
+                      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" />
+                    </div>
+
+                    <form action={login} className="space-y-3">
                       <input name="next" type="hidden" value={next ?? ""} />
                       <div>
                         <label
@@ -1235,6 +1259,16 @@ export default async function SignInPage({
                           className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] px-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-cyan-400/50 focus:bg-cyan-400/[0.035] focus:ring-4 focus:ring-cyan-400/10"
                         />
                       </div>
+
+                      <label className="flex cursor-pointer items-center gap-2.5 text-[10px] text-slate-400">
+                        <input
+                          name="rememberMe"
+                          type="checkbox"
+                          defaultChecked
+                          className="h-4 w-4 rounded border-white/15 bg-white/[0.035] accent-cyan-400"
+                        />
+                        <span>Remember me on this device</span>
+                      </label>
 
                       <button
                         type="submit"

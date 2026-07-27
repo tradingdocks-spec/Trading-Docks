@@ -1,5 +1,8 @@
 import { DeckImportCenter } from "@/components/dashboard/deck-vault/DeckImportCenter";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { PLAN_ENTITLEMENTS } from "@/lib/plan-entitlements";
 
-export default function DeckVaultImportPage() {
-  return <DeckImportCenter />;
+export default async function DeckVaultImportPage() {
+  const plan = await getEffectivePlan();
+  return <DeckImportCenter plan={plan} deckLimit={PLAN_ENTITLEMENTS[plan].deckLimit} />;
 }

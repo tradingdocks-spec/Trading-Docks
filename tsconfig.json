@@ -20,6 +20,7 @@
       }
     ],
     "paths": {
+      "@/components/dashboard/deck-vault/DeckVaultHome": ["./src/components/dashboard/deck-vault/TieredDeckVaultHome.tsx"],
       "@/*": ["./src/*"]
     }
   },

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AdminControlCenter } from "@/components/dashboard/admin/AdminControlCenter";
+import { AdminControlCenter } from "@/components/dashboard/admin/AdminControlCenterWithPreview";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminPage() {

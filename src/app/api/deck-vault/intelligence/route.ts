@@ -19,6 +19,10 @@ type InventoryItem = {
   name: string;
   quantity: number;
   location: string;
+  locationId?: string;
+  locationType?: string;
+  binderPage?: number;
+  binderSlot?: string;
   condition: string;
   printing?: string;
   platform?: string;
@@ -27,17 +31,16 @@ type InventoryItem = {
 };
 
 const FORMAT_CODE: Record<string, string> = {
-  Commander: "commander",
+  EDH: "commander",
+  "Pauper EDH": "paupercommander",
   Standard: "standard",
   Modern: "modern",
   Pioneer: "pioneer",
   Legacy: "legacy",
   Vintage: "vintage",
+  Alchemy: "alchemy",
+  Premodern: "premodern",
   Pauper: "pauper",
-  Brawl: "brawl",
-  Oathbreaker: "commander",
-  "Duel Commander": "duel",
-  "Canadian Highlander": "vintage",
 };
 
 export async function POST(
@@ -49,7 +52,7 @@ export async function POST(
       ? (body.cards as InputCard[])
       : [];
     const format = String(
-      body.format ?? "Commander",
+      body.format ?? "EDH",
     );
     const inventory = Array.isArray(
       body.inventory,
@@ -65,9 +68,13 @@ export async function POST(
       (card) =>
         card.board === "commander",
     );
+    const commanderFormat =
+      format === "EDH" ||
+      format === "Pauper EDH";
     const main = enriched.filter(
       (card) =>
-        card.board !== "commander" &&
+        (!commanderFormat ||
+          card.board !== "commander") &&
         card.board !== "sideboard" &&
         card.board !== "maybeboard",
     );
@@ -92,7 +99,10 @@ export async function POST(
         issues.push({
           cardId: card.id,
           cardName: card.name,
-          severity: "error",
+          severity:
+            legality === "restricted"
+              ? "warning"
+              : "error",
           code: legality,
           message:
             legality === "banned"
@@ -104,11 +114,7 @@ export async function POST(
       }
     }
 
-    const singleton =
-      format === "Commander" ||
-      format === "Brawl" ||
-      format === "Oathbreaker" ||
-      format === "Duel Commander";
+    const singleton = commanderFormat;
 
     for (const card of main) {
       const basic =
@@ -124,7 +130,10 @@ export async function POST(
         ((singleton && card.quantity > 1) ||
           (!singleton &&
             format !== "Vintage" &&
-            card.quantity > 4))
+            card.quantity > 4) ||
+          (format === "Vintage" &&
+            card.legalities?.vintage === "restricted" &&
+            card.quantity > 1))
       ) {
         issues.push({
           cardId: card.id,
@@ -133,6 +142,9 @@ export async function POST(
           code: "copy_limit",
           message: singleton
             ? `This card exceeds the singleton limit for ${format}.`
+            : format === "Vintage" &&
+                card.legalities?.vintage === "restricted"
+              ? "Vintage restricted cards are limited to one copy."
             : `This card exceeds the four-copy limit for ${format}.`,
         });
       }
@@ -146,11 +158,9 @@ export async function POST(
     issues.push(...commandZoneCheck);
 
     const expectedMain =
-      format === "Commander" ? 98 +
+      commanderFormat ? 98 +
         (commanders.length === 1 ? 1 : 0)
-      : format === "Brawl"
-        ? 59
-        : null;
+      : null;
     const mainQuantity = main.reduce(
       (sum, card) =>
         sum + card.quantity,
@@ -161,17 +171,13 @@ export async function POST(
       expectedMain &&
       mainQuantity +
         commanders.length !==
-        (format === "Commander"
-          ? 100
-          : 60)
+        100
     ) {
       issues.push({
         severity: "warning",
         code: "deck_size",
         message: `${format} expects ${
-          format === "Commander"
-            ? 100
-            : 60
+          100
         } total cards. This deck currently has ${
           mainQuantity +
           commanders.length
@@ -419,10 +425,8 @@ function validateCommandZone(
   }> = [];
 
   const supportsCommanders =
-    format === "Commander" ||
-    format === "Brawl" ||
-    format === "Oathbreaker" ||
-    format === "Duel Commander";
+    format === "EDH" ||
+    format === "Pauper EDH";
 
   if (!supportsCommanders) {
     return issues;
@@ -967,10 +971,11 @@ function buildOwnership(
         card.quantity > 0,
     )
     .map((card) => {
+      const normalizedCardName = card.name.trim().toLocaleLowerCase();
       const matches = inventory.filter(
         (item) =>
-          item.name.toLowerCase() ===
-          card.name.toLowerCase(),
+          item.name.trim().toLocaleLowerCase() === normalizedCardName &&
+          Number(item.quantity) > 0,
       );
       const owned = matches.reduce(
         (sum, item) =>

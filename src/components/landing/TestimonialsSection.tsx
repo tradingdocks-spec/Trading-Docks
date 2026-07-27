@@ -6,13 +6,13 @@ export function TestimonialsSection() {
       <div className="mx-auto w-full max-w-[1480px] px-5 py-24 sm:px-8 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#20e7ff]">
-            Built for real operators
+            Product principles
           </p>
           <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
-            Designed around the way card businesses work.
+            A workspace designed around the life of every card.
           </h2>
           <p className="mt-5 text-base leading-7 text-[#8296aa]">
-            Early users are helping shape Trading Docks into a practical operating system.
+            Clear foundations for collectors, growing sellers, and established stores.
           </p>
         </div>
 
@@ -22,7 +22,7 @@ export function TestimonialsSection() {
               key={testimonial.quote}
               className="rounded-[24px] border border-white/[0.075] bg-[#071522]/78 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.22)]"
             >
-              <p className="text-base leading-7 text-[#dbe8f1]">“{testimonial.quote}”</p>
+              <p className="text-base leading-7 text-[#dbe8f1]">{testimonial.quote}</p>
 
               <div className="mt-6 border-t border-white/[0.06] pt-5">
                 <p className="text-sm font-semibold">{testimonial.name}</p>

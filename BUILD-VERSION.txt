@@ -1,15 +1,5 @@
-Trading Docks Admin v44
-Build marker: RESEND-TRIAL-INVITATIONS
+Trading Docks v53
+Build marker: STRIPE-SUBSCRIPTION-BILLING
 
-When the correct build is running, the Admin Control Center header displays:
-v44 · Trial invitations enabled
-
-The Overview also displays an "All management tools" grid with:
-- Trials & Promotions
-- Customer Support
-- Billing & Credits
-- Announcements
-- System Health
-- Data & Backups
-- Product Analytics
-- Feedback & Beta
+This build includes Stripe Checkout, Customer Portal, signed webhooks,
+monthly/annual subscriptions, and Supabase-backed plan access.

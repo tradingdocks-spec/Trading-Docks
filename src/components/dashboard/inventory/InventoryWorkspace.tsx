@@ -25,6 +25,7 @@ import {
   LayoutGrid,
   LibraryBig,
   List,
+  LockKeyhole,
   MapPin,
   PackageCheck,
   PackageOpen,
@@ -43,6 +44,8 @@ import {
   Grid3X3,
   Move,
   RotateCcw,
+  ShoppingCart,
+  TrendingUp,
   Warehouse,
   X,
 } from "lucide-react";
@@ -111,6 +114,32 @@ type InventoryItem = {
     binderPage?: number;
     binderSlot?: string;
   };
+  marketplaceListings?: MarketplaceListing[];
+};
+
+type MarketplacePlatform =
+  | "TCGplayer"
+  | "eBay"
+  | "Mana Pool"
+  | "Trading Docks"
+  | "In-Store";
+
+type MarketplaceListingStatus =
+  | "Draft"
+  | "Active"
+  | "Paused"
+  | "Sold"
+  | "Ended"
+  | "Error";
+
+type MarketplaceListing = {
+  platform: MarketplacePlatform;
+  status: MarketplaceListingStatus;
+  quantity: number;
+  price?: number;
+  listingId?: string;
+  listingUrl?: string;
+  updatedAt: string;
 };
 
 type Movement = {
@@ -168,7 +197,39 @@ const TYPE_CONFIG: Record<
   },
 };
 
-export function InventoryWorkspace() {
+type InventoryPlan = "free" | "collector" | "seller" | "business";
+type BusinessSavedView =
+  | "all"
+  | "recent"
+  | "unlisted"
+  | "multi-channel"
+  | "high-value"
+  | "no-cost"
+  | "no-location"
+  | "errors";
+type InventoryAgeBucket = "all" | "0-30" | "31-60" | "61-90" | "91-180" | "180+";
+
+const PLAN_RANK: Record<InventoryPlan, number> = {
+  free: 0,
+  collector: 1,
+  seller: 2,
+  business: 3,
+};
+
+export function InventoryWorkspace({
+  accountType,
+  inventoryLimit,
+}: {
+  accountType: string;
+  inventoryLimit: number;
+}) {
+  const plan: InventoryPlan =
+    accountType === "business" || accountType === "seller" || accountType === "collector"
+      ? accountType
+      : "free";
+  const canManageCollection = PLAN_RANK[plan] >= PLAN_RANK.collector;
+  const canOperate = PLAN_RANK[plan] >= PLAN_RANK.seller;
+  const hasBusinessAnalytics = plan === "business";
   const [locations, setLocations] = useState<LocationRecord[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const itemsRef = useRef<InventoryItem[]>([]);
@@ -195,6 +256,10 @@ export function InventoryWorkspace() {
   const [putAwayOpen, setPutAwayOpen] = useState(false);
   const [deleteItemCandidate, setDeleteItemCandidate] = useState<InventoryItem | null>(null);
   const [deleteLocationCandidate, setDeleteLocationCandidate] = useState<LocationRecord | null>(null);
+  const [channelFilter, setChannelFilter] = useState<MarketplacePlatform | "Unlisted" | "all">("all");
+  const [heroCollapsed, setHeroCollapsed] = useState(false);
+  const [savedView, setSavedView] = useState<BusinessSavedView>("all");
+  const [ageBucket, setAgeBucket] = useState<InventoryAgeBucket>("all");
 
   useEffect(() => {
     let active = true;
@@ -273,8 +338,37 @@ export function InventoryWorkspace() {
         .includes(search.toLowerCase());
       const configurationMatch =
         !showUnconfiguredOnly || !location.capacity || !location.organization;
+      const locationItems = items.filter((item) => item.locationId === location.id);
+      const channelMatch =
+        channelFilter === "all" ||
+        (channelFilter === "Unlisted"
+          ? locationItems.some(
+              (item) =>
+                !(item.marketplaceListings ?? []).some(
+                  (listing) => listing.status === "Active",
+                ),
+            )
+          : locationItems.some((item) =>
+              (item.marketplaceListings ?? []).some(
+                (listing) =>
+                  listing.platform === channelFilter && listing.status === "Active",
+                ),
+            ));
+      const savedViewMatch =
+        savedView === "all" ||
+        locationItems.some((item) => inventoryMatchesSavedView(item, savedView));
+      const ageMatch =
+        ageBucket === "all" ||
+        locationItems.some((item) => inventoryMatchesAgeBucket(item, ageBucket));
 
-      return typeMatch && searchMatch && configurationMatch;
+      return (
+        typeMatch &&
+        searchMatch &&
+        configurationMatch &&
+        channelMatch &&
+        savedViewMatch &&
+        ageMatch
+      );
     })
     .sort((a, b) => {
       if (locationSort === "type") return TYPE_CONFIG[a.type].label.localeCompare(TYPE_CONFIG[b.type].label) || a.name.localeCompare(b.name);
@@ -321,6 +415,39 @@ export function InventoryWorkspace() {
         (location.warningThreshold ?? 80) / 100;
     }).length;
 
+    const listedUnits = items.reduce(
+      (sum, item) =>
+        sum +
+        (item.marketplaceListings ?? [])
+          .filter((listing) => listing.status === "Active")
+          .reduce((listingSum, listing) => listingSum + listing.quantity, 0),
+      0,
+    );
+    const costBasis = items.reduce(
+      (sum, item) => sum + (item.costBasis ?? 0) * item.quantity,
+      0,
+    );
+    const listedValue = items.reduce(
+      (sum, item) =>
+        sum +
+        (item.marketplaceListings ?? [])
+          .filter((listing) => listing.status === "Active")
+          .reduce(
+            (listingSum, listing) =>
+              listingSum + (listing.price ?? item.unitMarketValue ?? 0) * listing.quantity,
+            0,
+          ),
+      0,
+    );
+    const listingErrors = items.filter((item) =>
+      (item.marketplaceListings ?? []).some((listing) => listing.status === "Error"),
+    ).length;
+    const overAllocated = items.filter(
+      (item) =>
+        (item.marketplaceListings ?? [])
+          .filter((listing) => listing.status === "Active")
+          .reduce((sum, listing) => sum + listing.quantity, 0) > item.quantity,
+    ).length;
     return {
       units: items.reduce((sum, item) => sum + item.quantity, 0),
       value: items.reduce((sum, item) => sum + item.value, 0),
@@ -328,8 +455,84 @@ export function InventoryWorkspace() {
       duplicates: duplicateGroups.length,
       capacity,
       nearCapacity,
+      listedUnits,
+      availableUnits: Math.max(
+        0,
+        items.reduce((sum, item) => sum + item.quantity, 0) - listedUnits,
+      ),
+      costBasis,
+      listedValue,
+      potentialProfit: listedValue - costBasis,
+      listingErrors,
+      overAllocated,
     };
   }, [items, locations, duplicateGroups]);
+
+  const channelSummaries = useMemo(() => {
+    const platforms: MarketplacePlatform[] = [
+      "TCGplayer",
+      "eBay",
+      "Mana Pool",
+      "Trading Docks",
+      "In-Store",
+    ];
+    const summaries = platforms.map((platform) => {
+      let units = 0;
+      let value = 0;
+      items.forEach((item) => {
+        (item.marketplaceListings ?? [])
+          .filter((listing) => listing.platform === platform && listing.status === "Active")
+          .forEach((listing) => {
+            units += listing.quantity;
+            value += (listing.price ?? item.unitMarketValue ?? 0) * listing.quantity;
+          });
+      });
+      return { platform, units, value };
+    });
+    const listedItemIds = new Set(
+      items
+        .filter((item) =>
+          (item.marketplaceListings ?? []).some((listing) => listing.status === "Active"),
+        )
+        .map((item) => item.id),
+    );
+    return {
+      platforms: summaries,
+      unlistedUnits: items
+        .filter((item) => !listedItemIds.has(item.id))
+        .reduce((sum, item) => sum + item.quantity, 0),
+    };
+  }, [items]);
+
+  const actionCounts = useMemo(
+    () => ({
+      putAway: putAwayItems.length,
+      readyToList: items.filter(
+        (item) =>
+          item.locationId !== PUT_AWAY_QUEUE_ID &&
+          !(item.marketplaceListings ?? []).some((listing) => listing.status === "Active"),
+      ).length,
+      pricing: items.filter((item) => !item.unitMarketValue).length,
+      listingErrors: totals.listingErrors,
+      allocation: totals.overAllocated,
+      missingLocation: items.filter(
+        (item) =>
+          item.locationId !== PUT_AWAY_QUEUE_ID &&
+          !locations.some((location) => location.id === item.locationId),
+      ).length,
+    }),
+    [items, locations, putAwayItems.length, totals.listingErrors, totals.overAllocated],
+  );
+  const agingCounts = useMemo(
+    () => ({
+      "0-30": items.filter((item) => inventoryMatchesAgeBucket(item, "0-30")).length,
+      "31-60": items.filter((item) => inventoryMatchesAgeBucket(item, "31-60")).length,
+      "61-90": items.filter((item) => inventoryMatchesAgeBucket(item, "61-90")).length,
+      "91-180": items.filter((item) => inventoryMatchesAgeBucket(item, "91-180")).length,
+      "180+": items.filter((item) => inventoryMatchesAgeBucket(item, "180+")).length,
+    }),
+    [items],
+  );
 
   function notify(message: string) {
     setToast(message);
@@ -411,6 +614,14 @@ export function InventoryWorkspace() {
   }
 
   function attemptFile(item: InventoryItem) {
+    const currentUnits = items.reduce((sum, existing) => sum + existing.quantity, 0);
+    if (inventoryLimit > 0 && currentUnits + item.quantity > inventoryLimit) {
+      notify(
+        `This would exceed your ${inventoryLimit.toLocaleString("en-US")}-item inventory limit. Reduce the quantity or upgrade your plan.`,
+      );
+      return;
+    }
+
     const match = items.find(
       (existing) =>
         normalizeInventoryKey(existing) === normalizeInventoryKey(item) &&
@@ -735,16 +946,46 @@ export function InventoryWorkspace() {
     setDeleteLocationCandidate(location);
   }
 
+  if (plan === "free") {
+    return <InventoryPlanGate />;
+  }
+
   return (
     <WorkspaceFrame>
-      <PageHeader
-        eyebrow="Inventory Command Center"
-        title="Every card. Every location. Always accounted for."
-        description="Run intake, storage, movement, and inventory exceptions from one purpose-built workspace."
-        icon={Boxes}
-      />
+      {!heroCollapsed ? (
+        <div className="relative">
+          <PageHeader
+            eyebrow={hasBusinessAnalytics ? "Inventory Command Center" : canOperate ? "Seller Inventory" : "Personal Collection"}
+            title="Every card. Every location. Always accounted for."
+            description={
+              hasBusinessAnalytics
+                ? "Run intake, storage, listings, profitability, and inventory exceptions from one purpose-built workspace."
+                : canOperate
+                  ? "File, locate, price, and prepare inventory for every connected sales channel."
+                  : "Keep your personal collection organized across binders, boxes, and shelves."
+            }
+            icon={Boxes}
+          />
+          <button
+            type="button"
+            onClick={() => setHeroCollapsed(true)}
+            className="absolute right-4 top-4 rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2 text-[9px] font-semibold text-slate-500 transition hover:text-slate-200"
+          >
+            Collapse intro
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setHeroCollapsed(false)}
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 text-[9px] font-semibold text-slate-500 hover:text-slate-200"
+        >
+          <Boxes className="h-3.5 w-3.5 text-cyan-300" />
+          Show Inventory overview
+        </button>
+      )}
 
-      <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+      {canManageCollection ? <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
           onClick={() => setPutAwayOpen(true)}
@@ -764,13 +1005,13 @@ export function InventoryWorkspace() {
           <Plus className="h-4 w-4" />
           File inventory
         </button>
-      </div>
+      </div> : null}
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={`mt-5 grid gap-4 sm:grid-cols-2 ${hasBusinessAnalytics ? "xl:grid-cols-6" : "xl:grid-cols-4"}`}>
         <MetricCard
-          label="Tracked units"
+          label="Physical units"
           value={totals.units.toLocaleString("en-US")}
-          detail={`${totals.capacity.toLocaleString("en-US")} total capacity`}
+          detail={`${totals.availableUnits.toLocaleString("en-US")} available to list`}
           icon={Boxes}
         />
         <MetricCard
@@ -780,10 +1021,10 @@ export function InventoryWorkspace() {
           icon={CircleDollarSign}
         />
         <MetricCard
-          label="Storage locations"
-          value={String(totals.locations)}
-          detail={`${totals.nearCapacity} need attention`}
-          icon={MapPin}
+          label="Available to list"
+          value={totals.availableUnits.toLocaleString("en-US")}
+          detail={`${totals.listedUnits.toLocaleString("en-US")} committed to channels`}
+          icon={ShoppingCart}
         />
         <MetricCard
           label="Inventory exceptions"
@@ -791,7 +1032,42 @@ export function InventoryWorkspace() {
           detail="Duplicates requiring review"
           icon={Copy}
         />
+        {hasBusinessAnalytics ? (
+          <>
+            <MetricCard
+              label="Listed value"
+              value={currency(totals.listedValue)}
+              detail="Active marketplace listings"
+              icon={Store}
+            />
+            <MetricCard
+              label="Potential profit"
+              value={currency(totals.potentialProfit)}
+              detail={`${currency(totals.costBasis)} tracked cost basis`}
+              icon={TrendingUp}
+            />
+          </>
+        ) : null}
       </div>
+
+      {canOperate ? (
+        <InventoryOperationsSummary
+          channels={channelSummaries}
+          activeChannel={channelFilter}
+          onChannelChange={setChannelFilter}
+          actions={actionCounts}
+          business={hasBusinessAnalytics}
+        />
+      ) : null}
+      {hasBusinessAnalytics ? (
+        <BusinessInventoryInsights
+          activeView={savedView}
+          onViewChange={setSavedView}
+          activeAge={ageBucket}
+          onAgeChange={setAgeBucket}
+          agingCounts={agingCounts}
+        />
+      ) : null}
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-4`}>
         <div className="flex flex-col gap-3">
@@ -899,7 +1175,7 @@ export function InventoryWorkspace() {
               }`}
             >
               <Settings2 className="h-3.5 w-3.5" />
-              Unconfigured {locations.filter((location) => !location.capacity || !location.organization).length}
+              Needs setup ({locations.filter((location) => !location.capacity || !location.organization).length})
             </button>
           </div>
         </div>
@@ -942,6 +1218,8 @@ export function InventoryWorkspace() {
                 }}
                 onDelete={() => requestDeleteLocation(location)}
                 compact={viewMode === "operations" || locationDisplay === "list"}
+                items={items.filter((item) => item.locationId === location.id)}
+                editable={canManageCollection}
               />
             ))}
           </div>
@@ -1077,14 +1355,14 @@ export function InventoryWorkspace() {
         </section>
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_1fr]">
+      <div className={`mt-5 grid gap-5 ${duplicateGroups.length ? "xl:grid-cols-[1fr_1fr]" : ""}`}>
         <DuplicateCenter
           groups={duplicateGroups}
           locations={locations}
           onSelectLocation={setSelectedLocationId}
         />
 
-        <MovementHistory movements={movements} />
+        <MovementHistory movements={movements} business={hasBusinessAnalytics} />
       </div>
 
       <LocationModal
@@ -1232,6 +1510,250 @@ function TypeButton({
   );
 }
 
+function InventoryPlanGate() {
+  return (
+    <WorkspaceFrame>
+      <section className={`${styles.glassPanel} mx-auto mt-10 max-w-3xl rounded-[30px] p-8 text-center sm:p-12`}>
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-300">
+          <LockKeyhole className="h-6 w-6" />
+        </span>
+        <p className="mt-6 text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-300">
+          Collector plan or higher
+        </p>
+        <h1 className="mt-3 text-2xl font-semibold text-white">
+          Inventory is not included on the Free plan
+        </h1>
+        <p className="mx-auto mt-3 max-w-xl text-[11px] leading-6 text-slate-500">
+          Collector unlocks personal collection storage. Seller adds intake,
+          marketplace listings, and operational queues. Business adds team
+          controls, profitability, aging, exceptions, and full reporting.
+        </p>
+        <a
+          href="/dashboard/plans"
+          className="mt-7 inline-flex h-11 items-center justify-center rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-5 text-[10px] font-bold text-[#001018]"
+        >
+          Compare plans
+        </a>
+      </section>
+    </WorkspaceFrame>
+  );
+}
+
+function InventoryOperationsSummary({
+  channels,
+  activeChannel,
+  onChannelChange,
+  actions,
+  business,
+}: {
+  channels: {
+    platforms: { platform: MarketplacePlatform; units: number; value: number }[];
+    unlistedUnits: number;
+  };
+  activeChannel: MarketplacePlatform | "Unlisted" | "all";
+  onChannelChange: (channel: MarketplacePlatform | "Unlisted" | "all") => void;
+  actions: {
+    putAway: number;
+    readyToList: number;
+    pricing: number;
+    listingErrors: number;
+    allocation: number;
+    missingLocation: number;
+  };
+  business: boolean;
+}) {
+  const actionItems = [
+    ["Ready for put-away", actions.putAway, PackageOpen, "text-amber-300"],
+    ["Ready to list", actions.readyToList, Store, "text-cyan-300"],
+    ["Pricing needed", actions.pricing, CircleDollarSign, "text-violet-300"],
+    ["Listing errors", actions.listingErrors, AlertTriangle, "text-red-300"],
+    ["Over-allocated", actions.allocation, ShieldAlert, "text-red-300"],
+    ["Missing location", actions.missingLocation, MapPin, "text-amber-300"],
+  ] as const;
+  return (
+    <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Sales channel inventory</p>
+            <h2 className="mt-2 text-lg font-semibold text-white">Where inventory is committed</h2>
+            <p className="mt-1 text-[9px] text-slate-600">Select a channel to focus the operational view.</p>
+          </div>
+          <Store className="h-4 w-4 text-cyan-300" />
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <ChannelSummaryButton
+            label="Unlisted"
+            units={channels.unlistedUnits}
+            value={0}
+            active={activeChannel === "Unlisted"}
+            onClick={() => onChannelChange(activeChannel === "Unlisted" ? "all" : "Unlisted")}
+          />
+          {channels.platforms.map((channel) => (
+            <ChannelSummaryButton
+              key={channel.platform}
+              label={channel.platform}
+              units={channel.units}
+              value={channel.value}
+              active={activeChannel === channel.platform}
+              onClick={() => onChannelChange(activeChannel === channel.platform ? "all" : channel.platform)}
+            />
+          ))}
+        </div>
+      </section>
+      <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300">Needs attention</p>
+            <h2 className="mt-2 text-lg font-semibold text-white">Inventory action queue</h2>
+          </div>
+          <ClipboardCheck className="h-4 w-4 text-amber-300" />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {actionItems.map(([label, count, Icon, tone]) => (
+            <button key={label} type="button" className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/[0.08] p-3 text-left transition hover:border-cyan-300/15">
+              <Icon className={`h-4 w-4 shrink-0 ${tone}`} />
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-slate-200">{count}</span>
+                <span className="block truncate text-[8px] text-slate-600">{label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        {!business ? (
+          <p className="mt-3 flex items-center gap-2 text-[8px] text-slate-600">
+            <LockKeyhole className="h-3 w-3" /> Aging, profit alerts, and team assignments are available on Business.
+          </p>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+function ChannelSummaryButton({
+  label,
+  units,
+  value,
+  active,
+  onClick,
+}: {
+  label: string;
+  units: number;
+  value: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl border p-3 text-left transition ${
+        active
+          ? "border-cyan-300/25 bg-cyan-400/[0.07]"
+          : "border-white/[0.06] bg-black/[0.08] hover:border-cyan-300/15"
+      }`}
+    >
+      <span className="text-[9px] font-semibold text-slate-300">{label}</span>
+      <span className="mt-2 flex items-end justify-between gap-2">
+        <span className="text-lg font-semibold text-white">{units.toLocaleString("en-US")}</span>
+        <span className="text-[8px] text-slate-600">{value ? currency(value) : "units"}</span>
+      </span>
+    </button>
+  );
+}
+
+function BusinessInventoryInsights({
+  activeView,
+  onViewChange,
+  activeAge,
+  onAgeChange,
+  agingCounts,
+}: {
+  activeView: BusinessSavedView;
+  onViewChange: (view: BusinessSavedView) => void;
+  activeAge: InventoryAgeBucket;
+  onAgeChange: (bucket: InventoryAgeBucket) => void;
+  agingCounts: Record<Exclude<InventoryAgeBucket, "all">, number>;
+}) {
+  const views: { id: BusinessSavedView; label: string }[] = [
+    { id: "recent", label: "Recently acquired" },
+    { id: "unlisted", label: "Not listed anywhere" },
+    { id: "multi-channel", label: "Multiple channels" },
+    { id: "high-value", label: "High value" },
+    { id: "no-cost", label: "No cost basis" },
+    { id: "no-location", label: "No location" },
+    { id: "errors", label: "Marketplace errors" },
+  ];
+  const buckets: Exclude<InventoryAgeBucket, "all">[] = [
+    "0-30",
+    "31-60",
+    "61-90",
+    "91-180",
+    "180+",
+  ];
+  return (
+    <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-violet-300">Business saved views</p>
+              <h2 className="mt-2 text-lg font-semibold text-white">Focus the warehouse in one click</h2>
+            </div>
+            {activeView !== "all" ? (
+              <button type="button" onClick={() => onViewChange("all")} className="text-[9px] font-semibold text-cyan-300">Clear view</button>
+            ) : null}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {views.map((view) => (
+              <button
+                key={view.id}
+                type="button"
+                onClick={() => onViewChange(activeView === view.id ? "all" : view.id)}
+                className={`h-9 rounded-xl border px-3 text-[9px] font-semibold transition ${
+                  activeView === view.id
+                    ? "border-violet-300/25 bg-violet-400/[0.08] text-violet-100"
+                    : "border-white/[0.06] text-slate-500 hover:border-violet-300/15 hover:text-slate-200"
+                }`}
+              >
+                {view.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300">Inventory aging</p>
+              <h2 className="mt-2 text-lg font-semibold text-white">Time since last inventory update</h2>
+            </div>
+            {activeAge !== "all" ? (
+              <button type="button" onClick={() => onAgeChange("all")} className="text-[9px] font-semibold text-cyan-300">Clear age</button>
+            ) : null}
+          </div>
+          <div className="mt-4 grid grid-cols-5 gap-2">
+            {buckets.map((bucket) => (
+              <button
+                key={bucket}
+                type="button"
+                onClick={() => onAgeChange(activeAge === bucket ? "all" : bucket)}
+                className={`rounded-xl border px-2 py-3 text-center transition ${
+                  activeAge === bucket
+                    ? "border-amber-300/25 bg-amber-400/[0.07]"
+                    : "border-white/[0.06] bg-black/[0.08] hover:border-amber-300/15"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-slate-200">{agingCounts[bucket]}</span>
+                <span className="mt-1 block text-[7px] text-slate-600">{bucket} days</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ConfirmDeleteDialog({
   title,
   description,
@@ -1285,6 +1807,8 @@ function LocationCard({
   onEdit,
   onDelete,
   compact,
+  items,
+  editable,
 }: {
   location: LocationRecord;
   selected: boolean;
@@ -1292,6 +1816,8 @@ function LocationCard({
   onEdit: () => void;
   onDelete: () => void;
   compact: boolean;
+  items: InventoryItem[];
+  editable: boolean;
 }) {
   const config = TYPE_CONFIG[location.type];
   const Icon = config.icon;
@@ -1304,6 +1830,23 @@ function LocationCard({
       : location.capacity
         ? `${config.label.replace(/s$/, "")} · ${location.capacity.toLocaleString("en-US")} ${location.capacityUnit ?? "cards"}`
         : config.label.replace(/s$/, "");
+  const costBasis = items.reduce(
+    (sum, item) => sum + (item.costBasis ?? 0) * item.quantity,
+    0,
+  );
+  const listedUnits = items.reduce(
+    (sum, item) =>
+      sum +
+      (item.marketplaceListings ?? [])
+        .filter((listing) => listing.status === "Active")
+        .reduce((listingSum, listing) => listingSum + listing.quantity, 0),
+    0,
+  );
+  const lastActivity = items
+    .map((item) => item.updatedAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
 
   return (
     <div
@@ -1344,7 +1887,7 @@ function LocationCard({
           </span>
         </button>
 
-        <div className="flex items-center gap-1">
+        {editable ? <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={onEdit}
@@ -1361,7 +1904,7 @@ function LocationCard({
           >
             <Trash2 className="h-3 w-3" />
           </button>
-        </div>
+        </div> : null}
       </div>
 
       {!compact ? (
@@ -1375,8 +1918,16 @@ function LocationCard({
             )}
           </div>
           <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] px-3 py-2.5">
-            <p className="text-[7px] uppercase tracking-[0.14em] text-slate-700">Status</p>
-            <p className={`mt-1.5 text-[9px] font-semibold ${isCritical ? "text-red-300" : isWarning ? "text-amber-300" : "text-emerald-300"}`}>{isCritical ? "Critical" : isWarning ? "Near capacity" : "Available"}</p>
+            <p className="text-[7px] uppercase tracking-[0.14em] text-slate-700">Available / listed</p>
+            <p className="mt-1.5 text-[9px] font-semibold text-slate-400">{Math.max(0, location.itemCount - listedUnits)} / {listedUnits}</p>
+          </div>
+          <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] px-3 py-2.5">
+            <p className="text-[7px] uppercase tracking-[0.14em] text-slate-700">Cost basis</p>
+            <p className="mt-1.5 text-[9px] font-semibold text-slate-400">{currency(costBasis)}</p>
+          </div>
+          <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] px-3 py-2.5">
+            <p className="text-[7px] uppercase tracking-[0.14em] text-slate-700">Unique items</p>
+            <p className="mt-1.5 text-[9px] font-semibold text-slate-400">{items.length} · {lastActivity || "No activity"}</p>
           </div>
         </div>
       ) : null}
@@ -1398,7 +1949,7 @@ function LocationCard({
         ) : (
           <div className="flex h-full items-center justify-between rounded-lg border border-dashed border-white/[0.07] px-2.5 py-2 text-[8px]">
             <span className="text-slate-600">Capacity not configured</span>
-            <button type="button" onClick={onEdit} className="font-semibold text-cyan-300/80 hover:text-cyan-200">Set capacity</button>
+            {editable ? <button type="button" onClick={onEdit} className="font-semibold text-cyan-300/80 hover:text-cyan-200">Set capacity</button> : null}
           </div>
         )}
       </div>
@@ -2051,7 +2602,15 @@ function VirtualBinderModal({
           </div>
         ) : null}
         {detailItem ? (
-          <BinderCardDetail item={detailItem} location={location} onClose={() => setDetailItemId("")} onMove={() => setMoveCandidate(detailItem)} onRemove={() => setRemoveCandidate(detailItem)} onDelete={() => onDeleteItem(detailItem)} />
+          <BinderCardDetail
+            item={detailItem}
+            location={location}
+            onClose={() => setDetailItemId("")}
+            onMove={() => setMoveCandidate(detailItem)}
+            onRemove={() => setRemoveCandidate(detailItem)}
+            onDelete={() => onDeleteItem(detailItem)}
+            onUpdate={(updates) => onUpdateItem(detailItem.id, updates)}
+          />
         ) : null}
         {moveCandidate ? (
           <MoveCardPanel item={moveCandidate} currentLocation={location} locations={locations} allItems={allItems} onClose={() => setMoveCandidate(null)} onMove={completeLocationMove} />
@@ -2232,8 +2791,59 @@ function BinderPocket({ slot, item, highlighted, onSelect, onDropItem, onRemove,
   );
 }
 
-function BinderCardDetail({ item, location, onClose, onMove, onRemove, onDelete }: { item: InventoryItem; location: LocationRecord; onClose: () => void; onMove: () => void; onRemove: () => void; onDelete: () => void }) {
+function BinderCardDetail({
+  item,
+  location,
+  onClose,
+  onMove,
+  onRemove,
+  onDelete,
+  onUpdate,
+}: {
+  item: InventoryItem;
+  location: LocationRecord;
+  onClose: () => void;
+  onMove: () => void;
+  onRemove: () => void;
+  onDelete: () => void;
+  onUpdate: (updates: Partial<InventoryItem>) => void;
+}) {
   const edhrecSlug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const listings = item.marketplaceListings ?? [];
+  const activeListedQuantity = listings
+    .filter((listing) => listing.status === "Active")
+    .reduce((sum, listing) => sum + listing.quantity, 0);
+  const availableQuantity = Math.max(0, item.quantity - activeListedQuantity);
+
+  function updateListing(
+    platform: MarketplacePlatform,
+    updates: Partial<MarketplaceListing>,
+  ) {
+    const existing = listings.find((listing) => listing.platform === platform);
+    const next: MarketplaceListing = {
+      platform,
+      status: "Draft",
+      quantity: 0,
+      updatedAt: "Just now",
+      ...existing,
+      ...updates,
+    };
+    onUpdate({
+      marketplaceListings: [
+        ...listings.filter((listing) => listing.platform !== platform),
+        next,
+      ],
+    });
+  }
+
+  function removeListing(platform: MarketplacePlatform) {
+    onUpdate({
+      marketplaceListings: listings.filter(
+        (listing) => listing.platform !== platform,
+      ),
+    });
+  }
+
   return (
     <div className="absolute inset-0 z-[84] bg-black/45 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <aside className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-violet-300/15 bg-[#081721] shadow-[-24px_0_80px_rgba(0,0,0,0.55)]">
@@ -2241,15 +2851,166 @@ function BinderCardDetail({ item, location, onClose, onMove, onRemove, onDelete 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           <div className="mx-auto flex aspect-[0.716] w-full max-w-[270px] items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-black/25 shadow-2xl">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" /> : <LibraryBig className="h-12 w-12 text-violet-300/30" />}</div>
           <div className="mt-5 grid grid-cols-2 gap-2"><CompactMetric label="Market value" value={currency(item.value)} /><CompactMetric label="Pocket" value={item.binderPage && item.binderSlot ? `P${item.binderPage} · ${item.binderSlot}` : "Unassigned"} /></div>
-          <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/10 p-3"><p className="text-[8px] uppercase tracking-[0.13em] text-slate-600">Inventory path</p><p className="mt-2 text-[10px] font-semibold text-slate-300">{location.name} <span className="text-slate-600">→</span> {item.binderPage && item.binderSlot ? `Page ${item.binderPage} → ${item.binderSlot}` : "Unassigned"}</p></div>
+          <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/10 p-3"><p className="text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600">Inventory path</p><p className="mt-2 text-[11px] font-semibold text-slate-300">{location.name} <span className="text-slate-600">→</span> {item.binderPage && item.binderSlot ? `Page ${item.binderPage} → ${item.binderSlot}` : "Unassigned"}</p></div>
+          <section className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-300">Marketplace listings</p>
+                <p className="mt-1 text-[11px] leading-5 text-slate-500">Assign quantities by sales channel.</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-slate-100">{availableQuantity}</p>
+                <p className="text-[9px] text-slate-600">available of {item.quantity}</p>
+              </div>
+            </div>
+
+            {listings.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {listings.map((listing) => (
+                  <MarketplaceBadge key={listing.platform} listing={listing} />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-3 rounded-xl border border-dashed border-white/[0.08] px-3 py-3 text-[10px] text-slate-600">
+                Not listed on any marketplace.
+              </div>
+            )}
+
+            <div className="mt-4 space-y-2">
+              {MARKETPLACE_PLATFORMS.map((platform) => {
+                const listing = listings.find(
+                  (candidate) => candidate.platform === platform,
+                );
+                const otherActiveQuantity = listings
+                  .filter(
+                    (candidate) =>
+                      candidate.platform !== platform &&
+                      candidate.status === "Active",
+                  )
+                  .reduce((sum, candidate) => sum + candidate.quantity, 0);
+                const maximumQuantity = Math.max(
+                  listing?.quantity ?? 0,
+                  item.quantity - otherActiveQuantity,
+                );
+
+                return (
+                  <MarketplaceListingRow
+                    key={platform}
+                    platform={platform}
+                    listing={listing}
+                    maximumQuantity={maximumQuantity}
+                    onUpdate={(updates) => updateListing(platform, updates)}
+                    onRemove={() => removeListing(platform)}
+                  />
+                );
+              })}
+            </div>
+            {activeListedQuantity > item.quantity ? (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-300/20 bg-red-400/[0.06] px-3 py-2.5 text-[10px] leading-4 text-red-200">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Active listings exceed physical quantity by {activeListedQuantity - item.quantity}. Reduce a channel quantity before publishing.
+              </div>
+            ) : null}
+          </section>
           <div className="mt-5 grid gap-2">
-            <button type="button" onClick={onMove} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-300 text-[10px] font-bold text-[#031018]"><ArrowRightLeft className="h-4 w-4" /> Move card or change location</button>
-            <a href={`https://edhrec.com/cards/${edhrecSlug}`} target="_blank" rel="noreferrer" className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-300 hover:border-violet-300/25 hover:text-violet-200"><ExternalLink className="h-3.5 w-3.5" /> View on EDHREC</a>
-            <button type="button" onClick={onRemove} className="mt-2 flex h-10 items-center justify-center gap-2 rounded-xl border border-amber-300/15 text-[9px] font-semibold text-amber-200 hover:bg-amber-400/[0.07]"><PackageOpen className="h-3.5 w-3.5" /> Send to Put-Away Queue</button>
-            <button type="button" onClick={onDelete} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-red-300/[0.12] bg-red-400/[0.025] text-[9px] font-semibold text-red-200 transition hover:border-red-300/25 hover:bg-red-400/[0.07]"><Trash2 className="h-3.5 w-3.5" /> Delete from Inventory</button>
+            <button type="button" onClick={onMove} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-300 text-sm font-semibold tracking-[-0.01em] text-[#031018]"><ArrowRightLeft className="h-4 w-4" /> Move card or change location</button>
+            <a href={`https://edhrec.com/cards/${edhrecSlug}`} target="_blank" rel="noreferrer" className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.08] text-sm font-semibold tracking-[-0.01em] text-slate-300 hover:border-violet-300/25 hover:text-violet-200"><ExternalLink className="h-4 w-4" /> View on EDHREC</a>
+            <button type="button" onClick={onRemove} className="mt-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300/15 text-sm font-semibold tracking-[-0.01em] text-amber-200 hover:bg-amber-400/[0.07]"><PackageOpen className="h-4 w-4" /> Send to Put-Away Queue</button>
+            <button type="button" onClick={onDelete} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-red-300/[0.12] bg-red-400/[0.025] text-sm font-semibold tracking-[-0.01em] text-red-200 transition hover:border-red-300/25 hover:bg-red-400/[0.07]"><Trash2 className="h-4 w-4" /> Delete from Inventory</button>
           </div>
         </div>
       </aside>
+    </div>
+  );
+}
+
+const MARKETPLACE_PLATFORMS: MarketplacePlatform[] = [
+  "TCGplayer",
+  "eBay",
+  "Mana Pool",
+  "Trading Docks",
+  "In-Store",
+];
+
+function MarketplaceBadge({ listing }: { listing: MarketplaceListing }) {
+  const tone =
+    listing.status === "Active"
+      ? "border-emerald-300/20 bg-emerald-400/[0.08] text-emerald-200"
+      : listing.status === "Error"
+        ? "border-red-300/20 bg-red-400/[0.08] text-red-200"
+        : listing.status === "Draft" || listing.status === "Paused"
+          ? "border-amber-300/20 bg-amber-400/[0.08] text-amber-200"
+          : "border-sky-300/20 bg-sky-400/[0.08] text-sky-200";
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[10px] font-semibold ${tone}`}>
+      <span>{listing.platform}</span>
+      <span className="opacity-65">·</span>
+      <span>{listing.quantity}</span>
+      <span className="opacity-65">· {listing.status}</span>
+    </span>
+  );
+}
+
+function MarketplaceListingRow({
+  platform,
+  listing,
+  maximumQuantity,
+  onUpdate,
+  onRemove,
+}: {
+  platform: MarketplacePlatform;
+  listing?: MarketplaceListing;
+  maximumQuantity: number;
+  onUpdate: (updates: Partial<MarketplaceListing>) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_74px_92px] items-center gap-2 rounded-xl border border-white/[0.06] bg-[#07131d]/70 p-2">
+      <label className="flex min-w-0 items-center gap-2.5">
+        <input
+          type="checkbox"
+          checked={Boolean(listing)}
+          onChange={(event) =>
+            event.target.checked
+              ? onUpdate({ status: "Draft", quantity: Math.min(1, maximumQuantity) })
+              : onRemove()
+          }
+          className="h-4 w-4 shrink-0 accent-cyan-400"
+        />
+        <span className="truncate text-[11px] font-semibold text-slate-200">{platform}</span>
+      </label>
+      <input
+        aria-label={`${platform} listed quantity`}
+        title="Listed quantity"
+        type="number"
+        min={0}
+        max={maximumQuantity}
+        disabled={!listing}
+        value={listing?.quantity ?? 0}
+        onChange={(event) =>
+          onUpdate({
+            quantity: Math.min(
+              maximumQuantity,
+              Math.max(0, Number(event.target.value) || 0),
+            ),
+          })
+        }
+        className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#050e15] px-2 text-center text-[11px] font-semibold text-slate-200 outline-none disabled:opacity-30"
+      />
+      <select
+        aria-label={`${platform} listing status`}
+        disabled={!listing}
+        value={listing?.status ?? "Draft"}
+        onChange={(event) =>
+          onUpdate({ status: event.target.value as MarketplaceListingStatus })
+        }
+        className="inventory-location-select h-9 w-full rounded-lg border border-white/[0.08] bg-[#050e15] px-2 text-[10px] font-semibold text-slate-200 outline-none disabled:opacity-30"
+      >
+        {(["Draft", "Active", "Paused", "Sold", "Ended", "Error"] as MarketplaceListingStatus[]).map(
+          (status) => <option key={status}>{status}</option>,
+        )}
+      </select>
     </div>
   );
 }
@@ -2555,6 +3316,19 @@ function DuplicateCenter({
   locations: LocationRecord[];
   onSelectLocation: (id: string) => void;
 }) {
+  if (!groups.length) {
+    return (
+      <section className={`${styles.glassPanel} flex items-center gap-3 rounded-2xl border border-emerald-300/10 px-4 py-3`}>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400/[0.07] text-emerald-300">
+          <Check className="h-4 w-4" />
+        </span>
+        <div>
+          <p className="text-[10px] font-semibold text-emerald-100">No duplicate locations detected</p>
+          <p className="mt-0.5 text-[8px] text-slate-600">Every matching inventory record is currently filed in one physical location.</p>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
       <div className="flex items-start justify-between gap-4">
@@ -2608,20 +3382,12 @@ function DuplicateCenter({
           </div>
         ))}
 
-        {!groups.length ? (
-          <div className="rounded-2xl border border-dashed border-white/[0.07] bg-white/[0.015] px-4 py-9 text-center">
-            <Check className="mx-auto h-5 w-5 text-emerald-300" />
-            <p className="mt-3 text-xs font-semibold text-slate-400">
-              No duplicate locations found
-            </p>
-          </div>
-        ) : null}
       </div>
     </section>
   );
 }
 
-function MovementHistory({ movements }: { movements: Movement[] }) {
+function MovementHistory({ movements, business }: { movements: Movement[]; business: boolean }) {
   return (
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
       <div className="flex items-start justify-between">
@@ -2662,8 +3428,23 @@ function MovementHistory({ movements }: { movements: Movement[] }) {
             <span className="text-[7px] text-slate-700">
               {movement.timestamp}
             </span>
+            {business ? (
+              <button
+                type="button"
+                title="Undo recent reversible action"
+                aria-label={`Undo ${movement.itemName} activity`}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.06] text-slate-600 transition hover:text-cyan-300"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </button>
+            ) : null}
           </div>
         ))}
+        {!movements.length ? (
+          <div className="rounded-xl border border-dashed border-white/[0.07] px-4 py-8 text-center text-[9px] text-slate-600">
+            Activity will appear after inventory is filed, moved, listed, adjusted, or sold.
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -3557,6 +4338,42 @@ function FormSection({
 
 function normalizeInventoryKey(item: InventoryItem) {
   return `${item.sku}|${item.condition ?? ""}`.trim().toLowerCase();
+}
+
+function inventoryAgeDays(item: InventoryItem) {
+  const timestamp = Date.parse(item.updatedAt);
+  if (Number.isNaN(timestamp)) return 0;
+  return Math.max(0, Math.floor((Date.now() - timestamp) / 86_400_000));
+}
+
+function inventoryMatchesAgeBucket(
+  item: InventoryItem,
+  bucket: Exclude<InventoryAgeBucket, "all">,
+) {
+  const age = inventoryAgeDays(item);
+  if (bucket === "0-30") return age <= 30;
+  if (bucket === "31-60") return age >= 31 && age <= 60;
+  if (bucket === "61-90") return age >= 61 && age <= 90;
+  if (bucket === "91-180") return age >= 91 && age <= 180;
+  return age > 180;
+}
+
+function inventoryMatchesSavedView(item: InventoryItem, view: BusinessSavedView) {
+  const activeListings = (item.marketplaceListings ?? []).filter(
+    (listing) => listing.status === "Active",
+  );
+  if (view === "recent") return inventoryAgeDays(item) <= 30;
+  if (view === "unlisted") return activeListings.length === 0;
+  if (view === "multi-channel")
+    return new Set(activeListings.map((listing) => listing.platform)).size > 1;
+  if (view === "high-value") return item.value >= 100;
+  if (view === "no-cost") return !item.costBasis;
+  if (view === "no-location") return !item.locationId;
+  if (view === "errors")
+    return (item.marketplaceListings ?? []).some(
+      (listing) => listing.status === "Error",
+    );
+  return true;
 }
 
 function hydrateState<T>(

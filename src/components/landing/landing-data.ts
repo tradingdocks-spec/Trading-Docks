@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   Boxes,
   CircleDollarSign,
   FileUp,
@@ -74,42 +73,42 @@ export const FEATURES = [
     title: "Inventory OS",
     description:
       "Track condition, language, quantity, location, cost basis, and live value across your entire catalog.",
-    stat: "32,418 items",
+    stat: "Exact locations",
     icon: Boxes,
   },
   {
     title: "Marketplace command",
     description:
       "Synchronize listings, orders, and available quantities across every connected sales channel.",
-    stat: "5 channels",
+    stat: "Multi-channel",
     icon: Network,
   },
   {
     title: "Market intelligence",
     description:
       "Surface price movement, aging inventory, demand shifts, and emerging opportunities.",
-    stat: "+12.7% growth",
+    stat: "Live signals",
     icon: TrendingUp,
   },
   {
     title: "Order operations",
     description:
       "Manage orders, fulfillment, fees, customer activity, and payout status in one place.",
-    stat: "38 today",
+    stat: "Pick to payout",
     icon: ShoppingCart,
   },
   {
     title: "Automation engine",
     description:
       "Automate imports, repricing, listing, synchronization, and operational review queues.",
-    stat: "12 workflows",
+    stat: "Rule-driven",
     icon: Workflow,
   },
   {
     title: "Financial visibility",
     description:
       "Understand revenue, expenses, margins, inventory value, payouts, and channel performance.",
-    stat: "$18,421",
+    stat: "True margins",
     icon: CircleDollarSign,
   },
 ];
@@ -138,20 +137,20 @@ export const AUTOMATION_CARDS = [
 export const TESTIMONIALS = [
   {
     quote:
-      "Trading Docks gives us the visibility of an enterprise system without forcing us into enterprise complexity.",
-    name: "Early access seller",
-    role: "Multi-channel TCG business",
+      "Keep every copy traceable—from its purchase and condition to its binder, listing, sale, and payout.",
+    name: "Traceable inventory",
+    role: "Designed for collections of every size",
   },
   {
     quote:
-      "The biggest difference is clarity. Inventory, orders, pricing, and profitability finally feel connected.",
-    name: "Private beta operator",
-    role: "High-volume marketplace seller",
+      "Give collectors a focused personal workspace while sellers and stores unlock the operations they actually need.",
+    name: "Plan-aware workspace",
+    role: "Free, Collector, Seller, and Store",
   },
   {
     quote:
-      "This feels built around how card businesses actually operate, not around a generic retail template.",
-    name: "Pilot user",
-    role: "Collector and online storefront",
+      "Turn pricing, purchasing, fulfillment, and reporting into one connected workflow instead of scattered tools.",
+    name: "Connected operations",
+    role: "Built around real card-business workflows",
   },
 ];

@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const cards = Array.isArray(body.cards)
       ? (body.cards as InputCard[])
       : [];
-    const format = String(body.format ?? "Commander");
+    const format = String(body.format ?? "EDH");
     const commanderName = String(
       body.commanderName ?? "",
     );
@@ -140,8 +140,8 @@ export async function POST(request: NextRequest) {
         cardData: "Scryfall",
         legalityChecked: true,
         colorIdentityChecked:
-          format === "Commander" ||
-          format === "Brawl",
+          format === "EDH" ||
+          format === "Pauper EDH",
         aiUsed: Boolean(aiResult),
       },
     });
@@ -347,7 +347,7 @@ function detectIssues(
   totalCards: number,
 ): Issue[] {
   const commander =
-    format === "Commander" || format === "Brawl";
+    format === "EDH" || format === "Pauper EDH";
   const scale = commander
     ? 1
     : Math.max(0.6, totalCards / 100);
@@ -522,7 +522,8 @@ async function findCandidates({
       q: query,
       unique: "cards",
       order:
-        format === "Commander"
+        format === "EDH" ||
+        format === "Pauper EDH"
           ? "edhrec"
           : "released",
       dir: "asc",
@@ -677,8 +678,8 @@ function calculateScore(
   if (profile.averageManaValue > 4.5)
     score -= 6;
   if (
-    (format === "Commander" ||
-      format === "Brawl") &&
+    (format === "EDH" ||
+      format === "Pauper EDH") &&
     profile.lands < 32
   )
     score -= 8;
@@ -688,14 +689,16 @@ function calculateScore(
 
 function legalityCode(format: string) {
   return {
-    Commander: "commander",
+    EDH: "commander",
+    "Pauper EDH": "paupercommander",
     Standard: "standard",
     Modern: "modern",
     Pioneer: "pioneer",
     Legacy: "legacy",
     Vintage: "vintage",
+    Alchemy: "alchemy",
+    Premodern: "premodern",
     Pauper: "pauper",
-    Brawl: "brawl",
   }[format] ?? "commander";
 }
 

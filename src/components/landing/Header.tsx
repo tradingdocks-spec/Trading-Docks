@@ -38,7 +38,7 @@ export function Header() {
             href="/sign-up"
             className={`${styles.primaryButton} group inline-flex h-12 items-center gap-2 rounded-[15px] bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-6 text-sm font-semibold text-[#001018] shadow-[0_16px_38px_rgba(34,211,238,0.18),inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-1px_0_rgba(3,105,161,0.3)] transition hover:-translate-y-0.5 hover:brightness-105`}
           >
-            <span className="relative z-10">Get started</span>
+            <span className="relative z-10">Create your workspace</span>
             <ArrowRight className="relative z-10 h-4 w-4 transition group-hover:translate-x-0.5" />
           </Link>
         </div>
@@ -46,4 +46,3 @@ export function Header() {
     </header>
   );
 }
-

@@ -33,8 +33,8 @@ export function DashboardPreview() {
       <FloatingStatus
         className="-bottom-8 right-[5%] hidden xl:flex"
         title="Listings updated"
-        value="126 active"
-        detail="Across connected channels"
+        value="+126 today"
+        detail="22,640 active total"
       />
 
       <FloatingStatus
@@ -282,4 +282,3 @@ function FloatingStatus({
     </div>
   );
 }
-

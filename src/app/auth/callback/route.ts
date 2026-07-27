@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   const next = safeNextPath(requestUrl.searchParams.get("next"));
 
   if (code) {
-    const supabase = await createClient();
+    // OAuth and recovery callbacks should remain persistent after the exchange.
+    const supabase = await createClient({ rememberMe: true });
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
@@ -22,10 +23,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const signInUrl = new URL("/sign-in", requestUrl.origin);
-  signInUrl.searchParams.set(
-    "error",
-    "This sign-in link is invalid or has expired. Please try again.",
+  const isPasswordRecovery = next === "/update-password";
+  const errorUrl = new URL(
+    isPasswordRecovery ? "/forgot-password" : "/sign-in",
+    requestUrl.origin,
   );
-  return NextResponse.redirect(signInUrl);
+  errorUrl.searchParams.set(
+    "error",
+    isPasswordRecovery
+      ? "This password reset link is invalid or has expired. Request a new link below."
+      : "This sign-in link is invalid or has expired. Please try again.",
+  );
+  return NextResponse.redirect(errorUrl);
 }

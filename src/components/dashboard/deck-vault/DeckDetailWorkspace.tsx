@@ -18,6 +18,7 @@ import {
   Eye,
   Layers3,
   List,
+  MapPin,
   Pencil,
   Plus,
   Search,
@@ -44,6 +45,93 @@ import type {
 } from "@/lib/deck-vault/types";
 import { ManaPips } from "./ManaPips";
 import { accountStorageKey } from "@/lib/account-storage";
+
+const INVENTORY_ITEM_STORAGE_KEY = "trading-docks-inventory-items-v1";
+const INVENTORY_LOCATION_STORAGE_KEY = "trading-docks-inventory-locations-v1";
+const LEGACY_INVENTORY_STORAGE_KEY = "trading-docks-inventory";
+
+type StoredInventoryItem = {
+  id?: string;
+  inventoryId?: string;
+  name?: string;
+  quantity?: number;
+  locationId?: string;
+  location?: string;
+  condition?: string;
+  set?: string;
+  collectorNumber?: string;
+  binderPage?: number;
+  binderSlot?: string;
+  marketplaceListings?: Array<{
+    platform?: string;
+    listingId?: string;
+    status?: string;
+  }>;
+};
+
+type StoredInventoryLocation = {
+  id?: string;
+  name?: string;
+  type?: string;
+};
+
+function readStoredArray<T>(key: string): T[] {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+async function loadOwnedCollection() {
+  const [itemsKey, locationsKey, legacyKey] = await Promise.all([
+    accountStorageKey(INVENTORY_ITEM_STORAGE_KEY),
+    accountStorageKey(INVENTORY_LOCATION_STORAGE_KEY),
+    accountStorageKey(LEGACY_INVENTORY_STORAGE_KEY),
+  ]);
+  const currentItems = readStoredArray<StoredInventoryItem>(itemsKey);
+  const items = currentItems.length
+    ? currentItems
+    : readStoredArray<StoredInventoryItem>(legacyKey);
+  const locations = readStoredArray<StoredInventoryLocation>(locationsKey);
+  const locationById = new Map(
+    locations
+      .filter((location) => location.id)
+      .map((location) => [location.id as string, location]),
+  );
+
+  return items
+    .filter((item) => item.name && Number(item.quantity) > 0)
+    .map((item) => {
+      const location = item.locationId
+        ? locationById.get(item.locationId)
+        : undefined;
+      const locationName =
+        location?.name?.trim() || item.location?.trim() || "Location not assigned";
+      const activeListing = item.marketplaceListings?.find(
+        (listing) => listing.status === "Active",
+      );
+
+      return {
+        inventoryId: item.id ?? item.inventoryId ?? `${item.name}:${item.locationId ?? locationName}`,
+        name: item.name as string,
+        quantity: Number(item.quantity) || 0,
+        location: locationName,
+        locationId: item.locationId,
+        locationType: location?.type,
+        binderPage: item.binderPage,
+        binderSlot: item.binderSlot,
+        condition: item.condition ?? "Not specified",
+        printing:
+          [item.set, item.collectorNumber ? `#${item.collectorNumber}` : ""]
+            .filter(Boolean)
+            .join(" · ") || undefined,
+        platform: activeListing?.platform,
+        listingId: activeListing?.listingId,
+      };
+    });
+}
 
 const manaStyles: Record<ManaColor, string> = {
   W: "bg-amber-100",
@@ -74,17 +162,16 @@ function displayCommanderColors(
 }
 
 const FORMATS: DeckFormat[] = [
-  "Commander",
+  "EDH",
+  "Pauper EDH",
   "Standard",
   "Modern",
   "Pioneer",
   "Legacy",
   "Vintage",
+  "Alchemy",
+  "Premodern",
   "Pauper",
-  "Brawl",
-  "Oathbreaker",
-  "Duel Commander",
-  "Canadian Highlander",
 ];
 
 export function DeckDetailWorkspace({
@@ -94,7 +181,11 @@ export function DeckDetailWorkspace({
 }) {
   const [tab, setTab] = useState("Overview");
   const [format, setFormat] =
-    useState<DeckFormat>(deck.format);
+    useState<DeckFormat>(
+      String(deck.format) === "Commander"
+        ? "EDH"
+        : deck.format,
+    );
   const [cards, setCards] = useState<DeckCard[]>(
     deck.cards,
   );
@@ -138,7 +229,7 @@ export function DeckDetailWorkspace({
     [cards],
   );
   const isCommander =
-    format === "Commander" || format === "Brawl";
+    format === "EDH" || format === "Pauper EDH";
 
   useEffect(() => {
     if (!deck.id.startsWith("imported-")) {
@@ -253,12 +344,7 @@ export function DeckDetailWorkspace({
         setIntelligenceLoading(true);
 
         try {
-          const inventoryKey = await accountStorageKey(
-            "trading-docks-inventory",
-          );
-          const inventory = JSON.parse(
-            localStorage.getItem(inventoryKey) ?? "[]",
-          );
+          const inventory = await loadOwnedCollection();
 
           const response = await fetch(
             "/api/deck-vault/intelligence",
@@ -320,6 +406,8 @@ export function DeckDetailWorkspace({
                     "",
                   inventoryMatches:
                     ownership?.matches ?? [],
+                  ownedQuantity:
+                    ownership?.owned ?? 0,
                   owned:
                     (ownership?.owned ?? 0) >=
                     card.quantity,
@@ -519,11 +607,12 @@ export function DeckDetailWorkspace({
     () =>
       cards.filter(
         (card) =>
-          card.id !== commanderCard?.id &&
-          card.board !== "commander" &&
-          card.category !== "Commander",
+          !isCommander ||
+          (card.id !== commanderCard?.id &&
+            card.board !== "commander" &&
+            card.category !== "Commander"),
       ),
-    [cards, commanderCard],
+    [cards, commanderCard, isCommander],
   );
 
   const groupedCards = useMemo(() => {
@@ -651,6 +740,7 @@ export function DeckDetailWorkspace({
             grouping={grouping}
             setGrouping={setGrouping}
             format={format}
+            isCommander={isCommander}
             setCommanderPickerOpen={setCommanderPickerOpen}
           />
         ) : tab === "Intelligence" ? (
@@ -975,6 +1065,7 @@ function CardsWorkspace({
   grouping,
   setGrouping,
   format,
+  isCommander,
   setCommanderPickerOpen,
 }: {
   cards: DeckCard[];
@@ -997,6 +1088,7 @@ function CardsWorkspace({
   grouping: "type" | "role";
   setGrouping: (grouping: "type" | "role") => void;
   format: DeckFormat;
+  isCommander: boolean;
   setCommanderPickerOpen: (open: boolean) => void;
 }) {
   const [selectedCardId, setSelectedCardId] =
@@ -1027,7 +1119,12 @@ function CardsWorkspace({
   );
   const owned = mainDeckCards.reduce(
     (sum, card) =>
-      sum + (card.owned ? card.quantity : 0),
+      sum +
+      Math.min(
+        card.quantity,
+        card.ownedQuantity ??
+          (card.owned ? card.quantity : 0),
+      ),
     0,
   );
   const missing = Math.max(
@@ -1036,8 +1133,8 @@ function CardsWorkspace({
   );
   const uniqueCardCount = mainDeckCards.length;
   const singletonFormat =
-    format === "Commander" ||
-    format === "Brawl";
+    format === "EDH" ||
+    format === "Pauper EDH";
   const copyLimit = singletonFormat ? 1 : 4;
 
   const typeOptions = [
@@ -1364,7 +1461,7 @@ function CardsWorkspace({
           </select>
 
           <div className="flex gap-2">
-            <button
+            {isCommander ? <button
               type="button"
               onClick={() =>
                 setCommanderPickerOpen(true)
@@ -1372,7 +1469,7 @@ function CardsWorkspace({
               className="h-11 rounded-xl border border-violet-300/[0.15] bg-violet-400/[0.035] px-4 text-[12px] font-semibold text-violet-200"
             >
               Change Commander
-            </button>
+            </button> : null}
             {selectedIds.length ? (
               <button
                 type="button"
@@ -1388,7 +1485,7 @@ function CardsWorkspace({
 
       <div className="grid gap-5 xl:grid-cols-[230px_minmax(0,1fr)_310px]">
         <aside className="space-y-4 xl:sticky xl:top-[190px] xl:self-start">
-          {commanderCard ? (
+          {isCommander && commanderCard ? (
             <section className="overflow-hidden rounded-[22px] border border-violet-300/[0.12] bg-[#06131f] shadow-[0_22px_60px_rgba(0,0,0,0.26)]">
               <div className="border-b border-white/[0.055] px-4 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-violet-300">
@@ -1812,23 +1909,27 @@ function CardsWorkspace({
                     />
                     <InspectorMetric
                       label="Owned"
-                      value={
-                        selectedCard.owned
-                          ? "Yes"
-                          : "No"
-                      }
+                      value={`${Math.min(
+                        selectedCard.quantity,
+                        selectedCard.ownedQuantity ??
+                          (selectedCard.owned
+                            ? selectedCard.quantity
+                            : 0),
+                      )} / ${selectedCard.quantity}`}
                     />
                   </div>
 
+                  <OwnershipLocations card={selectedCard} />
+
                   <div className="mt-5 space-y-2">
-                    <InspectorAction
+                    {isCommander ? <InspectorAction
                       href={edhrecCardUrl(
                         selectedCard.name,
                       )}
                       tone="cyan"
                     >
                       Analyze on EDHREC
-                    </InspectorAction>
+                    </InspectorAction> : null}
                     <InspectorAction
                       tone="violet"
                     >
@@ -2193,7 +2294,11 @@ function DeckTableRow({
         <div className="flex flex-wrap gap-1.5">
           {card.owned ? (
             <span className="rounded-full border border-emerald-300/[0.1] bg-emerald-400/[0.025] px-2 py-1 text-[10px] text-emerald-200">
-              Owned
+              Owned {Math.min(card.quantity, card.ownedQuantity ?? card.quantity)}/{card.quantity}
+            </span>
+          ) : (card.ownedQuantity ?? 0) > 0 ? (
+            <span className="rounded-full border border-amber-300/[0.12] bg-amber-400/[0.035] px-2 py-1 text-[10px] text-amber-100">
+              Partial {Math.min(card.quantity, card.ownedQuantity ?? 0)}/{card.quantity}
             </span>
           ) : (
             <span className="rounded-full border border-amber-300/[0.1] bg-amber-400/[0.025] px-2 py-1 text-[10px] text-amber-200">
@@ -2220,6 +2325,59 @@ function DeckTableRow({
         </div>
       </td>
     </tr>
+  );
+}
+
+function inventoryLocationLabel(match: InventoryMatch) {
+  const details = [
+    match.location,
+    match.binderPage ? `Page ${match.binderPage}` : "",
+    match.binderSlot ?? "",
+  ].filter(Boolean);
+  return details.join(" · ");
+}
+
+function OwnershipLocations({ card }: { card: DeckCard }) {
+  const matches = card.inventoryMatches ?? [];
+  const ownedQuantity = card.ownedQuantity ?? 0;
+
+  return (
+    <div className="mt-4 rounded-xl border border-white/[0.065] bg-black/[0.14] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+          Collection locations
+        </p>
+        <span className="text-[10px] font-semibold text-cyan-200">
+          {ownedQuantity} owned
+        </span>
+      </div>
+      {matches.length ? (
+        <div className="mt-2 space-y-2">
+          {matches.map((match) => (
+            <div
+              key={match.inventoryId}
+              className="flex items-start gap-2 rounded-lg border border-white/[0.05] bg-white/[0.018] px-2.5 py-2"
+            >
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-slate-200">
+                  {inventoryLocationLabel(match)}
+                </p>
+                <p className="mt-0.5 text-[10px] text-slate-500">
+                  {match.quantity} {match.quantity === 1 ? "copy" : "copies"}
+                  {match.condition ? ` · ${match.condition}` : ""}
+                  {match.printing ? ` · ${match.printing}` : ""}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-[11px] leading-4 text-slate-600">
+          No matching physical copy was found in a binder, bulk box, or other inventory location.
+        </p>
+      )}
+    </div>
   );
 }
 function RoleCardPreview({
@@ -2398,7 +2556,7 @@ function DeckCardTile({
   card,
   removeCard,
   standalone = false,
-  format = "Commander",
+  format = "EDH",
   copyLimit = 1,
 }: {
   card: DeckCard;

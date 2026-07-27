@@ -1,5 +1,5 @@
 import {
-  money,
+  firstMoney,
   normalizeCard,
 } from "../helpers";
 import type { MarketCard } from "../types";
@@ -57,7 +57,11 @@ export async function loadMagic(): Promise<MarketCard[]> {
           image:
             `/api/landing-card-image/${set}/${collectorNumber}` +
             "?version=small",
-          marketPrice: money(card.prices?.usd),
+          marketPrice: firstMoney(
+            card.prices?.usd,
+            card.prices?.usd_foil,
+            card.prices?.usd_etched,
+          ),
           inventoryOwned: owned,
           index,
         });
