@@ -5,7 +5,7 @@ import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import { Hero } from "@/components/landing/Hero";
-import { MarketSection } from "@/components/Landing/MarketSection";
+import { MarketSection } from "@/components/landing/MarketSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { TrustedGames } from "@/components/landing/TrustedGames";
