@@ -1,0 +1,15 @@
+TRADING DOCKS PRICING ROUTE FIX
+
+1. Extract this ZIP into the root of your Trading Docks GitHub folder.
+2. Allow Windows to merge the src folders.
+3. In GitHub Desktop, confirm this file was added:
+   src/app/pricing/page.tsx
+4. Commit with:
+   Fix missing pricing route
+5. Push to main and wait for Vercel to finish deploying.
+6. Open:
+   https://trading-docks.vercel.app/pricing
+
+The /pricing address now opens the existing Stripe-enabled plan page at
+/dashboard/plans. Signed-out visitors are sent through the existing sign-in
+flow and returned to the plan page afterward.
