@@ -48,17 +48,18 @@ export function CardPreviewPortal({
 
   if (!mounted || !preview || !position || !preview.item.card) return null;
 
- const item = preview.item;
-const card = item.card;
+  const item = preview.item;
+  const card = item.card;
 
-if (!card) {
-  return null;
-}
+  if (!card) {
+    return null;
+  }
 
-const imageUrl =
-  card.image_uris?.normal ??
-  card.card_faces?.[0]?.image_uris?.normal ??
-  cardImage(card);
+  const economics = estimateCardEconomics(item, settings);
+  const imageUrl =
+    card.image_uris?.normal ??
+    card.card_faces?.[0]?.image_uris?.normal ??
+    cardImage(card);
 
   return createPortal(
     <div

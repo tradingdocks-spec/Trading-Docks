@@ -311,8 +311,6 @@ export function QuickCreateMenu({
     );
   }
 
-  let runningIndex = -1;
-
   return (
     <div
       role="dialog"
@@ -370,11 +368,15 @@ export function QuickCreateMenu({
                 </div>
 
                 <div className="space-y-1">
-                  {recentItems.map((item) => {
-                    runningIndex += 1;
-
-                    return renderItem(item, runningIndex, true);
-                  })}
+                  {recentItems.map((item) =>
+                    renderItem(
+                      item,
+                      displayedItems.findIndex(
+                        (displayedItem) => displayedItem.id === item.id,
+                      ),
+                      true,
+                    ),
+                  )}
                 </div>
               </section>
             ) : null}
@@ -416,11 +418,14 @@ export function QuickCreateMenu({
                     </p>
 
                     <div className="space-y-1">
-                      {sectionItems.map((item) => {
-                        runningIndex += 1;
-
-                        return renderItem(item, runningIndex);
-                      })}
+                      {sectionItems.map((item) =>
+                        renderItem(
+                          item,
+                          displayedItems.findIndex(
+                            (displayedItem) => displayedItem.id === item.id,
+                          ),
+                        ),
+                      )}
                     </div>
                   </section>
                 );

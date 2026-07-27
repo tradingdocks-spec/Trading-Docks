@@ -59,6 +59,7 @@ import {
   estimateCardEconomics,
   hydrateAppraisalCard,
   parseCollectionText,
+  resolveCard,
   resolveCollection,
   searchPrintings,
 } from "./scryfall";

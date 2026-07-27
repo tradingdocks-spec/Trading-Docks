@@ -386,8 +386,6 @@ export function SearchBar({
     inputRef.current?.focus();
   }
 
-  let resultIndex = -1;
-
   return (
     <div
       ref={containerRef}
@@ -491,9 +489,9 @@ export function SearchBar({
 
                     <div className="space-y-1">
                       {group.items.map((result) => {
-                        resultIndex += 1;
-
-                        const currentIndex = resultIndex;
+                        const currentIndex = flatResults.findIndex(
+                          (flatResult) => flatResult.id === result.id,
+                        );
                         const active =
                           currentIndex === activeIndex;
                         const Icon = result.icon;

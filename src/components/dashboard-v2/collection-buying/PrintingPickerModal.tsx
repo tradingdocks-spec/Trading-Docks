@@ -78,13 +78,12 @@ export function PrintingPickerModal({
     setError("");
 
     let cancelled = false;
+    const cardName = request.item.card?.name ?? request.item.name;
 
     async function load() {
       setLoading(true);
       try {
-        const results = await searchPrintings(
-          request.item.card?.name ?? request.item.name,
-        );
+        const results = await searchPrintings(cardName);
         if (!cancelled) setPrintings(results);
       } catch (loadError) {
         if (!cancelled) {

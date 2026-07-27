@@ -5,7 +5,6 @@ import {
 
 import {
   loadMarketPayload,
-  MARKET_REFRESH_SECONDS,
   type GameId,
 } from "@/lib/market-engine";
 
@@ -16,8 +15,7 @@ const GAME_IDS: GameId[] = [
   "one-piece",
 ];
 
-export const revalidate =
-  MARKET_REFRESH_SECONDS;
+export const revalidate = 300;
 
 export async function GET(
   request: NextRequest,
