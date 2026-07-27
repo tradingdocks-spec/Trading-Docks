@@ -52,9 +52,9 @@ export function CardPreviewPortal({
   const card = item.card;
   const economics = estimateCardEconomics(item, settings);
   const image =
-    card.image_uris?.normal ??
-    card.card_faces?.[0]?.image_uris?.normal ??
-    cardImage(card);
+card?.image_uris?.normal ??
+card?.card_faces?.[0]?.image_uris?.normal ??
+(card ? cardImage(card) : undefined);
 
   return createPortal(
     <div
