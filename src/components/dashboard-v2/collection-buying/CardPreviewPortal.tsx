@@ -81,7 +81,7 @@ const imageUrl =
 
       <div className="flex gap-4 p-4">
         <img
-          src={image}
+          src={imageUrl}
           alt={card.name}
           className="h-[322px] w-[230px] shrink-0 rounded-xl object-contain shadow-2xl"
         />
