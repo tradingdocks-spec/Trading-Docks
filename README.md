@@ -1,4 +1,28 @@
-# Trading Docks
+# Trading Docks — Binder Removal v20
+
+This package contains the verified binder-actions build.
+
+## Visual installation check
+
+After restarting, open a binder and confirm that the header shows the small
+`BINDER ACTIONS V20` badge. Every occupied pocket will also show:
+
+- a permanent rose-colored `REMOVE CARD` button in its bottom bar;
+- an always-visible three-dot button in its upper-right corner; and
+- the Trading Docks card-actions menu when you right-click anywhere inside it.
+
+If the v20 badge is not visible, a different project folder is running.
+
+## Start the correct project
+
+Open PowerShell in this exact extracted folder, then run:
+
+```powershell
+Remove-Item ".\.next" -Recurse -Force -ErrorAction SilentlyContinue
+npm install
+npm run build
+npm run dev
+```
 
 Trading Docks is a Next.js operating system for trading-card stores and collectors.
 

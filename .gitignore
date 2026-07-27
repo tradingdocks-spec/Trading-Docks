@@ -1,36 +1,6 @@
-# Dependencies
 node_modules/
-
-# Next.js
 .next/
-out/
-
-# Vercel
-.vercel/
-
-# Environment variables and secrets
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Editors and operating systems
+.cache/
+.env*
+*.log
 .DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
-# Local backups and archives
-*.zip
-*backup*
