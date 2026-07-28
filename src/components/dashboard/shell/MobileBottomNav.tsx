@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, LayoutDashboard, LibraryBig, Settings } from "lucide-react";
+import { Boxes, LayoutDashboard, LibraryBig, MessageSquarePlus, Settings } from "lucide-react";
 
 const ITEMS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/inventory", label: "Inventory", icon: Boxes, exact: false },
   { href: "/dashboard/deck-vault", label: "Decks", icon: LibraryBig, exact: false },
+  { href: "/dashboard/feedback", label: "Feedback", icon: MessageSquarePlus, exact: false },
   { href: "/dashboard/settings", label: "Settings", icon: Settings, exact: false },
 ] as const;
 
@@ -19,7 +20,7 @@ export function MobileBottomNav() {
       aria-label="Mobile dashboard navigation"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.08] bg-[#03101a]/95 px-[max(8px,env(safe-area-inset-left))] pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-2xl md:hidden"
     >
-      <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+      <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
         {ITEMS.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (

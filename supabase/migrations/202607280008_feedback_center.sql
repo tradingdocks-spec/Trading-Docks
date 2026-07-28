@@ -39,19 +39,23 @@ create index if not exists feedback_attachments_submission_idx
 alter table public.feedback_submissions enable row level security;
 alter table public.feedback_attachments enable row level security;
 
+drop policy if exists "Users create own feedback" on public.feedback_submissions;
 create policy "Users create own feedback"
 on public.feedback_submissions for insert to authenticated
 with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users read own feedback" on public.feedback_submissions;
 create policy "Users read own feedback"
 on public.feedback_submissions for select to authenticated
 using ((select auth.uid()) = user_id or public.is_platform_owner());
 
+drop policy if exists "Owner updates feedback" on public.feedback_submissions;
 create policy "Owner updates feedback"
 on public.feedback_submissions for update to authenticated
 using (public.is_platform_owner())
 with check (public.is_platform_owner());
 
+drop policy if exists "Users add own feedback attachments" on public.feedback_attachments;
 create policy "Users add own feedback attachments"
 on public.feedback_attachments for insert to authenticated
 with check (
@@ -62,6 +66,7 @@ with check (
   )
 );
 
+drop policy if exists "Users read own feedback attachments" on public.feedback_attachments;
 create policy "Users read own feedback attachments"
 on public.feedback_attachments for select to authenticated
 using ((select auth.uid()) = user_id or public.is_platform_owner());
@@ -79,6 +84,7 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+drop policy if exists "Users upload own feedback files" on storage.objects;
 create policy "Users upload own feedback files"
 on storage.objects for insert to authenticated
 with check (
@@ -86,6 +92,7 @@ with check (
   and (storage.foldername(name))[1] = (select auth.uid())::text
 );
 
+drop policy if exists "Users read own feedback files" on storage.objects;
 create policy "Users read own feedback files"
 on storage.objects for select to authenticated
 using (
@@ -137,4 +144,3 @@ $$;
 
 revoke all on function public.admin_feedback_queue() from public;
 grant execute on function public.admin_feedback_queue() to authenticated;
-

@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
+import Link from "next/link";
+import { MessageSquarePlus } from "lucide-react";
 
 import { TieredSidebar } from "./TieredSidebar";
 import { Topbar } from "./Topbar";
@@ -55,6 +57,14 @@ export function TieredDashboardShell({
           <PlanAccessGate accountType={accountType}>{children}</PlanAccessGate>
         </main>
       </div>
+      <Link
+        href="/dashboard/feedback"
+        aria-label="Provide feedback, report a bug, or request a feature"
+        className="fixed bottom-[84px] right-4 z-30 flex min-h-12 items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-400 px-4 text-xs font-bold text-[#021018] shadow-[0_14px_42px_rgba(6,182,212,.24)] transition hover:-translate-y-0.5 hover:bg-cyan-300 md:bottom-5 md:right-5"
+      >
+        <MessageSquarePlus className="h-4 w-4" />
+        <span>Feedback / Report Bug</span>
+      </Link>
       <MobileBottomNav />
     </div>
   );

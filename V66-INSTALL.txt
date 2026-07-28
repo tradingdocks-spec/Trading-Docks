@@ -1,0 +1,39 @@
+TRADING DOCKS FEEDBACK + COLLECTION GROWTH REPAIR v66
+
+WHY v65 DID NOT CHANGE THE WEBSITE
+
+The previous ZIP contained an extra feedback-visibility-v65 folder above src.
+When that folder was extracted into the repository, its files did not replace
+the application's real src files. Vercel therefore continued building the old
+dashboard.
+
+INSTALL
+
+1. Open the main Trading Docks repository—the folder containing package.json.
+2. Extract this ZIP into that exact folder.
+3. Confirm that Windows asks to replace matching files under src.
+4. Do not place the ZIP contents inside another v66 or feedback folder.
+5. Run supabase/migrations/202607280008_feedback_center.sql in Supabase.
+   It is safe to rerun.
+6. In GitHub Desktop, confirm these paths are changed or added:
+   - src/app/dashboard/feedback/page.tsx
+   - src/components/dashboard/feedback/FeedbackCenter.tsx
+   - src/components/dashboard/admin/AdminFeedbackQueue.tsx
+   - src/components/dashboard/admin/AdminControlCenterWithPreview.tsx
+   - src/components/dashboard/navigation.ts
+   - src/components/dashboard/shell/TieredSidebar.tsx
+   - src/components/dashboard/shell/TieredDashboardShell.tsx
+   - src/components/dashboard/shell/MobileBottomNav.tsx
+   - src/components/dashboard/workspace/ModularWorkspace.tsx
+   - supabase/migrations/202607280008_feedback_center.sql
+7. Commit and push those changes.
+8. After Vercel finishes deploying, refresh with Ctrl + Shift + R.
+
+EXPECTED RESULT
+
+- Feedback & Support is visible in the sidebar under Tools.
+- A Feedback / Report Bug button is visible on every dashboard page.
+- Feedback is available in the mobile bottom navigation.
+- Feedback & Beta is visible in the Admin Control Center.
+- Collection Growth month labels are regular HTML labels and are not stretched
+  by SVG scaling.

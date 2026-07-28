@@ -1,28 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
-  ArrowDown,
-  ArrowUp,
   Bot,
   Boxes,
   CalendarDays,
   Check,
+  ChevronDown,
   CircleDollarSign,
   GripVertical,
   LayoutDashboard,
   ListChecks,
-  LockKeyhole,
-  Monitor,
   PackageCheck,
   PanelsTopLeft,
   Save,
   Settings2,
   ShoppingBag,
   Sparkles,
-  Smartphone,
   Store,
-  Tablet,
   TrendingUp,
   Users,
   X,
@@ -31,38 +26,29 @@ import {
 import styles from "../styles.module.css";
 import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import { saveDashboardLayouts } from "@/app/actions/workspace";
-import {
-  canUseDashboardWidget,
-  sanitizeResponsiveDashboardLayoutsForPlan,
-  type DashboardLayoutId,
-  type DashboardViewport,
-  type DashboardWidget,
-  type DashboardWidgetSize,
-} from "@/lib/dashboard-entitlements";
-import {
-  normalizeAccountTier,
-  PLAN_ENTITLEMENTS,
-  type AccountTier,
-} from "@/lib/plan-entitlements";
 
-type Plan = AccountTier;
-type Size = DashboardWidgetSize;
-type LayoutId = DashboardLayoutId;
-type Widget = DashboardWidget;
+type Plan = "starter" | "pro" | "business";
+type Size = "small" | "medium" | "large";
+type LayoutId = "home" | "business" | "inventory" | "analytics" | "automation";
+
+type Widget = {
+  id: string;
+  size: Size;
+};
 
 const DEFINITIONS = {
-  "inventory-value": { title: "Inventory Value", icon: CircleDollarSign, plan: "free" as Plan },
-  "inventory-count": { title: "Inventory", icon: Boxes, plan: "free" as Plan },
-  "collection-growth": { title: "Collection Growth", icon: TrendingUp, plan: "collector" as Plan },
-  "business-calendar": { title: "Business Calendar", icon: CalendarDays, plan: "business" as Plan },
-  "revenue": { title: "Revenue", icon: CircleDollarSign, plan: "seller" as Plan },
-  "orders": { title: "Orders", icon: ShoppingBag, plan: "seller" as Plan },
-  "marketplaces": { title: "Marketplace Health", icon: Store, plan: "seller" as Plan },
-  "listing-queue": { title: "Listing Queue", icon: ListChecks, plan: "seller" as Plan },
-  "automation": { title: "Automation Queue", icon: Bot, plan: "seller" as Plan },
+  "inventory-value": { title: "Inventory Value", icon: CircleDollarSign, plan: "starter" as Plan },
+  "inventory-count": { title: "Inventory", icon: Boxes, plan: "starter" as Plan },
+  "collection-growth": { title: "Collection Growth", icon: TrendingUp, plan: "starter" as Plan },
+  "business-calendar": { title: "Business Calendar", icon: CalendarDays, plan: "starter" as Plan },
+  "revenue": { title: "Revenue", icon: CircleDollarSign, plan: "pro" as Plan },
+  "orders": { title: "Orders", icon: ShoppingBag, plan: "pro" as Plan },
+  "marketplaces": { title: "Marketplace Health", icon: Store, plan: "pro" as Plan },
+  "listing-queue": { title: "Listing Queue", icon: ListChecks, plan: "pro" as Plan },
+  "automation": { title: "Automation Queue", icon: Bot, plan: "pro" as Plan },
   "team": { title: "Employee Activity", icon: Users, plan: "business" as Plan },
   "ai": { title: "AI Recommendations", icon: Sparkles, plan: "business" as Plan },
-  "supplies": { title: "Supply Alerts", icon: PackageCheck, plan: "business" as Plan },
+  "supplies": { title: "Supply Alerts", icon: PackageCheck, plan: "starter" as Plan },
 } as const;
 
 const DEFAULT_LAYOUTS: Record<LayoutId, Widget[]> = {
@@ -104,20 +90,6 @@ const DEFAULT_LAYOUTS: Record<LayoutId, Widget[]> = {
   ],
 };
 
-const FREE_LAYOUTS: Record<LayoutId, Widget[]> = {
-  home: [
-    { id: "inventory-value", size: "small" },
-    { id: "inventory-count", size: "small" },
-  ],
-  business: [],
-  inventory: [
-    { id: "inventory-value", size: "small" },
-    { id: "inventory-count", size: "small" },
-  ],
-  analytics: [{ id: "inventory-value", size: "large" }],
-  automation: [],
-};
-
 const COLLECTOR_LAYOUTS: Record<LayoutId, Widget[]> = {
   home: [
     { id: "inventory-value", size: "small" },
@@ -137,6 +109,12 @@ const COLLECTOR_LAYOUTS: Record<LayoutId, Widget[]> = {
   automation: [],
 };
 
+const PLAN_RANK: Record<Plan, number> = {
+  starter: 0,
+  pro: 1,
+  business: 2,
+};
+
 const LAYOUTS: Array<[LayoutId, string]> = [
   ["home", "Home"],
   ["business", "Business"],
@@ -145,15 +123,14 @@ const LAYOUTS: Array<[LayoutId, string]> = [
   ["automation", "Automation"],
 ];
 
-const VIEWPORT_OPTIONS: Array<{
-  id: DashboardViewport;
-  label: string;
-  icon: typeof Monitor;
-}> = [
-  { id: "desktop", label: "Desktop", icon: Monitor },
-  { id: "tablet", label: "Tablet", icon: Tablet },
-  { id: "mobile", label: "Mobile", icon: Smartphone },
-];
+const ACCOUNT_PLAN: Record<string, Plan> = {
+  free: "starter",
+  collector: "starter",
+  seller: "pro",
+  business: "business",
+  store: "business",
+  "large-seller": "business",
+};
 
 const ACCOUNT_LABEL: Record<string, string> = {
   free: "Free",
@@ -165,87 +142,36 @@ const ACCOUNT_LABEL: Record<string, string> = {
 
 export function ModularWorkspace({
   accountType,
+  inventoryModules,
   initialLayouts,
 }: {
   accountType: string;
   inventoryModules: string[];
   initialLayouts?: unknown;
 }) {
-  const plan = normalizeAccountTier(accountType);
-  const isPersonal = plan === "free" || plan === "collector";
-  const baseLayouts =
-    plan === "free"
-      ? FREE_LAYOUTS
-      : plan === "collector"
-        ? COLLECTOR_LAYOUTS
-        : DEFAULT_LAYOUTS;
+  const plan = ACCOUNT_PLAN[accountType] ?? "starter";
+  const isPersonal = accountType === "free" || accountType === "collector";
+  const baseLayouts = isPersonal ? COLLECTOR_LAYOUTS : DEFAULT_LAYOUTS;
   const [layoutId, setLayoutId] = useState<LayoutId>("home");
-  const [detectedViewport, setDetectedViewport] =
-    useState<DashboardViewport>("desktop");
-  const [previewViewport, setPreviewViewport] =
-    useState<DashboardViewport | null>(null);
-  const [responsiveLayouts, setResponsiveLayouts] = useState<
-    Record<DashboardViewport, Record<LayoutId, Widget[]>>
-  >(() => {
-    const saved = sanitizeResponsiveDashboardLayoutsForPlan(initialLayouts, plan);
-    return {
-      desktop: { ...baseLayouts, ...saved.desktop },
-      tablet: { ...baseLayouts, ...saved.tablet },
-      mobile: { ...baseLayouts, ...saved.mobile },
-    };
+  const [layouts, setLayouts] = useState<Record<LayoutId, Widget[]>>(() => {
+    if (isPersonal) return COLLECTOR_LAYOUTS;
+    if (!initialLayouts || typeof initialLayouts !== "object") return baseLayouts;
+    return { ...baseLayouts, ...(initialLayouts as Partial<Record<LayoutId, Widget[]>>) };
   });
   const [editing, setEditing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const viewport = editing && previewViewport ? previewViewport : detectedViewport;
-  const layouts = responsiveLayouts[viewport];
   const widgets = layouts[layoutId];
-  const availableModuleCount = Object.keys(DEFINITIONS).filter((id) =>
-    canUseDashboardWidget(plan, id),
-  ).length;
-
-  useEffect(() => {
-    const mobile = window.matchMedia("(max-width: 767px)");
-    const tablet = window.matchMedia("(min-width: 768px) and (max-width: 1199px)");
-
-    function syncViewport() {
-      setDetectedViewport(mobile.matches ? "mobile" : tablet.matches ? "tablet" : "desktop");
-    }
-
-    syncViewport();
-    mobile.addEventListener("change", syncViewport);
-    tablet.addEventListener("change", syncViewport);
-    return () => {
-      mobile.removeEventListener("change", syncViewport);
-      tablet.removeEventListener("change", syncViewport);
-    };
-  }, []);
 
   function updateWidgets(next: Widget[]) {
-    setResponsiveLayouts((current) => ({
-      ...current,
-      [viewport]: {
-        ...current[viewport],
-        [layoutId]: next,
-      },
-    }));
+    setLayouts((current) => ({ ...current, [layoutId]: next }));
   }
 
   async function save() {
     try {
-      const sanitized = sanitizeResponsiveDashboardLayoutsForPlan(
-        responsiveLayouts,
-        plan,
-      );
-      const safeLayouts = {
-        desktop: { ...baseLayouts, ...sanitized.desktop },
-        tablet: { ...baseLayouts, ...sanitized.tablet },
-        mobile: { ...baseLayouts, ...sanitized.mobile },
-      };
-      setResponsiveLayouts(safeLayouts);
-      await saveDashboardLayouts(safeLayouts);
+      await saveDashboardLayouts(layouts);
       setSaved(true);
       window.setTimeout(() => setSaved(false), 1600);
     } catch {
@@ -265,15 +191,6 @@ export function ModularWorkspace({
     setDraggedId(null);
   }
 
-  function moveWidget(widgetId: string, direction: -1 | 1) {
-    const from = widgets.findIndex((widget) => widget.id === widgetId);
-    const to = from + direction;
-    if (from < 0 || to < 0 || to >= widgets.length) return;
-    const next = [...widgets];
-    [next[from], next[to]] = [next[to], next[from]];
-    updateWidgets(next);
-  }
-
   return (
     <WorkspaceFrame>
       <header className={`${styles.glassPanel} rounded-[28px] p-5 sm:p-6`}>
@@ -284,23 +201,24 @@ export function ModularWorkspace({
               {ACCOUNT_LABEL[accountType] ?? "Personal"} workspace
             </div>
 
-            <h1 className="mt-4 text-2xl font-semibold tracking-[-0.045em] text-white sm:text-3xl">
+            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.045em] text-white sm:text-4xl">
               Your Trading Docks workspace.
             </h1>
 
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500">
-              Your {PLAN_ENTITLEMENTS[plan].name} plan includes {availableModuleCount} dashboard
-              {availableModuleCount === 1 ? " module" : " modules"}. Arrange the workspace around
-              the information you use most.
+              Personalized for your {ACCOUNT_LABEL[accountType]?.toLowerCase() ?? "account"} setup
+              {inventoryModules.length > 0
+                ? ` with ${inventoryModules.length} inventory modules enabled.`
+                : "."}
             </p>
           </div>
 
-          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setEditing((value) => !value)}
               className={[
-                "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl border px-2 text-[10px] font-semibold transition sm:px-4 sm:text-xs",
+                "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
                 editing
                   ? "border-cyan-300/[0.18] bg-cyan-400/[0.08] text-cyan-100"
                   : "border-white/[0.075] bg-white/[0.025] text-slate-400",
@@ -313,7 +231,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl border border-white/[0.075] bg-white/[0.025] px-2 text-[10px] font-semibold text-slate-400 sm:px-4 sm:text-xs"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.075] bg-white/[0.025] px-4 text-xs font-semibold text-slate-400"
             >
               <Settings2 className="h-4 w-4" />
               Customize
@@ -322,7 +240,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={save}
-              className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-2 text-[10px] font-semibold text-[#001018] sm:px-4 sm:text-xs"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-4 text-xs font-semibold text-[#001018]"
             >
               {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
               {saved ? "Saved" : "Save layout"}
@@ -330,43 +248,8 @@ export function ModularWorkspace({
           </div>
         </div>
 
-        {editing ? (
-          <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[10px] font-semibold text-cyan-100">
-                Responsive layout editor
-              </p>
-              <p className="mt-1 text-[9px] text-slate-600">
-                Each device size saves its own module order, visibility, and sizing.
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/[0.06] bg-black/[0.14] p-1">
-              {VIEWPORT_OPTIONS.map((option) => {
-                const Icon = option.icon;
-                const active = viewport === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setPreviewViewport(option.id)}
-                    className={[
-                      "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-[9px] font-semibold transition",
-                      active
-                        ? "bg-cyan-400/[0.1] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.14)]"
-                        : "text-slate-600 hover:text-slate-300",
-                    ].join(" ")}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
         <div className="mt-6 flex flex-col gap-3 border-t border-white/[0.06] pt-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          <div className="flex flex-wrap gap-2">
             {LAYOUTS.filter(
               ([id]) => !isPersonal || ["home", "inventory", "analytics"].includes(id),
             ).map(([id, label]) => (
@@ -375,10 +258,10 @@ export function ModularWorkspace({
                 type="button"
                 onClick={() => setLayoutId(id)}
                 className={[
-                  "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
+                  "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
                   layoutId === id
                     ? "border-cyan-300/[0.17] bg-cyan-400/[0.07] text-white"
-                    : "border-transparent text-slate-500 hover:bg-white/[0.02] hover:text-slate-200",
+                    : "border-transparent text-slate-600 hover:bg-white/[0.02] hover:text-slate-300",
                 ].join(" ")}
               >
                 {id === "home" ? <LayoutDashboard className="h-3.5 w-3.5" /> : null}
@@ -389,16 +272,6 @@ export function ModularWorkspace({
 
           <div className="flex items-center gap-3 text-[10px] text-slate-600">
             <span>{widgets.length} modules</span>
-            <span className="inline-flex items-center gap-1 capitalize">
-              {viewport === "desktop" ? (
-                <Monitor className="h-3 w-3" />
-              ) : viewport === "tablet" ? (
-                <Tablet className="h-3 w-3" />
-              ) : (
-                <Smartphone className="h-3 w-3" />
-              )}
-              {viewport}
-            </span>
             <span className="capitalize">
               {accountType === "business" ? "Store plan" : `${ACCOUNT_LABEL[accountType] ?? "Free"} plan`}
             </span>
@@ -406,26 +279,16 @@ export function ModularWorkspace({
         </div>
       </header>
 
-      <div className="mt-5 flex flex-wrap justify-center gap-4">
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-12">
         {widgets.map((widget) => {
           const definition = DEFINITIONS[widget.id as keyof typeof DEFINITIONS];
           if (!definition) return null;
-          const locked = !canUseDashboardWidget(plan, widget.id);
-          const flexSize =
-            viewport === "mobile"
-              ? "min-w-0 basis-full"
-              : widget.size === "small"
-              ? "min-w-0 flex-[1_1_340px] md:max-w-[520px]"
-              : widget.size === "medium"
-                ? viewport === "tablet"
-                  ? "min-w-0 flex-[1_1_440px] md:max-w-[680px]"
-                  : "min-w-0 flex-[1_1_500px] lg:max-w-[760px]"
-                : "min-w-0 basis-full";
+          const locked = PLAN_RANK[plan] < PLAN_RANK[definition.plan];
 
           return (
             <div
               key={widget.id}
-              className={flexSize}
+              className="contents"
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => reorder(widget.id)}
             >
@@ -435,10 +298,6 @@ export function ModularWorkspace({
                 locked={locked}
                 editing={editing}
                 onDragStart={() => setDraggedId(widget.id)}
-                onMoveUp={() => moveWidget(widget.id, -1)}
-                onMoveDown={() => moveWidget(widget.id, 1)}
-                canMoveUp={widgets[0]?.id !== widget.id}
-                canMoveDown={widgets[widgets.length - 1]?.id !== widget.id}
                 onRemove={() =>
                   updateWidgets(widgets.filter((item) => item.id !== widget.id))
                 }
@@ -461,7 +320,6 @@ export function ModularWorkspace({
         widgets={widgets}
         onClose={() => setDrawerOpen(false)}
         onToggle={(id) => {
-          if (!canUseDashboardWidget(plan, id)) return;
           const exists = widgets.some((widget) => widget.id === id);
           if (exists) {
             updateWidgets(widgets.filter((widget) => widget.id !== id));
@@ -480,10 +338,6 @@ function DashboardWidget({
   locked,
   editing,
   onDragStart,
-  onMoveUp,
-  onMoveDown,
-  canMoveUp,
-  canMoveDown,
   onRemove,
   onResize,
 }: {
@@ -492,26 +346,28 @@ function DashboardWidget({
   locked: boolean;
   editing: boolean;
   onDragStart: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   onRemove: () => void;
   onResize: (size: Size) => void;
 }) {
   const Icon = definition.icon;
+  const span =
+    widget.size === "small"
+      ? "md:col-span-3"
+      : widget.size === "medium"
+        ? "md:col-span-6 xl:col-span-4"
+        : "md:col-span-12 xl:col-span-8";
 
   return (
     <article
       draggable={editing && !locked}
       onDragStart={onDragStart}
-      className={`${styles.glassPanel} ${styles.metricCard} h-full min-h-[160px] w-full rounded-[24px] p-5`}
+      className={`${styles.glassPanel} ${span} ${styles.metricCard} min-h-[180px] rounded-[24px] p-5`}
     >
       <header className="relative flex items-start gap-3">
         {editing ? (
           <button
             type="button"
-            className="hidden h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-700 sm:flex"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-700"
           >
             <GripVertical className="h-4 w-4" />
           </button>
@@ -526,37 +382,16 @@ function DashboardWidget({
             {definition.title}
           </h2>
           <p className="mt-1 text-[9px] capitalize text-slate-600">
-            {definition.plan === "free"
-              ? "Included"
-              : `${PLAN_ENTITLEMENTS[definition.plan].name} module`}
+            {definition.plan} module
           </p>
         </div>
 
         {editing ? (
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={onMoveUp}
-              disabled={!canMoveUp || locked}
-              aria-label={`Move ${definition.title} earlier`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-500 disabled:cursor-not-allowed disabled:opacity-25"
-            >
-              <ArrowUp className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={onMoveDown}
-              disabled={!canMoveDown || locked}
-              aria-label={`Move ${definition.title} later`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-500 disabled:cursor-not-allowed disabled:opacity-25"
-            >
-              <ArrowDown className="h-3.5 w-3.5" />
-            </button>
             <select
               value={widget.size}
-              disabled={locked}
               onChange={(event) => onResize(event.target.value as Size)}
-              className="hidden h-8 rounded-lg border border-white/[0.06] bg-[#07141e] px-2 text-[9px] capitalize text-slate-500 sm:block"
+              className="h-8 rounded-lg border border-white/[0.06] bg-[#07141e] px-2 text-[9px] capitalize text-slate-500"
             >
               <option value="small">Small</option>
               <option value="medium">Medium</option>
@@ -565,7 +400,6 @@ function DashboardWidget({
             <button
               type="button"
               onClick={onRemove}
-              disabled={locked}
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-600"
             >
               <X className="h-4 w-4" />
@@ -578,7 +412,7 @@ function DashboardWidget({
         {locked ? (
           <div className="rounded-xl border border-dashed border-amber-300/[0.12] bg-amber-300/[0.02] px-4 py-8 text-center">
             <p className="text-xs font-semibold text-amber-200/70">
-              Available on {PLAN_ENTITLEMENTS[definition.plan].name}
+              Available on {definition.plan}
             </p>
           </div>
         ) : (
@@ -724,7 +558,6 @@ function CollectionGrowth() {
     hoveredIndex === null ? points[points.length - 1] : points[hoveredIndex];
   const firstValue = data[0].value;
   const latestValue = data[data.length - 1].value;
-  const hasActivity = data.some((point) => point.value !== 0);
   const change = latestValue - firstValue;
   const percentage = firstValue === 0 ? 0 : (change / firstValue) * 100;
 
@@ -790,28 +623,9 @@ function CollectionGrowth() {
         ref={chartRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={() => setHoveredIndex(null)}
-        className={[
-          "relative mt-4 overflow-hidden rounded-2xl border border-white/[0.055] bg-[#02090f] px-1",
-          hasActivity ? "h-[220px]" : "h-[170px]",
-        ].join(" ")}
+        className="relative mt-4 h-[220px] overflow-hidden rounded-2xl border border-white/[0.055] bg-[#02090f] px-1"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_14%,rgba(34,211,238,0.08),transparent_34%)]" />
-        {!hasActivity ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <div className="rounded-2xl border border-cyan-300/[0.1] bg-[#06131d]/90 px-6 py-4 text-center shadow-xl backdrop-blur">
-              <p className="text-xs font-semibold text-white">Your growth chart starts here</p>
-              <p className="mt-1.5 text-[9px] text-slate-500">
-                Add your first card to begin tracking value.
-              </p>
-              <a
-                href="/dashboard/inventory"
-                className="mt-3 inline-flex h-8 items-center rounded-lg bg-cyan-300 px-3 text-[9px] font-semibold text-[#001018]"
-              >
-                Add inventory
-              </a>
-            </div>
-          </div>
-        ) : null}
 
         <svg
           viewBox={`0 0 ${width} ${height}`}
@@ -918,6 +732,9 @@ function CollectionGrowth() {
             ) : null}
           </g>
 
+        </svg>
+
+        <div className="pointer-events-none absolute inset-x-4 bottom-2 h-4">
           {points.map((point, index) => {
             const showLabel =
               data.length <= 7 ||
@@ -926,23 +743,24 @@ function CollectionGrowth() {
               index % Math.ceil(data.length / 6) === 0;
 
             return showLabel ? (
-              <text
+              <span
                 key={`${range}-${point.label}`}
-                x={point.x}
-                y={height - 12}
-                textAnchor={
-                  index === 0 ? "start" : index === data.length - 1 ? "end" : "middle"
-                }
-                fill="rgb(100 116 139)"
-                fontSize="9"
-                fontWeight="600"
-                letterSpacing="0.2"
+                className="absolute whitespace-nowrap text-[10px] font-medium leading-none tracking-normal text-slate-500"
+                style={{
+                  left: `${(point.x / width) * 100}%`,
+                  transform:
+                    index === 0
+                      ? "translateX(0)"
+                      : index === data.length - 1
+                        ? "translateX(-100%)"
+                        : "translateX(-50%)",
+                }}
               >
                 {point.label}
-              </text>
+              </span>
             ) : null;
           })}
-        </svg>
+        </div>
 
         {hoveredIndex !== null ? (
           <div
@@ -1093,8 +911,7 @@ function CustomizeDrawer({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
 
-      <aside className="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col rounded-t-[28px] border-t border-white/[0.075] bg-[#030c13]/98 p-5 shadow-[0_-28px_90px_rgba(0,0,0,0.45)] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-full sm:max-w-[420px] sm:rounded-none sm:border-l sm:border-t-0 sm:shadow-[-28px_0_90px_rgba(0,0,0,0.45)]">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/[0.12] sm:hidden" />
+      <aside className="absolute inset-y-0 right-0 w-full max-w-[420px] border-l border-white/[0.075] bg-[#030c13]/98 p-5 shadow-[-28px_0_90px_rgba(0,0,0,0.45)]">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-white">Customize Dashboard</p>
@@ -1111,28 +928,21 @@ function CustomizeDrawer({
           </button>
         </div>
 
-        <div className="mt-6 flex-1 space-y-2 overflow-y-auto pr-1">
+        <div className="mt-6 space-y-2 overflow-y-auto">
           {Object.entries(DEFINITIONS).map(([id, definition]) => {
             const Icon = definition.icon;
             const enabled = active.has(id);
-            const locked = !canUseDashboardWidget(plan, id);
 
             return (
               <button
                 key={id}
                 type="button"
-                onClick={() => {
-                  if (!locked) onToggle(id);
-                }}
-                disabled={locked}
-                aria-disabled={locked}
+                onClick={() => onToggle(id)}
                 className={[
-                  "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition",
-                  locked
-                    ? "cursor-not-allowed border-white/[0.04] bg-white/[0.01] opacity-55"
-                    : enabled
-                      ? "border-cyan-300/[0.16] bg-cyan-400/[0.045]"
-                      : "border-white/[0.055] bg-white/[0.018] hover:border-white/[0.09]",
+                  "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left",
+                  enabled
+                    ? "border-cyan-300/[0.16] bg-cyan-400/[0.045]"
+                    : "border-white/[0.055] bg-white/[0.018]",
                 ].join(" ")}
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.04] text-cyan-300">
@@ -1144,34 +954,39 @@ function CustomizeDrawer({
                     {definition.title}
                   </span>
                   <span className="mt-1 block text-[8px] capitalize text-slate-600">
-                    {definition.plan === "free"
-                      ? "Included with your plan"
-                      : `${PLAN_ENTITLEMENTS[definition.plan].name} plan`}
+                    {definition.plan} module
                   </span>
                 </span>
 
-                {locked ? (
-                  <span className="flex items-center gap-1.5 rounded-lg border border-amber-300/[0.1] bg-amber-300/[0.035] px-2 py-1 text-[8px] font-semibold text-amber-200/70">
-                    <LockKeyhole className="h-3 w-3" />
-                    Locked
-                  </span>
-                ) : enabled ? (
-                  <Check className="h-4 w-4 text-cyan-300" />
-                ) : null}
+                {enabled ? <Check className="h-4 w-4 text-cyan-300" /> : null}
               </button>
             );
           })}
         </div>
-
-        {plan !== "business" ? (
-          <a
-            href="/dashboard/plans"
-            className="mt-5 flex h-11 items-center justify-center rounded-xl border border-cyan-300/[0.14] bg-cyan-400/[0.055] text-[10px] font-semibold text-cyan-100"
-          >
-            Compare plans and unlock modules
-          </a>
-        ) : null}
       </aside>
     </div>
+  );
+}
+
+function PlanSelector({
+  plan,
+  onChange,
+}: {
+  plan: Plan;
+  onChange: (plan: Plan) => void;
+}) {
+  return (
+    <label className="relative">
+      <select
+        value={plan}
+        onChange={(event) => onChange(event.target.value as Plan)}
+        className="h-11 appearance-none rounded-xl border border-white/[0.075] bg-white/[0.025] pl-4 pr-9 text-xs font-semibold capitalize text-slate-400"
+      >
+        <option value="starter">Starter plan</option>
+        <option value="pro">Pro plan</option>
+        <option value="business">Business plan</option>
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-700" />
+    </label>
   );
 }

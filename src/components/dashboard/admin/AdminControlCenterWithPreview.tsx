@@ -32,6 +32,7 @@ import { createClient } from "@/lib/supabase/client";
 import { OperationsSection, type OperationsTab } from "@/components/dashboard/admin/AdminOperationsPanels";
 import { PlanPreview } from "@/components/dashboard/admin/PlanPreview";
 import { TrialsManager } from "@/components/dashboard/admin/TrialsManager";
+import { AdminFeedbackQueue } from "@/components/dashboard/admin/AdminFeedbackQueue";
 
 type AdminTab =
   | "overview"
@@ -65,7 +66,6 @@ type AdminAccount = {
   email: string;
   full_name: string | null;
   membership_level: "free" | "collector" | "seller" | "business";
-  membership_override: "free" | "collector" | "seller" | "business" | null;
   card_units: number;
   unique_inventory_rows: number;
   created_at: string;
@@ -267,7 +267,6 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
   const [accounts, setAccounts] = useState<AdminAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [accountsError, setAccountsError] = useState("");
-  const [savingMembershipId, setSavingMembershipId] = useState("");
 
   useEffect(() => {
     void Promise.all([
@@ -297,35 +296,6 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
     }
     setSavingId("");
     window.setTimeout(() => setNotice(""), 2500);
-  }
-
-  async function updateMembership(
-    accountId: string,
-    membershipOverride: AdminAccount["membership_override"],
-  ) {
-    setSavingMembershipId(accountId);
-    setNotice("");
-    const { error } = await supabase.rpc("admin_set_membership_override", {
-      target_user_id: accountId,
-      new_plan: membershipOverride,
-    });
-    if (error) {
-      setNotice(`Could not update membership: ${error.message}`);
-    } else {
-      const { data, error: refreshError } = await supabase.rpc("admin_directory");
-      if (refreshError) {
-        setNotice("Membership saved, but the user list could not refresh.");
-      } else {
-        setAccounts((data ?? []) as AdminAccount[]);
-        setNotice(
-          membershipOverride
-            ? `Membership changed to ${membershipOverride}.`
-            : "Membership returned to automatic billing.",
-        );
-      }
-    }
-    setSavingMembershipId("");
-    window.setTimeout(() => setNotice(""), 3000);
   }
 
   const filtered = features.filter((feature) => `${feature.name} ${feature.category} ${feature.description}`.toLowerCase().includes(query.toLowerCase()));
@@ -362,20 +332,12 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
 
         <main className="min-w-0">
           {tab === "overview" ? <Overview features={features} ownerEmail={ownerEmail} accounts={accounts} onNavigate={setTab} /> : null}
-          {tab === "users" ? (
-            <UserDirectory
-              accounts={accounts}
-              loading={accountsLoading}
-              error={accountsError}
-              ownerEmail={ownerEmail}
-              savingMembershipId={savingMembershipId}
-              onMembershipChange={updateMembership}
-            />
-          ) : null}
+          {tab === "users" ? <UserDirectory accounts={accounts} loading={accountsLoading} error={accountsError} /> : null}
           {tab === "plan-preview" ? <PlanPreview /> : null}
           {tab === "features" ? <FeatureAccess features={filtered} query={query} setQuery={setQuery} savingId={savingId} updateFeature={updateFeature} /> : null}
           {tab === "trials" ? <TrialsManager /> : null}
-          {["support", "billing", "communications", "health", "data", "analytics", "feedback"].includes(tab) ? <OperationsSection tab={tab as OperationsTab} /> : null}
+          {tab === "feedback" ? <AdminFeedbackQueue /> : null}
+          {["support", "billing", "communications", "health", "data", "analytics"].includes(tab) ? <OperationsSection tab={tab as OperationsTab} /> : null}
           {["plans", "categories", "security", "audit"].includes(tab) ? <SectionPlaceholder tab={tab as CorePlaceholderTab} features={features} ownerEmail={ownerEmail} /> : null}
         </main>
       </div>
@@ -456,19 +418,10 @@ function UserDirectory({
   accounts,
   loading,
   error,
-  ownerEmail,
-  savingMembershipId,
-  onMembershipChange,
 }: {
   accounts: AdminAccount[];
   loading: boolean;
   error: string;
-  ownerEmail: string;
-  savingMembershipId: string;
-  onMembershipChange: (
-    accountId: string,
-    membershipOverride: AdminAccount["membership_override"],
-  ) => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
   const filteredAccounts = accounts.filter((account) =>
@@ -494,7 +447,7 @@ function UserDirectory({
             </p>
             <h2 className="mt-2 text-xl font-semibold text-white">All users</h2>
             <p className="mt-1.5 text-xs text-slate-500">
-              Review every account and grant temporary testing access without changing Stripe billing.
+              Membership and uploaded inventory totals for every Trading Docks account.
             </p>
           </div>
           <label className="flex h-10 min-w-64 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/15 px-3">
@@ -530,7 +483,6 @@ function UserDirectory({
               <tr>
                 <th className="px-5 py-3">Account</th>
                 <th className="px-5 py-3">Membership</th>
-                <th className="px-5 py-3">Access control</th>
                 <th className="px-5 py-3 text-right">Cards uploaded</th>
                 <th className="px-5 py-3 text-right">Inventory rows</th>
                 <th className="px-5 py-3">Joined</th>
@@ -556,45 +508,6 @@ function UserDirectory({
                     }`}>
                       {account.membership_level}
                     </span>
-                    <p className="mt-1.5 text-[9px] text-slate-600">
-                      {account.membership_override ? "Admin granted" : "Billing/default"}
-                    </p>
-                  </td>
-                  <td className="px-5 py-4">
-                    {account.email.trim().toLowerCase() === ownerEmail.trim().toLowerCase() ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300/15 bg-amber-300/[0.04] px-3 py-2 text-[10px] font-semibold text-amber-200">
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        Permanent Business
-                      </span>
-                    ) : (
-                      <label className="relative block min-w-40">
-                        <span className="sr-only">Change membership for {account.email}</span>
-                        <select
-                          value={account.membership_override ?? "automatic"}
-                          disabled={savingMembershipId === account.id}
-                          onChange={(event) =>
-                            void onMembershipChange(
-                              account.id,
-                              event.target.value === "automatic"
-                                ? null
-                                : (event.target.value as AdminAccount["membership_override"]),
-                            )
-                          }
-                          className="h-10 w-full appearance-none rounded-xl border border-white/[0.08] bg-[#091823] px-3 pr-9 text-[10px] font-semibold text-slate-200 outline-none transition focus:border-cyan-300/30 disabled:cursor-wait disabled:opacity-55"
-                        >
-                          <option value="automatic">Follow billing</option>
-                          <option value="free">Grant Free</option>
-                          <option value="collector">Grant Collector</option>
-                          <option value="seller">Grant Seller</option>
-                          <option value="business">Grant Business</option>
-                        </select>
-                        {savingMembershipId === account.id ? (
-                          <Loader2 className="pointer-events-none absolute right-3 top-3 h-4 w-4 animate-spin text-cyan-300" />
-                        ) : (
-                          <ChevronRight className="pointer-events-none absolute right-3 top-3 h-4 w-4 rotate-90 text-slate-600" />
-                        )}
-                      </label>
-                    )}
                   </td>
                   <td className="px-5 py-4 text-right font-semibold tabular-nums text-white">
                     {Number(account.card_units || 0).toLocaleString("en-US")}

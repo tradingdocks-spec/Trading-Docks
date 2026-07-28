@@ -7,6 +7,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   FileBarChart2,
+  FileSpreadsheet,
   Gem,
   History,
   LayoutDashboard,
@@ -14,13 +15,13 @@ import {
   PackageCheck,
   PackageSearch,
   Percent,
+  MessageSquarePlus,
   Scale,
   Settings,
   ShoppingBag,
   Store,
   Trophy,
   Truck,
-  Wrench,
   Users,
   WalletCards,
 } from "lucide-react";
@@ -121,9 +122,14 @@ export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
 
 export const TOOLS_NAV: NavigationItem[] = [
   {
+    href: "/dashboard/feedback",
+    label: "Feedback & Support",
+    icon: MessageSquarePlus,
+  },
+  {
     href: "/dashboard/tools/csv-converter",
     label: "CSV Conversion Engine",
-    icon: Wrench,
+    icon: FileSpreadsheet,
   },
 ];
 
