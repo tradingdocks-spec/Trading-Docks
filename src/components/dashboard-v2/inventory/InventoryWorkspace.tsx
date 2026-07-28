@@ -55,6 +55,7 @@ import { PageHeader } from "../common/PageHeader";
 import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import styles from "../styles.module.css";
 import { accountStorageKey } from "@/lib/account-storage";
+import { createClient } from "@/lib/supabase/client";
 import {
   PrintingSelector,
   type InventoryFinish,
@@ -288,7 +289,33 @@ export function InventoryWorkspace({
   }, [locations, storageKeys]);
 
   useEffect(() => {
-    if (storageKeys) window.localStorage.setItem(storageKeys.items, JSON.stringify(items));
+    if (!storageKeys) return;
+    window.localStorage.setItem(storageKeys.items, JSON.stringify(items));
+
+    const cardUnits = items.reduce(
+      (total, item) =>
+        total +
+        (Number.isFinite(Number(item.quantity))
+          ? Math.max(0, Math.floor(Number(item.quantity)))
+          : 0),
+      0,
+    );
+    void createClient()
+      .auth.getUser()
+      .then(({ data: { user } }) => {
+        if (!user) return;
+        return createClient()
+          .from("account_card_usage")
+          .upsert(
+            {
+              user_id: user.id,
+              card_units: cardUnits,
+              unique_inventory_rows: items.length,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" },
+          );
+      });
   }, [items, storageKeys]);
 
   useEffect(() => {

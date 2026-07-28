@@ -60,6 +60,17 @@ type Feature = {
   minimum_plan: string | null;
   usage_limit: number | null;
 };
+type AdminAccount = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  membership_level: "free" | "collector" | "seller" | "business";
+  card_units: number;
+  unique_inventory_rows: number;
+  created_at: string;
+  last_sign_in_at: string | null;
+  usage_updated_at: string | null;
+};
 
 const tabs: { id: AdminTab; label: string; icon: typeof Activity }[] = [
   { id: "overview", label: "Overview", icon: Activity },
@@ -252,10 +263,19 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [savingId, setSavingId] = useState("");
+  const [accounts, setAccounts] = useState<AdminAccount[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [accountsError, setAccountsError] = useState("");
 
   useEffect(() => {
-    void supabase.from("feature_access").select("*").order("category").order("name").then(({ data }) => {
-      if (data?.length) setFeatures(data as Feature[]);
+    void Promise.all([
+      supabase.from("feature_access").select("*").order("category").order("name"),
+      supabase.rpc("admin_directory"),
+    ]).then(([featureResult, accountResult]) => {
+      if (featureResult.data?.length) setFeatures(featureResult.data as Feature[]);
+      if (accountResult.error) setAccountsError(accountResult.error.message);
+      else setAccounts((accountResult.data ?? []) as AdminAccount[]);
+      setAccountsLoading(false);
     });
   }, [supabase]);
 
@@ -310,12 +330,13 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
         </aside>
 
         <main className="min-w-0">
-          {tab === "overview" ? <Overview features={features} ownerEmail={ownerEmail} onNavigate={setTab} /> : null}
+          {tab === "overview" ? <Overview features={features} ownerEmail={ownerEmail} accounts={accounts} onNavigate={setTab} /> : null}
+          {tab === "users" ? <UserDirectory accounts={accounts} loading={accountsLoading} error={accountsError} /> : null}
           {tab === "plan-preview" ? <PlanPreview /> : null}
           {tab === "features" ? <FeatureAccess features={filtered} query={query} setQuery={setQuery} savingId={savingId} updateFeature={updateFeature} /> : null}
           {tab === "trials" ? <TrialsManager /> : null}
           {["support", "billing", "communications", "health", "data", "analytics", "feedback"].includes(tab) ? <OperationsSection tab={tab as OperationsTab} /> : null}
-          {["users", "plans", "categories", "security", "audit"].includes(tab) ? <SectionPlaceholder tab={tab as CorePlaceholderTab} features={features} ownerEmail={ownerEmail} /> : null}
+          {["plans", "categories", "security", "audit"].includes(tab) ? <SectionPlaceholder tab={tab as CorePlaceholderTab} features={features} ownerEmail={ownerEmail} /> : null}
         </main>
       </div>
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[150] rounded-xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs font-medium text-cyan-100 shadow-2xl">{notice}</div> : null}
@@ -323,8 +344,9 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
   );
 }
 
-function Overview({ features, ownerEmail, onNavigate }: { features: Feature[]; ownerEmail: string; onNavigate: (tab: AdminTab) => void }) {
+function Overview({ features, ownerEmail, accounts, onNavigate }: { features: Feature[]; ownerEmail: string; accounts: AdminAccount[]; onNavigate: (tab: AdminTab) => void }) {
   const enabled = features.filter((feature) => feature.visibility === "enabled").length;
+  const totalCards = accounts.reduce((total, account) => total + Number(account.card_units || 0), 0);
   const adminTools: { tab: AdminTab; title: string; description: string; icon: typeof Activity; tone: string }[] = [
     { tab: "trials", title: "Trials & Promotions", description: "Grant, extend, convert, or revoke email-based trials.", icon: TicketCheck, tone: "text-amber-200 bg-amber-300/[0.07] border-amber-300/15" },
     { tab: "support", title: "Customer Support", description: "Review accounts, activity, notes, and access issues.", icon: Headphones, tone: "text-cyan-200 bg-cyan-300/[0.06] border-cyan-300/15" },
@@ -337,13 +359,13 @@ function Overview({ features, ownerEmail, onNavigate }: { features: Feature[]; o
   ];
   return <div className="space-y-6">
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      <Stat label="Registered users" value="1" detail="Owner account active" icon={Users} />
+      <Stat label="Registered users" value={accounts.length.toLocaleString("en-US")} detail="All site accounts" icon={Users} />
       <button type="button" onClick={() => onNavigate("trials")} className="rounded-[22px] border border-amber-300/[0.16] bg-amber-300/[0.035] p-5 text-left transition hover:border-amber-300/30 hover:bg-amber-300/[0.06]">
         <div className="flex items-center justify-between"><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-amber-200/65">Trial controls</p><TicketCheck className="h-4 w-4 text-amber-300/70" /></div>
         <p className="mt-4 text-2xl font-semibold tracking-[-0.03em] text-white">Ready</p>
         <p className="mt-1 text-[10px] text-amber-100/45">Open Trials & Promotions →</p>
       </button>
-      <Stat label="Active plans" value="4" detail="Free through Business" icon={BadgeDollarSign} />
+      <Stat label="Cards uploaded" value={totalCards.toLocaleString("en-US")} detail="Across all account inventory" icon={DatabaseBackup} />
       <Stat label="Enabled features" value={String(enabled)} detail={`${features.length} configured`} icon={Sparkles} />
       <Stat label="Security" value="Protected" detail="Authenticator verified" icon={ShieldCheck} />
     </div>
@@ -388,6 +410,126 @@ function Overview({ features, ownerEmail, onNavigate }: { features: Feature[]; o
       <div className="rounded-[24px] border border-amber-300/[0.11] bg-amber-300/[0.025] p-5"><div className="flex items-center gap-2 text-amber-200"><ShieldCheck className="h-4 w-4" /><h3 className="text-sm font-semibold">Permanent Owner</h3></div><p className="mt-3 text-xs leading-5 text-amber-100/55">{ownerEmail} retains complete access regardless of subscription tier and cannot be demoted through ordinary account controls.</p></div>
     </section>
   </div>;
+}
+
+function UserDirectory({
+  accounts,
+  loading,
+  error,
+}: {
+  accounts: AdminAccount[];
+  loading: boolean;
+  error: string;
+}) {
+  const [search, setSearch] = useState("");
+  const filteredAccounts = accounts.filter((account) =>
+    `${account.full_name ?? ""} ${account.email} ${account.membership_level}`
+      .toLowerCase()
+      .includes(search.toLowerCase()),
+  );
+  const totalCards = accounts.reduce(
+    (total, account) => total + Number(account.card_units || 0),
+    0,
+  );
+  const paidAccounts = accounts.filter(
+    (account) => account.membership_level !== "free",
+  ).length;
+
+  return (
+    <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06121b]">
+      <div className="border-b border-white/[0.06] p-5 sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">
+              Account directory
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-white">All users</h2>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Membership and uploaded inventory totals for every Trading Docks account.
+            </p>
+          </div>
+          <label className="flex h-10 min-w-64 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/15 px-3">
+            <Search className="h-3.5 w-3.5 text-slate-600" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search name, email, or plan…"
+              className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-700"
+            />
+          </label>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <Stat label="Total accounts" value={accounts.length.toLocaleString("en-US")} detail="Registered users" icon={Users} />
+          <Stat label="Cards uploaded" value={totalCards.toLocaleString("en-US")} detail="Total inventory quantity" icon={DatabaseBackup} />
+          <Stat label="Paid members" value={paidAccounts.toLocaleString("en-US")} detail="Collector through Business" icon={BadgeDollarSign} />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex min-h-48 items-center justify-center gap-2 text-xs text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin text-cyan-300" />
+          Loading accounts…
+        </div>
+      ) : error ? (
+        <p role="alert" className="m-5 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-xs text-red-200">
+          The account directory could not load. Apply the included Supabase migration, then refresh this page.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] text-left">
+            <thead className="border-b border-white/[0.06] bg-black/10 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600">
+              <tr>
+                <th className="px-5 py-3">Account</th>
+                <th className="px-5 py-3">Membership</th>
+                <th className="px-5 py-3 text-right">Cards uploaded</th>
+                <th className="px-5 py-3 text-right">Inventory rows</th>
+                <th className="px-5 py-3">Joined</th>
+                <th className="px-5 py-3">Last sign-in</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.05]">
+              {filteredAccounts.map((account) => (
+                <tr key={account.id} className="text-xs transition hover:bg-white/[0.015]">
+                  <td className="px-5 py-4">
+                    <p className="font-semibold text-slate-200">{account.full_name || account.email.split("@")[0]}</p>
+                    <p className="mt-1 text-[10px] text-slate-600">{account.email}</p>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${
+                      account.membership_level === "business"
+                        ? "border-amber-300/20 bg-amber-300/[0.06] text-amber-200"
+                        : account.membership_level === "seller"
+                          ? "border-cyan-300/20 bg-cyan-300/[0.06] text-cyan-200"
+                          : account.membership_level === "collector"
+                            ? "border-violet-300/20 bg-violet-300/[0.06] text-violet-200"
+                            : "border-white/[0.08] bg-white/[0.025] text-slate-500"
+                    }`}>
+                      {account.membership_level}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-right font-semibold tabular-nums text-white">
+                    {Number(account.card_units || 0).toLocaleString("en-US")}
+                  </td>
+                  <td className="px-5 py-4 text-right tabular-nums text-slate-400">
+                    {Number(account.unique_inventory_rows || 0).toLocaleString("en-US")}
+                  </td>
+                  <td className="px-5 py-4 text-[10px] text-slate-500">
+                    {new Date(account.created_at).toLocaleDateString("en-US")}
+                  </td>
+                  <td className="px-5 py-4 text-[10px] text-slate-500">
+                    {account.last_sign_in_at ? new Date(account.last_sign_in_at).toLocaleDateString("en-US") : "Never"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!filteredAccounts.length ? (
+            <p className="px-5 py-10 text-center text-xs text-slate-600">No accounts match this search.</p>
+          ) : null}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function FeatureAccess({ features, query, setQuery, savingId, updateFeature }: { features: Feature[]; query: string; setQuery: (value: string) => void; savingId: string; updateFeature: (id: string, patch: Partial<Feature>) => void }) {

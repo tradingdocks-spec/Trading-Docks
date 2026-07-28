@@ -1,37 +1,21 @@
-TRADING DOCKS PRICING + CSV TOOLS v59
+Trading Docks Admin Users v60
 
 1. Extract this ZIP directly into the root of the current Trading Docks repository.
-2. Allow the files under src/ to replace their matching files.
-3. Commit and push the changes.
-4. Wait for the production deployment to finish, then refresh the site.
+2. Allow the included files to replace matching files.
+3. In Supabase, open SQL Editor and run:
+   supabase/migrations/202607270007_admin_user_directory_usage.sql
+4. Commit and push the changed files.
+5. Wait for the production deployment to finish, then refresh the dashboard.
 
-PRICING
-- Monthly is selected first on the landing page and plan comparison page.
-- Yearly can be selected with the Monthly / Yearly switch.
-- Collector: $4.99 monthly or $44.99 yearly ($3.75/month equivalent).
-- Seller: $19.99 monthly or $179.99 yearly ($15.00/month equivalent).
-- Store: $49.99 monthly or $449.99 yearly ($37.50/month equivalent).
-- Yearly savings are displayed on each paid plan.
+Expected source changes:
+- src/components/dashboard/admin/AdminControlCenterWithPreview.tsx
+- src/components/dashboard-v2/inventory/InventoryWorkspace.tsx
+- src/lib/effective-plan.ts
+- supabase/migrations/202607270007_admin_user_directory_usage.sql
 
-STRIPE REQUIRED
-Create or confirm Live Stripe annual prices for $44.99, $179.99, and $449.99.
-Update these Vercel Production variables with the matching Live price IDs:
-- STRIPE_COLLECTOR_ANNUAL_PRICE_ID
-- STRIPE_SELLER_ANNUAL_PRICE_ID
-- STRIPE_STORE_ANNUAL_PRICE_ID
-Redeploy after changing those variables.
-
-CSV CONVERSION ENGINE
-- Added under a new Tools section in the sidebar.
-- Seller and Store plans can access the tool.
-- Converted cards can be saved to an existing inventory location.
-- Users can create a new numbered CSV Bulk Box from the converter.
-- Batches can remain unlisted or be marked Active on TCGplayer, eBay,
-  Mana Pool, Trading Docks, or In-Store.
-- Saving updates inventory records, location quantities and values,
-  marketplace listing allocations, and movement history.
-
-VERIFICATION
-- Next.js production build passed.
-- TypeScript passed.
-- 65 routes generated, including /dashboard/tools/csv-converter.
+Important:
+- The owner account tradingdocks@gmail.com defaults to Business access.
+- The existing Admin Plan Preview can still temporarily emulate lower plans.
+- Card totals synchronize when each user opens their Inventory workspace after
+  this update is deployed. Accounts that have not opened the updated inventory
+  yet initially show zero cards.

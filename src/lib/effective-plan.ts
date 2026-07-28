@@ -44,6 +44,8 @@ export async function getEffectivePlan(): Promise<AccountTier> {
 
   return isPreviewPlan(previewPlan)
     ? previewPlan
+    : isOwner
+      ? "business"
     : paidAccessIsCurrent
       ? normalizeAccountTier(subscription.plan_id)
       : normalizeAccountTier(preferences.account_type === "free" ? "free" : undefined);
