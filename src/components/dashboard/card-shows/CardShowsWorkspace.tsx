@@ -26,6 +26,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
+import { CARD_SHOW_GAMES, type CardShowGameId } from "@/lib/card-show-games";
 
 type Tab = "overview" | "calendar" | "lookup" | "inventory" | "sales" | "reports";
 type EventRecord = {
@@ -41,6 +42,28 @@ type EventRecord = {
 };
 type SaleRecord = { id: string; item: string; amount: number; method: string; time: string };
 type InventoryRecord = { name: string; category: string; taken: number; sold: number; value: number };
+type PriceVariant = {
+  id: string;
+  condition: string;
+  printing: string;
+  language: string | null;
+  current: number | null;
+  low30d: number | null;
+  average30d: number | null;
+  high30d: number | null;
+  updatedAt: string | null;
+};
+type PriceResult = {
+  id: string;
+  name: string;
+  game: string;
+  setName: string;
+  number: string | null;
+  rarity: string | null;
+  sealed: boolean;
+  imageUrl: string | null;
+  variants: PriceVariant[];
+};
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof CalendarDays }> = [
   { id: "overview", label: "Overview", icon: Sparkles },
@@ -73,6 +96,7 @@ export function CardShowsWorkspace() {
   const [marketPrice, setMarketPrice] = useState("");
   const [lookupType, setLookupType] = useState<"single" | "sealed">("single");
   const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupGame, setLookupGame] = useState<CardShowGameId>("pokemon");
   const [sales, setSales] = useState<SaleRecord[]>(starterSales);
   const [inventory, setInventory] = useState<InventoryRecord[]>(starterInventory);
   const [saleItem, setSaleItem] = useState("");
@@ -206,6 +230,8 @@ export function CardShowsWorkspace() {
             <LookupPanel
               query={lookupQuery}
               setQuery={setLookupQuery}
+              game={lookupGame}
+              setGame={setLookupGame}
               type={lookupType}
               setType={setLookupType}
               marketPrice={marketPrice}
@@ -322,15 +348,66 @@ function CalendarPanel({ events, onAdd }: { events: EventRecord[]; onAdd: () => 
   );
 }
 
-function LookupPanel({ query, setQuery, type, setType, marketPrice, setMarketPrice, rate, setRate, singleRate, sealedRate, offer, onSave }: { query: string; setQuery: (v: string) => void; type: "single" | "sealed"; setType: (v: "single" | "sealed") => void; marketPrice: string; setMarketPrice: (v: string) => void; rate: string; setRate: (v: string) => void; singleRate: string; sealedRate: string; offer: number | null; onSave: () => void }) {
+function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPrice, setMarketPrice, rate, setRate, singleRate, sealedRate, offer, onSave }: { query: string; setQuery: (v: string) => void; game: CardShowGameId; setGame: (v: CardShowGameId) => void; type: "single" | "sealed"; setType: (v: "single" | "sealed") => void; marketPrice: string; setMarketPrice: (v: string) => void; rate: string; setRate: (v: string) => void; singleRate: string; sealedRate: string; offer: number | null; onSave: () => void }) {
+  const [results, setResults] = useState<PriceResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
+
+  async function searchPrices(event: React.FormEvent) {
+    event.preventDefault();
+    if (query.trim().length < 2 || loading) return;
+    setLoading(true);
+    setError("");
+    setResults([]);
+    setSelectedVariantId("");
+    try {
+      const params = new URLSearchParams({ q: query.trim(), game, type });
+      const response = await fetch(`/api/card-shows/search?${params}`);
+      const payload = (await response.json()) as { results?: PriceResult[]; error?: string; remaining?: number | null };
+      if (!response.ok) throw new Error(payload.error || "Search failed.");
+      setResults(payload.results ?? []);
+      setRemaining(typeof payload.remaining === "number" ? payload.remaining : null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Search failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function chooseVariant(variant: PriceVariant) {
+    setSelectedVariantId(variant.id);
+    if (variant.current !== null) setMarketPrice(String(variant.current));
+  }
+
   return (
     <div className="grid gap-5 xl:grid-cols-[1.35fr_.8fr]">
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-7">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Buying desk</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">Know your number before you buy.</h2><p className="mt-2 text-sm text-slate-500">Look up a single or sealed product and calculate your maximum offer instantly.</p>
         <div className="mt-6 flex rounded-xl border border-white/[0.07] bg-black/10 p-1">{(["single", "sealed"] as const).map((item) => <button key={item} onClick={() => setType(item)} className={`flex-1 rounded-lg py-2.5 text-xs font-bold capitalize transition ${type === item ? "bg-cyan-400/[0.12] text-cyan-200 shadow-[inset_0_0_0_1px_rgba(103,232,249,.17)]" : "text-slate-600"}`}>{item === "single" ? "Singles" : "Sealed products"}</button>)}</div>
-        <label className="mt-4 block"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Card or product</span><span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-white/[0.08] bg-black/10 px-4 focus-within:border-cyan-300/30"><Search className="h-4 w-4 text-slate-600" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={type === "single" ? "Search Sheoldred, the Apocalypse…" : "Search Commander Masters Collector Booster…"} className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-700" /></span></label>
+        <div className="mt-4 flex flex-wrap gap-2">{CARD_SHOW_GAMES.map((item) => <button key={item.id} type="button" onClick={() => setGame(item.id)} className={`rounded-full border px-3 py-2 text-[10px] font-bold transition ${game === item.id ? "border-cyan-300/30 bg-cyan-400/[0.11] text-cyan-100" : "border-white/[0.07] text-slate-500 hover:text-slate-300"}`}>{item.label}</button>)}</div>
+        <form onSubmit={searchPrices} className="mt-4">
+          <label className="block"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Card or product</span><span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-white/[0.08] bg-black/10 px-4 focus-within:border-cyan-300/30"><Search className="h-4 w-4 text-slate-600" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={type === "single" ? "Enter a card name or card number" : "Enter a booster box, bundle, or deck"} className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-700" /><button type="submit" disabled={loading || query.trim().length < 2} className="h-8 rounded-lg bg-cyan-400 px-4 text-[10px] font-bold text-[#001018] disabled:cursor-not-allowed disabled:opacity-40">{loading ? "Searching…" : "Search"}</button></span></label>
+        </form>
+        {error ? <div className="mt-4 rounded-xl border border-rose-300/15 bg-rose-400/[0.06] px-4 py-3 text-xs text-rose-200">{error}</div> : null}
+        {!loading && !error && results.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-white/[0.08] px-5 py-7 text-center text-xs text-slate-600">Choose a game and submit a search. Searches only run when you press Search to protect your monthly allowance.</div> : null}
+        {results.length ? <div className="mt-5 space-y-3">
+          <div className="flex items-center justify-between"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">Live pricing results</p>{remaining !== null ? <p className="text-[10px] text-slate-700">{remaining.toLocaleString()} API requests remaining</p> : null}</div>
+          {results.map((result) => <article key={result.id} className="overflow-hidden rounded-2xl border border-white/[0.07] bg-black/10">
+            <div className="flex gap-3 border-b border-white/[0.055] p-4">
+              <div className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.025] text-[8px] font-bold text-slate-700">{result.imageUrl ? <img src={result.imageUrl} alt="" className="h-full w-full object-cover" /> : "TCG"}</div>
+              <div className="min-w-0 flex-1"><h3 className="truncate text-sm font-semibold text-white">{result.name}</h3><p className="mt-1 truncate text-[10px] text-slate-500">{result.setName}{result.number ? ` · #${result.number}` : ""}{result.rarity ? ` · ${result.rarity}` : ""}</p><p className="mt-1 text-[9px] font-semibold uppercase tracking-wider text-cyan-300">{result.game}</p></div>
+            </div>
+            <div className="divide-y divide-white/[0.045]">{result.variants.slice(0, 5).map((variant) => <button type="button" key={variant.id} onClick={() => chooseVariant(variant)} className={`grid w-full grid-cols-[1fr_auto] gap-3 p-4 text-left transition hover:bg-cyan-400/[0.04] ${selectedVariantId === variant.id ? "bg-cyan-400/[0.07] ring-1 ring-inset ring-cyan-300/20" : ""}`}>
+              <span><span className="block text-xs font-semibold text-slate-300">{variant.printing} · {variant.condition}</span><span className="mt-1 block text-[9px] text-slate-600">{variant.language || "Language not listed"}{variant.updatedAt ? ` · Updated ${new Date(variant.updatedAt).toLocaleDateString()}` : ""}</span></span>
+              <span className="grid grid-cols-4 gap-3 text-right"><PriceCell label="30d low" value={variant.low30d} /><PriceCell label="30d avg" value={variant.average30d} /><PriceCell label="30d high" value={variant.high30d} /><PriceCell label="Current" value={variant.current} accent /></span>
+            </button>)}</div>
+          </article>)}
+          <p className="text-[10px] leading-4 text-slate-700">Low, average, and high are the selected variant&apos;s 30-day observed prices. Current is the latest market value supplied by JustTCG.</p>
+        </div> : null}
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Current market price</span><span className="mt-2 flex h-12 items-center rounded-xl border border-white/[0.08] bg-black/10 px-4"><span className="mr-1 text-sm text-slate-600">$</span><input type="number" step=".01" value={marketPrice} onChange={(event) => setMarketPrice(event.target.value)} className="w-full bg-transparent text-sm font-semibold text-white outline-none" /></span></label>
+          <label><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Offer price basis</span><span className="mt-2 flex h-12 items-center rounded-xl border border-white/[0.08] bg-black/10 px-4"><span className="mr-1 text-sm text-slate-600">$</span><input type="number" step=".01" value={marketPrice} onChange={(event) => setMarketPrice(event.target.value)} placeholder="Select a result or enter price" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-700" /></span></label>
           <label><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Buying percentage</span><span className="mt-2 flex h-12 items-center rounded-xl border border-white/[0.08] bg-black/10 px-4"><input type="number" min="1" max="100" value={rate} onChange={(event) => setRate(event.target.value)} placeholder="Enter target" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-700" /><span className="text-sm text-slate-600">%</span></span></label>
         </div>
         <div className="mt-5 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[linear-gradient(135deg,rgba(34,211,238,.09),rgba(14,165,233,.025))] p-5"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">Maximum cash offer</p><p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-white">{offer === null ? "—" : money(offer)}</p><p className="mt-1 text-xs text-slate-500">{offer === null ? "Enter a market price and buying percentage." : `${money(Number(marketPrice))} market × ${rate}% target`}</p></div><div className="text-right"><p className="text-[10px] uppercase tracking-wider text-slate-600">Target gross margin</p><p className="mt-1 text-xl font-semibold text-emerald-300">{rate ? `${100 - Number(rate)}%` : "—"}</p></div></div></div>
@@ -342,6 +419,10 @@ function LookupPanel({ query, setQuery, type, setType, marketPrice, setMarketPri
       </section>
     </div>
   );
+}
+
+function PriceCell({ label, value, accent = false }: { label: string; value: number | null; accent?: boolean }) {
+  return <span><span className="block text-[8px] font-bold uppercase tracking-wider text-slate-700">{label}</span><strong className={`mt-1 block text-xs ${accent ? "text-cyan-200" : "text-slate-300"}`}>{value === null ? "—" : money(value)}</strong></span>;
 }
 
 function InventoryPanel({ event, inventory, value, sold }: { event?: EventRecord; inventory: InventoryRecord[]; value: number; sold: number }) {
