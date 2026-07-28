@@ -147,7 +147,11 @@ export function CsvConversionEngine() {
       CSV_TEMPLATES.find((template) => template.id === outputTemplateId)?.name ??
       "Trading Docks";
     const csv = [outputHeaders, ...values]
-      .map((row) => row.map(csvEscape).join(","))
+      .map((row) =>
+        row
+          .map((value) => outputTemplateId === "tcgplayer" ? csvQuote(value) : csvEscape(value))
+          .join(","),
+      )
       .join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
@@ -436,6 +440,9 @@ function parseCsv(text: string) {
 }
 function csvEscape(value: string) {
   return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+}
+function csvQuote(value: string) {
+  return `"${value.replaceAll('"', '""')}"`;
 }
 function readStored<T>(key: string, fallback: T): T {
   try { const value = window.localStorage.getItem(key); return value ? JSON.parse(value) as T : fallback; }
