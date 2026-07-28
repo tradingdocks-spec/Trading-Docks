@@ -1,0 +1,358 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Crown,
+  HelpCircle,
+  ShieldCheck,
+  Sparkles,
+  Store,
+  Users,
+  X,
+} from "lucide-react";
+import { CheckoutButton } from "@/components/billing/CheckoutButton";
+import {
+  PLAN_ENTITLEMENTS,
+  type AccountTier,
+} from "@/lib/plan-entitlements";
+
+type BillingCycle = "monthly" | "annual";
+
+type Plan = {
+  id: "free" | "collector" | "seller" | "business";
+  name: string;
+  audience: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  description: string;
+  featured?: boolean;
+  badge?: string;
+  features: string[];
+  limitations: string[];
+};
+
+const plans: Plan[] = [
+  {
+    id: "free",
+    name: "Free",
+    audience: "Explore Trading Docks",
+    monthlyPrice: PLAN_ENTITLEMENTS.free.monthlyPrice,
+    annualPrice: PLAN_ENTITLEMENTS.free.annualPrice,
+    description:
+      "A simple starting point for discovering the platform and following your favorite cards.",
+    features: [
+      "Personal dashboard",
+      "Up to 10 saved decks",
+      "Up to 500 inventory cards",
+      "Basic collection storage and search",
+      "25-card watchlist",
+      "Basic market lookups",
+      "Community and tournament discovery",
+    ],
+    limitations: ["No marketplace tools", "No seller operations"],
+  },
+  {
+    id: "collector",
+    name: "Collector",
+    audience: "Organize a personal collection",
+    monthlyPrice: PLAN_ENTITLEMENTS.collector.monthlyPrice,
+    annualPrice: PLAN_ENTITLEMENTS.collector.annualPrice,
+    description:
+      "Catalog, organize, and understand a growing personal card collection without seller complexity.",
+    features: [
+      "Everything in Free",
+      "Up to 10,000 inventory units",
+      "Up to 50 saved decks",
+      "Storage locations and capacity",
+      "Put-away and movement history",
+      "Collection value tracking",
+      "CSV import and export",
+    ],
+    limitations: ["No sales-channel allocations", "Single user"],
+  },
+  {
+    id: "seller",
+    name: "Seller",
+    audience: "Run an online card business",
+    monthlyPrice: PLAN_ENTITLEMENTS.seller.monthlyPrice,
+    annualPrice: PLAN_ENTITLEMENTS.seller.annualPrice,
+    description:
+      "Turn inventory into listings with the daily pricing, intake, and marketplace tools sellers need.",
+    featured: true,
+    badge: "Most popular",
+    features: [
+      "Everything in Collector",
+      "Unlimited saved decks",
+      "Up to 50,000 inventory units",
+      "Collection buying and intake",
+      "TCGplayer, eBay, Mana Pool, and store tags",
+      "Quantity-aware listing allocations",
+      "Pricing and listing action queues",
+      "Listing exceptions and oversell warnings",
+      "Sales-channel summaries",
+    ],
+    limitations: ["Single user", "Advanced business reporting not included"],
+  },
+  {
+    id: "business",
+    name: "Store",
+    audience: "Operate a team and storefront",
+    monthlyPrice: PLAN_ENTITLEMENTS.business.monthlyPrice,
+    annualPrice: PLAN_ENTITLEMENTS.business.annualPrice,
+    description:
+      "The complete Trading Docks command center for stores managing inventory, staff, and performance.",
+    badge: "Full platform",
+    features: [
+      "Everything in Seller",
+      "Up to 250,000 inventory units",
+      "5 team seats included",
+      "Employee roles and controls",
+      "Cost basis and profitability",
+      "Inventory aging and saved views",
+      "Advanced location and exception reporting",
+      "Business reports and operational dashboards",
+      "Priority support",
+    ],
+    limitations: ["Additional team seats billed separately"],
+  },
+];
+
+const comparisonRows = [
+  { label: "Deck Vault decks", values: ["10", "50", "Unlimited", "Unlimited"] },
+  { label: "Inventory access", values: ["Basic personal", "Personal", "Seller operations", "Full command center"] },
+  { label: "Inventory units", values: ["500", "10,000", "50,000", "250,000"] },
+  { label: "Storage locations", values: ["5", "25", "Unlimited", "Unlimited"] },
+  { label: "Marketplace allocations", values: [false, false, true, true] },
+  { label: "Collection buying", values: [false, false, true, true] },
+  { label: "Pricing and action queues", values: [false, false, true, true] },
+  { label: "Cost basis and profit", values: [false, false, "Basic", "Advanced"] },
+  { label: "Inventory aging", values: [false, false, false, true] },
+  { label: "Saved operational views", values: [false, false, false, true] },
+  { label: "Team members", values: ["1", "1", "1", "5 included"] },
+];
+
+function formatPrice(value: number) {
+  return value === 0 ? "$0" : `$${value.toFixed(value % 1 === 0 ? 0 : 2)}`;
+}
+
+function planAction(plan: Plan, currentPlan: string) {
+  if (plan.id === currentPlan) return "Current plan";
+  if (plan.id === "free") return "Use Free";
+  return plan.id === "business" ? "Choose Store" : `Choose ${plan.name}`;
+}
+
+export function TieredPlanComparison({
+  currentPlan,
+  publicView = false,
+}: {
+  currentPlan: AccountTier | null;
+  publicView?: boolean;
+}) {
+  const [billing, setBilling] = useState<BillingCycle>("annual");
+
+  return (
+    <div className="min-h-full bg-[#030a10] px-4 py-8 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1440px]">
+        <Link
+          href={publicView ? "/" : "/dashboard"}
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-cyan-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {publicView ? "Back to Trading Docks" : "Back to Dashboard"}
+        </Link>
+
+        <header className="mx-auto max-w-3xl pb-10 pt-10 text-center">
+          <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">
+            <Sparkles className="h-3.5 w-3.5" />
+            Plans built to grow with you
+          </div>
+          <h1 className="mt-5 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
+            Choose the workspace that fits.
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
+            Start free, organize a personal collection, grow an online sales operation,
+            or run your entire store from one connected platform.
+          </p>
+
+          <div className="mx-auto mt-7 flex w-fit items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] p-1">
+            {(["monthly", "annual"] as const).map((cycle) => (
+              <button
+                key={cycle}
+                type="button"
+                onClick={() => setBilling(cycle)}
+                className={`rounded-xl px-5 py-2.5 text-xs font-semibold capitalize transition ${
+                  billing === cycle
+                    ? "bg-cyan-400 text-[#00151b] shadow-[0_8px_25px_rgba(34,211,238,0.22)]"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                {cycle}
+                {cycle === "annual" && (
+                  <span className="ml-2 rounded-full bg-[#002b35] px-2 py-0.5 text-[9px] uppercase tracking-wide text-cyan-200">
+                    Save 17%
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </header>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {plans.map((plan) => {
+            const price =
+              billing === "annual" ? plan.annualPrice / 12 : plan.monthlyPrice;
+            const isCurrent = !publicView && plan.id === currentPlan;
+            return (
+              <article
+                key={plan.id}
+                className="group relative flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#07141d] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:bg-[linear-gradient(180deg,rgba(15,62,75,0.48),rgba(5,20,29,0.96)_35%)] hover:shadow-[0_25px_80px_rgba(0,200,230,0.11)]"
+              >
+                {plan.badge && (
+                  <div className="absolute right-5 top-5 rounded-full border border-cyan-300/15 bg-cyan-400/[0.08] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
+                    {plan.badge}
+                  </div>
+                )}
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-cyan-300">
+                  {plan.id === "free" && <Sparkles className="h-5 w-5" />}
+                  {plan.id === "collector" && <Crown className="h-5 w-5" />}
+                  {plan.id === "seller" && <ShieldCheck className="h-5 w-5" />}
+                  {plan.id === "business" && <Store className="h-5 w-5" />}
+                </div>
+                <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.17em] text-slate-500">
+                  {plan.audience}
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold">{plan.name}</h2>
+                <div className="mt-5 flex items-end gap-1">
+                  <span className="text-4xl font-semibold tracking-[-0.045em]">
+                    {formatPrice(price)}
+                  </span>
+                  <span className="pb-1 text-xs text-slate-500">/ month</span>
+                </div>
+                <p className="mt-2 min-h-5 text-[11px] text-slate-500">
+                  {billing === "annual" && plan.annualPrice > 0
+                    ? `${formatPrice(plan.annualPrice)} billed annually`
+                    : plan.monthlyPrice > 0
+                      ? "Billed monthly"
+                      : "Free forever"}
+                </p>
+                <p className="mt-5 min-h-[72px] text-sm leading-6 text-slate-400">
+                  {plan.description}
+                </p>
+                {publicView ? (
+                  <Link
+                    href={
+                      plan.id === "free"
+                        ? "/sign-up"
+                        : `/sign-up?plan=${plan.id}&billing=${billing}`
+                    }
+                    className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-slate-100 transition group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
+                  >
+                    {plan.id === "free" ? "Start free" : planAction(plan, "")}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                ) : isCurrent || plan.id === "free" || currentPlan !== "free" ? (
+                  <Link
+                    href={currentPlan !== "free" ? "/dashboard/settings" : "/dashboard"}
+                    aria-current={isCurrent ? "true" : undefined}
+                    className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-slate-100 transition group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
+                  >
+                    {currentPlan !== "free" && !isCurrent
+                      ? "Change in billing portal"
+                      : planAction(plan, currentPlan)}
+                    {!isCurrent && <ArrowRight className="h-4 w-4" />}
+                  </Link>
+                ) : (
+                  <CheckoutButton
+                    plan={plan.id}
+                    billing={billing}
+                    label={planAction(plan, currentPlan)}
+                    featured={false}
+                  />
+                )}
+                <div className="mt-7 border-t border-white/[0.07] pt-6">
+                  <p className="text-xs font-semibold text-slate-200">What&apos;s included</p>
+                  <ul className="mt-4 space-y-3">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex gap-2.5 text-xs leading-5 text-slate-400">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
+                        {feature}
+                      </li>
+                    ))}
+                    {plan.limitations.map((limitation) => (
+                      <li key={limitation} className="flex gap-2.5 text-xs leading-5 text-slate-600">
+                        <X className="mt-0.5 h-4 w-4 shrink-0" />
+                        {limitation}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+
+        <section className="mt-10 overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#07141d]">
+          <div className="border-b border-white/[0.07] p-6 sm:p-8">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              Detailed comparison
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold">Compare Inventory features</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-white/[0.07] text-xs text-slate-400">
+                  <th className="p-5 font-medium sm:px-8">Feature</th>
+                  {plans.map((plan) => (
+                    <th key={plan.id} className="p-5 font-semibold text-slate-200">
+                      {plan.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row) => (
+                  <tr key={row.label} className="border-b border-white/[0.05] last:border-0">
+                    <td className="p-5 text-xs font-medium text-slate-400 sm:px-8">{row.label}</td>
+                    {row.values.map((value, index) => (
+                      <td key={`${row.label}-${plans[index].id}`} className="p-5 text-xs text-slate-300">
+                        {value === true ? (
+                          <Check className="h-4 w-4 text-cyan-300" aria-label="Included" />
+                        ) : value === false ? (
+                          <span className="text-slate-700">—</span>
+                        ) : (
+                          value
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mt-10 grid gap-4 md:grid-cols-3">
+          {[
+            [ShieldCheck, "No surprise fees", "Clear plan limits and straightforward monthly or annual billing."],
+            [Users, "Upgrade as you grow", "Move plans without rebuilding your inventory or losing your history."],
+            [HelpCircle, "Need help choosing?", "Start with the plan that fits today. Your workspace can grow later."],
+          ].map(([Icon, title, copy]) => {
+            const FeatureIcon = Icon as typeof ShieldCheck;
+            return (
+              <div key={title as string} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
+                <FeatureIcon className="h-5 w-5 text-cyan-300" />
+                <h3 className="mt-4 text-sm font-semibold">{title as string}</h3>
+                <p className="mt-2 text-xs leading-5 text-slate-500">{copy as string}</p>
+              </div>
+            );
+          })}
+        </section>
+      </div>
+    </div>
+  );
+}
