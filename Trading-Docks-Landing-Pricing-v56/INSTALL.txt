@@ -1,0 +1,16 @@
+Trading Docks Landing Pricing v56
+
+1. Extract this ZIP into the root of your current Trading Docks GitHub folder.
+2. Allow the src folders to merge and the two existing files to be replaced.
+3. In GitHub Desktop, review the two changed files.
+4. Commit with: Update landing page pricing tiers
+5. Push to main and wait for Vercel to finish deploying.
+
+Included changes:
+- Replaces the single early-access pricing card with Free, Collector, Seller,
+  and Store plan cards.
+- Adds a Monthly/Annual selector and displays the configured plan prices.
+- Shows the main limits and tools included with each plan.
+- Highlights Seller as the most popular plan.
+- Links paid tiers to the full /pricing comparison page.
+- Removes "Sports cards coming soon" from the landing page.
