@@ -20,7 +20,11 @@ import {
   WandSparkles,
 } from "lucide-react";
 
-import { accountStorageKey } from "@/lib/account-storage";
+import {
+  loadInventorySnapshot,
+  persistInventorySnapshotDiff,
+  type InventoryPersistenceRecord,
+} from "@/lib/inventory-persistence";
 import {
   CANONICAL_FIELDS,
   CSV_TEMPLATES,
@@ -40,9 +44,6 @@ type LocationRecord = {
   itemCount: number;
   estimatedValue: number;
 };
-const LOCATION_STORAGE_KEY = "trading-docks-inventory-locations-v1";
-const ITEM_STORAGE_KEY = "trading-docks-inventory-items-v1";
-const MOVEMENT_STORAGE_KEY = "trading-docks-inventory-movements-v1";
 const TCGPLAYER_HEADERS =
   CSV_TEMPLATES.find((template) => template.id === "tcgplayer")?.headers ?? [];
 const IMPORTANT_FIELDS: CanonicalKey[] = [
@@ -292,14 +293,10 @@ export function CsvConversionEngine() {
     if (!locationName.trim()) return setNotice("Choose or enter a storage location.");
     setWorking(true);
     try {
-      const [locationsKey, itemsKey, movementsKey] = await Promise.all([
-        accountStorageKey(LOCATION_STORAGE_KEY),
-        accountStorageKey(ITEM_STORAGE_KEY),
-        accountStorageKey(MOVEMENT_STORAGE_KEY),
-      ]);
-      const locations = readStored<LocationRecord[]>(locationsKey, []);
-      const items = readStored<Array<Record<string, unknown>>>(itemsKey, []);
-      const movements = readStored<Array<Record<string, unknown>>>(movementsKey, []);
+      const currentSnapshot = await loadInventorySnapshot();
+      const locations = currentSnapshot.locations as unknown as LocationRecord[];
+      const items = currentSnapshot.items;
+      const movements = currentSnapshot.movements;
       let location = locations.find(
         (item) => item.name.trim().toLowerCase() === locationName.trim().toLowerCase(),
       );
@@ -352,9 +349,11 @@ export function CsvConversionEngine() {
         action: "filed",
         timestamp: now,
       }));
-      window.localStorage.setItem(locationsKey, JSON.stringify(locations));
-      window.localStorage.setItem(itemsKey, JSON.stringify([...items, ...newItems]));
-      window.localStorage.setItem(movementsKey, JSON.stringify([...movements, ...movementRows]));
+      await persistInventorySnapshotDiff(currentSnapshot, {
+        locations: locations as unknown as InventoryPersistenceRecord[],
+        items: [...items, ...newItems],
+        movements: [...movements, ...movementRows],
+      });
       setNotice(
         `${quantityTotal.toLocaleString()} units saved to ${location.name}${
           marketplace === "Unlisted" ? "" : ` and allocated to ${marketplace}`
@@ -538,10 +537,6 @@ function tcgplayerCondition(condition: string, finish: string) {
 }
 function normalizedLookup(value = "") {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-function readStored<T>(key: string, fallback: T): T {
-  try { const value = window.localStorage.getItem(key); return value ? JSON.parse(value) as T : fallback; }
-  catch { return fallback; }
 }
 function normalizeFinish(value: string) {
   const clean = value.trim().toLowerCase();

@@ -27,9 +27,8 @@ import {
 
 import { accountStorageKey } from "@/lib/account-storage";
 import type { DeckRecord } from "@/lib/deck-vault/types";
+import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 
-const LOCATION_KEY = "trading-docks-inventory-locations-v1";
-const ITEM_KEY = "trading-docks-inventory-items-v1";
 const DECK_LIST_KEY = "trading-docks-imported-decks";
 const PUT_AWAY_QUEUE_ID = "__trading-docks-put-away-queue__";
 
@@ -236,12 +235,11 @@ export function GlobalSearch() {
     setLoading(true);
 
     void Promise.all([
-      accountStorageKey(LOCATION_KEY),
-      accountStorageKey(ITEM_KEY),
+      loadInventorySnapshot(),
       accountStorageKey(DECK_LIST_KEY),
-    ]).then(async ([locationKey, itemKey, deckListKey]) => {
-      const locations = safeParse<LocationRecord[]>(localStorage.getItem(locationKey), []);
-      const items = safeParse<SearchableInventoryItem[]>(localStorage.getItem(itemKey), []);
+    ]).then(async ([inventorySnapshot, deckListKey]) => {
+      const locations = inventorySnapshot.locations as unknown as LocationRecord[];
+      const items = inventorySnapshot.items as unknown as SearchableInventoryItem[];
       const locationMap = new Map(locations.map((location) => [location.id, location]));
       const inventoryPlacements: CardPlacement[] = items
         .filter((item) => item.category === "Single" || !item.category)
