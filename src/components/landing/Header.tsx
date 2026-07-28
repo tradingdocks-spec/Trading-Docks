@@ -29,16 +29,17 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link
             href="/sign-in"
-            className="hidden h-11 items-center rounded-xl px-4 text-sm font-medium text-slate-300 transition hover:bg-white/[0.04] hover:text-white sm:inline-flex"
+            className="inline-flex h-11 shrink-0 items-center rounded-xl border border-white/[0.1] px-3 text-sm font-semibold text-white transition hover:border-cyan-300/30 hover:bg-white/[0.05] sm:border-transparent sm:px-4 sm:font-medium sm:text-slate-300"
           >
-            Sign in
+            Log in
           </Link>
 
           <Link
             href="/sign-up"
-            className={`${styles.primaryButton} group inline-flex h-12 items-center gap-2 rounded-[15px] bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-6 text-sm font-semibold text-[#001018] shadow-[0_16px_38px_rgba(34,211,238,0.18),inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-1px_0_rgba(3,105,161,0.3)] transition hover:-translate-y-0.5 hover:brightness-105`}
+            className={`${styles.primaryButton} group inline-flex h-12 shrink-0 items-center gap-2 rounded-[15px] bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-4 text-sm font-semibold text-[#001018] shadow-[0_16px_38px_rgba(34,211,238,0.18),inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-1px_0_rgba(3,105,161,0.3)] transition hover:-translate-y-0.5 hover:brightness-105 sm:px-6`}
           >
-            <span className="relative z-10">Create your workspace</span>
+            <span className="relative z-10 hidden sm:inline">Get started</span>
+            <span className="relative z-10 sm:hidden">Sign up</span>
             <ArrowRight className="relative z-10 h-4 w-4 transition group-hover:translate-x-0.5" />
           </Link>
         </div>
