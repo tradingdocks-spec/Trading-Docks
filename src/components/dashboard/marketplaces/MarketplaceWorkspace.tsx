@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  Archive,
   ArrowRight,
+  Boxes,
   CheckCircle2,
   DatabaseZap,
   Download,
@@ -13,6 +15,7 @@ import {
   LoaderCircle,
   RefreshCw,
   ShieldCheck,
+  Store,
   Upload,
   WandSparkles,
   X,
@@ -29,9 +32,32 @@ import {
   type CardRow,
   type CsvFormatId,
 } from "@/lib/csv-converter";
+import { accountStorageKey } from "@/lib/account-storage";
 
 const outputFormats = CSV_FORMATS.filter((format) => format.id !== "generic");
 const conditions = ["Near Mint", "Lightly Played", "Moderately Played", "Heavily Played", "Damaged"];
+const LOCATION_STORAGE_KEY = "trading-docks-inventory-locations-v1";
+const ITEM_STORAGE_KEY = "trading-docks-inventory-items-v1";
+const MOVEMENT_STORAGE_KEY = "trading-docks-inventory-movements-v1";
+
+type InventoryLocation = {
+  id: string;
+  name: string;
+  type: "chaos" | "binder" | "sealed-local" | "sealed-warehouse" | "custom";
+  description: string;
+  itemCount: number;
+  estimatedValue: number;
+  capacity?: number;
+  capacityUnit?: "cards" | "products" | "slots" | "boxes";
+};
+
+type ListingChannel = "Unlisted" | "TCGplayer" | "eBay" | "Mana Pool" | "Trading Docks" | "In-Store";
+
+type StorageKeys = {
+  locations: string;
+  items: string;
+  movements: string;
+};
 
 type ScryfallResult = {
   id?: string;
@@ -60,6 +86,36 @@ export function MarketplaceWorkspace() {
   const [error, setError] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(0);
+  const [storageKeys, setStorageKeys] = useState<StorageKeys | null>(null);
+  const [locations, setLocations] = useState<InventoryLocation[]>([]);
+  const [destinationId, setDestinationId] = useState("");
+  const [listingChannel, setListingChannel] = useState<ListingChannel>("Unlisted");
+  const [savingInventory, setSavingInventory] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
+      accountStorageKey(LOCATION_STORAGE_KEY),
+      accountStorageKey(ITEM_STORAGE_KEY),
+      accountStorageKey(MOVEMENT_STORAGE_KEY),
+    ]).then(([locationsKey, itemsKey, movementsKey]) => {
+      if (!active) return;
+      const storedLocations = readStoredArray<InventoryLocation>(locationsKey);
+      setLocations(storedLocations);
+      setDestinationId(storedLocations[0]?.id ?? "new-bulk-box");
+      setStorageKeys({
+        locations: locationsKey,
+        items: itemsKey,
+        movements: movementsKey,
+      });
+    }).catch(() => {
+      if (active) setError("Inventory storage could not be opened for this account.");
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const totals = useMemo(() => ({
     rows: rows.length,
@@ -161,7 +217,99 @@ export function MarketplaceWorkspace() {
     setVerified(0);
     setDetectedFormat("Waiting for a file");
     setError("");
+    setSaveMessage("");
     if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function saveToInventory() {
+    if (!storageKeys || !rows.length || totals.issues > 0) return;
+    setSavingInventory(true);
+    setSaveMessage("");
+
+    try {
+      const currentLocations = readStoredArray<InventoryLocation>(storageKeys.locations);
+      let destination = currentLocations.find((location) => location.id === destinationId);
+
+      if (!destination || destinationId === "new-bulk-box") {
+        destination = {
+          id: crypto.randomUUID(),
+          name: uniqueBulkBoxName(currentLocations),
+          type: "custom",
+          description: "Bulk inventory created from the CSV Conversion Engine.",
+          itemCount: 0,
+          estimatedValue: 0,
+          capacityUnit: "cards",
+        };
+        currentLocations.push(destination);
+      }
+
+      const now = new Date().toISOString();
+      const inventoryItems = readStoredArray<Record<string, unknown>>(storageKeys.items);
+      const movements = readStoredArray<Record<string, unknown>>(storageKeys.movements);
+      let unitsAdded = 0;
+      let valueAdded = 0;
+
+      for (const row of rows) {
+        const unitValue = Number.parseFloat(row.price) || 0;
+        const quantity = Math.max(0, row.quantity);
+        unitsAdded += quantity;
+        valueAdded += unitValue * quantity;
+        inventoryItems.push({
+          id: crypto.randomUUID(),
+          name: row.name,
+          sku: row.tcgplayerId || row.scryfallId || `${row.setCode}-${row.collectorNumber}`,
+          category: "Single",
+          quantity,
+          locationId: destination.id,
+          condition: row.condition,
+          set: row.setName || row.setCode,
+          collectorNumber: row.collectorNumber,
+          language: row.language,
+          finish: row.finish || "normal",
+          scryfallId: row.scryfallId,
+          imageUrl: row.photoUrl,
+          costBasis: Number.parseFloat(row.purchasePrice) || undefined,
+          unitMarketValue: unitValue || undefined,
+          value: unitValue * quantity,
+          updatedAt: now,
+          marketplaceListings: listingChannel === "Unlisted"
+            ? []
+            : [{
+                platform: listingChannel,
+                status: "Active",
+                quantity,
+                price: unitValue || undefined,
+                updatedAt: now,
+              }],
+        });
+      }
+
+      destination.itemCount = (destination.itemCount || 0) + unitsAdded;
+      destination.estimatedValue = (destination.estimatedValue || 0) + valueAdded;
+      movements.unshift({
+        id: crypto.randomUUID(),
+        itemName: `${filename || "CSV conversion"} (${rows.length} rows)`,
+        to: destination.name,
+        quantity: unitsAdded,
+        action: "filed",
+        timestamp: "Just now",
+      });
+
+      window.localStorage.setItem(storageKeys.locations, JSON.stringify(currentLocations));
+      window.localStorage.setItem(storageKeys.items, JSON.stringify(inventoryItems));
+      window.localStorage.setItem(storageKeys.movements, JSON.stringify(movements));
+      setLocations(currentLocations);
+      setDestinationId(destination.id);
+      setSaveMessage(
+        `${unitsAdded.toLocaleString()} cards saved to ${destination.name}${
+          listingChannel === "Unlisted" ? "" : ` and marked active on ${listingChannel}`
+        }.`,
+      );
+    } catch {
+      setError("The converted list could not be saved to inventory.");
+    } finally {
+      setSavingInventory(false);
+    }
   }
 
   return (
@@ -364,6 +512,68 @@ export function MarketplaceWorkspace() {
             </button>
           </Panel>
 
+          <Panel title="Store converted cards" icon={Archive} detail="File the normalized list into inventory and optionally record where it is listed.">
+            <Field label="Storage destination">
+              <select
+                value={destinationId}
+                onChange={(event) => setDestinationId(event.target.value)}
+                className={inputClass}
+              >
+                <option value="new-bulk-box">Create a new Bulk Box</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <div className="mt-4">
+              <Field label="Selling status">
+                <select
+                  value={listingChannel}
+                  onChange={(event) => setListingChannel(event.target.value as ListingChannel)}
+                  className={inputClass}
+                >
+                  <option value="Unlisted">Store only — not listed</option>
+                  <option value="TCGplayer">Listed on TCGplayer</option>
+                  <option value="eBay">Listed on eBay</option>
+                  <option value="Mana Pool">Listed on Mana Pool</option>
+                  <option value="Trading Docks">Listed on Trading Docks</option>
+                  <option value="In-Store">Listed for in-store sale</option>
+                </select>
+              </Field>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-white/[.07] bg-white/[.025] p-3">
+                <Boxes className="h-4 w-4 text-cyan-300" />
+                <p className="mt-2 text-[10px] text-slate-500">Inventory destination</p>
+              </div>
+              <div className="rounded-xl border border-white/[.07] bg-white/[.025] p-3">
+                <Store className="h-4 w-4 text-emerald-300" />
+                <p className="mt-2 text-[10px] text-slate-500">Listing allocation</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={saveToInventory}
+              disabled={!storageKeys || !rows.length || totals.issues > 0 || savingInventory}
+              className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-400/[.08] text-sm font-bold text-emerald-200 transition hover:bg-emerald-400/[.13] disabled:cursor-not-allowed disabled:border-white/[.06] disabled:bg-slate-900 disabled:text-slate-600"
+            >
+              {savingInventory ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
+              Save list to inventory
+            </button>
+
+            {saveMessage && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-emerald-300/15 bg-emerald-400/[.05] p-3 text-[11px] leading-5 text-emerald-200">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                {saveMessage}
+              </div>
+            )}
+          </Panel>
+
           <Panel title="Supported formats" icon={FileSpreadsheet}>
             <div className="flex flex-wrap gap-2">
               {CSV_FORMATS.filter((format) => format.id !== "generic").map((format) => (
@@ -413,4 +623,20 @@ function ActionButton({ icon: Icon, label, onClick, disabled, spin }: { icon: Re
 
 function Alert({ message }: { message: string }) {
   return <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-300/15 bg-rose-400/[.05] p-3 text-xs leading-5 text-rose-200"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{message}</div>;
+}
+
+function readStoredArray<T>(key: string): T[] {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function uniqueBulkBoxName(locations: InventoryLocation[]) {
+  const names = new Set(locations.map((location) => location.name.toLowerCase()));
+  let index = 1;
+  while (names.has(`csv bulk box ${index}`)) index += 1;
+  return `CSV Bulk Box ${index}`;
 }

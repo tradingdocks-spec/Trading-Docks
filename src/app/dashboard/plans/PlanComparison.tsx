@@ -140,7 +140,7 @@ function planAction(plan: Plan, currentPlan: string) {
 }
 
 export function PlanComparison({ currentPlan }: { currentPlan: string }) {
-  const [billing, setBilling] = useState<BillingCycle>("annual");
+  const [billing, setBilling] = useState<BillingCycle>("monthly");
 
   return (
     <div className="min-h-full bg-[#030a10] px-4 py-8 text-white sm:px-6 lg:px-8">
@@ -178,10 +178,10 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                {cycle}
+                {cycle === "annual" ? "Yearly" : "Monthly"}
                 {cycle === "annual" && (
                   <span className="ml-2 rounded-full bg-[#002b35] px-2 py-0.5 text-[9px] uppercase tracking-wide text-cyan-200">
-                    Save 17%
+                    Save 25%
                   </span>
                 )}
               </button>
@@ -193,6 +193,7 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
           {plans.map((plan) => {
             const price =
               billing === "annual" ? plan.annualPrice / 12 : plan.monthlyPrice;
+            const annualSavings = plan.monthlyPrice * 12 - plan.annualPrice;
             const isCurrent = plan.id === currentPlan;
             return (
               <article
@@ -226,7 +227,7 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
                 </div>
                 <p className="mt-2 min-h-5 text-[11px] text-slate-500">
                   {billing === "annual" && plan.annualPrice > 0
-                    ? `${formatPrice(plan.annualPrice)} billed annually`
+                    ? `${formatPrice(plan.annualPrice)} billed yearly · Save ${formatPrice(annualSavings)}`
                     : plan.monthlyPrice > 0
                       ? "Billed monthly"
                       : "Free forever"}

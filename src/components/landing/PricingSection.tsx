@@ -89,7 +89,7 @@ function formatPrice(value: number) {
 }
 
 export function PricingSection() {
-  const [billing, setBilling] = useState<BillingCycle>("annual");
+  const [billing, setBilling] = useState<BillingCycle>("monthly");
 
   return (
     <section
@@ -120,10 +120,10 @@ export function PricingSection() {
                   : "text-[#8296aa] hover:text-white"
               }`}
             >
-              {cycle}
+              {cycle === "annual" ? "Yearly" : "Monthly"}
               {cycle === "annual" && (
                 <span className="ml-2 rounded-full bg-[#00313b] px-2 py-0.5 text-[9px] uppercase tracking-wide text-[#9df5ff]">
-                  Save 17%
+                  Save 25%
                 </span>
               )}
             </button>
@@ -138,6 +138,8 @@ export function PricingSection() {
             billing === "annual"
               ? entitlement.annualPrice / 12
               : entitlement.monthlyPrice;
+          const annualSavings =
+            entitlement.monthlyPrice * 12 - entitlement.annualPrice;
           const Icon = plan.icon;
 
           return (
@@ -172,7 +174,7 @@ export function PricingSection() {
               </div>
               <p className="mt-2 min-h-5 text-[11px] text-[#536a80]">
                 {billing === "annual" && entitlement.annualPrice > 0
-                  ? `${formatPrice(entitlement.annualPrice)} billed annually`
+                  ? `${formatPrice(entitlement.annualPrice)} billed yearly · Save ${formatPrice(annualSavings)}`
                   : entitlement.monthlyPrice > 0
                     ? "Billed monthly"
                     : "Free forever"}

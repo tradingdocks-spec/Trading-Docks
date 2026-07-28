@@ -1,18 +1,37 @@
-TRADING DOCKS LANDING PAGE FIX v57
+TRADING DOCKS PRICING + CSV TOOLS v59
 
-1. Extract this ZIP directly into the root of your current Trading Docks repository.
-2. Choose "Replace files in destination" if Windows asks.
-3. In GitHub Desktop, verify these exact files appear under Changes:
-   - src/components/landing/PricingSection.tsx
-   - src/components/landing/TrustedGames.tsx
-4. Commit with: Force landing page pricing update
-5. Push to main and wait for the Vercel deployment to show Ready.
-6. Refresh https://www.tradingdocks.com with Ctrl+F5.
+1. Extract this ZIP directly into the root of the current Trading Docks repository.
+2. Allow the files under src/ to replace their matching files.
+3. Commit and push the changes.
+4. Wait for the production deployment to finish, then refresh the site.
 
-Expected landing-page result:
-- Free, Collector, Seller, and Store pricing cards are visible.
-- Monthly and Annual pricing can be selected.
-- "Sports cards coming soon" is not present.
+PRICING
+- Monthly is selected first on the landing page and plan comparison page.
+- Yearly can be selected with the Monthly / Yearly switch.
+- Collector: $4.99 monthly or $44.99 yearly ($3.75/month equivalent).
+- Seller: $19.99 monthly or $179.99 yearly ($15.00/month equivalent).
+- Store: $49.99 monthly or $449.99 yearly ($37.50/month equivalent).
+- Yearly savings are displayed on each paid plan.
 
-The obsolete Trading-Docks-Landing-Pricing-v56 folder can be deleted from the
-repository later because the live site does not import it.
+STRIPE REQUIRED
+Create or confirm Live Stripe annual prices for $44.99, $179.99, and $449.99.
+Update these Vercel Production variables with the matching Live price IDs:
+- STRIPE_COLLECTOR_ANNUAL_PRICE_ID
+- STRIPE_SELLER_ANNUAL_PRICE_ID
+- STRIPE_STORE_ANNUAL_PRICE_ID
+Redeploy after changing those variables.
+
+CSV CONVERSION ENGINE
+- Added under a new Tools section in the sidebar.
+- Seller and Store plans can access the tool.
+- Converted cards can be saved to an existing inventory location.
+- Users can create a new numbered CSV Bulk Box from the converter.
+- Batches can remain unlisted or be marked Active on TCGplayer, eBay,
+  Mana Pool, Trading Docks, or In-Store.
+- Saving updates inventory records, location quantities and values,
+  marketplace listing allocations, and movement history.
+
+VERIFICATION
+- Next.js production build passed.
+- TypeScript passed.
+- 65 routes generated, including /dashboard/tools/csv-converter.
