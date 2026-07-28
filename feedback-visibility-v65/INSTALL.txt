@@ -1,0 +1,17 @@
+TRADING DOCKS FEEDBACK VISIBILITY + COLLECTION GROWTH FIX
+
+1. Extract this ZIP directly into the root of the Trading Docks repository.
+2. Allow the included files to replace the matching files.
+3. In Supabase SQL Editor, run:
+   supabase/migrations/202607280008_feedback_center.sql
+   This version is safe to rerun and replaces existing feedback policies.
+4. Commit and push the changed files.
+5. Wait for Vercel to finish deploying, then refresh with Ctrl + Shift + R.
+
+After deployment, Feedback is visible in:
+- Dashboard sidebar -> Tools -> Feedback & Support
+- A bright Feedback / Report Bug button on every dashboard screen
+- The mobile bottom navigation
+- Admin Control Center -> Feedback & Beta
+
+This package also fixes the stretched month labels in the Collection Growth chart.
