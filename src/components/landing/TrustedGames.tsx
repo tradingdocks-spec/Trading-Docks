@@ -28,9 +28,6 @@ export function TrustedGames() {
               </div>
             ))}
 
-            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.012] px-4 py-3 text-xs font-medium text-[#536a80]">
-              Sports cards coming soon
-            </div>
           </div>
         </div>
       </div>

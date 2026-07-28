@@ -1,15 +1,16 @@
-TRADING DOCKS PRICING ROUTE FIX
+Trading Docks Landing Pricing v56
 
-1. Extract this ZIP into the root of your Trading Docks GitHub folder.
-2. Allow Windows to merge the src folders.
-3. In GitHub Desktop, confirm this file was added:
-   src/app/pricing/page.tsx
-4. Commit with:
-   Fix missing pricing route
+1. Extract this ZIP into the root of your current Trading Docks GitHub folder.
+2. Allow the src folders to merge and the two existing files to be replaced.
+3. In GitHub Desktop, review the two changed files.
+4. Commit with: Update landing page pricing tiers
 5. Push to main and wait for Vercel to finish deploying.
-6. Open:
-   https://trading-docks.vercel.app/pricing
 
-The /pricing address now opens the existing Stripe-enabled plan page at
-/dashboard/plans. Signed-out visitors are sent through the existing sign-in
-flow and returned to the plan page afterward.
+Included changes:
+- Replaces the single early-access pricing card with Free, Collector, Seller,
+  and Store plan cards.
+- Adds a Monthly/Annual selector and displays the configured plan prices.
+- Shows the main limits and tools included with each plan.
+- Highlights Seller as the most popular plan.
+- Links paid tiers to the full /pricing comparison page.
+- Removes "Sports cards coming soon" from the landing page.
