@@ -1,5 +1,11 @@
-import { MarketplaceWorkspace } from "@/components/dashboard/marketplaces/MarketplaceWorkspace";
+import { redirect } from "next/navigation";
 
-export default function CsvConverterPage() {
-  return <MarketplaceWorkspace />;
+import { CsvConversionEngine } from "@/components/dashboard/tools/CsvConversionEngine";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { hasPlanAccess } from "@/lib/tier-access";
+
+export default async function CsvConverterPage() {
+  const plan = await getEffectivePlan();
+  if (!hasPlanAccess(plan, "tools")) redirect("/dashboard/plans");
+  return <CsvConversionEngine />;
 }

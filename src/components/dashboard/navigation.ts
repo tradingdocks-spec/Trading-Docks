@@ -7,7 +7,6 @@ import {
   CircleDollarSign,
   ClipboardList,
   FileBarChart2,
-  FileSpreadsheet,
   Gem,
   History,
   LayoutDashboard,
@@ -21,6 +20,7 @@ import {
   Store,
   Trophy,
   Truck,
+  Wrench,
   Users,
   WalletCards,
 } from "lucide-react";
@@ -123,7 +123,7 @@ export const TOOLS_NAV: NavigationItem[] = [
   {
     href: "/dashboard/tools/csv-converter",
     label: "CSV Conversion Engine",
-    icon: FileSpreadsheet,
+    icon: Wrench,
   },
 ];
 

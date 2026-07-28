@@ -23,6 +23,7 @@ import {
   PRIMARY_NAV_AFTER_PURCHASING,
   PURCHASING_NAV,
   SECONDARY_NAV,
+  TOOLS_NAV,
 } from "../navigation";
 import { featureForPath, hasPlanAccess, minimumPlanName, normalizeAccountTier } from "@/lib/tier-access";
 
@@ -149,6 +150,26 @@ export function TieredSidebar({
               pathname={pathname}
               onNavigate={onCloseMobile}
             />
+
+          {hasPlanAccess(plan, "tools") ? (
+            <>
+              <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
+              <div className="mb-3 px-3">
+                {!collapsed ? (
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-700">
+                    Tools
+                  </span>
+                ) : null}
+              </div>
+              <NavGroup
+                items={TOOLS_NAV}
+                accountType={plan}
+                collapsed={collapsed}
+                pathname={pathname}
+                onNavigate={onCloseMobile}
+              />
+            </>
+          ) : null}
 
           <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
 
