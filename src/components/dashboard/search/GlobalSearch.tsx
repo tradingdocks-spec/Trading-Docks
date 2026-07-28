@@ -25,11 +25,9 @@ import {
   X,
 } from "lucide-react";
 
-import { accountStorageKey } from "@/lib/account-storage";
-import type { DeckRecord } from "@/lib/deck-vault/types";
+import { loadDeckVault } from "@/lib/deck-vault/persistence";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 
-const DECK_LIST_KEY = "trading-docks-imported-decks";
 const PUT_AWAY_QUEUE_ID = "__trading-docks-put-away-queue__";
 
 type LocationRecord = {
@@ -89,15 +87,6 @@ type CardGroup = {
 };
 
 type ResultSort = "relevance" | "name" | "quantity" | "value" | "location";
-
-function safeParse<T>(value: string | null, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 function normalize(value: string) {
   return value.toLocaleLowerCase().replace(/[’']/g, "").replace(/\s+/g, " ").trim();
@@ -236,8 +225,8 @@ export function GlobalSearch() {
 
     void Promise.all([
       loadInventorySnapshot(),
-      accountStorageKey(DECK_LIST_KEY),
-    ]).then(async ([inventorySnapshot, deckListKey]) => {
+      loadDeckVault(),
+    ]).then(async ([inventorySnapshot, decks]) => {
       const locations = inventorySnapshot.locations as unknown as LocationRecord[];
       const items = inventorySnapshot.items as unknown as SearchableInventoryItem[];
       const locationMap = new Map(locations.map((location) => [location.id, location]));
@@ -266,13 +255,6 @@ export function GlobalSearch() {
           };
         });
 
-      const deckIds = safeParse<string[]>(localStorage.getItem(deckListKey), []);
-      const deckKeys = await Promise.all(
-        deckIds.map((deckId) => accountStorageKey(`trading-docks-deck:${deckId}`)),
-      );
-      const decks = deckKeys
-        .map((key) => safeParse<DeckRecord | null>(localStorage.getItem(key), null))
-        .filter((deck): deck is DeckRecord => Boolean(deck));
       const deckPlacements: CardPlacement[] = decks.flatMap((deck) =>
         deck.cards.map((card) => ({
           id: `deck:${deck.id}:${card.id}`,

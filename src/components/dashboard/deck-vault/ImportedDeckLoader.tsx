@@ -6,7 +6,7 @@ import { Loader2, TriangleAlert } from "lucide-react";
 
 import type { DeckRecord } from "@/lib/deck-vault/types";
 import { DeckDetailWorkspace } from "./DeckDetailWorkspace";
-import { accountStorageKey } from "@/lib/account-storage";
+import { loadDeckRecord } from "@/lib/deck-vault/persistence";
 
 export function ImportedDeckLoader({
   deckId,
@@ -22,9 +22,7 @@ export function ImportedDeckLoader({
     if (fallback) return;
     void (async () => {
     try {
-      const key = await accountStorageKey(`trading-docks-deck:${deckId}`);
-      const raw = localStorage.getItem(key);
-      setDeck(raw ? (JSON.parse(raw) as DeckRecord) : null);
+      setDeck(await loadDeckRecord(deckId));
     } catch {
       setDeck(null);
     } finally {
@@ -51,7 +49,7 @@ export function ImportedDeckLoader({
           <TriangleAlert className="mx-auto h-8 w-8 text-amber-300" />
           <h1 className="mt-4 text-2xl font-semibold">Imported deck not found</h1>
           <p className="mt-3 text-[14px] leading-6 text-slate-400">
-            This temporary imported deck is stored in this browser. Import it again if browser storage was cleared or the link was opened on another device.
+            This deck was not found in your account. Confirm that you are signed into the account that imported it, or import it again.
           </p>
           <Link href="/dashboard/deck-vault/import" className="mt-5 inline-flex h-11 items-center rounded-xl bg-cyan-300 px-5 text-[13px] font-semibold text-[#00121c]">
             Return to Import Center

@@ -73,9 +73,19 @@ import type {
   ScryfallCard,
 } from "./types";
 import { createClient } from "@/lib/supabase/client";
+import {
+  deleteAccountDocument,
+  loadAccountDocument,
+  saveAccountDocument,
+} from "@/lib/account-documents";
 
 const STORAGE_KEY = "trading-docks-collection-appraisals-v1";
 const DRAFT_KEY = "trading-docks-collection-buying-draft-v1";
+const APPRAISALS_DOCUMENT = "collection-buying:appraisals";
+const DRAFT_DOCUMENT = "collection-buying:draft";
+const PREFERENCES_DOCUMENT = "collection-buying:printing-preferences";
+const PURCHASES_DOCUMENT = "collection-buying:purchases";
+const CUSTOMERS_DOCUMENT = "collection-buying:customers";
 
 const DEFAULT_SETTINGS: BuyingSettings = {
   offerMode: "balanced",
@@ -145,35 +155,47 @@ export function CollectionBuyingCenter() {
       const { data: { user } } = await createClient().auth.getUser();
       if (!user) return;
       setAccountId(user.id);
-      const saved = window.localStorage.getItem(`${STORAGE_KEY}:${user.id}`);
-      if (saved) setSavedAppraisals(JSON.parse(saved));
+      const saved = await loadOrMigrateDocument<SavedAppraisal[]>(
+        APPRAISALS_DOCUMENT,
+        `${STORAGE_KEY}:${user.id}`,
+        [],
+      );
+      setSavedAppraisals(saved);
 
-      const preferences = window.localStorage.getItem(
+      const preferences = await loadOrMigrateDocument<Record<string, unknown>>(
+        PREFERENCES_DOCUMENT,
         `trading-docks-buying-printing-preferences-v1:${user.id}`,
+        {},
       );
       if (preferences) {
-        const parsedPreferences = JSON.parse(preferences);
-        setPreferredSetCode(parsedPreferences.preferredSetCode ?? "");
+        setPreferredSetCode(String(preferences.preferredSetCode ?? ""));
         setRememberedFinish(
-          parsedPreferences.rememberedFinish ?? "nonfoil",
+          (preferences.rememberedFinish as PriceFinish) ?? "nonfoil",
         );
         setRememberedCondition(
-          parsedPreferences.rememberedCondition ?? "NM",
+          (preferences.rememberedCondition as Condition) ?? "NM",
         );
-        setLockPreferredSet(parsedPreferences.lockPreferredSet ?? true);
+        setLockPreferredSet(
+          typeof preferences.lockPreferredSet === "boolean"
+            ? preferences.lockPreferredSet
+            : true,
+        );
       }
 
-      const draft = window.localStorage.getItem(`${DRAFT_KEY}:${user.id}`);
+      const draft = await loadOrMigrateDocument<Record<string, unknown>>(
+        DRAFT_DOCUMENT,
+        `${DRAFT_KEY}:${user.id}`,
+        {},
+      );
       if (draft) {
-        const parsed = JSON.parse(draft);
-        setRawInput(parsed.rawInput ?? "");
-        setCards(parsed.cards ?? []);
-        setSettings({ ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) });
-        setCustomerName(parsed.customerName ?? "");
-        setCustomerContact(parsed.customerContact ?? "");
-        setEmployeeName(parsed.employeeName ?? "");
-        setNotes(parsed.notes ?? "");
-        setAppraisalStatus(parsed.appraisalStatus ?? "draft");
+        setRawInput(String(draft.rawInput ?? ""));
+        setCards((draft.cards as AppraisalCard[]) ?? []);
+        setSettings({ ...DEFAULT_SETTINGS, ...((draft.settings as Partial<BuyingSettings>) ?? {}) });
+        setCustomerName(String(draft.customerName ?? ""));
+        setCustomerContact(String(draft.customerContact ?? ""));
+        setEmployeeName(String(draft.employeeName ?? ""));
+        setNotes(String(draft.notes ?? ""));
+        setAppraisalStatus((draft.appraisalStatus as SavedAppraisal["status"]) ?? "draft");
       }
     } catch {
       // Invalid account data is ignored and replaced only after initialization.
@@ -185,15 +207,15 @@ export function CollectionBuyingCenter() {
 
   useEffect(() => {
     if (!accountDataReady || !accountId) return;
-    window.localStorage.setItem(
-      `trading-docks-buying-printing-preferences-v1:${accountId}`,
-      JSON.stringify({
+    const timeout = window.setTimeout(() => {
+      void saveAccountDocument(PREFERENCES_DOCUMENT, {
         preferredSetCode,
         rememberedFinish,
         rememberedCondition,
         lockPreferredSet,
-      }),
-    );
+      });
+    }, 300);
+    return () => window.clearTimeout(timeout);
   }, [
     preferredSetCode,
     rememberedFinish,
@@ -203,9 +225,8 @@ export function CollectionBuyingCenter() {
 
   useEffect(() => {
     if (!accountDataReady || !accountId) return;
-    window.localStorage.setItem(
-      `${DRAFT_KEY}:${accountId}`,
-      JSON.stringify({
+    const timeout = window.setTimeout(() => {
+      void saveAccountDocument(DRAFT_DOCUMENT, {
         rawInput,
         cards,
         settings,
@@ -216,8 +237,9 @@ export function CollectionBuyingCenter() {
         customerLookupPhone,
         customerLookupResult,
         appraisalStatus,
-      }),
-    );
+      });
+    }, 300);
+    return () => window.clearTimeout(timeout);
   }, [
     rawInput,
     cards,
@@ -230,6 +252,14 @@ export function CollectionBuyingCenter() {
     customerLookupResult,
     appraisalStatus, accountDataReady, accountId,
   ]);
+
+  useEffect(() => {
+    if (!accountDataReady || !accountId) return;
+    const timeout = window.setTimeout(() => {
+      void saveAccountDocument(APPRAISALS_DOCUMENT, savedAppraisals);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [savedAppraisals, accountDataReady, accountId]);
 
   const readyCards = cards.filter(
     (card) => card.status === "ready" && card.card,
@@ -595,7 +625,7 @@ export function CollectionBuyingCenter() {
     notify("Preferred set cleared.");
   }
 
-  function purchaseCollection() {
+  async function purchaseCollection() {
     if (!readyCards.length) {
       notify("Price a collection before purchasing it.");
       return;
@@ -612,11 +642,11 @@ export function CollectionBuyingCenter() {
     };
 
     if (!accountId) return;
-    const key = `trading-docks-purchased-collections-v1:${accountId}`;
-    const existing = JSON.parse(window.localStorage.getItem(key) ?? "[]");
-    window.localStorage.setItem(
-      key,
-      JSON.stringify([purchase, ...existing].slice(0, 250)),
+    const existing =
+      (await loadAccountDocument<typeof purchase[]>(PURCHASES_DOCUMENT)) ?? [];
+    await saveAccountDocument(
+      PURCHASES_DOCUMENT,
+      [purchase, ...existing].slice(0, 250),
     );
 
     saveAppraisal("accepted");
@@ -673,7 +703,6 @@ export function CollectionBuyingCenter() {
 
     const next = [appraisal, ...savedAppraisals].slice(0, 100);
     setSavedAppraisals(next);
-    window.localStorage.setItem(`${STORAGE_KEY}:${accountId}`, JSON.stringify(next));
     setAppraisalStatus(status);
     notify("Appraisal saved to buying history.");
   }
@@ -701,11 +730,11 @@ export function CollectionBuyingCenter() {
     setAppraisalStatus("draft");
     setInventoryPage(1);
     setProgress({ current: 0, total: 0 });
-    if (accountId) window.localStorage.removeItem(`${DRAFT_KEY}:${accountId}`);
+    if (accountId) void deleteAccountDocument(DRAFT_DOCUMENT);
     notify("Started a new collection appraisal.");
   }
 
-  function searchCustomerByPhone() {
+  async function searchCustomerByPhone() {
     const normalized = customerLookupPhone.replace(/\D/g, "");
 
     if (normalized.length < 7) {
@@ -713,17 +742,14 @@ export function CollectionBuyingCenter() {
       return;
     }
 
-    const storedCustomers = JSON.parse(
-      window.localStorage.getItem(
-        `trading-docks-customer-loyalty-v1:${accountId}`,
-      ) ?? "[]",
-    ) as Array<{
+    const storedCustomers =
+      (await loadAccountDocument<Array<{
       name: string;
       phone: string;
       loyaltyPoints: number;
       storeCredit: number;
       visits: number;
-    }>;
+      }>>(CUSTOMERS_DOCUMENT)) ?? [];
 
     const match = storedCustomers.find(
       (customer) =>
@@ -1021,7 +1047,6 @@ export function CollectionBuyingCenter() {
             (appraisal) => appraisal.id !== id,
           );
           setSavedAppraisals(next);
-          window.localStorage.setItem(`${STORAGE_KEY}:${accountId}`, JSON.stringify(next));
         }}
       />
 
@@ -2881,4 +2906,30 @@ function emptyTotalsShape() {
     projectedMargin: 0,
     units: 0,
   };
+}
+
+async function loadOrMigrateDocument<T>(
+  documentKey: string,
+  legacyStorageKey: string,
+  fallback: T,
+): Promise<T> {
+  const cloudValue = await loadAccountDocument<T>(documentKey);
+  if (cloudValue !== null) return cloudValue;
+
+  const legacyValue = window.localStorage.getItem(legacyStorageKey);
+  if (!legacyValue) {
+    await saveAccountDocument(documentKey, fallback);
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(legacyValue) as T;
+    await saveAccountDocument(documentKey, parsed);
+    window.localStorage.removeItem(legacyStorageKey);
+    return parsed;
+  } catch {
+    window.localStorage.removeItem(legacyStorageKey);
+    await saveAccountDocument(documentKey, fallback);
+    return fallback;
+  }
 }

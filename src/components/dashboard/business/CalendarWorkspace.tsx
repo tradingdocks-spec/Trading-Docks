@@ -19,6 +19,7 @@ import { PageHeader } from "../common/PageHeader";
 import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import styles from "../styles.module.css";
 import { accountStorageKey } from "@/lib/account-storage";
+import { loadAccountDocument, saveAccountDocument } from "@/lib/account-documents";
 
 type EventType = "order" | "delivery" | "event" | "shift" | "payroll";
 
@@ -47,32 +48,39 @@ export function CalendarWorkspace() {
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState(toDateKey(today));
-  const [storageKey, setStorageKey] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [filter, setFilter] = useState<EventType | "all">("all");
 
   useEffect(() => {
     void (async () => {
-      const key = await accountStorageKey("trading-docks-business-calendar-v3");
-      setStorageKey(key);
-      const stored = window.localStorage.getItem(key);
-      if (stored) {
-        try {
-          setEvents(JSON.parse(stored));
-        } catch {
-          window.localStorage.removeItem(key);
+      const documentKey = "business-calendar:v3";
+      let stored = await loadAccountDocument<CalendarEvent[]>(documentKey);
+      if (stored === null) {
+        const legacyKey = await accountStorageKey("trading-docks-business-calendar-v3");
+        const legacy = window.localStorage.getItem(legacyKey);
+        if (legacy) {
+          try {
+            stored = JSON.parse(legacy) as CalendarEvent[];
+            await saveAccountDocument(documentKey, stored);
+          } catch {
+            stored = [];
+          }
+          window.localStorage.removeItem(legacyKey);
         }
       }
+      setEvents(stored ?? []);
       setLoaded(true);
     })();
   }, []);
 
   useEffect(() => {
-    if (loaded && storageKey) {
-      window.localStorage.setItem(storageKey, JSON.stringify(events));
-    }
-  }, [events, loaded, storageKey]);
+    if (!loaded) return;
+    const timeout = window.setTimeout(() => {
+      void saveAccountDocument("business-calendar:v3", events);
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [events, loaded]);
 
   const monthGrid = useMemo(() => buildMonthGrid(viewDate), [viewDate]);
   const visibleEvents = events.filter((event) => filter === "all" || event.type === filter);

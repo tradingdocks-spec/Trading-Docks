@@ -56,6 +56,11 @@ import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import styles from "../styles.module.css";
 import { accountStorageKey } from "@/lib/account-storage";
 import {
+  loadInventorySnapshot,
+  persistInventorySnapshotDiff,
+  type InventorySnapshot,
+} from "@/lib/inventory-persistence";
+import {
   PrintingSelector,
   type InventoryFinish,
   type SelectedPrinting,
@@ -234,11 +239,12 @@ export function InventoryWorkspace({
   const [items, setItems] = useState<InventoryItem[]>([]);
   const itemsRef = useRef<InventoryItem[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
-  const [storageKeys, setStorageKeys] = useState<{
-    locations: string;
-    items: string;
-    movements: string;
-  } | null>(null);
+  const [persistenceReady, setPersistenceReady] = useState(false);
+  const persistedSnapshot = useRef<InventorySnapshot>({
+    locations: [],
+    items: [],
+    movements: [],
+  });
   const [activeType, setActiveType] = useState<LocationType | "all">("all");
   const [viewMode, setViewMode] = useState<"visual" | "operations">("visual");
   const [locationDisplay, setLocationDisplay] = useState<"cards" | "list">("cards");
@@ -263,33 +269,58 @@ export function InventoryWorkspace({
 
   useEffect(() => {
     let active = true;
-    void Promise.all([
-      accountStorageKey(LOCATION_STORAGE_KEY),
-      accountStorageKey(ITEM_STORAGE_KEY),
-      accountStorageKey(MOVEMENT_STORAGE_KEY),
-    ]).then(([locationsKey, itemsKey, movementsKey]) => {
+    void (async () => {
+      let snapshot = await loadInventorySnapshot();
+      const cloudIsEmpty =
+        !snapshot.locations.length && !snapshot.items.length && !snapshot.movements.length;
+
+      if (cloudIsEmpty) {
+        const [locationsKey, itemsKey, movementsKey] = await Promise.all([
+          accountStorageKey(LOCATION_STORAGE_KEY),
+          accountStorageKey(ITEM_STORAGE_KEY),
+          accountStorageKey(MOVEMENT_STORAGE_KEY),
+        ]);
+        const legacySnapshot: InventorySnapshot = {
+          locations: readStoredArray(locationsKey),
+          items: readStoredArray(itemsKey),
+          movements: readStoredArray(movementsKey),
+        };
+        if (
+          legacySnapshot.locations.length ||
+          legacySnapshot.items.length ||
+          legacySnapshot.movements.length
+        ) {
+          await persistInventorySnapshotDiff(snapshot, legacySnapshot);
+          snapshot = legacySnapshot;
+        }
+        [locationsKey, itemsKey, movementsKey].forEach((key) =>
+          window.localStorage.removeItem(key),
+        );
+      }
+
       if (!active) return;
-      hydrateState(locationsKey, setLocations);
-      hydrateState(itemsKey, setItems);
-      hydrateState(movementsKey, setMovements);
-      setStorageKeys({
-        locations: locationsKey,
-        items: itemsKey,
-        movements: movementsKey,
-      });
-    });
+      persistedSnapshot.current = snapshot;
+      setLocations(snapshot.locations as LocationRecord[]);
+      setItems(snapshot.items as InventoryItem[]);
+      setMovements(snapshot.movements as Movement[]);
+      setPersistenceReady(true);
+    })();
     return () => {
       active = false;
     };
   }, []);
 
   useEffect(() => {
-    if (storageKeys) window.localStorage.setItem(storageKeys.locations, JSON.stringify(locations));
-  }, [locations, storageKeys]);
-
-  useEffect(() => {
-    if (storageKeys) window.localStorage.setItem(storageKeys.items, JSON.stringify(items));
-  }, [items, storageKeys]);
+    if (!persistenceReady) return;
+    const current: InventorySnapshot = { locations, items, movements };
+    const previous = persistedSnapshot.current;
+    const timeout = window.setTimeout(() => {
+      void persistInventorySnapshotDiff(previous, current).then(() => {
+        persistedSnapshot.current = current;
+      });
+    }, 350);
+    return () => window.clearTimeout(timeout);
+  }, [locations, items, movements, persistenceReady]);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -307,11 +338,7 @@ export function InventoryWorkspace({
   }, [items, locations]);
 
   useEffect(() => {
-    if (storageKeys) window.localStorage.setItem(storageKeys.movements, JSON.stringify(movements));
-  }, [movements, storageKeys]);
-
-  useEffect(() => {
-    if (!storageKeys) return;
+    if (!persistenceReady) return;
     const params = new URLSearchParams(window.location.search);
     const requestedLocation = params.get("location");
     if (!requestedLocation) return;
@@ -325,7 +352,7 @@ export function InventoryWorkspace({
       setSelectedLocationId(requestedLocation);
       setOpenLocationId(requestedLocation);
     }
-  }, [locations, storageKeys]);
+  }, [locations, persistenceReady]);
 
   const selectedLocation =
     locations.find((location) => location.id === selectedLocationId) ?? locations[0];
@@ -4376,17 +4403,16 @@ function inventoryMatchesSavedView(item: InventoryItem, view: BusinessSavedView)
   return true;
 }
 
-function hydrateState<T>(
-  key: string,
-  setter: React.Dispatch<React.SetStateAction<T>>,
-) {
+function readStoredArray(key: string) {
   const stored = window.localStorage.getItem(key);
-  if (!stored) return;
+  if (!stored) return [];
 
   try {
-    setter(JSON.parse(stored));
+    const parsed = JSON.parse(stored) as unknown;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     window.localStorage.removeItem(key);
+    return [];
   }
 }
 

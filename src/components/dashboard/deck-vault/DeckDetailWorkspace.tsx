@@ -44,11 +44,8 @@ import type {
   ScryfallCardResult,
 } from "@/lib/deck-vault/types";
 import { ManaPips } from "./ManaPips";
-import { accountStorageKey } from "@/lib/account-storage";
-
-const INVENTORY_ITEM_STORAGE_KEY = "trading-docks-inventory-items-v1";
-const INVENTORY_LOCATION_STORAGE_KEY = "trading-docks-inventory-locations-v1";
-const LEGACY_INVENTORY_STORAGE_KEY = "trading-docks-inventory";
+import { saveDeckRecord } from "@/lib/deck-vault/persistence";
+import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 
 type StoredInventoryItem = {
   id?: string;
@@ -75,26 +72,10 @@ type StoredInventoryLocation = {
   type?: string;
 };
 
-function readStoredArray<T>(key: string): T[] {
-  try {
-    const value = JSON.parse(window.localStorage.getItem(key) ?? "[]");
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
-}
-
 async function loadOwnedCollection() {
-  const [itemsKey, locationsKey, legacyKey] = await Promise.all([
-    accountStorageKey(INVENTORY_ITEM_STORAGE_KEY),
-    accountStorageKey(INVENTORY_LOCATION_STORAGE_KEY),
-    accountStorageKey(LEGACY_INVENTORY_STORAGE_KEY),
-  ]);
-  const currentItems = readStoredArray<StoredInventoryItem>(itemsKey);
-  const items = currentItems.length
-    ? currentItems
-    : readStoredArray<StoredInventoryItem>(legacyKey);
-  const locations = readStoredArray<StoredInventoryLocation>(locationsKey);
+  const snapshot = await loadInventorySnapshot();
+  const items = snapshot.items as StoredInventoryItem[];
+  const locations = snapshot.locations as StoredInventoryLocation[];
   const locationById = new Map(
     locations
       .filter((location) => location.id)
@@ -323,9 +304,7 @@ export function DeckDetailWorkspace({
         cards,
       };
 
-      void accountStorageKey(`trading-docks-deck:${deck.id}`).then((key) => {
-        localStorage.setItem(key, JSON.stringify(updatedDeck));
-      });
+      void saveDeckRecord(updatedDeck);
     }, 350);
 
     return () =>

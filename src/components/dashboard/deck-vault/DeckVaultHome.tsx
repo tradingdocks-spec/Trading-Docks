@@ -19,7 +19,11 @@ import {
 
 import { ManaPips } from "./ManaPips";
 import type { DeckRecord } from "@/lib/deck-vault/types";
-import { accountStorageKey } from "@/lib/account-storage";
+import {
+  deleteDeckRecord,
+  loadDeckVault,
+  saveDeckRecord,
+} from "@/lib/deck-vault/persistence";
 
 const FORMATS = [
   "All Formats",
@@ -41,47 +45,16 @@ export function DeckVaultHome() {
     useState<DeckRecord[]>([]);
   const [searchQuery, setSearchQuery] =
     useState("");
-  const [deckListKey, setDeckListKey] = useState("");
   const [renameDeck, setRenameDeck] = useState<DeckRecord | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
   useEffect(() => {
     void (async () => {
-    try {
-      const listKey = await accountStorageKey("trading-docks-imported-decks");
-      setDeckListKey(listKey);
-      const importedIds = JSON.parse(
-        localStorage.getItem(
-          listKey,
-        ) ?? "[]",
-      ) as string[];
-
-      const importedDecks = await Promise.all(importedIds
-        .map(async (id) => {
-          const deckKey = await accountStorageKey(`trading-docks-deck:${id}`);
-          const raw = localStorage.getItem(
-            deckKey,
-          );
-          return raw
-            ? (JSON.parse(raw) as DeckRecord)
-            : null;
-        }));
-      const validDecks = importedDecks
-        .filter(
-          (deck): deck is DeckRecord =>
-            Boolean(deck),
-        );
-
-      const byId = new Map<string, DeckRecord>();
-
-      validDecks.forEach(
-        (deck) => byId.set(deck.id, deck),
-      );
-
-      setSavedDecks(Array.from(byId.values()));
-    } catch {
-      setSavedDecks([]);
-    }
+      try {
+        setSavedDecks(await loadDeckVault());
+      } catch {
+        setSavedDecks([]);
+      }
     })();
   }, []);
 
@@ -114,7 +87,7 @@ export function DeckVaultHome() {
     0,
   );
 
-  function deleteDeck(
+  async function deleteDeck(
     deckId: string,
     deckName: string,
   ) {
@@ -124,24 +97,7 @@ export function DeckVaultHome() {
 
     if (!confirmed) return;
 
-    void accountStorageKey(`trading-docks-deck:${deckId}`).then((key) => localStorage.removeItem(key));
-    void accountStorageKey(`trading-docks-unresolved:${deckId}`).then((key) => localStorage.removeItem(key));
-
-    const importedIds = JSON.parse(
-      localStorage.getItem(
-        deckListKey,
-      ) ?? "[]",
-    ) as string[];
-
-    localStorage.setItem(
-      deckListKey,
-      JSON.stringify(
-        importedIds.filter(
-          (id) => id !== deckId,
-        ),
-      ),
-    );
-
+    await deleteDeckRecord(deckId);
     setSavedDecks((current) =>
       current.filter(
         (deck) => deck.id !== deckId,
@@ -154,8 +110,7 @@ export function DeckVaultHome() {
     const name = renameValue.trim();
     if (!name) return;
     const updated = { ...renameDeck, name, updatedAt: "Just now" };
-    const key = await accountStorageKey(`trading-docks-deck:${renameDeck.id}`);
-    localStorage.setItem(key, JSON.stringify(updated));
+    await saveDeckRecord(updated);
     setSavedDecks((current) =>
       current.map((deck) => (deck.id === updated.id ? updated : deck)),
     );

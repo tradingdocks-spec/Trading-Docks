@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 import type { DeckCard, DeckFormat, DeckRecord, ManaColor, ScryfallCardResult } from "@/lib/deck-vault/types";
-import { accountStorageKey } from "@/lib/account-storage";
+import { loadDeckVault, saveDeckRecord } from "@/lib/deck-vault/persistence";
 
 type ImportMode = "paste" | "url" | "file";
 type Board = "commander" | "main" | "sideboard" | "maybeboard";
@@ -260,8 +260,7 @@ export function DeckImportCenter({
     }
 
     if (deckLimit !== null) {
-      const listKey = await accountStorageKey("trading-docks-imported-decks");
-      const saved = JSON.parse(localStorage.getItem(listKey) ?? "[]") as string[];
+      const saved = await loadDeckVault();
       if (saved.length >= deckLimit) {
         setError(
           `Your ${plan === "free" ? "Free" : "Collector"} plan includes up to ${deckLimit} decks. Delete a deck or upgrade your plan to add another.`,
@@ -330,29 +329,7 @@ export function DeckImportCenter({
         cards: payload.cards,
       };
 
-      const deckKey = await accountStorageKey(`trading-docks-deck:${id}`);
-      const listKey = await accountStorageKey("trading-docks-imported-decks");
-      const lastSavedKey = await accountStorageKey("trading-docks-last-saved-deck");
-      localStorage.setItem(deckKey, JSON.stringify(deck));
-      const saved = JSON.parse(localStorage.getItem(listKey) ?? "[]") as string[];
-      localStorage.setItem(
-        listKey,
-        JSON.stringify([
-          id,
-          ...saved.filter(
-            (item) => item !== id,
-          ),
-        ]),
-      );
-      localStorage.setItem(
-        lastSavedKey,
-        id,
-      );
-
-      if (payload.unresolved.length) {
-        const unresolvedKey = await accountStorageKey(`trading-docks-unresolved:${id}`);
-        localStorage.setItem(unresolvedKey, JSON.stringify(payload.unresolved));
-      }
+      await saveDeckRecord(deck, payload.unresolved);
 
       router.push(`/dashboard/deck-vault/decks/${id}`);
     } catch (caught) {
