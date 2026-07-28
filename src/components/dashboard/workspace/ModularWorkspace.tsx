@@ -296,29 +296,22 @@ export function ModularWorkspace({
         </div>
       </header>
 
-      <div
-        className={[
-          "mt-5 grid gap-4",
-          isPersonal ? "" : "grid-cols-1 grid-flow-row-dense md:grid-cols-12",
-        ].join(" ")}
-        style={
-          isPersonal
-            ? {
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
-              }
-            : undefined
-        }
-      >
+      <div className="mt-5 flex flex-wrap justify-center gap-4">
         {widgets.map((widget) => {
           const definition = DEFINITIONS[widget.id as keyof typeof DEFINITIONS];
           if (!definition) return null;
           const locked = !canUseDashboardWidget(plan, widget.id);
+          const flexSize =
+            widget.size === "small"
+              ? "min-w-0 flex-[1_1_340px] md:max-w-[520px]"
+              : widget.size === "medium"
+                ? "min-w-0 flex-[1_1_500px] lg:max-w-[760px]"
+                : "min-w-0 basis-full";
 
           return (
             <div
               key={widget.id}
-              className="contents"
+              className={flexSize}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => reorder(widget.id)}
             >
@@ -326,7 +319,6 @@ export function ModularWorkspace({
                 widget={widget}
                 definition={definition}
                 locked={locked}
-                personalLayout={isPersonal}
                 editing={editing}
                 onDragStart={() => setDraggedId(widget.id)}
                 onRemove={() =>
@@ -368,7 +360,6 @@ function DashboardWidget({
   widget,
   definition,
   locked,
-  personalLayout,
   editing,
   onDragStart,
   onRemove,
@@ -377,29 +368,18 @@ function DashboardWidget({
   widget: Widget;
   definition: (typeof DEFINITIONS)[keyof typeof DEFINITIONS];
   locked: boolean;
-  personalLayout: boolean;
   editing: boolean;
   onDragStart: () => void;
   onRemove: () => void;
   onResize: (size: Size) => void;
 }) {
   const Icon = definition.icon;
-  const span =
-    personalLayout
-      ? widget.size === "large"
-        ? "col-span-full"
-        : ""
-      : widget.size === "small"
-        ? "md:col-span-3"
-      : widget.size === "medium"
-        ? "md:col-span-6 xl:col-span-4"
-        : "md:col-span-12 xl:col-span-8";
 
   return (
     <article
       draggable={editing && !locked}
       onDragStart={onDragStart}
-      className={`${styles.glassPanel} ${span} ${styles.metricCard} min-h-[160px] rounded-[24px] p-5`}
+      className={`${styles.glassPanel} ${styles.metricCard} h-full min-h-[160px] w-full rounded-[24px] p-5`}
     >
       <header className="relative flex items-start gap-3">
         {editing ? (

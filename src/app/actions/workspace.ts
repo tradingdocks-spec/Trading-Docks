@@ -76,7 +76,8 @@ export async function completeOnboarding(input: {
       user_id: user.id,
       preferences: {
         ...currentPreferences,
-        account_type: input.accountType,
+        account_type: "free",
+        workspace_type: input.accountType,
         inventory_modules: [...new Set(input.modules)],
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
