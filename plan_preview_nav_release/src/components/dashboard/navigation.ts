@@ -7,6 +7,7 @@ import {
   CircleDollarSign,
   ClipboardList,
   FileBarChart2,
+  FileSpreadsheet,
   Gem,
   History,
   LayoutDashboard,
@@ -14,6 +15,7 @@ import {
   PackageCheck,
   PackageSearch,
   Percent,
+  MessageSquarePlus,
   Scale,
   Settings,
   ShoppingBag,
@@ -118,6 +120,14 @@ export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
   },
 ];
 
+export const TOOLS_NAV: NavigationItem[] = [
+  {
+    href: "/dashboard/tools/csv-converter",
+    label: "CSV Conversion Engine",
+    icon: FileSpreadsheet,
+  },
+];
+
 export const BUSINESS_NAV: NavigationItem[] = [
   {
     href: "/dashboard/calendar",
@@ -162,6 +172,11 @@ export const BUSINESS_NAV: NavigationItem[] = [
 ];
 
 export const SECONDARY_NAV: NavigationItem[] = [
+  {
+    href: "/dashboard/feedback",
+    label: "Feedback & Support",
+    icon: MessageSquarePlus,
+  },
   {
     href: "/dashboard/settings",
     label: "Settings",
