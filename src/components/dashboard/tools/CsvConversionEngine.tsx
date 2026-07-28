@@ -94,6 +94,7 @@ export function CsvConversionEngine() {
     (sum, row) => sum + Math.max(1, Number.parseInt(row.quantity, 10) || 1),
     0,
   );
+  const missingTcgplayerSkuCount = validRows.filter((row) => !row.tcgplayerId.trim()).length;
 
   function loadCsv(text: string, name = "pasted-data.csv") {
     const matrix = parseCsv(text);
@@ -157,10 +158,27 @@ export function CsvConversionEngine() {
     setNotice(`${outputName} CSV downloaded with ${validRows.length.toLocaleString()} rows.`);
   }
 
+  function downloadManaBoxBridge() {
+    if (!validRows.length) return setNotice("Map a card or product name before exporting.");
+    const { headers: outputHeaders, values } = outputForTemplate(validRows, "manabox");
+    const csv = [outputHeaders, ...values]
+      .map((row) => row.map(csvEscape).join(","))
+      .join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${baseName(fileName)}-manabox-bridge.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setNotice(
+      `ManaBox bridge downloaded with ${validRows.length.toLocaleString()} rows. Import it into ManaBox, export TCGplayer inventory from ManaBox, then upload that export here.`,
+    );
+  }
+
   async function enrichForTcgplayer() {
-    if (!validRows.length) return setNotice("Load and map rows before resolving TCGplayer IDs.");
+    if (!validRows.length) return setNotice("Load and map rows before matching TCGplayer products.");
     setWorking(true);
-    setNotice("Resolving TCGplayer product IDs through TCGCSV…");
+    setNotice("Matching TCGplayer products and prices through TCGCSV…");
     try {
       const response = await fetch("/api/tools/csv/tcgplayer-enrich", {
         method: "POST",
@@ -212,10 +230,10 @@ export function CsvConversionEngine() {
       setEnrichedRows(next);
       setOutputTemplateId("tcgplayer");
       setNotice(
-        `${matched.toLocaleString()} of ${payload.results.length.toLocaleString()} rows matched to TCGplayer IDs through TCGCSV. Review unmatched rows before download.`,
+        `${matched.toLocaleString()} of ${payload.results.length.toLocaleString()} products matched through TCGCSV. Product details and prices were added; condition-specific TCGplayer SKU IDs were not.`,
       );
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "TCGplayer IDs could not be resolved.");
+      setNotice(error instanceof Error ? error.message : "TCGplayer products could not be matched.");
     } finally {
       setWorking(false);
     }
@@ -375,10 +393,10 @@ export function CsvConversionEngine() {
           {destination === "download" ? <div className="mt-4 space-y-3 rounded-2xl border border-white/[.07] bg-black/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Convert to</span><select value={outputTemplateId} onChange={(event) => setOutputTemplateId(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300">{CSV_TEMPLATES.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
-              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Add TCGplayer product data</button> : null}
-              <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download CSV</button>
+              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Match products &amp; prices</button> : null}
+              {outputTemplateId === "tcgplayer" && missingTcgplayerSkuCount ? <button type="button" onClick={downloadManaBoxBridge} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download ManaBox bridge</button> : <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download CSV</button>}
             </div>
-            {outputTemplateId === "tcgplayer" ? <><button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />Why is ManaBox required?<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-amber-300/10 bg-amber-300/[.025] p-3 text-[10px] leading-5 text-amber-100/55">Export to ManaBox first, import it there, then use ManaBox&apos;s TCGplayer export and upload that file back here. TCGCSV supplies product details and pricing, but not the condition-specific SKU IDs required by TCGplayer.</div> : null}</> : null}
+            {outputTemplateId === "tcgplayer" ? <><div className={`rounded-xl border p-3 text-[10px] leading-5 ${missingTcgplayerSkuCount ? "border-amber-300/10 bg-amber-300/[.025] text-amber-100/60" : "border-emerald-300/10 bg-emerald-300/[.025] text-emerald-100/60"}`}>{missingTcgplayerSkuCount ? <><strong className="text-amber-200">{missingTcgplayerSkuCount.toLocaleString()} rows still need TCGplayer inventory SKU IDs.</strong> Download the ManaBox bridge, import it into ManaBox, export TCGplayer inventory from ManaBox, and upload that exported file here.</> : <><strong className="text-emerald-200">Inventory-ready IDs detected.</strong> This file can be downloaded in the TCGplayer format.</>}</div><button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />Why is this extra step required?<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-white/[.07] bg-black/10 p-3 text-[10px] leading-5 text-slate-500">TCGCSV can identify the card product and current prices, but it does not publish the SKU that combines printing, language, condition, and finish. TCGplayer requires that SKU in its inventory CSV. The converter therefore keeps product matching separate from inventory-ID readiness instead of claiming the file is complete.</div> : null}</> : null}
           </div> : <div className="mt-4 grid gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <label><span className="text-[9px] font-semibold text-slate-500">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><input value={locationName} onChange={(event) => setLocationName(event.target.value)} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none" /></div></label>
             <label><span className="text-[9px] font-semibold text-slate-500">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><Store className="h-4 w-4 text-cyan-300" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-slate-300 outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
