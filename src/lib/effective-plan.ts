@@ -25,6 +25,12 @@ export async function getEffectivePlan(): Promise<AccountTier> {
         subscription.current_period_end &&
         new Date(subscription.current_period_end) > new Date()));
 
+  const { data: membershipOverride } = await supabase
+    .from("admin_membership_overrides")
+    .select("plan_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   const { data } = await supabase
     .from("user_preferences")
     .select("preferences")
@@ -46,6 +52,8 @@ export async function getEffectivePlan(): Promise<AccountTier> {
     ? previewPlan
     : isOwner
       ? "business"
+    : membershipOverride?.plan_id
+      ? normalizeAccountTier(membershipOverride.plan_id)
     : paidAccessIsCurrent
       ? normalizeAccountTier(subscription.plan_id)
       : normalizeAccountTier(preferences.account_type === "free" ? "free" : undefined);

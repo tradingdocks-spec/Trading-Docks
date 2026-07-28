@@ -1,21 +1,42 @@
-Trading Docks Admin Users v60
+TRADING DOCKS — ADMIN MEMBERSHIP EDITOR v62
 
-1. Extract this ZIP directly into the root of the current Trading Docks repository.
-2. Allow the included files to replace matching files.
-3. In Supabase, open SQL Editor and run:
-   supabase/migrations/202607270007_admin_user_directory_usage.sql
-4. Commit and push the changed files.
-5. Wait for the production deployment to finish, then refresh the dashboard.
+This patch adds a secure membership selector to:
+Admin Control Center > Users
 
-Expected source changes:
-- src/components/dashboard/admin/AdminControlCenterWithPreview.tsx
-- src/components/dashboard-v2/inventory/InventoryWorkspace.tsx
-- src/lib/effective-plan.ts
-- supabase/migrations/202607270007_admin_user_directory_usage.sql
+INSTALLATION
 
-Important:
-- The owner account tradingdocks@gmail.com defaults to Business access.
-- The existing Admin Plan Preview can still temporarily emulate lower plans.
-- Card totals synchronize when each user opens their Inventory workspace after
-  this update is deployed. Accounts that have not opened the updated inventory
-  yet initially show zero cards.
+1. Copy the included src and supabase folders into the root of your current
+   Trading Docks project. Allow the matching files to be replaced.
+
+2. In Supabase, open SQL Editor and run:
+   supabase/migrations/202607280001_admin_membership_overrides.sql
+
+3. Redeploy the project.
+
+USAGE
+
+Open Admin Control Center > Users. Under Access control, choose:
+
+- Follow billing
+- Grant Free
+- Grant Collector
+- Grant Seller
+- Grant Business
+
+The selected level takes effect for that account without changing its Stripe
+subscription or charging the user. Choose Follow billing to remove the manual
+override and return the account to its normal subscription/default access.
+
+SECURITY
+
+- Only the permanent Trading Docks owner can change memberships.
+- The owner account remains permanently protected as Business.
+- Users can read only their own membership override.
+- Every plan value is validated by the database function.
+
+VALIDATION
+
+Validated with Next.js 16.2.11:
+- Production compilation succeeded
+- TypeScript succeeded
+- All 62 application routes generated successfully
