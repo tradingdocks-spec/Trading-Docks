@@ -1,8 +1,7 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { ModularWorkspace } from "@/components/dashboard/workspace/ModularWorkspace";
-import { isPreviewPlan, PLAN_PREVIEW_COOKIE } from "@/lib/admin-plan-preview";
+import { getEffectivePlan } from "@/lib/effective-plan";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
@@ -25,11 +24,7 @@ export default async function DashboardPage() {
     !Array.isArray(data.preferences)
       ? data.preferences
       : {};
-  const isOwner = user.email?.trim().toLowerCase() === "tradingdocks@gmail.com";
-  const cookieStore = await cookies();
-  const previewPlan = isOwner
-    ? cookieStore.get(PLAN_PREVIEW_COOKIE)?.value
-    : undefined;
+  const effectivePlan = await getEffectivePlan();
 
   if (preferences.onboarding_completed !== true) {
     redirect("/onboarding");
@@ -37,13 +32,7 @@ export default async function DashboardPage() {
 
   return (
     <ModularWorkspace
-      accountType={
-        isPreviewPlan(previewPlan)
-          ? previewPlan
-          : typeof preferences.account_type === "string"
-          ? preferences.account_type
-          : "seller"
-      }
+      accountType={effectivePlan}
       inventoryModules={
         Array.isArray(preferences.inventory_modules)
           ? preferences.inventory_modules.filter(

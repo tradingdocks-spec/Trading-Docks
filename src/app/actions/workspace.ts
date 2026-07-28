@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeDashboardLayoutsForPlan } from "@/lib/dashboard-entitlements";
+import { getEffectivePlan } from "@/lib/effective-plan";
 
 const ACCOUNT_TYPES = ["collector", "seller", "store", "large-seller"] as const;
 const INVENTORY_MODULES = [
@@ -117,13 +119,15 @@ export async function saveDashboardLayouts(layouts: unknown) {
     !Array.isArray(existing.preferences)
       ? existing.preferences
       : {};
+  const effectivePlan = await getEffectivePlan();
+  const safeLayouts = sanitizeDashboardLayoutsForPlan(layouts, effectivePlan);
 
   const { error } = await supabase
     .from("user_preferences")
     .update({
       preferences: {
         ...preferences,
-        dashboard_layouts: layouts,
+        dashboard_layouts: safeLayouts,
       },
     })
     .eq("user_id", user.id);
