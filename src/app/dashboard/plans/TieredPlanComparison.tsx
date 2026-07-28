@@ -200,11 +200,7 @@ export function TieredPlanComparison({ currentPlan }: { currentPlan: string }) {
             return (
               <article
                 key={plan.id}
-                className={`group relative flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:bg-[linear-gradient(180deg,rgba(15,62,75,0.48),rgba(5,20,29,0.96)_35%)] hover:shadow-[0_25px_80px_rgba(0,200,230,0.11)] ${
-                  plan.featured
-                    ? "border-cyan-300/40 bg-[linear-gradient(180deg,rgba(15,62,75,0.48),rgba(5,20,29,0.96)_35%)] shadow-[0_25px_80px_rgba(0,200,230,0.11)]"
-                    : "border-white/[0.08] bg-[#07141d]"
-                }`}
+                className="group relative flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#07141d] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:bg-[linear-gradient(180deg,rgba(15,62,75,0.48),rgba(5,20,29,0.96)_35%)] hover:shadow-[0_25px_80px_rgba(0,200,230,0.11)]"
               >
                 {plan.badge && (
                   <div className="absolute right-5 top-5 rounded-full border border-cyan-300/15 bg-cyan-400/[0.08] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
@@ -241,11 +237,7 @@ export function TieredPlanComparison({ currentPlan }: { currentPlan: string }) {
                   <Link
                     href={currentPlan !== "free" ? "/dashboard/settings" : "/dashboard"}
                     aria-current={isCurrent ? "true" : undefined}
-                    className={`mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition ${
-                      plan.featured
-                        ? "bg-gradient-to-b from-cyan-300 to-sky-500 text-[#001018] hover:brightness-110"
-                        : "border border-white/[0.1] bg-white/[0.04] text-slate-100 group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
-                    }`}
+                    className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-slate-100 transition group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
                   >
                     {currentPlan !== "free" && !isCurrent
                       ? "Change in billing portal"
@@ -257,7 +249,7 @@ export function TieredPlanComparison({ currentPlan }: { currentPlan: string }) {
                     plan={plan.id}
                     billing={billing}
                     label={planAction(plan, currentPlan)}
-                    featured={plan.featured}
+                    featured={false}
                   />
                 )}
                 <div className="mt-7 border-t border-white/[0.07] pt-6">
