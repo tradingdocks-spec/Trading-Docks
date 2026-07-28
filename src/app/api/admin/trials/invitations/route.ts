@@ -11,6 +11,18 @@ type RequestBody =
   | { action: "grant"; email: string; planId: string; endsAt: string; notes?: string }
   | { action: "resend"; trialId: string };
 
+function cleanEnvironmentValue(value: string | undefined) {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 function jsonError(message: string, status: number) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
@@ -32,11 +44,18 @@ async function sendInvitation({
   endsAt: string;
   request: Request;
 }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+  const apiKey = cleanEnvironmentValue(process.env.RESEND_API_KEY);
+  const from = cleanEnvironmentValue(
+    process.env.RESEND_FROM_EMAIL ?? process.env.EMAIL_FROM,
+  );
   if (!apiKey || !from) {
     throw new Error(
-      "Resend is not configured. Add RESEND_API_KEY and RESEND_FROM_EMAIL to .env.local, then restart the website.",
+      "Production email is not configured. Add RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel, then redeploy.",
+    );
+  }
+  if (!apiKey.startsWith("re_") || apiKey.length < 20) {
+    throw new Error(
+      "RESEND_API_KEY is not a complete Resend key. Replace it in Vercel with the full value shown when the key is created, then redeploy.",
     );
   }
 
@@ -71,10 +90,17 @@ async function sendInvitation({
     | { id?: string; message?: string; error?: { message?: string } }
     | null;
   if (!response.ok || !result?.id) {
-    throw new Error(
+    const providerMessage =
       result?.message ??
-        result?.error?.message ??
-        "Resend could not send the invitation.",
+      result?.error?.message ??
+      "Resend could not send the invitation.";
+    if (/api key is invalid/i.test(providerMessage)) {
+      throw new Error(
+        "Resend rejected the deployed RESEND_API_KEY. Create a new Sending access key, replace the Production value in Vercel, and redeploy without reusing the build cache.",
+      );
+    }
+    throw new Error(
+      providerMessage,
     );
   }
   return result.id;
@@ -121,10 +147,51 @@ export async function POST(request: Request) {
       .single();
     if (insertError) {
       if (insertError.code === "23505") {
-        return jsonError(
-          "This email already has an open trial. Use Resend invitation in the trial directory.",
-          409,
-        );
+        const { data: existingTrial, error: existingError } = await supabase
+          .from("account_trials")
+          .select("id,email,plan_id,ends_at,status")
+          .ilike("email", email)
+          .in("status", ["active", "scheduled"])
+          .maybeSingle();
+        if (existingError || !existingTrial) {
+          return jsonError(
+            "This email already has an open trial. Use Resend invitation in the trial directory.",
+            409,
+          );
+        }
+        try {
+          const resendId = await sendInvitation({
+            email: existingTrial.email,
+            planId: existingTrial.plan_id,
+            endsAt: existingTrial.ends_at,
+            request,
+          });
+          await supabase.from("account_trials").update({
+            invitation_status: "sent",
+            invitation_sent_at: new Date().toISOString(),
+            invitation_email_id: resendId,
+            invitation_error: "",
+          }).eq("id", existingTrial.id);
+          return NextResponse.json({
+            ok: true,
+            trialId: existingTrial.id,
+            emailSent: true,
+            reusedExistingTrial: true,
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Invitation failed.";
+          await supabase.from("account_trials").update({
+            invitation_status: "failed",
+            invitation_error: message,
+          }).eq("id", existingTrial.id);
+          return NextResponse.json({
+            ok: false,
+            trialGranted: true,
+            trialId: existingTrial.id,
+            error: `The existing trial is still active, but the invitation was not sent: ${message}`,
+          }, { status: 502 });
+        }
       }
       return jsonError(`Could not grant trial: ${insertError.message}`, 400);
     }

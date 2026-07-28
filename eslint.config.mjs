@@ -29,6 +29,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Historical release bundles are not part of the root application.
+    "Trading Docks Active/**",
+    "Trading-Docks-v79/**",
+    "Trading-Docks-Settings-Center-v61/**",
+    "Trading-Docks-Landing-Pricing-v56/**",
+    "feedback-package/**",
+    "feedback-visibility-v65/**",
+    "plan_preview_nav_release/**",
   ]),
 ]);
 

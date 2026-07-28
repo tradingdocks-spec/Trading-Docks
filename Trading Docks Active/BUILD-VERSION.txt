@@ -1,5 +1,0 @@
-Trading Docks v53
-Build marker: STRIPE-SUBSCRIPTION-BILLING
-
-This build includes Stripe Checkout, Customer Portal, signed webhooks,
-monthly/annual subscriptions, and Supabase-backed plan access.
