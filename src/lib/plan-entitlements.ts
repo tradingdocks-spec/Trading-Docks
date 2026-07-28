@@ -92,6 +92,7 @@ export function featureForPath(pathname: string): PlanFeature {
       "/dashboard/buying-rules",
       "/dashboard/market-intelligence",
       "/dashboard/automation",
+      "/dashboard/card-shows",
     ].some((path) => pathname.startsWith(path))
   ) {
     return "seller-operations";

@@ -4,6 +4,7 @@ import {
   Boxes,
   BrainCircuit,
   CalendarDays,
+  CalendarRange,
   CircleDollarSign,
   ClipboardList,
   FileBarChart2,
@@ -98,6 +99,11 @@ export const PURCHASING_NAV: NavigationSection = {
 };
 
 export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
+  {
+    href: "/dashboard/card-shows",
+    label: "Card Shows",
+    icon: CalendarRange,
+  },
   {
     href: "/dashboard/marketplaces",
     label: "Marketplaces",
