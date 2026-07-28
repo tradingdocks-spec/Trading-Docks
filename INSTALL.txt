@@ -1,42 +1,44 @@
-TRADING DOCKS — ADMIN MEMBERSHIP EDITOR v62
+TRADING DOCKS — MARKETPLACE CONNECTOR FOUNDATION v64
 
-This patch adds a secure membership selector to:
-Admin Control Center > Users
+WHAT THIS RELEASE ADDS
+
+- Seller/Business-only Marketplace Integration Center
+- 12 marketplace connection profiles
+- Official API, CSV semi-sync, email tracking, and guided manual methods
+- Saved connection plans and setup state
+- TCGplayer inventory/order CSV detection and staging
+- Gmail OAuth, Outlook OAuth, and forwarding-based email architecture
+- Marketplace-specific setup explanations
+- Exception-only connection status messaging
 
 INSTALLATION
 
-1. Copy the included src and supabase folders into the root of your current
-   Trading Docks project. Allow the matching files to be replaced.
+1. Copy the included src and supabase folders into the root of the current
+   Trading Docks project. Allow the matching MarketplaceWorkspace file to be
+   replaced.
 
-2. In Supabase, open SQL Editor and run:
-   supabase/migrations/202607280001_admin_membership_overrides.sql
+2. In Supabase SQL Editor, run the complete file:
+   supabase/migrations/202607280002_marketplace_connector_foundation.sql
 
-3. Redeploy the project.
+3. Confirm Supabase reports Success.
 
-USAGE
+4. Redeploy Trading Docks and hard-refresh the Marketplace page.
 
-Open Admin Control Center > Users. Under Access control, choose:
+IMPORTANT EMAIL NOTE
 
-- Follow billing
-- Grant Free
-- Grant Collector
-- Grant Seller
-- Grant Business
+This release builds the email-tracking interface and safe architecture, but it
+does not silently access any mailbox. A later connector release must complete
+one of these authorized delivery methods:
 
-The selected level takes effect for that account without changing its Stripe
-subscription or charging the user. Choose Follow billing to remove the manual
-override and return the account to its normal subscription/default access.
+- Gmail OAuth with restricted/read-only message access
+- Microsoft/Outlook OAuth with restricted message access
+- An inbound email provider and verified Trading Docks forwarding domain
 
-SECURITY
-
-- Only the permanent Trading Docks owner can change memberships.
-- The owner account remains permanently protected as Business.
-- Users can read only their own membership override.
-- Every plan value is validated by the database function.
+Marketplace passwords should never be requested or stored.
 
 VALIDATION
 
-Validated with Next.js 16.2.11:
-- Production compilation succeeded
-- TypeScript succeeded
+- ESLint passed
+- Next.js 16.2.11 production compilation passed
+- TypeScript passed
 - All 62 application routes generated successfully
