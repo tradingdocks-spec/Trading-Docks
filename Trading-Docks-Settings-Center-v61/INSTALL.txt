@@ -1,0 +1,22 @@
+TRADING DOCKS SETTINGS CENTER v61
+
+1. Extract this ZIP into the root of the Trading Docks repository.
+2. Replace the matching files when prompted.
+3. Commit and push the changes.
+4. Allow Vercel to redeploy the website.
+
+No database migration or new environment variable is required.
+
+The settings save into the existing user_preferences record in Supabase.
+The existing Stripe customer portal remains responsible for payment methods,
+invoices, subscription changes, and cancellation.
+
+Included files:
+- src/app/actions/settings.ts
+- src/app/dashboard/settings/page.tsx
+- src/components/dashboard/settings/SettingsCenter.tsx
+
+Verified:
+- TypeScript passed
+- Next.js production build passed
+- 65 application routes generated
