@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  Copy,
+  ExternalLink,
   Check,
   ChevronRight,
   FileSpreadsheet,
@@ -32,6 +34,16 @@ type MarketplaceDefinition = {
   methods: ConnectionMethod[];
   recommended: ConnectionMethod;
   setup: string[];
+  officialUrl?: string;
+  callbackSlug?: string;
+  credentialFields?: CredentialField[];
+};
+type CredentialField = {
+  key: string;
+  label: string;
+  placeholder: string;
+  help: string;
+  secret?: boolean;
 };
 type SavedConnection = {
   marketplace_id: string;
@@ -60,13 +72,19 @@ const marketplaces: MarketplaceDefinition[] = [
     name: "TCGplayer",
     games: "Magic · Pokémon · Lorcana · Yu-Gi-Oh!",
     description: "Import seller inventory and orders without storing a TCGplayer password.",
-    methods: ["csv", "email", "manual"],
+    methods: ["api", "csv", "email", "manual"],
     recommended: "csv",
     setup: [
       "Export inventory or orders from the TCGplayer Seller Portal.",
       "Upload the CSV in Semi-Sync and review every proposed change.",
       "Optionally connect order-email tracking for faster sale notifications.",
       "Use the generated export when Trading Docks needs to send changes back.",
+    ],
+    officialUrl: "https://developer.tcgplayer.com/",
+    credentialFields: [
+      { key: "publicKey", label: "Public API key", placeholder: "Your existing public key", help: "Only use this option if TCGplayer previously issued API credentials to your account." },
+      { key: "privateKey", label: "Private API key", placeholder: "Your existing private key", help: "Stored encrypted and never shown again.", secret: true },
+      { key: "applicationId", label: "Application ID", placeholder: "Application ID", help: "The application identifier shown with your existing credentials." },
     ],
   },
   {
@@ -82,6 +100,14 @@ const marketplaces: MarketplaceDefinition[] = [
       "Authorize the seller account—never enter the eBay password in Trading Docks.",
       "Import listings first, then enable quantity and fulfillment writes.",
     ],
+    officialUrl: "https://developer.ebay.com/my/keys",
+    callbackSlug: "ebay",
+    credentialFields: [
+      { key: "environment", label: "Environment", placeholder: "production or sandbox", help: "Use production for a live seller account; sandbox is for eBay test accounts." },
+      { key: "clientId", label: "Client ID (App ID)", placeholder: "Your eBay App ID", help: "Found under your eBay application keyset." },
+      { key: "clientSecret", label: "Client secret (Cert ID)", placeholder: "Your eBay Cert ID", help: "Stored encrypted and never shown again.", secret: true },
+      { key: "ruName", label: "RuName", placeholder: "Your OAuth redirect name", help: "The RuName created in eBay User Tokens settings." },
+    ],
   },
   {
     id: "shopify",
@@ -96,6 +122,13 @@ const marketplaces: MarketplaceDefinition[] = [
       "Install the app and store the token in server-side encrypted credentials.",
       "Run an import-only reconciliation before enabling writes.",
     ],
+    officialUrl: "https://dev.shopify.com/dashboard",
+    callbackSlug: "shopify",
+    credentialFields: [
+      { key: "shopDomain", label: "Shop domain", placeholder: "your-store.myshopify.com", help: "Use the permanent myshopify.com domain, not a custom storefront domain." },
+      { key: "clientId", label: "Client ID", placeholder: "Shopify app client ID", help: "Found in your app's credentials page." },
+      { key: "clientSecret", label: "Client secret", placeholder: "Shopify app client secret", help: "Stored encrypted and never shown again.", secret: true },
+    ],
   },
   {
     id: "mana-pool",
@@ -108,6 +141,10 @@ const marketplaces: MarketplaceDefinition[] = [
       "Add an approved seller token if the account has marketplace API access.",
       "Otherwise use CSV or order-email tracking.",
       "Match Mana Pool listings to Trading Docks inventory before enabling updates.",
+    ],
+    officialUrl: "https://manapool.com/",
+    credentialFields: [
+      { key: "apiToken", label: "Seller API token", placeholder: "Approved Mana Pool token", help: "Only enter a token issued or approved for your seller account.", secret: true },
     ],
   },
   {
@@ -122,6 +159,10 @@ const marketplaces: MarketplaceDefinition[] = [
       "Begin with listings and order reads.",
       "Enable quantity writes only after inventory reconciliation.",
     ],
+    officialUrl: "https://www.cardtrader.com/docs/api/full",
+    credentialFields: [
+      { key: "apiToken", label: "API token", placeholder: "CardTrader API token", help: "Create or locate the token in your CardTrader account API settings.", secret: true },
+    ],
   },
   {
     id: "cardsphere",
@@ -134,6 +175,12 @@ const marketplaces: MarketplaceDefinition[] = [
       "Use an available export when possible.",
       "Connect transaction emails or forward them to the Trading Docks order inbox.",
       "Confirm completed sends before deducting inventory.",
+    ],
+    officialUrl: "https://www.etsy.com/developers/your-apps",
+    callbackSlug: "etsy",
+    credentialFields: [
+      { key: "keystring", label: "Keystring", placeholder: "Etsy application keystring", help: "The client identifier shown on the Etsy app page." },
+      { key: "sharedSecret", label: "Shared secret", placeholder: "Etsy shared secret", help: "Stored encrypted and never shown again.", secret: true },
     ],
   },
   {
@@ -148,6 +195,14 @@ const marketplaces: MarketplaceDefinition[] = [
       "Review unmatched product titles before inventory is deducted.",
       "Use email tracking for individual order notifications when available.",
     ],
+    officialUrl: "https://developer-docs.amazon.com/sp-api/docs/registering-your-application",
+    callbackSlug: "amazon",
+    credentialFields: [
+      { key: "sellerId", label: "Seller ID", placeholder: "Amazon merchant/seller ID", help: "Found in Seller Central account information." },
+      { key: "lwaClientId", label: "LWA client ID", placeholder: "Login with Amazon client ID", help: "Issued with your SP-API application." },
+      { key: "lwaClientSecret", label: "LWA client secret", placeholder: "Login with Amazon secret", help: "Stored encrypted and never shown again.", secret: true },
+      { key: "refreshToken", label: "Refresh token", placeholder: "SP-API refresh token", help: "Created when the seller authorizes the application.", secret: true },
+    ],
   },
   {
     id: "etsy",
@@ -160,6 +215,12 @@ const marketplaces: MarketplaceDefinition[] = [
       "Register an Etsy developer application.",
       "Authorize the shop using OAuth.",
       "Import listings before enabling updates.",
+    ],
+    officialUrl: "https://woocommerce.com/document/woocommerce-rest-api/",
+    credentialFields: [
+      { key: "storeUrl", label: "Store URL", placeholder: "https://store.example.com", help: "The HTTPS address of the WooCommerce store." },
+      { key: "consumerKey", label: "Consumer key", placeholder: "ck_…", help: "Create a read/write key in WooCommerce → Settings → Advanced → REST API." },
+      { key: "consumerSecret", label: "Consumer secret", placeholder: "cs_…", help: "Stored encrypted and never shown again.", secret: true },
     ],
   },
   {
@@ -229,6 +290,7 @@ export function MarketplaceWorkspace() {
   const [databaseReady, setDatabaseReady] = useState(true);
   const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null);
   const [activeView, setActiveView] = useState<"connections" | "semi-sync" | "email">("connections");
+  const [credentials, setCredentials] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void supabase
@@ -254,7 +316,49 @@ export function MarketplaceWorkspace() {
     const existing = connections.find((item) => item.marketplace_id === marketplace.id);
     setSelected(marketplace);
     setMethod(existing?.connection_method ?? marketplace.recommended);
+    setCredentials({});
     setNotice("");
+  }
+
+  async function copyCallbackUrl() {
+    if (!selected?.callbackSlug) return;
+    await navigator.clipboard.writeText(
+      `${window.location.origin}/api/marketplaces/${selected.callbackSlug}/callback`,
+    );
+    setNotice("Callback URL copied.");
+  }
+
+  async function saveCredentials() {
+    if (!selected?.credentialFields?.length) return;
+    const missing = selected.credentialFields.find((field) => !credentials[field.key]?.trim());
+    if (missing) {
+      setNotice(`${missing.label} is required.`);
+      return;
+    }
+    setSaving(true);
+    const response = await fetch("/api/marketplaces/credentials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ marketplaceId: selected.id, credentials }),
+    });
+    const result = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!response.ok) {
+      setNotice(result?.error ?? "Could not save encrypted credentials.");
+    } else {
+      setConnections((current) => [
+        ...current.filter((item) => item.marketplace_id !== selected.id),
+        {
+          marketplace_id: selected.id,
+          connection_method: "api",
+          status: "setup_required",
+          settings: { credentials_saved: true },
+          last_sync_at: null,
+        },
+      ]);
+      setCredentials({});
+      setNotice(`${selected.name} credentials were encrypted and saved. Authorization is the next step.`);
+    }
+    setSaving(false);
   }
 
   async function saveConnection() {
@@ -462,8 +566,53 @@ export function MarketplaceWorkspace() {
             <div className="space-y-5 p-5 sm:p-6">
               <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">Choose connection method</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{selected.methods.map((item) => <button key={item} type="button" onClick={() => setMethod(item)} className={`flex items-center justify-between rounded-xl border p-3 text-left text-xs font-semibold transition ${method === item ? "border-cyan-300/25 bg-cyan-300/[.065] text-cyan-100" : "border-white/[.07] bg-black/10 text-slate-500"}`}><span>{METHOD_LABELS[item]}</span>{method === item ? <Check className="h-4 w-4 text-cyan-300" /> : null}</button>)}</div></div>
               <SetupGuide title={`${selected.name} setup`} steps={selected.setup} compact />
-              {method === "api" ? <div className="flex gap-3 rounded-2xl border border-amber-300/12 bg-amber-300/[.03] p-4"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[11px] leading-5 text-amber-100/55">This release saves the approved connector choice and setup state. OAuth credentials and tokens must be added through server-side encrypted storage in the marketplace-specific connector phase.</p></div> : null}
-              <button type="button" disabled={saving || !databaseReady} onClick={() => void saveConnection()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save connection plan</button>
+              {method === "api" ? (
+                <div className="space-y-4 rounded-[22px] border border-cyan-300/12 bg-cyan-300/[.025] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-cyan-100">Your developer credentials</p>
+                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Create credentials in your own marketplace account, then enter them here. Never enter your marketplace password.</p>
+                    </div>
+                    {selected.officialUrl ? (
+                      <a href={selected.officialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/15 px-2.5 py-2 text-[9px] font-semibold text-cyan-200 hover:bg-cyan-300/[.06]">
+                        Official setup <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : null}
+                  </div>
+                  {selected.callbackSlug ? (
+                    <div>
+                      <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[.14em] text-slate-600">OAuth callback URL</p>
+                      <div className="flex gap-2">
+                        <code className="min-w-0 flex-1 overflow-hidden text-ellipsis rounded-xl border border-white/[.07] bg-black/20 px-3 py-2.5 text-[10px] text-slate-400">Your site URL/api/marketplaces/{selected.callbackSlug}/callback</code>
+                        <button type="button" onClick={() => void copyCallbackUrl()} className="rounded-xl border border-white/[.08] px-3 text-slate-400 hover:text-white" aria-label="Copy callback URL"><Copy className="h-4 w-4" /></button>
+                      </div>
+                      <p className="mt-1.5 text-[9px] leading-4 text-slate-600">Paste this exact URL into the marketplace app’s redirect/callback setting.</p>
+                    </div>
+                  ) : null}
+                  {selected.credentialFields?.length ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {selected.credentialFields.map((field) => (
+                        <label key={field.key} className="block">
+                          <span className="text-[10px] font-semibold text-slate-300">{field.label}</span>
+                          <input
+                            type={field.secret ? "password" : "text"}
+                            value={credentials[field.key] ?? ""}
+                            onChange={(event) => setCredentials((current) => ({ ...current, [field.key]: event.target.value }))}
+                            placeholder={field.placeholder}
+                            autoComplete="off"
+                            className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-black/20 px-3 text-xs text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30"
+                          />
+                          <span className="mt-1 block text-[9px] leading-4 text-slate-600">{field.help}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex gap-3 rounded-2xl border border-amber-300/12 bg-amber-300/[.03] p-4"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[11px] leading-5 text-amber-100/55">This marketplace does not currently publish a supported self-service API credential flow. Choose CSV, email, or guided manual tracking.</p></div>
+                  )}
+                  <div className="flex gap-2 rounded-xl border border-emerald-300/10 bg-emerald-300/[.025] p-3 text-[10px] leading-4 text-emerald-100/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Secrets are encrypted on the server with AES-256-GCM. The page receives only masked confirmation after saving.</div>
+                </div>
+              ) : null}
+              <button type="button" disabled={saving || !databaseReady || (method === "api" && !selected.credentialFields?.length)} onClick={() => void (method === "api" ? saveCredentials() : saveConnection())} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{method === "api" ? "Encrypt & save credentials" : "Save connection plan"}</button>
             </div>
           </div>
         </div>
