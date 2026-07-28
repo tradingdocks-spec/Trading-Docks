@@ -16,11 +16,11 @@ type DashboardHeaderProps = {
 };
 
 export function DashboardHeader({
-  userName = "Jeremy",
+  userName = "there",
   workspaceName = "Trading Docks",
-  connectedMarketplaces = 4,
+  connectedMarketplaces = 0,
   isSyncing = false,
-  lastSyncedLabel = "Just now",
+  lastSyncedLabel = "not yet",
 }: DashboardHeaderProps) {
   return (
     <section className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.025] px-6 py-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:px-7 sm:py-7">
@@ -57,7 +57,7 @@ export function DashboardHeader({
 
             <div className="min-w-0">
               <p className="text-xs font-medium text-slate-200">
-                All systems operational
+                Workspace ready
               </p>
 
               <p className="mt-0.5 text-[11px] text-slate-600">

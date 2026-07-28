@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 
 const metrics = [
-  ["Inventory value", "$482,114", "+0.67%", CircleDollarSign],
-  ["Inventory", "48,821", "+248 today", Boxes],
-  ["Active listings", "7,284", "+6.2%", Store],
-  ["Orders today", "38", "+12.4%", ShoppingBag],
+  ["Inventory value", "$0", "No inventory yet", CircleDollarSign],
+  ["Inventory", "0", "No items tracked", Boxes],
+  ["Active listings", "0", "No active listings", Store],
+  ["Orders today", "0", "No orders yet", ShoppingBag],
 ];
 
 export function DashboardHome() {
@@ -44,15 +44,15 @@ export function DashboardHome() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.15] bg-cyan-400/[0.045] px-3 py-1.5 text-[10px] font-semibold text-cyan-100">
                 <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
-                Live seller workspace
+                Seller workspace
               </div>
 
               <h1 className="mt-5 text-3xl font-semibold tracking-[-0.045em] text-white sm:text-4xl">
-                Good morning, Jeremy.
+                Welcome to Trading Docks.
               </h1>
 
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
-                Your inventory, marketplaces, pricing, orders, and automations are connected and ready.
+                Add your inventory and connect the tools you use to begin building your workspace.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -71,10 +71,10 @@ export function DashboardHome() {
               <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[10px] text-slate-600">
                 <span className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_9px_rgba(110,231,183,0.75)]" />
-                  All systems online
+                  Workspace ready
                 </span>
-                <span>Last sync 2 minutes ago</span>
-                <span>3 marketplaces connected</span>
+                <span>No sync activity yet</span>
+                <span>0 marketplaces connected</span>
               </div>
             </div>
 
@@ -84,18 +84,18 @@ export function DashboardHome() {
                 Portfolio value
               </p>
               <p className="relative mt-3 text-4xl font-semibold tracking-[-0.055em] text-white">
-                $482,114
+                $0
               </p>
               <div className="relative mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-300/[0.15] bg-emerald-300/[0.05] px-3 py-1.5 text-[10px] font-semibold text-emerald-300">
                 <TrendingUp className="h-3.5 w-3.5" />
-                +$3,214 today
+                $0 today
               </div>
               <div className="relative mt-6 flex h-24 items-end gap-2">
-                {[38, 46, 43, 55, 52, 64, 60, 72, 68, 82, 78, 92].map((height, index) => (
+                {Array.from({ length: 12 }, () => 0).map((height, index) => (
                   <div key={index} className="flex h-full flex-1 items-end">
                     <div
                       className="w-full rounded-t-md bg-gradient-to-t from-cyan-600/45 via-cyan-400/70 to-cyan-200/95"
-                      style={{ height: `${height}%` }}
+                      style={{ height: `${Math.max(height, 2)}%` }}
                     />
                   </div>
                 ))}
@@ -119,7 +119,7 @@ export function DashboardHome() {
                   <p className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-white">
                     {value as string}
                   </p>
-                  <p className="mt-2 text-xs font-medium text-emerald-300">{detail as string}</p>
+                <p className="mt-2 text-xs font-medium text-slate-600">{detail as string}</p>
                 </div>
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300">
                   <Icon className="h-4.5 w-4.5" />
@@ -139,7 +139,7 @@ export function DashboardHome() {
                 <h2 className="text-lg font-semibold text-white">Sales performance</h2>
                 <p className="mt-1 text-xs text-slate-600">Across TCGplayer, eBay, and Mana Pool</p>
               </div>
-              <span className="text-xs font-semibold text-emerald-300">+18.2%</span>
+              <span className="text-xs font-semibold text-slate-600">0.0%</span>
             </div>
 
             <div className="relative mt-6 h-[280px] overflow-hidden rounded-2xl border border-white/[0.05] bg-[#02090f] p-5">
@@ -148,11 +148,11 @@ export function DashboardHome() {
                 <div key={top} className="absolute inset-x-5 border-t border-dashed border-white/[0.045]" style={{ top: `${top}%` }} />
               ))}
               <div className="relative flex h-full items-end gap-3">
-                {[34, 42, 39, 55, 50, 68, 61, 78, 72, 86, 82, 96].map((height, index) => (
+                {Array.from({ length: 12 }, () => 0).map((height, index) => (
                   <div key={index} className="flex h-full flex-1 items-end">
                     <div
                       className="w-full rounded-t-lg bg-gradient-to-t from-cyan-600/45 via-cyan-400/70 to-cyan-200/95 shadow-[0_0_16px_rgba(34,211,238,0.07)]"
-                      style={{ height: `${height}%` }}
+                      style={{ height: `${Math.max(height, 2)}%` }}
                     />
                   </div>
                 ))}
@@ -166,31 +166,20 @@ export function DashboardHome() {
             </p>
             <h2 className="mt-2 text-lg font-semibold text-white">Recent updates</h2>
 
-            <div className="mt-6 space-y-3">
-              {[
-                ["Chaos Sort completed", "846 cards organized"],
-                ["Binder location updated", "Mana Crypt · P12"],
-                ["Marketplace listing synced", "TCGplayer · 14 items"],
-                ["Order fulfilled", "#10291 shipped"],
-                ["Price rule applied", "248 listings updated"],
-              ].map(([title, detail]) => (
-                <div key={title} className="rounded-xl border border-white/[0.055] bg-black/[0.08] px-4 py-3 transition hover:border-cyan-300/[0.12] hover:bg-cyan-400/[0.02]">
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_9px_rgba(110,231,183,0.75)]" />
-                    <p className="text-xs font-semibold text-slate-200">{title}</p>
-                  </div>
-                  <p className="mt-1 pl-3.5 text-[10px] text-slate-600">{detail}</p>
-                </div>
-              ))}
+            <div className="mt-6 rounded-xl border border-dashed border-white/[0.08] bg-black/[0.08] px-4 py-10 text-center">
+              <p className="text-xs font-semibold text-slate-300">No recent activity</p>
+              <p className="mt-1 text-[10px] text-slate-600">
+                Account activity will appear here.
+              </p>
             </div>
           </div>
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">
           {[
-            ["Inventory health", "94%", Boxes],
-            ["Marketplace uptime", "99.9%", Store],
-            ["Automation success", "98.6%", PackageCheck],
+            ["Inventory health", "0%", Boxes],
+            ["Connected marketplaces", "0", Store],
+            ["Automation runs", "0", PackageCheck],
           ].map(([label, value, Icon]) => (
             <div key={label as string} className="rounded-[22px] border border-white/[0.07] bg-white/[0.02] p-5">
               <div className="flex items-center justify-between">

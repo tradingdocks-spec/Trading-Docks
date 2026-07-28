@@ -11,7 +11,6 @@ import {
   Layers3,
   LockKeyhole,
   Mail,
-  Package,
   Search,
   ShieldCheck,
   Sparkles,
@@ -27,6 +26,8 @@ type SignUpPageProps = {
     success?: string;
     email?: string;
     trial?: string;
+    plan?: string;
+    billing?: string;
   }>;
 };
 
@@ -136,7 +137,13 @@ function FloatingModule({
 export default async function SignUpPage({
   searchParams,
 }: SignUpPageProps) {
-  const { error, success, email } = await searchParams;
+  const { error, success, email, plan, billing } = await searchParams;
+  const selectedPlan =
+    plan === "collector" || plan === "seller" || plan === "business"
+      ? plan
+      : "";
+  const selectedBilling =
+    billing === "monthly" || billing === "annual" ? billing : "";
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#03080c] text-white lg:h-screen lg:min-h-0 lg:overflow-hidden">
@@ -785,6 +792,8 @@ export default async function SignUpPage({
 
                     {!success ? (
                       <form action={signUp} className="mt-4 space-y-3">
+                        <input type="hidden" name="plan" value={selectedPlan} />
+                        <input type="hidden" name="billing" value={selectedBilling} />
                         <div>
                           <label
                             htmlFor="name"

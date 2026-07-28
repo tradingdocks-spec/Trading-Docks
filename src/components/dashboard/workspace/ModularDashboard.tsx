@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -27,8 +27,6 @@ import type {
 } from "./types";
 import { WidgetCard } from "./WidgetCard";
 
-const STORAGE_KEY = "trading-docks-dashboard-layouts-v1";
-
 const LAYOUT_LABELS: Array<[DashboardLayoutId, string]> = [
   ["home", "Home"],
   ["business", "Business"],
@@ -46,21 +44,6 @@ export function ModularDashboard() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!stored) return;
-
-    try {
-      setLayouts({
-        ...DEFAULT_LAYOUTS,
-        ...JSON.parse(stored),
-      });
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
-
   const widgets = layouts[layoutId];
 
   const definitions = useMemo(
@@ -76,7 +59,6 @@ export function ModularDashboard() {
   }
 
   function saveLayouts() {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(layouts));
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1800);
   }

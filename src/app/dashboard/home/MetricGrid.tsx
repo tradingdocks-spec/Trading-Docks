@@ -14,37 +14,37 @@ export function MetricGrid() {
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <MetricCard
         title="Inventory Value"
-        value="$482,114"
-        subtitle="Across 18,642 items"
+        value="$0"
+        subtitle="No inventory added yet"
         icon={WalletCards}
-        trend={8.4}
+        trend={0}
         glow="cyan"
       />
 
       <MetricCard
         title="Monthly Revenue"
-        value="$18,421"
-        subtitle="Gross sales this month"
+        value="$0"
+        subtitle="No sales recorded yet"
         icon={CircleDollarSign}
-        trend={12.7}
+        trend={0}
         glow="emerald"
       />
 
       <MetricCard
         title="Orders Today"
-        value="38"
-        subtitle="12 awaiting shipment"
+        value="0"
+        subtitle="No orders yet"
         icon={ShoppingCart}
-        trend={5.2}
+        trend={0}
         glow="purple"
       />
 
       <MetricCard
         title="Active Listings"
-        value="7,284"
-        subtitle="Across 4 marketplaces"
+        value="0"
+        subtitle="No active listings"
         icon={PackageCheck}
-        trend={-1.8}
+        trend={0}
         glow="orange"
       />
     </section>

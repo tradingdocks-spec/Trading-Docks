@@ -23,40 +23,7 @@ type Marketplace = {
   lastSync: string;
 };
 
-const marketplaces: Marketplace[] = [
-  {
-    name: "TCGplayer",
-    abbreviation: "TCG",
-    status: "healthy",
-    detail: "Inventory and orders are fully synced",
-    listings: "4,218 listings",
-    lastSync: "2 min ago",
-  },
-  {
-    name: "eBay",
-    abbreviation: "EB",
-    status: "healthy",
-    detail: "Listings and order activity are current",
-    listings: "1,846 listings",
-    lastSync: "5 min ago",
-  },
-  {
-    name: "Shopify",
-    abbreviation: "SH",
-    status: "syncing",
-    detail: "Refreshing product quantities",
-    listings: "932 listings",
-    lastSync: "Syncing now",
-  },
-  {
-    name: "Mana Pool",
-    abbreviation: "MP",
-    status: "warning",
-    detail: "12 listings need review",
-    listings: "288 listings",
-    lastSync: "18 min ago",
-  },
-];
+const marketplaces: Marketplace[] = [];
 
 const statusStyles: Record<
   MarketplaceStatus,
@@ -119,18 +86,18 @@ export function MarketplaceHealth() {
 
             <div>
               <p className="text-sm font-medium text-white">
-                4 marketplaces connected
+                0 marketplaces connected
               </p>
 
               <p className="mt-1 text-xs text-slate-600">
-                3 healthy, 1 requires attention
+                Connect a marketplace to see its status
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <Clock3 className="h-3.5 w-3.5" />
-            Last checked just now
+            No sync activity yet
           </div>
         </div>
       </div>

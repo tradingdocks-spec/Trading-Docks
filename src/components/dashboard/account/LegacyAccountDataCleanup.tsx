@@ -2,7 +2,22 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-const RESET_VERSION = "2026-07-27-remove-example-cards-v4";
+const RESET_VERSION = "2026-07-27-account-isolation-v4";
+
+const EXACT_DATA_KEYS = [
+  "trading-docks-inventory-locations-v1",
+  "trading-docks-inventory-items-v1",
+  "trading-docks-inventory-movements-v1",
+  "trading-docks-inventory",
+  "trading-docks-imported-decks",
+  "trading-docks-last-saved-deck",
+  "trading-docks-business-calendar-v3",
+];
+
+const DECK_KEY_PREFIXES = [
+  "trading-docks-deck:",
+  "trading-docks-unresolved:",
+];
 
 export function LegacyAccountDataCleanup({
   userId,
@@ -17,28 +32,24 @@ export function LegacyAccountDataCleanup({
     const markerKey = `trading-docks-account-data-reset:${RESET_VERSION}:${userId}`;
 
     if (window.localStorage.getItem(markerKey) !== "complete") {
-      const inventoryKeys = [
-        "trading-docks-inventory-items-v1",
-        `trading-docks-inventory-items-v1:${userId}`,
-        "trading-docks-inventory",
-        `trading-docks-inventory:${userId}`,
-      ];
-      const exampleNames = new Set(["painsmith", "crop rotation"]);
-      for (const key of inventoryKeys) {
-        const stored = window.localStorage.getItem(key);
-        if (!stored) continue;
-        try {
-          const parsed = JSON.parse(stored) as unknown;
-          if (!Array.isArray(parsed)) continue;
-          const cleaned = parsed.filter((item) => {
-            if (!item || typeof item !== "object") return true;
-            const record = item as Record<string, unknown>;
-            const name = String(record.name ?? record.cardName ?? record.productName ?? "").trim().toLowerCase();
-            return !exampleNames.has(name);
-          });
-          window.localStorage.setItem(key, JSON.stringify(cleaned));
-        } catch {
-          // Leave unrelated user data untouched if a legacy value is not valid JSON.
+      // Remove only obsolete shared keys. Never erase valid data belonging to
+      // the signed-in account.
+      for (const key of EXACT_DATA_KEYS) {
+        window.localStorage.removeItem(key);
+      }
+
+      for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+        const key = window.localStorage.key(index);
+        if (!key) continue;
+
+        const isLegacySharedDeck = DECK_KEY_PREFIXES.some((prefix) => {
+          if (!key.startsWith(prefix)) return false;
+          const identifier = key.slice(prefix.length);
+          return identifier.length > 0 && !identifier.includes(":");
+        });
+
+        if (isLegacySharedDeck) {
+          window.localStorage.removeItem(key);
         }
       }
 

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 
 import { createClient } from "@/lib/supabase/server";
+import { isBillingCycle, isPaidPlan } from "@/lib/stripe/plans";
 import {
   persistentAuthCookieOptions,
   REMEMBER_ME_COOKIE,
@@ -16,7 +17,8 @@ function getString(formData: FormData, fieldName: string): string {
 }
 
 function redirectWithError(path: string, message: string): never {
-  redirect(`${path}?error=${encodeURIComponent(message)}`);
+  const separator = path.includes("?") ? "&" : "?";
+  redirect(`${path}${separator}error=${encodeURIComponent(message)}`);
 }
 
 async function getRequestOrigin() {
@@ -132,31 +134,45 @@ export async function signUp(formData: FormData) {
   const password = getString(formData, "password");
   const confirmPassword = getString(formData, "confirmPassword");
   const termsAccepted = formData.get("terms") === "on";
+  const requestedPlanValue = getString(formData, "plan");
+  const requestedBillingValue = getString(formData, "billing");
+  const requestedPlan = isPaidPlan(requestedPlanValue)
+    ? requestedPlanValue
+    : null;
+  const requestedBilling = isBillingCycle(requestedBillingValue)
+    ? requestedBillingValue
+    : null;
+  const selectionQuery =
+    requestedPlan && requestedBilling
+      ? `?plan=${requestedPlan}&billing=${requestedBilling}`
+      : "";
+  const signUpPath = `/sign-up${selectionQuery}`;
+  const onboardingPath = `/onboarding${selectionQuery}`;
 
   if (!name || !email || !password || !confirmPassword) {
     redirectWithError(
-      "/sign-up",
+      signUpPath,
       "Please complete all required fields.",
     );
   }
 
   if (!termsAccepted) {
     redirectWithError(
-      "/sign-up",
+      signUpPath,
       "You must agree to the Terms of Service and Privacy Policy.",
     );
   }
 
   if (password.length < 8) {
     redirectWithError(
-      "/sign-up",
+      signUpPath,
       "Your password must contain at least 8 characters.",
     );
   }
 
   if (password !== confirmPassword) {
     redirectWithError(
-      "/sign-up",
+      signUpPath,
       "The passwords you entered do not match.",
     );
   }
@@ -173,23 +189,25 @@ export async function signUp(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?next=/onboarding`,
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(onboardingPath)}`,
       data: {
         full_name: name,
+        requested_plan: requestedPlan,
+        requested_billing_cycle: requestedBilling,
       },
     },
   });
 
   if (error) {
-    redirectWithError("/sign-up", error.message);
+    redirectWithError(signUpPath, error.message);
   }
 
   if (data.session) {
-    redirect("/onboarding");
+    redirect(onboardingPath);
   }
 
   redirect(
-    `/sign-up?success=${encodeURIComponent(
+    `${signUpPath}${selectionQuery ? "&" : "?"}success=${encodeURIComponent(
       "Your account was created. Check your email to confirm your account before signing in.",
     )}`,
   );

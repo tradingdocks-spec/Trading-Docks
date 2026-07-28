@@ -31,7 +31,7 @@ export function PortfolioHero() {
           <h1 className="mt-6 font-serif text-4xl font-semibold leading-[1.02] tracking-[-0.045em] text-white lg:text-[49px]">
             Welcome back,{" "}
             <span className="bg-gradient-to-r from-[#a8f6ff] via-[#2ddcf4] to-[#00a9e8] bg-clip-text text-transparent">
-              Jeremy
+              there
             </span>
           </h1>
 
@@ -43,12 +43,12 @@ export function PortfolioHero() {
           <div className="mt-7 flex flex-wrap gap-x-7 gap-y-3">
             <HeroStatus
               icon={CheckCircle2}
-              label="All systems operational"
+              label="Workspace ready"
             />
 
             <HeroStatus
               icon={Clock3}
-              label="Updated moments ago"
+              label="No activity yet"
             />
           </div>
         </div>
@@ -185,25 +185,25 @@ function PortfolioSummary() {
           </div>
 
           <p className="mt-4 text-[39px] font-semibold tracking-[-0.05em] text-white">
-            $482,114
+            $0
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/[0.18] bg-emerald-400/[0.065] px-3 py-1.5 text-[11px] font-semibold text-emerald-300 shadow-[0_0_20px_rgba(52,211,153,0.045)]">
               <ArrowUpRight className="h-3.5 w-3.5" />
-              +$3,214 today
+              $0 today
             </div>
 
             <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-[#7e94a8]">
               <TrendingUp className="h-3.5 w-3.5 text-cyan-300" />
-              +0.67%
+              0.00%
             </div>
           </div>
 
           <div className="mt-5 h-px w-full bg-gradient-to-r from-cyan-300/[0.26] via-cyan-300/[0.08] to-transparent" />
 
           <p className="mt-3 text-[9px] text-[#53697c]">
-            Across inventory and active marketplaces
+            Add inventory to begin tracking value
           </p>
         </div>
 

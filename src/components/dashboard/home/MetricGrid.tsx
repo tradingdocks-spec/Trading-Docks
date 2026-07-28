@@ -2,10 +2,10 @@
   return (
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {[
-        ["Inventory Value", "$482,114"],
-        ["Monthly Revenue", "$18,421"],
-        ["Orders Today", "38"],
-        ["Active Listings", "7,284"],
+        ["Inventory Value", "$0"],
+        ["Monthly Revenue", "$0"],
+        ["Orders Today", "0"],
+        ["Active Listings", "0"],
       ].map(([title, value]) => (
         <article
           key={title}

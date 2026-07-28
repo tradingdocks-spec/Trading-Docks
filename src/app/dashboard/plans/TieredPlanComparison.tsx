@@ -15,7 +15,10 @@ import {
   X,
 } from "lucide-react";
 import { CheckoutButton } from "@/components/billing/CheckoutButton";
-import { PLAN_ENTITLEMENTS } from "@/lib/plan-entitlements";
+import {
+  PLAN_ENTITLEMENTS,
+  type AccountTier,
+} from "@/lib/plan-entitlements";
 
 type BillingCycle = "monthly" | "annual";
 
@@ -142,18 +145,24 @@ function planAction(plan: Plan, currentPlan: string) {
   return plan.id === "business" ? "Choose Store" : `Choose ${plan.name}`;
 }
 
-export function TieredPlanComparison({ currentPlan }: { currentPlan: string }) {
+export function TieredPlanComparison({
+  currentPlan,
+  publicView = false,
+}: {
+  currentPlan: AccountTier | null;
+  publicView?: boolean;
+}) {
   const [billing, setBilling] = useState<BillingCycle>("annual");
 
   return (
     <div className="min-h-full bg-[#030a10] px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1440px]">
         <Link
-          href="/dashboard/inventory"
+          href={publicView ? "/" : "/dashboard"}
           className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-cyan-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Inventory
+          {publicView ? "Back to Trading Docks" : "Back to Dashboard"}
         </Link>
 
         <header className="mx-auto max-w-3xl pb-10 pt-10 text-center">
@@ -196,7 +205,7 @@ export function TieredPlanComparison({ currentPlan }: { currentPlan: string }) {
           {plans.map((plan) => {
             const price =
               billing === "annual" ? plan.annualPrice / 12 : plan.monthlyPrice;
-            const isCurrent = plan.id === currentPlan;
+            const isCurrent = !publicView && plan.id === currentPlan;
             return (
               <article
                 key={plan.id}
@@ -233,7 +242,19 @@ export function TieredPlanComparison({ currentPlan }: { currentPlan: string }) {
                 <p className="mt-5 min-h-[72px] text-sm leading-6 text-slate-400">
                   {plan.description}
                 </p>
-                {isCurrent || plan.id === "free" || currentPlan !== "free" ? (
+                {publicView ? (
+                  <Link
+                    href={
+                      plan.id === "free"
+                        ? "/sign-up"
+                        : `/sign-up?plan=${plan.id}&billing=${billing}`
+                    }
+                    className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-slate-100 transition group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
+                  >
+                    {plan.id === "free" ? "Start free" : planAction(plan, "")}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                ) : isCurrent || plan.id === "free" || currentPlan !== "free" ? (
                   <Link
                     href={currentPlan !== "free" ? "/dashboard/settings" : "/dashboard"}
                     aria-current={isCurrent ? "true" : undefined}

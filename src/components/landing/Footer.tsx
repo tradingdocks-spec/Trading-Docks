@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export function Footer() {
   return (
@@ -14,12 +15,11 @@ export function Footer() {
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-slate-600">
           <span>© 2026 Trading Docks</span>
-          <a href="#" className="transition hover:text-slate-300">Privacy</a>
-          <a href="#" className="transition hover:text-slate-300">Terms</a>
-          <a href="#" className="transition hover:text-slate-300">Security</a>
+          <Link href="/privacy" className="transition hover:text-slate-300">Privacy</Link>
+          <Link href="/terms" className="transition hover:text-slate-300">Terms</Link>
+          <Link href="/security" className="transition hover:text-slate-300">Security</Link>
         </div>
       </div>
     </footer>
   );
 }
-

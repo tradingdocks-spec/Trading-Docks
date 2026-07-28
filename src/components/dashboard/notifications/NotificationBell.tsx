@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Trash2,
-  DollarSign,
   Package,
   ShoppingCart,
   TriangleAlert,
@@ -32,56 +31,6 @@ type Notification = {
   type: NotificationType;
   href: string;
 };
-
-const seedNotifications: Notification[] = [
-  {
-    id: "1",
-    title: "New Marketplace Sale",
-    description: "A TCGplayer order has been received.",
-    time: "2m ago",
-    unread: true,
-    type: "sale",
-    href: "/dashboard/orders",
-  },
-  {
-    id: "2",
-    title: "Inventory Import Complete",
-    description: "4,532 cards imported successfully.",
-    time: "12m ago",
-    unread: true,
-    type: "success",
-    href: "/dashboard/inventory",
-  },
-  {
-    id: "3",
-    title: "Price Sync Finished",
-    description: "TCGplayer pricing updated.",
-    time: "28m ago",
-    unread: false,
-    type: "inventory",
-    href: "/dashboard/automation",
-  },
-  {
-    id: "4",
-    title: "eBay Listing Failed",
-    description: "12 listings require attention.",
-    time: "1h ago",
-    unread: true,
-    type: "error",
-    href: "/dashboard/marketplaces",
-  },
-  {
-    id: "5",
-    title: "Automation Complete",
-    description: "Nightly sync completed successfully.",
-    time: "3h ago",
-    unread: false,
-    type: "success",
-    href: "/dashboard/automation",
-  },
-];
-
-const DISMISSED_NOTIFICATIONS_KEY = "trading-docks-dismissed-notifications-v1";
 
 function icon(type: NotificationType) {
   switch (type) {
@@ -125,15 +74,10 @@ function color(type: NotificationType) {
 }
 
 export function NotificationBell({ plan }: { plan: AccountTier }) {
+  void plan;
   const [open, setOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(() =>
-    seedNotifications.filter((notification) => {
-      if (plan === "business") return true;
-      if (plan === "seller") return notification.href !== "/dashboard/automation";
-      return notification.type === "inventory" || notification.type === "success";
-    }),
-  );
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -141,19 +85,6 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
     () => notifications.filter((n) => n.unread).length,
     [notifications],
   );
-
-  useEffect(() => {
-    try {
-      const dismissed = new Set<string>(
-        JSON.parse(window.localStorage.getItem(DISMISSED_NOTIFICATIONS_KEY) ?? "[]"),
-      );
-      if (dismissed.size > 0) {
-        setNotifications((current) => current.filter((item) => !dismissed.has(item.id)));
-      }
-    } catch {
-      window.localStorage.removeItem(DISMISSED_NOTIFICATIONS_KEY);
-    }
-  }, []);
 
   useEffect(() => {
     function outside(e: MouseEvent) {
@@ -297,11 +228,6 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
                 <button
                   type="button"
                   onClick={() => {
-                    const dismissed = seedNotifications.map((item) => item.id);
-                    window.localStorage.setItem(
-                      DISMISSED_NOTIFICATIONS_KEY,
-                      JSON.stringify(dismissed),
-                    );
                     setNotifications([]);
                     setConfirmClear(false);
                   }}

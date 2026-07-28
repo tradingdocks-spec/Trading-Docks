@@ -11,8 +11,7 @@ export function TrustedGames() {
             </p>
 
             <p className="mt-3 text-sm leading-6 text-[#9aabba]">
-              Built for Magic and Pokémon collectors, marketplace sellers, LGS
-              owners, and growing card businesses.
+              Collectors, marketplace sellers, LGS owners, and growing card businesses.
             </p>
           </div>
 
@@ -29,6 +28,9 @@ export function TrustedGames() {
               </div>
             ))}
 
+            <div className="rounded-2xl border border-white/[0.05] bg-white/[0.012] px-4 py-3 text-xs font-medium text-[#536a80]">
+              Sports cards coming soon
+            </div>
           </div>
         </div>
       </div>

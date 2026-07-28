@@ -7,7 +7,6 @@ import {
   CircleDollarSign,
   ClipboardList,
   FileBarChart2,
-  FileSpreadsheet,
   Gem,
   History,
   LayoutDashboard,
@@ -116,14 +115,6 @@ export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
     href: "/dashboard/automation",
     label: "Automation",
     icon: Bot,
-  },
-];
-
-export const TOOLS_NAV: NavigationItem[] = [
-  {
-    href: "/dashboard/tools/csv-converter",
-    label: "CSV Conversion Engine",
-    icon: FileSpreadsheet,
   },
 ];
 

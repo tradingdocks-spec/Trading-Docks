@@ -26,18 +26,11 @@
   },
   "include": [
     "next-env.d.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "proxy.ts",
-    "next.config.ts",
+    "**/*.ts",
+    "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "*.mts"
+    "**/*.mts"
   ],
-  "exclude": [
-    "node_modules",
-    "plan_preview_nav_release",
-    ".next",
-    "coverage"
-  ]
+  "exclude": ["node_modules"]
 }

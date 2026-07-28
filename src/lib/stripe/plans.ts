@@ -22,7 +22,7 @@ export const STRIPE_PRICES: Record<
     annual: {
       env: "STRIPE_COLLECTOR_ANNUAL_PRICE_ID",
       fallback: "price_1TxvvVIU3P0Zz45X6AQU2MyW",
-      amount: 44.99,
+      amount: 48.96,
     },
   },
   seller: {
@@ -34,7 +34,7 @@ export const STRIPE_PRICES: Record<
     annual: {
       env: "STRIPE_SELLER_ANNUAL_PRICE_ID",
       fallback: "price_1TxvukIU3P0Zz45XDORx6qeH",
-      amount: 179.99,
+      amount: 198.96,
     },
   },
   business: {
@@ -46,7 +46,7 @@ export const STRIPE_PRICES: Record<
     annual: {
       env: "STRIPE_STORE_ANNUAL_PRICE_ID",
       fallback: "price_1TxvwoIU3P0Zz45XaUB4cFCt",
-      amount: 449.99,
+      amount: 498.96,
     },
   },
 };

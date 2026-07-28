@@ -9,20 +9,7 @@ import {
 import { Panel } from "./Panel";
 import { PanelHeader } from "./PanelHeader";
 
-const revenuePoints = [
-  18,
-  26,
-  22,
-  34,
-  31,
-  43,
-  39,
-  52,
-  48,
-  61,
-  58,
-  72,
-];
+const revenuePoints = Array.from({ length: 12 }, () => 0);
 
 const chartPath = revenuePoints
   .map((point, index) => {
@@ -57,17 +44,17 @@ export function RevenueOverview() {
 
           <div className="mt-2 flex items-end gap-3">
             <p className="text-4xl font-semibold tracking-tight text-white">
-              $18,421
+              $0
             </p>
 
             <div className="mb-1 flex items-center gap-1 rounded-full border border-emerald-300/[0.12] bg-emerald-400/[0.07] px-2 py-1 text-xs font-medium text-emerald-300">
               <ArrowUpRight className="h-3.5 w-3.5" />
-              12.7%
+              0.00%
             </div>
           </div>
 
           <p className="mt-2 text-sm text-slate-600">
-            $2,073 more than the previous period
+            $0 change from the previous period
           </p>
         </div>
 
@@ -78,7 +65,7 @@ export function RevenueOverview() {
             </p>
 
             <p className="mt-2 text-lg font-semibold text-white">
-              412
+              0
             </p>
           </div>
 
@@ -88,7 +75,7 @@ export function RevenueOverview() {
             </p>
 
             <p className="mt-2 text-lg font-semibold text-white">
-              $44.71
+              $0
             </p>
           </div>
 
@@ -98,7 +85,7 @@ export function RevenueOverview() {
             </p>
 
             <p className="mt-2 text-lg font-semibold text-white">
-              $6,842
+              $0
             </p>
           </div>
         </div>

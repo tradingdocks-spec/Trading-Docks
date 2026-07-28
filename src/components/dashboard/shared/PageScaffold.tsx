@@ -119,7 +119,7 @@ export function PageScaffold({
                 />
               ))}
               <div className="relative flex h-full items-end gap-3">
-                {[38, 52, 47, 66, 59, 78, 70, 88, 82, 96].map((height, index) => (
+                {Array.from({ length: 10 }, () => 0).map((height, index) => (
                   <div key={index} className="flex h-full flex-1 items-end">
                     <div
                       className="w-full rounded-t-lg bg-gradient-to-t from-cyan-600/45 via-cyan-400/70 to-cyan-200/95 shadow-[0_0_16px_rgba(34,211,238,0.07)]"
@@ -138,23 +138,10 @@ export function PageScaffold({
             <h2 className="mt-2 text-lg font-semibold text-white">Recent updates</h2>
 
             <div className="mt-6 space-y-3">
-              {[
-                ["Inventory synchronized", "248 items updated"],
-                ["Marketplace connection healthy", "All channels online"],
-                ["Automation completed", "Repricing rules applied"],
-                ["Storage location indexed", "Binder 04 updated"],
-              ].map(([titleText, detail]) => (
-                <div
-                  key={titleText}
-                  className="rounded-xl border border-white/[0.055] bg-black/[0.08] px-4 py-3 transition hover:border-cyan-300/[0.12] hover:bg-cyan-400/[0.02]"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_9px_rgba(110,231,183,0.75)]" />
-                    <p className="text-xs font-semibold text-slate-200">{titleText}</p>
-                  </div>
-                  <p className="mt-1 pl-3.5 text-[10px] text-slate-600">{detail}</p>
-                </div>
-              ))}
+              <div className="rounded-xl border border-dashed border-white/[0.07] bg-black/[0.08] px-4 py-8 text-center">
+                <p className="text-xs font-semibold text-slate-400">No recent activity</p>
+                <p className="mt-1 text-[10px] text-slate-600">This account&apos;s updates will appear here.</p>
+              </div>
             </div>
           </div>
         </section>

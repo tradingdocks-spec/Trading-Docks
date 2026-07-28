@@ -1,15 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
 import {
-  ArrowUpRight,
-  Bot,
   CalendarDays,
   ChevronDown,
   CircleDot,
   GripVertical,
   LockKeyhole,
-  Maximize2,
   MoreHorizontal,
   Sparkles,
   TrendingUp,
@@ -180,19 +176,19 @@ function LockedContent({
 
 function WidgetContent({ id }: { id: string }) {
   if (id === "inventory-value") {
-    return <Metric value="$482,114" change="+0.67%" detail="+$3,214 today" />;
+    return <Metric value="$0" change="0.00%" detail="$0 today" />;
   }
 
   if (id === "inventory-count") {
-    return <Metric value="48,821" change="+248 today" detail="412 recently listed" />;
+    return <Metric value="0" change="0 today" detail="No inventory yet" />;
   }
 
   if (id === "revenue") {
-    return <Metric value="$18,421" change="+18.2%" detail="$612 average/day" />;
+    return <Metric value="$0" change="0.00%" detail="$0 average/day" />;
   }
 
   if (id === "profit") {
-    return <Metric value="$6,842" change="+12.4%" detail="37.1% net margin" />;
+    return <Metric value="$0" change="0.00%" detail="0.00% net margin" />;
   }
 
   if (id === "collection-growth" || id === "inventory-heatmap") {
@@ -209,141 +205,75 @@ function WidgetContent({ id }: { id: string }) {
 
   if (id === "orders") {
     return (
-      <ListContent
-        rows={[
-          ["38 orders today", "14 awaiting shipment"],
-          ["$2,846 revenue", "+12.4% vs yesterday"],
-          ["3 returns open", "Requires review"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "marketplace-health") {
     return (
-      <ListContent
-        rows={[
-          ["TCGplayer", "Online · 3,842 listings"],
-          ["eBay", "Online · 2,194 listings"],
-          ["Mana Pool", "Online · 1,248 listings"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "automation-queue") {
     return (
-      <ListContent
-        rows={[
-          ["Repricing rules", "248 listings updated"],
-          ["Marketplace sync", "Completed 2m ago"],
-          ["Inventory alerts", "4 notifications generated"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "listing-queue") {
     return (
-      <ListContent
-        rows={[
-          ["Ready to list", "412 cards"],
-          ["Needs pricing", "38 cards"],
-          ["Missing photos", "14 products"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "price-alerts") {
     return (
-      <ListContent
-        rows={[
-          ["Mana Crypt", "+8.4% today"],
-          ["Rhystic Study", "-6.2% this week"],
-          ["The One Ring", "+4.8% today"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "chaos-sort") {
-    return <Metric value="1,284" change="Ready to sort" detail="Estimated time: 18 minutes" />;
+    return <Metric value="0" change="No cards queued" detail="Estimated time: 0 minutes" />;
   }
 
   if (id === "binder-usage") {
     return (
-      <ProgressRows
-        rows={[
-          ["Binder 04", 92],
-          ["Commander Staples", 78],
-          ["Trade Binder", 64],
-        ]}
-      />
+      <ProgressRows rows={[]} />
     );
   }
 
   if (id === "recently-added") {
     return (
-      <ListContent
-        rows={[
-          ["The One Ring", "Near Mint · LTR"],
-          ["Mana Crypt", "Lightly Played · 2XM"],
-          ["Rhystic Study", "Near Mint · WOT"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "wishlist") {
     return (
-      <ListContent
-        rows={[
-          ["Gaea's Cradle", "Target: $710"],
-          ["Mox Diamond", "Target: $540"],
-          ["Jeweled Lotus", "Target: $82"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "commander-staples") {
     return (
-      <ListContent
-        rows={[
-          ["Sol Ring", "184 copies"],
-          ["Arcane Signet", "126 copies"],
-          ["Swords to Plowshares", "94 copies"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "tasks") {
     return (
-      <ListContent
-        rows={[
-          ["Photograph listing queue", "38 items"],
-          ["Review inventory alerts", "4 alerts"],
-          ["Pack today's orders", "14 orders"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
   if (id === "team-activity") {
     return (
-      <ListContent
-        rows={[
-          ["Jeremy imported inventory", "248 cards"],
-          ["Alex fulfilled orders", "12 shipments"],
-          ["Morgan updated pricing", "84 listings"],
-        ]}
-      />
+      <ListContent rows={[]} />
     );
   }
 
-  return <Metric value="94%" change="Healthy" detail="Updated moments ago" />;
+  return <Metric value="0" change="No activity" detail="Waiting for account data" />;
 }
 
 function Metric({
@@ -370,10 +300,8 @@ function Metric({
 }
 
 function AnimatedChart({ variant }: { variant: "growth" | "heatmap" }) {
-  const values =
-    variant === "growth"
-      ? [34, 42, 39, 55, 50, 68, 61, 78, 72, 86, 82, 96]
-      : [58, 32, 78, 44, 86, 62, 38, 92, 54, 74, 48, 84];
+  void variant;
+  const values = Array.from({ length: 12 }, () => 0);
 
   const months = [
     "Jan",
@@ -432,16 +360,7 @@ function AnimatedChart({ variant }: { variant: "growth" | "heatmap" }) {
 
 function BusinessCalendar() {
   const days = Array.from({ length: 35 }, (_, index) => index - 2);
-  const events: Record<number, Array<{ label: string; type: string }>> = {
-    3: [{ label: "Order mailers", type: "supplies" }],
-    7: [{ label: "Inventory count", type: "operations" }],
-    11: [{ label: "Vendor reorder", type: "supplies" }],
-    15: [{ label: "Friday Night Magic", type: "tournament" }],
-    18: [{ label: "Payroll review", type: "staff" }],
-    22: [{ label: "Price audit", type: "operations" }],
-    26: [{ label: "Store tournament", type: "tournament" }],
-    29: [{ label: "Restock sleeves", type: "supplies" }],
-  };
+  const events: Record<number, Array<{ label: string; type: string }>> = {};
 
   const badgeClass: Record<string, string> = {
     supplies: "border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-200",
@@ -531,6 +450,10 @@ function BusinessCalendar() {
 }
 
 function ListContent({ rows }: { rows: Array<[string, string]> }) {
+  if (rows.length === 0) {
+    return <EmptyWidgetState />;
+  }
+
   return (
     <div className="space-y-2.5">
       {rows.map(([title, detail]) => (
@@ -550,6 +473,10 @@ function ListContent({ rows }: { rows: Array<[string, string]> }) {
 }
 
 function ProgressRows({ rows }: { rows: Array<[string, number]> }) {
+  if (rows.length === 0) {
+    return <EmptyWidgetState />;
+  }
+
   return (
     <div className="space-y-4">
       {rows.map(([label, value]) => (
@@ -576,29 +503,22 @@ function AIInsights() {
       <div className="flex items-center gap-2 rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] px-3 py-2.5">
         <Sparkles className="h-4 w-4 text-cyan-300" />
         <p className="text-[10px] font-semibold text-cyan-100">
-          Today's recommendations
+          Today&apos;s recommendations
         </p>
       </div>
 
       <div className="mt-3 space-y-2">
-        {[
-          "List 38 cards with strong marketplace demand.",
-          "Price 12 items that moved more than 5%.",
-          "Binder 4 is approaching capacity.",
-          "Mana Pool prices dropped on 18 watched cards.",
-          "6 orders require attention before cutoff.",
-        ].map((recommendation) => (
-          <button
-            key={recommendation}
-            type="button"
-            className="group flex w-full items-center gap-3 rounded-xl border border-white/[0.055] bg-black/[0.08] px-3 py-2.5 text-left transition hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.025]"
-          >
-            <Bot className="h-3.5 w-3.5 shrink-0 text-cyan-300/75" />
-            <span className="flex-1 text-[10px] text-slate-400">{recommendation}</span>
-            <ArrowUpRight className="h-3 w-3 text-slate-700 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-cyan-300" />
-          </button>
-        ))}
+        <EmptyWidgetState />
       </div>
+    </div>
+  );
+}
+
+function EmptyWidgetState() {
+  return (
+    <div className="rounded-xl border border-dashed border-white/[0.07] bg-black/[0.06] px-4 py-6 text-center">
+      <p className="text-[11px] font-semibold text-slate-400">No account data yet</p>
+      <p className="mt-1 text-[9px] text-slate-600">Activity will appear after this account adds data.</p>
     </div>
   );
 }

@@ -43,6 +43,8 @@ type LocationRecord = {
 const LOCATION_STORAGE_KEY = "trading-docks-inventory-locations-v1";
 const ITEM_STORAGE_KEY = "trading-docks-inventory-items-v1";
 const MOVEMENT_STORAGE_KEY = "trading-docks-inventory-movements-v1";
+const TCGPLAYER_HEADERS =
+  CSV_TEMPLATES.find((template) => template.id === "tcgplayer")?.headers ?? [];
 const IMPORTANT_FIELDS: CanonicalKey[] = [
   "name",
   "set",
@@ -53,6 +55,7 @@ const IMPORTANT_FIELDS: CanonicalKey[] = [
 ];
 export function CsvConversionEngine() {
   const fileRef = useRef<HTMLInputElement>(null);
+  const tcgplayerReferenceRef = useRef<HTMLInputElement>(null);
   const [rawText, setRawText] = useState("");
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
@@ -74,6 +77,8 @@ export function CsvConversionEngine() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAllRows, setShowAllRows] = useState(false);
   const [showBridgeHelp, setShowBridgeHelp] = useState(false);
+  const [tcgplayerReferenceName, setTcgplayerReferenceName] = useState("");
+  const [tcgplayerReferenceRows, setTcgplayerReferenceRows] = useState<CsvRow[]>([]);
 
   const converted = useMemo(() => {
     const normalized = rows.flatMap((sourceRow) => {
@@ -87,8 +92,21 @@ export function CsvConversionEngine() {
         normalizeCanonicalRow(row, defaultCondition, defaultFinish),
       );
     });
-    return normalized.map((row, index) => ({ ...row, ...(enrichedRows[index] ?? {}) }));
-  }, [defaultCondition, defaultFinish, enrichedRows, mapping, rows]);
+    return normalized.map((row, index) => {
+      const enriched = { ...row, ...(enrichedRows[index] ?? {}) };
+      return {
+        ...enriched,
+        ...matchTcgplayerReference(enriched, tcgplayerReferenceRows),
+      };
+    });
+  }, [
+    defaultCondition,
+    defaultFinish,
+    enrichedRows,
+    mapping,
+    rows,
+    tcgplayerReferenceRows,
+  ]);
   const validRows = converted.filter((row) => row.name.trim());
   const quantityTotal = validRows.reduce(
     (sum, row) => sum + Math.max(1, Number.parseInt(row.quantity, 10) || 1),
@@ -131,6 +149,36 @@ export function CsvConversionEngine() {
     loadCsv(text, file.name);
   }
 
+  async function handleTcgplayerReference(file: File) {
+    const matrix = parseCsv(await file.text());
+    if (matrix.length < 2) {
+      setNotice("The TCGplayer reference export does not contain any product rows.");
+      return;
+    }
+    const referenceHeaders = matrix[0].map((value) => value.replace(/^\uFEFF/, "").trim());
+    if (
+      referenceHeaders.length !== TCGPLAYER_HEADERS.length ||
+      referenceHeaders.some((header, index) => header !== TCGPLAYER_HEADERS[index])
+    ) {
+      setNotice(
+        "That reference file does not match the required 16-column TCGplayer Pricing export.",
+      );
+      return;
+    }
+    const referenceRows = matrix
+      .slice(1)
+      .filter((values) => values.some((value) => value.trim()))
+      .map((values) =>
+        Object.fromEntries(referenceHeaders.map((header, index) => [header, values[index] ?? ""])),
+      );
+    setTcgplayerReferenceName(file.name);
+    setTcgplayerReferenceRows(referenceRows);
+    const withIds = referenceRows.filter((row) => row["TCGplayer Id"]?.trim()).length;
+    setNotice(
+      `${withIds.toLocaleString()} verified TCGplayer SKU rows loaded from ${file.name}.`,
+    );
+  }
+
   function downloadConverted() {
     if (!validRows.length) return setNotice("Map a card or product name before exporting.");
     if (
@@ -147,11 +195,7 @@ export function CsvConversionEngine() {
       CSV_TEMPLATES.find((template) => template.id === outputTemplateId)?.name ??
       "Trading Docks";
     const csv = [outputHeaders, ...values]
-      .map((row) =>
-        row
-          .map((value) => outputTemplateId === "tcgplayer" ? csvQuote(value) : csvEscape(value))
-          .join(","),
-      )
+      .map((row) => row.map(csvEscape).join(","))
       .join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
@@ -398,9 +442,18 @@ export function CsvConversionEngine() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Convert to</span><select value={outputTemplateId} onChange={(event) => setOutputTemplateId(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300">{CSV_TEMPLATES.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
               {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Match products &amp; prices</button> : null}
-              {outputTemplateId === "tcgplayer" && missingTcgplayerSkuCount ? <button type="button" onClick={downloadManaBoxBridge} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download ManaBox bridge</button> : <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download CSV</button>}
+              {outputTemplateId !== "tcgplayer" || !missingTcgplayerSkuCount ? <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download CSV</button> : null}
             </div>
-            {outputTemplateId === "tcgplayer" ? <><div className={`rounded-xl border p-3 text-[10px] leading-5 ${missingTcgplayerSkuCount ? "border-amber-300/10 bg-amber-300/[.025] text-amber-100/60" : "border-emerald-300/10 bg-emerald-300/[.025] text-emerald-100/60"}`}>{missingTcgplayerSkuCount ? <><strong className="text-amber-200">{missingTcgplayerSkuCount.toLocaleString()} rows still need TCGplayer inventory SKU IDs.</strong> Download the ManaBox bridge, import it into ManaBox, export TCGplayer inventory from ManaBox, and upload that exported file here.</> : <><strong className="text-emerald-200">Inventory-ready IDs detected.</strong> This file can be downloaded in the TCGplayer format.</>}</div><button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />Why is this extra step required?<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-white/[.07] bg-black/10 p-3 text-[10px] leading-5 text-slate-500">TCGCSV can identify the card product and current prices, but it does not publish the SKU that combines printing, language, condition, and finish. TCGplayer requires that SKU in its inventory CSV. The converter therefore keeps product matching separate from inventory-ID readiness instead of claiming the file is complete.</div> : null}</> : null}
+            {outputTemplateId === "tcgplayer" ? <>
+              <input ref={tcgplayerReferenceRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleTcgplayerReference(file); }} />
+              <div className="grid gap-3 rounded-2xl border border-white/[.07] bg-[#050e15] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div><strong className="text-xs text-white">TCGplayer ID reference export</strong><p className="mt-1 text-[10px] leading-4 text-slate-500">{tcgplayerReferenceRows.length ? `${tcgplayerReferenceName} · ${tcgplayerReferenceRows.length.toLocaleString()} verified SKU rows loaded` : "Upload a TCGplayer Pricing Custom Export containing every card and variant in this conversion."}</p></div>
+                <button type="button" onClick={() => tcgplayerReferenceRef.current?.click()} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-bold text-cyan-100"><Upload className="h-4 w-4" />{tcgplayerReferenceRows.length ? "Replace reference" : "Upload reference export"}</button>
+              </div>
+              <div className={`rounded-xl border p-3 text-[10px] leading-5 ${missingTcgplayerSkuCount ? "border-amber-300/10 bg-amber-300/[.025] text-amber-100/60" : "border-emerald-300/10 bg-emerald-300/[.025] text-emerald-100/60"}`}>{missingTcgplayerSkuCount ? <><strong className="text-amber-200">{(validRows.length - missingTcgplayerSkuCount).toLocaleString()} of {validRows.length.toLocaleString()} rows have verified TCGplayer IDs.</strong> The final download stays locked until the reference export contains one exact SKU match for every card, printing, condition, and finish.{tcgplayerReferenceRows.length ? <span className="mt-1 block">Unresolved: {validRows.filter((row) => !row.tcgplayerId.trim()).slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)})`).join("; ")}</span> : null}</> : <><strong className="text-emerald-200">All {validRows.length.toLocaleString()} TCGplayer IDs are verified.</strong> The final file uses the exact 16-column header from your TCGplayer reference export.</>}</div>
+              {missingTcgplayerSkuCount ? <div className="flex flex-wrap gap-2"><button type="button" onClick={downloadManaBoxBridge} disabled={!validRows.length} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[.08] px-4 text-[10px] font-semibold text-slate-300 disabled:opacity-40"><Download className="h-4 w-4" />Download ManaBox bridge instead</button></div> : null}
+              <button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />How ID verification works<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-white/[.07] bg-black/10 p-3 text-[10px] leading-5 text-slate-500">TCGCSV supplies product details and pricing. Your TCGplayer Pricing export supplies the inventory SKU. Trading Docks requires one unambiguous match on product name, set name, collector number, and the combined condition/foil value. It does not substitute a product ID or guess between duplicate variants.</div> : null}
+            </> : null}
           </div> : <div className="mt-4 grid gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <label><span className="text-[9px] font-semibold text-slate-500">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><input value={locationName} onChange={(event) => setLocationName(event.target.value)} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none" /></div></label>
             <label><span className="text-[9px] font-semibold text-slate-500">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><Store className="h-4 w-4 text-cyan-300" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-slate-300 outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
@@ -441,8 +494,50 @@ function parseCsv(text: string) {
 function csvEscape(value: string) {
   return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 }
-function csvQuote(value: string) {
-  return `"${value.replaceAll('"', '""')}"`;
+function matchTcgplayerReference(
+  row: CanonicalRow,
+  referenceRows: CsvRow[],
+): Partial<CanonicalRow> {
+  if (!referenceRows.length || !row.name.trim()) return {};
+  const desiredCondition = tcgplayerCondition(row.condition, row.finish);
+  const candidates = referenceRows.filter((reference) => {
+    const nameMatches = normalizedLookup(reference["Product Name"]) === normalizedLookup(row.name);
+    const numberMatches =
+      normalizedLookup(reference.Number) === normalizedLookup(row.collectorNumber);
+    const setMatches =
+      !row.setName.trim() ||
+      normalizedLookup(reference["Set Name"]) === normalizedLookup(row.setName);
+    const conditionMatches =
+      normalizedLookup(reference.Condition) === normalizedLookup(desiredCondition);
+    return nameMatches && numberMatches && setMatches && conditionMatches;
+  });
+  if (candidates.length !== 1) return {};
+  const reference = candidates[0];
+  return {
+    tcgplayerId: reference["TCGplayer Id"]?.trim() ?? "",
+    productLine: reference["Product Line"] || row.productLine || "Magic",
+    setName: reference["Set Name"] || row.setName,
+    name: reference["Product Name"] || row.name,
+    title: reference.Title || row.title,
+    collectorNumber: reference.Number || row.collectorNumber,
+    rarity: reference.Rarity || row.rarity,
+    condition: reference.Condition || desiredCondition,
+    marketPrice: reference["TCG Market Price"] || row.marketPrice,
+    directLowPrice: reference["TCG Direct Low"] || row.directLowPrice,
+    lowPrice:
+      reference["TCG Low Price With Shipping"] ||
+      reference["TCG Low Price"] ||
+      row.lowPrice,
+    addQuantity: row.addQuantity || row.quantity || "1",
+    imageUrl: reference["Photo URL"] || row.imageUrl,
+  };
+}
+function tcgplayerCondition(condition: string, finish: string) {
+  const base = normalizeCondition(condition.replace(/\s+foil$/i, ""), "Near Mint");
+  return normalizeFinishValue(finish, "Nonfoil") === "Nonfoil" ? base : `${base} Foil`;
+}
+function normalizedLookup(value = "") {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 function readStored<T>(key: string, fallback: T): T {
   try { const value = window.localStorage.getItem(key); return value ? JSON.parse(value) as T : fallback; }

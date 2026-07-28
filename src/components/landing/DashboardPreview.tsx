@@ -57,7 +57,7 @@ export function DashboardPreview() {
 
             <div className="flex items-center gap-2 rounded-full border border-cyan-300/10 bg-cyan-300/[0.035] px-2.5 py-1 text-[8px] text-cyan-100/70">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,.8)]" />
-              Live workspace
+              Product preview
             </div>
           </div>
 
@@ -70,12 +70,12 @@ export function DashboardPreview() {
                   </h3>
 
                   <span className="rounded-full border border-emerald-300/10 bg-emerald-300/[0.035] px-2 py-1 text-[7px] font-semibold text-emerald-300">
-                    Last sync 2m ago
+                    Sample data
                   </span>
                 </div>
 
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[7px] text-slate-600">
-                  <span className="mr-1">Connected to:</span>
+                  <span className="mr-1">Example integrations:</span>
                   {["TCGplayer", "eBay", "Mana Pool"].map((label) => (
                     <span
                       key={label}
@@ -226,7 +226,7 @@ function LiveActivity() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[9px] font-semibold text-white">Recent updates</p>
-          <p className="mt-1 text-[7px] text-slate-600">Live activity</p>
+          <p className="mt-1 text-[7px] text-slate-600">Example activity</p>
         </div>
 
         <Activity className="h-3.5 w-3.5 text-cyan-300/70" />
