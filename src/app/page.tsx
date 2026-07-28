@@ -13,7 +13,7 @@ import { TrustedGames } from "@/components/landing/TrustedGames";
 export default function HomePage() {
   return (
     <main
-      data-landing-version="v82"
+      data-landing-version="v83"
       className="relative min-h-screen overflow-hidden bg-[#02090f] text-white"
     >
       <BackgroundEffects />

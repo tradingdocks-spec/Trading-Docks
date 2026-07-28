@@ -1,0 +1,18 @@
+TRADING DOCKS LANDING, PRICING, AND LEGAL RESTORE — v83
+
+1. Extract this ZIP directly into the GitHub repository folder that contains package.json.
+2. Allow Windows to replace matching files.
+3. Commit and push the replaced files.
+4. Keep the Vercel Root Directory blank.
+5. Redeploy the latest Production deployment without reusing the build cache.
+6. Refresh the live site with Ctrl + Shift + R.
+
+This package keeps the working 71-route application and restores:
+- Four landing-page pricing tiers: Free, Collector, Seller, and Store
+- Monthly and annual pricing controls
+- Public /pricing page
+- Privacy Policy, Terms of Service, and Security pages
+- Header and footer navigation on legal pages
+- Signup agreement links
+- Publisher/trademark and market-value footer disclosures
+- No sports-card or “coming soon” references on the landing page

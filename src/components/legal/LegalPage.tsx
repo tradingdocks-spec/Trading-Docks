@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { Footer } from "@/components/landing/Footer";
+import { Header } from "@/components/landing/Header";
+
 type LegalSection = {
   title: string;
   paragraphs: string[];
@@ -17,8 +20,10 @@ export function LegalPage({
   sections: LegalSection[];
 }) {
   return (
-    <main className="min-h-screen bg-[#030a10] px-5 py-10 text-white sm:px-8">
-      <div className="mx-auto max-w-3xl">
+    <div className="min-h-screen bg-[#030a10] text-white">
+      <Header />
+      <main className="px-5 py-10 sm:px-8">
+        <div className="mx-auto max-w-3xl">
         <Link
           href="/"
           className="text-sm font-medium text-cyan-300 transition hover:text-cyan-200"
@@ -67,7 +72,9 @@ export function LegalPage({
           </a>
           .
         </footer>
-      </div>
-    </main>
+        </div>
+      </main>
+      <Footer />
+    </div>
   );
 }
