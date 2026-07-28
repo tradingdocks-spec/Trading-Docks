@@ -40,6 +40,7 @@ type EventRecord = {
   status: "planning" | "ready" | "complete";
 };
 type SaleRecord = { id: string; item: string; amount: number; method: string; time: string };
+type InventoryRecord = { name: string; category: string; taken: number; sold: number; value: number };
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof CalendarDays }> = [
   { id: "overview", label: "Overview", icon: Sparkles },
@@ -50,43 +51,9 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof CalendarDays }> = [
   { id: "reports", label: "Reports", icon: BarChart3 },
 ];
 
-const starterEvents: EventRecord[] = [
-  {
-    id: "phoenix-july",
-    name: "Arizona Card Show",
-    venue: "Phoenix Convention Center",
-    city: "Phoenix, AZ",
-    startDate: "2026-08-15",
-    endDate: "2026-08-16",
-    booth: "Hall B · Table 42",
-    budget: 3500,
-    status: "ready",
-  },
-  {
-    id: "mesa-september",
-    name: "East Valley Trade Night",
-    venue: "Mesa Convention Center",
-    city: "Mesa, AZ",
-    startDate: "2026-09-12",
-    endDate: "2026-09-12",
-    booth: "Table 18",
-    budget: 1800,
-    status: "planning",
-  },
-];
-
-const starterSales: SaleRecord[] = [
-  { id: "s1", item: "Commander Masters Collector Booster", amount: 64.99, method: "Card", time: "10:42 AM" },
-  { id: "s2", item: "Sheoldred, the Apocalypse · NM", amount: 72, method: "Cash", time: "10:18 AM" },
-  { id: "s3", item: "Mixed singles · 7 cards", amount: 38.5, method: "Trade", time: "9:55 AM" },
-];
-
-const inventory = [
-  { name: "Premium singles case", category: "Singles", taken: 286, sold: 34, value: 6840 },
-  { name: "Commander staples binder", category: "Singles", taken: 174, sold: 21, value: 3190 },
-  { name: "Sealed product wall", category: "Sealed", taken: 58, sold: 9, value: 4260 },
-  { name: "Accessories & supplies", category: "Accessories", taken: 124, sold: 17, value: 1380 },
-];
+const starterEvents: EventRecord[] = [];
+const starterSales: SaleRecord[] = [];
+const starterInventory: InventoryRecord[] = [];
 
 function money(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
@@ -99,38 +66,40 @@ function dayLabel(date: string) {
 export function CardShowsWorkspace() {
   const [tab, setTab] = useState<Tab>("overview");
   const [events, setEvents] = useState<EventRecord[]>(starterEvents);
-  const [selectedEventId, setSelectedEventId] = useState(starterEvents[0].id);
+  const [selectedEventId, setSelectedEventId] = useState("");
   const [showEventForm, setShowEventForm] = useState(false);
-  const [singleRate, setSingleRate] = useState(65);
-  const [sealedRate, setSealedRate] = useState(72);
-  const [marketPrice, setMarketPrice] = useState("24.99");
+  const [singleRate, setSingleRate] = useState("");
+  const [sealedRate, setSealedRate] = useState("");
+  const [marketPrice, setMarketPrice] = useState("");
   const [lookupType, setLookupType] = useState<"single" | "sealed">("single");
   const [lookupQuery, setLookupQuery] = useState("");
   const [sales, setSales] = useState<SaleRecord[]>(starterSales);
+  const [inventory, setInventory] = useState<InventoryRecord[]>(starterInventory);
   const [saleItem, setSaleItem] = useState("");
   const [saleAmount, setSaleAmount] = useState("");
   const [toast, setToast] = useState("");
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem("td-card-shows-v1");
+      const saved = window.localStorage.getItem("td-card-shows-v2");
       if (!saved) return;
-      const parsed = JSON.parse(saved) as { events?: EventRecord[]; rates?: [number, number]; sales?: SaleRecord[] };
-      if (parsed.events?.length) setEvents(parsed.events);
+      const parsed = JSON.parse(saved) as { events?: EventRecord[]; rates?: [string, string] | [number, number]; sales?: SaleRecord[]; inventory?: InventoryRecord[] };
+      if (parsed.events) setEvents(parsed.events);
       if (parsed.rates) {
-        setSingleRate(parsed.rates[0]);
-        setSealedRate(parsed.rates[1]);
+        setSingleRate(String(parsed.rates[0] ?? ""));
+        setSealedRate(String(parsed.rates[1] ?? ""));
       }
-      if (parsed.sales?.length) setSales(parsed.sales);
+      if (parsed.sales) setSales(parsed.sales);
+      if (parsed.inventory) setInventory(parsed.inventory);
     } catch {}
   }, []);
 
   useEffect(() => {
     window.localStorage.setItem(
-      "td-card-shows-v1",
-      JSON.stringify({ events, rates: [singleRate, sealedRate], sales }),
+      "td-card-shows-v2",
+      JSON.stringify({ events, rates: [singleRate, sealedRate], sales, inventory }),
     );
-  }, [events, singleRate, sealedRate, sales]);
+  }, [events, singleRate, sealedRate, sales, inventory]);
 
   useEffect(() => {
     if (!toast) return;
@@ -143,7 +112,7 @@ export function CardShowsWorkspace() {
   const inventoryValue = inventory.reduce((sum, item) => sum + item.value, 0);
   const unitsSold = inventory.reduce((sum, item) => sum + item.sold, 0);
   const rate = lookupType === "single" ? singleRate : sealedRate;
-  const offer = (Number(marketPrice) || 0) * (rate / 100);
+  const offer = marketPrice && rate ? Number(marketPrice) * (Number(rate) / 100) : null;
 
   function notify(message: string) {
     setToast(message);
@@ -230,7 +199,7 @@ export function CardShowsWorkspace() {
 
         <main className="mt-5">
           {tab === "overview" ? (
-            <Overview event={selectedEvent} events={events} salesTotal={salesTotal} inventoryValue={inventoryValue} unitsSold={unitsSold} onChooseEvent={setSelectedEventId} onNavigate={setTab} />
+            <Overview event={selectedEvent} events={events} salesTotal={salesTotal} inventoryValue={inventoryValue} unitsSold={unitsSold} onChooseEvent={setSelectedEventId} onNavigate={setTab} onAdd={() => setShowEventForm(true)} />
           ) : null}
           {tab === "calendar" ? <CalendarPanel events={events} onAdd={() => setShowEventForm(true)} /> : null}
           {tab === "lookup" ? (
@@ -243,15 +212,17 @@ export function CardShowsWorkspace() {
               setMarketPrice={setMarketPrice}
               rate={rate}
               setRate={lookupType === "single" ? setSingleRate : setSealedRate}
+              singleRate={singleRate}
+              sealedRate={sealedRate}
               offer={offer}
               onSave={() => notify("Buying target saved")}
             />
           ) : null}
-          {tab === "inventory" ? <InventoryPanel event={selectedEvent} value={inventoryValue} sold={unitsSold} /> : null}
+          {tab === "inventory" ? <InventoryPanel event={selectedEvent} inventory={inventory} value={inventoryValue} sold={unitsSold} /> : null}
           {tab === "sales" ? (
             <SalesPanel sales={sales} total={salesTotal} item={saleItem} amount={saleAmount} setItem={setSaleItem} setAmount={setSaleAmount} onRecord={recordSale} />
           ) : null}
-          {tab === "reports" ? <ReportsPanel sales={salesTotal} inventoryValue={inventoryValue} budget={selectedEvent?.budget ?? 0} /> : null}
+          {tab === "reports" ? <ReportsPanel hasData={sales.length > 0 || inventory.length > 0} sales={salesTotal} inventoryValue={inventoryValue} budget={selectedEvent?.budget ?? 0} /> : null}
         </main>
       </div>
 
@@ -265,12 +236,12 @@ export function CardShowsWorkspace() {
   );
 }
 
-function Overview({ event, events, salesTotal, inventoryValue, unitsSold, onChooseEvent, onNavigate }: { event?: EventRecord; events: EventRecord[]; salesTotal: number; inventoryValue: number; unitsSold: number; onChooseEvent: (id: string) => void; onNavigate: (tab: Tab) => void }) {
+function Overview({ event, events, salesTotal, inventoryValue, unitsSold, onChooseEvent, onNavigate, onAdd }: { event?: EventRecord; events: EventRecord[]; salesTotal: number; inventoryValue: number; unitsSold: number; onChooseEvent: (id: string) => void; onNavigate: (tab: Tab) => void; onAdd: () => void }) {
   const metrics = [
-    { label: "Show inventory", value: money(inventoryValue), detail: "642 units assigned", icon: Boxes, color: "cyan" },
-    { label: "Buying budget", value: money(event?.budget ?? 0), detail: "Target allocation", icon: WalletCards, color: "violet" },
-    { label: "Recorded sales", value: money(salesTotal), detail: `${unitsSold} inventory units sold`, icon: TrendingUp, color: "emerald" },
-    { label: "Projected margin", value: "38.6%", detail: "After show expenses", icon: Target, color: "amber" },
+    { label: "Show inventory", value: inventoryValue ? money(inventoryValue) : "—", detail: inventoryValue ? "Inventory assigned by you" : "No inventory assigned", icon: Boxes },
+    { label: "Buying budget", value: event?.budget ? money(event.budget) : "—", detail: event ? "Event target allocation" : "Add a show to set a budget", icon: WalletCards },
+    { label: "Recorded sales", value: salesTotal ? money(salesTotal) : "—", detail: unitsSold ? `${unitsSold} inventory units sold` : "No sales recorded", icon: TrendingUp },
+    { label: "Projected margin", value: "—", detail: "Calculated from your activity", icon: Target },
   ];
   return (
     <div className="space-y-5">
@@ -289,7 +260,7 @@ function Overview({ event, events, salesTotal, inventoryValue, unitsSold, onChoo
         })}
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[1.45fr_.9fr]">
+      {!event ? <EmptyState icon={CalendarDays} title="No card shows yet" description="Create your first event to start planning dates, inventory, buying targets, sales, and results." action="Add your first card show" onAction={onAdd} /> : <div className="grid gap-5 xl:grid-cols-[1.45fr_.9fr]">
         <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6">
           <div className="flex items-center justify-between">
             <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Next event</p><h2 className="mt-2 text-xl font-semibold text-white">{event?.name}</h2></div>
@@ -300,13 +271,7 @@ function Overview({ event, events, salesTotal, inventoryValue, unitsSold, onChoo
             <Info icon={MapPin} label="Venue" value={event?.venue ?? "—"} />
             <Info icon={Store} label="Location" value={event?.booth ?? "—"} />
           </div>
-          <div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
-            <div className="flex items-center justify-between text-xs"><span className="font-semibold text-slate-300">Show readiness</span><span className="font-bold text-cyan-300">78%</span></div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.05]"><div className="h-full w-[78%] rounded-full bg-gradient-to-r from-cyan-400 to-sky-400 shadow-[0_0_18px_rgba(34,211,238,.3)]" /></div>
-            <div className="mt-4 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
-              {["Booth confirmed", "Inventory assigned", "Pricing labels ready", "Travel checklist pending"].map((item, index) => <div key={item} className="flex items-center gap-2"><span className={`flex h-5 w-5 items-center justify-center rounded-full ${index < 3 ? "bg-emerald-400/[0.1] text-emerald-300" : "bg-amber-400/[0.1] text-amber-300"}`}>{index < 3 ? <Check className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}</span>{item}</div>)}
-            </div>
-          </div>
+          <div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/10 p-4"><p className="text-xs font-semibold text-slate-300">Show readiness</p><p className="mt-2 text-xs leading-5 text-slate-600">Your preparation checklist and readiness score will appear after you add them.</p></div>
           <button onClick={() => onNavigate("inventory")} className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-cyan-300 transition hover:text-cyan-200">Open event workspace <ArrowRight className="h-3.5 w-3.5" /></button>
         </section>
 
@@ -322,7 +287,7 @@ function Overview({ event, events, salesTotal, inventoryValue, unitsSold, onChoo
             ))}
           </div>
         </section>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -332,22 +297,32 @@ function Info({ icon: Icon, label, value }: { icon: typeof CalendarDays; label: 
 }
 
 function CalendarPanel({ events, onAdd }: { events: EventRecord[]; onAdd: () => void }) {
-  const days = Array.from({ length: 35 }, (_, index) => index - 2);
+  const now = new Date();
+  const [cursor, setCursor] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days = Array.from({ length: 42 }, (_, index) => index - firstWeekday + 1);
   return (
     <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-4 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Event calendar</p><h2 className="mt-2 text-xl font-semibold text-white">August 2026</h2></div><div className="flex gap-2"><button className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] text-slate-400"><ChevronLeft className="h-4 w-4" /></button><button className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] text-slate-400"><ChevronRight className="h-4 w-4" /></button><button onClick={onAdd} className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-400 px-4 text-xs font-bold text-[#001018]"><Plus className="h-4 w-4" /> Add event</button></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Event calendar</p><h2 className="mt-2 text-xl font-semibold text-white">{cursor.toLocaleString("en-US", { month: "long", year: "numeric" })}</h2></div><div className="flex gap-2"><button onClick={() => setCursor(new Date(year, month - 1, 1))} aria-label="Previous month" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] text-slate-400"><ChevronLeft className="h-4 w-4" /></button><button onClick={() => setCursor(new Date(year, month + 1, 1))} aria-label="Next month" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] text-slate-400"><ChevronRight className="h-4 w-4" /></button><button onClick={onAdd} className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-400 px-4 text-xs font-bold text-[#001018]"><Plus className="h-4 w-4" /> Add event</button></div></div>
       <div className="mt-6 grid grid-cols-7 overflow-hidden rounded-2xl border border-white/[0.06]">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <div key={day} className="border-b border-r border-white/[0.05] bg-white/[0.025] p-2 text-center text-[9px] font-bold uppercase tracking-wider text-slate-600">{day}</div>)}
         {days.map((day, index) => {
-          const event = day === 15 ? events[0] : undefined;
-          return <div key={index} className={`min-h-24 border-b border-r border-white/[0.045] p-2 sm:min-h-28 ${day < 1 || day > 31 ? "bg-black/10 text-slate-800" : "text-slate-500"}`}><span className="text-[10px] font-semibold">{day < 1 ? 31 + day : day > 31 ? day - 31 : day}</span>{event ? <div className="mt-2 rounded-lg border border-cyan-300/20 bg-cyan-400/[0.08] p-2 text-[9px] font-semibold leading-4 text-cyan-100"><span className="hidden sm:inline">{event.name}</span><span className="sm:hidden">Show</span></div> : null}</div>;
+          const inMonth = day >= 1 && day <= daysInMonth;
+          const event = inMonth ? events.find((item) => {
+            const eventDate = new Date(`${item.startDate}T12:00:00`);
+            return eventDate.getFullYear() === year && eventDate.getMonth() === month && eventDate.getDate() === day;
+          }) : undefined;
+          return <div key={index} className={`min-h-24 border-b border-r border-white/[0.045] p-2 sm:min-h-28 ${!inMonth ? "bg-black/10 text-slate-800" : "text-slate-500"}`}><span className="text-[10px] font-semibold">{inMonth ? day : ""}</span>{event ? <div className="mt-2 rounded-lg border border-cyan-300/20 bg-cyan-400/[0.08] p-2 text-[9px] font-semibold leading-4 text-cyan-100"><span className="hidden sm:inline">{event.name}</span><span className="sm:hidden">Show</span></div> : null}</div>;
         })}
       </div>
     </section>
   );
 }
 
-function LookupPanel({ query, setQuery, type, setType, marketPrice, setMarketPrice, rate, setRate, offer, onSave }: { query: string; setQuery: (v: string) => void; type: "single" | "sealed"; setType: (v: "single" | "sealed") => void; marketPrice: string; setMarketPrice: (v: string) => void; rate: number; setRate: (v: number) => void; offer: number; onSave: () => void }) {
+function LookupPanel({ query, setQuery, type, setType, marketPrice, setMarketPrice, rate, setRate, singleRate, sealedRate, offer, onSave }: { query: string; setQuery: (v: string) => void; type: "single" | "sealed"; setType: (v: "single" | "sealed") => void; marketPrice: string; setMarketPrice: (v: string) => void; rate: string; setRate: (v: string) => void; singleRate: string; sealedRate: string; offer: number | null; onSave: () => void }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[1.35fr_.8fr]">
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-7">
@@ -356,20 +331,22 @@ function LookupPanel({ query, setQuery, type, setType, marketPrice, setMarketPri
         <label className="mt-4 block"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Card or product</span><span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-white/[0.08] bg-black/10 px-4 focus-within:border-cyan-300/30"><Search className="h-4 w-4 text-slate-600" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={type === "single" ? "Search Sheoldred, the Apocalypse…" : "Search Commander Masters Collector Booster…"} className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-700" /></span></label>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Current market price</span><span className="mt-2 flex h-12 items-center rounded-xl border border-white/[0.08] bg-black/10 px-4"><span className="mr-1 text-sm text-slate-600">$</span><input type="number" step=".01" value={marketPrice} onChange={(event) => setMarketPrice(event.target.value)} className="w-full bg-transparent text-sm font-semibold text-white outline-none" /></span></label>
-          <label><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Buying percentage</span><span className="mt-2 flex h-12 items-center rounded-xl border border-white/[0.08] bg-black/10 px-4"><input type="number" min="1" max="100" value={rate} onChange={(event) => setRate(Number(event.target.value))} className="w-full bg-transparent text-sm font-semibold text-white outline-none" /><span className="text-sm text-slate-600">%</span></span></label>
+          <label><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Buying percentage</span><span className="mt-2 flex h-12 items-center rounded-xl border border-white/[0.08] bg-black/10 px-4"><input type="number" min="1" max="100" value={rate} onChange={(event) => setRate(event.target.value)} placeholder="Enter target" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-700" /><span className="text-sm text-slate-600">%</span></span></label>
         </div>
-        <div className="mt-5 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[linear-gradient(135deg,rgba(34,211,238,.09),rgba(14,165,233,.025))] p-5"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">Maximum cash offer</p><p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-white">{money(offer)}</p><p className="mt-1 text-xs text-slate-500">{money(Number(marketPrice) || 0)} market × {rate}% target</p></div><div className="text-right"><p className="text-[10px] uppercase tracking-wider text-slate-600">Target gross margin</p><p className="mt-1 text-xl font-semibold text-emerald-300">{100 - rate}%</p></div></div></div>
+        <div className="mt-5 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[linear-gradient(135deg,rgba(34,211,238,.09),rgba(14,165,233,.025))] p-5"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">Maximum cash offer</p><p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-white">{offer === null ? "—" : money(offer)}</p><p className="mt-1 text-xs text-slate-500">{offer === null ? "Enter a market price and buying percentage." : `${money(Number(marketPrice))} market × ${rate}% target`}</p></div><div className="text-right"><p className="text-[10px] uppercase tracking-wider text-slate-600">Target gross margin</p><p className="mt-1 text-xl font-semibold text-emerald-300">{rate ? `${100 - Number(rate)}%` : "—"}</p></div></div></div>
       </section>
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6">
         <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-400/[0.07] text-violet-300"><Settings2 className="h-5 w-5" /></span><div><h3 className="text-sm font-semibold text-white">Buying rules</h3><p className="mt-1 text-[10px] text-slate-600">Applied automatically at this show</p></div></div>
-        <div className="mt-5 space-y-3">{[{ label: "Singles", value: type === "single" ? rate : 65 }, { label: "Sealed products", value: type === "sealed" ? rate : 72 }, { label: "Trade credit bonus", value: 15 }].map((rule) => <div key={rule.label} className="flex items-center justify-between rounded-xl border border-white/[0.055] bg-white/[0.018] px-4 py-3"><span className="text-xs text-slate-400">{rule.label}</span><strong className="text-sm text-white">{rule.value}%</strong></div>)}</div>
+        <div className="mt-5 space-y-3">{[{ label: "Singles", value: singleRate }, { label: "Sealed products", value: sealedRate }].map((rule) => <div key={rule.label} className="flex items-center justify-between rounded-xl border border-white/[0.055] bg-white/[0.018] px-4 py-3"><span className="text-xs text-slate-400">{rule.label}</span><strong className="text-sm text-white">{rule.value ? `${rule.value}%` : "Not set"}</strong></div>)}</div>
         <button onClick={onSave} className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] text-xs font-bold text-cyan-200 transition hover:bg-cyan-400/[0.12]"><Check className="h-4 w-4" /> Save show buying targets</button>
       </section>
     </div>
   );
 }
 
-function InventoryPanel({ event, value, sold }: { event?: EventRecord; value: number; sold: number }) {
+function InventoryPanel({ event, inventory, value, sold }: { event?: EventRecord; inventory: InventoryRecord[]; value: number; sold: number }) {
+  if (!event) return <EmptyState icon={Boxes} title="No show selected" description="Create a card show before assigning inventory." />;
+  if (!inventory.length) return <EmptyState icon={Boxes} title="No show inventory yet" description="Transfer or scan inventory when you are ready. Nothing is preloaded." />;
   return <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Temporary inventory location</p><h2 className="mt-2 text-xl font-semibold text-white">{event?.name} · {event?.booth}</h2><p className="mt-1 text-xs text-slate-500">Stock assigned here is reserved from online availability.</p></div><div className="flex gap-2"><button className="h-10 rounded-xl border border-white/[0.08] px-4 text-xs font-semibold text-slate-300">Transfer inventory</button><button className="h-10 rounded-xl bg-cyan-400 px-4 text-xs font-bold text-[#001018]">Scan item</button></div></div><div className="mt-6 grid gap-3 sm:grid-cols-3"><Info icon={Boxes} label="Assigned value" value={money(value)} /><Info icon={ShoppingCart} label="Units sold" value={`${sold} units`} /><Info icon={Store} label="Location status" value="Reserved for show" /></div><div className="mt-6 overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-white/[0.07] text-[9px] font-bold uppercase tracking-[0.14em] text-slate-700"><th className="pb-3">Inventory group</th><th className="pb-3">Category</th><th className="pb-3 text-right">Taken</th><th className="pb-3 text-right">Sold</th><th className="pb-3 text-right">Remaining</th><th className="pb-3 text-right">Assigned value</th></tr></thead><tbody>{inventory.map((item) => <tr key={item.name} className="border-b border-white/[0.045] text-xs"><td className="py-4 font-semibold text-slate-200">{item.name}</td><td className="py-4 text-slate-500">{item.category}</td><td className="py-4 text-right text-slate-400">{item.taken}</td><td className="py-4 text-right text-emerald-300">{item.sold}</td><td className="py-4 text-right text-slate-400">{item.taken - item.sold}</td><td className="py-4 text-right font-semibold text-white">{money(item.value)}</td></tr>)}</tbody></table></div></section>;
 }
 
@@ -377,16 +354,19 @@ function SalesPanel({ sales, total, item, amount, setItem, setAmount, onRecord }
   return <div className="grid gap-5 xl:grid-cols-[.72fr_1.28fr]"><section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Fast sale</p><h2 className="mt-2 text-xl font-semibold text-white">Record a show sale</h2><label className="mt-6 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Item or bundle<input value={item} onChange={(event) => setItem(event.target.value)} placeholder="Search or describe item" className="mt-2 h-12 w-full rounded-xl border border-white/[0.08] bg-black/10 px-4 text-sm font-normal normal-case tracking-normal text-white outline-none focus:border-cyan-300/30" /></label><label className="mt-4 block text-[10px] font-bold uppercase tracking-wider text-slate-600">Sale amount<input type="number" step=".01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="$0.00" className="mt-2 h-12 w-full rounded-xl border border-white/[0.08] bg-black/10 px-4 text-sm font-normal normal-case tracking-normal text-white outline-none focus:border-cyan-300/30" /></label><div className="mt-4 grid grid-cols-3 gap-2">{["Cash", "Card", "Trade"].map((method) => <button key={method} className={`rounded-xl border py-2.5 text-xs font-semibold ${method === "Card" ? "border-cyan-300/20 bg-cyan-400/[0.07] text-cyan-200" : "border-white/[0.06] text-slate-500"}`}>{method}</button>)}</div><button onClick={onRecord} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 text-xs font-bold text-[#001018]"><ReceiptText className="h-4 w-4" /> Complete sale</button></section><section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6"><div className="flex items-end justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">Today</p><h2 className="mt-2 text-xl font-semibold text-white">Recent sales</h2></div><div className="text-right"><p className="text-[10px] uppercase text-slate-600">Gross sales</p><p className="mt-1 text-2xl font-semibold text-emerald-300">{money(total)}</p></div></div><div className="mt-5 space-y-2">{sales.map((sale) => <div key={sale.id} className="flex items-center gap-3 rounded-2xl border border-white/[0.055] bg-white/[0.018] p-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/[0.07] text-emerald-300"><CircleDollarSign className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-slate-200">{sale.item}</p><p className="mt-1 text-[10px] text-slate-600">{sale.method} · {sale.time}</p></div><strong className="text-sm text-white">{money(sale.amount)}</strong></div>)}</div></section></div>;
 }
 
-function ReportsPanel({ sales, inventoryValue, budget }: { sales: number; inventoryValue: number; budget: number }) {
-  const expenses = 486;
-  const cogs = sales * .58;
-  const profit = sales - cogs - expenses;
-  const rows = [{ label: "Gross show sales", value: sales, color: "text-white" }, { label: "Estimated cost of goods", value: -cogs, color: "text-amber-300" }, { label: "Booth, travel & expenses", value: -expenses, color: "text-amber-300" }, { label: "Estimated net profit", value: profit, color: "text-emerald-300" }];
-  return <div className="grid gap-5 xl:grid-cols-[1fr_.85fr]"><section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Event performance</p><h2 className="mt-2 text-xl font-semibold text-white">Profit snapshot</h2><div className="mt-6 space-y-2">{rows.map((row, index) => <div key={row.label} className={`flex items-center justify-between rounded-xl px-4 py-3 ${index === rows.length - 1 ? "border border-emerald-300/15 bg-emerald-400/[0.05]" : "border border-white/[0.05] bg-white/[0.015]"}`}><span className="text-xs text-slate-500">{row.label}</span><strong className={`text-sm ${row.color}`}>{row.value < 0 ? "−" : ""}{money(Math.abs(row.value))}</strong></div>)}</div></section><section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6"><h2 className="text-lg font-semibold text-white">Operational health</h2><div className="mt-5 space-y-5">{[{ label: "Sell-through", value: 18, detail: "81 of 642 units" }, { label: "Buying budget used", value: budget ? 42 : 0, detail: `${money(budget * .42)} of ${money(budget)}` }, { label: "Inventory exposure", value: 64, detail: `${money(inventoryValue)} assigned` }].map((metric) => <div key={metric.label}><div className="flex justify-between text-xs"><span className="text-slate-400">{metric.label}</span><strong className="text-white">{metric.value}%</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.05]"><div style={{ width: `${metric.value}%` }} className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-400" /></div><p className="mt-1.5 text-[10px] text-slate-700">{metric.detail}</p></div>)}</div></section></div>;
+function ReportsPanel({ hasData }: { hasData: boolean; sales: number; inventoryValue: number; budget: number }) {
+  if (!hasData) {
+    return <EmptyState icon={BarChart3} title="No report data yet" description="Your show results will calculate from the sales, inventory, purchases, and expenses you record." />;
+  }
+  return <EmptyState icon={BarChart3} title="Reports are ready for your data" description="Add actual event expenses and inventory costs to calculate accurate profit and operational performance." />;
+}
+
+function EmptyState({ icon: Icon, title, description, action, onAction }: { icon: typeof CalendarDays; title: string; description: string; action?: string; onAction?: () => void }) {
+  return <section className="rounded-[24px] border border-dashed border-white/[0.09] bg-[#06131d] px-6 py-14 text-center"><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] text-cyan-300"><Icon className="h-6 w-6" /></span><h2 className="mt-5 text-lg font-semibold text-white">{title}</h2><p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">{description}</p>{action && onAction ? <button onClick={onAction} className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-400 px-5 text-xs font-bold text-[#001018]"><Plus className="h-4 w-4" />{action}</button> : null}</section>;
 }
 
 function EventModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (data: FormData) => void }) {
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"><form action={onSubmit} className="w-full max-w-2xl rounded-[26px] border border-white/[0.09] bg-[#071722] p-5 shadow-[0_35px_120px_rgba(0,0,0,.55)] sm:p-7"><div className="flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">New event</p><h2 className="mt-2 text-2xl font-semibold text-white">Add a card show</h2><p className="mt-1 text-xs text-slate-500">Create the event workspace now. Details can be updated later.</p></div><button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] text-slate-500"><X className="h-4 w-4" /></button></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><Field name="name" label="Show name" placeholder="Arizona Card Show" required /><Field name="venue" label="Venue" placeholder="Phoenix Convention Center" /><Field name="city" label="City & state" placeholder="Phoenix, AZ" /><Field name="booth" label="Booth / table" placeholder="Hall B · Table 42" /><Field name="date" label="Start date" type="date" required /><Field name="endDate" label="End date" type="date" /><Field name="budget" label="Buying budget" type="number" placeholder="3500" /></div><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onClose} className="h-11 rounded-xl border border-white/[0.08] px-5 text-xs font-semibold text-slate-400">Cancel</button><button type="submit" className="h-11 rounded-xl bg-cyan-400 px-5 text-xs font-bold text-[#001018]">Create show workspace</button></div></form></div>;
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"><form action={onSubmit} className="w-full max-w-2xl rounded-[26px] border border-white/[0.09] bg-[#071722] p-5 shadow-[0_35px_120px_rgba(0,0,0,.55)] sm:p-7"><div className="flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">New event</p><h2 className="mt-2 text-2xl font-semibold text-white">Add a card show</h2><p className="mt-1 text-xs text-slate-500">Create the event workspace now. Details can be updated later.</p></div><button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] text-slate-500"><X className="h-4 w-4" /></button></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><Field name="name" label="Show name" placeholder="Enter show name" required /><Field name="venue" label="Venue" placeholder="Enter venue" /><Field name="city" label="City & state" placeholder="Enter city and state" /><Field name="booth" label="Booth / table" placeholder="Enter booth or table" /><Field name="date" label="Start date" type="date" required /><Field name="endDate" label="End date" type="date" /><Field name="budget" label="Buying budget" type="number" placeholder="Enter budget" /></div><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={onClose} className="h-11 rounded-xl border border-white/[0.08] px-5 text-xs font-semibold text-slate-400">Cancel</button><button type="submit" className="h-11 rounded-xl bg-cyan-400 px-5 text-xs font-bold text-[#001018]">Create show workspace</button></div></form></div>;
 }
 
 function Field({ name, label, type = "text", placeholder, required }: { name: string; label: string; type?: string; placeholder?: string; required?: boolean }) {
