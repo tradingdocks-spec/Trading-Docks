@@ -23,7 +23,6 @@ import {
   PRIMARY_NAV_AFTER_PURCHASING,
   PURCHASING_NAV,
   SECONDARY_NAV,
-  TOOLS_NAV,
 } from "../navigation";
 import { featureForPath, hasPlanAccess, minimumPlanName, normalizeAccountTier } from "@/lib/tier-access";
 
@@ -87,7 +86,8 @@ export function TieredSidebar({
 
         <div className="relative flex h-[72px] items-center border-b border-white/[0.055] px-3">
           <Link
-            href="/"
+            href="/dashboard"
+            onClick={onCloseMobile}
             className="group flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-white/[0.025]"
           >
             <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">
@@ -149,17 +149,6 @@ export function TieredSidebar({
               pathname={pathname}
               onNavigate={onCloseMobile}
             />
-
-          <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
-
-          <NavGroup
-            label="Tools"
-            items={TOOLS_NAV}
-            accountType={plan}
-            collapsed={collapsed}
-            pathname={pathname}
-            onNavigate={onCloseMobile}
-          />
 
           <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
 

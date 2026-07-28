@@ -1260,15 +1260,10 @@ export default async function SignInPage({
                         />
                       </div>
 
-                      <label className="flex cursor-pointer items-center gap-2.5 text-[10px] text-slate-400">
-                        <input
-                          name="rememberMe"
-                          type="checkbox"
-                          defaultChecked
-                          className="h-4 w-4 rounded border-white/15 bg-white/[0.035] accent-cyan-400"
-                        />
-                        <span>Remember me on this device</span>
-                      </label>
+                      <div className="flex items-center gap-2.5 text-[10px] text-slate-400">
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] text-[8px] text-cyan-200">✓</span>
+                        <span>You’ll stay signed in on this device until you log out.</span>
+                      </div>
 
                       <button
                         type="submit"

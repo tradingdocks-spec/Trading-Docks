@@ -91,7 +91,8 @@ export function Sidebar({
 
         <div className="relative flex h-[72px] items-center border-b border-white/[0.055] px-3">
           <Link
-            href="/"
+            href="/dashboard"
+            onClick={onCloseMobile}
             className="group flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-white/[0.025]"
           >
             <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">

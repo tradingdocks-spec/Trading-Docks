@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { cookies } from "next/headers";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  persistentAuthCookieOptions,
+  REMEMBER_ME_COOKIE,
+} from "@/lib/supabase/auth-cookie-policy";
 
 function safeNextPath(value: string | null) {
   return value?.startsWith("/") && !value.startsWith("//")
@@ -15,6 +20,11 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     // OAuth and recovery callbacks should remain persistent after the exchange.
+    const cookieStore = await cookies();
+    cookieStore.set(REMEMBER_ME_COOKIE, "true", {
+      ...persistentAuthCookieOptions({}, true),
+      httpOnly: true,
+    });
     const supabase = await createClient({ rememberMe: true });
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 

@@ -1,7 +1,10 @@
 import type { CookieOptions } from "@supabase/ssr";
 
 export const REMEMBER_ME_COOKIE = "trading-docks-remember-me";
-export const REMEMBER_ME_MAX_AGE = 60 * 60 * 24 * 30;
+// Keep trusted-device sessions available for up to one year. Supabase still
+// rotates refresh tokens, and explicit logout or server-side revocation ends
+// the session immediately.
+export const REMEMBER_ME_MAX_AGE = 60 * 60 * 24 * 365;
 
 function isCookieRemoval(options: CookieOptions): boolean {
   if (typeof options.maxAge === "number" && options.maxAge <= 0) {

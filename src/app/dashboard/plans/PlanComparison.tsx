@@ -140,7 +140,7 @@ function planAction(plan: Plan, currentPlan: string) {
 }
 
 export function PlanComparison({ currentPlan }: { currentPlan: string }) {
-  const [billing, setBilling] = useState<BillingCycle>("monthly");
+  const [billing, setBilling] = useState<BillingCycle>("annual");
 
   return (
     <div className="min-h-full bg-[#030a10] px-4 py-8 text-white sm:px-6 lg:px-8">
@@ -178,10 +178,10 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                {cycle === "annual" ? "Yearly" : "Monthly"}
+                {cycle}
                 {cycle === "annual" && (
                   <span className="ml-2 rounded-full bg-[#002b35] px-2 py-0.5 text-[9px] uppercase tracking-wide text-cyan-200">
-                    Save 25%
+                    Save 17%
                   </span>
                 )}
               </button>
@@ -193,12 +193,11 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
           {plans.map((plan) => {
             const price =
               billing === "annual" ? plan.annualPrice / 12 : plan.monthlyPrice;
-            const annualSavings = plan.monthlyPrice * 12 - plan.annualPrice;
             const isCurrent = plan.id === currentPlan;
             return (
               <article
                 key={plan.id}
-                className={`relative flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border p-6 ${
+                className={`group relative flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:bg-[linear-gradient(180deg,rgba(15,62,75,0.48),rgba(5,20,29,0.96)_35%)] hover:shadow-[0_25px_80px_rgba(0,200,230,0.11)] ${
                   plan.featured
                     ? "border-cyan-300/40 bg-[linear-gradient(180deg,rgba(15,62,75,0.48),rgba(5,20,29,0.96)_35%)] shadow-[0_25px_80px_rgba(0,200,230,0.11)]"
                     : "border-white/[0.08] bg-[#07141d]"
@@ -227,7 +226,7 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
                 </div>
                 <p className="mt-2 min-h-5 text-[11px] text-slate-500">
                   {billing === "annual" && plan.annualPrice > 0
-                    ? `${formatPrice(plan.annualPrice)} billed yearly · Save ${formatPrice(annualSavings)}`
+                    ? `${formatPrice(plan.annualPrice)} billed annually`
                     : plan.monthlyPrice > 0
                       ? "Billed monthly"
                       : "Free forever"}
@@ -241,7 +240,7 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
                   className={`mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition ${
                     plan.featured
                       ? "bg-gradient-to-b from-cyan-300 to-sky-500 text-[#001018] hover:brightness-110"
-                      : "border border-white/[0.1] bg-white/[0.04] text-slate-100 hover:border-cyan-300/25 hover:bg-cyan-400/[0.06]"
+                      : "border border-white/[0.1] bg-white/[0.04] text-slate-100 group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
                   }`}
                 >
                   {planAction(plan, currentPlan)}

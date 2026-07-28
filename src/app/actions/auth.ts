@@ -76,7 +76,7 @@ export async function loginWithGoogle(formData: FormData) {
 export async function login(formData: FormData) {
   const email = getString(formData, "email");
   const password = getString(formData, "password");
-  const rememberMe = formData.get("rememberMe") === "on";
+  const rememberMe = true;
 
   if (!email || !password) {
     redirectWithError(
@@ -161,7 +161,12 @@ export async function signUp(formData: FormData) {
     );
   }
 
-  const supabase = await createClient();
+  const signupCookies = await cookies();
+  signupCookies.set(REMEMBER_ME_COOKIE, "true", {
+    ...persistentAuthCookieOptions({}, true),
+    httpOnly: true,
+  });
+  const supabase = await createClient({ rememberMe: true });
   const origin = await getRequestOrigin();
 
   const { data, error } = await supabase.auth.signUp({
