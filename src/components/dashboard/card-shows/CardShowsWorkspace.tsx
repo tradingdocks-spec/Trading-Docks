@@ -354,21 +354,27 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
   const [error, setError] = useState("");
   const [remaining, setRemaining] = useState<number | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [lastSearch, setLastSearch] = useState("");
+  const [warning, setWarning] = useState("");
 
   async function searchPrices(event: React.FormEvent) {
     event.preventDefault();
-    if (query.trim().length < 2 || loading) return;
+    const normalizedSearch = `${game}:${type}:${query.trim().toLocaleLowerCase()}`;
+    if (query.trim().length < 2 || loading || normalizedSearch === lastSearch) return;
     setLoading(true);
     setError("");
+    setWarning("");
     setResults([]);
     setSelectedVariantId("");
     try {
       const params = new URLSearchParams({ q: query.trim(), game, type });
       const response = await fetch(`/api/card-shows/search?${params}`);
-      const payload = (await response.json()) as { results?: PriceResult[]; error?: string; remaining?: number | null };
+      const payload = (await response.json()) as { results?: PriceResult[]; error?: string; remaining?: number | null; warning?: string };
       if (!response.ok) throw new Error(payload.error || "Search failed.");
       setResults(payload.results ?? []);
       setRemaining(typeof payload.remaining === "number" ? payload.remaining : null);
+      setWarning(payload.warning ?? "");
+      setLastSearch(normalizedSearch);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Search failed.");
     } finally {
@@ -391,6 +397,7 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
           <label className="block"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Card or product</span><span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-white/[0.08] bg-black/10 px-4 focus-within:border-cyan-300/30"><Search className="h-4 w-4 text-slate-600" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={type === "single" ? "Enter a card name or card number" : "Enter a booster box, bundle, or deck"} className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-700" /><button type="submit" disabled={loading || query.trim().length < 2} className="h-8 rounded-lg bg-cyan-400 px-4 text-[10px] font-bold text-[#001018] disabled:cursor-not-allowed disabled:opacity-40">{loading ? "Searching…" : "Search"}</button></span></label>
         </form>
         {error ? <div className="mt-4 rounded-xl border border-rose-300/15 bg-rose-400/[0.06] px-4 py-3 text-xs text-rose-200">{error}</div> : null}
+        {warning ? <div className="mt-4 rounded-xl border border-amber-300/15 bg-amber-400/[0.06] px-4 py-3 text-xs text-amber-100">{warning}</div> : null}
         {!loading && !error && results.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-white/[0.08] px-5 py-7 text-center text-xs text-slate-600">Choose a game and submit a search. Searches only run when you press Search to protect your monthly allowance.</div> : null}
         {results.length ? <div className="mt-5 space-y-3">
           <div className="flex items-center justify-between"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">Live pricing results</p>{remaining !== null ? <p className="text-[10px] text-slate-700">{remaining.toLocaleString()} API requests remaining</p> : null}</div>
