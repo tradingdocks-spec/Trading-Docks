@@ -69,7 +69,7 @@ export function TieredSidebar({
           type="button"
           aria-label="Close sidebar"
           onClick={onCloseMobile}
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm xl:hidden"
         />
       ) : null}
 
@@ -77,7 +77,7 @@ export function TieredSidebar({
         className={[
           "fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden border-r border-white/[0.055] bg-[#020b12]/97 shadow-[22px_0_70px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-300",
           collapsed ? "w-[88px]" : "w-[258px]",
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0",
         ].join(" ")}
       >
         <div className="pointer-events-none absolute inset-0">
@@ -87,8 +87,7 @@ export function TieredSidebar({
 
         <div className="relative flex h-[72px] items-center border-b border-white/[0.055] px-3">
           <Link
-            href="/dashboard"
-            onClick={onCloseMobile}
+            href="/"
             className="group flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-white/[0.025]"
           >
             <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">
@@ -118,7 +117,7 @@ export function TieredSidebar({
           <button
             type="button"
             onClick={onCloseMobile}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500 lg:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500 xl:hidden"
           >
             <X className="h-4 w-4" />
           </button>
@@ -151,25 +150,16 @@ export function TieredSidebar({
               onNavigate={onCloseMobile}
             />
 
-          {hasPlanAccess(plan, "tools") ? (
-            <>
-              <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
-              <div className="mb-3 px-3">
-                {!collapsed ? (
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-700">
-                    Tools
-                  </span>
-                ) : null}
-              </div>
-              <NavGroup
-                items={TOOLS_NAV}
-                accountType={plan}
-                collapsed={collapsed}
-                pathname={pathname}
-                onNavigate={onCloseMobile}
-              />
-            </>
-          ) : null}
+          <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
+
+          <NavGroup
+            label="Tools"
+            items={TOOLS_NAV}
+            accountType={plan}
+            collapsed={collapsed}
+            pathname={pathname}
+            onNavigate={onCloseMobile}
+          />
 
           <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
 

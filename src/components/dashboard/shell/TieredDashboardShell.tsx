@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { TieredSidebar } from "./TieredSidebar";
 import { Topbar } from "./Topbar";
+import { MobileBottomNav } from "./MobileBottomNav";
 import { PlanAccessGate } from "../access/PlanAccessGate";
 
 export function TieredDashboardShell({
@@ -24,7 +25,7 @@ export function TieredDashboardShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#02090f] text-white">
+    <div className="desktop_layout tablet_layout mobile_layout min-h-screen bg-[#02090f] text-white">
       <TieredSidebar
         accountType={accountType}
         inventoryModules={inventoryModules}
@@ -46,14 +47,15 @@ export function TieredDashboardShell({
 
       <div
         className={[
-          "min-h-screen pt-[72px] transition-[padding-left] duration-300",
-          collapsed ? "lg:pl-[88px]" : "lg:pl-[258px]",
+          "dashboard-responsive min-h-screen pt-[72px] transition-[padding-left] duration-300",
+          collapsed ? "xl:pl-[88px]" : "xl:pl-[258px]",
         ].join(" ")}
       >
-        <main className="min-h-[calc(100vh-72px)]">
+        <main className="min-h-[calc(100vh-72px)] pb-[76px] md:pb-0">
           <PlanAccessGate accountType={accountType}>{children}</PlanAccessGate>
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }
