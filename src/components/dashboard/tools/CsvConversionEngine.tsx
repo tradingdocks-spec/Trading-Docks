@@ -5,12 +5,16 @@ import {
   ArrowRight,
   Boxes,
   Check,
+  ChevronDown,
+  CircleHelp,
   Download,
+  Eye,
   FileSpreadsheet,
   Loader2,
   MapPin,
   RefreshCw,
   ShieldCheck,
+  SlidersHorizontal,
   Store,
   Upload,
   WandSparkles,
@@ -39,6 +43,14 @@ type LocationRecord = {
 const LOCATION_STORAGE_KEY = "trading-docks-inventory-locations-v1";
 const ITEM_STORAGE_KEY = "trading-docks-inventory-items-v1";
 const MOVEMENT_STORAGE_KEY = "trading-docks-inventory-movements-v1";
+const IMPORTANT_FIELDS: CanonicalKey[] = [
+  "name",
+  "set",
+  "collectorNumber",
+  "condition",
+  "finish",
+  "quantity",
+];
 export function CsvConversionEngine() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [rawText, setRawText] = useState("");
@@ -58,6 +70,10 @@ export function CsvConversionEngine() {
   const [defaultFinish, setDefaultFinish] = useState("Nonfoil");
   const [notice, setNotice] = useState("");
   const [working, setWorking] = useState(false);
+  const [showPaste, setShowPaste] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
+  const [showBridgeHelp, setShowBridgeHelp] = useState(false);
 
   const converted = useMemo(() => {
     const normalized = rows.flatMap((sourceRow) => {
@@ -104,6 +120,8 @@ export function CsvConversionEngine() {
     setEnrichedRows({});
     setFileName(name);
     setNotice(`${nextRows.length.toLocaleString()} rows loaded. Review the field mapping below.`);
+    setShowAdvanced(detection.score < 0.45);
+    setShowAllRows(false);
   }
 
   async function handleFile(file: File) {
@@ -291,86 +309,82 @@ export function CsvConversionEngine() {
     setDetectedTemplate("Unknown / Generic");
     setEnrichedRows({});
     setNotice("");
+    setShowPaste(false);
+    setShowAdvanced(false);
+    setShowAllRows(false);
   }
 
+  const mappedImportantFields = IMPORTANT_FIELDS.filter((key) => mapping[key]).length;
+
   return (
-    <div className="mx-auto w-full max-w-[1650px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-[30px] border border-cyan-300/15 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,.12),transparent_32%),#06131d] p-6 shadow-[0_30px_90px_rgba(0,0,0,.3)] sm:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <div className="mx-auto w-full max-w-[1180px] space-y-4 px-4 py-5 sm:px-6 lg:px-8">
+      <section className="rounded-[26px] border border-cyan-300/15 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,.1),transparent_35%),#06131d] px-6 py-5 shadow-[0_24px_70px_rgba(0,0,0,.25)]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-cyan-300"><WandSparkles className="h-4 w-4" />Seller & Store Tools</div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">CSV Conversion Engine</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Convert marketplace, scanner, binder, and inventory files into one reviewed format—then download the result or file the cards directly into Trading Docks.</p>
+            <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.2em] text-cyan-300"><WandSparkles className="h-3.5 w-3.5" />Seller & Store Tools</div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">CSV Converter</h1>
+            <p className="mt-1 text-xs text-slate-500">Upload, review, then convert or save your cards.</p>
           </div>
-          <div className="flex items-center gap-2 rounded-2xl border border-emerald-300/10 bg-emerald-300/[.03] px-4 py-3 text-[10px] text-emerald-100/65"><ShieldCheck className="h-4 w-4 text-emerald-300" />Local review before inventory changes</div>
+          <div className="flex items-center gap-2 text-[10px] text-emerald-100/65"><ShieldCheck className="h-4 w-4 text-emerald-300" />Nothing changes until you confirm</div>
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[.8fr_1.2fr]">
-        <div className="space-y-4 rounded-[26px] border border-white/[.08] bg-[#07141e] p-5">
-          <SectionTitle step="1" title="Load source data" detail="Upload a CSV or paste its complete contents." />
-          <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleFile(file); }} />
-          <button type="button" onClick={() => fileRef.current?.click()} className="flex min-h-28 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-300/20 bg-cyan-300/[.025] text-cyan-100 hover:bg-cyan-300/[.05]"><Upload className="h-5 w-5 text-cyan-300" /><span className="mt-2 text-xs font-semibold">Choose CSV file</span><span className="mt-1 text-[9px] text-slate-600">TCGplayer, ManaBox, Moxfield, scanner, or generic CSV</span></button>
-          <textarea value={rawText} onChange={(event) => setRawText(event.target.value)} placeholder={"Name,Set,Collector Number,Condition,Quantity\nSol Ring,CMM,396,Near Mint,2"} className="min-h-44 w-full rounded-2xl border border-white/[.08] bg-black/15 p-4 font-mono text-[10px] leading-5 text-slate-300 outline-none placeholder:text-slate-700 focus:border-cyan-300/25" />
-          <div className="flex gap-2">
-            <button type="button" onClick={() => loadCsv(rawText)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-300 text-[10px] font-bold text-[#001018]"><FileSpreadsheet className="h-4 w-4" />Read pasted CSV</button>
-            <button type="button" onClick={reset} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[.08] px-3 text-[10px] font-semibold text-slate-400"><RefreshCw className="h-3.5 w-3.5" />Reset</button>
-          </div>
+      <section className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5">
+        <SectionTitle step="1" title="Upload your CSV" detail="We automatically detect supported marketplace and collection formats." />
+        <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleFile(file); }} />
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <button type="button" onClick={() => fileRef.current?.click()} className="flex h-14 flex-1 items-center justify-center gap-3 rounded-2xl border border-dashed border-cyan-300/25 bg-cyan-300/[.035] text-xs font-semibold text-cyan-100 transition hover:bg-cyan-300/[.07]"><Upload className="h-4 w-4 text-cyan-300" />{headers.length ? "Choose a different CSV" : "Choose CSV file"}</button>
+          <button type="button" onClick={() => setShowPaste((value) => !value)} className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/[.08] px-5 text-xs font-semibold text-slate-400 hover:text-white"><FileSpreadsheet className="h-4 w-4" />Paste CSV instead<ChevronDown className={`h-4 w-4 transition ${showPaste ? "rotate-180" : ""}`} /></button>
+          {headers.length ? <button type="button" onClick={reset} className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/[.08] px-4 text-xs font-semibold text-slate-500 hover:text-white"><RefreshCw className="h-4 w-4" />Reset</button> : null}
         </div>
-
-        <div className="space-y-4 rounded-[26px] border border-white/[.08] bg-[#07141e] p-5">
-          <SectionTitle step="2" title="Map and review fields" detail={headers.length ? `${fileName} · ${rows.length.toLocaleString()} rows · Detected: ${detectedTemplate}` : "Load a file to detect its columns."} />
-          {headers.length ? (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {CANONICAL_FIELDS.map((field) => (
-                  <label key={field.key}>
-                    <span className="text-[9px] font-semibold text-slate-400">{field.label}{field.required ? " *" : ""}</span>
-                    <select value={mapping[field.key]} onChange={(event) => setMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-[10px] text-slate-300 outline-none">
-                      <option value="">Not mapped</option>
-                      {headers.map((header) => <option key={header} value={header}>{header}</option>)}
-                    </select>
-                  </label>
-                ))}
-              </div>
-              <div className="grid gap-3 rounded-2xl border border-violet-300/10 bg-violet-300/[.025] p-4 sm:grid-cols-2">
-                <label><span className="text-[9px] font-semibold text-violet-100/70">Condition when source is blank</span><select value={defaultCondition} onChange={(event) => setDefaultCondition(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-[10px] text-slate-300"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select><span className="mt-1 block text-[9px] text-slate-600">Existing condition values are normalized; this is used only when the template omits condition.</span></label>
-                <label><span className="text-[9px] font-semibold text-violet-100/70">Finish when source is blank</span><select value={defaultFinish} onChange={(event) => setDefaultFinish(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-[10px] text-slate-300"><option>Nonfoil</option><option>Foil</option><option>Etched</option></select><span className="mt-1 block text-[9px] text-slate-600">Regular and foil quantity columns are split into separate inventory rows automatically.</span></label>
-              </div>
-              <div className="overflow-x-auto rounded-2xl border border-white/[.07]">
-                <table className="w-full min-w-[760px] text-left text-[10px]">
-                  <thead className="bg-white/[.025] text-slate-500"><tr>{["Name", "Set", "No.", "Condition", "Finish", "Qty", "Price"].map((value) => <th key={value} className="px-3 py-2.5 font-semibold">{value}</th>)}</tr></thead>
-                  <tbody>{converted.slice(0, 8).map((row, index) => <tr key={`${row.name}-${index}`} className="border-t border-white/[.055] text-slate-300"><td className="max-w-52 truncate px-3 py-2.5 font-medium text-white">{row.name || "Unmapped"}</td><td className="px-3 py-2.5">{row.set}</td><td className="px-3 py-2.5">{row.collectorNumber}</td><td className="px-3 py-2.5">{row.condition}</td><td className="px-3 py-2.5">{row.finish}</td><td className="px-3 py-2.5">{row.quantity || "1"}</td><td className="px-3 py-2.5">{row.marketPrice}</td></tr>)}</tbody>
-                </table>
-              </div>
-              <div className="flex flex-wrap gap-2 text-[9px]"><Stat label="Valid rows" value={validRows.length} /><Stat label="Units" value={quantityTotal} /><Stat label="Skipped" value={converted.length - validRows.length} /></div>
-            </>
-          ) : <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-white/[.07] text-center"><FileSpreadsheet className="h-7 w-7 text-slate-700" /><p className="mt-3 text-xs font-semibold text-slate-500">No CSV loaded</p><p className="mt-1 text-[10px] text-slate-700">Your field mapping and preview will appear here.</p></div>}
-        </div>
+        {showPaste ? <div className="mt-3 space-y-3 rounded-2xl border border-white/[.07] bg-black/10 p-3"><textarea value={rawText} onChange={(event) => setRawText(event.target.value)} placeholder={"Name,Set,Collector Number,Condition,Quantity\nSol Ring,CMM,396,Near Mint,2"} className="min-h-36 w-full rounded-xl border border-white/[.08] bg-[#050e15] p-4 font-mono text-[10px] leading-5 text-slate-300 outline-none placeholder:text-slate-700 focus:border-cyan-300/25" /><button type="button" onClick={() => loadCsv(rawText)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-[10px] font-bold text-[#001018]"><FileSpreadsheet className="h-4 w-4" />Read pasted CSV</button></div> : null}
+        {headers.length ? <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-emerald-300/10 bg-emerald-300/[.025] px-4 py-3 text-[10px]"><Check className="h-4 w-4 text-emerald-300" /><strong className="text-white">{fileName}</strong><span className="text-slate-600">•</span><span className="text-slate-400">{rows.length.toLocaleString()} rows</span><span className="text-slate-600">•</span><span className="text-emerald-200">{detectedTemplate}</span></div> : null}
       </section>
 
-      <section className="rounded-[26px] border border-white/[.08] bg-[#07141e] p-5">
-        <SectionTitle step="3" title="Choose the result" detail="Download a marketplace-ready CSV or save reviewed rows into inventory." />
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+      <section className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5">
+        <SectionTitle step="2" title="Choose the result" detail="Pick where the reviewed cards should go." />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <button type="button" onClick={() => setDestination("download")} className={`rounded-2xl border p-4 text-left ${destination === "download" ? "border-cyan-300/25 bg-cyan-300/[.055]" : "border-white/[.07] bg-black/10"}`}><Download className="h-5 w-5 text-cyan-300" /><p className="mt-3 text-sm font-semibold text-white">Download converted CSV</p><p className="mt-1 text-[10px] leading-4 text-slate-500">Create a clean file for another platform without changing inventory.</p></button>
           <button type="button" onClick={() => setDestination("inventory")} className={`rounded-2xl border p-4 text-left ${destination === "inventory" ? "border-cyan-300/25 bg-cyan-300/[.055]" : "border-white/[.07] bg-black/10"}`}><Boxes className="h-5 w-5 text-cyan-300" /><p className="mt-3 text-sm font-semibold text-white">Save into Trading Docks</p><p className="mt-1 text-[10px] leading-4 text-slate-500">File cards into a Bulk Box or another named storage location.</p></button>
         </div>
-        {destination === "download" ? (
-          <div className="mt-4 space-y-3 rounded-2xl border border-white/[.07] bg-black/10 p-4">
+      </section>
+
+      <section className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5">
+        <SectionTitle step="3" title="Review and finish" detail={headers.length ? `${validRows.length.toLocaleString()} valid rows · ${quantityTotal.toLocaleString()} total cards` : "Upload a CSV to continue."} />
+        {!headers.length ? <div className="mt-4 flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-white/[.07] text-center"><FileSpreadsheet className="h-6 w-6 text-slate-700" /><p className="mt-2 text-xs font-semibold text-slate-500">Waiting for a CSV</p></div> : <>
+          <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 lg:flex-row lg:items-end">
+            <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Default condition if missing</span><select value={defaultCondition} onChange={(event) => setDefaultCondition(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></label>
+            <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Default finish if missing</span><select value={defaultFinish} onChange={(event) => setDefaultFinish(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300"><option>Nonfoil</option><option>Foil</option><option>Etched</option></select></label>
+            <div className="flex flex-wrap gap-2 text-[9px] lg:pb-1"><Stat label="Valid" value={validRows.length} /><Stat label="Units" value={quantityTotal} /><Stat label="Skipped" value={converted.length - validRows.length} /></div>
+          </div>
+
+          <div className="mt-3 overflow-x-auto rounded-2xl border border-white/[.07]">
+            <table className="w-full min-w-[700px] text-left text-[10px]">
+              <thead className="bg-white/[.025] text-slate-500"><tr>{["Name", "Set", "No.", "Condition", "Finish", "Qty"].map((value) => <th key={value} className="px-3 py-2.5 font-semibold">{value}</th>)}</tr></thead>
+              <tbody>{converted.slice(0, showAllRows ? converted.length : 5).map((row, index) => <tr key={`${row.name}-${index}`} className="border-t border-white/[.055] text-slate-300"><td className="max-w-60 truncate px-3 py-2.5 font-medium text-white">{row.name || <span className="text-amber-300">Missing name</span>}</td><td className="px-3 py-2.5">{row.set || row.setName}</td><td className="px-3 py-2.5">{row.collectorNumber}</td><td className="px-3 py-2.5">{row.condition}</td><td className="px-3 py-2.5">{row.finish}</td><td className="px-3 py-2.5">{row.quantity || "1"}</td></tr>)}</tbody>
+            </table>
+          </div>
+          {converted.length > 5 ? <button type="button" onClick={() => setShowAllRows((value) => !value)} className="mt-3 inline-flex items-center gap-2 text-[10px] font-semibold text-cyan-200"><Eye className="h-3.5 w-3.5" />{showAllRows ? "Show fewer cards" : `Review all ${converted.length.toLocaleString()} cards`}</button> : null}
+
+          <button type="button" onClick={() => setShowAdvanced((value) => !value)} className="mt-4 flex w-full items-center justify-between rounded-2xl border border-white/[.07] bg-black/10 px-4 py-3 text-left">
+            <span className="flex items-center gap-3"><SlidersHorizontal className="h-4 w-4 text-cyan-300" /><span><strong className="block text-xs text-white">Advanced field mapping</strong><span className="mt-0.5 block text-[9px] text-slate-600">{mappedImportantFields} of {IMPORTANT_FIELDS.length} important fields mapped · Open only if something looks wrong</span></span></span>
+            <ChevronDown className={`h-4 w-4 text-slate-500 transition ${showAdvanced ? "rotate-180" : ""}`} />
+          </button>
+          {showAdvanced ? <div className="mt-3 grid gap-3 rounded-2xl border border-cyan-300/10 bg-cyan-300/[.02] p-4 sm:grid-cols-2 lg:grid-cols-3">{CANONICAL_FIELDS.map((field) => <label key={field.key}><span className="text-[9px] font-semibold text-slate-400">{field.label}{field.required ? " *" : ""}</span><select value={mapping[field.key]} onChange={(event) => setMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-[10px] text-slate-300 outline-none"><option value="">Not mapped</option>{headers.map((header) => <option key={header} value={header}>{header}</option>)}</select></label>)}</div> : null}
+
+          {destination === "download" ? <div className="mt-4 space-y-3 rounded-2xl border border-white/[.07] bg-black/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Output template</span><select value={outputTemplateId} onChange={(event) => setOutputTemplateId(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300">{CSV_TEMPLATES.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
-              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Resolve TCGplayer IDs</button> : null}
+              <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Convert to</span><select value={outputTemplateId} onChange={(event) => setOutputTemplateId(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300">{CSV_TEMPLATES.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
+              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Add TCGplayer product data</button> : null}
               <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download CSV</button>
             </div>
-            {outputTemplateId === "tcgplayer" ? <div className="rounded-xl border border-amber-300/10 bg-amber-300/[.025] p-3 text-[10px] leading-5 text-amber-100/55"><strong className="text-amber-200">Required TCGplayer bridge:</strong> First export the ManaBox preset with name, set, collector number, condition and foil preserved. Import that file into ManaBox, then export its TCGplayer template and upload it back here. “Resolve TCGplayer IDs” adds TCGCSV product data and pricing for review, but it does not substitute product IDs for condition/printing-specific TCGplayer SKU IDs.</div> : null}
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+            {outputTemplateId === "tcgplayer" ? <><button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />Why is ManaBox required?<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-amber-300/10 bg-amber-300/[.025] p-3 text-[10px] leading-5 text-amber-100/55">Export to ManaBox first, import it there, then use ManaBox&apos;s TCGplayer export and upload that file back here. TCGCSV supplies product details and pricing, but not the condition-specific SKU IDs required by TCGplayer.</div> : null}</> : null}
+          </div> : <div className="mt-4 grid gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <label><span className="text-[9px] font-semibold text-slate-500">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><input value={locationName} onChange={(event) => setLocationName(event.target.value)} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none" /></div></label>
             <label><span className="text-[9px] font-semibold text-slate-500">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><Store className="h-4 w-4 text-cyan-300" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-slate-300 outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
-            <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save reviewed rows</button>
-          </div>
-        )}
+            <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save cards</button>
+          </div>}
+        </>}
       </section>
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[180] max-w-sm rounded-2xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs leading-5 text-cyan-100 shadow-2xl">{notice}</div> : null}
     </div>
