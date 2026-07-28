@@ -98,14 +98,14 @@ export function PricingSection() {
     >
       <div className="mx-auto max-w-3xl text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#20e7ff]">
-          Plans for every stage
+          Simple pricing for every stage
         </p>
         <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
-          Start collecting. Scale when you&apos;re ready.
+          Choose the tools that fit the way you collect and sell.
         </h2>
         <p className="mt-5 text-base leading-7 text-[#8296aa]">
-          Choose the workspace that fits today, from a personal collection to a
-          complete store operation.
+          Compare Free, Collector, Seller, and Store plans at a glance, then
+          upgrade whenever your collection or business is ready.
         </p>
 
         <div className="mx-auto mt-8 flex w-fit items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] p-1">
