@@ -7,6 +7,7 @@ export type DashboardLayoutId =
   | "analytics"
   | "automation";
 export type DashboardWidgetSize = "small" | "medium" | "large";
+export type DashboardViewport = "desktop" | "tablet" | "mobile";
 export type DashboardWidget = {
   id: string;
   size: DashboardWidgetSize;
@@ -47,6 +48,7 @@ const ALL_LAYOUTS = new Set<DashboardLayoutId>([
   "automation",
 ]);
 const VALID_SIZES = new Set<DashboardWidgetSize>(["small", "medium", "large"]);
+const VIEWPORTS: DashboardViewport[] = ["desktop", "tablet", "mobile"];
 
 export function canUseDashboardWidget(plan: AccountTier, widgetId: string) {
   const required =
@@ -99,4 +101,31 @@ export function sanitizeDashboardLayoutsForPlan(
   }
 
   return result;
+}
+
+export function sanitizeResponsiveDashboardLayoutsForPlan(
+  value: unknown,
+  plan: AccountTier,
+): Record<
+  DashboardViewport,
+  Partial<Record<DashboardLayoutId, DashboardWidget[]>>
+> {
+  const record =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  const isResponsive = VIEWPORTS.some((viewport) => viewport in record);
+  const legacy = sanitizeDashboardLayoutsForPlan(value, plan);
+
+  return {
+    desktop: isResponsive
+      ? sanitizeDashboardLayoutsForPlan(record.desktop, plan)
+      : legacy,
+    tablet: isResponsive
+      ? sanitizeDashboardLayoutsForPlan(record.tablet, plan)
+      : legacy,
+    mobile: isResponsive
+      ? sanitizeDashboardLayoutsForPlan(record.mobile, plan)
+      : legacy,
+  };
 }

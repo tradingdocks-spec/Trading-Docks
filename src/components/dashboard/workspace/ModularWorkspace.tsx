@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
   Bot,
   Boxes,
   CalendarDays,
@@ -11,13 +13,16 @@ import {
   LayoutDashboard,
   ListChecks,
   LockKeyhole,
+  Monitor,
   PackageCheck,
   PanelsTopLeft,
   Save,
   Settings2,
   ShoppingBag,
   Sparkles,
+  Smartphone,
   Store,
+  Tablet,
   TrendingUp,
   Users,
   X,
@@ -28,8 +33,9 @@ import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import { saveDashboardLayouts } from "@/app/actions/workspace";
 import {
   canUseDashboardWidget,
-  sanitizeDashboardLayoutsForPlan,
+  sanitizeResponsiveDashboardLayoutsForPlan,
   type DashboardLayoutId,
+  type DashboardViewport,
   type DashboardWidget,
   type DashboardWidgetSize,
 } from "@/lib/dashboard-entitlements";
@@ -47,7 +53,7 @@ type Widget = DashboardWidget;
 const DEFINITIONS = {
   "inventory-value": { title: "Inventory Value", icon: CircleDollarSign, plan: "free" as Plan },
   "inventory-count": { title: "Inventory", icon: Boxes, plan: "free" as Plan },
-  "collection-growth": { title: "Collection Growth", icon: TrendingUp, plan: "free" as Plan },
+  "collection-growth": { title: "Collection Growth", icon: TrendingUp, plan: "collector" as Plan },
   "business-calendar": { title: "Business Calendar", icon: CalendarDays, plan: "business" as Plan },
   "revenue": { title: "Revenue", icon: CircleDollarSign, plan: "seller" as Plan },
   "orders": { title: "Orders", icon: ShoppingBag, plan: "seller" as Plan },
@@ -139,6 +145,16 @@ const LAYOUTS: Array<[LayoutId, string]> = [
   ["automation", "Automation"],
 ];
 
+const VIEWPORT_OPTIONS: Array<{
+  id: DashboardViewport;
+  label: string;
+  icon: typeof Monitor;
+}> = [
+  { id: "desktop", label: "Desktop", icon: Monitor },
+  { id: "tablet", label: "Tablet", icon: Tablet },
+  { id: "mobile", label: "Mobile", icon: Smartphone },
+];
+
 const ACCOUNT_LABEL: Record<string, string> = {
   free: "Free",
   collector: "Collector",
@@ -164,31 +180,71 @@ export function ModularWorkspace({
         ? COLLECTOR_LAYOUTS
         : DEFAULT_LAYOUTS;
   const [layoutId, setLayoutId] = useState<LayoutId>("home");
-  const [layouts, setLayouts] = useState<Record<LayoutId, Widget[]>>(() => {
-    const safeSavedLayouts = sanitizeDashboardLayoutsForPlan(initialLayouts, plan);
-    return { ...baseLayouts, ...safeSavedLayouts };
+  const [detectedViewport, setDetectedViewport] =
+    useState<DashboardViewport>("desktop");
+  const [previewViewport, setPreviewViewport] =
+    useState<DashboardViewport | null>(null);
+  const [responsiveLayouts, setResponsiveLayouts] = useState<
+    Record<DashboardViewport, Record<LayoutId, Widget[]>>
+  >(() => {
+    const saved = sanitizeResponsiveDashboardLayoutsForPlan(initialLayouts, plan);
+    return {
+      desktop: { ...baseLayouts, ...saved.desktop },
+      tablet: { ...baseLayouts, ...saved.tablet },
+      mobile: { ...baseLayouts, ...saved.mobile },
+    };
   });
   const [editing, setEditing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  const viewport = editing && previewViewport ? previewViewport : detectedViewport;
+  const layouts = responsiveLayouts[viewport];
   const widgets = layouts[layoutId];
   const availableModuleCount = Object.keys(DEFINITIONS).filter((id) =>
     canUseDashboardWidget(plan, id),
   ).length;
 
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 767px)");
+    const tablet = window.matchMedia("(min-width: 768px) and (max-width: 1199px)");
+
+    function syncViewport() {
+      setDetectedViewport(mobile.matches ? "mobile" : tablet.matches ? "tablet" : "desktop");
+    }
+
+    syncViewport();
+    mobile.addEventListener("change", syncViewport);
+    tablet.addEventListener("change", syncViewport);
+    return () => {
+      mobile.removeEventListener("change", syncViewport);
+      tablet.removeEventListener("change", syncViewport);
+    };
+  }, []);
+
   function updateWidgets(next: Widget[]) {
-    setLayouts((current) => ({ ...current, [layoutId]: next }));
+    setResponsiveLayouts((current) => ({
+      ...current,
+      [viewport]: {
+        ...current[viewport],
+        [layoutId]: next,
+      },
+    }));
   }
 
   async function save() {
     try {
+      const sanitized = sanitizeResponsiveDashboardLayoutsForPlan(
+        responsiveLayouts,
+        plan,
+      );
       const safeLayouts = {
-        ...baseLayouts,
-        ...sanitizeDashboardLayoutsForPlan(layouts, plan),
+        desktop: { ...baseLayouts, ...sanitized.desktop },
+        tablet: { ...baseLayouts, ...sanitized.tablet },
+        mobile: { ...baseLayouts, ...sanitized.mobile },
       };
-      setLayouts(safeLayouts);
+      setResponsiveLayouts(safeLayouts);
       await saveDashboardLayouts(safeLayouts);
       setSaved(true);
       window.setTimeout(() => setSaved(false), 1600);
@@ -207,6 +263,15 @@ export function ModularWorkspace({
     next.splice(to, 0, item);
     updateWidgets(next);
     setDraggedId(null);
+  }
+
+  function moveWidget(widgetId: string, direction: -1 | 1) {
+    const from = widgets.findIndex((widget) => widget.id === widgetId);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= widgets.length) return;
+    const next = [...widgets];
+    [next[from], next[to]] = [next[to], next[from]];
+    updateWidgets(next);
   }
 
   return (
@@ -230,12 +295,12 @@ export function ModularWorkspace({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
             <button
               type="button"
               onClick={() => setEditing((value) => !value)}
               className={[
-                "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
+                "inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl border px-2 text-[10px] font-semibold transition sm:px-4 sm:text-xs",
                 editing
                   ? "border-cyan-300/[0.18] bg-cyan-400/[0.08] text-cyan-100"
                   : "border-white/[0.075] bg-white/[0.025] text-slate-400",
@@ -248,7 +313,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.075] bg-white/[0.025] px-4 text-xs font-semibold text-slate-400"
+              className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl border border-white/[0.075] bg-white/[0.025] px-2 text-[10px] font-semibold text-slate-400 sm:px-4 sm:text-xs"
             >
               <Settings2 className="h-4 w-4" />
               Customize
@@ -257,7 +322,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={save}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-4 text-xs font-semibold text-[#001018]"
+              className="inline-flex h-11 min-w-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-2 text-[10px] font-semibold text-[#001018] sm:px-4 sm:text-xs"
             >
               {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
               {saved ? "Saved" : "Save layout"}
@@ -265,8 +330,43 @@ export function ModularWorkspace({
           </div>
         </div>
 
+        {editing ? (
+          <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-semibold text-cyan-100">
+                Responsive layout editor
+              </p>
+              <p className="mt-1 text-[9px] text-slate-600">
+                Each device size saves its own module order, visibility, and sizing.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/[0.06] bg-black/[0.14] p-1">
+              {VIEWPORT_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                const active = viewport === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setPreviewViewport(option.id)}
+                    className={[
+                      "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-2.5 text-[9px] font-semibold transition",
+                      active
+                        ? "bg-cyan-400/[0.1] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.14)]"
+                        : "text-slate-600 hover:text-slate-300",
+                    ].join(" ")}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-6 flex flex-col gap-3 border-t border-white/[0.06] pt-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {LAYOUTS.filter(
               ([id]) => !isPersonal || ["home", "inventory", "analytics"].includes(id),
             ).map(([id, label]) => (
@@ -275,7 +375,7 @@ export function ModularWorkspace({
                 type="button"
                 onClick={() => setLayoutId(id)}
                 className={[
-                  "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
+                  "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
                   layoutId === id
                     ? "border-cyan-300/[0.17] bg-cyan-400/[0.07] text-white"
                     : "border-transparent text-slate-500 hover:bg-white/[0.02] hover:text-slate-200",
@@ -289,6 +389,16 @@ export function ModularWorkspace({
 
           <div className="flex items-center gap-3 text-[10px] text-slate-600">
             <span>{widgets.length} modules</span>
+            <span className="inline-flex items-center gap-1 capitalize">
+              {viewport === "desktop" ? (
+                <Monitor className="h-3 w-3" />
+              ) : viewport === "tablet" ? (
+                <Tablet className="h-3 w-3" />
+              ) : (
+                <Smartphone className="h-3 w-3" />
+              )}
+              {viewport}
+            </span>
             <span className="capitalize">
               {accountType === "business" ? "Store plan" : `${ACCOUNT_LABEL[accountType] ?? "Free"} plan`}
             </span>
@@ -302,10 +412,14 @@ export function ModularWorkspace({
           if (!definition) return null;
           const locked = !canUseDashboardWidget(plan, widget.id);
           const flexSize =
-            widget.size === "small"
+            viewport === "mobile"
+              ? "min-w-0 basis-full"
+              : widget.size === "small"
               ? "min-w-0 flex-[1_1_340px] md:max-w-[520px]"
               : widget.size === "medium"
-                ? "min-w-0 flex-[1_1_500px] lg:max-w-[760px]"
+                ? viewport === "tablet"
+                  ? "min-w-0 flex-[1_1_440px] md:max-w-[680px]"
+                  : "min-w-0 flex-[1_1_500px] lg:max-w-[760px]"
                 : "min-w-0 basis-full";
 
           return (
@@ -321,6 +435,10 @@ export function ModularWorkspace({
                 locked={locked}
                 editing={editing}
                 onDragStart={() => setDraggedId(widget.id)}
+                onMoveUp={() => moveWidget(widget.id, -1)}
+                onMoveDown={() => moveWidget(widget.id, 1)}
+                canMoveUp={widgets[0]?.id !== widget.id}
+                canMoveDown={widgets[widgets.length - 1]?.id !== widget.id}
                 onRemove={() =>
                   updateWidgets(widgets.filter((item) => item.id !== widget.id))
                 }
@@ -362,6 +480,10 @@ function DashboardWidget({
   locked,
   editing,
   onDragStart,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
   onRemove,
   onResize,
 }: {
@@ -370,6 +492,10 @@ function DashboardWidget({
   locked: boolean;
   editing: boolean;
   onDragStart: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   onRemove: () => void;
   onResize: (size: Size) => void;
 }) {
@@ -385,7 +511,7 @@ function DashboardWidget({
         {editing ? (
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-700"
+            className="hidden h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-700 sm:flex"
           >
             <GripVertical className="h-4 w-4" />
           </button>
@@ -408,11 +534,29 @@ function DashboardWidget({
 
         {editing ? (
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onMoveUp}
+              disabled={!canMoveUp || locked}
+              aria-label={`Move ${definition.title} earlier`}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-500 disabled:cursor-not-allowed disabled:opacity-25"
+            >
+              <ArrowUp className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onMoveDown}
+              disabled={!canMoveDown || locked}
+              aria-label={`Move ${definition.title} later`}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-500 disabled:cursor-not-allowed disabled:opacity-25"
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+            </button>
             <select
               value={widget.size}
               disabled={locked}
               onChange={(event) => onResize(event.target.value as Size)}
-              className="h-8 rounded-lg border border-white/[0.06] bg-[#07141e] px-2 text-[9px] capitalize text-slate-500"
+              className="hidden h-8 rounded-lg border border-white/[0.06] bg-[#07141e] px-2 text-[9px] capitalize text-slate-500 sm:block"
             >
               <option value="small">Small</option>
               <option value="medium">Medium</option>
@@ -949,7 +1093,8 @@ function CustomizeDrawer({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
 
-      <aside className="absolute inset-y-0 right-0 w-full max-w-[420px] border-l border-white/[0.075] bg-[#030c13]/98 p-5 shadow-[-28px_0_90px_rgba(0,0,0,0.45)]">
+      <aside className="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col rounded-t-[28px] border-t border-white/[0.075] bg-[#030c13]/98 p-5 shadow-[0_-28px_90px_rgba(0,0,0,0.45)] sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-full sm:max-w-[420px] sm:rounded-none sm:border-l sm:border-t-0 sm:shadow-[-28px_0_90px_rgba(0,0,0,0.45)]">
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/[0.12] sm:hidden" />
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-white">Customize Dashboard</p>
@@ -966,7 +1111,7 @@ function CustomizeDrawer({
           </button>
         </div>
 
-        <div className="mt-6 space-y-2 overflow-y-auto">
+        <div className="mt-6 flex-1 space-y-2 overflow-y-auto pr-1">
           {Object.entries(DEFINITIONS).map(([id, definition]) => {
             const Icon = definition.icon;
             const enabled = active.has(id);

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { sanitizeDashboardLayoutsForPlan } from "@/lib/dashboard-entitlements";
+import { sanitizeResponsiveDashboardLayoutsForPlan } from "@/lib/dashboard-entitlements";
 import { getEffectivePlan } from "@/lib/effective-plan";
 
 const ACCOUNT_TYPES = ["collector", "seller", "store", "large-seller"] as const;
@@ -121,7 +121,10 @@ export async function saveDashboardLayouts(layouts: unknown) {
       ? existing.preferences
       : {};
   const effectivePlan = await getEffectivePlan();
-  const safeLayouts = sanitizeDashboardLayoutsForPlan(layouts, effectivePlan);
+  const safeLayouts = sanitizeResponsiveDashboardLayoutsForPlan(
+    layouts,
+    effectivePlan,
+  );
 
   const { error } = await supabase
     .from("user_preferences")
