@@ -27,9 +27,9 @@ type Plan = {
   name: string;
   audience: string;
   monthlyPrice: number;
+  annualMonthlyPrice: number;
   annualPrice: number;
   description: string;
-  featured?: boolean;
   badge?: string;
   features: string[];
   limitations: string[];
@@ -41,6 +41,7 @@ const plans: Plan[] = [
     name: "Free",
     audience: "Explore Trading Docks",
     monthlyPrice: PLAN_ENTITLEMENTS.free.monthlyPrice,
+    annualMonthlyPrice: PLAN_ENTITLEMENTS.free.annualMonthlyPrice,
     annualPrice: PLAN_ENTITLEMENTS.free.annualPrice,
     description:
       "A simple starting point for discovering the platform and following your favorite cards.",
@@ -60,6 +61,7 @@ const plans: Plan[] = [
     name: "Collector",
     audience: "Organize a personal collection",
     monthlyPrice: PLAN_ENTITLEMENTS.collector.monthlyPrice,
+    annualMonthlyPrice: PLAN_ENTITLEMENTS.collector.annualMonthlyPrice,
     annualPrice: PLAN_ENTITLEMENTS.collector.annualPrice,
     description:
       "Catalog, organize, and understand a growing personal card collection without seller complexity.",
@@ -79,11 +81,10 @@ const plans: Plan[] = [
     name: "Seller",
     audience: "Run an online card business",
     monthlyPrice: PLAN_ENTITLEMENTS.seller.monthlyPrice,
+    annualMonthlyPrice: PLAN_ENTITLEMENTS.seller.annualMonthlyPrice,
     annualPrice: PLAN_ENTITLEMENTS.seller.annualPrice,
     description:
       "Turn inventory into listings with the daily pricing, intake, and marketplace tools sellers need.",
-    featured: true,
-    badge: "Most popular",
     features: [
       "Everything in Collector",
       "Unlimited saved decks",
@@ -102,6 +103,7 @@ const plans: Plan[] = [
     name: "Store",
     audience: "Operate a team and storefront",
     monthlyPrice: PLAN_ENTITLEMENTS.business.monthlyPrice,
+    annualMonthlyPrice: PLAN_ENTITLEMENTS.business.annualMonthlyPrice,
     annualPrice: PLAN_ENTITLEMENTS.business.annualPrice,
     description:
       "The complete Trading Docks command center for stores managing inventory, staff, and performance.",
@@ -152,7 +154,7 @@ export function TieredPlanComparison({
   currentPlan: AccountTier | null;
   publicView?: boolean;
 }) {
-  const [billing, setBilling] = useState<BillingCycle>("annual");
+  const [billing, setBilling] = useState<BillingCycle>("monthly");
 
   return (
     <div className="min-h-full bg-[#030a10] px-4 py-8 text-white sm:px-6 lg:px-8">
@@ -193,7 +195,7 @@ export function TieredPlanComparison({
                 {cycle}
                 {cycle === "annual" && (
                   <span className="ml-2 rounded-full bg-[#002b35] px-2 py-0.5 text-[9px] uppercase tracking-wide text-cyan-200">
-                    Save 17%
+                    Save up to 25%
                   </span>
                 )}
               </button>
@@ -204,7 +206,7 @@ export function TieredPlanComparison({
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => {
             const price =
-              billing === "annual" ? plan.annualPrice / 12 : plan.monthlyPrice;
+              billing === "annual" ? plan.annualMonthlyPrice : plan.monthlyPrice;
             const isCurrent = !publicView && plan.id === currentPlan;
             return (
               <article

@@ -29,8 +29,6 @@ const plans = [
     audience: "Run your card business",
     description: "Turn inventory into listings with powerful seller tools.",
     icon: ShieldCheck,
-    badge: "Most popular",
-    featured: true,
     features: ["50,000 inventory units", "Unlimited saved decks", "Marketplace allocations", "Pricing and listing queues"],
   },
   {
@@ -49,7 +47,7 @@ function dollars(value: number) {
 }
 
 export function PricingSection() {
-  const [billing, setBilling] = useState<"monthly" | "annual">("annual");
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
   return (
     <section id="pricing" className="relative z-10 mx-auto w-full max-w-[1480px] px-5 py-24 sm:px-8 lg:px-12">
@@ -77,7 +75,7 @@ export function PricingSection() {
               {cycle}
               {cycle === "annual" && (
                 <span className="ml-2 rounded-full bg-[#00313b] px-2 py-0.5 text-[9px] uppercase tracking-wide text-[#9df5ff]">
-                  Save 17%
+                  Save up to 25%
                 </span>
               )}
             </button>
@@ -88,17 +86,13 @@ export function PricingSection() {
       <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {plans.map((plan) => {
           const entitlement = PLAN_ENTITLEMENTS[plan.id];
-          const price = billing === "annual" ? entitlement.annualPrice / 12 : entitlement.monthlyPrice;
+          const price = billing === "annual" ? entitlement.annualMonthlyPrice : entitlement.monthlyPrice;
           const Icon = plan.icon;
 
           return (
             <article
               key={plan.id}
-              className={`relative flex min-h-[550px] flex-col rounded-[28px] border p-6 transition duration-300 hover:-translate-y-1 ${
-                "featured" in plan && plan.featured
-                  ? "border-[#20e7ff]/40 bg-[linear-gradient(180deg,rgba(13,66,79,0.52),rgba(6,21,34,0.98)_38%)] shadow-[0_28px_90px_rgba(0,215,242,0.11)]"
-                  : "border-white/[0.08] bg-[#061522] shadow-[0_24px_70px_rgba(0,0,0,0.24)] hover:border-[#20e7ff]/20"
-              }`}
+              className="group relative flex min-h-[550px] flex-col rounded-[28px] border border-white/[0.08] bg-[#061522] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition duration-300 hover:-translate-y-1 hover:border-[#20e7ff]/40 hover:bg-[linear-gradient(180deg,rgba(13,66,79,0.52),rgba(6,21,34,0.98)_38%)] hover:shadow-[0_28px_90px_rgba(0,215,242,0.11)]"
             >
               {"badge" in plan && plan.badge && (
                 <span className="absolute right-5 top-5 rounded-full border border-[#20e7ff]/15 bg-[#20e7ff]/[0.08] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#9df5ff]">
@@ -125,11 +119,7 @@ export function PricingSection() {
 
               <Link
                 href={plan.id === "free" ? "/sign-up?plan=free" : `/pricing?plan=${plan.id}`}
-                className={`group mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition ${
-                  "featured" in plan && plan.featured
-                    ? "bg-gradient-to-b from-cyan-300 to-sky-500 text-[#001018] hover:brightness-110"
-                    : "border border-white/[0.1] bg-white/[0.04] text-white hover:border-[#20e7ff]/25 hover:bg-[#20e7ff]/[0.06]"
-                }`}
+                className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-white transition group-hover:border-[#20e7ff] group-hover:bg-gradient-to-b group-hover:from-cyan-300 group-hover:to-sky-500 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
               >
                 {plan.id === "free" ? "Start free" : `Choose ${plan.name}`}
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />

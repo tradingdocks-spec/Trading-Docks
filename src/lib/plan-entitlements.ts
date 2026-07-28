@@ -26,6 +26,7 @@ export const PLAN_ENTITLEMENTS: Record<
   {
     name: string;
     monthlyPrice: number;
+    annualMonthlyPrice: number;
     annualPrice: number;
     deckLimit: number | null;
     inventoryLimit: number;
@@ -34,6 +35,7 @@ export const PLAN_ENTITLEMENTS: Record<
   free: {
     name: "Free",
     monthlyPrice: 0,
+    annualMonthlyPrice: 0,
     annualPrice: 0,
     deckLimit: 10,
     inventoryLimit: 500,
@@ -41,21 +43,24 @@ export const PLAN_ENTITLEMENTS: Record<
   collector: {
     name: "Collector",
     monthlyPrice: 4.99,
-    annualPrice: 48.96,
+    annualMonthlyPrice: 3.75,
+    annualPrice: 44.99,
     deckLimit: 50,
     inventoryLimit: 10_000,
   },
   seller: {
     name: "Seller",
     monthlyPrice: 19.99,
-    annualPrice: 198.96,
+    annualMonthlyPrice: 14.99,
+    annualPrice: 179.99,
     deckLimit: null,
     inventoryLimit: 50_000,
   },
   business: {
     name: "Store",
     monthlyPrice: 49.99,
-    annualPrice: 498.96,
+    annualMonthlyPrice: 37.49,
+    annualPrice: 449.99,
     deckLimit: null,
     inventoryLimit: 250_000,
   },
