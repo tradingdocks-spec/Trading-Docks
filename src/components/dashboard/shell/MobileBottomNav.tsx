@@ -2,13 +2,12 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, LayoutDashboard, LibraryBig, MessageSquarePlus, Settings } from "lucide-react";
+import { Boxes, LayoutDashboard, LibraryBig, Menu, Settings } from "lucide-react";
 
 const ITEMS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/inventory", label: "Inventory", icon: Boxes, exact: false },
   { href: "/dashboard/deck-vault", label: "Decks", icon: LibraryBig, exact: false },
-  { href: "/dashboard/feedback", label: "Feedback", icon: MessageSquarePlus, exact: false },
   { href: "/dashboard/settings", label: "Settings", icon: Settings, exact: false },
 ] as const;
 
@@ -26,7 +25,7 @@ function NavigationStatus() {
   );
 }
 
-export function MobileBottomNav() {
+export function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -56,6 +55,15 @@ export function MobileBottomNav() {
             </Link>
           );
         })}
+        <button
+          type="button"
+          onClick={onOpenMenu}
+          aria-label="Open all dashboard menus"
+          className="relative flex min-h-[54px] select-none touch-manipulation flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-semibold text-slate-300 outline-none transition-[color,background-color,transform] duration-100 active:scale-[0.94] active:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+        >
+          <Menu className="h-5 w-5" />
+          <span>All Menu</span>
+        </button>
       </div>
     </nav>
   );

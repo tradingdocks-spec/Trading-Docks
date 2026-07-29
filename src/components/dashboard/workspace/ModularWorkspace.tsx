@@ -193,19 +193,19 @@ export function ModularWorkspace({
 
   return (
     <WorkspaceFrame>
-      <header className={`${styles.glassPanel} rounded-[28px] p-5 sm:p-6`}>
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+      <header className={`${styles.glassPanel} rounded-[22px] p-4 sm:rounded-[28px] sm:p-6`}>
+        <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.13] bg-cyan-400/[0.04] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.17em] text-cyan-200">
               <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
               {ACCOUNT_LABEL[accountType] ?? "Personal"} workspace
             </div>
 
-            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.045em] text-white sm:text-4xl">
+            <h1 className="mt-3 text-[2rem] font-semibold leading-[1.08] tracking-[-0.045em] text-white sm:mt-4 sm:text-4xl">
               Your Trading Docks workspace.
             </h1>
 
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:mt-3 sm:leading-7">
               Personalized for your {ACCOUNT_LABEL[accountType]?.toLowerCase() ?? "account"} setup
               {inventoryModules.length > 0
                 ? ` with ${inventoryModules.length} inventory modules enabled.`
@@ -213,12 +213,12 @@ export function ModularWorkspace({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <button
               type="button"
               onClick={() => setEditing((value) => !value)}
               className={[
-                "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
+                "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border px-2 text-[11px] font-semibold transition sm:gap-2 sm:px-4 sm:text-xs",
                 editing
                   ? "border-cyan-300/[0.18] bg-cyan-400/[0.08] text-cyan-100"
                   : "border-white/[0.075] bg-white/[0.025] text-slate-400",
@@ -231,7 +231,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.075] bg-white/[0.025] px-4 text-xs font-semibold text-slate-400"
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-white/[0.075] bg-white/[0.025] px-2 text-[11px] font-semibold text-slate-400 sm:gap-2 sm:px-4 sm:text-xs"
             >
               <Settings2 className="h-4 w-4" />
               Customize
@@ -240,7 +240,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={save}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-4 text-xs font-semibold text-[#001018]"
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-2 text-[11px] font-semibold text-[#001018] sm:gap-2 sm:px-4 sm:text-xs"
             >
               {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
               {saved ? "Saved" : "Save layout"}
@@ -248,8 +248,20 @@ export function ModularWorkspace({
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 border-t border-white/[0.06] pt-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.06] pt-4 sm:mt-6 sm:pt-5 lg:flex-row lg:items-center lg:justify-between">
+          <select
+            value={layoutId}
+            onChange={(event) => setLayoutId(event.target.value as LayoutId)}
+            aria-label="Choose dashboard layout"
+            className="h-11 w-full rounded-xl border border-white/[0.09] bg-[#071722] px-3 text-sm font-semibold text-white outline-none sm:hidden"
+          >
+            {LAYOUTS.filter(
+              ([id]) => !isPersonal || ["home", "inventory", "analytics"].includes(id),
+            ).map(([id, label]) => (
+              <option key={id} value={id}>{label} dashboard</option>
+            ))}
+          </select>
+          <div className="hidden flex-wrap gap-2 sm:flex">
             {LAYOUTS.filter(
               ([id]) => !isPersonal || ["home", "inventory", "analytics"].includes(id),
             ).map(([id, label]) => (

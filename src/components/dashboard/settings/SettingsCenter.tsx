@@ -203,7 +203,25 @@ export function SettingsCenter({
             className="h-11 w-full rounded-xl border border-white/[0.07] bg-black/15 pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/30"
           />
         </div>
-        <nav className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 sm:mt-4 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-4 xl:grid-cols-1">
+        <div className="relative mt-3 sm:hidden">
+          <select
+            value={active}
+            onChange={(event) => setActive(event.target.value as SectionId)}
+            aria-label="Choose a settings section"
+            className="h-12 w-full appearance-none rounded-xl border border-cyan-300/[0.16] bg-cyan-300/[0.07] px-4 pr-10 text-sm font-semibold text-white outline-none focus:border-cyan-300/40"
+          >
+            {visibleNav.map((item) => (
+              <option key={item.id} value={item.id} className="bg-[#081822] text-white">
+                {item.label} — {item.description}
+              </option>
+            ))}
+          </select>
+          <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-cyan-300" />
+          <p className="mt-2 px-1 text-[10px] text-slate-500">
+            All settings sections are available from this menu.
+          </p>
+        </div>
+        <nav className="mt-4 hidden grid-cols-3 gap-2 sm:grid lg:grid-cols-4 xl:grid-cols-1">
           {visibleNav.map((item) => {
             const Icon = item.icon;
             const locked = item.storeOnly && plan !== "business";
@@ -212,7 +230,7 @@ export function SettingsCenter({
                 key={item.id}
                 type="button"
                 onClick={() => setActive(item.id)}
-                className={`group flex min-h-14 w-[170px] shrink-0 snap-start items-center gap-2.5 rounded-xl px-3 text-left transition sm:w-auto ${
+                className={`group flex min-h-14 items-center gap-2.5 rounded-xl px-3 text-left transition ${
                   active === item.id
                     ? "border border-cyan-300/[0.16] bg-cyan-300/[0.08] text-white"
                     : "border border-transparent text-slate-400 hover:bg-white/[0.035] hover:text-slate-200"
