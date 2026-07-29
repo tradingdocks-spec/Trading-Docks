@@ -20,6 +20,7 @@ import {
 
 import { login, loginWithGoogle } from "@/app/actions/auth";
 import { RememberedEmailField } from "@/components/auth/RememberedEmailField";
+import { PasswordField } from "@/components/auth/PasswordField";
 
 type SignInPageProps = {
   searchParams: Promise<{
@@ -145,7 +146,7 @@ function LiveActivityTicker() {
   const updates = [
     "Inventory synced",
     "248 cards imported",
-    "eBay listings updated",
+    "Inventory updates across connected marketplaces",
     "Marketplace prices refreshed",
     "Mana Pool connected",
   ];
@@ -1227,21 +1228,13 @@ export default async function SignInPage({
 
                           <Link
                             href="/forgot-password"
-                            className="text-[9px] font-medium text-cyan-300 transition hover:text-cyan-200"
+                            className="text-[10px] font-medium text-cyan-300 transition hover:text-cyan-200"
                           >
                             Forgot password?
                           </Link>
                         </div>
 
-                        <input
-                          id="password"
-                          name="password"
-                          type="password"
-                          autoComplete="current-password"
-                          required
-                          placeholder="Enter your password"
-                          className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] px-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-cyan-400/50 focus:bg-cyan-400/[0.035] focus:ring-4 focus:ring-cyan-400/10"
-                        />
+                        <PasswordField />
                       </div>
 
                       <button
@@ -1267,10 +1260,10 @@ export default async function SignInPage({
                       href="/sign-up"
                       className="flex h-10 w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:border-cyan-400/30 hover:bg-cyan-400/[0.07]"
                     >
-                      Create an account
+                      Create your free account
                     </Link>
 
-                    <div className="mt-4 flex items-center justify-center gap-2 text-[8px] text-slate-500">
+                    <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-slate-400">
                       <Check className="h-3 w-3 text-cyan-400" />
                       Authentication securely powered by Supabase
                     </div>

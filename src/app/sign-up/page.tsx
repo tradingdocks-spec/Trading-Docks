@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { signUp } from "@/app/actions/auth";
+import { PasswordField } from "@/components/auth/PasswordField";
 
 type SignUpPageProps = {
   searchParams: Promise<{
@@ -852,16 +853,13 @@ export default async function SignUpPage({
                           <div className="relative">
                             <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
 
-                            <input
-                              id="password"
-                              name="password"
-                              type="password"
-                              autoComplete="new-password"
-                              required
-                              minLength={8}
-                              placeholder="At least 8 characters"
-                              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-cyan-400/50 focus:bg-cyan-400/[0.035] focus:ring-4 focus:ring-cyan-400/10"
-                            />
+                            <div className="[&_input]:pl-10">
+                              <PasswordField
+                                autoComplete="new-password"
+                                minLength={8}
+                                placeholder="At least 8 characters"
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -876,20 +874,19 @@ export default async function SignUpPage({
                           <div className="relative">
                             <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
 
-                            <input
-                              id="confirmPassword"
-                              name="confirmPassword"
-                              type="password"
-                              autoComplete="new-password"
-                              required
-                              minLength={8}
-                              placeholder="Enter your password again"
-                              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-cyan-400/50 focus:bg-cyan-400/[0.035] focus:ring-4 focus:ring-cyan-400/10"
-                            />
+                            <div className="[&_input]:pl-10">
+                              <PasswordField
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                autoComplete="new-password"
+                                minLength={8}
+                                placeholder="Enter your password again"
+                              />
+                            </div>
                           </div>
                         </div>
 
-                        <label className="flex items-start gap-2.5 text-[9px] leading-4 text-slate-500">
+                        <label className="flex items-start gap-2.5 text-[10px] leading-4 text-slate-400">
                           <input
                             name="terms"
                             type="checkbox"
@@ -951,7 +948,7 @@ export default async function SignUpPage({
                       Sign in
                     </Link>
 
-                    <div className="mt-4 flex items-center justify-center gap-2 text-[8px] text-slate-500">
+                    <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-slate-400">
                       <Check className="h-3 w-3 text-cyan-400" />
                       Account security powered by Supabase
                     </div>

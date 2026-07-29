@@ -10,7 +10,6 @@ export function RememberedEmailField() {
   const emailInputRef = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
@@ -24,8 +23,6 @@ export function RememberedEmailField() {
       );
     } catch {
       // Sign-in still works when storage is unavailable or browser-blocked.
-    } finally {
-      setReady(true);
     }
   }, []);
 
@@ -120,7 +117,7 @@ export function RememberedEmailField() {
         />
       </div>
 
-      <label className="flex min-h-9 cursor-pointer select-none items-center gap-2.5 rounded-lg px-1 text-[10px] text-slate-400 transition hover:text-slate-300">
+      <label className="flex min-h-9 cursor-pointer select-none items-center gap-2.5 rounded-lg px-1 text-[10px] text-slate-300 transition hover:text-white">
         <input
           name="rememberMe"
           type="checkbox"
@@ -134,12 +131,7 @@ export function RememberedEmailField() {
         >
           <Check className="h-3 w-3 stroke-[3]" />
         </span>
-        <span>
-          Remember me on this device
-          {ready && rememberMe ? (
-            <span className="ml-1 text-slate-500">· email and sign-in</span>
-          ) : null}
-        </span>
+        <span>Keep me signed in and remember my email</span>
       </label>
     </>
   );
