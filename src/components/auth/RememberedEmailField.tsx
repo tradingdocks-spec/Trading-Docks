@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 
 const REMEMBER_EMAIL_KEY = "trading-docks-remembered-email";
 const REMEMBER_DEVICE_KEY = "trading-docks-remember-device";
 
 export function RememberedEmailField() {
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [ready, setReady] = useState(false);
@@ -26,6 +27,41 @@ export function RememberedEmailField() {
     } finally {
       setReady(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const input = emailInputRef.current;
+    const form = input?.form;
+    if (!input || !form) return;
+    const loginForm = form;
+
+    // Password managers and mobile Safari can populate an input without
+    // dispatching React's change/blur events. Read the live DOM value at the
+    // last possible moment so the submitted address is always remembered.
+    function rememberSubmittedEmail() {
+      try {
+        const formData = new FormData(loginForm);
+        const submittedEmail = String(formData.get("email") ?? "").trim();
+        const shouldRemember = formData.get("rememberMe") === "on";
+
+        window.localStorage.setItem(
+          REMEMBER_DEVICE_KEY,
+          String(shouldRemember),
+        );
+
+        if (shouldRemember && submittedEmail) {
+          window.localStorage.setItem(REMEMBER_EMAIL_KEY, submittedEmail);
+        } else {
+          window.localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
+      } catch {
+        // Authentication must remain usable when device storage is blocked.
+      }
+    }
+
+    loginForm.addEventListener("submit", rememberSubmittedEmail);
+    return () =>
+      loginForm.removeEventListener("submit", rememberSubmittedEmail);
   }, []);
 
   function updateEmail(value: string) {
@@ -69,6 +105,7 @@ export function RememberedEmailField() {
         </label>
 
         <input
+          ref={emailInputRef}
           id="email"
           name="email"
           type="email"
