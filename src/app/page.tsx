@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { AutomationSection } from "@/components/landing/AutomationSection";
 import { BackgroundEffects } from "@/components/landing/BackgroundEffects";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
@@ -9,8 +11,21 @@ import { MarketSection } from "@/components/landing/MarketSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { TrustedGames } from "@/components/landing/TrustedGames";
+import { createClient } from "@/lib/supabase/server";
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Keep this check in the page as a defense in depth. The proxy normally
+  // handles this redirect, but the root route must never show the public
+  // landing page to a user whose valid session reached the server.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/dashboard");
+  }
+
   return (
     <main
       data-landing-version="v83"
