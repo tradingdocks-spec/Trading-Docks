@@ -304,6 +304,23 @@ export function MarketplaceWorkspace() {
   const [credentials, setCredentials] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connector = params.get("connector");
+    const error = params.get("error");
+    if (connector === "ebay") {
+      setSelected(marketplaces.find((marketplace) => marketplace.id === "ebay") ?? null);
+      setMethod("api");
+    }
+    const messages: Record<string, string> = {
+      credentials: "Save your eBay developer credentials before authorizing the connection.",
+      credentials_incomplete: "Your saved eBay credentials are incomplete. Enter all four fields and save them again.",
+      credentials_key_changed: "Your encryption key changed after these eBay credentials were saved. Enter and save the credentials again, then authorize eBay.",
+      authorization_setup: "Trading Docks could not start eBay authorization. Confirm the server environment variables, then save your credentials again.",
+      invalid_state: "The eBay authorization session expired or could not be verified. Start authorization again.",
+      token_exchange: "eBay authorization returned, but the token could not be saved. Confirm the Production Client ID, Client Secret, and RuName.",
+    };
+    if (error && messages[error]) setNotice(messages[error]);
+
     void supabase
       .from("marketplace_connections")
       .select("marketplace_id,connection_method,status,settings,last_sync_at,sync_mode,health")
