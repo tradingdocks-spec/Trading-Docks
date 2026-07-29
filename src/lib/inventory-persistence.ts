@@ -117,10 +117,6 @@ function toDatabaseRow(
       collector_number: stringValue(record.collectorNumber) || null,
       quantity: numberValue(record.quantity),
       inventory_value: numberValue(record.value),
-      bulk_purchase_id:
-        stringValue(record.bulkPurchaseId) ||
-        stringValue(record.bulk_purchase_id) ||
-        null,
     };
   }
   return {

@@ -1,5 +1,5 @@
-import { BulkPurchasesWorkspace } from "@/components/dashboard-v2/inventory/BulkPurchasesWorkspace";
+import { SimplePurchasingPage } from "@/components/dashboard/purchasing/SimplePurchasingPage";
 
 export default function BulkBuyingPage() {
-  return <BulkPurchasesWorkspace />;
+  return <SimplePurchasingPage type="bulk" />;
 }

@@ -17,6 +17,9 @@ import {
   Search,
   Settings2,
   ShieldCheck,
+  Activity,
+  Eye,
+  Link2,
   Store,
   Upload,
   X,
@@ -51,6 +54,8 @@ type SavedConnection = {
   status: ConnectionStatus;
   settings: Record<string, unknown> | null;
   last_sync_at: string | null;
+  sync_mode?: "read_only" | "preview" | "automatic";
+  health?: "not_connected" | "healthy" | "attention" | "expired";
 };
 type CsvPreview = {
   name: string;
@@ -176,12 +181,7 @@ const marketplaces: MarketplaceDefinition[] = [
       "Connect transaction emails or forward them to the Trading Docks order inbox.",
       "Confirm completed sends before deducting inventory.",
     ],
-    officialUrl: "https://www.etsy.com/developers/your-apps",
-    callbackSlug: "etsy",
-    credentialFields: [
-      { key: "keystring", label: "Keystring", placeholder: "Etsy application keystring", help: "The client identifier shown on the Etsy app page." },
-      { key: "sharedSecret", label: "Shared secret", placeholder: "Etsy shared secret", help: "Stored encrypted and never shown again.", secret: true },
-    ],
+    officialUrl: "https://www.cardsphere.com/",
   },
   {
     id: "whatnot",
@@ -195,14 +195,7 @@ const marketplaces: MarketplaceDefinition[] = [
       "Review unmatched product titles before inventory is deducted.",
       "Use email tracking for individual order notifications when available.",
     ],
-    officialUrl: "https://developer-docs.amazon.com/sp-api/docs/registering-your-application",
-    callbackSlug: "amazon",
-    credentialFields: [
-      { key: "sellerId", label: "Seller ID", placeholder: "Amazon merchant/seller ID", help: "Found in Seller Central account information." },
-      { key: "lwaClientId", label: "LWA client ID", placeholder: "Login with Amazon client ID", help: "Issued with your SP-API application." },
-      { key: "lwaClientSecret", label: "LWA client secret", placeholder: "Login with Amazon secret", help: "Stored encrypted and never shown again.", secret: true },
-      { key: "refreshToken", label: "Refresh token", placeholder: "SP-API refresh token", help: "Created when the seller authorizes the application.", secret: true },
-    ],
+    officialUrl: "https://developers.whatnot.com/",
   },
   {
     id: "etsy",
@@ -216,11 +209,11 @@ const marketplaces: MarketplaceDefinition[] = [
       "Authorize the shop using OAuth.",
       "Import listings before enabling updates.",
     ],
-    officialUrl: "https://woocommerce.com/document/woocommerce-rest-api/",
+    officialUrl: "https://www.etsy.com/developers/your-apps",
+    callbackSlug: "etsy",
     credentialFields: [
-      { key: "storeUrl", label: "Store URL", placeholder: "https://store.example.com", help: "The HTTPS address of the WooCommerce store." },
-      { key: "consumerKey", label: "Consumer key", placeholder: "ck_…", help: "Create a read/write key in WooCommerce → Settings → Advanced → REST API." },
-      { key: "consumerSecret", label: "Consumer secret", placeholder: "cs_…", help: "Stored encrypted and never shown again.", secret: true },
+      { key: "keystring", label: "Keystring", placeholder: "Etsy application keystring", help: "The client identifier shown on the Etsy app page." },
+      { key: "sharedSecret", label: "Shared secret", placeholder: "Etsy shared secret", help: "Stored encrypted and never shown again.", secret: true },
     ],
   },
   {
@@ -235,6 +228,14 @@ const marketplaces: MarketplaceDefinition[] = [
       "Use Seller Central reports while access is pending.",
       "Do not automate login or scrape Seller Central pages.",
     ],
+    officialUrl: "https://developer-docs.amazon.com/sp-api/docs/registering-your-application",
+    callbackSlug: "amazon",
+    credentialFields: [
+      { key: "sellerId", label: "Seller ID", placeholder: "Amazon merchant/seller ID", help: "Found in Seller Central account information." },
+      { key: "lwaClientId", label: "LWA client ID", placeholder: "Login with Amazon client ID", help: "Issued with your SP-API application." },
+      { key: "lwaClientSecret", label: "LWA client secret", placeholder: "Login with Amazon secret", help: "Stored encrypted and never shown again.", secret: true },
+      { key: "refreshToken", label: "Refresh token", placeholder: "SP-API refresh token", help: "Created when the seller authorizes the application.", secret: true },
+    ],
   },
   {
     id: "woocommerce",
@@ -247,6 +248,12 @@ const marketplaces: MarketplaceDefinition[] = [
       "Create read/write REST credentials for the intended store.",
       "Store credentials only in encrypted server-side storage.",
       "Run a read-only import before enabling stock updates.",
+    ],
+    officialUrl: "https://woocommerce.com/document/woocommerce-rest-api/",
+    credentialFields: [
+      { key: "storeUrl", label: "Store URL", placeholder: "https://store.example.com", help: "The HTTPS address of the WooCommerce store." },
+      { key: "consumerKey", label: "Consumer key", placeholder: "ck_…", help: "Create a read/write key in WooCommerce → Settings → Advanced → REST API." },
+      { key: "consumerSecret", label: "Consumer secret", placeholder: "cs_…", help: "Stored encrypted and never shown again.", secret: true },
     ],
   },
   {
@@ -295,7 +302,7 @@ export function MarketplaceWorkspace() {
   useEffect(() => {
     void supabase
       .from("marketplace_connections")
-      .select("marketplace_id,connection_method,status,settings,last_sync_at")
+      .select("marketplace_id,connection_method,status,settings,last_sync_at,sync_mode,health")
       .then(({ data, error }) => {
         if (error) {
           setDatabaseReady(false);
@@ -311,6 +318,8 @@ export function MarketplaceWorkspace() {
       .toLowerCase()
       .includes(query.trim().toLowerCase()),
   );
+  const connectedCount = connections.filter((item) => item.status === "ready").length;
+  const attentionCount = connections.filter((item) => item.status === "attention" || item.status === "setup_required").length;
 
   function openSetup(marketplace: MarketplaceDefinition) {
     const existing = connections.find((item) => item.marketplace_id === marketplace.id);
@@ -471,6 +480,13 @@ export function MarketplaceWorkspace() {
         </div>
       </section>
 
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <HealthCard icon={Link2} label="Connected channels" value={String(connectedCount)} detail={`${marketplaces.length} supported destinations`} tone="cyan" />
+        <HealthCard icon={Eye} label="Default sync mode" value="Read only" detail="No marketplace writes are enabled" tone="emerald" />
+        <HealthCard icon={Activity} label="Connection health" value={attentionCount ? `${attentionCount} to finish` : "All clear"} detail={attentionCount ? "Setup or authorization required" : "No connector issues"} tone={attentionCount ? "amber" : "emerald"} />
+        <HealthCard icon={ShieldCheck} label="Activation safety" value="Preview first" detail="Approve changes before live sync" tone="cyan" />
+      </section>
+
       {!databaseReady ? (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-300/15 bg-amber-300/[.04] p-4 text-amber-100">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
@@ -610,6 +626,11 @@ export function MarketplaceWorkspace() {
                     <div className="flex gap-3 rounded-2xl border border-amber-300/12 bg-amber-300/[.03] p-4"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[11px] leading-5 text-amber-100/55">This marketplace does not currently publish a supported self-service API credential flow. Choose CSV, email, or guided manual tracking.</p></div>
                   )}
                   <div className="flex gap-2 rounded-xl border border-emerald-300/10 bg-emerald-300/[.025] p-3 text-[10px] leading-4 text-emerald-100/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Secrets are encrypted on the server with AES-256-GCM. The page receives only masked confirmation after saving.</div>
+                  {selected.id === "ebay" && connections.some((item) => item.marketplace_id === "ebay" && item.settings?.credentials_saved) ? (
+                    <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/[.07] text-xs font-bold text-emerald-100 hover:bg-emerald-300/[.12]">
+                      <Link2 className="h-4 w-4" />Authorize eBay read-only access
+                    </a>
+                  ) : null}
                 </div>
               ) : null}
               <button type="button" disabled={saving || !databaseReady || (method === "api" && !selected.credentialFields?.length)} onClick={() => void (method === "api" ? saveCredentials() : saveConnection())} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{method === "api" ? "Encrypt & save credentials" : "Save connection plan"}</button>
@@ -619,6 +640,21 @@ export function MarketplaceWorkspace() {
       ) : null}
     </div>
   );
+}
+
+function HealthCard({ icon: Icon, label, value, detail, tone }: {
+  icon: typeof Store;
+  label: string;
+  value: string;
+  detail: string;
+  tone: "cyan" | "emerald" | "amber";
+}) {
+  const colors = tone === "emerald"
+    ? "border-emerald-300/12 bg-emerald-300/[.025] text-emerald-300"
+    : tone === "amber"
+      ? "border-amber-300/12 bg-amber-300/[.025] text-amber-300"
+      : "border-cyan-300/12 bg-cyan-300/[.025] text-cyan-300";
+  return <article className={`rounded-[20px] border p-4 ${colors}`}><div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.15em]"><Icon className="h-3.5 w-3.5" />{label}</div><p className="mt-3 text-lg font-semibold text-white">{value}</p><p className="mt-1 text-[10px] text-slate-500">{detail}</p></article>;
 }
 
 function SetupGuide({ title, steps, compact = false }: { title: string; steps: readonly string[]; compact?: boolean }) {

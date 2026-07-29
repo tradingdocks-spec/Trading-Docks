@@ -74,7 +74,7 @@ export const PURCHASING_NAV: NavigationSection = {
     },
     {
       href: "/dashboard/bulk-buying",
-      label: "Bulk Purchases",
+      label: "Bulk Buying",
       icon: Scale,
     },
     {
