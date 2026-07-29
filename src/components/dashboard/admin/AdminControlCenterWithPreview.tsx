@@ -19,6 +19,7 @@ import {
   Loader2,
   LockKeyhole,
   Megaphone,
+  PlugZap,
   ReceiptText,
   Search,
   ShieldCheck,
@@ -49,6 +50,7 @@ type AdminTab =
   | "data"
   | "analytics"
   | "feedback"
+  | "integrations"
   | "security"
   | "audit";
 type Factor = { id: string; friendly_name?: string; status: string };
@@ -88,6 +90,7 @@ const tabs: { id: AdminTab; label: string; icon: typeof Activity }[] = [
   { id: "data", label: "Data & Backups", icon: DatabaseBackup },
   { id: "analytics", label: "Product Analytics", icon: BarChart3 },
   { id: "feedback", label: "Feedback & Beta", icon: Lightbulb },
+  { id: "integrations", label: "Integrations", icon: PlugZap },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "audit", label: "Audit Log", icon: Eye },
 ];
@@ -337,12 +340,143 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
           {tab === "features" ? <FeatureAccess features={filtered} query={query} setQuery={setQuery} savingId={savingId} updateFeature={updateFeature} /> : null}
           {tab === "trials" ? <TrialsManager /> : null}
           {tab === "feedback" ? <AdminFeedbackQueue /> : null}
+          {tab === "integrations" ? <AdminIntegrations /> : null}
           {["support", "billing", "communications", "health", "data", "analytics"].includes(tab) ? <OperationsSection tab={tab as OperationsTab} /> : null}
           {["plans", "categories", "security", "audit"].includes(tab) ? <SectionPlaceholder tab={tab as CorePlaceholderTab} features={features} ownerEmail={ownerEmail} /> : null}
         </main>
       </div>
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[150] rounded-xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs font-medium text-cyan-100 shadow-2xl">{notice}</div> : null}
     </div>
+  );
+}
+
+type PlatformIntegration = {
+  marketplace_id: string;
+  credential_labels: Record<string, string>;
+  enabled: boolean;
+  updated_at: string;
+};
+
+function AdminIntegrations() {
+  const [integration, setIntegration] = useState<PlatformIntegration | null>(null);
+  const [environment, setEnvironment] = useState("production");
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [ruName, setRuName] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    void fetch("/api/admin/marketplace-integrations", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json() as { integrations?: PlatformIntegration[]; error?: string };
+        if (!response.ok) throw new Error(body.error ?? "Could not load integrations.");
+        setIntegration(body.integrations?.find((item) => item.marketplace_id === "ebay") ?? null);
+      })
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    setMessage("");
+    const response = await fetch("/api/admin/marketplace-integrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        marketplaceId: "ebay",
+        credentials: { environment, clientId, clientSecret, ruName },
+        enabled: true,
+      }),
+    });
+    const body = await response.json() as { error?: string; masked?: Record<string, string>; enabled?: boolean };
+    if (!response.ok) setMessage(body.error ?? "Could not save eBay configuration.");
+    else {
+      setIntegration({
+        marketplace_id: "ebay",
+        credential_labels: body.masked ?? {},
+        enabled: body.enabled !== false,
+        updated_at: new Date().toISOString(),
+      });
+      setClientId("");
+      setClientSecret("");
+      setRuName("");
+      setEditing(false);
+      setMessage("eBay is configured for every Trading Docks store.");
+    }
+    setSaving(false);
+  }
+
+  async function toggleEnabled() {
+    if (!integration) return;
+    setSaving(true);
+    const enabled = !integration.enabled;
+    const response = await fetch("/api/admin/marketplace-integrations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ marketplaceId: "ebay", enabled }),
+    });
+    if (response.ok) {
+      setIntegration({ ...integration, enabled });
+      setMessage(enabled ? "Customer eBay connections are enabled." : "New eBay connections are paused.");
+    } else setMessage("Could not update eBay availability.");
+    setSaving(false);
+  }
+
+  return (
+    <section className="rounded-[24px] border border-white/[0.07] bg-[#06121b] p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Platform integrations</p>
+          <h2 className="mt-1 text-xl font-semibold text-white">Marketplace application credentials</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Configure each marketplace once. Stores only see Connect, Reconnect, and Disconnect controls for their own account.</p>
+        </div>
+        <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.05] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-amber-200">Owner only</span>
+      </div>
+
+      <div className="mt-6 rounded-[22px] border border-white/[0.07] bg-black/10 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-300/[0.05] text-cyan-200"><PlugZap className="h-5 w-5" /></div>
+            <div><h3 className="text-sm font-semibold text-white">eBay</h3><p className="mt-1 text-[10px] text-slate-500">One Trading Docks developer application · separate consent per store</p></div>
+          </div>
+          <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase ${integration?.enabled ? "border-emerald-300/15 bg-emerald-300/[0.05] text-emerald-200" : "border-slate-300/10 bg-white/[0.03] text-slate-500"}`}>
+            {loading ? "Checking" : integration?.enabled ? "Available to stores" : integration ? "Paused" : "Not configured"}
+          </span>
+        </div>
+
+        {integration && !editing ? (
+          <div className="mt-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                ["Environment", integration.credential_labels.environment ?? "Saved"],
+                ["Client ID", integration.credential_labels.clientId ?? "Saved"],
+                ["RuName", integration.credential_labels.ruName ?? "Saved"],
+              ].map(([label, value]) => <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"><p className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-600">{label}</p><p className="mt-1.5 font-mono text-[11px] text-slate-300">{value}</p></div>)}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setEditing(true)} className="h-10 rounded-xl border border-cyan-300/15 px-4 text-xs font-bold text-cyan-100 hover:bg-cyan-300/[0.06]">Replace credentials</button>
+              <button type="button" disabled={saving} onClick={() => void toggleEnabled()} className="h-10 rounded-xl border border-white/[0.08] px-4 text-xs font-semibold text-slate-300 hover:bg-white/[0.03]">{integration.enabled ? "Pause customer connections" : "Enable customer connections"}</button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <label className="text-[10px] font-semibold text-slate-300">Environment<select value={environment} onChange={(event) => setEnvironment(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.08] bg-[#06121b] px-3 text-xs text-white"><option value="production">Production</option><option value="sandbox">Sandbox</option></select></label>
+            <label className="text-[10px] font-semibold text-slate-300">Client ID<input value={clientId} onChange={(event) => setClientId(event.target.value)} autoComplete="off" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30" /></label>
+            <label className="text-[10px] font-semibold text-slate-300">Client Secret<input type="password" value={clientSecret} onChange={(event) => setClientSecret(event.target.value)} autoComplete="new-password" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30" /></label>
+            <label className="text-[10px] font-semibold text-slate-300">RuName<input value={ruName} onChange={(event) => setRuName(event.target.value)} autoComplete="off" className="mt-1.5 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30" /></label>
+            <div className="flex gap-2 sm:col-span-2">
+              <button type="button" disabled={saving || !clientId || !clientSecret || !ruName} onClick={() => void save()} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}Encrypt and activate eBay</button>
+              {integration ? <button type="button" onClick={() => setEditing(false)} className="h-11 rounded-xl border border-white/[0.08] px-4 text-xs text-slate-400">Cancel</button> : null}
+            </div>
+          </div>
+        )}
+        <div className="mt-4 flex gap-3 rounded-xl border border-emerald-300/10 bg-emerald-300/[0.025] p-3 text-[10px] leading-4 text-emerald-100/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />The saved secret is encrypted server-side and never displayed again. Vercel and Supabase infrastructure secrets remain outside this dashboard.</div>
+        {message ? <p className="mt-3 text-xs text-cyan-100">{message}</p> : null}
+      </div>
+    </section>
   );
 }
 

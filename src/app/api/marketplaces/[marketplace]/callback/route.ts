@@ -37,13 +37,23 @@ export async function GET(
 
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("marketplace_credentials")
+    let { data, error } = await admin
+      .from("platform_marketplace_integrations")
       .select("encrypted_payload,iv,auth_tag")
-      .eq("user_id", user.id)
       .eq("marketplace_id", "ebay")
-      .single();
+      .eq("enabled", true)
+      .maybeSingle();
+    if (!data) {
+      const legacy = await admin.from("marketplace_credentials")
+        .select("encrypted_payload,iv,auth_tag")
+        .eq("user_id", user.id)
+        .eq("marketplace_id", "ebay")
+        .single();
+      data = legacy.data;
+      error = legacy.error;
+    }
     if (error) throw error;
+    if (!data) throw new Error("The eBay platform integration is not configured.");
     const credentials = decryptMarketplaceCredentials(data);
     const sandbox = credentials.environment === "sandbox";
     const response = await fetch(

@@ -1,10 +1,24 @@
-import { createDecipheriv, createHash } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 export type EncryptedMarketplaceCredential = {
   encrypted_payload: string;
   iv: string;
   auth_tag: string;
 };
+
+export function encryptMarketplaceCredentials(credentials: Record<string, string>) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key(), iv);
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify(credentials), "utf8"),
+    cipher.final(),
+  ]);
+  return {
+    encrypted_payload: encrypted.toString("base64"),
+    iv: iv.toString("base64"),
+    auth_tag: cipher.getAuthTag().toString("base64"),
+  };
+}
 
 function key() {
   const secret = process.env.MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY;

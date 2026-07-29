@@ -652,27 +652,54 @@ export function MarketplaceWorkspace() {
               <SetupGuide title={`${selected.name} setup`} steps={selected.setup} compact />
               {method === "api" ? (
                 <div className="space-y-4 rounded-[22px] border border-cyan-300/12 bg-cyan-300/[.025] p-4">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
+                    <div>
+                      <p className="text-xs font-semibold text-cyan-100">Secure platform connection</p>
+                      <p className="mt-1 text-[10px] leading-5 text-slate-500">Trading Docks manages marketplace application credentials. You will never be asked for a Client Secret, API key, RuName, encryption key, or marketplace password here.</p>
+                    </div>
+                  </div>
+                  {selected.id === "ebay" ? (
+                    <>
+                      <div className="rounded-xl border border-white/[.07] bg-black/15 p-3">
+                        <p className="text-[10px] font-semibold text-slate-200">Your eBay seller account</p>
+                        <p className="mt-1 text-[9px] leading-4 text-slate-600">eBay will open its own secure sign-in page. Approval connects only this Trading Docks account and keeps every store’s listings and tokens separate.</p>
+                      </div>
+                      <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/[.07] text-xs font-bold text-emerald-100 hover:bg-emerald-300/[.12]">
+                        <Link2 className="h-4 w-4" />{connections.some((item) => item.marketplace_id === "ebay" && item.status === "ready") ? "Reconnect eBay account" : "Connect eBay account"}
+                      </a>
+                    </>
+                  ) : (
+                    <div className="rounded-xl border border-amber-300/12 bg-amber-300/[.03] p-3 text-[10px] leading-5 text-amber-100/55">This connection will become available here after the Trading Docks administrator activates the platform integration. No developer setup will be required from your store.</div>
+                  )}
+                </div>
+              ) : null}
+              {(() => {
+                if (!selected) return null;
+                const legacySelected = selected;
+                return false && method === "api" ? (
+                <div className="space-y-4 rounded-[22px] border border-cyan-300/12 bg-cyan-300/[.025] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold text-cyan-100">Your developer credentials</p>
                       <p className="mt-1 text-[10px] leading-4 text-slate-500">Create credentials in your own marketplace account, then enter them here. Never enter your marketplace password.</p>
                     </div>
-                    {selected.officialUrl ? (
-                      <a href={selected.officialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/15 px-2.5 py-2 text-[9px] font-semibold text-cyan-200 hover:bg-cyan-300/[.06]">
+                    {selected!.officialUrl ? (
+                      <a href={selected!.officialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/15 px-2.5 py-2 text-[9px] font-semibold text-cyan-200 hover:bg-cyan-300/[.06]">
                         Official setup <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : null}
                   </div>
-                  {selected.callbackSlug ? (
+                  {legacySelected.callbackSlug ? (
                     <div>
                       <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[.14em] text-slate-600">OAuth callback URL</p>
                       <div className="flex gap-2">
                         <input
                           type="text"
                           readOnly
-                          value={`${MARKETPLACE_CALLBACK_ORIGIN}/api/marketplaces/${selected.callbackSlug}/callback`}
+                          value={`${MARKETPLACE_CALLBACK_ORIGIN}/api/marketplaces/${legacySelected.callbackSlug}/callback`}
                           onFocus={(event) => event.currentTarget.select()}
-                          aria-label={`${selected.name} OAuth callback URL`}
+                          aria-label={`${legacySelected.name} OAuth callback URL`}
                           className="min-w-0 flex-1 rounded-xl border border-white/[.07] bg-black/20 px-3 py-2.5 font-mono text-[10px] text-slate-300 outline-none focus:border-cyan-300/30"
                         />
                         <button type="button" onClick={() => void copyCallbackUrl()} className="rounded-xl border border-white/[.08] px-3 text-slate-400 hover:text-white" aria-label="Copy callback URL"><Copy className="h-4 w-4" /></button>
@@ -680,14 +707,14 @@ export function MarketplaceWorkspace() {
                       <p className="mt-1.5 text-[9px] leading-4 text-slate-600">This address is generated by Trading Docks. Select it or use the copy button, then paste it into the marketplace app’s redirect/callback setting.</p>
                     </div>
                   ) : null}
-                  {selected.credentialFields?.length ? (
+                  {legacySelected.credentialFields?.length ? (
                     <div className="space-y-3">
                       {checkingCredentials ? (
                         <div className="flex items-center gap-2 rounded-xl border border-white/[.07] bg-black/15 px-3 py-2.5 text-[10px] text-slate-500">
                           <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-300" />
                           Checking saved credentials…
                         </div>
-                      ) : savedCredentials[selected.id]?.saved ? (
+                      ) : savedCredentials[legacySelected.id]?.saved ? (
                         <div className="flex items-start gap-3 rounded-xl border border-emerald-300/15 bg-emerald-300/[.04] px-3 py-3">
                           <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
                           <div>
@@ -698,9 +725,9 @@ export function MarketplaceWorkspace() {
                           </div>
                         </div>
                       ) : null}
-                      {!savedCredentials[selected.id]?.saved || editingCredentials[selected.id] ? (
+                      {!savedCredentials[legacySelected.id]?.saved || editingCredentials[legacySelected.id] ? (
                         <div className="grid gap-3 sm:grid-cols-2">
-                          {selected.credentialFields.map((field) => (
+                          {legacySelected.credentialFields!.map((field) => (
                             <label key={field.key} className="block">
                               <span className="text-[10px] font-semibold text-slate-300">{field.label}</span>
                               <input
@@ -708,8 +735,8 @@ export function MarketplaceWorkspace() {
                                 value={credentials[field.key] ?? ""}
                                 onChange={(event) => setCredentials((current) => ({ ...current, [field.key]: event.target.value }))}
                                 placeholder={
-                                  savedCredentials[selected.id]?.masked[field.key]
-                                    ? `Saved ${savedCredentials[selected.id].masked[field.key]} · enter replacement`
+                                  savedCredentials[legacySelected.id]?.masked[field.key]
+                                    ? `Saved ${savedCredentials[legacySelected.id].masked[field.key]} · enter replacement`
                                     : field.placeholder
                                 }
                                 autoComplete="off"
@@ -725,20 +752,21 @@ export function MarketplaceWorkspace() {
                     <div className="flex gap-3 rounded-2xl border border-amber-300/12 bg-amber-300/[.03] p-4"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[11px] leading-5 text-amber-100/55">This marketplace does not currently publish a supported self-service API credential flow. Choose CSV, email, or guided manual tracking.</p></div>
                   )}
                   <div className="flex gap-2 rounded-xl border border-emerald-300/10 bg-emerald-300/[.025] p-3 text-[10px] leading-4 text-emerald-100/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Secrets are encrypted on the server with AES-256-GCM. The page receives only masked confirmation after saving.</div>
-                  {savedCredentials[selected.id]?.saved && !editingCredentials[selected.id] ? (
-                    <button type="button" onClick={() => setEditingCredentials((current) => ({ ...current, [selected.id]: true }))} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/15 text-xs font-bold text-cyan-100 hover:bg-cyan-300/[.06]">
+                  {savedCredentials[legacySelected.id]?.saved && !editingCredentials[legacySelected.id] ? (
+                    <button type="button" onClick={() => setEditingCredentials((current) => ({ ...current, [legacySelected.id]: true }))} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/15 text-xs font-bold text-cyan-100 hover:bg-cyan-300/[.06]">
                       <KeyRound className="h-4 w-4" />Replace saved credentials
                     </button>
                   ) : (
-                    <button type="button" disabled={saving || !databaseReady || !selected.credentialFields?.length} onClick={() => void saveCredentials()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{savedCredentials[selected.id]?.saved ? "Save replacement credentials" : "Encrypt & save credentials"}</button>
+                    <button type="button" disabled={saving || !databaseReady || !legacySelected.credentialFields?.length} onClick={() => void saveCredentials()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{savedCredentials[legacySelected.id]?.saved ? "Save replacement credentials" : "Encrypt & save credentials"}</button>
                   )}
-                  {selected.id === "ebay" && savedCredentials.ebay?.saved ? (
+                  {legacySelected.id === "ebay" && savedCredentials.ebay?.saved ? (
                     <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/[.07] text-xs font-bold text-emerald-100 hover:bg-emerald-300/[.12]">
                       <Link2 className="h-4 w-4" />{connections.some((item) => item.marketplace_id === "ebay" && item.status === "ready") ? "Reconnect eBay account" : "Authorize eBay read-only access"}
                     </a>
                   ) : null}
                 </div>
-              ) : null}
+                ) : null;
+              })()}
               {method !== "api" ? <button type="button" disabled={saving || !databaseReady} onClick={() => void saveConnection()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save connection plan</button> : null}
             </div>
           </div>

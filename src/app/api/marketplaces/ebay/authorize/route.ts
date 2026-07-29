@@ -37,12 +37,22 @@ export async function GET(request: Request) {
     }
 
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("marketplace_credentials")
+    let { data, error } = await admin
+      .from("platform_marketplace_integrations")
       .select("encrypted_payload,iv,auth_tag")
-      .eq("user_id", user.id)
       .eq("marketplace_id", "ebay")
+      .eq("enabled", true)
       .maybeSingle();
+    // Temporary migration fallback for the platform owner's previously saved v112 credentials.
+    if (!data) {
+      const legacy = await admin.from("marketplace_credentials")
+        .select("encrypted_payload,iv,auth_tag")
+        .eq("user_id", user.id)
+        .eq("marketplace_id", "ebay")
+        .maybeSingle();
+      data = legacy.data;
+      error = legacy.error;
+    }
     if (error || !data) {
       destination.searchParams.set("error", "credentials");
       return NextResponse.redirect(destination);
