@@ -75,6 +75,7 @@ export async function updateSession(request: NextRequest) {
 
   const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
   const isOnboardingRoute = request.nextUrl.pathname.startsWith("/onboarding");
+  const isHomePage = request.nextUrl.pathname === "/";
   const isAuthPage =
     request.nextUrl.pathname === "/sign-in" ||
     request.nextUrl.pathname === "/sign-up";
@@ -89,7 +90,7 @@ export async function updateSession(request: NextRequest) {
     return redirectWithSessionCookies(url, pendingCookies);
   }
 
-  if (user && isAuthPage) {
+  if (user && (isHomePage || isAuthPage)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";
