@@ -12,6 +12,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock3,
+  ClipboardList,
   MapPin,
   PackageSearch,
   Plus,
@@ -97,12 +98,12 @@ type PurchaseOrderLine = {
 };
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof CalendarDays }> = [
-  { id: "overview", label: "Overview", icon: Sparkles },
-  { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "lookup", label: "Quick Lookup", icon: PackageSearch },
-  { id: "inventory", label: "Show Inventory", icon: Boxes },
+  { id: "overview", label: "Show Overview", icon: Sparkles },
+  { id: "calendar", label: "Events", icon: CalendarDays },
+  { id: "lookup", label: "Buying Desk", icon: PackageSearch },
+  { id: "inventory", label: "Put-Away Queue", icon: Boxes },
   { id: "sales", label: "Sales", icon: ShoppingCart },
-  { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "reports", label: "Performance", icon: BarChart3 },
 ];
 
 const starterEvents: EventRecord[] = [];
@@ -230,13 +231,14 @@ export function CardShowsWorkspace() {
           <div className="relative flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-cyan-300/20 bg-cyan-400/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">Seller workspace</span>
-                <span className="rounded-full border border-emerald-300/15 bg-emerald-400/[0.06] px-3 py-1 text-[10px] font-semibold text-emerald-200">Live operations</span>
+                <span className="rounded-full border border-cyan-300/20 bg-cyan-400/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">Card show operations</span>
+                <span className="rounded-full border border-emerald-300/15 bg-emerald-400/[0.06] px-3 py-1 text-[10px] font-semibold text-emerald-200">{selectedEvent ? `${selectedEvent.name} · ${selectedEvent.status}` : "No active show"}</span>
               </div>
               <h1 className="mt-4 text-3xl font-semibold tracking-[-0.045em] text-white sm:text-4xl">Card Shows</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
                 Plan events, buy at your target margins, control show inventory, and see the true profit from every table.
               </p>
+              {selectedEvent ? <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-medium text-slate-400"><span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-cyan-300" />{dayLabel(selectedEvent.startDate)} – {dayLabel(selectedEvent.endDate)}</span><span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-cyan-300" />{selectedEvent.venue} · {selectedEvent.city}</span><span className="inline-flex items-center gap-1.5"><Store className="h-3.5 w-3.5 text-cyan-300" />{selectedEvent.booth}</span></div> : null}
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setTab("lookup")} className="inline-flex h-11 items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-4 text-xs font-bold text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/[0.12]">
@@ -285,6 +287,7 @@ export function CardShowsWorkspace() {
               setSingleRate={setSingleRate}
               setSealedRate={setSealedRate}
               offer={offer}
+              event={selectedEvent}
               onSave={() => notify("Buying target saved")}
             />
           ) : null}
@@ -395,7 +398,7 @@ function CalendarPanel({ events, onAdd, onDeleteEvent }: { events: EventRecord[]
   );
 }
 
-function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPrice, setMarketPrice, rate, setRate, singleRate, sealedRate, setSingleRate, setSealedRate, offer, onSave }: { query: string; setQuery: (v: string) => void; game: CardShowGameId; setGame: (v: CardShowGameId) => void; type: "single" | "sealed"; setType: (v: "single" | "sealed") => void; marketPrice: string; setMarketPrice: (v: string) => void; rate: string; setRate: (v: string) => void; singleRate: string; sealedRate: string; setSingleRate: (v: string) => void; setSealedRate: (v: string) => void; offer: number | null; onSave: () => void }) {
+function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPrice, setMarketPrice, rate, setRate, singleRate, sealedRate, setSingleRate, setSealedRate, offer, event, onSave }: { query: string; setQuery: (v: string) => void; game: CardShowGameId; setGame: (v: CardShowGameId) => void; type: "single" | "sealed"; setType: (v: "single" | "sealed") => void; marketPrice: string; setMarketPrice: (v: string) => void; rate: string; setRate: (v: string) => void; singleRate: string; sealedRate: string; setSingleRate: (v: string) => void; setSealedRate: (v: string) => void; offer: number | null; event?: EventRecord; onSave: () => void }) {
   const [results, setResults] = useState<PriceResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -638,9 +641,14 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.35fr_.8fr]">
+    <div className="space-y-4">
+      <section className="flex flex-col gap-3 rounded-[20px] border border-white/[0.065] bg-[#06131d] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-400/[0.07] text-cyan-300"><Store className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600">Active buying session</p><p className="mt-1 truncate text-sm font-semibold text-white">{event?.name ?? "General inventory purchase"}</p></div></div>
+        <div className="flex items-center gap-2 text-[10px] text-slate-500"><span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.65)]" /> Draft saves automatically</div>
+      </section>
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.45fr)_390px]">
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-7">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Buying desk</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">Know your number before you buy.</h2><p className="mt-2 text-sm text-slate-500">Look up a single or sealed product and calculate your maximum offer instantly.</p>
+        <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Buying desk</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">Search, price, and add to order.</h2><p className="mt-2 text-sm text-slate-500">Verify the exact product and condition before making an offer.</p></div>{remaining !== null ? <span title="JustTCG requests remaining" className="rounded-full border border-white/[0.07] bg-white/[0.025] px-3 py-1.5 text-[9px] font-semibold text-slate-500">{remaining.toLocaleString()} lookups left</span> : null}</div>
         <div className="mt-6 flex rounded-xl border border-white/[0.07] bg-black/10 p-1">{(["single", "sealed"] as const).map((item) => <button key={item} onClick={() => setType(item)} className={`flex-1 rounded-lg py-2.5 text-xs font-bold capitalize transition ${type === item ? "bg-cyan-400/[0.12] text-cyan-200 shadow-[inset_0_0_0_1px_rgba(103,232,249,.17)]" : "text-slate-600"}`}>{item === "single" ? "Singles" : "Sealed products"}</button>)}</div>
         <div className="mt-4 flex flex-wrap gap-2">{CARD_SHOW_GAMES.map((item) => <button key={item.id} type="button" onClick={() => setGame(item.id)} className={`rounded-full border px-3 py-2 text-[10px] font-bold transition ${game === item.id ? "border-cyan-300/30 bg-cyan-400/[0.11] text-cyan-100" : "border-white/[0.07] text-slate-500 hover:text-slate-300"}`}>{item.label}</button>)}</div>
         <form onSubmit={searchPrices} className="mt-4">
@@ -650,15 +658,15 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
         {warning ? <div className="mt-4 rounded-xl border border-amber-300/15 bg-amber-400/[0.06] px-4 py-3 text-xs text-amber-100">{warning}</div> : null}
         {!loading && !error && results.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-white/[0.08] px-5 py-7 text-center text-xs text-slate-600">Choose a game and submit a search. Searches only run when you press Search to protect your monthly allowance.</div> : null}
         {results.length ? <div className="mt-5 space-y-3">
-          <div className="flex items-center justify-between"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">Live pricing results</p>{remaining !== null ? <p className="text-[10px] text-slate-700">{remaining.toLocaleString()} API requests remaining</p> : null}</div>
+          <div className="flex items-center justify-between"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">Live pricing results</p><p className="text-[10px] text-slate-700">{results.length} {results.length === 1 ? "match" : "matches"}</p></div>
           {results.map((result) => <article key={result.id} className="overflow-hidden rounded-2xl border border-white/[0.07] bg-black/10">
             <div className="flex gap-4 border-b border-white/[0.055] p-4">
-              <div className="flex h-32 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.025] text-center text-[9px] font-bold text-slate-700 shadow-lg">{result.imageUrl ? <img src={result.imageUrl} alt={`${result.name} from ${result.setName}`} className="h-full w-full object-contain" loading="lazy" /> : <span className="px-2">Image not provided</span>}</div>
+              <button type="button" className="group flex h-28 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.025] text-center text-[9px] font-bold text-slate-700 shadow-lg">{result.imageUrl ? <img src={result.imageUrl} alt={`${result.name} from ${result.setName}`} className="h-full w-full object-contain transition duration-200 group-hover:scale-105" loading="lazy" /> : <span className="px-2">No image available</span>}</button>
               <div className="min-w-0 flex-1 self-center"><p className="text-[9px] font-semibold uppercase tracking-wider text-cyan-300">{result.game} · {result.sealed ? "Sealed product" : "Single"}</p><h3 className="mt-1 text-base font-semibold leading-6 text-white">{result.name}</h3><p className="mt-2 text-xs font-semibold text-slate-300">{result.setName}</p><div className="mt-2 flex flex-wrap gap-2">{result.setCode ? <span className="rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[10px] font-semibold text-slate-400">Set: {result.setCode}</span> : null}{result.number ? <span className="rounded-md border border-white/[0.07] px-2 py-1 text-[10px] text-slate-500">#{result.number}</span> : null}{result.rarity ? <span className="rounded-md border border-white/[0.07] px-2 py-1 text-[10px] text-slate-500">{result.rarity}</span> : null}</div></div>
             </div>
-            <div className="divide-y divide-white/[0.045]">{result.variants.slice(0, 5).map((variant) => <div key={variant.id} className={`grid gap-3 p-4 transition hover:bg-cyan-400/[0.04] lg:grid-cols-[minmax(150px,1fr)_auto] ${selectedVariantId === variant.id ? "bg-cyan-400/[0.07] ring-1 ring-inset ring-cyan-300/20" : ""}`}>
+            <div className="divide-y divide-white/[0.045]">{result.variants.slice(0, 5).map((variant) => <div key={variant.id} className={`grid gap-3 px-4 py-3 transition hover:bg-cyan-400/[0.04] lg:grid-cols-[minmax(150px,1fr)_auto] ${selectedVariantId === variant.id ? "bg-cyan-400/[0.07] ring-1 ring-inset ring-cyan-300/20" : ""}`}>
               <button type="button" onClick={() => chooseVariant(variant)} className="text-left"><span className="block text-xs font-semibold text-slate-300">{variant.printing} · {variant.condition}</span><span className="mt-1 block text-[9px] text-slate-600">{variant.language || "Language not listed"}{variant.updatedAt ? ` · Updated ${new Date(variant.updatedAt).toLocaleDateString()}` : ""}</span></button>
-              <div className="flex flex-col gap-3 sm:items-end"><div className="grid grid-cols-3 gap-3 text-left sm:grid-cols-5 sm:text-right"><PriceCell label="30d low" value={variant.low30d} /><PriceCell label="30d avg" value={variant.average30d} /><PriceCell label="30d high" value={variant.high30d} /><PriceCell label="Current" value={variant.current} accent /><PriceCell label={hasBuyingRate ? `Offer · ${numericRate}%` : "Offer"} value={offerFor(variant.current)} offer /></div><button type="button" onClick={() => addToPurchaseOrder(result, variant)} disabled={!hasBuyingRate || variant.current === null} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-400/[0.07] px-3 text-[10px] font-bold text-emerald-200 transition hover:bg-emerald-400/[0.12] disabled:cursor-not-allowed disabled:opacity-35"><Plus className="h-3.5 w-3.5" /> Add to purchase order</button></div>
+              <div className="flex flex-col gap-3 sm:items-end"><div className="grid grid-cols-3 gap-3 text-left sm:grid-cols-5 sm:text-right"><PriceCell label="30d low" value={variant.low30d} /><PriceCell label="30d avg" value={variant.average30d} /><PriceCell label="30d high" value={variant.high30d} /><PriceCell label="Current" value={variant.current} accent /><PriceCell label={hasBuyingRate ? `Offer · ${numericRate}%` : "Offer"} value={offerFor(variant.current)} offer /></div><button type="button" onClick={() => addToPurchaseOrder(result, variant)} disabled={!hasBuyingRate || variant.current === null} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-400/[0.07] px-3 text-[10px] font-bold text-emerald-200 transition hover:bg-emerald-400/[0.12] disabled:cursor-not-allowed disabled:opacity-35"><Plus className="h-3.5 w-3.5" /> Add to order</button></div>
             </div>)}</div>
           </article>)}
           <p className="text-[10px] leading-4 text-slate-700">Low, average, and high are the selected variant&apos;s 30-day observed prices. Current is the latest market value supplied by JustTCG. Offer is calculated from the saved buying percentage for {type === "single" ? "singles" : "sealed products"}.</p>
@@ -669,7 +677,7 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
         </div>
         <div className="mt-5 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[linear-gradient(135deg,rgba(34,211,238,.09),rgba(14,165,233,.025))] p-5"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">Maximum cash offer</p><p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-white">{offer === null ? "—" : money(offer)}</p><p className="mt-1 text-xs text-slate-500">{offer === null ? "Enter a market price and buying percentage." : `${money(Number(marketPrice))} market × ${rate}% target`}</p></div><div className="text-right"><p className="text-[10px] uppercase tracking-wider text-slate-600">Target gross margin</p><p className="mt-1 text-xl font-semibold text-emerald-300">{rate ? `${100 - Number(rate)}%` : "—"}</p></div></div></div>
       </section>
-      <div className="space-y-5">
+      <aside className="space-y-4 xl:sticky xl:top-5">
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6">
         <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-400/[0.07] text-violet-300"><Settings2 className="h-5 w-5" /></span><div><h3 className="text-sm font-semibold text-white">Buying rules</h3><p className="mt-1 text-[10px] text-slate-600">Applied automatically at this show</p></div></div>
         <div className="mt-5 space-y-3">
@@ -678,23 +686,22 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
         </div>
         <button onClick={onSave} className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] text-xs font-bold text-cyan-200 transition hover:bg-cyan-400/[0.12]"><Check className="h-4 w-4" /> Save show buying targets</button>
       </section>
-      <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">Purchase order</p><h3 className="mt-2 text-lg font-semibold text-white">Buying cart</h3><p className="mt-1 text-[10px] leading-4 text-slate-600">Finalize purchases into Inventory Put-Away for filing later.</p></div><span className="rounded-full border border-white/[0.07] bg-white/[0.025] px-2.5 py-1 text-[10px] font-semibold text-slate-400">{totalUnits ? `${totalUnits} ${totalUnits === 1 ? "item" : "items"}` : "Empty"}</span></div>
+      <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06131d] shadow-[0_24px_70px_rgba(0,0,0,.22)]">
+        <div className="border-b border-white/[0.06] bg-[linear-gradient(135deg,rgba(52,211,153,.08),transparent)] p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">Current purchase</p><h3 className="mt-2 text-lg font-semibold text-white">{sellerSource.trim() || "New seller order"}</h3><p className="mt-1 text-[10px] leading-4 text-slate-500">{event?.name ? `Buying at ${event.name}` : "General inventory purchase"} · Auto-saved</p></div><span className="rounded-full border border-white/[0.07] bg-black/15 px-2.5 py-1 text-[10px] font-semibold text-slate-300">{totalUnits ? `${totalUnits} ${totalUnits === 1 ? "item" : "items"}` : "Empty"}</span></div></div>
+        <div className="p-5">
         {!purchaseOrder.length ? <div className="mt-5 rounded-2xl border border-dashed border-white/[0.08] px-4 py-8 text-center"><ShoppingCart className="mx-auto h-5 w-5 text-slate-700" /><p className="mt-3 text-xs font-semibold text-slate-400">No cards added</p><p className="mt-1 text-[10px] leading-4 text-slate-700">Set a buying rate, then add the exact condition and printing from a search result.</p></div> : <div className="mt-5 space-y-2">{purchaseOrder.map((line) => <div key={line.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.018] p-3"><div className="flex gap-3">{line.imageUrl ? <img src={line.imageUrl} alt="" className="h-14 w-10 shrink-0 rounded-md object-contain" /> : <div className="h-14 w-10 shrink-0 rounded-md border border-white/[0.06] bg-black/10" />}<div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-slate-200">{line.name}</p><p className="mt-1 truncate text-[9px] text-slate-600">{line.setName} · {line.printing} · {line.condition}</p><div className="mt-2 flex items-center justify-between gap-2"><label className="flex items-center gap-2 text-[9px] text-slate-600">Qty<input type="number" min="1" step="1" value={line.quantity} onChange={(event) => updatePurchaseQuantity(line.id, Number(event.target.value))} className="h-8 w-14 rounded-lg border border-white/[0.07] bg-black/10 px-2 text-xs text-white outline-none" /></label><div className="text-right"><p className="text-[8px] uppercase tracking-wider text-slate-700">Offer</p><p className="text-xs font-semibold text-emerald-300">{money(line.recommendedUnitOffer * line.quantity)}</p></div><button type="button" onClick={() => setPurchaseOrder((current) => current.filter((item) => item.id !== line.id))} aria-label={`Remove ${line.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] text-slate-600 hover:text-rose-300"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div></div>)}</div>}
-        {purchaseOrder.length ? <><div className="mt-5 grid grid-cols-2 gap-2"><PurchaseMetric label="Average market" value={averageMarketValue} /><PurchaseMetric label="Total market" value={totalMarketValue} /><PurchaseMetric label="Recommended offer" value={totalRecommendedOffer} accent /><PurchaseMetric label="Potential spread" value={totalMarketValue - totalRecommendedOffer} /></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"><PurchaseField label="Actual amount paid" type="number" value={actualPaid} onChange={setActualPaid} placeholder="Enter total paid" /><PurchaseField label="Purchase date" type="date" value={purchaseDate} onChange={setPurchaseDate} /><PurchaseField label="Seller / source" value={sellerSource} onChange={setSellerSource} placeholder="Name, booth, store, or event" /><label className="text-[9px] font-bold uppercase tracking-wider text-slate-600 sm:col-span-2 xl:col-span-1 2xl:col-span-2">Notes<textarea value={purchaseNotes} onChange={(event) => setPurchaseNotes(event.target.value)} placeholder="Optional purchase details" rows={3} className="mt-2 w-full resize-none rounded-xl border border-white/[0.08] bg-black/10 px-3 py-2.5 text-xs font-normal normal-case tracking-normal text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30" /></label></div><button type="button" onClick={finalizePurchase} disabled={finalizing} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-emerald-300 to-emerald-500 text-xs font-bold text-[#00130c] disabled:opacity-50"><PackageSearch className="h-4 w-4" />{finalizing ? "Finalizing…" : "Finalize purchase to inventory"}</button></> : null}
+        {purchaseOrder.length ? <><div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/10 p-4"><div className="flex items-end justify-between gap-3"><div><p className="text-[8px] font-bold uppercase tracking-wider text-slate-600">Recommended offer</p><p className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-emerald-300">{money(totalRecommendedOffer)}</p></div><div className="text-right text-[10px] leading-5 text-slate-500"><p>{money(totalMarketValue)} market value</p><p>{money(totalMarketValue - totalRecommendedOffer)} potential spread</p><p>{money(averageMarketValue)} average per item</p></div></div></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"><PurchaseField label="Actual amount paid" type="number" value={actualPaid} onChange={setActualPaid} placeholder="Enter total paid" /><PurchaseField label="Purchase date" type="date" value={purchaseDate} onChange={setPurchaseDate} /><PurchaseField label="Seller / source" value={sellerSource} onChange={setSellerSource} placeholder="Seller name or booth" /><label className="text-[9px] font-bold uppercase tracking-wider text-slate-600 sm:col-span-2 xl:col-span-1 2xl:col-span-2">Notes<textarea value={purchaseNotes} onChange={(event) => setPurchaseNotes(event.target.value)} placeholder="Optional purchase details" rows={2} className="mt-2 w-full resize-none rounded-xl border border-white/[0.08] bg-black/10 px-3 py-2.5 text-xs font-normal normal-case tracking-normal text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30" /></label></div><button type="button" onClick={finalizePurchase} disabled={finalizing} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-emerald-300 to-emerald-500 text-xs font-bold text-[#00130c] shadow-[0_12px_30px_rgba(16,185,129,.15)] transition hover:-translate-y-0.5 disabled:opacity-50"><ClipboardList className="h-4 w-4" />{finalizing ? "Completing purchase…" : "Complete purchase & send to put-away"}</button></> : null}
         {purchaseMessage ? <p className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-[10px] leading-4 text-slate-400">{purchaseMessage}</p> : null}
+        </div>
       </section>
-      </div>
+      </aside>
+    </div>
     </div>
   );
 }
 
 function BuyingRateField({ label, value, onChange, active, onActivate }: { label: string; value: string; onChange: (value: string) => void; active: boolean; onActivate: () => void }) {
   return <label className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 transition ${active ? "border-cyan-300/20 bg-cyan-400/[0.045]" : "border-white/[0.055] bg-white/[0.018]"}`}><span className="text-xs text-slate-400">{label}</span><span className="flex h-9 w-24 items-center rounded-lg border border-white/[0.08] bg-black/15 px-3" onClick={onActivate}><input type="number" min="1" max="100" value={value} onFocus={onActivate} onChange={(event) => onChange(event.target.value)} placeholder="Set" aria-label={`${label} buying percentage`} className="min-w-0 flex-1 bg-transparent text-right text-sm font-semibold text-white outline-none placeholder:text-slate-700" /><span className="ml-1 text-xs text-slate-500">%</span></span></label>;
-}
-
-function PurchaseMetric({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
-  return <div className="rounded-xl border border-white/[0.055] bg-black/10 p-3"><p className="text-[8px] font-bold uppercase tracking-wider text-slate-700">{label}</p><p className={`mt-1 text-sm font-semibold ${accent ? "text-emerald-300" : "text-white"}`}>{money(value)}</p></div>;
 }
 
 function PurchaseField({ label, value, onChange, type = "text", placeholder }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {
