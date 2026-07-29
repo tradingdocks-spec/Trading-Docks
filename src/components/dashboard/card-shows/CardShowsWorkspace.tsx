@@ -194,6 +194,17 @@ export function CardShowsWorkspace() {
     notify("Card show added to your calendar");
   }
 
+  function deleteEvent(eventId: string) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) return;
+    if (!window.confirm(`Delete "${event.name}"? This cannot be undone.`)) return;
+    setEvents((current) => current.filter((item) => item.id !== eventId));
+    if (selectedEventId === eventId) {
+      setSelectedEventId(events.find((item) => item.id !== eventId)?.id ?? "");
+    }
+    notify("Card show deleted");
+  }
+
   function recordSale() {
     if (!saleItem.trim() || !Number(saleAmount)) return;
     setSales((current) => [
@@ -254,9 +265,9 @@ export function CardShowsWorkspace() {
 
         <main className="mt-5">
           {tab === "overview" ? (
-            <Overview event={selectedEvent} events={events} salesTotal={salesTotal} inventoryValue={inventoryValue} unitsSold={unitsSold} onChooseEvent={setSelectedEventId} onNavigate={setTab} onAdd={() => setShowEventForm(true)} />
+            <Overview event={selectedEvent} events={events} salesTotal={salesTotal} inventoryValue={inventoryValue} unitsSold={unitsSold} onChooseEvent={setSelectedEventId} onDeleteEvent={deleteEvent} onNavigate={setTab} onAdd={() => setShowEventForm(true)} />
           ) : null}
-          {tab === "calendar" ? <CalendarPanel events={events} onAdd={() => setShowEventForm(true)} /> : null}
+          {tab === "calendar" ? <CalendarPanel events={events} onAdd={() => setShowEventForm(true)} onDeleteEvent={deleteEvent} /> : null}
           {tab === "lookup" ? (
             <LookupPanel
               query={lookupQuery}
@@ -271,6 +282,8 @@ export function CardShowsWorkspace() {
               setRate={lookupType === "single" ? setSingleRate : setSealedRate}
               singleRate={singleRate}
               sealedRate={sealedRate}
+              setSingleRate={setSingleRate}
+              setSealedRate={setSealedRate}
               offer={offer}
               onSave={() => notify("Buying target saved")}
             />
@@ -293,7 +306,7 @@ export function CardShowsWorkspace() {
   );
 }
 
-function Overview({ event, events, salesTotal, inventoryValue, unitsSold, onChooseEvent, onNavigate, onAdd }: { event?: EventRecord; events: EventRecord[]; salesTotal: number; inventoryValue: number; unitsSold: number; onChooseEvent: (id: string) => void; onNavigate: (tab: Tab) => void; onAdd: () => void }) {
+function Overview({ event, events, salesTotal, inventoryValue, unitsSold, onChooseEvent, onDeleteEvent, onNavigate, onAdd }: { event?: EventRecord; events: EventRecord[]; salesTotal: number; inventoryValue: number; unitsSold: number; onChooseEvent: (id: string) => void; onDeleteEvent: (id: string) => void; onNavigate: (tab: Tab) => void; onAdd: () => void }) {
   const metrics = [
     { label: "Show inventory", value: inventoryValue ? money(inventoryValue) : "—", detail: inventoryValue ? "Inventory assigned by you" : "No inventory assigned", icon: Boxes },
     { label: "Buying budget", value: event?.budget ? money(event.budget) : "—", detail: event ? "Event target allocation" : "Add a show to set a budget", icon: WalletCards },
@@ -336,11 +349,14 @@ function Overview({ event, events, salesTotal, inventoryValue, unitsSold, onChoo
           <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600">Schedule</p><h2 className="mt-2 text-lg font-semibold text-white">Upcoming shows</h2></div><CalendarDays className="h-5 w-5 text-cyan-300" /></div>
           <div className="mt-4 space-y-2">
             {events.map((item) => (
-              <button key={item.id} onClick={() => onChooseEvent(item.id)} className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${event?.id === item.id ? "border-cyan-300/20 bg-cyan-400/[0.06]" : "border-white/[0.05] bg-white/[0.015] hover:border-white/[0.1]"}`}>
+              <div key={item.id} className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${event?.id === item.id ? "border-cyan-300/20 bg-cyan-400/[0.06]" : "border-white/[0.05] bg-white/[0.015] hover:border-white/[0.1]"}`}>
+                <button type="button" onClick={() => onChooseEvent(item.id)} className="contents">
                 <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-white/[0.07] bg-black/10"><strong className="text-sm text-white">{new Date(`${item.startDate}T12:00:00`).getDate()}</strong><span className="text-[8px] font-bold uppercase tracking-wider text-cyan-300">{new Date(`${item.startDate}T12:00:00`).toLocaleString("en-US", { month: "short" })}</span></span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-200">{item.name}</span><span className="mt-1 block truncate text-[10px] text-slate-600">{item.city} · {item.booth}</span></span>
                 <ChevronRight className="h-4 w-4 text-slate-700" />
-              </button>
+                </button>
+                <button type="button" onClick={() => onDeleteEvent(item.id)} aria-label={`Delete ${item.name}`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-300/10 text-slate-600 transition hover:border-rose-300/25 hover:bg-rose-400/[0.07] hover:text-rose-300"><Trash2 className="h-4 w-4" /></button>
+              </div>
             ))}
           </div>
         </section>
@@ -353,7 +369,7 @@ function Info({ icon: Icon, label, value }: { icon: typeof CalendarDays; label: 
   return <div className="rounded-2xl border border-white/[0.055] bg-white/[0.018] p-4"><Icon className="h-4 w-4 text-cyan-300" /><p className="mt-3 text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">{label}</p><p className="mt-1.5 truncate text-xs font-semibold text-slate-300">{value}</p></div>;
 }
 
-function CalendarPanel({ events, onAdd }: { events: EventRecord[]; onAdd: () => void }) {
+function CalendarPanel({ events, onAdd, onDeleteEvent }: { events: EventRecord[]; onAdd: () => void; onDeleteEvent: (id: string) => void }) {
   const now = new Date();
   const [cursor, setCursor] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const year = cursor.getFullYear();
@@ -372,14 +388,14 @@ function CalendarPanel({ events, onAdd }: { events: EventRecord[]; onAdd: () => 
             const eventDate = new Date(`${item.startDate}T12:00:00`);
             return eventDate.getFullYear() === year && eventDate.getMonth() === month && eventDate.getDate() === day;
           }) : undefined;
-          return <div key={index} className={`min-h-24 border-b border-r border-white/[0.045] p-2 sm:min-h-28 ${!inMonth ? "bg-black/10 text-slate-800" : "text-slate-500"}`}><span className="text-[10px] font-semibold">{inMonth ? day : ""}</span>{event ? <div className="mt-2 rounded-lg border border-cyan-300/20 bg-cyan-400/[0.08] p-2 text-[9px] font-semibold leading-4 text-cyan-100"><span className="hidden sm:inline">{event.name}</span><span className="sm:hidden">Show</span></div> : null}</div>;
+          return <div key={index} className={`min-h-24 border-b border-r border-white/[0.045] p-2 sm:min-h-28 ${!inMonth ? "bg-black/10 text-slate-800" : "text-slate-500"}`}><span className="text-[10px] font-semibold">{inMonth ? day : ""}</span>{event ? <div className="mt-2 rounded-lg border border-cyan-300/20 bg-cyan-400/[0.08] p-2 text-[9px] font-semibold leading-4 text-cyan-100"><div className="flex items-start gap-1"><span className="min-w-0 flex-1"><span className="hidden sm:inline">{event.name}</span><span className="sm:hidden">Show</span></span><button type="button" onClick={() => onDeleteEvent(event.id)} aria-label={`Delete ${event.name}`} className="text-cyan-200/45 transition hover:text-rose-300"><X className="h-3 w-3" /></button></div></div> : null}</div>;
         })}
       </div>
     </section>
   );
 }
 
-function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPrice, setMarketPrice, rate, setRate, singleRate, sealedRate, offer, onSave }: { query: string; setQuery: (v: string) => void; game: CardShowGameId; setGame: (v: CardShowGameId) => void; type: "single" | "sealed"; setType: (v: "single" | "sealed") => void; marketPrice: string; setMarketPrice: (v: string) => void; rate: string; setRate: (v: string) => void; singleRate: string; sealedRate: string; offer: number | null; onSave: () => void }) {
+function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPrice, setMarketPrice, rate, setRate, singleRate, sealedRate, setSingleRate, setSealedRate, offer, onSave }: { query: string; setQuery: (v: string) => void; game: CardShowGameId; setGame: (v: CardShowGameId) => void; type: "single" | "sealed"; setType: (v: "single" | "sealed") => void; marketPrice: string; setMarketPrice: (v: string) => void; rate: string; setRate: (v: string) => void; singleRate: string; sealedRate: string; setSingleRate: (v: string) => void; setSealedRate: (v: string) => void; offer: number | null; onSave: () => void }) {
   const [results, setResults] = useState<PriceResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -394,8 +410,51 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
   const [purchaseNotes, setPurchaseNotes] = useState("");
   const [finalizing, setFinalizing] = useState(false);
   const [purchaseMessage, setPurchaseMessage] = useState("");
+  const [purchaseOrderLoaded, setPurchaseOrderLoaded] = useState(false);
   const numericRate = Number(rate);
   const hasBuyingRate = Number.isFinite(numericRate) && numericRate > 0 && numericRate <= 100;
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("td-card-show-buying-cart-v1");
+      if (saved) {
+        const parsed = JSON.parse(saved) as {
+          lines?: PurchaseOrderLine[];
+          actualPaid?: string;
+          purchaseDate?: string;
+          sellerSource?: string;
+          purchaseNotes?: string;
+        };
+        if (Array.isArray(parsed.lines)) setPurchaseOrder(parsed.lines);
+        setActualPaid(parsed.actualPaid ?? "");
+        setPurchaseDate(parsed.purchaseDate ?? "");
+        setSellerSource(parsed.sellerSource ?? "");
+        setPurchaseNotes(parsed.purchaseNotes ?? "");
+      }
+    } catch {}
+    setPurchaseOrderLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!purchaseOrderLoaded) return;
+    window.localStorage.setItem(
+      "td-card-show-buying-cart-v1",
+      JSON.stringify({
+        lines: purchaseOrder,
+        actualPaid,
+        purchaseDate,
+        sellerSource,
+        purchaseNotes,
+      }),
+    );
+  }, [
+    purchaseOrderLoaded,
+    purchaseOrder,
+    actualPaid,
+    purchaseDate,
+    sellerSource,
+    purchaseNotes,
+  ]);
 
   function offerFor(price: number | null) {
     return price !== null && hasBuyingRate ? price * (numericRate / 100) : null;
@@ -560,6 +619,7 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
         items: inventoryItems,
         movements,
       });
+      window.localStorage.removeItem("td-card-show-buying-cart-v1");
       setPurchaseOrder([]);
       setActualPaid("");
       setPurchaseDate("");
@@ -612,7 +672,10 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
       <div className="space-y-5">
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6">
         <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-400/[0.07] text-violet-300"><Settings2 className="h-5 w-5" /></span><div><h3 className="text-sm font-semibold text-white">Buying rules</h3><p className="mt-1 text-[10px] text-slate-600">Applied automatically at this show</p></div></div>
-        <div className="mt-5 space-y-3">{[{ label: "Singles", value: singleRate }, { label: "Sealed products", value: sealedRate }].map((rule) => <div key={rule.label} className="flex items-center justify-between rounded-xl border border-white/[0.055] bg-white/[0.018] px-4 py-3"><span className="text-xs text-slate-400">{rule.label}</span><strong className="text-sm text-white">{rule.value ? `${rule.value}%` : "Not set"}</strong></div>)}</div>
+        <div className="mt-5 space-y-3">
+          <BuyingRateField label="Singles" value={singleRate} onChange={setSingleRate} active={type === "single"} onActivate={() => setType("single")} />
+          <BuyingRateField label="Sealed products" value={sealedRate} onChange={setSealedRate} active={type === "sealed"} onActivate={() => setType("sealed")} />
+        </div>
         <button onClick={onSave} className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] text-xs font-bold text-cyan-200 transition hover:bg-cyan-400/[0.12]"><Check className="h-4 w-4" /> Save show buying targets</button>
       </section>
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6">
@@ -624,6 +687,10 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
       </div>
     </div>
   );
+}
+
+function BuyingRateField({ label, value, onChange, active, onActivate }: { label: string; value: string; onChange: (value: string) => void; active: boolean; onActivate: () => void }) {
+  return <label className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 transition ${active ? "border-cyan-300/20 bg-cyan-400/[0.045]" : "border-white/[0.055] bg-white/[0.018]"}`}><span className="text-xs text-slate-400">{label}</span><span className="flex h-9 w-24 items-center rounded-lg border border-white/[0.08] bg-black/15 px-3" onClick={onActivate}><input type="number" min="1" max="100" value={value} onFocus={onActivate} onChange={(event) => onChange(event.target.value)} placeholder="Set" aria-label={`${label} buying percentage`} className="min-w-0 flex-1 bg-transparent text-right text-sm font-semibold text-white outline-none placeholder:text-slate-700" /><span className="ml-1 text-xs text-slate-500">%</span></span></label>;
 }
 
 function PurchaseMetric({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
