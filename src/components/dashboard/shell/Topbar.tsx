@@ -87,15 +87,15 @@ export function Topbar({
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-30 h-[72px] border-b border-white/[0.055] bg-[#041019]/84 backdrop-blur-2xl transition-[padding-left] duration-300",
+        "fixed inset-x-0 top-0 z-30 h-16 border-b border-white/[0.055] bg-[#041019]/96 transition-[padding-left] duration-300 md:h-[72px] md:bg-[#041019]/84 md:backdrop-blur-2xl",
         collapsed ? "xl:pl-[88px]" : "xl:pl-[258px]",
       ].join(" ")}
     >
-      <div className="flex h-full items-center gap-3 px-4 sm:px-6">
+      <div className="flex h-full items-center gap-2 px-3 sm:gap-3 sm:px-6">
         <button
           type="button"
           onClick={onOpenMobile}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500 xl:hidden"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-400 xl:hidden"
         >
           <Menu className="h-4 w-4" />
         </button>

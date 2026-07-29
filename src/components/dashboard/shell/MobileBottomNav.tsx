@@ -32,7 +32,7 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label="Mobile dashboard navigation"
-      className="fixed inset-x-0 bottom-0 z-40 touch-manipulation border-t border-white/[0.08] bg-[#03101a]/[0.98] px-[max(6px,env(safe-area-inset-left))] pb-[max(7px,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-12px_36px_rgba(0,0,0,0.28)] supports-[backdrop-filter]:bg-[#03101a]/95 supports-[backdrop-filter]:backdrop-blur-lg md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 touch-manipulation border-t border-white/[0.08] bg-[#03101a]/[0.99] px-[max(5px,env(safe-area-inset-left))] pb-[max(6px,env(safe-area-inset-bottom))] pt-1 shadow-[0_-10px_30px_rgba(0,0,0,0.3)] md:hidden"
     >
       <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
         {ITEMS.map(({ href, label, icon: Icon, exact }) => {
@@ -44,7 +44,7 @@ export function MobileBottomNav() {
               prefetch
               aria-current={active ? "page" : undefined}
               className={[
-                "relative flex min-h-[52px] select-none flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-semibold outline-none touch-manipulation transition-[color,background-color,transform] duration-100 active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-cyan-300/70",
+                "relative flex min-h-[50px] select-none flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-semibold outline-none touch-manipulation transition-[color,background-color,transform] duration-100 active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-cyan-300/70",
                 active
                   ? "bg-cyan-400/[0.12] text-cyan-100"
                   : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",

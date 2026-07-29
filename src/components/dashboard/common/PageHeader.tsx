@@ -19,23 +19,23 @@ export function PageHeader({
   onAction?: () => void;
 }) {
   return (
-    <header className={`${styles.glassPanel} rounded-[28px] p-5 sm:p-6`}>
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+    <header className={`${styles.glassPanel} rounded-[28px] p-4 sm:p-6`}>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.13] bg-cyan-400/[0.04] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.17em] text-cyan-200">
             <Icon className="h-3.5 w-3.5 text-cyan-300" />
             {eyebrow}
           </div>
 
-          <h1 className="mt-4 text-3xl font-semibold tracking-[-0.045em] text-white sm:text-4xl">
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.045em] text-white sm:mt-4 sm:text-4xl">
             {title}
           </h1>
 
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:mt-3 sm:leading-7">
             {description}
           </p>
 
-          <div className="mt-4 flex items-center gap-4 text-[10px] text-slate-600">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-slate-600 sm:mt-4">
             <span className="flex items-center gap-2">
               <CircleDot className="h-3 w-3 text-emerald-300" />
               Live workspace
@@ -58,4 +58,3 @@ export function PageHeader({
     </header>
   );
 }
-

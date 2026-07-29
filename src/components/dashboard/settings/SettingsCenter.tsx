@@ -192,8 +192,8 @@ export function SettingsCenter({
   const activeItem = NAV_ITEMS.find((item) => item.id === active) ?? NAV_ITEMS[0];
 
   return (
-    <div className="mt-7 grid min-h-[760px] overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#06121a]/95 shadow-[0_28px_90px_rgba(0,0,0,0.28)] xl:grid-cols-[286px_minmax(0,1fr)]">
-      <aside className="border-b border-white/[0.07] bg-[#081822]/90 p-4 xl:border-b-0 xl:border-r">
+    <div className="mt-4 grid overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#06121a]/95 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:mt-7 xl:min-h-[760px] xl:grid-cols-[286px_minmax(0,1fr)]">
+      <aside className="border-b border-white/[0.07] bg-[#081822]/90 p-3 sm:p-4 xl:border-b-0 xl:border-r">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
           <input
@@ -203,7 +203,7 @@ export function SettingsCenter({
             className="h-11 w-full rounded-xl border border-white/[0.07] bg-black/15 pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/30"
           />
         </div>
-        <nav className="mt-4 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1">
+        <nav className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 sm:mt-4 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-4 xl:grid-cols-1">
           {visibleNav.map((item) => {
             const Icon = item.icon;
             const locked = item.storeOnly && plan !== "business";
@@ -212,7 +212,7 @@ export function SettingsCenter({
                 key={item.id}
                 type="button"
                 onClick={() => setActive(item.id)}
-                className={`group flex min-h-14 items-center gap-3 rounded-xl px-3 text-left transition ${
+                className={`group flex min-h-14 w-[170px] shrink-0 snap-start items-center gap-2.5 rounded-xl px-3 text-left transition sm:w-auto ${
                   active === item.id
                     ? "border border-cyan-300/[0.16] bg-cyan-300/[0.08] text-white"
                     : "border border-transparent text-slate-400 hover:bg-white/[0.035] hover:text-slate-200"
@@ -221,12 +221,12 @@ export function SettingsCenter({
                 <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active === item.id ? "bg-cyan-300/10 text-cyan-300" : "bg-white/[0.035] text-slate-500"}`}>
                   <Icon className="h-4 w-4" />
                 </span>
-                <span className="hidden min-w-0 flex-1 sm:block">
+                <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2 text-xs font-semibold">
                     {item.label}
                     {locked ? <LockKeyhole className="h-3 w-3 text-amber-300" /> : null}
                   </span>
-                  <span className="mt-0.5 block truncate text-[10px] text-slate-600">{item.description}</span>
+                  <span className="mt-0.5 block truncate text-[9px] text-slate-600 sm:text-[10px]">{item.description}</span>
                 </span>
                 <ChevronRight className="hidden h-3.5 w-3.5 text-slate-700 xl:block" />
               </button>
@@ -235,7 +235,7 @@ export function SettingsCenter({
         </nav>
       </aside>
 
-      <main className="min-w-0 p-5 sm:p-7 lg:p-9">
+      <main className="min-w-0 p-4 sm:p-7 lg:p-9">
         <div className="flex flex-col gap-4 border-b border-white/[0.07] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Settings / {activeItem.label}</div>
@@ -256,7 +256,7 @@ export function SettingsCenter({
         </div>
         {error ? <div className="mt-5 rounded-xl border border-rose-300/20 bg-rose-400/[0.07] px-4 py-3 text-xs text-rose-200">{error}</div> : null}
 
-        <div className="mt-7">
+        <div className="mt-5 sm:mt-7">
           {active === "overview" && <Overview planName={planName} subscription={subscription} onOpen={setActive} />}
           {active === "account" && <AccountSettings settings={settings} email={email} update={update} />}
           {active === "workspace" && <WorkspaceSettings settings={settings} update={update} />}

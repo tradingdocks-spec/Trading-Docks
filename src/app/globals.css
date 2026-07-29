@@ -154,16 +154,21 @@ a {
 
   .dashboard-responsive {
     font-size: 16px;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .dashboard-responsive :is(h1, [data-page-title]) {
-    font-size: clamp(1.65rem, 8vw, 2.15rem) !important;
+    font-size: clamp(1.75rem, 8vw, 2.1rem) !important;
     line-height: 1.08 !important;
     overflow-wrap: anywhere;
   }
 
   .dashboard-responsive h2 {
     overflow-wrap: anywhere;
+  }
+
+  .dashboard-responsive p {
+    text-wrap: pretty;
   }
 
   .dashboard-responsive :is(main, section, article, form, fieldset) {
