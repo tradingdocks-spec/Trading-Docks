@@ -19,6 +19,15 @@ export async function GET(request: Request) {
   destination.searchParams.set("connector", "ebay");
 
   try {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      destination.searchParams.set("error", "server_service_key");
+      return NextResponse.redirect(destination);
+    }
+    if (!process.env.MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY) {
+      destination.searchParams.set("error", "server_encryption_key");
+      return NextResponse.redirect(destination);
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -74,7 +83,8 @@ export async function GET(request: Request) {
     authorization.searchParams.set("scope", SCOPES.join(" "));
     authorization.searchParams.set("state", state);
     return NextResponse.redirect(authorization);
-  } catch {
+  } catch (error) {
+    console.error("Could not start eBay authorization", error);
     destination.searchParams.set("error", "authorization_setup");
     return NextResponse.redirect(destination);
   }

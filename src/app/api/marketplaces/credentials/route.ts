@@ -114,6 +114,31 @@ export async function POST(request: Request) {
   }
 }
 
+export async function GET(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+
+  const marketplaceId = new URL(request.url).searchParams.get("marketplaceId");
+  if (!marketplaceId || !ALLOWED_MARKETPLACES.has(marketplaceId)) {
+    return NextResponse.json({ error: "Invalid marketplace." }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from("marketplace_credentials")
+    .select("credential_labels,updated_at")
+    .eq("user_id", user.id)
+    .eq("marketplace_id", marketplaceId)
+    .maybeSingle();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({
+    saved: Boolean(data),
+    masked: data?.credential_labels ?? {},
+    updatedAt: data?.updated_at ?? null,
+  });
+}
+
 export async function DELETE(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

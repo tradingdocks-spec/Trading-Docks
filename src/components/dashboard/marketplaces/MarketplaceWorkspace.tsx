@@ -63,6 +63,11 @@ type CsvPreview = {
   headers: string[];
   kind: "inventory" | "orders" | "unknown";
 };
+type SavedCredentials = {
+  saved: boolean;
+  masked: Record<string, string>;
+  updatedAt: string | null;
+};
 
 const METHOD_LABELS: Record<ConnectionMethod, string> = {
   api: "Official API",
@@ -302,6 +307,8 @@ export function MarketplaceWorkspace() {
   const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null);
   const [activeView, setActiveView] = useState<"connections" | "semi-sync" | "email">("connections");
   const [credentials, setCredentials] = useState<Record<string, string>>({});
+  const [savedCredentials, setSavedCredentials] = useState<Record<string, SavedCredentials>>({});
+  const [checkingCredentials, setCheckingCredentials] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -316,10 +323,13 @@ export function MarketplaceWorkspace() {
       credentials_incomplete: "Your saved eBay credentials are incomplete. Enter all four fields and save them again.",
       credentials_key_changed: "Your encryption key changed after these eBay credentials were saved. Enter and save the credentials again, then authorize eBay.",
       authorization_setup: "Trading Docks could not start eBay authorization. Confirm the server environment variables, then save your credentials again.",
+      server_service_key: "eBay authorization needs SUPABASE_SERVICE_ROLE_KEY in the deployed server environment. Add it in Vercel, redeploy, and try again.",
+      server_encryption_key: "eBay authorization needs MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY in the deployed server environment. Add it in Vercel, redeploy, then save the credentials again.",
       invalid_state: "The eBay authorization session expired or could not be verified. Start authorization again.",
       token_exchange: "eBay authorization returned, but the token could not be saved. Confirm the Production Client ID, Client Secret, and RuName.",
     };
     if (error && messages[error]) setNotice(messages[error]);
+    if (connector === "ebay") void loadCredentialStatus("ebay");
 
     void supabase
       .from("marketplace_connections")
@@ -348,6 +358,25 @@ export function MarketplaceWorkspace() {
     setMethod(existing?.connection_method ?? marketplace.recommended);
     setCredentials({});
     setNotice("");
+    if (marketplace.credentialFields?.length) void loadCredentialStatus(marketplace.id);
+  }
+
+  async function loadCredentialStatus(marketplaceId: string) {
+    setCheckingCredentials(true);
+    try {
+      const response = await fetch(
+        `/api/marketplaces/credentials?marketplaceId=${encodeURIComponent(marketplaceId)}`,
+        { cache: "no-store" },
+      );
+      const result = (await response.json().catch(() => null)) as
+        | (SavedCredentials & { error?: string })
+        | null;
+      if (response.ok && result) {
+        setSavedCredentials((current) => ({ ...current, [marketplaceId]: result }));
+      }
+    } finally {
+      setCheckingCredentials(false);
+    }
   }
 
   async function copyCallbackUrl() {
@@ -389,6 +418,14 @@ export function MarketplaceWorkspace() {
         },
       ]);
       setCredentials({});
+      setSavedCredentials((current) => ({
+        ...current,
+        [selected.id]: {
+          saved: true,
+          masked: (result as { masked?: Record<string, string> } | null)?.masked ?? {},
+          updatedAt: new Date().toISOString(),
+        },
+      }));
       setNotice(`${selected.name} credentials were encrypted and saved. Authorization is the next step.`);
     }
     setSaving(false);
@@ -637,7 +674,24 @@ export function MarketplaceWorkspace() {
                     </div>
                   ) : null}
                   {selected.credentialFields?.length ? (
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-3">
+                      {checkingCredentials ? (
+                        <div className="flex items-center gap-2 rounded-xl border border-white/[.07] bg-black/15 px-3 py-2.5 text-[10px] text-slate-500">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-300" />
+                          Checking saved credentials…
+                        </div>
+                      ) : savedCredentials[selected.id]?.saved ? (
+                        <div className="flex items-start gap-3 rounded-xl border border-emerald-300/15 bg-emerald-300/[.04] px-3 py-3">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                          <div>
+                            <p className="text-[11px] font-semibold text-emerald-100">Credentials saved</p>
+                            <p className="mt-1 text-[9px] leading-4 text-emerald-100/55">
+                              They remain encrypted on the server. Leave this form alone unless you need to replace them.
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
+                      <div className="grid gap-3 sm:grid-cols-2">
                       {selected.credentialFields.map((field) => (
                         <label key={field.key} className="block">
                           <span className="text-[10px] font-semibold text-slate-300">{field.label}</span>
@@ -645,18 +699,24 @@ export function MarketplaceWorkspace() {
                             type={field.secret ? "password" : "text"}
                             value={credentials[field.key] ?? ""}
                             onChange={(event) => setCredentials((current) => ({ ...current, [field.key]: event.target.value }))}
-                            placeholder={field.placeholder}
+                            placeholder={
+                              savedCredentials[selected.id]?.masked[field.key]
+                                ? `Saved ${savedCredentials[selected.id].masked[field.key]} · enter to replace`
+                                : field.placeholder
+                            }
                             autoComplete="off"
                             className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-black/20 px-3 text-xs text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30"
                           />
                           <span className="mt-1 block text-[9px] leading-4 text-slate-600">{field.help}</span>
                         </label>
                       ))}
+                      </div>
                     </div>
                   ) : (
                     <div className="flex gap-3 rounded-2xl border border-amber-300/12 bg-amber-300/[.03] p-4"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[11px] leading-5 text-amber-100/55">This marketplace does not currently publish a supported self-service API credential flow. Choose CSV, email, or guided manual tracking.</p></div>
                   )}
                   <div className="flex gap-2 rounded-xl border border-emerald-300/10 bg-emerald-300/[.025] p-3 text-[10px] leading-4 text-emerald-100/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Secrets are encrypted on the server with AES-256-GCM. The page receives only masked confirmation after saving.</div>
+                  <button type="button" disabled={saving || !databaseReady || !selected.credentialFields?.length} onClick={() => void saveCredentials()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{savedCredentials[selected.id]?.saved ? "Replace saved credentials" : "Encrypt & save credentials"}</button>
                   {selected.id === "ebay" && connections.some((item) => item.marketplace_id === "ebay" && item.settings?.credentials_saved) ? (
                     <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/[.07] text-xs font-bold text-emerald-100 hover:bg-emerald-300/[.12]">
                       <Link2 className="h-4 w-4" />Authorize eBay read-only access
@@ -664,7 +724,7 @@ export function MarketplaceWorkspace() {
                   ) : null}
                 </div>
               ) : null}
-              <button type="button" disabled={saving || !databaseReady || (method === "api" && !selected.credentialFields?.length)} onClick={() => void (method === "api" ? saveCredentials() : saveConnection())} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{method === "api" ? "Encrypt & save credentials" : "Save connection plan"}</button>
+              {method !== "api" ? <button type="button" disabled={saving || !databaseReady} onClick={() => void saveConnection()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save connection plan</button> : null}
             </div>
           </div>
         </div>
