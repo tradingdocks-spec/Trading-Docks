@@ -309,11 +309,13 @@ export function MarketplaceWorkspace() {
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [savedCredentials, setSavedCredentials] = useState<Record<string, SavedCredentials>>({});
   const [checkingCredentials, setCheckingCredentials] = useState(false);
+  const [editingCredentials, setEditingCredentials] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connector = params.get("connector");
     const error = params.get("error");
+    const authorization = params.get("authorization");
     if (connector === "ebay") {
       setSelected(marketplaces.find((marketplace) => marketplace.id === "ebay") ?? null);
       setMethod("api");
@@ -329,6 +331,9 @@ export function MarketplaceWorkspace() {
       token_exchange: "eBay authorization returned, but the token could not be saved. Confirm the Production Client ID, Client Secret, and RuName.",
     };
     if (error && messages[error]) setNotice(messages[error]);
+    if (connector === "ebay" && authorization === "connected") {
+      setNotice("eBay is connected. Your credentials and authorization will remain saved.");
+    }
     if (connector === "ebay") void loadCredentialStatus("ebay");
 
     void supabase
@@ -357,6 +362,7 @@ export function MarketplaceWorkspace() {
     setSelected(marketplace);
     setMethod(existing?.connection_method ?? marketplace.recommended);
     setCredentials({});
+    setEditingCredentials((current) => ({ ...current, [marketplace.id]: false }));
     setNotice("");
     if (marketplace.credentialFields?.length) void loadCredentialStatus(marketplace.id);
   }
@@ -418,6 +424,7 @@ export function MarketplaceWorkspace() {
         },
       ]);
       setCredentials({});
+      setEditingCredentials((current) => ({ ...current, [selected.id]: false }));
       setSavedCredentials((current) => ({
         ...current,
         [selected.id]: {
@@ -691,35 +698,43 @@ export function MarketplaceWorkspace() {
                           </div>
                         </div>
                       ) : null}
-                      <div className="grid gap-3 sm:grid-cols-2">
-                      {selected.credentialFields.map((field) => (
-                        <label key={field.key} className="block">
-                          <span className="text-[10px] font-semibold text-slate-300">{field.label}</span>
-                          <input
-                            type={field.secret ? "password" : "text"}
-                            value={credentials[field.key] ?? ""}
-                            onChange={(event) => setCredentials((current) => ({ ...current, [field.key]: event.target.value }))}
-                            placeholder={
-                              savedCredentials[selected.id]?.masked[field.key]
-                                ? `Saved ${savedCredentials[selected.id].masked[field.key]} · enter to replace`
-                                : field.placeholder
-                            }
-                            autoComplete="off"
-                            className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-black/20 px-3 text-xs text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30"
-                          />
-                          <span className="mt-1 block text-[9px] leading-4 text-slate-600">{field.help}</span>
-                        </label>
-                      ))}
-                      </div>
+                      {!savedCredentials[selected.id]?.saved || editingCredentials[selected.id] ? (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {selected.credentialFields.map((field) => (
+                            <label key={field.key} className="block">
+                              <span className="text-[10px] font-semibold text-slate-300">{field.label}</span>
+                              <input
+                                type={field.secret ? "password" : "text"}
+                                value={credentials[field.key] ?? ""}
+                                onChange={(event) => setCredentials((current) => ({ ...current, [field.key]: event.target.value }))}
+                                placeholder={
+                                  savedCredentials[selected.id]?.masked[field.key]
+                                    ? `Saved ${savedCredentials[selected.id].masked[field.key]} · enter replacement`
+                                    : field.placeholder
+                                }
+                                autoComplete="off"
+                                className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-black/20 px-3 text-xs text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30"
+                              />
+                              <span className="mt-1 block text-[9px] leading-4 text-slate-600">{field.help}</span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="flex gap-3 rounded-2xl border border-amber-300/12 bg-amber-300/[.03] p-4"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[11px] leading-5 text-amber-100/55">This marketplace does not currently publish a supported self-service API credential flow. Choose CSV, email, or guided manual tracking.</p></div>
                   )}
                   <div className="flex gap-2 rounded-xl border border-emerald-300/10 bg-emerald-300/[.025] p-3 text-[10px] leading-4 text-emerald-100/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Secrets are encrypted on the server with AES-256-GCM. The page receives only masked confirmation after saving.</div>
-                  <button type="button" disabled={saving || !databaseReady || !selected.credentialFields?.length} onClick={() => void saveCredentials()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{savedCredentials[selected.id]?.saved ? "Replace saved credentials" : "Encrypt & save credentials"}</button>
-                  {selected.id === "ebay" && connections.some((item) => item.marketplace_id === "ebay" && item.settings?.credentials_saved) ? (
+                  {savedCredentials[selected.id]?.saved && !editingCredentials[selected.id] ? (
+                    <button type="button" onClick={() => setEditingCredentials((current) => ({ ...current, [selected.id]: true }))} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/15 text-xs font-bold text-cyan-100 hover:bg-cyan-300/[.06]">
+                      <KeyRound className="h-4 w-4" />Replace saved credentials
+                    </button>
+                  ) : (
+                    <button type="button" disabled={saving || !databaseReady || !selected.credentialFields?.length} onClick={() => void saveCredentials()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{savedCredentials[selected.id]?.saved ? "Save replacement credentials" : "Encrypt & save credentials"}</button>
+                  )}
+                  {selected.id === "ebay" && savedCredentials.ebay?.saved ? (
                     <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/[.07] text-xs font-bold text-emerald-100 hover:bg-emerald-300/[.12]">
-                      <Link2 className="h-4 w-4" />Authorize eBay read-only access
+                      <Link2 className="h-4 w-4" />{connections.some((item) => item.marketplace_id === "ebay" && item.status === "ready") ? "Reconnect eBay account" : "Authorize eBay read-only access"}
                     </a>
                   ) : null}
                 </div>

@@ -92,7 +92,13 @@ export async function GET(
       connection_method: "api",
       status: "ready",
       sync_mode: "read_only",
-      settings: { authorized: true, environment: sandbox ? "sandbox" : "production" },
+      health: "healthy",
+      settings: {
+        credentials_saved: true,
+        authorized: true,
+        environment: sandbox ? "sandbox" : "production",
+        authorized_at: new Date().toISOString(),
+      },
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,marketplace_id" });
     destination.searchParams.set("authorization", "connected");
