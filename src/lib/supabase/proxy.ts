@@ -1,24 +1,37 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import type { CookieOptions } from "@supabase/ssr";
+import {
+  persistentAuthCookieOptions,
+  REMEMBER_ME_COOKIE,
+} from "@/lib/supabase/auth-cookie-policy";
+
+type PendingCookie = {
+  name: string;
+  value: string;
+  options: CookieOptions;
+};
 
 function redirectWithSessionCookies(
   url: URL,
-  sessionResponse: NextResponse,
+  pendingCookies: PendingCookie[],
 ) {
   const redirectResponse = NextResponse.redirect(url);
 
-  // getUser() may refresh or rotate Supabase's auth cookies. A redirect is a
-  // brand-new response, so those Set-Cookie headers do not follow it unless we
-  // copy them explicitly. Dropping them can make the current request appear
-  // authenticated while leaving the browser with an expired refresh token.
-  sessionResponse.cookies.getAll().forEach((cookie) => {
-    redirectResponse.cookies.set(cookie);
+  // Apply the original cookie options directly. Reading cookies back from a
+  // response can lose Max-Age/Expires metadata, turning a persistent session
+  // back into a browser-session cookie during a redirect.
+  pendingCookies.forEach(({ name, value, options }) => {
+    redirectResponse.cookies.set(name, value, options);
   });
 
   return redirectResponse;
 }
 
 export async function updateSession(request: NextRequest) {
+  const rememberMe =
+    request.cookies.get(REMEMBER_ME_COOKIE)?.value !== "false";
+  let pendingCookies: PendingCookie[] = [];
   let response = NextResponse.next({
     request,
   });
@@ -27,12 +40,19 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      cookieOptions: persistentAuthCookieOptions({}, rememberMe),
       cookies: {
         getAll() {
           return request.cookies.getAll();
         },
 
         setAll(cookiesToSet) {
+          pendingCookies = cookiesToSet.map(({ name, value, options }) => ({
+            name,
+            value,
+            options: persistentAuthCookieOptions(options, rememberMe),
+          }));
+
           cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value);
           });
@@ -41,7 +61,7 @@ export async function updateSession(request: NextRequest) {
             request,
           });
 
-          cookiesToSet.forEach(({ name, value, options }) => {
+          pendingCookies.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
         },
@@ -66,14 +86,14 @@ export async function updateSession(request: NextRequest) {
       "next",
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
     );
-    return redirectWithSessionCookies(url, response);
+    return redirectWithSessionCookies(url, pendingCookies);
   }
 
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";
-    return redirectWithSessionCookies(url, response);
+    return redirectWithSessionCookies(url, pendingCookies);
   }
 
   return response;

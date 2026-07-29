@@ -6,6 +6,17 @@ export const REMEMBER_ME_COOKIE = "trading-docks-remember-me";
 // the session immediately.
 export const REMEMBER_ME_MAX_AGE = 60 * 60 * 24 * 365;
 
+// Trading Docks is a business workspace, so authenticated sessions are
+// persistent by default. Supabase access tokens still expire normally and are
+// renewed with the refresh token; this only controls how long the browser may
+// retain that refresh session between launches.
+export const DEFAULT_AUTH_COOKIE_OPTIONS: CookieOptions = {
+  maxAge: REMEMBER_ME_MAX_AGE,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+};
+
 function isCookieRemoval(options: CookieOptions): boolean {
   if (typeof options.maxAge === "number" && options.maxAge <= 0) {
     return true;
