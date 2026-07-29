@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { login, loginWithGoogle } from "@/app/actions/auth";
+import { RememberedEmailField } from "@/components/auth/RememberedEmailField";
 
 type SignInPageProps = {
   searchParams: Promise<{
@@ -1213,24 +1214,7 @@ export default async function SignInPage({
 
                     <form action={login} className="space-y-3">
                       <input name="next" type="hidden" value={next ?? ""} />
-                      <div>
-                        <label
-                          htmlFor="email"
-                          className="mb-1 block text-[10px] font-medium text-slate-200"
-                        >
-                          Email address
-                        </label>
-
-                        <input
-                          id="email"
-                          name="email"
-                          type="email"
-                          autoComplete="email"
-                          required
-                          placeholder="you@example.com"
-                          className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] px-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-cyan-400/50 focus:bg-cyan-400/[0.035] focus:ring-4 focus:ring-cyan-400/10"
-                        />
-                      </div>
+                      <RememberedEmailField />
 
                       <div>
                         <div className="mb-1 flex items-center justify-between">
@@ -1258,11 +1242,6 @@ export default async function SignInPage({
                           placeholder="Enter your password"
                           className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] px-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-cyan-400/50 focus:bg-cyan-400/[0.035] focus:ring-4 focus:ring-cyan-400/10"
                         />
-                      </div>
-
-                      <div className="flex items-center gap-2.5 text-[10px] text-slate-400">
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-300/[0.08] text-[8px] text-cyan-200">✓</span>
-                        <span>You’ll stay signed in on this device until you log out.</span>
                       </div>
 
                       <button

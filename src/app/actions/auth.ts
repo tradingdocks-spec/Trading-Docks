@@ -78,7 +78,7 @@ export async function loginWithGoogle(formData: FormData) {
 export async function login(formData: FormData) {
   const email = getString(formData, "email");
   const password = getString(formData, "password");
-  const rememberMe = true;
+  const rememberMe = formData.get("rememberMe") === "on";
 
   if (!email || !password) {
     redirectWithError(

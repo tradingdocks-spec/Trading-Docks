@@ -14,6 +14,21 @@ const ITEMS = [
 const NAV_ITEM_CLASS =
   "relative flex min-h-[52px] min-w-0 select-none touch-manipulation flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-center text-[10px] font-semibold leading-none outline-none transition-[color,background-color,transform] duration-100 active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-cyan-300/70";
 
+function NavIcon({
+  icon: Icon,
+}: {
+  icon: typeof LayoutDashboard;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-5 w-5 shrink-0 items-center justify-center"
+    >
+      <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.9]" />
+    </span>
+  );
+}
+
 function NavigationStatus() {
   const { pending } = useLinkStatus();
 
@@ -58,7 +73,7 @@ export function MobileBottomNav({
                   : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",
               ].join(" ")}
             >
-              <Icon className="h-[18px] w-[18px]" />
+              <NavIcon icon={Icon} />
               <span className="w-full truncate">{label}</span>
               <NavigationStatus />
             </Link>
@@ -76,7 +91,7 @@ export function MobileBottomNav({
               : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",
           ].join(" ")}
         >
-          <Menu className="h-[18px] w-[18px]" />
+          <NavIcon icon={Menu} />
           <span className="w-full truncate">All Menu</span>
         </button>
       </div>
