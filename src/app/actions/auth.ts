@@ -93,7 +93,10 @@ export async function login(formData: FormData) {
     rememberMe ? "true" : "false",
     {
       ...persistentAuthCookieOptions({}, rememberMe),
-      httpOnly: true,
+      // This cookie contains only a boolean preference, never credentials or
+      // tokens. The browser client must be able to read it so later Supabase
+      // token rotations keep the same persistent/session-only lifetime.
+      httpOnly: false,
     },
   );
   const supabase = await createClient({ rememberMe });

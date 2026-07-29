@@ -4,13 +4,26 @@ import {
   REMEMBER_ME_COOKIE,
 } from "@/lib/supabase/auth-cookie-policy";
 
+const REMEMBER_DEVICE_STORAGE_KEY = "trading-docks-remember-device";
+
 function browserRememberPreference(): boolean {
   if (typeof document === "undefined") return true;
 
-  return document.cookie
+  const cookiePreference = document.cookie
     .split(";")
     .map((part) => part.trim())
     .some((part) => part === `${REMEMBER_ME_COOKIE}=true`);
+
+  if (cookiePreference) return true;
+
+  // The device preference is also stored locally by the sign-in form. Reading
+  // both locations makes token refreshes resilient to older deployments where
+  // the preference cookie was HttpOnly and therefore invisible here.
+  try {
+    return window.localStorage.getItem(REMEMBER_DEVICE_STORAGE_KEY) !== "false";
+  } catch {
+    return true;
+  }
 }
 
 export function createClient() {
