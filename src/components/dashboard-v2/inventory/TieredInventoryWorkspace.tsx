@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -47,6 +48,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Warehouse,
+  WalletCards,
   X,
 } from "lucide-react";
 
@@ -1064,6 +1066,13 @@ export function TieredInventoryWorkspace({
       )}
 
       {canManageCollection ? <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+        <Link
+          href="/dashboard/inventory/bulk-purchases"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-violet-300/[0.18] bg-violet-300/[0.055] px-4 text-[10px] font-semibold text-violet-100 transition hover:border-violet-300/35 hover:bg-violet-300/[0.09]"
+        >
+          <WalletCards className="h-4 w-4 text-violet-300" />
+          Bulk Purchases
+        </Link>
         <button
           type="button"
           onClick={() => setPutAwayOpen(true)}
