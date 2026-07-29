@@ -22,11 +22,17 @@ import {
   Sparkles,
   Store,
   Target,
+  Trash2,
   TrendingUp,
   WalletCards,
   X,
 } from "lucide-react";
 import { CARD_SHOW_GAMES, type CardShowGameId } from "@/lib/card-show-games";
+import {
+  persistInventorySnapshotDiff,
+  type InventoryPersistenceRecord,
+  type InventorySnapshot,
+} from "@/lib/inventory-persistence";
 
 type Tab = "overview" | "calendar" | "lookup" | "inventory" | "sales" | "reports";
 type EventRecord = {
@@ -58,11 +64,36 @@ type PriceResult = {
   name: string;
   game: string;
   setName: string;
+  setCode: string | null;
   number: string | null;
   rarity: string | null;
+  tcgplayerId: string | null;
+  scryfallId: string | null;
   sealed: boolean;
   imageUrl: string | null;
   variants: PriceVariant[];
+};
+type PurchaseOrderLine = {
+  id: string;
+  cardId: string;
+  variantId: string;
+  name: string;
+  game: string;
+  setName: string;
+  setCode: string | null;
+  collectorNumber: string | null;
+  rarity: string | null;
+  sealed: boolean;
+  imageUrl: string | null;
+  tcgplayerId: string | null;
+  scryfallId: string | null;
+  condition: string;
+  printing: string;
+  language: string | null;
+  quantity: number;
+  marketPrice: number;
+  buyingRate: number;
+  recommendedUnitOffer: number;
 };
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof CalendarDays }> = [
@@ -356,6 +387,19 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
   const [selectedVariantId, setSelectedVariantId] = useState("");
   const [lastSearch, setLastSearch] = useState("");
   const [warning, setWarning] = useState("");
+  const [purchaseOrder, setPurchaseOrder] = useState<PurchaseOrderLine[]>([]);
+  const [actualPaid, setActualPaid] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [sellerSource, setSellerSource] = useState("");
+  const [purchaseNotes, setPurchaseNotes] = useState("");
+  const [finalizing, setFinalizing] = useState(false);
+  const [purchaseMessage, setPurchaseMessage] = useState("");
+  const numericRate = Number(rate);
+  const hasBuyingRate = Number.isFinite(numericRate) && numericRate > 0 && numericRate <= 100;
+
+  function offerFor(price: number | null) {
+    return price !== null && hasBuyingRate ? price * (numericRate / 100) : null;
+  }
 
   async function searchPrices(event: React.FormEvent) {
     event.preventDefault();
@@ -387,6 +431,152 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
     if (variant.current !== null) setMarketPrice(String(variant.current));
   }
 
+  const totalUnits = purchaseOrder.reduce((sum, line) => sum + line.quantity, 0);
+  const totalMarketValue = purchaseOrder.reduce(
+    (sum, line) => sum + line.marketPrice * line.quantity,
+    0,
+  );
+  const totalRecommendedOffer = purchaseOrder.reduce(
+    (sum, line) => sum + line.recommendedUnitOffer * line.quantity,
+    0,
+  );
+  const averageMarketValue = totalUnits ? totalMarketValue / totalUnits : 0;
+
+  function addToPurchaseOrder(result: PriceResult, variant: PriceVariant) {
+    const currentPrice = variant.current;
+    const recommendedOffer = offerFor(currentPrice);
+    if (currentPrice === null || recommendedOffer === null) {
+      setPurchaseMessage("Set a valid buying percentage before adding this item.");
+      return;
+    }
+    const lineId = `${result.id}:${variant.id}`;
+    setPurchaseOrder((current) => {
+      const existing = current.find((line) => line.id === lineId);
+      if (existing) {
+        return current.map((line) =>
+          line.id === lineId ? { ...line, quantity: line.quantity + 1 } : line,
+        );
+      }
+      return [
+        ...current,
+        {
+          id: lineId,
+          cardId: result.id,
+          variantId: variant.id,
+          name: result.name,
+          game: result.game,
+          setName: result.setName,
+          setCode: result.setCode,
+          collectorNumber: result.number,
+          rarity: result.rarity,
+          sealed: result.sealed,
+          imageUrl: result.imageUrl,
+          tcgplayerId: result.tcgplayerId,
+          scryfallId: result.scryfallId,
+          condition: variant.condition,
+          printing: variant.printing,
+          language: variant.language,
+          quantity: 1,
+          marketPrice: currentPrice,
+          buyingRate: numericRate,
+          recommendedUnitOffer: recommendedOffer,
+        },
+      ];
+    });
+    setPurchaseMessage(`${result.name} added to the purchase order.`);
+  }
+
+  function updatePurchaseQuantity(id: string, quantity: number) {
+    if (!Number.isFinite(quantity) || quantity < 1) return;
+    setPurchaseOrder((current) =>
+      current.map((line) => (line.id === id ? { ...line, quantity } : line)),
+    );
+  }
+
+  async function finalizePurchase() {
+    const paid = Number(actualPaid);
+    if (!purchaseOrder.length) return;
+    if (!purchaseDate) {
+      setPurchaseMessage("Choose the purchase date before finalizing.");
+      return;
+    }
+    if (!Number.isFinite(paid) || paid < 0 || actualPaid.trim() === "") {
+      setPurchaseMessage("Enter the actual amount paid before finalizing.");
+      return;
+    }
+
+    setFinalizing(true);
+    setPurchaseMessage("");
+    const purchasedAt = new Date(`${purchaseDate}T12:00:00`).toISOString();
+    const allocationBasis = totalRecommendedOffer || totalMarketValue || totalUnits;
+    const inventoryItems: InventoryPersistenceRecord[] = purchaseOrder.map((line) => {
+      const lineBasis =
+        totalRecommendedOffer > 0
+          ? line.recommendedUnitOffer * line.quantity
+          : totalMarketValue > 0
+            ? line.marketPrice * line.quantity
+            : line.quantity;
+      const allocatedLineCost = allocationBasis ? paid * (lineBasis / allocationBasis) : 0;
+      return {
+        id: crypto.randomUUID(),
+        name: line.name,
+        sku: line.tcgplayerId ? `TCG-${line.tcgplayerId}` : line.variantId,
+        category: line.sealed ? "Sealed" : "Single",
+        quantity: line.quantity,
+        locationId: "__trading-docks-put-away-queue__",
+        condition: line.condition,
+        set: line.setName,
+        setCode: line.setCode,
+        collectorNumber: line.collectorNumber,
+        language: line.language || undefined,
+        finish: line.printing,
+        treatment: line.rarity || undefined,
+        scryfallId: line.scryfallId || undefined,
+        imageUrl: line.imageUrl || undefined,
+        costBasis: line.quantity ? allocatedLineCost / line.quantity : 0,
+        unitMarketValue: line.marketPrice,
+        value: line.marketPrice * line.quantity,
+        purchaseDate,
+        purchasedAt,
+        purchaseSource: sellerSource.trim() || undefined,
+        purchaseNotes: purchaseNotes.trim() || undefined,
+        purchaseOrderActualPaid: paid,
+        purchaseOrderRecommendedOffer: totalRecommendedOffer,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+    const movements: InventoryPersistenceRecord[] = inventoryItems.map((item) => ({
+      id: crypto.randomUUID(),
+      itemName: item.name,
+      to: "Put-Away Queue",
+      quantity: item.quantity,
+      action: "queued",
+      timestamp: new Date().toISOString(),
+    }));
+    const emptySnapshot: InventorySnapshot = { locations: [], items: [], movements: [] };
+    try {
+      await persistInventorySnapshotDiff(emptySnapshot, {
+        locations: [],
+        items: inventoryItems,
+        movements,
+      });
+      setPurchaseOrder([]);
+      setActualPaid("");
+      setPurchaseDate("");
+      setSellerSource("");
+      setPurchaseNotes("");
+      setPurchaseMessage(
+        `${totalUnits} ${totalUnits === 1 ? "item" : "items"} purchased and sent to Inventory Put-Away.`,
+      );
+    } catch (reason) {
+      setPurchaseMessage(
+        reason instanceof Error ? reason.message : "The purchase could not be finalized.",
+      );
+    } finally {
+      setFinalizing(false);
+    }
+  }
+
   return (
     <div className="grid gap-5 xl:grid-cols-[1.35fr_.8fr]">
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-7">
@@ -402,16 +592,16 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
         {results.length ? <div className="mt-5 space-y-3">
           <div className="flex items-center justify-between"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">Live pricing results</p>{remaining !== null ? <p className="text-[10px] text-slate-700">{remaining.toLocaleString()} API requests remaining</p> : null}</div>
           {results.map((result) => <article key={result.id} className="overflow-hidden rounded-2xl border border-white/[0.07] bg-black/10">
-            <div className="flex gap-3 border-b border-white/[0.055] p-4">
-              <div className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.025] text-[8px] font-bold text-slate-700">{result.imageUrl ? <img src={result.imageUrl} alt="" className="h-full w-full object-cover" /> : "TCG"}</div>
-              <div className="min-w-0 flex-1"><h3 className="truncate text-sm font-semibold text-white">{result.name}</h3><p className="mt-1 truncate text-[10px] text-slate-500">{result.setName}{result.number ? ` · #${result.number}` : ""}{result.rarity ? ` · ${result.rarity}` : ""}</p><p className="mt-1 text-[9px] font-semibold uppercase tracking-wider text-cyan-300">{result.game}</p></div>
+            <div className="flex gap-4 border-b border-white/[0.055] p-4">
+              <div className="flex h-32 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.025] text-center text-[9px] font-bold text-slate-700 shadow-lg">{result.imageUrl ? <img src={result.imageUrl} alt={`${result.name} from ${result.setName}`} className="h-full w-full object-contain" loading="lazy" /> : <span className="px-2">Image not provided</span>}</div>
+              <div className="min-w-0 flex-1 self-center"><p className="text-[9px] font-semibold uppercase tracking-wider text-cyan-300">{result.game} · {result.sealed ? "Sealed product" : "Single"}</p><h3 className="mt-1 text-base font-semibold leading-6 text-white">{result.name}</h3><p className="mt-2 text-xs font-semibold text-slate-300">{result.setName}</p><div className="mt-2 flex flex-wrap gap-2">{result.setCode ? <span className="rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[10px] font-semibold text-slate-400">Set: {result.setCode}</span> : null}{result.number ? <span className="rounded-md border border-white/[0.07] px-2 py-1 text-[10px] text-slate-500">#{result.number}</span> : null}{result.rarity ? <span className="rounded-md border border-white/[0.07] px-2 py-1 text-[10px] text-slate-500">{result.rarity}</span> : null}</div></div>
             </div>
-            <div className="divide-y divide-white/[0.045]">{result.variants.slice(0, 5).map((variant) => <button type="button" key={variant.id} onClick={() => chooseVariant(variant)} className={`grid w-full grid-cols-[1fr_auto] gap-3 p-4 text-left transition hover:bg-cyan-400/[0.04] ${selectedVariantId === variant.id ? "bg-cyan-400/[0.07] ring-1 ring-inset ring-cyan-300/20" : ""}`}>
-              <span><span className="block text-xs font-semibold text-slate-300">{variant.printing} · {variant.condition}</span><span className="mt-1 block text-[9px] text-slate-600">{variant.language || "Language not listed"}{variant.updatedAt ? ` · Updated ${new Date(variant.updatedAt).toLocaleDateString()}` : ""}</span></span>
-              <span className="grid grid-cols-4 gap-3 text-right"><PriceCell label="30d low" value={variant.low30d} /><PriceCell label="30d avg" value={variant.average30d} /><PriceCell label="30d high" value={variant.high30d} /><PriceCell label="Current" value={variant.current} accent /></span>
-            </button>)}</div>
+            <div className="divide-y divide-white/[0.045]">{result.variants.slice(0, 5).map((variant) => <div key={variant.id} className={`grid gap-3 p-4 transition hover:bg-cyan-400/[0.04] lg:grid-cols-[minmax(150px,1fr)_auto] ${selectedVariantId === variant.id ? "bg-cyan-400/[0.07] ring-1 ring-inset ring-cyan-300/20" : ""}`}>
+              <button type="button" onClick={() => chooseVariant(variant)} className="text-left"><span className="block text-xs font-semibold text-slate-300">{variant.printing} · {variant.condition}</span><span className="mt-1 block text-[9px] text-slate-600">{variant.language || "Language not listed"}{variant.updatedAt ? ` · Updated ${new Date(variant.updatedAt).toLocaleDateString()}` : ""}</span></button>
+              <div className="flex flex-col gap-3 sm:items-end"><div className="grid grid-cols-3 gap-3 text-left sm:grid-cols-5 sm:text-right"><PriceCell label="30d low" value={variant.low30d} /><PriceCell label="30d avg" value={variant.average30d} /><PriceCell label="30d high" value={variant.high30d} /><PriceCell label="Current" value={variant.current} accent /><PriceCell label={hasBuyingRate ? `Offer · ${numericRate}%` : "Offer"} value={offerFor(variant.current)} offer /></div><button type="button" onClick={() => addToPurchaseOrder(result, variant)} disabled={!hasBuyingRate || variant.current === null} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-400/[0.07] px-3 text-[10px] font-bold text-emerald-200 transition hover:bg-emerald-400/[0.12] disabled:cursor-not-allowed disabled:opacity-35"><Plus className="h-3.5 w-3.5" /> Add to purchase order</button></div>
+            </div>)}</div>
           </article>)}
-          <p className="text-[10px] leading-4 text-slate-700">Low, average, and high are the selected variant&apos;s 30-day observed prices. Current is the latest market value supplied by JustTCG.</p>
+          <p className="text-[10px] leading-4 text-slate-700">Low, average, and high are the selected variant&apos;s 30-day observed prices. Current is the latest market value supplied by JustTCG. Offer is calculated from the saved buying percentage for {type === "single" ? "singles" : "sealed products"}.</p>
         </div> : null}
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label><span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Offer price basis</span><span className="mt-2 flex h-12 items-center rounded-xl border border-white/[0.08] bg-black/10 px-4"><span className="mr-1 text-sm text-slate-600">$</span><input type="number" step=".01" value={marketPrice} onChange={(event) => setMarketPrice(event.target.value)} placeholder="Select a result or enter price" className="w-full bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-700" /></span></label>
@@ -419,17 +609,33 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
         </div>
         <div className="mt-5 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[linear-gradient(135deg,rgba(34,211,238,.09),rgba(14,165,233,.025))] p-5"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-300">Maximum cash offer</p><p className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-white">{offer === null ? "—" : money(offer)}</p><p className="mt-1 text-xs text-slate-500">{offer === null ? "Enter a market price and buying percentage." : `${money(Number(marketPrice))} market × ${rate}% target`}</p></div><div className="text-right"><p className="text-[10px] uppercase tracking-wider text-slate-600">Target gross margin</p><p className="mt-1 text-xl font-semibold text-emerald-300">{rate ? `${100 - Number(rate)}%` : "—"}</p></div></div></div>
       </section>
+      <div className="space-y-5">
       <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6">
         <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-400/[0.07] text-violet-300"><Settings2 className="h-5 w-5" /></span><div><h3 className="text-sm font-semibold text-white">Buying rules</h3><p className="mt-1 text-[10px] text-slate-600">Applied automatically at this show</p></div></div>
         <div className="mt-5 space-y-3">{[{ label: "Singles", value: singleRate }, { label: "Sealed products", value: sealedRate }].map((rule) => <div key={rule.label} className="flex items-center justify-between rounded-xl border border-white/[0.055] bg-white/[0.018] px-4 py-3"><span className="text-xs text-slate-400">{rule.label}</span><strong className="text-sm text-white">{rule.value ? `${rule.value}%` : "Not set"}</strong></div>)}</div>
         <button onClick={onSave} className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] text-xs font-bold text-cyan-200 transition hover:bg-cyan-400/[0.12]"><Check className="h-4 w-4" /> Save show buying targets</button>
       </section>
+      <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">Purchase order</p><h3 className="mt-2 text-lg font-semibold text-white">Buying cart</h3><p className="mt-1 text-[10px] leading-4 text-slate-600">Finalize purchases into Inventory Put-Away for filing later.</p></div><span className="rounded-full border border-white/[0.07] bg-white/[0.025] px-2.5 py-1 text-[10px] font-semibold text-slate-400">{totalUnits ? `${totalUnits} ${totalUnits === 1 ? "item" : "items"}` : "Empty"}</span></div>
+        {!purchaseOrder.length ? <div className="mt-5 rounded-2xl border border-dashed border-white/[0.08] px-4 py-8 text-center"><ShoppingCart className="mx-auto h-5 w-5 text-slate-700" /><p className="mt-3 text-xs font-semibold text-slate-400">No cards added</p><p className="mt-1 text-[10px] leading-4 text-slate-700">Set a buying rate, then add the exact condition and printing from a search result.</p></div> : <div className="mt-5 space-y-2">{purchaseOrder.map((line) => <div key={line.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.018] p-3"><div className="flex gap-3">{line.imageUrl ? <img src={line.imageUrl} alt="" className="h-14 w-10 shrink-0 rounded-md object-contain" /> : <div className="h-14 w-10 shrink-0 rounded-md border border-white/[0.06] bg-black/10" />}<div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-slate-200">{line.name}</p><p className="mt-1 truncate text-[9px] text-slate-600">{line.setName} · {line.printing} · {line.condition}</p><div className="mt-2 flex items-center justify-between gap-2"><label className="flex items-center gap-2 text-[9px] text-slate-600">Qty<input type="number" min="1" step="1" value={line.quantity} onChange={(event) => updatePurchaseQuantity(line.id, Number(event.target.value))} className="h-8 w-14 rounded-lg border border-white/[0.07] bg-black/10 px-2 text-xs text-white outline-none" /></label><div className="text-right"><p className="text-[8px] uppercase tracking-wider text-slate-700">Offer</p><p className="text-xs font-semibold text-emerald-300">{money(line.recommendedUnitOffer * line.quantity)}</p></div><button type="button" onClick={() => setPurchaseOrder((current) => current.filter((item) => item.id !== line.id))} aria-label={`Remove ${line.name}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] text-slate-600 hover:text-rose-300"><Trash2 className="h-3.5 w-3.5" /></button></div></div></div></div>)}</div>}
+        {purchaseOrder.length ? <><div className="mt-5 grid grid-cols-2 gap-2"><PurchaseMetric label="Average market" value={averageMarketValue} /><PurchaseMetric label="Total market" value={totalMarketValue} /><PurchaseMetric label="Recommended offer" value={totalRecommendedOffer} accent /><PurchaseMetric label="Potential spread" value={totalMarketValue - totalRecommendedOffer} /></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"><PurchaseField label="Actual amount paid" type="number" value={actualPaid} onChange={setActualPaid} placeholder="Enter total paid" /><PurchaseField label="Purchase date" type="date" value={purchaseDate} onChange={setPurchaseDate} /><PurchaseField label="Seller / source" value={sellerSource} onChange={setSellerSource} placeholder="Name, booth, store, or event" /><label className="text-[9px] font-bold uppercase tracking-wider text-slate-600 sm:col-span-2 xl:col-span-1 2xl:col-span-2">Notes<textarea value={purchaseNotes} onChange={(event) => setPurchaseNotes(event.target.value)} placeholder="Optional purchase details" rows={3} className="mt-2 w-full resize-none rounded-xl border border-white/[0.08] bg-black/10 px-3 py-2.5 text-xs font-normal normal-case tracking-normal text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30" /></label></div><button type="button" onClick={finalizePurchase} disabled={finalizing} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-emerald-300 to-emerald-500 text-xs font-bold text-[#00130c] disabled:opacity-50"><PackageSearch className="h-4 w-4" />{finalizing ? "Finalizing…" : "Finalize purchase to inventory"}</button></> : null}
+        {purchaseMessage ? <p className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-[10px] leading-4 text-slate-400">{purchaseMessage}</p> : null}
+      </section>
+      </div>
     </div>
   );
 }
 
-function PriceCell({ label, value, accent = false }: { label: string; value: number | null; accent?: boolean }) {
-  return <span><span className="block text-[8px] font-bold uppercase tracking-wider text-slate-700">{label}</span><strong className={`mt-1 block text-xs ${accent ? "text-cyan-200" : "text-slate-300"}`}>{value === null ? "—" : money(value)}</strong></span>;
+function PurchaseMetric({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
+  return <div className="rounded-xl border border-white/[0.055] bg-black/10 p-3"><p className="text-[8px] font-bold uppercase tracking-wider text-slate-700">{label}</p><p className={`mt-1 text-sm font-semibold ${accent ? "text-emerald-300" : "text-white"}`}>{money(value)}</p></div>;
+}
+
+function PurchaseField({ label, value, onChange, type = "text", placeholder }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {
+  return <label className="text-[9px] font-bold uppercase tracking-wider text-slate-600">{label}<input type={type} min={type === "number" ? "0" : undefined} step={type === "number" ? ".01" : undefined} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 h-10 w-full rounded-xl border border-white/[0.08] bg-black/10 px-3 text-xs font-normal normal-case tracking-normal text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30" /></label>;
+}
+
+function PriceCell({ label, value, accent = false, offer = false }: { label: string; value: number | null; accent?: boolean; offer?: boolean }) {
+  return <span className={offer ? "rounded-lg border border-emerald-300/15 bg-emerald-400/[0.06] px-2 py-1.5" : ""}><span className={`block text-[8px] font-bold uppercase tracking-wider ${offer ? "text-emerald-300/70" : "text-slate-700"}`}>{label}</span><strong className={`mt-1 block text-xs ${offer ? "text-emerald-200" : accent ? "text-cyan-200" : "text-slate-300"}`}>{value === null ? "—" : money(value)}</strong></span>;
 }
 
 function InventoryPanel({ event, inventory, value, sold }: { event?: EventRecord; inventory: InventoryRecord[]; value: number; sold: number }) {

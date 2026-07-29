@@ -48,6 +48,7 @@ type JustTcgCard = {
   set_name?: string | null;
   number?: string | null;
   rarity?: string | null;
+  tcgplayerId?: string | null;
   scryfallId?: string | null;
   details?: string | null;
   variants?: JustTcgVariant[];
@@ -163,11 +164,18 @@ export async function GET(request: NextRequest) {
           id: card.uuid || card.id,
           name: card.name,
           game: card.game,
-          setName: card.set_name || card.set || "Set unavailable",
+          setName: card.set_name || card.set || "Set not provided",
+          setCode: card.set || null,
           number: card.number || null,
           rarity: card.rarity || null,
+          tcgplayerId: card.tcgplayerId || null,
+          scryfallId: card.scryfallId || null,
           sealed: productType === "sealed",
-          imageUrl: card.scryfallId ? `/api/scryfall-image/${card.scryfallId}` : null,
+          imageUrl: card.scryfallId
+            ? `/api/scryfall-image/${card.scryfallId}`
+            : card.tcgplayerId
+              ? `/api/card-shows/image/${encodeURIComponent(card.tcgplayerId)}`
+              : null,
           variants,
         };
           })
