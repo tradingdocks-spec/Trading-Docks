@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       ...persistentAuthCookieOptions({}, true),
       httpOnly: true,
     });
-    const supabase = await createClient({ rememberMe: true });
+    const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {

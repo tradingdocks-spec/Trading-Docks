@@ -53,7 +53,7 @@ export async function loginWithGoogle(formData: FormData) {
     httpOnly: true,
   });
 
-  const supabase = await createClient({ rememberMe: true });
+  const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
@@ -99,7 +99,7 @@ export async function login(formData: FormData) {
       httpOnly: false,
     },
   );
-  const supabase = await createClient({ rememberMe });
+  const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -185,7 +185,7 @@ export async function signUp(formData: FormData) {
     ...persistentAuthCookieOptions({}, true),
     httpOnly: true,
   });
-  const supabase = await createClient({ rememberMe: true });
+  const supabase = await createClient();
   const origin = await getRequestOrigin();
 
   const { data, error } = await supabase.auth.signUp({

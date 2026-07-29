@@ -1,19 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import {
-  persistentAuthCookieOptions,
-  REMEMBER_ME_COOKIE,
-} from "@/lib/supabase/auth-cookie-policy";
 
-type CreateClientOptions = {
-  rememberMe?: boolean;
-};
-
-export async function createClient(options: CreateClientOptions = {}) {
+export async function createClient() {
   const cookieStore = await cookies();
-  const rememberMe =
-    options.rememberMe ??
-    cookieStore.get(REMEMBER_ME_COOKIE)?.value === "true";
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,11 +16,7 @@ export async function createClient(options: CreateClientOptions = {}) {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(
-                name,
-                value,
-                persistentAuthCookieOptions(options, rememberMe),
-              );
+              cookieStore.set(name, value, options);
             });
           } catch {
             // Cookies cannot always be written from Server Components.
