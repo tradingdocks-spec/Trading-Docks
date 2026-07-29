@@ -391,7 +391,9 @@ function AdminIntegrations() {
         enabled: true,
       }),
     });
-    const body = await response.json() as { error?: string; masked?: Record<string, string>; enabled?: boolean };
+    const body = await response.json().catch(() => ({
+      error: `The server returned an unreadable response (${response.status}).`,
+    })) as { error?: string; masked?: Record<string, string>; enabled?: boolean };
     if (!response.ok) setMessage(body.error ?? "Could not save eBay configuration.");
     else {
       setIntegration({
@@ -474,7 +476,7 @@ function AdminIntegrations() {
           </div>
         )}
         <div className="mt-4 flex gap-3 rounded-xl border border-emerald-300/10 bg-emerald-300/[0.025] p-3 text-[10px] leading-4 text-emerald-100/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />The saved secret is encrypted server-side and never displayed again. Vercel and Supabase infrastructure secrets remain outside this dashboard.</div>
-        {message ? <p className="mt-3 text-xs text-cyan-100">{message}</p> : null}
+        {message ? <p role="status" className={`mt-3 rounded-xl border px-3 py-2.5 text-xs leading-5 ${message.startsWith("eBay is configured") || message.includes("enabled.") ? "border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-100" : "border-amber-300/15 bg-amber-300/[0.04] text-amber-100"}`}>{message}</p> : null}
       </div>
     </section>
   );
