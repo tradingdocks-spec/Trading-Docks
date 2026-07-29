@@ -11,6 +11,9 @@ const ITEMS = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings, exact: false },
 ] as const;
 
+const NAV_ITEM_CLASS =
+  "relative flex min-h-[52px] min-w-0 select-none touch-manipulation flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-center text-[10px] font-semibold leading-none outline-none transition-[color,background-color,transform] duration-100 active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-cyan-300/70";
+
 function NavigationStatus() {
   const { pending } = useLinkStatus();
 
@@ -25,7 +28,13 @@ function NavigationStatus() {
   );
 }
 
-export function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
+export function MobileBottomNav({
+  menuOpen,
+  onOpenMenu,
+}: {
+  menuOpen: boolean;
+  onOpenMenu: () => void;
+}) {
   const pathname = usePathname();
 
   return (
@@ -43,14 +52,14 @@ export function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
               prefetch
               aria-current={active ? "page" : undefined}
               className={[
-                "relative flex min-h-[50px] select-none flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-semibold outline-none touch-manipulation transition-[color,background-color,transform] duration-100 active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-cyan-300/70",
+                NAV_ITEM_CLASS,
                 active
                   ? "bg-cyan-400/[0.12] text-cyan-100"
                   : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",
               ].join(" ")}
             >
               <Icon className="h-[18px] w-[18px]" />
-              <span>{label}</span>
+              <span className="w-full truncate">{label}</span>
               <NavigationStatus />
             </Link>
           );
@@ -58,11 +67,17 @@ export function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
         <button
           type="button"
           onClick={onOpenMenu}
+          aria-expanded={menuOpen}
           aria-label="Open all dashboard menus"
-          className="relative flex min-h-[54px] select-none touch-manipulation flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-semibold text-slate-300 outline-none transition-[color,background-color,transform] duration-100 active:scale-[0.94] active:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+          className={[
+            NAV_ITEM_CLASS,
+            menuOpen
+              ? "bg-cyan-400/[0.12] text-cyan-100"
+              : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",
+          ].join(" ")}
         >
-          <Menu className="h-5 w-5" />
-          <span>All Menu</span>
+          <Menu className="h-[18px] w-[18px]" />
+          <span className="w-full truncate">All Menu</span>
         </button>
       </div>
     </nav>

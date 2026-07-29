@@ -65,7 +65,10 @@ export function TieredDashboardShell({
         <MessageSquarePlus className="h-4 w-4" />
         <span className="hidden md:inline">Feedback / Report Bug</span>
       </Link>
-      <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} />
+      <MobileBottomNav
+        menuOpen={mobileOpen}
+        onOpenMenu={() => setMobileOpen(true)}
+      />
     </div>
   );
 }
