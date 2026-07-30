@@ -21,6 +21,12 @@ function redirectWithError(path: string, message: string): never {
   redirect(`${path}${separator}error=${encodeURIComponent(message)}`);
 }
 
+function withSignInEntrance(path: string) {
+  const [pathnameAndQuery, hash = ""] = path.split("#", 2);
+  const separator = pathnameAndQuery.includes("?") ? "&" : "?";
+  return `${pathnameAndQuery}${separator}td_enter=1${hash ? `#${hash}` : ""}`;
+}
+
 async function getRequestOrigin() {
   const requestHeaders = await headers();
   const forwardedHost = requestHeaders.get("x-forwarded-host");
@@ -128,7 +134,7 @@ export async function login(formData: FormData) {
     ? next
     : "/dashboard";
 
-  redirect(safeNext);
+  redirect(withSignInEntrance(safeNext));
 }
 
 export async function signUp(formData: FormData) {

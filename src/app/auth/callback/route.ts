@@ -13,6 +13,12 @@ function safeNextPath(value: string | null) {
     : "/dashboard";
 }
 
+function withSignInEntrance(path: string) {
+  const url = new URL(path, "https://tradingdocks.local");
+  url.searchParams.set("td_enter", "1");
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -29,7 +35,9 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      return NextResponse.redirect(new URL(next, requestUrl.origin));
+      return NextResponse.redirect(
+        new URL(withSignInEntrance(next), requestUrl.origin),
+      );
     }
   }
 

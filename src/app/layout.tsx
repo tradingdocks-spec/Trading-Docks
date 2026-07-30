@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { SignInEntrance } from "@/components/auth/SignInEntrance";
 import { RouteEntrance } from "@/components/navigation/PolishedNavigation";
 import "./globals.css";
 
@@ -22,6 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#03080c] font-sans antialiased">
+        <SignInEntrance />
         <RouteEntrance>{children}</RouteEntrance>
       </body>
     </html>
