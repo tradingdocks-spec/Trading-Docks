@@ -78,10 +78,13 @@ export async function saveDeckRecord(deck: DeckRecord, unresolved?: unknown[]) {
 }
 
 export async function deleteDeckRecord(deckId: string) {
-  void deckId;
-  throw new Error(
-    "Deck deletion is disabled. Your saved decks remain attached to your Trading Docks account.",
-  );
+  const { supabase, userId } = await authenticatedClient();
+  const { error } = await supabase
+    .from("deck_vault_decks")
+    .delete()
+    .eq("user_id", userId)
+    .eq("deck_key", deckId);
+  if (error) throw deckStorageError("The deck could not be deleted", error.message);
 }
 
 function deckKey(deckId: string) {

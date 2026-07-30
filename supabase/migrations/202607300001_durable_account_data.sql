@@ -137,6 +137,9 @@ create policy "Users add their own decks" on public.deck_vault_decks
 create policy "Users update their own decks" on public.deck_vault_decks
   for update to authenticated using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+drop policy if exists "Users delete their own decks" on public.deck_vault_decks;
+create policy "Users delete their own decks" on public.deck_vault_decks
+  for delete to authenticated using (auth.uid() = user_id);
 
 drop policy if exists "Users manage their inventory locations" on public.inventory_locations;
 create policy "Users manage their inventory locations" on public.inventory_locations
@@ -152,5 +155,4 @@ revoke all on public.account_documents, public.deck_vault_decks,
   public.inventory_locations, public.inventory_items, public.inventory_movements from anon;
 grant select, insert, update, delete on public.account_documents,
   public.inventory_locations, public.inventory_items, public.inventory_movements to authenticated;
-grant select, insert, update on public.deck_vault_decks to authenticated;
-revoke delete on public.deck_vault_decks from authenticated;
+grant select, insert, update, delete on public.deck_vault_decks to authenticated;

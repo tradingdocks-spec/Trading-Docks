@@ -2276,17 +2276,12 @@ function buildShowcaseGroups(cards: DeckCard[]) {
 }
 
 function showcaseCardCopies(cards: DeckCard[]) {
-  return cards.flatMap((card) =>
-    Array.from({ length: Math.max(1, card.quantity) }, (_, copyIndex) => ({
-      card,
-      copyIndex,
-    })),
-  );
+  return cards.map((card) => ({ card, copyIndex: 0 }));
 }
 
 function showcaseGroupWeight(group: ReturnType<typeof buildShowcaseGroups>[number]) {
-  const copies = showcaseCardCopies(group.cards).length;
-  return 1 + Math.min(14, Math.max(0, copies - 1)) * 0.13;
+  const uniqueCards = group.cards.length;
+  return 1 + Math.min(14, Math.max(0, uniqueCards - 1)) * 0.13;
 }
 
 function buildShowcaseLanes(
@@ -2307,6 +2302,12 @@ function buildShowcaseLanes(
   });
 
   return lanes;
+}
+
+function longestLaneFirst(
+  lanes: ReturnType<typeof buildShowcaseLanes>,
+) {
+  return [...lanes].sort((left, right) => right.weight - left.weight);
 }
 
 function buildShowcaseStats(cards: DeckCard[]) {
@@ -2647,7 +2648,9 @@ function DeckShowcaseStudio({
         const textGap = 26;
         const textColumnWidth =
           (posterWidth - textGap * (textColumns - 1)) / textColumns;
-        const textLanes = buildShowcaseLanes(groups, textColumns);
+        const textLanes = longestLaneFirst(
+          buildShowcaseLanes(groups, textColumns),
+        );
         const maxEntries = Math.max(
           1,
           ...textLanes.map((lane) =>
@@ -2757,6 +2760,29 @@ function DeckShowcaseStudio({
               context.lineWidth = 1;
               roundedRect(context, moduleCardX, y, moduleCardWidth, moduleCardHeight, 7);
               context.stroke();
+              if (card.quantity > 1) {
+                const badgeText = `×${card.quantity}`;
+                context.font = `900 ${Math.max(14, moduleCardWidth * 0.1)}px ${showcaseFont}`;
+                const badgeWidth = Math.max(
+                  42,
+                  context.measureText(badgeText).width + 18,
+                );
+                const badgeX = moduleCardX + moduleCardWidth - badgeWidth - 8;
+                context.fillStyle = "rgba(1,8,14,.94)";
+                roundedRect(context, badgeX, y + 8, badgeWidth, 28, 8);
+                context.fill();
+                context.strokeStyle = "rgba(103,232,249,.7)";
+                roundedRect(context, badgeX, y + 8, badgeWidth, 28, 8);
+                context.stroke();
+                context.fillStyle = "#ffffff";
+                context.textAlign = "center";
+                context.fillText(
+                  badgeText,
+                  badgeX + badgeWidth / 2,
+                  y + 28,
+                );
+                context.textAlign = "left";
+              }
             });
             groupTop += groupHeight + rowGap;
           });
@@ -2914,6 +2940,9 @@ function DeckShowcaseStudio({
     Math.max(1, groups.length),
   );
   const previewLanes = buildShowcaseLanes(groups, previewColumnCount);
+  const previewTextLanes = longestLaneFirst(
+    buildShowcaseLanes(groups, size === "story" ? 1 : 2),
+  );
 
   return (
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#01070c]/92 p-4 backdrop-blur-xl">
@@ -2983,7 +3012,7 @@ function DeckShowcaseStudio({
               <div className="mt-7 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.035] p-4">
                 <p className="text-[11px] font-semibold text-cyan-100">Full-deck poster</p>
                 <p className="mt-2 text-[11px] leading-5 text-slate-500">
-                  Every card is included. Duplicate copies are combined into physical-style stacks, and every export carries the Trading Docks signature.
+                  Every unique card is shown once with a clear quantity badge, and every export carries the Trading Docks signature.
                 </p>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-2.5">
@@ -3072,40 +3101,41 @@ function DeckShowcaseStudio({
                   ) : null}
                   {display === "text" ? (
                     <div
-                      className={`${showStats ? "mt-2" : "mt-3"} min-h-0 flex-1 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 p-4 text-white`}
+                      className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 p-4 text-white`}
                       style={{
-                        columns: size === "story" ? 1 : 2,
-                        columnGap: "1.5rem",
+                        gridTemplateColumns: `repeat(${size === "story" ? 1 : 2}, minmax(0, 1fr))`,
+                        gap: "1.5rem",
                       }}
                     >
-                      {groups.map((group) => (
-                        <section
-                          key={group.category}
-                          className="mb-3 inline-block w-full min-w-0 break-inside-avoid align-top"
-                        >
-                          <div className="mb-1.5 flex items-center justify-between rounded-md bg-cyan-300/10 px-2.5 py-1.5">
-                            <p className="text-[12px] font-black uppercase tracking-[0.05em] text-white">{group.category}</p>
-                            <span className="text-[11px] font-bold text-cyan-300">{group.count}</span>
-                          </div>
-                          <div className="space-y-1">
-                            {group.cards.map((card) => (
-                              <div key={card.id} className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-center gap-2 rounded px-1.5 py-0.5 hover:bg-white/[0.04]">
-                                <span className="text-[11px] font-black text-slate-300">{card.quantity}</span>
-                                <span className="truncate text-[11px] font-semibold text-cyan-200">{card.name}</span>
-                                <span className="flex gap-0.5">
-                                  {card.colors.slice(0, 4).map((color, index) => (
-                                    <span
-                                      key={`${card.id}-${color}-${index}`}
-                                      className="h-3 w-3 rounded-full border border-white/20"
-                                      style={{ backgroundColor: { W: "#f5e8b6", U: "#38a8e8", B: "#8b7b9d", R: "#ef6351", G: "#43c985", C: "#cbd5e1" }[color] }}
-                                    />
-                                  ))}
-                                </span>
-                                <span className="min-w-[48px] text-right text-[11px] font-semibold text-white">${(card.price * card.quantity).toFixed(2)}</span>
+                      {previewTextLanes.map((lane, laneIndex) => (
+                        <div key={`text-lane-${laneIndex}`} className="min-w-0">
+                          {lane.groups.map((group) => (
+                            <section key={group.category} className="mb-3 w-full min-w-0">
+                              <div className="mb-1.5 flex items-center justify-between rounded-md bg-cyan-300/10 px-2.5 py-1.5">
+                                <p className="text-[12px] font-black uppercase tracking-[0.05em] text-white">{group.category}</p>
+                                <span className="text-[11px] font-bold text-cyan-300">{group.count}</span>
                               </div>
-                            ))}
-                          </div>
-                        </section>
+                              <div className="space-y-1">
+                                {group.cards.map((card) => (
+                                  <div key={card.id} className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-center gap-2 rounded px-1.5 py-0.5 hover:bg-white/[0.04]">
+                                    <span className="text-[11px] font-black text-slate-300">{card.quantity}</span>
+                                    <span className="truncate text-[11px] font-semibold text-cyan-200">{card.name}</span>
+                                    <span className="flex gap-0.5">
+                                      {card.colors.slice(0, 4).map((color, index) => (
+                                        <span
+                                          key={`${card.id}-${color}-${index}`}
+                                          className="h-3 w-3 rounded-full border border-white/20"
+                                          style={{ backgroundColor: { W: "#f5e8b6", U: "#38a8e8", B: "#8b7b9d", R: "#ef6351", G: "#43c985", C: "#cbd5e1" }[color] }}
+                                        />
+                                      ))}
+                                    </span>
+                                    <span className="min-w-[48px] text-right text-[11px] font-semibold text-white">${(card.price * card.quantity).toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          ))}
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -3152,6 +3182,11 @@ function DeckShowcaseStudio({
                                       alt={card.name}
                                       className="h-full w-full rounded-[3px] border border-white/20 object-cover shadow-md"
                                     />
+                                    {card.quantity > 1 ? (
+                                      <span className="absolute right-1.5 top-1.5 rounded-md border border-cyan-200/60 bg-[#01080e]/95 px-1.5 py-0.5 text-[10px] font-black text-white shadow-lg">
+                                        ×{card.quantity}
+                                      </span>
+                                    ) : null}
                                   </div>
                                 ))}
                               </div>

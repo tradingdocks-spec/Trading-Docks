@@ -19,7 +19,11 @@ import {
 
 import { ManaPips } from "./ManaPips";
 import type { DeckRecord } from "@/lib/deck-vault/types";
-import { accountStorageKey } from "@/lib/account-storage";
+import {
+  deleteDeckRecord,
+  loadDeckVault,
+  saveDeckRecord,
+} from "@/lib/deck-vault/persistence";
 
 const FORMATS = [
   "All Formats",
@@ -41,48 +45,36 @@ export function DeckVaultHome({ plan, deckLimit }: { plan: string; deckLimit: nu
     useState<DeckRecord[]>([]);
   const [searchQuery, setSearchQuery] =
     useState("");
-  const [deckListKey, setDeckListKey] = useState("");
+  const [loadingDecks, setLoadingDecks] = useState(true);
+  const [storageError, setStorageError] = useState("");
   const [renameDeck, setRenameDeck] = useState<DeckRecord | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
-    try {
-      const listKey = await accountStorageKey("trading-docks-imported-decks");
-      setDeckListKey(listKey);
-      const importedIds = JSON.parse(
-        localStorage.getItem(
-          listKey,
-        ) ?? "[]",
-      ) as string[];
-
-      const importedDecks = await Promise.all(importedIds
-        .map(async (id) => {
-          const deckKey = await accountStorageKey(`trading-docks-deck:${id}`);
-          const raw = localStorage.getItem(
-            deckKey,
+      try {
+        const decks = await loadDeckVault();
+        if (!cancelled) {
+          setSavedDecks(decks);
+          setStorageError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSavedDecks([]);
+          setStorageError(
+            error instanceof Error
+              ? error.message
+              : "Your saved decks could not be loaded.",
           );
-          return raw
-            ? (JSON.parse(raw) as DeckRecord)
-            : null;
-        }));
-      const validDecks = importedDecks
-        .filter(
-          (deck): deck is DeckRecord =>
-            Boolean(deck),
-        );
-
-      const byId = new Map<string, DeckRecord>();
-
-      validDecks.forEach(
-        (deck) => byId.set(deck.id, deck),
-      );
-
-      setSavedDecks(Array.from(byId.values()));
-    } catch {
-      setSavedDecks([]);
-    }
+        }
+      } finally {
+        if (!cancelled) setLoadingDecks(false);
+      }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const visibleDecks = useMemo(() => {
@@ -115,7 +107,7 @@ export function DeckVaultHome({ plan, deckLimit }: { plan: string; deckLimit: nu
   );
   const limitReached = deckLimit !== null && savedDecks.length >= deckLimit;
 
-  function deleteDeck(
+  async function deleteDeck(
     deckId: string,
     deckName: string,
   ) {
@@ -125,29 +117,17 @@ export function DeckVaultHome({ plan, deckLimit }: { plan: string; deckLimit: nu
 
     if (!confirmed) return;
 
-    void accountStorageKey(`trading-docks-deck:${deckId}`).then((key) => localStorage.removeItem(key));
-    void accountStorageKey(`trading-docks-unresolved:${deckId}`).then((key) => localStorage.removeItem(key));
-
-    const importedIds = JSON.parse(
-      localStorage.getItem(
-        deckListKey,
-      ) ?? "[]",
-    ) as string[];
-
-    localStorage.setItem(
-      deckListKey,
-      JSON.stringify(
-        importedIds.filter(
-          (id) => id !== deckId,
-        ),
-      ),
-    );
-
-    setSavedDecks((current) =>
-      current.filter(
-        (deck) => deck.id !== deckId,
-      ),
-    );
+    try {
+      await deleteDeckRecord(deckId);
+      setSavedDecks((current) =>
+        current.filter((deck) => deck.id !== deckId),
+      );
+      setStorageError("");
+    } catch (error) {
+      setStorageError(
+        error instanceof Error ? error.message : "The deck could not be deleted.",
+      );
+    }
   }
 
   async function saveDeckName() {
@@ -155,17 +135,28 @@ export function DeckVaultHome({ plan, deckLimit }: { plan: string; deckLimit: nu
     const name = renameValue.trim();
     if (!name) return;
     const updated = { ...renameDeck, name, updatedAt: "Just now" };
-    const key = await accountStorageKey(`trading-docks-deck:${renameDeck.id}`);
-    localStorage.setItem(key, JSON.stringify(updated));
-    setSavedDecks((current) =>
-      current.map((deck) => (deck.id === updated.id ? updated : deck)),
-    );
-    setRenameDeck(null);
+    try {
+      await saveDeckRecord(updated);
+      setSavedDecks((current) =>
+        current.map((deck) => (deck.id === updated.id ? updated : deck)),
+      );
+      setRenameDeck(null);
+      setStorageError("");
+    } catch (error) {
+      setStorageError(
+        error instanceof Error ? error.message : "The deck name could not be saved.",
+      );
+    }
   }
 
   return (
     <main className="min-h-screen bg-[#020912] px-5 py-7 text-white sm:px-8 lg:px-10">
       <div className="mx-auto max-w-[1500px]">
+        {storageError ? (
+          <div className="mb-5 rounded-2xl border border-rose-400/20 bg-rose-400/[0.06] px-4 py-3 text-sm text-rose-200">
+            {storageError}
+          </div>
+        ) : null}
         <header className="relative overflow-hidden rounded-[30px] border border-sky-300/[0.12] bg-[#06131f] p-6 sm:p-8">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-sky-400/[0.08] blur-3xl" />
           <div className="absolute bottom-[-90px] left-[35%] h-56 w-56 rounded-full bg-violet-500/[0.08] blur-3xl" />
@@ -215,7 +206,7 @@ export function DeckVaultHome({ plan, deckLimit }: { plan: string; deckLimit: nu
         </header>
 
         <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Kpi label="Decks" value={deckLimit === null ? String(savedDecks.length) : `${savedDecks.length} / ${deckLimit}`} detail={deckLimit === null ? "Unlimited on this plan" : `${plan === "free" ? "Free" : "Collector"} plan allowance`} icon={LibraryBig} />
+          <Kpi label="Decks" value={loadingDecks ? "…" : deckLimit === null ? String(savedDecks.length) : `${savedDecks.length} / ${deckLimit}`} detail={deckLimit === null ? "Unlimited on this plan" : `${plan === "free" ? "Free" : "Collector"} plan allowance`} icon={LibraryBig} />
           <Kpi label="Combined Value" value={`$${combinedValue.toFixed(2)}`} detail={savedDecks.length ? "Across saved decks" : "No deck value tracked"} icon={TrendingUp} />
           <Kpi label="Collection Coverage" value="0%" detail={savedDecks.length ? "Add inventory to calculate coverage" : "No decks to compare"} icon={Sparkles} />
           <Kpi label="AI Reviews" value="0" detail="No reviews generated" icon={BrainCircuit} />
