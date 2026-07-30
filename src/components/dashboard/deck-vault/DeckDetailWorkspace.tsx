@@ -2163,6 +2163,7 @@ function DeckCondensedView({
   onSelect: (id: string) => void;
 }) {
   const [hoveredCard, setHoveredCard] = useState<DeckCard | null>(null);
+  const [previewPosition, setPreviewPosition] = useState({ left: 0, top: 0 });
   const groups = groupedDeckCards(cards);
   const mainGroups = groups.filter(
     (group) => group.type !== "Sideboard" && group.type !== "Considering",
@@ -2170,6 +2171,27 @@ function DeckCondensedView({
   const separateGroups = groups.filter(
     (group) => group.type === "Sideboard" || group.type === "Considering",
   );
+
+  const showCardPreview = (
+    card: DeckCard,
+    target: HTMLButtonElement,
+  ) => {
+    const rect = target.getBoundingClientRect();
+    const previewWidth = 260;
+    const previewHeight = 410;
+    const gutter = 14;
+    const viewportPadding = 16;
+    const fitsRight = rect.right + gutter + previewWidth <= window.innerWidth - viewportPadding;
+    const left = fitsRight
+      ? rect.right + gutter
+      : Math.max(viewportPadding, rect.left - gutter - previewWidth);
+    const top = Math.min(
+      window.innerHeight - previewHeight - viewportPadding,
+      Math.max(viewportPadding, rect.top - 34),
+    );
+    setPreviewPosition({ left, top });
+    setHoveredCard(card);
+  };
 
   const renderGroups = (deckGroups: typeof groups) =>
     deckGroups.map((group) => (
@@ -2191,9 +2213,9 @@ function DeckCondensedView({
               key={card.id}
               type="button"
               onClick={() => onSelect(card.id)}
-              onMouseEnter={() => setHoveredCard(card)}
+              onMouseEnter={(event) => showCardPreview(card, event.currentTarget)}
               onMouseLeave={() => setHoveredCard(null)}
-              onFocus={() => setHoveredCard(card)}
+              onFocus={(event) => showCardPreview(card, event.currentTarget)}
               onBlur={() => setHoveredCard(null)}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition hover:bg-cyan-300/[0.06] focus-visible:bg-cyan-300/[0.06] focus-visible:outline-none"
             >
@@ -2241,7 +2263,10 @@ function DeckCondensedView({
         </div>
       ) : null}
       {hoveredCard ? (
-        <div className="pointer-events-none fixed bottom-6 right-6 z-[80] hidden w-[260px] overflow-hidden rounded-[18px] border border-cyan-200/25 bg-[#020810] p-2 shadow-[0_28px_90px_rgba(0,0,0,.75)] lg:block">
+        <div
+          className="pointer-events-none fixed z-[80] hidden w-[260px] overflow-hidden rounded-[18px] border border-cyan-200/25 bg-[#020810] p-2 shadow-[0_28px_90px_rgba(0,0,0,.75)] lg:block"
+          style={{ left: previewPosition.left, top: previewPosition.top }}
+        >
           <img
             src={hoveredCard.image || `/api/deck-vault/card-image?name=${encodeURIComponent(hoveredCard.name)}`}
             alt=""
@@ -2391,9 +2416,9 @@ const SHOWCASE_LAYOUT: Record<
   ShowcaseSize,
   { columns: number; canvasGap: number; previewGap: string }
 > = {
-  square: { columns: 5, canvasGap: 12, previewGap: "0.55rem" },
-  portrait: { columns: 4, canvasGap: 12, previewGap: "0.55rem" },
-  story: { columns: 3, canvasGap: 14, previewGap: "0.65rem" },
+  square: { columns: 6, canvasGap: 10, previewGap: "0.45rem" },
+  portrait: { columns: 5, canvasGap: 10, previewGap: "0.45rem" },
+  story: { columns: 4, canvasGap: 12, previewGap: "0.55rem" },
 };
 
 const SHOWCASE_CATEGORY_ORDER = [
@@ -3332,20 +3357,20 @@ function DeckShowcaseStudio({
                           return (
                             <section
                               key={group.category}
-                              className="flex min-h-0 min-w-0 flex-col overflow-hidden"
+                              className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-cyan-200/10 bg-black/25 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.18)]"
                               style={{
                                 flexGrow: showcaseGroupWeight(group),
                                 flexBasis: 0,
                               }}
                             >
-                              <p className="mb-1 truncate rounded-[4px] bg-black/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.035em] text-white shadow-sm">
-                                {group.category} {group.count}
+                              <p className="mb-1 truncate rounded-[4px] bg-cyan-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.055em] text-white shadow-sm">
+                                {group.category} · {group.count}
                               </p>
                               <div className="relative min-h-0 flex-1 overflow-hidden">
                                 {displayCards.map(({ card, copyIndex }, index) => (
                                   <div
                                     key={`${card.id}-${copyIndex}`}
-                                    className="absolute inset-x-0 mx-auto aspect-[63/88] w-full overflow-hidden rounded-[3px]"
+                                    className="absolute inset-x-0 mx-auto aspect-[63/88] w-[94%] overflow-hidden rounded-[3px]"
                                     style={{ top: `${index * overlapPercent}%` }}
                                   >
                                     <img
