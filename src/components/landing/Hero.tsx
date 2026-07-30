@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
@@ -7,6 +6,10 @@ import {
 } from "lucide-react";
 
 import { DashboardPreview } from "./DashboardPreview";
+import {
+  ExploreLink,
+  TransitionLink,
+} from "@/components/navigation/PolishedNavigation";
 import styles from "./SignatureHero.module.css";
 
 const FEATURE_POINTS = [
@@ -84,21 +87,21 @@ export function Hero() {
             </div>
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link
+              <TransitionLink
                 href="/sign-up"
                 className={`${styles.primaryButton} group inline-flex h-[52px] items-center justify-center gap-3 rounded-[15px] bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-7 text-sm font-semibold text-[#001018] shadow-[0_18px_45px_rgba(34,211,238,0.18),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition hover:-translate-y-0.5 hover:brightness-105`}
               >
                 <span className="relative z-10">Create your workspace</span>
                 <ArrowRight className="relative z-10 h-4 w-4 transition group-hover:translate-x-0.5" />
-              </Link>
+              </TransitionLink>
 
-              <a
+              <ExploreLink
                 href="#platform"
                 className={`${styles.edgeGlow} group inline-flex h-[52px] items-center justify-center gap-3 rounded-[15px] border border-white/[0.085] bg-white/[0.02] px-7 text-sm font-semibold text-slate-200 backdrop-blur-xl`}
               >
                 Explore the platform
                 <ArrowRight className="h-4 w-4 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-300" />
-              </a>
+              </ExploreLink>
             </div>
 
             <div className="mt-6 grid gap-2.5 sm:grid-cols-2">

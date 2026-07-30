@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { RouteEntrance } from "@/components/navigation/PolishedNavigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#03080c] font-sans antialiased">
-        {children}
+        <RouteEntrance>{children}</RouteEntrance>
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { TransitionLink } from "@/components/navigation/PolishedNavigation";
 
 export function FinalCTA() {
   return (
@@ -23,13 +23,13 @@ export function FinalCTA() {
             </p>
           </div>
 
-          <Link
+          <TransitionLink
             href="/sign-up"
             className="primary-button group relative inline-flex h-12 items-center justify-center gap-3 overflow-hidden rounded-2xl px-7 text-sm font-semibold text-[#00131a]"
           >
             <span className="relative z-10">Create your workspace</span>
             <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-[3px]" />
-          </Link>
+          </TransitionLink>
         </div>
       </div>
     </section>
