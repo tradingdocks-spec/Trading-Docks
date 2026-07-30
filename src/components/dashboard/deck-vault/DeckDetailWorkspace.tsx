@@ -2193,7 +2193,7 @@ function DeckStacksView({
   );
 }
 
-type ShowcaseTheme = "harbor" | "midnight" | "color";
+type ShowcaseTheme = "harbor" | "midnight" | "color" | "black";
 type ShowcaseSize = "portrait" | "square" | "story";
 
 const SHOWCASE_CATEGORY_ORDER = [
@@ -2350,6 +2350,8 @@ function DeckShowcaseStudio({
         : "#cbd5e1";
   const publicUrl =
     typeof window === "undefined" ? "tradingdocks.com/decks" : window.location.href;
+  const showcaseFont =
+    'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 
   async function loadCanvasImage(src: string) {
     return await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -2379,10 +2381,14 @@ function DeckShowcaseStudio({
         harbor: ["#031019", "#082c3b", "#19d3e6"],
         midnight: ["#050713", "#151b35", "#8b5cf6"],
         color: ["#05080b", "#111827", identityAccent],
+        black: ["#000000", "#000000", "#67e8f9"],
       };
       const [dark, mid, accent] = palettes[theme];
       const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-      if (theme === "color" && identityColors.length) {
+      if (theme === "black") {
+        gradient.addColorStop(0, "#000000");
+        gradient.addColorStop(1, "#000000");
+      } else if (theme === "color" && identityColors.length) {
         identityColors.forEach((color, index) => {
           gradient.addColorStop(
             identityColors.length === 1
@@ -2399,39 +2405,41 @@ function DeckShowcaseStudio({
       context.fillStyle = gradient;
       context.fillRect(0, 0, canvas.width, canvas.height);
 
-      context.globalAlpha = 0.12;
-      context.strokeStyle = accent;
-      context.lineWidth = 2;
-      for (let x = -canvas.height; x < canvas.width; x += 86) {
-        context.beginPath();
-        context.moveTo(x, 0);
-        context.lineTo(x + canvas.height, canvas.height);
-        context.stroke();
+      if (theme !== "black") {
+        context.globalAlpha = 0.12;
+        context.strokeStyle = accent;
+        context.lineWidth = 2;
+        for (let x = -canvas.height; x < canvas.width; x += 86) {
+          context.beginPath();
+          context.moveTo(x, 0);
+          context.lineTo(x + canvas.height, canvas.height);
+          context.stroke();
+        }
+        context.globalAlpha = 1;
       }
-      context.globalAlpha = 1;
 
       try {
         const brandMark = await loadCanvasImage("/brand/trading-docks-mark.png");
-        context.drawImage(brandMark, 24, 18, 70, 70);
+        context.drawImage(brandMark, 24, 16, 76, 76);
       } catch {
         context.fillStyle = accent;
         context.fillRect(32, 30, 7, 58);
       }
       context.fillStyle = accent;
-      context.font = "800 15px Arial";
+      context.font = `800 15px ${showcaseFont}`;
       context.fillText("DECK VAULT", 91, 55);
       context.fillStyle = "#ffffff";
-      context.font = "800 48px Arial";
+      context.font = `800 48px ${showcaseFont}`;
       wrapCanvasText(context, deckName || "Untitled Deck", 32, 126, 998, 54, 2);
       context.fillStyle = "#94a3b8";
-      context.font = "600 17px Arial";
+      context.font = `600 17px ${showcaseFont}`;
       context.fillText(
         `${format}${commanderName ? `  •  COMMANDER: ${commanderName}` : ""}`,
         32,
         166,
       );
       context.fillStyle = "#ffffff";
-      context.font = "800 18px Arial";
+      context.font = `800 18px ${showcaseFont}`;
       context.fillText(
         `${cardCount} CARDS${showValue ? `  •  DECK VALUE $${marketValue.toFixed(2)}` : ""}`,
         32,
@@ -2445,13 +2453,13 @@ function DeckShowcaseStudio({
         roundedRect(context, 32, statTop, canvas.width - 64, 68, 10);
         context.fill();
 
-        context.font = "800 12px Arial";
+        context.font = `800 12px ${showcaseFont}`;
         context.fillStyle = "#94a3b8";
         context.fillText(`AVG MV`, 50, statTop + 21);
         context.fillText(`CREATURES`, 139, statTop + 21);
         context.fillText(`SPELLS`, 256, statTop + 21);
         context.fillText(`LANDS`, 348, statTop + 21);
-        context.font = "900 19px Arial";
+        context.font = `900 19px ${showcaseFont}`;
         context.fillStyle = "#ffffff";
         context.fillText(stats.averageManaValue.toFixed(2), 50, statTop + 49);
         context.fillText(String(stats.typeCounts.creatures), 139, statTop + 49);
@@ -2472,11 +2480,11 @@ function DeckShowcaseStudio({
           context.arc(x, statTop + 25, 12, 0, Math.PI * 2);
           context.fill();
           context.fillStyle = "#06131f";
-          context.font = "900 12px Arial";
+          context.font = `900 12px ${showcaseFont}`;
           context.textAlign = "center";
           context.fillText(entry.color, x, statTop + 29);
           context.fillStyle = "#cbd5e1";
-          context.font = "800 12px Arial";
+          context.font = `800 12px ${showcaseFont}`;
           context.fillText(String(entry.count), x, statTop + 53);
         });
         context.textAlign = "left";
@@ -2490,7 +2498,7 @@ function DeckShowcaseStudio({
           context.fillStyle = accent;
           context.fillRect(x, curveBottom - height, 27, height);
           context.fillStyle = "#94a3b8";
-          context.font = "700 10px Arial";
+          context.font = `700 10px ${showcaseFont}`;
           context.textAlign = "center";
           context.fillText(index === 7 ? "7+" : String(index), x + 13, statTop + 65);
         });
@@ -2501,12 +2509,15 @@ function DeckShowcaseStudio({
       const posterHeight = posterBottom - posterTop;
       const posterLeft = 24;
       const posterWidth = canvas.width - posterLeft * 2;
-      const columnGap = groups.length > 8 ? 5 : 8;
-      const columnWidth = Math.min(
-        178,
-        (posterWidth - columnGap * Math.max(0, groups.length - 1)) / Math.max(1, groups.length),
-      );
-      const cardWidth = Math.max(78, columnWidth);
+      const columnCount = Math.min(size === "story" ? 4 : 5, Math.max(1, groups.length));
+      const rowCount = Math.ceil(groups.length / columnCount);
+      const columnGap = 9;
+      const rowGap = 18;
+      const columnWidth =
+        (posterWidth - columnGap * Math.max(0, columnCount - 1)) / columnCount;
+      const rowHeight =
+        (posterHeight - rowGap * Math.max(0, rowCount - 1)) / Math.max(1, rowCount);
+      const cardWidth = columnWidth;
       const cardHeight = cardWidth * 1.395;
 
       const loadedImages = new Map<string, HTMLImageElement>();
@@ -2524,12 +2535,15 @@ function DeckShowcaseStudio({
       );
 
       groups.forEach((group, groupIndex) => {
-        const x = posterLeft + groupIndex * (columnWidth + columnGap);
+        const columnIndex = groupIndex % columnCount;
+        const rowIndex = Math.floor(groupIndex / columnCount);
+        const x = posterLeft + columnIndex * (columnWidth + columnGap);
+        const groupTop = posterTop + rowIndex * (rowHeight + rowGap);
         context.fillStyle = accent;
-        context.font = `800 ${groups.length > 8 ? 13 : 16}px Arial`;
-        context.fillText(`${group.category.toUpperCase()}  ${group.count}`, x, posterTop);
-        const cardsTop = posterTop + 20;
-        const availableStackHeight = posterHeight - 20;
+        context.font = `800 14px ${showcaseFont}`;
+        context.fillText(`${group.category.toUpperCase()}  ${group.count}`, x, groupTop);
+        const cardsTop = groupTop + 18;
+        const availableStackHeight = rowHeight - 18;
         const overlap =
           group.cards.length <= 1
             ? 0
@@ -2551,7 +2565,7 @@ function DeckShowcaseStudio({
             roundedRect(context, x, y, cardWidth, cardHeight, 8);
             context.fill();
             context.fillStyle = "#ffffff";
-            context.font = `700 ${Math.max(10, cardWidth * 0.09)}px Arial`;
+            context.font = `700 ${Math.max(10, cardWidth * 0.09)}px ${showcaseFont}`;
             wrapCanvasText(context, card.name, x + 7, y + 24, cardWidth - 14, 14, 3);
           }
           context.strokeStyle = "rgba(255,255,255,.24)";
@@ -2565,7 +2579,7 @@ function DeckShowcaseStudio({
             context.arc(x + cardWidth - 13, y + 13, 12, 0, Math.PI * 2);
             context.fill();
             context.fillStyle = "#001018";
-            context.font = "900 12px Arial";
+            context.font = `900 12px ${showcaseFont}`;
             context.textAlign = "center";
             context.fillText(`×${card.quantity}`, x + cardWidth - 13, y + 17);
             context.textAlign = "left";
@@ -2577,25 +2591,25 @@ function DeckShowcaseStudio({
       context.fillStyle = "rgba(255,255,255,.08)";
       context.fillRect(32, footerY - 22, canvas.width - 64, 1);
       context.fillStyle = "#ffffff";
-      context.font = "800 15px Arial";
+      context.font = `800 15px ${showcaseFont}`;
       context.fillText("BUILT IN THE DECK VAULT", 32, footerY + 8);
       try {
-        const horizontalLogo = await loadCanvasImage("/brand/trading-docks-horizontal.png");
-        const logoWidth = 210;
-        const logoHeight = 72;
+        const footerMark = await loadCanvasImage("/brand/trading-docks-mark.png");
+        const logoWidth = 74;
+        const logoHeight = 74;
         context.drawImage(
-          horizontalLogo,
+          footerMark,
           canvas.width - logoWidth - 28,
-          footerY - 32,
+          footerY - 40,
           logoWidth,
           logoHeight,
         );
       } catch {
-        context.font = "800 16px Arial";
+        context.font = `800 16px ${showcaseFont}`;
         context.fillText("TRADING DOCKS", canvas.width - 190, footerY + 8);
       }
       context.fillStyle = accent;
-      context.font = "600 13px Arial";
+      context.font = `600 13px ${showcaseFont}`;
       context.fillText(
         showLink ? publicUrl.replace(/^https?:\/\//, "").slice(0, 82) : "TRADINGDOCKS.COM",
         32,
@@ -2634,9 +2648,14 @@ function DeckShowcaseStudio({
     harbor: "from-[#0b3444] via-[#04141f] to-[#02070b]",
     midnight: "from-[#1a2040] via-[#080a18] to-[#03040a]",
     color: "",
+    black: "from-black via-black to-black",
   }[theme];
   const previewBackground =
     theme === "color" ? deckIdentityGradient(identityColors) : undefined;
+  const previewColumnCount = Math.min(
+    size === "story" ? 4 : 5,
+    Math.max(1, groups.length),
+  );
 
   return (
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#01070c]/92 p-4 backdrop-blur-xl">
@@ -2678,6 +2697,7 @@ function DeckShowcaseStudio({
                   ["harbor", "Harbor Cyan"],
                   ["midnight", "Midnight Foil"],
                   ["color", "Color Identity"],
+                  ["black", "Pure Black"],
                 ] as const).map(([value, label]) => (
                   <button key={value} type="button" onClick={() => setTheme(value)} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold ${theme === value ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100" : "border-white/[0.07] text-slate-500"}`}>
                     {label}
@@ -2705,8 +2725,10 @@ function DeckShowcaseStudio({
                 className={`relative w-full max-w-[760px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${previewGradient} p-4 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-5 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[430px]" : "aspect-[4/5]"}`}
                 style={previewBackground ? { backgroundImage: previewBackground } : undefined}
               >
-                <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
-                <div className="relative flex h-full flex-col">
+                {theme !== "black" ? (
+                  <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
+                ) : null}
+                <div className="relative flex h-full flex-col font-sans">
                   <div className="flex items-center gap-1.5">
                     <img
                       src="/brand/trading-docks-mark.png"
@@ -2747,18 +2769,24 @@ function DeckShowcaseStudio({
                       </div>
                     </div>
                   ) : null}
-                  <div className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 auto-cols-fr grid-flow-col gap-1 overflow-hidden`}>
+                  <div
+                    className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 gap-x-1.5 gap-y-2 overflow-hidden`}
+                    style={{
+                      gridTemplateColumns: `repeat(${previewColumnCount}, minmax(0, 1fr))`,
+                      gridTemplateRows: `repeat(${Math.ceil(groups.length / previewColumnCount)}, minmax(0, 1fr))`,
+                    }}
+                  >
                     {groups.map((group) => {
                       const overlapPercent =
                         group.cards.length <= 1
                           ? 0
-                          : Math.min(17, 70 / Math.max(1, group.cards.length - 1));
+                          : Math.min(19, 66 / Math.max(1, group.cards.length - 1));
                       return (
                         <div key={group.category} className="min-w-0">
                           <p className="mb-1 truncate text-[6px] font-black uppercase tracking-[0.08em] text-cyan-300">
                             {group.category} {group.count}
                           </p>
-                          <div className="relative h-full">
+                          <div className="relative h-[calc(100%-10px)]">
                             {group.cards.map((card, index) => (
                               <div
                                 key={card.id}
@@ -2789,9 +2817,9 @@ function DeckShowcaseStudio({
                         <p className="mt-0.5 truncate text-[6px] font-semibold text-cyan-300">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
                       </div>
                       <img
-                        src="/brand/trading-docks-horizontal.png"
+                        src="/brand/trading-docks-mark.png"
                         alt="Trading Docks"
-                        className="h-7 w-auto max-w-[110px] object-contain"
+                        className="h-9 w-9 object-contain"
                       />
                     </div>
                   </div>
