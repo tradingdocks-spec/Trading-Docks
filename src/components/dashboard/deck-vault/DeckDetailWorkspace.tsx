@@ -2196,6 +2196,41 @@ function DeckStacksView({
 type ShowcaseTheme = "harbor" | "midnight" | "color";
 type ShowcaseSize = "portrait" | "square" | "story";
 
+const SHOWCASE_CATEGORY_ORDER = [
+  "Commander", "Planeswalker", "Creature", "Artifact", "Enchantment",
+  "Instant", "Sorcery", "Battle", "Land", "Sideboard", "Considering",
+];
+
+function showcaseCategory(card: DeckCard) {
+  if (card.board === "commander" || card.category === "Commander") return "Commander";
+  if (card.board === "sideboard") return "Sideboard";
+  if (card.board === "maybeboard") return "Considering";
+  const type = card.typeLine.toLowerCase();
+  for (const category of SHOWCASE_CATEGORY_ORDER.slice(1, 9)) {
+    if (type.includes(category.toLowerCase())) return category;
+  }
+  return card.category || "Other";
+}
+
+function buildShowcaseGroups(cards: DeckCard[]) {
+  const groups = new Map<string, DeckCard[]>();
+  cards.forEach((card) => {
+    const category = showcaseCategory(card);
+    groups.set(category, [...(groups.get(category) ?? []), card]);
+  });
+  return [...groups.entries()]
+    .sort(([left], [right]) => {
+      const leftIndex = SHOWCASE_CATEGORY_ORDER.indexOf(left);
+      const rightIndex = SHOWCASE_CATEGORY_ORDER.indexOf(right);
+      return (leftIndex < 0 ? 999 : leftIndex) - (rightIndex < 0 ? 999 : rightIndex);
+    })
+    .map(([category, groupCards]) => ({
+      category,
+      cards: groupCards.sort((a, b) => a.manaValue - b.manaValue || a.name.localeCompare(b.name)),
+      count: groupCards.reduce((total, card) => total + card.quantity, 0),
+    }));
+}
+
 function DeckShowcaseStudio({
   deckName,
   commanderName,
@@ -2216,13 +2251,7 @@ function DeckShowcaseStudio({
   const [showValue, setShowValue] = useState(true);
   const [showLink, setShowLink] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const commander =
-    cards.find((card) => card.board === "commander" || card.category === "Commander") ??
-    cards[0];
-  const featured = cards
-    .filter((card) => card.id !== commander?.id && card.board !== "sideboard")
-    .sort((a, b) => b.price - a.price)
-    .slice(0, 8);
+  const groups = buildShowcaseGroups(cards);
   const cardCount = cards.reduce((total, card) => total + card.quantity, 0);
   const publicUrl =
     typeof window === "undefined" ? "tradingdocks.com/decks" : window.location.href;
@@ -2286,54 +2315,76 @@ function DeckShowcaseStudio({
       context.font = "500 23px Arial";
       context.fillText(`${format}  •  ${cardCount} CARDS${showValue ? `  •  $${marketValue.toFixed(2)}` : ""}`, 98, 250);
 
-      const commanderSource = commander
-        ? `/api/deck-vault/card-image?name=${encodeURIComponent(commander.name)}`
-        : "";
-      if (commanderSource) {
-        try {
-          const image = await loadCanvasImage(commanderSource);
-          drawRoundedImage(context, image, 70, 305, 342, 478, 24);
-          context.strokeStyle = accent;
-          context.lineWidth = 5;
-          roundedRect(context, 70, 305, 342, 478, 24);
+      const posterTop = 304;
+      const posterBottom = canvas.height - 176;
+      const posterHeight = posterBottom - posterTop;
+      const posterLeft = 56;
+      const posterWidth = canvas.width - posterLeft * 2;
+      const columnGap = groups.length > 8 ? 7 : 11;
+      const columnWidth = Math.min(
+        154,
+        (posterWidth - columnGap * Math.max(0, groups.length - 1)) / Math.max(1, groups.length),
+      );
+      const cardWidth = Math.max(72, columnWidth);
+      const cardHeight = cardWidth * 1.395;
+
+      const loadedImages = new Map<string, HTMLImageElement>();
+      await Promise.all(
+        cards.map(async (card) => {
+          try {
+            const image = await loadCanvasImage(
+              card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`,
+            );
+            loadedImages.set(card.id, image);
+          } catch {
+            // Keep exporting the complete deck when an individual image is unavailable.
+          }
+        }),
+      );
+
+      groups.forEach((group, groupIndex) => {
+        const x = posterLeft + groupIndex * (columnWidth + columnGap);
+        context.fillStyle = accent;
+        context.font = `800 ${groups.length > 8 ? 13 : 16}px Arial`;
+        context.fillText(`${group.category.toUpperCase()}  ${group.count}`, x, posterTop);
+        const cardsTop = posterTop + 22;
+        const availableStackHeight = posterHeight - 22;
+        const overlap =
+          group.cards.length <= 1
+            ? 0
+            : Math.max(17, Math.min(44, (availableStackHeight - cardHeight) / (group.cards.length - 1)));
+
+        group.cards.forEach((card, cardIndex) => {
+          const y = cardsTop + cardIndex * overlap;
+          const image = loadedImages.get(card.id);
+          if (image) {
+            drawRoundedImage(context, image, x, y, cardWidth, cardHeight, 8);
+          } else {
+            context.fillStyle = "#102331";
+            roundedRect(context, x, y, cardWidth, cardHeight, 8);
+            context.fill();
+            context.fillStyle = "#ffffff";
+            context.font = `700 ${Math.max(10, cardWidth * 0.09)}px Arial`;
+            wrapCanvasText(context, card.name, x + 7, y + 24, cardWidth - 14, 14, 3);
+          }
+          context.strokeStyle = "rgba(255,255,255,.24)";
+          context.lineWidth = 1;
+          roundedRect(context, x, y, cardWidth, cardHeight, 8);
           context.stroke();
-        } catch {
-          context.fillStyle = mid;
-          roundedRect(context, 70, 305, 342, 478, 24);
-          context.fill();
-        }
-      }
 
-      context.fillStyle = accent;
-      context.font = "700 18px Arial";
-      context.fillText("COMMANDER", 70, 825);
-      context.fillStyle = "#ffffff";
-      context.font = "700 30px Arial";
-      wrapCanvasText(context, commanderName || commander?.name || "Commander", 70, 865, 350, 34, 2);
-
-      const cardWidth = 132;
-      const cardHeight = 184;
-      const gap = 22;
-      for (let index = 0; index < featured.length; index += 1) {
-        const column = index % 4;
-        const row = Math.floor(index / 4);
-        const x = 466 + column * (cardWidth + gap);
-        const y = 322 + row * (cardHeight + 80);
-        const card = featured[index];
-        try {
-          const image = await loadCanvasImage(
-            `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`,
-          );
-          drawRoundedImage(context, image, x, y, cardWidth, cardHeight, 12);
-        } catch {
-          context.fillStyle = "#102331";
-          roundedRect(context, x, y, cardWidth, cardHeight, 12);
-          context.fill();
-        }
-        context.fillStyle = "#ffffff";
-        context.font = "600 15px Arial";
-        wrapCanvasText(context, card.name, x, y + cardHeight + 22, cardWidth, 18, 2);
-      }
+          if (card.quantity > 1) {
+            context.fillStyle = accent;
+            context.beginPath();
+            context.arc(x + cardWidth - 13, y + 13, 12, 0, Math.PI * 2);
+            context.fill();
+            context.fillStyle = "#001018";
+            context.font = "900 12px Arial";
+            context.textAlign = "center";
+            context.fillText(`×${card.quantity}`, x + cardWidth - 13, y + 17);
+            context.textAlign = "left";
+          }
+        });
+      });
 
       const footerY = canvas.height - 124;
       context.fillStyle = "rgba(255,255,255,.08)";
@@ -2427,9 +2478,9 @@ function DeckShowcaseStudio({
                 <ShowcaseToggle label="Public deck link" checked={showLink} onChange={setShowLink} />
               </ShowcaseControl>
               <div className="mt-7 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.035] p-4">
-                <p className="text-[11px] font-semibold text-cyan-100">Built-in discovery</p>
+                <p className="text-[11px] font-semibold text-cyan-100">Full-deck poster</p>
                 <p className="mt-2 text-[11px] leading-5 text-slate-500">
-                  Every export carries the Trading Docks Deck Vault signature and a path back to the live deck.
+                  Every card is included. Duplicate copies are combined into physical-style stacks, and every export carries the Trading Docks signature.
                 </p>
               </div>
               <button type="button" onClick={() => void exportShowcase()} disabled={exporting} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-400 text-[12px] font-black text-[#00121c] disabled:opacity-60">
@@ -2446,20 +2497,40 @@ function DeckShowcaseStudio({
                   <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                     {format} · {cardCount} cards {showValue ? `· $${marketValue.toFixed(2)}` : ""}
                   </p>
-                  <div className="mt-5 grid min-h-0 flex-1 grid-cols-[34%_1fr] gap-5">
-                    <div>
-                      <img src={commander?.image || `/api/deck-vault/card-image?name=${encodeURIComponent(commander?.name || commanderName)}`} alt="" className="w-full rounded-xl border-2 border-cyan-300/60 shadow-[0_12px_40px_rgba(0,0,0,.5)]" />
-                      <p className="mt-3 text-[8px] font-black uppercase tracking-[0.16em] text-cyan-300">Commander</p>
-                      <p className="mt-1 text-[11px] font-bold leading-tight text-white">{commanderName || commander?.name}</p>
-                    </div>
-                    <div className="grid grid-cols-4 content-start gap-2">
-                      {featured.map((card) => (
-                        <div key={card.id} className="min-w-0">
-                          <img src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`} alt="" className="w-full rounded-md border border-white/10 shadow-lg" />
-                          <p className="mt-1 truncate text-[6px] font-semibold text-slate-300">{card.name}</p>
+                  <div className="mt-5 grid min-h-0 flex-1 auto-cols-fr grid-flow-col gap-1.5 overflow-hidden">
+                    {groups.map((group) => {
+                      const overlapPercent =
+                        group.cards.length <= 1
+                          ? 0
+                          : Math.max(12, Math.min(34, 72 / group.cards.length));
+                      return (
+                        <div key={group.category} className="min-w-0">
+                          <p className="mb-1 truncate text-[6px] font-black uppercase tracking-[0.08em] text-cyan-300">
+                            {group.category} {group.count}
+                          </p>
+                          <div className="relative h-full">
+                            {group.cards.map((card, index) => (
+                              <div
+                                key={card.id}
+                                className="absolute left-0 w-full"
+                                style={{ top: `${index * overlapPercent * 0.8}px` }}
+                              >
+                                <img
+                                  src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
+                                  alt={card.name}
+                                  className="w-full rounded-[3px] border border-white/20 shadow-md"
+                                />
+                                {card.quantity > 1 ? (
+                                  <span className="absolute right-0.5 top-0.5 rounded-full bg-cyan-300 px-1 text-[5px] font-black text-[#00121c]">
+                                    ×{card.quantity}
+                                  </span>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
                   <div className="mt-4 border-t border-white/10 pt-3">
                     <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white">Built in the Trading Docks Deck Vault</p>
