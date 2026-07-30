@@ -2282,6 +2282,41 @@ function buildShowcaseStats(cards: DeckCard[]) {
   return { averageManaValue, typeCounts, colorCounts, manaCurve };
 }
 
+const SHOWCASE_COLOR_PALETTE: Record<ManaColor, { bright: string; deep: string }> = {
+  W: { bright: "#f5e6b3", deep: "#766b42" },
+  U: { bright: "#38a8e8", deep: "#124b73" },
+  B: { bright: "#9b89ad", deep: "#35283e" },
+  R: { bright: "#ef6351", deep: "#782b25" },
+  G: { bright: "#43c985", deep: "#175c3d" },
+  C: { bright: "#cbd5e1", deep: "#334155" },
+};
+
+function buildDeckIdentityColors(cards: DeckCard[]) {
+  const present = new Set<ManaColor>();
+  cards.forEach((card) => {
+    card.colors.forEach((color) => {
+      if (color in SHOWCASE_COLOR_PALETTE) present.add(color);
+    });
+  });
+  return (["W", "U", "B", "R", "G"] as ManaColor[]).filter((color) =>
+    present.has(color),
+  );
+}
+
+function deckIdentityGradient(colors: ManaColor[]) {
+  if (!colors.length) {
+    return "linear-gradient(135deg,#334155 0%,#111827 46%,#020617 100%)";
+  }
+  const stops = colors
+    .map((color, index) => {
+      const position =
+        colors.length === 1 ? 0 : Math.round((index / (colors.length - 1)) * 100);
+      return `${SHOWCASE_COLOR_PALETTE[color].deep} ${position}%`;
+    })
+    .join(",");
+  return `linear-gradient(135deg,${stops},#020609 100%)`;
+}
+
 function DeckShowcaseStudio({
   deckName,
   commanderName,
@@ -2306,6 +2341,13 @@ function DeckShowcaseStudio({
   const groups = buildShowcaseGroups(cards);
   const cardCount = cards.reduce((total, card) => total + card.quantity, 0);
   const stats = buildShowcaseStats(cards);
+  const identityColors = buildDeckIdentityColors(cards);
+  const identityAccent =
+    identityColors.length > 1
+      ? SHOWCASE_COLOR_PALETTE[identityColors[1]].bright
+      : identityColors.length
+        ? SHOWCASE_COLOR_PALETTE[identityColors[0]].bright
+        : "#cbd5e1";
   const publicUrl =
     typeof window === "undefined" ? "tradingdocks.com/decks" : window.location.href;
 
@@ -2336,12 +2378,23 @@ function DeckShowcaseStudio({
       const palettes = {
         harbor: ["#031019", "#082c3b", "#19d3e6"],
         midnight: ["#050713", "#151b35", "#8b5cf6"],
-        color: ["#07130e", "#123a2b", "#34d399"],
+        color: ["#05080b", "#111827", identityAccent],
       };
       const [dark, mid, accent] = palettes[theme];
       const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, mid);
-      gradient.addColorStop(0.42, dark);
+      if (theme === "color" && identityColors.length) {
+        identityColors.forEach((color, index) => {
+          gradient.addColorStop(
+            identityColors.length === 1
+              ? 0
+              : (index / Math.max(1, identityColors.length - 1)) * 0.72,
+            SHOWCASE_COLOR_PALETTE[color].deep,
+          );
+        });
+      } else {
+        gradient.addColorStop(0, mid);
+        gradient.addColorStop(0.42, dark);
+      }
       gradient.addColorStop(1, "#010509");
       context.fillStyle = gradient;
       context.fillRect(0, 0, canvas.width, canvas.height);
@@ -2357,25 +2410,31 @@ function DeckShowcaseStudio({
       }
       context.globalAlpha = 1;
 
+      try {
+        const brandMark = await loadCanvasImage("/brand/trading-docks-mark.png");
+        context.drawImage(brandMark, 24, 18, 70, 70);
+      } catch {
+        context.fillStyle = accent;
+        context.fillRect(32, 30, 7, 58);
+      }
       context.fillStyle = accent;
-      context.fillRect(32, 30, 7, 118);
-      context.font = "700 20px Arial";
-      context.fillText("TRADING DOCKS  /  DECK VAULT", 58, 55);
+      context.font = "800 15px Arial";
+      context.fillText("DECK VAULT", 91, 55);
       context.fillStyle = "#ffffff";
       context.font = "800 48px Arial";
-      wrapCanvasText(context, deckName || "Untitled Deck", 58, 108, 930, 54, 2);
+      wrapCanvasText(context, deckName || "Untitled Deck", 32, 126, 998, 54, 2);
       context.fillStyle = "#94a3b8";
       context.font = "600 17px Arial";
       context.fillText(
         `${format}${commanderName ? `  •  COMMANDER: ${commanderName}` : ""}`,
-        58,
-        164,
+        32,
+        166,
       );
       context.fillStyle = "#ffffff";
       context.font = "800 18px Arial";
       context.fillText(
         `${cardCount} CARDS${showValue ? `  •  DECK VALUE $${marketValue.toFixed(2)}` : ""}`,
-        58,
+        32,
         193,
       );
 
@@ -2518,8 +2577,23 @@ function DeckShowcaseStudio({
       context.fillStyle = "rgba(255,255,255,.08)";
       context.fillRect(32, footerY - 22, canvas.width - 64, 1);
       context.fillStyle = "#ffffff";
-      context.font = "800 17px Arial";
-      context.fillText("BUILT IN THE TRADING DOCKS DECK VAULT", 32, footerY + 8);
+      context.font = "800 15px Arial";
+      context.fillText("BUILT IN THE DECK VAULT", 32, footerY + 8);
+      try {
+        const horizontalLogo = await loadCanvasImage("/brand/trading-docks-horizontal.png");
+        const logoWidth = 210;
+        const logoHeight = 72;
+        context.drawImage(
+          horizontalLogo,
+          canvas.width - logoWidth - 28,
+          footerY - 32,
+          logoWidth,
+          logoHeight,
+        );
+      } catch {
+        context.font = "800 16px Arial";
+        context.fillText("TRADING DOCKS", canvas.width - 190, footerY + 8);
+      }
       context.fillStyle = accent;
       context.font = "600 13px Arial";
       context.fillText(
@@ -2559,19 +2633,28 @@ function DeckShowcaseStudio({
   const previewGradient = {
     harbor: "from-[#0b3444] via-[#04141f] to-[#02070b]",
     midnight: "from-[#1a2040] via-[#080a18] to-[#03040a]",
-    color: "from-[#174633] via-[#071b12] to-[#020905]",
+    color: "",
   }[theme];
+  const previewBackground =
+    theme === "color" ? deckIdentityGradient(identityColors) : undefined;
 
   return (
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#01070c]/92 p-4 backdrop-blur-xl">
       <div className="mx-auto flex min-h-full max-w-[1480px] items-center justify-center">
         <section className="w-full overflow-hidden rounded-[28px] border border-cyan-300/15 bg-[#06131f] shadow-[0_30px_120px_rgba(0,0,0,.65)]">
           <header className="flex items-center justify-between border-b border-white/[0.07] px-6 py-5">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">
-                Trading Docks Showcase Studio
-              </p>
+            <div className="flex items-center gap-4">
+              <img
+                src="/brand/trading-docks-horizontal.png"
+                alt="Trading Docks"
+                className="hidden h-10 w-auto max-w-[150px] object-contain sm:block"
+              />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">
+                  Showcase Studio
+                </p>
               <h2 className="mt-1 text-xl font-semibold text-white">Turn your deck into a shareable poster</h2>
+              </div>
             </div>
             <button type="button" onClick={onClose} className="rounded-xl border border-white/10 p-2.5 text-slate-400 hover:text-white">
               <X className="h-5 w-5" />
@@ -2618,10 +2701,22 @@ function DeckShowcaseStudio({
               </button>
             </aside>
             <main className="flex min-h-[720px] items-center justify-center overflow-hidden bg-[#02090e] p-3 sm:p-5">
-              <div className={`relative w-full max-w-[760px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${previewGradient} p-4 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-5 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[430px]" : "aspect-[4/5]"}`}>
+              <div
+                className={`relative w-full max-w-[760px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${previewGradient} p-4 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-5 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[430px]" : "aspect-[4/5]"}`}
+                style={previewBackground ? { backgroundImage: previewBackground } : undefined}
+              >
                 <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
                 <div className="relative flex h-full flex-col">
-                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-cyan-300">Trading Docks / Deck Vault</p>
+                  <div className="flex items-center gap-1.5">
+                    <img
+                      src="/brand/trading-docks-mark.png"
+                      alt="Trading Docks"
+                      className="h-7 w-7 object-contain"
+                    />
+                    <p className="text-[7px] font-black uppercase tracking-[0.2em] text-cyan-200">
+                      Deck Vault
+                    </p>
+                  </div>
                   <h3 className="mt-1 text-[clamp(20px,3.5vw,34px)] font-black leading-[1.02] text-white">{deckName}</h3>
                   <p className="mt-1 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">
                     {format}{commanderName ? ` · Commander: ${commanderName}` : ""}
@@ -2688,8 +2783,17 @@ function DeckShowcaseStudio({
                     })}
                   </div>
                   <div className="mt-2 border-t border-white/10 pt-2">
-                    <p className="text-[7px] font-black uppercase tracking-[0.13em] text-white">Built in the Trading Docks Deck Vault</p>
-                    <p className="mt-0.5 truncate text-[6px] font-semibold text-cyan-300">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[7px] font-black uppercase tracking-[0.13em] text-white">Built in the Deck Vault</p>
+                        <p className="mt-0.5 truncate text-[6px] font-semibold text-cyan-300">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
+                      </div>
+                      <img
+                        src="/brand/trading-docks-horizontal.png"
+                        alt="Trading Docks"
+                        className="h-7 w-auto max-w-[110px] object-contain"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
