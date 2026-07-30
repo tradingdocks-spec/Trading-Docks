@@ -2419,15 +2419,12 @@ function DeckShowcaseStudio({
       }
 
       try {
-        const brandMark = await loadCanvasImage("/brand/trading-docks-mark.png");
-        context.drawImage(brandMark, 24, 16, 76, 76);
+        const brandLogo = await loadCanvasImage("/brand/trading-docks-horizontal.png");
+        context.drawImage(brandLogo, 24, 14, 224, 74);
       } catch {
         context.fillStyle = accent;
         context.fillRect(32, 30, 7, 58);
       }
-      context.fillStyle = accent;
-      context.font = `800 15px ${showcaseFont}`;
-      context.fillText("DECK VAULT", 91, 55);
       context.fillStyle = "#ffffff";
       context.font = `800 48px ${showcaseFont}`;
       wrapCanvasText(context, deckName || "Untitled Deck", 32, 126, 998, 54, 2);
@@ -2537,7 +2534,14 @@ function DeckShowcaseStudio({
       groups.forEach((group, groupIndex) => {
         const columnIndex = groupIndex % columnCount;
         const rowIndex = Math.floor(groupIndex / columnCount);
-        const x = posterLeft + columnIndex * (columnWidth + columnGap);
+        const groupsInRow = Math.min(
+          columnCount,
+          groups.length - rowIndex * columnCount,
+        );
+        const rowContentWidth =
+          groupsInRow * columnWidth + Math.max(0, groupsInRow - 1) * columnGap;
+        const rowLeft = posterLeft + (posterWidth - rowContentWidth) / 2;
+        const x = rowLeft + columnIndex * (columnWidth + columnGap);
         const groupTop = posterTop + rowIndex * (rowHeight + rowGap);
         context.fillStyle = accent;
         context.font = `800 14px ${showcaseFont}`;
@@ -2548,10 +2552,11 @@ function DeckShowcaseStudio({
           group.cards.length <= 1
             ? 0
             : Math.max(
-                20,
+                4,
                 Math.min(
-                  cardHeight * 0.58,
-                  (availableStackHeight - cardHeight) / (group.cards.length - 1),
+                  cardHeight * 0.5,
+                  Math.max(4, availableStackHeight - cardHeight) /
+                    (group.cards.length - 1),
                 ),
               );
 
@@ -2594,13 +2599,13 @@ function DeckShowcaseStudio({
       context.font = `800 15px ${showcaseFont}`;
       context.fillText("BUILT IN THE DECK VAULT", 32, footerY + 8);
       try {
-        const footerMark = await loadCanvasImage("/brand/trading-docks-mark.png");
-        const logoWidth = 74;
-        const logoHeight = 74;
+        const footerLogo = await loadCanvasImage("/brand/trading-docks-horizontal.png");
+        const logoWidth = 188;
+        const logoHeight = 62;
         context.drawImage(
-          footerMark,
+          footerLogo,
           canvas.width - logoWidth - 28,
-          footerY - 40,
+          footerY - 34,
           logoWidth,
           logoHeight,
         );
@@ -2729,15 +2734,12 @@ function DeckShowcaseStudio({
                   <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
                 ) : null}
                 <div className="relative flex h-full flex-col font-sans">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex min-h-8 items-center">
                     <img
-                      src="/brand/trading-docks-mark.png"
+                      src="/brand/trading-docks-horizontal.png"
                       alt="Trading Docks"
-                      className="h-7 w-7 object-contain"
+                      className="h-8 w-auto max-w-[150px] object-contain object-left"
                     />
-                    <p className="text-[7px] font-black uppercase tracking-[0.2em] text-cyan-200">
-                      Deck Vault
-                    </p>
                   </div>
                   <h3 className="mt-1 text-[clamp(20px,3.5vw,34px)] font-black leading-[1.02] text-white">{deckName}</h3>
                   <p className="mt-1 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">
@@ -2776,13 +2778,31 @@ function DeckShowcaseStudio({
                       gridTemplateRows: `repeat(${Math.ceil(groups.length / previewColumnCount)}, minmax(0, 1fr))`,
                     }}
                   >
-                    {groups.map((group) => {
+                    {groups.map((group, groupIndex) => {
                       const overlapPercent =
                         group.cards.length <= 1
                           ? 0
-                          : Math.min(19, 66 / Math.max(1, group.cards.length - 1));
+                          : Math.min(16, 58 / Math.max(1, group.cards.length - 1));
+                      const rowIndex = Math.floor(groupIndex / previewColumnCount);
+                      const groupsInRow = Math.min(
+                        previewColumnCount,
+                        groups.length - rowIndex * previewColumnCount,
+                      );
+                      const isPartialRow = groupsInRow < previewColumnCount;
+                      const firstColumnInRow = groupIndex % previewColumnCount === 0;
                       return (
-                        <div key={group.category} className="min-w-0">
+                        <div
+                          key={group.category}
+                          className="min-w-0"
+                          style={
+                            isPartialRow && firstColumnInRow
+                              ? {
+                                  gridColumnStart:
+                                    Math.floor((previewColumnCount - groupsInRow) / 2) + 1,
+                                }
+                              : undefined
+                          }
+                        >
                           <p className="mb-1 truncate text-[6px] font-black uppercase tracking-[0.08em] text-cyan-300">
                             {group.category} {group.count}
                           </p>
@@ -2817,9 +2837,9 @@ function DeckShowcaseStudio({
                         <p className="mt-0.5 truncate text-[6px] font-semibold text-cyan-300">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
                       </div>
                       <img
-                        src="/brand/trading-docks-mark.png"
+                        src="/brand/trading-docks-horizontal.png"
                         alt="Trading Docks"
-                        className="h-9 w-9 object-contain"
+                        className="h-8 w-auto max-w-[130px] object-contain object-right"
                       />
                     </div>
                   </div>
