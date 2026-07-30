@@ -302,20 +302,26 @@ export function InventoryWorkspace({
     );
     void createClient()
       .auth.getUser()
-      .then(({ data: { user } }) => {
-        if (!user) return;
-        return createClient()
-          .from("account_card_usage")
-          .upsert(
-            {
-              user_id: user.id,
-              card_units: cardUnits,
-              unique_inventory_rows: items.length,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" },
-          );
-      });
+      .then(
+        ({
+          data: { user },
+        }: {
+          data: { user: { id: string } | null };
+        }) => {
+          if (!user) return;
+          return createClient()
+            .from("account_card_usage")
+            .upsert(
+              {
+                user_id: user.id,
+                card_units: cardUnits,
+                unique_inventory_rows: items.length,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" },
+            );
+        },
+      );
   }, [items, storageKeys]);
 
   useEffect(() => {
