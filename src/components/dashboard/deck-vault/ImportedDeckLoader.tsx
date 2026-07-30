@@ -17,14 +17,18 @@ export function ImportedDeckLoader({
 }) {
   const [deck, setDeck] = useState<DeckRecord | null>(fallback ?? null);
   const [ready, setReady] = useState(Boolean(fallback));
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     if (fallback) return;
     void (async () => {
     try {
       setDeck(await loadDeckRecord(deckId));
-    } catch {
+    } catch (error) {
       setDeck(null);
+      setLoadError(
+        error instanceof Error ? error.message : "The deck could not be loaded.",
+      );
     } finally {
       setReady(true);
     }
@@ -49,7 +53,8 @@ export function ImportedDeckLoader({
           <TriangleAlert className="mx-auto h-8 w-8 text-amber-300" />
           <h1 className="mt-4 text-2xl font-semibold">Imported deck not found</h1>
           <p className="mt-3 text-[14px] leading-6 text-slate-400">
-            This deck was not found in your account. Confirm that you are signed into the account that imported it, or import it again.
+            {loadError ||
+              "This deck was not found in your account. Confirm that you are signed into the account that imported it."}
           </p>
           <Link href="/dashboard/deck-vault/import" className="mt-5 inline-flex h-11 items-center rounded-xl bg-cyan-300 px-5 text-[13px] font-semibold text-[#00121c]">
             Return to Import Center

@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -203,6 +204,9 @@ export function DeckDetailWorkspace({
     useState<DeckIntelligenceReport | null>(null);
   const [intelligenceLoading, setIntelligenceLoading] =
     useState(false);
+  const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
+  const [saveError, setSaveError] = useState("");
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const analytics = useMemo(
     () => deckAnalytics(cards),
@@ -216,10 +220,6 @@ export function DeckDetailWorkspace({
     format === "EDH" || format === "Pauper EDH";
 
   useEffect(() => {
-    if (!deck.id.startsWith("imported-")) {
-      return;
-    }
-
     const timeout = window.setTimeout(() => {
       const mainCards = cards.filter(
         (card) =>
@@ -307,7 +307,22 @@ export function DeckDetailWorkspace({
         cards,
       };
 
-      void saveDeckRecord(updatedDeck);
+      setSaveState("saving");
+      setSaveError("");
+      saveQueueRef.current = saveQueueRef.current
+        .catch(() => undefined)
+        .then(() => saveDeckRecord(updatedDeck))
+        .then(() => {
+          setSaveState("saved");
+        })
+        .catch((error) => {
+          setSaveState("error");
+          setSaveError(
+            error instanceof Error
+              ? error.message
+              : "Your deck changes could not be saved.",
+          );
+        });
     }, 350);
 
     return () =>
@@ -676,6 +691,24 @@ export function DeckDetailWorkspace({
           commanderSearching={commanderSearching}
           selectCommander={selectCommander}
         />
+        <div
+          className={[
+            "mt-3 flex items-center justify-between rounded-xl border px-4 py-2 text-xs",
+            saveState === "error"
+              ? "border-rose-300/20 bg-rose-400/10 text-rose-100"
+              : "border-white/[0.06] bg-[#06131f] text-slate-400",
+          ].join(" ")}
+          role={saveState === "error" ? "alert" : "status"}
+        >
+          <span>
+            {saveState === "saving"
+              ? "Saving this deck to your account…"
+              : saveState === "error"
+                ? saveError
+                : "Saved to your Trading Docks account"}
+          </span>
+          {saveState === "saved" ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : null}
+        </div>
 
         <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#06131f] p-2">
           {[

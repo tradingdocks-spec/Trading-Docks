@@ -57,10 +57,22 @@ export async function loadDeckRecord(deckId: string) {
 }
 
 export async function saveDeckRecord(deck: DeckRecord, unresolved?: unknown[]) {
-  await saveDeckRow(deck, unresolved);
+  const saveToken = crypto.randomUUID();
+  const deckWithSaveToken = {
+    ...deck,
+    accountSaveToken: saveToken,
+  } as DeckRecord & { accountSaveToken: string };
+  await saveDeckRow(deckWithSaveToken, unresolved);
 
-  const saved = await loadDeckRecord(deck.id);
-  if (!saved || saved.id !== deck.id) {
+  const saved = (await loadDeckRecord(deck.id)) as
+    | (DeckRecord & { accountSaveToken?: string })
+    | null;
+  if (
+    !saved ||
+    saved.id !== deck.id ||
+    saved.accountSaveToken !== saveToken ||
+    saved.cards.length !== deck.cards.length
+  ) {
     throw new Error("Trading Docks could not verify that this deck was saved. Please try again.");
   }
 }
@@ -110,7 +122,7 @@ async function loadLegacyDeckVault(): Promise<DeckRecord[]> {
 
 async function saveDeckRow(deck: DeckRecord, unresolved?: unknown[]) {
   const { supabase, userId } = await authenticatedClient();
-  const { error } = await supabase.from("deck_vault_decks").upsert(
+  const { data, error } = await supabase.from("deck_vault_decks").upsert(
     {
       user_id: userId,
       deck_key: deck.id,
@@ -122,8 +134,11 @@ async function saveDeckRow(deck: DeckRecord, unresolved?: unknown[]) {
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,deck_key" },
-  );
+  ).select("user_id,deck_key").single();
   if (error) throw deckStorageError("The deck could not be saved", error.message);
+  if (!data || data.user_id !== userId || data.deck_key !== deck.id) {
+    throw new Error("The deck could not be saved: the account write was not confirmed.");
+  }
 }
 
 async function authenticatedClient() {
