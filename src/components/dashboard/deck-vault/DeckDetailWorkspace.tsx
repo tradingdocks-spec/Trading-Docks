@@ -2229,6 +2229,7 @@ function DeckStacksView({
 
 type ShowcaseTheme = "harbor" | "midnight" | "color" | "black";
 type ShowcaseSize = "portrait" | "square" | "story";
+type ShowcaseDisplay = "cards" | "text";
 
 const SHOWCASE_LAYOUT: Record<
   ShowcaseSize,
@@ -2386,6 +2387,7 @@ function DeckShowcaseStudio({
 }) {
   const [theme, setTheme] = useState<ShowcaseTheme>("harbor");
   const [size, setSize] = useState<ShowcaseSize>("portrait");
+  const [display, setDisplay] = useState<ShowcaseDisplay>("cards");
   const [showValue, setShowValue] = useState(true);
   const [showStats, setShowStats] = useState(true);
   const [showLink, setShowLink] = useState(true);
@@ -2624,7 +2626,72 @@ function DeckShowcaseStudio({
         }),
       );
 
-      groups.forEach((group, groupIndex) => {
+      if (display === "text") {
+        const textColumns = size === "story" ? 1 : 2;
+        const textGap = 34;
+        const textColumnWidth =
+          (posterWidth - textGap * (textColumns - 1)) / textColumns;
+        const entries = groups.flatMap((group) => [
+          { kind: "heading" as const, group },
+          ...group.cards.map((card) => ({ kind: "card" as const, group, card })),
+        ]);
+        const itemsPerColumn = Math.ceil(entries.length / textColumns);
+
+        entries.forEach((entry, index) => {
+          const column = Math.min(textColumns - 1, Math.floor(index / itemsPerColumn));
+          const row = index % itemsPerColumn;
+          const x = posterLeft + column * (textColumnWidth + textGap);
+          const lineHeight = Math.min(31, Math.max(19, posterHeight / (itemsPerColumn + 1)));
+          const y = posterTop + row * lineHeight;
+
+          if (entry.kind === "heading") {
+            context.fillStyle = "rgba(103,232,249,.13)";
+            roundedRect(context, x, y + 2, textColumnWidth, lineHeight - 4, 5);
+            context.fill();
+            context.fillStyle = "#ffffff";
+            context.font = `900 ${Math.max(12, lineHeight * 0.48)}px ${showcaseFont}`;
+            context.fillText(
+              `${entry.group.category.toUpperCase()} (${entry.group.count})`,
+              x + 10,
+              y + lineHeight * 0.68,
+            );
+            return;
+          }
+
+          const { card } = entry;
+          const price = card.price * card.quantity;
+          context.fillStyle = "#cbd5e1";
+          context.font = `800 ${Math.max(11, lineHeight * 0.43)}px ${showcaseFont}`;
+          context.fillText(String(card.quantity), x + 3, y + lineHeight * 0.68);
+          context.fillStyle = "#67e8f9";
+          context.font = `700 ${Math.max(11, lineHeight * 0.43)}px ${showcaseFont}`;
+          const nameWidth = textColumnWidth * 0.58;
+          context.fillText(
+            card.name.length > 31 ? `${card.name.slice(0, 29)}…` : card.name,
+            x + 27,
+            y + lineHeight * 0.68,
+            nameWidth,
+          );
+          card.colors.slice(0, 4).forEach((color, colorIndex) => {
+            context.fillStyle =
+              { W: "#f5e8b6", U: "#38a8e8", B: "#8b7b9d", R: "#ef6351", G: "#43c985", C: "#cbd5e1" }[color];
+            context.beginPath();
+            context.arc(
+              x + textColumnWidth - 104 + colorIndex * 17,
+              y + lineHeight * 0.55,
+              6,
+              0,
+              Math.PI * 2,
+            );
+            context.fill();
+          });
+          context.fillStyle = "#ffffff";
+          context.font = `700 ${Math.max(10, lineHeight * 0.4)}px ${showcaseFont}`;
+          context.textAlign = "right";
+          context.fillText(`$${price.toFixed(2)}`, x + textColumnWidth - 3, y + lineHeight * 0.68);
+          context.textAlign = "left";
+        });
+      } else groups.forEach((group, groupIndex) => {
         const columnIndex = groupIndex % columnCount;
         const rowIndex = Math.floor(groupIndex / columnCount);
         const groupsInRow = Math.min(
@@ -2791,6 +2858,55 @@ function DeckShowcaseStudio({
     setShareStatus("PNG downloaded — attach it to your post");
   }
 
+  function downloadBlob(blob: Blob, fileName: string) {
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = fileName;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+  }
+
+  async function shareToMedia(network: "instagram" | "discord") {
+    const result = await buildShowcasePng();
+    if (!result) return;
+    const caption = `Check out my ${format} deck, ${deckName}, built in the Trading Docks Deck Vault.\n${publicUrl}`;
+
+    try {
+      await navigator.clipboard.writeText(caption);
+    } catch {
+      // The PNG still downloads when clipboard access is unavailable.
+    }
+
+    if (
+      navigator.share &&
+      navigator.canShare?.({ files: [result.file] }) &&
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    ) {
+      try {
+        await navigator.share({
+          title: `${deckName} — Trading Docks`,
+          text: caption,
+          files: [result.file],
+        });
+        setShareStatus(`${network === "instagram" ? "Instagram" : "Discord"} share opened`);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    downloadBlob(result.blob, result.fileName);
+    window.open(
+      network === "instagram" ? "https://www.instagram.com/" : "https://discord.com/channels/@me",
+      "_blank",
+      "noopener,noreferrer",
+    );
+    setShareStatus(
+      `PNG downloaded and caption copied — attach it in ${network === "instagram" ? "Instagram" : "Discord"}`,
+    );
+  }
+
   async function copyDeckLink() {
     await navigator.clipboard.writeText(publicUrl);
     setShareStatus("Deck link copied");
@@ -2846,6 +2962,16 @@ function DeckShowcaseStudio({
           </header>
           <div className="grid lg:grid-cols-[300px_minmax(0,1fr)]">
             <aside className="border-b border-white/[0.07] p-5 lg:border-b-0 lg:border-r">
+              <ShowcaseControl title="Deck display">
+                {([
+                  ["cards", "Visual cards"],
+                  ["text", "Text list"],
+                ] as const).map(([value, label]) => (
+                  <button key={value} type="button" onClick={() => setDisplay(value)} className={`rounded-xl border px-3 py-2 text-[11px] font-semibold ${display === value ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100" : "border-white/[0.07] text-slate-500"}`}>
+                    {label}
+                  </button>
+                ))}
+              </ShowcaseControl>
               <ShowcaseControl title="Social size">
                 {([
                   ["portrait", "Instagram 4:5"],
@@ -2888,16 +3014,19 @@ function DeckShowcaseStudio({
                   <Download className="h-4 w-4" /> Download PNG
                 </button>
                 <button type="button" onClick={() => void shareShowcase()} disabled={exporting} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/10 text-[11px] font-bold text-cyan-100 disabled:opacity-60">
-                  <Share2 className="h-4 w-4" /> {exporting ? "Building graphic…" : "Share deck graphic"}
+                  <Share2 className="h-4 w-4" /> {exporting ? "Building graphic…" : "More apps / device share"}
                 </button>
               </div>
-              <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Share link to</p>
+              <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">Share directly</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => openSocial("facebook")} className="rounded-lg border border-white/[0.07] px-2 py-2 text-[10px] font-semibold text-slate-300 hover:text-white">Facebook</button>
-                <button type="button" onClick={() => openSocial("x")} className="rounded-lg border border-white/[0.07] px-2 py-2 text-[10px] font-semibold text-slate-300 hover:text-white">X</button>
-                <button type="button" onClick={() => void shareShowcase()} className="rounded-lg border border-white/[0.07] px-2 py-2 text-[10px] font-semibold text-slate-300 hover:text-white">Instagram</button>
-                <button type="button" onClick={() => void shareShowcase()} className="rounded-lg border border-white/[0.07] px-2 py-2 text-[10px] font-semibold text-slate-300 hover:text-white">Discord</button>
+                <button type="button" onClick={() => openSocial("facebook")} className="flex h-10 items-center justify-center rounded-xl border border-[#1877f2]/35 bg-[#1877f2]/10 px-2 text-[10px] font-bold text-[#8fc0ff] transition hover:bg-[#1877f2]/20 hover:text-white">Facebook</button>
+                <button type="button" onClick={() => openSocial("x")} className="flex h-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.045] px-2 text-[10px] font-bold text-white transition hover:bg-white/10">X</button>
+                <button type="button" onClick={() => void shareToMedia("instagram")} disabled={exporting} className="flex h-10 items-center justify-center rounded-xl border border-fuchsia-400/25 bg-gradient-to-r from-fuchsia-500/10 via-rose-500/10 to-amber-400/10 px-2 text-[10px] font-bold text-rose-200 transition hover:border-rose-300/50 hover:text-white disabled:opacity-60">Instagram</button>
+                <button type="button" onClick={() => void shareToMedia("discord")} disabled={exporting} className="flex h-10 items-center justify-center rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-2 text-[10px] font-bold text-indigo-200 transition hover:bg-indigo-500/20 hover:text-white disabled:opacity-60">Discord</button>
               </div>
+              <p className="mt-2 text-[9px] leading-4 text-slate-500">
+                Instagram and Discord download the finished PNG, copy the caption, and open the platform.
+              </p>
               {shareStatus ? <p className="mt-3 text-center text-[10px] font-semibold text-cyan-200">{shareStatus}</p> : null}
             </aside>
             <main className="flex min-h-[820px] items-center justify-center overflow-hidden bg-[#02090e] p-2 sm:p-3">
@@ -2909,35 +3038,45 @@ function DeckShowcaseStudio({
                   <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
                 ) : null}
                 <div className="relative flex h-full flex-col font-sans">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 items-center gap-2 rounded-lg border border-cyan-300/20 bg-[#01080e]/85 px-2.5 shadow-[0_6px_24px_rgba(0,0,0,.35)]">
+                  <div className="grid grid-cols-[minmax(185px,0.7fr)_minmax(0,1.3fr)] items-stretch gap-3">
+                    <div className="relative overflow-hidden rounded-xl border border-cyan-300/25 bg-[#01080e]/90 px-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,.4)]">
+                      <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-cyan-300 to-blue-500" />
+                      <div className="flex items-center gap-2.5">
                       <img
                         src="/trading-docks-mark.png"
                         onError={(event) => {
                           event.currentTarget.src = "/brand/trading-docks-mark.png";
                         }}
                         alt=""
-                        className="h-8 w-8 shrink-0 object-contain"
+                        className="h-10 w-10 shrink-0 object-contain"
                       />
-                    <img
-                      src="/trading-docks-horizontal.png"
-                      onError={(event) => {
-                        event.currentTarget.src = "/brand/trading-docks-horizontal.png";
-                      }}
-                      alt="Trading Docks"
-                      className="h-8 w-auto max-w-[145px] object-contain object-left"
-                    />
+                        <div className="min-w-0">
+                          <img
+                            src="/trading-docks-horizontal.png"
+                            onError={(event) => {
+                              event.currentTarget.src = "/brand/trading-docks-horizontal.png";
+                            }}
+                            alt="Trading Docks"
+                            className="h-7 w-auto max-w-[150px] object-contain object-left"
+                          />
+                          <p className="mt-1 text-[7px] font-black uppercase tracking-[0.17em] text-cyan-300">Made in Deck Vault</p>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1.5 border-t border-white/10 pt-2">
+                        <span className="rounded bg-cyan-300/10 px-1.5 py-0.5 text-[7px] font-bold uppercase text-cyan-200">{format}</span>
+                        <span className="truncate text-[7px] font-semibold text-slate-400">
+                          {commanderName ? `Commander · ${commanderName}` : "Built to share"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-[clamp(20px,3vw,32px)] font-black leading-none text-white">{deckName}</h3>
-                      <p className="mt-1 truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-                        {format}{commanderName ? ` · Commander: ${commanderName}` : ""}
+                    <div className="flex min-w-0 flex-col justify-center rounded-xl border border-white/[0.07] bg-black/20 px-4 py-2">
+                      <p className="text-[7px] font-bold uppercase tracking-[0.16em] text-slate-400">Deck showcase</p>
+                      <h3 className="mt-1 truncate text-[clamp(22px,3.2vw,36px)] font-black leading-none tracking-[-0.03em] text-white">{deckName}</h3>
+                      <p className="mt-1.5 truncate text-[9px] font-semibold text-slate-300">
+                        {cardCount} cards {showValue ? `· $${marketValue.toFixed(2)} total value` : ""} · tradingdocks.com
                       </p>
                     </div>
                   </div>
-                  <p className="mt-1 text-[11px] font-black uppercase tracking-[0.1em] text-white">
-                    {cardCount} cards {showValue ? `· Deck value $${marketValue.toFixed(2)}` : ""}
-                  </p>
                   {showStats ? (
                     <div className="mt-1.5 grid grid-cols-[repeat(4,minmax(0,1fr))_1.8fr] gap-2 rounded-lg border border-white/[0.07] bg-white/[0.045] px-3 py-2">
                       {[
@@ -2961,6 +3100,45 @@ function DeckShowcaseStudio({
                       </div>
                     </div>
                   ) : null}
+                  {display === "text" ? (
+                    <div
+                      className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 content-start gap-x-5 gap-y-2 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 p-3 text-white`}
+                      style={{
+                        gridTemplateColumns: size === "story" ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                      }}
+                    >
+                      {groups.map((group) => (
+                        <section key={group.category} className="min-w-0 break-inside-avoid">
+                          <div className="mb-1 flex items-center justify-between rounded-md bg-cyan-300/10 px-2 py-1">
+                            <p className="text-[9px] font-black uppercase tracking-[0.06em] text-white">{group.category}</p>
+                            <span className="text-[8px] font-bold text-cyan-300">{group.count}</span>
+                          </div>
+                          <div className="space-y-0.5">
+                            {group.cards.map((card) => (
+                              <div key={card.id} className="grid grid-cols-[18px_minmax(0,1fr)_auto_auto] items-center gap-1.5 rounded px-1 py-0.5 hover:bg-white/[0.04]">
+                                <span className="text-[8px] font-black text-slate-300">{card.quantity}</span>
+                                <span className="truncate text-[8px] font-semibold text-cyan-300">{card.name}</span>
+                                <span className="flex gap-0.5">
+                                  {card.colors.slice(0, 4).map((color, index) => (
+                                    <span
+                                      key={`${card.id}-${color}-${index}`}
+                                      className="h-2.5 w-2.5 rounded-full border border-white/20"
+                                      style={{ backgroundColor: { W: "#f5e8b6", U: "#38a8e8", B: "#8b7b9d", R: "#ef6351", G: "#43c985", C: "#cbd5e1" }[color] }}
+                                    />
+                                  ))}
+                                </span>
+                                <span className="min-w-[42px] text-right text-[8px] font-semibold text-white">${(card.price * card.quantity).toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                      <div className="col-span-full mt-1 flex items-center justify-between border-t border-white/10 pt-2 text-[8px] font-black text-white">
+                        <span>{cardCount} CARDS TOTAL</span>
+                        {showValue ? <span>${marketValue.toFixed(2)} DECK VALUE</span> : null}
+                      </div>
+                    </div>
+                  ) : (
                   <div
                     className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 overflow-hidden`}
                     style={{
@@ -3017,6 +3195,7 @@ function DeckShowcaseStudio({
                       );
                     })}
                   </div>
+                  )}
                   <div className="mt-2 border-t border-white/10 pt-2">
                     <div className="flex items-end justify-between gap-2">
                       <div className="min-w-0">
