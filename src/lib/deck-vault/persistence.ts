@@ -1,6 +1,5 @@
 import { accountStorageKey } from "@/lib/account-storage";
 import {
-  deleteAccountDocument,
   loadAccountDocument,
   saveAccountDocument,
 } from "@/lib/account-documents";
@@ -17,6 +16,7 @@ export async function loadDeckVault(): Promise<DeckRecord[]> {
     .from("deck_vault_decks")
     .select("deck_data")
     .eq("user_id", userId)
+    .not("deck_data", "is", null)
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -40,7 +40,7 @@ export async function loadDeckRecord(deckId: string) {
     .from("deck_vault_decks")
     .select("deck_data")
     .eq("user_id", userId)
-    .eq("deck_id", deckId)
+    .eq("deck_key", deckId)
     .maybeSingle();
 
   if (error) {
@@ -66,18 +66,10 @@ export async function saveDeckRecord(deck: DeckRecord, unresolved?: unknown[]) {
 }
 
 export async function deleteDeckRecord(deckId: string) {
-  const { supabase, userId } = await authenticatedClient();
-  const { error } = await supabase
-    .from("deck_vault_decks")
-    .delete()
-    .eq("user_id", userId)
-    .eq("deck_id", deckId);
-  if (error) throw deckStorageError("The deck could not be deleted", error.message);
-
-  await Promise.all([
-    deleteAccountDocument(deckKey(deckId)),
-    deleteAccountDocument(`${UNRESOLVED_PREFIX}${deckId}`),
-  ]);
+  void deckId;
+  throw new Error(
+    "Deck deletion is disabled. Your saved decks remain attached to your Trading Docks account.",
+  );
 }
 
 function deckKey(deckId: string) {
@@ -121,7 +113,7 @@ async function saveDeckRow(deck: DeckRecord, unresolved?: unknown[]) {
   const { error } = await supabase.from("deck_vault_decks").upsert(
     {
       user_id: userId,
-      deck_id: deck.id,
+      deck_key: deck.id,
       name: deck.name,
       format: deck.format,
       commander: deck.commander ?? null,
@@ -129,7 +121,7 @@ async function saveDeckRow(deck: DeckRecord, unresolved?: unknown[]) {
       unresolved_cards: unresolved ?? [],
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id,deck_id" },
+    { onConflict: "user_id,deck_key" },
   );
   if (error) throw deckStorageError("The deck could not be saved", error.message);
 }

@@ -285,7 +285,7 @@ export function DeckImportCenter({
         throw new Error(payload.error ?? "The cards could not be resolved.");
       }
 
-      const id = `imported-${Date.now()}`;
+      const id = crypto.randomUUID();
       const commanders = payload.cards.filter((card) => card.board === "commander");
       const commander = commanders[0];
       const mainCards = payload.cards.filter((card) => card.board !== "commander");

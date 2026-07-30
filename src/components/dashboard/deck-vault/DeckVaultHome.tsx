@@ -12,18 +12,13 @@ import {
   Save,
   Search,
   Sparkles,
-  Trash2,
   TrendingUp,
   X,
 } from "lucide-react";
 
 import { ManaPips } from "./ManaPips";
 import type { DeckRecord } from "@/lib/deck-vault/types";
-import {
-  deleteDeckRecord,
-  loadDeckVault,
-  saveDeckRecord,
-} from "@/lib/deck-vault/persistence";
+import { loadDeckVault, saveDeckRecord } from "@/lib/deck-vault/persistence";
 
 const FORMATS = [
   "All Formats",
@@ -101,24 +96,6 @@ export function DeckVaultHome({
   );
   const limitReached =
     deckLimit !== null && savedDecks.length >= deckLimit;
-
-  async function deleteDeck(
-    deckId: string,
-    deckName: string,
-  ) {
-    const confirmed = window.confirm(
-      `Delete "${deckName}" from Deck Vault?`,
-    );
-
-    if (!confirmed) return;
-
-    await deleteDeckRecord(deckId);
-    setSavedDecks((current) =>
-      current.filter(
-        (deck) => deck.id !== deckId,
-      ),
-    );
-  }
 
   async function saveDeckName() {
     if (!renameDeck) return;
@@ -289,20 +266,6 @@ export function DeckVaultHome({
                     Rename
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      deleteDeck(
-                        deck.id,
-                        deck.name,
-                      )
-                    }
-                    className="absolute right-3 top-14 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-rose-300/[0.13] bg-[#07141e]/92 text-rose-300 opacity-0 shadow-lg backdrop-blur transition hover:bg-rose-400/[0.08] focus-visible:opacity-100 group-hover:opacity-100"
-                    aria-label={`Delete ${deck.name}`}
-                    title="Delete deck"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
                 </article>
               ))}
             </div>
