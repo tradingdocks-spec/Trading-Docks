@@ -2358,46 +2358,46 @@ function DeckShowcaseStudio({
       context.globalAlpha = 1;
 
       context.fillStyle = accent;
-      context.fillRect(66, 64, 8, 148);
-      context.font = "700 25px Arial";
-      context.fillText("TRADING DOCKS  /  DECK VAULT", 98, 92);
+      context.fillRect(32, 30, 7, 118);
+      context.font = "700 20px Arial";
+      context.fillText("TRADING DOCKS  /  DECK VAULT", 58, 55);
       context.fillStyle = "#ffffff";
-      context.font = "800 58px Arial";
-      wrapCanvasText(context, deckName || "Untitled Deck", 98, 157, 840, 66, 2);
+      context.font = "800 48px Arial";
+      wrapCanvasText(context, deckName || "Untitled Deck", 58, 108, 930, 54, 2);
       context.fillStyle = "#94a3b8";
-      context.font = "600 21px Arial";
+      context.font = "600 17px Arial";
       context.fillText(
         `${format}${commanderName ? `  •  COMMANDER: ${commanderName}` : ""}`,
-        98,
-        232,
+        58,
+        164,
       );
       context.fillStyle = "#ffffff";
-      context.font = "800 22px Arial";
+      context.font = "800 18px Arial";
       context.fillText(
         `${cardCount} CARDS${showValue ? `  •  DECK VALUE $${marketValue.toFixed(2)}` : ""}`,
-        98,
-        267,
+        58,
+        193,
       );
 
-      let posterTop = 310;
+      let posterTop = 226;
       if (showStats) {
-        const statTop = 292;
+        const statTop = 214;
         context.fillStyle = "rgba(255,255,255,.075)";
-        roundedRect(context, 66, statTop, canvas.width - 132, 78, 12);
+        roundedRect(context, 32, statTop, canvas.width - 64, 68, 10);
         context.fill();
 
-        context.font = "800 14px Arial";
+        context.font = "800 12px Arial";
         context.fillStyle = "#94a3b8";
-        context.fillText(`AVG MV`, 88, statTop + 25);
-        context.fillText(`CREATURES`, 177, statTop + 25);
-        context.fillText(`SPELLS`, 294, statTop + 25);
-        context.fillText(`LANDS`, 386, statTop + 25);
-        context.font = "900 22px Arial";
+        context.fillText(`AVG MV`, 50, statTop + 21);
+        context.fillText(`CREATURES`, 139, statTop + 21);
+        context.fillText(`SPELLS`, 256, statTop + 21);
+        context.fillText(`LANDS`, 348, statTop + 21);
+        context.font = "900 19px Arial";
         context.fillStyle = "#ffffff";
-        context.fillText(stats.averageManaValue.toFixed(2), 88, statTop + 56);
-        context.fillText(String(stats.typeCounts.creatures), 177, statTop + 56);
-        context.fillText(String(stats.typeCounts.spells), 294, statTop + 56);
-        context.fillText(String(stats.typeCounts.lands), 386, statTop + 56);
+        context.fillText(stats.averageManaValue.toFixed(2), 50, statTop + 49);
+        context.fillText(String(stats.typeCounts.creatures), 139, statTop + 49);
+        context.fillText(String(stats.typeCounts.spells), 256, statTop + 49);
+        context.fillText(String(stats.typeCounts.lands), 348, statTop + 49);
 
         const colorFills: Record<string, string> = {
           W: "#f5e8b6",
@@ -2407,47 +2407,47 @@ function DeckShowcaseStudio({
           G: "#43c985",
         };
         stats.colorCounts.forEach((entry, index) => {
-          const x = 486 + index * 48;
+          const x = 449 + index * 45;
           context.fillStyle = colorFills[entry.color];
           context.beginPath();
-          context.arc(x, statTop + 29, 14, 0, Math.PI * 2);
+          context.arc(x, statTop + 25, 12, 0, Math.PI * 2);
           context.fill();
           context.fillStyle = "#06131f";
           context.font = "900 12px Arial";
           context.textAlign = "center";
-          context.fillText(entry.color, x, statTop + 33);
+          context.fillText(entry.color, x, statTop + 29);
           context.fillStyle = "#cbd5e1";
           context.font = "800 12px Arial";
-          context.fillText(String(entry.count), x, statTop + 58);
+          context.fillText(String(entry.count), x, statTop + 53);
         });
         context.textAlign = "left";
 
-        const curveLeft = 748;
-        const curveBottom = statTop + 60;
+        const curveLeft = 720;
+        const curveBottom = statTop + 52;
         const curveMax = Math.max(1, ...stats.manaCurve);
         stats.manaCurve.forEach((count, index) => {
-          const height = Math.max(3, (count / curveMax) * 34);
-          const x = curveLeft + index * 29;
+          const height = Math.max(3, (count / curveMax) * 30);
+          const x = curveLeft + index * 38;
           context.fillStyle = accent;
-          context.fillRect(x, curveBottom - height, 19, height);
+          context.fillRect(x, curveBottom - height, 27, height);
           context.fillStyle = "#94a3b8";
           context.font = "700 10px Arial";
           context.textAlign = "center";
-          context.fillText(index === 7 ? "7+" : String(index), x + 9, statTop + 73);
+          context.fillText(index === 7 ? "7+" : String(index), x + 13, statTop + 65);
         });
         context.textAlign = "left";
-        posterTop = 408;
+        posterTop = 308;
       }
-      const posterBottom = canvas.height - 176;
+      const posterBottom = canvas.height - 92;
       const posterHeight = posterBottom - posterTop;
-      const posterLeft = 56;
+      const posterLeft = 24;
       const posterWidth = canvas.width - posterLeft * 2;
-      const columnGap = groups.length > 8 ? 7 : 11;
+      const columnGap = groups.length > 8 ? 5 : 8;
       const columnWidth = Math.min(
-        154,
+        178,
         (posterWidth - columnGap * Math.max(0, groups.length - 1)) / Math.max(1, groups.length),
       );
-      const cardWidth = Math.max(72, columnWidth);
+      const cardWidth = Math.max(78, columnWidth);
       const cardHeight = cardWidth * 1.395;
 
       const loadedImages = new Map<string, HTMLImageElement>();
@@ -2469,12 +2469,18 @@ function DeckShowcaseStudio({
         context.fillStyle = accent;
         context.font = `800 ${groups.length > 8 ? 13 : 16}px Arial`;
         context.fillText(`${group.category.toUpperCase()}  ${group.count}`, x, posterTop);
-        const cardsTop = posterTop + 22;
-        const availableStackHeight = posterHeight - 22;
+        const cardsTop = posterTop + 20;
+        const availableStackHeight = posterHeight - 20;
         const overlap =
           group.cards.length <= 1
             ? 0
-            : Math.max(17, Math.min(44, (availableStackHeight - cardHeight) / (group.cards.length - 1)));
+            : Math.max(
+                20,
+                Math.min(
+                  cardHeight * 0.58,
+                  (availableStackHeight - cardHeight) / (group.cards.length - 1),
+                ),
+              );
 
         group.cards.forEach((card, cardIndex) => {
           const y = cardsTop + cardIndex * overlap;
@@ -2508,18 +2514,18 @@ function DeckShowcaseStudio({
         });
       });
 
-      const footerY = canvas.height - 124;
+      const footerY = canvas.height - 65;
       context.fillStyle = "rgba(255,255,255,.08)";
-      context.fillRect(66, footerY - 30, canvas.width - 132, 1);
+      context.fillRect(32, footerY - 22, canvas.width - 64, 1);
       context.fillStyle = "#ffffff";
-      context.font = "800 25px Arial";
-      context.fillText("BUILT IN THE TRADING DOCKS DECK VAULT", 66, footerY + 20);
+      context.font = "800 17px Arial";
+      context.fillText("BUILT IN THE TRADING DOCKS DECK VAULT", 32, footerY + 8);
       context.fillStyle = accent;
-      context.font = "600 19px Arial";
+      context.font = "600 13px Arial";
       context.fillText(
         showLink ? publicUrl.replace(/^https?:\/\//, "").slice(0, 82) : "TRADINGDOCKS.COM",
-        66,
-        footerY + 57,
+        32,
+        footerY + 31,
       );
 
       const blob = await new Promise<Blob | null>((resolve) =>
@@ -2611,20 +2617,20 @@ function DeckShowcaseStudio({
                 {exporting ? "Building your graphic…" : "Download or Share PNG"}
               </button>
             </aside>
-            <main className="flex min-h-[620px] items-center justify-center overflow-hidden bg-[#02090e] p-6">
-              <div className={`relative w-full max-w-[620px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${previewGradient} p-7 shadow-[0_24px_80px_rgba(0,0,0,.55)] ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[400px]" : "aspect-[4/5]"}`}>
+            <main className="flex min-h-[720px] items-center justify-center overflow-hidden bg-[#02090e] p-3 sm:p-5">
+              <div className={`relative w-full max-w-[760px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${previewGradient} p-4 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-5 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[430px]" : "aspect-[4/5]"}`}>
                 <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
                 <div className="relative flex h-full flex-col">
-                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">Trading Docks / Deck Vault</p>
-                  <h3 className="mt-2 text-[clamp(22px,4vw,38px)] font-black leading-[1.02] text-white">{deckName}</h3>
-                  <p className="mt-2 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-cyan-300">Trading Docks / Deck Vault</p>
+                  <h3 className="mt-1 text-[clamp(20px,3.5vw,34px)] font-black leading-[1.02] text-white">{deckName}</h3>
+                  <p className="mt-1 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">
                     {format}{commanderName ? ` · Commander: ${commanderName}` : ""}
                   </p>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
+                  <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white">
                     {cardCount} cards {showValue ? `· Deck value $${marketValue.toFixed(2)}` : ""}
                   </p>
                   {showStats ? (
-                    <div className="mt-3 grid grid-cols-[repeat(4,minmax(0,1fr))_1.8fr] gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.045] p-2">
+                    <div className="mt-2 grid grid-cols-[repeat(4,minmax(0,1fr))_1.8fr] gap-1 rounded-lg border border-white/[0.07] bg-white/[0.045] px-2 py-1.5">
                       {[
                         ["Avg MV", stats.averageManaValue.toFixed(2)],
                         ["Creatures", stats.typeCounts.creatures],
@@ -2646,12 +2652,12 @@ function DeckShowcaseStudio({
                       </div>
                     </div>
                   ) : null}
-                  <div className={`${showStats ? "mt-3" : "mt-5"} grid min-h-0 flex-1 auto-cols-fr grid-flow-col gap-1.5 overflow-hidden`}>
+                  <div className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 auto-cols-fr grid-flow-col gap-1 overflow-hidden`}>
                     {groups.map((group) => {
                       const overlapPercent =
                         group.cards.length <= 1
                           ? 0
-                          : Math.max(12, Math.min(34, 72 / group.cards.length));
+                          : Math.min(17, 70 / Math.max(1, group.cards.length - 1));
                       return (
                         <div key={group.category} className="min-w-0">
                           <p className="mb-1 truncate text-[6px] font-black uppercase tracking-[0.08em] text-cyan-300">
@@ -2662,7 +2668,7 @@ function DeckShowcaseStudio({
                               <div
                                 key={card.id}
                                 className="absolute left-0 w-full"
-                                style={{ top: `${index * overlapPercent * 0.8}px` }}
+                                style={{ top: `${index * overlapPercent}%` }}
                               >
                                 <img
                                   src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
@@ -2681,9 +2687,9 @@ function DeckShowcaseStudio({
                       );
                     })}
                   </div>
-                  <div className="mt-4 border-t border-white/10 pt-3">
-                    <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white">Built in the Trading Docks Deck Vault</p>
-                    <p className="mt-1 truncate text-[7px] font-semibold text-cyan-300">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
+                  <div className="mt-2 border-t border-white/10 pt-2">
+                    <p className="text-[7px] font-black uppercase tracking-[0.13em] text-white">Built in the Trading Docks Deck Vault</p>
+                    <p className="mt-0.5 truncate text-[6px] font-semibold text-cyan-300">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
                   </div>
                 </div>
               </div>
