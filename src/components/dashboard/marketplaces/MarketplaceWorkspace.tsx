@@ -336,17 +336,17 @@ export function MarketplaceWorkspace() {
     }
     if (connector === "ebay") void loadCredentialStatus("ebay");
 
-    void supabase
-      .from("marketplace_connections")
-      .select("marketplace_id,connection_method,status,settings,last_sync_at,sync_mode,health")
-      .then(({ data, error }) => {
-        if (error) {
-          setDatabaseReady(false);
-        } else {
-          setConnections((data ?? []) as SavedConnection[]);
-        }
-        setLoading(false);
-      });
+    void (async () => {
+      const { data, error: connectionError } = await supabase
+        .from("marketplace_connections")
+        .select("marketplace_id,connection_method,status,settings,last_sync_at,sync_mode,health");
+      if (connectionError) {
+        setDatabaseReady(false);
+      } else {
+        setConnections((data ?? []) as SavedConnection[]);
+      }
+      setLoading(false);
+    })();
   }, [supabase]);
 
   const filtered = marketplaces.filter((marketplace) =>

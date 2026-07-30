@@ -61,8 +61,13 @@ export function AdminFeedbackQueue() {
   const selected = items.find((item) => item.id === selectedId) ?? null;
   useEffect(() => {
     if (!selectedId) { setAttachments([]); return; }
-    void supabase.from("feedback_attachments").select("id,file_name,storage_path,mime_type").eq("submission_id", selectedId)
-      .then(({ data }) => setAttachments((data ?? []) as Attachment[]));
+    void (async () => {
+      const { data } = await supabase
+        .from("feedback_attachments")
+        .select("id,file_name,storage_path,mime_type")
+        .eq("submission_id", selectedId);
+      setAttachments((data ?? []) as Attachment[]);
+    })();
   }, [selectedId, supabase]);
 
   const visible = items.filter((item) => {
