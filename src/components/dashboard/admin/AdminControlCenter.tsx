@@ -251,9 +251,23 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
   const [savingId, setSavingId] = useState("");
 
   useEffect(() => {
-    void supabase.from("feature_access").select("*").order("category").order("name").then(({ data }) => {
-      if (data?.length) setFeatures(data as Feature[]);
-    });
+    let active = true;
+
+    async function loadFeatures() {
+      const response = await supabase
+        .from("feature_access")
+        .select("*")
+        .order("category")
+        .order("name");
+      const data = response.data as Feature[] | null;
+
+      if (active && data?.length) setFeatures(data);
+    }
+
+    void loadFeatures();
+    return () => {
+      active = false;
+    };
   }, [supabase]);
 
   async function updateFeature(id: string, patch: Partial<Feature>) {
