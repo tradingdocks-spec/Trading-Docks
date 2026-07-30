@@ -82,7 +82,7 @@ export async function ebayJson<T>(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
-      "Content-Language": "en-US",
+      "Accept-Language": "en-US",
       "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
     },
     cache: "no-store",
