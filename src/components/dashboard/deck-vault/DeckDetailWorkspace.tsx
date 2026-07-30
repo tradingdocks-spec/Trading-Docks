@@ -2284,6 +2284,31 @@ function showcaseCardCopies(cards: DeckCard[]) {
   );
 }
 
+function showcaseGroupWeight(group: ReturnType<typeof buildShowcaseGroups>[number]) {
+  const copies = showcaseCardCopies(group.cards).length;
+  return 1 + Math.min(14, Math.max(0, copies - 1)) * 0.13;
+}
+
+function buildShowcaseLanes(
+  groups: ReturnType<typeof buildShowcaseGroups>,
+  laneCount: number,
+) {
+  const lanes = Array.from({ length: Math.max(1, laneCount) }, () => ({
+    groups: [] as typeof groups,
+    weight: 0,
+  }));
+
+  groups.forEach((group) => {
+    const shortestLane = lanes.reduce((best, lane) =>
+      lane.weight < best.weight ? lane : best,
+    );
+    shortestLane.groups.push(group);
+    shortestLane.weight += showcaseGroupWeight(group);
+  });
+
+  return lanes;
+}
+
 function buildShowcaseStats(cards: DeckCard[]) {
   const mainCards = cards.filter(
     (card) => card.board !== "sideboard" && card.board !== "maybeboard",
@@ -2604,13 +2629,11 @@ function DeckShowcaseStudio({
         SHOWCASE_LAYOUT[size].columns,
         Math.max(1, groups.length),
       );
-      const rowCount = Math.ceil(groups.length / columnCount);
       const columnGap = SHOWCASE_LAYOUT[size].canvasGap;
       const rowGap = SHOWCASE_LAYOUT[size].canvasGap;
       const columnWidth =
         (posterWidth - columnGap * Math.max(0, columnCount - 1)) / columnCount;
-      const rowHeight =
-        (posterHeight - rowGap * Math.max(0, rowCount - 1)) / Math.max(1, rowCount);
+      const showcaseLanes = buildShowcaseLanes(groups, columnCount);
       const loadedImages = new Map<string, HTMLImageElement>();
       await Promise.all(
         cards.map(async (card) => {
@@ -2624,158 +2647,121 @@ function DeckShowcaseStudio({
         const textGap = 26;
         const textColumnWidth =
           (posterWidth - textGap * (textColumns - 1)) / textColumns;
-        const entries = groups.flatMap((group) => [
-          { kind: "heading" as const, group },
-          ...group.cards.map((card) => ({ kind: "card" as const, group, card })),
-        ]);
-        const itemsPerColumn = Math.ceil(entries.length / textColumns);
+        const textLanes = buildShowcaseLanes(groups, textColumns);
+        const maxEntries = Math.max(
+          1,
+          ...textLanes.map((lane) =>
+            lane.groups.reduce((total, group) => total + group.cards.length + 1, 0),
+          ),
+        );
+        const lineHeight = Math.min(38, Math.max(25, posterHeight / (maxEntries + 1)));
 
-        entries.forEach((entry, index) => {
-          const column = Math.min(textColumns - 1, Math.floor(index / itemsPerColumn));
-          const row = index % itemsPerColumn;
+        textLanes.forEach((lane, column) => {
           const x = posterLeft + column * (textColumnWidth + textGap);
-          const lineHeight = Math.min(36, Math.max(24, posterHeight / (itemsPerColumn + 1)));
-          const y = posterTop + row * lineHeight;
-
-          if (entry.kind === "heading") {
+          let y = posterTop;
+          lane.groups.forEach((group) => {
             context.fillStyle = "rgba(103,232,249,.13)";
             roundedRect(context, x, y + 2, textColumnWidth, lineHeight - 4, 5);
             context.fill();
             context.fillStyle = "#ffffff";
             context.font = `900 ${Math.max(15, lineHeight * 0.5)}px ${showcaseFont}`;
             context.fillText(
-              `${entry.group.category.toUpperCase()} (${entry.group.count})`,
+              `${group.category.toUpperCase()} (${group.count})`,
               x + 10,
               y + lineHeight * 0.68,
             );
-            return;
-          }
-
-          const { card } = entry;
-          const price = card.price * card.quantity;
-          context.fillStyle = "#cbd5e1";
-          context.font = `800 ${Math.max(14, lineHeight * 0.45)}px ${showcaseFont}`;
-          context.fillText(String(card.quantity), x + 3, y + lineHeight * 0.68);
-          context.fillStyle = "#67e8f9";
-          context.font = `750 ${Math.max(14, lineHeight * 0.45)}px ${showcaseFont}`;
-          const nameWidth = textColumnWidth * 0.58;
-          context.fillText(
-            card.name.length > 31 ? `${card.name.slice(0, 29)}…` : card.name,
-            x + 27,
-            y + lineHeight * 0.68,
-            nameWidth,
-          );
-          card.colors.slice(0, 4).forEach((color, colorIndex) => {
-            context.fillStyle =
-              { W: "#f5e8b6", U: "#38a8e8", B: "#8b7b9d", R: "#ef6351", G: "#43c985", C: "#cbd5e1" }[color];
-            context.beginPath();
-            context.arc(
-              x + textColumnWidth - 104 + colorIndex * 17,
-              y + lineHeight * 0.55,
-              6,
-              0,
-              Math.PI * 2,
-            );
-            context.fill();
+            y += lineHeight;
+            group.cards.forEach((card) => {
+              const price = card.price * card.quantity;
+              context.fillStyle = "#cbd5e1";
+              context.font = `800 ${Math.max(14, lineHeight * 0.45)}px ${showcaseFont}`;
+              context.fillText(String(card.quantity), x + 3, y + lineHeight * 0.68);
+              context.fillStyle = "#67e8f9";
+              context.font = `750 ${Math.max(14, lineHeight * 0.45)}px ${showcaseFont}`;
+              const nameWidth = textColumnWidth * 0.58;
+              context.fillText(
+                card.name.length > 31 ? `${card.name.slice(0, 29)}…` : card.name,
+                x + 27,
+                y + lineHeight * 0.68,
+                nameWidth,
+              );
+              context.fillStyle = "#ffffff";
+              context.font = `700 ${Math.max(13, lineHeight * 0.42)}px ${showcaseFont}`;
+              context.textAlign = "right";
+              context.fillText(
+                `$${price.toFixed(2)}`,
+                x + textColumnWidth - 3,
+                y + lineHeight * 0.68,
+              );
+              context.textAlign = "left";
+              y += lineHeight;
+            });
+            y += 4;
           });
-          context.fillStyle = "#ffffff";
-          context.font = `700 ${Math.max(13, lineHeight * 0.42)}px ${showcaseFont}`;
-          context.textAlign = "right";
-          context.fillText(`$${price.toFixed(2)}`, x + textColumnWidth - 3, y + lineHeight * 0.68);
-          context.textAlign = "left";
         });
-      } else groups.forEach((group, groupIndex) => {
-        const columnIndex = groupIndex % columnCount;
-        const rowIndex = Math.floor(groupIndex / columnCount);
-        const groupsInRow = Math.min(
-          columnCount,
-          groups.length - rowIndex * columnCount,
-        );
-        const rowContentWidth =
-          groupsInRow * columnWidth + Math.max(0, groupsInRow - 1) * columnGap;
-        const rowLeft = posterLeft + (posterWidth - rowContentWidth) / 2;
-        const x = rowLeft + columnIndex * (columnWidth + columnGap);
-        const groupTop = posterTop + rowIndex * (rowHeight + rowGap);
-        const moduleInset = 2;
-        context.fillStyle = "rgba(1,8,14,.9)";
-        roundedRect(context, x, groupTop, columnWidth, 26, 5);
-        context.fill();
-        context.fillStyle = "#ffffff";
-        context.font = `900 14px ${showcaseFont}`;
-        context.fillText(
-          `${group.category.toUpperCase()}  ${group.count}`,
-          x + 6,
-          groupTop + 19,
-        );
-        const cardsTop = groupTop + 32;
-        const availableStackHeight = rowHeight - 32;
-        const displayCards = showcaseCardCopies(group.cards);
-        const maximumCardHeight =
-          displayCards.length <= 1
-            ? availableStackHeight
-            : Math.max(56, availableStackHeight * 0.68);
-        const moduleCardWidth = Math.min(
-          columnWidth - moduleInset * 2,
-          maximumCardHeight / 1.395,
-        );
-        const moduleCardHeight = moduleCardWidth * 1.395;
-        const moduleCardX = x + (columnWidth - moduleCardWidth) / 2;
-        const overlap =
-          displayCards.length <= 1
-            ? 0
-            : Math.max(1, (availableStackHeight - moduleCardHeight) /
-                (displayCards.length - 1));
+      } else {
+        showcaseLanes.forEach((lane, laneIndex) => {
+          const x = posterLeft + laneIndex * (columnWidth + columnGap);
+          const laneGapHeight = rowGap * Math.max(0, lane.groups.length - 1);
+          const usableLaneHeight = posterHeight - laneGapHeight;
+          let groupTop = posterTop;
 
-        displayCards.forEach(({ card }, cardIndex) => {
-          const y = cardsTop + cardIndex * overlap;
-          const image = loadedImages.get(card.id);
-          if (image) {
-            drawRoundedImage(
-              context,
-              image,
-              moduleCardX,
-              y,
-              moduleCardWidth,
-              moduleCardHeight,
-              7,
-            );
-          } else {
-            context.fillStyle = "#102331";
-            roundedRect(
-              context,
-              moduleCardX,
-              y,
-              moduleCardWidth,
-              moduleCardHeight,
-              7,
-            );
+          lane.groups.forEach((group) => {
+            const groupHeight =
+              usableLaneHeight * (showcaseGroupWeight(group) / Math.max(1, lane.weight));
+            context.fillStyle = "rgba(1,8,14,.9)";
+            roundedRect(context, x, groupTop, columnWidth, 26, 5);
             context.fill();
             context.fillStyle = "#ffffff";
-            context.font = `700 ${Math.max(10, moduleCardWidth * 0.09)}px ${showcaseFont}`;
-            wrapCanvasText(
-              context,
-              card.name,
-              moduleCardX + 7,
-              y + 24,
-              moduleCardWidth - 14,
-              14,
-              3,
+            context.font = `900 14px ${showcaseFont}`;
+            context.fillText(
+              `${group.category.toUpperCase()}  ${group.count}`,
+              x + 6,
+              groupTop + 19,
             );
-          }
-          context.strokeStyle = "rgba(255,255,255,.24)";
-          context.lineWidth = 1;
-          roundedRect(
-            context,
-            moduleCardX,
-            y,
-            moduleCardWidth,
-            moduleCardHeight,
-            7,
-          );
-          context.stroke();
+            const cardsTop = groupTop + 32;
+            const availableStackHeight = Math.max(64, groupHeight - 32);
+            const displayCards = showcaseCardCopies(group.cards);
+            const moduleCardWidth = Math.min(
+              columnWidth - 4,
+              availableStackHeight / 1.395,
+            );
+            const moduleCardHeight = moduleCardWidth * 1.395;
+            const moduleCardX = x + (columnWidth - moduleCardWidth) / 2;
+            const overlap =
+              displayCards.length <= 1
+                ? 0
+                : Math.max(
+                    2,
+                    Math.min(
+                      moduleCardHeight * 0.17,
+                      (availableStackHeight - moduleCardHeight) /
+                        Math.max(1, displayCards.length - 1),
+                    ),
+                  );
 
+            displayCards.forEach(({ card }, cardIndex) => {
+              const y = cardsTop + cardIndex * overlap;
+              const image = loadedImages.get(card.id);
+              if (image) {
+                drawRoundedImage(context, image, moduleCardX, y, moduleCardWidth, moduleCardHeight, 7);
+              } else {
+                context.fillStyle = "#102331";
+                roundedRect(context, moduleCardX, y, moduleCardWidth, moduleCardHeight, 7);
+                context.fill();
+                context.fillStyle = "#ffffff";
+                context.font = `700 ${Math.max(10, moduleCardWidth * 0.09)}px ${showcaseFont}`;
+                wrapCanvasText(context, card.name, moduleCardX + 7, y + 24, moduleCardWidth - 14, 14, 3);
+              }
+              context.strokeStyle = "rgba(255,255,255,.24)";
+              context.lineWidth = 1;
+              roundedRect(context, moduleCardX, y, moduleCardWidth, moduleCardHeight, 7);
+              context.stroke();
+            });
+            groupTop += groupHeight + rowGap;
+          });
         });
-      });
+      }
 
       const footerY = canvas.height - 65;
       context.fillStyle = "rgba(255,255,255,.08)";
@@ -2927,6 +2913,7 @@ function DeckShowcaseStudio({
     SHOWCASE_LAYOUT[size].columns,
     Math.max(1, groups.length),
   );
+  const previewLanes = buildShowcaseLanes(groups, previewColumnCount);
 
   return (
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#01070c]/92 p-4 backdrop-blur-xl">
@@ -3085,13 +3072,17 @@ function DeckShowcaseStudio({
                   ) : null}
                   {display === "text" ? (
                     <div
-                      className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 content-start gap-x-6 gap-y-2.5 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 p-4 text-white`}
+                      className={`${showStats ? "mt-2" : "mt-3"} min-h-0 flex-1 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 p-4 text-white`}
                       style={{
-                        gridTemplateColumns: size === "story" ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                        columns: size === "story" ? 1 : 2,
+                        columnGap: "1.5rem",
                       }}
                     >
                       {groups.map((group) => (
-                        <section key={group.category} className="min-w-0 break-inside-avoid">
+                        <section
+                          key={group.category}
+                          className="mb-3 inline-block w-full min-w-0 break-inside-avoid align-top"
+                        >
                           <div className="mb-1.5 flex items-center justify-between rounded-md bg-cyan-300/10 px-2.5 py-1.5">
                             <p className="text-[12px] font-black uppercase tracking-[0.05em] text-white">{group.category}</p>
                             <span className="text-[11px] font-bold text-cyan-300">{group.count}</span>
@@ -3116,67 +3107,59 @@ function DeckShowcaseStudio({
                           </div>
                         </section>
                       ))}
-                      <div className="col-span-full mt-1 flex items-center justify-between border-t border-white/10 pt-2.5 text-[11px] font-black text-white">
-                        <span>{cardCount} CARDS TOTAL</span>
-                        {showValue ? <span>${marketValue.toFixed(2)} DECK VALUE</span> : null}
-                      </div>
                     </div>
                   ) : (
                   <div
                     className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 overflow-hidden`}
                     style={{
                       gridTemplateColumns: `repeat(${previewColumnCount}, minmax(0, 1fr))`,
-                      gridTemplateRows: `repeat(${Math.ceil(groups.length / previewColumnCount)}, minmax(0, 1fr))`,
                       gap: SHOWCASE_LAYOUT[size].previewGap,
                     }}
                   >
-                    {groups.map((group, groupIndex) => {
-                      const displayCards = showcaseCardCopies(group.cards);
-                      const overlapPercent =
-                        displayCards.length <= 1
-                          ? 0
-                          : Math.min(16, 64 / Math.max(1, displayCards.length - 1));
-                      const rowIndex = Math.floor(groupIndex / previewColumnCount);
-                      const groupsInRow = Math.min(
-                        previewColumnCount,
-                        groups.length - rowIndex * previewColumnCount,
-                      );
-                      const isPartialRow = groupsInRow < previewColumnCount;
-                      const firstColumnInRow = groupIndex % previewColumnCount === 0;
-                      return (
-                        <div
-                          key={group.category}
-                          className="min-w-0 overflow-hidden"
-                          style={
-                            isPartialRow && firstColumnInRow
-                              ? {
-                                  gridColumnStart:
-                                    Math.floor((previewColumnCount - groupsInRow) / 2) + 1,
-                                }
-                              : undefined
-                          }
-                        >
-                          <p className="mb-1.5 truncate rounded-[4px] bg-black/90 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.035em] text-white shadow-sm">
-                            {group.category} {group.count}
-                          </p>
-                          <div className="relative h-[calc(100%-18px)] overflow-hidden">
-                            {displayCards.map(({ card, copyIndex }, index) => (
-                              <div
-                                key={`${card.id}-${copyIndex}`}
-                                className="absolute inset-x-0 mx-auto aspect-[63/88] w-full overflow-hidden rounded-[3px]"
-                                style={{ top: `${index * overlapPercent}%` }}
-                              >
-                                <img
-                                  src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
-                                  alt={card.name}
-                                  className="h-full w-full rounded-[3px] border border-white/20 object-cover shadow-md"
-                                />
+                    {previewLanes.map((lane, laneIndex) => (
+                      <div
+                        key={`showcase-lane-${laneIndex}`}
+                        className="flex min-h-0 min-w-0 flex-col"
+                        style={{ gap: SHOWCASE_LAYOUT[size].previewGap }}
+                      >
+                        {lane.groups.map((group) => {
+                          const displayCards = showcaseCardCopies(group.cards);
+                          const overlapPercent =
+                            displayCards.length <= 1
+                              ? 0
+                              : Math.min(17, 66 / Math.max(1, displayCards.length - 1));
+                          return (
+                            <section
+                              key={group.category}
+                              className="flex min-h-0 min-w-0 flex-col overflow-hidden"
+                              style={{
+                                flexGrow: showcaseGroupWeight(group),
+                                flexBasis: 0,
+                              }}
+                            >
+                              <p className="mb-1 truncate rounded-[4px] bg-black/90 px-2 py-1 text-[10px] font-black uppercase tracking-[0.035em] text-white shadow-sm">
+                                {group.category} {group.count}
+                              </p>
+                              <div className="relative min-h-0 flex-1 overflow-hidden">
+                                {displayCards.map(({ card, copyIndex }, index) => (
+                                  <div
+                                    key={`${card.id}-${copyIndex}`}
+                                    className="absolute inset-x-0 mx-auto aspect-[63/88] w-full overflow-hidden rounded-[3px]"
+                                    style={{ top: `${index * overlapPercent}%` }}
+                                  >
+                                    <img
+                                      src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
+                                      alt={card.name}
+                                      className="h-full w-full rounded-[3px] border border-white/20 object-cover shadow-md"
+                                    />
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
+                            </section>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                   )}
                   <div className="mt-2 border-t border-white/10 pt-2">
