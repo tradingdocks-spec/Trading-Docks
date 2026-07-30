@@ -4,7 +4,11 @@ import { PageHeader } from "@/components/dashboard/common/PageHeader";
 import { WorkspaceFrame } from "@/components/dashboard/common/WorkspaceFrame";
 import { SettingsCenter } from "@/components/dashboard/settings/SettingsCenter";
 import { getEffectivePlan } from "@/lib/effective-plan";
-import { PLAN_ENTITLEMENTS, normalizeAccountTier } from "@/lib/plan-entitlements";
+import {
+  PLAN_ENTITLEMENTS,
+  normalizeAccountTier,
+  type AccountTier,
+} from "@/lib/plan-entitlements";
 import { createClient } from "@/lib/supabase/server";
 
 function readableStatus(status?: string | null) {
@@ -37,7 +41,7 @@ export default async function Page({
         getEffectivePlan(),
       ])
     : [{ data: null }, { data: null }, normalizeAccountTier("free")] as const;
-  const plan = effectivePlan;
+  const plan: AccountTier = normalizeAccountTier(effectivePlan);
   const renewalDate = subscription?.current_period_end
     ? new Intl.DateTimeFormat("en-US", { dateStyle: "long" }).format(
         new Date(subscription.current_period_end),

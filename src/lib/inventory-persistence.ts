@@ -13,6 +13,10 @@ export type InventorySnapshot = {
 
 type InventoryCollection = keyof InventorySnapshot;
 
+type InventoryDataRow = {
+  data: unknown;
+};
+
 const TABLES: Record<InventoryCollection, string> = {
   locations: "inventory_locations",
   items: "inventory_items",
@@ -36,7 +40,7 @@ export async function loadInventorySnapshot(): Promise<InventorySnapshot> {
         .select("data")
         .eq("user_id", user.id);
       if (error) throw new Error(`Inventory storage is unavailable: ${error.message}`);
-      return (data ?? [])
+      return ((data ?? []) as InventoryDataRow[])
         .map((row) => row.data)
         .filter(isInventoryRecord);
     }),

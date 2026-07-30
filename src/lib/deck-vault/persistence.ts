@@ -17,6 +17,10 @@ type RecoveryDeck = {
   pending: boolean;
 };
 
+type DeckDataRow = {
+  deck_data: DeckRecord;
+};
+
 export async function loadDeckVault(): Promise<DeckRecord[]> {
   const { supabase, userId } = await authenticatedClient();
   const { data, error } = await supabase
@@ -32,8 +36,9 @@ export async function loadDeckVault(): Promise<DeckRecord[]> {
     throw deckStorageError("Decks could not be loaded", error.message);
   }
 
-  if (data.length) {
-    const remoteDecks = data.map((row) => row.deck_data as DeckRecord);
+  const rows = (data ?? []) as DeckDataRow[];
+  if (rows.length) {
+    const remoteDecks: DeckRecord[] = rows.map((row) => row.deck_data);
     const recovered = loadRecoveryDecks(userId);
     const merged = new Map(remoteDecks.map((deck) => [deck.id, deck]));
     for (const item of recovered) {

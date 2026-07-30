@@ -27,6 +27,17 @@ type Offer = {
   pricingSummary?: { price?: Amount };
   availableQuantity?: number;
 };
+type ImportedInventoryRow = {
+  id: string;
+  sku?: string | null;
+  card_name?: string | null;
+  set_code?: string | null;
+  collector_number?: string | null;
+  data?: unknown;
+};
+type SavedOrderRow = {
+  id: string;
+};
 type Order = {
   orderId: string;
   creationDate?: string;
@@ -52,7 +63,7 @@ type Order = {
 };
 
 const number = (value?: string) => value == null ? null : Number(value);
-const normalize = (value?: string) => (value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+const normalize = (value?: string | null) => (value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
 
 export async function POST() {
   const supabase = await createClient();
@@ -87,8 +98,9 @@ export async function POST() {
       ),
     ]);
 
-    const bySku = new Map((inventory ?? []).filter((item) => item.sku).map((item) => [normalize(item.sku), item]));
-    const byIdentity = new Map((inventory ?? []).map((item) => [
+    const inventoryRows = (inventory ?? []) as ImportedInventoryRow[];
+    const bySku = new Map(inventoryRows.filter((item) => item.sku).map((item) => [normalize(item.sku ?? undefined), item]));
+    const byIdentity = new Map(inventoryRows.map((item) => [
       [normalize(item.card_name), normalize(item.set_code), normalize(item.collector_number)].join("|"), item,
     ]));
     let matched = 0;
@@ -157,6 +169,7 @@ export async function POST() {
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id,marketplace_id,external_order_id" }).select("id").single();
       if (error || !savedOrder) throw error ?? new Error("Could not save an imported order.");
+      const savedOrderRow = savedOrder as SavedOrderRow;
       orderCount += 1;
 
       for (const line of order.lineItems ?? []) {
@@ -164,7 +177,7 @@ export async function POST() {
         const status = candidate ? "matched" : "unmatched";
         const { error: lineError } = await admin.from("marketplace_order_items").upsert({
           user_id: user.id,
-          marketplace_order_id: savedOrder.id,
+          marketplace_order_id: savedOrderRow.id,
           external_line_item_id: line.lineItemId,
           external_listing_id: line.legacyItemId ?? null,
           external_sku: line.sku ?? null,
