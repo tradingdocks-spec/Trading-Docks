@@ -39,7 +39,13 @@ const FORMATS = [
   "Pauper",
 ];
 
-export function DeckVaultHome() {
+export function DeckVaultHome({
+  plan,
+  deckLimit,
+}: {
+  plan: string;
+  deckLimit: number | null;
+}) {
   const [format, setFormat] = useState("All Formats");
   const [savedDecks, setSavedDecks] =
     useState<DeckRecord[]>([]);
@@ -86,6 +92,8 @@ export function DeckVaultHome() {
     (total, deck) => total + (Number.isFinite(deck.marketValue) ? deck.marketValue : 0),
     0,
   );
+  const limitReached =
+    deckLimit !== null && savedDecks.length >= deckLimit;
 
   async function deleteDeck(
     deckId: string,
@@ -151,25 +159,30 @@ export function DeckVaultHome() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <Link
-                href="/dashboard/deck-vault/import"
+                href={limitReached ? "/dashboard/plans" : "/dashboard/deck-vault/import"}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-sky-300 px-5 text-[13px] font-semibold text-[#00121c]"
               >
                 <Import className="h-4 w-4" />
-                Import a deck
+                {limitReached ? "Upgrade to add decks" : "Import a deck"}
               </Link>
               <Link
-                href="/dashboard/deck-vault/new"
+                href={limitReached ? "/dashboard/plans" : "/dashboard/deck-vault/new"}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-5 text-[13px] font-semibold text-slate-300"
               >
                 <FolderPlus className="h-4 w-4" />
-                Create new deck
+                {limitReached ? "Deck limit reached" : "Create new deck"}
               </Link>
             </div>
           </div>
         </header>
 
         <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Kpi label="Decks" value={String(savedDecks.length)} detail={savedDecks.length ? "Saved to this account" : "No decks added yet"} icon={LibraryBig} />
+          <Kpi
+            label="Decks"
+            value={deckLimit === null ? String(savedDecks.length) : `${savedDecks.length} / ${deckLimit}`}
+            detail={deckLimit === null ? "Unlimited on this plan" : `${plan === "free" ? "Free" : "Collector"} plan allowance`}
+            icon={LibraryBig}
+          />
           <Kpi label="Combined Value" value={`$${combinedValue.toFixed(2)}`} detail={savedDecks.length ? "Across saved decks" : "No deck value tracked"} icon={TrendingUp} />
           <Kpi label="Collection Coverage" value="0%" detail={savedDecks.length ? "Add inventory to calculate coverage" : "No decks to compare"} icon={Sparkles} />
           <Kpi label="AI Reviews" value="0" detail="No reviews generated" icon={BrainCircuit} />
