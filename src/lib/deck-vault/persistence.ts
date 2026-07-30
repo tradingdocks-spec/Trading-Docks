@@ -57,24 +57,9 @@ export async function loadDeckRecord(deckId: string) {
 }
 
 export async function saveDeckRecord(deck: DeckRecord, unresolved?: unknown[]) {
-  const saveToken = crypto.randomUUID();
-  const deckWithSaveToken = {
-    ...deck,
-    accountSaveToken: saveToken,
-  } as DeckRecord & { accountSaveToken: string };
-  await saveDeckRow(deckWithSaveToken, unresolved);
-
-  const saved = (await loadDeckRecord(deck.id)) as
-    | (DeckRecord & { accountSaveToken?: string })
-    | null;
-  if (
-    !saved ||
-    saved.id !== deck.id ||
-    saved.accountSaveToken !== saveToken ||
-    saved.cards.length !== deck.cards.length
-  ) {
-    throw new Error("Trading Docks could not verify that this deck was saved. Please try again.");
-  }
+  // The upsert already returns and validates the account/deck keys. Avoid
+  // immediately reading the entire deck back after every autosave.
+  await saveDeckRow(deck, unresolved);
 }
 
 export async function deleteDeckRecord(deckId: string) {

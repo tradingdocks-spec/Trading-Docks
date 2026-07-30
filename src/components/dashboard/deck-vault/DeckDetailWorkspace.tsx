@@ -374,7 +374,7 @@ export function DeckDetailWorkspace({
               : "Your deck changes could not be saved.",
           );
         });
-    }, 350);
+    }, 1200);
 
     return () =>
       window.clearTimeout(timeout);
@@ -467,7 +467,7 @@ export function DeckDetailWorkspace({
           setIntelligenceLoading(false);
         }
       },
-      450,
+      1200,
     );
 
     return () =>
@@ -2465,6 +2465,12 @@ function showcaseGroupWeight(group: ReturnType<typeof buildShowcaseGroups>[numbe
   return 1 + Math.min(14, Math.max(0, uniqueCards - 1)) * 0.13;
 }
 
+function isCompactShowcaseGroup(
+  group: ReturnType<typeof buildShowcaseGroups>[number],
+) {
+  return group.cards.length <= 2;
+}
+
 function buildShowcaseLanes(
   groups: ReturnType<typeof buildShowcaseGroups>,
   laneCount: number,
@@ -2833,7 +2839,7 @@ function DeckShowcaseStudio({
       const showcaseLanes = buildShowcaseLanes(groups, columnCount, true);
       const loadedImages = new Map<string, HTMLImageElement>();
       await Promise.all(
-        cards.map(async (card) => {
+        groups.flatMap((group) => group.cards).map(async (card) => {
           const image = await loadCardCanvasImage(card);
           if (image) loadedImages.set(card.id, image);
         }),
@@ -2903,13 +2909,49 @@ function DeckShowcaseStudio({
           const x = posterLeft + laneIndex * (columnWidth + columnGap);
           const laneGapHeight = rowGap * Math.max(0, lane.groups.length - 1);
           const usableLaneHeight = posterHeight - laneGapHeight;
+          const compactGroups = lane.groups.filter(isCompactShowcaseGroup);
+          const regularGroups = lane.groups.filter((group) => !isCompactShowcaseGroup(group));
+          const naturalCompactHeights = compactGroups.map((group) => {
+              const compactWidth = columnWidth * 0.82;
+              const cardHeight = (compactWidth - 8) * 1.395;
+              const stackExtra = group.cards.length === 2 ? cardHeight * 0.17 : 0;
+              return [group.category, Math.min(usableLaneHeight, 38 + cardHeight + stackExtra)];
+            }) as Array<[string, number]>;
+          const naturalCompactTotal = naturalCompactHeights.reduce(
+            (total, [, height]) => total + height,
+            0,
+          );
+          const compactHeightBudget = regularGroups.length
+            ? usableLaneHeight * 0.58
+            : usableLaneHeight;
+          const compactScale = naturalCompactTotal > compactHeightBudget
+            ? compactHeightBudget / naturalCompactTotal
+            : 1;
+          const compactHeights = new Map(
+            naturalCompactHeights.map(([category, height]) => [
+              category,
+              height * compactScale,
+            ]),
+          );
+          const compactHeightTotal = [...compactHeights.values()].reduce(
+            (total, height) => total + height,
+            0,
+          );
+          const regularWeight = regularGroups.reduce(
+            (total, group) => total + showcaseGroupWeight(group),
+            0,
+          );
+          const regularHeight = Math.max(0, usableLaneHeight - compactHeightTotal);
           let groupTop = posterTop;
 
           lane.groups.forEach((group) => {
-            const groupHeight =
-              usableLaneHeight * (showcaseGroupWeight(group) / Math.max(1, lane.weight));
+            const compact = isCompactShowcaseGroup(group);
+            const groupHeight = compact
+              ? compactHeights.get(group.category) ?? 0
+              : regularHeight * (showcaseGroupWeight(group) / Math.max(1, regularWeight));
+            const groupWidth = compact ? columnWidth * 0.82 : columnWidth;
             context.fillStyle = "rgba(1,8,14,.9)";
-            roundedRect(context, x, groupTop, columnWidth, 26, 5);
+            roundedRect(context, x, groupTop, groupWidth, 26, 5);
             context.fill();
             context.fillStyle = "#ffffff";
             context.font = `900 14px ${showcaseFont}`;
@@ -2922,11 +2964,11 @@ function DeckShowcaseStudio({
             const availableStackHeight = Math.max(64, groupHeight - 32);
             const displayCards = showcaseCardCopies(group.cards);
             const moduleCardWidth = Math.min(
-              columnWidth - 4,
+              groupWidth - 4,
               availableStackHeight / 1.395,
             );
             const moduleCardHeight = moduleCardWidth * 1.395;
-            const moduleCardX = x + (columnWidth - moduleCardWidth) / 2;
+            const moduleCardX = x + (groupWidth - moduleCardWidth) / 2;
             const overlap =
               displayCards.length <= 1
                 ? 0
@@ -3350,6 +3392,7 @@ function DeckShowcaseStudio({
                       >
                         {lane.groups.map((group) => {
                           const displayCards = showcaseCardCopies(group.cards);
+                          const compact = isCompactShowcaseGroup(group);
                           const overlapPercent =
                             displayCards.length <= 1
                               ? 0
@@ -3357,10 +3400,16 @@ function DeckShowcaseStudio({
                           return (
                             <section
                               key={group.category}
-                              className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-cyan-200/10 bg-black/25 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.18)]"
+                              className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-cyan-200/10 bg-black/25 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.18)] ${
+                                compact ? "w-[82%] self-start" : "w-full"
+                              }`}
                               style={{
-                                flexGrow: showcaseGroupWeight(group),
-                                flexBasis: 0,
+                                flexGrow: compact ? 0 : showcaseGroupWeight(group),
+                                flexBasis: compact
+                                  ? group.cards.length === 1
+                                    ? "24%"
+                                    : "36%"
+                                  : 0,
                               }}
                             >
                               <p className="mb-1 truncate rounded-[4px] bg-cyan-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.055em] text-white shadow-sm">
@@ -3376,6 +3425,8 @@ function DeckShowcaseStudio({
                                     <img
                                       src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
                                       alt={card.name}
+                                      loading="lazy"
+                                      decoding="async"
                                       className="h-full w-full rounded-[3px] border border-white/20 object-cover shadow-md"
                                     />
                                     {card.quantity > 1 ? (
