@@ -2196,6 +2196,15 @@ function DeckStacksView({
 type ShowcaseTheme = "harbor" | "midnight" | "color" | "black";
 type ShowcaseSize = "portrait" | "square" | "story";
 
+const SHOWCASE_LAYOUT: Record<
+  ShowcaseSize,
+  { columns: number; canvasGap: number; previewGap: string }
+> = {
+  square: { columns: 4, canvasGap: 12, previewGap: "0.5rem" },
+  portrait: { columns: 4, canvasGap: 12, previewGap: "0.5rem" },
+  story: { columns: 3, canvasGap: 14, previewGap: "0.625rem" },
+};
+
 const SHOWCASE_CATEGORY_ORDER = [
   "Commander", "Planeswalker", "Creature", "Artifact", "Enchantment",
   "Instant", "Sorcery", "Battle", "Land", "Sideboard", "Considering",
@@ -2363,6 +2372,21 @@ function DeckShowcaseStudio({
     });
   }
 
+  async function loadBrandImage(kind: "horizontal" | "mark") {
+    const candidates =
+      kind === "horizontal"
+        ? ["/trading-docks-horizontal.png", "/brand/trading-docks-horizontal.png"]
+        : ["/trading-docks-mark.png", "/brand/trading-docks-mark.png"];
+    for (const source of candidates) {
+      try {
+        return await loadCanvasImage(source);
+      } catch {
+        // Try the next bundled brand asset.
+      }
+    }
+    return null;
+  }
+
   async function exportShowcase() {
     setExporting(true);
     try {
@@ -2418,12 +2442,27 @@ function DeckShowcaseStudio({
         context.globalAlpha = 1;
       }
 
-      try {
-        const brandLogo = await loadCanvasImage("/brand/trading-docks-horizontal.png");
-        context.drawImage(brandLogo, 24, 14, 224, 74);
-      } catch {
+      const brandMark = await loadBrandImage("mark");
+      const brandWordmark = await loadBrandImage("horizontal");
+      context.fillStyle = "rgba(1,8,14,.82)";
+      roundedRect(context, 24, 14, 250, 72, 12);
+      context.fill();
+      context.strokeStyle = "rgba(103,232,249,.28)";
+      context.lineWidth = 1;
+      roundedRect(context, 24, 14, 250, 72, 12);
+      context.stroke();
+      if (brandMark) {
+        context.drawImage(brandMark, 33, 20, 60, 60);
+      } else {
         context.fillStyle = accent;
-        context.fillRect(32, 30, 7, 58);
+        context.fillRect(38, 26, 7, 48);
+      }
+      if (brandWordmark) {
+        context.drawImage(brandWordmark, 99, 25, 164, 54);
+      } else {
+        context.fillStyle = "#ffffff";
+        context.font = `900 19px ${showcaseFont}`;
+        context.fillText("TRADING DOCKS", 105, 56);
       }
       context.fillStyle = "#ffffff";
       context.font = `800 48px ${showcaseFont}`;
@@ -2506,17 +2545,17 @@ function DeckShowcaseStudio({
       const posterHeight = posterBottom - posterTop;
       const posterLeft = 24;
       const posterWidth = canvas.width - posterLeft * 2;
-      const columnCount = Math.min(size === "story" ? 4 : 5, Math.max(1, groups.length));
+      const columnCount = Math.min(
+        SHOWCASE_LAYOUT[size].columns,
+        Math.max(1, groups.length),
+      );
       const rowCount = Math.ceil(groups.length / columnCount);
-      const columnGap = 9;
-      const rowGap = 18;
+      const columnGap = SHOWCASE_LAYOUT[size].canvasGap;
+      const rowGap = SHOWCASE_LAYOUT[size].canvasGap;
       const columnWidth =
         (posterWidth - columnGap * Math.max(0, columnCount - 1)) / columnCount;
       const rowHeight =
         (posterHeight - rowGap * Math.max(0, rowCount - 1)) / Math.max(1, rowCount);
-      const cardWidth = columnWidth;
-      const cardHeight = cardWidth * 1.395;
-
       const loadedImages = new Map<string, HTMLImageElement>();
       await Promise.all(
         cards.map(async (card) => {
@@ -2543,50 +2582,106 @@ function DeckShowcaseStudio({
         const rowLeft = posterLeft + (posterWidth - rowContentWidth) / 2;
         const x = rowLeft + columnIndex * (columnWidth + columnGap);
         const groupTop = posterTop + rowIndex * (rowHeight + rowGap);
+        context.fillStyle = "rgba(2,10,16,.70)";
+        roundedRect(context, x, groupTop, columnWidth, rowHeight, 10);
+        context.fill();
+        context.strokeStyle = "rgba(255,255,255,.12)";
+        context.lineWidth = 1;
+        roundedRect(context, x, groupTop, columnWidth, rowHeight, 10);
+        context.stroke();
+        const moduleInset = 8;
         context.fillStyle = accent;
         context.font = `800 14px ${showcaseFont}`;
-        context.fillText(`${group.category.toUpperCase()}  ${group.count}`, x, groupTop);
-        const cardsTop = groupTop + 18;
-        const availableStackHeight = rowHeight - 18;
+        context.fillText(
+          `${group.category.toUpperCase()}  ${group.count}`,
+          x + moduleInset,
+          groupTop + 20,
+        );
+        const cardsTop = groupTop + 28;
+        const availableStackHeight = rowHeight - 36;
+        const maximumCardHeight =
+          group.cards.length <= 1
+            ? availableStackHeight
+            : Math.max(44, availableStackHeight * 0.72);
+        const moduleCardWidth = Math.min(
+          columnWidth - moduleInset * 2,
+          maximumCardHeight / 1.395,
+        );
+        const moduleCardHeight = moduleCardWidth * 1.395;
+        const moduleCardX = x + (columnWidth - moduleCardWidth) / 2;
         const overlap =
           group.cards.length <= 1
             ? 0
-            : Math.max(
-                4,
-                Math.min(
-                  cardHeight * 0.5,
-                  Math.max(4, availableStackHeight - cardHeight) /
-                    (group.cards.length - 1),
-                ),
-              );
+            : Math.max(2, (availableStackHeight - moduleCardHeight) /
+                (group.cards.length - 1));
 
         group.cards.forEach((card, cardIndex) => {
           const y = cardsTop + cardIndex * overlap;
           const image = loadedImages.get(card.id);
           if (image) {
-            drawRoundedImage(context, image, x, y, cardWidth, cardHeight, 8);
+            drawRoundedImage(
+              context,
+              image,
+              moduleCardX,
+              y,
+              moduleCardWidth,
+              moduleCardHeight,
+              7,
+            );
           } else {
             context.fillStyle = "#102331";
-            roundedRect(context, x, y, cardWidth, cardHeight, 8);
+            roundedRect(
+              context,
+              moduleCardX,
+              y,
+              moduleCardWidth,
+              moduleCardHeight,
+              7,
+            );
             context.fill();
             context.fillStyle = "#ffffff";
-            context.font = `700 ${Math.max(10, cardWidth * 0.09)}px ${showcaseFont}`;
-            wrapCanvasText(context, card.name, x + 7, y + 24, cardWidth - 14, 14, 3);
+            context.font = `700 ${Math.max(10, moduleCardWidth * 0.09)}px ${showcaseFont}`;
+            wrapCanvasText(
+              context,
+              card.name,
+              moduleCardX + 7,
+              y + 24,
+              moduleCardWidth - 14,
+              14,
+              3,
+            );
           }
           context.strokeStyle = "rgba(255,255,255,.24)";
           context.lineWidth = 1;
-          roundedRect(context, x, y, cardWidth, cardHeight, 8);
+          roundedRect(
+            context,
+            moduleCardX,
+            y,
+            moduleCardWidth,
+            moduleCardHeight,
+            7,
+          );
           context.stroke();
 
           if (card.quantity > 1) {
             context.fillStyle = accent;
             context.beginPath();
-            context.arc(x + cardWidth - 13, y + 13, 12, 0, Math.PI * 2);
+            context.arc(
+              moduleCardX + moduleCardWidth - 13,
+              y + 13,
+              12,
+              0,
+              Math.PI * 2,
+            );
             context.fill();
             context.fillStyle = "#001018";
             context.font = `900 12px ${showcaseFont}`;
             context.textAlign = "center";
-            context.fillText(`×${card.quantity}`, x + cardWidth - 13, y + 17);
+            context.fillText(
+              `×${card.quantity}`,
+              moduleCardX + moduleCardWidth - 13,
+              y + 17,
+            );
             context.textAlign = "left";
           }
         });
@@ -2598,18 +2693,17 @@ function DeckShowcaseStudio({
       context.fillStyle = "#ffffff";
       context.font = `800 15px ${showcaseFont}`;
       context.fillText("BUILT IN THE DECK VAULT", 32, footerY + 8);
-      try {
-        const footerLogo = await loadCanvasImage("/brand/trading-docks-horizontal.png");
+      if (brandWordmark) {
         const logoWidth = 188;
         const logoHeight = 62;
         context.drawImage(
-          footerLogo,
+          brandWordmark,
           canvas.width - logoWidth - 28,
           footerY - 34,
           logoWidth,
           logoHeight,
         );
-      } catch {
+      } else {
         context.font = `800 16px ${showcaseFont}`;
         context.fillText("TRADING DOCKS", canvas.width - 190, footerY + 8);
       }
@@ -2658,7 +2752,7 @@ function DeckShowcaseStudio({
   const previewBackground =
     theme === "color" ? deckIdentityGradient(identityColors) : undefined;
   const previewColumnCount = Math.min(
-    size === "story" ? 4 : 5,
+    SHOWCASE_LAYOUT[size].columns,
     Math.max(1, groups.length),
   );
 
@@ -2669,7 +2763,10 @@ function DeckShowcaseStudio({
           <header className="flex items-center justify-between border-b border-white/[0.07] px-6 py-5">
             <div className="flex items-center gap-4">
               <img
-                src="/brand/trading-docks-horizontal.png"
+                src="/trading-docks-horizontal.png"
+                onError={(event) => {
+                  event.currentTarget.src = "/brand/trading-docks-horizontal.png";
+                }}
                 alt="Trading Docks"
                 className="hidden h-10 w-auto max-w-[150px] object-contain sm:block"
               />
@@ -2734,12 +2831,25 @@ function DeckShowcaseStudio({
                   <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
                 ) : null}
                 <div className="relative flex h-full flex-col font-sans">
-                  <div className="flex min-h-8 items-center">
+                  <div className="flex min-h-10 items-center">
+                    <div className="flex h-10 items-center gap-2 rounded-lg border border-cyan-300/20 bg-[#01080e]/85 px-2.5 shadow-[0_6px_24px_rgba(0,0,0,.35)]">
+                      <img
+                        src="/trading-docks-mark.png"
+                        onError={(event) => {
+                          event.currentTarget.src = "/brand/trading-docks-mark.png";
+                        }}
+                        alt=""
+                        className="h-8 w-8 shrink-0 object-contain"
+                      />
                     <img
-                      src="/brand/trading-docks-horizontal.png"
+                      src="/trading-docks-horizontal.png"
+                      onError={(event) => {
+                        event.currentTarget.src = "/brand/trading-docks-horizontal.png";
+                      }}
                       alt="Trading Docks"
-                      className="h-8 w-auto max-w-[150px] object-contain object-left"
+                      className="h-8 w-auto max-w-[145px] object-contain object-left"
                     />
+                    </div>
                   </div>
                   <h3 className="mt-1 text-[clamp(20px,3.5vw,34px)] font-black leading-[1.02] text-white">{deckName}</h3>
                   <p className="mt-1 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">
@@ -2776,6 +2886,7 @@ function DeckShowcaseStudio({
                     style={{
                       gridTemplateColumns: `repeat(${previewColumnCount}, minmax(0, 1fr))`,
                       gridTemplateRows: `repeat(${Math.ceil(groups.length / previewColumnCount)}, minmax(0, 1fr))`,
+                      gap: SHOWCASE_LAYOUT[size].previewGap,
                     }}
                   >
                     {groups.map((group, groupIndex) => {
@@ -2793,7 +2904,7 @@ function DeckShowcaseStudio({
                       return (
                         <div
                           key={group.category}
-                          className="min-w-0"
+                          className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-[#020a10]/70 p-1"
                           style={
                             isPartialRow && firstColumnInRow
                               ? {
@@ -2806,17 +2917,17 @@ function DeckShowcaseStudio({
                           <p className="mb-1 truncate text-[6px] font-black uppercase tracking-[0.08em] text-cyan-300">
                             {group.category} {group.count}
                           </p>
-                          <div className="relative h-[calc(100%-10px)]">
+                          <div className="relative h-[calc(100%-10px)] overflow-hidden">
                             {group.cards.map((card, index) => (
                               <div
                                 key={card.id}
-                                className="absolute left-0 w-full"
+                                className="absolute inset-x-0 mx-auto aspect-[63/88] w-full overflow-hidden rounded-[3px]"
                                 style={{ top: `${index * overlapPercent}%` }}
                               >
                                 <img
                                   src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
                                   alt={card.name}
-                                  className="w-full rounded-[3px] border border-white/20 shadow-md"
+                                  className="h-full w-full rounded-[3px] border border-white/20 object-cover shadow-md"
                                 />
                                 {card.quantity > 1 ? (
                                   <span className="absolute right-0.5 top-0.5 rounded-full bg-cyan-300 px-1 text-[5px] font-black text-[#00121c]">
@@ -2837,7 +2948,10 @@ function DeckShowcaseStudio({
                         <p className="mt-0.5 truncate text-[6px] font-semibold text-cyan-300">{showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}</p>
                       </div>
                       <img
-                        src="/brand/trading-docks-horizontal.png"
+                        src="/trading-docks-horizontal.png"
+                        onError={(event) => {
+                          event.currentTarget.src = "/brand/trading-docks-horizontal.png";
+                        }}
                         alt="Trading Docks"
                         className="h-8 w-auto max-w-[130px] object-contain object-right"
                       />
