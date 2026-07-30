@@ -1428,7 +1428,7 @@ function CardsWorkspace({
 
   return (
     <section className="mt-5 space-y-5">
-      <section className="sticky top-3 z-40 overflow-hidden rounded-[24px] border border-cyan-300/[0.11] bg-[#04101a]/95 shadow-[0_24px_70px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+      <section className="sticky top-3 z-40 overflow-visible rounded-[24px] border border-cyan-300/[0.11] bg-[#04101a]/95 shadow-[0_24px_70px_rgba(0,0,0,0.38)] backdrop-blur-xl">
         <div className="flex flex-col gap-4 border-b border-white/[0.055] px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-3">
@@ -1468,7 +1468,7 @@ function CardsWorkspace({
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 transition group-open/view:rotate-180" />
               </summary>
-              <div className="absolute right-0 z-50 mt-2 grid w-52 gap-1 rounded-2xl border border-white/[0.09] bg-[#06131f]/98 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+              <div className="absolute right-0 z-50 mt-2 grid max-h-[min(28rem,calc(100vh-7rem))] w-52 gap-1 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.09] bg-[#06131f]/98 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl [scrollbar-color:rgba(103,232,249,.35)_transparent]">
                 {[
                   { value: "table" as const, label: "Text", icon: List },
                   { value: "condensed" as const, label: "Condensed", icon: ListCollapse },
@@ -1881,7 +1881,7 @@ function CardsWorkspace({
 
           {view === "grid" ? (
             <section className="rounded-[24px] border border-white/[0.07] bg-[#06131f] p-5">
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-4">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(120px,1fr))]">
                 {filteredCards.map((card) => (
                   <div
                     key={card.id}
@@ -2129,10 +2129,14 @@ const deckTypeOrder = [
   "Battle",
   "Land",
   "Other",
+  "Sideboard",
+  "Considering",
 ];
 
 function deckCardGroup(card: DeckCard) {
   if (card.board === "commander" || card.category === "Commander") return "Commander";
+  if (card.board === "sideboard") return "Sideboard";
+  if (card.board === "maybeboard") return "Considering";
   return (
     deckTypeOrder.find((type) =>
       card.typeLine.toLowerCase().includes(type.toLowerCase()),
@@ -2158,6 +2162,57 @@ function DeckCondensedView({
   cards: DeckCard[];
   onSelect: (id: string) => void;
 }) {
+  const [hoveredCard, setHoveredCard] = useState<DeckCard | null>(null);
+  const groups = groupedDeckCards(cards);
+  const mainGroups = groups.filter(
+    (group) => group.type !== "Sideboard" && group.type !== "Considering",
+  );
+  const separateGroups = groups.filter(
+    (group) => group.type === "Sideboard" || group.type === "Considering",
+  );
+
+  const renderGroups = (deckGroups: typeof groups) =>
+    deckGroups.map((group) => (
+      <section
+        key={group.type}
+        className="mb-3 inline-block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/[0.06] bg-black/[0.12]"
+      >
+        <div className="flex items-center justify-between bg-cyan-300/[0.055] px-3 py-2">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-cyan-200">
+            {group.type}
+          </p>
+          <span className="text-[10px] font-semibold text-cyan-300">
+            {group.cards.reduce((total, card) => total + card.quantity, 0)}
+          </span>
+        </div>
+        <div className="divide-y divide-white/[0.035]">
+          {group.cards.map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => onSelect(card.id)}
+              onMouseEnter={() => setHoveredCard(card)}
+              onMouseLeave={() => setHoveredCard(null)}
+              onFocus={() => setHoveredCard(card)}
+              onBlur={() => setHoveredCard(null)}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition hover:bg-cyan-300/[0.06] focus-visible:bg-cyan-300/[0.06] focus-visible:outline-none"
+            >
+              <span className="w-7 shrink-0 text-[11px] font-black text-white">
+                {card.quantity}×
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-300">
+                {card.name}
+              </span>
+              <ManaSymbols colors={card.colors} size="sm" />
+              <span className="w-14 shrink-0 text-right text-[10px] text-emerald-200/75">
+                ${(card.price * card.quantity).toFixed(2)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+    ));
+
   return (
     <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06131f]">
       <div className="flex items-center justify-between border-b border-white/[0.055] px-5 py-4">
@@ -2172,44 +2227,32 @@ function DeckCondensedView({
         </span>
       </div>
 
-      <div className="columns-1 gap-4 p-4 md:columns-2 2xl:columns-3">
-        {groupedDeckCards(cards).map((group) => (
-          <section
-            key={group.type}
-            className="mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/[0.06] bg-black/[0.12]"
-          >
-            <div className="flex items-center justify-between bg-cyan-300/[0.055] px-3 py-2">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-cyan-200">
-                {group.type}
-              </p>
-              <span className="text-[10px] font-semibold text-cyan-300">
-                {group.cards.reduce((total, card) => total + card.quantity, 0)}
-              </span>
-            </div>
-            <div className="divide-y divide-white/[0.035]">
-              {group.cards.map((card) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  onClick={() => onSelect(card.id)}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition hover:bg-cyan-300/[0.045]"
-                >
-                  <span className="w-7 shrink-0 text-[11px] font-black text-white">
-                    {card.quantity}×
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-300">
-                    {card.name}
-                  </span>
-                  <ManaSymbols colors={card.colors} size="sm" />
-                  <span className="w-14 shrink-0 text-right text-[10px] text-emerald-200/75">
-                    ${(card.price * card.quantity).toFixed(2)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
+      <div className="columns-1 gap-3 p-4 md:columns-2 2xl:columns-3">
+        {renderGroups(mainGroups)}
       </div>
+      {separateGroups.length ? (
+        <div className="border-t border-cyan-300/[0.12] bg-cyan-300/[0.018] p-4">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+            Outside the main deck
+          </p>
+          <div className="columns-1 gap-3 md:columns-2 2xl:columns-3">
+            {renderGroups(separateGroups)}
+          </div>
+        </div>
+      ) : null}
+      {hoveredCard ? (
+        <div className="pointer-events-none fixed bottom-6 right-6 z-[80] hidden w-[260px] overflow-hidden rounded-[18px] border border-cyan-200/25 bg-[#020810] p-2 shadow-[0_28px_90px_rgba(0,0,0,.75)] lg:block">
+          <img
+            src={hoveredCard.image || `/api/deck-vault/card-image?name=${encodeURIComponent(hoveredCard.name)}`}
+            alt=""
+            className="aspect-[0.715] w-full rounded-[12px] object-cover"
+          />
+          <div className="flex items-center justify-between gap-3 px-1 pb-1 pt-2">
+            <p className="truncate text-[12px] font-semibold text-white">{hoveredCard.name}</p>
+            <span className="shrink-0 text-[11px] font-black text-cyan-200">×{hoveredCard.quantity}</span>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -2400,19 +2443,34 @@ function showcaseGroupWeight(group: ReturnType<typeof buildShowcaseGroups>[numbe
 function buildShowcaseLanes(
   groups: ReturnType<typeof buildShowcaseGroups>,
   laneCount: number,
+  isolateSideboard = false,
 ) {
-  const lanes = Array.from({ length: Math.max(1, laneCount) }, () => ({
+  const separated = isolateSideboard
+    ? groups.filter((group) => group.category === "Sideboard" || group.category === "Considering")
+    : [];
+  const mainGroups = isolateSideboard
+    ? groups.filter((group) => group.category !== "Sideboard" && group.category !== "Considering")
+    : groups;
+  const mainLaneCount = Math.max(1, laneCount - (separated.length ? 1 : 0));
+  const lanes = Array.from({ length: mainLaneCount }, () => ({
     groups: [] as typeof groups,
     weight: 0,
   }));
 
-  groups.forEach((group) => {
+  mainGroups.forEach((group) => {
     const shortestLane = lanes.reduce((best, lane) =>
       lane.weight < best.weight ? lane : best,
     );
     shortestLane.groups.push(group);
     shortestLane.weight += showcaseGroupWeight(group);
   });
+
+  if (separated.length) {
+    lanes.push({
+      groups: separated,
+      weight: separated.reduce((total, group) => total + showcaseGroupWeight(group), 0),
+    });
+  }
 
   return lanes;
 }
@@ -2747,7 +2805,7 @@ function DeckShowcaseStudio({
       const rowGap = SHOWCASE_LAYOUT[size].canvasGap;
       const columnWidth =
         (posterWidth - columnGap * Math.max(0, columnCount - 1)) / columnCount;
-      const showcaseLanes = buildShowcaseLanes(groups, columnCount);
+      const showcaseLanes = buildShowcaseLanes(groups, columnCount, true);
       const loadedImages = new Map<string, HTMLImageElement>();
       await Promise.all(
         cards.map(async (card) => {
@@ -3052,7 +3110,7 @@ function DeckShowcaseStudio({
     SHOWCASE_LAYOUT[size].columns,
     Math.max(1, groups.length),
   );
-  const previewLanes = buildShowcaseLanes(groups, previewColumnCount);
+  const previewLanes = buildShowcaseLanes(groups, previewColumnCount, true);
   const previewTextLanes = longestLaneFirst(
     buildShowcaseLanes(groups, size === "story" ? 1 : 2),
   );
