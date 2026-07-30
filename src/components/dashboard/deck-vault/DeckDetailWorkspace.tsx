@@ -2233,9 +2233,9 @@ const SHOWCASE_LAYOUT: Record<
   ShowcaseSize,
   { columns: number; canvasGap: number; previewGap: string }
 > = {
-  square: { columns: 4, canvasGap: 12, previewGap: "0.5rem" },
-  portrait: { columns: 4, canvasGap: 12, previewGap: "0.5rem" },
-  story: { columns: 3, canvasGap: 14, previewGap: "0.625rem" },
+  square: { columns: 7, canvasGap: 8, previewGap: "0.3rem" },
+  portrait: { columns: 5, canvasGap: 9, previewGap: "0.35rem" },
+  story: { columns: 4, canvasGap: 10, previewGap: "0.4rem" },
 };
 
 const SHOWCASE_CATEGORY_ORDER = [
@@ -2271,6 +2271,15 @@ function buildShowcaseGroups(cards: DeckCard[]) {
       cards: groupCards.sort((a, b) => a.manaValue - b.manaValue || a.name.localeCompare(b.name)),
       count: groupCards.reduce((total, card) => total + card.quantity, 0),
     }));
+}
+
+function showcaseCardCopies(cards: DeckCard[]) {
+  return cards.flatMap((card) =>
+    Array.from({ length: Math.max(1, card.quantity) }, (_, copyIndex) => ({
+      card,
+      copyIndex,
+    })),
+  );
 }
 
 function buildShowcaseStats(cards: DeckCard[]) {
@@ -2477,12 +2486,12 @@ function DeckShowcaseStudio({
 
       const brandMark = await loadBrandImage("mark");
       const brandWordmark = await loadBrandImage("horizontal");
-      context.fillStyle = "rgba(1,8,14,.82)";
-      roundedRect(context, 24, 14, 250, 72, 12);
+      context.fillStyle = "rgba(1,8,14,.9)";
+      roundedRect(context, 24, 14, 304, 72, 12);
       context.fill();
       context.strokeStyle = "rgba(103,232,249,.28)";
       context.lineWidth = 1;
-      roundedRect(context, 24, 14, 250, 72, 12);
+      roundedRect(context, 24, 14, 304, 72, 12);
       context.stroke();
       if (brandMark) {
         context.drawImage(brandMark, 33, 20, 60, 60);
@@ -2491,7 +2500,7 @@ function DeckShowcaseStudio({
         context.fillRect(38, 26, 7, 48);
       }
       if (brandWordmark) {
-        context.drawImage(brandWordmark, 99, 25, 164, 54);
+        context.drawImage(brandWordmark, 99, 23, 214, 58);
       } else {
         context.fillStyle = "#ffffff";
         context.font = `900 19px ${showcaseFont}`;
@@ -2615,27 +2624,24 @@ function DeckShowcaseStudio({
         const rowLeft = posterLeft + (posterWidth - rowContentWidth) / 2;
         const x = rowLeft + columnIndex * (columnWidth + columnGap);
         const groupTop = posterTop + rowIndex * (rowHeight + rowGap);
-        context.fillStyle = "rgba(2,10,16,.70)";
-        roundedRect(context, x, groupTop, columnWidth, rowHeight, 10);
+        const moduleInset = 2;
+        context.fillStyle = "rgba(1,8,14,.9)";
+        roundedRect(context, x, groupTop, columnWidth, 26, 5);
         context.fill();
-        context.strokeStyle = "rgba(255,255,255,.12)";
-        context.lineWidth = 1;
-        roundedRect(context, x, groupTop, columnWidth, rowHeight, 10);
-        context.stroke();
-        const moduleInset = 8;
-        context.fillStyle = accent;
-        context.font = `800 14px ${showcaseFont}`;
+        context.fillStyle = "#ffffff";
+        context.font = `800 12px ${showcaseFont}`;
         context.fillText(
           `${group.category.toUpperCase()}  ${group.count}`,
-          x + moduleInset,
-          groupTop + 20,
+          x + 6,
+          groupTop + 18,
         );
-        const cardsTop = groupTop + 28;
-        const availableStackHeight = rowHeight - 36;
+        const cardsTop = groupTop + 30;
+        const availableStackHeight = rowHeight - 30;
+        const displayCards = showcaseCardCopies(group.cards);
         const maximumCardHeight =
-          group.cards.length <= 1
+          displayCards.length <= 1
             ? availableStackHeight
-            : Math.max(44, availableStackHeight * 0.72);
+            : Math.max(44, availableStackHeight * 0.64);
         const moduleCardWidth = Math.min(
           columnWidth - moduleInset * 2,
           maximumCardHeight / 1.395,
@@ -2643,12 +2649,12 @@ function DeckShowcaseStudio({
         const moduleCardHeight = moduleCardWidth * 1.395;
         const moduleCardX = x + (columnWidth - moduleCardWidth) / 2;
         const overlap =
-          group.cards.length <= 1
+          displayCards.length <= 1
             ? 0
-            : Math.max(2, (availableStackHeight - moduleCardHeight) /
-                (group.cards.length - 1));
+            : Math.max(1, (availableStackHeight - moduleCardHeight) /
+                (displayCards.length - 1));
 
-        group.cards.forEach((card, cardIndex) => {
+        displayCards.forEach(({ card }, cardIndex) => {
           const y = cardsTop + cardIndex * overlap;
           const image = loadedImages.get(card.id);
           if (image) {
@@ -2696,27 +2702,6 @@ function DeckShowcaseStudio({
           );
           context.stroke();
 
-          if (card.quantity > 1) {
-            context.fillStyle = accent;
-            context.beginPath();
-            context.arc(
-              moduleCardX + moduleCardWidth - 13,
-              y + 13,
-              12,
-              0,
-              Math.PI * 2,
-            );
-            context.fill();
-            context.fillStyle = "#001018";
-            context.font = `900 12px ${showcaseFont}`;
-            context.textAlign = "center";
-            context.fillText(
-              `×${card.quantity}`,
-              moduleCardX + moduleCardWidth - 13,
-              y + 17,
-            );
-            context.textAlign = "left";
-          }
         });
       });
 
@@ -2915,7 +2900,7 @@ function DeckShowcaseStudio({
                     </div>
                   ) : null}
                   <div
-                    className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 gap-x-1.5 gap-y-2 overflow-hidden`}
+                    className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 overflow-hidden`}
                     style={{
                       gridTemplateColumns: `repeat(${previewColumnCount}, minmax(0, 1fr))`,
                       gridTemplateRows: `repeat(${Math.ceil(groups.length / previewColumnCount)}, minmax(0, 1fr))`,
@@ -2923,10 +2908,11 @@ function DeckShowcaseStudio({
                     }}
                   >
                     {groups.map((group, groupIndex) => {
+                      const displayCards = showcaseCardCopies(group.cards);
                       const overlapPercent =
-                        group.cards.length <= 1
+                        displayCards.length <= 1
                           ? 0
-                          : Math.min(16, 58 / Math.max(1, group.cards.length - 1));
+                          : Math.min(14, 62 / Math.max(1, displayCards.length - 1));
                       const rowIndex = Math.floor(groupIndex / previewColumnCount);
                       const groupsInRow = Math.min(
                         previewColumnCount,
@@ -2937,7 +2923,7 @@ function DeckShowcaseStudio({
                       return (
                         <div
                           key={group.category}
-                          className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-[#020a10]/70 p-1"
+                          className="min-w-0 overflow-hidden"
                           style={
                             isPartialRow && firstColumnInRow
                               ? {
@@ -2947,13 +2933,13 @@ function DeckShowcaseStudio({
                               : undefined
                           }
                         >
-                          <p className="mb-1 truncate text-[6px] font-black uppercase tracking-[0.08em] text-cyan-300">
+                          <p className="mb-1 truncate rounded-[3px] bg-black/80 px-1 py-0.5 text-[6px] font-black uppercase tracking-[0.06em] text-white">
                             {group.category} {group.count}
                           </p>
-                          <div className="relative h-[calc(100%-10px)] overflow-hidden">
-                            {group.cards.map((card, index) => (
+                          <div className="relative h-[calc(100%-12px)] overflow-hidden">
+                            {displayCards.map(({ card, copyIndex }, index) => (
                               <div
-                                key={card.id}
+                                key={`${card.id}-${copyIndex}`}
                                 className="absolute inset-x-0 mx-auto aspect-[63/88] w-full overflow-hidden rounded-[3px]"
                                 style={{ top: `${index * overlapPercent}%` }}
                               >
@@ -2962,11 +2948,6 @@ function DeckShowcaseStudio({
                                   alt={card.name}
                                   className="h-full w-full rounded-[3px] border border-white/20 object-cover shadow-md"
                                 />
-                                {card.quantity > 1 ? (
-                                  <span className="absolute right-0.5 top-0.5 rounded-full bg-cyan-300 px-1 text-[5px] font-black text-[#00121c]">
-                                    ×{card.quantity}
-                                  </span>
-                                ) : null}
                               </div>
                             ))}
                           </div>
