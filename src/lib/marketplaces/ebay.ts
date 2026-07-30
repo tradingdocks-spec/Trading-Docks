@@ -82,14 +82,28 @@ export async function ebayJson<T>(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
-      "Accept-Language": "en-US",
       "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
     },
     cache: "no-store",
   });
-  const body = await response.json().catch(() => ({})) as { errors?: Array<{ message?: string }> };
+  const body = await response.json().catch(() => ({})) as {
+    errors?: Array<{
+      errorId?: number;
+      domain?: string;
+      category?: string;
+      message?: string;
+      longMessage?: string;
+    }>;
+  };
   if (!response.ok) {
-    throw new Error(body.errors?.[0]?.message ?? `eBay request failed (${response.status}).`);
+    const error = body.errors?.[0];
+    const detail = error?.longMessage ?? error?.message;
+    const requestName = path.split("?")[0];
+    throw new Error(
+      detail
+        ? `eBay ${requestName} request failed: ${detail}${error?.errorId ? ` (error ${error.errorId})` : ""}`
+        : `eBay ${requestName} request failed (${response.status}).`,
+    );
   }
   return body as T;
 }

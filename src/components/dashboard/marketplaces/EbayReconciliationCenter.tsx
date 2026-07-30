@@ -75,14 +75,21 @@ export function EbayReconciliationCenter() {
   async function importNow() {
     setImporting(true);
     setNotice("");
-    const response = await fetch("/api/marketplaces/ebay/import", { method: "POST" });
-    const body = await response.json().catch(() => null) as Record<string, number> & { error?: string };
-    if (!response.ok) setNotice(body?.error ?? "eBay import failed.");
-    else {
-      setNotice(`Import complete: ${body.listings ?? 0} listings and ${body.orders ?? 0} orders reviewed. No eBay data was changed.`);
-      await load();
+    try {
+      const response = await fetch("/api/marketplaces/ebay/import", { method: "POST" });
+      const body = await response.json().catch(() => null) as (Record<string, number> & { error?: string }) | null;
+      if (!response.ok) {
+        setNotice(body?.error ?? `eBay import failed (${response.status}).`);
+        await load();
+      } else {
+        setNotice(`Import complete: ${body?.listings ?? 0} listings and ${body?.orders ?? 0} orders reviewed. No eBay data was changed.`);
+        await load();
+      }
+    } catch {
+      setNotice("Trading Docks could not reach the eBay importer. Please try again.");
+    } finally {
+      setImporting(false);
     }
-    setImporting(false);
   }
 
   const counts = useMemo(() => {
