@@ -14,6 +14,7 @@ import {
   BrainCircuit,
   Check,
   CheckCircle2,
+  ChevronDown,
   CircleDollarSign,
   Copy,
   Columns3,
@@ -21,6 +22,7 @@ import {
   Grid3X3,
   Eye,
   ImageIcon,
+  ListCollapse,
   Layers3,
   List,
   MapPin,
@@ -161,6 +163,54 @@ const FORMATS: DeckFormat[] = [
   "Pauper",
 ];
 
+function canonicalDeckSection(card: DeckCard) {
+  if (card.board === "commander" || card.category === "Commander") {
+    return "commander";
+  }
+
+  return card.board ?? "main";
+}
+
+function combineDuplicateCards(cards: DeckCard[]) {
+  const combined = new Map<string, DeckCard>();
+
+  cards.forEach((card) => {
+    const quantity = Math.max(0, Number(card.quantity) || 0);
+    if (!quantity) return;
+
+    const key = `${canonicalDeckSection(card)}:${card.name.trim().toLocaleLowerCase()}`;
+    const existing = combined.get(key);
+
+    if (!existing) {
+      combined.set(key, { ...card, quantity });
+      return;
+    }
+
+    const nextQuantity = existing.quantity + quantity;
+    const nextOwnedQuantity =
+      (existing.ownedQuantity ?? (existing.owned ? existing.quantity : 0)) +
+      (card.ownedQuantity ?? (card.owned ? quantity : 0));
+
+    combined.set(key, {
+      ...existing,
+      quantity: nextQuantity,
+      price:
+        (existing.price * existing.quantity + card.price * quantity) /
+        nextQuantity,
+      ownedQuantity: nextOwnedQuantity,
+      owned: nextOwnedQuantity >= nextQuantity,
+      inventoryMatches: [
+        ...(existing.inventoryMatches ?? []),
+        ...(card.inventoryMatches ?? []),
+      ],
+      image: existing.image || card.image,
+      artCrop: existing.artCrop || card.artCrop,
+    });
+  });
+
+  return Array.from(combined.values());
+}
+
 export function DeckDetailWorkspace({
   deck,
 }: {
@@ -174,7 +224,7 @@ export function DeckDetailWorkspace({
         : deck.format,
     );
   const [cards, setCards] = useState<DeckCard[]>(
-    deck.cards,
+    () => combineDuplicateCards(deck.cards),
   );
   const [commanderName, setCommanderName] =
     useState(deck.commander ?? "");
@@ -536,12 +586,16 @@ export function DeckDetailWorkspace({
   function addCard(result: ScryfallCardResult) {
     setCards((current) => {
       const existing = current.find(
-        (card) => card.id === result.id,
+        (card) =>
+          canonicalDeckSection(card) === "main" &&
+          card.name.localeCompare(result.name, undefined, {
+            sensitivity: "accent",
+          }) === 0,
       );
 
       if (existing) {
         return current.map((card) =>
-          card.id === result.id
+          card.id === existing.id
             ? {
                 ...card,
                 quantity: card.quantity + 1,
@@ -1071,6 +1125,7 @@ function DeckHero({
 }
 type DeckCardView =
   | "table"
+  | "condensed"
   | "columns"
   | "grid"
   | "stacks"
@@ -1395,7 +1450,7 @@ function CardsWorkspace({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setShowcaseOpen(true)}
@@ -1404,61 +1459,49 @@ function CardsWorkspace({
               <Share2 className="h-4 w-4" />
               Show Off Your Deck
             </button>
-            {[
-              {
-                value: "table" as const,
-                label: "Text",
-                icon: List,
-              },
-              {
-                value: "columns" as const,
-                label: "Columns",
-                icon: Columns3,
-              },
-              {
-                value: "grid" as const,
-                label: "Visual Grid",
-                icon: Grid3X3,
-              },
-              {
-                value: "stacks" as const,
-                label: "Stacks",
-                icon: Layers3,
-              },
-              {
-                value: "role" as const,
-                label: "Role",
-                icon: ImageIcon,
-              },
-              {
-                value: "stats" as const,
-                label: "Analytics",
-                icon: BarChart3,
-              },
-            ].map((mode) => {
-              const Icon = mode.icon;
-              return (
-                <button
-                  key={mode.value}
-                  type="button"
-                  onClick={() => {
-                    setView(mode.value);
-                    if (mode.value === "role") {
-                      setGrouping("role");
-                    }
-                  }}
-                  className={[
-                    "flex h-10 items-center gap-2 rounded-xl border px-3.5 text-[12px] font-semibold transition",
-                    view === mode.value
-                      ? "border-cyan-200/25 bg-cyan-300 text-[#00121c]"
-                      : "border-white/[0.07] bg-white/[0.015] text-slate-400 hover:border-cyan-300/[0.14] hover:text-cyan-200",
-                  ].join(" ")}
-                >
-                  <Icon className="h-4 w-4" />
-                  {mode.label}
-                </button>
-              );
-            })}
+            <details className="group/view relative">
+              <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-cyan-200/20 bg-cyan-300/[0.06] px-3.5 text-[12px] font-semibold text-cyan-100 transition hover:border-cyan-200/35 [&::-webkit-details-marker]:hidden">
+                <Eye className="h-4 w-4" />
+                View
+                <span className="hidden text-slate-400 sm:inline">
+                  · {view === "table" ? "Text" : view === "condensed" ? "Condensed" : view === "grid" ? "Visual Grid" : view === "stats" ? "Analytics" : view.charAt(0).toUpperCase() + view.slice(1)}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 transition group-open/view:rotate-180" />
+              </summary>
+              <div className="absolute right-0 z-50 mt-2 grid w-52 gap-1 rounded-2xl border border-white/[0.09] bg-[#06131f]/98 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+                {[
+                  { value: "table" as const, label: "Text", icon: List },
+                  { value: "condensed" as const, label: "Condensed", icon: ListCollapse },
+                  { value: "columns" as const, label: "Columns", icon: Columns3 },
+                  { value: "grid" as const, label: "Visual Grid", icon: Grid3X3 },
+                  { value: "stacks" as const, label: "Stacks", icon: Layers3 },
+                  { value: "role" as const, label: "Role", icon: ImageIcon },
+                  { value: "stats" as const, label: "Analytics", icon: BarChart3 },
+                ].map((mode) => {
+                  const Icon = mode.icon;
+                  return (
+                    <button
+                      key={mode.value}
+                      type="button"
+                      onClick={(event) => {
+                        setView(mode.value);
+                        if (mode.value === "role") setGrouping("role");
+                        event.currentTarget.closest("details")?.removeAttribute("open");
+                      }}
+                      className={[
+                        "flex h-10 items-center gap-3 rounded-xl px-3 text-left text-[12px] font-semibold transition",
+                        view === mode.value
+                          ? "bg-cyan-300 text-[#00121c]"
+                          : "text-slate-300 hover:bg-white/[0.045] hover:text-cyan-100",
+                      ].join(" ")}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {mode.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </details>
           </div>
         </div>
 
@@ -1829,6 +1872,13 @@ function CardsWorkspace({
             </section>
           ) : null}
 
+          {view === "condensed" ? (
+            <DeckCondensedView
+              cards={filteredCards}
+              onSelect={setSelectedCardId}
+            />
+          ) : null}
+
           {view === "grid" ? (
             <section className="rounded-[24px] border border-white/[0.07] bg-[#06131f] p-5">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-4">
@@ -2099,6 +2149,69 @@ function groupedDeckCards(cards: DeckCard[]) {
   return deckTypeOrder
     .filter((type) => groups.has(type))
     .map((type) => ({ type, cards: groups.get(type) ?? [] }));
+}
+
+function DeckCondensedView({
+  cards,
+  onSelect,
+}: {
+  cards: DeckCard[];
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06131f]">
+      <div className="flex items-center justify-between border-b border-white/[0.055] px-5 py-4">
+        <div>
+          <p className="text-[17px] font-semibold text-white">Condensed Deck</p>
+          <p className="mt-1 text-[12px] text-slate-500">
+            Every unique card, grouped tightly for fast scanning
+          </p>
+        </div>
+        <span className="rounded-full border border-cyan-300/[0.1] bg-cyan-300/[0.035] px-3 py-1 text-[11px] font-semibold text-cyan-200">
+          {cards.reduce((total, card) => total + card.quantity, 0)} cards
+        </span>
+      </div>
+
+      <div className="columns-1 gap-4 p-4 md:columns-2 2xl:columns-3">
+        {groupedDeckCards(cards).map((group) => (
+          <section
+            key={group.type}
+            className="mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/[0.06] bg-black/[0.12]"
+          >
+            <div className="flex items-center justify-between bg-cyan-300/[0.055] px-3 py-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-cyan-200">
+                {group.type}
+              </p>
+              <span className="text-[10px] font-semibold text-cyan-300">
+                {group.cards.reduce((total, card) => total + card.quantity, 0)}
+              </span>
+            </div>
+            <div className="divide-y divide-white/[0.035]">
+              {group.cards.map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  onClick={() => onSelect(card.id)}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition hover:bg-cyan-300/[0.045]"
+                >
+                  <span className="w-7 shrink-0 text-[11px] font-black text-white">
+                    {card.quantity}×
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-300">
+                    {card.name}
+                  </span>
+                  <ManaSymbols colors={card.colors} size="sm" />
+                  <span className="w-14 shrink-0 text-right text-[10px] text-emerald-200/75">
+                    ${(card.price * card.quantity).toFixed(2)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function DeckColumnsView({
