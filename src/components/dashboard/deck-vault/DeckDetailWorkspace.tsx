@@ -2454,9 +2454,9 @@ const SHOWCASE_LAYOUT: Record<
   ShowcaseSize,
   { columns: number; canvasGap: number; previewGap: string }
 > = {
-  square: { columns: 6, canvasGap: 10, previewGap: "0.45rem" },
-  portrait: { columns: 5, canvasGap: 10, previewGap: "0.45rem" },
-  story: { columns: 4, canvasGap: 12, previewGap: "0.55rem" },
+  square: { columns: 4, canvasGap: 12, previewGap: "0.55rem" },
+  portrait: { columns: 3, canvasGap: 12, previewGap: "0.55rem" },
+  story: { columns: 2, canvasGap: 14, previewGap: "0.65rem" },
 };
 
 const SHOWCASE_CATEGORY_ORDER = [
@@ -2494,19 +2494,8 @@ function buildShowcaseGroups(cards: DeckCard[]) {
     }));
 }
 
-function showcaseCardCopies(cards: DeckCard[]) {
-  return cards.map((card) => ({ card, copyIndex: 0 }));
-}
-
 function showcaseGroupWeight(group: ReturnType<typeof buildShowcaseGroups>[number]) {
-  const uniqueCards = group.cards.length;
-  return 1 + Math.min(14, Math.max(0, uniqueCards - 1)) * 0.13;
-}
-
-function isCompactShowcaseGroup(
-  group: ReturnType<typeof buildShowcaseGroups>[number],
-) {
-  return group.cards.length <= 2;
+  return 1.15 + group.cards.length;
 }
 
 function buildShowcaseLanes(
@@ -2654,7 +2643,7 @@ function DeckShowcaseStudio({
   const [theme, setTheme] = useState<ShowcaseTheme>("harbor");
   const [size, setSize] = useState<ShowcaseSize>("portrait");
   const [display, setDisplay] = useState<ShowcaseDisplay>("cards");
-  const [showValue, setShowValue] = useState(true);
+  const [showValue, setShowValue] = useState(false);
   const [showStats, setShowStats] = useState(true);
   const [showLink, setShowLink] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -2874,7 +2863,7 @@ function DeckShowcaseStudio({
       const rowGap = SHOWCASE_LAYOUT[size].canvasGap;
       const columnWidth =
         (posterWidth - columnGap * Math.max(0, columnCount - 1)) / columnCount;
-      const showcaseLanes = buildShowcaseLanes(groups, columnCount, true);
+      const showcaseLanes = buildShowcaseLanes(groups, columnCount);
       const loadedImages = new Map<string, HTMLImageElement>();
       await Promise.all(
         groups.flatMap((group) => group.cards).map(async (card) => {
@@ -2945,120 +2934,69 @@ function DeckShowcaseStudio({
       } else {
         showcaseLanes.forEach((lane, laneIndex) => {
           const x = posterLeft + laneIndex * (columnWidth + columnGap);
-          const laneGapHeight = rowGap * Math.max(0, lane.groups.length - 1);
-          const usableLaneHeight = posterHeight - laneGapHeight;
-          const compactGroups = lane.groups.filter(isCompactShowcaseGroup);
-          const regularGroups = lane.groups.filter((group) => !isCompactShowcaseGroup(group));
-          const naturalCompactHeights = compactGroups.map((group) => {
-              const compactWidth = columnWidth * 0.82;
-              const cardHeight = (compactWidth - 8) * 1.395;
-              const stackExtra = group.cards.length === 2 ? cardHeight * 0.17 : 0;
-              return [group.category, Math.min(usableLaneHeight, 38 + cardHeight + stackExtra)];
-            }) as Array<[string, number]>;
-          const naturalCompactTotal = naturalCompactHeights.reduce(
-            (total, [, height]) => total + height,
-            0,
+          const cardRowHeight = Math.max(
+            34,
+            Math.min(48, (posterHeight - lane.groups.length * 35) /
+              Math.max(1, lane.groups.reduce((total, group) => total + group.cards.length, 0))),
           );
-          const compactHeightBudget = regularGroups.length
-            ? usableLaneHeight * 0.58
-            : usableLaneHeight;
-          const compactScale = naturalCompactTotal > compactHeightBudget
-            ? compactHeightBudget / naturalCompactTotal
-            : 1;
-          const compactHeights = new Map(
-            naturalCompactHeights.map(([category, height]) => [
-              category,
-              height * compactScale,
-            ]),
-          );
-          const compactHeightTotal = [...compactHeights.values()].reduce(
-            (total, height) => total + height,
-            0,
-          );
-          const regularWeight = regularGroups.reduce(
-            (total, group) => total + showcaseGroupWeight(group),
-            0,
-          );
-          const regularHeight = Math.max(0, usableLaneHeight - compactHeightTotal);
           let groupTop = posterTop;
 
           lane.groups.forEach((group) => {
-            const compact = isCompactShowcaseGroup(group);
-            const groupHeight = compact
-              ? compactHeights.get(group.category) ?? 0
-              : regularHeight * (showcaseGroupWeight(group) / Math.max(1, regularWeight));
-            const groupWidth = compact ? columnWidth * 0.82 : columnWidth;
-            context.fillStyle = "rgba(1,8,14,.9)";
-            roundedRect(context, x, groupTop, groupWidth, 26, 5);
+            const groupWidth = columnWidth;
+            const groupHeight = 32 + group.cards.length * cardRowHeight + 7;
+            context.fillStyle = "rgba(1,8,14,.82)";
+            roundedRect(context, x, groupTop, groupWidth, groupHeight, 8);
+            context.fill();
+            context.strokeStyle = "rgba(103,232,249,.13)";
+            roundedRect(context, x, groupTop, groupWidth, groupHeight, 8);
+            context.stroke();
+            context.fillStyle = "rgba(103,232,249,.12)";
+            roundedRect(context, x + 5, groupTop + 5, groupWidth - 10, 23, 5);
             context.fill();
             context.fillStyle = "#ffffff";
-            context.font = `900 14px ${showcaseFont}`;
+            context.font = `900 13px ${showcaseFont}`;
             context.fillText(
-              `${group.category.toUpperCase()}  ${group.count}`,
-              x + 6,
-              groupTop + 19,
+              `${group.category.toUpperCase()} · ${group.count}`,
+              x + 12,
+              groupTop + 21,
             );
-            const cardsTop = groupTop + 32;
-            const availableStackHeight = Math.max(64, groupHeight - 32);
-            const displayCards = showcaseCardCopies(group.cards);
-            const moduleCardWidth = Math.min(
-              groupWidth - 4,
-              availableStackHeight / 1.395,
-            );
-            const moduleCardHeight = moduleCardWidth * 1.395;
-            const moduleCardX = x + (groupWidth - moduleCardWidth) / 2;
-            const overlap =
-              displayCards.length <= 1
-                ? 0
-                : Math.max(
-                    2,
-                    Math.min(
-                      moduleCardHeight * 0.17,
-                      (availableStackHeight - moduleCardHeight) /
-                        Math.max(1, displayCards.length - 1),
-                    ),
-                  );
-
-            displayCards.forEach(({ card }, cardIndex) => {
-              const y = cardsTop + cardIndex * overlap;
+            group.cards.forEach((card, cardIndex) => {
+              const y = groupTop + 32 + cardIndex * cardRowHeight;
+              const imageWidth = Math.min(74, groupWidth * 0.31);
+              const imageHeight = cardRowHeight - 5;
               const image = loadedImages.get(card.id);
               if (image) {
-                drawRoundedImage(context, image, moduleCardX, y, moduleCardWidth, moduleCardHeight, 7);
+                const sourceHeight = Math.max(1, image.naturalHeight * 0.34);
+                const sourceY = Math.max(0, (image.naturalHeight - sourceHeight) * 0.3);
+                context.save();
+                roundedRect(context, x + 6, y + 2, imageWidth, imageHeight, 4);
+                context.clip();
+                context.drawImage(
+                  image,
+                  0,
+                  sourceY,
+                  image.naturalWidth,
+                  sourceHeight,
+                  x + 6,
+                  y + 2,
+                  imageWidth,
+                  imageHeight,
+                );
+                context.restore();
               } else {
                 context.fillStyle = "#102331";
-                roundedRect(context, moduleCardX, y, moduleCardWidth, moduleCardHeight, 7);
+                roundedRect(context, x + 6, y + 2, imageWidth, imageHeight, 4);
                 context.fill();
-                context.fillStyle = "#ffffff";
-                context.font = `700 ${Math.max(10, moduleCardWidth * 0.09)}px ${showcaseFont}`;
-                wrapCanvasText(context, card.name, moduleCardX + 7, y + 24, moduleCardWidth - 14, 14, 3);
               }
-              context.strokeStyle = "rgba(255,255,255,.24)";
-              context.lineWidth = 1;
-              roundedRect(context, moduleCardX, y, moduleCardWidth, moduleCardHeight, 7);
-              context.stroke();
-              if (card.quantity > 1) {
-                const badgeText = `×${card.quantity}`;
-                context.font = `900 ${Math.max(14, moduleCardWidth * 0.1)}px ${showcaseFont}`;
-                const badgeWidth = Math.max(
-                  42,
-                  context.measureText(badgeText).width + 18,
-                );
-                const badgeX = moduleCardX + moduleCardWidth - badgeWidth - 8;
-                context.fillStyle = "rgba(1,8,14,.94)";
-                roundedRect(context, badgeX, y + 8, badgeWidth, 28, 8);
-                context.fill();
-                context.strokeStyle = "rgba(103,232,249,.7)";
-                roundedRect(context, badgeX, y + 8, badgeWidth, 28, 8);
-                context.stroke();
-                context.fillStyle = "#ffffff";
-                context.textAlign = "center";
-                context.fillText(
-                  badgeText,
-                  badgeX + badgeWidth / 2,
-                  y + 28,
-                );
-                context.textAlign = "left";
-              }
+              context.fillStyle = "#ffffff";
+              context.font = `800 ${Math.max(11, cardRowHeight * 0.31)}px ${showcaseFont}`;
+              const name = card.name.length > 23 ? `${card.name.slice(0, 21)}…` : card.name;
+              context.fillText(name, x + imageWidth + 14, y + cardRowHeight * 0.59, groupWidth - imageWidth - 48);
+              context.fillStyle = accent;
+              context.font = `900 ${Math.max(11, cardRowHeight * 0.31)}px ${showcaseFont}`;
+              context.textAlign = "right";
+              context.fillText(`×${card.quantity}`, x + groupWidth - 9, y + cardRowHeight * 0.59);
+              context.textAlign = "left";
             });
             groupTop += groupHeight + rowGap;
           });
@@ -3211,11 +3149,8 @@ function DeckShowcaseStudio({
   }[theme];
   const previewBackground =
     theme === "color" ? deckIdentityGradient(identityColors) : undefined;
-  const previewColumnCount = Math.min(
-    SHOWCASE_LAYOUT[size].columns,
-    Math.max(1, groups.length),
-  );
-  const previewLanes = buildShowcaseLanes(groups, previewColumnCount, true);
+  const previewColumnCount = Math.min(SHOWCASE_LAYOUT[size].columns, Math.max(1, groups.length));
+  const previewLanes = buildShowcaseLanes(groups, previewColumnCount);
   const previewTextLanes = longestLaneFirst(
     buildShowcaseLanes(groups, size === "story" ? 1 : 2),
   );
@@ -3423,61 +3358,38 @@ function DeckShowcaseStudio({
                     }}
                   >
                     {previewLanes.map((lane, laneIndex) => (
-                      <div
-                        key={`showcase-lane-${laneIndex}`}
-                        className="flex min-h-0 min-w-0 flex-col"
-                        style={{ gap: SHOWCASE_LAYOUT[size].previewGap }}
-                      >
-                        {lane.groups.map((group) => {
-                          const displayCards = showcaseCardCopies(group.cards);
-                          const compact = isCompactShowcaseGroup(group);
-                          const overlapPercent =
-                            displayCards.length <= 1
-                              ? 0
-                              : Math.min(17, 66 / Math.max(1, displayCards.length - 1));
-                          return (
-                            <section
-                              key={group.category}
-                              className={`flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-cyan-200/10 bg-black/25 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.18)] ${
-                                compact ? "w-[82%] self-start" : "w-full"
-                              }`}
-                              style={{
-                                flexGrow: compact ? 0 : showcaseGroupWeight(group),
-                                flexBasis: compact
-                                  ? group.cards.length === 1
-                                    ? "24%"
-                                    : "36%"
-                                  : 0,
-                              }}
-                            >
-                              <p className="mb-1 truncate rounded-[4px] bg-cyan-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.055em] text-white shadow-sm">
-                                {group.category} · {group.count}
+                      <div key={`showcase-board-column-${laneIndex}`} className="min-w-0">
+                        {lane.groups.map((group) => (
+                          <section
+                            key={group.category}
+                            className="mb-2 w-full overflow-hidden rounded-lg border border-cyan-200/10 bg-[#01080e]/80 p-1.5 shadow-[0_8px_24px_rgba(0,0,0,.18)]"
+                          >
+                            <div className="mb-1 flex items-center justify-between rounded-[5px] bg-cyan-300/10 px-2 py-1.5">
+                              <p className="truncate text-[10px] font-black uppercase tracking-[0.055em] text-white">
+                                {group.category}
                               </p>
-                              <div className="relative min-h-0 flex-1 overflow-hidden">
-                                {displayCards.map(({ card, copyIndex }, index) => (
-                                  <div
-                                    key={`${card.id}-${copyIndex}`}
-                                    className="absolute inset-x-0 mx-auto aspect-[63/88] w-[94%] overflow-hidden rounded-[3px]"
-                                    style={{ top: `${index * overlapPercent}%` }}
-                                  >
-                                    <img
-                                      src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
-                                      alt={card.name}
-                                      loading="lazy"
-                                      decoding="async"
-                                      className="h-full w-full rounded-[3px] border border-white/20 object-cover shadow-md"
-                                    />
-                                    {card.quantity > 1 ? (
-                                      <span className="absolute right-1.5 top-1.5 rounded-md border border-cyan-200/60 bg-[#01080e]/95 px-1.5 py-0.5 text-[10px] font-black text-white shadow-lg">
-                                        ×{card.quantity}
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                ))}
-                              </div>
-                            </section>
-                          );
-                        })}
+                              <span className="ml-2 text-[10px] font-black text-cyan-300">{group.count}</span>
+                            </div>
+                            <div className="space-y-1">
+                              {group.cards.map((card) => (
+                                <div
+                                  key={card.id}
+                                  className="grid h-9 grid-cols-[54px_minmax(0,1fr)_auto] items-center gap-2 overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.035] pr-2"
+                                >
+                                  <img
+                                    src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="h-full w-full object-cover object-[center_28%]"
+                                  />
+                                  <span className="truncate text-[10px] font-bold text-white">{card.name}</span>
+                                  <span className="text-[10px] font-black text-cyan-300">×{card.quantity}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </section>
+                        ))}
                       </div>
                     ))}
                   </div>
