@@ -20,6 +20,10 @@ export function TransitionLink({
   const router = useRouter();
   const [leaving, setLeaving] = useState(false);
 
+  useEffect(() => {
+    router.prefetch(href);
+  }, [href, router]);
+
   function navigate(event: MouseEvent<HTMLAnchorElement>) {
     if (
       event.defaultPrevented ||
@@ -33,6 +37,7 @@ export function TransitionLink({
     }
 
     event.preventDefault();
+    if (leaving) return;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       router.push(href);
@@ -40,7 +45,7 @@ export function TransitionLink({
     }
 
     setLeaving(true);
-    window.setTimeout(() => router.push(href), 360);
+    window.setTimeout(() => router.push(href), 180);
   }
 
   return (
@@ -56,12 +61,9 @@ export function TransitionLink({
       </a>
 
       {leaving ? (
-        <div className="td-route-wipe" aria-hidden="true">
-          <div className="td-route-wipe__glow" />
-          <div className="td-route-wipe__mark">
-            <span>T</span>D
-          </div>
-          <div className="td-route-wipe__line" />
+        <div className="td-route-transition" aria-hidden="true">
+          <div className="td-route-transition__veil" />
+          <div className="td-route-transition__progress" />
         </div>
       ) : null}
     </>
@@ -95,9 +97,9 @@ export function ExploreLink({ href, className, children }: ExploreLinkProps) {
         target.classList.add("td-section-arrival");
         window.setTimeout(
           () => target.classList.remove("td-section-arrival"),
-          900,
+          700,
         );
-      }, 420);
+      }, 260);
     }
 
     window.history.replaceState(null, "", href);
