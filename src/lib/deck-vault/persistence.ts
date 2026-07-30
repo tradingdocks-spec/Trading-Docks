@@ -9,6 +9,13 @@ import { createClient } from "@/lib/supabase/client";
 const LIST_KEY = "deck-vault:list";
 const DECK_PREFIX = "deck-vault:deck:";
 const UNRESOLVED_PREFIX = "deck-vault:unresolved:";
+const RECOVERY_PREFIX = "deck-vault:recovery:";
+
+type RecoveryDeck = {
+  deck: DeckRecord;
+  savedAt: number;
+  pending: boolean;
+};
 
 export async function loadDeckVault(): Promise<DeckRecord[]> {
   const { supabase, userId } = await authenticatedClient();
@@ -20,12 +27,26 @@ export async function loadDeckVault(): Promise<DeckRecord[]> {
     .order("updated_at", { ascending: false });
 
   if (error) {
+    const recovered = loadRecoveryDecks(userId);
+    if (recovered.length) return recovered;
     throw deckStorageError("Decks could not be loaded", error.message);
   }
 
   if (data.length) {
-    return data.map((row) => row.deck_data as DeckRecord);
+    const remoteDecks = data.map((row) => row.deck_data as DeckRecord);
+    const recovered = loadRecoveryDecks(userId);
+    const merged = new Map(remoteDecks.map((deck) => [deck.id, deck]));
+    for (const item of recovered) {
+      const cached = loadRecoveryDeck(userId, item.id);
+      if (cached?.pending) {
+        merged.set(item.id, cached.deck);
+      }
+    }
+    return Array.from(merged.values());
   }
+
+  const recovered = loadRecoveryDecks(userId);
+  if (recovered.length) return recovered;
 
   const legacyDecks = await loadLegacyDeckVault();
   for (const deck of legacyDecks) {
@@ -36,6 +57,7 @@ export async function loadDeckVault(): Promise<DeckRecord[]> {
 
 export async function loadDeckRecord(deckId: string) {
   const { supabase, userId } = await authenticatedClient();
+  const recovery = loadRecoveryDeck(userId, deckId);
   const { data, error } = await supabase
     .from("deck_vault_decks")
     .select("deck_data")
@@ -44,9 +66,16 @@ export async function loadDeckRecord(deckId: string) {
     .maybeSingle();
 
   if (error) {
+    if (recovery) return recovery.deck;
     throw deckStorageError("The deck could not be loaded", error.message);
   }
-  if (data) return data.deck_data as DeckRecord;
+  if (data) {
+    const remote = data.deck_data as DeckRecord;
+    return recovery?.pending
+      ? recovery.deck
+      : remote;
+  }
+  if (recovery) return recovery.deck;
 
   const legacyDeck = await loadAccountDocument<DeckRecord>(deckKey(deckId));
   if (legacyDeck) {
@@ -70,6 +99,7 @@ export async function deleteDeckRecord(deckId: string) {
     .eq("user_id", userId)
     .eq("deck_key", deckId);
   if (error) throw deckStorageError("The deck could not be deleted", error.message);
+  removeRecoveryDeck(userId, deckId);
 }
 
 function deckKey(deckId: string) {
@@ -110,6 +140,7 @@ async function loadLegacyDeckVault(): Promise<DeckRecord[]> {
 
 async function saveDeckRow(deck: DeckRecord, unresolved?: unknown[]) {
   const { supabase, userId } = await authenticatedClient();
+  saveRecoveryDeck(userId, deck);
   const { data, error } = await supabase.from("deck_vault_decks").upsert(
     {
       user_id: userId,
@@ -127,16 +158,59 @@ async function saveDeckRow(deck: DeckRecord, unresolved?: unknown[]) {
   if (!data || data.user_id !== userId || data.deck_key !== deck.id) {
     throw new Error("The deck could not be saved: the account write was not confirmed.");
   }
+  saveRecoveryDeck(userId, deck, false);
+}
+
+function recoveryKey(userId: string, deckId: string) {
+  return `${RECOVERY_PREFIX}${userId}:${deckId}`;
+}
+
+function saveRecoveryDeck(userId: string, deck: DeckRecord, pending = true) {
+  if (typeof window === "undefined") return;
+  const payload: RecoveryDeck = { deck, savedAt: Date.now(), pending };
+  window.localStorage.setItem(recoveryKey(userId, deck.id), JSON.stringify(payload));
+}
+
+function loadRecoveryDeck(userId: string, deckId: string): RecoveryDeck | null {
+  if (typeof window === "undefined") return null;
+  return safeParse<RecoveryDeck | null>(
+    window.localStorage.getItem(recoveryKey(userId, deckId)),
+    null,
+  );
+}
+
+function loadRecoveryDecks(userId: string): DeckRecord[] {
+  if (typeof window === "undefined") return [];
+  const prefix = `${RECOVERY_PREFIX}${userId}:`;
+  const decks: DeckRecord[] = [];
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index);
+    if (!key?.startsWith(prefix)) continue;
+    const recovery = safeParse<RecoveryDeck | null>(
+      window.localStorage.getItem(key),
+      null,
+    );
+    if (recovery?.deck) decks.push(recovery.deck);
+  }
+  return decks;
+}
+
+function removeRecoveryDeck(userId: string, deckId: string) {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(recoveryKey(userId, deckId));
+  }
 }
 
 async function authenticatedClient() {
   const supabase = createClient();
   const {
-    data: { user },
+    data: { session },
     error,
-  } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Your session expired. Sign in again before saving this deck.");
-  return { supabase, userId: user.id };
+  } = await supabase.auth.getSession();
+  if (error || !session?.user) {
+    throw new Error("Your session expired. Sign in again before saving this deck.");
+  }
+  return { supabase, userId: session.user.id };
 }
 
 function deckStorageError(prefix: string, message: string) {

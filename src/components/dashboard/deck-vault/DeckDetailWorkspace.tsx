@@ -258,6 +258,7 @@ export function DeckDetailWorkspace({
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [saveError, setSaveError] = useState("");
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const lastDeckRef = useRef<DeckRecord>(deck);
 
   const analytics = useMemo(
     () => deckAnalytics(cards),
@@ -358,6 +359,7 @@ export function DeckDetailWorkspace({
         cards,
       };
 
+      lastDeckRef.current = updatedDeck;
       setSaveState("saving");
       setSaveError("");
       saveQueueRef.current = saveQueueRef.current
@@ -467,12 +469,39 @@ export function DeckDetailWorkspace({
           setIntelligenceLoading(false);
         }
       },
-      1200,
+      2500,
     );
 
     return () =>
       window.clearTimeout(timeout);
   }, [format, cards.map((card) => `${card.id}:${card.quantity}:${card.board}`).join("|")]);
+
+  useEffect(() => {
+    const warnIfUnsaved = (event: BeforeUnloadEvent) => {
+      if (saveState === "saved") return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnIfUnsaved);
+    return () => window.removeEventListener("beforeunload", warnIfUnsaved);
+  }, [saveState]);
+
+  function retrySave() {
+    setSaveState("saving");
+    setSaveError("");
+    saveQueueRef.current = saveQueueRef.current
+      .catch(() => undefined)
+      .then(() => saveDeckRecord(lastDeckRef.current))
+      .then(() => setSaveState("saved"))
+      .catch((error) => {
+        setSaveState("error");
+        setSaveError(
+          error instanceof Error
+            ? error.message
+            : "Your deck changes could not be saved.",
+        );
+      });
+  }
 
   useEffect(() => {
     if (!commanderName || !isCommander) return;
@@ -762,6 +791,15 @@ export function DeckDetailWorkspace({
                 ? saveError
                 : "Saved to your Trading Docks account"}
           </span>
+          {saveState === "error" ? (
+            <button
+              type="button"
+              onClick={retrySave}
+              className="ml-4 shrink-0 rounded-lg border border-rose-200/20 bg-rose-100/10 px-3 py-1.5 font-semibold text-rose-50 transition hover:bg-rose-100/15"
+            >
+              Retry save
+            </button>
+          ) : null}
           {saveState === "saved" ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : null}
         </div>
 
