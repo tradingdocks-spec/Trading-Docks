@@ -194,9 +194,7 @@ export function DeckDetailWorkspace({
     useState<ScryfallCardResult[]>([]);
   const [searching, setSearching] =
     useState(false);
-  const [view, setView] = useState<
-    "table" | "columns" | "grid" | "stacks" | "role" | "stats"
-  >("table");
+  const [view, setView] = useState<DeckCardView>("table");
   const [showcaseOpen, setShowcaseOpen] = useState(false);
   const [grouping, setGrouping] = useState<
     "type" | "role"
@@ -723,6 +721,10 @@ export function DeckDetailWorkspace({
             removeCard={removeCard}
             view={view}
             setView={setView}
+            showcaseOpen={showcaseOpen}
+            setShowcaseOpen={setShowcaseOpen}
+            deckName={deckName}
+            commanderName={commanderName}
             grouping={grouping}
             setGrouping={setGrouping}
             format={format}
@@ -1035,6 +1037,14 @@ function DeckHero({
     </>
   );
 }
+type DeckCardView =
+  | "table"
+  | "columns"
+  | "grid"
+  | "stacks"
+  | "role"
+  | "stats";
+
 function CardsWorkspace({
   cards,
   commanderCard,
@@ -1048,6 +1058,10 @@ function CardsWorkspace({
   removeCard,
   view,
   setView,
+  showcaseOpen,
+  setShowcaseOpen,
+  deckName,
+  commanderName,
   grouping,
   setGrouping,
   format,
@@ -1067,10 +1081,12 @@ function CardsWorkspace({
   searching: boolean;
   addCard: (card: ScryfallCardResult) => void;
   removeCard: (id: string) => void;
-  view: "table" | "grid" | "role" | "stats";
-  setView: (
-    view: "table" | "grid" | "role" | "stats",
-  ) => void;
+  view: DeckCardView;
+  setView: (view: DeckCardView) => void;
+  showcaseOpen: boolean;
+  setShowcaseOpen: (open: boolean) => void;
+  deckName: string;
+  commanderName: string;
   grouping: "type" | "role";
   setGrouping: (grouping: "type" | "role") => void;
   format: DeckFormat;
