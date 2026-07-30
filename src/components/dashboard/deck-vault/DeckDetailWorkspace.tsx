@@ -2235,9 +2235,9 @@ const SHOWCASE_LAYOUT: Record<
   ShowcaseSize,
   { columns: number; canvasGap: number; previewGap: string }
 > = {
-  square: { columns: 7, canvasGap: 8, previewGap: "0.3rem" },
-  portrait: { columns: 5, canvasGap: 9, previewGap: "0.35rem" },
-  story: { columns: 4, canvasGap: 10, previewGap: "0.4rem" },
+  square: { columns: 5, canvasGap: 12, previewGap: "0.55rem" },
+  portrait: { columns: 4, canvasGap: 12, previewGap: "0.55rem" },
+  story: { columns: 3, canvasGap: 14, previewGap: "0.65rem" },
 };
 
 const SHOWCASE_CATEGORY_ORDER = [
@@ -2504,44 +2504,37 @@ function DeckShowcaseStudio({
         context.globalAlpha = 1;
       }
 
-      const brandMark = await loadBrandImage("mark");
       const brandWordmark = await loadBrandImage("horizontal");
       context.fillStyle = "rgba(1,8,14,.9)";
-      roundedRect(context, 24, 14, 224, 62, 12);
+      roundedRect(context, 24, 18, 238, 66, 12);
       context.fill();
       context.strokeStyle = "rgba(103,232,249,.28)";
       context.lineWidth = 1;
-      roundedRect(context, 24, 14, 224, 62, 12);
+      roundedRect(context, 24, 18, 238, 66, 12);
       context.stroke();
-      if (brandMark) {
-        context.drawImage(brandMark, 32, 20, 50, 50);
-      } else {
-        context.fillStyle = accent;
-        context.fillRect(38, 26, 7, 48);
-      }
       if (brandWordmark) {
-        context.drawImage(brandWordmark, 86, 22, 152, 46);
+        context.drawImage(brandWordmark, 38, 27, 210, 42);
       } else {
         context.fillStyle = "#ffffff";
-        context.font = `900 19px ${showcaseFont}`;
-        context.fillText("TRADING DOCKS", 105, 56);
+        context.font = `900 21px ${showcaseFont}`;
+        context.fillText("TRADING DOCKS", 46, 58);
       }
       context.fillStyle = "#ffffff";
-      context.font = `800 38px ${showcaseFont}`;
-      wrapCanvasText(context, deckName || "Untitled Deck", 276, 38, 770, 42, 1);
+      context.font = `900 40px ${showcaseFont}`;
+      wrapCanvasText(context, deckName || "Untitled Deck", 290, 41, 748, 43, 1);
       context.fillStyle = "#94a3b8";
-      context.font = `600 15px ${showcaseFont}`;
+      context.font = `650 16px ${showcaseFont}`;
       context.fillText(
         `${format}${commanderName ? `  •  COMMANDER: ${commanderName}` : ""}`,
-        276,
-        66,
+        290,
+        70,
       );
       context.fillStyle = "#ffffff";
-      context.font = `800 15px ${showcaseFont}`;
+      context.font = `800 16px ${showcaseFont}`;
       context.fillText(
         `${cardCount} CARDS${showValue ? `  •  DECK VALUE $${marketValue.toFixed(2)}` : ""}`,
-        276,
-        88,
+        290,
+        93,
       );
 
       let posterTop = 100;
@@ -2628,7 +2621,7 @@ function DeckShowcaseStudio({
 
       if (display === "text") {
         const textColumns = size === "story" ? 1 : 2;
-        const textGap = 34;
+        const textGap = 26;
         const textColumnWidth =
           (posterWidth - textGap * (textColumns - 1)) / textColumns;
         const entries = groups.flatMap((group) => [
@@ -2641,7 +2634,7 @@ function DeckShowcaseStudio({
           const column = Math.min(textColumns - 1, Math.floor(index / itemsPerColumn));
           const row = index % itemsPerColumn;
           const x = posterLeft + column * (textColumnWidth + textGap);
-          const lineHeight = Math.min(31, Math.max(19, posterHeight / (itemsPerColumn + 1)));
+          const lineHeight = Math.min(36, Math.max(24, posterHeight / (itemsPerColumn + 1)));
           const y = posterTop + row * lineHeight;
 
           if (entry.kind === "heading") {
@@ -2649,7 +2642,7 @@ function DeckShowcaseStudio({
             roundedRect(context, x, y + 2, textColumnWidth, lineHeight - 4, 5);
             context.fill();
             context.fillStyle = "#ffffff";
-            context.font = `900 ${Math.max(12, lineHeight * 0.48)}px ${showcaseFont}`;
+            context.font = `900 ${Math.max(15, lineHeight * 0.5)}px ${showcaseFont}`;
             context.fillText(
               `${entry.group.category.toUpperCase()} (${entry.group.count})`,
               x + 10,
@@ -2661,10 +2654,10 @@ function DeckShowcaseStudio({
           const { card } = entry;
           const price = card.price * card.quantity;
           context.fillStyle = "#cbd5e1";
-          context.font = `800 ${Math.max(11, lineHeight * 0.43)}px ${showcaseFont}`;
+          context.font = `800 ${Math.max(14, lineHeight * 0.45)}px ${showcaseFont}`;
           context.fillText(String(card.quantity), x + 3, y + lineHeight * 0.68);
           context.fillStyle = "#67e8f9";
-          context.font = `700 ${Math.max(11, lineHeight * 0.43)}px ${showcaseFont}`;
+          context.font = `750 ${Math.max(14, lineHeight * 0.45)}px ${showcaseFont}`;
           const nameWidth = textColumnWidth * 0.58;
           context.fillText(
             card.name.length > 31 ? `${card.name.slice(0, 29)}…` : card.name,
@@ -2686,7 +2679,7 @@ function DeckShowcaseStudio({
             context.fill();
           });
           context.fillStyle = "#ffffff";
-          context.font = `700 ${Math.max(10, lineHeight * 0.4)}px ${showcaseFont}`;
+          context.font = `700 ${Math.max(13, lineHeight * 0.42)}px ${showcaseFont}`;
           context.textAlign = "right";
           context.fillText(`$${price.toFixed(2)}`, x + textColumnWidth - 3, y + lineHeight * 0.68);
           context.textAlign = "left";
@@ -2708,19 +2701,19 @@ function DeckShowcaseStudio({
         roundedRect(context, x, groupTop, columnWidth, 26, 5);
         context.fill();
         context.fillStyle = "#ffffff";
-        context.font = `800 12px ${showcaseFont}`;
+        context.font = `900 14px ${showcaseFont}`;
         context.fillText(
           `${group.category.toUpperCase()}  ${group.count}`,
           x + 6,
-          groupTop + 18,
+          groupTop + 19,
         );
-        const cardsTop = groupTop + 30;
-        const availableStackHeight = rowHeight - 30;
+        const cardsTop = groupTop + 32;
+        const availableStackHeight = rowHeight - 32;
         const displayCards = showcaseCardCopies(group.cards);
         const maximumCardHeight =
           displayCards.length <= 1
             ? availableStackHeight
-            : Math.max(44, availableStackHeight * 0.64);
+            : Math.max(56, availableStackHeight * 0.68);
         const moduleCardWidth = Math.min(
           columnWidth - moduleInset * 2,
           maximumCardHeight / 1.395,
@@ -3006,15 +2999,15 @@ function DeckShowcaseStudio({
                   Every card is included. Duplicate copies are combined into physical-style stacks, and every export carries the Trading Docks signature.
                 </p>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => void copyDeckLink()} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-[11px] font-bold text-white hover:bg-white/[0.08]">
+              <div className="mt-5 grid grid-cols-2 gap-2.5">
+                <button type="button" onClick={() => void downloadShowcase()} disabled={exporting} className="col-span-2 flex h-12 items-center justify-center gap-2.5 whitespace-nowrap rounded-xl bg-cyan-300 px-4 text-[12px] font-black text-[#00121c] shadow-[0_8px_24px_rgba(34,211,238,.18)] transition hover:bg-cyan-200 disabled:opacity-60">
+                  <Download className="h-4 w-4" /> {exporting ? "Building HD graphic…" : "Download HD PNG"}
+                </button>
+                <button type="button" onClick={() => void copyDeckLink()} className="flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-white/10 bg-white/[0.04] px-3 text-[11px] font-bold text-white transition hover:border-white/20 hover:bg-white/[0.08]">
                   <Copy className="h-4 w-4" /> Copy link
                 </button>
-                <button type="button" onClick={() => void downloadShowcase()} disabled={exporting} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-400 text-[11px] font-black text-[#00121c] disabled:opacity-60">
-                  <Download className="h-4 w-4" /> Download PNG
-                </button>
-                <button type="button" onClick={() => void shareShowcase()} disabled={exporting} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/10 text-[11px] font-bold text-cyan-100 disabled:opacity-60">
-                  <Share2 className="h-4 w-4" /> {exporting ? "Building graphic…" : "More apps / device share"}
+                <button type="button" onClick={() => void shareShowcase()} disabled={exporting} className="flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-cyan-300/25 bg-cyan-300/[0.07] px-3 text-[11px] font-bold text-cyan-100 transition hover:bg-cyan-300/10 disabled:opacity-60">
+                  <Share2 className="h-4 w-4" /> More apps
                 </button>
               </div>
               <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">Share directly</p>
@@ -3031,48 +3024,38 @@ function DeckShowcaseStudio({
             </aside>
             <main className="flex min-h-[820px] items-center justify-center overflow-hidden bg-[#02090e] p-2 sm:p-3">
               <div
-                className={`relative w-full max-w-[1020px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${previewGradient} p-4 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-5 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[520px]" : "aspect-[4/5] max-w-[800px]"}`}
+                className={`relative w-full max-w-[1100px] overflow-hidden rounded-[20px] border border-white/10 bg-gradient-to-br ${previewGradient} p-3 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-4 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[600px]" : "aspect-[4/5] max-w-[900px]"}`}
                 style={previewBackground ? { backgroundImage: previewBackground } : undefined}
               >
                 {theme !== "black" ? (
                   <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
                 ) : null}
                 <div className="relative flex h-full flex-col font-sans">
-                  <div className="grid grid-cols-[minmax(185px,0.7fr)_minmax(0,1.3fr)] items-stretch gap-3">
-                    <div className="relative overflow-hidden rounded-xl border border-cyan-300/25 bg-[#01080e]/90 px-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,.4)]">
+                  <div className="grid grid-cols-[minmax(210px,0.72fr)_minmax(0,1.28fr)] items-stretch gap-2.5">
+                    <div className="relative overflow-hidden rounded-lg border border-cyan-300/25 bg-[#01080e]/90 px-3.5 py-3 shadow-[0_8px_30px_rgba(0,0,0,.4)]">
                       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-cyan-300 to-blue-500" />
-                      <div className="flex items-center gap-2.5">
-                      <img
-                        src="/trading-docks-mark.png"
-                        onError={(event) => {
-                          event.currentTarget.src = "/brand/trading-docks-mark.png";
-                        }}
-                        alt=""
-                        className="h-10 w-10 shrink-0 object-contain"
-                      />
-                        <div className="min-w-0">
-                          <img
-                            src="/trading-docks-horizontal.png"
-                            onError={(event) => {
-                              event.currentTarget.src = "/brand/trading-docks-horizontal.png";
-                            }}
-                            alt="Trading Docks"
-                            className="h-7 w-auto max-w-[150px] object-contain object-left"
-                          />
-                          <p className="mt-1 text-[7px] font-black uppercase tracking-[0.17em] text-cyan-300">Made in Deck Vault</p>
-                        </div>
+                      <div className="min-w-0">
+                        <img
+                          src="/trading-docks-horizontal.png"
+                          onError={(event) => {
+                            event.currentTarget.src = "/brand/trading-docks-horizontal.png";
+                          }}
+                          alt="Trading Docks"
+                          className="h-10 w-auto max-w-[210px] object-contain object-left"
+                        />
+                        <p className="mt-1.5 text-[9px] font-black uppercase tracking-[0.15em] text-cyan-300">Made in Deck Vault</p>
                       </div>
-                      <div className="mt-2 flex items-center gap-1.5 border-t border-white/10 pt-2">
-                        <span className="rounded bg-cyan-300/10 px-1.5 py-0.5 text-[7px] font-bold uppercase text-cyan-200">{format}</span>
-                        <span className="truncate text-[7px] font-semibold text-slate-400">
+                      <div className="mt-2.5 flex items-center gap-1.5 border-t border-white/10 pt-2">
+                        <span className="rounded bg-cyan-300/10 px-2 py-0.5 text-[9px] font-bold uppercase text-cyan-200">{format}</span>
+                        <span className="truncate text-[9px] font-semibold text-slate-300">
                           {commanderName ? `Commander · ${commanderName}` : "Built to share"}
                         </span>
                       </div>
                     </div>
-                    <div className="flex min-w-0 flex-col justify-center rounded-xl border border-white/[0.07] bg-black/20 px-4 py-2">
-                      <p className="text-[7px] font-bold uppercase tracking-[0.16em] text-slate-400">Deck showcase</p>
-                      <h3 className="mt-1 truncate text-[clamp(22px,3.2vw,36px)] font-black leading-none tracking-[-0.03em] text-white">{deckName}</h3>
-                      <p className="mt-1.5 truncate text-[9px] font-semibold text-slate-300">
+                    <div className="flex min-w-0 flex-col justify-center rounded-lg border border-white/[0.07] bg-black/20 px-4 py-2.5">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">Deck showcase</p>
+                      <h3 className="mt-1 truncate text-[clamp(24px,3.4vw,40px)] font-black leading-none tracking-[-0.035em] text-white">{deckName}</h3>
+                      <p className="mt-2 truncate text-[11px] font-semibold text-slate-200">
                         {cardCount} cards {showValue ? `· $${marketValue.toFixed(2)} total value` : ""} · tradingdocks.com
                       </p>
                     </div>
@@ -3086,15 +3069,15 @@ function DeckShowcaseStudio({
                         ["Lands", stats.typeCounts.lands],
                       ].map(([label, value]) => (
                         <div key={label}>
-                          <p className="truncate text-[7px] font-bold uppercase tracking-[0.08em] text-slate-400">{label}</p>
-                          <p className="mt-0.5 text-[11px] font-black text-white">{value}</p>
+                          <p className="truncate text-[8px] font-bold uppercase tracking-[0.08em] text-slate-400">{label}</p>
+                          <p className="mt-0.5 text-[13px] font-black text-white">{value}</p>
                         </div>
                       ))}
                       <div className="flex items-end gap-[2px]">
                         {stats.manaCurve.map((count, index) => (
                           <div key={index} className="flex min-w-0 flex-1 flex-col items-center justify-end">
                             <div className="w-full rounded-t-[1px] bg-cyan-300" style={{ height: `${Math.max(2, (count / Math.max(1, ...stats.manaCurve)) * 17)}px` }} />
-                            <span className="mt-0.5 text-[6px] text-slate-400">{index === 7 ? "7+" : index}</span>
+                            <span className="mt-0.5 text-[7px] text-slate-400">{index === 7 ? "7+" : index}</span>
                           </div>
                         ))}
                       </div>
@@ -3102,38 +3085,38 @@ function DeckShowcaseStudio({
                   ) : null}
                   {display === "text" ? (
                     <div
-                      className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 content-start gap-x-5 gap-y-2 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 p-3 text-white`}
+                      className={`${showStats ? "mt-2" : "mt-3"} grid min-h-0 flex-1 content-start gap-x-6 gap-y-2.5 overflow-hidden rounded-xl border border-white/[0.07] bg-black/25 p-4 text-white`}
                       style={{
                         gridTemplateColumns: size === "story" ? "1fr" : "repeat(2, minmax(0, 1fr))",
                       }}
                     >
                       {groups.map((group) => (
                         <section key={group.category} className="min-w-0 break-inside-avoid">
-                          <div className="mb-1 flex items-center justify-between rounded-md bg-cyan-300/10 px-2 py-1">
-                            <p className="text-[9px] font-black uppercase tracking-[0.06em] text-white">{group.category}</p>
-                            <span className="text-[8px] font-bold text-cyan-300">{group.count}</span>
+                          <div className="mb-1.5 flex items-center justify-between rounded-md bg-cyan-300/10 px-2.5 py-1.5">
+                            <p className="text-[12px] font-black uppercase tracking-[0.05em] text-white">{group.category}</p>
+                            <span className="text-[11px] font-bold text-cyan-300">{group.count}</span>
                           </div>
-                          <div className="space-y-0.5">
+                          <div className="space-y-1">
                             {group.cards.map((card) => (
-                              <div key={card.id} className="grid grid-cols-[18px_minmax(0,1fr)_auto_auto] items-center gap-1.5 rounded px-1 py-0.5 hover:bg-white/[0.04]">
-                                <span className="text-[8px] font-black text-slate-300">{card.quantity}</span>
-                                <span className="truncate text-[8px] font-semibold text-cyan-300">{card.name}</span>
+                              <div key={card.id} className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-center gap-2 rounded px-1.5 py-0.5 hover:bg-white/[0.04]">
+                                <span className="text-[11px] font-black text-slate-300">{card.quantity}</span>
+                                <span className="truncate text-[11px] font-semibold text-cyan-200">{card.name}</span>
                                 <span className="flex gap-0.5">
                                   {card.colors.slice(0, 4).map((color, index) => (
                                     <span
                                       key={`${card.id}-${color}-${index}`}
-                                      className="h-2.5 w-2.5 rounded-full border border-white/20"
+                                      className="h-3 w-3 rounded-full border border-white/20"
                                       style={{ backgroundColor: { W: "#f5e8b6", U: "#38a8e8", B: "#8b7b9d", R: "#ef6351", G: "#43c985", C: "#cbd5e1" }[color] }}
                                     />
                                   ))}
                                 </span>
-                                <span className="min-w-[42px] text-right text-[8px] font-semibold text-white">${(card.price * card.quantity).toFixed(2)}</span>
+                                <span className="min-w-[48px] text-right text-[11px] font-semibold text-white">${(card.price * card.quantity).toFixed(2)}</span>
                               </div>
                             ))}
                           </div>
                         </section>
                       ))}
-                      <div className="col-span-full mt-1 flex items-center justify-between border-t border-white/10 pt-2 text-[8px] font-black text-white">
+                      <div className="col-span-full mt-1 flex items-center justify-between border-t border-white/10 pt-2.5 text-[11px] font-black text-white">
                         <span>{cardCount} CARDS TOTAL</span>
                         {showValue ? <span>${marketValue.toFixed(2)} DECK VALUE</span> : null}
                       </div>
@@ -3152,7 +3135,7 @@ function DeckShowcaseStudio({
                       const overlapPercent =
                         displayCards.length <= 1
                           ? 0
-                          : Math.min(14, 62 / Math.max(1, displayCards.length - 1));
+                          : Math.min(16, 64 / Math.max(1, displayCards.length - 1));
                       const rowIndex = Math.floor(groupIndex / previewColumnCount);
                       const groupsInRow = Math.min(
                         previewColumnCount,
@@ -3173,10 +3156,10 @@ function DeckShowcaseStudio({
                               : undefined
                           }
                         >
-                          <p className="mb-1 truncate rounded-[3px] bg-black/85 px-1.5 py-1 text-[8px] font-black uppercase tracking-[0.04em] text-white">
+                          <p className="mb-1.5 truncate rounded-[4px] bg-black/90 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.035em] text-white shadow-sm">
                             {group.category} {group.count}
                           </p>
-                          <div className="relative h-[calc(100%-12px)] overflow-hidden">
+                          <div className="relative h-[calc(100%-18px)] overflow-hidden">
                             {displayCards.map(({ card, copyIndex }, index) => (
                               <div
                                 key={`${card.id}-${copyIndex}`}
