@@ -2231,6 +2231,57 @@ function buildShowcaseGroups(cards: DeckCard[]) {
     }));
 }
 
+function buildShowcaseStats(cards: DeckCard[]) {
+  const mainCards = cards.filter(
+    (card) => card.board !== "sideboard" && card.board !== "maybeboard",
+  );
+  const nonLandCards = mainCards.filter(
+    (card) => !card.typeLine.toLowerCase().includes("land"),
+  );
+  const nonLandCount = nonLandCards.reduce(
+    (total, card) => total + card.quantity,
+    0,
+  );
+  const averageManaValue = nonLandCount
+    ? nonLandCards.reduce(
+        (total, card) => total + card.manaValue * card.quantity,
+        0,
+      ) / nonLandCount
+    : 0;
+  const typeCounts = {
+    creatures: mainCards
+      .filter((card) => card.typeLine.toLowerCase().includes("creature"))
+      .reduce((total, card) => total + card.quantity, 0),
+    spells: mainCards
+      .filter((card) => {
+        const type = card.typeLine.toLowerCase();
+        return type.includes("instant") || type.includes("sorcery");
+      })
+      .reduce((total, card) => total + card.quantity, 0),
+    lands: mainCards
+      .filter((card) => card.typeLine.toLowerCase().includes("land"))
+      .reduce((total, card) => total + card.quantity, 0),
+  };
+  const colorCounts = (["W", "U", "B", "R", "G"] as ManaColor[]).map(
+    (color) => ({
+      color,
+      count: mainCards
+        .filter((card) => card.colors.includes(color))
+        .reduce((total, card) => total + card.quantity, 0),
+    }),
+  );
+  const manaCurve = Array.from({ length: 8 }, (_, index) =>
+    nonLandCards
+      .filter((card) =>
+        index === 7
+          ? card.manaValue >= 7
+          : Math.floor(card.manaValue) === index,
+      )
+      .reduce((total, card) => total + card.quantity, 0),
+  );
+  return { averageManaValue, typeCounts, colorCounts, manaCurve };
+}
+
 function DeckShowcaseStudio({
   deckName,
   commanderName,
@@ -2249,10 +2300,12 @@ function DeckShowcaseStudio({
   const [theme, setTheme] = useState<ShowcaseTheme>("harbor");
   const [size, setSize] = useState<ShowcaseSize>("portrait");
   const [showValue, setShowValue] = useState(true);
+  const [showStats, setShowStats] = useState(true);
   const [showLink, setShowLink] = useState(true);
   const [exporting, setExporting] = useState(false);
   const groups = buildShowcaseGroups(cards);
   const cardCount = cards.reduce((total, card) => total + card.quantity, 0);
+  const stats = buildShowcaseStats(cards);
   const publicUrl =
     typeof window === "undefined" ? "tradingdocks.com/decks" : window.location.href;
 
@@ -2312,10 +2365,79 @@ function DeckShowcaseStudio({
       context.font = "800 58px Arial";
       wrapCanvasText(context, deckName || "Untitled Deck", 98, 157, 840, 66, 2);
       context.fillStyle = "#94a3b8";
-      context.font = "500 23px Arial";
-      context.fillText(`${format}  •  ${cardCount} CARDS${showValue ? `  •  $${marketValue.toFixed(2)}` : ""}`, 98, 250);
+      context.font = "600 21px Arial";
+      context.fillText(
+        `${format}${commanderName ? `  •  COMMANDER: ${commanderName}` : ""}`,
+        98,
+        232,
+      );
+      context.fillStyle = "#ffffff";
+      context.font = "800 22px Arial";
+      context.fillText(
+        `${cardCount} CARDS${showValue ? `  •  DECK VALUE $${marketValue.toFixed(2)}` : ""}`,
+        98,
+        267,
+      );
 
-      const posterTop = 304;
+      let posterTop = 310;
+      if (showStats) {
+        const statTop = 292;
+        context.fillStyle = "rgba(255,255,255,.075)";
+        roundedRect(context, 66, statTop, canvas.width - 132, 78, 12);
+        context.fill();
+
+        context.font = "800 14px Arial";
+        context.fillStyle = "#94a3b8";
+        context.fillText(`AVG MV`, 88, statTop + 25);
+        context.fillText(`CREATURES`, 177, statTop + 25);
+        context.fillText(`SPELLS`, 294, statTop + 25);
+        context.fillText(`LANDS`, 386, statTop + 25);
+        context.font = "900 22px Arial";
+        context.fillStyle = "#ffffff";
+        context.fillText(stats.averageManaValue.toFixed(2), 88, statTop + 56);
+        context.fillText(String(stats.typeCounts.creatures), 177, statTop + 56);
+        context.fillText(String(stats.typeCounts.spells), 294, statTop + 56);
+        context.fillText(String(stats.typeCounts.lands), 386, statTop + 56);
+
+        const colorFills: Record<string, string> = {
+          W: "#f5e8b6",
+          U: "#38a8e8",
+          B: "#8b7b9d",
+          R: "#ef6351",
+          G: "#43c985",
+        };
+        stats.colorCounts.forEach((entry, index) => {
+          const x = 486 + index * 48;
+          context.fillStyle = colorFills[entry.color];
+          context.beginPath();
+          context.arc(x, statTop + 29, 14, 0, Math.PI * 2);
+          context.fill();
+          context.fillStyle = "#06131f";
+          context.font = "900 12px Arial";
+          context.textAlign = "center";
+          context.fillText(entry.color, x, statTop + 33);
+          context.fillStyle = "#cbd5e1";
+          context.font = "800 12px Arial";
+          context.fillText(String(entry.count), x, statTop + 58);
+        });
+        context.textAlign = "left";
+
+        const curveLeft = 748;
+        const curveBottom = statTop + 60;
+        const curveMax = Math.max(1, ...stats.manaCurve);
+        stats.manaCurve.forEach((count, index) => {
+          const height = Math.max(3, (count / curveMax) * 34);
+          const x = curveLeft + index * 29;
+          context.fillStyle = accent;
+          context.fillRect(x, curveBottom - height, 19, height);
+          context.fillStyle = "#94a3b8";
+          context.font = "700 10px Arial";
+          context.textAlign = "center";
+          context.fillText(index === 7 ? "7+" : String(index), x + 9, statTop + 73);
+        });
+        context.textAlign = "left";
+        posterTop = 408;
+      }
       const posterBottom = canvas.height - 176;
       const posterHeight = posterBottom - posterTop;
       const posterLeft = 56;
@@ -2475,6 +2597,7 @@ function DeckShowcaseStudio({
               </ShowcaseControl>
               <ShowcaseControl title="Include">
                 <ShowcaseToggle label="Deck value" checked={showValue} onChange={setShowValue} />
+                <ShowcaseToggle label="Deck stats" checked={showStats} onChange={setShowStats} />
                 <ShowcaseToggle label="Public deck link" checked={showLink} onChange={setShowLink} />
               </ShowcaseControl>
               <div className="mt-7 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.035] p-4">
@@ -2494,10 +2617,36 @@ function DeckShowcaseStudio({
                 <div className="relative flex h-full flex-col">
                   <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-300">Trading Docks / Deck Vault</p>
                   <h3 className="mt-2 text-[clamp(22px,4vw,38px)] font-black leading-[1.02] text-white">{deckName}</h3>
-                  <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                    {format} · {cardCount} cards {showValue ? `· $${marketValue.toFixed(2)}` : ""}
+                  <p className="mt-2 truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    {format}{commanderName ? ` · Commander: ${commanderName}` : ""}
                   </p>
-                  <div className="mt-5 grid min-h-0 flex-1 auto-cols-fr grid-flow-col gap-1.5 overflow-hidden">
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
+                    {cardCount} cards {showValue ? `· Deck value $${marketValue.toFixed(2)}` : ""}
+                  </p>
+                  {showStats ? (
+                    <div className="mt-3 grid grid-cols-[repeat(4,minmax(0,1fr))_1.8fr] gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.045] p-2">
+                      {[
+                        ["Avg MV", stats.averageManaValue.toFixed(2)],
+                        ["Creatures", stats.typeCounts.creatures],
+                        ["Spells", stats.typeCounts.spells],
+                        ["Lands", stats.typeCounts.lands],
+                      ].map(([label, value]) => (
+                        <div key={label}>
+                          <p className="truncate text-[5px] font-bold uppercase tracking-[0.08em] text-slate-500">{label}</p>
+                          <p className="mt-0.5 text-[8px] font-black text-white">{value}</p>
+                        </div>
+                      ))}
+                      <div className="flex items-end gap-[2px]">
+                        {stats.manaCurve.map((count, index) => (
+                          <div key={index} className="flex min-w-0 flex-1 flex-col items-center justify-end">
+                            <div className="w-full rounded-t-[1px] bg-cyan-300" style={{ height: `${Math.max(2, (count / Math.max(1, ...stats.manaCurve)) * 17)}px` }} />
+                            <span className="mt-0.5 text-[4px] text-slate-500">{index === 7 ? "7+" : index}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className={`${showStats ? "mt-3" : "mt-5"} grid min-h-0 flex-1 auto-cols-fr grid-flow-col gap-1.5 overflow-hidden`}>
                     {groups.map((group) => {
                       const overlapPercent =
                         group.cards.length <= 1
