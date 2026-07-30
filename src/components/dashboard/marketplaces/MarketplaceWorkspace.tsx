@@ -668,6 +668,11 @@ export function MarketplaceWorkspace() {
                       <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/[.07] text-xs font-bold text-emerald-100 hover:bg-emerald-300/[.12]">
                         <Link2 className="h-4 w-4" />{connections.some((item) => item.marketplace_id === "ebay" && item.status === "ready") ? "Reconnect eBay account" : "Connect eBay account"}
                       </a>
+                      {connections.some((item) => item.marketplace_id === "ebay" && item.status === "ready") ? (
+                        <a href="/dashboard/marketplaces/ebay" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 hover:bg-cyan-200">
+                          <RefreshCw className="h-4 w-4" />Open Import & Reconciliation
+                        </a>
+                      ) : null}
                     </>
                   ) : (
                     <div className="rounded-xl border border-amber-300/12 bg-amber-300/[.03] p-3 text-[10px] leading-5 text-amber-100/55">This connection will become available here after the Trading Docks administrator activates the platform integration. No developer setup will be required from your store.</div>
