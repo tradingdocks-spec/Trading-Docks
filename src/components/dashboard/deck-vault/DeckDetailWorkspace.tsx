@@ -15,6 +15,7 @@ import {
   Check,
   CheckCircle2,
   CircleDollarSign,
+  Copy,
   Columns3,
   Download,
   Grid3X3,
@@ -2389,6 +2390,7 @@ function DeckShowcaseStudio({
   const [showStats, setShowStats] = useState(true);
   const [showLink, setShowLink] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [shareStatus, setShareStatus] = useState("");
   const groups = buildShowcaseGroups(cards);
   const cardCount = cards.reduce((total, card) => total + card.quantity, 0);
   const stats = buildShowcaseStats(cards);
@@ -2429,7 +2431,23 @@ function DeckShowcaseStudio({
     return null;
   }
 
-  async function exportShowcase() {
+  async function loadCardCanvasImage(card: DeckCard) {
+    const sameOriginImage = `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`;
+    const candidates = [sameOriginImage, card.image].filter(
+      (source): source is string => Boolean(source),
+    );
+    for (const source of candidates) {
+      try {
+        return await loadCanvasImage(source);
+      } catch {
+        // The account may contain an expired remote URL. The same-origin
+        // endpoint remains the durable source for downloadable graphics.
+      }
+    }
+    return null;
+  }
+
+  async function buildShowcasePng() {
     setExporting(true);
     try {
       const dimensions = {
@@ -2487,62 +2505,62 @@ function DeckShowcaseStudio({
       const brandMark = await loadBrandImage("mark");
       const brandWordmark = await loadBrandImage("horizontal");
       context.fillStyle = "rgba(1,8,14,.9)";
-      roundedRect(context, 24, 14, 304, 72, 12);
+      roundedRect(context, 24, 14, 224, 62, 12);
       context.fill();
       context.strokeStyle = "rgba(103,232,249,.28)";
       context.lineWidth = 1;
-      roundedRect(context, 24, 14, 304, 72, 12);
+      roundedRect(context, 24, 14, 224, 62, 12);
       context.stroke();
       if (brandMark) {
-        context.drawImage(brandMark, 33, 20, 60, 60);
+        context.drawImage(brandMark, 32, 20, 50, 50);
       } else {
         context.fillStyle = accent;
         context.fillRect(38, 26, 7, 48);
       }
       if (brandWordmark) {
-        context.drawImage(brandWordmark, 99, 23, 214, 58);
+        context.drawImage(brandWordmark, 86, 22, 152, 46);
       } else {
         context.fillStyle = "#ffffff";
         context.font = `900 19px ${showcaseFont}`;
         context.fillText("TRADING DOCKS", 105, 56);
       }
       context.fillStyle = "#ffffff";
-      context.font = `800 48px ${showcaseFont}`;
-      wrapCanvasText(context, deckName || "Untitled Deck", 32, 126, 998, 54, 2);
+      context.font = `800 38px ${showcaseFont}`;
+      wrapCanvasText(context, deckName || "Untitled Deck", 276, 38, 770, 42, 1);
       context.fillStyle = "#94a3b8";
-      context.font = `600 17px ${showcaseFont}`;
+      context.font = `600 15px ${showcaseFont}`;
       context.fillText(
         `${format}${commanderName ? `  •  COMMANDER: ${commanderName}` : ""}`,
-        32,
-        166,
+        276,
+        66,
       );
       context.fillStyle = "#ffffff";
-      context.font = `800 18px ${showcaseFont}`;
+      context.font = `800 15px ${showcaseFont}`;
       context.fillText(
         `${cardCount} CARDS${showValue ? `  •  DECK VALUE $${marketValue.toFixed(2)}` : ""}`,
-        32,
-        193,
+        276,
+        88,
       );
 
-      let posterTop = 226;
+      let posterTop = 100;
       if (showStats) {
-        const statTop = 214;
+        const statTop = 98;
         context.fillStyle = "rgba(255,255,255,.075)";
-        roundedRect(context, 32, statTop, canvas.width - 64, 68, 10);
+        roundedRect(context, 24, statTop, canvas.width - 48, 60, 10);
         context.fill();
 
         context.font = `800 12px ${showcaseFont}`;
         context.fillStyle = "#94a3b8";
-        context.fillText(`AVG MV`, 50, statTop + 21);
-        context.fillText(`CREATURES`, 139, statTop + 21);
-        context.fillText(`SPELLS`, 256, statTop + 21);
-        context.fillText(`LANDS`, 348, statTop + 21);
-        context.font = `900 19px ${showcaseFont}`;
+        context.fillText(`AVG MV`, 42, statTop + 18);
+        context.fillText(`CREATURES`, 131, statTop + 18);
+        context.fillText(`SPELLS`, 248, statTop + 18);
+        context.fillText(`LANDS`, 340, statTop + 18);
+        context.font = `900 17px ${showcaseFont}`;
         context.fillStyle = "#ffffff";
-        context.fillText(stats.averageManaValue.toFixed(2), 50, statTop + 49);
-        context.fillText(String(stats.typeCounts.creatures), 139, statTop + 49);
-        context.fillText(String(stats.typeCounts.spells), 256, statTop + 49);
-        context.fillText(String(stats.typeCounts.lands), 348, statTop + 49);
+        context.fillText(stats.averageManaValue.toFixed(2), 42, statTop + 43);
+        context.fillText(String(stats.typeCounts.creatures), 131, statTop + 43);
+        context.fillText(String(stats.typeCounts.spells), 248, statTop + 43);
+        context.fillText(String(stats.typeCounts.lands), 340, statTop + 43);
 
         const colorFills: Record<string, string> = {
           W: "#f5e8b6",
@@ -2552,23 +2570,23 @@ function DeckShowcaseStudio({
           G: "#43c985",
         };
         stats.colorCounts.forEach((entry, index) => {
-          const x = 449 + index * 45;
+          const x = 441 + index * 45;
           context.fillStyle = colorFills[entry.color];
           context.beginPath();
-          context.arc(x, statTop + 25, 12, 0, Math.PI * 2);
+          context.arc(x, statTop + 22, 11, 0, Math.PI * 2);
           context.fill();
           context.fillStyle = "#06131f";
           context.font = `900 12px ${showcaseFont}`;
           context.textAlign = "center";
-          context.fillText(entry.color, x, statTop + 29);
+          context.fillText(entry.color, x, statTop + 26);
           context.fillStyle = "#cbd5e1";
           context.font = `800 12px ${showcaseFont}`;
-          context.fillText(String(entry.count), x, statTop + 53);
+          context.fillText(String(entry.count), x, statTop + 48);
         });
         context.textAlign = "left";
 
         const curveLeft = 720;
-        const curveBottom = statTop + 52;
+        const curveBottom = statTop + 46;
         const curveMax = Math.max(1, ...stats.manaCurve);
         stats.manaCurve.forEach((count, index) => {
           const height = Math.max(3, (count / curveMax) * 30);
@@ -2578,10 +2596,10 @@ function DeckShowcaseStudio({
           context.fillStyle = "#94a3b8";
           context.font = `700 10px ${showcaseFont}`;
           context.textAlign = "center";
-          context.fillText(index === 7 ? "7+" : String(index), x + 13, statTop + 65);
+          context.fillText(index === 7 ? "7+" : String(index), x + 13, statTop + 57);
         });
         context.textAlign = "left";
-        posterTop = 308;
+        posterTop = 174;
       }
       const posterBottom = canvas.height - 92;
       const posterHeight = posterBottom - posterTop;
@@ -2601,14 +2619,8 @@ function DeckShowcaseStudio({
       const loadedImages = new Map<string, HTMLImageElement>();
       await Promise.all(
         cards.map(async (card) => {
-          try {
-            const image = await loadCanvasImage(
-              card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`,
-            );
-            loadedImages.set(card.id, image);
-          } catch {
-            // Keep exporting the complete deck when an individual image is unavailable.
-          }
+          const image = await loadCardCanvasImage(card);
+          if (image) loadedImages.set(card.id, image);
         }),
       );
 
@@ -2736,29 +2748,62 @@ function DeckShowcaseStudio({
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, "image/png", 1),
       );
-      if (!blob) return;
+      if (!blob) return null;
       const fileName = `${(deckName || "trading-docks-deck")
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "")}-showcase.png`;
-      const file = new File([blob], fileName, { type: "image/png" });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: `${deckName} — Trading Docks Deck Vault`,
-          text: `Check out my ${format} deck built in Trading Docks.`,
-          files: [file],
-        });
-      } else {
-        const href = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = href;
-        link.download = fileName;
-        link.click();
-        URL.revokeObjectURL(href);
-      }
+      return { blob, fileName, file: new File([blob], fileName, { type: "image/png" }) };
     } finally {
       setExporting(false);
     }
+  }
+
+  async function downloadShowcase() {
+    const result = await buildShowcasePng();
+    if (!result) return;
+    const href = URL.createObjectURL(result.blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = result.fileName;
+    link.click();
+    URL.revokeObjectURL(href);
+    setShareStatus("PNG downloaded");
+  }
+
+  async function shareShowcase() {
+    const result = await buildShowcasePng();
+    if (!result) return;
+    if (navigator.share && navigator.canShare?.({ files: [result.file] })) {
+      try {
+        await navigator.share({
+          title: `${deckName} — Trading Docks Deck Vault`,
+          text: `Check out my ${format} deck built in Trading Docks.`,
+          files: [result.file],
+        });
+        setShareStatus("Share sheet opened");
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    await downloadShowcase();
+    setShareStatus("PNG downloaded — attach it to your post");
+  }
+
+  async function copyDeckLink() {
+    await navigator.clipboard.writeText(publicUrl);
+    setShareStatus("Deck link copied");
+  }
+
+  function openSocial(network: "facebook" | "x") {
+    const encodedUrl = encodeURIComponent(publicUrl);
+    const text = encodeURIComponent(`Check out my ${format} deck, ${deckName}, built in Trading Docks.`);
+    const url =
+      network === "facebook"
+        ? `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`
+        : `https://x.com/intent/post?url=${encodedUrl}&text=${text}`;
+    window.open(url, "_blank", "noopener,noreferrer,width=720,height=680");
   }
 
   const previewGradient = {
@@ -2778,7 +2823,7 @@ function DeckShowcaseStudio({
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#01070c]/92 p-4 backdrop-blur-xl">
       <div className="mx-auto flex min-h-full max-w-[1480px] items-center justify-center">
         <section className="w-full overflow-hidden rounded-[28px] border border-cyan-300/15 bg-[#06131f] shadow-[0_30px_120px_rgba(0,0,0,.65)]">
-          <header className="flex items-center justify-between border-b border-white/[0.07] px-6 py-5">
+          <header className="flex items-center justify-between border-b border-white/[0.07] px-6 py-3">
             <div className="flex items-center gap-4">
               <img
                 src="/trading-docks-horizontal.png"
@@ -2786,20 +2831,20 @@ function DeckShowcaseStudio({
                   event.currentTarget.src = "/brand/trading-docks-horizontal.png";
                 }}
                 alt="Trading Docks"
-                className="hidden h-10 w-auto max-w-[150px] object-contain sm:block"
+                className="hidden h-9 w-auto max-w-[150px] object-contain sm:block"
               />
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">
                   Showcase Studio
                 </p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Turn your deck into a shareable poster</h2>
+              <h2 className="mt-0.5 text-lg font-semibold text-white">Create and share your full-deck poster</h2>
               </div>
             </div>
             <button type="button" onClick={onClose} className="rounded-xl border border-white/10 p-2.5 text-slate-400 hover:text-white">
               <X className="h-5 w-5" />
             </button>
           </header>
-          <div className="grid lg:grid-cols-[330px_minmax(0,1fr)]">
+          <div className="grid lg:grid-cols-[300px_minmax(0,1fr)]">
             <aside className="border-b border-white/[0.07] p-5 lg:border-b-0 lg:border-r">
               <ShowcaseControl title="Social size">
                 {([
@@ -2835,21 +2880,36 @@ function DeckShowcaseStudio({
                   Every card is included. Duplicate copies are combined into physical-style stacks, and every export carries the Trading Docks signature.
                 </p>
               </div>
-              <button type="button" onClick={() => void exportShowcase()} disabled={exporting} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-400 text-[12px] font-black text-[#00121c] disabled:opacity-60">
-                <Download className="h-4 w-4" />
-                {exporting ? "Building your graphic…" : "Download or Share PNG"}
-              </button>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => void copyDeckLink()} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-[11px] font-bold text-white hover:bg-white/[0.08]">
+                  <Copy className="h-4 w-4" /> Copy link
+                </button>
+                <button type="button" onClick={() => void downloadShowcase()} disabled={exporting} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-400 text-[11px] font-black text-[#00121c] disabled:opacity-60">
+                  <Download className="h-4 w-4" /> Download PNG
+                </button>
+                <button type="button" onClick={() => void shareShowcase()} disabled={exporting} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/10 text-[11px] font-bold text-cyan-100 disabled:opacity-60">
+                  <Share2 className="h-4 w-4" /> {exporting ? "Building graphic…" : "Share deck graphic"}
+                </button>
+              </div>
+              <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Share link to</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => openSocial("facebook")} className="rounded-lg border border-white/[0.07] px-2 py-2 text-[10px] font-semibold text-slate-300 hover:text-white">Facebook</button>
+                <button type="button" onClick={() => openSocial("x")} className="rounded-lg border border-white/[0.07] px-2 py-2 text-[10px] font-semibold text-slate-300 hover:text-white">X</button>
+                <button type="button" onClick={() => void shareShowcase()} className="rounded-lg border border-white/[0.07] px-2 py-2 text-[10px] font-semibold text-slate-300 hover:text-white">Instagram</button>
+                <button type="button" onClick={() => void shareShowcase()} className="rounded-lg border border-white/[0.07] px-2 py-2 text-[10px] font-semibold text-slate-300 hover:text-white">Discord</button>
+              </div>
+              {shareStatus ? <p className="mt-3 text-center text-[10px] font-semibold text-cyan-200">{shareStatus}</p> : null}
             </aside>
-            <main className="flex min-h-[720px] items-center justify-center overflow-hidden bg-[#02090e] p-3 sm:p-5">
+            <main className="flex min-h-[820px] items-center justify-center overflow-hidden bg-[#02090e] p-2 sm:p-3">
               <div
-                className={`relative w-full max-w-[760px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${previewGradient} p-4 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-5 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[430px]" : "aspect-[4/5]"}`}
+                className={`relative w-full max-w-[1020px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br ${previewGradient} p-4 shadow-[0_24px_80px_rgba(0,0,0,.55)] sm:p-5 ${size === "square" ? "aspect-square" : size === "story" ? "aspect-[9/16] max-w-[520px]" : "aspect-[4/5] max-w-[800px]"}`}
                 style={previewBackground ? { backgroundImage: previewBackground } : undefined}
               >
                 {theme !== "black" ? (
                   <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "repeating-linear-gradient(135deg,transparent 0,transparent 32px,#67e8f9 33px,#67e8f9 34px)" }} />
                 ) : null}
                 <div className="relative flex h-full flex-col font-sans">
-                  <div className="flex min-h-10 items-center">
+                  <div className="flex items-center gap-3">
                     <div className="flex h-10 items-center gap-2 rounded-lg border border-cyan-300/20 bg-[#01080e]/85 px-2.5 shadow-[0_6px_24px_rgba(0,0,0,.35)]">
                       <img
                         src="/trading-docks-mark.png"
@@ -2868,16 +2928,18 @@ function DeckShowcaseStudio({
                       className="h-8 w-auto max-w-[145px] object-contain object-left"
                     />
                     </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[clamp(20px,3vw,32px)] font-black leading-none text-white">{deckName}</h3>
+                      <p className="mt-1 truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+                        {format}{commanderName ? ` · Commander: ${commanderName}` : ""}
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="mt-1 text-[clamp(20px,3.5vw,34px)] font-black leading-[1.02] text-white">{deckName}</h3>
-                  <p className="mt-1 truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                    {format}{commanderName ? ` · Commander: ${commanderName}` : ""}
-                  </p>
-                  <p className="mt-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white">
+                  <p className="mt-1 text-[11px] font-black uppercase tracking-[0.1em] text-white">
                     {cardCount} cards {showValue ? `· Deck value $${marketValue.toFixed(2)}` : ""}
                   </p>
                   {showStats ? (
-                    <div className="mt-2 grid grid-cols-[repeat(4,minmax(0,1fr))_1.8fr] gap-1 rounded-lg border border-white/[0.07] bg-white/[0.045] px-2 py-1.5">
+                    <div className="mt-1.5 grid grid-cols-[repeat(4,minmax(0,1fr))_1.8fr] gap-2 rounded-lg border border-white/[0.07] bg-white/[0.045] px-3 py-2">
                       {[
                         ["Avg MV", stats.averageManaValue.toFixed(2)],
                         ["Creatures", stats.typeCounts.creatures],
@@ -2885,15 +2947,15 @@ function DeckShowcaseStudio({
                         ["Lands", stats.typeCounts.lands],
                       ].map(([label, value]) => (
                         <div key={label}>
-                          <p className="truncate text-[5px] font-bold uppercase tracking-[0.08em] text-slate-500">{label}</p>
-                          <p className="mt-0.5 text-[8px] font-black text-white">{value}</p>
+                          <p className="truncate text-[7px] font-bold uppercase tracking-[0.08em] text-slate-400">{label}</p>
+                          <p className="mt-0.5 text-[11px] font-black text-white">{value}</p>
                         </div>
                       ))}
                       <div className="flex items-end gap-[2px]">
                         {stats.manaCurve.map((count, index) => (
                           <div key={index} className="flex min-w-0 flex-1 flex-col items-center justify-end">
                             <div className="w-full rounded-t-[1px] bg-cyan-300" style={{ height: `${Math.max(2, (count / Math.max(1, ...stats.manaCurve)) * 17)}px` }} />
-                            <span className="mt-0.5 text-[4px] text-slate-500">{index === 7 ? "7+" : index}</span>
+                            <span className="mt-0.5 text-[6px] text-slate-400">{index === 7 ? "7+" : index}</span>
                           </div>
                         ))}
                       </div>
@@ -2933,7 +2995,7 @@ function DeckShowcaseStudio({
                               : undefined
                           }
                         >
-                          <p className="mb-1 truncate rounded-[3px] bg-black/80 px-1 py-0.5 text-[6px] font-black uppercase tracking-[0.06em] text-white">
+                          <p className="mb-1 truncate rounded-[3px] bg-black/85 px-1.5 py-1 text-[8px] font-black uppercase tracking-[0.04em] text-white">
                             {group.category} {group.count}
                           </p>
                           <div className="relative h-[calc(100%-12px)] overflow-hidden">
