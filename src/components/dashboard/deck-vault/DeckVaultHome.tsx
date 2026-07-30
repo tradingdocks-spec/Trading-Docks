@@ -53,13 +53,20 @@ export function DeckVaultHome({
     useState("");
   const [renameDeck, setRenameDeck] = useState<DeckRecord | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     void (async () => {
       try {
         setSavedDecks(await loadDeckVault());
-      } catch {
+        setLoadError("");
+      } catch (error) {
         setSavedDecks([]);
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Your saved decks could not be loaded.",
+        );
       }
     })();
   }, []);
@@ -128,6 +135,11 @@ export function DeckVaultHome({
   return (
     <main className="min-h-screen bg-[#020912] px-5 py-7 text-white sm:px-8 lg:px-10">
       <div className="mx-auto max-w-[1500px]">
+        {loadError ? (
+          <div className="mb-5 rounded-2xl border border-rose-300/20 bg-rose-400/10 px-5 py-4 text-sm text-rose-100">
+            {loadError}
+          </div>
+        ) : null}
         <header className="relative overflow-hidden rounded-[30px] border border-sky-300/[0.12] bg-[#06131f] p-6 sm:p-8">
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-sky-400/[0.08] blur-3xl" />
           <div className="absolute bottom-[-90px] left-[35%] h-56 w-56 rounded-full bg-violet-500/[0.08] blur-3xl" />

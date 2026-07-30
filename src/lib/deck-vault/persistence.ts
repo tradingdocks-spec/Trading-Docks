@@ -5,44 +5,78 @@ import {
   saveAccountDocument,
 } from "@/lib/account-documents";
 import type { DeckRecord } from "@/lib/deck-vault/types";
+import { createClient } from "@/lib/supabase/client";
 
 const LIST_KEY = "deck-vault:list";
 const DECK_PREFIX = "deck-vault:deck:";
 const UNRESOLVED_PREFIX = "deck-vault:unresolved:";
 
 export async function loadDeckVault(): Promise<DeckRecord[]> {
-  let ids = await loadAccountDocument<string[]>(LIST_KEY);
-  if (ids === null) ids = await migrateLegacyDecks();
+  const { supabase, userId } = await authenticatedClient();
+  const { data, error } = await supabase
+    .from("deck_vault_decks")
+    .select("deck_data")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
 
-  const decks = await Promise.all(ids.map((id) => loadAccountDocument<DeckRecord>(deckKey(id))));
-  return decks.filter((deck): deck is DeckRecord => Boolean(deck));
+  if (error) {
+    throw deckStorageError("Decks could not be loaded", error.message);
+  }
+
+  if (data.length) {
+    return data.map((row) => row.deck_data as DeckRecord);
+  }
+
+  const legacyDecks = await loadLegacyDeckVault();
+  for (const deck of legacyDecks) {
+    await saveDeckRow(deck);
+  }
+  return legacyDecks;
 }
 
 export async function loadDeckRecord(deckId: string) {
-  const cloudDeck = await loadAccountDocument<DeckRecord>(deckKey(deckId));
-  if (cloudDeck) return cloudDeck;
-  await migrateLegacyDecks();
-  return loadAccountDocument<DeckRecord>(deckKey(deckId));
+  const { supabase, userId } = await authenticatedClient();
+  const { data, error } = await supabase
+    .from("deck_vault_decks")
+    .select("deck_data")
+    .eq("user_id", userId)
+    .eq("deck_id", deckId)
+    .maybeSingle();
+
+  if (error) {
+    throw deckStorageError("The deck could not be loaded", error.message);
+  }
+  if (data) return data.deck_data as DeckRecord;
+
+  const legacyDeck = await loadAccountDocument<DeckRecord>(deckKey(deckId));
+  if (legacyDeck) {
+    await saveDeckRow(legacyDeck);
+    return legacyDeck;
+  }
+  return null;
 }
 
 export async function saveDeckRecord(deck: DeckRecord, unresolved?: unknown[]) {
-  const ids = (await loadAccountDocument<string[]>(LIST_KEY)) ?? [];
-  await Promise.all([
-    saveAccountDocument(deckKey(deck.id), deck),
-    saveAccountDocument(LIST_KEY, [deck.id, ...ids.filter((id) => id !== deck.id)]),
-    saveAccountDocument("deck-vault:last-saved", deck.id),
-    unresolved?.length
-      ? saveAccountDocument(`${UNRESOLVED_PREFIX}${deck.id}`, unresolved)
-      : Promise.resolve(),
-  ]);
+  await saveDeckRow(deck, unresolved);
+
+  const saved = await loadDeckRecord(deck.id);
+  if (!saved || saved.id !== deck.id) {
+    throw new Error("Trading Docks could not verify that this deck was saved. Please try again.");
+  }
 }
 
 export async function deleteDeckRecord(deckId: string) {
-  const ids = (await loadAccountDocument<string[]>(LIST_KEY)) ?? [];
+  const { supabase, userId } = await authenticatedClient();
+  const { error } = await supabase
+    .from("deck_vault_decks")
+    .delete()
+    .eq("user_id", userId)
+    .eq("deck_id", deckId);
+  if (error) throw deckStorageError("The deck could not be deleted", error.message);
+
   await Promise.all([
     deleteAccountDocument(deckKey(deckId)),
     deleteAccountDocument(`${UNRESOLVED_PREFIX}${deckId}`),
-    saveAccountDocument(LIST_KEY, ids.filter((id) => id !== deckId)),
   ]);
 }
 
@@ -73,6 +107,48 @@ async function migrateLegacyDecks() {
   await saveAccountDocument(LIST_KEY, ids);
   window.localStorage.removeItem(legacyListKey);
   return ids;
+}
+
+async function loadLegacyDeckVault(): Promise<DeckRecord[]> {
+  let ids = await loadAccountDocument<string[]>(LIST_KEY);
+  if (ids === null) ids = await migrateLegacyDecks();
+  const decks = await Promise.all(ids.map((id) => loadAccountDocument<DeckRecord>(deckKey(id))));
+  return decks.filter((deck): deck is DeckRecord => Boolean(deck));
+}
+
+async function saveDeckRow(deck: DeckRecord, unresolved?: unknown[]) {
+  const { supabase, userId } = await authenticatedClient();
+  const { error } = await supabase.from("deck_vault_decks").upsert(
+    {
+      user_id: userId,
+      deck_id: deck.id,
+      name: deck.name,
+      format: deck.format,
+      commander: deck.commander ?? null,
+      deck_data: deck,
+      unresolved_cards: unresolved ?? [],
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,deck_id" },
+  );
+  if (error) throw deckStorageError("The deck could not be saved", error.message);
+}
+
+async function authenticatedClient() {
+  const supabase = createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) throw new Error("Your session expired. Sign in again before saving this deck.");
+  return { supabase, userId: user.id };
+}
+
+function deckStorageError(prefix: string, message: string) {
+  if (message.includes("deck_vault_decks")) {
+    return new Error(`${prefix}: the Deck Vault database update has not been installed.`);
+  }
+  return new Error(`${prefix}: ${message}`);
 }
 
 function safeParse<T>(value: string | null, fallback: T): T {
