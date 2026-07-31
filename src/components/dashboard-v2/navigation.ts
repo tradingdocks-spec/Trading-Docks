@@ -106,6 +106,9 @@ export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
     label: "Orders",
     icon: ShoppingBag,
   },
+];
+
+export const BUSINESS_NAV: NavigationItem[] = [
   {
     href: "/dashboard/analytics",
     label: "Analytics",
@@ -116,9 +119,6 @@ export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
     label: "Automation",
     icon: Bot,
   },
-];
-
-export const BUSINESS_NAV: NavigationItem[] = [
   {
     href: "/dashboard/calendar",
     label: "Calendar",

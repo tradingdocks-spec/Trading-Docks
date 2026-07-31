@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Bell,
   ChevronDown,
@@ -16,6 +18,12 @@ export function Topbar({
   collapsed: boolean;
   onOpenMobile: () => void;
 }) {
+  const [shortcut, setShortcut] = useState("Ctrl K");
+
+  useEffect(() => {
+    if (/Mac|iPhone|iPad/.test(window.navigator.platform)) setShortcut("⌘ K");
+  }, []);
+
   return (
     <header
       className={[
@@ -38,21 +46,21 @@ export function Topbar({
         >
           <Search className="h-4 w-4 shrink-0 text-slate-600 group-hover:text-cyan-300/75" />
           <span className="min-w-0 flex-1 truncate text-xs text-slate-600">
-            Search inventory, employees, events, vendors...
+            Search cards, decks, orders, and tools...
           </span>
           <kbd className="hidden rounded-md border border-white/[0.07] bg-black/20 px-1.5 py-0.5 font-sans text-[10px] text-slate-600 sm:inline-flex">
-            ⌘ K
+            {shortcut}
           </kbd>
         </button>
 
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
+          <Link
+            href="/dashboard/inventory"
             className="hidden h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.15] bg-cyan-400/[0.07] px-4 text-xs font-semibold text-cyan-100 transition hover:-translate-y-px hover:bg-cyan-400/[0.11] sm:flex"
           >
             <Plus className="h-4 w-4 text-cyan-300" />
-            Create
-          </button>
+            Add cards
+          </Link>
 
           <button
             type="button"

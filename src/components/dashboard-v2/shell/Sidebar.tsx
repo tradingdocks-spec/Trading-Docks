@@ -41,6 +41,8 @@ export function Sidebar({
     );
   const [purchasingOpen, setPurchasingOpen] =
     useState(purchasingActive);
+  const businessActive = BUSINESS_NAV.some((item) => pathname.startsWith(item.href));
+  const [businessOpen, setBusinessOpen] = useState(businessActive);
 
   useEffect(() => {
     if (purchasingActive) setPurchasingOpen(true);
@@ -134,21 +136,40 @@ export function Sidebar({
 
           <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
 
-          <div className="mb-3 flex items-center gap-2 px-3">
-            <BriefcaseBusiness className="h-3.5 w-3.5 text-cyan-300/70" />
-            {!collapsed ? (
-              <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-700">
-                Business Hub
-              </span>
-            ) : null}
-          </div>
+          {collapsed ? (
+            <button
+              type="button"
+              title="Business tools"
+              onClick={() => {
+                onToggle();
+                setBusinessOpen(true);
+              }}
+              className="flex h-10 w-full items-center justify-center rounded-xl text-slate-600 transition hover:bg-white/[0.025] hover:text-cyan-300"
+            >
+              <BriefcaseBusiness className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setBusinessOpen((value) => !value)}
+              className="mb-1 flex h-10 w-full items-center gap-3 rounded-xl px-3 text-slate-500 transition hover:bg-white/[0.025] hover:text-slate-200"
+            >
+              <BriefcaseBusiness className="h-4 w-4" />
+              <span className="flex-1 text-left text-[11px] font-medium">Business tools</span>
+              <ChevronDown className={`h-3.5 w-3.5 transition ${businessOpen ? "rotate-180" : ""}`} />
+            </button>
+          )}
 
-          <NavGroup
-            items={BUSINESS_NAV}
-            collapsed={collapsed}
-            pathname={pathname}
-            onNavigate={onCloseMobile}
-          />
+          {businessOpen ? (
+            <div className="ml-2 border-l border-white/[0.06] pl-2">
+              <NavGroup
+                items={BUSINESS_NAV}
+                collapsed={collapsed}
+                pathname={pathname}
+                onNavigate={onCloseMobile}
+              />
+            </div>
+          ) : null}
 
           <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
 
@@ -174,7 +195,7 @@ export function Sidebar({
             {!collapsed ? (
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-slate-200">Jeremy</p>
-                <p className="mt-0.5 text-[9px] text-slate-600">Business workspace</p>
+                <p className="mt-0.5 text-[10px] text-slate-500">Personal workspace</p>
               </div>
             ) : null}
 
