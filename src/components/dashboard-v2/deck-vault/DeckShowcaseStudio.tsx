@@ -496,13 +496,13 @@ export function DeckShowcaseStudio({
                   >
                     {columns.map((column, index) => (
                       <div key={index} className="flex min-h-0 flex-col gap-[1.2cqw]">
-                        {column.groups.map((group) => (
-                            {display === "text" ? (
-                              <TextPosterGroup key={group.name} group={group} tokens={tokens} />
-                            ) : (
-                              <PosterGroup key={group.name} group={group} tokens={tokens} />
-                            )}
-                        ))}
+                        {column.groups.map((group) =>
+                          display === "text" ? (
+                            <TextPosterGroup key={group.name} group={group} tokens={tokens} />
+                          ) : (
+                            <PosterGroup key={group.name} group={group} tokens={tokens} />
+                          )
+                        )}
                       </div>
                     ))}
                   </div>
