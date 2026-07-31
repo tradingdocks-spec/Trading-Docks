@@ -1304,6 +1304,16 @@ function CardsWorkspace({
   );
   const [replacementCard, setReplacementCard] =
     useState<DeckCard | null>(null);
+  const deckColors = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (commanderCard ? commanderCard.colors : mainDeckCards.flatMap((card) => card.colors))
+            .filter((color): color is Exclude<ManaColor, "C"> => color !== "C"),
+        ),
+      ),
+    [commanderCard, mainDeckCards],
+  );
   const mainDeckValue = mainDeckCards.reduce(
     (sum, card) => sum + card.price * card.quantity,
     0,
@@ -2223,7 +2233,7 @@ function CardsWorkspace({
         <ReplacementFinder
           card={replacementCard}
           format={format}
-          commanderColors={commanderCard?.colors ?? []}
+          deckColors={deckColors}
           onClose={() => setReplacementCard(null)}
           onReplace={(replacement) => {
             replaceCard(replacementCard, replacement);
@@ -2293,20 +2303,25 @@ function DeckCondensedView({
   const showCardPreview = (
     card: DeckCard,
     target: HTMLButtonElement,
+    pointer?: { x: number; y: number },
   ) => {
     const rect = target.getBoundingClientRect();
     const previewWidth = 260;
     const previewHeight = 410;
     const gutter = 14;
     const viewportPadding = 16;
-    const fitsRight = rect.right + gutter + previewWidth <= window.innerWidth - viewportPadding;
+    const anchorX = pointer?.x ?? rect.right;
+    const anchorY = pointer?.y ?? rect.bottom;
+    const fitsRight =
+      anchorX + gutter + previewWidth <= window.innerWidth - viewportPadding;
     const left = fitsRight
-      ? rect.right + gutter
-      : Math.max(viewportPadding, rect.left - gutter - previewWidth);
-    const top = Math.min(
-      window.innerHeight - previewHeight - viewportPadding,
-      Math.max(viewportPadding, rect.top - 34),
-    );
+      ? anchorX + gutter
+      : Math.max(viewportPadding, anchorX - gutter - previewWidth);
+    const belowTop = anchorY + gutter;
+    const top =
+      belowTop + previewHeight <= window.innerHeight - viewportPadding
+        ? belowTop
+        : Math.max(viewportPadding, anchorY - previewHeight - gutter);
     setPreviewPosition({ left, top });
     setHoveredCard(card);
   };
@@ -2332,6 +2347,12 @@ function DeckCondensedView({
               type="button"
               onClick={() => onSelect(card.id)}
               onMouseEnter={(event) => showCardPreview(card, event.currentTarget)}
+              onMouseMove={(event) =>
+                showCardPreview(card, event.currentTarget, {
+                  x: event.clientX,
+                  y: event.clientY,
+                })
+              }
               onMouseLeave={() => setHoveredCard(null)}
               onFocus={(event) => showCardPreview(card, event.currentTarget)}
               onBlur={() => setHoveredCard(null)}
@@ -3688,19 +3709,19 @@ function DeckTableRow({
     const rect =
       target.getBoundingClientRect();
     const previewWidth = 260;
-    const previewHeight = 470;
+    const previewHeight = 430;
     const viewportPadding = 16;
+    const pointerGap = 14;
 
-    let left = pointer ? pointer.x + 18 : rect.right + 18;
+    let left = pointer ? pointer.x + pointerGap : rect.right + pointerGap;
 
     if (
       left + previewWidth >
       window.innerWidth - viewportPadding
     ) {
-      left =
-        rect.left -
-        previewWidth -
-        18;
+      left = pointer
+        ? pointer.x - previewWidth - pointerGap
+        : rect.left - previewWidth - pointerGap;
     }
 
     left = Math.max(
@@ -3713,19 +3734,14 @@ function DeckTableRow({
       ),
     );
 
-    const preferredTop = pointer
-      ? pointer.y + 14
-      : rect.bottom + 10;
-
-    const top = Math.max(
-      viewportPadding,
-      Math.min(
-        preferredTop,
-        window.innerHeight -
-          previewHeight -
-          viewportPadding,
-      ),
-    );
+    const belowTop = pointer ? pointer.y + pointerGap : rect.bottom + 10;
+    const top =
+      belowTop + previewHeight <= window.innerHeight - viewportPadding
+        ? belowTop
+        : Math.max(
+            viewportPadding,
+            (pointer?.y ?? rect.top) - previewHeight - pointerGap,
+          );
 
     setPreviewPosition({
       top,
@@ -3789,6 +3805,12 @@ function DeckTableRow({
                     y: event.clientY,
                   },
                 )
+              }
+              onMouseMove={(event) =>
+                openPreview(event.currentTarget, {
+                  x: event.clientX,
+                  y: event.clientY,
+                })
               }
               onMouseLeave={() =>
                 setPreviewOpen(false)
@@ -4074,13 +4096,13 @@ type ReplacementPayload = {
 function ReplacementFinder({
   card,
   format,
-  commanderColors,
+  deckColors,
   onClose,
   onReplace,
 }: {
   card: DeckCard;
   format: DeckFormat;
-  commanderColors: ManaColor[];
+  deckColors: ManaColor[];
   onClose: () => void;
   onReplace: (replacement: ScryfallCardResult) => void;
 }) {
@@ -4102,7 +4124,7 @@ function ReplacementFinder({
       body: JSON.stringify({
         name: card.name,
         format,
-        commanderColors,
+        deckColors,
       }),
     })
       .then(async (response) => {
@@ -4125,7 +4147,7 @@ function ReplacementFinder({
       });
 
     return () => controller.abort();
-  }, [card.name, commanderColors, format]);
+  }, [card.name, deckColors, format]);
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
@@ -4162,10 +4184,9 @@ function ReplacementFinder({
               </h2>
               <p className="mt-1 text-[12px] text-slate-500">
                 Only cards legal in {format}
-                {commanderColors.length
-                  ? ` and within this deck’s ${commanderColors.join("/")} color identity`
-                  : ""}
-                .
+                {deckColors.length
+                  ? ` and within this deck’s ${deckColors.join("/")} color identity`
+                  : " and colorless"}.
               </p>
             </div>
           </div>

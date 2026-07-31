@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const name = String(body.name ?? "").trim();
     const format = String(body.format ?? "EDH");
-    const commanderColors = Array.isArray(body.commanderColors)
-      ? body.commanderColors.filter((color: unknown) =>
+    const deckColors = Array.isArray(body.deckColors ?? body.commanderColors)
+      ? (body.deckColors ?? body.commanderColors).filter((color: unknown) =>
           ["W", "U", "B", "R", "G"].includes(String(color)),
         )
       : [];
@@ -72,10 +72,10 @@ export async function POST(request: NextRequest) {
     const source = (await sourceResponse.json()) as ScryfallCard;
     const role = classifyRole(source);
     const formatCode = FORMAT_CODE[format] ?? "commander";
-    const identity =
-      commanderColors.length && (format === "EDH" || format === "Pauper EDH")
-        ? ` id<=${commanderColors.join("")}`
-        : "";
+    // `id<=` includes colorless cards and cards using any subset of the
+    // deck's colors. Apply it in every format when the deck has an established
+    // color combination, then enforce the same rule again after retrieval.
+    const identity = deckColors.length ? `id<=${deckColors.join("")}` : "id:c";
     const manaWindow = Math.max(0, Number(source.cmc ?? 0) + 2);
     const query = [
       role.query,
@@ -105,7 +105,13 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = (await searchResponse.json()) as { data?: ScryfallCard[] };
+    const allowedColors = new Set(deckColors);
     const recommendations = (payload.data ?? [])
+      .filter((candidate) =>
+        (candidate.color_identity ?? []).every((color) =>
+          allowedColors.has(color),
+        ),
+      )
       .map((candidate) => ({
         ...normalize(candidate),
         score: similarityScore(source, candidate, role),
