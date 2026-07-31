@@ -72,7 +72,8 @@ const identityColor = {
 } as const;
 
 function deckIdentityGradient(colors: DeckCard["colors"]) {
-  const unique = Array.from(new Set(colors.length ? colors : ["C"]));
+  const gradientColors: DeckCard["colors"] = colors.length ? colors : ["C"];
+  const unique = Array.from(new Set(gradientColors));
   const stops = unique.map((color, index) => {
     const position = unique.length === 1 ? 0 : Math.round((index / (unique.length - 1)) * 72);
     return `${identityColor[color]} ${position}%`;
