@@ -675,6 +675,61 @@ export function DeckDetailWorkspace({
     );
   }
 
+  function replaceCard(
+    removedCard: DeckCard,
+    replacement: ScryfallCardResult,
+  ) {
+    setCards((current) => {
+      const reduced = current
+        .map((card) =>
+          card.id === removedCard.id
+            ? { ...card, quantity: card.quantity - 1 }
+            : card,
+        )
+        .filter((card) => card.quantity > 0);
+      const existing = reduced.find(
+        (card) =>
+          canonicalDeckSection(card) === "main" &&
+          card.name.localeCompare(replacement.name, undefined, {
+            sensitivity: "accent",
+          }) === 0,
+      );
+
+      if (existing) {
+        return reduced.map((card) =>
+          card.id === existing.id
+            ? { ...card, quantity: card.quantity + 1 }
+            : card,
+        );
+      }
+
+      return [
+        ...reduced,
+        {
+          id: replacement.id,
+          name: replacement.name,
+          quantity: 1,
+          manaValue: replacement.manaValue,
+          colors: replacement.colorIdentity.length
+            ? replacement.colorIdentity
+            : replacement.colors.length
+              ? replacement.colors
+              : ["C"],
+          typeLine: replacement.typeLine,
+          category: inferCategory(replacement),
+          price: replacement.price,
+          owned: false,
+          image: replacement.image,
+          artCrop: replacement.artCrop,
+          setCode: replacement.setCode,
+          collectorNumber: replacement.collectorNumber,
+          gameChanger: replacement.gameChanger,
+          board: "main",
+        },
+      ];
+    });
+  }
+
   const commanderCard = useMemo(
     () =>
       cards.find(
@@ -843,6 +898,7 @@ export function DeckDetailWorkspace({
             searchResults={searchResults}
             searching={searching}
             addCard={addCard}
+            replaceCard={replaceCard}
             removeCard={removeCard}
             view={view}
             setView={setView}
@@ -1181,6 +1237,7 @@ function CardsWorkspace({
   searchResults,
   searching,
   addCard,
+  replaceCard,
   removeCard,
   view,
   setView,
@@ -1206,6 +1263,10 @@ function CardsWorkspace({
   searchResults: ScryfallCardResult[];
   searching: boolean;
   addCard: (card: ScryfallCardResult) => void;
+  replaceCard: (
+    removedCard: DeckCard,
+    replacement: ScryfallCardResult,
+  ) => void;
   removeCard: (id: string) => void;
   view: DeckCardView;
   setView: (view: DeckCardView) => void;
@@ -1241,6 +1302,8 @@ function CardsWorkspace({
     (sum, card) => sum + card.quantity,
     0,
   );
+  const [replacementCard, setReplacementCard] =
+    useState<DeckCard | null>(null);
   const mainDeckValue = mainDeckCards.reduce(
     (sum, card) => sum + card.price * card.quantity,
     0,
@@ -2087,6 +2150,9 @@ function CardsWorkspace({
                     </InspectorAction> : null}
                     <InspectorAction
                       tone="violet"
+                      onClick={() =>
+                        setReplacementCard(selectedCard)
+                      }
                     >
                       Find Replacement
                     </InspectorAction>
@@ -2151,6 +2217,19 @@ function CardsWorkspace({
           cards={cards}
           marketValue={mainDeckValue}
           onClose={() => setShowcaseOpen(false)}
+        />
+      ) : null}
+      {replacementCard ? (
+        <ReplacementFinder
+          card={replacementCard}
+          format={format}
+          commanderColors={commanderCard?.colors ?? []}
+          onClose={() => setReplacementCard(null)}
+          onReplace={(replacement) => {
+            replaceCard(replacementCard, replacement);
+            setSelectedCardId(replacement.id);
+            setReplacementCard(null);
+          }}
         />
       ) : null}
     </section>
@@ -3604,6 +3683,7 @@ function DeckTableRow({
 
   function openPreview(
     target: HTMLElement,
+    pointer?: { x: number; y: number },
   ) {
     const rect =
       target.getBoundingClientRect();
@@ -3611,7 +3691,7 @@ function DeckTableRow({
     const previewHeight = 470;
     const viewportPadding = 16;
 
-    let left = rect.right + 18;
+    let left = pointer ? pointer.x + 18 : rect.right + 18;
 
     if (
       left + previewWidth >
@@ -3633,9 +3713,9 @@ function DeckTableRow({
       ),
     );
 
-    const preferredTop =
-      rect.top -
-      previewHeight * 0.32;
+    const preferredTop = pointer
+      ? pointer.y + 14
+      : rect.bottom + 10;
 
     const top = Math.max(
       viewportPadding,
@@ -3704,6 +3784,10 @@ function DeckTableRow({
               onMouseEnter={(event) =>
                 openPreview(
                   event.currentTarget,
+                  {
+                    x: event.clientX,
+                    y: event.clientY,
+                  },
                 )
               }
               onMouseLeave={() =>
@@ -3970,6 +4054,223 @@ function edhrecCardUrl(cardName: string) {
     .replace(/^-+|-+$/g, "");
 
   return `https://edhrec.com/cards/${slug}`;
+}
+
+type ReplacementSuggestion = ScryfallCardResult & {
+  score: number;
+  reason: string;
+};
+
+type ReplacementPayload = {
+  role: {
+    label: string;
+    explanation: string;
+    signals: string[];
+  };
+  recommendations: ReplacementSuggestion[];
+  error?: string;
+};
+
+function ReplacementFinder({
+  card,
+  format,
+  commanderColors,
+  onClose,
+  onReplace,
+}: {
+  card: DeckCard;
+  format: DeckFormat;
+  commanderColors: ManaColor[];
+  onClose: () => void;
+  onReplace: (replacement: ScryfallCardResult) => void;
+}) {
+  const [payload, setPayload] =
+    useState<ReplacementPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    setPayload(null);
+
+    void fetch("/api/deck-vault/replacements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        name: card.name,
+        format,
+        commanderColors,
+      }),
+    })
+      .then(async (response) => {
+        const result = (await response.json()) as ReplacementPayload;
+        if (!response.ok) {
+          throw new Error(result.error || "No replacements could be found.");
+        }
+        setPayload(result);
+      })
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "No replacements could be found.",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [card.name, commanderColors, format]);
+
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[180] flex items-center justify-center bg-[#01060c]/82 p-4 backdrop-blur-md"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Find a replacement for ${card.name}`}
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+    >
+      <section className="flex max-h-[90vh] w-full max-w-[1040px] flex-col overflow-hidden rounded-[28px] border border-violet-300/[0.16] bg-[#06131f] shadow-[0_35px_120px_rgba(0,0,0,.75),0_0_55px_rgba(139,92,246,.11)]">
+        <header className="flex items-start justify-between gap-5 border-b border-white/[0.07] px-5 py-5 sm:px-7">
+          <div className="flex min-w-0 items-center gap-4">
+            <img
+              src={card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`}
+              alt=""
+              className="h-[92px] w-[66px] shrink-0 rounded-lg object-cover shadow-xl"
+            />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-violet-300">
+                Smart Replacement Finder
+              </p>
+              <h2 className="mt-1 truncate text-xl font-semibold text-white">
+                Replace {card.name}
+              </h2>
+              <p className="mt-1 text-[12px] text-slate-500">
+                Only cards legal in {format}
+                {commanderColors.length
+                  ? ` and within this deck’s ${commanderColors.join("/")} color identity`
+                  : ""}
+                .
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] text-slate-400 transition hover:bg-white/[0.05] hover:text-white"
+            aria-label="Close replacement finder"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+
+        {payload?.role ? (
+          <div className="border-b border-white/[0.06] bg-violet-400/[0.035] px-5 py-4 sm:px-7">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-violet-300/[0.18] bg-violet-400/[0.08] px-3 py-1 text-[11px] font-bold text-violet-200">
+                {payload.role.label}
+              </span>
+              {payload.role.signals.map((signal) => (
+                <span key={signal} className="rounded-full border border-white/[0.07] px-2.5 py-1 text-[10px] text-slate-500">
+                  {signal}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 text-[12px] leading-5 text-slate-400">
+              {payload.role.explanation} Suggestions are ranked by role, card type, and mana-curve fit.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="min-h-[280px] overflow-y-auto p-5 sm:p-7">
+          {loading ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
+              <WandSparkles className="h-7 w-7 animate-pulse text-violet-300" />
+              <p className="mt-4 text-sm font-semibold text-white">
+                Analyzing this card’s deck-building role…
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                Checking format legality, color identity, function, and mana value.
+              </p>
+            </div>
+          ) : error ? (
+            <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
+              <AlertTriangle className="h-7 w-7 text-amber-300" />
+              <p className="mt-4 text-sm font-semibold text-white">{error}</p>
+              <p className="mt-2 text-xs text-slate-500">
+                Close this window and try the card again.
+              </p>
+            </div>
+          ) : payload?.recommendations.length ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {payload.recommendations.map((suggestion) => (
+                <article
+                  key={suggestion.id}
+                  className="group grid grid-cols-[76px_minmax(0,1fr)] gap-4 rounded-2xl border border-white/[0.065] bg-black/[0.12] p-3 transition hover:border-violet-300/[0.2] hover:bg-violet-400/[0.025]"
+                >
+                  <img
+                    src={suggestion.image}
+                    alt={suggestion.name}
+                    className="aspect-[0.715] w-[76px] rounded-lg object-cover shadow-lg"
+                    loading="lazy"
+                  />
+                  <div className="flex min-w-0 flex-col">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[14px] font-semibold text-white group-hover:text-violet-100">
+                          {suggestion.name}
+                        </h3>
+                        <p className="mt-1 truncate text-[10px] text-slate-500">
+                          {suggestion.typeLine}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-lg bg-emerald-400/[0.08] px-2 py-1 text-[10px] font-bold text-emerald-200">
+                        {suggestion.score}% fit
+                      </span>
+                    </div>
+                    <p className="mt-3 text-[11px] leading-4 text-slate-400">
+                      {suggestion.reason}
+                    </p>
+                    <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+                      <span className="text-[11px] text-slate-500">
+                        MV {suggestion.manaValue} · ${suggestion.price.toFixed(2)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onReplace(suggestion)}
+                        className="h-9 rounded-xl bg-violet-300 px-3 text-[11px] font-bold text-[#11051f] transition hover:bg-violet-200"
+                      >
+                        Replace 1 copy
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="flex min-h-[280px] items-center justify-center text-center text-sm text-slate-500">
+              No legal alternatives matched this card’s role closely enough.
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function InspectorAction({
