@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -311,6 +311,24 @@ export function MarketplaceWorkspace() {
   const [checkingCredentials, setCheckingCredentials] = useState(false);
   const [editingCredentials, setEditingCredentials] = useState<Record<string, boolean>>({});
 
+  const loadCredentialStatus = useCallback(async (marketplaceId: string) => {
+    setCheckingCredentials(true);
+    try {
+      const response = await fetch(
+        `/api/marketplaces/credentials?marketplaceId=${encodeURIComponent(marketplaceId)}`,
+        { cache: "no-store" },
+      );
+      const result = (await response.json().catch(() => null)) as
+        | (SavedCredentials & { error?: string })
+        | null;
+      if (response.ok && result) {
+        setSavedCredentials((current) => ({ ...current, [marketplaceId]: result }));
+      }
+    } finally {
+      setCheckingCredentials(false);
+    }
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connector = params.get("connector");
@@ -347,7 +365,7 @@ export function MarketplaceWorkspace() {
       }
       setLoading(false);
     })();
-  }, [supabase]);
+  }, [loadCredentialStatus, supabase]);
 
   const filtered = marketplaces.filter((marketplace) =>
     `${marketplace.name} ${marketplace.games} ${marketplace.description}`
@@ -365,24 +383,6 @@ export function MarketplaceWorkspace() {
     setEditingCredentials((current) => ({ ...current, [marketplace.id]: false }));
     setNotice("");
     if (marketplace.credentialFields?.length) void loadCredentialStatus(marketplace.id);
-  }
-
-  async function loadCredentialStatus(marketplaceId: string) {
-    setCheckingCredentials(true);
-    try {
-      const response = await fetch(
-        `/api/marketplaces/credentials?marketplaceId=${encodeURIComponent(marketplaceId)}`,
-        { cache: "no-store" },
-      );
-      const result = (await response.json().catch(() => null)) as
-        | (SavedCredentials & { error?: string })
-        | null;
-      if (response.ok && result) {
-        setSavedCredentials((current) => ({ ...current, [marketplaceId]: result }));
-      }
-    } finally {
-      setCheckingCredentials(false);
-    }
   }
 
   async function copyCallbackUrl() {

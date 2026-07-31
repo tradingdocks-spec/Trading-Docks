@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const response = await fetch(
     "https://api.scryfall.com/cards/named?exact=Mana%20Crypt&set=mps",
     {

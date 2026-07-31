@@ -13,6 +13,15 @@ type PendingCookie = {
   options: CookieOptions;
 };
 
+const MAX_API_BODY_BYTES = 5 * 1024 * 1024;
+const PROTECTED_API_PREFIXES = [
+  "/api/csv-converter/",
+  "/api/deck-vault/",
+  "/api/inventory/",
+  "/api/tcgcsv/",
+  "/api/tools/",
+];
+
 function redirectWithSessionCookies(
   url: URL,
   pendingCookies: PendingCookie[],
@@ -92,6 +101,29 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (
+    isApiRoute &&
+    Number.isFinite(contentLength) &&
+    contentLength > MAX_API_BODY_BYTES
+  ) {
+    return NextResponse.json(
+      { error: "Request payload is too large." },
+      { status: 413 },
+    );
+  }
+
+  const isProtectedApiRoute = PROTECTED_API_PREFIXES.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix),
+  );
+  if (!user && isProtectedApiRoute) {
+    return NextResponse.json(
+      { error: "Sign in is required." },
+      { status: 401 },
+    );
+  }
 
   const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
   const isOnboardingRoute = request.nextUrl.pathname.startsWith("/onboarding");
