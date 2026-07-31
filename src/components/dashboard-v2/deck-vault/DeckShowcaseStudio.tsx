@@ -5,8 +5,9 @@ import { Download, Share2, Sparkles, X } from "lucide-react";
 
 import type { DeckCard, DeckFormat } from "@/lib/deck-vault/types";
 
-type ShowcaseTheme = "harbor" | "midnight" | "paper";
+type ShowcaseTheme = "color" | "harbor" | "midnight" | "paper";
 type ShowcaseSize = "portrait" | "square" | "story";
+type ShowcaseDisplay = "cards" | "text";
 type ShowcaseGroup = { name: string; cards: DeckCard[]; count: number };
 
 const groupOrder = [
@@ -23,6 +24,15 @@ const groupOrder = [
 ];
 
 const themes = {
+  color: {
+    accent: "#67e8f9",
+    background: "#06131d",
+    board: "#071b26",
+    ink: "#f8fbfd",
+    muted: "#b6c5ce",
+    panel: "rgba(3,12,18,.78)",
+    preview: "",
+  },
   harbor: {
     accent: "#4ce8f4",
     background: "#03131d",
@@ -51,6 +61,24 @@ const themes = {
     preview: "from-[#c9dde7] via-[#eef4f6] to-[#d7e4e9]",
   },
 } satisfies Record<ShowcaseTheme, Record<string, string>>;
+
+const identityColor = {
+  W: "#d8c797",
+  U: "#168bd2",
+  B: "#44304f",
+  R: "#d74732",
+  G: "#258c57",
+  C: "#64748b",
+} as const;
+
+function deckIdentityGradient(colors: DeckCard["colors"]) {
+  const unique = Array.from(new Set(colors.length ? colors : ["C"]));
+  const stops = unique.map((color, index) => {
+    const position = unique.length === 1 ? 0 : Math.round((index / (unique.length - 1)) * 72);
+    return `${identityColor[color]} ${position}%`;
+  });
+  return `linear-gradient(135deg, ${stops.join(", ")}, #020609 100%)`;
+}
 
 function cardGroup(card: DeckCard) {
   if (card.board === "sideboard") return "Sideboard";
@@ -128,10 +156,11 @@ export function DeckShowcaseStudio({
   marketValue: number;
   onClose: () => void;
 }) {
-  const [theme, setTheme] = useState<ShowcaseTheme>("harbor");
+  const isCommander = format === "EDH" || format === "Pauper EDH";
+  const [theme, setTheme] = useState<ShowcaseTheme>("color");
+  const [display, setDisplay] = useState<ShowcaseDisplay>(isCommander ? "text" : "cards");
   const [size, setSize] = useState<ShowcaseSize>("portrait");
   const [showValue, setShowValue] = useState(false);
-  const [showLink, setShowLink] = useState(true);
   const [exporting, setExporting] = useState(false);
   const commander =
     cards.find((card) => card.board === "commander" || card.category === "Commander") ??
@@ -143,9 +172,11 @@ export function DeckShowcaseStudio({
     [groups, columnCount],
   );
   const cardCount = cards.reduce((total, card) => total + card.quantity, 0);
-  const publicUrl =
-    typeof window === "undefined" ? "tradingdocks.com/decks" : window.location.href;
   const tokens = themes[theme];
+  const identityColors = commander?.colors?.length
+    ? commander.colors
+    : Array.from(new Set(cards.flatMap((card) => card.colors)));
+  const identityGradient = deckIdentityGradient(identityColors);
 
   async function loadImage(src: string) {
     return await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -178,9 +209,17 @@ export function DeckShowcaseStudio({
       const boardTop = headerHeight;
       const boardHeight = height - headerHeight - footerHeight;
       const gradient = context.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, tokens.panel);
-      gradient.addColorStop(0.32, tokens.background);
-      gradient.addColorStop(1, theme === "paper" ? "#cbdbe2" : "#010406");
+      if (theme === "color") {
+        const colors = identityColors.length ? identityColors : (["C"] as DeckCard["colors"]);
+        colors.forEach((color, index) =>
+          gradient.addColorStop(index / Math.max(1, colors.length), identityColor[color]),
+        );
+        gradient.addColorStop(1, "#010406");
+      } else {
+        gradient.addColorStop(0, tokens.panel);
+        gradient.addColorStop(0.32, tokens.background);
+        gradient.addColorStop(1, theme === "paper" ? "#cbdbe2" : "#010406");
+      }
       context.fillStyle = gradient;
       context.fillRect(0, 0, width, height);
 
@@ -271,6 +310,19 @@ export function DeckShowcaseStudio({
 
           for (let index = 0; index < group.cards.length; index += 1) {
             const card = group.cards[index];
+            if (display === "text") {
+              context.fillStyle = theme === "paper" ? "rgba(255,255,255,.72)" : "rgba(2,9,14,.78)";
+              roundedRect(context, x, y, columnWidth, 30, 5);
+              context.fill();
+              context.fillStyle = tokens.accent;
+              context.font = "900 13px Arial";
+              context.fillText(String(card.quantity), x + 9, y + 20);
+              context.fillStyle = tokens.ink;
+              context.font = "700 12px Arial";
+              context.fillText(card.name.slice(0, 27), x + 31, y + 20);
+              y += 34;
+              continue;
+            }
             const isLast = index === group.cards.length - 1;
             const remainingRoom = boardTop + boardHeight - 26 - y;
             const drawHeight = isLast ? Math.min(fullCardHeight, remainingRoom) : fullCardHeight;
@@ -312,11 +364,7 @@ export function DeckShowcaseStudio({
       context.fillText("CRAFTED ON TRADING DOCKS", edge, height - 25);
       context.fillStyle = tokens.accent;
       context.textAlign = "right";
-      context.fillText(
-        showLink ? publicUrl.replace(/^https?:\/\//, "").slice(0, 86) : "TRADINGDOCKS.COM",
-        width - edge,
-        height - 25,
-      );
+      context.fillText("TRADINGDOCKS.COM", width - edge, height - 25);
       context.textAlign = "left";
 
       const blob = await new Promise<Blob | null>((resolve) =>
@@ -377,8 +425,15 @@ export function DeckShowcaseStudio({
                   <Choice key={value} active={size === value} onClick={() => setSize(value)} label={label} />
                 ))}
               </ShowcaseControl>
+              {isCommander ? (
+                <ShowcaseControl title="Deck display">
+                  <Choice active={display === "text"} onClick={() => setDisplay("text")} label="Condensed text" />
+                  <Choice active={display === "cards"} onClick={() => setDisplay("cards")} label="Visual cards" />
+                </ShowcaseControl>
+              ) : null}
               <ShowcaseControl title="Poster style">
                 {([
+                  ["color", "Deck Colors"],
                   ["harbor", "Harbor"],
                   ["midnight", "Midnight"],
                   ["paper", "Gallery"],
@@ -388,7 +443,6 @@ export function DeckShowcaseStudio({
               </ShowcaseControl>
               <ShowcaseControl title="Include">
                 <ShowcaseToggle label="Deck value" checked={showValue} onChange={setShowValue} />
-                <ShowcaseToggle label="Shareable deck link" checked={showLink} onChange={setShowLink} />
               </ShowcaseControl>
               <div className="mt-6 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.035] p-4">
                 <p className="text-[11px] font-semibold text-cyan-100">Card-first deck poster</p>
@@ -407,6 +461,7 @@ export function DeckShowcaseStudio({
                 className={`relative w-full overflow-hidden rounded-[20px] border border-white/10 bg-gradient-to-br ${tokens.preview} shadow-[0_24px_80px_rgba(0,0,0,.58)] ${
                   size === "square" ? "max-w-[820px] aspect-square" : size === "story" ? "max-w-[450px] aspect-[9/16]" : "max-w-[760px] aspect-[4/5]"
                 }`}
+                style={theme === "color" ? { backgroundImage: identityGradient } : undefined}
               >
                 <div className="relative flex h-full flex-col p-[3.2%]">
                   <div className="grid grid-cols-[14%_1fr_auto] items-center gap-[3%]">
@@ -442,7 +497,11 @@ export function DeckShowcaseStudio({
                     {columns.map((column, index) => (
                       <div key={index} className="flex min-h-0 flex-col gap-[1.2cqw]">
                         {column.groups.map((group) => (
-                          <PosterGroup key={group.name} group={group} tokens={tokens} />
+                            {display === "text" ? (
+                              <TextPosterGroup key={group.name} group={group} tokens={tokens} />
+                            ) : (
+                              <PosterGroup key={group.name} group={group} tokens={tokens} />
+                            )}
                         ))}
                       </div>
                     ))}
@@ -453,7 +512,7 @@ export function DeckShowcaseStudio({
                       Crafted on Trading Docks
                     </p>
                     <p className="max-w-[55%] truncate text-right text-[clamp(5px,.7vw,9px)] font-bold" style={{ color: tokens.accent }}>
-                      {showLink ? publicUrl.replace(/^https?:\/\//, "") : "tradingdocks.com"}
+                      tradingdocks.com
                     </p>
                   </div>
                 </div>
@@ -497,6 +556,31 @@ function PosterGroup({
                 ×{card.quantity}
               </span>
             ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TextPosterGroup({
+  group,
+  tokens,
+}: {
+  group: ShowcaseGroup;
+  tokens: (typeof themes)[ShowcaseTheme];
+}) {
+  return (
+    <section className="min-w-0 overflow-hidden rounded-[5px] border border-white/10 bg-black/35">
+      <header className="flex items-center justify-between px-[5%] py-[3%]" style={{ background: tokens.panel }}>
+        <p className="truncate text-[clamp(5px,.62vw,9px)] font-black uppercase tracking-[.08em]" style={{ color: tokens.ink }}>{group.name}</p>
+        <span className="text-[clamp(5px,.62vw,9px)] font-black" style={{ color: tokens.accent }}>{group.count}</span>
+      </header>
+      <div className="px-[4%] py-[2.5%]">
+        {group.cards.map((card) => (
+          <div key={card.id} className="grid grid-cols-[1.1em_minmax(0,1fr)] items-baseline gap-[3%] border-b border-white/[0.055] py-[1.2%] last:border-b-0">
+            <span className="text-[clamp(5px,.58vw,8px)] font-black" style={{ color: tokens.accent }}>{card.quantity}</span>
+            <span className="truncate text-[clamp(5px,.58vw,8px)] font-semibold" style={{ color: tokens.ink }}>{card.name}</span>
           </div>
         ))}
       </div>
