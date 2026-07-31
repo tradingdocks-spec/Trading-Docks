@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -4242,8 +4243,26 @@ function ModalFrame({
   onClose: () => void;
   wide?: boolean;
 }) {
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/72 p-4 backdrop-blur-md">
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panelRef.current?.scrollTo({ top: 0, behavior: "instant" });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-black/72 px-4 pb-4 pt-4 backdrop-blur-md sm:pt-6">
       <button
         type="button"
         onClick={onClose}
@@ -4251,7 +4270,12 @@ function ModalFrame({
         aria-label="Close modal"
       />
 
-      <div className={`relative z-10 max-h-[92vh] w-full ${wide ? "max-w-[980px]" : "max-w-[720px]"} overflow-y-auto rounded-[28px] border border-cyan-300/[0.14] bg-[#06131d]/98 p-5 shadow-[0_38px_120px_rgba(0,0,0,0.55)] sm:p-7`}>
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        className={`relative z-10 max-h-[calc(100dvh-2rem)] w-full ${wide ? "max-w-[980px]" : "max-w-[720px]"} overflow-y-auto overscroll-contain rounded-[28px] border border-cyan-300/[0.14] bg-[#06131d]/98 p-5 shadow-[0_38px_120px_rgba(0,0,0,0.55)] sm:max-h-[calc(100dvh-3rem)] sm:p-7`}
+      >
         {children}
 
         <style jsx global>{`
@@ -4321,7 +4345,8 @@ function ModalFrame({
           }
         `}</style>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
