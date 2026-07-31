@@ -2326,21 +2326,41 @@ function DeckCondensedView({
     setHoveredCard(card);
   };
 
+  const identityAccent = (colors: DeckCard["colors"]) => {
+    const palette: Record<DeckCard["colors"][number], string> = {
+      W: "#f3e6b3",
+      U: "#39a7e8",
+      B: "#8b78a7",
+      R: "#ef684f",
+      G: "#50b978",
+      C: "#7f91a3",
+    };
+    const identity = [...new Set(colors.length ? colors : ["C" as const])];
+    if (identity.length === 1) return palette[identity[0]];
+    return `linear-gradient(180deg, ${identity
+      .map((color, index) => {
+        const start = Math.round((index / identity.length) * 100);
+        const end = Math.round(((index + 1) / identity.length) * 100);
+        return `${palette[color]} ${start}%, ${palette[color]} ${end}%`;
+      })
+      .join(", ")})`;
+  };
+
   const renderGroups = (deckGroups: typeof groups) =>
     deckGroups.map((group) => (
       <section
         key={group.type}
-        className="mb-3 inline-block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/[0.06] bg-black/[0.12]"
+        className="mb-3 inline-block w-full break-inside-avoid overflow-hidden rounded-[18px] border border-white/[0.075] bg-[#071723] shadow-[0_14px_38px_rgba(0,0,0,.18)]"
       >
-        <div className="flex items-center justify-between bg-cyan-300/[0.055] px-3 py-2">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-cyan-200">
+        <div className="flex items-center justify-between border-b border-white/[0.055] bg-[linear-gradient(90deg,rgba(34,211,238,.09),rgba(34,211,238,.025)_58%,transparent)] px-3.5 py-2.5">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-cyan-100">
             {group.type}
           </p>
-          <span className="text-[10px] font-semibold text-cyan-300">
+          <span className="min-w-6 rounded-full border border-cyan-200/10 bg-cyan-200/[0.07] px-2 py-0.5 text-center text-[9px] font-extrabold text-cyan-200">
             {group.cards.reduce((total, card) => total + card.quantity, 0)}
           </span>
         </div>
-        <div className="divide-y divide-white/[0.035]">
+        <div className="divide-y divide-white/[0.04] py-1">
           {group.cards.map((card) => (
             <button
               key={card.id}
@@ -2356,16 +2376,26 @@ function DeckCondensedView({
               onMouseLeave={() => setHoveredCard(null)}
               onFocus={(event) => showCardPreview(card, event.currentTarget)}
               onBlur={() => setHoveredCard(null)}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left transition hover:bg-cyan-300/[0.06] focus-visible:bg-cyan-300/[0.06] focus-visible:outline-none"
+              className="group relative flex min-h-9 w-full items-center gap-2.5 overflow-hidden px-3.5 py-2 text-left transition duration-150 hover:bg-cyan-200/[0.065] focus-visible:bg-cyan-200/[0.065] focus-visible:outline-none"
             >
-              <span className="w-7 shrink-0 text-[11px] font-black text-white">
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full opacity-75 transition group-hover:opacity-100"
+                style={{ background: identityAccent(card.colors) }}
+              />
+              <span className="inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.045] px-1.5 text-[10px] font-extrabold tabular-nums text-slate-200">
                 {card.quantity}×
               </span>
-              <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-300">
+              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-slate-200 transition group-hover:text-white">
                 {card.name}
               </span>
-              <ManaSymbols colors={card.colors} size="sm" />
-              <span className="w-14 shrink-0 text-right text-[10px] text-emerald-200/75">
+              <span
+                title={`Mana value ${card.manaValue}`}
+                className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-black/20 px-1.5 text-[9px] font-bold tabular-nums text-slate-500"
+              >
+                {card.manaValue}
+              </span>
+              <span className="w-14 shrink-0 text-right text-[10px] font-medium tabular-nums text-emerald-200/65">
                 ${(card.price * card.quantity).toFixed(2)}
               </span>
             </button>
@@ -2375,15 +2405,20 @@ function DeckCondensedView({
     ));
 
   return (
-    <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06131f]">
-      <div className="flex items-center justify-between border-b border-white/[0.055] px-5 py-4">
+    <section className="overflow-hidden rounded-[26px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.055),transparent_32%),#05111b] shadow-[0_24px_80px_rgba(0,0,0,.2)]">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
         <div>
-          <p className="text-[17px] font-semibold text-white">Condensed Deck</p>
+          <div className="flex items-center gap-2.5">
+            <p className="text-[17px] font-semibold tracking-[-0.01em] text-white">Deck Manifest</p>
+            <span className="rounded-md border border-cyan-200/10 bg-cyan-200/[0.055] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.16em] text-cyan-200/80">
+              Condensed
+            </span>
+          </div>
           <p className="mt-1 text-[12px] text-slate-500">
-            Every unique card, grouped tightly for fast scanning
+            A clean, complete scan of every card in your build
           </p>
         </div>
-        <span className="rounded-full border border-cyan-300/[0.1] bg-cyan-300/[0.035] px-3 py-1 text-[11px] font-semibold text-cyan-200">
+        <span className="rounded-full border border-cyan-200/[0.12] bg-cyan-200/[0.045] px-3 py-1 text-[10px] font-bold tabular-nums text-cyan-100">
           {cards.reduce((total, card) => total + card.quantity, 0)} cards
         </span>
       </div>
