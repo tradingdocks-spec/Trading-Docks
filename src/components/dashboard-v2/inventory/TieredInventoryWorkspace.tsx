@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -2896,6 +2897,7 @@ function BinderCardDetail({
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           <div className="mx-auto flex aspect-[0.716] w-full max-w-[270px] items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-black/25 shadow-2xl">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" /> : <LibraryBig className="h-12 w-12 text-violet-300/30" />}</div>
           <div className="mt-5 grid grid-cols-2 gap-2"><CompactMetric label="Market value" value={currency(item.value)} /><CompactMetric label="Pocket" value={item.binderPage && item.binderSlot ? `P${item.binderPage} · ${item.binderSlot}` : "Unassigned"} /></div>
+          <Link href={`/dashboard/sell-optimizer?card=${encodeURIComponent(item.name)}`} className="mt-3 flex items-center justify-between rounded-xl border border-cyan-300/15 bg-cyan-400/[0.045] px-4 py-3 transition hover:border-cyan-300/30 hover:bg-cyan-400/[0.08]"><span><span className="block text-[10px] font-semibold text-cyan-200">Compare buylist offers</span><span className="mt-1 block text-[9px] text-slate-500">Check verified cash offers for this exact printing</span></span><ArrowRightLeft className="h-4 w-4 text-cyan-300" /></Link>
           <div className="mt-4 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.025] p-3">
             <div className="flex items-end justify-between gap-4">
               <label className="min-w-0 flex-1">

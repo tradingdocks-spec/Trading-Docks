@@ -20,6 +20,7 @@ import {
   Scale,
   Settings,
   ShoppingBag,
+  ScanSearch,
   Store,
   Trophy,
   Truck,
@@ -95,6 +96,11 @@ export const PURCHASING_NAV: NavigationSection = {
       label: "AI Recommendations",
       icon: BrainCircuit,
     },
+    {
+      href: "/dashboard/buylist-intelligence",
+      label: "Buylist Intelligence",
+      icon: ScanSearch,
+    },
   ],
 };
 
@@ -108,6 +114,11 @@ export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
     href: "/dashboard/marketplaces",
     label: "Marketplaces",
     icon: Store,
+  },
+  {
+    href: "/dashboard/sell-optimizer",
+    label: "Sell Optimizer",
+    icon: CircleDollarSign,
   },
   {
     href: "/dashboard/orders",

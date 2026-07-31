@@ -26,7 +26,8 @@ export function minimumPlanName(feature: PlanFeature) {
 export function featureForPath(pathname: string): PlanFeature {
   if (pathname.startsWith("/dashboard/deck-vault")) return "deck-vault";
   if (pathname.startsWith("/dashboard/inventory")) return "inventory";
-  if (/^\/dashboard\/(purchasing|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-)/.test(pathname)) return "purchasing";
+  if (/^\/dashboard\/(purchasing|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-|buylist-intelligence)/.test(pathname)) return "purchasing";
+  if (pathname.startsWith("/dashboard/sell-optimizer")) return "marketplaces";
   if (pathname.startsWith("/dashboard/card-shows")) return "card-shows";
   if (pathname.startsWith("/dashboard/marketplaces")) return "marketplaces";
   if (pathname.startsWith("/dashboard/orders")) return "orders";
