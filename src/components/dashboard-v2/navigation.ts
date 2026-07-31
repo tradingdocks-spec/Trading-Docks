@@ -5,6 +5,7 @@ import {
   BrainCircuit,
   CalendarDays,
   CircleDollarSign,
+  DatabaseZap,
   ClipboardList,
   FileBarChart2,
   Gem,
@@ -91,6 +92,11 @@ export const PURCHASING_NAV: NavigationSection = {
       href: "/dashboard/buying-recommendations",
       label: "AI Recommendations",
       icon: BrainCircuit,
+    },
+    {
+      href: "/dashboard/buylist-connections",
+      label: "Buylist Connections",
+      icon: DatabaseZap,
     },
   ],
 };

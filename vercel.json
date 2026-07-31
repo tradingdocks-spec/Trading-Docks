@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/buylist/mtgjson",
+      "schedule": "15 16 * * *"
+    }
+  ]
+}

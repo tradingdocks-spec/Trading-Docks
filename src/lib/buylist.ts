@@ -9,6 +9,7 @@ export type BuylistOffer = {
   set_code: string; collector_number: string; finish: string; language: string;
   condition: string; cash_price: number; credit_price: number | null;
   quantity_wanted: number; source_url: string | null; verified_at: string;
+  provider?: string; source_kind?: string; indicative?: boolean; expires_at?: string | null;
 };
 
 const clean = (value?: string | null) => (value ?? "").trim().toLowerCase();

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CalendarRange,
   CircleDollarSign,
+  DatabaseZap,
   ClipboardList,
   FileBarChart2,
   FileSpreadsheet,
@@ -100,6 +101,11 @@ export const PURCHASING_NAV: NavigationSection = {
       href: "/dashboard/buylist-intelligence",
       label: "Buylist Intelligence",
       icon: ScanSearch,
+    },
+    {
+      href: "/dashboard/buylist-connections",
+      label: "Buylist Connections",
+      icon: DatabaseZap,
     },
   ],
 };
