@@ -52,6 +52,7 @@ import type {
   ScryfallCardResult,
 } from "@/lib/deck-vault/types";
 import { ManaPips } from "./ManaPips";
+import { DeckShowcaseStudio as TournamentDeckShowcaseStudio } from "@/components/dashboard-v2/deck-vault/DeckShowcaseStudio";
 import { saveDeckRecord } from "@/lib/deck-vault/persistence";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 
@@ -2143,7 +2144,7 @@ function CardsWorkspace({
       </div>
 
       {showcaseOpen ? (
-        <DeckShowcaseStudio
+        <TournamentDeckShowcaseStudio
           deckName={deckName}
           commanderName={commanderName}
           format={format}
