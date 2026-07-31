@@ -3,6 +3,7 @@ import {
   Bot,
   Boxes,
   BrainCircuit,
+  BriefcaseBusiness,
   CalendarDays,
   CalendarRange,
   CircleDollarSign,
@@ -142,6 +143,47 @@ export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
     icon: Bot,
   },
 ];
+
+export const SELLING_NAV: NavigationSection = {
+  id: "selling",
+  label: "Selling",
+  icon: CircleDollarSign,
+  href: "/dashboard/sell-optimizer",
+  children: [
+    { href: "/dashboard/sell-optimizer", label: "Sell Optimizer", icon: CircleDollarSign },
+    { href: "/dashboard/marketplaces", label: "Marketplaces", icon: Store },
+    { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
+    { href: "/dashboard/card-shows", label: "Card Shows", icon: CalendarRange },
+  ],
+};
+
+export const INSIGHTS_NAV: NavigationSection = {
+  id: "insights",
+  label: "Insights",
+  icon: BarChart3,
+  href: "/dashboard/analytics",
+  children: [
+    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/dashboard/reports", label: "Business Intelligence", icon: FileBarChart2 },
+    { href: "/dashboard/automation", label: "Automation", icon: Bot },
+  ],
+};
+
+export const OPERATIONS_NAV: NavigationSection = {
+  id: "operations",
+  label: "Operations",
+  icon: BriefcaseBusiness,
+  href: "/dashboard/tasks",
+  children: [
+    { href: "/dashboard/tasks", label: "Tasks", icon: ClipboardList },
+    { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
+    { href: "/dashboard/tournaments", label: "Tournaments", icon: Trophy },
+    { href: "/dashboard/vendors", label: "Vendors", icon: Truck },
+    { href: "/dashboard/supplies", label: "Supply Orders", icon: Gem },
+    { href: "/dashboard/employees", label: "Employees", icon: Users },
+    { href: "/dashboard/payroll", label: "Payroll", icon: CircleDollarSign },
+  ],
+};
 
 export const TOOLS_NAV: NavigationItem[] = [
   {

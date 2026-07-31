@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  BriefcaseBusiness,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -18,10 +17,11 @@ import {
 import { logout } from "@/app/actions/auth";
 
 import {
-  BUSINESS_NAV,
+  INSIGHTS_NAV,
+  OPERATIONS_NAV,
   PRIMARY_NAV,
-  PRIMARY_NAV_AFTER_PURCHASING,
   PURCHASING_NAV,
+  SELLING_NAV,
   SECONDARY_NAV,
   TOOLS_NAV,
 } from "../navigation";
@@ -57,6 +57,11 @@ export function TieredSidebar({
     );
   const [purchasingOpen, setPurchasingOpen] =
     useState(purchasingActive);
+  const sectionIsActive = (section: typeof PURCHASING_NAV) =>
+    pathname === section.href || section.children.some((item) => pathname.startsWith(item.href));
+  const [sellingOpen, setSellingOpen] = useState(sectionIsActive(SELLING_NAV));
+  const [insightsOpen, setInsightsOpen] = useState(sectionIsActive(INSIGHTS_NAV));
+  const [operationsOpen, setOperationsOpen] = useState(sectionIsActive(OPERATIONS_NAV));
 
   useEffect(() => {
     if (purchasingActive) setPurchasingOpen(true);
@@ -133,7 +138,8 @@ export function TieredSidebar({
             onNavigate={onCloseMobile}
           />
 
-          <PurchasingNav
+          <SectionNav
+              section={PURCHASING_NAV}
               collapsed={collapsed}
               pathname={pathname}
               open={purchasingOpen}
@@ -142,53 +148,47 @@ export function TieredSidebar({
               accountType={plan}
             />
 
-          <NavGroup
-              items={PRIMARY_NAV_AFTER_PURCHASING}
+          <SectionNav
+              section={SELLING_NAV}
               accountType={plan}
               collapsed={collapsed}
               pathname={pathname}
+              open={sellingOpen}
+              setOpen={setSellingOpen}
               onNavigate={onCloseMobile}
             />
 
-          <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
-
-          <NavGroup
-            label="Tools"
-            items={TOOLS_NAV}
+          <SectionNav
+            section={INSIGHTS_NAV}
             accountType={plan}
             collapsed={collapsed}
             pathname={pathname}
+            open={insightsOpen}
+            setOpen={setInsightsOpen}
             onNavigate={onCloseMobile}
           />
 
-          <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
-
-          <div className="mb-3 flex items-center gap-2 px-3">
-            <BriefcaseBusiness className="h-3.5 w-3.5 text-cyan-300/70" />
-            {!collapsed ? (
-              <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-700">
-                Business Hub
-              </span>
-            ) : null}
-          </div>
-
-          <NavGroup
-            items={BUSINESS_NAV}
+          <SectionNav
+            section={OPERATIONS_NAV}
             accountType={plan}
             collapsed={collapsed}
             pathname={pathname}
+            open={operationsOpen}
+            setOpen={setOperationsOpen}
             onNavigate={onCloseMobile}
           />
 
           <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
 
           <NavGroup
-            items={SECONDARY_NAV}
+            label="Workspace"
+            items={[...TOOLS_NAV, ...SECONDARY_NAV]}
             accountType={plan}
             collapsed={collapsed}
             pathname={pathname}
             onNavigate={onCloseMobile}
           />
+
         </nav>
 
         <div className="relative border-t border-white/[0.055] p-3">
@@ -264,7 +264,8 @@ export function TieredSidebar({
   );
 }
 
-function PurchasingNav({
+function SectionNav({
+  section,
   collapsed,
   pathname,
   open,
@@ -272,6 +273,7 @@ function PurchasingNav({
   onNavigate,
   accountType,
 }: {
+  section: typeof PURCHASING_NAV;
   collapsed: boolean;
   pathname: string;
   open: boolean;
@@ -279,20 +281,21 @@ function PurchasingNav({
   onNavigate: () => void;
   accountType: ReturnType<typeof normalizeAccountTier>;
 }) {
-  const children = PURCHASING_NAV.children;
-  const allowed = hasPlanAccess(accountType, "purchasing");
+  const children = section.children;
+  const feature = featureForPath(section.href ?? children[0]?.href ?? "/dashboard");
+  const allowed = hasPlanAccess(accountType, feature);
   const active =
-    pathname === PURCHASING_NAV.href ||
+    pathname === section.href ||
     children.some((item) =>
       pathname.startsWith(item.href),
     );
-  const Icon = PURCHASING_NAV.icon;
+  const Icon = section.icon;
 
   if (collapsed) {
     return (
       <Link
-        href={PURCHASING_NAV.href ?? "/dashboard/purchasing"}
-        title="Purchasing"
+        href={section.href ?? children[0]?.href ?? "/dashboard"}
+        title={section.label}
         className={[
           "group relative mt-1 flex h-10 items-center justify-center overflow-hidden rounded-xl border transition duration-300",
           active
@@ -327,7 +330,7 @@ function PurchasingNav({
       >
         <div className="flex h-10 items-center">
           <Link
-            href={PURCHASING_NAV.href ?? "/dashboard/purchasing"}
+            href={section.href ?? children[0]?.href ?? "/dashboard"}
             onClick={onNavigate}
             className="group flex min-w-0 flex-1 items-center gap-3 px-3"
           >
@@ -345,9 +348,9 @@ function PurchasingNav({
                 active ? "text-white" : "text-slate-200",
               ].join(" ")}
             >
-              Purchasing
+              {section.label}
             </span>
-            {!allowed ? <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-cyan-300/[0.16] bg-cyan-400/[0.04] px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-cyan-200/80"><LockKeyhole className="h-2.5 w-2.5" />{minimumPlanName("purchasing")}+</span> : null}
+            {!allowed ? <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-cyan-300/[0.16] bg-cyan-400/[0.04] px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-cyan-200/80"><LockKeyhole className="h-2.5 w-2.5" />{minimumPlanName(feature)}+</span> : null}
           </Link>
 
           <button
@@ -355,8 +358,8 @@ function PurchasingNav({
             onClick={() => setOpen(!open)}
             aria-label={
               open
-                ? "Collapse Purchasing"
-                : "Expand Purchasing"
+                ? `Collapse ${section.label}`
+                : `Expand ${section.label}`
             }
             className="mr-1 flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white/[0.035] hover:text-cyan-300"
           >
