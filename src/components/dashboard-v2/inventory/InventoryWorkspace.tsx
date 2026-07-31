@@ -51,7 +51,6 @@ import {
 } from "lucide-react";
 
 import { MetricCard } from "../common/MetricCard";
-import { PageHeader } from "../common/PageHeader";
 import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import styles from "../styles.module.css";
 import { accountStorageKey } from "@/lib/account-storage";
@@ -258,7 +257,6 @@ export function InventoryWorkspace({
   const [deleteItemCandidate, setDeleteItemCandidate] = useState<InventoryItem | null>(null);
   const [deleteLocationCandidate, setDeleteLocationCandidate] = useState<LocationRecord | null>(null);
   const [channelFilter, setChannelFilter] = useState<MarketplacePlatform | "Unlisted" | "all">("all");
-  const [heroCollapsed, setHeroCollapsed] = useState(false);
   const [savedView, setSavedView] = useState<BusinessSavedView>("all");
   const [ageBucket, setAgeBucket] = useState<InventoryAgeBucket>("all");
 
@@ -983,42 +981,53 @@ export function InventoryWorkspace({
     return <InventoryPlanGate />;
   }
 
+  if (items.length === 0) {
+    return (
+      <WorkspaceFrame>
+        <EmptyInventoryWorkspace
+          locationCount={locations.length}
+          canOperate={canOperate}
+          onAddCards={() => setFileModalOpen(true)}
+          onAddLocation={() => {
+            setEditingLocation(null);
+            setLocationModalOpen(true);
+          }}
+        />
+
+        <LocationModal
+          open={locationModalOpen}
+          location={editingLocation}
+          onClose={() => {
+            setLocationModalOpen(false);
+            setEditingLocation(null);
+          }}
+          onSave={saveLocation}
+        />
+        <FileInventoryModal
+          open={fileModalOpen}
+          locations={locations}
+          onClose={() => setFileModalOpen(false)}
+          onFile={attemptFile}
+        />
+        {toast ? (
+          <div className="fixed bottom-5 right-5 z-[140] flex items-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-[#06131d]/96 px-4 py-3 text-xs font-semibold text-cyan-100 shadow-[0_18px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+            <Check className="h-4 w-4 text-emerald-300" />
+            {toast}
+          </div>
+        ) : null}
+      </WorkspaceFrame>
+    );
+  }
+
   return (
     <WorkspaceFrame>
-      {!heroCollapsed ? (
-        <div className="relative">
-          <PageHeader
-            eyebrow={hasBusinessAnalytics ? "Inventory Command Center" : canOperate ? "Seller Inventory" : "Personal Collection"}
-            title="Every card. Every location. Always accounted for."
-            description={
-              hasBusinessAnalytics
-                ? "Run intake, storage, listings, profitability, and inventory exceptions from one purpose-built workspace."
-                : canOperate
-                  ? "File, locate, price, and prepare inventory for every connected sales channel."
-                  : "Keep your personal collection organized across binders, boxes, and shelves."
-            }
-            icon={Boxes}
-          />
-          <button
-            type="button"
-            onClick={() => setHeroCollapsed(true)}
-            className="absolute right-4 top-4 rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2 text-[9px] font-semibold text-slate-500 transition hover:text-slate-200"
-          >
-            Collapse intro
-          </button>
+      <div className="flex flex-col gap-4 border-b border-white/[0.055] pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300/80">Inventory</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-white">Your cards, organized.</h1>
+          <p className="mt-2 text-sm text-slate-400">Track every card from intake to storage and sale.</p>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setHeroCollapsed(false)}
-          className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 text-[9px] font-semibold text-slate-500 hover:text-slate-200"
-        >
-          <Boxes className="h-3.5 w-3.5 text-cyan-300" />
-          Show Inventory overview
-        </button>
-      )}
-
-      {canManageCollection ? <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+      {canManageCollection ? <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => setPutAwayOpen(true)}
@@ -1039,8 +1048,9 @@ export function InventoryWorkspace({
           File inventory
         </button>
       </div> : null}
+      </div>
 
-      <div className={`mt-5 grid gap-4 sm:grid-cols-2 ${hasBusinessAnalytics ? "xl:grid-cols-6" : "xl:grid-cols-4"}`}>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Physical units"
           value={totals.units.toLocaleString("en-US")}
@@ -1060,27 +1070,11 @@ export function InventoryWorkspace({
           icon={ShoppingCart}
         />
         <MetricCard
-          label="Inventory exceptions"
-          value={String(totals.duplicates)}
-          detail="Duplicates requiring review"
-          icon={Copy}
+          label="Listed value"
+          value={currency(totals.listedValue)}
+          detail="Across connected marketplaces"
+          icon={Store}
         />
-        {hasBusinessAnalytics ? (
-          <>
-            <MetricCard
-              label="Listed value"
-              value={currency(totals.listedValue)}
-              detail="Active marketplace listings"
-              icon={Store}
-            />
-            <MetricCard
-              label="Potential profit"
-              value={currency(totals.potentialProfit)}
-              detail={`${currency(totals.costBasis)} tracked cost basis`}
-              icon={TrendingUp}
-            />
-          </>
-        ) : null}
       </div>
 
       {canOperate ? (
@@ -1388,15 +1382,14 @@ export function InventoryWorkspace({
         </section>
       </div>
 
-      <div className={`mt-5 grid gap-5 ${duplicateGroups.length ? "xl:grid-cols-[1fr_1fr]" : ""}`}>
-        <DuplicateCenter
-          groups={duplicateGroups}
-          locations={locations}
-          onSelectLocation={setSelectedLocationId}
-        />
-
-        <MovementHistory movements={movements} business={hasBusinessAnalytics} />
-      </div>
+      {duplicateGroups.length || movements.length ? (
+        <div className={`mt-5 grid gap-5 ${duplicateGroups.length && movements.length ? "xl:grid-cols-2" : ""}`}>
+          {duplicateGroups.length ? (
+            <DuplicateCenter groups={duplicateGroups} locations={locations} onSelectLocation={setSelectedLocationId} />
+          ) : null}
+          {movements.length ? <MovementHistory movements={movements} business={hasBusinessAnalytics} /> : null}
+        </div>
+      ) : null}
 
       <LocationModal
         open={locationModalOpen}
@@ -1572,6 +1565,117 @@ function InventoryPlanGate() {
   );
 }
 
+function EmptyInventoryWorkspace({
+  locationCount,
+  canOperate,
+  onAddCards,
+  onAddLocation,
+}: {
+  locationCount: number;
+  canOperate: boolean;
+  onAddCards: () => void;
+  onAddLocation: () => void;
+}) {
+  const steps = [
+    {
+      title: "Add or import inventory",
+      detail: "Start with a CSV or add cards by printing.",
+      icon: Plus,
+      complete: false,
+      action: onAddCards,
+      actionLabel: canOperate ? "Import inventory" : "Add cards",
+    },
+    {
+      title: "Create a storage location",
+      detail: "Set up a binder, card box, shelf, or custom space.",
+      icon: Warehouse,
+      complete: locationCount > 0,
+      action: onAddLocation,
+      actionLabel: locationCount ? "Location ready" : "Create location",
+    },
+    {
+      title: "File cards into storage",
+      detail: "Keep every physical card easy to locate.",
+      icon: PackageCheck,
+      complete: false,
+    },
+    {
+      title: "Connect a sales channel",
+      detail: "List confidently without losing track of stock.",
+      icon: Store,
+      complete: false,
+    },
+  ];
+  const completeCount = steps.filter((step) => step.complete).length;
+
+  return (
+    <div className="pb-10">
+      <header className="flex flex-col gap-5 border-b border-white/[0.055] pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300/80">Inventory</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-white">Build your inventory workspace.</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Track every card from intake to storage and sale—without the spreadsheet cleanup.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={onAddLocation} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 text-sm font-semibold text-slate-200 transition hover:border-white/[0.16] hover:bg-white/[0.05]">
+            <Warehouse className="h-4 w-4 text-slate-400" /> Create location
+          </button>
+          <button type="button" onClick={onAddCards} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-5 text-sm font-bold text-[#001018] shadow-[0_12px_32px_rgba(34,211,238,0.16)] transition hover:brightness-105">
+            <Plus className="h-4 w-4" /> {canOperate ? "Import inventory" : "Add cards"}
+          </button>
+        </div>
+      </header>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <EmptyMetric label="Inventory value" value="$0.00" detail="Updates with market prices" icon={CircleDollarSign} />
+        <EmptyMetric label="Physical cards" value="0" detail="Add your first cards" icon={Boxes} />
+        <EmptyMetric label="Available to list" value="0" detail="Not committed to a channel" icon={ShoppingCart} />
+        <EmptyMetric label="Listed value" value="$0.00" detail="Connect a marketplace" icon={Store} />
+      </div>
+
+      <section className="mt-6 overflow-hidden rounded-[24px] border border-white/[0.07] bg-[linear-gradient(135deg,rgba(15,35,49,0.78),rgba(5,17,27,0.82))] shadow-[0_20px_70px_rgba(0,0,0,0.18)]">
+        <div className="flex flex-col gap-5 border-b border-white/[0.06] px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-cyan-200"><Sparkles className="h-4 w-4" /> Guided setup</div>
+            <h2 className="mt-2 text-xl font-semibold tracking-[-0.025em] text-white">Get ready to manage your collection</h2>
+            <p className="mt-1 text-sm text-slate-400">Complete these steps once. Advanced inventory tools will appear as they become useful.</p>
+          </div>
+          <div className="min-w-[190px]">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-400"><span>Setup progress</span><span className="text-slate-200">{completeCount} of 4</span></div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]"><div className="h-full rounded-full bg-cyan-300 transition-all" style={{ width: `${completeCount * 25}%` }} /></div>
+          </div>
+        </div>
+        <div className="grid divide-y divide-white/[0.055] lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+          {steps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <div key={step.title} className="flex min-h-[124px] items-center gap-4 px-5 py-5 sm:px-6">
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${step.complete ? "border-emerald-300/15 bg-emerald-400/[0.07] text-emerald-300" : index === 0 ? "border-cyan-300/15 bg-cyan-400/[0.07] text-cyan-300" : "border-white/[0.07] bg-white/[0.025] text-slate-500"}`}>
+                  {step.complete ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                </span>
+                <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-100">{step.title}</p><p className="mt-1 text-xs leading-5 text-slate-500">{step.detail}</p></div>
+                {step.action ? <button type="button" onClick={step.action} disabled={step.complete} className="shrink-0 text-xs font-semibold text-cyan-300 transition hover:text-cyan-200 disabled:text-emerald-300">{step.actionLabel}</button> : <span className="text-xs font-medium text-slate-600">Next</span>}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_0.42fr]">
+        <section className="rounded-[22px] border border-white/[0.065] bg-white/[0.018] p-6">
+          <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold text-slate-200">Inventory browser</p><p className="mt-1 text-xs text-slate-500">Your searchable inventory will live here.</p></div><Search className="h-4 w-4 text-slate-600" /></div>
+          <div className="mt-8 flex flex-col items-center py-5 text-center"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.035] text-slate-600"><LibraryBig className="h-5 w-5" /></span><p className="mt-4 text-sm font-semibold text-slate-300">No cards yet</p><p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">Add your first cards to unlock searching, saved views, storage maps, aging, and channel insights.</p><button type="button" onClick={onAddCards} className="mt-4 text-xs font-semibold text-cyan-300">Add inventory</button></div>
+        </section>
+        <section className="rounded-[22px] border border-white/[0.065] bg-white/[0.018] p-6"><div className="flex items-center justify-between"><p className="text-xs font-semibold text-slate-200">Inventory health</p><ClipboardCheck className="h-4 w-4 text-emerald-300" /></div><div className="mt-8 text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/[0.07] text-emerald-300"><Check className="h-5 w-5" /></span><p className="mt-3 text-sm font-semibold text-slate-300">Ready when you are</p><p className="mt-1 text-xs leading-5 text-slate-500">No exceptions or filing tasks need attention.</p></div></section>
+      </div>
+    </div>
+  );
+}
+
+function EmptyMetric({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: typeof Boxes }) {
+  return <section className="rounded-[20px] border border-white/[0.065] bg-white/[0.02] p-5 transition hover:border-white/[0.11] hover:bg-white/[0.03]"><div className="flex items-center justify-between"><p className="text-xs font-medium text-slate-400">{label}</p><Icon className="h-4 w-4 text-slate-500" /></div><p className="mt-5 text-2xl font-semibold tracking-[-0.03em] text-white">{value}</p><p className="mt-1 text-xs text-slate-500">{detail}</p></section>;
+}
+
 function InventoryOperationsSummary({
   channels,
   activeChannel,
@@ -1603,6 +1707,7 @@ function InventoryOperationsSummary({
     ["Over-allocated", actions.allocation, ShieldAlert, "text-red-300"],
     ["Missing location", actions.missingLocation, MapPin, "text-amber-300"],
   ] as const;
+  const attentionItems = actionItems.filter(([, count]) => count > 0);
   return (
     <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
       <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
@@ -1642,8 +1747,8 @@ function InventoryOperationsSummary({
           </div>
           <ClipboardCheck className="h-4 w-4 text-amber-300" />
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {actionItems.map(([label, count, Icon, tone]) => (
+        {attentionItems.length ? <div className="mt-4 grid grid-cols-2 gap-2">
+          {attentionItems.map(([label, count, Icon, tone]) => (
             <button key={label} type="button" className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/[0.08] p-3 text-left transition hover:border-cyan-300/15">
               <Icon className={`h-4 w-4 shrink-0 ${tone}`} />
               <span className="min-w-0">
@@ -1652,7 +1757,12 @@ function InventoryOperationsSummary({
               </span>
             </button>
           ))}
-        </div>
+        </div> : (
+          <div className="mt-5 flex items-center gap-3 rounded-xl border border-emerald-300/10 bg-emerald-400/[0.035] p-4">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-400/[0.08] text-emerald-300"><Check className="h-4 w-4" /></span>
+            <div><p className="text-sm font-semibold text-slate-200">Inventory is healthy</p><p className="mt-0.5 text-xs text-slate-500">No action is needed right now.</p></div>
+          </div>
+        )}
         {!business ? (
           <p className="mt-3 flex items-center gap-2 text-[8px] text-slate-600">
             <LockKeyhole className="h-3 w-3" /> Aging, profit alerts, and team assignments are available on Business.
