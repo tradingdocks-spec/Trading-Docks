@@ -1,8 +1,8 @@
 export default {
   async email(message, env) {
     const recipient = message.to.toLowerCase();
-    if (!recipient.endsWith("@inbound.tradingdocks.com")) {
-      message.setReject("Invalid Trading Docks recipient");
+    if (!/^td_[a-f0-9]{18,64}@inbound\.tradingdocks\.com$/.test(recipient)) {
+      message.setReject("Unknown Trading Docks import address");
       return;
     }
 
@@ -10,7 +10,7 @@ export default {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const key = await crypto.subtle.importKey(
       "raw",
-      new TextEncoder().encode(env.WEBHOOK_SECRET),
+      new TextEncoder().encode(env.TD_WEBHOOK_SECRET),
       { name: "HMAC", hash: "SHA-256" },
       false,
       ["sign"],
@@ -22,7 +22,7 @@ export default {
     const signature = await crypto.subtle.sign("HMAC", key, signed);
     const hex = [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 
-    const response = await fetch(env.WEBHOOK_URL, {
+    const response = await fetch("https://www.tradingdocks.com/api/webhooks/cloudflare-email", {
       method: "POST",
       headers: {
         "content-type": "message/rfc822",

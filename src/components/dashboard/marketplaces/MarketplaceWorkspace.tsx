@@ -319,19 +319,31 @@ export function MarketplaceWorkspace() {
   const [emailSetupStep, setEmailSetupStep] = useState(1);
   const [importAddress, setImportAddress] = useState("Setting up your private address…");
   const [inboxStatus, setInboxStatus] = useState<"loading" | "pending" | "active" | "unavailable">("loading");
+  const [inboxRefreshing, setInboxRefreshing] = useState(false);
   const [lastEmailReceived, setLastEmailReceived] = useState<string | null>(null);
 
-  const loadEmailInbox = useCallback(async () => {
+  const loadEmailInbox = useCallback(async (announceResult = false) => {
+    if (announceResult) setInboxRefreshing(true);
     try {
       const response = await fetch("/api/marketplaces/email-inbox", { cache: "no-store" });
-      const result = (await response.json().catch(() => null)) as { address?: string; status?: "pending" | "active"; lastReceivedAt?: string | null } | null;
-      if (!response.ok || !result?.address) throw new Error("Inbox unavailable");
+      const result = (await response.json().catch(() => null)) as { address?: string; status?: "pending" | "active"; lastReceivedAt?: string | null; error?: string } | null;
+      if (!response.ok || !result?.address) throw new Error(result?.error ?? "Inbox unavailable");
       setImportAddress(result.address);
-      setInboxStatus(result.status === "active" ? "active" : "pending");
+      const nextStatus = result.status === "active" ? "active" : "pending";
+      setInboxStatus(nextStatus);
       setLastEmailReceived(result.lastReceivedAt ?? null);
-    } catch {
-      setImportAddress("Email setup needs the included database migration");
+      if (announceResult) {
+        setNotice(nextStatus === "active"
+          ? "Email connection confirmed. Your first message reached Trading Docks."
+          : "No message has arrived yet. Send the test email, wait a few seconds, and check again.");
+      }
+    } catch (error) {
       setInboxStatus("unavailable");
+      if (announceResult) {
+        setNotice(error instanceof Error ? `Could not check the inbox: ${error.message}` : "Could not check the inbox. Please try again.");
+      }
+    } finally {
+      if (announceResult) setInboxRefreshing(false);
     }
   }, []);
 
@@ -690,8 +702,9 @@ export function MarketplaceWorkspace() {
           setStep={setEmailSetupStep}
           importAddress={importAddress}
           inboxStatus={inboxStatus}
+          inboxRefreshing={inboxRefreshing}
           lastEmailReceived={lastEmailReceived}
-          refreshInbox={loadEmailInbox}
+          refreshInbox={() => loadEmailInbox(true)}
           onNotice={setNotice}
         />
       ) : null}
@@ -855,7 +868,7 @@ function SetupGuide({ title, steps, compact = false }: { title: string; steps: r
   return <div className={`rounded-[24px] border border-white/[.08] bg-[#07141e] ${compact ? "p-4" : "p-6"}`}><p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">{title}</p><div className="mt-4 space-y-3">{steps.map((step, index) => <div key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[.05] text-[9px] font-bold text-cyan-200">{index + 1}</span><p className="pt-0.5 text-[11px] leading-5 text-slate-500">{step}</p></div>)}</div></div>;
 }
 
-function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, inboxStatus, lastEmailReceived, refreshInbox, onNotice }: {
+function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, inboxStatus, inboxRefreshing, lastEmailReceived, refreshInbox, onNotice }: {
   provider: "gmail" | "outlook";
   setProvider: (value: "gmail" | "outlook") => void;
   marketplace: string;
@@ -864,6 +877,7 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
   setStep: (value: number) => void;
   importAddress: string;
   inboxStatus: "loading" | "pending" | "active" | "unavailable";
+  inboxRefreshing: boolean;
   lastEmailReceived: string | null;
   refreshInbox: () => Promise<void>;
   onNotice: (value: string) => void;
@@ -944,7 +958,7 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
           <p className="text-[10px] font-bold uppercase tracking-[.16em] text-cyan-300">Step 3 of 3</p>
           <h3 className="mt-2 text-lg font-semibold text-white">Verify your first forwarded order</h3>
           <p className="mt-2 text-xs leading-5 text-slate-500">Forward one {marketplaceName} order or email-provider confirmation. Trading Docks confirms receipt before any inventory can be changed.</p>
-          <div className={`mt-5 rounded-2xl border p-5 text-center ${inboxStatus === "active" ? "border-emerald-300/14 bg-emerald-300/[.035]" : "border-amber-300/14 bg-amber-300/[.035]"}`}>{inboxStatus === "active" ? <Check className="mx-auto h-6 w-6 text-emerald-300" /> : <RefreshCw className="mx-auto h-6 w-6 text-amber-300" />}<p className={`mt-3 text-sm font-semibold ${inboxStatus === "active" ? "text-emerald-100" : "text-amber-100"}`}>{inboxStatus === "active" ? "Email connection confirmed" : "Waiting for your first message"}</p><p className={`mx-auto mt-2 max-w-md text-[10px] leading-5 ${inboxStatus === "active" ? "text-emerald-100/55" : "text-amber-100/55"}`}>{inboxStatus === "active" ? `Last email received${lastEmailReceived ? ` ${new Date(lastEmailReceived).toLocaleString()}` : " successfully"}. Uncertain order details will go to review.` : "Send the confirmation or a test message, wait a few seconds, then check again."}</p><button type="button" disabled={inboxStatus === "loading" || inboxStatus === "unavailable"} onClick={() => void refreshInbox()} className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-white/[.07] px-4 text-[10px] font-bold text-slate-200 disabled:opacity-40"><Send className="h-3.5 w-3.5" />Check for confirmation</button></div>
+          <div className={`mt-5 rounded-2xl border p-5 text-center ${inboxStatus === "active" ? "border-emerald-300/14 bg-emerald-300/[.035]" : "border-amber-300/14 bg-amber-300/[.035]"}`}>{inboxStatus === "active" ? <Check className="mx-auto h-6 w-6 text-emerald-300" /> : <RefreshCw className={`mx-auto h-6 w-6 text-amber-300 ${inboxRefreshing ? "animate-spin" : ""}`} />}<p className={`mt-3 text-sm font-semibold ${inboxStatus === "active" ? "text-emerald-100" : "text-amber-100"}`}>{inboxStatus === "active" ? "Email connection confirmed" : inboxRefreshing ? "Checking for your message…" : "Waiting for your first message"}</p><p className={`mx-auto mt-2 max-w-md text-[10px] leading-5 ${inboxStatus === "active" ? "text-emerald-100/55" : "text-amber-100/55"}`}>{inboxStatus === "active" ? `Last email received${lastEmailReceived ? ` ${new Date(lastEmailReceived).toLocaleString()}` : " successfully"}. Uncertain order details will go to review.` : inboxStatus === "unavailable" ? "The last status check failed. Use the button below to try again." : "Send the confirmation or a test message, wait a few seconds, then check again."}</p><button type="button" disabled={inboxRefreshing} onClick={() => void refreshInbox()} className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/15 bg-cyan-300/[.08] px-4 text-[10px] font-bold text-cyan-100 transition hover:bg-cyan-300/[.13] disabled:cursor-wait disabled:opacity-55">{inboxRefreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}{inboxRefreshing ? "Checking…" : inboxStatus === "active" ? "Refresh status" : "Check for confirmation"}</button></div>
           <button type="button" onClick={() => setStep(2)} className="mt-4 h-10 rounded-xl border border-white/[.08] px-4 text-xs font-semibold text-slate-400">Back to instructions</button>
         </> : null}
       </div>
