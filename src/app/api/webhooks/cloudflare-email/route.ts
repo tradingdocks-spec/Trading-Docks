@@ -1,6 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseTcgplayerOrderEmail } from "@/lib/marketplaces/tcgplayer-email-parser";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: mailbox, error: mailboxError } = await admin
     .from("inbound_email_mailboxes")
-    .select("id,workspace_id")
+    .select("id,workspace_id,workspaces(owner_id)")
     .eq("address_token", localPart)
     .neq("status", "disabled")
     .maybeSingle();
@@ -73,8 +74,9 @@ export async function POST(request: Request) {
   const raw = bytes.toString("utf8");
   const digest = createHash("sha256").update(bytes).digest("hex");
   const classification = classify(raw);
-  const processingStatus = classification.messageType === "verification" ? "processed" : "needs_review";
-  const { error: insertError } = await admin.from("inbound_email_messages").insert({
+  const parsed = classification.marketplace === "tcgplayer" && classification.messageType === "order" ? parseTcgplayerOrderEmail(raw) : null;
+  const processingStatus = classification.messageType === "verification" ? "processed" : parsed ? "received" : "needs_review";
+  const { data: storedMessage, error: insertError } = await admin.from("inbound_email_messages").insert({
     mailbox_id: mailbox.id,
     workspace_id: mailbox.workspace_id,
     recipient,
@@ -86,9 +88,63 @@ export async function POST(request: Request) {
     processing_status: processingStatus,
     content_sha256: digest,
     raw_message: raw,
-  });
+  }).select("id").maybeSingle();
   if (insertError && insertError.code !== "23505") {
     return NextResponse.json({ error: "Message could not be stored" }, { status: 500 });
+  }
+
+  if (!insertError && storedMessage && parsed) {
+    const workspace = Array.isArray(mailbox.workspaces) ? mailbox.workspaces[0] : mailbox.workspaces;
+    const ownerId = workspace?.owner_id;
+    if (ownerId) {
+      const now = new Date().toISOString();
+      const { data: order, error: orderError } = await admin.from("marketplace_orders").upsert({
+        user_id: ownerId,
+        marketplace_id: "tcgplayer",
+        external_order_id: parsed.orderId,
+        order_status: "new",
+        payment_status: "paid",
+        fulfillment_status: "unfulfilled",
+        normalized_status: "new",
+        currency: "USD",
+        subtotal: parsed.subtotal,
+        shipping: parsed.shipping,
+        tax: parsed.tax,
+        total: parsed.total,
+        buyer_alias: parsed.buyer,
+        ordered_at: parsed.orderedAt ?? now,
+        last_modified_at: now,
+        source_type: "email",
+        raw_snapshot: { inbound_email_message_id: storedMessage.id, parser: "tcgplayer-email-v1" },
+        updated_at: now,
+      }, { onConflict: "user_id,marketplace_id,external_order_id" }).select("id").single();
+
+      if (!orderError && order && parsed.items.length) {
+        await admin.from("marketplace_order_items").upsert(parsed.items.map((item) => ({
+          user_id: ownerId,
+          marketplace_order_id: order.id,
+          external_line_item_id: item.lineId,
+          title: item.title,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          currency: "USD",
+          condition: item.condition,
+          language: item.language,
+          finish: item.finish,
+          match_status: "unmatched",
+          raw_snapshot: { inbound_email_message_id: storedMessage.id },
+          updated_at: now,
+        })), { onConflict: "user_id,marketplace_order_id,external_line_item_id" });
+      }
+
+      await admin.from("inbound_email_messages").update(orderError ? {
+        processing_status: "failed", processing_error: orderError.message, processed_at: now,
+      } : {
+        processing_status: parsed.items.length ? "processed" : "needs_review",
+        processing_error: parsed.items.length ? null : "Order saved, but line items could not be read automatically.",
+        processed_at: now,
+      }).eq("id", storedMessage.id);
+    }
   }
 
   await admin.from("inbound_email_mailboxes").update({

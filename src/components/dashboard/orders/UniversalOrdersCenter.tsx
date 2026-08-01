@@ -42,7 +42,7 @@ function normalized(order: OrderRecord): Exclude<Status, "all"> {
   return "new";
 }
 
-export function UniversalOrdersCenter({ initialOrders }: { initialOrders: OrderRecord[] }) {
+export function UniversalOrdersCenter({ initialOrders, initialEmailIssues = 0 }: { initialOrders: OrderRecord[]; initialEmailIssues?: number }) {
   const [orders, setOrders] = useState(initialOrders);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>("all");
@@ -102,6 +102,8 @@ export function UniversalOrdersCenter({ initialOrders }: { initialOrders: OrderR
         <div className="flex flex-wrap gap-2"><Link href="/dashboard/marketplaces" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 text-[11px] font-semibold text-slate-200 hover:bg-white/[0.07]"><Link2 className="h-4 w-4 text-cyan-300" /> Manage channels</Link><button onClick={exportCsv} className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-[11px] font-bold text-[#00131c] hover:bg-cyan-200"><Download className="h-4 w-4" /> Export CSV</button></div>
       </div>
     </header>
+
+    {initialEmailIssues > 0 ? <div className="flex items-start justify-between gap-4 rounded-2xl border border-amber-300/15 bg-amber-300/[.035] p-4"><div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><div><p className="text-[11px] font-semibold text-amber-100">{initialEmailIssues} forwarded email{initialEmailIssues === 1 ? " needs" : "s need"} review</p><p className="mt-1 text-[10px] leading-5 text-amber-100/55">The original email is preserved and no inventory was changed. Check Email Tracking to review or retry the import.</p></div></div><Link href="/dashboard/marketplaces" className="shrink-0 rounded-xl border border-amber-300/15 px-3 py-2 text-[9px] font-bold text-amber-200 hover:bg-amber-300/[.05]">Review inbox</Link></div> : null}
 
     <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Kpi icon={CircleDollarSign} label="Gross sales" value={compactMoney.format(summary.revenue)} detail={`${orders.length} imported orders`} accent />

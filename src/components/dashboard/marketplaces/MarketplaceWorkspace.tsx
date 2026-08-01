@@ -326,12 +326,15 @@ export function MarketplaceWorkspace() {
     if (announceResult) setInboxRefreshing(true);
     try {
       const response = await fetch("/api/marketplaces/email-inbox", { cache: "no-store" });
-      const result = (await response.json().catch(() => null)) as { address?: string; status?: "pending" | "active"; lastReceivedAt?: string | null; error?: string } | null;
+      const result = (await response.json().catch(() => null)) as { address?: string; status?: "pending" | "active"; lastReceivedAt?: string | null; provider?: "gmail" | "outlook"; marketplaceId?: string; error?: string } | null;
       if (!response.ok || !result?.address) throw new Error(result?.error ?? "Inbox unavailable");
       setImportAddress(result.address);
       const nextStatus = result.status === "active" ? "active" : "pending";
       setInboxStatus(nextStatus);
       setLastEmailReceived(result.lastReceivedAt ?? null);
+      if (result.provider) setEmailProvider(result.provider);
+      if (result.marketplaceId) setEmailMarketplace(result.marketplaceId);
+      if (nextStatus === "active") setEmailSetupStep(3);
       if (announceResult) {
         setNotice(nextStatus === "active"
           ? "Email connection confirmed. Your first message reached Trading Docks."
@@ -409,8 +412,30 @@ export function MarketplaceWorkspace() {
       .toLowerCase()
       .includes(query.trim().toLowerCase()),
   );
-  const connectedCount = connections.filter((item) => item.status === "ready").length;
-  const attentionCount = connections.filter((item) => item.status === "attention" || item.status === "setup_required").length;
+  const emailConnectedMarketplace = inboxStatus === "active" ? emailMarketplace : null;
+  const connectedCount = marketplaces.filter((marketplace) => {
+    const connection = connections.find((item) => item.marketplace_id === marketplace.id);
+    return connection?.status === "ready" || marketplace.id === emailConnectedMarketplace;
+  }).length;
+  const attentionCount = marketplaces.filter((marketplace) => {
+    const connection = connections.find((item) => item.marketplace_id === marketplace.id);
+    return marketplace.id !== emailConnectedMarketplace && (connection?.status === "attention" || connection?.status === "setup_required");
+  }).length;
+
+  async function saveEmailSetup(provider: "gmail" | "outlook", marketplaceId: string) {
+    const response = await fetch("/api/marketplaces/email-inbox", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, marketplaceId }),
+    });
+    const result = (await response.json().catch(() => null)) as { error?: string } | null;
+    if (!response.ok) {
+      setNotice(result?.error ?? "Could not save the email setup choices.");
+      return false;
+    }
+    setNotice("Email provider and marketplace saved for this workspace.");
+    return true;
+  }
 
   function openSetup(marketplace: MarketplaceDefinition) {
     const existing = connections.find((item) => item.marketplace_id === marketplace.id);
@@ -646,12 +671,13 @@ export function MarketplaceWorkspace() {
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filtered.map((marketplace) => {
                 const connection = connections.find((item) => item.marketplace_id === marketplace.id);
-                const needsAttention = connection?.status === "attention" || connection?.status === "setup_required";
+                const isConnected = connection?.status === "ready" || marketplace.id === emailConnectedMarketplace;
+                const needsAttention = !isConnected && (connection?.status === "attention" || connection?.status === "setup_required");
                 return (
                   <article key={marketplace.id} className="rounded-[22px] border border-white/[.08] bg-[#07141e]/90 p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/20">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-400/[.06]"><Store className="h-5 w-5 text-cyan-300" /></div>
-                      {needsAttention ? <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/20 bg-amber-400/[.05] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-amber-200"><AlertTriangle className="h-3 w-3" />Setup required</span> : null}
+                      {isConnected ? <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/20 bg-emerald-400/[.06] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-emerald-200"><Check className="h-3 w-3" />Connected</span> : needsAttention ? <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/20 bg-amber-400/[.05] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-amber-200"><AlertTriangle className="h-3 w-3" />Setup required</span> : null}
                     </div>
                     <h2 className="mt-5 text-lg font-semibold text-white">{marketplace.name}</h2>
                     <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-cyan-300/80">{marketplace.games}</p>
@@ -660,7 +686,7 @@ export function MarketplaceWorkspace() {
                       {marketplace.methods.map((item) => <span key={item} className="rounded-lg border border-white/[.07] bg-white/[.025] px-2 py-1 text-[9px] text-slate-500">{METHOD_LABELS[item]}</span>)}
                     </div>
                     <button type="button" onClick={() => openSetup(marketplace)} className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/15 bg-cyan-400/[.045] text-xs font-semibold text-cyan-200 transition hover:border-cyan-300/30 hover:bg-cyan-400/[.08]">
-                      <Settings2 className="h-3.5 w-3.5" />{connection ? "Manage connection" : "Start setup"}
+                      <Settings2 className="h-3.5 w-3.5" />{isConnected || connection ? "Manage connection" : "Start setup"}
                     </button>
                   </article>
                 );
@@ -705,6 +731,7 @@ export function MarketplaceWorkspace() {
           inboxRefreshing={inboxRefreshing}
           lastEmailReceived={lastEmailReceived}
           refreshInbox={() => loadEmailInbox(true)}
+          saveSetup={saveEmailSetup}
           onNotice={setNotice}
         />
       ) : null}
@@ -868,7 +895,7 @@ function SetupGuide({ title, steps, compact = false }: { title: string; steps: r
   return <div className={`rounded-[24px] border border-white/[.08] bg-[#07141e] ${compact ? "p-4" : "p-6"}`}><p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">{title}</p><div className="mt-4 space-y-3">{steps.map((step, index) => <div key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[.05] text-[9px] font-bold text-cyan-200">{index + 1}</span><p className="pt-0.5 text-[11px] leading-5 text-slate-500">{step}</p></div>)}</div></div>;
 }
 
-function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, inboxStatus, inboxRefreshing, lastEmailReceived, refreshInbox, onNotice }: {
+function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, inboxStatus, inboxRefreshing, lastEmailReceived, refreshInbox, saveSetup, onNotice }: {
   provider: "gmail" | "outlook";
   setProvider: (value: "gmail" | "outlook") => void;
   marketplace: string;
@@ -880,6 +907,7 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
   inboxRefreshing: boolean;
   lastEmailReceived: string | null;
   refreshInbox: () => Promise<void>;
+  saveSetup: (provider: "gmail" | "outlook", marketplaceId: string) => Promise<boolean>;
   onNotice: (value: string) => void;
 }) {
   const emailMarketplaces = marketplaces.filter((item) => item.methods.includes("email"));
@@ -943,7 +971,7 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">{(["gmail", "outlook"] as const).map((item) => <button key={item} type="button" onClick={() => setProvider(item)} className={`flex items-center gap-3 rounded-2xl border p-4 text-left ${provider === item ? "border-cyan-300/25 bg-cyan-300/[.06]" : "border-white/[.07] bg-black/10"}`}><Mail className={`h-5 w-5 ${provider === item ? "text-cyan-300" : "text-slate-600"}`} /><div><p className="text-xs font-semibold text-white">{item === "gmail" ? "Gmail" : "Outlook / Microsoft"}</p><p className="mt-1 text-[9px] text-slate-600">I read my order emails here</p></div>{provider === item ? <Check className="ml-auto h-4 w-4 text-cyan-300" /> : null}</button>)}</div>
           <h3 className="mt-6 text-sm font-semibold text-white">Which orders should we look for first?</h3>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">{emailMarketplaces.map((item) => <button key={item.id} type="button" onClick={() => setMarketplace(item.id)} className={`rounded-xl border px-3 py-3 text-xs font-semibold ${marketplace === item.id ? "border-cyan-300/25 bg-cyan-300/[.06] text-cyan-100" : "border-white/[.07] text-slate-500"}`}>{item.name}</button>)}</div>
-          <button type="button" onClick={() => setStep(2)} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950">Show my {provider === "gmail" ? "Gmail" : "Outlook"} instructions <ArrowRight className="h-4 w-4" /></button>
+          <button type="button" onClick={() => void saveSetup(provider, marketplace).then((saved) => { if (saved) setStep(2); })} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950">Save and show my {provider === "gmail" ? "Gmail" : "Outlook"} instructions <ArrowRight className="h-4 w-4" /></button>
         </> : null}
 
         {step === 2 ? <>

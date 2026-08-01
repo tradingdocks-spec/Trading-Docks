@@ -6,6 +6,8 @@ create table if not exists public.inbound_email_mailboxes (
   workspace_id uuid not null references public.workspaces(id) on delete cascade,
   created_by uuid not null references auth.users(id) on delete cascade,
   address_token text not null unique check (address_token ~ '^td_[a-z0-9]{16,40}$'),
+  email_provider text not null default 'gmail' check (email_provider in ('gmail','outlook')),
+  marketplace_id text not null default 'tcgplayer',
   status text not null default 'pending' check (status in ('pending','active','disabled')),
   verified_at timestamptz,
   last_received_at timestamptz,
@@ -13,6 +15,10 @@ create table if not exists public.inbound_email_mailboxes (
   updated_at timestamptz not null default now(),
   unique (workspace_id)
 );
+
+alter table public.inbound_email_mailboxes
+  add column if not exists email_provider text not null default 'gmail',
+  add column if not exists marketplace_id text not null default 'tcgplayer';
 
 create table if not exists public.inbound_email_messages (
   id uuid primary key default gen_random_uuid(),
