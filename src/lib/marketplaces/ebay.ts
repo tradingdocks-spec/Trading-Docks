@@ -82,6 +82,9 @@ export async function ebayJson<T>(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
+      // Node's fetch implementation may otherwise emit `Accept-Language: *`.
+      // eBay Sell APIs reject that value with error 25709.
+      "Accept-Language": "en-US",
       "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
     },
     cache: "no-store",

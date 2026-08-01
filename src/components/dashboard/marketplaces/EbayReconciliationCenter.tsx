@@ -148,7 +148,7 @@ export function EbayReconciliationCenter() {
           {filtered.length ? filtered.map((item) => {
             const product = item.raw_snapshot.inventoryItem?.product;
             return <div key={item.id} className="grid gap-3 border-b border-white/[.06] p-4 last:border-0 md:grid-cols-[minmax(0,1fr)_130px_100px_120px] md:items-center">
-              <div className="flex min-w-0 items-center gap-3">{product?.imageUrls?.[0] ? <img src={product.imageUrls[0]} alt="" className="h-12 w-12 rounded-lg object-cover" /> : <div className="h-12 w-12 rounded-lg bg-white/[.04]" />}<div className="min-w-0"><p className="truncate text-xs font-semibold text-white">{product?.title ?? item.external_sku ?? "Untitled eBay listing"}</p><p className="mt-1 truncate text-[10px] text-slate-600">SKU {item.external_sku ?? "—"} · Item {item.external_listing_id}</p></div></div>
+              <div className="flex min-w-0 items-center gap-3"><ListingImage listingId={item.id} hasImage={Boolean(product?.imageUrls?.[0])} title={product?.title ?? item.external_sku ?? "eBay listing"} /><div className="min-w-0"><p className="truncate text-xs font-semibold text-white">{product?.title ?? item.external_sku ?? "Untitled eBay listing"}</p><p className="mt-1 truncate text-[10px] text-slate-600">SKU {item.external_sku ?? "—"} · Item {item.external_listing_id}</p></div></div>
               <span className={`w-fit rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider ${statusStyle[item.match_status]}`}>{item.match_status}</span>
               <div><p className="text-[9px] uppercase text-slate-600">Available</p><p className="mt-1 text-xs font-semibold text-white">{item.last_seen_quantity ?? 0}</p></div>
               <div className="flex items-center justify-between"><div><p className="text-[9px] uppercase text-slate-600">Price</p><p className="mt-1 text-xs font-semibold text-white">{item.last_seen_price == null ? "—" : `$${Number(item.last_seen_price).toFixed(2)}`}</p></div>{/^\d+$/.test(item.external_listing_id) ? <a href={`https://www.ebay.com/itm/${item.external_listing_id}`} target="_blank" rel="noreferrer" aria-label="Open listing on eBay" className="text-slate-600 hover:text-cyan-200"><ExternalLink className="h-4 w-4" /></a> : null}</div>
@@ -170,4 +170,12 @@ function Metric({ icon: Icon, label, value, detail, tone = "cyan" }: { icon: typ
 }
 function Empty({ text }: { text: string }) {
   return <div className="flex min-h-40 items-center justify-center p-6 text-center text-xs text-slate-600">{text}</div>;
+}
+
+function ListingImage({ listingId, hasImage, title }: { listingId: string; hasImage: boolean; title: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!hasImage || failed) {
+    return <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/[.06] bg-white/[.04]"><PackageSearch className="h-4 w-4 text-slate-700" /></div>;
+  }
+  return <img src={`/api/marketplaces/ebay/listing-image/${encodeURIComponent(listingId)}`} alt={`${title} thumbnail`} onError={() => setFailed(true)} className="h-12 w-12 shrink-0 rounded-lg border border-white/[.06] bg-white/[.04] object-cover" />;
 }
