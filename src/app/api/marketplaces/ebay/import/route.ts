@@ -144,11 +144,27 @@ export async function POST() {
   if (runError || !run) return NextResponse.json({ error: runError?.message ?? "Could not start import." }, { status: 500 });
 
   try {
-    const [{ data: inventory }, ebayInventory, ebayOrders] = await Promise.all([
+    const [{ data: inventory }, inventoryResult, ordersResult] = await Promise.all([
       admin.from("inventory_items").select("id,sku,card_name,set_code,collector_number,data").eq("user_id", user.id),
-      getAllPages<InventoryItem>(apiBase, accessToken, "/sell/inventory/v1/inventory_item", "inventoryItems"),
-      getAllPages<Order>(apiBase, accessToken, "/sell/fulfillment/v1/order", "orders", "&fieldGroups=TAX_BREAKDOWN"),
+      getAllPages<InventoryItem>(apiBase, accessToken, "/sell/inventory/v1/inventory_item", "inventoryItems")
+        .then((rows) => ({ rows, warning: null as string | null }))
+        .catch((error: unknown) => ({
+          rows: [] as InventoryItem[],
+          warning: error instanceof Error ? error.message : "eBay inventory details were temporarily unavailable.",
+        })),
+      getAllPages<Order>(apiBase, accessToken, "/sell/fulfillment/v1/order", "orders", "&fieldGroups=TAX_BREAKDOWN")
+        .then((rows) => ({ rows, warning: null as string | null }))
+        .catch((error: unknown) => ({
+          rows: [] as Order[],
+          warning: error instanceof Error ? error.message : "eBay orders were temporarily unavailable.",
+        })),
     ]);
+    const ebayInventory = inventoryResult.rows;
+    const ebayOrders = ordersResult.rows;
+    const warnings = [inventoryResult.warning, ordersResult.warning].filter((warning): warning is string => Boolean(warning));
+    if (inventoryResult.warning && ordersResult.warning) {
+      throw new Error(`eBay could not return inventory or orders. ${warnings.join(" ")}`);
+    }
 
     const inventoryRows = (inventory ?? []) as ImportedInventoryRow[];
     const bySku = new Map(inventoryRows.filter((item) => item.sku).map((item) => [normalize(item.sku ?? undefined), item]));
@@ -273,7 +289,15 @@ export async function POST() {
       if (error) throw error;
     }
 
-    const summary = { listings: listingCount, orders: orderCount, order_items: orderItemCount, matched, suggested, unmatched };
+    const summary = {
+      listings: listingCount,
+      orders: orderCount,
+      order_items: orderItemCount,
+      matched,
+      suggested,
+      unmatched,
+      warnings,
+    };
     await Promise.all([
       admin.from("marketplace_sync_runs").update({
         status: "completed",
@@ -284,7 +308,7 @@ export async function POST() {
       }).eq("id", run.id),
       admin.from("marketplace_connections").update({
         last_sync_at: new Date().toISOString(),
-        health: "healthy",
+        health: warnings.length ? "attention" : "healthy",
         next_sync_at: null,
         updated_at: new Date().toISOString(),
       }).eq("user_id", user.id).eq("marketplace_id", "ebay"),

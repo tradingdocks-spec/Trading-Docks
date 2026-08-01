@@ -78,36 +78,44 @@ export async function ebayJson<T>(
   accessToken: string,
   path: string,
 ): Promise<T> {
-  const response = await fetch(`${apiBase}${path}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: "application/json",
-      // Node's fetch implementation may otherwise emit `Accept-Language: *`.
-      // eBay Sell APIs reject that value with error 25709.
-      "Accept-Language": "en-US",
-      "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(15_000),
-  });
-  const body = await response.json().catch(() => ({})) as {
-    errors?: Array<{
-      errorId?: number;
-      domain?: string;
-      category?: string;
-      message?: string;
-      longMessage?: string;
-    }>;
-  };
-  if (!response.ok) {
+  const requestName = path.split("?")[0];
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(`${apiBase}${path}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+        // Node's fetch implementation may otherwise emit `Accept-Language: *`.
+        // eBay Sell APIs reject that value with error 25709.
+        "Accept-Language": "en-US",
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    const body = await response.json().catch(() => ({})) as {
+      errors?: Array<{
+        errorId?: number;
+        domain?: string;
+        category?: string;
+        message?: string;
+        longMessage?: string;
+      }>;
+    };
+    if (response.ok) return body as T;
+
     const error = body.errors?.[0];
+    const retryable = response.status >= 500 || error?.errorId === 25001;
+    if (retryable && attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 300 * 2 ** attempt));
+      continue;
+    }
+
     const detail = error?.longMessage ?? error?.message;
-    const requestName = path.split("?")[0];
     throw new Error(
       detail
         ? `eBay ${requestName} request failed: ${detail}${error?.errorId ? ` (error ${error.errorId})` : ""}`
         : `eBay ${requestName} request failed (${response.status}).`,
     );
   }
-  return body as T;
+  throw new Error(`eBay ${requestName} request failed after retries.`);
 }
