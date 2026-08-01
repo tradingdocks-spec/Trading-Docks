@@ -1,18 +1,20 @@
-import { PanelsTopLeft } from "lucide-react";
+import { UniversalOrdersCenter, type OrderRecord } from "@/components/dashboard/orders/UniversalOrdersCenter";
+import { createClient } from "@/lib/supabase/server";
 
-import { PageHeader } from "@/components/dashboard/common/PageHeader";
-import { WorkspaceFrame } from "@/components/dashboard/common/WorkspaceFrame";
+export default async function OrdersPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  let orders: OrderRecord[] = [];
 
-export default function Page() {
-  return (
-    <WorkspaceFrame>
-      <PageHeader
-        eyebrow="Orders Workspace"
-        title="Orders Workspace"
-        description="Track fulfillment, shipping, returns, and customer orders."
-        icon={PanelsTopLeft}
-      />
-    </WorkspaceFrame>
-  );
+  if (user) {
+    const { data } = await supabase
+      .from("marketplace_orders")
+      .select("*, marketplace_order_items(*)")
+      .eq("user_id", user.id)
+      .order("ordered_at", { ascending: false })
+      .limit(500);
+    orders = (data ?? []) as unknown as OrderRecord[];
+  }
+
+  return <UniversalOrdersCenter initialOrders={orders} />;
 }
-

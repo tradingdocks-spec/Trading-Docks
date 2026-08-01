@@ -74,6 +74,15 @@ type Page<T> = {
 
 const number = (value?: string) => value == null ? null : Number(value);
 const normalize = (value?: string | null) => (value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+const normalizeOrderStatus = (order: Order) => {
+  const value = `${order.cancelStatus?.cancelState ?? ""} ${order.orderPaymentStatus ?? ""} ${order.orderFulfillmentStatus ?? ""}`.toLowerCase();
+  if (value.includes("refund")) return "refunded";
+  if (value.includes("cancel")) return "cancelled";
+  if (value.includes("deliver")) return "delivered";
+  if (value.includes("fulfill") || value.includes("ship")) return "shipped";
+  if (value.includes("paid") || value.includes("process")) return "processing";
+  return "new";
+};
 
 async function mapConcurrent<T, R>(items: T[], limit: number, work: (item: T) => Promise<R>) {
   const output = new Array<R>(items.length);
@@ -233,6 +242,7 @@ export async function POST() {
         marketplace_id: "ebay",
         external_order_id: order.orderId,
         order_status: order.cancelStatus?.cancelState ?? "ACTIVE",
+        normalized_status: normalizeOrderStatus(order),
         payment_status: order.orderPaymentStatus ?? null,
         fulfillment_status: order.orderFulfillmentStatus ?? null,
         currency: summary?.total?.currency ?? summary?.priceSubtotal?.currency ?? "USD",
@@ -243,6 +253,7 @@ export async function POST() {
         buyer_alias: order.buyer?.username ?? null,
         ordered_at: order.creationDate ?? null,
         last_modified_at: order.lastModifiedDate ?? null,
+        source_type: "api",
         raw_snapshot: order,
         updated_at: new Date().toISOString(),
       };
