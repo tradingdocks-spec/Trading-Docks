@@ -85,6 +85,7 @@ export async function ebayJson<T>(
       "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
   });
   const body = await response.json().catch(() => ({})) as {
     errors?: Array<{

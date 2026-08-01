@@ -6,6 +6,10 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+const PAGE_SIZE = 200;
+const OFFER_CONCURRENCY = 12;
+const STALE_RUN_MINUTES = 5;
+
 type Amount = { value?: string; currency?: string };
 type InventoryItem = {
   sku: string;
@@ -62,8 +66,49 @@ type Order = {
   }>;
 };
 
+type Page<T> = {
+  total?: number;
+  inventoryItems?: T[];
+  orders?: T[];
+};
+
 const number = (value?: string) => value == null ? null : Number(value);
 const normalize = (value?: string | null) => (value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ");
+
+async function mapConcurrent<T, R>(items: T[], limit: number, work: (item: T) => Promise<R>) {
+  const output = new Array<R>(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      output[index] = await work(items[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+  return output;
+}
+
+async function getAllPages<T>(
+  apiBase: string,
+  accessToken: string,
+  endpoint: string,
+  key: "inventoryItems" | "orders",
+  extra = "",
+) {
+  const rows: T[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const separator = endpoint.includes("?") ? "&" : "?";
+    const page = await ebayJson<Page<T>>(
+      apiBase,
+      accessToken,
+      `${endpoint}${separator}limit=${PAGE_SIZE}&offset=${offset}${extra}`,
+    );
+    const batch = (page[key] ?? []) as T[];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE || rows.length >= (page.total ?? rows.length)) break;
+  }
+  return rows;
+}
 
 export async function POST() {
   const supabase = await createClient();
@@ -71,9 +116,20 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Sign in to import eBay data." }, { status: 401 });
 
   const { admin, accessToken, apiBase } = await getEbayAccess(user.id);
+
+  // A serverless timeout cannot execute the catch block. Recover runs left behind by
+  // an interrupted invocation so the account is never permanently sync-locked.
+  const staleBefore = new Date(Date.now() - STALE_RUN_MINUTES * 60_000).toISOString();
+  await admin.from("marketplace_sync_runs").update({
+    status: "failed",
+    summary: { error: "The previous import was interrupted and was automatically unlocked." },
+    completed_at: new Date().toISOString(),
+  }).eq("user_id", user.id).eq("marketplace_id", "ebay")
+    .in("status", ["queued", "processing"]).lt("created_at", staleBefore);
+
   const { data: activeRun } = await admin.from("marketplace_sync_runs")
-    .select("id").eq("user_id", user.id).eq("marketplace_id", "ebay")
-    .in("status", ["queued", "processing"]).maybeSingle();
+    .select("id,created_at").eq("user_id", user.id).eq("marketplace_id", "ebay")
+    .in("status", ["queued", "processing"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (activeRun) {
     return NextResponse.json({ error: "An eBay import is already running." }, { status: 409 });
   }
@@ -88,14 +144,10 @@ export async function POST() {
   if (runError || !run) return NextResponse.json({ error: runError?.message ?? "Could not start import." }, { status: 500 });
 
   try {
-    const [{ data: inventory }, inventoryResponse, ordersResponse] = await Promise.all([
+    const [{ data: inventory }, ebayInventory, ebayOrders] = await Promise.all([
       admin.from("inventory_items").select("id,sku,card_name,set_code,collector_number,data").eq("user_id", user.id),
-      ebayJson<{ inventoryItems?: InventoryItem[]; total?: number }>(
-        apiBase, accessToken, "/sell/inventory/v1/inventory_item?limit=200&offset=0",
-      ),
-      ebayJson<{ orders?: Order[]; total?: number }>(
-        apiBase, accessToken, "/sell/fulfillment/v1/order?limit=200&offset=0&fieldGroups=TAX_BREAKDOWN",
-      ),
+      getAllPages<InventoryItem>(apiBase, accessToken, "/sell/inventory/v1/inventory_item", "inventoryItems"),
+      getAllPages<Order>(apiBase, accessToken, "/sell/fulfillment/v1/order", "orders", "&fieldGroups=TAX_BREAKDOWN"),
     ]);
 
     const inventoryRows = (inventory ?? []) as ImportedInventoryRow[];
@@ -108,10 +160,15 @@ export async function POST() {
     let unmatched = 0;
     let listingCount = 0;
 
-    for (const item of inventoryResponse.inventoryItems ?? []) {
+    const inventoryWithOffers = await mapConcurrent(ebayInventory, OFFER_CONCURRENCY, async (item) => {
       const offers = await ebayJson<{ offers?: Offer[] }>(
         apiBase, accessToken, `/sell/inventory/v1/offer?sku=${encodeURIComponent(item.sku)}&limit=100`,
       );
+      return { item, offers: offers.offers ?? [] };
+    });
+
+    const listingRows: Array<Record<string, unknown>> = [];
+    for (const { item, offers } of inventoryWithOffers) {
       const aspects = item.product?.aspects ?? {};
       const identity = [
         normalize(item.product?.title),
@@ -125,9 +182,9 @@ export async function POST() {
       else if (matchStatus === "suggested") suggested += 1;
       else unmatched += 1;
 
-      for (const offer of offers.offers?.length ? offers.offers : [{}]) {
+      for (const offer of offers.length ? offers : [{}]) {
         const externalId = offer.listing?.listingId ?? offer.offerId ?? `sku:${item.sku}`;
-        const { error } = await admin.from("marketplace_listing_mappings").upsert({
+        listingRows.push({
           user_id: user.id,
           marketplace_id: "ebay",
           inventory_item_id: candidate?.id ?? null,
@@ -140,17 +197,22 @@ export async function POST() {
           last_seen_price: number(offer.pricingSummary?.price?.value),
           raw_snapshot: { inventoryItem: item, offer },
           last_seen_at: new Date().toISOString(),
-        }, { onConflict: "user_id,marketplace_id,external_listing_id" });
-        if (error) throw error;
+        });
         listingCount += 1;
       }
     }
 
+    if (listingRows.length) {
+      const { error } = await admin.from("marketplace_listing_mappings")
+        .upsert(listingRows, { onConflict: "user_id,marketplace_id,external_listing_id" });
+      if (error) throw error;
+    }
+
     let orderCount = 0;
     let orderItemCount = 0;
-    for (const order of ordersResponse.orders ?? []) {
+    const orderRows = ebayOrders.map((order) => {
       const summary = order.pricingSummary;
-      const { data: savedOrder, error } = await admin.from("marketplace_orders").upsert({
+      return {
         user_id: user.id,
         marketplace_id: "ebay",
         external_order_id: order.orderId,
@@ -167,17 +229,29 @@ export async function POST() {
         last_modified_at: order.lastModifiedDate ?? null,
         raw_snapshot: order,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id,marketplace_id,external_order_id" }).select("id").single();
-      if (error || !savedOrder) throw error ?? new Error("Could not save an imported order.");
-      const savedOrderRow = savedOrder as SavedOrderRow;
-      orderCount += 1;
+      };
+    });
+    const savedOrders: Array<SavedOrderRow & { external_order_id: string }> = [];
+    if (orderRows.length) {
+      const { data, error } = await admin.from("marketplace_orders")
+        .upsert(orderRows, { onConflict: "user_id,marketplace_id,external_order_id" })
+        .select("id,external_order_id");
+      if (error || !data) throw error ?? new Error("Could not save imported orders.");
+      savedOrders.push(...(data as Array<SavedOrderRow & { external_order_id: string }>));
+    }
+    orderCount = savedOrders.length;
+    const savedOrderIds = new Map(savedOrders.map((order) => [order.external_order_id, order.id]));
+    const orderItemRows: Array<Record<string, unknown>> = [];
 
+    for (const order of ebayOrders) {
+      const savedOrderId = savedOrderIds.get(order.orderId);
+      if (!savedOrderId) continue;
       for (const line of order.lineItems ?? []) {
         const candidate = line.sku ? bySku.get(normalize(line.sku)) : undefined;
         const status = candidate ? "matched" : "unmatched";
-        const { error: lineError } = await admin.from("marketplace_order_items").upsert({
+        orderItemRows.push({
           user_id: user.id,
-          marketplace_order_id: savedOrderRow.id,
+          marketplace_order_id: savedOrderId,
           external_line_item_id: line.lineItemId,
           external_listing_id: line.legacyItemId ?? null,
           external_sku: line.sku ?? null,
@@ -189,10 +263,14 @@ export async function POST() {
           match_status: status,
           raw_snapshot: line,
           updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id,marketplace_order_id,external_line_item_id" });
-        if (lineError) throw lineError;
+        });
         orderItemCount += 1;
       }
+    }
+    if (orderItemRows.length) {
+      const { error } = await admin.from("marketplace_order_items")
+        .upsert(orderItemRows, { onConflict: "user_id,marketplace_order_id,external_line_item_id" });
+      if (error) throw error;
     }
 
     const summary = { listings: listingCount, orders: orderCount, order_items: orderItemCount, matched, suggested, unmatched };
