@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, ArrowLeft, CheckCircle2, Clock3, ExternalLink, Loader2,
+  AlertTriangle, ArrowLeft, CheckCircle2, Clock3, ExternalLink, Images, Loader2,
   PackageSearch, RefreshCw, Search, ShieldCheck, ShoppingBag, Sparkles,
 } from "lucide-react";
 
@@ -17,6 +17,7 @@ type Listing = {
   raw_snapshot: {
     inventoryItem?: { product?: { title?: string; imageUrls?: string[] }; condition?: string };
     offer?: { status?: string };
+    enrichment?: { status?: "exact" | "suggested" | "unmatched" | "unsupported"; confidence?: number; name?: string; setName?: string; collectorNumber?: string; imageUrl?: string; reason?: string };
   };
   last_seen_at: string;
 };
@@ -58,6 +59,7 @@ export function EbayReconciliationCenter() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [notice, setNotice] = useState("");
   const [tab, setTab] = useState<"listings" | "orders" | "history">("listings");
   const [filter, setFilter] = useState("all");
@@ -92,6 +94,18 @@ export function EbayReconciliationCenter() {
     }
   }
 
+  async function findCardImages() {
+    setEnriching(true); setNotice("");
+    try {
+      const response = await fetch("/api/marketplaces/catalog/enrich", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ marketplaceId: "ebay", limit: 100 }) });
+      const body = await response.json().catch(() => null) as { reviewed?: number; exact?: number; suggested?: number; remaining?: number; error?: string } | null;
+      if (!response.ok) setNotice(body?.error ?? "Card-image matching could not be completed.");
+      else setNotice(`Catalog review complete: ${body?.reviewed ?? 0} listings checked, ${(body?.exact ?? 0) + (body?.suggested ?? 0)} images found.${body?.remaining ? ` ${body.remaining} listings remain; run it again to continue.` : ""}`);
+      await load();
+    } catch { setNotice("Trading Docks could not reach the catalog matcher. Please try again."); }
+    finally { setEnriching(false); }
+  }
+
   const counts = useMemo(() => {
     const result = { matched: 0, suggested: 0, unmatched: 0, conflict: 0 };
     for (const listing of snapshot?.listings ?? []) {
@@ -118,9 +132,9 @@ export function EbayReconciliationCenter() {
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">Import & Reconciliation Center</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Bring in listings and orders, match them against Trading Docks inventory, and review uncertain records. This release cannot edit eBay prices, quantities, or listings.</p>
           </div>
-          <button type="button" disabled={importing || !connected} onClick={() => void importNow()} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-45">
+          <div className="flex flex-wrap gap-2"><button type="button" disabled={enriching || !(snapshot?.listings.length)} onClick={() => void findCardImages()} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-45">{enriching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Images className="h-4 w-4" />}{enriching ? "Matching titles…" : "Find card images"}</button><button type="button" disabled={importing || !connected} onClick={() => void importNow()} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-45">
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}{importing ? "Importing from eBay…" : "Import now"}
-          </button>
+          </button></div>
         </div>
       </section>
 
@@ -148,7 +162,7 @@ export function EbayReconciliationCenter() {
           {filtered.length ? filtered.map((item) => {
             const product = item.raw_snapshot.inventoryItem?.product;
             return <div key={item.id} className="grid gap-3 border-b border-white/[.06] p-4 last:border-0 md:grid-cols-[minmax(0,1fr)_130px_100px_120px] md:items-center">
-              <div className="flex min-w-0 items-center gap-3"><ListingImage listingId={item.id} hasImage={Boolean(product?.imageUrls?.[0])} title={product?.title ?? item.external_sku ?? "eBay listing"} /><div className="min-w-0"><p className="truncate text-xs font-semibold text-white">{product?.title ?? item.external_sku ?? "Untitled eBay listing"}</p><p className="mt-1 truncate text-[10px] text-slate-600">SKU {item.external_sku ?? "—"} · Item {item.external_listing_id}</p></div></div>
+              <div className="flex min-w-0 items-center gap-3"><ListingImage listingId={item.id} ebayImage={Boolean(product?.imageUrls?.[0])} catalogImage={item.raw_snapshot.enrichment?.imageUrl} title={product?.title ?? item.external_sku ?? "eBay listing"} /><div className="min-w-0"><p className="truncate text-xs font-semibold text-white">{product?.title ?? item.external_sku ?? "Untitled eBay listing"}</p><p className="mt-1 truncate text-[10px] text-slate-600">{item.raw_snapshot.enrichment?.name ? `${item.raw_snapshot.enrichment.name} · ${item.raw_snapshot.enrichment.setName ?? "Printing review"}${item.raw_snapshot.enrichment.collectorNumber ? ` #${item.raw_snapshot.enrichment.collectorNumber}` : ""}` : `SKU ${item.external_sku ?? "—"} · Item ${item.external_listing_id}`}</p></div></div>
               <span className={`w-fit rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider ${statusStyle[item.match_status]}`}>{item.match_status}</span>
               <div><p className="text-[9px] uppercase text-slate-600">Available</p><p className="mt-1 text-xs font-semibold text-white">{item.last_seen_quantity ?? 0}</p></div>
               <div className="flex items-center justify-between"><div><p className="text-[9px] uppercase text-slate-600">Price</p><p className="mt-1 text-xs font-semibold text-white">{item.last_seen_price == null ? "—" : `$${Number(item.last_seen_price).toFixed(2)}`}</p></div>{/^\d+$/.test(item.external_listing_id) ? <a href={`https://www.ebay.com/itm/${item.external_listing_id}`} target="_blank" rel="noreferrer" aria-label="Open listing on eBay" className="text-slate-600 hover:text-cyan-200"><ExternalLink className="h-4 w-4" /></a> : null}</div>
@@ -172,10 +186,11 @@ function Empty({ text }: { text: string }) {
   return <div className="flex min-h-40 items-center justify-center p-6 text-center text-xs text-slate-600">{text}</div>;
 }
 
-function ListingImage({ listingId, hasImage, title }: { listingId: string; hasImage: boolean; title: string }) {
+function ListingImage({ listingId, ebayImage, catalogImage, title }: { listingId: string; ebayImage: boolean; catalogImage?: string; title: string }) {
   const [failed, setFailed] = useState(false);
-  if (!hasImage || failed) {
+  const src = ebayImage && !failed ? `/api/marketplaces/ebay/listing-image/${encodeURIComponent(listingId)}` : catalogImage;
+  if (!src) {
     return <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/[.06] bg-white/[.04]"><PackageSearch className="h-4 w-4 text-slate-700" /></div>;
   }
-  return <img src={`/api/marketplaces/ebay/listing-image/${encodeURIComponent(listingId)}`} alt={`${title} thumbnail`} onError={() => setFailed(true)} className="h-12 w-12 shrink-0 rounded-lg border border-white/[.06] bg-white/[.04] object-cover" />;
+  return <img src={src} alt={`${title} thumbnail`} loading="lazy" decoding="async" onError={() => ebayImage && !failed ? setFailed(true) : undefined} className="h-12 w-12 shrink-0 rounded-lg border border-white/[.06] bg-white/[.04] object-cover" />;
 }
