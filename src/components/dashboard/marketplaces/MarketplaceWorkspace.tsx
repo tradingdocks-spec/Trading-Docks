@@ -315,7 +315,7 @@ export function MarketplaceWorkspace() {
   const [checkingCredentials, setCheckingCredentials] = useState(false);
   const [editingCredentials, setEditingCredentials] = useState<Record<string, boolean>>({});
   const [emailProvider, setEmailProvider] = useState<"gmail" | "outlook">("gmail");
-  const [emailMarketplace, setEmailMarketplace] = useState<"tcgplayer" | "ebay" | "shopify">("tcgplayer");
+  const [emailMarketplace, setEmailMarketplace] = useState("tcgplayer");
   const [emailSetupStep, setEmailSetupStep] = useState(1);
   const [importAddress, setImportAddress] = useState("orders+your-workspace@inbound.tradingdocks.com");
 
@@ -448,14 +448,14 @@ export function MarketplaceWorkspace() {
     setSaving(false);
   }
 
-  async function saveConnection() {
-    if (!selected) return;
+  async function saveConnection(): Promise<boolean> {
+    if (!selected) return false;
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setNotice("Your session expired. Sign in again.");
       setSaving(false);
-      return;
+      return false;
     }
     const nextStatus: ConnectionStatus =
       method === "manual" || method === "csv" ? "ready" : "setup_required";
@@ -490,6 +490,31 @@ export function MarketplaceWorkspace() {
       );
     }
     setSaving(false);
+    return !error;
+  }
+
+  async function continueSetup() {
+    if (!selected) return;
+    const marketplaceId = selected.id;
+    const marketplaceName = selected.name;
+    const selectedMethod = method;
+    const saved = await saveConnection();
+    if (!saved) return;
+
+    if (selectedMethod === "email") {
+      setEmailMarketplace(marketplaceId);
+      setEmailSetupStep(1);
+      setSelected(null);
+      setActiveView("email");
+      setNotice(`${marketplaceName} selected. Start with Step 1 below.`);
+      return;
+    }
+
+    if (selectedMethod === "csv" && marketplaceId === "tcgplayer") {
+      setSelected(null);
+      setActiveView("semi-sync");
+      setNotice("TCGplayer selected. Choose an inventory or order CSV below.");
+    }
   }
 
   async function inspectCsv(file: File) {
@@ -784,7 +809,7 @@ export function MarketplaceWorkspace() {
                 </div>
                 ) : null;
               })()}
-              {method !== "api" ? <button type="button" disabled={saving || !databaseReady} onClick={() => void saveConnection()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save connection plan</button> : null}
+              {method !== "api" ? <button type="button" disabled={saving || !databaseReady} onClick={() => void continueSetup()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{method === "email" ? "Open email setup" : method === "csv" && selected.id === "tcgplayer" ? "Open CSV importer" : "Save connection plan"}</button> : null}
             </div>
           </div>
         </div>
@@ -815,14 +840,15 @@ function SetupGuide({ title, steps, compact = false }: { title: string; steps: r
 function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, onNotice }: {
   provider: "gmail" | "outlook";
   setProvider: (value: "gmail" | "outlook") => void;
-  marketplace: "tcgplayer" | "ebay" | "shopify";
-  setMarketplace: (value: "tcgplayer" | "ebay" | "shopify") => void;
+  marketplace: string;
+  setMarketplace: (value: string) => void;
   step: number;
   setStep: (value: number) => void;
   importAddress: string;
   onNotice: (value: string) => void;
 }) {
-  const marketplaceName = marketplace === "tcgplayer" ? "TCGplayer" : marketplace === "ebay" ? "eBay" : "Shopify";
+  const emailMarketplaces = marketplaces.filter((item) => item.methods.includes("email"));
+  const marketplaceName = emailMarketplaces.find((item) => item.id === marketplace)?.name ?? "marketplace";
   const instructions = provider === "gmail"
     ? [
         "Open Gmail on a computer and select the gear icon in the upper-right corner.",
@@ -877,7 +903,7 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
           <p className="mt-2 text-xs leading-5 text-slate-500">Choose the email service you personally open to read new-order messages. This is not asking which marketplace you sell on.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">{(["gmail", "outlook"] as const).map((item) => <button key={item} type="button" onClick={() => setProvider(item)} className={`flex items-center gap-3 rounded-2xl border p-4 text-left ${provider === item ? "border-cyan-300/25 bg-cyan-300/[.06]" : "border-white/[.07] bg-black/10"}`}><Mail className={`h-5 w-5 ${provider === item ? "text-cyan-300" : "text-slate-600"}`} /><div><p className="text-xs font-semibold text-white">{item === "gmail" ? "Gmail" : "Outlook / Microsoft"}</p><p className="mt-1 text-[9px] text-slate-600">I read my order emails here</p></div>{provider === item ? <Check className="ml-auto h-4 w-4 text-cyan-300" /> : null}</button>)}</div>
           <h3 className="mt-6 text-sm font-semibold text-white">Which orders should we look for first?</h3>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">{(["tcgplayer", "ebay", "shopify"] as const).map((item) => <button key={item} type="button" onClick={() => setMarketplace(item)} className={`rounded-xl border px-3 py-3 text-xs font-semibold ${marketplace === item ? "border-cyan-300/25 bg-cyan-300/[.06] text-cyan-100" : "border-white/[.07] text-slate-500"}`}>{item === "tcgplayer" ? "TCGplayer" : item === "ebay" ? "eBay" : "Shopify"}</button>)}</div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">{emailMarketplaces.map((item) => <button key={item.id} type="button" onClick={() => setMarketplace(item.id)} className={`rounded-xl border px-3 py-3 text-xs font-semibold ${marketplace === item.id ? "border-cyan-300/25 bg-cyan-300/[.06] text-cyan-100" : "border-white/[.07] text-slate-500"}`}>{item.name}</button>)}</div>
           <button type="button" onClick={() => setStep(2)} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950">Show my {provider === "gmail" ? "Gmail" : "Outlook"} instructions <ArrowRight className="h-4 w-4" /></button>
         </> : null}
 
