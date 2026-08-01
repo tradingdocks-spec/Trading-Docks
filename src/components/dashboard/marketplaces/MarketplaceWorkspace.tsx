@@ -23,6 +23,10 @@ import {
   Store,
   Upload,
   X,
+  LockKeyhole,
+  MousePointerClick,
+  Send,
+  Sparkles,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
@@ -310,6 +314,10 @@ export function MarketplaceWorkspace() {
   const [savedCredentials, setSavedCredentials] = useState<Record<string, SavedCredentials>>({});
   const [checkingCredentials, setCheckingCredentials] = useState(false);
   const [editingCredentials, setEditingCredentials] = useState<Record<string, boolean>>({});
+  const [emailProvider, setEmailProvider] = useState<"gmail" | "outlook">("gmail");
+  const [emailMarketplace, setEmailMarketplace] = useState<"tcgplayer" | "ebay" | "shopify">("tcgplayer");
+  const [emailSetupStep, setEmailSetupStep] = useState(1);
+  const [importAddress, setImportAddress] = useState("orders+your-workspace@inbound.tradingdocks.com");
 
   const loadCredentialStatus = useCallback(async (marketplaceId: string) => {
     setCheckingCredentials(true);
@@ -363,6 +371,8 @@ export function MarketplaceWorkspace() {
       } else {
         setConnections((data ?? []) as SavedConnection[]);
       }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setImportAddress(`orders+td_${user.id.replace(/-/g, "").slice(0, 10)}@inbound.tradingdocks.com`);
       setLoading(false);
     })();
   }, [loadCredentialStatus, supabase]);
@@ -631,14 +641,16 @@ export function MarketplaceWorkspace() {
       ) : null}
 
       {activeView === "email" ? (
-        <section className="grid gap-5 lg:grid-cols-3">
-          <EmailMethod icon={KeyRound} title="Gmail OAuth" detail="Authorize read-only access to matching order emails. Trading Docks should never receive the Gmail password." status="Provider setup required" />
-          <EmailMethod icon={KeyRound} title="Outlook OAuth" detail="Authorize a Microsoft mailbox and limit processing to marketplace order messages." status="Provider setup required" />
-          <EmailMethod icon={Inbox} title="Email forwarding" detail="Forward marketplace order notices to a unique Trading Docks inbound address once the inbound-email provider is configured." status="Inbound domain required" />
-          <div className="lg:col-span-3 rounded-[24px] border border-emerald-300/10 bg-emerald-300/[.025] p-5">
-            <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" /><div><h3 className="text-sm font-semibold text-emerald-100">Safe order-email design</h3><p className="mt-2 text-xs leading-5 text-emerald-100/55">Only messages matching approved marketplace senders and order patterns should be processed. Store extracted order fields—not the complete mailbox—and require confirmation before ambiguous messages reduce inventory.</p></div></div>
-          </div>
-        </section>
+        <EmailImportSetup
+          provider={emailProvider}
+          setProvider={setEmailProvider}
+          marketplace={emailMarketplace}
+          setMarketplace={setEmailMarketplace}
+          step={emailSetupStep}
+          setStep={setEmailSetupStep}
+          importAddress={importAddress}
+          onNotice={setNotice}
+        />
       ) : null}
 
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[180] max-w-sm rounded-2xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs font-medium leading-5 text-cyan-100 shadow-2xl">{notice}</div> : null}
@@ -800,6 +812,101 @@ function SetupGuide({ title, steps, compact = false }: { title: string; steps: r
   return <div className={`rounded-[24px] border border-white/[.08] bg-[#07141e] ${compact ? "p-4" : "p-6"}`}><p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">{title}</p><div className="mt-4 space-y-3">{steps.map((step, index) => <div key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[.05] text-[9px] font-bold text-cyan-200">{index + 1}</span><p className="pt-0.5 text-[11px] leading-5 text-slate-500">{step}</p></div>)}</div></div>;
 }
 
-function EmailMethod({ icon: Icon, title, detail, status }: { icon: typeof Mail; title: string; detail: string; status: string }) {
-  return <article className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5"><div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-300/[.05]"><Icon className="h-5 w-5 text-cyan-300" /></div><h2 className="mt-4 text-sm font-semibold text-white">{title}</h2><p className="mt-2 min-h-16 text-[11px] leading-5 text-slate-500">{detail}</p><div className="mt-4 flex items-center gap-2 rounded-xl border border-amber-300/10 bg-amber-300/[.025] px-3 py-2 text-[9px] font-semibold uppercase tracking-[.12em] text-amber-200"><RefreshCw className="h-3 w-3" />{status}</div></article>;
+function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, onNotice }: {
+  provider: "gmail" | "outlook";
+  setProvider: (value: "gmail" | "outlook") => void;
+  marketplace: "tcgplayer" | "ebay" | "shopify";
+  setMarketplace: (value: "tcgplayer" | "ebay" | "shopify") => void;
+  step: number;
+  setStep: (value: number) => void;
+  importAddress: string;
+  onNotice: (value: string) => void;
+}) {
+  const marketplaceName = marketplace === "tcgplayer" ? "TCGplayer" : marketplace === "ebay" ? "eBay" : "Shopify";
+  const instructions = provider === "gmail"
+    ? [
+        "Open Gmail on a computer and select the gear icon in the upper-right corner.",
+        "Select “See all settings,” then open the “Forwarding and POP/IMAP” tab.",
+        `Select “Add a forwarding address” and paste your private Trading Docks address shown on this page.`,
+        "Gmail will send a confirmation message. Return to Trading Docks and select “Check for confirmation.”",
+        `In Gmail, create a filter for ${marketplaceName} order emails and choose “Forward it to” your Trading Docks address.`,
+      ]
+    : [
+        "Open Outlook on a computer and select the gear icon in the upper-right corner.",
+        "Select “Mail,” then “Rules,” then choose “Add new rule.”",
+        `Name the rule “Trading Docks — ${marketplaceName} orders.”`,
+        `Set the condition to messages from ${marketplaceName}, then choose the action “Forward to.”`,
+        "Paste your private Trading Docks address, save the rule, and return here to verify it.",
+      ];
+  const steps = [
+    { title: "Choose what you use", detail: "Tell us where your order emails arrive and which marketplace you want to import." },
+    { title: "Add your private address", detail: "Follow the exact forwarding directions. No password or full mailbox access is needed." },
+    { title: "Verify one message", detail: "We confirm the first forwarded order before automatic importing can begin." },
+  ];
+
+  async function copyAddress() {
+    try {
+      await navigator.clipboard.writeText(importAddress);
+      onNotice("Private import address copied. Email receiving is not active yet, so do not forward live orders until this page says Active.");
+    } catch {
+      onNotice("Select the address and copy it manually.");
+    }
+  }
+
+  return <section className="space-y-5">
+    <div className="overflow-hidden rounded-[26px] border border-cyan-300/15 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,.09),transparent_38%),#07141e] p-6 sm:p-7">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-3xl">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.17em] text-cyan-300"><Sparkles className="h-4 w-4" />Automatic order import by email</div>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">Forward order emails. We organize the rest.</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-400">Trading Docks gives this workspace one private email address. You tell Gmail or Outlook to forward only marketplace order messages to it. We then identify the order, prevent duplicates, and send uncertain cards to review.</p>
+        </div>
+        <div className="shrink-0 rounded-2xl border border-amber-300/15 bg-amber-300/[.04] px-4 py-3">
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] text-amber-200"><RefreshCw className="h-3.5 w-3.5" />Coming soon</p>
+          <p className="mt-1 max-w-[220px] text-[10px] leading-4 text-amber-100/55">Setup preview only. Email receiving must be activated before forwarding live orders.</p>
+        </div>
+      </div>
+      <div className="mt-6 grid gap-3 md:grid-cols-3">{steps.map((item, index) => <button key={item.title} type="button" onClick={() => setStep(index + 1)} className={`rounded-2xl border p-4 text-left transition ${step === index + 1 ? "border-cyan-300/25 bg-cyan-300/[.06]" : "border-white/[.07] bg-black/10 hover:border-white/[.12]"}`}><div className="flex items-center gap-3"><span className={`grid h-7 w-7 place-items-center rounded-lg text-[10px] font-bold ${step === index + 1 ? "bg-cyan-300 text-slate-950" : "bg-white/[.05] text-slate-500"}`}>{index + 1}</span><p className="text-xs font-semibold text-white">{item.title}</p></div><p className="mt-3 text-[10px] leading-5 text-slate-500">{item.detail}</p></button>)}</div>
+    </div>
+
+    <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
+      <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5 sm:p-6">
+        {step === 1 ? <>
+          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-cyan-300">Step 1 of 3</p>
+          <h3 className="mt-2 text-lg font-semibold text-white">Where do your order emails arrive?</h3>
+          <p className="mt-2 text-xs leading-5 text-slate-500">Choose the email service you personally open to read new-order messages. This is not asking which marketplace you sell on.</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">{(["gmail", "outlook"] as const).map((item) => <button key={item} type="button" onClick={() => setProvider(item)} className={`flex items-center gap-3 rounded-2xl border p-4 text-left ${provider === item ? "border-cyan-300/25 bg-cyan-300/[.06]" : "border-white/[.07] bg-black/10"}`}><Mail className={`h-5 w-5 ${provider === item ? "text-cyan-300" : "text-slate-600"}`} /><div><p className="text-xs font-semibold text-white">{item === "gmail" ? "Gmail" : "Outlook / Microsoft"}</p><p className="mt-1 text-[9px] text-slate-600">I read my order emails here</p></div>{provider === item ? <Check className="ml-auto h-4 w-4 text-cyan-300" /> : null}</button>)}</div>
+          <h3 className="mt-6 text-sm font-semibold text-white">Which orders should we look for first?</h3>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">{(["tcgplayer", "ebay", "shopify"] as const).map((item) => <button key={item} type="button" onClick={() => setMarketplace(item)} className={`rounded-xl border px-3 py-3 text-xs font-semibold ${marketplace === item ? "border-cyan-300/25 bg-cyan-300/[.06] text-cyan-100" : "border-white/[.07] text-slate-500"}`}>{item === "tcgplayer" ? "TCGplayer" : item === "ebay" ? "eBay" : "Shopify"}</button>)}</div>
+          <button type="button" onClick={() => setStep(2)} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950">Show my {provider === "gmail" ? "Gmail" : "Outlook"} instructions <ArrowRight className="h-4 w-4" /></button>
+        </> : null}
+
+        {step === 2 ? <>
+          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-cyan-300">Step 2 of 3 · {provider === "gmail" ? "Gmail" : "Outlook"}</p>
+          <h3 className="mt-2 text-lg font-semibold text-white">Follow these steps one at a time</h3>
+          <p className="mt-2 text-xs leading-5 text-slate-500">Keep Trading Docks open in this tab. Open your email in a second tab, then return here after each step if you need help.</p>
+          <div className="mt-5 space-y-3">{instructions.map((item, index) => <div key={item} className="flex gap-3 rounded-2xl border border-white/[.065] bg-black/10 p-4"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-cyan-300/[.08] text-[10px] font-bold text-cyan-200">{index + 1}</span><p className="text-[11px] leading-5 text-slate-300">{item}</p></div>)}</div>
+          <div className="mt-5 flex gap-2"><button type="button" onClick={() => setStep(1)} className="h-11 rounded-xl border border-white/[.08] px-4 text-xs font-semibold text-slate-400">Back</button><button type="button" onClick={() => setStep(3)} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950">I finished the email steps <ArrowRight className="h-4 w-4" /></button></div>
+        </> : null}
+
+        {step === 3 ? <>
+          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-cyan-300">Step 3 of 3</p>
+          <h3 className="mt-2 text-lg font-semibold text-white">Verify your first forwarded order</h3>
+          <p className="mt-2 text-xs leading-5 text-slate-500">After email receiving is activated, Trading Docks will wait for one {marketplaceName} message. We will show exactly what was recognized before any inventory is changed.</p>
+          <div className="mt-5 rounded-2xl border border-amber-300/14 bg-amber-300/[.035] p-5 text-center"><RefreshCw className="mx-auto h-6 w-6 text-amber-300" /><p className="mt-3 text-sm font-semibold text-amber-100">Verification is not active yet</p><p className="mx-auto mt-2 max-w-md text-[10px] leading-5 text-amber-100/55">Do not forward a live order yet. This button will become available when the secure inbound-email processor is connected.</p><button type="button" disabled className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-white/[.05] px-4 text-[10px] font-bold text-slate-600"><Send className="h-3.5 w-3.5" />Check for confirmation</button></div>
+          <button type="button" onClick={() => setStep(2)} className="mt-4 h-10 rounded-xl border border-white/[.08] px-4 text-xs font-semibold text-slate-400">Back to instructions</button>
+        </> : null}
+      </div>
+
+      <aside className="space-y-4">
+        <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">Your workspace’s private address</p>
+          <div className="mt-3 flex gap-2"><input readOnly value={importAddress} onFocus={(event) => event.currentTarget.select()} className="min-w-0 flex-1 rounded-xl border border-white/[.08] bg-black/20 px-3 font-mono text-[10px] text-slate-300 outline-none" /><button type="button" onClick={() => void copyAddress()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-cyan-300/15 text-cyan-300 hover:bg-cyan-300/[.05]" aria-label="Copy private import address"><Copy className="h-4 w-4" /></button></div>
+          <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300/12 bg-amber-300/[.03] p-3"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[9px] leading-4 text-amber-100/55"><strong className="text-amber-100">Preview address:</strong> It is unique to this workspace, but it cannot receive messages until the email service is activated.</p></div>
+        </div>
+        <div className="rounded-[24px] border border-emerald-300/10 bg-emerald-300/[.025] p-5"><div className="flex items-start gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" /><div><h3 className="text-sm font-semibold text-emerald-100">We do not open your inbox</h3><p className="mt-2 text-[11px] leading-5 text-emerald-100/55">You forward only marketplace order emails. Trading Docks never receives your Gmail or Outlook password and cannot read personal messages left in your mailbox.</p></div></div></div>
+        <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">What happens to an order?</p><div className="mt-4 space-y-3">{[[Inbox, "Email arrives", "Only forwarded messages reach Trading Docks."], [MousePointerClick, "Order is recognized", "We extract the order number, items, quantity, and price."], [ShieldCheck, "You stay in control", "Uncertain cards go to review before inventory changes."]].map(([Icon, title, detail]) => { const StepIcon = Icon as typeof Inbox; return <div key={String(title)} className="flex gap-3"><div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-cyan-300/[.05]"><StepIcon className="h-4 w-4 text-cyan-300" /></div><div><p className="text-[11px] font-semibold text-slate-200">{String(title)}</p><p className="mt-1 text-[9px] leading-4 text-slate-600">{String(detail)}</p></div></div>; })}</div></div>
+      </aside>
+    </div>
+  </section>;
 }
