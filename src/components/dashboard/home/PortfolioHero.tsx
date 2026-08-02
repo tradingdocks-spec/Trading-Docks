@@ -13,7 +13,7 @@ import {
 
 export function PortfolioHero() {
   return (
-    <section className="portfolio-hero group relative overflow-hidden rounded-[30px] border border-cyan-200/[0.11] bg-[#03121b]/94 shadow-[0_30px_95px_rgba(0,0,0,0.36)] backdrop-blur-2xl">
+    <section className="portfolio-hero group relative overflow-hidden rounded-[30px] border border-blue-200/[0.11] bg-[#03121b]/94 shadow-[0_30px_95px_rgba(0,0,0,0.36)] backdrop-blur-2xl">
       <HeroBackground />
 
       <div className="relative grid min-h-[265px] gap-9 px-7 py-8 sm:px-9 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-center lg:px-10">
@@ -167,7 +167,7 @@ export function PortfolioHero() {
 
 function PortfolioSummary() {
   return (
-    <div className="relative min-h-[202px] overflow-hidden rounded-[27px] border border-cyan-200/[0.14] bg-gradient-to-br from-[#071d2a]/95 via-[#061924]/94 to-[#081426]/95 p-6 shadow-[0_24px_75px_rgba(0,0,0,0.34),inset_0_1px_rgba(255,255,255,0.035)] transition duration-500 group-hover:border-cyan-200/[0.23] group-hover:shadow-[0_28px_90px_rgba(0,0,0,0.42),0_0_38px_rgba(34,211,238,0.055)]">
+    <div className="relative min-h-[202px] overflow-hidden rounded-[27px] border border-blue-200/[0.14] bg-gradient-to-br from-[#071d2a]/95 via-[#061924]/94 to-[#081426]/95 p-6 shadow-[0_24px_75px_rgba(0,0,0,0.34),inset_0_1px_rgba(255,255,255,0.035)] transition duration-500 group-hover:border-blue-200/[0.23] group-hover:shadow-[0_28px_90px_rgba(0,0,0,0.42),0_0_38px_rgba(59,130,246,0.055)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(13,207,239,0.115),transparent_31%),radial-gradient(circle_at_100%_0%,rgba(29,104,184,0.08),transparent_38%)]" />
 
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-[#24dff5]/50 to-transparent" />
@@ -177,8 +177,8 @@ function PortfolioSummary() {
       <div className="relative z-10 flex h-full items-center justify-between gap-5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-300/[0.16] bg-cyan-400/[0.055]">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_9px_rgba(103,232,249,0.75)]" />
+            <div className="flex h-5 w-5 items-center justify-center rounded-full border border-blue-300/[0.16] bg-blue-400/[0.055]">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-300 shadow-[0_0_9px_rgba(103,232,249,0.75)]" />
             </div>
 
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#71869d]">
@@ -197,12 +197,12 @@ function PortfolioSummary() {
             </div>
 
             <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-[#7e94a8]">
-              <TrendingUp className="h-3.5 w-3.5 text-cyan-300" />
+              <TrendingUp className="h-3.5 w-3.5 text-blue-300" />
               0.00%
             </div>
           </div>
 
-          <div className="mt-5 h-px w-full bg-gradient-to-r from-cyan-300/[0.26] via-cyan-300/[0.08] to-transparent" />
+          <div className="mt-5 h-px w-full bg-gradient-to-r from-blue-300/[0.26] via-blue-300/[0.08] to-transparent" />
 
           <p className="mt-3 text-[9px] text-[#53697c]">
             Add inventory to begin tracking value
@@ -218,15 +218,15 @@ function PortfolioSummary() {
 function PortfolioBrandMark() {
   return (
     <div className="relative hidden h-32 w-32 shrink-0 items-center justify-center sm:flex">
-      <div className="portfolio-ring-one absolute h-[96px] w-[126px] rounded-[50%] border border-cyan-300/[0.15]" />
+      <div className="portfolio-ring-one absolute h-[96px] w-[126px] rounded-[50%] border border-blue-300/[0.15]" />
       <div className="portfolio-ring-two absolute h-[72px] w-[112px] rounded-[50%] border border-sky-500/[0.16]" />
-      <div className="absolute h-[88px] w-[88px] rounded-full bg-cyan-400/[0.09] blur-2xl" />
+      <div className="absolute h-[88px] w-[88px] rounded-full bg-blue-400/[0.09] blur-2xl" />
       <Image
         src="/brand/trading-docks-mark.png"
         alt=""
         width={1024}
         height={1024}
-        className="portfolio-logo relative h-[86px] w-[86px] object-contain drop-shadow-[0_0_24px_rgba(34,211,238,0.22)]"
+        className="portfolio-logo relative h-[86px] w-[86px] object-contain drop-shadow-[0_0_24px_rgba(59,130,246,0.22)]"
       />
     </div>
   );
@@ -240,8 +240,8 @@ function HeroBadge({
   label: string;
 }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.2] bg-cyan-400/[0.055] px-3.5 py-1.5 text-[10px] font-semibold text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,0.045)] transition duration-300 hover:border-cyan-300/[0.35] hover:bg-cyan-400/[0.09] hover:shadow-[0_0_28px_rgba(34,211,238,0.09)]">
-      <Icon className="h-3.5 w-3.5 text-cyan-300" />
+    <div className="inline-flex items-center gap-2 rounded-full border border-blue-300/[0.2] bg-blue-400/[0.055] px-3.5 py-1.5 text-[10px] font-semibold text-blue-100 shadow-[0_0_24px_rgba(59,130,246,0.045)] transition duration-300 hover:border-blue-300/[0.35] hover:bg-blue-400/[0.09] hover:shadow-[0_0_28px_rgba(59,130,246,0.09)]">
+      <Icon className="h-3.5 w-3.5 text-blue-300" />
       {label}
     </div>
   );
@@ -256,8 +256,8 @@ function HeroStatus({
 }) {
   return (
     <div className="group/status flex items-center gap-2 text-xs text-[#667c90]">
-      <div className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-300/[0.14] bg-cyan-400/[0.045] transition duration-300 group-hover/status:border-cyan-300/[0.28] group-hover/status:bg-cyan-400/[0.09] group-hover/status:shadow-[0_0_15px_rgba(34,211,238,0.08)]">
-        <Icon className="h-3 w-3 text-cyan-300" />
+      <div className="flex h-5 w-5 items-center justify-center rounded-full border border-blue-300/[0.14] bg-blue-400/[0.045] transition duration-300 group-hover/status:border-blue-300/[0.28] group-hover/status:bg-blue-400/[0.09] group-hover/status:shadow-[0_0_15px_rgba(59,130,246,0.08)]">
+        <Icon className="h-3 w-3 text-blue-300" />
       </div>
 
       {label}
@@ -283,7 +283,7 @@ function HeroBackground() {
 
       <div className="absolute inset-x-28 top-0 h-px bg-gradient-to-r from-transparent via-[#24dff5]/45 to-transparent" />
 
-      <div className="absolute bottom-[-140px] right-[3%] h-80 w-80 rounded-full bg-cyan-400/[0.045] blur-[120px]" />
+      <div className="absolute bottom-[-140px] right-[3%] h-80 w-80 rounded-full bg-blue-400/[0.045] blur-[120px]" />
 
       <div className="absolute right-[-80px] top-[-110px] h-80 w-80 rounded-full bg-blue-600/[0.04] blur-[130px]" />
     </div>

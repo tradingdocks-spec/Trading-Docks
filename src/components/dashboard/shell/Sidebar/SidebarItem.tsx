@@ -41,12 +41,12 @@ export function SidebarItem({
           ? "mx-auto w-10 justify-center px-0"
           : "w-full gap-3 px-3",
         isActive
-          ? "border-cyan-300/[0.12] bg-cyan-400/[0.075] text-white shadow-[0_0_26px_rgba(34,211,238,0.045)]"
+          ? "border-blue-300/[0.12] bg-blue-400/[0.075] text-white shadow-[0_0_26px_rgba(59,130,246,0.045)]"
           : "border-transparent text-slate-500 hover:border-white/[0.05] hover:bg-white/[0.035] hover:text-slate-200",
       ].join(" ")}
     >
       {isActive ? (
-        <span className="absolute -left-px top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.8)]" />
+        <span className="absolute -left-px top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-blue-300 shadow-[0_0_12px_rgba(103,232,249,0.8)]" />
       ) : null}
 
       <Icon
@@ -54,7 +54,7 @@ export function SidebarItem({
         className={[
           "h-[17px] w-[17px] shrink-0 transition-colors",
           isActive
-            ? "text-cyan-300"
+            ? "text-blue-300"
             : "text-slate-600 group-hover:text-slate-300",
         ].join(" ")}
       />

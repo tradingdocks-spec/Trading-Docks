@@ -17,7 +17,7 @@ export function BrandMark({
       className="group inline-flex items-center gap-4"
     >
       <span className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center">
-        <span className="absolute inset-2 rounded-[22px] bg-cyan-400/[0.15] blur-2xl transition duration-500 group-hover:bg-cyan-300/[0.24]" />
+        <span className="absolute inset-2 rounded-[22px] bg-blue-400/[0.15] blur-2xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
 
         <Image
           src="/trading-docks-mark.png"

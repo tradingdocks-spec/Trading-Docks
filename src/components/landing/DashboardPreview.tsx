@@ -21,7 +21,7 @@ const BARS = [34, 48, 41, 60, 52, 72, 64, 81, 74, 92, 86, 100];
 export function DashboardPreview() {
   return (
     <div className={`${styles.dashboardFloat} relative mx-auto w-full max-w-[735px] lg:-translate-y-6`}>
-      <div className="pointer-events-none absolute inset-x-[-2%] top-[8%] h-[86%] rounded-full bg-cyan-400/[0.11] blur-[135px]" />
+      <div className="pointer-events-none absolute inset-x-[-2%] top-[8%] h-[86%] rounded-full bg-blue-400/[0.11] blur-[135px]" />
 
       <FloatingStatus
         className="-left-12 top-[22%] hidden xl:flex"
@@ -45,7 +45,7 @@ export function DashboardPreview() {
       />
 
       <div
-        className={`${styles.dashboardShell} relative overflow-visible rounded-[28px] border border-cyan-300/20 bg-[#06131d]/94 shadow-[0_48px_140px_rgba(0,0,0,0.58),0_0_96px_rgba(34,211,238,0.07)] backdrop-blur-2xl`}
+        className={`${styles.dashboardShell} relative overflow-visible rounded-[28px] border border-blue-300/20 bg-[#06131d]/94 shadow-[0_48px_140px_rgba(0,0,0,0.58),0_0_96px_rgba(59,130,246,0.07)] backdrop-blur-2xl`}
       >
         <div className={`${styles.dashboardContent} overflow-hidden rounded-[28px]`}>
           <div className="flex h-11 items-center justify-between border-b border-white/[0.06] bg-white/[0.015] px-4">
@@ -55,7 +55,7 @@ export function DashboardPreview() {
               <span className="h-2 w-2 rounded-full bg-emerald-300/80" />
             </div>
 
-            <div className="flex items-center gap-2 rounded-full border border-cyan-300/10 bg-cyan-300/[0.035] px-2.5 py-1 text-[8px] text-cyan-100/70">
+            <div className="flex items-center gap-2 rounded-full border border-blue-300/10 bg-blue-300/[0.035] px-2.5 py-1 text-[8px] text-blue-100/70">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,.8)]" />
               Product preview
             </div>
@@ -145,7 +145,7 @@ function Metric({
           {label}
         </p>
 
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-cyan-300/10 bg-cyan-300/[0.045] text-cyan-300/80 transition group-hover:border-cyan-300/18 group-hover:bg-cyan-300/[0.07] group-hover:text-cyan-200">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg border border-blue-300/10 bg-blue-300/[0.045] text-blue-300/80 transition group-hover:border-blue-300/18 group-hover:bg-blue-300/[0.07] group-hover:text-blue-200">
           <Icon className="h-3 w-3" />
         </span>
       </div>
@@ -178,7 +178,7 @@ function PortfolioChart() {
       </div>
 
       <div className={`${styles.chartPulse} relative mt-3.5 h-[160px] overflow-hidden rounded-xl border border-white/[0.04] bg-[#02080d] px-3.5 pb-6 pt-4`}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_12%,rgba(34,211,238,0.06),transparent_34%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_12%,rgba(59,130,246,0.06),transparent_34%)]" />
         <span className={styles.chartTravelLight} />
 
         {[25, 50, 75].map((top) => (
@@ -193,7 +193,7 @@ function PortfolioChart() {
           {BARS.map((height, index) => (
             <div key={index} className="flex h-full min-w-0 flex-1 items-end">
               <div
-                className={`${styles.chartBar} relative w-full rounded-t-[6px] bg-gradient-to-t from-cyan-600/52 via-cyan-400/72 to-cyan-200/92 shadow-[0_0_14px_rgba(34,211,238,0.065)]`}
+                className={`${styles.chartBar} relative w-full rounded-t-[6px] bg-gradient-to-t from-blue-600/52 via-blue-400/72 to-blue-200/92 shadow-[0_0_14px_rgba(59,130,246,0.065)]`}
                 style={{
                   height: `${height}%`,
                   animationDelay: `${180 + index * 55}ms`,
@@ -229,7 +229,7 @@ function LiveActivity() {
           <p className="mt-1 text-[7px] text-slate-600">Example activity</p>
         </div>
 
-        <Activity className="h-3.5 w-3.5 text-cyan-300/70" />
+        <Activity className="h-3.5 w-3.5 text-blue-300/70" />
       </div>
 
       <div className="mt-3 space-y-2.5">
@@ -264,7 +264,7 @@ function FloatingStatus({
 }) {
   return (
     <div
-      className={`${styles.floatingStatus} absolute z-20 items-center gap-3 rounded-2xl border border-cyan-300/18 bg-[#06131d]/92 px-4 py-3 shadow-[0_24px_60px_rgba(0,0,0,.42)] backdrop-blur-xl ${className}`}
+      className={`${styles.floatingStatus} absolute z-20 items-center gap-3 rounded-2xl border border-blue-300/18 bg-[#06131d]/92 px-4 py-3 shadow-[0_24px_60px_rgba(0,0,0,.42)] backdrop-blur-xl ${className}`}
     >
       <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,.8)]" />
 

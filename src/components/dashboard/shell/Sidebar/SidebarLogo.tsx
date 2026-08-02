@@ -13,14 +13,14 @@ export function SidebarLogo({ collapsed }: SidebarLogoProps) {
       ].join(" ")}
     >
       <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
-        <div className="absolute inset-1 rounded-2xl bg-cyan-400/[0.14] blur-xl" />
+        <div className="absolute inset-1 rounded-2xl bg-blue-400/[0.14] blur-xl" />
         <Image
           src="/brand/trading-docks-mark.png"
           alt=""
           width={1024}
           height={1024}
           priority
-          className="relative h-10 w-10 object-contain drop-shadow-[0_0_14px_rgba(34,211,238,0.18)]"
+          className="relative h-10 w-10 object-contain drop-shadow-[0_0_14px_rgba(59,130,246,0.18)]"
         />
       </div>
 
@@ -29,7 +29,7 @@ export function SidebarLogo({ collapsed }: SidebarLogoProps) {
           <p className="truncate text-sm font-semibold tracking-tight text-white">
             Trading Docks
           </p>
-          <p className="truncate text-[9px] font-medium uppercase tracking-[0.19em] text-cyan-300/55">
+          <p className="truncate text-[9px] font-medium uppercase tracking-[0.19em] text-blue-300/55">
             Collectibles OS
           </p>
         </div>

@@ -22,7 +22,7 @@ export function DashboardHome() {
   return (
     <div className="relative min-h-full overflow-hidden">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-[7%] top-[-100px] h-[500px] w-[500px] rounded-full bg-cyan-400/[0.04] blur-[170px]" />
+        <div className="absolute left-[7%] top-[-100px] h-[500px] w-[500px] rounded-full bg-blue-400/[0.04] blur-[170px]" />
         <div className="absolute right-[4%] top-[20%] h-[420px] w-[420px] rounded-full bg-blue-500/[0.025] blur-[170px]" />
         <div
           className="absolute inset-0 opacity-[0.12]"
@@ -36,14 +36,14 @@ export function DashboardHome() {
       </div>
 
       <div className="relative mx-auto flex w-full max-w-[1640px] flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/[0.13] bg-[#06131d]/88 p-6 shadow-[0_32px_100px_rgba(0,0,0,0.34),0_0_80px_rgba(34,211,238,0.04)] backdrop-blur-2xl sm:p-8">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_38%,rgba(34,211,238,0.08),transparent_31%),linear-gradient(180deg,rgba(255,255,255,0.018),transparent_28%)]" />
-          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/45 to-transparent" />
+        <section className="relative overflow-hidden rounded-[30px] border border-blue-300/[0.13] bg-[#06131d]/88 p-6 shadow-[0_32px_100px_rgba(0,0,0,0.34),0_0_80px_rgba(59,130,246,0.04)] backdrop-blur-2xl sm:p-8">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_38%,rgba(59,130,246,0.08),transparent_31%),linear-gradient(180deg,rgba(255,255,255,0.018),transparent_28%)]" />
+          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/45 to-transparent" />
 
           <div className="relative grid gap-8 xl:grid-cols-[1.2fr_0.8fr] xl:items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.15] bg-cyan-400/[0.045] px-3 py-1.5 text-[10px] font-semibold text-cyan-100">
-                <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-300/[0.15] bg-blue-400/[0.045] px-3 py-1.5 text-[10px] font-semibold text-blue-100">
+                <Sparkles className="h-3.5 w-3.5 text-blue-300" />
                 Seller workspace
               </div>
 
@@ -56,14 +56,14 @@ export function DashboardHome() {
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <button className="group inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-5 text-xs font-semibold text-[#001018] shadow-[0_15px_34px_rgba(6,182,212,0.2),inset_0_1px_0_rgba(255,255,255,0.62)] transition hover:-translate-y-0.5">
+                <button className="group inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-blue-400 to-blue-600 px-5 text-xs font-semibold text-[#001018] shadow-[0_15px_34px_rgba(37,99,235,0.2),inset_0_1px_0_rgba(255,255,255,0.62)] transition hover:-translate-y-0.5">
                   <ScanLine className="h-4 w-4" />
                   Scan cards
                   <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </button>
 
-                <button className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-5 text-xs font-semibold text-slate-300 transition hover:-translate-y-0.5 hover:border-cyan-300/[0.15] hover:bg-cyan-400/[0.03]">
-                  <Zap className="h-4 w-4 text-cyan-300" />
+                <button className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-5 text-xs font-semibold text-slate-300 transition hover:-translate-y-0.5 hover:border-blue-300/[0.15] hover:bg-blue-400/[0.03]">
+                  <Zap className="h-4 w-4 text-blue-300" />
                   Run automation
                 </button>
               </div>
@@ -79,7 +79,7 @@ export function DashboardHome() {
             </div>
 
             <div className="relative overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#020a10]/88 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(34,211,238,0.08),transparent_32%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(59,130,246,0.08),transparent_32%)]" />
               <p className="relative text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-600">
                 Portfolio value
               </p>
@@ -94,7 +94,7 @@ export function DashboardHome() {
                 {Array.from({ length: 12 }, () => 0).map((height, index) => (
                   <div key={index} className="flex h-full flex-1 items-end">
                     <div
-                      className="w-full rounded-t-md bg-gradient-to-t from-cyan-600/45 via-cyan-400/70 to-cyan-200/95"
+                      className="w-full rounded-t-md bg-gradient-to-t from-blue-600/45 via-blue-400/70 to-blue-200/95"
                       style={{ height: `${Math.max(height, 2)}%` }}
                     />
                   </div>
@@ -108,9 +108,9 @@ export function DashboardHome() {
           {metrics.map(([label, value, detail, Icon]) => (
             <article
               key={label as string}
-              className="group relative overflow-hidden rounded-[22px] border border-white/[0.075] bg-[#07141e]/82 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.2)] transition duration-400 hover:-translate-y-1 hover:border-cyan-300/[0.16] hover:bg-[#081823]"
+              className="group relative overflow-hidden rounded-[22px] border border-white/[0.075] bg-[#07141e]/82 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.2)] transition duration-400 hover:-translate-y-1 hover:border-blue-300/[0.16] hover:bg-[#081823]"
             >
-              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-cyan-400/[0.045] blur-[55px] transition group-hover:bg-cyan-400/[0.08]" />
+              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-400/[0.045] blur-[55px] transition group-hover:bg-blue-400/[0.08]" />
               <div className="relative flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[9px] font-semibold uppercase tracking-[0.17em] text-slate-600">
@@ -121,7 +121,7 @@ export function DashboardHome() {
                   </p>
                 <p className="mt-2 text-xs font-medium text-slate-600">{detail as string}</p>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-300/[0.12] bg-blue-400/[0.05] text-blue-300">
                   <Icon className="h-4.5 w-4.5" />
                 </span>
               </div>
@@ -131,7 +131,7 @@ export function DashboardHome() {
 
         <section className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
           <div className="rounded-[26px] border border-white/[0.075] bg-[#06121b]/82 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">
               Revenue overview
             </p>
             <div className="mt-2 flex items-end justify-between gap-4">
@@ -143,7 +143,7 @@ export function DashboardHome() {
             </div>
 
             <div className="relative mt-6 h-[280px] overflow-hidden rounded-2xl border border-white/[0.05] bg-[#02090f] p-5">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(34,211,238,0.08),transparent_32%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(59,130,246,0.08),transparent_32%)]" />
               {[28, 50, 72].map((top) => (
                 <div key={top} className="absolute inset-x-5 border-t border-dashed border-white/[0.045]" style={{ top: `${top}%` }} />
               ))}
@@ -151,7 +151,7 @@ export function DashboardHome() {
                 {Array.from({ length: 12 }, () => 0).map((height, index) => (
                   <div key={index} className="flex h-full flex-1 items-end">
                     <div
-                      className="w-full rounded-t-lg bg-gradient-to-t from-cyan-600/45 via-cyan-400/70 to-cyan-200/95 shadow-[0_0_16px_rgba(34,211,238,0.07)]"
+                      className="w-full rounded-t-lg bg-gradient-to-t from-blue-600/45 via-blue-400/70 to-blue-200/95 shadow-[0_0_16px_rgba(59,130,246,0.07)]"
                       style={{ height: `${Math.max(height, 2)}%` }}
                     />
                   </div>
@@ -161,7 +161,7 @@ export function DashboardHome() {
           </div>
 
           <div className="rounded-[26px] border border-white/[0.075] bg-[#06121b]/82 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">
               Live activity
             </p>
             <h2 className="mt-2 text-lg font-semibold text-white">Recent updates</h2>
@@ -184,7 +184,7 @@ export function DashboardHome() {
             <div key={label as string} className="rounded-[22px] border border-white/[0.07] bg-white/[0.02] p-5">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-slate-300">{label as string}</p>
-                <Icon className="h-4 w-4 text-cyan-300" />
+                <Icon className="h-4 w-4 text-blue-300" />
               </div>
               <p className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-white">{value as string}</p>
             </div>

@@ -97,18 +97,18 @@ export function Topbar({
           type="button"
           onClick={onOpenMobile}
           aria-label="Open dashboard menu"
-          className="group flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.075] text-cyan-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,.04),0_7px_20px_rgba(8,145,178,.08)] outline-none transition-[filter,box-shadow,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-cyan-300/70 xl:hidden"
+          className="group flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-blue-300/[0.12] bg-blue-400/[0.075] text-blue-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,.04),0_7px_20px_rgba(8,145,178,.08)] outline-none transition-[filter,box-shadow,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-blue-300/70 xl:hidden"
         >
-          <Menu className="h-5 w-5 stroke-[2] drop-shadow-[0_0_7px_rgba(34,211,238,.16)] transition-transform duration-200 group-hover:-translate-y-px" />
+          <Menu className="h-5 w-5 stroke-[2] drop-shadow-[0_0_7px_rgba(59,130,246,.16)] transition-transform duration-200 group-hover:-translate-y-px" />
         </button>
 
         <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2.5 sm:hidden">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.055]">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-300/[0.12] bg-blue-400/[0.055]">
             <Image src="/trading-docks-mark.png" alt="" width={40} height={40} className="h-8 w-8 object-contain" />
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-semibold tracking-[-0.025em] text-white">Trading Docks</span>
-            <span className="mt-0.5 block text-[8px] font-semibold uppercase tracking-[0.17em] text-cyan-300/65">Command center</span>
+            <span className="mt-0.5 block text-[8px] font-semibold uppercase tracking-[0.17em] text-blue-300/65">Command center</span>
           </span>
         </Link>
 
@@ -118,7 +118,7 @@ export function Topbar({
           <Link
             href="/dashboard/inventory?create=card"
             aria-label="Add inventory"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.14] bg-cyan-400/[0.07] text-cyan-200 sm:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-300/[0.14] bg-blue-400/[0.07] text-blue-200 sm:hidden"
           >
             <Plus className="h-4 w-4" />
           </Link>
@@ -126,9 +126,9 @@ export function Topbar({
             type="button"
             onClick={() => setOpenMenu((value) => value === "create" ? null : "create")}
             aria-expanded={openMenu === "create"}
-            className="hidden h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.15] bg-cyan-400/[0.07] px-4 text-xs font-semibold text-cyan-100 transition hover:-translate-y-px hover:bg-cyan-400/[0.11] sm:flex"
+            className="hidden h-10 items-center gap-2 rounded-xl border border-blue-300/[0.15] bg-blue-400/[0.07] px-4 text-xs font-semibold text-blue-100 transition hover:-translate-y-px hover:bg-blue-400/[0.11] sm:flex"
           >
-            <Plus className="h-4 w-4 text-cyan-300" />
+            <Plus className="h-4 w-4 text-blue-300" />
             Create
           </button>
 
@@ -151,7 +151,7 @@ export function Topbar({
             aria-expanded={openMenu === "profile"}
             className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] p-1.5 pr-2 text-xs text-slate-400"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/[0.1] font-semibold text-cyan-200">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-400/[0.1] font-semibold text-blue-200">
               {initials}
             </span>
             <ChevronDown className="hidden h-3.5 w-3.5 text-slate-700 sm:block" />
@@ -172,10 +172,10 @@ export function Topbar({
             <TopbarMenu className="right-12 top-12 w-72">
               <MenuHeading title="Trading Docks" subtitle="Workspace and subscription" onClose={() => setOpenMenu(null)} />
               <div className="border-b border-white/[0.06] p-3">
-                <div className="rounded-xl border border-cyan-300/15 bg-cyan-400/[0.05] p-3">
+                <div className="rounded-xl border border-blue-300/15 bg-blue-400/[0.05] p-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-white">{PLAN_ENTITLEMENTS[plan].name} plan</span>
-                    <Check className="h-4 w-4 text-cyan-300" />
+                    <Check className="h-4 w-4 text-blue-300" />
                   </div>
                   <p className="mt-1 text-[10px] text-slate-500">
                     {PLAN_ENTITLEMENTS[plan].inventoryLimit.toLocaleString()} cards
@@ -223,5 +223,5 @@ function MenuHeading({ title, subtitle, onClose }: { title: string; subtitle: st
 }
 
 function MenuLink({ href, label, icon: Icon, onClick }: { href: string; label: string; icon: ComponentType<{ className?: string }>; onClick: () => void }) {
-  return <Link href={href} onClick={onClick} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-cyan-400/[0.055] hover:text-cyan-100"><Icon className="h-4 w-4 text-slate-500" /><span>{label}</span></Link>;
+  return <Link href={href} onClick={onClick} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-blue-400/[0.055] hover:text-blue-100"><Icon className="h-4 w-4 text-slate-500" /><span>{label}</span></Link>;
 }

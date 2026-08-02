@@ -15,10 +15,10 @@ type MetricCardProps = {
 
 const glowClasses = {
   cyan: {
-    border: "border-cyan-400/15",
-    background: "bg-cyan-400/[0.06]",
-    icon: "text-cyan-300",
-    hoverGlow: "group-hover:shadow-[0_0_45px_rgba(34,211,238,0.09)]",
+    border: "border-blue-400/15",
+    background: "bg-blue-400/[0.06]",
+    icon: "text-blue-300",
+    hoverGlow: "group-hover:shadow-[0_0_45px_rgba(59,130,246,0.09)]",
   },
   emerald: {
     border: "border-emerald-400/15",
@@ -62,7 +62,7 @@ export function MetricCard({
       ].join(" ")}
     >
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-        <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-cyan-400/[0.05] blur-3xl" />
+        <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-blue-400/[0.05] blur-3xl" />
       </div>
 
       <div className="relative flex items-start justify-between gap-4">

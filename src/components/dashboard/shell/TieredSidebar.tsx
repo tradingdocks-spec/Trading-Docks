@@ -81,14 +81,14 @@ export function TieredSidebar({
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-cyan-100/[0.08] bg-[#020b12]/[0.98] shadow-[22px_0_70px_rgba(0,0,0,0.48),0_0_50px_rgba(8,145,178,.05)] backdrop-blur-2xl transition-all duration-300 xl:w-auto",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-blue-100/[0.08] bg-[#020b12]/[0.98] shadow-[22px_0_70px_rgba(0,0,0,0.48),0_0_50px_rgba(8,145,178,.05)] backdrop-blur-2xl transition-all duration-300 xl:w-auto",
           collapsed ? "w-[88px]" : "w-[258px]",
           mobileOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0",
         ].join(" ")}
       >
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-cyan-400/[0.055] blur-[110px]" />
-          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-cyan-300/[0.13] to-transparent" />
+          <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-blue-400/[0.055] blur-[110px]" />
+          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-blue-300/[0.13] to-transparent" />
         </div>
 
         <div className="relative flex h-[72px] items-center border-b border-white/[0.055] px-3">
@@ -97,7 +97,7 @@ export function TieredSidebar({
             className="group flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-white/[0.025]"
           >
             <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">
-              <span className="absolute inset-1 rounded-2xl bg-cyan-400/[0.12] blur-xl transition group-hover:bg-cyan-300/[0.2]" />
+              <span className="absolute inset-1 rounded-2xl bg-blue-400/[0.12] blur-xl transition group-hover:bg-blue-300/[0.2]" />
               <Image
                 src="/trading-docks-mark.png"
                 alt=""
@@ -229,7 +229,7 @@ export function TieredSidebar({
               collapsed ? "justify-center" : "gap-3",
             ].join(" ")}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/[0.08] text-xs font-semibold text-cyan-200">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-300/20 bg-blue-400/[0.08] text-xs font-semibold text-blue-200">
               JR
             </div>
 
@@ -258,7 +258,7 @@ export function TieredSidebar({
             <button
               type="button"
               onClick={onToggle}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.018] text-slate-600 transition hover:border-cyan-300/20 hover:text-cyan-300"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.018] text-slate-600 transition hover:border-blue-300/20 hover:text-blue-300"
             >
               {collapsed ? (
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -308,19 +308,19 @@ function SectionNav({
         className={[
           "group relative mt-1 flex h-10 items-center justify-center overflow-hidden rounded-xl border transition duration-300",
           active
-            ? "border-cyan-300/[0.18] bg-cyan-400/[0.065] text-white"
-                  : "border-transparent text-cyan-100/85 hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.06]",
+            ? "border-blue-300/[0.18] bg-blue-400/[0.065] text-white"
+                  : "border-transparent text-blue-100/85 hover:border-blue-300/[0.14] hover:bg-blue-400/[0.06]",
         ].join(" ")}
       >
         {active ? (
-          <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
+          <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-blue-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
         ) : null}
         <Icon
           className={[
             "h-4 w-4",
             active
-              ? "text-cyan-300"
-              : "text-cyan-300/80 group-hover:text-cyan-200",
+              ? "text-blue-300"
+              : "text-blue-300/80 group-hover:text-blue-200",
           ].join(" ")}
         />
       </Link>
@@ -333,8 +333,8 @@ function SectionNav({
         className={[
           "relative overflow-hidden rounded-xl border transition",
           active
-            ? "border-cyan-300/[0.13] bg-cyan-400/[0.035]"
-            : "border-cyan-300/[0.055] bg-cyan-400/[0.018]",
+            ? "border-blue-300/[0.13] bg-blue-400/[0.035]"
+            : "border-blue-300/[0.055] bg-blue-400/[0.018]",
         ].join(" ")}
       >
         <div className="flex h-10 items-center">
@@ -347,19 +347,19 @@ function SectionNav({
               className={[
                 "h-4 w-4 shrink-0",
                 active
-                  ? "text-cyan-300"
-                  : "text-cyan-300/85 group-hover:text-cyan-100",
+                  ? "text-blue-300"
+                  : "text-blue-300/85 group-hover:text-blue-100",
               ].join(" ")}
             />
             <span
               className={[
                 "text-[13px] font-medium",
-                active ? "text-white" : "text-cyan-50/90",
+                active ? "text-white" : "text-blue-50/90",
               ].join(" ")}
             >
               {section.label}
             </span>
-            {!allowed ? <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-cyan-300/[0.16] bg-cyan-400/[0.04] px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-cyan-200/80"><LockKeyhole className="h-2.5 w-2.5" />{minimumPlanName(feature)}+</span> : null}
+            {!allowed ? <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-blue-300/[0.16] bg-blue-400/[0.04] px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-blue-200/80"><LockKeyhole className="h-2.5 w-2.5" />{minimumPlanName(feature)}+</span> : null}
           </Link>
 
           <button
@@ -370,7 +370,7 @@ function SectionNav({
                 ? `Collapse ${section.label}`
                 : `Expand ${section.label}`
             }
-            className="mr-1 flex h-8 w-8 items-center justify-center rounded-lg text-cyan-300/65 transition hover:bg-cyan-400/[0.08] hover:text-cyan-100"
+            className="mr-1 flex h-8 w-8 items-center justify-center rounded-lg text-blue-300/65 transition hover:bg-blue-400/[0.08] hover:text-blue-100"
           >
             <ChevronDown
               className={[
@@ -397,16 +397,16 @@ function SectionNav({
                   className={[
                     "group flex min-h-9 items-center gap-2.5 rounded-lg px-3 py-2 text-[11px] transition",
                     childActive
-                      ? "bg-cyan-400/[0.07] text-cyan-100"
-                      : "text-cyan-100/75 hover:bg-cyan-400/[0.055] hover:text-white",
+                      ? "bg-blue-400/[0.07] text-blue-100"
+                      : "text-blue-100/75 hover:bg-blue-400/[0.055] hover:text-white",
                   ].join(" ")}
                 >
                   <ChildIcon
                     className={[
                       "h-3.5 w-3.5 shrink-0",
                       childActive
-                        ? "text-cyan-300"
-                        : "text-cyan-300/70 group-hover:text-cyan-100",
+                        ? "text-blue-300"
+                        : "text-blue-300/70 group-hover:text-blue-100",
                     ].join(" ")}
                   />
                   <span>{item.label}</span>
@@ -468,27 +468,27 @@ function NavGroup({
                 "group relative flex h-10 items-center overflow-hidden rounded-xl border transition duration-300",
                 collapsed ? "justify-center px-0" : "gap-3 px-3",
                 active
-                  ? "border-cyan-300/[0.18] bg-cyan-400/[0.065] text-white"
-                  : "border-cyan-300/[0.045] bg-cyan-400/[0.012] text-cyan-50/80 hover:border-cyan-300/[0.13] hover:bg-cyan-400/[0.055] hover:text-white",
+                  ? "border-blue-300/[0.18] bg-blue-400/[0.065] text-white"
+                  : "border-blue-300/[0.045] bg-blue-400/[0.012] text-blue-50/80 hover:border-blue-300/[0.13] hover:bg-blue-400/[0.055] hover:text-white",
               ].join(" ")}
             >
               {active ? (
-                <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
+                <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-blue-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
               ) : null}
 
               {allowed ? <Icon
                 className={[
                   "relative z-10 h-4 w-4 shrink-0",
-                  active ? "text-cyan-200" : "text-cyan-300/70 group-hover:text-cyan-100",
+                  active ? "text-blue-200" : "text-blue-300/70 group-hover:text-blue-100",
                 ].join(" ")}
-              /> : <LockKeyhole className="relative z-10 h-4 w-4 shrink-0 text-cyan-300/65" />}
+              /> : <LockKeyhole className="relative z-10 h-4 w-4 shrink-0 text-blue-300/65" />}
 
               {!collapsed ? (
                 <>
                   <span className="relative z-10 text-[13px] font-medium">
                     {item.label}
                   </span>
-                  {!allowed ? <span className="relative z-10 ml-auto rounded-full border border-cyan-300/[0.12] bg-cyan-400/[0.035] px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-cyan-200/65">{minimumPlanName(feature)}</span> : null}
+                  {!allowed ? <span className="relative z-10 ml-auto rounded-full border border-blue-300/[0.12] bg-blue-400/[0.035] px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-blue-200/65">{minimumPlanName(feature)}</span> : null}
                 </>
               ) : null}
             </Link>

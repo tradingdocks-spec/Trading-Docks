@@ -57,11 +57,11 @@ function FeatureCard({
   description,
 }: FeatureCardProps) {
   return (
-    <div className="feature-card group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] px-3.5 py-3 transition duration-500 hover:-translate-y-1 hover:border-cyan-300/30 hover:bg-cyan-400/[0.055] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_34px_rgba(0,0,0,0.18),0_0_24px_rgba(34,211,238,0.04)]">
+    <div className="feature-card group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] px-3.5 py-3 transition duration-500 hover:-translate-y-1 hover:border-blue-300/30 hover:bg-blue-400/[0.055] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_34px_rgba(0,0,0,0.18),0_0_24px_rgba(59,130,246,0.04)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(103,232,249,0.08),transparent_30%)] opacity-0 transition duration-500 group-hover:opacity-100" />
 
       <div className="relative flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 transition duration-500 group-hover:-translate-y-0.5 group-hover:border-cyan-300/40 group-hover:bg-cyan-400/15 group-hover:text-cyan-200">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-blue-400/20 bg-blue-400/10 text-blue-300 transition duration-500 group-hover:-translate-y-0.5 group-hover:border-blue-300/40 group-hover:bg-blue-400/15 group-hover:text-blue-200">
           {icon}
         </div>
 
@@ -100,7 +100,7 @@ function Metric({
           </p>
         </div>
 
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-cyan-400/10 text-cyan-300">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-400/10 text-blue-300">
           {icon}
         </div>
       </div>
@@ -117,10 +117,10 @@ function FloatingModule({
 }: FloatingModuleProps) {
   return (
     <div
-      className={`absolute z-30 hidden min-w-[145px] rounded-xl border border-cyan-300/20 bg-[#09141c]/90 p-2.5 shadow-[0_18px_45px_rgba(0,0,0,0.45),0_0_28px_rgba(34,211,238,0.08)] backdrop-blur-xl xl:block ${className}`}
+      className={`absolute z-30 hidden min-w-[145px] rounded-xl border border-blue-300/20 bg-[#09141c]/90 p-2.5 shadow-[0_18px_45px_rgba(0,0,0,0.45),0_0_28px_rgba(59,130,246,0.08)] backdrop-blur-xl xl:block ${className}`}
     >
       <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-400/10 text-blue-300">
           {icon}
         </div>
 
@@ -809,7 +809,7 @@ export default async function SignInPage({
 
       <div
         aria-hidden="true"
-        className="ambient-glow pointer-events-none absolute -left-44 -top-52 h-[620px] w-[620px] rounded-full bg-cyan-500/[0.12] blur-[165px]"
+        className="ambient-glow pointer-events-none absolute -left-44 -top-52 h-[620px] w-[620px] rounded-full bg-blue-500/[0.12] blur-[165px]"
       />
 
       <div
@@ -820,7 +820,7 @@ export default async function SignInPage({
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-[53%] top-1/2 hidden h-[70%] w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-cyan-300/10 to-transparent lg:block"
+        className="pointer-events-none absolute left-[53%] top-1/2 hidden h-[70%] w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-blue-300/10 to-transparent lg:block"
       />
 
       <div
@@ -842,7 +842,7 @@ export default async function SignInPage({
                 className="group inline-flex items-center gap-3"
               >
                 <span className="relative flex h-[60px] w-[60px] shrink-0 items-center justify-center">
-                  <span className="absolute inset-1 rounded-[20px] bg-cyan-400/[0.15] blur-xl transition duration-500 group-hover:bg-cyan-300/[0.24]" />
+                  <span className="absolute inset-1 rounded-[20px] bg-blue-400/[0.15] blur-xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
 
                   <Image
                     src="/trading-docks-mark.png"
@@ -866,7 +866,7 @@ export default async function SignInPage({
               </Link>
 
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 backdrop-blur-md">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-cyan-400/10 text-cyan-300">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-400/10 text-blue-300">
                   <Layers3 className="h-2.5 w-2.5" />
                 </span>
 
@@ -878,7 +878,7 @@ export default async function SignInPage({
 
             <h1 className="mt-4 max-w-[630px] text-[clamp(2.45rem,3.8vw,3.8rem)] font-semibold leading-[0.96] tracking-[-0.058em] text-white">
               Run your collectibles business
-              <span className="mt-3 block bg-gradient-to-r from-cyan-200 via-cyan-300 to-sky-500 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(34,211,238,0.05)]">
+              <span className="mt-3 block bg-gradient-to-r from-cyan-200 via-blue-400 to-blue-600 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(59,130,246,0.05)]">
                 from one place.
               </span>
             </h1>
@@ -920,7 +920,7 @@ export default async function SignInPage({
             <div className="relative mt-3">
               <div
                 aria-hidden="true"
-                className="ambient-glow pointer-events-none absolute -inset-24 rounded-[72px] bg-cyan-500/[0.09] blur-[125px]"
+                className="ambient-glow pointer-events-none absolute -inset-24 rounded-[72px] bg-blue-500/[0.09] blur-[125px]"
               />
 
               <FloatingModule
@@ -947,7 +947,7 @@ export default async function SignInPage({
                 icon={<Search className="h-3.5 w-3.5" />}
               />
 
-              <div className="dashboard-float relative scale-[1.055] overflow-hidden rounded-[20px] border border-cyan-300/20 bg-white/[0.04] p-1 shadow-[0_24px_75px_rgba(0,0,0,0.5),0_0_45px_rgba(34,211,238,0.09)] backdrop-blur-xl">
+              <div className="dashboard-float relative scale-[1.055] overflow-hidden rounded-[20px] border border-blue-300/20 bg-white/[0.04] p-1 shadow-[0_24px_75px_rgba(0,0,0,0.5),0_0_45px_rgba(59,130,246,0.09)] backdrop-blur-xl">
                 <div className="dashboard-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.018] to-transparent blur-[10px]" />
 
                 <div className="relative overflow-hidden rounded-[16px] border border-white/[0.08] bg-[#071017]/95 px-3 py-2.5">
@@ -975,7 +975,7 @@ export default async function SignInPage({
                     </div>
 
                     <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-2.5 py-1.5">
-                      <Search className="h-2.5 w-2.5 text-cyan-300" />
+                      <Search className="h-2.5 w-2.5 text-blue-300" />
 
                       <span className="text-[7px] text-slate-500">
                         Find any card
@@ -1060,7 +1060,7 @@ export default async function SignInPage({
                           </p>
                         </div>
 
-                        <Zap className="h-3 w-3 text-cyan-300" />
+                        <Zap className="h-3 w-3 text-blue-300" />
                       </div>
 
                       <div className="mt-1.5 space-y-1.5">
@@ -1111,7 +1111,7 @@ export default async function SignInPage({
               className="group mb-6 flex items-center justify-center gap-3 lg:hidden"
             >
               <span className="relative flex h-[60px] w-[60px] shrink-0 items-center justify-center">
-                <span className="absolute inset-1 rounded-[20px] bg-cyan-400/[0.15] blur-xl transition duration-500 group-hover:bg-cyan-300/[0.24]" />
+                <span className="absolute inset-1 rounded-[20px] bg-blue-400/[0.15] blur-xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
 
                 <Image
                   src="/trading-docks-mark.png"
@@ -1137,26 +1137,26 @@ export default async function SignInPage({
             <div className="form-float relative">
               <div
                 aria-hidden="true"
-                className="ambient-glow pointer-events-none absolute -inset-9 rounded-[50px] bg-cyan-500/[0.11] blur-[65px]"
+                className="ambient-glow pointer-events-none absolute -inset-9 rounded-[50px] bg-blue-500/[0.11] blur-[65px]"
               />
 
-              <div className="relative overflow-hidden rounded-[26px] border border-cyan-300/20 bg-white/[0.04] p-1 shadow-[0_30px_90px_rgba(0,0,0,0.55),0_0_50px_rgba(34,211,238,0.09)] backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-[26px] border border-blue-300/20 bg-white/[0.04] p-1 shadow-[0_30px_90px_rgba(0,0,0,0.55),0_0_50px_rgba(59,130,246,0.09)] backdrop-blur-2xl">
                 <div className="dashboard-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.015] to-transparent blur-[10px]" />
 
                 <div className="relative overflow-hidden rounded-[21px] border border-white/[0.08] bg-[#071017]/95 px-6 py-5">
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-cyan-400/[0.08] blur-3xl"
+                    className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-blue-400/[0.08] blur-3xl"
                   />
 
                   <div className="relative">
                     <div className="flex items-center justify-between">
-                      <div className="secure-icon flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/25 bg-cyan-400/10 text-cyan-300">
+                      <div className="secure-icon flex h-9 w-9 items-center justify-center rounded-xl border border-blue-400/25 bg-blue-400/10 text-blue-300">
                         <LockKeyhole className="h-4 w-4" />
                       </div>
 
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[8px] font-medium text-slate-400">
-                        <ShieldCheck className="h-2.5 w-2.5 text-cyan-300" />
+                        <ShieldCheck className="h-2.5 w-2.5 text-blue-300" />
                         Secure access
                       </span>
                     </div>
@@ -1228,7 +1228,7 @@ export default async function SignInPage({
 
                           <Link
                             href="/forgot-password"
-                            className="text-[10px] font-medium text-cyan-300 transition hover:text-cyan-200"
+                            className="text-[10px] font-medium text-blue-300 transition hover:text-blue-200"
                           >
                             Forgot password?
                           </Link>
@@ -1239,7 +1239,7 @@ export default async function SignInPage({
 
                       <button
                         type="submit"
-                        className="premium-cta group flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-4 text-xs font-semibold text-slate-950 shadow-[0_14px_32px_rgba(6,182,212,0.26),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_40px_rgba(6,182,212,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] focus:outline-none focus:ring-4 focus:ring-cyan-400/20"
+                        className="premium-cta group flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-cyan-300 via-blue-400 to-blue-600 px-4 text-xs font-semibold text-slate-950 shadow-[0_14px_32px_rgba(37,99,235,0.26),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_40px_rgba(37,99,235,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] focus:outline-none focus:ring-4 focus:ring-blue-400/20"
                       >
                         Sign in
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
@@ -1258,13 +1258,13 @@ export default async function SignInPage({
 
                     <Link
                       href="/sign-up"
-                      className="flex h-10 w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:border-cyan-400/30 hover:bg-cyan-400/[0.07]"
+                      className="flex h-10 w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:border-blue-400/30 hover:bg-blue-400/[0.07]"
                     >
                       Create your free account
                     </Link>
 
                     <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-slate-400">
-                      <Check className="h-3 w-3 text-cyan-400" />
+                      <Check className="h-3 w-3 text-blue-400" />
                       Authentication securely powered by Supabase
                     </div>
                   </div>

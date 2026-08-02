@@ -119,7 +119,7 @@ export function PricingSection() {
 
               <Link
                 href={plan.id === "free" ? "/sign-up?plan=free" : `/pricing?plan=${plan.id}`}
-                className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-white transition group-hover:border-[#20e7ff] group-hover:bg-gradient-to-b group-hover:from-cyan-300 group-hover:to-sky-500 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
+                className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-white transition group-hover:border-[#20e7ff] group-hover:bg-gradient-to-b group-hover:from-blue-300 group-hover:to-sky-500 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(59,130,246,0.18)]"
               >
                 {plan.id === "free" ? "Start free" : `Choose ${plan.name}`}
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />

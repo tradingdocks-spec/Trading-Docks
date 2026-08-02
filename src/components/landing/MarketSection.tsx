@@ -118,7 +118,7 @@ export function MarketSection() {
           <button
             type="button"
             onClick={load}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[9px] font-semibold text-slate-500 transition hover:text-cyan-200"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[9px] font-semibold text-slate-500 transition hover:text-blue-200"
           >
             <RefreshCw
               className={[
@@ -131,7 +131,7 @@ export function MarketSection() {
 
           <Link
             href="/dashboard/market-intelligence"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-[9px] font-semibold text-[#001018]"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-300 px-4 text-[9px] font-semibold text-[#001018]"
           >
             Open Market Center
             <ArrowRight className="h-3.5 w-3.5" />
@@ -149,7 +149,7 @@ export function MarketSection() {
               className={[
                 "shrink-0 rounded-xl border px-4 py-2.5 text-[10px] font-semibold transition",
                 activeGame === game.id
-                  ? "border-cyan-300/[0.25] bg-cyan-400/[0.07] text-cyan-100"
+                  ? "border-blue-300/[0.25] bg-blue-400/[0.07] text-blue-100"
                   : "border-white/[0.07] bg-white/[0.02] text-slate-600 hover:text-slate-300",
               ].join(" ")}
             >
@@ -213,7 +213,7 @@ function MarketMoverCard({
   const positive = card.change7d >= 0;
 
   return (
-    <article className="group relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#071522]/85 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition duration-500 hover:-translate-y-2 hover:border-cyan-300/[0.22] hover:shadow-[0_28px_85px_rgba(0,216,242,0.1)]">
+    <article className="group relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#071522]/85 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition duration-500 hover:-translate-y-2 hover:border-blue-300/[0.22] hover:shadow-[0_28px_85px_rgba(0,216,242,0.1)]">
       <div className="flex gap-4">
         <CardArtwork card={card} />
 
@@ -289,7 +289,7 @@ function MarketMoverCard({
           <p className="text-[7px] uppercase tracking-[0.12em] text-slate-700">
             Potential Revenue
           </p>
-          <p className="mt-1 text-[11px] font-semibold text-cyan-200">
+          <p className="mt-1 text-[11px] font-semibold text-blue-200">
             {currency(card.potentialRevenue)}
           </p>
         </div>
@@ -320,7 +320,7 @@ function CardArtwork({
   }, [card.image]);
 
   return (
-    <div className="relative h-[104px] w-[74px] shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-gradient-to-br from-cyan-950 to-slate-950">
+    <div className="relative h-[104px] w-[74px] shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-gradient-to-br from-blue-950 to-slate-950">
       {card.image && !failed ? (
         <img
           src={card.image}
@@ -330,7 +330,7 @@ function CardArtwork({
         />
       ) : (
         <div className="flex h-full w-full flex-col items-center justify-center px-1 text-center">
-          <span className="text-sm font-semibold text-cyan-200">
+          <span className="text-sm font-semibold text-blue-200">
             {initials}
           </span>
           <span className="mt-1 text-[6px] text-slate-600">

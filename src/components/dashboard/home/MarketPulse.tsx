@@ -190,14 +190,14 @@ export function MarketPulse() {
 
   return (
     <section className="relative overflow-hidden rounded-[28px] border border-white/[0.085] bg-[#06121b]/82 p-5 shadow-[0_26px_85px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(34,211,238,0.055),transparent_26%),radial-gradient(circle_at_90%_15%,rgba(139,92,246,0.035),transparent_30%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(59,130,246,0.055),transparent_26%),radial-gradient(circle_at_90%_15%,rgba(139,92,246,0.035),transparent_30%)]" />
 
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_9px_rgba(110,231,183,0.8)]" />
 
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">
               Market Pulse
             </p>
           </div>
@@ -215,7 +215,7 @@ export function MarketPulse() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-xs font-medium text-slate-300 transition duration-300 hover:border-cyan-300/20 hover:bg-cyan-400/[0.04] hover:text-white"
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-xs font-medium text-slate-300 transition duration-300 hover:border-blue-300/20 hover:bg-blue-400/[0.04] hover:text-white"
           >
             Magic: The Gathering
           </button>
@@ -223,7 +223,7 @@ export function MarketPulse() {
           <button
             type="button"
             aria-label="Open market settings"
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] text-slate-500 transition duration-300 hover:rotate-12 hover:border-cyan-300/25 hover:bg-cyan-400/[0.06] hover:text-cyan-300"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] text-slate-500 transition duration-300 hover:rotate-12 hover:border-blue-300/25 hover:bg-blue-400/[0.06] hover:text-blue-300"
           >
             <Settings2 className="h-4 w-4" />
           </button>
@@ -233,7 +233,7 @@ export function MarketPulse() {
       <div className="relative mt-6">
         {isLoading ? (
           <div className="flex min-h-[195px] items-center justify-center gap-3 text-sm text-slate-500">
-            <LoaderCircle className="h-5 w-5 animate-spin text-cyan-300" />
+            <LoaderCircle className="h-5 w-5 animate-spin text-blue-300" />
             Loading market data…
           </div>
         ) : null}
@@ -273,15 +273,15 @@ function MarketCardItem({
       href={card.scryfallUrl}
       target="_blank"
       rel="noreferrer"
-      className="market-card group relative min-h-[210px] overflow-hidden rounded-[22px] border border-white/[0.075] bg-black/[0.13] p-4 transition duration-500 hover:-translate-y-1.5 hover:border-cyan-300/[0.22] hover:bg-cyan-400/[0.025] hover:shadow-[0_22px_55px_rgba(0,0,0,0.32),0_0_30px_rgba(34,211,238,0.06)]"
+      className="market-card group relative min-h-[210px] overflow-hidden rounded-[22px] border border-white/[0.075] bg-black/[0.13] p-4 transition duration-500 hover:-translate-y-1.5 hover:border-blue-300/[0.22] hover:bg-blue-400/[0.025] hover:shadow-[0_22px_55px_rgba(0,0,0,0.32),0_0_30px_rgba(59,130,246,0.06)]"
       style={{
         animationDelay: `${index * 80}ms`,
       }}
     >
-      <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-cyan-400/[0.045] blur-[55px] transition duration-500 group-hover:bg-cyan-400/[0.09]" />
+      <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-400/[0.045] blur-[55px] transition duration-500 group-hover:bg-blue-400/[0.09]" />
 
       <div className="relative flex gap-3">
-        <div className="h-[82px] w-[59px] shrink-0 overflow-hidden rounded-lg border border-white/[0.12] bg-[#07121b] shadow-[0_10px_25px_rgba(0,0,0,0.35)] transition duration-500 group-hover:-translate-y-1 group-hover:scale-[1.04] group-hover:border-cyan-300/30">
+        <div className="h-[82px] w-[59px] shrink-0 overflow-hidden rounded-lg border border-white/[0.12] bg-[#07121b] shadow-[0_10px_25px_rgba(0,0,0,0.35)] transition duration-500 group-hover:-translate-y-1 group-hover:scale-[1.04] group-hover:border-blue-300/30">
           {card.imageUrl ? (
             <img
               src={card.imageUrl}
@@ -327,12 +327,12 @@ function MarketCardItem({
           </p>
         </div>
 
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-slate-600 transition group-hover:border-cyan-300/20 group-hover:bg-cyan-400/[0.06] group-hover:text-cyan-300">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-slate-600 transition group-hover:border-blue-300/20 group-hover:bg-blue-400/[0.06] group-hover:text-blue-300">
           <ArrowUpRight className="h-4 w-4" />
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/0 to-transparent transition duration-500 group-hover:via-cyan-300/45" />
+      <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-300/0 to-transparent transition duration-500 group-hover:via-blue-300/45" />
     </a>
   );
 }
