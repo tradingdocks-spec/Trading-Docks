@@ -37,6 +37,7 @@ import {
   Settings2,
   SlidersHorizontal,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Store,
   Tag,
@@ -121,6 +122,11 @@ type InventoryItem = {
     binderPage?: number;
     binderSlot?: string;
   };
+  gradingCompany?: "PSA";
+  certificationNumber?: string;
+  grade?: string;
+  cardYear?: string;
+  slabNotes?: string;
   marketplaceListings?: MarketplaceListing[];
 };
 
@@ -259,17 +265,27 @@ export function TieredInventoryWorkspace({
   const [showUnconfiguredOnly, setShowUnconfiguredOnly] = useState(false);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [fileModalOpen, setFileModalOpen] = useState(false);
+  const [fileDefaultCategory, setFileDefaultCategory] = useState<InventoryItem["category"]>("Single");
   const [editingLocation, setEditingLocation] = useState<LocationRecord | null>(null);
   const [duplicateMatch, setDuplicateMatch] = useState<DuplicateMatch | null>(null);
   const [pendingFile, setPendingFile] = useState<InventoryItem | null>(null);
   const [toast, setToast] = useState("");
   const [putAwayOpen, setPutAwayOpen] = useState(false);
+  const [masterInventoryOpen, setMasterInventoryOpen] = useState(false);
   const [deleteItemCandidate, setDeleteItemCandidate] = useState<InventoryItem | null>(null);
   const [deleteLocationCandidate, setDeleteLocationCandidate] = useState<LocationRecord | null>(null);
   const [channelFilter, setChannelFilter] = useState<MarketplacePlatform | "Unlisted" | "all">("all");
   const [heroCollapsed, setHeroCollapsed] = useState(false);
   const [savedView, setSavedView] = useState<BusinessSavedView>("all");
   const [ageBucket, setAgeBucket] = useState<InventoryAgeBucket>("all");
+
+  useEffect(() => {
+    setHeroCollapsed(window.localStorage.getItem("trading-docks-inventory-intro-collapsed") === "true");
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("trading-docks-inventory-intro-collapsed", String(heroCollapsed));
+  }, [heroCollapsed]);
 
   useEffect(() => {
     let active = true;
@@ -1068,6 +1084,22 @@ export function TieredInventoryWorkspace({
       {canManageCollection ? <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
+          onClick={() => setMasterInventoryOpen(true)}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 text-[10px] font-semibold text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/[0.05]"
+        >
+          <List className="h-4 w-4 text-cyan-300" /> Master inventory
+        </button>
+        <button
+          type="button"
+          onClick={() => document.getElementById("psa-slab-vault")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.18] bg-cyan-400/[0.05] px-4 text-[10px] font-semibold text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/[0.09]"
+        >
+          <ShieldCheck className="h-4 w-4 text-cyan-300" />
+          PSA Slabs
+          <span className="rounded-md bg-cyan-300/10 px-1.5 py-0.5 text-[8px] font-black text-cyan-200">{items.filter((item) => item.category === "Graded" && item.gradingCompany === "PSA").length}</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setPutAwayOpen(true)}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300/[0.18] bg-amber-300/[0.055] px-4 text-[10px] font-semibold text-amber-100 transition hover:border-amber-300/35 hover:bg-amber-300/[0.09]"
         >
@@ -1079,7 +1111,7 @@ export function TieredInventoryWorkspace({
         </button>
         <button
           type="button"
-          onClick={() => setFileModalOpen(true)}
+          onClick={() => { setFileDefaultCategory("Single"); setFileModalOpen(true); }}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-bold text-[#001018] shadow-[0_10px_30px_rgba(34,211,238,0.13)]"
         >
           <Plus className="h-4 w-4" />
@@ -1137,6 +1169,13 @@ export function TieredInventoryWorkspace({
           onChannelChange={setChannelFilter}
           actions={actionCounts}
           business={hasBusinessAnalytics}
+          onAction={(action) => {
+            if (action === "putAway") setPutAwayOpen(true);
+            else if (action === "readyToList") setChannelFilter("Unlisted");
+            else if (action === "listingErrors") setSavedView("errors");
+            else if (action === "missingLocation") setSavedView("no-location");
+            else setMasterInventoryOpen(true);
+          }}
         />
       ) : null}
       {hasBusinessAnalytics ? (
@@ -1148,6 +1187,13 @@ export function TieredInventoryWorkspace({
           agingCounts={agingCounts}
         />
       ) : null}
+
+      <PsaSlabVault
+        items={items.filter((item) => item.category === "Graded" && item.gradingCompany === "PSA")}
+        locations={locations}
+        onAdd={() => { setFileDefaultCategory("Graded"); setFileModalOpen(true); }}
+        onDelete={setDeleteItemCandidate}
+      />
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-4`}>
         <div className="flex flex-col gap-3">
@@ -1491,10 +1537,40 @@ export function TieredInventoryWorkspace({
         onDeleteLocation={requestDeleteLocation}
       />
 
+      <LocationContentsModal
+        location={masterInventoryOpen ? {
+          id: "__master_inventory__",
+          name: "Master Inventory",
+          type: "custom",
+          description: "Every raw card, sealed product, bulk lot, and graded slab across all physical locations.",
+          itemCount: totals.units,
+          estimatedValue: totals.value,
+          zone: "All locations",
+          organization: "Unified catalog",
+        } : null}
+        items={items}
+        allItems={items}
+        locations={locations}
+        master
+        onClose={() => setMasterInventoryOpen(false)}
+        onFile={() => { setMasterInventoryOpen(false); setFileModalOpen(true); }}
+        onEdit={() => undefined}
+        onMove={moveItem}
+        onUpdateItem={updateInventoryItem}
+        onUpdateLocation={() => undefined}
+        putAwayCount={putAwayItems.length}
+        onOpenPutAway={() => { setMasterInventoryOpen(false); setPutAwayOpen(true); }}
+        onSendToPutAway={sendToPutAwayQueue}
+        onUndoPutAway={undoPutAway}
+        onDeleteItem={setDeleteItemCandidate}
+        onDeleteLocation={() => undefined}
+      />
+
       <FileInventoryModal
         open={fileModalOpen}
         locations={locations}
         defaultLocationId={selectedLocation?.id}
+        defaultCategory={fileDefaultCategory}
         onClose={() => setFileModalOpen(false)}
         onFile={attemptFile}
       />
@@ -1592,6 +1668,7 @@ function InventoryOperationsSummary({
   onChannelChange,
   actions,
   business,
+  onAction,
 }: {
   channels: {
     platforms: { platform: MarketplacePlatform; units: number; value: number }[];
@@ -1608,14 +1685,15 @@ function InventoryOperationsSummary({
     missingLocation: number;
   };
   business: boolean;
+  onAction: (action: "putAway" | "readyToList" | "pricing" | "listingErrors" | "allocation" | "missingLocation") => void;
 }) {
   const actionItems = [
-    ["Ready for put-away", actions.putAway, PackageOpen, "text-amber-300"],
-    ["Ready to list", actions.readyToList, Store, "text-cyan-300"],
-    ["Pricing needed", actions.pricing, CircleDollarSign, "text-violet-300"],
-    ["Listing errors", actions.listingErrors, AlertTriangle, "text-red-300"],
-    ["Over-allocated", actions.allocation, ShieldAlert, "text-red-300"],
-    ["Missing location", actions.missingLocation, MapPin, "text-amber-300"],
+    ["Ready for put-away", actions.putAway, PackageOpen, "text-amber-300", "putAway"],
+    ["Ready to list", actions.readyToList, Store, "text-cyan-300", "readyToList"],
+    ["Pricing needed", actions.pricing, CircleDollarSign, "text-violet-300", "pricing"],
+    ["Listing errors", actions.listingErrors, AlertTriangle, "text-red-300", "listingErrors"],
+    ["Over-allocated", actions.allocation, ShieldAlert, "text-red-300", "allocation"],
+    ["Missing location", actions.missingLocation, MapPin, "text-amber-300", "missingLocation"],
   ] as const;
   return (
     <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
@@ -1657,8 +1735,8 @@ function InventoryOperationsSummary({
           <ClipboardCheck className="h-4 w-4 text-amber-300" />
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
-          {actionItems.map(([label, count, Icon, tone]) => (
-            <button key={label} type="button" className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/[0.08] p-3 text-left transition hover:border-cyan-300/15">
+          {actionItems.map(([label, count, Icon, tone, action]) => (
+            <button key={label} type="button" onClick={() => onAction(action)} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/[0.08] p-3 text-left transition hover:border-cyan-300/15 hover:bg-cyan-400/[0.025]">
               <Icon className={`h-4 w-4 shrink-0 ${tone}`} />
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-slate-200">{count}</span>
@@ -2104,6 +2182,7 @@ function LocationContentsModal({
   onUndoPutAway,
   onDeleteItem,
   onDeleteLocation,
+  master = false,
 }: {
   location: LocationRecord | null;
   items: InventoryItem[];
@@ -2125,6 +2204,7 @@ function LocationContentsModal({
   onUndoPutAway: (item: InventoryItem) => void;
   onDeleteItem: (item: InventoryItem) => void;
   onDeleteLocation: (location: LocationRecord) => void;
+  master?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
@@ -2244,11 +2324,11 @@ function LocationContentsModal({
             </div>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <button type="button" onClick={onEdit} className="hidden h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[10px] font-semibold text-slate-300 sm:flex"><Edit3 className="h-3.5 w-3.5" /> Edit location</button>
-            <button type="button" onClick={() => onDeleteLocation(location)} className="hidden h-9 items-center gap-2 rounded-xl border border-red-300/[0.12] bg-red-400/[0.025] px-3 text-[10px] font-semibold text-red-200 transition hover:border-red-300/25 hover:bg-red-400/[0.07] sm:flex">
+            {!master ? <button type="button" onClick={onEdit} className="hidden h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[10px] font-semibold text-slate-300 sm:flex"><Edit3 className="h-3.5 w-3.5" /> Edit location</button> : null}
+            {!master ? <button type="button" onClick={() => onDeleteLocation(location)} className="hidden h-9 items-center gap-2 rounded-xl border border-red-300/[0.12] bg-red-400/[0.025] px-3 text-[10px] font-semibold text-red-200 transition hover:border-red-300/25 hover:bg-red-400/[0.07] sm:flex">
               <Trash2 className="h-3.5 w-3.5" /> Delete box
-            </button>
-            <button type="button" onClick={onFile} className="flex h-9 items-center gap-2 rounded-xl bg-cyan-400 px-3 text-[10px] font-bold text-[#001018]"><Plus className="h-3.5 w-3.5" /> File here</button>
+            </button> : null}
+            <button type="button" onClick={onFile} className="flex h-9 items-center gap-2 rounded-xl bg-cyan-400 px-3 text-[10px] font-bold text-[#001018]"><Plus className="h-3.5 w-3.5" /> {master ? "Add inventory" : "File here"}</button>
             <button type="button" onClick={onClose} aria-label="Close inventory explorer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 hover:text-slate-100"><X className="h-4 w-4" /></button>
           </div>
         </header>
@@ -2336,7 +2416,7 @@ function LocationContentsModal({
                 <div className="mt-5 grid grid-cols-2 gap-2"><CompactMetric label="Quantity" value={focusedItem.quantity.toLocaleString("en-US")} /><CompactMetric label="Total value" value={currency(focusedItem.value)} /></div>
                 <p className="mt-5 text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600">Move this inventory</p>
                 <label className="relative mt-2 block"><select value={focusedItem.locationId} onChange={(event) => onMove(focusedItem.id, event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-white/[0.08] bg-[#07141e] pl-3 pr-8 text-[9px] text-slate-300">{locations.map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-600" /></label>
-                <div className="mt-5 rounded-xl border border-white/[0.06] bg-black/10 p-3"><p className="text-[8px] uppercase tracking-[0.12em] text-slate-700">Physical path</p><p className="mt-2 text-[10px] font-semibold text-slate-300">{location.zone || "Main Warehouse"} <span className="text-slate-700">→</span> {location.name}</p></div>
+                <div className="mt-5 rounded-xl border border-white/[0.06] bg-black/10 p-3"><p className="text-[8px] uppercase tracking-[0.12em] text-slate-700">Physical path</p><p className="mt-2 text-[10px] font-semibold text-slate-300">{master ? (locations.find((candidate) => candidate.id === focusedItem.locationId)?.name || "Put-Away Queue") : <>{location.zone || "Main Warehouse"} <span className="text-slate-700">→</span> {location.name}</>}</p></div>
                 <button type="button" onClick={() => onDeleteItem(focusedItem)} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-red-300/[0.12] bg-red-400/[0.025] text-[9px] font-semibold text-red-200 transition hover:border-red-300/25 hover:bg-red-400/[0.07]">
                   <Trash2 className="h-3.5 w-3.5" /> Delete from Inventory
                 </button>
@@ -3827,16 +3907,77 @@ function LocationModal({
   );
 }
 
+function PsaSlabVault({
+  items,
+  locations,
+  onAdd,
+  onDelete,
+}: {
+  items: InventoryItem[];
+  locations: LocationRecord[];
+  onAdd: () => void;
+  onDelete: (item: InventoryItem) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("all");
+  const filtered = items.filter((item) => {
+    const haystack = `${item.name} ${item.set ?? ""} ${item.certificationNumber ?? ""}`.toLowerCase();
+    return haystack.includes(query.toLowerCase()) && (gradeFilter === "all" || item.grade === gradeFilter);
+  });
+  const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+  const totalCost = items.reduce((sum, item) => sum + (item.costBasis ?? 0) * item.quantity, 0);
+
+  return (
+    <section id="psa-slab-vault" className={`${styles.glassPanel} mt-5 scroll-mt-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.09]`}>
+      <div className="border-b border-white/[0.06] bg-[radial-gradient(circle_at_90%_0%,rgba(34,211,238,0.10),transparent_34%)] p-5 sm:p-6">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.08] text-cyan-200 shadow-[0_12px_36px_rgba(34,211,238,0.09)]"><ShieldCheck className="h-6 w-6" /></span>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300">Collection · Graded cards</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-[-0.025em] text-white">PSA Slab Vault</h2>
+              <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-500">Track every PSA-certified card, its label details, acquisition cost, current value, and physical location.</p>
+            </div>
+          </div>
+          <button type="button" onClick={onAdd} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-bold text-[#001018] shadow-[0_10px_30px_rgba(34,211,238,0.13)]"><Plus className="h-4 w-4" /> Add PSA slab</button>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <CompactMetric label="PSA slabs" value={items.length.toLocaleString("en-US")} />
+          <CompactMetric label="Collection value" value={currency(totalValue)} />
+          <CompactMetric label="Cost basis" value={currency(totalCost)} />
+          <CompactMetric label="Unrealized gain" value={currency(totalValue - totalCost)} />
+        </div>
+      </div>
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label className="flex h-11 flex-1 items-center gap-3 rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 focus-within:border-cyan-300/25"><Search className="h-4 w-4 text-cyan-300/70" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search card, set, or PSA certification..." className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-200 outline-none placeholder:text-slate-600" /></label>
+          <select value={gradeFilter} onChange={(event) => setGradeFilter(event.target.value)} className="inventory-location-select h-11 rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 text-[10px] font-semibold text-slate-300"><option value="all">All grades</option>{["10", "9", "8.5", "8", "7.5", "7", "6", "5", "4", "3", "2", "1", "Authentic"].map((grade) => <option key={grade} value={grade}>PSA {grade}</option>)}</select>
+        </div>
+        {filtered.length ? <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{filtered.map((item) => {
+          const location = locations.find((candidate) => candidate.id === item.locationId);
+          return <article key={item.id} className="group rounded-2xl border border-white/[0.075] bg-[#06131d]/75 p-4 transition hover:-translate-y-0.5 hover:border-cyan-300/20 hover:shadow-[0_18px_45px_rgba(0,0,0,0.24)]">
+            <div className="flex items-start gap-3"><div className="flex h-16 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.08] bg-black/30">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <ShieldCheck className="h-5 w-5 text-cyan-300/40" />}</div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><p className="truncate text-[12px] font-semibold text-white">{item.name}</p><p className="mt-1 truncate text-[9px] text-slate-500">{[item.cardYear, item.set, item.collectorNumber ? `#${item.collectorNumber}` : ""].filter(Boolean).join(" · ") || "Card details not entered"}</p></div><span className="shrink-0 rounded-lg border border-cyan-300/20 bg-cyan-400/[0.08] px-2 py-1 text-[10px] font-black text-cyan-200">PSA {item.grade}</span></div><p className="mt-2 font-mono text-[9px] text-slate-500">Cert {item.certificationNumber}</p></div></div>
+            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/[0.055] pt-3"><div><p className="text-[8px] uppercase tracking-[0.12em] text-slate-600">Market value</p><p className="mt-1 text-[11px] font-semibold text-emerald-300">{currency(item.value)}</p></div><div><p className="text-[8px] uppercase tracking-[0.12em] text-slate-600">Location</p><p className="mt-1 truncate text-[10px] font-semibold text-slate-300">{location?.name ?? "Unassigned"}</p></div></div>
+            <div className="mt-3 flex items-center justify-between"><span className="truncate text-[9px] text-slate-600">{item.slabNotes || "PSA authenticated collectible"}</span><button type="button" onClick={() => onDelete(item)} className="ml-3 opacity-0 transition group-hover:opacity-100" aria-label={`Delete ${item.name}`}><Trash2 className="h-3.5 w-3.5 text-red-300/70" /></button></div>
+          </article>;
+        })}</div> : <div className="mt-4 rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015] px-5 py-12 text-center"><ShieldCheck className="mx-auto h-8 w-8 text-cyan-300/25" /><p className="mt-4 text-sm font-semibold text-slate-300">{items.length ? "No slabs match these filters" : "Your PSA vault is ready"}</p><p className="mx-auto mt-2 max-w-md text-[10px] leading-5 text-slate-600">{items.length ? "Try a different card name, certification number, or grade." : "Add your first slab to begin tracking certification details, value, and storage."}</p>{!items.length ? <button type="button" onClick={onAdd} className="mt-5 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-4 py-2.5 text-[10px] font-bold text-cyan-100">Add first PSA slab</button> : null}</div>}
+      </div>
+    </section>
+  );
+}
+
 function FileInventoryModal({
   open,
   locations,
   defaultLocationId,
+  defaultCategory,
   onClose,
   onFile,
 }: {
   open: boolean;
   locations: LocationRecord[];
   defaultLocationId?: string;
+  defaultCategory: InventoryItem["category"];
   onClose: () => void;
   onFile: (item: InventoryItem) => void;
 }) {
@@ -3858,6 +3999,14 @@ function FileInventoryModal({
     useState<SelectedPrinting | null>(null);
   const [costBasis, setCostBasis] = useState("0");
   const [unitMarketValue, setUnitMarketValue] = useState("0");
+  const [certificationNumber, setCertificationNumber] = useState("");
+  const [grade, setGrade] = useState("10");
+  const [cardYear, setCardYear] = useState("");
+  const [slabNotes, setSlabNotes] = useState("");
+
+  useEffect(() => {
+    if (open) setCategory(defaultCategory);
+  }, [defaultCategory, open]);
 
   useEffect(() => {
     if (defaultLocationId) setLocationId(defaultLocationId);
@@ -3872,6 +4021,7 @@ function FileInventoryModal({
           event.preventDefault();
           if (category === "Single" && !selectedPrinting) return;
           if (!name.trim() || !sku.trim() || !locationId) return;
+          if (category === "Graded" && !certificationNumber.trim()) return;
 
           const filedQuantity = Math.max(1, Number(quantity));
           const marketEach = Math.max(0, Number(unitMarketValue));
@@ -3894,6 +4044,11 @@ function FileInventoryModal({
             unitMarketValue: marketEach,
             value: filedQuantity * marketEach,
             updatedAt: "Just now",
+            gradingCompany: category === "Graded" ? "PSA" : undefined,
+            certificationNumber: category === "Graded" ? certificationNumber.trim() : undefined,
+            grade: category === "Graded" ? grade : undefined,
+            cardYear: category === "Graded" ? cardYear.trim() || undefined : undefined,
+            slabNotes: category === "Graded" ? slabNotes.trim() || undefined : undefined,
           });
         }}
       >
@@ -4044,8 +4199,40 @@ function FileInventoryModal({
             </Field>
           </FormSection>
 
+          {category === "Graded" ? (
+            <FormSection
+              step="3"
+              title="PSA certification"
+              description="Record the label details that uniquely identify this slab."
+            >
+              <Field label="Grading company">
+                <input value="PSA" readOnly className="inventory-input text-cyan-200" />
+              </Field>
+              <Field label="PSA grade">
+                <select value={grade} onChange={(event) => setGrade(event.target.value)} className="inventory-input">
+                  {["10", "9", "8.5", "8", "7.5", "7", "6.5", "6", "5.5", "5", "4", "3", "2", "1", "Authentic"].map((value) => <option key={value}>{value}</option>)}
+                </select>
+              </Field>
+              <Field label="Certification number">
+                <input value={certificationNumber} onChange={(event) => setCertificationNumber(event.target.value.replace(/\D/g, ""))} placeholder="Example: 12345678" inputMode="numeric" className="inventory-input" required />
+              </Field>
+              <Field label="Card year">
+                <input value={cardYear} onChange={(event) => setCardYear(event.target.value)} placeholder="Example: 1999" className="inventory-input" />
+              </Field>
+              <Field label="Set / release">
+                <input value={cardSet} onChange={(event) => setCardSet(event.target.value)} placeholder="Example: Base Set" className="inventory-input" />
+              </Field>
+              <Field label="Card number">
+                <input value={collectorNumber} onChange={(event) => setCollectorNumber(event.target.value)} placeholder="Example: 4/102" className="inventory-input" />
+              </Field>
+              <Field label="Slab notes" className="sm:col-span-2">
+                <textarea value={slabNotes} onChange={(event) => setSlabNotes(event.target.value)} placeholder="Label variation, pedigree, signature, purchase source, or other notes" className="inventory-input min-h-[76px] resize-none py-3" />
+              </Field>
+            </FormSection>
+          ) : null}
+
           <FormSection
-            step="3"
+            step={category === "Graded" ? "4" : "3"}
             title="Storage and card details"
             description="Confirm where this inventory is filed and review its exact attributes."
           >
