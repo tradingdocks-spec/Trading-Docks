@@ -12,14 +12,14 @@ const ITEMS = [
 ] as const;
 
 const NAV_ITEM_CLASS =
-  "group relative m-0 flex h-[60px] min-h-[60px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-[5px] rounded-[17px] border border-transparent bg-transparent px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300/70";
+  "group relative m-0 flex h-[60px] min-h-[60px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-[5px] rounded-[17px] border border-cyan-300/[0.09] bg-cyan-400/[0.065] px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] text-cyan-100/90 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,.035)] transition-[filter,box-shadow,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300/70";
 const NAV_LABEL_CLASS =
   "block w-full truncate text-center font-sans text-[10px] font-semibold leading-[12px] tracking-[-0.01em]";
 
 const ACTIVE_CLASS =
-  "border-cyan-300/[0.13] bg-cyan-400/[0.12] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_5px_18px_rgba(8,145,178,.12),0_0_22px_rgba(34,211,238,.06)]";
+  "shadow-[inset_0_1px_0_rgba(255,255,255,.035),0_5px_18px_rgba(8,145,178,.10)]";
 const INACTIVE_CLASS =
-  "text-cyan-200/75 hover:border-cyan-300/[0.09] hover:bg-cyan-400/[0.07] hover:text-cyan-50 active:bg-cyan-400/[0.11]";
+  "shadow-[inset_0_1px_0_rgba(255,255,255,.035)]";
 
 function NavIcon({
   icon: Icon,

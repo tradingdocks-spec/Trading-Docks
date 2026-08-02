@@ -96,9 +96,10 @@ export function Topbar({
         <button
           type="button"
           onClick={onOpenMobile}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-400 xl:hidden"
+          aria-label="Open dashboard menu"
+          className="group flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.075] text-cyan-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,.04),0_7px_20px_rgba(8,145,178,.08)] outline-none transition-[filter,box-shadow,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-cyan-300/70 xl:hidden"
         >
-          <Menu className="h-4 w-4" />
+          <Menu className="h-5 w-5 stroke-[2] drop-shadow-[0_0_7px_rgba(34,211,238,.16)] transition-transform duration-200 group-hover:-translate-y-px" />
         </button>
 
         <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2.5 sm:hidden">
