@@ -1112,9 +1112,9 @@ export function TieredInventoryWorkspace({
       </div> : null}
 
       {canManageCollection ? (
-        <section className="mt-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.13] bg-[linear-gradient(115deg,rgba(8,29,41,0.96),rgba(4,15,24,0.98))] shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
-          <div className="flex flex-col gap-5 bg-[radial-gradient(circle_at_82%_0%,rgba(34,211,238,0.14),transparent_38%)] p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6">
-            <div className="flex min-w-0 items-start gap-4">
+        <section className="mt-5 overflow-hidden rounded-[28px] border border-cyan-300/[0.14] bg-[linear-gradient(120deg,rgba(7,30,43,0.98),rgba(4,15,24,0.99)_58%,rgba(6,25,36,0.98))] shadow-[0_26px_80px_rgba(0,0,0,0.30)]">
+          <div className="grid bg-[radial-gradient(circle_at_84%_-20%,rgba(34,211,238,0.18),transparent_36%)] lg:grid-cols-[1fr_auto]">
+          <div className="flex min-w-0 items-center gap-4 p-5 lg:p-6">
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.09] shadow-[0_12px_40px_rgba(34,211,238,0.10)]">
                 <ShieldCheck className="h-7 w-7 text-cyan-200" />
               </span>
@@ -1126,10 +1126,10 @@ export function TieredInventoryWorkspace({
                   </span>
                 </div>
                 <h2 className="mt-2 text-lg font-semibold tracking-[-0.025em] text-white sm:text-xl">Graded Card Vault</h2>
-                <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-400">Manage graded cards across every TCG and major grading company, with certification, grade, cost basis, value, photos, and physical location.</p>
+                <p className="mt-1 max-w-2xl text-[11px] leading-5 text-slate-400">One secure record for every slab—certification, grade, value, cost basis, imagery, and exact physical location.</p>
               </div>
-            </div>
-            <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          </div>
+          <div className="flex shrink-0 flex-col justify-center gap-2 border-t border-white/[0.06] p-5 sm:flex-row lg:border-l lg:border-t-0 lg:p-6">
               <button
                 type="button"
                 onClick={() => document.getElementById("graded-card-vault")?.scrollIntoView({ behavior: "smooth", block: "start" })}
@@ -1144,12 +1144,17 @@ export function TieredInventoryWorkspace({
               >
                 <Plus className="h-4 w-4" /> Add graded card
               </button>
-            </div>
+          </div>
+          </div>
+          <div className="grid border-t border-white/[0.06] bg-black/[0.10] sm:grid-cols-3">
+            <VaultSpotlightStat label="Collection value" value={currency(items.filter((item) => item.category === "Graded").reduce((sum, item) => sum + item.value, 0))} />
+            <VaultSpotlightStat label="Top TCG" value={mostCommonValue(items.filter((item) => item.category === "Graded").map((item) => item.tradingCardGame), "Not set")} />
+            <VaultSpotlightStat label="Top grader" value={mostCommonValue(items.filter((item) => item.category === "Graded").map((item) => item.gradingCompany), "Not set")} />
           </div>
         </section>
       ) : null}
 
-      <div className={`mt-5 grid gap-4 sm:grid-cols-2 ${hasBusinessAnalytics ? "xl:grid-cols-6" : "xl:grid-cols-4"}`}>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Physical units"
           value={totals.units.toLocaleString("en-US")}
@@ -1174,23 +1179,13 @@ export function TieredInventoryWorkspace({
           detail="Duplicates requiring review"
           icon={Copy}
         />
-        {hasBusinessAnalytics ? (
-          <>
-            <MetricCard
-              label="Listed value"
-              value={currency(totals.listedValue)}
-              detail="Active marketplace listings"
-              icon={Store}
-            />
-            <MetricCard
-              label="Potential profit"
-              value={currency(totals.potentialProfit)}
-              detail={`${currency(totals.costBasis)} tracked cost basis`}
-              icon={TrendingUp}
-            />
-          </>
-        ) : null}
       </div>
+      {hasBusinessAnalytics ? (
+        <div className="mt-3 grid overflow-hidden rounded-2xl border border-white/[0.065] bg-white/[0.018] sm:grid-cols-2">
+          <SecondaryMetric label="Listed value" value={currency(totals.listedValue)} detail="Active marketplace listings" icon={Store} />
+          <SecondaryMetric label="Potential profit" value={currency(totals.potentialProfit)} detail={`${currency(totals.costBasis)} tracked cost basis`} icon={TrendingUp} />
+        </div>
+      ) : null}
 
       {canOperate ? (
         <InventoryOperationsSummary
@@ -1725,6 +1720,8 @@ function InventoryOperationsSummary({
     ["Over-allocated", actions.allocation, ShieldAlert, "text-red-300", "allocation"],
     ["Missing location", actions.missingLocation, MapPin, "text-amber-300", "missingLocation"],
   ] as const;
+  const attentionItems = actionItems.filter(([, count]) => count > 0);
+  const channelTotal = channels.unlistedUnits + channels.platforms.reduce((sum, channel) => sum + channel.units, 0);
   return (
     <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
       <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
@@ -1736,11 +1733,12 @@ function InventoryOperationsSummary({
           </div>
           <Store className="h-4 w-4 text-cyan-300" />
         </div>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-5 space-y-2">
           <ChannelSummaryButton
             label="Unlisted"
             units={channels.unlistedUnits}
             value={0}
+            total={channelTotal}
             active={activeChannel === "Unlisted"}
             onClick={() => onChannelChange(activeChannel === "Unlisted" ? "all" : "Unlisted")}
           />
@@ -1750,6 +1748,7 @@ function InventoryOperationsSummary({
               label={channel.platform}
               units={channel.units}
               value={channel.value}
+              total={channelTotal}
               active={activeChannel === channel.platform}
               onClick={() => onChannelChange(activeChannel === channel.platform ? "all" : channel.platform)}
             />
@@ -1764,17 +1763,17 @@ function InventoryOperationsSummary({
           </div>
           <ClipboardCheck className="h-4 w-4 text-amber-300" />
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {actionItems.map(([label, count, Icon, tone, action]) => (
-            <button key={label} type="button" onClick={() => onAction(action)} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/[0.08] p-3 text-left transition hover:border-cyan-300/15 hover:bg-cyan-400/[0.025]">
+        {attentionItems.length ? <div className="mt-4 grid grid-cols-2 gap-2">
+          {attentionItems.map(([label, count, Icon, tone, action]) => (
+            <button key={label} type="button" onClick={() => onAction(action)} className="group flex items-center gap-3 rounded-xl border border-white/[0.07] bg-black/[0.10] p-3 text-left transition hover:-translate-y-px hover:border-cyan-300/20 hover:bg-cyan-400/[0.035]">
               <Icon className={`h-4 w-4 shrink-0 ${tone}`} />
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-slate-200">{count}</span>
-                <span className="block truncate text-[8px] text-slate-600">{label}</span>
+                <span className="block truncate text-[9px] text-slate-500 group-hover:text-slate-300">{label}</span>
               </span>
             </button>
           ))}
-        </div>
+        </div> : <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-300/10 bg-emerald-400/[0.04] p-4"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/[0.09] text-emerald-300"><Check className="h-5 w-5" /></span><div><p className="text-sm font-semibold text-slate-100">All systems clear</p><p className="mt-1 text-[10px] text-slate-500">Inventory is filed, priced, and ready for operation.</p></div></div>}
         {!business ? (
           <p className="mt-3 flex items-center gap-2 text-[8px] text-slate-600">
             <LockKeyhole className="h-3 w-3" /> Aging, profit alerts, and team assignments are available on Business.
@@ -1789,12 +1788,14 @@ function ChannelSummaryButton({
   label,
   units,
   value,
+  total,
   active,
   onClick,
 }: {
   label: string;
   units: number;
   value: number;
+  total: number;
   active: boolean;
   onClick: () => void;
 }) {
@@ -1802,17 +1803,14 @@ function ChannelSummaryButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-xl border p-3 text-left transition ${
+      className={`group w-full rounded-xl border px-3.5 py-3 text-left transition ${
         active
           ? "border-cyan-300/25 bg-cyan-400/[0.07]"
           : "border-white/[0.06] bg-black/[0.08] hover:border-cyan-300/15"
       }`}
     >
-      <span className="text-[9px] font-semibold text-slate-300">{label}</span>
-      <span className="mt-2 flex items-end justify-between gap-2">
-        <span className="text-lg font-semibold text-white">{units.toLocaleString("en-US")}</span>
-        <span className="text-[8px] text-slate-600">{value ? currency(value) : "units"}</span>
-      </span>
+      <span className="flex items-center justify-between gap-4"><span className="text-[10px] font-semibold text-slate-300 group-hover:text-white">{label}</span><span className="text-[9px] text-slate-500"><strong className="mr-1 text-slate-200">{units.toLocaleString("en-US")}</strong> units · {value ? currency(value) : `${total ? Math.round((units / total) * 100) : 0}%`}</span></span>
+      <span className="mt-2.5 block h-1 overflow-hidden rounded-full bg-white/[0.055]"><span className="block h-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-300 transition-all" style={{ width: `${total ? Math.max(units ? 4 : 0, (units / total) * 100) : 0}%` }} /></span>
     </button>
   );
 }
@@ -3956,11 +3954,12 @@ function PsaSlabVault({
   });
   const totalValue = items.reduce((sum, item) => sum + item.value, 0);
   const totalCost = items.reduce((sum, item) => sum + (item.costBasis ?? 0) * item.quantity, 0);
+  const recentCards = items.filter((item) => item.imageUrl).slice(0, 5);
 
   return (
     <section id="graded-card-vault" className={`${styles.glassPanel} mt-5 scroll-mt-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.09]`}>
       <div className="border-b border-white/[0.06] bg-[radial-gradient(circle_at_90%_0%,rgba(34,211,238,0.10),transparent_34%)] p-5 sm:p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-start gap-4">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.08] text-cyan-200 shadow-[0_12px_36px_rgba(34,211,238,0.09)]"><ShieldCheck className="h-6 w-6" /></span>
             <div>
@@ -3969,7 +3968,7 @@ function PsaSlabVault({
               <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-500">Track graded cards across Magic, Pokémon, Yu-Gi-Oh!, Lorcana, One Piece, and other TCGs.</p>
             </div>
           </div>
-          <button type="button" onClick={onAdd} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-bold text-[#001018] shadow-[0_10px_30px_rgba(34,211,238,0.13)]"><Plus className="h-4 w-4" /> Add graded card</button>
+          <div className="flex items-center gap-4">{recentCards.length ? <div className="hidden items-center -space-x-3 lg:flex">{recentCards.map((item) => <img key={item.id} src={item.imageUrl} alt={item.name} title={item.name} className="h-14 w-10 rounded-lg border-2 border-[#071722] object-cover shadow-xl" />)}</div> : null}<button type="button" onClick={onAdd} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-bold text-[#001018] shadow-[0_10px_30px_rgba(34,211,238,0.13)]"><Plus className="h-4 w-4" /> Add graded card</button></div>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <CompactMetric label="Graded cards" value={items.length.toLocaleString("en-US")} />
@@ -3994,6 +3993,20 @@ function PsaSlabVault({
       </div>
     </section>
   );
+}
+
+function mostCommonValue(values: Array<string | undefined>, fallback: string) {
+  const counts = new Map<string, number>();
+  values.filter(Boolean).forEach((value) => counts.set(value!, (counts.get(value!) ?? 0) + 1));
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? fallback;
+}
+
+function VaultSpotlightStat({ label, value }: { label: string; value: string }) {
+  return <div className="border-b border-white/[0.055] px-5 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"><p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-slate-600">{label}</p><p className="mt-1 truncate text-[11px] font-semibold text-slate-200">{value}</p></div>;
+}
+
+function SecondaryMetric({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: typeof Store }) {
+  return <div className="flex items-center gap-3 border-b border-white/[0.055] px-4 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.035] text-cyan-300"><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-[9px] font-medium text-slate-500">{label}</p><p className="mt-0.5 text-sm font-semibold text-slate-100">{value}</p></div><p className="hidden text-right text-[9px] text-slate-600 lg:block">{detail}</p></div>;
 }
 
 function FileInventoryModal({
