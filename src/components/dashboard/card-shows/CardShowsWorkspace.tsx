@@ -28,6 +28,7 @@ import {
   X,
 } from "lucide-react";
 import { CARD_SHOW_GAMES, type CardShowGameId } from "@/lib/card-show-games";
+import { loadAccountDocument, saveAccountDocument } from "@/lib/account-documents";
 import {
   persistInventorySnapshotDiff,
   type InventoryPersistenceRecord,
@@ -133,12 +134,14 @@ export function CardShowsWorkspace() {
   const [saleItem, setSaleItem] = useState("");
   const [saleAmount, setSaleAmount] = useState("");
   const [toast, setToast] = useState("");
+  const [cloudLoaded, setCloudLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("td-card-shows-v2");
-      if (!saved) return;
-      const parsed = JSON.parse(saved) as { events?: EventRecord[]; rates?: [string, string] | [number, number]; sales?: SaleRecord[]; inventory?: InventoryRecord[] };
+    void (async () => { try {
+      let parsed = await loadAccountDocument<{ events?: EventRecord[]; rates?: [string, string] | [number, number]; sales?: SaleRecord[]; inventory?: InventoryRecord[] }>("card-shows:v2");
+      const legacy = window.localStorage.getItem("td-card-shows-v2");
+      if (!parsed && legacy) { parsed = JSON.parse(legacy); await saveAccountDocument("card-shows:v2", parsed); window.localStorage.removeItem("td-card-shows-v2"); }
+      if (!parsed) return;
       if (parsed.events) setEvents(parsed.events);
       if (parsed.rates) {
         setSingleRate(String(parsed.rates[0] ?? ""));
@@ -146,15 +149,14 @@ export function CardShowsWorkspace() {
       }
       if (parsed.sales) setSales(parsed.sales);
       if (parsed.inventory) setInventory(parsed.inventory);
-    } catch {}
+    } catch {} finally { setCloudLoaded(true); } })();
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(
-      "td-card-shows-v2",
-      JSON.stringify({ events, rates: [singleRate, sealedRate], sales, inventory }),
-    );
-  }, [events, singleRate, sealedRate, sales, inventory]);
+    if (!cloudLoaded) return;
+    const timer = window.setTimeout(() => void saveAccountDocument("card-shows:v2", { events, rates: [singleRate, sealedRate], sales, inventory }), 300);
+    return () => window.clearTimeout(timer);
+  }, [events, singleRate, sealedRate, sales, inventory, cloudLoaded]);
 
   useEffect(() => {
     if (!toast) return;

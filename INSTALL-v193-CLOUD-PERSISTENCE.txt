@@ -1,0 +1,21 @@
+TRADING DOCKS v193 - UNIVERSAL CLOUD PERSISTENCE
+
+1. In Supabase SQL Editor, run these two files in order:
+   a. 00_ACCOUNT_DATA_FOUNDATION_RUN_IN_SUPABASE.sql
+   b. 00_RUN_THIS_IN_SUPABASE_UNIVERSAL_CLOUD_PERSISTENCE.sql
+
+Both scripts are safe to run when parts of the foundation already exist.
+
+2. Copy the project files into the permanent Trading-Docks Git repository.
+3. Commit and push through GitHub Desktop.
+4. Test with two browsers or devices:
+   - Add a card, deck, calendar event, employee, and tournament.
+   - Sign out and sign in again.
+   - Confirm each record reloads.
+
+DATA GUARANTEE
+- Free, Collector, Seller, Store, and Admin accounts use cloud persistence.
+- Plan tiers control feature access and limits, not save durability.
+- Business documents are owned by the active workspace.
+- Authorized workspace staff can access shared store records.
+- Browser storage is limited to UI preferences, legacy migration, and temporary recovery drafts.

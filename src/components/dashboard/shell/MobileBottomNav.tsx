@@ -2,7 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, LayoutDashboard, LibraryBig, Menu, Settings } from "lucide-react";
+import { Boxes, Grid2X2, LayoutDashboard, LibraryBig, Settings } from "lucide-react";
 
 const ITEMS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true },
@@ -12,7 +12,9 @@ const ITEMS = [
 ] as const;
 
 const NAV_ITEM_CLASS =
-  "relative flex min-h-[58px] min-w-0 select-none touch-manipulation flex-col items-center justify-center gap-1.5 rounded-[16px] px-1 text-center text-[10px] font-semibold leading-none tracking-[-0.01em] outline-none transition-[color,background-color,transform] duration-150 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-cyan-300/70";
+  "relative m-0 flex min-h-[58px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-1.5 rounded-[16px] border-0 bg-transparent px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] outline-none transition-[color,background-color,transform] duration-150 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-cyan-300/70";
+const NAV_LABEL_CLASS =
+  "w-full truncate font-sans text-[10px] font-semibold leading-none tracking-[-0.01em]";
 
 function NavIcon({
   icon: Icon,
@@ -24,7 +26,7 @@ function NavIcon({
       aria-hidden="true"
       className="flex h-[22px] w-[22px] shrink-0 items-center justify-center"
     >
-      <Icon className="h-5 w-5 shrink-0 stroke-[1.9]" />
+      <Icon className="h-[21px] w-[21px] shrink-0 stroke-[2]" />
     </span>
   );
 }
@@ -74,7 +76,7 @@ export function MobileBottomNav({
               ].join(" ")}
             >
               <NavIcon icon={Icon} />
-              <span className="w-full truncate">{label}</span>
+              <span className={NAV_LABEL_CLASS}>{label}</span>
               <NavigationStatus />
             </Link>
           );
@@ -91,8 +93,8 @@ export function MobileBottomNav({
               : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",
           ].join(" ")}
         >
-          <NavIcon icon={Menu} />
-          <span className="w-full truncate">Menu</span>
+          <NavIcon icon={Grid2X2} />
+          <span className={NAV_LABEL_CLASS}>Menu</span>
         </button>
       </div>
     </nav>

@@ -1,11 +1,11 @@
-import { createClient } from "@/lib/supabase/client";
+import { getActiveWorkspaceContext } from "@/lib/active-workspace";
 
 export async function loadAccountDocument<T>(documentKey: string): Promise<T | null> {
-  const { supabase, userId } = await authenticatedClient();
+  const { supabase, workspaceId } = await getActiveWorkspaceContext();
   const { data, error } = await supabase
-    .from("account_documents")
+    .from("workspace_documents")
     .select("data")
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .eq("document_key", documentKey)
     .maybeSingle();
 
@@ -14,38 +14,28 @@ export async function loadAccountDocument<T>(documentKey: string): Promise<T | n
 }
 
 export async function saveAccountDocument(documentKey: string, data: unknown) {
-  const { supabase, userId } = await authenticatedClient();
-  const { error } = await supabase.from("account_documents").upsert(
+  const { supabase, userId, workspaceId } = await getActiveWorkspaceContext();
+  const { error } = await supabase.from("workspace_documents").upsert(
     {
+      workspace_id: workspaceId,
       user_id: userId,
       document_key: documentKey,
       data,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id,document_key" },
+    { onConflict: "workspace_id,document_key" },
   );
 
   if (error) throw new Error(`Account data could not be saved: ${error.message}`);
 }
 
 export async function deleteAccountDocument(documentKey: string) {
-  const { supabase, userId } = await authenticatedClient();
+  const { supabase, workspaceId } = await getActiveWorkspaceContext();
   const { error } = await supabase
-    .from("account_documents")
+    .from("workspace_documents")
     .delete()
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .eq("document_key", documentKey);
 
   if (error) throw new Error(`Account data could not be deleted: ${error.message}`);
 }
-
-async function authenticatedClient() {
-  const supabase = createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Sign in again to access your account data.");
-  return { supabase, userId: user.id };
-}
-

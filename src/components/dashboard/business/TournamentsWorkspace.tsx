@@ -1,47 +1,27 @@
 "use client";
 
-import { CalendarDays, Medal, Trophy, Users } from "lucide-react";
-
+import { useEffect, useState } from "react";
+import { CalendarDays, Loader2, Medal, Trash2, Trophy, Users, X } from "lucide-react";
+import { getActiveWorkspaceContext } from "@/lib/active-workspace";
 import { MetricCard } from "../common/MetricCard";
 import { PageHeader } from "../common/PageHeader";
 import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import styles from "../styles.module.css";
 
+type Tournament = { id: string; name: string; game: string; format: string; status: string; starts_at: string | null };
+
 export function TournamentsWorkspace() {
-  return (
-    <WorkspaceFrame>
-      <PageHeader
-        eyebrow="Tournament operations"
-        title="Registration, staffing, rounds, and brackets."
-        description="Organize store events, player registration, table assignments, judges, pairings, brackets, and prize support."
-        icon={Trophy}
-        actionLabel="Create tournament"
-      />
-
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Upcoming events" value="0" detail="No events scheduled" icon={CalendarDays} />
-        <MetricCard label="Registered players" value="0" detail="No registrations" icon={Users} />
-        <MetricCard label="Open staff positions" value="0" detail="No staffing needs" icon={Users} />
-        <MetricCard label="Prize support" value="$0" detail="Nothing allocated" icon={Medal} />
-      </div>
-
-      <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {([] as string[][]).map(([title, date, registration]) => (
-            <div key={title} className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white">{title}</p>
-                  <p className="mt-2 text-[10px] text-slate-500">{date}</p>
-                </div>
-                <Trophy className="h-4 w-4 text-cyan-300" />
-              </div>
-              <p className="mt-4 text-[9px] text-cyan-300">{registration}</p>
-            </div>
-          ))}
-          <p className="col-span-full py-10 text-center text-xs text-slate-600">No tournaments have been created.</p>
-        </div>
-      </section>
-    </WorkspaceFrame>
-  );
+  const [items, setItems] = useState<Tournament[]>([]); const [open,setOpen]=useState(false); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false); const [error,setError]=useState("");
+  const [form,setForm]=useState({name:"",game:"Magic: The Gathering",format:"Commander",starts_at:""});
+  async function load(){try{const {supabase,workspaceId}=await getActiveWorkspaceContext(); const {data,error:e}=await supabase.from("tournaments").select("id,name,game,format,status,starts_at").eq("workspace_id",workspaceId).order("starts_at",{ascending:true}); if(e)throw e; setItems((data??[]) as Tournament[]);}catch(c){setError(c instanceof Error?c.message:"Tournaments could not be loaded.");}finally{setLoading(false);}}
+  useEffect(()=>{void load();},[]);
+  async function create(event:React.FormEvent){event.preventDefault();setSaving(true);setError("");try{const {supabase,workspaceId,userId}=await getActiveWorkspaceContext();const {error:e}=await supabase.from("tournaments").insert({workspace_id:workspaceId,created_by:userId,name:form.name.trim(),game:form.game,format:form.format,starts_at:form.starts_at?new Date(form.starts_at).toISOString():null});if(e)throw e;setOpen(false);setForm({name:"",game:"Magic: The Gathering",format:"Commander",starts_at:""});await load();}catch(c){setError(c instanceof Error?c.message:"Tournament could not be saved.");}finally{setSaving(false);}}
+  async function remove(id:string){const {supabase,workspaceId}=await getActiveWorkspaceContext();const {error:e}=await supabase.from("tournaments").delete().eq("id",id).eq("workspace_id",workspaceId);if(e)setError(e.message);else setItems((all)=>all.filter((item)=>item.id!==id));}
+  return <WorkspaceFrame>
+    <PageHeader eyebrow="Tournament operations" title="Run events from one durable command center." description="Tournament details are workspace-owned, securely cloud saved, and available to authorized staff across devices." icon={Trophy} actionLabel="Create tournament" onAction={()=>setOpen(true)} />
+    {error?<div className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/[0.06] p-3 text-xs text-rose-200">{error}</div>:null}
+    <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Upcoming events" value={String(items.length)} detail="Workspace tournaments" icon={CalendarDays}/><MetricCard label="Registered players" value="0" detail="Registration opens per event" icon={Users}/><MetricCard label="Open staff positions" value="0" detail="No staffing needs" icon={Users}/><MetricCard label="Prize support" value="$0" detail="Nothing allocated" icon={Medal}/></div>
+    <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}><div className="flex items-center justify-between"><div><p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Event portfolio</p><h2 className="mt-2 text-lg font-semibold text-white">Upcoming tournaments</h2></div><span className="text-[10px] text-emerald-300">Cloud saved</span></div>{loading?<Loader2 className="mx-auto my-12 h-5 w-5 animate-spin text-cyan-300"/>:items.length?<div className="mt-5 grid gap-4 lg:grid-cols-2">{items.map((item)=><div key={item.id} className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4"><div className="flex items-start justify-between"><div><p className="text-sm font-semibold text-white">{item.name}</p><p className="mt-2 text-[10px] text-slate-500">{item.game} · {item.format}</p><p className="mt-2 text-[10px] text-cyan-300">{item.starts_at?new Date(item.starts_at).toLocaleString():"Date not scheduled"}</p></div><button type="button" aria-label={`Delete ${item.name}`} onClick={()=>void remove(item.id)} className="rounded-lg p-2 text-slate-600 hover:bg-rose-400/10 hover:text-rose-300"><Trash2 className="h-4 w-4"/></button></div></div>)}</div>:<button type="button" onClick={()=>setOpen(true)} className="mt-5 w-full rounded-2xl border border-dashed border-white/[0.08] py-10 text-xs text-slate-500 hover:border-cyan-300/20 hover:text-cyan-200">Create your first tournament</button>}</section>
+    {open?<div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"><form onSubmit={create} className={`${styles.glassPanel} w-full max-w-md rounded-[26px] p-6`}><div className="flex items-center justify-between"><h2 className="text-xl font-semibold text-white">Create tournament</h2><button type="button" onClick={()=>setOpen(false)}><X className="h-5 w-5 text-slate-500"/></button></div><div className="mt-5 space-y-3"><input required value={form.name} onChange={(e)=>setForm({...form,name:e.target.value})} placeholder="Tournament name" className="workspace-input w-full"/><select value={form.game} onChange={(e)=>setForm({...form,game:e.target.value})} className="workspace-input w-full"><option>Magic: The Gathering</option><option>Pokémon</option><option>Yu-Gi-Oh!</option><option>Lorcana</option><option>One Piece</option><option>Other</option></select><input value={form.format} onChange={(e)=>setForm({...form,format:e.target.value})} placeholder="Format" className="workspace-input w-full"/><input type="datetime-local" value={form.starts_at} onChange={(e)=>setForm({...form,starts_at:e.target.value})} className="workspace-input w-full"/></div><button disabled={saving} className="mt-5 h-11 w-full rounded-xl bg-cyan-400 text-sm font-semibold text-slate-950 disabled:opacity-50">{saving?"Saving…":"Create tournament"}</button></form></div>:null}
+  </WorkspaceFrame>;
 }

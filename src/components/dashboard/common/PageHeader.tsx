@@ -40,7 +40,7 @@ export function PageHeader({
               <CircleDot className="h-3 w-3 text-emerald-300" />
               Live workspace
             </span>
-            <span>Saved locally</span>
+            <span>Secure cloud save</span>
           </div>
         </div>
 
