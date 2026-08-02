@@ -41,6 +41,9 @@ type Candidate = {
   confidence: number;
   replacement?: string;
   scryfallUri?: string;
+  colorIdentity: string[];
+  legality: string;
+  synergySignals: string[];
 };
 
 export async function POST(request: NextRequest) {
@@ -54,20 +57,25 @@ export async function POST(request: NextRequest) {
       body.commanderName ?? "",
     );
 
+    const enrichedDeck = await enrichCards(cards);
+    const enrichedCommander = enrichedDeck.find(
+      (card) =>
+        card.board === "commander" ||
+        card.category === "Commander",
+    );
     const mainDeck = cards.filter(
       (card) =>
         card.board !== "commander" &&
         card.category !== "Commander",
     );
 
-    const enriched = await enrichCards(mainDeck);
-    const commander = cards.find(
+    const enriched = enrichedDeck.filter(
       (card) =>
-        card.board === "commander" ||
-        card.category === "Commander",
+        card.board !== "commander" &&
+        card.category !== "Commander",
     );
     const commanderIdentity =
-      commander?.colors?.filter(
+      enrichedCommander?.colorIdentity?.filter(
         (color) => color !== "C",
       ) ?? [];
 
@@ -89,6 +97,7 @@ export async function POST(request: NextRequest) {
         cards.map((card) => card.name.toLowerCase()),
       ),
       enriched,
+      commander: enrichedCommander,
     });
 
     const strengths = buildStrengths(profile);
@@ -142,6 +151,9 @@ export async function POST(request: NextRequest) {
         colorIdentityChecked:
           format === "EDH" ||
           format === "Pauper EDH",
+        finalCandidateValidation: true,
+        ranking:
+          "Deck role, commander and deck-theme synergy, curve fit, then EDHREC popularity",
         aiUsed: Boolean(aiResult),
       },
     });
@@ -489,21 +501,25 @@ async function findCandidates({
   commanderIdentity,
   currentNames,
   enriched,
+  commander,
 }: {
   issues: Issue[];
   format: string;
   commanderIdentity: string[];
   currentNames: Set<string>;
   enriched: EnrichedCard[];
+  commander?: EnrichedCard;
 }): Promise<Candidate[]> {
   const results: Candidate[] = [];
   const legality = legalityCode(format);
-  const identity =
-    commanderIdentity.length > 0
-      ? ` id<=${commanderIdentity
-          .join("")
-          .toLowerCase()}`
-      : "";
+  const commanderFormat =
+    format === "EDH" || format === "Pauper EDH";
+  const identity = commanderFormat
+    ? commanderIdentity.length > 0
+      ? ` id<=${commanderIdentity.join("").toLowerCase()}`
+      : " id:c"
+    : "";
+  const themeSignals = buildThemeSignals(enriched, commander);
   const lowestImpact = [...enriched]
     .filter(
       (card) =>
@@ -547,13 +563,18 @@ async function findCandidates({
     const candidates = (payload.data ?? [])
       .filter(
         (card: any) =>
-          !currentNames.has(
-            String(card.name).toLowerCase(),
-          ),
+          !currentNames.has(String(card.name).toLowerCase()) &&
+          isCandidateLegal(card, legality, commanderIdentity, commanderFormat),
       )
-      .slice(0, 4);
+      .map((card: any) => ({
+        card,
+        synergy: scoreThemeSynergy(card, themeSignals, commander),
+      }))
+      .sort((a: any, b: any) => b.synergy.score - a.synergy.score)
+      .slice(0, 5);
 
-    for (const [index, card] of candidates.entries()) {
+    for (const [index, entry] of candidates.entries()) {
+      const { card, synergy } = entry;
       const face =
         card.card_faces?.find(
           (entry: any) => entry.image_uris,
@@ -580,11 +601,14 @@ async function findCandidates({
         ),
         confidence: Math.max(
           72,
-          94 - index * 5,
+          Math.min(98, 86 - index * 4 + synergy.score),
         ),
         replacement:
           lowestImpact[index]?.name,
         scryfallUri: card.scryfall_uri,
+        colorIdentity: card.color_identity ?? [],
+        legality: card.legalities?.[legality] ?? "not_legal",
+        synergySignals: synergy.signals,
       });
     }
   }
@@ -599,6 +623,64 @@ async function findCandidates({
       return true;
     })
     .slice(0, 8);
+}
+
+function isCandidateLegal(
+  card: any,
+  legality: string,
+  commanderIdentity: string[],
+  commanderFormat: boolean,
+) {
+  if (card.legalities?.[legality] !== "legal") return false;
+  if (!commanderFormat) return true;
+
+  const allowed = new Set(commanderIdentity);
+  return (card.color_identity ?? []).every((color: string) =>
+    allowed.has(color),
+  );
+}
+
+function buildThemeSignals(cards: EnrichedCard[], commander?: EnrichedCard) {
+  const source = [commander, ...cards]
+    .filter(Boolean)
+    .map((card) => `${card?.typeLine ?? ""} ${card?.oracleText ?? ""}`.toLowerCase())
+    .join(" ");
+  const signals: Array<[string, RegExp]> = [
+    ["tokens", /create .* token|token enters|creature tokens?/],
+    ["artifacts", /artifact|treasure|equipment|vehicle/],
+    ["enchantments", /enchantment|aura|constellation/],
+    ["graveyard", /graveyard|mill|discard|reanimate/],
+    ["spellslinger", /instant or sorcery|noncreature spell|copy .* spell/],
+    ["counters", /\+1\/\+1 counter|counter on|proliferate/],
+    ["lifegain", /gain life|lifelink|life total/],
+    ["sacrifice", /sacrifice|dies|when .* dies/],
+    ["lands", /landfall|land enters|play an additional land/],
+    ["typal", /choose a creature type|creatures? you control of the chosen type/],
+  ];
+  return signals.filter(([, pattern]) => pattern.test(source));
+}
+
+function scoreThemeSynergy(
+  card: any,
+  themes: Array<[string, RegExp]>,
+  commander?: EnrichedCard,
+) {
+  const text = `${card.type_line ?? ""} ${card.oracle_text ?? ""} ${card.card_faces?.map((face: any) => face.oracle_text ?? "").join(" ") ?? ""}`.toLowerCase();
+  const signals = themes
+    .filter(([, pattern]) => pattern.test(text))
+    .map(([label]) => label);
+  const commanderWords = new Set(
+    `${commander?.typeLine ?? ""} ${commander?.oracleText ?? ""}`
+      .toLowerCase()
+      .match(/[a-z]{5,}/g) ?? [],
+  );
+  const sharedCommanderTerms = [...commanderWords].filter((word) =>
+    text.includes(word),
+  ).length;
+  return {
+    score: Math.min(12, signals.length * 3 + Math.min(3, sharedCommanderTerms)),
+    signals: signals.slice(0, 3),
+  };
 }
 
 function candidateReason(

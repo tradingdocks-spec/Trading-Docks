@@ -5860,7 +5860,7 @@ function ManaSymbols({
 
 function manaSymbolUrl(color: ManaColor) {
   const symbol = color === "C" ? "C" : color;
-  return `https://svgs.scryfall.io/card-symbols/${symbol}.svg`;
+  return `/mana/${symbol}.svg`;
 }
 
 function manaName(color: ManaColor) {

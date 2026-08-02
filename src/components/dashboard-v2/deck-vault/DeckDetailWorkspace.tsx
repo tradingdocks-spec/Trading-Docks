@@ -4246,7 +4246,7 @@ function ManaSymbols({
 
 function manaSymbolUrl(color: ManaColor) {
   const symbol = color === "C" ? "C" : color;
-  return `https://svgs.scryfall.io/card-symbols/${symbol}.svg`;
+  return `/mana/${symbol}.svg`;
 }
 
 function manaName(color: ManaColor) {
@@ -4496,6 +4496,9 @@ type DeckDoctorRecommendation = {
   confidence: number;
   replacement?: string;
   scryfallUri?: string;
+  colorIdentity?: string[];
+  legality?: string;
+  synergySignals?: string[];
 };
 
 type DeckDoctorReport = {
@@ -4599,8 +4602,8 @@ function DeckDoctorRecommendations({
               ) : null}
             </div>
             <p className="mt-2 max-w-3xl text-[13px] leading-5 text-slate-400">
-              Detects structural gaps, validates candidates against format and color identity,
-              then ranks cards for draw, ramp, interaction, protection, finishers, and combo support.
+              Detects structural gaps, hard-validates every candidate against format and commander
+              color identity, then ranks by deck role, strategy synergy, curve fit, and EDHREC popularity.
             </p>
           </div>
         </div>
@@ -4702,6 +4705,16 @@ function DeckDoctorRecommendations({
             <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
               Recommended cards
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-emerald-300/[0.13] bg-emerald-400/[0.035] px-3 py-1.5 text-[10px] font-semibold text-emerald-200">
+                Format legal verified
+              </span>
+              {(format === "EDH" || format === "Pauper EDH") ? (
+                <span className="rounded-full border border-cyan-300/[0.13] bg-cyan-400/[0.035] px-3 py-1.5 text-[10px] font-semibold text-cyan-200">
+                  Commander colors verified
+                </span>
+              ) : null}
+            </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {report.recommendations.map((recommendation) => (
                 <article
@@ -4733,6 +4746,18 @@ function DeckDoctorRecommendations({
                     <p className="mt-2 text-[12px] leading-5 text-slate-400">
                       {recommendation.reason}
                     </p>
+                    {recommendation.synergySignals?.length ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {recommendation.synergySignals.map((signal) => (
+                          <span
+                            key={signal}
+                            className="rounded-md border border-violet-300/[0.1] bg-violet-400/[0.035] px-2 py-1 text-[9px] font-semibold capitalize text-violet-200"
+                          >
+                            {signal} synergy
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <span className="text-[11px] text-slate-500">
                         Solves: {recommendation.issue}

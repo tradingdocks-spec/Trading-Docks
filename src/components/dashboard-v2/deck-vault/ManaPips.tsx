@@ -54,7 +54,7 @@ function ManaSymbol({
     >
       {!failed ? (
         <img
-          src={`https://svgs.scryfall.io/card-symbols/${color}.svg`}
+          src={`/mana/${color}.svg`}
           alt={`${name(color)} mana`}
           loading="eager"
           onError={() => setFailed(true)}
