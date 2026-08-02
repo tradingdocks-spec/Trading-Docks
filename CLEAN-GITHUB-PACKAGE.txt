@@ -1,0 +1,19 @@
+TRADING DOCKS — CLEAN GITHUB / VERCEL PACKAGE
+
+This source package intentionally excludes:
+- node_modules
+- node_modules-install-failed
+- .next
+- .cache
+- .git
+- .vercel
+- build caches and log files
+
+Dependencies are recreated by running:
+npm install
+
+Production build:
+npm run build
+
+The updated Trading Docks favicon, app icons, web manifest, and social-profile
+images are included in this package.

@@ -1,0 +1,15 @@
+Updated TD favicon and profile icon system installed.
+
+Website:
+- favicon.ico and 16/32/48 PNG favicons
+- Next.js app/icon.png, app/apple-icon.png, app/favicon.ico
+- Apple, Android, PWA, Windows and App Store icon sizes
+- site.webmanifest and layout metadata updated
+
+Upload-ready social files:
+- public/brand/social/instagram-profile-1080.png
+- public/brand/social/discord-server-1024.png
+- public/brand/social/x-profile-1024.png
+- public/brand/social/youtube-profile-800.png
+
+After deployment, use an Incognito window or Ctrl+Shift+R because browsers cache favicons.

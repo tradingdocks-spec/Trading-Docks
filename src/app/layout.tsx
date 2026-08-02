@@ -11,6 +11,18 @@ export const metadata: Metadata = {
   },
   description:
     "Manage inventory, marketplace listings, pricing, and sales from one connected card-selling workspace.",
+  manifest: "/site.webmanifest",
+  themeColor: "#07121F",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 type RootLayoutProps = Readonly<{

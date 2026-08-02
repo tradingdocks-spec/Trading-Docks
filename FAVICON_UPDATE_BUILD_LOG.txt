@@ -1,0 +1,4 @@
+  Downloading swc package @next/swc-linux-x64-gnu... to /home/oai/.cache/next-swc
+⨯ Failed to download swc package from https://packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/npm/npm-public/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.2.11.tgz
+unhandledRejection Error: request failed with status 404
+    at ignore-listed frames

@@ -4,8 +4,8 @@
   "description": "Professional tools for collectors, players, sellers, and game stores.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#030C18",
-  "theme_color": "#030C18",
+  "background_color": "#07121F",
+  "theme_color": "#07121F",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
