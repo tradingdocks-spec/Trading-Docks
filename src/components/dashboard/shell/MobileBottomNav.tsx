@@ -2,7 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, Grid2X2, LayoutDashboard, LibraryBig, Settings } from "lucide-react";
+import { Boxes, LayoutDashboard, LibraryBig, Menu, Settings } from "lucide-react";
 
 const ITEMS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard, exact: true },
@@ -12,9 +12,14 @@ const ITEMS = [
 ] as const;
 
 const NAV_ITEM_CLASS =
-  "relative m-0 flex min-h-[58px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-1.5 rounded-[16px] border-0 bg-transparent px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] outline-none transition-[color,background-color,transform] duration-150 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-cyan-300/70";
+  "relative m-0 flex h-[60px] min-h-[60px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-[5px] rounded-[17px] border-0 bg-transparent px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] outline-none transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300/70";
 const NAV_LABEL_CLASS =
-  "w-full truncate font-sans text-[10px] font-semibold leading-none tracking-[-0.01em]";
+  "block w-full truncate text-center font-sans text-[10px] font-semibold leading-[12px] tracking-[-0.01em]";
+
+const ACTIVE_CLASS =
+  "bg-cyan-400/[0.11] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,.09),0_4px_16px_rgba(8,145,178,.07)]";
+const INACTIVE_CLASS =
+  "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]";
 
 function NavIcon({
   icon: Icon,
@@ -28,6 +33,30 @@ function NavIcon({
     >
       <Icon className="h-[21px] w-[21px] shrink-0 stroke-[2]" />
     </span>
+  );
+}
+
+function NavPresentation({
+  icon,
+  label,
+  active,
+}: {
+  icon: typeof LayoutDashboard;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className={[
+          "absolute left-1/2 top-0 h-[3px] w-5 -translate-x-1/2 rounded-b-full bg-cyan-300 transition-opacity duration-150",
+          active ? "opacity-100" : "opacity-0",
+        ].join(" ")}
+      />
+      <NavIcon icon={icon} />
+      <span className={NAV_LABEL_CLASS}>{label}</span>
+    </>
   );
 }
 
@@ -57,7 +86,7 @@ export function MobileBottomNav({
   return (
     <nav
       aria-label="Mobile dashboard navigation"
-      className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 touch-manipulation rounded-[24px] border border-cyan-100/[0.1] bg-[#06141e]/[0.97] p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,.045)] backdrop-blur-2xl md:hidden"
+      className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 touch-manipulation rounded-[24px] border border-cyan-100/[0.1] bg-[#06141e]/[0.97] p-[6px] shadow-[0_20px_60px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,.05)] backdrop-blur-2xl md:hidden"
     >
       <div className="mx-auto grid max-w-lg grid-cols-5 gap-0.5">
         {ITEMS.map(({ href, label, icon: Icon, exact }) => {
@@ -71,12 +100,11 @@ export function MobileBottomNav({
               className={[
                 NAV_ITEM_CLASS,
                 active
-                  ? "bg-cyan-400/[0.11] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,.08)]"
-                  : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",
+                  ? ACTIVE_CLASS
+                  : INACTIVE_CLASS,
               ].join(" ")}
             >
-              <NavIcon icon={Icon} />
-              <span className={NAV_LABEL_CLASS}>{label}</span>
+              <NavPresentation icon={Icon} label={label} active={active} />
               <NavigationStatus />
             </Link>
           );
@@ -89,12 +117,11 @@ export function MobileBottomNav({
           className={[
             NAV_ITEM_CLASS,
             menuOpen
-              ? "bg-cyan-400/[0.12] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,.08)]"
-              : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",
+              ? ACTIVE_CLASS
+              : INACTIVE_CLASS,
           ].join(" ")}
         >
-          <NavIcon icon={Grid2X2} />
-          <span className={NAV_LABEL_CLASS}>Menu</span>
+          <NavPresentation icon={Menu} label="Menu" active={menuOpen} />
         </button>
       </div>
     </nav>
