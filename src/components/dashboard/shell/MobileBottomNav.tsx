@@ -12,14 +12,14 @@ const ITEMS = [
 ] as const;
 
 const NAV_ITEM_CLASS =
-  "relative m-0 flex h-[60px] min-h-[60px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-[5px] rounded-[17px] border-0 bg-transparent px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] outline-none transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300/70";
+  "group relative m-0 flex h-[60px] min-h-[60px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-[5px] rounded-[17px] border border-transparent bg-transparent px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] outline-none transition-[color,background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300/70";
 const NAV_LABEL_CLASS =
   "block w-full truncate text-center font-sans text-[10px] font-semibold leading-[12px] tracking-[-0.01em]";
 
 const ACTIVE_CLASS =
-  "bg-cyan-400/[0.11] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,.09),0_4px_16px_rgba(8,145,178,.07)]";
+  "border-cyan-300/[0.13] bg-cyan-400/[0.12] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,.06),0_5px_18px_rgba(8,145,178,.12),0_0_22px_rgba(34,211,238,.06)]";
 const INACTIVE_CLASS =
-  "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]";
+  "text-cyan-200/75 hover:border-cyan-300/[0.09] hover:bg-cyan-400/[0.07] hover:text-cyan-50 active:bg-cyan-400/[0.11]";
 
 function NavIcon({
   icon: Icon,
@@ -31,7 +31,7 @@ function NavIcon({
       aria-hidden="true"
       className="flex h-[22px] w-[22px] shrink-0 items-center justify-center"
     >
-      <Icon className="h-[21px] w-[21px] shrink-0 stroke-[2]" />
+      <Icon className="h-[21px] w-[21px] shrink-0 stroke-[2] drop-shadow-[0_0_7px_rgba(34,211,238,.16)] transition-transform duration-200 group-hover:-translate-y-px" />
     </span>
   );
 }
@@ -86,7 +86,7 @@ export function MobileBottomNav({
   return (
     <nav
       aria-label="Mobile dashboard navigation"
-      className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 touch-manipulation rounded-[24px] border border-cyan-100/[0.1] bg-[#06141e]/[0.97] p-[6px] shadow-[0_20px_60px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,.05)] backdrop-blur-2xl md:hidden"
+      className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 touch-manipulation overflow-hidden rounded-[24px] border border-cyan-100/[0.12] bg-[linear-gradient(180deg,rgba(8,28,40,.98),rgba(3,15,24,.98))] p-[6px] shadow-[0_20px_60px_rgba(0,0,0,0.62),0_0_34px_rgba(8,145,178,.07),inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur-2xl md:hidden"
     >
       <div className="mx-auto grid max-w-lg grid-cols-5 gap-0.5">
         {ITEMS.map(({ href, label, icon: Icon, exact }) => {

@@ -80,7 +80,7 @@ export function TieredSidebar({
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden border-r border-white/[0.055] bg-[#020b12]/97 shadow-[22px_0_70px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-300",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-cyan-100/[0.08] bg-[#020b12]/[0.98] shadow-[22px_0_70px_rgba(0,0,0,0.48),0_0_50px_rgba(8,145,178,.05)] backdrop-blur-2xl transition-all duration-300 xl:w-auto",
           collapsed ? "w-[88px]" : "w-[258px]",
           mobileOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0",
         ].join(" ")}
@@ -300,7 +300,7 @@ function SectionNav({
           "group relative mt-1 flex h-10 items-center justify-center overflow-hidden rounded-xl border transition duration-300",
           active
             ? "border-cyan-300/[0.18] bg-cyan-400/[0.065] text-white"
-            : "border-transparent text-slate-200 hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.04]",
+                  : "border-transparent text-cyan-100/85 hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.06]",
         ].join(" ")}
       >
         {active ? (
@@ -325,7 +325,7 @@ function SectionNav({
           "relative overflow-hidden rounded-xl border transition",
           active
             ? "border-cyan-300/[0.13] bg-cyan-400/[0.035]"
-            : "border-transparent",
+            : "border-cyan-300/[0.055] bg-cyan-400/[0.018]",
         ].join(" ")}
       >
         <div className="flex h-10 items-center">
@@ -339,13 +339,13 @@ function SectionNav({
                 "h-4 w-4 shrink-0",
                 active
                   ? "text-cyan-300"
-                  : "text-cyan-300/80 group-hover:text-cyan-200",
+                  : "text-cyan-300/85 group-hover:text-cyan-100",
               ].join(" ")}
             />
             <span
               className={[
                 "text-[13px] font-medium",
-                active ? "text-white" : "text-slate-200",
+                active ? "text-white" : "text-cyan-50/90",
               ].join(" ")}
             >
               {section.label}
@@ -361,7 +361,7 @@ function SectionNav({
                 ? `Collapse ${section.label}`
                 : `Expand ${section.label}`
             }
-            className="mr-1 flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white/[0.035] hover:text-cyan-300"
+            className="mr-1 flex h-8 w-8 items-center justify-center rounded-lg text-cyan-300/65 transition hover:bg-cyan-400/[0.08] hover:text-cyan-100"
           >
             <ChevronDown
               className={[
@@ -389,7 +389,7 @@ function SectionNav({
                     "group flex min-h-9 items-center gap-2.5 rounded-lg px-3 py-2 text-[11px] transition",
                     childActive
                       ? "bg-cyan-400/[0.07] text-cyan-100"
-                      : "text-slate-300 hover:bg-cyan-400/[0.035] hover:text-white",
+                      : "text-cyan-100/75 hover:bg-cyan-400/[0.055] hover:text-white",
                   ].join(" ")}
                 >
                   <ChildIcon
@@ -397,7 +397,7 @@ function SectionNav({
                       "h-3.5 w-3.5 shrink-0",
                       childActive
                         ? "text-cyan-300"
-                        : "text-cyan-300/60 group-hover:text-cyan-200",
+                        : "text-cyan-300/70 group-hover:text-cyan-100",
                     ].join(" ")}
                   />
                   <span>{item.label}</span>
@@ -460,7 +460,7 @@ function NavGroup({
                 collapsed ? "justify-center px-0" : "gap-3 px-3",
                 active
                   ? "border-cyan-300/[0.18] bg-cyan-400/[0.065] text-white"
-                  : "border-transparent text-slate-500 hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-slate-200",
+                  : "border-cyan-300/[0.045] bg-cyan-400/[0.012] text-cyan-50/80 hover:border-cyan-300/[0.13] hover:bg-cyan-400/[0.055] hover:text-white",
               ].join(" ")}
             >
               {active ? (
@@ -470,16 +470,16 @@ function NavGroup({
               {allowed ? <Icon
                 className={[
                   "relative z-10 h-4 w-4 shrink-0",
-                  active ? "text-cyan-300" : "text-slate-600 group-hover:text-cyan-300/80",
+                  active ? "text-cyan-200" : "text-cyan-300/70 group-hover:text-cyan-100",
                 ].join(" ")}
-              /> : <LockKeyhole className="relative z-10 h-4 w-4 shrink-0 text-slate-600" />}
+              /> : <LockKeyhole className="relative z-10 h-4 w-4 shrink-0 text-cyan-300/65" />}
 
               {!collapsed ? (
                 <>
                   <span className="relative z-10 text-[13px] font-medium">
                     {item.label}
                   </span>
-                  {!allowed ? <span className="relative z-10 ml-auto rounded-full border border-white/[0.07] px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-slate-600">{minimumPlanName(feature)}</span> : null}
+                  {!allowed ? <span className="relative z-10 ml-auto rounded-full border border-cyan-300/[0.12] bg-cyan-400/[0.035] px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-cyan-200/65">{minimumPlanName(feature)}</span> : null}
                 </>
               ) : null}
             </Link>
