@@ -1091,15 +1091,6 @@ export function TieredInventoryWorkspace({
         </button>
         <button
           type="button"
-          onClick={() => document.getElementById("psa-slab-vault")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.18] bg-cyan-400/[0.05] px-4 text-[10px] font-semibold text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/[0.09]"
-        >
-          <ShieldCheck className="h-4 w-4 text-cyan-300" />
-          PSA Slabs
-          <span className="rounded-md bg-cyan-300/10 px-1.5 py-0.5 text-[8px] font-black text-cyan-200">{items.filter((item) => item.category === "Graded" && item.gradingCompany === "PSA").length}</span>
-        </button>
-        <button
-          type="button"
           onClick={() => setPutAwayOpen(true)}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300/[0.18] bg-amber-300/[0.055] px-4 text-[10px] font-semibold text-amber-100 transition hover:border-amber-300/35 hover:bg-amber-300/[0.09]"
         >
@@ -1118,6 +1109,44 @@ export function TieredInventoryWorkspace({
           File inventory
         </button>
       </div> : null}
+
+      {canManageCollection ? (
+        <section className="mt-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.13] bg-[linear-gradient(115deg,rgba(8,29,41,0.96),rgba(4,15,24,0.98))] shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          <div className="flex flex-col gap-5 bg-[radial-gradient(circle_at_82%_0%,rgba(34,211,238,0.14),transparent_38%)] p-5 lg:flex-row lg:items-center lg:justify-between lg:p-6">
+            <div className="flex min-w-0 items-start gap-4">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.09] shadow-[0_12px_40px_rgba(34,211,238,0.10)]">
+                <ShieldCheck className="h-7 w-7 text-cyan-200" />
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300">Collection area</p>
+                  <span className="rounded-full border border-cyan-300/15 bg-cyan-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-cyan-100">
+                    {items.filter((item) => item.category === "Graded" && item.gradingCompany === "PSA").length} slabs
+                  </span>
+                </div>
+                <h2 className="mt-2 text-lg font-semibold tracking-[-0.025em] text-white sm:text-xl">PSA Slab Vault</h2>
+                <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-400">Manage graded cards separately from raw inventory, with PSA certification, grade, cost basis, value, photos, and physical location.</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => document.getElementById("psa-slab-vault")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-4 text-[10px] font-bold text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/[0.11]"
+              >
+                <List className="h-4 w-4 text-cyan-300" /> View PSA collection
+              </button>
+              <button
+                type="button"
+                onClick={() => { setFileDefaultCategory("Graded"); setFileModalOpen(true); }}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-black text-[#001018] shadow-[0_12px_34px_rgba(34,211,238,0.15)]"
+              >
+                <Plus className="h-4 w-4" /> Add PSA slab
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <div className={`mt-5 grid gap-4 sm:grid-cols-2 ${hasBusinessAnalytics ? "xl:grid-cols-6" : "xl:grid-cols-4"}`}>
         <MetricCard
