@@ -95,8 +95,11 @@ export async function POST(request: NextRequest) {
       ),
     );
 
+    const recommendationIssues = issues.length
+      ? issues
+      : buildUpgradeOpportunities(profile, enriched, enrichedCommander);
     const recommendations = await findCandidates({
-      issues,
+      issues: recommendationIssues,
       format,
       commanderIdentity: allowedColors,
       currentNames: new Set(
@@ -213,14 +216,14 @@ async function fetchCardByExactName(name: string): Promise<EnrichedCard | undefi
 async function enrichCards(
   cards: InputCard[],
 ): Promise<EnrichedCard[]> {
-  const byId = cards.filter((card) => card.id);
   const chunks: InputCard[][] = [];
 
-  for (let index = 0; index < byId.length; index += 75) {
-    chunks.push(byId.slice(index, index + 75));
+  for (let index = 0; index < cards.length; index += 75) {
+    chunks.push(cards.slice(index, index + 75));
   }
 
   const enrichedById = new Map<string, any>();
+  const enrichedByName = new Map<string, any>();
 
   for (const chunk of chunks) {
     const response = await fetch(
@@ -234,9 +237,11 @@ async function enrichCards(
             "TradingDocks-DeckDoctor/1.0",
         },
         body: JSON.stringify({
-          identifiers: chunk.map((card) => ({
-            id: card.id,
-          })),
+          identifiers: chunk.map((card) =>
+            /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(card.id)
+              ? { id: card.id }
+              : { name: card.name },
+          ),
         }),
         cache: "no-store",
       },
@@ -247,11 +252,14 @@ async function enrichCards(
     const payload = await response.json();
     for (const card of payload.data ?? []) {
       enrichedById.set(card.id, card);
+      enrichedByName.set(String(card.name).toLowerCase(), card);
     }
   }
 
   return cards.map((card) => {
-    const scryfall = enrichedById.get(card.id);
+    const scryfall =
+      enrichedById.get(card.id) ??
+      enrichedByName.get(card.name.toLowerCase());
     const face =
       scryfall?.card_faces?.find(
         (entry: any) => entry.oracle_text,
@@ -536,6 +544,45 @@ function detectIssues(
   return issues.slice(0, 6);
 }
 
+function buildUpgradeOpportunities(
+  profile: ReturnType<typeof buildProfile>,
+  cards: EnrichedCard[],
+  commander?: EnrichedCard,
+): Issue[] {
+  const primaryTheme = buildThemeSignals(cards, commander)[0]?.[0];
+  const themeQuery: Record<string, string> = {
+    tokens: '(o:"create" and o:"token")',
+    artifacts: '(t:artifact or o:"artifact")',
+    enchantments: '(t:enchantment or o:"enchantment")',
+    graveyard: '(o:"graveyard" or o:"return target" o:"from your graveyard")',
+    spellslinger: '(o:"instant or sorcery" or o:"noncreature spell" or o:"copy target spell")',
+    counters: '(o:"+1/+1 counter" or o:proliferate)',
+    lifegain: '(o:"gain life" or o:lifelink)',
+    sacrifice: '(o:sacrifice or o:"when" o:"dies")',
+    lands: '(o:landfall or o:"additional land")',
+    typal: '(o:"creatures you control" or o:"choose a creature type")',
+  };
+
+  return [
+    {
+      role: primaryTheme ? `${primaryTheme[0].toUpperCase()}${primaryTheme.slice(1)} Synergy` : "Strategy Synergy",
+      severity: "low",
+      current: 0,
+      target: "Focused upgrades",
+      explanation: "The deck meets its baseline structure, so these suggestions focus on cards that reinforce its established game plan.",
+      query: themeQuery[primaryTheme ?? ""] ?? '(-t:land and cmc<=4)',
+    },
+    {
+      role: "Flexible Value",
+      severity: "low",
+      current: Math.round(profile.averageManaValue * 100) / 100,
+      target: "Efficient, multi-purpose cards",
+      explanation: "Flexible cards improve consistency without pulling the deck away from its primary strategy.",
+      query: '(-t:land and cmc<=4 and (o:"draw a card" or o:"exile target" or o:"create a Treasure token"))',
+    },
+  ];
+}
+
 async function findCandidates({
   issues,
   format,
@@ -649,6 +696,68 @@ async function findCandidates({
         legality: card.legalities?.[legality] ?? "not_legal",
         synergySignals: synergy.signals,
       });
+    }
+  }
+
+  // A complete list can satisfy every fixed ratio, and narrow Oracle-text searches
+  // occasionally return no cards. Always provide a useful second pass drawn from
+  // legal, in-identity, paper cards, then rank it by the deck's detected themes.
+  if (results.length < 5) {
+    const fallbackQuery = `-t:basic -is:digital${identity} legal:${legality}`;
+    const params = new URLSearchParams({
+      q: fallbackQuery,
+      unique: "cards",
+      order: commanderFormat ? "edhrec" : "released",
+      dir: "asc",
+    });
+    const response = await fetch(
+      `https://api.scryfall.com/cards/search?${params.toString()}`,
+      {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "TradingDocks-DeckDoctor/1.0",
+        },
+        next: { revalidate: 1800 },
+      },
+    );
+
+    if (response.ok) {
+      const payload = await response.json();
+      const fallbackIssue = issues[0] ?? {
+        role: "Strategy Synergy",
+        explanation: "Reinforces the deck's established plan.",
+      };
+      const fallback = (payload.data ?? [])
+        .filter(
+          (card: any) =>
+            !currentNames.has(String(card.name).toLowerCase()) &&
+            isCandidateLegal(card, legality, commanderIdentity, commanderFormat),
+        )
+        .map((card: any) => ({
+          card,
+          synergy: scoreThemeSynergy(card, themeSignals, commander),
+        }))
+        .sort((a: any, b: any) => b.synergy.score - a.synergy.score)
+        .slice(0, 12);
+
+      for (const [index, entry] of fallback.entries()) {
+        const { card, synergy } = entry;
+        const face = card.card_faces?.find((item: any) => item.image_uris) ?? card;
+        results.push({
+          cardName: card.name,
+          image: face.image_uris?.normal ?? face.image_uris?.large ?? "",
+          price: Number(card.prices?.usd ?? card.prices?.usd_foil ?? 0),
+          role: fallbackIssue.role,
+          issue: fallbackIssue.role,
+          reason: `${card.oracle_text ?? face.oracle_text ?? "This card provides efficient, format-legal value."} It matches the deck's verified colors and supports its detected strategy.`,
+          confidence: Math.max(70, Math.min(94, 78 - index + synergy.score)),
+          replacement: lowestImpact[index]?.name,
+          scryfallUri: card.scryfall_uri,
+          colorIdentity: card.color_identity ?? [],
+          legality: card.legalities?.[legality] ?? "not_legal",
+          synergySignals: synergy.signals,
+        });
+      }
     }
   }
 
