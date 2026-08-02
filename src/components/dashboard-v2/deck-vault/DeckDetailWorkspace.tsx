@@ -4514,15 +4514,6 @@ type DeckDoctorReport = {
   }>;
   recommendations: DeckDoctorRecommendation[];
   analysisMode: "ai" | "rules";
-  deckIdentity: {
-    archetype: string;
-    subarchetypes: string[];
-    gamePlan: string;
-    winMethod: string;
-    winConditions: string[];
-    confidence: number;
-    evidence: string[];
-  };
 };
 
 function DeckDoctorRecommendations({
@@ -4670,27 +4661,6 @@ function DeckDoctorRecommendations({
                     {strength}
                   </span>
                 ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-cyan-300/[0.12] bg-gradient-to-br from-cyan-400/[0.045] to-violet-400/[0.025] p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300">Deck identity</p>
-                <h3 className="mt-2 text-lg font-semibold text-white">{report.deckIdentity.archetype}</h3>
-                {report.deckIdentity.subarchetypes.length ? <p className="mt-1 text-[12px] text-slate-500">Secondary: {report.deckIdentity.subarchetypes.join(" · ")}</p> : null}
-              </div>
-              <span className="rounded-full border border-cyan-300/[0.13] bg-cyan-400/[0.04] px-3 py-1.5 text-[10px] font-semibold text-cyan-200">{report.deckIdentity.confidence}% archetype confidence</span>
-            </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div className="rounded-xl border border-white/[0.06] bg-black/10 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">How this deck wins</p>
-                <p className="mt-2 text-[13px] leading-5 text-slate-300">{report.deckIdentity.winMethod}</p>
-              </div>
-              <div className="rounded-xl border border-white/[0.06] bg-black/10 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Win conditions detected</p>
-                <div className="mt-2 flex flex-wrap gap-2">{report.deckIdentity.winConditions.map((condition) => <span key={condition} className="rounded-lg border border-violet-300/[0.11] bg-violet-400/[0.035] px-2.5 py-1.5 text-[11px] text-violet-100">{condition}</span>)}</div>
               </div>
             </div>
           </div>

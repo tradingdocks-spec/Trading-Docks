@@ -1,6 +1,6 @@
 import { PLAN_ENTITLEMENTS, normalizeAccountTier, type AccountTier } from "@/lib/plan-entitlements";
 
-export type PlanFeature = "dashboard" | "inventory" | "deck-vault" | "purchasing" | "card-shows" | "marketplaces" | "orders" | "analytics" | "automation" | "tools" | "business-operations" | "settings";
+export type PlanFeature = "dashboard" | "inventory" | "deck-vault" | "purchasing" | "card-shows" | "marketplaces" | "orders" | "analytics" | "automation" | "tools" | "crm" | "business-operations" | "settings";
 export const PLAN_RANK: Record<AccountTier, number> = { free: 0, collector: 1, seller: 2, business: 3 };
 export const FEATURE_MINIMUM_PLAN: Record<PlanFeature, AccountTier> = {
   dashboard: "free", inventory: "free", "deck-vault": "free",
@@ -8,6 +8,7 @@ export const FEATURE_MINIMUM_PLAN: Record<PlanFeature, AccountTier> = {
   "card-shows": "seller",
   analytics: "seller", automation: "seller",
   tools: "seller",
+  crm: "seller",
   "business-operations": "business", settings: "free",
 };
 export const INVENTORY_LIMITS: Record<AccountTier, number> = {
@@ -24,6 +25,7 @@ export function minimumPlanName(feature: PlanFeature) {
   return PLAN_ENTITLEMENTS[FEATURE_MINIMUM_PLAN[feature]].name;
 }
 export function featureForPath(pathname: string): PlanFeature {
+  if (pathname.startsWith("/dashboard/customers")) return "crm";
   if (pathname.startsWith("/dashboard/deck-vault")) return "deck-vault";
   if (pathname.startsWith("/dashboard/inventory")) return "inventory";
   if (/^\/dashboard\/(purchasing|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-|buylist-intelligence)/.test(pathname)) return "purchasing";

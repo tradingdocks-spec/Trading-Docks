@@ -27,6 +27,7 @@ import {
   Trophy,
   Truck,
   Users,
+  ContactRound,
   WalletCards,
 } from "lucide-react";
 
@@ -59,6 +60,14 @@ export const PRIMARY_NAV: NavigationItem[] = [
     href: "/dashboard/deck-vault",
     label: "Deck Vault",
     icon: LibraryBig,
+  },
+];
+
+export const CRM_NAV: NavigationItem[] = [
+  {
+    href: "/dashboard/customers",
+    label: "Customer CRM",
+    icon: ContactRound,
   },
 ];
 

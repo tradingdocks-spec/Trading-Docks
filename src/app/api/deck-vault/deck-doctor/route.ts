@@ -46,17 +46,6 @@ type Candidate = {
   synergySignals: string[];
 };
 
-type DeckIdentity = {
-  archetype: string;
-  subarchetypes: string[];
-  gamePlan: string;
-  winMethod: string;
-  winConditions: string[];
-  confidence: number;
-  evidence: string[];
-  searchQueries: string[];
-};
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -97,7 +86,6 @@ export async function POST(request: NextRequest) {
       : (submittedDeckColors.length ? submittedDeckColors : inferredDeckColors);
 
     const profile = buildProfile(enriched);
-    const deckIdentity = analyzeDeckIdentity(enriched, enrichedCommander, format);
     const issues = detectIssues(
       profile,
       format,
@@ -119,7 +107,6 @@ export async function POST(request: NextRequest) {
       ),
       enriched,
       commander: enrichedCommander,
-      deckIdentity,
     });
 
     const strengths = buildStrengths(profile);
@@ -150,7 +137,6 @@ export async function POST(request: NextRequest) {
         typeLine: card.typeLine,
         oracleText: card.oracleText,
       })),
-      deckIdentity,
     });
 
     const rankedRecommendations = aiResult?.recommendations?.length
@@ -169,7 +155,6 @@ export async function POST(request: NextRequest) {
       issues,
       recommendations: finalRecommendations,
       analysisMode: aiResult ? "ai" : "rules",
-      deckIdentity,
       methodology: {
         cardData: "Scryfall",
         legalityChecked: true,
@@ -178,7 +163,7 @@ export async function POST(request: NextRequest) {
           format === "Pauper EDH",
         finalCandidateValidation: true,
         allowedColors,
-        deckArchetypes: [deckIdentity.archetype, ...deckIdentity.subarchetypes],
+        deckArchetypes: detectArchetypes(enriched, enrichedCommander),
         ranking:
           "Deck role, commander and deck-theme synergy, curve fit, then EDHREC popularity",
         aiUsed: Boolean(aiResult),
@@ -605,7 +590,6 @@ async function findCandidates({
   currentNames,
   enriched,
   commander,
-  deckIdentity,
 }: {
   issues: Issue[];
   format: string;
@@ -613,7 +597,6 @@ async function findCandidates({
   currentNames: Set<string>;
   enriched: EnrichedCard[];
   commander?: EnrichedCard;
-  deckIdentity: DeckIdentity;
 }): Promise<Candidate[]> {
   const results: Candidate[] = [];
   const legality = legalityCode(format);
@@ -716,42 +699,6 @@ async function findCandidates({
     }
   }
 
-  // Run a dedicated plan-aware search in addition to generic role searches.
-  // EDHREC popularity is useful as a tiebreaker, but plan fit comes first.
-  for (const strategyQuery of deckIdentity.searchQueries.slice(0, 3)) {
-    const query = `${strategyQuery}${identity} legal:${legality} -is:digital`;
-    const params = new URLSearchParams({ q: query, unique: "cards", order: commanderFormat ? "edhrec" : "released", dir: "asc" });
-    const response = await fetch(`https://api.scryfall.com/cards/search?${params.toString()}`, {
-      headers: { Accept: "application/json", "User-Agent": "TradingDocks-DeckDoctor/1.0" },
-      next: { revalidate: 1800 },
-    });
-    if (!response.ok) continue;
-    const payload = await response.json();
-    const strategyCards = (payload.data ?? [])
-      .filter((card: any) => !currentNames.has(String(card.name).toLowerCase()) && isCandidateLegal(card, legality, commanderIdentity, commanderFormat))
-      .map((card: any) => ({ card, synergy: scoreThemeSynergy(card, themeSignals, commander) }))
-      .sort((a: any, b: any) => b.synergy.score - a.synergy.score)
-      .slice(0, 4);
-    for (const [index, entry] of strategyCards.entries()) {
-      const { card, synergy } = entry;
-      const face = card.card_faces?.find((item: any) => item.image_uris) ?? card;
-      results.push({
-        cardName: card.name,
-        image: face.image_uris?.normal ?? face.image_uris?.large ?? "",
-        price: Number(card.prices?.usd ?? card.prices?.usd_foil ?? 0),
-        role: "Win Plan Support",
-        issue: deckIdentity.winMethod,
-        reason: `${card.oracle_text ?? face.oracle_text ?? "This card supports the primary game plan."} This advances the diagnosed ${deckIdentity.archetype} plan: ${deckIdentity.winMethod.toLowerCase()}.`,
-        confidence: Math.max(76, Math.min(98, deckIdentity.confidence - index + synergy.score)),
-        replacement: lowestImpact[index]?.name,
-        scryfallUri: card.scryfall_uri,
-        colorIdentity: card.color_identity ?? [],
-        legality: card.legalities?.[legality] ?? "not_legal",
-        synergySignals: Array.from(new Set([deckIdentity.archetype, ...synergy.signals])).slice(0, 3),
-      });
-    }
-  }
-
   // A complete list can satisfy every fixed ratio, and narrow Oracle-text searches
   // occasionally return no cards. Always provide a useful second pass drawn from
   // legal, in-identity, paper cards, then rank it by the deck's detected themes.
@@ -848,113 +795,6 @@ function candidatePassesFinalGate(
   if (candidate.legality !== "legal") return false;
   const allowed = new Set(allowedColors);
   return candidate.colorIdentity.every((color) => allowed.has(color));
-}
-
-function analyzeDeckIdentity(cards: EnrichedCard[], commander: EnrichedCard | undefined, format: string): DeckIdentity {
-  const quantity = (pattern: RegExp) => cards.reduce((sum, card) =>
-    sum + (pattern.test(`${card.typeLine} ${card.oracleText}`.toLowerCase()) ? card.quantity : 0), 0);
-  const themes = [
-    ["Alternate Win Conditions", /you win the game|loses the game/, '(o:"you win the game" or o:"loses the game")'],
-    ["Aristocrats", /sacrifice|when .* dies|whenever .* dies/, '(o:sacrifice and (o:dies or o:"each opponent loses"))'],
-    ["Artifacts", /artifact|treasure|equipment|vehicle/, '(t:artifact or o:"artifact")'],
-    ["Blink / Flicker", /exile .* return|enters the battlefield|enters,/, '(o:"exile" and o:"return" and (o:"battlefield" or o:"owner’s control"))'],
-    ["Burn", /deals? \d+ damage|damage to each opponent/, '(o:"damage to each opponent" or o:"any target")'],
-    ["Cascade", /cascade|discover \d|discover x/, '(o:cascade or o:discover)'],
-    ["Clones", /copy of target|enters as a copy|copy target permanent/, '(o:"copy of" or o:"enters as a copy")'],
-    ["Counters Matter", /\+1\/\+1 counter|-1\/-1 counter|proliferate|counter on/, '(o:"+1/+1 counter" or o:proliferate or o:"counter on")'],
-    ["Cycling", /cycling|whenever you cycle|cycle or discard/, '(o:cycling or o:"whenever you cycle")'],
-    ["Discard", /opponent discards|each player discards|discard a card/, '(o:"opponent discards" or o:"each player discards")'],
-    ["Draw-Go / Permission", /counter target spell|flash|untap during each other player/, '(o:"counter target spell" or kw:flash)'],
-    ["Enchantress", /enchantment|constellation|whenever you cast an enchantment/, '(t:enchantment or o:"cast an enchantment")'],
-    ["Extra Combat / Turns", /additional combat phase|extra turn/, '(o:"additional combat phase" or o:"extra turn")'],
-    ["Hate Bears", /players can’t|opponents can’t|spells your opponents cast cost/, '(t:creature and (o:"can’t" or o:"cost {1} more"))'],
-    ["Infect", /infect|poison counter|toxic \d/, '(o:infect or o:"poison counter" or o:toxic)'],
-    ["Judo / Theft", /gain control of|copy target spell|change the target|redirect/, '(o:"gain control of" or o:"change the target" or o:"copy target spell")'],
-    ["Land Destruction", /destroy target land|lands don’t untap|sacrifice a land/, '(o:"destroy target land" or o:"lands don’t untap")'],
-    ["Lands Matter", /landfall|play an additional land|land enters/, '(o:landfall or o:"additional land")'],
-    ["Life Drain", /each opponent loses|loses that much life/, '(o:"each opponent loses" or o:"loses that much life")'],
-    ["Life Gain", /gain life|lifelink|life total/, '(o:"gain life" or o:lifelink)'],
-    ["Mill / Self Mill", /mills? \d|mill cards|put .* library into .* graveyard/, '(o:mill or (o:library and o:graveyard))'],
-    ["Top-Deck Matters", /top card of your library|from the top of your library|miracle/, '(o:"top card of your library" or o:miracle)'],
-    ["One-Shot Kills", /double strike|double .* power|infect|commander damage/, '(o:"double strike" or o:"double" o:power or o:infect)'],
-    ["Overrun / Swarm", /creatures you control get \+|trample until end of turn/, '(o:"creatures you control get" and (o:trample or o:"until end of turn"))'],
-    ["Pillow Fort", /can’t attack you|unless their controller pays|prevent all combat damage/, '(o:"can’t attack you" or o:"prevent all combat damage")'],
-    ["Reanimator", /return target .* from your graveyard to the battlefield|reanimate/, '(o:"from your graveyard to the battlefield" or o:reanimate)'],
-    ["Sneak and Tell", /without paying|put .* onto the battlefield|rather than pay/, '(o:"without paying" or o:"onto the battlefield" or o:"rather than pay")'],
-    ["Spellslinger", /instant or sorcery|noncreature spell|magecraft|copy .* spell/, '(o:"instant or sorcery" or o:magecraft or o:"copy target spell")'],
-    ["Storm", /storm|whenever you cast|spells you’ve cast this turn/, '(o:storm or o:"spells you’ve cast this turn")'],
-    ["Superfriends", /planeswalker|loyalty ability|loyalty counters/, '(t:planeswalker or o:"loyalty ability")'],
-    ["Taxes", /costs? \{1\} more|unless .* pays? \{|additional cost/, '(o:"cost {1} more" or o:"unless" o:"pays")'],
-    ["Tokens", /create .* token|creature tokens?/, '(o:"create" and o:token)'],
-    ["Toolbox / Tutors", /search your library for a card|search your library for a creature|tutor/, '(o:"search your library" and -o:"basic land")'],
-    ["Typal Creatures", /choose a creature type|creatures you control of the chosen type/, '(o:"choose a creature type" or o:"creature type")'],
-    ["Tribal+", /historic|legendary spell|face-down|morph|defender/, '(o:historic or o:"legendary spell" or o:morph or o:defender)'],
-    ["Voltron", /equipment|aura attached|equipped creature|commander .* gets/, '(t:equipment or t:aura or o:"equipped creature")'],
-    ["Wheels", /each player discards their hand|shuffle their hand|draws? seven cards/, '(o:"each player discards" or o:"draws seven cards")'],
-    ["XY Monsters", /double .* power|power equal to|base power and toughness/, '(o:"double" o:power or o:"power equal to")'],
-  ] as const;
-  const rankedThemes = themes.map(([name, pattern, query]) => ({ name, score: quantity(pattern), query })).filter((item) => item.score >= 2).sort((a, b) => b.score - a.score);
-  const interaction = quantity(/counter target spell|destroy target|exile target|return target .* hand/);
-  const denial = quantity(/players can’t|opponents can’t|doesn’t untap|costs? \{1\} more|can’t attack/);
-  const fastPressure = quantity(/haste|double strike|creatures you control get \+|whenever .* attacks/);
-  const generosity = quantity(/each player draws|each player may|opponent creates|another player/);
-  const chaos = quantity(/at random|coin flip|randomly|exchange control|choose .* at random/);
-  const combo = quantity(/untap target|copy target activated|without paying|additional combat phase|you win the game/);
-  const archetypes = [
-    { name: "Combo", score: combo * 3 + (rankedThemes.some((item) => item.name === "Storm") ? 8 : 0) },
-    { name: "Control", score: interaction * 2 + quantity(/board wipe|destroy all|exile all/) * 3 },
-    { name: "Stax / Prison", score: denial * 3 },
-    { name: "Aggro", score: fastPressure * 2 + quantity(/mana value 1|mana value 2/) },
-    { name: "Group Hug", score: generosity * 2 - quantity(/each opponent loses|damage to each opponent/) },
-    { name: "False Hug / Group Slug", score: generosity + quantity(/each opponent loses|damage to each opponent|whenever an opponent/) * 2 },
-    { name: "Chaos", score: chaos * 4 },
-    { name: "Good-Stuff / Mid-Range / BattleCruiser", score: 6 + quantity(/draw a card|create a treasure token|enters the battlefield/) },
-  ].sort((a, b) => b.score - a.score);
-  const selected = archetypes[0];
-  const selectedThemes = rankedThemes.slice(0, 4);
-  const janky = selectedThemes.length === 0 && cards.some((card) => /chair|contraption|hat|artist|art by/.test(`${card.name} ${card.oracleText}`.toLowerCase()));
-  const archetype = janky ? "Weird / Janky Theme" : selected.name;
-  const primaryTheme = selectedThemes[0]?.name ?? "Flexible Value";
-  const method = describeGamePlan(archetype, selectedThemes.map((item) => item.name));
-  const namedWins = cards.filter((card) => /you win the game|each opponent loses|additional combat phase|double strike/.test(card.oracleText.toLowerCase())).slice(0, 3).map((card) => card.name);
-  return {
-    archetype,
-    subarchetypes: selectedThemes.map((item) => item.name),
-    gamePlan: method,
-    winMethod: method,
-    winConditions: Array.from(new Set([...namedWins, ...inferWinConditions(archetype, selectedThemes.map((item) => item.name))])).slice(0, 5),
-    confidence: Math.max(62, Math.min(96, 66 + selected.score + (selectedThemes[0]?.score ?? 0))),
-    evidence: [commander ? `Commander: ${commander.name}` : `${format} card patterns`, `Primary theme: ${primaryTheme}`, `${selectedThemes.reduce((sum, item) => sum + item.score, 0)} matching theme cards`],
-    searchQueries: selectedThemes.slice(0, 3).map((item) => item.query),
-  };
-}
-
-function describeGamePlan(archetype: string, themes: string[]) {
-  const tools = themes.length ? themes.slice(0, 3).join(", ") : "efficient value and resilient threats";
-  const posture: Record<string, string> = {
-    Aggro: "Apply pressure early and shorten the game",
-    Combo: "Assemble a compact game-ending interaction",
-    Control: "Trade resources, control the board, and take over the late game",
-    "Stax / Prison": "Restrict opposing resources while developing an asymmetric advantage",
-    "Group Hug": "Accelerate the table and leverage the extra resources better than opponents",
-    "False Hug / Group Slug": "Offer symmetrical resources, then punish opponents for using them",
-    Chaos: "Destabilize normal game plans and profit from unpredictable board states",
-    "Weird / Janky Theme": "Build around a deliberately unusual mechanical or flavor constraint",
-    "Good-Stuff / Mid-Range / BattleCruiser": "Build incremental value and win with resilient, high-impact threats",
-  };
-  return `${posture[archetype] ?? posture["Good-Stuff / Mid-Range / BattleCruiser"]} using ${tools}.`;
-}
-
-function inferWinConditions(archetype: string, themes: string[]) {
-  const wins: string[] = [];
-  if (themes.some((theme) => /Voltron|One-Shot|Infect|XY Monsters/.test(theme))) wins.push("Commander damage or one-shot combat");
-  if (themes.some((theme) => /Tokens|Overrun|Typal/.test(theme))) wins.push("Go-wide combat or overrun effect");
-  if (themes.some((theme) => /Aristocrats|Life Drain|Burn/.test(theme))) wins.push("Noncombat damage or life-drain engine");
-  if (themes.some((theme) => /Mill/.test(theme))) wins.push("Library depletion");
-  if (themes.some((theme) => /Alternate Win/.test(theme))) wins.push("Printed alternate-win condition");
-  if (archetype === "Combo" || themes.some((theme) => /Storm|Extra Combat/.test(theme))) wins.push("Deterministic combo or explosive chain turn");
-  if (!wins.length) wins.push("Combat damage from accumulated board advantage", "Value-engine inevitability");
-  return wins;
 }
 
 function detectArchetypes(cards: EnrichedCard[], commander?: EnrichedCard) {
@@ -1125,7 +965,6 @@ async function refineWithAI(input: {
   strengths: string[];
   candidates: Candidate[];
   currentDeck: any[];
-  deckIdentity: DeckIdentity;
 }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || input.candidates.length === 0)
@@ -1149,7 +988,7 @@ async function refineWithAI(input: {
           {
             role: "system",
             content:
-              "You are a rigorous professional Magic: The Gathering deck builder. Rank only the supplied legal Scryfall candidates and never invent or add a card. Treat deckIdentity as a hypothesis supported by the submitted list. Prefer cards that advance the primary game plan, strengthen a named win condition, or add needed redundancy; then consider structural role and curve fit; use broad EDHREC popularity only as a tiebreaker. Distinguish deterministic combos, synergy engines, and ordinary value. Never rank a generic staple over a clearly stronger plan-specific card. Return JSON only.",
+              "You are a rigorous Magic: The Gathering deck analyst. Rank only the supplied legal Scryfall candidates. Never invent cards, rules text, legality, combos, or prices. Prefer recommendations that solve measured structural gaps and fit the commander, format, curve, and existing strategy. Distinguish a true combo from ordinary synergy. Return JSON only.",
           },
           {
             role: "user",

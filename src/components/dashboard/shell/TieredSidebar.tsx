@@ -17,6 +17,7 @@ import {
 import { logout } from "@/app/actions/auth";
 
 import {
+  CRM_NAV,
   INSIGHTS_NAV,
   OPERATIONS_NAV,
   PRIMARY_NAV,
@@ -147,6 +148,14 @@ export function TieredSidebar({
               onNavigate={onCloseMobile}
               accountType={plan}
             />
+
+          <NavGroup
+            items={CRM_NAV}
+            accountType={plan}
+            collapsed={collapsed}
+            pathname={pathname}
+            onNavigate={onCloseMobile}
+          />
 
           <SectionNav
               section={SELLING_NAV}
