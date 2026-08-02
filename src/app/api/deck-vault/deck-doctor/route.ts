@@ -56,13 +56,16 @@ export async function POST(request: NextRequest) {
     const commanderName = String(
       body.commanderName ?? "",
     );
+    const submittedDeckColors = normalizeColors(body.deckColors);
 
     const enrichedDeck = await enrichCards(cards);
-    const enrichedCommander = enrichedDeck.find(
+    const taggedCommander = enrichedDeck.find(
       (card) =>
         card.board === "commander" ||
         card.category === "Commander",
     );
+    const enrichedCommander = taggedCommander ??
+      (commanderName ? await fetchCardByExactName(commanderName) : undefined);
     const mainDeck = cards.filter(
       (card) =>
         card.board !== "commander" &&
@@ -74,10 +77,13 @@ export async function POST(request: NextRequest) {
         card.board !== "commander" &&
         card.category !== "Commander",
     );
-    const commanderIdentity =
-      enrichedCommander?.colorIdentity?.filter(
-        (color) => color !== "C",
-      ) ?? [];
+    const commanderIdentity = normalizeColors(enrichedCommander?.colorIdentity);
+    const inferredDeckColors = normalizeColors(
+      enriched.flatMap((card) => card.colorIdentity),
+    );
+    const allowedColors = isCommanderFormat(format)
+      ? (commanderIdentity.length ? commanderIdentity : submittedDeckColors)
+      : (submittedDeckColors.length ? submittedDeckColors : inferredDeckColors);
 
     const profile = buildProfile(enriched);
     const issues = detectIssues(
@@ -92,7 +98,7 @@ export async function POST(request: NextRequest) {
     const recommendations = await findCandidates({
       issues,
       format,
-      commanderIdentity,
+      commanderIdentity: allowedColors,
       currentNames: new Set(
         cards.map((card) => card.name.toLowerCase()),
       ),
@@ -130,6 +136,13 @@ export async function POST(request: NextRequest) {
       })),
     });
 
+    const rankedRecommendations = aiResult?.recommendations?.length
+      ? mergeAiRanking(recommendations, aiResult.recommendations)
+      : recommendations;
+    const finalRecommendations = rankedRecommendations.filter((candidate) =>
+      candidatePassesFinalGate(candidate, legalityCode(format), allowedColors),
+    );
+
     return NextResponse.json({
       score,
       summary:
@@ -137,13 +150,7 @@ export async function POST(request: NextRequest) {
       strengths:
         aiResult?.strengths ?? strengths,
       issues,
-      recommendations:
-        aiResult?.recommendations?.length
-          ? mergeAiRanking(
-              recommendations,
-              aiResult.recommendations,
-            )
-          : recommendations,
+      recommendations: finalRecommendations,
       analysisMode: aiResult ? "ai" : "rules",
       methodology: {
         cardData: "Scryfall",
@@ -152,6 +159,8 @@ export async function POST(request: NextRequest) {
           format === "EDH" ||
           format === "Pauper EDH",
         finalCandidateValidation: true,
+        allowedColors,
+        deckArchetypes: detectArchetypes(enriched, enrichedCommander),
         ranking:
           "Deck role, commander and deck-theme synergy, curve fit, then EDHREC popularity",
         aiUsed: Boolean(aiResult),
@@ -167,6 +176,38 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+function normalizeColors(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value
+    .map((color) => String(color).toUpperCase())
+    .filter((color) => ["W", "U", "B", "R", "G"].includes(color))));
+}
+
+function isCommanderFormat(format: string) {
+  return format === "EDH" || format === "Pauper EDH";
+}
+
+async function fetchCardByExactName(name: string): Promise<EnrichedCard | undefined> {
+  const response = await fetch(
+    `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`,
+    {
+      headers: { Accept: "application/json", "User-Agent": "TradingDocks-DeckDoctor/1.0" },
+      next: { revalidate: 86400 },
+    },
+  );
+  if (!response.ok) return undefined;
+  const card = await response.json();
+  const face = card.card_faces?.find((entry: any) => entry.oracle_text) ?? card;
+  return {
+    id: card.id, name: card.name, quantity: 1, manaValue: Number(card.cmc ?? 0),
+    colors: card.colors ?? [], typeLine: card.type_line ?? "", category: "Commander",
+    price: Number(card.prices?.usd ?? 0), board: "commander",
+    oracleText: face.oracle_text ?? card.oracle_text ?? "",
+    colorIdentity: card.color_identity ?? [], legalities: card.legalities ?? {},
+    image: face.image_uris?.normal ?? card.image_uris?.normal ?? "",
+  };
 }
 
 async function enrichCards(
@@ -514,11 +555,9 @@ async function findCandidates({
   const legality = legalityCode(format);
   const commanderFormat =
     format === "EDH" || format === "Pauper EDH";
-  const identity = commanderFormat
-    ? commanderIdentity.length > 0
-      ? ` id<=${commanderIdentity.join("").toLowerCase()}`
-      : " id:c"
-    : "";
+  const identity = commanderIdentity.length > 0
+    ? ` id<=${commanderIdentity.join("").toLowerCase()}`
+    : " id:c";
   const themeSignals = buildThemeSignals(enriched, commander);
   const lowestImpact = [...enriched]
     .filter(
@@ -629,15 +668,40 @@ function isCandidateLegal(
   card: any,
   legality: string,
   commanderIdentity: string[],
-  commanderFormat: boolean,
+  _commanderFormat: boolean,
 ) {
   if (card.legalities?.[legality] !== "legal") return false;
-  if (!commanderFormat) return true;
-
+  if (!commanderIdentity.length) return (card.color_identity ?? []).length === 0;
   const allowed = new Set(commanderIdentity);
   return (card.color_identity ?? []).every((color: string) =>
     allowed.has(color),
   );
+}
+
+function candidatePassesFinalGate(
+  candidate: Candidate,
+  legality: string,
+  allowedColors: string[],
+) {
+  if (candidate.legality !== "legal") return false;
+  const allowed = new Set(allowedColors);
+  return candidate.colorIdentity.every((color) => allowed.has(color));
+}
+
+function detectArchetypes(cards: EnrichedCard[], commander?: EnrichedCard) {
+  const themes = buildThemeSignals(cards, commander).map(([label]) => label);
+  const creatureTypes = new Map<string, number>();
+  for (const card of cards) {
+    const subtype = card.typeLine.split("—")[1]?.trim();
+    if (!subtype) continue;
+    for (const type of subtype.split(/\s+/)) {
+      creatureTypes.set(type, (creatureTypes.get(type) ?? 0) + card.quantity);
+    }
+  }
+  const typal = [...creatureTypes.entries()].sort((a, b) => b[1] - a[1])[0];
+  const result = [...themes];
+  if (typal && typal[1] >= 8) result.unshift(`${typal[0]} typal`);
+  return result.length ? result.slice(0, 4) : ["mixed strategy"];
 }
 
 function buildThemeSignals(cards: EnrichedCard[], commander?: EnrichedCard) {

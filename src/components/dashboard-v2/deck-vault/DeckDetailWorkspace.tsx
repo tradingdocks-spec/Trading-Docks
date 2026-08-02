@@ -4548,6 +4548,8 @@ function DeckDoctorRecommendations({
             cards,
             format,
             commanderName,
+            deckColors: Array.from(new Set(cards.flatMap((card) => card.colors)))
+              .filter((color) => color !== "C"),
           }),
         },
       );
