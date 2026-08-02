@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Bot,
   Boxes,
@@ -16,6 +17,8 @@ import {
   Save,
   Settings2,
   ShoppingBag,
+  ArrowUpRight,
+  ScanLine,
   Sparkles,
   Store,
   TrendingUp,
@@ -193,6 +196,32 @@ export function ModularWorkspace({
 
   return (
     <WorkspaceFrame>
+      <section className="mb-4 sm:hidden">
+        <div className="relative overflow-hidden rounded-[24px] border border-cyan-300/[0.14] bg-[linear-gradient(145deg,rgba(9,31,44,.98),rgba(4,15,24,.98))] p-4 shadow-[0_24px_70px_rgba(0,0,0,.38),0_0_50px_rgba(34,211,238,.035)]">
+          <div className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-cyan-300/[0.09] blur-[52px]" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">Command center</p>
+              <h1 className="mt-2 text-[26px] font-semibold leading-tight tracking-[-0.045em] text-white">Your business, in motion.</h1>
+              <p className="mt-2 text-[11px] leading-5 text-slate-400">The essentials are one tap away.</p>
+            </div>
+            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2.5 py-1.5 text-[9px] font-semibold text-emerald-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,.8)]" /> Live
+            </span>
+          </div>
+          <div className="relative mt-4 grid grid-cols-2 gap-2">
+            <Link href="/dashboard/inventory?create=card" className="flex min-h-12 items-center justify-between rounded-xl bg-gradient-to-b from-cyan-300 to-cyan-500 px-3.5 text-[11px] font-bold text-[#021018] shadow-[0_12px_28px_rgba(6,182,212,.18)]">
+              <span className="flex items-center gap-2"><ScanLine className="h-4 w-4" /> Add inventory</span>
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+            <Link href="/dashboard/orders" className="flex min-h-12 items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.035] px-3.5 text-[11px] font-semibold text-white">
+              <span className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-cyan-300" /> Orders</span>
+              <ArrowUpRight className="h-3.5 w-3.5 text-slate-500" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <header className={`${styles.glassPanel} rounded-[22px] p-4 sm:rounded-[28px] sm:p-6`}>
         <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -201,11 +230,11 @@ export function ModularWorkspace({
               {ACCOUNT_LABEL[accountType] ?? "Personal"} workspace
             </div>
 
-            <h1 className="mt-3 text-[2rem] font-semibold leading-[1.08] tracking-[-0.045em] text-white sm:mt-4 sm:text-4xl">
+            <h1 className="mt-3 hidden text-[2rem] font-semibold leading-[1.08] tracking-[-0.045em] text-white sm:mt-4 sm:block sm:text-4xl">
               Your Trading Docks workspace.
             </h1>
 
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:mt-3 sm:leading-7">
+            <p className="mt-2 hidden max-w-3xl text-sm leading-6 text-slate-500 sm:mt-3 sm:block sm:leading-7">
               Personalized for your {ACCOUNT_LABEL[accountType]?.toLowerCase() ?? "account"} setup
               {inventoryModules.length > 0
                 ? ` with ${inventoryModules.length} inventory modules enabled.`
@@ -213,7 +242,7 @@ export function ModularWorkspace({
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <div className="hidden grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <button
               type="button"
               onClick={() => setEditing((value) => !value)}
@@ -291,7 +320,7 @@ export function ModularWorkspace({
         </div>
       </header>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-12">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:grid-cols-1 sm:gap-4 md:grid-cols-12">
         {widgets.map((widget) => {
           const definition = DEFINITIONS[widget.id as keyof typeof DEFINITIONS];
           if (!definition) return null;
@@ -300,7 +329,7 @@ export function ModularWorkspace({
           return (
             <div
               key={widget.id}
-              className="contents"
+              className={widget.size === "small" ? "contents" : "col-span-2 contents sm:col-span-1"}
               onDragOver={(event) => event.preventDefault()}
               onDrop={() => reorder(widget.id)}
             >
@@ -364,16 +393,16 @@ function DashboardWidget({
   const Icon = definition.icon;
   const span =
     widget.size === "small"
-      ? "md:col-span-3"
+      ? "col-span-1 md:col-span-3"
       : widget.size === "medium"
-        ? "md:col-span-6 xl:col-span-4"
-        : "md:col-span-12 xl:col-span-8";
+        ? "col-span-2 sm:col-span-1 md:col-span-6 xl:col-span-4"
+        : "col-span-2 sm:col-span-1 md:col-span-12 xl:col-span-8";
 
   return (
     <article
       draggable={editing && !locked}
       onDragStart={onDragStart}
-      className={`${styles.glassPanel} ${span} ${styles.metricCard} min-h-[180px] rounded-[24px] p-5`}
+      className={`${styles.glassPanel} ${span} ${styles.metricCard} min-h-[148px] rounded-[20px] p-4 sm:min-h-[180px] sm:rounded-[24px] sm:p-5`}
     >
       <header className="relative flex items-start gap-3">
         {editing ? (
@@ -385,7 +414,7 @@ function DashboardWidget({
           </button>
         ) : null}
 
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300 sm:h-10 sm:w-10">
           <Icon className="h-4.5 w-4.5" />
         </span>
 
@@ -420,7 +449,7 @@ function DashboardWidget({
         ) : null}
       </header>
 
-      <div className="relative mt-5">
+      <div className="relative mt-4 sm:mt-5">
         {locked ? (
           <div className="rounded-xl border border-dashed border-amber-300/[0.12] bg-amber-300/[0.02] px-4 py-8 text-center">
             <p className="text-xs font-semibold text-amber-200/70">

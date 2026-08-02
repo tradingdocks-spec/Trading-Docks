@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   BarChart3,
   Check,
@@ -100,9 +101,26 @@ export function Topbar({
           <Menu className="h-4 w-4" />
         </button>
 
-        <GlobalSearch />
+        <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2.5 sm:hidden">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.055]">
+            <Image src="/trading-docks-mark.png" alt="" width={40} height={40} className="h-8 w-8 object-contain" />
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[13px] font-semibold tracking-[-0.025em] text-white">Trading Docks</span>
+            <span className="mt-0.5 block text-[8px] font-semibold uppercase tracking-[0.17em] text-cyan-300/65">Command center</span>
+          </span>
+        </Link>
+
+        <div className="hidden min-w-0 flex-1 sm:block"><GlobalSearch /></div>
 
         <div ref={menuRef} className="relative ml-auto flex items-center gap-2">
+          <Link
+            href="/dashboard/inventory?create=card"
+            aria-label="Add inventory"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.14] bg-cyan-400/[0.07] text-cyan-200 sm:hidden"
+          >
+            <Plus className="h-4 w-4" />
+          </Link>
           <button
             type="button"
             onClick={() => setOpenMenu((value) => value === "create" ? null : "create")}
