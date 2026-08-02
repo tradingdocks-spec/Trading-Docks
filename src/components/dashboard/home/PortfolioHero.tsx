@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowUpRight,
@@ -217,20 +219,15 @@ function PortfolioBrandMark() {
   return (
     <div className="relative hidden h-32 w-32 shrink-0 items-center justify-center sm:flex">
       <div className="portfolio-ring-one absolute h-[96px] w-[126px] rounded-[50%] border border-cyan-300/[0.15]" />
-
       <div className="portfolio-ring-two absolute h-[72px] w-[112px] rounded-[50%] border border-sky-500/[0.16]" />
-
-      <div className="absolute h-[86px] w-[86px] rounded-full bg-cyan-400/[0.08] blur-2xl" />
-
-      <div className="portfolio-logo relative flex h-[76px] w-[67px] items-center justify-center rounded-[19px] border border-cyan-200/[0.38] bg-gradient-to-br from-[#0a3141] via-[#082231] to-[#061725] shadow-[0_0_34px_rgba(19,209,237,0.18),inset_0_1px_rgba(255,255,255,0.08)]">
-        <div className="absolute -right-1.5 -top-1 h-full w-full rotate-6 rounded-[19px] border border-[#138bbf]/30" />
-
-        <div className="absolute -right-3 top-1 h-full w-full rotate-12 rounded-[19px] border border-[#566f8a]/20" />
-
-        <span className="relative z-10 text-[23px] font-semibold tracking-[-0.13em] text-white">
-          T<span className="text-[#18d8ef]">D</span>
-        </span>
-      </div>
+      <div className="absolute h-[88px] w-[88px] rounded-full bg-cyan-400/[0.09] blur-2xl" />
+      <Image
+        src="/brand/trading-docks-mark.png"
+        alt=""
+        width={1024}
+        height={1024}
+        className="portfolio-logo relative h-[86px] w-[86px] object-contain drop-shadow-[0_0_24px_rgba(34,211,238,0.22)]"
+      />
     </div>
   );
 }

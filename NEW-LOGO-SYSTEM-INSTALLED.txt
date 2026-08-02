@@ -1,0 +1,19 @@
+TRADING DOCKS — NEW LOGO SYSTEM INSTALLED
+
+The approved TD card-monogram is now the canonical logo across:
+- Landing-page header and footer
+- Sign-in and sign-up pages
+- Onboarding
+- Dashboard sidebars and navigation
+- Dashboard portfolio hero
+- Entrance/loading animation
+- Shared brand components
+- Deck-share/export branding assets
+- Favicons, PWA icons, and social profile files
+
+Official colors remain aligned to the current Trading Docks theme:
+- Cyan: #22D3EE
+- Electric blue: #3B82F6
+- Deep navy: #07121F
+- Midnight: #0F172A
+- White: #FFFFFF
