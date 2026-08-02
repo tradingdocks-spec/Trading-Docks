@@ -12,9 +12,9 @@ const ITEMS = [
 ] as const;
 
 const NAV_ITEM_CLASS =
-  "group relative m-0 flex h-[60px] min-h-[60px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-[5px] rounded-[17px] border border-cyan-300/[0.09] bg-cyan-400/[0.065] px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] text-cyan-100/90 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,.035)] transition-[filter,box-shadow,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300/70";
+  "group relative m-0 flex h-[60px] min-h-[60px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-[5px] rounded-[17px] border border-cyan-300/[0.09] bg-cyan-400/[0.065] px-1 py-0 font-sans text-[10px] font-semibold leading-none tracking-[-0.01em] !text-[#f1fbff] outline-none shadow-[inset_0_1px_0_rgba(255,255,255,.035)] transition-[filter,box-shadow,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300/70";
 const NAV_LABEL_CLASS =
-  "block w-full truncate text-center font-sans text-[10px] font-semibold leading-[12px] tracking-[-0.01em]";
+  "block w-full truncate text-center font-sans text-[10px] font-semibold leading-[12px] tracking-[-0.01em] !text-[#f1fbff] opacity-100";
 
 const ACTIVE_CLASS =
   "shadow-[inset_0_1px_0_rgba(255,255,255,.035),0_5px_18px_rgba(8,145,178,.10)]";
@@ -31,7 +31,7 @@ function NavIcon({
       aria-hidden="true"
       className="flex h-[22px] w-[22px] shrink-0 items-center justify-center"
     >
-      <Icon className="h-[21px] w-[21px] shrink-0 stroke-[2] drop-shadow-[0_0_7px_rgba(34,211,238,.16)] transition-transform duration-200 group-hover:-translate-y-px" />
+      <Icon className="h-[21px] w-[21px] shrink-0 !stroke-[#f1fbff] stroke-[2] opacity-100 drop-shadow-[0_0_7px_rgba(34,211,238,.16)] transition-transform duration-200 group-hover:-translate-y-px" />
     </span>
   );
 }
@@ -114,6 +114,7 @@ export function MobileBottomNav({
           onClick={onOpenMenu}
           aria-expanded={menuOpen}
           aria-label="Open all dashboard menus"
+          style={{ color: "#f1fbff", WebkitTextFillColor: "#f1fbff" }}
           className={[
             NAV_ITEM_CLASS,
             menuOpen
