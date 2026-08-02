@@ -122,8 +122,7 @@ type InventoryItem = {
     binderPage?: number;
     binderSlot?: string;
   };
-  gradingCompany?: "PSA" | "BGS" | "CGC" | "SGC" | "TAG" | "Other";
-  tradingCardGame?: string;
+  gradingCompany?: "PSA";
   certificationNumber?: string;
   grade?: string;
   cardYear?: string;
@@ -1092,6 +1091,15 @@ export function TieredInventoryWorkspace({
         </button>
         <button
           type="button"
+          onClick={() => document.getElementById("psa-slab-vault")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.18] bg-cyan-400/[0.05] px-4 text-[10px] font-semibold text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/[0.09]"
+        >
+          <ShieldCheck className="h-4 w-4 text-cyan-300" />
+          PSA Slabs
+          <span className="rounded-md bg-cyan-300/10 px-1.5 py-0.5 text-[8px] font-black text-cyan-200">{items.filter((item) => item.category === "Graded" && item.gradingCompany === "PSA").length}</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setPutAwayOpen(true)}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300/[0.18] bg-amber-300/[0.055] px-4 text-[10px] font-semibold text-amber-100 transition hover:border-amber-300/35 hover:bg-amber-300/[0.09]"
         >
@@ -1111,50 +1119,7 @@ export function TieredInventoryWorkspace({
         </button>
       </div> : null}
 
-      {canManageCollection ? (
-        <section className="mt-5 overflow-hidden rounded-[28px] border border-cyan-300/[0.14] bg-[linear-gradient(120deg,rgba(7,30,43,0.98),rgba(4,15,24,0.99)_58%,rgba(6,25,36,0.98))] shadow-[0_26px_80px_rgba(0,0,0,0.30)]">
-          <div className="grid bg-[radial-gradient(circle_at_84%_-20%,rgba(34,211,238,0.18),transparent_36%)] lg:grid-cols-[1fr_auto]">
-          <div className="flex min-w-0 items-center gap-4 p-5 lg:p-6">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.09] shadow-[0_12px_40px_rgba(34,211,238,0.10)]">
-                <ShieldCheck className="h-7 w-7 text-cyan-200" />
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300">Collection area</p>
-                  <span className="rounded-full border border-cyan-300/15 bg-cyan-300/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-cyan-100">
-                    {items.filter((item) => item.category === "Graded").length} cards
-                  </span>
-                </div>
-                <h2 className="mt-2 text-lg font-semibold tracking-[-0.025em] text-white sm:text-xl">Graded Card Vault</h2>
-                <p className="mt-1 max-w-2xl text-[11px] leading-5 text-slate-400">One secure record for every slab—certification, grade, value, cost basis, imagery, and exact physical location.</p>
-              </div>
-          </div>
-          <div className="flex shrink-0 flex-col justify-center gap-2 border-t border-white/[0.06] p-5 sm:flex-row lg:border-l lg:border-t-0 lg:p-6">
-              <button
-                type="button"
-                onClick={() => document.getElementById("graded-card-vault")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-4 text-[10px] font-bold text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/[0.11]"
-              >
-                <List className="h-4 w-4 text-cyan-300" /> View graded cards
-              </button>
-              <button
-                type="button"
-                onClick={() => { setFileDefaultCategory("Graded"); setFileModalOpen(true); }}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-black text-[#001018] shadow-[0_12px_34px_rgba(34,211,238,0.15)]"
-              >
-                <Plus className="h-4 w-4" /> Add graded card
-              </button>
-          </div>
-          </div>
-          <div className="grid border-t border-white/[0.06] bg-black/[0.10] sm:grid-cols-3">
-            <VaultSpotlightStat label="Collection value" value={currency(items.filter((item) => item.category === "Graded").reduce((sum, item) => sum + item.value, 0))} />
-            <VaultSpotlightStat label="Top TCG" value={mostCommonValue(items.filter((item) => item.category === "Graded").map((item) => item.tradingCardGame), "Not set")} />
-            <VaultSpotlightStat label="Top grader" value={mostCommonValue(items.filter((item) => item.category === "Graded").map((item) => item.gradingCompany), "Not set")} />
-          </div>
-        </section>
-      ) : null}
-
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={`mt-5 grid gap-4 sm:grid-cols-2 ${hasBusinessAnalytics ? "xl:grid-cols-6" : "xl:grid-cols-4"}`}>
         <MetricCard
           label="Physical units"
           value={totals.units.toLocaleString("en-US")}
@@ -1179,13 +1144,23 @@ export function TieredInventoryWorkspace({
           detail="Duplicates requiring review"
           icon={Copy}
         />
+        {hasBusinessAnalytics ? (
+          <>
+            <MetricCard
+              label="Listed value"
+              value={currency(totals.listedValue)}
+              detail="Active marketplace listings"
+              icon={Store}
+            />
+            <MetricCard
+              label="Potential profit"
+              value={currency(totals.potentialProfit)}
+              detail={`${currency(totals.costBasis)} tracked cost basis`}
+              icon={TrendingUp}
+            />
+          </>
+        ) : null}
       </div>
-      {hasBusinessAnalytics ? (
-        <div className="mt-3 grid overflow-hidden rounded-2xl border border-white/[0.065] bg-white/[0.018] sm:grid-cols-2">
-          <SecondaryMetric label="Listed value" value={currency(totals.listedValue)} detail="Active marketplace listings" icon={Store} />
-          <SecondaryMetric label="Potential profit" value={currency(totals.potentialProfit)} detail={`${currency(totals.costBasis)} tracked cost basis`} icon={TrendingUp} />
-        </div>
-      ) : null}
 
       {canOperate ? (
         <InventoryOperationsSummary
@@ -1214,7 +1189,7 @@ export function TieredInventoryWorkspace({
       ) : null}
 
       <PsaSlabVault
-        items={items.filter((item) => item.category === "Graded")}
+        items={items.filter((item) => item.category === "Graded" && item.gradingCompany === "PSA")}
         locations={locations}
         onAdd={() => { setFileDefaultCategory("Graded"); setFileModalOpen(true); }}
         onDelete={setDeleteItemCandidate}
@@ -1720,8 +1695,6 @@ function InventoryOperationsSummary({
     ["Over-allocated", actions.allocation, ShieldAlert, "text-red-300", "allocation"],
     ["Missing location", actions.missingLocation, MapPin, "text-amber-300", "missingLocation"],
   ] as const;
-  const attentionItems = actionItems.filter(([, count]) => count > 0);
-  const channelTotal = channels.unlistedUnits + channels.platforms.reduce((sum, channel) => sum + channel.units, 0);
   return (
     <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
       <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
@@ -1733,12 +1706,11 @@ function InventoryOperationsSummary({
           </div>
           <Store className="h-4 w-4 text-cyan-300" />
         </div>
-        <div className="mt-5 space-y-2">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           <ChannelSummaryButton
             label="Unlisted"
             units={channels.unlistedUnits}
             value={0}
-            total={channelTotal}
             active={activeChannel === "Unlisted"}
             onClick={() => onChannelChange(activeChannel === "Unlisted" ? "all" : "Unlisted")}
           />
@@ -1748,7 +1720,6 @@ function InventoryOperationsSummary({
               label={channel.platform}
               units={channel.units}
               value={channel.value}
-              total={channelTotal}
               active={activeChannel === channel.platform}
               onClick={() => onChannelChange(activeChannel === channel.platform ? "all" : channel.platform)}
             />
@@ -1763,17 +1734,17 @@ function InventoryOperationsSummary({
           </div>
           <ClipboardCheck className="h-4 w-4 text-amber-300" />
         </div>
-        {attentionItems.length ? <div className="mt-4 grid grid-cols-2 gap-2">
-          {attentionItems.map(([label, count, Icon, tone, action]) => (
-            <button key={label} type="button" onClick={() => onAction(action)} className="group flex items-center gap-3 rounded-xl border border-white/[0.07] bg-black/[0.10] p-3 text-left transition hover:-translate-y-px hover:border-cyan-300/20 hover:bg-cyan-400/[0.035]">
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {actionItems.map(([label, count, Icon, tone, action]) => (
+            <button key={label} type="button" onClick={() => onAction(action)} className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/[0.08] p-3 text-left transition hover:border-cyan-300/15 hover:bg-cyan-400/[0.025]">
               <Icon className={`h-4 w-4 shrink-0 ${tone}`} />
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-slate-200">{count}</span>
-                <span className="block truncate text-[9px] text-slate-500 group-hover:text-slate-300">{label}</span>
+                <span className="block truncate text-[8px] text-slate-600">{label}</span>
               </span>
             </button>
           ))}
-        </div> : <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-300/10 bg-emerald-400/[0.04] p-4"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/[0.09] text-emerald-300"><Check className="h-5 w-5" /></span><div><p className="text-sm font-semibold text-slate-100">All systems clear</p><p className="mt-1 text-[10px] text-slate-500">Inventory is filed, priced, and ready for operation.</p></div></div>}
+        </div>
         {!business ? (
           <p className="mt-3 flex items-center gap-2 text-[8px] text-slate-600">
             <LockKeyhole className="h-3 w-3" /> Aging, profit alerts, and team assignments are available on Business.
@@ -1788,14 +1759,12 @@ function ChannelSummaryButton({
   label,
   units,
   value,
-  total,
   active,
   onClick,
 }: {
   label: string;
   units: number;
   value: number;
-  total: number;
   active: boolean;
   onClick: () => void;
 }) {
@@ -1803,14 +1772,17 @@ function ChannelSummaryButton({
     <button
       type="button"
       onClick={onClick}
-      className={`group w-full rounded-xl border px-3.5 py-3 text-left transition ${
+      className={`rounded-xl border p-3 text-left transition ${
         active
           ? "border-cyan-300/25 bg-cyan-400/[0.07]"
           : "border-white/[0.06] bg-black/[0.08] hover:border-cyan-300/15"
       }`}
     >
-      <span className="flex items-center justify-between gap-4"><span className="text-[10px] font-semibold text-slate-300 group-hover:text-white">{label}</span><span className="text-[9px] text-slate-500"><strong className="mr-1 text-slate-200">{units.toLocaleString("en-US")}</strong> units · {value ? currency(value) : `${total ? Math.round((units / total) * 100) : 0}%`}</span></span>
-      <span className="mt-2.5 block h-1 overflow-hidden rounded-full bg-white/[0.055]"><span className="block h-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-300 transition-all" style={{ width: `${total ? Math.max(units ? 4 : 0, (units / total) * 100) : 0}%` }} /></span>
+      <span className="text-[9px] font-semibold text-slate-300">{label}</span>
+      <span className="mt-2 flex items-end justify-between gap-2">
+        <span className="text-lg font-semibold text-white">{units.toLocaleString("en-US")}</span>
+        <span className="text-[8px] text-slate-600">{value ? currency(value) : "units"}</span>
+      </span>
     </button>
   );
 }
@@ -3949,29 +3921,28 @@ function PsaSlabVault({
   const [query, setQuery] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
   const filtered = items.filter((item) => {
-    const haystack = `${item.name} ${item.tradingCardGame ?? ""} ${item.gradingCompany ?? ""} ${item.set ?? ""} ${item.certificationNumber ?? ""}`.toLowerCase();
+    const haystack = `${item.name} ${item.set ?? ""} ${item.certificationNumber ?? ""}`.toLowerCase();
     return haystack.includes(query.toLowerCase()) && (gradeFilter === "all" || item.grade === gradeFilter);
   });
   const totalValue = items.reduce((sum, item) => sum + item.value, 0);
   const totalCost = items.reduce((sum, item) => sum + (item.costBasis ?? 0) * item.quantity, 0);
-  const recentCards = items.filter((item) => item.imageUrl).slice(0, 5);
 
   return (
-    <section id="graded-card-vault" className={`${styles.glassPanel} mt-5 scroll-mt-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.09]`}>
+    <section id="psa-slab-vault" className={`${styles.glassPanel} mt-5 scroll-mt-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.09]`}>
       <div className="border-b border-white/[0.06] bg-[radial-gradient(circle_at_90%_0%,rgba(34,211,238,0.10),transparent_34%)] p-5 sm:p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex items-start gap-4">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/[0.08] text-cyan-200 shadow-[0_12px_36px_rgba(34,211,238,0.09)]"><ShieldCheck className="h-6 w-6" /></span>
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300">Collection · Graded cards</p>
-              <h2 className="mt-2 text-xl font-semibold tracking-[-0.025em] text-white">Graded Card Vault</h2>
-              <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-500">Track graded cards across Magic, Pokémon, Yu-Gi-Oh!, Lorcana, One Piece, and other TCGs.</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-[-0.025em] text-white">PSA Slab Vault</h2>
+              <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-500">Track every PSA-certified card, its label details, acquisition cost, current value, and physical location.</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">{recentCards.length ? <div className="hidden items-center -space-x-3 lg:flex">{recentCards.map((item) => <img key={item.id} src={item.imageUrl} alt={item.name} title={item.name} className="h-14 w-10 rounded-lg border-2 border-[#071722] object-cover shadow-xl" />)}</div> : null}<button type="button" onClick={onAdd} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-bold text-[#001018] shadow-[0_10px_30px_rgba(34,211,238,0.13)]"><Plus className="h-4 w-4" /> Add graded card</button></div>
+          <button type="button" onClick={onAdd} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-bold text-[#001018] shadow-[0_10px_30px_rgba(34,211,238,0.13)]"><Plus className="h-4 w-4" /> Add PSA slab</button>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <CompactMetric label="Graded cards" value={items.length.toLocaleString("en-US")} />
+          <CompactMetric label="PSA slabs" value={items.length.toLocaleString("en-US")} />
           <CompactMetric label="Collection value" value={currency(totalValue)} />
           <CompactMetric label="Cost basis" value={currency(totalCost)} />
           <CompactMetric label="Unrealized gain" value={currency(totalValue - totalCost)} />
@@ -3979,34 +3950,20 @@ function PsaSlabVault({
       </div>
       <div className="p-5 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row">
-          <label className="flex h-11 flex-1 items-center gap-3 rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 focus-within:border-cyan-300/25"><Search className="h-4 w-4 text-cyan-300/70" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search card, TCG, set, or certification..." className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-200 outline-none placeholder:text-slate-600" /></label>
-          <select value={gradeFilter} onChange={(event) => setGradeFilter(event.target.value)} className="inventory-location-select h-11 rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 text-[10px] font-semibold text-slate-300"><option value="all">All grades</option>{["10", "9", "8.5", "8", "7.5", "7", "6", "5", "4", "3", "2", "1", "Authentic"].map((grade) => <option key={grade} value={grade}>Grade {grade}</option>)}</select>
+          <label className="flex h-11 flex-1 items-center gap-3 rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 focus-within:border-cyan-300/25"><Search className="h-4 w-4 text-cyan-300/70" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search card, set, or PSA certification..." className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-200 outline-none placeholder:text-slate-600" /></label>
+          <select value={gradeFilter} onChange={(event) => setGradeFilter(event.target.value)} className="inventory-location-select h-11 rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 text-[10px] font-semibold text-slate-300"><option value="all">All grades</option>{["10", "9", "8.5", "8", "7.5", "7", "6", "5", "4", "3", "2", "1", "Authentic"].map((grade) => <option key={grade} value={grade}>PSA {grade}</option>)}</select>
         </div>
         {filtered.length ? <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{filtered.map((item) => {
           const location = locations.find((candidate) => candidate.id === item.locationId);
           return <article key={item.id} className="group rounded-2xl border border-white/[0.075] bg-[#06131d]/75 p-4 transition hover:-translate-y-0.5 hover:border-cyan-300/20 hover:shadow-[0_18px_45px_rgba(0,0,0,0.24)]">
-            <div className="flex items-start gap-3"><div className="flex h-16 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.08] bg-black/30">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <ShieldCheck className="h-5 w-5 text-cyan-300/40" />}</div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><p className="truncate text-[12px] font-semibold text-white">{item.name}</p><p className="mt-1 truncate text-[9px] text-slate-500">{[item.tradingCardGame, item.cardYear, item.set, item.collectorNumber ? `#${item.collectorNumber}` : ""].filter(Boolean).join(" · ") || "Card details not entered"}</p></div><span className="shrink-0 rounded-lg border border-cyan-300/20 bg-cyan-400/[0.08] px-2 py-1 text-[10px] font-black text-cyan-200">{item.gradingCompany ?? "PSA"} {item.grade}</span></div><p className="mt-2 font-mono text-[9px] text-slate-500">Cert {item.certificationNumber}</p></div></div>
+            <div className="flex items-start gap-3"><div className="flex h-16 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.08] bg-black/30">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <ShieldCheck className="h-5 w-5 text-cyan-300/40" />}</div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><p className="truncate text-[12px] font-semibold text-white">{item.name}</p><p className="mt-1 truncate text-[9px] text-slate-500">{[item.cardYear, item.set, item.collectorNumber ? `#${item.collectorNumber}` : ""].filter(Boolean).join(" · ") || "Card details not entered"}</p></div><span className="shrink-0 rounded-lg border border-cyan-300/20 bg-cyan-400/[0.08] px-2 py-1 text-[10px] font-black text-cyan-200">PSA {item.grade}</span></div><p className="mt-2 font-mono text-[9px] text-slate-500">Cert {item.certificationNumber}</p></div></div>
             <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/[0.055] pt-3"><div><p className="text-[8px] uppercase tracking-[0.12em] text-slate-600">Market value</p><p className="mt-1 text-[11px] font-semibold text-emerald-300">{currency(item.value)}</p></div><div><p className="text-[8px] uppercase tracking-[0.12em] text-slate-600">Location</p><p className="mt-1 truncate text-[10px] font-semibold text-slate-300">{location?.name ?? "Unassigned"}</p></div></div>
-            <div className="mt-3 flex items-center justify-between"><span className="truncate text-[9px] text-slate-600">{item.slabNotes || "Authenticated graded collectible"}</span><button type="button" onClick={() => onDelete(item)} className="ml-3 opacity-0 transition group-hover:opacity-100" aria-label={`Delete ${item.name}`}><Trash2 className="h-3.5 w-3.5 text-red-300/70" /></button></div>
+            <div className="mt-3 flex items-center justify-between"><span className="truncate text-[9px] text-slate-600">{item.slabNotes || "PSA authenticated collectible"}</span><button type="button" onClick={() => onDelete(item)} className="ml-3 opacity-0 transition group-hover:opacity-100" aria-label={`Delete ${item.name}`}><Trash2 className="h-3.5 w-3.5 text-red-300/70" /></button></div>
           </article>;
-        })}</div> : <div className="mt-4 rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015] px-5 py-12 text-center"><ShieldCheck className="mx-auto h-8 w-8 text-cyan-300/25" /><p className="mt-4 text-sm font-semibold text-slate-300">{items.length ? "No graded cards match these filters" : "Your Graded Card Vault is ready"}</p><p className="mx-auto mt-2 max-w-md text-[10px] leading-5 text-slate-600">{items.length ? "Try a different card name, TCG, certification number, or grade." : "Add your first graded card to begin tracking its game, certification details, value, and storage."}</p>{!items.length ? <button type="button" onClick={onAdd} className="mt-5 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-4 py-2.5 text-[10px] font-bold text-cyan-100">Add first graded card</button> : null}</div>}
+        })}</div> : <div className="mt-4 rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015] px-5 py-12 text-center"><ShieldCheck className="mx-auto h-8 w-8 text-cyan-300/25" /><p className="mt-4 text-sm font-semibold text-slate-300">{items.length ? "No slabs match these filters" : "Your PSA vault is ready"}</p><p className="mx-auto mt-2 max-w-md text-[10px] leading-5 text-slate-600">{items.length ? "Try a different card name, certification number, or grade." : "Add your first slab to begin tracking certification details, value, and storage."}</p>{!items.length ? <button type="button" onClick={onAdd} className="mt-5 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-4 py-2.5 text-[10px] font-bold text-cyan-100">Add first PSA slab</button> : null}</div>}
       </div>
     </section>
   );
-}
-
-function mostCommonValue(values: Array<string | undefined>, fallback: string) {
-  const counts = new Map<string, number>();
-  values.filter(Boolean).forEach((value) => counts.set(value!, (counts.get(value!) ?? 0) + 1));
-  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? fallback;
-}
-
-function VaultSpotlightStat({ label, value }: { label: string; value: string }) {
-  return <div className="border-b border-white/[0.055] px-5 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"><p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-slate-600">{label}</p><p className="mt-1 truncate text-[11px] font-semibold text-slate-200">{value}</p></div>;
-}
-
-function SecondaryMetric({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: typeof Store }) {
-  return <div className="flex items-center gap-3 border-b border-white/[0.055] px-4 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.035] text-cyan-300"><Icon className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="text-[9px] font-medium text-slate-500">{label}</p><p className="mt-0.5 text-sm font-semibold text-slate-100">{value}</p></div><p className="hidden text-right text-[9px] text-slate-600 lg:block">{detail}</p></div>;
 }
 
 function FileInventoryModal({
@@ -4042,8 +3999,6 @@ function FileInventoryModal({
     useState<SelectedPrinting | null>(null);
   const [costBasis, setCostBasis] = useState("0");
   const [unitMarketValue, setUnitMarketValue] = useState("0");
-  const [gradingCompany, setGradingCompany] = useState<NonNullable<InventoryItem["gradingCompany"]>>("PSA");
-  const [tradingCardGame, setTradingCardGame] = useState("");
   const [certificationNumber, setCertificationNumber] = useState("");
   const [grade, setGrade] = useState("10");
   const [cardYear, setCardYear] = useState("");
@@ -4066,7 +4021,7 @@ function FileInventoryModal({
           event.preventDefault();
           if (category === "Single" && !selectedPrinting) return;
           if (!name.trim() || !sku.trim() || !locationId) return;
-          if (category === "Graded" && (!certificationNumber.trim() || !tradingCardGame)) return;
+          if (category === "Graded" && !certificationNumber.trim()) return;
 
           const filedQuantity = Math.max(1, Number(quantity));
           const marketEach = Math.max(0, Number(unitMarketValue));
@@ -4089,8 +4044,7 @@ function FileInventoryModal({
             unitMarketValue: marketEach,
             value: filedQuantity * marketEach,
             updatedAt: "Just now",
-            gradingCompany: category === "Graded" ? gradingCompany : undefined,
-            tradingCardGame: category === "Graded" ? tradingCardGame : undefined,
+            gradingCompany: category === "Graded" ? "PSA" : undefined,
             certificationNumber: category === "Graded" ? certificationNumber.trim() : undefined,
             grade: category === "Graded" ? grade : undefined,
             cardYear: category === "Graded" ? cardYear.trim() || undefined : undefined,
@@ -4248,27 +4202,19 @@ function FileInventoryModal({
           {category === "Graded" ? (
             <FormSection
               step="3"
-              title="Grading and TCG details"
-              description="Choose the card game and record the label details that uniquely identify this graded card."
+              title="PSA certification"
+              description="Record the label details that uniquely identify this slab."
             >
-              <Field label="Trading card game">
-                <select value={tradingCardGame} onChange={(event) => setTradingCardGame(event.target.value)} className="inventory-input" required>
-                  <option value="" disabled>Select a TCG</option>
-                  {["Magic: The Gathering", "Pokémon", "Yu-Gi-Oh!", "Disney Lorcana", "One Piece", "Flesh and Blood", "Star Wars: Unlimited", "Digimon", "Dragon Ball Super", "Sports / Non-TCG", "Other"].map((value) => <option key={value}>{value}</option>)}
-                </select>
-              </Field>
               <Field label="Grading company">
-                <select value={gradingCompany} onChange={(event) => setGradingCompany(event.target.value as NonNullable<InventoryItem["gradingCompany"]>)} className="inventory-input">
-                  {["PSA", "BGS", "CGC", "SGC", "TAG", "Other"].map((value) => <option key={value}>{value}</option>)}
-                </select>
+                <input value="PSA" readOnly className="inventory-input text-cyan-200" />
               </Field>
-              <Field label="Grade">
+              <Field label="PSA grade">
                 <select value={grade} onChange={(event) => setGrade(event.target.value)} className="inventory-input">
                   {["10", "9", "8.5", "8", "7.5", "7", "6.5", "6", "5.5", "5", "4", "3", "2", "1", "Authentic"].map((value) => <option key={value}>{value}</option>)}
                 </select>
               </Field>
               <Field label="Certification number">
-                <input value={certificationNumber} onChange={(event) => setCertificationNumber(event.target.value)} placeholder="Certification or serial number" className="inventory-input" required />
+                <input value={certificationNumber} onChange={(event) => setCertificationNumber(event.target.value.replace(/\D/g, ""))} placeholder="Example: 12345678" inputMode="numeric" className="inventory-input" required />
               </Field>
               <Field label="Card year">
                 <input value={cardYear} onChange={(event) => setCardYear(event.target.value)} placeholder="Example: 1999" className="inventory-input" />

@@ -128,7 +128,60 @@ export function TieredSidebar({
           </button>
         </div>
 
-        <nav className="relative flex-1 overflow-y-auto px-3 py-4">
+        <div className="relative shrink-0 border-b border-white/[0.055] px-3 py-3">
+          {isOwner ? (
+            <Link
+              href="/dashboard/admin"
+              onClick={onCloseMobile}
+              title="Admin Control Center"
+              className={[
+                "mb-2 flex items-center rounded-xl border px-3 py-2.5 transition",
+                pathname.startsWith("/dashboard/admin")
+                  ? "border-amber-300/25 bg-amber-300/[0.08] text-amber-100"
+                  : "border-amber-300/[0.1] bg-amber-300/[0.025] text-amber-200/75 hover:border-amber-300/20 hover:bg-amber-300/[0.06]",
+                collapsed ? "justify-center" : "gap-2.5",
+              ].join(" ")}
+            >
+              <ShieldCheck className="h-4 w-4 shrink-0" />
+              {!collapsed ? (
+                <>
+                  <span className="flex-1 text-left text-[11px] font-semibold">Admin Control Center</span>
+                  <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.08] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em]">Owner</span>
+                </>
+              ) : null}
+            </Link>
+          ) : null}
+          <div
+            className={[
+              "flex items-center rounded-2xl border border-white/[0.07] bg-white/[0.018] p-2.5",
+              collapsed ? "justify-center" : "gap-3",
+            ].join(" ")}
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/[0.08] text-xs font-semibold text-cyan-200">
+              JR
+            </div>
+            {!collapsed ? (
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold capitalize text-slate-200">{userName}</p>
+                <p className="mt-0.5 text-[9px] capitalize text-slate-600">
+                  {plan === "business" ? "Store workspace" : `${plan} workspace`}
+                </p>
+              </div>
+            ) : null}
+            {!collapsed ? (
+              <form action={logout}>
+                <button type="submit" title="Sign out" aria-label="Sign out" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.018] text-slate-600 transition hover:border-red-300/20 hover:text-red-300">
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </form>
+            ) : null}
+            <button type="button" onClick={onToggle} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.018] text-slate-600 transition hover:border-cyan-300/20 hover:text-cyan-300">
+              {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        <nav className="relative min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <NavGroup
             label={plan === "free" ? "Free workspace" : plan === "collector" ? "Collector workspace" : "Core workspace"}
             items={PRIMARY_NAV}
@@ -190,75 +243,6 @@ export function TieredSidebar({
           />
 
         </nav>
-
-        <div className="relative border-t border-white/[0.055] p-3">
-          {isOwner ? (
-            <Link
-              href="/dashboard/admin"
-              onClick={onCloseMobile}
-              title="Admin Control Center"
-              className={[
-                "mb-2 flex items-center rounded-xl border px-3 py-2.5 transition",
-                pathname.startsWith("/dashboard/admin")
-                  ? "border-amber-300/25 bg-amber-300/[0.08] text-amber-100"
-                  : "border-amber-300/[0.1] bg-amber-300/[0.025] text-amber-200/75 hover:border-amber-300/20 hover:bg-amber-300/[0.06]",
-                collapsed ? "justify-center" : "gap-2.5",
-              ].join(" ")}
-            >
-              <ShieldCheck className="h-4 w-4 shrink-0" />
-              {!collapsed ? (
-                <>
-                  <span className="flex-1 text-left text-[11px] font-semibold">Admin Control Center</span>
-                  <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.08] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em]">Owner</span>
-                </>
-              ) : null}
-            </Link>
-          ) : null}
-          <div
-            className={[
-              "flex items-center rounded-2xl border border-white/[0.07] bg-white/[0.018] p-2.5",
-              collapsed ? "justify-center" : "gap-3",
-            ].join(" ")}
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/[0.08] text-xs font-semibold text-cyan-200">
-              JR
-            </div>
-
-            {!collapsed ? (
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold capitalize text-slate-200">{userName}</p>
-                <p className="mt-0.5 text-[9px] capitalize text-slate-600">
-                  {plan === "business" ? "Store workspace" : `${plan} workspace`}
-                </p>
-              </div>
-            ) : null}
-
-            {!collapsed ? (
-              <form action={logout}>
-                <button
-                  type="submit"
-                  title="Sign out"
-                  aria-label="Sign out"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.018] text-slate-600 transition hover:border-red-300/20 hover:text-red-300"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                </button>
-              </form>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={onToggle}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.018] text-slate-600 transition hover:border-cyan-300/20 hover:text-cyan-300"
-            >
-              {collapsed ? (
-                <ChevronRight className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronLeft className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </div>
-        </div>
       </aside>
     </>
   );
