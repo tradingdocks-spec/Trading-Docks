@@ -12,7 +12,7 @@ const ITEMS = [
 ] as const;
 
 const NAV_ITEM_CLASS =
-  "relative flex min-h-[54px] min-w-0 select-none touch-manipulation flex-col items-center justify-center gap-1 rounded-[14px] px-0.5 text-center text-[9px] font-semibold leading-none outline-none transition-[color,background-color,transform] duration-150 active:scale-[0.94] focus-visible:ring-2 focus-visible:ring-cyan-300/70";
+  "relative flex min-h-[58px] min-w-0 select-none touch-manipulation flex-col items-center justify-center gap-1.5 rounded-[16px] px-1 text-center text-[10px] font-semibold leading-none tracking-[-0.01em] outline-none transition-[color,background-color,transform] duration-150 active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-cyan-300/70";
 
 function NavIcon({
   icon: Icon,
@@ -22,9 +22,9 @@ function NavIcon({
   return (
     <span
       aria-hidden="true"
-      className="flex h-5 w-5 shrink-0 items-center justify-center"
+      className="flex h-[22px] w-[22px] shrink-0 items-center justify-center"
     >
-      <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.9]" />
+      <Icon className="h-5 w-5 shrink-0 stroke-[1.9]" />
     </span>
   );
 }
@@ -55,9 +55,9 @@ export function MobileBottomNav({
   return (
     <nav
       aria-label="Mobile dashboard navigation"
-      className="fixed inset-x-2 bottom-2 z-40 touch-manipulation rounded-[22px] border border-white/[0.09] bg-[#06141e]/[0.97] px-[max(5px,env(safe-area-inset-left))] pb-[max(5px,env(safe-area-inset-bottom))] pt-1 shadow-[0_18px_55px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,.035)] backdrop-blur-2xl md:hidden"
+      className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-40 touch-manipulation rounded-[24px] border border-cyan-100/[0.1] bg-[#06141e]/[0.97] p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,.045)] backdrop-blur-2xl md:hidden"
     >
-      <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
+      <div className="mx-auto grid max-w-lg grid-cols-5 gap-0.5">
         {ITEMS.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (
@@ -87,12 +87,12 @@ export function MobileBottomNav({
           className={[
             NAV_ITEM_CLASS,
             menuOpen
-              ? "bg-cyan-400/[0.12] text-cyan-100"
+              ? "bg-cyan-400/[0.12] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,.08)]"
               : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 active:bg-white/[0.08]",
           ].join(" ")}
         >
           <NavIcon icon={Menu} />
-          <span className="w-full truncate">All Menu</span>
+          <span className="w-full truncate">Menu</span>
         </button>
       </div>
     </nav>

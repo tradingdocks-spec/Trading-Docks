@@ -196,25 +196,25 @@ export function ModularWorkspace({
 
   return (
     <WorkspaceFrame>
-      <section className="mb-4 sm:hidden">
-        <div className="relative overflow-hidden rounded-[24px] border border-cyan-300/[0.14] bg-[linear-gradient(145deg,rgba(9,31,44,.98),rgba(4,15,24,.98))] p-4 shadow-[0_24px_70px_rgba(0,0,0,.38),0_0_50px_rgba(34,211,238,.035)]">
+      <section className="mb-3.5 sm:hidden">
+        <div className="relative overflow-hidden rounded-[22px] border border-cyan-300/[0.14] bg-[linear-gradient(145deg,rgba(9,31,44,.98),rgba(4,15,24,.98))] p-4 shadow-[0_20px_60px_rgba(0,0,0,.34),0_0_44px_rgba(34,211,238,.035)]">
           <div className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-cyan-300/[0.09] blur-[52px]" />
           <div className="relative flex items-start justify-between gap-3">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">Command center</p>
-              <h1 className="mt-2 text-[26px] font-semibold leading-tight tracking-[-0.045em] text-white">Your business, in motion.</h1>
-              <p className="mt-2 text-[11px] leading-5 text-slate-400">The essentials are one tap away.</p>
+              <h1 className="mt-1.5 text-[25px] font-semibold leading-[1.08] tracking-[-0.045em] text-white">Your business, in motion.</h1>
+              <p className="mt-2 text-xs leading-5 text-slate-400">The essentials are one tap away.</p>
             </div>
             <span className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2.5 py-1.5 text-[9px] font-semibold text-emerald-200">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,.8)]" /> Live
             </span>
           </div>
-          <div className="relative mt-4 grid grid-cols-2 gap-2">
-            <Link href="/dashboard/inventory?create=card" className="flex min-h-12 items-center justify-between rounded-xl bg-gradient-to-b from-cyan-300 to-cyan-500 px-3.5 text-[11px] font-bold text-[#021018] shadow-[0_12px_28px_rgba(6,182,212,.18)]">
+          <div className="relative mt-3.5 grid grid-cols-2 gap-2.5">
+            <Link href="/dashboard/inventory?create=card" className="flex min-h-[50px] items-center justify-between rounded-[14px] bg-gradient-to-b from-cyan-300 to-cyan-500 px-3.5 text-xs font-bold text-[#021018] shadow-[0_12px_28px_rgba(6,182,212,.18)]">
               <span className="flex items-center gap-2"><ScanLine className="h-4 w-4" /> Add inventory</span>
               <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
-            <Link href="/dashboard/orders" className="flex min-h-12 items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.035] px-3.5 text-[11px] font-semibold text-white">
+            <Link href="/dashboard/orders" className="flex min-h-[50px] items-center justify-between rounded-[14px] border border-white/[0.08] bg-white/[0.035] px-3.5 text-xs font-semibold text-white">
               <span className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-cyan-300" /> Orders</span>
               <ArrowUpRight className="h-3.5 w-3.5 text-slate-500" />
             </Link>
@@ -222,7 +222,7 @@ export function ModularWorkspace({
         </div>
       </section>
 
-      <header className={`${styles.glassPanel} rounded-[22px] p-4 sm:rounded-[28px] sm:p-6`}>
+      <header className={`${styles.glassPanel} rounded-[20px] p-3.5 sm:rounded-[28px] sm:p-6`}>
         <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.13] bg-cyan-400/[0.04] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.17em] text-cyan-200">
@@ -277,7 +277,7 @@ export function ModularWorkspace({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.06] pt-4 sm:mt-6 sm:pt-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-3.5 flex flex-col gap-2.5 border-t border-white/[0.06] pt-3.5 sm:mt-6 sm:gap-3 sm:pt-5 lg:flex-row lg:items-center lg:justify-between">
           <select
             value={layoutId}
             onChange={(event) => setLayoutId(event.target.value as LayoutId)}
@@ -311,7 +311,7 @@ export function ModularWorkspace({
             ))}
           </div>
 
-          <div className="flex items-center gap-3 text-[10px] text-slate-600">
+          <div className="flex items-center gap-3 px-0.5 text-[10px] font-medium text-slate-500">
             <span>{widgets.length} modules</span>
             <span className="capitalize">
               {accountType === "business" ? "Store plan" : `${ACCOUNT_LABEL[accountType] ?? "Free"} plan`}
@@ -320,7 +320,7 @@ export function ModularWorkspace({
         </div>
       </header>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:grid-cols-1 sm:gap-4 md:grid-cols-12">
+      <div className="mt-3.5 grid grid-cols-2 gap-2.5 sm:mt-5 sm:grid-cols-1 sm:gap-4 md:grid-cols-12">
         {widgets.map((widget) => {
           const definition = DEFINITIONS[widget.id as keyof typeof DEFINITIONS];
           if (!definition) return null;
@@ -397,14 +397,22 @@ function DashboardWidget({
       : widget.size === "medium"
         ? "col-span-2 sm:col-span-1 md:col-span-6 xl:col-span-4"
         : "col-span-2 sm:col-span-1 md:col-span-12 xl:col-span-8";
+  const mobileDensity =
+    widget.size === "small"
+      ? "min-h-[142px] p-3.5"
+      : widget.id === "collection-growth"
+        ? "min-h-[330px] p-4"
+        : widget.id === "business-calendar"
+          ? "min-h-[220px] p-4"
+          : "min-h-[190px] p-4";
 
   return (
     <article
       draggable={editing && !locked}
       onDragStart={onDragStart}
-      className={`${styles.glassPanel} ${span} ${styles.metricCard} min-h-[148px] rounded-[20px] p-4 sm:min-h-[180px] sm:rounded-[24px] sm:p-5`}
+      className={`${styles.glassPanel} ${span} ${styles.metricCard} ${mobileDensity} rounded-[20px] sm:min-h-[180px] sm:rounded-[24px] sm:p-5`}
     >
-      <header className="relative flex items-start gap-3">
+      <header className="relative flex items-center gap-3 sm:items-start">
         {editing ? (
           <button
             type="button"
@@ -419,10 +427,10 @@ function DashboardWidget({
         </span>
 
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold text-white">
+          <h2 className="truncate text-[13px] font-semibold tracking-[-0.015em] text-white sm:text-sm">
             {definition.title}
           </h2>
-          <p className="mt-1 text-[9px] capitalize text-slate-600">
+          <p className="mt-0.5 text-[9px] font-medium capitalize text-slate-500 sm:mt-1 sm:text-slate-600">
             {definition.plan} module
           </p>
         </div>
@@ -449,7 +457,7 @@ function DashboardWidget({
         ) : null}
       </header>
 
-      <div className="relative mt-4 sm:mt-5">
+      <div className="relative mt-3.5 sm:mt-5">
         {locked ? (
           <div className="rounded-xl border border-dashed border-amber-300/[0.12] bg-amber-300/[0.02] px-4 py-8 text-center">
             <p className="text-xs font-semibold text-amber-200/70">
@@ -483,8 +491,8 @@ function WidgetContent({ id }: { id: string }) {
 function Metric({ value, detail }: { value: string; detail: string }) {
   return (
     <div>
-      <p className="text-3xl font-semibold tracking-[-0.045em] text-white">{value}</p>
-      <p className="mt-3 text-[10px] text-slate-600">{detail}</p>
+      <p className="text-[28px] font-semibold tracking-[-0.045em] text-white sm:text-3xl">{value}</p>
+      <p className="mt-2.5 text-[10px] leading-4 text-slate-500 sm:mt-3 sm:text-slate-600">{detail}</p>
     </div>
   );
 }
@@ -492,7 +500,7 @@ function Metric({ value, detail }: { value: string; detail: string }) {
 function List({ rows, emptyLabel = "Nothing here yet" }: { rows: string[]; emptyLabel?: string }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-white/[0.08] bg-black/[0.08] px-3.5 py-6 text-center text-[10px] text-slate-600">
+      <div className="rounded-xl border border-dashed border-white/[0.08] bg-black/[0.08] px-3.5 py-5 text-center text-[10px] leading-4 text-slate-500 sm:py-6 sm:text-slate-600">
         {emptyLabel}
       </div>
     );
@@ -638,7 +646,7 @@ function CollectionGrowth() {
           </div>
         </div>
 
-        <div className="inline-flex w-fit items-center rounded-xl border border-white/[0.065] bg-black/[0.12] p-1">
+        <div className="grid w-full grid-cols-5 items-center rounded-xl border border-white/[0.065] bg-black/[0.12] p-1 sm:inline-flex sm:w-fit">
           {(["7D", "30D", "90D", "1Y", "ALL"] as const).map((option) => (
             <button
               key={option}
@@ -648,7 +656,7 @@ function CollectionGrowth() {
                 setHoveredIndex(null);
               }}
               className={[
-                "h-7 rounded-lg px-2.5 text-[8px] font-semibold transition",
+                "h-8 rounded-lg px-2 text-[9px] font-semibold transition sm:h-7 sm:px-2.5 sm:text-[8px]",
                 range === option
                   ? "bg-cyan-400/[0.1] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.12)]"
                   : "text-slate-600 hover:text-slate-300",
@@ -664,7 +672,7 @@ function CollectionGrowth() {
         ref={chartRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={() => setHoveredIndex(null)}
-        className="relative mt-4 h-[220px] overflow-hidden rounded-2xl border border-white/[0.055] bg-[#02090f] px-1"
+        className="relative mt-3.5 h-[152px] overflow-hidden rounded-2xl border border-white/[0.055] bg-[#02090f] px-1 sm:mt-4 sm:h-[220px]"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_14%,rgba(34,211,238,0.08),transparent_34%)]" />
 
@@ -893,33 +901,53 @@ function formatCurrency(value: number) {
 function MiniCalendar() {
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthLabel = now.toLocaleString("en-US", { month: "long", year: "numeric" });
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-semibold text-white">
-          {now.toLocaleString("en-US", { month: "long", year: "numeric" })}
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold text-white sm:text-sm">
+          {monthLabel}
         </p>
-        <a
+        <Link
           href="/dashboard/calendar"
-          className="text-[9px] font-semibold text-cyan-300"
+          className="inline-flex min-h-8 items-center rounded-lg px-2 text-[10px] font-semibold text-cyan-300 transition hover:bg-cyan-300/[0.06]"
         >
           Open calendar
-        </a>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <Link
+        href="/dashboard/calendar"
+        className="group flex min-h-[104px] items-center justify-between gap-4 rounded-2xl border border-white/[0.065] bg-black/[0.1] p-4 transition hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.025] sm:hidden"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.055]">
+            <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-300/75">
+              {now.toLocaleString("en-US", { month: "short" })}
+            </span>
+            <span className="mt-0.5 text-lg font-semibold leading-none text-white">{now.getDate()}</span>
+          </span>
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold text-white">Your schedule is clear</span>
+            <span className="mt-1 block text-[10px] leading-4 text-slate-500">No upcoming events. Tap to plan your next task.</span>
+          </span>
+        </span>
+        <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-cyan-300" />
+      </Link>
+
+      <div className="hidden grid-cols-7 gap-1 sm:grid">
         {Array.from({ length: daysInMonth }, (_, index) => index + 1).map((day) => (
-          <a
+          <Link
             key={day}
             href="/dashboard/calendar"
             className="min-h-[38px] rounded-md border border-white/[0.045] bg-black/[0.07] p-1 text-left"
           >
             <span className="text-[7px] text-slate-600">{day}</span>
-          </a>
+          </Link>
         ))}
       </div>
-      <p className="mt-3 text-center text-[9px] text-slate-600">No events scheduled</p>
+      <p className="mt-3 hidden text-center text-[9px] text-slate-600 sm:block">No events scheduled</p>
     </div>
   );
 }

@@ -53,7 +53,7 @@ export function TieredDashboardShell({
           collapsed ? "xl:pl-[88px]" : "xl:pl-[258px]",
         ].join(" ")}
       >
-        <main className="min-h-[calc(100vh-64px)] pb-[76px] md:min-h-[calc(100vh-72px)] md:pb-0">
+        <main className="min-h-[calc(100vh-64px)] pb-[calc(92px+env(safe-area-inset-bottom))] md:min-h-[calc(100vh-72px)] md:pb-0">
           <PlanAccessGate accountType={accountType}>{children}</PlanAccessGate>
         </main>
       </div>
