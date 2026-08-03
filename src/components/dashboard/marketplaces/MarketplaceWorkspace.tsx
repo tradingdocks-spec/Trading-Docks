@@ -380,11 +380,33 @@ export function MarketplaceWorkspace() {
         address?: string;
         status?: string;
         error?: string;
+        marketplaceId?: string;
+        provider?: string;
+        connectionStatus?: string;
+        lastReceivedAt?: string | null;
       } | null;
 
       if (mailboxResponse.ok && mailbox?.address) {
         setImportAddress(mailbox.address);
         setImportAddressStatus(mailbox.status ?? "pending");
+
+        if (mailbox.connectionStatus === "ready") {
+          const marketplaceId = mailbox.marketplaceId ?? "tcgplayer";
+          setConnections((current) => [
+            ...current.filter((item) => item.marketplace_id !== marketplaceId),
+            {
+              marketplace_id: marketplaceId,
+              connection_method: "email",
+              status: "ready",
+              settings: {
+                permanent_inbound_address: true,
+                email_provider: mailbox.provider ?? "gmail",
+                mailbox_status: mailbox.status ?? "active",
+              },
+              last_sync_at: mailbox.lastReceivedAt ?? null,
+            },
+          ]);
+        }
       } else {
         setImportAddress("Permanent address unavailable");
         setImportAddressStatus("error");
@@ -636,12 +658,14 @@ export function MarketplaceWorkspace() {
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filtered.map((marketplace) => {
                 const connection = connections.find((item) => item.marketplace_id === marketplace.id);
+                const isConnected = connection?.status === "ready";
                 const needsAttention = connection?.status === "attention" || connection?.status === "setup_required";
                 return (
                   <article key={marketplace.id} className="rounded-[22px] border border-white/[.08] bg-[#07141e]/90 p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/20">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-400/[.06]"><Store className="h-5 w-5 text-cyan-300" /></div>
-                      {needsAttention ? <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/20 bg-amber-400/[.05] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-amber-200"><AlertTriangle className="h-3 w-3" />Setup required</span> : null}
+                      {isConnected ? <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/20 bg-emerald-400/[.05] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-emerald-200"><Check className="h-3 w-3" />Connected</span> : null}
+                      {!isConnected && needsAttention ? <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/20 bg-amber-400/[.05] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-amber-200"><AlertTriangle className="h-3 w-3" />Setup required</span> : null}
                     </div>
                     <h2 className="mt-5 text-lg font-semibold text-white">{marketplace.name}</h2>
                     <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-cyan-300/80">{marketplace.games}</p>
@@ -896,7 +920,11 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
   async function copyAddress() {
     try {
       await navigator.clipboard.writeText(importAddress);
-      onNotice("Private import address copied. Email receiving is not active yet, so do not forward live orders until this page says Active.");
+      onNotice(
+        importAddressStatus === "active"
+          ? "Permanent import address copied. Email receiving is active."
+          : "Private import address copied. Finish verification before forwarding live orders.",
+      );
     } catch {
       onNotice("Select the address and copy it manually.");
     }
@@ -906,10 +934,22 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
     setEmailProcessing(true);
     try {
       const response = await fetch("/api/orders/email-process", { method: "POST" });
-      const result = (await response.json().catch(() => null)) as { scanned?: number; imported?: number; review?: number; failed?: number; error?: string } | null;
+      const result = (await response.json().catch(() => null)) as {
+        scanned?: number;
+        imported?: number;
+        review?: number;
+        failed?: number;
+        mailboxStatus?: string;
+        connectionStatus?: string;
+        error?: string;
+      } | null;
       if (!response.ok) throw new Error(result?.error ?? "Could not process forwarded emails.");
-      onNotice(`Email check complete: ${result?.imported ?? 0} order messages imported, ${result?.review ?? 0} need review, ${result?.failed ?? 0} failed.`);
-      window.setTimeout(() => window.location.reload(), 900);
+
+      if (result?.connectionStatus === "ready") {
+        setImportAddressStatus("active");
+      }
+
+      onNotice(`Email check complete: ${result?.imported ?? 0} order messages imported, ${result?.review ?? 0} need review, ${result?.failed ?? 0} failed. TCGplayer email tracking remains connected.`);
     } catch (error) {
       onNotice(error instanceof Error ? error.message : "Could not process forwarded emails.");
     } finally {
@@ -925,9 +965,9 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">Forward order emails. We organize the rest.</h2>
           <p className="mt-3 text-sm leading-6 text-slate-400">Trading Docks gives this workspace one private email address. You tell Gmail or Outlook to forward only marketplace order messages to it. We then identify the order, prevent duplicates, and send uncertain cards to review.</p>
         </div>
-        <div className="shrink-0 rounded-2xl border border-amber-300/15 bg-amber-300/[.04] px-4 py-3">
-          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] text-amber-200"><RefreshCw className="h-3.5 w-3.5" />Coming soon</p>
-          <p className="mt-1 max-w-[220px] text-[10px] leading-4 text-amber-100/55">Setup preview only. Email receiving must be activated before forwarding live orders.</p>
+        <div className={`shrink-0 rounded-2xl border px-4 py-3 ${importAddressStatus === "active" ? "border-emerald-300/15 bg-emerald-300/[.04]" : "border-amber-300/15 bg-amber-300/[.04]"}`}>
+          <p className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] ${importAddressStatus === "active" ? "text-emerald-200" : "text-amber-200"}`}>{importAddressStatus === "active" ? <ShieldCheck className="h-3.5 w-3.5" /> : <RefreshCw className="h-3.5 w-3.5" />}{importAddressStatus === "active" ? "Receiving active" : "Verification pending"}</p>
+          <p className={`mt-1 max-w-[240px] text-[10px] leading-4 ${importAddressStatus === "active" ? "text-emerald-100/55" : "text-amber-100/55"}`}>{importAddressStatus === "active" ? "TCGplayer order emails are connected and will continue importing for this workspace." : "Complete one forwarded-message check before sending live orders."}</p>
         </div>
       </div>
       <div className="mt-6 grid gap-3 md:grid-cols-3">{steps.map((item, index) => <button key={item.title} type="button" onClick={() => setStep(index + 1)} className={`rounded-2xl border p-4 text-left transition ${step === index + 1 ? "border-cyan-300/25 bg-cyan-300/[.06]" : "border-white/[.07] bg-black/10 hover:border-white/[.12]"}`}><div className="flex items-center gap-3"><span className={`grid h-7 w-7 place-items-center rounded-lg text-[10px] font-bold ${step === index + 1 ? "bg-cyan-300 text-slate-950" : "bg-white/[.05] text-slate-500"}`}>{index + 1}</span><p className="text-xs font-semibold text-white">{item.title}</p></div><p className="mt-3 text-[10px] leading-5 text-slate-500">{item.detail}</p></button>)}</div>

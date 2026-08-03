@@ -57,6 +57,45 @@ function publicMailbox(mailbox: {
   };
 }
 
+
+async function syncMarketplaceConnection(
+  userId: string,
+  mailbox: {
+    status: string;
+    email_provider: string;
+    marketplace_id: string;
+    verified_at: string | null;
+    last_received_at: string | null;
+  },
+) {
+  const admin = createAdminClient();
+  const isReady = mailbox.status === "active" || Boolean(mailbox.verified_at) || Boolean(mailbox.last_received_at);
+  const now = new Date().toISOString();
+
+  const { error } = await admin.from("marketplace_connections").upsert(
+    {
+      user_id: userId,
+      marketplace_id: mailbox.marketplace_id || "tcgplayer",
+      connection_method: "email",
+      status: isReady ? "ready" : "setup_required",
+      settings: {
+        setup_started: true,
+        email_provider: mailbox.email_provider,
+        permanent_inbound_address: true,
+        mailbox_status: mailbox.status,
+        verified_at: mailbox.verified_at,
+        last_received_at: mailbox.last_received_at,
+      },
+      last_sync_at: mailbox.last_received_at,
+      updated_at: now,
+    },
+    { onConflict: "user_id,marketplace_id" },
+  );
+
+  if (error) throw error;
+  return isReady ? "ready" : "setup_required";
+}
+
 async function getOrCreatePermanentMailbox(workspaceId: string, userId: string) {
   const admin = createAdminClient();
 
@@ -120,7 +159,8 @@ export async function GET() {
 
   try {
     const mailbox = await getOrCreatePermanentMailbox(workspaceId, user.id);
-    return NextResponse.json(publicMailbox(mailbox));
+    const connectionStatus = await syncMarketplaceConnection(user.id, mailbox);
+    return NextResponse.json({ ...publicMailbox(mailbox), connectionStatus });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Inbox setup failed";
     const migrationMissing =
@@ -186,7 +226,8 @@ export async function POST(request: Request) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json(publicMailbox(mailbox));
+    const connectionStatus = await syncMarketplaceConnection(user.id, mailbox);
+    return NextResponse.json({ ...publicMailbox(mailbox), connectionStatus });
   } catch {
     return NextResponse.json(
       { error: "Could not save email setup" },
