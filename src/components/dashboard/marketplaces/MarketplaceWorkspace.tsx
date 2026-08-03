@@ -690,6 +690,7 @@ export function MarketplaceWorkspace() {
           step={emailSetupStep}
           setStep={setEmailSetupStep}
           importAddress={importAddress}
+          importAddressStatus={importAddressStatus}
           onNotice={setNotice}
         />
       ) : null}
