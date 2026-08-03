@@ -254,7 +254,7 @@ function extractItems(detail: unknown, order: ManaPoolOrder) {
         quantity: number;
         unitPrice: number;
         condition: string | null;
-        language: string | null;
+        language: string;
         finish: string | null;
         raw: Record<string, unknown>;
       } => Boolean(value),
