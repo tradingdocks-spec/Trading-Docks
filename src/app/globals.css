@@ -927,3 +927,18 @@ html {
     overflow-wrap: anywhere;
   }
 }
+
+
+@layer components {
+  .studio-dock-action {
+    @apply inline-flex min-w-[76px] flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-[10px] font-semibold text-slate-400 transition;
+  }
+
+  .studio-dock-action:hover {
+    @apply bg-white/[0.045] text-white;
+  }
+
+  .studio-dock-action:focus-visible {
+    @apply outline-none ring-2 ring-cyan-300/40;
+  }
+}

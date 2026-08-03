@@ -1,43 +1,48 @@
 "use client";
 
 import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-  type DragEvent,
-} from "react";
-import { useRouter } from "next/navigation";
-import {
-  Activity,
   AlertTriangle,
+  ArrowUpDown,
   BarChart3,
   BrainCircuit,
   Check,
   CheckCircle2,
   ChevronDown,
   CircleDollarSign,
-  Copy,
   Columns3,
+  Copy,
   Download,
-  Grid3X3,
   Eye,
+  Grid3X3,
   ImageIcon,
-  ListCollapse,
   Layers3,
   List,
+  ListCollapse,
   MapPin,
+  Move,
   Pencil,
   Plus,
+  Redo2,
+  RefreshCw,
   Search,
+  Share2,
   ShieldAlert,
   Sparkles,
-  Share2,
   Trash2,
+  Undo2,
   WalletCards,
   WandSparkles,
   X,
+  type DragEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Activity,
 } from "lucide-react";
 
 import { deckAnalytics } from "@/lib/deck-vault/analytics";
@@ -1885,8 +1890,8 @@ function CardsWorkspace({
   }
 
   return (
-    <section className="mt-5 overflow-hidden rounded-[32px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.045),transparent_28%),linear-gradient(180deg,#04101a_0%,#020a12_100%)] shadow-[0_40px_140px_rgba(0,0,0,.42)]">
-      <section className="sticky top-0 z-40 overflow-visible border-b border-cyan-300/[0.09] bg-[#03101a]/97 shadow-[0_18px_55px_rgba(0,0,0,.3)] backdrop-blur-2xl">
+    <section className="mt-5 overflow-hidden rounded-[28px] border border-cyan-300/[0.085] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.055),transparent_26%),linear-gradient(180deg,#03101a_0%,#020911_100%)] shadow-[0_42px_140px_rgba(0,0,0,.48)]">
+      <section className="sticky top-0 z-40 overflow-visible border-b border-cyan-300/[0.10] bg-[#020d16]/98 shadow-[0_16px_48px_rgba(0,0,0,.34)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 border-b border-white/[0.055] px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="mb-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
@@ -1896,7 +1901,7 @@ function CardsWorkspace({
               Autosaved
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <p className="text-[15px] font-semibold tracking-[-0.02em] text-white">
+              <p className="text-[20px] font-black uppercase tracking-[-0.035em] text-white">
                 Deck Studio
               </p>
               <span className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[11px] text-slate-400">
@@ -1966,6 +1971,30 @@ function CardsWorkspace({
                 })}
               </div>
             </details>
+          </div>
+        </div>
+
+        
+        <div className="grid grid-cols-2 gap-px border-t border-white/[0.045] bg-white/[0.035] sm:grid-cols-5">
+          <div className="bg-[#03101a] px-4 py-3">
+            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Cards</p>
+            <p className="mt-1 text-[13px] font-semibold text-white">{mainDeckCount}/100</p>
+          </div>
+          <div className="bg-[#03101a] px-4 py-3">
+            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Unique</p>
+            <p className="mt-1 text-[13px] font-semibold text-white">{uniqueCardCount}</p>
+          </div>
+          <div className="bg-[#03101a] px-4 py-3">
+            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Missing</p>
+            <p className="mt-1 text-[13px] font-semibold text-amber-200">{missing}</p>
+          </div>
+          <div className="bg-[#03101a] px-4 py-3">
+            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Est. Value</p>
+            <p className="mt-1 text-[13px] font-semibold text-cyan-200">${mainDeckValue.toFixed(2)}</p>
+          </div>
+          <div className="bg-[#03101a] px-4 py-3">
+            <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Power Level</p>
+            <p className="mt-1 text-[13px] font-semibold text-white">7–8</p>
           </div>
         </div>
 
@@ -2042,10 +2071,10 @@ function CardsWorkspace({
         </div>
       </section>
 
-      <div className="grid gap-0 xl:grid-cols-[250px_minmax(0,1fr)_330px]">
-        <aside className="space-y-4 border-r border-white/[0.055] bg-[#04101a]/72 p-4 xl:self-start">
+      <div className="grid gap-0 xl:grid-cols-[255px_minmax(0,1fr)_345px]">
+        <aside className="space-y-4 border-r border-cyan-300/[0.055] bg-[#03101a]/82 p-4 xl:self-start">
           {isCommander && commanderCard ? (
-            <section className="overflow-hidden rounded-[24px] border border-violet-300/[0.14] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.12),transparent_48%),#07131f] shadow-[0_24px_70px_rgba(0,0,0,.34)]">
+            <section className="overflow-hidden rounded-[20px] border border-violet-300/[0.14] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.13),transparent_46%),#06121d] shadow-[0_22px_65px_rgba(0,0,0,.34)]">
               <div className="border-b border-white/[0.055] px-4 py-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-violet-200">
                   Commander
@@ -2179,8 +2208,8 @@ function CardsWorkspace({
           </section>
         </aside>
 
-        <main className="min-w-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,.04),transparent_34%),#020b13] p-4 sm:p-5">
-          <section className="mb-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.14] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.09),transparent_35%),linear-gradient(135deg,#081b28,#04111b)] p-5 shadow-[0_22px_70px_rgba(0,0,0,.24)]">
+        <main className="min-w-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,.045),transparent_30%),#020b13] p-3.5 sm:p-4">
+          <section className="mb-4 overflow-hidden rounded-[22px] border border-cyan-300/[0.14] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.085),transparent_34%),linear-gradient(135deg,#071923,#031019)] p-4 shadow-[0_22px_70px_rgba(0,0,0,.26)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.7)]" /><p className="text-[14px] font-semibold tracking-[-0.01em] text-white">Deck Construction Canvas</p></div>
@@ -2218,7 +2247,7 @@ function CardsWorkspace({
                   onDragLeave={() => setDropSection(null)}
                   onDrop={(event) => acceptDrop(event, section as DeckDropSection)}
                   className={[
-                    "group rounded-[18px] border p-4 transition duration-200",
+                    "group rounded-[16px] border px-4 py-3.5 transition duration-200",
                     dropSection === section
                       ? "scale-[1.015] border-cyan-300/80 bg-cyan-300/[0.1] shadow-[0_0_45px_rgba(103,232,249,.18)]"
                       : "border-white/[0.075] bg-black/[0.13] hover:border-cyan-300/[0.18] hover:bg-cyan-300/[0.025]",
@@ -2698,7 +2727,55 @@ function CardsWorkspace({
           }}
         />
       ) : null}
-    </section>
+    
+      <div className="sticky bottom-3 z-30 mx-auto mt-4 hidden max-w-[820px] items-center justify-center gap-1 rounded-[20px] border border-white/[0.08] bg-[#06131e]/95 p-2 shadow-[0_22px_70px_rgba(0,0,0,.46)] backdrop-blur-2xl lg:flex">
+        <span className="sr-only">Deck Studio Action Dock</span>
+        <button type="button" className="studio-dock-action">
+          <Undo2 className="h-4 w-4" />
+          <span>Undo</span>
+        </button>
+        <button type="button" className="studio-dock-action">
+          <Redo2 className="h-4 w-4" />
+          <span>Redo</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => selectedCard && trashCardFromDeck(selectedCard)}
+          className="studio-dock-action text-rose-200"
+        >
+          <Trash2 className="h-4 w-4" />
+          <span>Trash</span>
+        </button>
+        <button type="button" className="studio-dock-action">
+          <Copy className="h-4 w-4" />
+          <span>Duplicate</span>
+        </button>
+        <button type="button" className="studio-dock-action">
+          <Move className="h-4 w-4" />
+          <span>Move</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => selectedCard && setReplacementCard(selectedCard)}
+          className="studio-dock-action"
+        >
+          <RefreshCw className="h-4 w-4" />
+          <span>Replace</span>
+        </button>
+        <button type="button" className="studio-dock-action">
+          <ArrowUpDown className="h-4 w-4" />
+          <span>Sort</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("intelligence")}
+          className="studio-dock-action text-violet-200"
+        >
+          <Sparkles className="h-4 w-4" />
+          <span>AI Optimize</span>
+        </button>
+      </div>
+</section>
   );
 }
 
@@ -4169,7 +4246,7 @@ function DeckTableRow({
       className={[
         "cursor-pointer border-b border-white/[0.045] transition last:border-b-0",
         selected
-          ? "bg-cyan-400/[0.065] shadow-[inset_3px_0_0_rgba(103,232,249,.75)]"
+          ? "bg-cyan-400/[0.07] shadow-[inset_3px_0_0_rgba(103,232,249,.85),0_8px_18px_rgba(0,0,0,.08)]"
           : "hover:bg-cyan-300/[0.025]",
       ].join(" ")}
     >
