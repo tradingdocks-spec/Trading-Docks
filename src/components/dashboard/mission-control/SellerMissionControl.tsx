@@ -42,8 +42,10 @@ export type MissionControlSnapshot = {
 
 export function SellerMissionControl({
   snapshot,
+  previewMode = false,
 }: {
   snapshot: MissionControlSnapshot;
+  previewMode?: boolean;
 }) {
   const greeting = timeGreeting();
   const displayName =
@@ -59,6 +61,26 @@ export function SellerMissionControl({
   return (
     <main className="min-h-screen bg-[#020a12] px-4 py-5 text-white sm:px-6 lg:px-10 lg:py-8">
       <div className="mx-auto max-w-[1540px]">
+        {previewMode ? (
+          <section className="mb-4 flex flex-col gap-3 rounded-[20px] border border-cyan-300/[0.16] bg-cyan-300/[0.045] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-cyan-100">
+                Mission Control preview
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                This page uses polished sample data so you can review the complete experience without changing your live dashboard.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.055] px-4 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-300/[0.09]"
+            >
+              Return to dashboard
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </section>
+        ) : null}
+
         <section className="relative overflow-hidden rounded-[30px] border border-blue-300/[0.15] bg-gradient-to-br from-[#0a1d2c] via-[#071522] to-[#04101a] p-5 shadow-[0_34px_120px_rgba(0,0,0,.44)] sm:p-8">
           <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-blue-500/[0.15] blur-[115px]" />
           <div className="pointer-events-none absolute bottom-[-10rem] left-[20%] h-72 w-72 rounded-full bg-cyan-300/[0.065] blur-[120px]" />

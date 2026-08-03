@@ -158,7 +158,11 @@ export const PLAN_CAPABILITIES: PlanCapability[] = [
     feature: "selling",
     label: "Sell Optimizer",
     minimumPlan: "seller",
-    routes: ["/dashboard/seller-launch", "/dashboard/sell-optimizer"],
+    routes: [
+      "/dashboard/mission-control-preview",
+      "/dashboard/seller-launch",
+      "/dashboard/sell-optimizer",
+    ],
     summary: "Pricing, listing, and sales optimization.",
   },
   {
@@ -248,7 +252,13 @@ const ROUTE_RULES: Array<{ test: (pathname: string) => boolean; feature: PlanFea
       /^\/dashboard\/(purchasing|card-photo-scanner|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-rules|buying-recommendations|buylist-intelligence|buylist-connections|market-intelligence)(\/|$)/.test(p),
     feature: "purchasing",
   },
-  { test: (p) => p.startsWith("/dashboard/seller-launch") || p.startsWith("/dashboard/sell-optimizer"), feature: "selling" },
+  {
+    test: (p) =>
+      p.startsWith("/dashboard/mission-control-preview") ||
+      p.startsWith("/dashboard/seller-launch") ||
+      p.startsWith("/dashboard/sell-optimizer"),
+    feature: "selling",
+  },
   { test: (p) => p.startsWith("/dashboard/marketplaces"), feature: "marketplaces" },
   { test: (p) => p.startsWith("/dashboard/orders"), feature: "orders" },
   { test: (p) => p.startsWith("/dashboard/card-shows"), feature: "card-shows" },
