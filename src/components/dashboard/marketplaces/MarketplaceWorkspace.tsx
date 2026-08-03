@@ -319,6 +319,7 @@ export function MarketplaceWorkspace() {
   const [emailSetupStep, setEmailSetupStep] = useState(1);
   const [importAddress, setImportAddress] = useState("Loading permanent address…");
   const [importAddressStatus, setImportAddressStatus] = useState("loading");
+  const [emailProcessing, setEmailProcessing] = useState(false);
 
   const loadCredentialStatus = useCallback(async (marketplaceId: string) => {
     setCheckingCredentials(true);
@@ -691,6 +692,8 @@ export function MarketplaceWorkspace() {
           setStep={setEmailSetupStep}
           importAddress={importAddress}
           importAddressStatus={importAddressStatus}
+          emailProcessing={emailProcessing}
+          setEmailProcessing={setEmailProcessing}
           onNotice={setNotice}
         />
       ) : null}
@@ -854,7 +857,7 @@ function SetupGuide({ title, steps, compact = false }: { title: string; steps: r
   return <div className={`rounded-[24px] border border-white/[.08] bg-[#07141e] ${compact ? "p-4" : "p-6"}`}><p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">{title}</p><div className="mt-4 space-y-3">{steps.map((step, index) => <div key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[.05] text-[9px] font-bold text-cyan-200">{index + 1}</span><p className="pt-0.5 text-[11px] leading-5 text-slate-500">{step}</p></div>)}</div></div>;
 }
 
-function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, importAddressStatus, onNotice }: {
+function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, importAddressStatus, emailProcessing, setEmailProcessing, onNotice }: {
   provider: "gmail" | "outlook";
   setProvider: (value: "gmail" | "outlook") => void;
   marketplace: string;
@@ -863,6 +866,8 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
   setStep: (value: number) => void;
   importAddress: string;
   importAddressStatus: string;
+  emailProcessing: boolean;
+  setEmailProcessing: (value: boolean) => void;
   onNotice: (value: string) => void;
 }) {
   const emailMarketplaces = marketplaces.filter((item) => item.methods.includes("email"));
@@ -894,6 +899,21 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
       onNotice("Private import address copied. Email receiving is not active yet, so do not forward live orders until this page says Active.");
     } catch {
       onNotice("Select the address and copy it manually.");
+    }
+  }
+
+  async function checkAndImportOrders() {
+    setEmailProcessing(true);
+    try {
+      const response = await fetch("/api/orders/email-process", { method: "POST" });
+      const result = (await response.json().catch(() => null)) as { scanned?: number; imported?: number; review?: number; failed?: number; error?: string } | null;
+      if (!response.ok) throw new Error(result?.error ?? "Could not process forwarded emails.");
+      onNotice(`Email check complete: ${result?.imported ?? 0} order messages imported, ${result?.review ?? 0} need review, ${result?.failed ?? 0} failed.`);
+      window.setTimeout(() => window.location.reload(), 900);
+    } catch (error) {
+      onNotice(error instanceof Error ? error.message : "Could not process forwarded emails.");
+    } finally {
+      setEmailProcessing(false);
     }
   }
 
@@ -937,7 +957,12 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
           <p className="text-[10px] font-bold uppercase tracking-[.16em] text-cyan-300">Step 3 of 3</p>
           <h3 className="mt-2 text-lg font-semibold text-white">Verify your first forwarded order</h3>
           <p className="mt-2 text-xs leading-5 text-slate-500">After email receiving is activated, Trading Docks will wait for one {marketplaceName} message. We will show exactly what was recognized before any inventory is changed.</p>
-          <div className="mt-5 rounded-2xl border border-amber-300/14 bg-amber-300/[.035] p-5 text-center"><RefreshCw className="mx-auto h-6 w-6 text-amber-300" /><p className="mt-3 text-sm font-semibold text-amber-100">Verification is not active yet</p><p className="mx-auto mt-2 max-w-md text-[10px] leading-5 text-amber-100/55">Do not forward a live order yet. This button will become available when the secure inbound-email processor is connected.</p><button type="button" disabled className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-white/[.05] px-4 text-[10px] font-bold text-slate-600"><Send className="h-3.5 w-3.5" />Check for confirmation</button></div>
+          <div className={`mt-5 rounded-2xl border p-5 text-center ${importAddressStatus === "active" ? "border-emerald-300/14 bg-emerald-300/[.035]" : "border-amber-300/14 bg-amber-300/[.035]"}`}>
+            {importAddressStatus === "active" ? <ShieldCheck className="mx-auto h-6 w-6 text-emerald-300" /> : <RefreshCw className="mx-auto h-6 w-6 text-amber-300" />}
+            <p className={`mt-3 text-sm font-semibold ${importAddressStatus === "active" ? "text-emerald-100" : "text-amber-100"}`}>{importAddressStatus === "active" ? "Email receiving is active" : "Waiting for the first forwarded message"}</p>
+            <p className={`mx-auto mt-2 max-w-md text-[10px] leading-5 ${importAddressStatus === "active" ? "text-emerald-100/55" : "text-amber-100/55"}`}>{importAddressStatus === "active" ? "Trading Docks can receive and process supported marketplace order emails. Use the button below to import any stored TCGplayer messages." : "Forward the verification message or a test message, then check again."}</p>
+            <button type="button" disabled={emailProcessing} onClick={() => void checkAndImportOrders()} className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-blue-500 px-4 text-[10px] font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{emailProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}{emailProcessing ? "Processing…" : "Check & import orders"}</button>
+          </div>
           <button type="button" onClick={() => setStep(2)} className="mt-4 h-10 rounded-xl border border-white/[.08] px-4 text-xs font-semibold text-slate-400">Back to instructions</button>
         </> : null}
       </div>

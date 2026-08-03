@@ -1,6 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { processInboundMessage } from "@/lib/email/process-inbound";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,8 +74,8 @@ export async function POST(request: Request) {
   const raw = bytes.toString("utf8");
   const digest = createHash("sha256").update(bytes).digest("hex");
   const classification = classify(raw);
-  const processingStatus = classification.messageType === "verification" ? "processed" : "needs_review";
-  const { error: insertError } = await admin.from("inbound_email_messages").insert({
+  const processingStatus = classification.messageType === "verification" ? "processed" : "received";
+  const { data: insertedMessage, error: insertError } = await admin.from("inbound_email_messages").insert({
     mailbox_id: mailbox.id,
     workspace_id: mailbox.workspace_id,
     recipient,
@@ -86,9 +87,22 @@ export async function POST(request: Request) {
     processing_status: processingStatus,
     content_sha256: digest,
     raw_message: raw,
-  });
+  }).select("id,workspace_id,marketplace_id,message_type,raw_message,received_at").maybeSingle();
   if (insertError && insertError.code !== "23505") {
     return NextResponse.json({ error: "Message could not be stored" }, { status: 500 });
+  }
+
+  if (!insertError && insertedMessage && classification.marketplace === "tcgplayer" && classification.messageType === "order") {
+    try {
+      await processInboundMessage(admin, insertedMessage);
+    } catch (error) {
+      await admin.from("inbound_email_messages").update({
+        processing_status: "failed",
+        processing_error: error instanceof Error ? error.message.slice(0, 1000) : "Order processing failed.",
+        parser_version: "tcgplayer-email-v1",
+        processed_at: new Date().toISOString(),
+      }).eq("id", insertedMessage.id);
+    }
   }
 
   await admin.from("inbound_email_mailboxes").update({
