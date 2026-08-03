@@ -724,7 +724,6 @@ export function DeckDetailWorkspace({
       setCommanderArt(nextCard.artCrop ?? "");
     }
 
-    setSelectedCardId(nextCard.id);
     setSaveStatus("Saving…");
   }
 
@@ -2566,7 +2565,6 @@ function CardsWorkspace({
           onClose={() => setReplacementCard(null)}
           onReplace={(replacement) => {
             replaceCard(replacementCard, replacement);
-            setSelectedCardId(replacement.id);
             setReplacementCard(null);
           }}
         />
