@@ -716,6 +716,7 @@ export function MarketplaceWorkspace() {
           setStep={setEmailSetupStep}
           importAddress={importAddress}
           importAddressStatus={importAddressStatus}
+          setImportAddressStatus={setImportAddressStatus}
           emailProcessing={emailProcessing}
           setEmailProcessing={setEmailProcessing}
           onNotice={setNotice}
@@ -881,7 +882,7 @@ function SetupGuide({ title, steps, compact = false }: { title: string; steps: r
   return <div className={`rounded-[24px] border border-white/[.08] bg-[#07141e] ${compact ? "p-4" : "p-6"}`}><p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">{title}</p><div className="mt-4 space-y-3">{steps.map((step, index) => <div key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[.05] text-[9px] font-bold text-cyan-200">{index + 1}</span><p className="pt-0.5 text-[11px] leading-5 text-slate-500">{step}</p></div>)}</div></div>;
 }
 
-function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, importAddressStatus, emailProcessing, setEmailProcessing, onNotice }: {
+function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, importAddressStatus, setImportAddressStatus, emailProcessing, setEmailProcessing, onNotice }: {
   provider: "gmail" | "outlook";
   setProvider: (value: "gmail" | "outlook") => void;
   marketplace: string;
@@ -890,6 +891,7 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
   setStep: (value: number) => void;
   importAddress: string;
   importAddressStatus: string;
+  setImportAddressStatus: (value: string) => void;
   emailProcessing: boolean;
   setEmailProcessing: (value: boolean) => void;
   onNotice: (value: string) => void;
