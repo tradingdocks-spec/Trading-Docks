@@ -89,7 +89,7 @@ export function Topbar({
     <header
       className={[
         "fixed inset-x-0 top-0 z-30 h-16 border-b border-white/[0.055] bg-[#041019]/96 transition-[padding-left] duration-300 md:h-[72px] md:bg-[#041019]/84 md:backdrop-blur-2xl",
-        collapsed ? "xl:pl-[88px]" : "xl:pl-[258px]",
+        collapsed ? "xl:pl-[76px]" : "xl:pl-[264px]",
       ].join(" ")}
     >
       <div className="flex h-full items-center gap-2 px-3 sm:gap-3 sm:px-6">

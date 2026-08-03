@@ -50,7 +50,7 @@ export function TieredDashboardShell({
       <div
         className={[
           "dashboard-responsive min-h-screen pt-[64px] transition-[padding-left] duration-300 md:pt-[72px]",
-          collapsed ? "xl:pl-[88px]" : "xl:pl-[258px]",
+          collapsed ? "xl:pl-[76px]" : "xl:pl-[264px]",
         ].join(" ")}
       >
         <main className="min-h-[calc(100vh-64px)] pb-[calc(92px+env(safe-area-inset-bottom))] md:min-h-[calc(100vh-72px)] md:pb-0">

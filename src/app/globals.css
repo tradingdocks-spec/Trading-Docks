@@ -818,3 +818,23 @@ img[src*="trading-docks-horizontal"] {
   }
 }
 
+/* Trading Docks UI 3.0 navigation polish */
+.td-sidebar-scroll {
+  scrollbar-width: none;
+}
+
+.td-sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.td-sidebar-scroll a,
+.td-sidebar-scroll button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.td-sidebar-scroll button:focus:not(:focus-visible),
+.td-sidebar-scroll a:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
