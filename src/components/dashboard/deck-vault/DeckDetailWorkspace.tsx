@@ -241,6 +241,24 @@ function inferCategoryFromDeckCard(card: DeckCard): DeckCard["category"] {
   return "Other";
 }
 
+
+function readExternalCardDrop(dataTransfer: DataTransfer) {
+  const uriList = dataTransfer.getData("text/uri-list");
+  const plainText = dataTransfer.getData("text/plain");
+  const html = dataTransfer.getData("text/html");
+  const mozUrl = dataTransfer.getData("text/x-moz-url");
+
+  return {
+    uriList,
+    plainText,
+    html,
+    mozUrl,
+    hasContent: Boolean(
+      uriList.trim() || plainText.trim() || html.trim() || mozUrl.trim(),
+    ),
+  };
+}
+
 export function DeckDetailWorkspace({
   deck,
 }: {
@@ -292,6 +310,8 @@ export function DeckDetailWorkspace({
   const [deckActionsOpen, setDeckActionsOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deckActionBusy, setDeckActionBusy] = useState(false);
+  const [externalDropBusy, setExternalDropBusy] = useState(false);
+  const [externalDropError, setExternalDropError] = useState("");
 
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [saveError, setSaveError] = useState("");
@@ -846,30 +866,82 @@ export function DeckDetailWorkspace({
     setDropSection(null);
   }
 
-  function acceptDrop(
+  async function acceptDrop(
     event: DragEvent,
     target: DeckDropSection | "trash",
   ) {
     event.preventDefault();
+
     let payload = dragging;
     if (!payload) {
       try {
-        payload = JSON.parse(event.dataTransfer.getData(DECK_DRAG_MIME)) as DeckDragPayload;
+        const internal = event.dataTransfer.getData(DECK_DRAG_MIME);
+        payload = internal
+          ? (JSON.parse(internal) as DeckDragPayload)
+          : null;
       } catch {
         payload = null;
       }
     }
-    if (!payload) return;
 
-    if (target === "trash") {
-      if (payload.source === "deck") removeDraggedCard(payload.cardId);
+    if (payload) {
+      if (target === "trash") {
+        if (payload.source === "deck") removeDraggedCard(payload.cardId);
+        finishDrag();
+        return;
+      }
+
+      if (payload.source === "search") addCard(payload.card, target);
+      else moveCardToSection(payload.cardId, target);
       finishDrag();
       return;
     }
 
-    if (payload.source === "search") addCard(payload.card, target);
-    else moveCardToSection(payload.cardId, target);
-    finishDrag();
+    if (target === "trash") {
+      finishDrag();
+      return;
+    }
+
+    const externalPayload = readExternalCardDrop(event.dataTransfer);
+    if (!externalPayload.hasContent) {
+      setExternalDropError(
+        "This drag did not include a card link, image URL, or card name. Open the card page on Scryfall or EDHREC and drag the card image or link again.",
+      );
+      finishDrag();
+      return;
+    }
+
+    setExternalDropBusy(true);
+    setExternalDropError("");
+
+    try {
+      const response = await fetch("/api/deck-vault/external-card-resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(externalPayload),
+      });
+      const result = (await response.json()) as {
+        card?: ScryfallCardResult;
+        error?: string;
+      };
+
+      if (!response.ok || !result.card) {
+        throw new Error(
+          result.error || "Trading Docks could not identify that card.",
+        );
+      }
+
+      addCard(result.card, target);
+    } catch (reason) {
+      setExternalDropError(
+        reason instanceof Error
+          ? reason.message
+          : "Trading Docks could not identify that external card.",
+      );
+    } finally {
+      setExternalDropBusy(false);
+      finishDrag();
+    }
   }
 
   async function emptyDeck() {
@@ -1102,6 +1174,9 @@ export function DeckDetailWorkspace({
             format={format}
             isCommander={isCommander}
             setCommanderPickerOpen={setCommanderPickerOpen}
+            externalDropBusy={externalDropBusy}
+            externalDropError={externalDropError}
+            clearExternalDropError={() => setExternalDropError("")}
           />
         ) : tab === "Intelligence" ? (
           <IntelligenceWorkspace
@@ -1503,6 +1578,9 @@ function CardsWorkspace({
   format,
   isCommander,
   setCommanderPickerOpen,
+  externalDropBusy,
+  externalDropError,
+  clearExternalDropError,
 }: {
   cards: DeckCard[];
   commanderCard?: DeckCard;
@@ -1520,7 +1598,7 @@ function CardsWorkspace({
   removeCard: (id: string) => void;
   beginDrag: (event: DragEvent, payload: DeckDragPayload) => void;
   finishDrag: () => void;
-  acceptDrop: (event: DragEvent, target: DeckDropSection | "trash") => void;
+  acceptDrop: (event: DragEvent, target: DeckDropSection | "trash") => Promise<void>;
   dragging: DeckDragPayload | null;
   dropSection: DeckDropSection | "trash" | null;
   setDropSection: (section: DeckDropSection | "trash" | null) => void;
@@ -1535,6 +1613,9 @@ function CardsWorkspace({
   format: DeckFormat;
   isCommander: boolean;
   setCommanderPickerOpen: (open: boolean) => void;
+  externalDropBusy: boolean;
+  externalDropError: string;
+  clearExternalDropError: () => void;
 }) {
   const [selectedCardId, setSelectedCardId] =
     useState<string | null>(
@@ -2077,10 +2158,26 @@ function CardsWorkspace({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-[12px] font-semibold text-white">Drag-and-drop deck builder</p>
-                <p className="mt-1 text-[11px] text-slate-600">Drag a Scryfall result or an existing deck card into a section. On mobile, tap Add or use the section buttons.</p>
+                <p className="mt-1 text-[11px] text-slate-600">Drag a Trading Docks card, a Scryfall card page/image, or an EDHREC card into a section. On mobile, use the section buttons.</p>
               </div>
-              <span className="rounded-full border border-emerald-300/[0.12] bg-emerald-300/[0.04] px-3 py-1.5 text-[10px] font-semibold text-emerald-300">Autosaves to your account</span>
+              <span className="rounded-full border border-emerald-300/[0.12] bg-emerald-300/[0.04] px-3 py-1.5 text-[10px] font-semibold text-emerald-300">{externalDropBusy ? "Resolving external card…" : "Autosaves to your account"}</span>
             </div>
+
+            {externalDropError ? (
+              <div className="mt-4 flex items-start justify-between gap-3 rounded-2xl border border-amber-300/[0.16] bg-amber-300/[0.055] px-4 py-3">
+                <div>
+                  <p className="text-xs font-semibold text-amber-200">External card could not be added</p>
+                  <p className="mt-1 text-[11px] leading-5 text-amber-100/55">{externalDropError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearExternalDropError}
+                  className="shrink-0 rounded-lg border border-amber-200/[0.12] px-2 py-1 text-[10px] font-semibold text-amber-100/70"
+                >
+                  Dismiss
+                </button>
+              </div>
+            ) : null}
 
             <div className="mt-4 grid gap-2 sm:grid-cols-4">
               {[
@@ -2105,7 +2202,7 @@ function CardsWorkspace({
                     <p className="text-xs font-semibold text-slate-200">{label}</p>
                     <span className="text-xs font-bold text-cyan-300">{count}</span>
                   </div>
-                  <p className="mt-2 text-[10px] text-slate-700">Drop cards here</p>
+                  <p className="mt-2 text-[10px] leading-4 text-slate-700">Drop Trading Docks, Scryfall, or EDHREC cards here</p>
                 </div>
               ))}
             </div>
