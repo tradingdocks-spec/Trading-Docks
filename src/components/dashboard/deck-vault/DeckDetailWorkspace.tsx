@@ -1,6 +1,16 @@
 "use client";
 
 import {
+  type DragEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useRouter } from "next/navigation";
+import {
+  Activity,
   AlertTriangle,
   ArrowUpDown,
   BarChart3,
@@ -33,16 +43,6 @@ import {
   WalletCards,
   WandSparkles,
   X,
-  type DragEvent,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Activity,
 } from "lucide-react";
 
 import { deckAnalytics } from "@/lib/deck-vault/analytics";
