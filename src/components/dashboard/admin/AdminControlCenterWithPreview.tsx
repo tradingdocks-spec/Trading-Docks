@@ -9,7 +9,9 @@ import {
   ChevronRight,
   CircleAlert,
   CloudCog,
+  Ban,
   DatabaseBackup,
+  EllipsisVertical,
   Eye,
   Headphones,
   HeartPulse,
@@ -24,6 +26,10 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
+  UserCheck,
+  UserRoundCog,
+  X,
   Sparkles,
   TicketCheck,
   Users,
@@ -63,16 +69,21 @@ type Feature = {
   minimum_plan: string | null;
   usage_limit: number | null;
 };
+type AdminPlan = "free" | "collector" | "seller" | "business";
 type AdminAccount = {
   id: string;
   email: string;
   full_name: string | null;
-  membership_level: "free" | "collector" | "seller" | "business";
+  membership_level: AdminPlan;
+  membership_override?: AdminPlan | null;
   card_units: number;
   unique_inventory_rows: number;
   created_at: string;
   last_sign_in_at: string | null;
   usage_updated_at: string | null;
+  email_confirmed: boolean;
+  suspended: boolean;
+  banned_until: string | null;
 };
 
 const tabs: { id: AdminTab; label: string; icon: typeof Activity }[] = [
@@ -271,17 +282,29 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [accountsError, setAccountsError] = useState("");
 
+  const loadAccounts = useCallback(async () => {
+    setAccountsLoading(true);
+    setAccountsError("");
+    try {
+      const response = await fetch("/api/admin/users", { cache: "no-store" });
+      const body = await response.json() as { accounts?: AdminAccount[]; error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Could not load accounts.");
+      setAccounts(body.accounts ?? []);
+    } catch (loadError) {
+      setAccountsError(loadError instanceof Error ? loadError.message : "Could not load accounts.");
+    } finally {
+      setAccountsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void Promise.all([
       supabase.from("feature_access").select("*").order("category").order("name"),
-      supabase.rpc("admin_directory"),
-    ]).then(([featureResult, accountResult]) => {
+      loadAccounts(),
+    ]).then(([featureResult]) => {
       if (featureResult.data?.length) setFeatures(featureResult.data as Feature[]);
-      if (accountResult.error) setAccountsError(accountResult.error.message);
-      else setAccounts((accountResult.data ?? []) as AdminAccount[]);
-      setAccountsLoading(false);
     });
-  }, [supabase]);
+  }, [supabase, loadAccounts]);
 
   async function updateFeature(id: string, patch: Partial<Feature>) {
     const previous = features;
@@ -335,7 +358,7 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
 
         <main className="min-w-0">
           {tab === "overview" ? <Overview features={features} ownerEmail={ownerEmail} accounts={accounts} onNavigate={setTab} /> : null}
-          {tab === "users" ? <UserDirectory accounts={accounts} loading={accountsLoading} error={accountsError} /> : null}
+          {tab === "users" ? <UserDirectory accounts={accounts} loading={accountsLoading} error={accountsError} ownerEmail={ownerEmail} onRefresh={loadAccounts} /> : null}
           {tab === "plan-preview" ? <PlanPreview /> : null}
           {tab === "features" ? <FeatureAccess features={filtered} query={query} setQuery={setQuery} savingId={savingId} updateFeature={updateFeature} /> : null}
           {tab === "trials" ? <TrialsManager /> : null}
@@ -554,12 +577,22 @@ function UserDirectory({
   accounts,
   loading,
   error,
+  ownerEmail,
+  onRefresh,
 }: {
   accounts: AdminAccount[];
   loading: boolean;
   error: string;
+  ownerEmail: string;
+  onRefresh: () => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<AdminAccount | null>(null);
+  const [plan, setPlan] = useState<AdminPlan>("free");
+  const [working, setWorking] = useState(false);
+  const [message, setMessage] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+
   const filteredAccounts = accounts.filter((account) =>
     `${account.full_name ?? ""} ${account.email} ${account.membership_level}`
       .toLowerCase()
@@ -573,101 +606,130 @@ function UserDirectory({
     (account) => account.membership_level !== "free",
   ).length;
 
-  return (
-    <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06121b]">
-      <div className="border-b border-white/[0.06] p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">
-              Account directory
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-white">All users</h2>
-            <p className="mt-1.5 text-xs text-slate-500">
-              Membership and uploaded inventory totals for every Trading Docks account.
-            </p>
-          </div>
-          <label className="flex h-10 min-w-64 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/15 px-3">
-            <Search className="h-3.5 w-3.5 text-slate-600" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search name, email, or plan…"
-              className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-700"
-            />
-          </label>
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Stat label="Total accounts" value={accounts.length.toLocaleString("en-US")} detail="Registered users" icon={Users} />
-          <Stat label="Cards uploaded" value={totalCards.toLocaleString("en-US")} detail="Total inventory quantity" icon={DatabaseBackup} />
-          <Stat label="Paid members" value={paidAccounts.toLocaleString("en-US")} detail="Collector through Business" icon={BadgeDollarSign} />
-        </div>
-      </div>
+  function openAccount(account: AdminAccount) {
+    setSelected(account);
+    setPlan(account.membership_level);
+    setMessage("");
+    setDeleteConfirm("");
+  }
 
-      {loading ? (
-        <div className="flex min-h-48 items-center justify-center gap-2 text-xs text-slate-500">
-          <Loader2 className="h-4 w-4 animate-spin text-cyan-300" />
-          Loading accounts…
+  async function runAction(payload: Record<string, unknown>, destructive = false) {
+    if (!selected) return;
+    setWorking(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: destructive ? "DELETE" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: selected.id, ...payload }),
+      });
+      const body = await response.json() as { error?: string; message?: string };
+      if (!response.ok) throw new Error(body.error ?? "The account could not be updated.");
+      setMessage(body.message ?? "Account updated.");
+      await onRefresh();
+      if (destructive) setSelected(null);
+      else {
+        setSelected((current) => current ? {
+          ...current,
+          membership_level: payload.action === "plan" ? plan : current.membership_level,
+          suspended: payload.action === "suspend" ? true : payload.action === "restore" ? false : current.suspended,
+        } : current);
+      }
+    } catch (actionError) {
+      setMessage(actionError instanceof Error ? actionError.message : "The account could not be updated.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  const isOwner = selected?.email.trim().toLowerCase() === ownerEmail.trim().toLowerCase();
+
+  return (
+    <>
+      <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06121b]">
+        <div className="border-b border-white/[0.06] p-5 sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Account directory</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">User management</h2>
+              <p className="mt-1.5 text-xs text-slate-500">Change plans, suspend access, inspect account activity, or safely remove customer accounts.</p>
+            </div>
+            <label className="flex h-10 min-w-64 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/15 px-3">
+              <Search className="h-3.5 w-3.5 text-slate-600" />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, email, or plan…" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-700" />
+            </label>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <Stat label="Total accounts" value={accounts.length.toLocaleString("en-US")} detail="Registered users" icon={Users} />
+            <Stat label="Cards uploaded" value={totalCards.toLocaleString("en-US")} detail="Total inventory quantity" icon={DatabaseBackup} />
+            <Stat label="Paid members" value={paidAccounts.toLocaleString("en-US")} detail="Collector through Business" icon={BadgeDollarSign} />
+          </div>
         </div>
-      ) : error ? (
-        <p role="alert" className="m-5 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-xs text-red-200">
-          The account directory could not load. Apply the included Supabase migration, then refresh this page.
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left">
-            <thead className="border-b border-white/[0.06] bg-black/10 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600">
-              <tr>
-                <th className="px-5 py-3">Account</th>
-                <th className="px-5 py-3">Membership</th>
-                <th className="px-5 py-3 text-right">Cards uploaded</th>
-                <th className="px-5 py-3 text-right">Inventory rows</th>
-                <th className="px-5 py-3">Joined</th>
-                <th className="px-5 py-3">Last sign-in</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.05]">
-              {filteredAccounts.map((account) => (
-                <tr key={account.id} className="text-xs transition hover:bg-white/[0.015]">
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-slate-200">{account.full_name || account.email.split("@")[0]}</p>
-                    <p className="mt-1 text-[10px] text-slate-600">{account.email}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${
-                      account.membership_level === "business"
-                        ? "border-amber-300/20 bg-amber-300/[0.06] text-amber-200"
-                        : account.membership_level === "seller"
-                          ? "border-cyan-300/20 bg-cyan-300/[0.06] text-cyan-200"
-                          : account.membership_level === "collector"
-                            ? "border-violet-300/20 bg-violet-300/[0.06] text-violet-200"
-                            : "border-white/[0.08] bg-white/[0.025] text-slate-500"
-                    }`}>
-                      {account.membership_level}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-right font-semibold tabular-nums text-white">
-                    {Number(account.card_units || 0).toLocaleString("en-US")}
-                  </td>
-                  <td className="px-5 py-4 text-right tabular-nums text-slate-400">
-                    {Number(account.unique_inventory_rows || 0).toLocaleString("en-US")}
-                  </td>
-                  <td className="px-5 py-4 text-[10px] text-slate-500">
-                    {new Date(account.created_at).toLocaleDateString("en-US")}
-                  </td>
-                  <td className="px-5 py-4 text-[10px] text-slate-500">
-                    {account.last_sign_in_at ? new Date(account.last_sign_in_at).toLocaleDateString("en-US") : "Never"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!filteredAccounts.length ? (
-            <p className="px-5 py-10 text-center text-xs text-slate-600">No accounts match this search.</p>
-          ) : null}
+
+        {loading ? (
+          <div className="flex min-h-48 items-center justify-center gap-2 text-xs text-slate-500"><Loader2 className="h-4 w-4 animate-spin text-cyan-300" />Loading accounts…</div>
+        ) : error ? (
+          <p role="alert" className="m-5 rounded-xl border border-red-300/15 bg-red-300/[0.05] px-4 py-3 text-xs text-red-200">{error}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[940px] text-left">
+              <thead className="border-b border-white/[0.06] bg-black/10 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600">
+                <tr><th className="px-5 py-3">Account</th><th className="px-5 py-3">Membership</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Cards</th><th className="px-5 py-3">Joined</th><th className="px-5 py-3">Last sign-in</th><th className="w-16 px-5 py-3"><span className="sr-only">Actions</span></th></tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.05]">
+                {filteredAccounts.map((account) => {
+                  const permanentOwner = account.email.trim().toLowerCase() === ownerEmail.trim().toLowerCase();
+                  return (
+                    <tr key={account.id} onClick={() => openAccount(account)} className="cursor-pointer text-xs transition hover:bg-cyan-300/[0.025]">
+                      <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/[0.035] text-cyan-200"><UserRoundCog className="h-4 w-4" /></div><div><p className="font-semibold text-slate-200">{account.full_name || account.email.split("@")[0]}</p><p className="mt-1 text-[10px] text-slate-600">{account.email}</p></div></div></td>
+                      <td className="px-5 py-4"><PlanBadge plan={account.membership_level} />{account.membership_override ? <p className="mt-1 text-[8px] uppercase tracking-[0.12em] text-amber-300/60">Admin override</p> : null}</td>
+                      <td className="px-5 py-4">{permanentOwner ? <StatusBadge label="Permanent owner" tone="amber" /> : account.suspended ? <StatusBadge label="Suspended" tone="rose" /> : account.email_confirmed ? <StatusBadge label="Active" tone="emerald" /> : <StatusBadge label="Unconfirmed" tone="slate" />}</td>
+                      <td className="px-5 py-4 text-right font-semibold tabular-nums text-white">{Number(account.card_units || 0).toLocaleString("en-US")}</td>
+                      <td className="px-5 py-4 text-[10px] text-slate-500">{new Date(account.created_at).toLocaleDateString("en-US")}</td>
+                      <td className="px-5 py-4 text-[10px] text-slate-500">{account.last_sign_in_at ? new Date(account.last_sign_in_at).toLocaleDateString("en-US") : "Never"}</td>
+                      <td className="px-5 py-4 text-right"><button type="button" onClick={(event) => { event.stopPropagation(); openAccount(account); }} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500 transition hover:bg-white/[0.04] hover:text-white" aria-label={`Manage ${account.email}`}><EllipsisVertical className="h-4 w-4" /></button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!filteredAccounts.length ? <p className="px-5 py-10 text-center text-xs text-slate-600">No accounts match this search.</p> : null}
+          </div>
+        )}
+      </section>
+
+      {selected ? (
+        <div className="fixed inset-0 z-[180] flex justify-end bg-black/55 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null); }}>
+          <aside className="h-full w-full max-w-[480px] overflow-y-auto border-l border-cyan-300/[0.12] bg-[#04101a] shadow-[-35px_0_100px_rgba(0,0,0,.5)]">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#04101a]/95 px-5 py-4 backdrop-blur-xl"><div><p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Customer 360</p><h3 className="mt-1 text-lg font-semibold text-white">Manage account</h3></div><button type="button" onClick={() => setSelected(null)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 hover:text-white"><X className="h-4 w-4" /></button></div>
+            <div className="space-y-5 p-5">
+              <section className="rounded-[22px] border border-white/[0.07] bg-[#071722] p-5"><div className="flex items-start gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.05] text-cyan-200"><UserRoundCog className="h-5 w-5" /></div><div className="min-w-0"><h4 className="truncate text-base font-semibold text-white">{selected.full_name || selected.email.split("@")[0]}</h4><p className="mt-1 truncate text-xs text-slate-500">{selected.email}</p><div className="mt-3 flex flex-wrap gap-2"><PlanBadge plan={selected.membership_level} />{isOwner ? <StatusBadge label="Permanent owner" tone="amber" /> : selected.suspended ? <StatusBadge label="Suspended" tone="rose" /> : <StatusBadge label="Active" tone="emerald" />}</div></div></div></section>
+
+              <section className="grid grid-cols-2 gap-3">{[["Cards uploaded", Number(selected.card_units || 0).toLocaleString("en-US")],["Inventory rows", Number(selected.unique_inventory_rows || 0).toLocaleString("en-US")],["Joined", new Date(selected.created_at).toLocaleDateString("en-US")],["Last sign-in", selected.last_sign_in_at ? new Date(selected.last_sign_in_at).toLocaleDateString("en-US") : "Never"]].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/[0.06] bg-black/10 p-4"><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-600">{label}</p><p className="mt-2 text-sm font-semibold text-white">{value}</p></div>)}</section>
+
+              <section className="rounded-[22px] border border-white/[0.07] bg-[#06121b] p-5"><div className="flex items-center gap-2"><BadgeDollarSign className="h-4 w-4 text-cyan-300" /><h4 className="text-sm font-semibold text-white">Plan access</h4></div><p className="mt-2 text-[11px] leading-5 text-slate-500">An admin override changes workspace permissions without modifying Stripe billing.</p><select value={plan} onChange={(event) => setPlan(event.target.value as AdminPlan)} disabled={isOwner || working} className="mt-4 h-11 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-xs text-white outline-none focus:border-cyan-300/30"><option value="free">Free</option><option value="collector">Collector</option><option value="seller">Seller</option><option value="business">Store / Business</option></select><button type="button" disabled={isOwner || working || plan === selected.membership_level} onClick={() => void runAction({ action: "plan", plan })} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeDollarSign className="h-4 w-4" />}Save plan</button>{isOwner ? <p className="mt-3 text-[10px] text-amber-200/60">The permanent owner always retains Store access.</p> : null}</section>
+
+              {!isOwner ? <section className="rounded-[22px] border border-amber-300/[0.10] bg-amber-300/[0.025] p-5"><div className="flex items-center gap-2 text-amber-200"><Ban className="h-4 w-4" /><h4 className="text-sm font-semibold">Account access</h4></div><p className="mt-2 text-[11px] leading-5 text-amber-100/50">Suspension blocks sign-in but preserves the account and its data. Restore access at any time.</p><button type="button" disabled={working} onClick={() => void runAction({ action: selected.suspended ? "restore" : "suspend" })} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-300/15 text-xs font-bold text-amber-100 hover:bg-amber-300/[0.05] disabled:opacity-40">{selected.suspended ? <UserCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}{selected.suspended ? "Restore account access" : "Suspend account"}</button></section> : null}
+
+              {!isOwner ? <section className="rounded-[22px] border border-rose-300/[0.12] bg-rose-400/[0.025] p-5"><div className="flex items-center gap-2 text-rose-200"><Trash2 className="h-4 w-4" /><h4 className="text-sm font-semibold">Delete account</h4></div><p className="mt-2 text-[11px] leading-5 text-rose-100/50">Permanently removes authentication and cascading account data. This cannot be undone.</p><label className="mt-4 block text-[9px] font-bold uppercase tracking-[0.14em] text-rose-200/60">Type DELETE to continue<input value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} className="mt-2 h-10 w-full rounded-xl border border-rose-300/[0.14] bg-black/20 px-3 text-xs text-white outline-none focus:border-rose-300/35" /></label><button type="button" disabled={working || deleteConfirm !== "DELETE"} onClick={() => void runAction({ confirmation: "DELETE" }, true)} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-rose-400/[0.12] text-xs font-bold text-rose-100 hover:bg-rose-400/[0.18] disabled:opacity-35"><Trash2 className="h-4 w-4" />Permanently delete user</button></section> : null}
+
+              {message ? <p role="status" className={`rounded-xl border px-3 py-2 text-xs ${/could not|error|required|cannot/i.test(message) ? "border-rose-300/15 bg-rose-300/[0.05] text-rose-200" : "border-emerald-300/15 bg-emerald-300/[0.05] text-emerald-200"}`}>{message}</p> : null}
+            </div>
+          </aside>
         </div>
-      )}
-    </section>
+      ) : null}
+    </>
   );
+}
+
+function PlanBadge({ plan }: { plan: AdminPlan }) {
+  const classes = plan === "business" ? "border-amber-300/20 bg-amber-300/[0.06] text-amber-200" : plan === "seller" ? "border-cyan-300/20 bg-cyan-300/[0.06] text-cyan-200" : plan === "collector" ? "border-violet-300/20 bg-violet-300/[0.06] text-violet-200" : "border-white/[0.08] bg-white/[0.025] text-slate-500";
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${classes}`}>{plan === "business" ? "Store" : plan}</span>;
+}
+
+function StatusBadge({ label, tone }: { label: string; tone: "emerald" | "amber" | "rose" | "slate" }) {
+  const classes = tone === "emerald" ? "border-emerald-300/15 bg-emerald-300/[0.05] text-emerald-200" : tone === "amber" ? "border-amber-300/15 bg-amber-300/[0.05] text-amber-200" : tone === "rose" ? "border-rose-300/15 bg-rose-300/[0.05] text-rose-200" : "border-white/[0.08] bg-white/[0.025] text-slate-500";
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] ${classes}`}>{label}</span>;
 }
 
 function FeatureAccess({ features, query, setQuery, savingId, updateFeature }: { features: Feature[]; query: string; setQuery: (value: string) => void; savingId: string; updateFeature: (id: string, patch: Partial<Feature>) => void }) {
