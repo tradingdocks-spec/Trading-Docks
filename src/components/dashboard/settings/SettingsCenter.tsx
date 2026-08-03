@@ -81,7 +81,7 @@ const DEFAULTS: SettingsData = {
   phone: "",
   timezone: "America/Phoenix",
   currency: "USD",
-  businessName: "Trading Docks",
+  businessName: "",
   website: "",
   storeAddress: "",
   defaultGame: "Magic: The Gathering",
@@ -350,7 +350,7 @@ function AccountSettings({ settings, email, update }: SettingsProps & { email: s
 
 function WorkspaceSettings({ settings, update }: SettingsProps) {
   return <FormGrid>
-    <Field label="Business or store name"><Input value={settings.businessName as string} onChange={(v) => update("businessName", v)} /></Field>
+    <Field label="Business or store name" hint="Used in your Mission Control greeting"><Input value={settings.businessName as string} onChange={(v) => update("businessName", v)} placeholder="Example: Desert Mana Games" /></Field>
     <Field label="Website"><Input value={settings.website as string} onChange={(v) => update("website", v)} placeholder="https://" /></Field>
     <Field label="Store address" wide><Input value={settings.storeAddress as string} onChange={(v) => update("storeAddress", v)} placeholder="Used for invoices and local operations" /></Field>
     <Field label="Business logo" wide><UploadPlaceholder /></Field>
