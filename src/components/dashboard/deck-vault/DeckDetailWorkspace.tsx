@@ -677,6 +677,59 @@ export function DeckDetailWorkspace({
     };
   }
 
+  function replaceCard(
+    currentCard: DeckCard,
+    replacement: ScryfallCardResult,
+  ) {
+    const nextCard: DeckCard = {
+      ...currentCard,
+      id: replacement.id,
+      name: replacement.name,
+      manaValue: replacement.manaValue,
+      colors: replacement.colorIdentity.length
+        ? replacement.colorIdentity
+        : replacement.colors.length
+          ? replacement.colors
+          : ["C"],
+      typeLine: replacement.typeLine,
+      category:
+        currentCard.category === "Commander"
+          ? "Commander"
+          : inferCategory(replacement),
+      price: replacement.price,
+      owned: false,
+      image: replacement.image,
+      artCrop: replacement.artCrop,
+      setCode: replacement.setCode,
+      collectorNumber: replacement.collectorNumber,
+      gameChanger: replacement.gameChanger,
+      board: currentCard.board,
+      quantity: currentCard.quantity,
+    };
+
+    setCards((currentCards) =>
+      currentCards.map((card) =>
+        card.id === currentCard.id
+          ? nextCard
+          : card,
+      ),
+    );
+
+    if (
+      currentCard.board === "commander" ||
+      currentCard.category === "Commander"
+    ) {
+      setCommanderName(nextCard.name);
+      setCommanderImage(nextCard.image ?? "");
+      setCommanderArt(nextCard.artCrop ?? "");
+    }
+
+    setSelectedCardId(nextCard.id);
+    setSaveStatus("Saving…");
+  }
+
+
+
   function addCard(
     result: ScryfallCardResult,
     section: DeckDropSection = "main",
