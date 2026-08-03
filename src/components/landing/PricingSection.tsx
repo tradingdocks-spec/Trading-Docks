@@ -1,152 +1,348 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowRight, Check, Crown, ShieldCheck, Sparkles, Store } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  BarChart3,
+  Boxes,
+  Building2,
+  Check,
+  ChevronRight,
+  Crown,
+  Database,
+  Layers3,
+  LineChart,
+  PackageSearch,
+  ShieldCheck,
+  Sparkles,
+  Store,
+  Users,
+  WandSparkles,
+} from "lucide-react";
 
-import { PLAN_ENTITLEMENTS } from "@/lib/plan-entitlements";
+type PlanCard = {
+  id: "free" | "collector" | "seller" | "store";
+  name: string;
+  eyebrow: string;
+  price: string;
+  cadence: string;
+  description: string;
+  inventory: string;
+  decks: string;
+  seats: string;
+  features: string[];
+  icon: React.ComponentType<{ className?: string }>;
+  href: string;
+  cta: string;
+  featured?: boolean;
+  badge?: string;
+};
 
-const plans = [
+const plans: PlanCard[] = [
   {
-    id: "free" as const,
+    id: "free",
     name: "Free",
-    audience: "Explore the platform",
-    description: "Start organizing cards and exploring Trading Docks.",
-    icon: Sparkles,
-    features: ["500 inventory units", "10 saved decks", "Basic market lookups", "25-card watchlist"],
+    eyebrow: "Start organizing",
+    price: "$0",
+    cadence: "forever",
+    description:
+      "Build a clean foundation for a personal collection with essential inventory and deck tools.",
+    inventory: "500",
+    decks: "10",
+    seats: "1",
+    features: [
+      "Personal dashboard",
+      "Inventory organization",
+      "Deck Vault",
+      "Settings and support",
+    ],
+    icon: Layers3,
+    href: "/signup?plan=free",
+    cta: "Start free",
   },
   {
-    id: "collector" as const,
+    id: "collector",
     name: "Collector",
-    audience: "Build your collection",
-    description: "Catalog, organize, and track a growing personal collection.",
-    icon: Crown,
-    features: ["10,000 inventory units", "50 saved decks", "Collection value tracking", "CSV import and export"],
+    eyebrow: "For serious collectors",
+    price: "$12",
+    cadence: "per month",
+    description:
+      "Track a growing collection with richer limits, value history, analytics, and flexible CSV workflows.",
+    inventory: "10,000",
+    decks: "50",
+    seats: "1",
+    features: [
+      "Collection analytics",
+      "Value and growth history",
+      "CSV Conversion Engine",
+      "CSV import and export",
+    ],
+    icon: BarChart3,
+    href: "/signup?plan=collector",
+    cta: "Choose Collector",
   },
   {
-    id: "seller" as const,
+    id: "seller",
     name: "Seller",
-    audience: "Run your card business",
-    description: "Turn inventory into listings with powerful seller tools.",
-    icon: ShieldCheck,
-    features: ["50,000 inventory units", "Unlimited saved decks", "Marketplace allocations", "Pricing and listing queues"],
+    eyebrow: "Run an online card business",
+    price: "$39",
+    cadence: "per month",
+    description:
+      "Manage purchasing, customers, marketplaces, orders, and automation from one seller workspace.",
+    inventory: "50,000",
+    decks: "Unlimited",
+    seats: "1",
+    features: [
+      "Purchasing Intelligence",
+      "Customer CRM and loyalty",
+      "Marketplaces and orders",
+      "Card Shows and automation",
+    ],
+    icon: PackageSearch,
+    href: "/signup?plan=seller",
+    cta: "Start selling",
+    featured: true,
+    badge: "Most popular",
   },
   {
-    id: "business" as const,
+    id: "store",
     name: "Store",
-    audience: "Operate your storefront",
-    description: "Manage inventory, staff, reporting, and daily operations.",
-    icon: Store,
-    badge: "Full platform",
-    features: ["250,000 inventory units", "5 team seats included", "Employee roles and controls", "Advanced business reports"],
+    eyebrow: "Operate a full storefront",
+    price: "$99",
+    cadence: "per month",
+    description:
+      "Run daily store operations with business intelligence, team controls, vendors, tournaments, and payroll.",
+    inventory: "250,000",
+    decks: "Unlimited",
+    seats: "5 included",
+    features: [
+      "Business Intelligence",
+      "Tasks, calendar, and tournaments",
+      "Vendors and supply orders",
+      "Employees, payroll, and finances",
+    ],
+    icon: Building2,
+    href: "/signup?plan=store",
+    cta: "Choose Store",
   },
-] as const;
+];
 
-function dollars(value: number) {
-  return value === 0 ? "$0" : `$${value.toFixed(2)}`;
-}
+const trustPoints = [
+  {
+    icon: ShieldCheck,
+    title: "No hidden feature drift",
+    text: "The permissions shown here match the product exactly.",
+  },
+  {
+    icon: Database,
+    title: "Clear account limits",
+    text: "Inventory, deck, and team limits are visible before signup.",
+  },
+  {
+    icon: WandSparkles,
+    title: "Upgrade when ready",
+    text: "Start small and move up without rebuilding your workspace.",
+  },
+];
 
 export function PricingSection() {
-  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  return (
+    <section
+      id="pricing"
+      className="relative overflow-hidden border-y border-white/[0.05] bg-[#020914] px-4 py-24 sm:px-6 lg:px-8"
+    >
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-blue-500/[0.10] blur-[140px]" />
+        <div className="absolute bottom-[-14rem] right-[-12rem] h-[32rem] w-[32rem] rounded-full bg-cyan-300/[0.06] blur-[130px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(100,150,220,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(100,150,220,.025)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:linear-gradient(to_bottom,black,transparent_92%)]" />
+      </div>
+
+      <div className="relative mx-auto max-w-[1480px]">
+        <div className="mx-auto max-w-4xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-300/[0.15] bg-blue-400/[0.055] px-3.5 py-2 text-xs font-semibold text-blue-200">
+            <Sparkles className="h-4 w-4" />
+            Plans built around how you actually use Trading Docks
+          </div>
+
+          <h2 className="mt-6 text-4xl font-semibold tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
+            Start with your collection.
+            <span className="block bg-gradient-to-r from-cyan-200 via-blue-300 to-blue-500 bg-clip-text text-transparent">
+              Scale into a real operation.
+            </span>
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-slate-400 sm:text-lg">
+            Every plan has a clear purpose, honest limits, and a direct path to
+            the next stage of your collection or business.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {plans.map((plan) => (
+            <PricingCard key={plan.id} plan={plan} />
+          ))}
+        </div>
+
+        <div className="mt-6 grid gap-3 lg:grid-cols-3">
+          {trustPoints.map(({ icon: Icon, title, text }) => (
+            <div
+              key={title}
+              className="flex items-start gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.018] p-4"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-300/[0.12] bg-blue-400/[0.05] text-blue-300">
+                <Icon className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-white">{title}</p>
+                <p className="mt-1 text-sm leading-6 text-slate-500">{text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-[28px] border border-blue-300/[0.12] bg-gradient-to-r from-blue-500/[0.07] via-white/[0.025] to-cyan-300/[0.045] px-6 py-6 sm:flex-row sm:px-8">
+          <div className="flex items-start gap-4">
+            <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-300/[0.14] bg-[#07121f] text-cyan-300 sm:flex">
+              <BadgeCheck className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-base font-semibold text-white">
+                Need the full feature matrix?
+              </p>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Compare every limit, workflow, and permission before choosing a
+                plan.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/pricing"
+            className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-blue-300/[0.18] bg-[#07121f] px-5 text-sm font-semibold text-blue-100 transition hover:-translate-y-0.5 hover:border-blue-300/[0.32] hover:bg-blue-400/[0.08]"
+          >
+            Compare all features
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PricingCard({ plan }: { plan: PlanCard }) {
+  const Icon = plan.icon;
 
   return (
-    <section id="pricing" className="relative z-10 mx-auto w-full max-w-[1480px] px-5 py-24 sm:px-8 lg:px-12">
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#20e7ff]">
-          Simple pricing for every stage
-        </p>
-        <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
-          Choose the tools that fit the way you collect and sell.
-        </h2>
-        <p className="mt-5 text-base leading-7 text-[#8296aa]">
-          Compare Free, Collector, Seller, and Store plans, then upgrade whenever your collection or business is ready.
+    <article
+      className={[
+        "group relative flex min-h-[630px] flex-col overflow-hidden rounded-[28px] border p-5 transition duration-300 sm:p-6",
+        plan.featured
+          ? "border-blue-300/[0.28] bg-gradient-to-b from-blue-500/[0.12] via-[#081523] to-[#06101b] shadow-[0_28px_90px_rgba(37,99,235,.16)]"
+          : "border-white/[0.075] bg-[#07111d] hover:-translate-y-1 hover:border-blue-300/[0.16] hover:shadow-[0_22px_70px_rgba(0,0,0,.28)]",
+      ].join(" ")}
+    >
+      {plan.featured ? (
+        <>
+          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-blue-400/[0.16] blur-[90px]" />
+          <div className="absolute right-5 top-5 rounded-full border border-cyan-200/[0.22] bg-cyan-200/[0.08] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-cyan-100">
+            {plan.badge}
+          </div>
+        </>
+      ) : null}
+
+      <div className="relative">
+        <div className="flex items-center gap-3">
+          <span
+            className={[
+              "flex h-11 w-11 items-center justify-center rounded-2xl border",
+              plan.featured
+                ? "border-cyan-200/[0.22] bg-cyan-200/[0.08] text-cyan-200"
+                : "border-blue-300/[0.12] bg-blue-400/[0.045] text-blue-300",
+            ].join(" ")}
+          >
+            <Icon className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-600">
+              {plan.eyebrow}
+            </p>
+            <h3 className="mt-1 text-xl font-semibold tracking-[-0.025em] text-white">
+              {plan.name}
+            </h3>
+          </div>
+        </div>
+
+        <div className="mt-7 flex items-end gap-2">
+          <span className="text-4xl font-semibold tracking-[-0.05em] text-white">
+            {plan.price}
+          </span>
+          <span className="pb-1 text-sm text-slate-600">{plan.cadence}</span>
+        </div>
+
+        <p className="mt-4 min-h-[84px] text-sm leading-7 text-slate-400">
+          {plan.description}
         </p>
 
-        <div className="mx-auto mt-8 flex w-fit items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] p-1">
-          {(["monthly", "annual"] as const).map((cycle) => (
-            <button
-              key={cycle}
-              type="button"
-              onClick={() => setBilling(cycle)}
-              className={`rounded-xl px-5 py-2.5 text-xs font-semibold capitalize transition ${
-                billing === cycle ? "bg-[#20e7ff] text-[#00131a]" : "text-[#8296aa] hover:text-white"
-              }`}
-            >
-              {cycle}
-              {cycle === "annual" && (
-                <span className="ml-2 rounded-full bg-[#00313b] px-2 py-0.5 text-[9px] uppercase tracking-wide text-[#9df5ff]">
-                  Save up to 25%
+        <div className="mt-6 grid grid-cols-3 gap-2">
+          <PlanMetric label="Inventory" value={plan.inventory} />
+          <PlanMetric label="Decks" value={plan.decks} />
+          <PlanMetric label="Seats" value={plan.seats} />
+        </div>
+
+        <div className="my-6 h-px bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.13em] text-slate-600">
+            Included
+          </p>
+          <div className="mt-4 space-y-3">
+            {plan.features.map((feature) => (
+              <div key={feature} className="flex items-start gap-3">
+                <span
+                  className={[
+                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                    plan.featured
+                      ? "bg-cyan-200/[0.1] text-cyan-200"
+                      : "bg-blue-400/[0.07] text-blue-300",
+                  ].join(" ")}
+                >
+                  <Check className="h-3 w-3" />
                 </span>
-              )}
-            </button>
-          ))}
+                <span className="text-sm leading-6 text-slate-300">
+                  {feature}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {plans.map((plan) => {
-          const entitlement = PLAN_ENTITLEMENTS[plan.id];
-          const price = billing === "annual" ? entitlement.annualMonthlyPrice : entitlement.monthlyPrice;
-          const Icon = plan.icon;
+      <Link
+        href={plan.href}
+        className={[
+          "relative mt-auto inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition duration-200",
+          plan.featured
+            ? "bg-gradient-to-r from-blue-500 to-cyan-300 text-[#020914] shadow-[0_16px_38px_rgba(37,99,235,.26)] hover:-translate-y-0.5"
+            : "border border-white/[0.09] bg-white/[0.025] text-white hover:-translate-y-0.5 hover:border-blue-300/[0.2] hover:bg-blue-400/[0.055]",
+        ].join(" ")}
+      >
+        {plan.cta}
+        <ChevronRight className="h-4 w-4" />
+      </Link>
+    </article>
+  );
+}
 
-          return (
-            <article
-              key={plan.id}
-              className="group relative flex min-h-[550px] flex-col rounded-[28px] border border-white/[0.08] bg-[#061522] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition duration-300 hover:-translate-y-1 hover:border-[#20e7ff]/40 hover:bg-[linear-gradient(180deg,rgba(13,66,79,0.52),rgba(6,21,34,0.98)_38%)] hover:shadow-[0_28px_90px_rgba(0,215,242,0.11)]"
-            >
-              {"badge" in plan && plan.badge && (
-                <span className="absolute right-5 top-5 rounded-full border border-[#20e7ff]/15 bg-[#20e7ff]/[0.08] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#9df5ff]">
-                  {plan.badge}
-                </span>
-              )}
-
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-[#20e7ff]">
-                <Icon className="h-5 w-5" />
-              </span>
-              <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.17em] text-[#536a80]">{plan.audience}</p>
-              <h3 className="mt-2 text-2xl font-semibold">{plan.name}</h3>
-
-              <div className="mt-5 flex items-end gap-1">
-                <span className="text-4xl font-semibold tracking-[-0.045em]">{dollars(price)}</span>
-                <span className="pb-1 text-xs text-[#536a80]">/ month</span>
-              </div>
-              <p className="mt-2 min-h-5 text-[11px] text-[#536a80]">
-                {billing === "annual" && entitlement.annualPrice > 0
-                  ? `${dollars(entitlement.annualPrice)} billed annually`
-                  : entitlement.monthlyPrice > 0 ? "Billed monthly" : "Free forever"}
-              </p>
-              <p className="mt-5 min-h-[72px] text-sm leading-6 text-[#8296aa]">{plan.description}</p>
-
-              <Link
-                href={plan.id === "free" ? "/sign-up?plan=free" : `/pricing?plan=${plan.id}`}
-                className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-white transition group-hover:border-[#20e7ff] group-hover:bg-gradient-to-b group-hover:from-blue-300 group-hover:to-sky-500 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(59,130,246,0.18)]"
-              >
-                {plan.id === "free" ? "Start free" : `Choose ${plan.name}`}
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-              </Link>
-
-              <div className="mt-7 border-t border-white/[0.07] pt-6">
-                <p className="text-xs font-semibold text-white">What&apos;s included</p>
-                <ul className="mt-4 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex gap-2.5 text-xs leading-5 text-[#9aabba]">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#20e7ff]" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-
-      <div className="mt-8 text-center">
-        <Link href="/pricing" className="inline-flex items-center gap-2 text-sm font-semibold text-[#20e7ff] hover:text-white">
-          Compare every feature
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
-    </section>
+function PlanMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-black/[0.14] px-3 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-700">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-sm font-semibold text-slate-100">
+        {value}
+      </p>
+    </div>
   );
 }
