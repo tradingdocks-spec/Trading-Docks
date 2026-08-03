@@ -1461,7 +1461,7 @@ function CardsWorkspace({
   setSearch: (value: string) => void;
   searchResults: ScryfallCardResult[];
   searching: boolean;
-  addCard: (card: ScryfallCardResult) => void;
+  addCard: (card: ScryfallCardResult, section?: DeckDropSection) => void;
   removeCard: (id: string) => void;
   beginDrag: (event: DragEvent, payload: DeckDragPayload) => void;
   finishDrag: () => void;
