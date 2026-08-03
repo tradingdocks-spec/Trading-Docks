@@ -21,6 +21,8 @@ import {
   WandSparkles,
 } from "lucide-react";
 
+import styles from "./LandingMotion.module.css";
+
 type PlanCard = {
   id: "free" | "collector" | "seller" | "store";
   name: string;
@@ -236,23 +238,29 @@ function PricingCard({ plan }: { plan: PlanCard }) {
   return (
     <article
       className={[
-        "group relative flex min-h-[630px] flex-col overflow-hidden rounded-[28px] border p-5 transition duration-300 sm:p-6",
+        `${styles.shimmer} td-spotlight-card group relative flex min-h-[650px] flex-col overflow-hidden rounded-[30px] border p-5 transition duration-300 sm:p-6`,
         plan.featured
           ? "border-blue-300/[0.28] bg-gradient-to-b from-blue-500/[0.12] via-[#081523] to-[#06101b] shadow-[0_28px_90px_rgba(37,99,235,.16)]"
           : "border-white/[0.075] bg-[#07111d] hover:-translate-y-1 hover:border-blue-300/[0.16] hover:shadow-[0_22px_70px_rgba(0,0,0,.28)]",
       ].join(" ")}
     >
       {plan.featured ? (
-        <>
-          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-blue-400/[0.16] blur-[90px]" />
-          <div className="absolute right-5 top-5 rounded-full border border-cyan-200/[0.22] bg-cyan-200/[0.08] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-cyan-100">
-            {plan.badge}
-          </div>
-        </>
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-blue-400/[0.16] blur-[90px]" />
       ) : null}
 
       <div className="relative">
-        <div className="flex items-center gap-3">
+        <div className="mb-5 flex min-h-7 items-center justify-between gap-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-700">
+            {plan.featured ? "Recommended" : "Trading Docks plan"}
+          </span>
+          {plan.featured ? (
+            <span className="shrink-0 rounded-full border border-cyan-200/[0.22] bg-cyan-200/[0.09] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-cyan-100">
+              {plan.badge}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="flex items-start gap-3">
           <span
             className={[
               "flex h-11 w-11 items-center justify-center rounded-2xl border",
@@ -263,8 +271,8 @@ function PricingCard({ plan }: { plan: PlanCard }) {
           >
             <Icon className="h-5 w-5" />
           </span>
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-600">
+          <div className="min-w-0 flex-1 pt-0.5">
+            <p className="min-h-[32px] text-[10px] font-semibold uppercase leading-4 tracking-[0.11em] text-slate-600">
               {plan.eyebrow}
             </p>
             <h3 className="mt-1 text-xl font-semibold tracking-[-0.025em] text-white">
@@ -280,7 +288,7 @@ function PricingCard({ plan }: { plan: PlanCard }) {
           <span className="pb-1 text-sm text-slate-600">{plan.cadence}</span>
         </div>
 
-        <p className="mt-4 min-h-[84px] text-sm leading-7 text-slate-400">
+        <p className="mt-4 min-h-[96px] text-sm leading-7 text-slate-400">
           {plan.description}
         </p>
 
@@ -336,11 +344,11 @@ function PricingCard({ plan }: { plan: PlanCard }) {
 
 function PlanMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-black/[0.14] px-3 py-3">
+    <div className="min-w-0 rounded-xl border border-white/[0.06] bg-black/[0.14] px-3 py-3">
       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-700">
         {label}
       </p>
-      <p className="mt-1 truncate text-sm font-semibold text-slate-100">
+      <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-100">
         {value}
       </p>
     </div>

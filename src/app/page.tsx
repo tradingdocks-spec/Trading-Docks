@@ -34,7 +34,7 @@ export default async function HomePage() {
 
   return (
     <main
-      data-landing-version="v235"
+      data-landing-version="v236"
       className="relative min-h-screen overflow-hidden bg-[#02090f] text-white"
     >
       <BackgroundEffects />
