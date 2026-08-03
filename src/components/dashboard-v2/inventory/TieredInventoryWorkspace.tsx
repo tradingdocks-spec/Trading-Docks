@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRightLeft,
+  BookOpen,
   Boxes,
   Check,
   CheckSquare2,
@@ -16,38 +17,44 @@ import {
   CircleDollarSign,
   ClipboardCheck,
   Copy,
+  Download,
   Edit3,
   EllipsisVertical,
   ExternalLink,
   Filter,
-  FolderOpen,
   FolderKanban,
+  FolderOpen,
+  Globe2,
+  Grid3X3,
   History,
+  Instagram,
   Layers3,
   LayoutGrid,
   LibraryBig,
+  Link2,
   List,
+  Loader2,
   LockKeyhole,
   MapPin,
+  MessageCircle,
+  Move,
   PackageCheck,
   PackageOpen,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   Settings2,
-  SlidersHorizontal,
+  Share2,
   ShieldAlert,
+  ShoppingCart,
+  SlidersHorizontal,
   Sparkles,
   Store,
   Tag,
   Trash2,
-  Truck,
-  BookOpen,
-  Grid3X3,
-  Move,
-  RotateCcw,
-  ShoppingCart,
   TrendingUp,
+  Truck,
   Warehouse,
   X,
 } from "lucide-react";
@@ -2428,6 +2435,7 @@ function VirtualBinderModal({
   const [contextMenu, setContextMenu] = useState<{ item: InventoryItem; x: number; y: number } | null>(null);
   const [detailItemId, setDetailItemId] = useState("");
   const [moveCandidate, setMoveCandidate] = useState<InventoryItem | null>(null);
+  const [showcaseOpen, setShowcaseOpen] = useState(false);
   const slotsPerPage = columns * rows;
   const occupied = items.filter((item) => item.binderPage && item.binderSlot).length;
   const totalValue = items.reduce((sum, item) => sum + item.value, 0);
@@ -2548,6 +2556,7 @@ function VirtualBinderModal({
             <BinderStat label="Available" value={(pageCount * slotsPerPage - occupied).toLocaleString("en-US")} />
           </div>
           <span className="hidden items-center gap-1.5 text-[9px] font-semibold text-emerald-300/80 xl:flex" title="Binder changes are saved automatically"><Check className="h-3 w-3" /> Saved</span>
+          <button type="button" onClick={() => setShowcaseOpen(true)} className="hidden h-10 items-center gap-2 rounded-xl border border-violet-300/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.07))] px-3.5 text-[10px] font-semibold text-violet-100 shadow-[0_8px_28px_rgba(124,58,237,.10)] transition hover:-translate-y-0.5 hover:border-violet-300/40 hover:bg-violet-400/[0.13] md:flex"><Sparkles className="h-3.5 w-3.5 text-violet-300" /> Showcase</button>
           <button type="button" onClick={onOpenPutAway} className="hidden h-10 items-center gap-2 rounded-xl border border-amber-300/[0.16] bg-amber-300/[0.045] px-3 text-[10px] font-semibold text-amber-100 transition hover:border-amber-300/30 hover:bg-amber-300/[0.08] md:flex"><PackageOpen className="h-3.5 w-3.5 text-amber-300" /> Put Away <span className="rounded-md bg-amber-300 px-1.5 py-0.5 text-[8px] font-black text-[#211505]">{putAwayCount}</span></button>
           <button type="button" onClick={() => setSettingsOpen(true)} className="hidden h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.04] px-3.5 text-[10px] font-semibold text-slate-300 transition hover:border-cyan-300/28 hover:bg-cyan-300/[0.07] hover:text-cyan-100 sm:flex"><Settings2 className="h-3.5 w-3.5 text-cyan-300" /> Settings</button>
           <button type="button" onClick={onFile} className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-300 px-4 text-[10px] font-bold text-[#031319] shadow-[0_8px_24px_rgba(34,211,238,0.18)]"><Plus className="h-3.5 w-3.5" /> Add Card</button>
@@ -2564,6 +2573,14 @@ function VirtualBinderModal({
             <button type="button" onClick={() => setBinderView("spread")} className={`hidden h-12 items-center gap-2 rounded-xl border px-3 text-[10px] font-semibold md:flex ${binderView === "spread" ? "border-cyan-300/25 bg-cyan-400/[0.09] text-cyan-200" : "border-white/[0.08] text-slate-500"}`}><BookOpen className="h-3.5 w-3.5" /> Binder Spread</button>
             <button type="button" onClick={() => setBinderView("index")} className={`flex h-12 items-center gap-2 rounded-xl border px-3 text-[10px] font-semibold ${binderView === "index" ? "border-cyan-300/25 bg-cyan-400/[0.09] text-cyan-200" : "border-white/[0.08] text-slate-500"}`}><List className="h-3.5 w-3.5" /> Index</button>
           </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-3 border-b border-white/[0.05] bg-[linear-gradient(90deg,rgba(139,92,246,.055),rgba(34,211,238,.025),rgba(16,185,129,.035))] px-5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/[0.16] bg-violet-400/[0.055] px-3 py-1.5 text-[9px] font-semibold text-violet-100"><Sparkles className="h-3 w-3 text-violet-300" /> Showcase ready</span>
+            <span className="text-[9px] text-slate-600">{occupied} featured pockets · {currency(totalValue)} collection value</span>
+          </div>
+          <button type="button" onClick={() => setShowcaseOpen(true)} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.15] bg-cyan-300/[0.045] px-3 text-[9px] font-semibold text-cyan-100 transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.085]"><Share2 className="h-3.5 w-3.5" /> Share, trade, or export</button>
         </div>
 
         {query && matches.length ? (
@@ -2673,6 +2690,9 @@ function VirtualBinderModal({
             </div>
           </div>
         ) : null}
+        {showcaseOpen ? (
+          <BinderShowcaseStudio location={location} items={items} page={page} binderView={binderView} totalValue={totalValue} occupied={occupied} onClose={() => setShowcaseOpen(false)} />
+        ) : null}
         {settingsOpen ? (
           <BinderSettingsPanel
             location={location}
@@ -2693,6 +2713,273 @@ function VirtualBinderModal({
     </div>
   );
 }
+
+
+function BinderShowcaseStudio({
+  location,
+  items,
+  page,
+  binderView,
+  totalValue,
+  occupied,
+  onClose,
+}: {
+  location: LocationRecord;
+  items: InventoryItem[];
+  page: number;
+  binderView: "single" | "spread" | "index";
+  totalValue: number;
+  occupied: number;
+  onClose: () => void;
+}) {
+  const [mode, setMode] = useState<"showcase" | "trade">("showcase");
+  const [shareUrl, setShareUrl] = useState("");
+  const [status, setStatus] = useState("");
+  const [creatingLink, setCreatingLink] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const cards = [...items]
+    .filter((item) => item.binderPage && item.binderSlot)
+    .sort((a, b) => (a.binderPage ?? 999) - (b.binderPage ?? 999) || (a.binderSlot ?? "").localeCompare(b.binderSlot ?? ""));
+  const previewCards = cards.slice(0, 6);
+  const totalCards = items.reduce((sum, item) => sum + item.quantity, 0);
+  const caption = mode === "trade"
+    ? `Trading ${location.name} on Trading Docks — ${totalCards} cards · ${currency(totalValue)} estimated value. Message me with offers.`
+    : `${location.name} — ${totalCards} cards · ${currency(totalValue)} estimated value. Built and organized with Trading Docks.`;
+
+  async function createPublicLink() {
+    setCreatingLink(true);
+    setStatus("");
+    try {
+      const response = await fetch("/api/binder-shares", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: location.name,
+          mode,
+          payload: {
+            columns: location.binderColumns ?? 3,
+            rows: location.binderRows ?? 3,
+            pages: location.binderPages ?? 20,
+            totalValue,
+            totalCards,
+            occupied,
+            cards: cards.slice(0, 240).map((item) => ({
+              name: item.name,
+              imageUrl: item.imageUrl ?? null,
+              value: item.value,
+              quantity: item.quantity,
+              set: item.set ?? null,
+              condition: item.condition ?? null,
+              finish: item.finish ?? null,
+              page: item.binderPage ?? null,
+              slot: item.binderSlot ?? null,
+            })),
+          },
+        }),
+      });
+      const result = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
+      if (!response.ok || !result?.url) throw new Error(result?.error || "Could not create the binder link.");
+      setShareUrl(result.url);
+      await navigator.clipboard.writeText(result.url);
+      setStatus("Public binder link created and copied.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not create the binder link.");
+    } finally {
+      setCreatingLink(false);
+    }
+  }
+
+  async function copyPost() {
+    await navigator.clipboard.writeText([caption, shareUrl || "Create a public link to include it here."].join("\n\n"));
+    setStatus(mode === "trade" ? "Trade post copied for Discord." : "Showcase caption copied.");
+  }
+
+  async function nativeShare() {
+    const url = shareUrl || window.location.href;
+    if (navigator.share) {
+      await navigator.share({ title: location.name, text: caption, url });
+      setStatus("Share sheet opened.");
+    } else {
+      await navigator.clipboard.writeText(`${caption}\n\n${url}`);
+      setStatus("Share text copied.");
+    }
+  }
+
+  async function downloadSocialCard() {
+    setDownloading(true);
+    setStatus("");
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1350;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Image export is unavailable.");
+
+      const gradient = ctx.createLinearGradient(0, 0, 1080, 1350);
+      gradient.addColorStop(0, "#071725");
+      gradient.addColorStop(.55, "#07101d");
+      gradient.addColorStop(1, "#170b28");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 1080, 1350);
+
+      const glow = ctx.createRadialGradient(820, 130, 20, 820, 130, 520);
+      glow.addColorStop(0, "rgba(34,211,238,.24)");
+      glow.addColorStop(1, "rgba(34,211,238,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, 1080, 700);
+
+      ctx.fillStyle = "#67e8f9";
+      ctx.font = "700 26px Arial";
+      ctx.fillText("TRADING DOCKS · COLLECTOR VAULT", 70, 82);
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "700 58px Arial";
+      ctx.fillText(location.name.slice(0, 28), 70, 158);
+      ctx.fillStyle = "#c4b5fd";
+      ctx.font = "700 24px Arial";
+      ctx.fillText(mode === "trade" ? "TRADE BINDER" : "COLLECTION SHOWCASE", 70, 205);
+
+      [`${totalCards} CARDS`, `${currency(totalValue)} VALUE`, `${occupied} POCKETS`].forEach((value, index) => {
+        const x = 70 + index * 300;
+        ctx.fillStyle = "rgba(255,255,255,.055)";
+        ctx.beginPath();
+        ctx.roundRect(x, 242, 270, 74, 18);
+        ctx.fill();
+        ctx.fillStyle = index === 1 ? "#6ee7b7" : "#e2e8f0";
+        ctx.font = "700 22px Arial";
+        ctx.fillText(value, x + 22, 287);
+      });
+
+      async function loadImage(url: string) {
+        return await new Promise<HTMLImageElement>((resolve, reject) => {
+          const image = new Image();
+          image.crossOrigin = "anonymous";
+          image.onload = () => resolve(image);
+          image.onerror = () => reject(new Error("Image failed"));
+          image.src = url;
+        });
+      }
+
+      const cardWidth = 282;
+      const cardHeight = 394;
+      for (let index = 0; index < 6; index += 1) {
+        const card = previewCards[index];
+        const x = 70 + (index % 3) * 310;
+        const y = 365 + Math.floor(index / 3) * 464;
+        ctx.fillStyle = "rgba(2,8,15,.9)";
+        ctx.beginPath();
+        ctx.roundRect(x, y, cardWidth, cardHeight, 24);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(196,181,253,.20)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (card?.imageUrl) {
+          try {
+            const image = await loadImage(card.imageUrl);
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(x + 10, y + 10, cardWidth - 20, cardHeight - 20, 18);
+            ctx.clip();
+            ctx.drawImage(image, x + 10, y + 10, cardWidth - 20, cardHeight - 20);
+            ctx.restore();
+          } catch {
+            ctx.fillStyle = "rgba(34,211,238,.08)";
+            ctx.fillRect(x + 10, y + 10, cardWidth - 20, cardHeight - 20);
+          }
+        }
+
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "700 20px Arial";
+        ctx.fillText((card?.name || "Open pocket").slice(0, 22), x + 6, y + cardHeight + 34);
+        ctx.fillStyle = "#67e8f9";
+        ctx.font = "700 16px Arial";
+        ctx.fillText(card ? `P${card.binderPage} · ${card.binderSlot}` : "AVAILABLE", x + 6, y + cardHeight + 58);
+      }
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "400 20px Arial";
+      ctx.fillText("Organize. Showcase. Trade. — tradingdocks.com", 70, 1310);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Export failed")), "image/png");
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${location.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "binder"}-${mode}.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("1080 × 1350 social image downloaded.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not export the social image.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div className="absolute inset-0 z-[96] flex items-center justify-center bg-[#01070c]/82 p-4 backdrop-blur-xl" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="grid max-h-[94dvh] w-full max-w-[1180px] overflow-hidden rounded-[30px] border border-violet-300/[0.18] bg-[#07131d] shadow-[0_38px_140px_rgba(0,0,0,.78)] lg:grid-cols-[1.08fr_.92fr]">
+        <div className="min-h-0 overflow-y-auto p-5 sm:p-7">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/[0.18] bg-violet-400/[0.07] px-3 py-2 text-[9px] font-semibold text-violet-100"><Sparkles className="h-3.5 w-3.5 text-violet-300" /> Binder Showcase Studio</span>
+              <h3 className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-white">Turn your binder into content.</h3>
+              <p className="mt-2 max-w-xl text-[11px] leading-6 text-slate-500">Create a public trade page, export an Instagram-ready graphic, or copy a polished Discord post.</p>
+            </div>
+            <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 transition hover:text-white"><X className="h-4 w-4" /></button>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl border border-white/[0.07] bg-black/15 p-1.5">
+            <button type="button" onClick={() => setMode("showcase")} className={`rounded-xl px-4 py-3 text-[10px] font-semibold transition ${mode === "showcase" ? "bg-cyan-300 text-[#031319]" : "text-slate-500 hover:text-slate-200"}`}>Collection showcase</button>
+            <button type="button" onClick={() => setMode("trade")} className={`rounded-xl px-4 py-3 text-[10px] font-semibold transition ${mode === "trade" ? "bg-violet-300 text-[#15072a]" : "text-slate-500 hover:text-slate-200"}`}>Trade binder</button>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <ShowcaseAction icon={Globe2} title="Create public link" description="Publish a clean read-only binder page." onClick={createPublicLink} loading={creatingLink} />
+            <ShowcaseAction icon={Download} title="Download social graphic" description="1080 × 1350 format for Instagram and Discord." onClick={downloadSocialCard} loading={downloading} />
+            <ShowcaseAction icon={MessageCircle} title="Copy Discord post" description="Caption, collection stats, and trade language." onClick={copyPost} />
+            <ShowcaseAction icon={Share2} title="Open share sheet" description="Send through any supported app on your device." onClick={nativeShare} />
+          </div>
+
+          {shareUrl ? <div className="mt-5 rounded-2xl border border-emerald-300/[0.15] bg-emerald-400/[0.045] p-4"><div className="flex items-center gap-2"><Link2 className="h-4 w-4 text-emerald-300" /><p className="text-[10px] font-semibold text-emerald-100">Public binder link</p></div><p className="mt-2 break-all text-[9px] leading-5 text-emerald-200/65">{shareUrl}</p></div> : null}
+          {status ? <div className="mt-4 rounded-xl border border-cyan-300/[0.12] bg-cyan-300/[0.035] px-4 py-3 text-[9px] font-semibold text-cyan-100">{status}</div> : null}
+        </div>
+
+        <div className="relative min-h-[560px] overflow-hidden border-t border-white/[0.07] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.18),transparent_38%),linear-gradient(160deg,#0b1b2a,#08111e_55%,#150b24)] p-5 lg:border-l lg:border-t-0 sm:p-7">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/[0.12] blur-3xl" />
+          <div className="relative">
+            <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-cyan-300">Live social preview</p>
+            <h4 className="mt-2 text-2xl font-semibold text-white">{location.name}</h4>
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-violet-200">{mode === "trade" ? "Trade binder" : "Collection showcase"}</p>
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              <ShowcaseMetric label="Cards" value={totalCards.toLocaleString("en-US")} />
+              <ShowcaseMetric label="Value" value={currency(totalValue)} accent />
+              <ShowcaseMetric label="Pockets" value={occupied.toLocaleString("en-US")} />
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-2.5">
+              {Array.from({ length: 6 }, (_, index) => {
+                const card = previewCards[index];
+                return <div key={card?.id ?? index} className="group relative aspect-[.716] overflow-hidden rounded-xl border border-white/[0.09] bg-black/25 shadow-[0_14px_32px_rgba(0,0,0,.32)]">{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-slate-700"><Plus className="h-5 w-5" /></div>}{card ? <span className="absolute bottom-2 left-2 rounded-md bg-black/75 px-1.5 py-1 text-[7px] font-bold text-cyan-200">P{card.binderPage} · {card.binderSlot}</span> : null}</div>;
+              })}
+            </div>
+            <div className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 backdrop-blur"><p className="text-[10px] leading-5 text-slate-300">{caption}</p><div className="mt-4 flex items-center justify-between"><span className="inline-flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-600"><Instagram className="h-3.5 w-3.5" /> Social-ready</span><span className="text-[8px] text-slate-700">Page {page} · {binderView}</span></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ShowcaseAction({ icon: Icon, title, description, onClick, loading = false }: { icon: typeof Share2; title: string; description: string; onClick: () => void | Promise<void>; loading?: boolean }) {
+  return <button type="button" onClick={() => void onClick()} disabled={loading} className="group rounded-2xl border border-white/[0.075] bg-black/[0.12] p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/[0.22] hover:bg-cyan-300/[0.035] disabled:opacity-60"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-300/[0.045] text-cyan-200">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}</span><p className="mt-3 text-[11px] font-semibold text-slate-100">{title}</p><p className="mt-1 text-[9px] leading-4 text-slate-600">{description}</p></button>;
+}
+
+function ShowcaseMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+  return <div className="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3"><p className="text-[7px] font-bold uppercase tracking-[0.14em] text-slate-600">{label}</p><p className={`mt-1 text-[12px] font-semibold ${accent ? "text-emerald-300" : "text-slate-100"}`}>{value}</p></div>;
+}
+
 
 function BinderSettingsPanel({
   location,
@@ -2810,8 +3097,10 @@ function BinderSettingMetric({ label, value }: { label: string; value: string })
 
 function BinderPageSurface({ page, columns, slots, items, selectedItemId, onSelect, onMove, onRemove, onContextMenu, rightPage = false }: { page: number; columns: number; slots: string[]; items: InventoryItem[]; selectedItemId: string; onSelect: (id: string) => void; onMove: (itemId: string, page: number, slot: string) => void; onRemove: (item: InventoryItem) => void; onContextMenu: (item: InventoryItem, x: number, y: number) => void; rightPage?: boolean }) {
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-cyan-200/[0.12] bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.13),transparent_40%),linear-gradient(145deg,#171126,#0b151f_52%,#111325)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),inset_0_0_80px_rgba(0,0,0,0.28),0_24px_70px_rgba(0,0,0,0.34)] sm:p-5">
+    <section className="group/page relative overflow-hidden rounded-[28px] border border-violet-300/[0.16] bg-[radial-gradient(circle_at_12%_0%,rgba(139,92,246,.15),transparent_34%),radial-gradient(circle_at_88%_0%,rgba(34,211,238,.11),transparent_34%),linear-gradient(145deg,#171126,#0b151f_52%,#111325)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.06),inset_0_0_100px_rgba(0,0,0,.30),0_30px_90px_rgba(0,0,0,.38)] transition duration-300 hover:border-violet-300/[0.26] sm:p-5">
       <div className={`pointer-events-none absolute inset-y-6 ${rightPage ? "left-0" : "right-0"} w-4 bg-gradient-to-${rightPage ? "r" : "l"} from-black/30 to-transparent`} />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/50 to-transparent" />
+      <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-cyan-400/[0.08] blur-3xl" />
       <div className="mb-3 flex items-center justify-between px-1">
         <div><p className="text-[8px] font-bold uppercase tracking-[0.18em] text-cyan-300/70">{rightPage ? "Right page" : "Physical page"}</p><p className="mt-1 text-sm font-semibold text-slate-200">Page {page}</p></div>
         <span className="rounded-lg border border-white/[0.06] bg-black/15 px-2.5 py-1.5 text-[8px] font-semibold text-slate-600">{slots.length} pockets</span>
@@ -2829,10 +3118,10 @@ function BinderPageSurface({ page, columns, slots, items, selectedItemId, onSele
 
 function BinderPocket({ slot, item, highlighted, onSelect, onDropItem, onRemove, onContextMenu }: { slot: string; item?: InventoryItem; highlighted: boolean; onSelect: () => void; onDropItem: (itemId: string) => void; onRemove: () => void; onContextMenu: (x: number, y: number) => void }) {
   return (
-    <div data-binder-pocket={item ? "occupied" : "empty"} role="button" tabIndex={0} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(); }} onContextMenu={(event) => { if (!item) return; event.preventDefault(); event.stopPropagation(); onContextMenu(event.clientX, event.clientY); }} draggable={Boolean(item)} onDragStart={(event) => item && event.dataTransfer.setData("text/plain", item.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const id = event.dataTransfer.getData("text/plain"); if (id) onDropItem(id); }} className={`group relative flex aspect-[0.70] min-h-[200px] cursor-pointer flex-col overflow-hidden rounded-[16px] border bg-black/25 p-2 pb-11 text-left transition duration-200 ${highlighted ? "animate-pulse border-cyan-200 shadow-[0_0_0_3px_rgba(34,211,238,0.13),0_0_34px_rgba(34,211,238,0.22)]" : "border-white/[0.09] hover:-translate-y-0.5 hover:border-cyan-300/35 hover:shadow-[0_14px_30px_rgba(0,0,0,0.3)]"}`}>
-      <span className="pointer-events-none absolute inset-1.5 rounded-[12px] border border-white/[0.06] bg-gradient-to-br from-white/[0.065] via-transparent to-black/10" />
+    <div data-binder-pocket={item ? "occupied" : "empty"} role="button" tabIndex={0} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(); }} onContextMenu={(event) => { if (!item) return; event.preventDefault(); event.stopPropagation(); onContextMenu(event.clientX, event.clientY); }} draggable={Boolean(item)} onDragStart={(event) => item && event.dataTransfer.setData("text/plain", item.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const id = event.dataTransfer.getData("text/plain"); if (id) onDropItem(id); }} className={`group relative flex aspect-[0.70] min-h-[200px] cursor-pointer flex-col overflow-hidden rounded-[16px] border bg-black/25 p-2 pb-11 text-left transition duration-300 ${highlighted ? "border-cyan-200 shadow-[0_0_0_3px_rgba(34,211,238,.13),0_0_38px_rgba(34,211,238,.22)]" : "border-white/[0.09] hover:-translate-y-1 hover:scale-[1.01] hover:border-violet-300/40 hover:shadow-[0_22px_44px_rgba(0,0,0,.40),0_0_30px_rgba(139,92,246,.10)]"}`}>
+      <span className="pointer-events-none absolute inset-1.5 rounded-[12px] border border-white/[0.06] bg-gradient-to-br from-white/[0.065] via-transparent to-black/10" /><span className="pointer-events-none absolute -left-1/2 top-0 z-30 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent opacity-0 blur-sm transition duration-700 group-hover:left-[120%] group-hover:opacity-100" />
       <span className="pointer-events-none absolute inset-x-3 top-2 z-20 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-      {item ? <>{item.imageUrl ? <img src={item.imageUrl} alt={item.name} draggable={false} onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); onContextMenu(event.clientX, event.clientY); }} className="relative z-10 h-full w-full select-none rounded-[10px] object-contain shadow-[0_12px_28px_rgba(0,0,0,0.48)]" /> : <span className="relative z-10 flex flex-1 items-center justify-center"><LibraryBig className="h-8 w-8 text-cyan-300/30" /></span>}<span className="absolute left-3 top-3 z-30 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-1 text-[7px] font-semibold text-slate-300 opacity-0 backdrop-blur transition group-hover:opacity-100">{item.condition || "—"} · {item.finish || "—"}</span><div className="absolute inset-x-2 bottom-2 z-40 flex h-9 items-center gap-2 rounded-lg border border-white/[0.1] bg-[#070d14]/96 px-1.5 shadow-[0_-8px_22px_rgba(0,0,0,0.38)] backdrop-blur"><span className="rounded-md bg-cyan-300 px-1.5 py-1 text-[8px] font-black text-[#031319]">{slot}</span><span className="min-w-0 flex-1 truncate text-[9px] font-semibold text-slate-100">{item.name}</span><button type="button" onClick={(event) => { event.stopPropagation(); const rect = event.currentTarget.getBoundingClientRect(); onContextMenu(rect.right, rect.bottom + 6); }} aria-label={`Open actions for ${item.name}`} title="Card actions" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.1] text-slate-300 transition hover:border-cyan-300/35 hover:bg-cyan-400/15 hover:text-cyan-100"><EllipsisVertical className="h-3.5 w-3.5" /></button></div></> : <span className="relative z-10 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-cyan-300/15 bg-cyan-400/[0.025] text-slate-500 transition group-hover:border-cyan-300/30 group-hover:bg-cyan-400/[0.035] group-hover:text-cyan-200"><span className="absolute left-3 top-3 rounded-md border border-white/[0.07] px-1.5 py-1 text-[8px] font-bold text-slate-500">{slot}</span><span className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-current"><Plus className="h-5 w-5" /></span><span className="mt-3 text-[9px] font-semibold">Add card</span></span>}
+      {item ? <>{item.imageUrl ? <img src={item.imageUrl} alt={item.name} draggable={false} onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); onContextMenu(event.clientX, event.clientY); }} className="relative z-10 h-full w-full select-none rounded-[10px] object-contain shadow-[0_12px_28px_rgba(0,0,0,.48)] transition duration-300 group-hover:scale-[1.025] group-hover:brightness-110" /> : <span className="relative z-10 flex flex-1 items-center justify-center"><LibraryBig className="h-8 w-8 text-cyan-300/30" /></span>}<span className="absolute left-3 top-3 z-30 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-1 text-[7px] font-semibold text-slate-300 opacity-0 backdrop-blur transition group-hover:opacity-100">{item.condition || "—"} · {item.finish || "—"}</span><div className="absolute inset-x-2 bottom-2 z-40 flex h-9 items-center gap-2 rounded-lg border border-white/[0.1] bg-[#070d14]/96 px-1.5 shadow-[0_-8px_22px_rgba(0,0,0,0.38)] backdrop-blur"><span className="rounded-md bg-cyan-300 px-1.5 py-1 text-[8px] font-black text-[#031319]">{slot}</span><span className="min-w-0 flex-1 truncate text-[9px] font-semibold text-slate-100">{item.name}</span><button type="button" onClick={(event) => { event.stopPropagation(); const rect = event.currentTarget.getBoundingClientRect(); onContextMenu(rect.right, rect.bottom + 6); }} aria-label={`Open actions for ${item.name}`} title="Card actions" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.1] text-slate-300 transition hover:border-cyan-300/35 hover:bg-cyan-400/15 hover:text-cyan-100"><EllipsisVertical className="h-3.5 w-3.5" /></button></div></> : <span className="relative z-10 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-cyan-300/15 bg-cyan-400/[0.025] text-slate-500 transition group-hover:border-cyan-300/30 group-hover:bg-cyan-400/[0.035] group-hover:text-cyan-200"><span className="absolute left-3 top-3 rounded-md border border-white/[0.07] px-1.5 py-1 text-[8px] font-bold text-slate-500">{slot}</span><span className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-current"><Plus className="h-5 w-5" /></span><span className="mt-3 text-[9px] font-semibold">Add card</span></span>}
       {item ? <Move className="absolute bottom-12 right-3 z-30 h-3.5 w-3.5 text-white opacity-0 drop-shadow transition group-hover:opacity-70" /> : null}
     </div>
   );
