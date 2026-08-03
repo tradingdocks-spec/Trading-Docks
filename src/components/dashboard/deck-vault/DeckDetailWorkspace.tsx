@@ -1031,7 +1031,6 @@ export function DeckDetailWorkspace({
             searchResults={searchResults}
             searching={searching}
             addCard={addCard}
-            replaceCard={replaceCard}
             removeCard={removeCard}
             beginDrag={beginDrag}
             finishDrag={finishDrag}
@@ -1432,7 +1431,6 @@ function CardsWorkspace({
   searchResults,
   searching,
   addCard,
-  replaceCard,
   removeCard,
   beginDrag,
   finishDrag,
@@ -1464,10 +1462,6 @@ function CardsWorkspace({
   searchResults: ScryfallCardResult[];
   searching: boolean;
   addCard: (card: ScryfallCardResult) => void;
-  replaceCard: (
-    removedCard: DeckCard,
-    replacement: ScryfallCardResult,
-  ) => void;
   removeCard: (id: string) => void;
   beginDrag: (event: DragEvent, payload: DeckDragPayload) => void;
   finishDrag: () => void;
