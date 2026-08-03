@@ -226,6 +226,21 @@ function combineDuplicateCards(cards: DeckCard[]) {
   return Array.from(combined.values());
 }
 
+
+function inferCategoryFromDeckCard(card: DeckCard): DeckCard["category"] {
+  const typeLine = `${card.typeLine ?? ""}`.toLowerCase();
+
+  if (typeLine.includes("land")) return "Lands";
+  if (typeLine.includes("creature")) return "Creatures";
+  if (typeLine.includes("artifact")) return "Artifacts";
+  if (typeLine.includes("enchantment")) return "Enchantments";
+  if (typeLine.includes("planeswalker")) return "Planeswalkers";
+  if (typeLine.includes("instant")) return "Instants";
+  if (typeLine.includes("sorcery")) return "Sorceries";
+
+  return "Other";
+}
+
 export function DeckDetailWorkspace({
   deck,
 }: {
