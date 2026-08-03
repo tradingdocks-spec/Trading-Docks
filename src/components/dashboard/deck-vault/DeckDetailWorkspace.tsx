@@ -2768,7 +2768,7 @@ function CardsWorkspace({
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab("intelligence")}
+          onClick={() => setView("stats")}
           className="studio-dock-action text-violet-200"
         >
           <Sparkles className="h-4 w-4" />
