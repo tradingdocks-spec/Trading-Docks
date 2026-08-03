@@ -3981,18 +3981,7 @@ function DeckShowcaseStudio({
           </div>
         </section>
 
-      <div className="flex flex-col gap-2 border-t border-white/[0.055] bg-black/[0.12] px-5 py-3 text-[10px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-4">
-          <span>Deck Studio</span>
-          <span>{mainDeckCount} cards</span>
-          <span>{uniqueCardCount} unique</span>
-          <span>{missing} missing</span>
-        </div>
-        <div className="flex items-center gap-2 text-emerald-300/75">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-          Account synced
-        </div>
-      </div>
+      
       </div>
     </div>
   );
