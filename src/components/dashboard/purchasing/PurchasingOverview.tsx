@@ -9,11 +9,21 @@ import {
   History,
   PackageCheck,
   Scale,
+  ScanLine,
   Sparkles,
   WalletCards,
 } from "lucide-react";
 
 const workspaces = [
+  {
+    href: "/dashboard/card-photo-scanner",
+    title: "Card Photo Price Scanner",
+    detail:
+      "Drop in a card photo, identify the printing, and build a transparent purchase recommendation.",
+    icon: ScanLine,
+    metric: "Photo recognition beta",
+    tone: "blue",
+  },
   {
     href: "/dashboard/collection-buying",
     title: "Collection Buying",
@@ -100,7 +110,7 @@ export function PurchasingOverview() {
           />
         </section>
 
-        <section className="mt-5 grid gap-4 xl:grid-cols-3">
+        <section className="mt-5 grid gap-4 xl:grid-cols-4">
           {workspaces.map((workspace) => {
             const Icon = workspace.icon;
 
