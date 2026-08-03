@@ -8,6 +8,7 @@ import {
   type ReactNode,
   type DragEvent,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
