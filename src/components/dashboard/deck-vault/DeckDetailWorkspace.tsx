@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type DragEvent,
 } from "react";
 import {
   Activity,
@@ -53,7 +54,10 @@ import type {
 } from "@/lib/deck-vault/types";
 import { ManaPips } from "./ManaPips";
 import { DeckShowcaseStudio as TournamentDeckShowcaseStudio } from "@/components/dashboard-v2/deck-vault/DeckShowcaseStudio";
-import { saveDeckRecord } from "@/lib/deck-vault/persistence";
+import {
+  deleteDeckRecord,
+  saveDeckRecord,
+} from "@/lib/deck-vault/persistence";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 
 type StoredInventoryItem = {
@@ -164,6 +168,15 @@ const FORMATS: DeckFormat[] = [
   "Pauper",
 ];
 
+type DeckDropSection = "commander" | "main" | "sideboard" | "maybeboard";
+
+type DeckDragPayload =
+  | { source: "search"; card: ScryfallCardResult }
+  | { source: "deck"; cardId: string };
+
+const DECK_DRAG_MIME = "application/x-trading-docks-deck-card";
+
+
 function canonicalDeckSection(card: DeckCard) {
   if (card.board === "commander" || card.category === "Commander") {
     return "commander";
@@ -256,6 +269,14 @@ export function DeckDetailWorkspace({
     useState<DeckIntelligenceReport | null>(null);
   const [intelligenceLoading, setIntelligenceLoading] =
     useState(false);
+  const router = useRouter();
+  const [dragging, setDragging] = useState<DeckDragPayload | null>(null);
+  const [dropSection, setDropSection] = useState<DeckDropSection | "trash" | null>(null);
+  const [undoCard, setUndoCard] = useState<DeckCard | null>(null);
+  const [deckActionsOpen, setDeckActionsOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deckActionBusy, setDeckActionBusy] = useState(false);
+
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [saveError, setSaveError] = useState("");
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -613,50 +634,58 @@ export function DeckDetailWorkspace({
     setCommanderResults([]);
   }
 
-  function addCard(result: ScryfallCardResult) {
+  function cardFromSearch(
+    result: ScryfallCardResult,
+    section: DeckDropSection = "main",
+  ): DeckCard {
+    return {
+      id: result.id,
+      name: result.name,
+      quantity: 1,
+      manaValue: result.manaValue,
+      colors: result.colorIdentity.length
+        ? result.colorIdentity
+        : result.colors.length
+          ? result.colors
+          : ["C"],
+      typeLine: result.typeLine,
+      category: section === "commander" ? "Commander" : inferCategory(result),
+      price: result.price,
+      owned: false,
+      image: result.image,
+      artCrop: result.artCrop,
+      setCode: result.setCode,
+      collectorNumber: result.collectorNumber,
+      gameChanger: result.gameChanger,
+      board: section,
+    };
+  }
+
+  function addCard(
+    result: ScryfallCardResult,
+    section: DeckDropSection = "main",
+  ) {
+    if (section === "commander") {
+      selectCommander(result);
+      return;
+    }
+
     setCards((current) => {
       const existing = current.find(
         (card) =>
-          canonicalDeckSection(card) === "main" &&
-          card.name.localeCompare(result.name, undefined, {
-            sensitivity: "accent",
-          }) === 0,
+          canonicalDeckSection(card) === section &&
+          card.id === result.id,
       );
 
       if (existing) {
         return current.map((card) =>
-          card.id === existing.id
-            ? {
-                ...card,
-                quantity: card.quantity + 1,
-              }
+          card.id === existing.id && canonicalDeckSection(card) === section
+            ? { ...card, quantity: card.quantity + 1 }
             : card,
         );
       }
 
-      return [
-        ...current,
-        {
-          id: result.id,
-          name: result.name,
-          quantity: 1,
-          manaValue: result.manaValue,
-          colors: result.colors.length
-            ? result.colors
-            : ["C"],
-          typeLine: result.typeLine,
-          category: inferCategory(result),
-          price: result.price,
-          owned: false,
-          image: result.image,
-          artCrop: result.artCrop,
-          setCode: result.setCode,
-          collectorNumber:
-            result.collectorNumber,
-          gameChanger: result.gameChanger,
-          board: "main",
-        },
-      ];
+      return [...current, cardFromSearch(result, section)];
     });
   }
 
@@ -665,69 +694,146 @@ export function DeckDetailWorkspace({
       current
         .map((card) =>
           card.id === id
-            ? {
-                ...card,
-                quantity: card.quantity - 1,
-              }
+            ? { ...card, quantity: card.quantity - 1 }
             : card,
         )
         .filter((card) => card.quantity > 0),
     );
   }
 
-  function replaceCard(
-    removedCard: DeckCard,
-    replacement: ScryfallCardResult,
-  ) {
+  function moveCardToSection(id: string, section: DeckDropSection) {
     setCards((current) => {
-      const reduced = current
-        .map((card) =>
-          card.id === removedCard.id
-            ? { ...card, quantity: card.quantity - 1 }
-            : card,
-        )
-        .filter((card) => card.quantity > 0);
-      const existing = reduced.find(
-        (card) =>
-          canonicalDeckSection(card) === "main" &&
-          card.name.localeCompare(replacement.name, undefined, {
-            sensitivity: "accent",
-          }) === 0,
-      );
+      const moving = current.find((card) => card.id === id);
+      if (!moving) return current;
 
+      if (section === "commander") {
+        const nextCommander = {
+          ...moving,
+          quantity: 1,
+          category: "Commander",
+          board: "commander" as const,
+        };
+        setCommanderName(nextCommander.name);
+        setCommanderImage(nextCommander.image ?? "");
+        setCommanderArt(nextCommander.artCrop ?? "");
+        return [
+          nextCommander,
+          ...current.filter(
+            (card) =>
+              card.id !== id &&
+              canonicalDeckSection(card) !== "commander",
+          ),
+        ];
+      }
+
+      return current.map((card) =>
+        card.id === id
+          ? {
+              ...card,
+              category:
+                card.category === "Commander" ? inferCategoryFromDeckCard(card) : card.category,
+              board: section,
+            }
+          : card,
+      );
+    });
+  }
+
+  function removeDraggedCard(id: string) {
+    const card = cards.find((item) => item.id === id);
+    if (!card) return;
+    setUndoCard({ ...card, quantity: 1 });
+    removeCard(id);
+    window.setTimeout(() => setUndoCard(null), 5000);
+  }
+
+  function undoRemoval() {
+    if (!undoCard) return;
+    setCards((current) => {
+      const existing = current.find(
+        (card) =>
+          card.id === undoCard.id &&
+          canonicalDeckSection(card) === canonicalDeckSection(undoCard),
+      );
       if (existing) {
-        return reduced.map((card) =>
-          card.id === existing.id
+        return current.map((card) =>
+          card === existing
             ? { ...card, quantity: card.quantity + 1 }
             : card,
         );
       }
-
-      return [
-        ...reduced,
-        {
-          id: replacement.id,
-          name: replacement.name,
-          quantity: 1,
-          manaValue: replacement.manaValue,
-          colors: replacement.colorIdentity.length
-            ? replacement.colorIdentity
-            : replacement.colors.length
-              ? replacement.colors
-              : ["C"],
-          typeLine: replacement.typeLine,
-          category: inferCategory(replacement),
-          price: replacement.price,
-          owned: false,
-          image: replacement.image,
-          artCrop: replacement.artCrop,
-          setCode: replacement.setCode,
-          collectorNumber: replacement.collectorNumber,
-          gameChanger: replacement.gameChanger,
-          board: "main",
-        },
-      ];
+      return [...current, undoCard];
     });
+    setUndoCard(null);
+  }
+
+  function beginDrag(event: DragEvent, payload: DeckDragPayload) {
+    event.dataTransfer.effectAllowed = payload.source === "search" ? "copy" : "move";
+    event.dataTransfer.setData(DECK_DRAG_MIME, JSON.stringify(payload));
+    setDragging(payload);
+  }
+
+  function finishDrag() {
+    setDragging(null);
+    setDropSection(null);
+  }
+
+  function acceptDrop(
+    event: DragEvent,
+    target: DeckDropSection | "trash",
+  ) {
+    event.preventDefault();
+    let payload = dragging;
+    if (!payload) {
+      try {
+        payload = JSON.parse(event.dataTransfer.getData(DECK_DRAG_MIME)) as DeckDragPayload;
+      } catch {
+        payload = null;
+      }
+    }
+    if (!payload) return;
+
+    if (target === "trash") {
+      if (payload.source === "deck") removeDraggedCard(payload.cardId);
+      finishDrag();
+      return;
+    }
+
+    if (payload.source === "search") addCard(payload.card, target);
+    else moveCardToSection(payload.cardId, target);
+    finishDrag();
+  }
+
+  async function emptyDeck() {
+    setDeckActionBusy(true);
+    setCards([]);
+    setCommanderName("");
+    setCommanderImage("");
+    setCommanderArt("");
+    setDeckActionsOpen(false);
+    setDeckActionBusy(false);
+  }
+
+  async function archiveDeck() {
+    setDeckActionBusy(true);
+    await saveDeckRecord({
+      ...deck,
+      name: deckName,
+      commander: commanderName || undefined,
+      cards,
+      status: "Wishlist",
+      updatedAt: new Date().toISOString(),
+    });
+    setDeckActionsOpen(false);
+    setDeckActionBusy(false);
+    router.push("/dashboard/deck-vault");
+  }
+
+  async function permanentlyDeleteDeck() {
+    if (deleteConfirm.trim().toLowerCase() !== deckName.trim().toLowerCase()) return;
+    setDeckActionBusy(true);
+    await deleteDeckRecord(deck.id);
+    router.push("/dashboard/deck-vault");
   }
 
   const commanderCard = useMemo(
@@ -887,6 +993,17 @@ export function DeckDetailWorkspace({
           ))}
         </nav>
 
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setDeckActionsOpen(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-300/[0.14] bg-rose-400/[0.045] px-4 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/[0.08]"
+          >
+            <Trash2 className="h-4 w-4" />
+            Tear apart or archive deck
+          </button>
+        </div>
+
         {tab === "Cards" ? (
           <CardsWorkspace
             cards={cards}
@@ -900,6 +1017,12 @@ export function DeckDetailWorkspace({
             addCard={addCard}
             replaceCard={replaceCard}
             removeCard={removeCard}
+            beginDrag={beginDrag}
+            finishDrag={finishDrag}
+            acceptDrop={acceptDrop}
+            dragging={dragging}
+            dropSection={dropSection}
+            setDropSection={setDropSection}
             view={view}
             setView={setView}
             showcaseOpen={showcaseOpen}
@@ -942,6 +1065,62 @@ export function DeckDetailWorkspace({
           />
         )}
       </div>
+
+      {dragging ? (
+        <div
+          onDragOver={(event) => { event.preventDefault(); setDropSection("trash"); }}
+          onDragLeave={() => setDropSection(null)}
+          onDrop={(event) => acceptDrop(event, "trash")}
+          className={[
+            "fixed inset-x-4 bottom-4 z-[120] flex min-h-[78px] items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-5 text-sm font-semibold shadow-[0_24px_80px_rgba(0,0,0,.55)] transition",
+            dropSection === "trash"
+              ? "border-rose-300 bg-rose-400/20 text-rose-100 scale-[1.01]"
+              : "border-rose-300/30 bg-[#18080d]/95 text-rose-200",
+          ].join(" ")}
+        >
+          <Trash2 className="h-5 w-5" />
+          Drop here to remove one copy from this deck
+        </div>
+      ) : null}
+
+      {undoCard ? (
+        <div className="fixed bottom-5 left-1/2 z-[130] flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-white/[0.1] bg-[#071522] px-4 py-3 text-sm shadow-[0_24px_80px_rgba(0,0,0,.55)]">
+          <span className="text-slate-300">Removed {undoCard.name}</span>
+          <button type="button" onClick={undoRemoval} className="font-semibold text-cyan-300">Undo</button>
+        </div>
+      ) : null}
+
+      {deckActionsOpen ? (
+        <div className="fixed inset-0 z-[140] grid place-items-center bg-black/75 p-4 backdrop-blur-sm">
+          <section className="w-full max-w-2xl rounded-[28px] border border-rose-300/[0.16] bg-[#07131f] p-6 shadow-[0_35px_120px_rgba(0,0,0,.7)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-rose-300">Deck lifecycle</p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">Tear apart, archive, or delete</h2>
+                <p className="mt-3 text-sm leading-7 text-slate-500">These actions affect the decklist only. Owned Inventory records are never deleted.</p>
+              </div>
+              <button type="button" onClick={() => setDeckActionsOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500"><X className="h-4 w-4" /></button>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <button disabled={deckActionBusy} onClick={() => void emptyDeck()} className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-left hover:border-cyan-300/[0.2]">
+                <p className="text-sm font-semibold text-white">Empty decklist</p>
+                <p className="mt-2 text-xs leading-5 text-slate-600">Keep the deck shell and remove every card.</p>
+              </button>
+              <button disabled={deckActionBusy} onClick={() => void archiveDeck()} className="rounded-2xl border border-amber-300/[0.12] bg-amber-300/[0.035] p-4 text-left">
+                <p className="text-sm font-semibold text-amber-100">Archive deck</p>
+                <p className="mt-2 text-xs leading-5 text-slate-600">Preserve the complete list and return to Deck Vault.</p>
+              </button>
+              <div className="rounded-2xl border border-rose-300/[0.14] bg-rose-400/[0.035] p-4">
+                <p className="text-sm font-semibold text-rose-100">Delete permanently</p>
+                <p className="mt-2 text-xs leading-5 text-slate-600">Type the deck name to confirm.</p>
+                <input value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} placeholder={deckName} className="mt-3 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none" />
+                <button disabled={deckActionBusy || deleteConfirm.trim().toLowerCase() !== deckName.trim().toLowerCase()} onClick={() => void permanentlyDeleteDeck()} className="mt-3 h-10 w-full rounded-xl bg-rose-500 text-xs font-semibold text-white disabled:opacity-35">Delete deck</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -1239,6 +1418,12 @@ function CardsWorkspace({
   addCard,
   replaceCard,
   removeCard,
+  beginDrag,
+  finishDrag,
+  acceptDrop,
+  dragging,
+  dropSection,
+  setDropSection,
   view,
   setView,
   showcaseOpen,
@@ -1268,6 +1453,12 @@ function CardsWorkspace({
     replacement: ScryfallCardResult,
   ) => void;
   removeCard: (id: string) => void;
+  beginDrag: (event: DragEvent, payload: DeckDragPayload) => void;
+  finishDrag: () => void;
+  acceptDrop: (event: DragEvent, target: DeckDropSection | "trash") => void;
+  dragging: DeckDragPayload | null;
+  dropSection: DeckDropSection | "trash" | null;
+  setDropSection: (section: DeckDropSection | "trash" | null) => void;
   view: DeckCardView;
   setView: (view: DeckCardView) => void;
   showcaseOpen: boolean;
@@ -1817,6 +2008,63 @@ function CardsWorkspace({
         </aside>
 
         <main className="min-w-0">
+          <section className="mb-4 rounded-[24px] border border-cyan-300/[0.12] bg-gradient-to-br from-[#081925] to-[#05111b] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[12px] font-semibold text-white">Drag-and-drop deck builder</p>
+                <p className="mt-1 text-[11px] text-slate-600">Drag a Scryfall result or an existing deck card into a section. On mobile, tap Add or use the section buttons.</p>
+              </div>
+              <span className="rounded-full border border-emerald-300/[0.12] bg-emerald-300/[0.04] px-3 py-1.5 text-[10px] font-semibold text-emerald-300">Autosaves to your account</span>
+            </div>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-4">
+              {[
+                ["commander", "Commander", cards.filter((card) => canonicalDeckSection(card) === "commander").reduce((sum, card) => sum + card.quantity, 0)],
+                ["main", "Main Deck", cards.filter((card) => canonicalDeckSection(card) === "main").reduce((sum, card) => sum + card.quantity, 0)],
+                ["sideboard", "Sideboard", cards.filter((card) => canonicalDeckSection(card) === "sideboard").reduce((sum, card) => sum + card.quantity, 0)],
+                ["maybeboard", "Considering", cards.filter((card) => canonicalDeckSection(card) === "maybeboard").reduce((sum, card) => sum + card.quantity, 0)],
+              ].map(([section, label, count]) => (
+                <div
+                  key={section}
+                  onDragOver={(event) => { event.preventDefault(); setDropSection(section as DeckDropSection); }}
+                  onDragLeave={() => setDropSection(null)}
+                  onDrop={(event) => acceptDrop(event, section as DeckDropSection)}
+                  className={[
+                    "rounded-2xl border-2 border-dashed p-4 transition",
+                    dropSection === section
+                      ? "border-cyan-300 bg-cyan-300/[0.1] shadow-[0_0_35px_rgba(103,232,249,.12)]"
+                      : "border-white/[0.08] bg-black/[0.11]",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-slate-200">{label}</p>
+                    <span className="text-xs font-bold text-cyan-300">{count}</span>
+                  </div>
+                  <p className="mt-2 text-[10px] text-slate-700">Drop cards here</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+              {cards.slice(0, 20).map((card) => (
+                <button
+                  key={`${card.id}-${canonicalDeckSection(card)}`}
+                  type="button"
+                  draggable
+                  onDragStart={(event) => beginDrag(event, { source: "deck", cardId: card.id })}
+                  onDragEnd={finishDrag}
+                  className="flex min-w-[170px] items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-2 text-left transition hover:border-cyan-300/[0.18]"
+                >
+                  {card.image ? <img src={card.image} alt="" className="h-12 w-9 rounded-md object-cover" /> : null}
+                  <span className="min-w-0">
+                    <span className="block truncate text-[11px] font-semibold text-white">{card.quantity}× {card.name}</span>
+                    <span className="mt-1 block text-[9px] capitalize text-slate-600">{canonicalDeckSection(card)}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+
           {searchResults.length ? (
             <section className="mb-4 rounded-[22px] border border-cyan-300/[0.11] bg-[#06131f] p-4">
               <p className="text-[12px] font-semibold text-cyan-200">
@@ -1824,32 +2072,50 @@ function CardsWorkspace({
               </p>
               <div className="mt-3 grid max-h-[260px] gap-2 overflow-y-auto sm:grid-cols-2">
                 {searchResults.map((result) => (
-                  <button
+                  <div
                     key={result.id}
-                    type="button"
-                    onClick={() =>
-                      addCard(result)
-                    }
-                    className="flex items-center gap-3 rounded-xl border border-white/[0.055] bg-white/[0.015] p-2 text-left transition hover:border-cyan-300/[0.16]"
+                    draggable
+                    onDragStart={(event) => beginDrag(event, { source: "search", card: result })}
+                    onDragEnd={finishDrag}
+                    className="rounded-xl border border-white/[0.055] bg-white/[0.015] p-2 transition hover:border-cyan-300/[0.16]"
                   >
-                    {result.image ? (
-                      <img
-                        src={result.image}
-                        alt={result.name}
-                        className="h-16 w-12 rounded-lg object-cover"
-                      />
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-white">
-                        {result.name}
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        {result.setName} · $
-                        {result.price.toFixed(2)}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      {result.image ? (
+                        <img
+                          src={result.image}
+                          alt={result.name}
+                          className="h-16 w-12 rounded-lg object-cover"
+                        />
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-semibold text-white">
+                          {result.name}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          {result.setName} · ${result.price.toFixed(2)}
+                        </p>
+                        <p className="mt-1 text-[9px] text-slate-700">Drag to a section or tap below</p>
+                      </div>
+                      <Plus className="h-4 w-4 text-cyan-300" />
                     </div>
-                    <Plus className="h-4 w-4 text-cyan-300" />
-                  </button>
+                    <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                      {([
+                        ["main", "Main"],
+                        ["sideboard", "Sideboard"],
+                        ["maybeboard", "Considering"],
+                        ["commander", "Commander"],
+                      ] as Array<[DeckDropSection, string]>).map(([section, label]) => (
+                        <button
+                          key={section}
+                          type="button"
+                          onClick={() => addCard(result, section)}
+                          className="h-8 rounded-lg border border-white/[0.07] bg-black/[0.12] px-2 text-[9px] font-semibold text-slate-400 transition hover:border-cyan-300/[0.18] hover:text-cyan-200"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </section>
