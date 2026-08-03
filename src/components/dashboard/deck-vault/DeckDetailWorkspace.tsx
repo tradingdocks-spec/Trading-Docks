@@ -724,7 +724,7 @@ export function DeckDetailWorkspace({
       setCommanderArt(nextCard.artCrop ?? "");
     }
 
-    setSaveStatus("Saving…");
+    setSaveState("saving");
   }
 
 
