@@ -666,3 +666,155 @@ img[src*="trading-docks-horizontal"] {
     display: none;
   }
 }
+
+/* ==========================================================================
+   TRADING DOCKS UI 2.0 — TYPOGRAPHY SYSTEM
+   A shared, readable type scale for the authenticated SaaS application.
+   ========================================================================== */
+
+:root {
+  --td-type-display: clamp(2.25rem, 3vw, 3.5rem);
+  --td-type-page-title: clamp(1.875rem, 2.25vw, 2.5rem);
+  --td-type-section-title: 1.25rem;
+  --td-type-card-title: 1rem;
+  --td-type-body: 0.875rem;
+  --td-type-body-small: 0.8125rem;
+  --td-type-caption: 0.75rem;
+  --td-type-overline: 0.75rem;
+  --td-leading-body: 1.55;
+  --td-leading-compact: 1.35;
+}
+
+/* Reusable semantic tokens for new and refactored components. */
+.td-type-display {
+  font-size: var(--td-type-display);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.td-type-page-title {
+  font-size: var(--td-type-page-title);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.td-type-section-title {
+  font-size: var(--td-type-section-title);
+  line-height: 1.25;
+  letter-spacing: -0.018em;
+}
+
+.td-type-card-title {
+  font-size: var(--td-type-card-title);
+  line-height: 1.35;
+}
+
+.td-type-body {
+  font-size: var(--td-type-body);
+  line-height: var(--td-leading-body);
+}
+
+.td-type-body-small {
+  font-size: var(--td-type-body-small);
+  line-height: 1.5;
+}
+
+.td-type-caption,
+.td-type-overline {
+  font-size: var(--td-type-caption);
+  line-height: var(--td-leading-compact);
+}
+
+.td-type-overline {
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/*
+  Desktop readability floor:
+  Legacy pages contain many arbitrary 6–11px Tailwind utilities. These rules
+  normalize them without changing mobile layouts or requiring thousands of
+  one-off component edits.
+*/
+@media (min-width: 1200px) {
+  .desktop_layout .dashboard-responsive {
+    font-size: var(--td-type-body);
+    line-height: var(--td-leading-body);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Decorative microcopy, overlines, table headings, and metadata: 12px floor. */
+  .desktop_layout .dashboard-responsive :is(
+    .text-\[6px\],
+    .text-\[7px\],
+    .text-\[8px\],
+    .text-\[9px\]
+  ) {
+    font-size: 0.75rem !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Compact controls and secondary text: 13px floor. */
+  .desktop_layout .dashboard-responsive :is(
+    .text-\[10px\],
+    .text-\[11px\],
+    .text-xs
+  ) {
+    font-size: 0.8125rem !important;
+    line-height: 1.45 !important;
+  }
+
+  /* Existing 12–13px body copy becomes the standard 14px body size. */
+  .desktop_layout .dashboard-responsive :is(
+    .text-\[12px\],
+    .text-\[13px\]
+  ) {
+    font-size: 0.875rem !important;
+    line-height: 1.55 !important;
+  }
+
+  /* Interactive controls should never feel miniature on desktop. */
+  .desktop_layout .dashboard-responsive :is(
+    button,
+    [role="button"],
+    input,
+    select,
+    textarea
+  ) {
+    font-size: max(0.875rem, 1em);
+  }
+
+  /* Navigation labels use a confident, consistent 14px scale. */
+  .desktop_layout aside :is(a, button) {
+    font-size: 0.875rem;
+  }
+
+  /* Table structure remains compact while becoming substantially easier to scan. */
+  .desktop_layout .dashboard-responsive :is(
+    table thead,
+    [role="columnheader"]
+  ) {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .desktop_layout .dashboard-responsive :is(
+    table tbody,
+    [role="row"]
+  ) {
+    font-size: 0.875rem;
+  }
+
+  /* Inputs and selects gain readable placeholder/option text. */
+  .desktop_layout .dashboard-responsive :is(input, textarea)::placeholder {
+    font-size: 0.875rem;
+  }
+
+  .desktop_layout .dashboard-responsive select option,
+  .desktop_layout .dashboard-responsive select optgroup {
+    font-size: 0.875rem;
+  }
+}
+
