@@ -44,6 +44,49 @@ export type MissionControlSnapshot = {
   generatedAt: string;
 };
 
+
+function buildAlerts(snapshot: MissionControlSnapshot) {
+  const alerts: Array<{
+    id: string;
+    title: string;
+    description: string;
+    severity: "high" | "medium" | "low";
+    href: string;
+  }> = [];
+
+  if (snapshot.failedSyncCount > 0) {
+    alerts.push({
+      id: "failed-sync-runs",
+      title: `${snapshot.failedSyncCount} failed sync ${snapshot.failedSyncCount === 1 ? "run" : "runs"}`,
+      description: "Review integration setup and retry the affected synchronization.",
+      severity: "high",
+      href: "/dashboard/automation",
+    });
+  }
+
+  if (snapshot.orderCount > 0) {
+    alerts.push({
+      id: "open-orders",
+      title: `${snapshot.orderCount} open ${snapshot.orderCount === 1 ? "order" : "orders"}`,
+      description: "Orders need fulfillment or status review.",
+      severity: "medium",
+      href: "/dashboard/orders",
+    });
+  }
+
+  if (snapshot.customerCount === 0) {
+    alerts.push({
+      id: "no-customers",
+      title: "No customer profiles yet",
+      description: "Create your first customer to begin tracking loyalty, credit, and history.",
+      severity: "low",
+      href: "/dashboard/customers",
+    });
+  }
+
+  return alerts;
+}
+
 export function SellerMissionControl({
   snapshot,
   previewMode = false,
