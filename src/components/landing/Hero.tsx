@@ -1,7 +1,11 @@
 import {
   ArrowRight,
-  CheckCircle2,
-  CircleDot,
+  BadgeCheck,
+  BarChart3,
+  Building2,
+  Check,
+  Layers3,
+  PackageSearch,
   Sparkles,
 } from "lucide-react";
 
@@ -12,17 +16,33 @@ import {
 } from "@/components/navigation/PolishedNavigation";
 import styles from "./SignatureHero.module.css";
 
-const FEATURE_POINTS = [
-  "Set and Chaos Sort",
-  "Find any card quickly",
-  "Graded and sealed inventory",
-  "Complete inventory system",
+const PLAN_STAGES = [
+  {
+    name: "Free",
+    description: "Inventory and Deck Vault",
+    icon: Layers3,
+  },
+  {
+    name: "Collector",
+    description: "Analytics and CSV tools",
+    icon: BarChart3,
+  },
+  {
+    name: "Seller",
+    description: "Purchasing, CRM, and orders",
+    icon: PackageSearch,
+  },
+  {
+    name: "Store",
+    description: "Teams and store operations",
+    icon: Building2,
+  },
 ];
 
-const LIVE_STATS = [
-  "+248 cards imported today",
-  "126 listings updated",
-  "18 price updates",
+const TRUST_POINTS = [
+  "Start free",
+  "Clear plan boundaries",
+  "Upgrade without rebuilding",
 ];
 
 export function Hero() {
@@ -38,86 +58,97 @@ export function Hero() {
         <span className={styles.orbitDotThree} />
       </div>
 
-      <div
-        className={`${styles.ambientGlow} pointer-events-none absolute left-[1%] top-[4%] h-[450px] w-[450px] rounded-full bg-blue-400/[0.042] blur-[150px]`}
-      />
+      <div className="pointer-events-none absolute left-[2%] top-[4%] h-[470px] w-[470px] rounded-full bg-blue-400/[0.05] blur-[155px]" />
 
       <div
         className={`${styles.heroGlass} mx-auto min-h-[calc(100vh-92px)] w-full max-w-[1480px] overflow-visible`}
       >
         <div
-          className={`${styles.heroGlassContent} grid min-h-[calc(100vh-92px)] gap-10 px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-14 lg:px-12 lg:py-8`}
+          className={`${styles.heroGlassContent} grid min-h-[calc(100vh-92px)] gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:gap-14 lg:px-12 lg:py-10`}
         >
-          <div className="max-w-[650px]">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-300/15 bg-blue-300/[0.04] px-3.5 py-2 text-[10px] font-semibold text-blue-100/85 shadow-[0_0_30px_rgba(59,130,246,0.045)] backdrop-blur-xl">
-              <Sparkles className="h-3.5 w-3.5 text-blue-300" />
-              Built for collectors, sellers, and stores
+          <div className="max-w-[680px]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-300/[0.16] bg-blue-300/[0.05] px-3.5 py-2 text-xs font-semibold text-blue-100 shadow-[0_0_30px_rgba(59,130,246,0.05)] backdrop-blur-xl">
+              <Sparkles className="h-4 w-4 text-cyan-300" />
+              One operating system for every stage of your collection
             </div>
 
-            <h1 className="mt-6 text-[46px] font-semibold leading-[0.93] tracking-[-0.06em] text-white sm:text-[56px] lg:text-[62px] xl:text-[66px]">
-              <span className="block whitespace-nowrap">Run your entire</span>
-
-              <span className={`${styles.headlineGlow} mt-1 block bg-gradient-to-r from-blue-200 via-blue-300 to-sky-400 bg-clip-text text-transparent`}>
-                collectibles business
+            <h1 className="mt-7 text-[48px] font-semibold leading-[0.94] tracking-[-0.06em] text-white sm:text-[58px] lg:text-[66px] xl:text-[72px]">
+              Start with your cards.
+              <span
+                className={`${styles.headlineGlow} mt-1 block bg-gradient-to-r from-cyan-200 via-blue-300 to-blue-500 bg-clip-text text-transparent`}
+              >
+                Scale into a real operation.
               </span>
-
-              <span className="mt-1 block whitespace-nowrap">from one workspace.</span>
             </h1>
 
-            <p className="mt-6 text-sm font-semibold tracking-[0.015em] text-slate-300 sm:text-[15px]">
-              Inventory. Listings. Pricing. Sales. Storage. One workspace.
+            <p className="mt-6 max-w-[640px] text-base leading-8 text-slate-400 sm:text-lg">
+              Trading Docks gives collectors, sellers, and stores the exact
+              tools they need—without forcing every user into the same
+              oversized workspace.
             </p>
 
-            <p className="mt-3 max-w-[615px] text-[15px] leading-7 text-slate-500 sm:text-base">
-              Organize singles, sealed products, graded cards, binders, bulk inventory,
-              listings, sales, pricing, and exact storage locations from one connected
-              operating system.
-            </p>
-
-            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
-              {LIVE_STATS.map((stat) => (
+            <div className="mt-7 grid gap-2.5 sm:grid-cols-2">
+              {PLAN_STAGES.map(({ name, description, icon: Icon }) => (
                 <div
-                  key={stat}
-                  className="flex items-center gap-2 text-[10px] font-medium text-slate-500"
+                  key={name}
+                  className="group flex items-center gap-3 rounded-2xl border border-white/[0.065] bg-white/[0.018] px-3.5 py-3 backdrop-blur-xl transition hover:border-blue-300/[0.16] hover:bg-blue-400/[0.035]"
                 >
-                  <CircleDot className="h-3 w-3 text-emerald-300" />
-                  {stat}
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-300/[0.13] bg-blue-400/[0.05] text-blue-300">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{name}</p>
+                    <p className="mt-0.5 text-xs text-slate-600">
+                      {description}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <TransitionLink
-                href="/sign-up"
-                className={`${styles.primaryButton} group inline-flex h-[52px] items-center justify-center gap-3 rounded-[15px] bg-gradient-to-b from-cyan-300 via-blue-400 to-blue-600 px-7 text-sm font-semibold text-[#001018] shadow-[0_18px_45px_rgba(59,130,246,0.18),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition hover:-translate-y-0.5 hover:brightness-105`}
+                href="/sign-up?plan=free"
+                className={`${styles.primaryButton} group inline-flex h-[54px] items-center justify-center gap-3 rounded-[15px] bg-gradient-to-b from-cyan-300 via-blue-400 to-blue-600 px-7 text-sm font-semibold text-[#001018] shadow-[0_18px_45px_rgba(59,130,246,0.2),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition hover:-translate-y-0.5 hover:brightness-105`}
               >
-                <span className="relative z-10">Create your workspace</span>
+                <span className="relative z-10">Start free</span>
                 <ArrowRight className="relative z-10 h-4 w-4 transition group-hover:translate-x-0.5" />
               </TransitionLink>
 
               <ExploreLink
-                href="#platform"
-                className={`${styles.edgeGlow} group inline-flex h-[52px] items-center justify-center gap-3 rounded-[15px] border border-white/[0.085] bg-white/[0.02] px-7 text-sm font-semibold text-slate-200 backdrop-blur-xl`}
+                href="#plans"
+                className={`${styles.edgeGlow} group inline-flex h-[54px] items-center justify-center gap-3 rounded-[15px] border border-white/[0.09] bg-white/[0.02] px-7 text-sm font-semibold text-slate-200 backdrop-blur-xl`}
               >
-                Explore the platform
+                See which plan fits
                 <ArrowRight className="h-4 w-4 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-blue-300" />
               </ExploreLink>
             </div>
 
-            <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
-              {FEATURE_POINTS.map((label) => (
+            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
+              {TRUST_POINTS.map((point) => (
                 <div
-                  key={label}
-                  className={`${styles.edgeGlow} group flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.014] px-3 py-2.5 text-[11px] text-slate-400 backdrop-blur-xl`}
+                  key={point}
+                  className="flex items-center gap-2 text-xs font-medium text-slate-500"
                 >
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-blue-300/75 transition group-hover:text-blue-200" />
-                  {label}
+                  <Check className="h-3.5 w-3.5 text-emerald-300" />
+                  {point}
                 </div>
               ))}
             </div>
           </div>
 
-          <DashboardPreview />
+          <div className="relative">
+            <div className="absolute -inset-8 rounded-[40px] bg-blue-500/[0.055] blur-3xl" />
+            <DashboardPreview />
+
+            <div className="relative mx-auto mt-4 flex max-w-xl items-start gap-3 rounded-2xl border border-emerald-300/[0.12] bg-[#06131e]/90 px-4 py-3 shadow-[0_18px_55px_rgba(0,0,0,.28)] backdrop-blur-xl">
+              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+              <p className="text-xs leading-5 text-slate-400">
+                The permissions shown on the landing page match the actual
+                workspace each plan receives.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

@@ -12,6 +12,7 @@ import {
 
 export const NAV_ITEMS = [
   { label: "Platform", href: "#platform" },
+  { label: "Plans", href: "#plans" },
   { label: "Market", href: "#market" },
   { label: "Automation", href: "#automation" },
   { label: "Pricing", href: "#pricing" },
