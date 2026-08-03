@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { hasPlanAccess } from "@/lib/tier-access";
 
 import type {
   CardCandidate,
   CardScanResponse,
   ScanIdentification,
 } from "@/lib/card-photo-scanner/types";
+
+async function requireFeatureAccess() {
+  if (!hasPlanAccess(await getEffectivePlan(), "purchasing")) {
+    return NextResponse.json(
+      { error: "Purchasing requires a higher Trading Docks plan." },
+      { status: 403 },
+    );
+  }
+  return null;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -221,6 +233,8 @@ async function getCandidates(identification: ScanIdentification) {
 }
 
 export async function POST(request: Request) {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   try {
     const form = await request.formData();
     const image = form.get("image");

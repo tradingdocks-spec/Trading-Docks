@@ -1,8 +1,20 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { hasPlanAccess } from "@/lib/tier-access";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+async function requireFeatureAccess() {
+  if (!hasPlanAccess(await getEffectivePlan(), "marketplaces")) {
+    return NextResponse.json(
+      { error: "Marketplaces requires a higher Trading Docks plan." },
+      { status: 403 },
+    );
+  }
+  return null;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -143,6 +155,8 @@ async function getOrCreatePermanentMailbox(workspaceId: string, userId: string) 
 }
 
 export async function GET() {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const supabase = await createClient();
   const {
     data: { user },
@@ -178,6 +192,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const supabase = await createClient();
   const {
     data: { user },
@@ -241,6 +257,8 @@ export async function POST(request: Request) {
  * It succeeds only after an administrator explicitly submits ROTATE.
  */
 export async function DELETE(request: Request) {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const supabase = await createClient();
   const {
     data: { user },

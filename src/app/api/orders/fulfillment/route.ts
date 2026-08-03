@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { hasPlanAccess } from "@/lib/tier-access";
 
 import { createClient } from "@/lib/supabase/server";
 
 type Action = "match" | "start_pulling" | "mark_picked" | "pack" | "ship" | "complete";
 
+async function requireFeatureAccess() {
+  if (!hasPlanAccess(await getEffectivePlan(), "orders")) {
+    return NextResponse.json(
+      { error: "Orders requires a higher Trading Docks plan." },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
 export async function PATCH(request: Request) {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });

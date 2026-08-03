@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
-  if (!hasPlanAccess(await getEffectivePlan(), "tools")) {
+  if (!hasPlanAccess(await getEffectivePlan(), "csv-tools")) {
     return NextResponse.json({ error: "Seller or Store access is required." }, { status: 403 });
   }
   const body = await request.json().catch(() => null) as { rows?: unknown } | null;

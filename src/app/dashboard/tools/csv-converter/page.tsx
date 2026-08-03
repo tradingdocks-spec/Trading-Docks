@@ -6,6 +6,6 @@ import { hasPlanAccess } from "@/lib/tier-access";
 
 export default async function CsvConverterPage() {
   const plan = await getEffectivePlan();
-  if (!hasPlanAccess(plan, "tools")) redirect("/dashboard/plans");
+  if (!hasPlanAccess(plan, "csv-tools")) redirect("/dashboard/plans");
   return <CsvConversionEngine />;
 }

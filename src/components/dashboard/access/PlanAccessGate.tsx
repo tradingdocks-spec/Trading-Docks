@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import {
   featureForPath,
   hasPlanAccess,
+  FEATURE_LABEL,
   minimumPlanName,
   normalizeAccountTier,
 } from "@/lib/tier-access";
@@ -26,10 +27,7 @@ export function PlanAccessGate({
   if (hasPlanAccess(plan, feature)) return children;
 
   const requiredPlan = minimumPlanName(feature);
-  const featureName =
-    feature === "business-operations"
-      ? "This business feature"
-      : `${feature.charAt(0).toUpperCase()}${feature.slice(1).replace("-", " ")}`;
+  const featureName = FEATURE_LABEL[feature];
 
   return (
     <div className="flex min-h-[calc(100vh-72px)] items-center justify-center px-5 py-10">
@@ -41,7 +39,7 @@ export function PlanAccessGate({
           {requiredPlan} plan or higher
         </p>
         <h1 className="mt-4 text-2xl font-semibold tracking-[-0.03em] text-white">
-          {featureName} is not included on the {minimumPlanName(feature) === "Free" ? "current" : plan === "business" ? "Store" : plan.charAt(0).toUpperCase() + plan.slice(1)} plan
+          {featureName} is not included on your {plan === "business" ? "Store" : plan.charAt(0).toUpperCase() + plan.slice(1)} plan
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500">
           Upgrade to unlock this workspace and the additional tools included with the {requiredPlan} plan.

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { hasPlanAccess } from "@/lib/tier-access";
 
 function rows(csv: string) {
   const out: string[][] = []; let row: string[] = []; let cell = ""; let quoted = false;
@@ -8,7 +10,19 @@ function rows(csv: string) {
 }
 const key = (v:string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
 
+async function requireFeatureAccess() {
+  if (!hasPlanAccess(await getEffectivePlan(), "orders")) {
+    return NextResponse.json(
+      { error: "Orders requires a higher Trading Docks plan." },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const supabase = await createClient(); const { data:{user} } = await supabase.auth.getUser();
   if(!user) return NextResponse.json({error:"Authentication required."},{status:401});
   const body=await request.json().catch(()=>null) as {csv?:string}|null; const parsed=rows(String(body?.csv??""));

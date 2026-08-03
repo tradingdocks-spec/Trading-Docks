@@ -2,11 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { syncMtgjsonForUser } from "@/lib/buylist/mtgjson";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { hasPlanAccess } from "@/lib/tier-access";
+
+async function requireFeatureAccess() {
+  if (!hasPlanAccess(await getEffectivePlan(), "purchasing")) {
+    return NextResponse.json(
+      { error: "Purchasing requires a higher Trading Docks plan." },
+      { status: 403 },
+    );
+  }
+  return null;
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 export async function POST() {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -26,6 +40,8 @@ export async function POST() {
 }
 
 export async function GET(request: NextRequest) {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });

@@ -1,13 +1,27 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { hasPlanAccess } from "@/lib/tier-access";
 
 import { INBOUND_DOMAIN } from "@/lib/inbound-email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+async function requireFeatureAccess() {
+  if (!hasPlanAccess(await getEffectivePlan(), "marketplaces")) {
+    return NextResponse.json(
+      { error: "Marketplaces requires a higher Trading Docks plan." },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
 export const runtime = "nodejs";
 
 export async function GET() {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
@@ -37,6 +51,8 @@ export async function GET() {
 }
 
 export async function POST() {
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });

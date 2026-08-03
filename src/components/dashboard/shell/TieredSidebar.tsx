@@ -416,7 +416,11 @@ function ExpandableSection({
 }) {
   const active = isSectionActive(section, pathname);
   const feature = featureForPath(section.href ?? section.children[0]?.href ?? "/dashboard");
-  const allowed = hasPlanAccess(plan, feature);
+  const allowed =
+    hasPlanAccess(plan, feature) ||
+    section.children.some((child) =>
+      hasPlanAccess(plan, featureForPath(child.href)),
+    );
   const Icon = section.icon;
 
   const visibleChildren = useMemo(() => {
@@ -532,6 +536,8 @@ function ExpandableSection({
               const childActive =
                 pathname === child.href ||
                 pathname.startsWith(`${child.href}/`);
+              const childFeature = featureForPath(child.href);
+              const childAllowed = hasPlanAccess(plan, childFeature);
               const ChildIcon = child.icon;
 
               return (
@@ -546,17 +552,26 @@ function ExpandableSection({
                       : "text-slate-500 hover:bg-white/[0.03] hover:text-slate-200",
                   ].join(" ")}
                 >
-                  <ChildIcon
-                    className={[
-                      "h-4 w-4 shrink-0",
-                      childActive
-                        ? "text-cyan-200"
-                        : "text-blue-300/55 group-hover:text-blue-200",
-                    ].join(" ")}
-                  />
-                  <span className="truncate text-[13px] font-medium">
+                  {childAllowed ? (
+                    <ChildIcon
+                      className={[
+                        "h-4 w-4 shrink-0",
+                        childActive
+                          ? "text-cyan-200"
+                          : "text-blue-300/55 group-hover:text-blue-200",
+                      ].join(" ")}
+                    />
+                  ) : (
+                    <LockKeyhole className="h-4 w-4 shrink-0 text-blue-300/45" />
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">
                     {child.label}
                   </span>
+                  {!childAllowed ? (
+                    <span className="rounded-full border border-blue-300/[0.1] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-blue-200/55">
+                      {minimumPlanName(childFeature)}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

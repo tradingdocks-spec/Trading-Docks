@@ -1,10 +1,26 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getEffectivePlan } from "@/lib/effective-plan";
+import { hasPlanAccess } from "@/lib/tier-access";
 
 async function workspaceId(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const {data:p}=await supabase.from("user_preferences").select("active_workspace_id").eq("user_id",userId).maybeSingle();
   if(p?.active_workspace_id)return p.active_workspace_id as string;
   const {data:m}=await supabase.from("workspace_members").select("workspace_id").eq("user_id",userId).limit(1).maybeSingle(); return m?.workspace_id as string|undefined;
 }
-export async function GET(){const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});const id=await workspaceId(supabase,user.id);if(!id)return NextResponse.json({messages:[]});const{data,error}=await supabase.from("inbound_email_messages").select("id,subject,sender,marketplace_id,message_type,processing_status,processing_error,received_at").eq("workspace_id",id).in("processing_status",["needs_review","failed","unsupported"]).order("received_at",{ascending:false}).limit(100);if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({messages:data??[]});}
-export async function PATCH(request:Request){const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});const id=await workspaceId(supabase,user.id);const body=await request.json().catch(()=>null)as{id?:string;action?:string}|null;if(!id||!body?.id)return NextResponse.json({error:"Message not found."},{status:404});const status=body.action==="dismiss"?"unsupported":"needs_review";const{error}=await supabase.from("inbound_email_messages").update({processing_status:status,processing_error:body.action==="retry"?null:"Dismissed by user"}).eq("id",body.id).eq("workspace_id",id);if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({ok:true});}
+async function requireFeatureAccess() {
+  if (!hasPlanAccess(await getEffectivePlan(), "orders")) {
+    return NextResponse.json(
+      { error: "Orders requires a higher Trading Docks plan." },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
+export async function GET(){
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});const id=await workspaceId(supabase,user.id);if(!id)return NextResponse.json({messages:[]});const{data,error}=await supabase.from("inbound_email_messages").select("id,subject,sender,marketplace_id,message_type,processing_status,processing_error,received_at").eq("workspace_id",id).in("processing_status",["needs_review","failed","unsupported"]).order("received_at",{ascending:false}).limit(100);if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({messages:data??[]});}
+export async function PATCH(request:Request){
+  const accessDenied = await requireFeatureAccess();
+  if (accessDenied) return accessDenied;const supabase=await createClient();const{data:{user}}=await supabase.auth.getUser();if(!user)return NextResponse.json({error:"Authentication required."},{status:401});const id=await workspaceId(supabase,user.id);const body=await request.json().catch(()=>null)as{id?:string;action?:string}|null;if(!id||!body?.id)return NextResponse.json({error:"Message not found."},{status:404});const status=body.action==="dismiss"?"unsupported":"needs_review";const{error}=await supabase.from("inbound_email_messages").update({processing_status:status,processing_error:body.action==="retry"?null:"Dismissed by user"}).eq("id",body.id).eq("workspace_id",id);if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({ok:true});}
