@@ -16,6 +16,7 @@ import {
   PackageSearch,
   Percent,
   Scale,
+  ScanLine,
   Settings,
   ShoppingBag,
   Store,
@@ -63,6 +64,11 @@ export const PURCHASING_NAV: NavigationSection = {
   icon: PackageSearch,
   href: "/dashboard/purchasing",
   children: [
+    {
+      href: "/dashboard/card-photo-scanner",
+      label: "Card Photo Scanner",
+      icon: ScanLine,
+    },
     {
       href: "/dashboard/collection-buying",
       label: "Collection Buying",
