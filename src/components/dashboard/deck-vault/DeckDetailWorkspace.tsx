@@ -1902,20 +1902,14 @@ function CardsWorkspace({
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-[20px] font-black uppercase tracking-[-0.035em] text-white">
-                Deck Studio
+                Deck <span className="text-cyan-300">Studio</span>
               </p>
-              <span className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[11px] text-slate-400">
-                {mainDeckCount} cards
-              </span>
-              <span className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[11px] text-slate-400">
-                {uniqueCardCount} unique
-              </span>
-              <span className="rounded-full border border-emerald-300/[0.1] bg-emerald-400/[0.025] px-2.5 py-1 text-[11px] text-emerald-200">
-                ${mainDeckValue.toFixed(2)}
+              <span className="rounded-full border border-cyan-300/[0.14] bg-cyan-300/[0.045] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.13em] text-cyan-200">
+                Build mode
               </span>
             </div>
             <p className="mt-2 text-[13px] text-slate-500">
-              Build, inspect, organize, and refine your deck without leaving the studio.
+              Add cards, organize sections, and inspect every choice without leaving the builder.
             </p>
           </div>
 
@@ -1976,23 +1970,23 @@ function CardsWorkspace({
 
         
         <div className="grid grid-cols-2 gap-px border-t border-white/[0.045] bg-white/[0.035] sm:grid-cols-5">
-          <div className="bg-[#03101a] px-4 py-3">
+          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
             <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Cards</p>
             <p className="mt-1 text-[13px] font-semibold text-white">{mainDeckCount}/100</p>
           </div>
-          <div className="bg-[#03101a] px-4 py-3">
+          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
             <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Unique</p>
             <p className="mt-1 text-[13px] font-semibold text-white">{uniqueCardCount}</p>
           </div>
-          <div className="bg-[#03101a] px-4 py-3">
+          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
             <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Missing</p>
             <p className="mt-1 text-[13px] font-semibold text-amber-200">{missing}</p>
           </div>
-          <div className="bg-[#03101a] px-4 py-3">
+          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
             <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Est. Value</p>
             <p className="mt-1 text-[13px] font-semibold text-cyan-200">${mainDeckValue.toFixed(2)}</p>
           </div>
-          <div className="bg-[#03101a] px-4 py-3">
+          <div className="bg-[#03101a] px-4 py-3 transition hover:bg-cyan-300/[0.025]">
             <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Power Level</p>
             <p className="mt-1 text-[13px] font-semibold text-white">7–8</p>
           </div>
@@ -2235,29 +2229,73 @@ function CardsWorkspace({
             ) : null}
 
             <div className="mt-4 grid gap-2 sm:grid-cols-4">
-              {[
-                ["commander", "Commander", cards.filter((card) => canonicalDeckSection(card) === "commander").reduce((sum, card) => sum + card.quantity, 0)],
-                ["main", "Main Deck", cards.filter((card) => canonicalDeckSection(card) === "main").reduce((sum, card) => sum + card.quantity, 0)],
-                ["sideboard", "Sideboard", cards.filter((card) => canonicalDeckSection(card) === "sideboard").reduce((sum, card) => sum + card.quantity, 0)],
-                ["maybeboard", "Considering", cards.filter((card) => canonicalDeckSection(card) === "maybeboard").reduce((sum, card) => sum + card.quantity, 0)],
-              ].map(([section, label, count]) => (
+              {([
+                {
+                  section: "commander",
+                  label: "Commander",
+                  count: cards.filter((card) => canonicalDeckSection(card) === "commander").reduce((sum, card) => sum + card.quantity, 0),
+                  idle: "border-violet-300/[0.18] bg-violet-400/[0.045] hover:border-violet-300/40 hover:bg-violet-400/[0.08]",
+                  active: "scale-[1.015] border-violet-300/80 bg-violet-400/[0.14] shadow-[0_0_42px_rgba(167,139,250,.22)]",
+                  accent: "text-violet-200",
+                  dot: "bg-violet-300 shadow-[0_0_12px_rgba(196,181,253,.65)]",
+                },
+                {
+                  section: "main",
+                  label: "Main Deck",
+                  count: cards.filter((card) => canonicalDeckSection(card) === "main").reduce((sum, card) => sum + card.quantity, 0),
+                  idle: "border-cyan-300/[0.18] bg-cyan-400/[0.045] hover:border-cyan-300/40 hover:bg-cyan-400/[0.08]",
+                  active: "scale-[1.015] border-cyan-300/80 bg-cyan-400/[0.14] shadow-[0_0_42px_rgba(103,232,249,.22)]",
+                  accent: "text-cyan-200",
+                  dot: "bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,.65)]",
+                },
+                {
+                  section: "sideboard",
+                  label: "Sideboard",
+                  count: cards.filter((card) => canonicalDeckSection(card) === "sideboard").reduce((sum, card) => sum + card.quantity, 0),
+                  idle: "border-amber-300/[0.18] bg-amber-400/[0.04] hover:border-amber-300/40 hover:bg-amber-400/[0.075]",
+                  active: "scale-[1.015] border-amber-300/80 bg-amber-400/[0.13] shadow-[0_0_42px_rgba(252,211,77,.20)]",
+                  accent: "text-amber-200",
+                  dot: "bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,.6)]",
+                },
+                {
+                  section: "maybeboard",
+                  label: "Considering",
+                  count: cards.filter((card) => canonicalDeckSection(card) === "maybeboard").reduce((sum, card) => sum + card.quantity, 0),
+                  idle: "border-emerald-300/[0.18] bg-emerald-400/[0.04] hover:border-emerald-300/40 hover:bg-emerald-400/[0.075]",
+                  active: "scale-[1.015] border-emerald-300/80 bg-emerald-400/[0.13] shadow-[0_0_42px_rgba(110,231,183,.20)]",
+                  accent: "text-emerald-200",
+                  dot: "bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.6)]",
+                },
+              ] as Array<{
+                section: DeckDropSection;
+                label: string;
+                count: number;
+                idle: string;
+                active: string;
+                accent: string;
+                dot: string;
+              }>).map((destination) => (
                 <div
-                  key={section}
-                  onDragOver={(event) => { event.preventDefault(); setDropSection(section as DeckDropSection); }}
+                  key={destination.section}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setDropSection(destination.section);
+                  }}
                   onDragLeave={() => setDropSection(null)}
-                  onDrop={(event) => acceptDrop(event, section as DeckDropSection)}
+                  onDrop={(event) => acceptDrop(event, destination.section)}
                   className={[
                     "group rounded-[16px] border px-4 py-3.5 transition duration-200",
-                    dropSection === section
-                      ? "scale-[1.015] border-cyan-300/80 bg-cyan-300/[0.1] shadow-[0_0_45px_rgba(103,232,249,.18)]"
-                      : "border-white/[0.075] bg-black/[0.13] hover:border-cyan-300/[0.18] hover:bg-cyan-300/[0.025]",
+                    dropSection === destination.section ? destination.active : destination.idle,
                   ].join(" ")}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-slate-200">{label}</p>
-                    <span className="text-xs font-bold text-cyan-300">{count}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={["h-2 w-2 rounded-full", destination.dot].join(" ")} />
+                      <p className={["text-xs font-semibold", destination.accent].join(" ")}>{destination.label}</p>
+                    </div>
+                    <span className={["text-xs font-bold", destination.accent].join(" ")}>{destination.count}</span>
                   </div>
-                  <p className="mt-2 text-[10px] leading-4 text-slate-700">Drop cards here</p>
+                  <p className="mt-2 text-[10px] leading-4 text-slate-600">Drop cards here</p>
                 </div>
               ))}
             </div>
@@ -2317,16 +2355,16 @@ function CardsWorkspace({
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                       {([
-                        ["main", "Main"],
-                        ["sideboard", "Sideboard"],
-                        ["maybeboard", "Considering"],
-                        ["commander", "Commander"],
-                      ] as Array<[DeckDropSection, string]>).map(([section, label]) => (
+                        ["main", "Main", "border-cyan-300/[0.16] bg-cyan-400/[0.035] text-cyan-200 hover:bg-cyan-400/[0.08]"],
+                        ["sideboard", "Sideboard", "border-amber-300/[0.16] bg-amber-400/[0.03] text-amber-200 hover:bg-amber-400/[0.075]"],
+                        ["maybeboard", "Considering", "border-emerald-300/[0.16] bg-emerald-400/[0.03] text-emerald-200 hover:bg-emerald-400/[0.075]"],
+                        ["commander", "Commander", "border-violet-300/[0.16] bg-violet-400/[0.035] text-violet-200 hover:bg-violet-400/[0.08]"],
+                      ] as Array<[DeckDropSection, string, string]>).map(([section, label, tone]) => (
                         <button
                           key={section}
                           type="button"
                           onClick={() => addCard(result, section)}
-                          className="h-8 rounded-lg border border-white/[0.07] bg-black/[0.12] px-2 text-[9px] font-semibold text-slate-400 transition hover:border-cyan-300/[0.18] hover:text-cyan-200"
+                          className={["h-8 rounded-lg border px-2 text-[9px] font-semibold transition", tone].join(" ")}
                         >
                           {label}
                         </button>
@@ -2350,7 +2388,7 @@ function CardsWorkspace({
                     Deck Canvas
                   </p>
                   <p className="mt-1 text-[12px] text-slate-500">
-                    {filteredCards.length} unique cards shown · compact desktop table
+                    {filteredCards.length} cards shown · hover to preview · click to edit
                   </p>
                 </div>
                 <span className="text-[12px] text-slate-500">
@@ -2358,7 +2396,7 @@ function CardsWorkspace({
                 </span>
               </div>
 
-              <div className="max-h-[calc(100vh-255px)] overflow-y-auto overflow-x-hidden">
+              <div className="max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-hidden">
                 <table className="w-full table-fixed border-collapse text-left">
                   <thead className="sticky top-0 z-20 bg-[#071824] shadow-[0_1px_0_rgba(255,255,255,0.07)]">
                     <tr>
@@ -4244,7 +4282,7 @@ function DeckTableRow({
       onMouseEnter={onSelect}
       onFocus={onSelect}
       className={[
-        "cursor-pointer border-b border-white/[0.045] transition last:border-b-0",
+        "cursor-pointer border-b border-white/[0.045] transition odd:bg-white/[0.006] last:border-b-0",
         selected
           ? "bg-cyan-400/[0.07] shadow-[inset_3px_0_0_rgba(103,232,249,.85),0_8px_18px_rgba(0,0,0,.08)]"
           : "hover:bg-cyan-300/[0.025]",
