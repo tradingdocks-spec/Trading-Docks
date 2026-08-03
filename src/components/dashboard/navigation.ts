@@ -80,7 +80,7 @@ export const PURCHASING_NAV: NavigationSection = {
   children: [
     {
       href: "/dashboard/card-photo-scanner",
-      label: "Card Photo Scanner",
+      label: "Purchasing Intelligence",
       icon: ScanLine,
     },
     {

@@ -17,7 +17,7 @@ import {
 const workspaces = [
   {
     href: "/dashboard/card-photo-scanner",
-    title: "Card Photo Price Scanner",
+    title: "Purchasing Intelligence",
     detail:
       "Drop in a card photo, identify the printing, and build a transparent purchase recommendation.",
     icon: ScanLine,

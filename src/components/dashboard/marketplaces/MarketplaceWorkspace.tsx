@@ -156,13 +156,15 @@ const marketplaces: MarketplaceDefinition[] = [
     methods: ["api", "csv", "email", "manual"],
     recommended: "api",
     setup: [
-      "Add an approved seller token if the account has marketplace API access.",
-      "Otherwise use CSV or order-email tracking.",
-      "Match Mana Pool listings to Trading Docks inventory before enabling updates.",
+      "Sign in to your Mana Pool seller account.",
+      "Open Seller Tools → Integrations → Mana Pool API.",
+      "Generate or copy your seller API key.",
+      "Return to Trading Docks and paste the key into the secure token field.",
+      "Save the credentials, then begin with read-only inventory and pricing sync.",
     ],
-    officialUrl: "https://manapool.com/",
+    officialUrl: "https://manapool.com/seller/integrations/manapool-api",
     credentialFields: [
-      { key: "apiToken", label: "Seller API token", placeholder: "Approved Mana Pool token", help: "Only enter a token issued or approved for your seller account.", secret: true },
+      { key: "apiToken", label: "Mana Pool seller API key", placeholder: "Paste the key from Mana Pool", help: "Generate it at manapool.com/seller/integrations/manapool-api. It is stored encrypted and never shown again.", secret: true },
     ],
   },
   {
@@ -732,6 +734,37 @@ export function MarketplaceWorkspace() {
             <div className="space-y-5 p-5 sm:p-6">
               <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">Choose connection method</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{selected.methods.map((item) => <button key={item} type="button" onClick={() => setMethod(item)} className={`flex items-center justify-between rounded-xl border p-3 text-left text-xs font-semibold transition ${method === item ? "border-cyan-300/25 bg-cyan-300/[.065] text-cyan-100" : "border-white/[.07] bg-black/10 text-slate-500"}`}><span>{METHOD_LABELS[item]}</span>{method === item ? <Check className="h-4 w-4 text-cyan-300" /> : null}</button>)}</div></div>
               <SetupGuide title={`${selected.name} setup`} steps={selected.setup} compact />
+              {selected.id === "mana-pool" && method === "api" ? (
+                <div className="rounded-[22px] border border-violet-300/15 bg-gradient-to-b from-violet-300/[.05] to-transparent p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[.16em] text-violet-300">Mana Pool API setup</p>
+                      <h3 className="mt-2 text-base font-semibold text-white">Connect your seller account in four steps</h3>
+                      <p className="mt-1 max-w-xl text-[10px] leading-5 text-slate-500">Generate the key inside Mana Pool, then securely save it in Trading Docks. Your marketplace password is never requested.</p>
+                    </div>
+                    <a href="https://manapool.com/seller/integrations/manapool-api" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-400 px-4 text-[10px] font-bold text-[#080312] hover:bg-violet-300">Open Mana Pool settings <ExternalLink className="h-3.5 w-3.5" /></a>
+                  </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                    {[
+                      ["1", "Open settings", "Use the official seller integration page."],
+                      ["2", "Generate key", "Create or copy the Mana Pool API key."],
+                      ["3", "Paste securely", "Enter it in the encrypted field below."],
+                      ["4", "Save & test", "Start read-only before enabling automation."],
+                    ].map(([number, title, detail]) => (
+                      <div key={number} className="rounded-xl border border-white/[.07] bg-black/[.14] p-3">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-300/[.11] text-[9px] font-bold text-violet-300">{number}</span>
+                        <p className="mt-2 text-[9px] font-semibold text-white">{title}</p>
+                        <p className="mt-1 text-[8px] leading-4 text-slate-600">{detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-300/12 bg-emerald-300/[.03] p-3">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                    <p className="text-[9px] leading-4 text-emerald-100/60">Trading Docks stores the key through the existing encrypted marketplace-credential system. It is not saved in browser storage or committed to GitHub.</p>
+                  </div>
+                </div>
+              ) : null}
+
               {method === "api" ? (
                 <div className="space-y-4 rounded-[22px] border border-cyan-300/12 bg-cyan-300/[.025] p-4">
                   <div className="flex items-start gap-3">
