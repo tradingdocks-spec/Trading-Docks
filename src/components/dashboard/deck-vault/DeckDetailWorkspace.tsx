@@ -1885,13 +1885,19 @@ function CardsWorkspace({
   }
 
   return (
-    <section className="mt-5 space-y-5">
-      <section className="sticky top-3 z-40 overflow-visible rounded-[24px] border border-cyan-300/[0.11] bg-[#04101a]/95 shadow-[0_24px_70px_rgba(0,0,0,0.38)] backdrop-blur-xl">
+    <section className="mt-5 overflow-hidden rounded-[32px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.045),transparent_28%),linear-gradient(180deg,#04101a_0%,#020a12_100%)] shadow-[0_40px_140px_rgba(0,0,0,.42)]">
+      <section className="sticky top-0 z-40 overflow-visible border-b border-white/[0.07] bg-[#04101a]/94 backdrop-blur-2xl">
         <div className="flex flex-col gap-4 border-b border-white/[0.055] px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
+          <div className="min-w-0">
+            <div className="mb-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.65)]" />
+              Live workspace
+              <span className="text-slate-800">/</span>
+              Autosaved
+            </div>
             <div className="flex flex-wrap items-center gap-3">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.13em] text-cyan-300">
-                Command Deck Editor
+              <p className="text-[15px] font-semibold tracking-[-0.02em] text-white">
+                Deck Studio
               </p>
               <span className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[11px] text-slate-400">
                 {mainDeckCount} cards
@@ -1904,7 +1910,7 @@ function CardsWorkspace({
               </span>
             </div>
             <p className="mt-2 text-[13px] text-slate-500">
-              One workspace for table editing, visual review, roles, filters, and live card inspection.
+              Build, inspect, organize, and refine your deck from one focused creative workspace.
             </p>
           </div>
 
@@ -1915,7 +1921,7 @@ function CardsWorkspace({
               className="flex h-10 items-center gap-2 rounded-xl border border-cyan-200/30 bg-gradient-to-r from-cyan-300 to-sky-400 px-4 text-[12px] font-bold text-[#00121c] shadow-[0_0_30px_rgba(34,211,238,0.14)] transition hover:brightness-110"
             >
               <Share2 className="h-4 w-4" />
-              Show Off Your Deck
+              Share Deck
             </button>
             <details className="group/view relative">
               <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-cyan-200/20 bg-cyan-300/[0.06] px-3.5 text-[12px] font-semibold text-cyan-100 transition hover:border-cyan-200/35 [&::-webkit-details-marker]:hidden">
@@ -1963,7 +1969,7 @@ function CardsWorkspace({
           </div>
         </div>
 
-        <div className="grid gap-3 px-5 py-4 lg:grid-cols-[minmax(260px,1fr)_180px_160px_auto]">
+        <div className="grid gap-3 border-t border-white/[0.045] bg-black/[0.08] px-5 py-4 lg:grid-cols-[minmax(320px,1fr)_180px_170px_auto]">
           <label className="flex h-11 items-center gap-3 rounded-xl border border-white/[0.075] bg-black/[0.15] px-3">
             <Search className="h-4 w-4 text-slate-600" />
             <input
@@ -2036,12 +2042,12 @@ function CardsWorkspace({
         </div>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[230px_minmax(0,1fr)_310px]">
-        <aside className="space-y-4 xl:sticky xl:top-[190px] xl:self-start">
+      <div className="grid gap-0 xl:grid-cols-[250px_minmax(0,1fr)_330px]">
+        <aside className="space-y-4 border-r border-white/[0.055] bg-[#04101a]/72 p-4 xl:sticky xl:top-[154px] xl:max-h-[calc(100vh-168px)] xl:self-start xl:overflow-y-auto">
           {isCommander && commanderCard ? (
-            <section className="overflow-hidden rounded-[22px] border border-violet-300/[0.12] bg-[#06131f] shadow-[0_22px_60px_rgba(0,0,0,0.26)]">
+            <section className="overflow-hidden rounded-[24px] border border-violet-300/[0.14] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.12),transparent_48%),#07131f] shadow-[0_24px_70px_rgba(0,0,0,.34)]">
               <div className="border-b border-white/[0.055] px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-violet-300">
+                <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-violet-200">
                   Commander
                 </p>
               </div>
@@ -2061,7 +2067,7 @@ function CardsWorkspace({
                   />
                 </div>
 
-                <p className="mt-4 text-center text-[14px] font-semibold leading-5 text-white">
+                <p className="mt-4 text-center text-[15px] font-semibold leading-5 tracking-[-0.01em] text-white">
                   {commanderCard.name}
                 </p>
 
@@ -2070,6 +2076,17 @@ function CardsWorkspace({
                     colors={commanderCard.colors}
                     size="sm"
                   />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-white/[0.06] bg-black/[0.16] px-3 py-2.5 text-center">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.13em] text-slate-700">Deck value</p>
+                    <p className="mt-1 text-[12px] font-semibold text-emerald-200">${mainDeckValue.toFixed(2)}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/[0.06] bg-black/[0.16] px-3 py-2.5 text-center">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.13em] text-slate-700">Owned</p>
+                    <p className="mt-1 text-[12px] font-semibold text-white">{mainDeckCount ? Math.round((owned / mainDeckCount) * 100) : 0}%</p>
+                  </div>
                 </div>
 
                 <button
@@ -2086,7 +2103,7 @@ function CardsWorkspace({
           ) : null}
 
           <section className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-slate-600">
               Deck Explorer
             </p>
             <div className="mt-3 space-y-1.5">
@@ -2115,8 +2132,8 @@ function CardsWorkspace({
           </section>
 
           <section className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-slate-500">
-              Quick Add Basics
+            <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-slate-600">
+              Quick Add
             </p>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
               {[
@@ -2162,12 +2179,12 @@ function CardsWorkspace({
           </section>
         </aside>
 
-        <main className="min-w-0">
-          <section className="mb-4 rounded-[24px] border border-cyan-300/[0.12] bg-gradient-to-br from-[#081925] to-[#05111b] p-4">
+        <main className="min-w-0 bg-[#020b13]/55 p-4 sm:p-5">
+          <section className="mb-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.14] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.09),transparent_35%),linear-gradient(135deg,#081b28,#04111b)] p-5 shadow-[0_22px_70px_rgba(0,0,0,.24)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[12px] font-semibold text-white">Drag-and-drop deck builder</p>
-                <p className="mt-1 text-[11px] text-slate-600">Drag a Trading Docks card, a Scryfall card page/image, or an EDHREC card into a section. On mobile, use the section buttons.</p>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.7)]" /><p className="text-[14px] font-semibold tracking-[-0.01em] text-white">Deck Construction Canvas</p></div>
+                <p className="mt-1 text-[11px] text-slate-600">Drag from Trading Docks, Scryfall, or EDHREC. Every destination is live, account-synced, and reversible.</p>
               </div>
               <span className="rounded-full border border-emerald-300/[0.12] bg-emerald-300/[0.04] px-3 py-1.5 text-[10px] font-semibold text-emerald-300">{externalDropBusy ? "Resolving external card…" : "Autosaves to your account"}</span>
             </div>
@@ -2201,10 +2218,10 @@ function CardsWorkspace({
                   onDragLeave={() => setDropSection(null)}
                   onDrop={(event) => acceptDrop(event, section as DeckDropSection)}
                   className={[
-                    "rounded-2xl border-2 border-dashed p-4 transition",
+                    "group rounded-[18px] border p-4 transition duration-200",
                     dropSection === section
-                      ? "border-cyan-300 bg-cyan-300/[0.1] shadow-[0_0_35px_rgba(103,232,249,.12)]"
-                      : "border-white/[0.08] bg-black/[0.11]",
+                      ? "scale-[1.015] border-cyan-300/80 bg-cyan-300/[0.1] shadow-[0_0_45px_rgba(103,232,249,.18)]"
+                      : "border-white/[0.075] bg-black/[0.13] hover:border-cyan-300/[0.18] hover:bg-cyan-300/[0.025]",
                   ].join(" ")}
                 >
                   <div className="flex items-center justify-between">
@@ -2552,7 +2569,7 @@ function CardsWorkspace({
                 </div>
                 <div className="-mt-8 relative p-5">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-300">
-                    Card Inspector
+                    Live Inspector
                   </p>
                   <h3 className="mt-2 text-[18px] font-semibold leading-6 text-white">
                     {selectedCard.name}
@@ -2631,7 +2648,7 @@ function CardsWorkspace({
 
           <section className="mt-4 rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
             <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-slate-500">
-              Live Deck Health
+              Deck Health
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <InspectorMetric
@@ -2832,11 +2849,11 @@ const groups = groupedDeckCards(cards);
     ));
 
   return (
-    <section className="overflow-hidden rounded-[26px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.055),transparent_32%),#05111b] shadow-[0_24px_80px_rgba(0,0,0,.2)]">
+    <section className="overflow-hidden rounded-[28px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.06),transparent_30%),#04111b] shadow-[0_30px_90px_rgba(0,0,0,.28)]">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <p className="text-[17px] font-semibold tracking-[-0.01em] text-white">Deck Manifest</p>
+            <p className="text-[17px] font-semibold tracking-[-0.01em] text-white">Deck Canvas</p>
             <span className="rounded-md border border-cyan-200/10 bg-cyan-200/[0.055] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.16em] text-cyan-200/80">
               Condensed
             </span>
@@ -3963,6 +3980,19 @@ function DeckShowcaseStudio({
             </main>
           </div>
         </section>
+
+      <div className="flex flex-col gap-2 border-t border-white/[0.055] bg-black/[0.12] px-5 py-3 text-[10px] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-4">
+          <span>Deck Studio</span>
+          <span>{mainDeckCount} cards</span>
+          <span>{uniqueCardCount} unique</span>
+          <span>{missing} missing</span>
+        </div>
+        <div className="flex items-center gap-2 text-emerald-300/75">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+          Account synced
+        </div>
+      </div>
       </div>
     </div>
   );
