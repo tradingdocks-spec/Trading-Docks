@@ -360,3 +360,309 @@ a {
   }
   .workspace-input:focus { border-color: rgb(103 232 249 / 0.3); }
 }
+
+
+/* --------------------------------------------------------------------------
+   Trading Docks Premium Product System — v208
+   Shared visual language for landing, authentication, dashboards, tools,
+   forms, cards, tables, empty states, and interactive surfaces.
+   -------------------------------------------------------------------------- */
+
+:root {
+  --td-blue-300: #93c5fd;
+  --td-blue-400: #60a5fa;
+  --td-blue-500: #3b82f6;
+  --td-blue-600: #2563eb;
+  --td-cyan-300: #67e8f9;
+  --td-cyan-400: #22d3ee;
+  --td-navy-950: #020914;
+  --td-navy-900: #07121f;
+  --td-slate-900: #0f172a;
+  --td-surface: rgba(7, 18, 31, 0.78);
+  --td-surface-raised: rgba(10, 24, 39, 0.88);
+  --td-border: rgba(148, 163, 184, 0.115);
+  --td-border-blue: rgba(96, 165, 250, 0.24);
+  --td-shadow-card: 0 18px 55px rgba(0, 0, 0, 0.24);
+  --td-shadow-blue: 0 18px 55px rgba(37, 99, 235, 0.12);
+  --td-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body {
+  background:
+    radial-gradient(circle at 14% -8%, rgba(37, 99, 235, 0.065), transparent 30rem),
+    radial-gradient(circle at 88% 8%, rgba(34, 211, 238, 0.035), transparent 28rem),
+    var(--background);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Accessible, branded focus states everywhere. */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(2, 9, 20, 0.96),
+    0 0 0 4px rgba(96, 165, 250, 0.72),
+    0 0 22px rgba(59, 130, 246, 0.16);
+}
+
+/* Premium form controls across authentication and application pages. */
+:where(input, textarea, select) {
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 220ms ease,
+    transform 180ms ease;
+}
+
+:where(input, textarea, select):hover:not(:disabled) {
+  border-color: rgba(96, 165, 250, 0.2);
+}
+
+:where(input, textarea, select):focus {
+  border-color: rgba(96, 165, 250, 0.46) !important;
+  background-color: rgba(10, 24, 39, 0.88);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.10),
+    0 14px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* Shared UI cards receive depth, optical top-edge lighting, and restrained lift. */
+[data-slot="card"] {
+  position: relative;
+  border: 1px solid var(--td-border);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.023), transparent 28%),
+    rgba(7, 18, 31, 0.74);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    var(--td-shadow-card);
+  transition:
+    transform 260ms var(--td-ease),
+    border-color 240ms ease,
+    box-shadow 260ms ease,
+    background-color 240ms ease;
+}
+
+[data-slot="card"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 14% auto;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(96,165,250,0.22), transparent);
+  opacity: 0.7;
+}
+
+@media (hover: hover) {
+  [data-slot="card"]:hover {
+    transform: translateY(-3px);
+    border-color: rgba(96, 165, 250, 0.22);
+    background-color: rgba(10, 24, 39, 0.84);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 24px 62px rgba(0, 0, 0, 0.29),
+      0 0 38px rgba(37, 99, 235, 0.055);
+  }
+}
+
+/* Shared buttons: responsive movement, better depth, and clearer pressed state. */
+[data-slot="button"] {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 180ms var(--td-ease),
+    filter 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 220ms ease;
+}
+
+[data-slot="button"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.18) 48%, transparent 70%);
+  transform: translateX(-140%);
+  transition: transform 650ms var(--td-ease);
+}
+
+@media (hover: hover) {
+  [data-slot="button"]:hover:not(:disabled) {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+  }
+
+  [data-slot="button"]:hover:not(:disabled)::after {
+    transform: translateX(140%);
+  }
+}
+
+[data-slot="button"]:active:not(:disabled) {
+  transform: translateY(1px) scale(0.992);
+}
+
+/* Tables read as intentional product surfaces rather than raw data grids. */
+.dashboard-responsive table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.dashboard-responsive thead {
+  background: rgba(59, 130, 246, 0.035);
+}
+
+.dashboard-responsive th {
+  color: rgba(191, 219, 254, 0.72);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dashboard-responsive tbody tr {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.dashboard-responsive tbody tr:hover {
+  background: rgba(59, 130, 246, 0.035);
+}
+
+/* Application sections and bespoke cards that predate the shared Card component. */
+.dashboard-responsive :where(
+  article,
+  section[class*="rounded-"],
+  div[class*="rounded-"][class*="border"][class*="bg-"]
+) {
+  transition:
+    border-color 220ms ease,
+    box-shadow 240ms ease,
+    transform 240ms var(--td-ease);
+}
+
+@media (hover: hover) {
+  .dashboard-responsive :where(
+    article,
+    section[class*="rounded-"]
+  ):hover {
+    border-color: rgba(96, 165, 250, 0.16);
+  }
+}
+
+/* Branded sidebar/navigation states become a recognizable product signature. */
+.dashboard-responsive aside nav a,
+.dashboard-responsive aside nav button {
+  position: relative;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms var(--td-ease),
+    box-shadow 220ms ease;
+}
+
+@media (hover: hover) {
+  .dashboard-responsive aside nav a:hover,
+  .dashboard-responsive aside nav button:hover {
+    transform: translateX(2px);
+    border-color: rgba(96, 165, 250, 0.16);
+    background: linear-gradient(90deg, rgba(59,130,246,0.075), rgba(34,211,238,0.018));
+  }
+}
+
+.dashboard-responsive aside nav a[aria-current="page"]::before,
+.dashboard-responsive aside nav a[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--td-cyan-300), var(--td-blue-500));
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.55);
+}
+
+/* Empty states and drop zones gain a subtle branded treatment. */
+.dashboard-responsive :where(
+  [class*="border-dashed"],
+  [data-empty-state]
+) {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(59,130,246,0.045), transparent 58%),
+    rgba(2, 9, 20, 0.24);
+}
+
+/* Modal/dialog depth and visual separation. */
+.dashboard-responsive [role="dialog"] {
+  border-color: rgba(96, 165, 250, 0.17) !important;
+  background:
+    linear-gradient(180deg, rgba(59,130,246,0.035), transparent 22%),
+    rgba(5, 14, 25, 0.96) !important;
+  box-shadow:
+    0 40px 110px rgba(0,0,0,0.58),
+    0 0 0 1px rgba(96,165,250,0.055),
+    0 0 80px rgba(37,99,235,0.075);
+  backdrop-filter: blur(24px) saturate(1.08);
+}
+
+/* Landing/auth direct interactive elements get the same premium motion language. */
+main a[class*="rounded-"],
+main button[class*="rounded-"] {
+  transition:
+    transform 190ms var(--td-ease),
+    filter 190ms ease,
+    border-color 190ms ease,
+    background-color 190ms ease,
+    box-shadow 240ms ease;
+}
+
+@media (hover: hover) {
+  main a[class*="rounded-"]:hover,
+  main button[class*="rounded-"]:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+}
+
+/* Slight logo presence increase and consistent optical glow. */
+img[src*="trading-docks-mark"] {
+  filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.15));
+}
+
+img[src*="trading-docks-horizontal"] {
+  filter: drop-shadow(0 0 18px rgba(59, 130, 246, 0.09));
+}
+
+/* Skeletons feel product-specific rather than generic gray blocks. */
+@keyframes td-skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.dashboard-responsive :where(.animate-pulse, [data-skeleton]) {
+  background-image: linear-gradient(
+    100deg,
+    rgba(15,23,42,0.66) 20%,
+    rgba(59,130,246,0.105) 40%,
+    rgba(15,23,42,0.66) 60%
+  );
+  background-size: 220% 100%;
+  animation: td-skeleton-shimmer 2.2s linear infinite;
+}
+
+/* Motion remains respectful and usable. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="card"],
+  [data-slot="button"],
+  main a[class*="rounded-"],
+  main button[class*="rounded-"],
+  .dashboard-responsive aside nav a,
+  .dashboard-responsive aside nav button {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  [data-slot="button"]::after {
+    display: none;
+  }
+}

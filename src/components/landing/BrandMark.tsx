@@ -16,7 +16,7 @@ export function BrandMark({
       aria-label="Trading Docks home"
       className="group inline-flex items-center gap-4"
     >
-      <span className="relative flex h-[68px] w-[68px] shrink-0 items-center justify-center">
+      <span className="relative flex h-[76px] w-[76px] shrink-0 items-center justify-center">
         <span className="absolute inset-2 rounded-[22px] bg-blue-400/[0.15] blur-2xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
 
         <Image
@@ -25,16 +25,16 @@ export function BrandMark({
           width={1024}
           height={1024}
           priority={priority}
-          className="relative h-[68px] w-[68px] object-contain transition duration-500 group-hover:-translate-y-0.5 group-hover:scale-[1.045]"
+          className="relative h-[76px] w-[76px] object-contain transition duration-500 group-hover:-translate-y-0.5 group-hover:scale-[1.045]"
         />
       </span>
 
       <span className="hidden flex-col sm:flex">
-        <span className="text-[17px] font-semibold tracking-[-0.03em] text-white">
+        <span className="text-[18px] font-semibold tracking-[-0.03em] text-white">
           Trading Docks
         </span>
 
-        <span className="mt-1 text-[8px] font-medium uppercase tracking-[0.25em] text-slate-600">
+        <span className="mt-1 text-[8px] font-medium uppercase tracking-[0.25em] text-blue-200/45">
           Collectibles OS
         </span>
       </span>
