@@ -317,7 +317,8 @@ export function MarketplaceWorkspace() {
   const [emailProvider, setEmailProvider] = useState<"gmail" | "outlook">("gmail");
   const [emailMarketplace, setEmailMarketplace] = useState("tcgplayer");
   const [emailSetupStep, setEmailSetupStep] = useState(1);
-  const [importAddress, setImportAddress] = useState("orders+your-workspace@inbound.tradingdocks.com");
+  const [importAddress, setImportAddress] = useState("Loading permanent address…");
+  const [importAddressStatus, setImportAddressStatus] = useState("loading");
 
   const loadCredentialStatus = useCallback(async (marketplaceId: string) => {
     setCheckingCredentials(true);
@@ -371,8 +372,23 @@ export function MarketplaceWorkspace() {
       } else {
         setConnections((data ?? []) as SavedConnection[]);
       }
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setImportAddress(`orders+td_${user.id.replace(/-/g, "").slice(0, 10)}@inbound.tradingdocks.com`);
+      const mailboxResponse = await fetch("/api/marketplaces/email-inbox", {
+        cache: "no-store",
+      });
+      const mailbox = (await mailboxResponse.json().catch(() => null)) as {
+        address?: string;
+        status?: string;
+        error?: string;
+      } | null;
+
+      if (mailboxResponse.ok && mailbox?.address) {
+        setImportAddress(mailbox.address);
+        setImportAddressStatus(mailbox.status ?? "pending");
+      } else {
+        setImportAddress("Permanent address unavailable");
+        setImportAddressStatus("error");
+        if (mailbox?.error) setNotice(mailbox.error);
+      }
       setLoading(false);
     })();
   }, [loadCredentialStatus, supabase]);
@@ -837,7 +853,7 @@ function SetupGuide({ title, steps, compact = false }: { title: string; steps: r
   return <div className={`rounded-[24px] border border-white/[.08] bg-[#07141e] ${compact ? "p-4" : "p-6"}`}><p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">{title}</p><div className="mt-4 space-y-3">{steps.map((step, index) => <div key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[.05] text-[9px] font-bold text-cyan-200">{index + 1}</span><p className="pt-0.5 text-[11px] leading-5 text-slate-500">{step}</p></div>)}</div></div>;
 }
 
-function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, onNotice }: {
+function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, importAddressStatus, onNotice }: {
   provider: "gmail" | "outlook";
   setProvider: (value: "gmail" | "outlook") => void;
   marketplace: string;
@@ -845,6 +861,7 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
   step: number;
   setStep: (value: number) => void;
   importAddress: string;
+  importAddressStatus: string;
   onNotice: (value: string) => void;
 }) {
   const emailMarketplaces = marketplaces.filter((item) => item.methods.includes("email"));
@@ -928,7 +945,15 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
         <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5">
           <p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">Your workspace’s private address</p>
           <div className="mt-3 flex gap-2"><input readOnly value={importAddress} onFocus={(event) => event.currentTarget.select()} className="min-w-0 flex-1 rounded-xl border border-white/[.08] bg-black/20 px-3 font-mono text-[10px] text-slate-300 outline-none" /><button type="button" onClick={() => void copyAddress()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-cyan-300/15 text-cyan-300 hover:bg-cyan-300/[.05]" aria-label="Copy private import address"><Copy className="h-4 w-4" /></button></div>
-          <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300/12 bg-amber-300/[.03] p-3"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[9px] leading-4 text-amber-100/55"><strong className="text-amber-100">Preview address:</strong> It is unique to this workspace, but it cannot receive messages until the email service is activated.</p></div>
+          <div className={`mt-3 flex items-start gap-2 rounded-xl border p-3 ${importAddressStatus === "active" ? "border-emerald-300/12 bg-emerald-300/[.03]" : "border-blue-300/12 bg-blue-300/[.03]"}`}>
+            {importAddressStatus === "active" ? <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" /> : <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />}
+            <p className={`text-[9px] leading-4 ${importAddressStatus === "active" ? "text-emerald-100/60" : "text-blue-100/60"}`}>
+              <strong className={importAddressStatus === "active" ? "text-emerald-100" : "text-blue-100"}>
+                {importAddressStatus === "active" ? "Permanent address active:" : "Permanent workspace address:"}
+              </strong>{" "}
+              This address is stored with the workspace and will not change unless an administrator explicitly rotates it.
+            </p>
+          </div>
         </div>
         <div className="rounded-[24px] border border-emerald-300/10 bg-emerald-300/[.025] p-5"><div className="flex items-start gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" /><div><h3 className="text-sm font-semibold text-emerald-100">We do not open your inbox</h3><p className="mt-2 text-[11px] leading-5 text-emerald-100/55">You forward only marketplace order emails. Trading Docks never receives your Gmail or Outlook password and cannot read personal messages left in your mailbox.</p></div></div></div>
         <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">What happens to an order?</p><div className="mt-4 space-y-3">{[[Inbox, "Email arrives", "Only forwarded messages reach Trading Docks."], [MousePointerClick, "Order is recognized", "We extract the order number, items, quantity, and price."], [ShieldCheck, "You stay in control", "Uncertain cards go to review before inventory changes."]].map(([Icon, title, detail]) => { const StepIcon = Icon as typeof Inbox; return <div key={String(title)} className="flex gap-3"><div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-cyan-300/[.05]"><StepIcon className="h-4 w-4 text-cyan-300" /></div><div><p className="text-[11px] font-semibold text-slate-200">{String(title)}</p><p className="mt-1 text-[9px] leading-4 text-slate-600">{String(detail)}</p></div></div>; })}</div></div>
