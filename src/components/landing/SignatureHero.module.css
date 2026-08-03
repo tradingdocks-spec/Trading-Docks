@@ -37,10 +37,9 @@
 }
 
 .dashboardFloat {
-  transform: perspective(1200px) rotateY(-2deg);
-  animation: dashboardFloat 9s ease-in-out infinite;
-  transform-style: preserve-3d;
-  will-change: transform;
+  transform: none;
+  animation: none;
+  transform-style: flat;
 }
 
 .dashboardShell {
@@ -289,16 +288,12 @@
 }
 
 .floatingStatus {
-  animation: floatingStatus 8s ease-in-out infinite;
+  transform: translateZ(0);
 }
 
-.floatingStatus:nth-of-type(3) {
-  animation-delay: -3s;
-}
 
-.floatingStatus:nth-of-type(4) {
-  animation-delay: -5s;
-}
+
+
 
 @keyframes chartRise {
   from {
@@ -523,6 +518,49 @@
 
   .primaryButton::before {
     display: none;
+  }
+}
+
+.previewAmbient {
+  animation: previewAmbient 8s ease-in-out infinite alternate;
+}
+
+.statusPulse {
+  animation: statusPulse 2.4s ease-in-out infinite;
+}
+
+.dashboardContent,
+.dashboardShell {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+@keyframes previewAmbient {
+  from {
+    opacity: .72;
+    transform: scale(.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: .72;
+    box-shadow: 0 0 8px rgba(110,231,183,.58);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 18px rgba(110,231,183,.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .previewAmbient,
+  .statusPulse {
+    animation: none;
   }
 }
 
