@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
-  AlertTriangle,
   ArrowLeft,
   ArrowRightLeft,
   BookOpen,
@@ -27,7 +24,6 @@ import {
   Globe2,
   Grid3X3,
   History,
-  Instagram,
   Layers3,
   LayoutGrid,
   LibraryBig,
@@ -57,6 +53,13 @@ import {
   Truck,
   Warehouse,
   X,
+  useEffect,
+  useMemo,
+  useRef,
+  useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  AlertTriangle,
 } from "lucide-react";
 
 import { MetricCard } from "../common/MetricCard";
@@ -2964,7 +2967,7 @@ function BinderShowcaseStudio({
                 return <div key={card?.id ?? index} className="group relative aspect-[.716] overflow-hidden rounded-xl border border-white/[0.09] bg-black/25 shadow-[0_14px_32px_rgba(0,0,0,.32)]">{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-slate-700"><Plus className="h-5 w-5" /></div>}{card ? <span className="absolute bottom-2 left-2 rounded-md bg-black/75 px-1.5 py-1 text-[7px] font-bold text-cyan-200">P{card.binderPage} · {card.binderSlot}</span> : null}</div>;
               })}
             </div>
-            <div className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 backdrop-blur"><p className="text-[10px] leading-5 text-slate-300">{caption}</p><div className="mt-4 flex items-center justify-between"><span className="inline-flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-600"><Instagram className="h-3.5 w-3.5" /> Social-ready</span><span className="text-[8px] text-slate-700">Page {page} · {binderView}</span></div></div>
+            <div className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 backdrop-blur"><p className="text-[10px] leading-5 text-slate-300">{caption}</p><div className="mt-4 flex items-center justify-between"><span className="inline-flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-600"><MessageCircle className="h-3.5 w-3.5" /> Social-ready</span><span className="text-[8px] text-slate-700">Page {page} · {binderView}</span></div></div>
           </div>
         </div>
       </section>
