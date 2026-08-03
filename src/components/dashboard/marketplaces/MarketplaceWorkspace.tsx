@@ -522,7 +522,7 @@ export function MarketplaceWorkspace() {
 
       if (!response.ok) {
         throw new Error(
-          result?.error ?? "Mana Pool import could not be completed.",
+          result?.error ?? "Mana Pool sync could not be completed.",
         );
       }
 
@@ -550,13 +550,13 @@ export function MarketplaceWorkspace() {
 
       setNotice(
         result?.message ??
-          `Mana Pool import complete: ${result?.importedInventory ?? 0} inventory rows, ${result?.importedOrders ?? 0} orders, and ${result?.importedPricing ?? 0} price records.`,
+          `Mana Pool sync complete: ${result?.importedInventory ?? 0} inventory rows, ${result?.importedOrders ?? 0} orders, and ${result?.importedPricing ?? 0} price records.`,
       );
     } catch (reason) {
       setNotice(
         reason instanceof Error
           ? reason.message
-          : "Mana Pool import could not be completed.",
+          : "Mana Pool sync could not be completed.",
       );
     } finally {
       setManaPoolImporting(false);
@@ -928,8 +928,8 @@ export function MarketplaceWorkspace() {
                               <RefreshCw className="h-4 w-4" />
                             )}
                             {manaPoolImporting
-                              ? "Importing from Mana Pool"
-                              : "Import from Mana Pool"}
+                              ? "Syncing Mana Pool"
+                              : "Sync Mana Pool"}
                           </button>
                           <button
                             type="button"
