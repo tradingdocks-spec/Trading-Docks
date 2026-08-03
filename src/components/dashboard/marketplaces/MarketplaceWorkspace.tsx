@@ -73,6 +73,8 @@ type SavedCredentials = {
   saved: boolean;
   masked: Record<string, string>;
   updatedAt: string | null;
+
+  lastFour?: string | null;
 };
 
 const METHOD_LABELS: Record<ConnectionMethod, string> = {
