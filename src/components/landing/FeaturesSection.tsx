@@ -93,7 +93,7 @@ export function FeaturesSection() {
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_45%,rgba(37,99,235,.11),transparent_32%)]" />
 
-      <div className="relative mx-auto w-full max-w-[1480px] px-5 py-24 sm:px-8 lg:px-12 lg:py-28">
+      <div className="relative mx-auto w-full max-w-[1480px] px-4 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Permission-aware by design</p>
           <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-white sm:text-5xl">
@@ -106,7 +106,7 @@ export function FeaturesSection() {
         </div>
 
         <div className="mt-14 grid gap-5 lg:grid-cols-[0.78fr_1.22fr]">
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:grid lg:grid-cols-1 lg:overflow-visible lg:px-0">
             {capabilities.map(({ title, plan, icon: Icon }, index) => {
               const selected = index === active;
               return (
@@ -122,7 +122,7 @@ export function FeaturesSection() {
                     setActive(index);
                   }}
                   className={[
-                    "group flex min-h-[78px] items-center gap-4 rounded-2xl border px-4 text-left transition duration-300",
+                    "group flex min-h-[74px] min-w-[235px] snap-start lg:min-w-0 items-center gap-4 rounded-2xl border px-4 text-left transition duration-300",
                     selected
                       ? "border-cyan-300/[0.23] bg-gradient-to-r from-blue-500/[0.16] to-cyan-300/[0.05] shadow-[0_18px_55px_rgba(37,99,235,.11)]"
                       : "border-white/[0.065] bg-[#07131f]/80 hover:border-blue-300/[0.15] hover:bg-[#081824]",
@@ -143,7 +143,7 @@ export function FeaturesSection() {
 
           <div
             key={item.title}
-            className={`${styles.previewSwap} relative overflow-hidden rounded-[30px] border border-cyan-300/[0.18] bg-gradient-to-br from-[#0a1c2b] via-[#071522] to-[#04101a] p-5 shadow-[0_36px_110px_rgba(0,0,0,.42)] sm:p-7`}
+            className={`${styles.previewSwap} relative overflow-hidden rounded-[24px] border sm:rounded-[30px] border-cyan-300/[0.18] bg-gradient-to-br from-[#0a1c2b] via-[#071522] to-[#04101a] p-5 shadow-[0_36px_110px_rgba(0,0,0,.42)] sm:p-7`}
           >
             <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/[0.15] blur-[100px]" />
             <div className="relative flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
@@ -166,7 +166,7 @@ export function FeaturesSection() {
               </div>
             </div>
 
-            <div className="relative mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="relative mt-7 grid gap-2 min-[390px]:grid-cols-3 sm:mt-8 sm:gap-3">
               {item.preview.map((feature, index) => (
                 <div
                   key={feature}

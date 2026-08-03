@@ -151,7 +151,7 @@ export function ExperienceSection() {
     <section
       id="experience"
       data-td-reveal
-      className="relative z-10 overflow-hidden border-y border-white/[0.05] bg-[#020912] px-5 py-24 sm:px-8 lg:px-12 lg:py-32"
+      className="relative z-10 overflow-hidden border-y border-white/[0.05] bg-[#020912] px-4 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-32"
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[10%] top-[-13rem] h-[34rem] w-[34rem] rounded-full bg-blue-500/[0.11] blur-[145px]" />
@@ -175,7 +175,7 @@ export function ExperienceSection() {
             </p>
           </div>
 
-          <div className="grid gap-2 rounded-[22px] border border-white/[0.075] bg-[#07131f]/88 p-2 shadow-[0_22px_80px_rgba(0,0,0,.24)] sm:grid-cols-3">
+          <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto rounded-[20px] border border-white/[0.075] bg-[#07131f]/88 p-2 shadow-[0_22px_80px_rgba(0,0,0,.24)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible">
             {(Object.keys(personas) as PersonaKey[]).map((key) => {
               const item = personas[key];
               const ItemIcon = item.icon;
@@ -186,7 +186,7 @@ export function ExperienceSection() {
                   type="button"
                   onClick={() => choosePersona(key)}
                   className={[
-                    "group relative flex min-h-[68px] items-center gap-3 overflow-hidden rounded-2xl px-4 text-left transition duration-300",
+                    "group relative flex min-h-[64px] min-w-[210px] snap-start items-center gap-3 overflow-hidden rounded-2xl px-4 text-left transition duration-300",
                     selected
                       ? "bg-gradient-to-r from-blue-500/[0.24] to-cyan-300/[0.09] text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,.18),0_12px_30px_rgba(37,99,235,.13)]"
                       : "text-slate-500 hover:bg-white/[0.035] hover:text-white",
@@ -212,7 +212,7 @@ export function ExperienceSection() {
 
         <div
           key={`${active}-${synced ? "synced" : "base"}`}
-          className={`${styles.previewSwap} mt-10 grid overflow-hidden rounded-[34px] border border-blue-300/[0.18] bg-[#06131e] shadow-[0_44px_140px_rgba(0,0,0,.56),0_0_90px_rgba(37,99,235,.08)] lg:grid-cols-[260px_1fr]`}
+          className={`${styles.previewSwap} mt-10 grid overflow-hidden rounded-[24px] border sm:rounded-[34px] border-blue-300/[0.18] bg-[#06131e] shadow-[0_44px_140px_rgba(0,0,0,.56),0_0_90px_rgba(37,99,235,.08)] lg:grid-cols-[260px_1fr]`}
         >
           <aside className="border-b border-white/[0.06] bg-[#030d16] p-4 lg:border-b-0 lg:border-r">
             <div className="flex items-center gap-3 rounded-2xl border border-blue-300/[0.11] bg-blue-400/[0.045] p-3">
@@ -225,14 +225,14 @@ export function ExperienceSection() {
               </div>
             </div>
 
-            <div className="mt-5 space-y-1">
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mt-5 lg:block lg:space-y-1 lg:overflow-visible">
               {persona.nav.map((item, index) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => setActiveNav(index)}
                   className={[
-                    "flex h-10 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium transition duration-200",
+                    "flex h-10 min-w-max items-center gap-3 rounded-xl px-3 text-left text-sm font-medium transition duration-200",
                     index === activeNav
                       ? "bg-gradient-to-r from-blue-500/[0.19] to-transparent text-white"
                       : "text-slate-500 hover:bg-white/[0.025] hover:text-slate-300",
@@ -244,7 +244,7 @@ export function ExperienceSection() {
               ))}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/[0.06] bg-white/[0.018] p-3">
+            <div className="mt-4 hidden rounded-2xl border lg:mt-6 lg:block border-white/[0.06] bg-white/[0.018] p-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-700">Recommended plan</p>
               <p className="mt-2 text-lg font-semibold text-white">{persona.plan}</p>
               <p className="mt-1 text-xs leading-5 text-slate-600">{persona.tagline}</p>
@@ -315,7 +315,7 @@ export function ExperienceSection() {
                   </span>
                 </div>
 
-                <div className="mt-5 flex h-[190px] items-end gap-2 rounded-xl border border-white/[0.045] bg-black/[0.12] px-4 pb-4 pt-8">
+                <div className="mt-4 flex h-[150px] sm:mt-5 sm:h-[190px] items-end gap-2 rounded-xl border border-white/[0.045] bg-black/[0.12] px-4 pb-4 pt-8">
                   {chartShapes[active].map((height, index) => (
                     <span
                       key={`${active}-${index}`}

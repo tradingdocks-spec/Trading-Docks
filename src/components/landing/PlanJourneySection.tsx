@@ -74,7 +74,7 @@ export function PlanJourneySection() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(100,150,220,.022)_1px,transparent_1px),linear-gradient(90deg,rgba(100,150,220,.022)_1px,transparent_1px)] bg-[size:52px_52px]" />
       </div>
 
-      <div className="relative mx-auto max-w-[1480px] px-5 py-24 sm:px-8 lg:px-12 lg:py-28">
+      <div className="relative mx-auto max-w-[1480px] px-4 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
         <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-end">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
@@ -103,7 +103,7 @@ export function PlanJourneySection() {
           </div>
         </div>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="-mx-4 mt-10 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-2 md:px-0 xl:grid-cols-4">
           {stages.map(({ number, name, audience, description, detail, features, icon: Icon }, index) => {
             const selected = index === active;
             return (
@@ -123,7 +123,7 @@ export function PlanJourneySection() {
                   setActive(index);
                 }}
                 className={[
-                  "td-spotlight-card group relative min-h-[370px] overflow-hidden rounded-[28px] border p-5 text-left transition duration-500",
+                  "td-spotlight-card group relative min-h-[350px] min-w-[84vw] snap-center md:min-w-0 overflow-hidden rounded-[28px] border p-5 text-left transition duration-500",
                   selected
                     ? "border-cyan-300/[0.26] bg-gradient-to-b from-blue-500/[0.14] via-[#081725] to-[#06111d] shadow-[0_30px_90px_rgba(37,99,235,.15)] xl:-translate-y-3"
                     : "border-white/[0.075] bg-[#07121f]/92 shadow-[0_22px_70px_rgba(0,0,0,.24)] hover:-translate-y-1 hover:border-blue-300/[0.17]",

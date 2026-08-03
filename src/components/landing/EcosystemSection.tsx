@@ -42,7 +42,7 @@ export function EcosystemSection() {
   return (
     <section
       data-td-reveal
-      className="relative z-10 overflow-hidden border-y border-white/[0.05] bg-[#020912] px-5 py-24 sm:px-8 lg:px-12 lg:py-32"
+      className="relative z-10 overflow-hidden border-y border-white/[0.05] bg-[#020912] px-4 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-32"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_42%_50%,rgba(37,99,235,.14),transparent_30%)]" />
 
@@ -59,7 +59,7 @@ export function EcosystemSection() {
         </div>
 
         <div className="mt-14 grid gap-6 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
-          <div className="relative min-h-[620px] overflow-hidden rounded-[34px] border border-blue-300/[0.15] bg-[#06131e] p-5 shadow-[0_38px_120px_rgba(0,0,0,.45)]">
+          <div className="relative min-h-0 md:min-h-[620px] overflow-hidden rounded-[34px] border border-blue-300/[0.15] bg-[#06131e] p-5 shadow-[0_38px_120px_rgba(0,0,0,.45)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(37,99,235,.17),transparent_30%)]" />
 
             <svg className="pointer-events-none absolute inset-0 hidden h-full w-full md:block" viewBox="0 0 760 620" fill="none" aria-hidden="true">
@@ -77,7 +77,7 @@ export function EcosystemSection() {
               ))}
             </svg>
 
-            <div className="absolute left-1/2 top-1/2 z-10 flex h-52 w-52 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-cyan-300/[0.26] bg-[#071827] text-center shadow-[0_0_100px_rgba(37,99,235,.22),inset_0_0_40px_rgba(59,130,246,.06)]">
+            <div className="hidden absolute left-1/2 top-1/2 z-10 h-52 md:flex w-52 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-cyan-300/[0.26] bg-[#071827] text-center shadow-[0_0_100px_rgba(37,99,235,.22),inset_0_0_40px_rgba(59,130,246,.06)]">
               <span className={`${styles.pulseRing} absolute inset-[-16px] rounded-full border border-cyan-300/[0.16]`} />
               <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 to-blue-600 text-[#021019] shadow-[0_15px_35px_rgba(37,99,235,.24)]">
                 <Workflow className="h-6 w-6" />
@@ -89,7 +89,7 @@ export function EcosystemSection() {
               </span>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 md:block">
+            <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:block md:overflow-visible md:px-0">
               {integrations.map((item, index) => {
                 const positions = [
                   "md:left-[5%] md:top-[8%]",
@@ -120,7 +120,7 @@ export function EcosystemSection() {
                       setActive(index);
                     }}
                     className={[
-                      "relative z-20 flex min-h-[92px] items-center gap-3 rounded-2xl border p-3.5 text-left transition duration-300 md:absolute md:w-[188px]",
+                      "relative z-20 flex min-h-[82px] min-w-[220px] snap-start md:min-w-0 items-center gap-3 rounded-2xl border p-3.5 text-left transition duration-300 md:absolute md:w-[188px]",
                       positions,
                       selected
                         ? "border-cyan-300/[0.30] bg-blue-500/[0.14] shadow-[0_18px_55px_rgba(37,99,235,.17)]"
@@ -142,7 +142,7 @@ export function EcosystemSection() {
 
           <div
             key={integration.name}
-            className={`${styles.previewSwap} rounded-[30px] border border-cyan-300/[0.17] bg-gradient-to-br from-[#0a1c2b] to-[#06121d] p-6 shadow-[0_34px_100px_rgba(0,0,0,.38)]`}
+            className={`${styles.previewSwap} rounded-[24px] border sm:rounded-[30px] border-cyan-300/[0.17] bg-gradient-to-br from-[#0a1c2b] to-[#06121d] p-6 shadow-[0_34px_100px_rgba(0,0,0,.38)]`}
           >
             <div className="flex items-start justify-between gap-4">
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/[0.18] bg-cyan-300/[0.08] text-cyan-200">

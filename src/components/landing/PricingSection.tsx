@@ -152,7 +152,7 @@ export function PricingSection() {
   return (
     <section
       id="pricing"
-      className="relative overflow-hidden border-y border-white/[0.05] bg-[#020914] px-4 py-24 sm:px-6 lg:px-8"
+      className="relative overflow-hidden border-y border-white/[0.05] bg-[#020914] px-4 py-20 sm:px-6 sm:py-24 lg:px-8"
     >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-[-18rem] h-[42rem] w-[42rem] -translate-x-1/2 rounded-full bg-blue-500/[0.10] blur-[140px]" />
@@ -180,7 +180,7 @@ export function PricingSection() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="-mx-4 mt-10 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-2 md:px-0 xl:grid-cols-4">
           {plans.map((plan) => (
             <PricingCard key={plan.id} plan={plan} />
           ))}
@@ -203,7 +203,7 @@ export function PricingSection() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-[28px] border border-blue-300/[0.12] bg-gradient-to-r from-blue-500/[0.07] via-white/[0.025] to-cyan-300/[0.045] px-6 py-6 sm:flex-row sm:px-8">
+        <div className="mt-8 flex flex-col items-stretch justify-between gap-5 rounded-[28px] border border-blue-300/[0.12] bg-gradient-to-r from-blue-500/[0.07] via-white/[0.025] to-cyan-300/[0.045] px-6 py-6 sm:flex-row sm:px-8">
           <div className="flex items-start gap-4">
             <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-300/[0.14] bg-[#07121f] text-cyan-300 sm:flex">
               <BadgeCheck className="h-5 w-5" />
@@ -221,7 +221,7 @@ export function PricingSection() {
 
           <Link
             href="/pricing"
-            className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-blue-300/[0.18] bg-[#07121f] px-5 text-sm font-semibold text-blue-100 transition hover:-translate-y-0.5 hover:border-blue-300/[0.32] hover:bg-blue-400/[0.08]"
+            className="inline-flex h-12 w-full shrink-0 sm:w-auto items-center justify-center gap-2 rounded-xl border border-blue-300/[0.18] bg-[#07121f] px-5 text-sm font-semibold text-blue-100 transition hover:-translate-y-0.5 hover:border-blue-300/[0.32] hover:bg-blue-400/[0.08]"
           >
             Compare all features
             <ArrowRight className="h-4 w-4" />
@@ -238,7 +238,7 @@ function PricingCard({ plan }: { plan: PlanCard }) {
   return (
     <article
       className={[
-        `${styles.shimmer} td-spotlight-card group relative flex min-h-[650px] flex-col overflow-hidden rounded-[30px] border p-5 transition duration-300 sm:p-6`,
+        `${styles.shimmer} td-spotlight-card group relative flex min-h-[610px] min-w-[88vw] snap-center flex-col md:min-w-0 overflow-hidden rounded-[30px] border p-5 transition duration-300 sm:p-6`,
         plan.featured
           ? "border-blue-300/[0.28] bg-gradient-to-b from-blue-500/[0.12] via-[#081523] to-[#06101b] shadow-[0_28px_90px_rgba(37,99,235,.16)]"
           : "border-white/[0.075] bg-[#07111d] hover:-translate-y-1 hover:border-blue-300/[0.16] hover:shadow-[0_22px_70px_rgba(0,0,0,.28)]",

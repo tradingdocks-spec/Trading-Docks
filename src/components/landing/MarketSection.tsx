@@ -191,7 +191,7 @@ export function MarketSection() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(100,150,220,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(100,150,220,.02)_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:linear-gradient(to_bottom,black,transparent_95%)]" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1480px] px-5 py-24 sm:px-8 lg:px-12 lg:py-30">
+      <div className="relative mx-auto w-full max-w-[1480px] px-4 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-30">
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.16] bg-cyan-300/[0.05] px-3.5 py-2 text-xs font-semibold text-cyan-200">
@@ -238,7 +238,7 @@ export function MarketSection() {
         </div>
 
         <div className="mt-10 rounded-[28px] border border-white/[0.075] bg-[#06131e]/92 p-3 shadow-[0_30px_100px_rgba(0,0,0,.3)] backdrop-blur-xl">
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {GAME_TABS.map((game) => {
               const active = game.id === activeGame;
               const gameStatus = payload?.status?.[game.id];
@@ -248,7 +248,7 @@ export function MarketSection() {
                   type="button"
                   onClick={() => setActiveGame(game.id)}
                   className={[
-                    "group relative min-w-max flex-1 rounded-2xl border px-4 py-3 text-left transition duration-300",
+                    "group relative min-w-[150px] flex-1 snap-start rounded-2xl border px-4 py-3 text-left transition duration-300",
                     active
                       ? "border-cyan-300/[0.22] bg-gradient-to-r from-blue-500/[0.18] to-cyan-300/[0.055] shadow-[0_14px_38px_rgba(37,99,235,.11)]"
                       : "border-transparent bg-transparent hover:border-white/[0.06] hover:bg-white/[0.025]",
@@ -282,13 +282,13 @@ export function MarketSection() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-[310px_1fr]">
+        <div className="mt-4 grid gap-4 lg:mt-5 lg:grid-cols-[310px_1fr]">
           <aside className="rounded-[26px] border border-white/[0.075] bg-[#06131e]/88 p-3">
             <p className="px-3 pb-3 pt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
               Market view
             </p>
 
-            <div className="space-y-1.5">
+            <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:block lg:space-y-1.5 lg:overflow-visible lg:px-0">
               {MODES.map((mode) => {
                 const Icon = mode.icon;
                 const active = mode.id === activeMode;
@@ -298,7 +298,7 @@ export function MarketSection() {
                     type="button"
                     onClick={() => setActiveMode(mode.id)}
                     className={[
-                      "flex w-full items-center gap-3 rounded-2xl border px-3 py-3.5 text-left transition",
+                      "flex min-w-[220px] snap-start items-center gap-3 lg:w-full lg:min-w-0 rounded-2xl border px-3 py-3.5 text-left transition",
                       active
                         ? "border-cyan-300/[0.18] bg-blue-500/[0.12]"
                         : "border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]",
@@ -320,7 +320,7 @@ export function MarketSection() {
               })}
             </div>
 
-            <div className="mt-4 rounded-2xl border border-white/[0.06] bg-black/[0.12] p-4">
+            <div className="mt-3 hidden rounded-2xl border lg:mt-4 lg:block border-white/[0.06] bg-black/[0.12] p-4">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-white">
                   {selectedGame.label}
@@ -386,7 +386,7 @@ export function MarketSection() {
 
             <div
               key={`${activeGame}-${activeMode}`}
-              className="grid animate-[marketMoverFade_350ms_ease-out] gap-4 md:grid-cols-2"
+              className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-2 md:px-0"
             >
               {cards.slice(0, 6).map((card, index) => (
                 <MarketMoverCard
@@ -460,7 +460,7 @@ function MarketMoverCard({
         : "7-day move";
 
   return (
-    <article className="td-spotlight-card group relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[#071522]/95 p-5 shadow-[0_25px_80px_rgba(0,0,0,.28)] transition duration-500 hover:-translate-y-1.5 hover:border-blue-300/[0.22] hover:shadow-[0_30px_95px_rgba(37,99,235,.11)]">
+    <article className="td-spotlight-card group relative min-w-[88vw] snap-center overflow-hidden md:min-w-0 rounded-[26px] border border-white/[0.08] bg-[#071522]/95 p-5 shadow-[0_25px_80px_rgba(0,0,0,.28)] transition duration-500 hover:-translate-y-1.5 hover:border-blue-300/[0.22] hover:shadow-[0_30px_95px_rgba(37,99,235,.11)]">
       <div className="pointer-events-none absolute right-[-4rem] top-[-5rem] h-44 w-44 rounded-full bg-blue-500/[0.09] blur-[70px]" />
 
       <div className="relative flex gap-4">

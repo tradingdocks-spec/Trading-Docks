@@ -21,7 +21,7 @@ const BARS = [34, 48, 41, 60, 52, 72, 64, 81, 74, 92, 86, 100];
 
 export function DashboardPreview() {
   return (
-    <div className="relative mx-auto w-full max-w-[760px] lg:-translate-y-4">
+    <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-[24px] sm:overflow-visible sm:rounded-none lg:-translate-y-4">
       <div className={`${styles.previewAmbient} pointer-events-none absolute inset-x-[-7%] top-[3%] h-[95%] rounded-full bg-blue-500/[0.15] blur-[145px]`} />
       <div className="pointer-events-none absolute inset-x-[8%] bottom-[-5%] h-[22%] rounded-full bg-cyan-300/[0.07] blur-[80px]" />
 
@@ -46,9 +46,9 @@ export function DashboardPreview() {
         detail="Across watched cards"
       />
 
-      <div className="relative overflow-visible rounded-[30px] border border-blue-200/[0.24] bg-[#071622] shadow-[0_56px_150px_rgba(0,0,0,0.62),0_0_110px_rgba(37,99,235,0.11)]">
-        <div className="relative overflow-hidden rounded-[30px]">
-          <div className="flex h-12 items-center justify-between border-b border-white/[0.08] bg-[#0a1b28] px-5">
+      <div className="relative overflow-visible rounded-[22px] sm:rounded-[30px] border border-blue-200/[0.24] bg-[#071622] shadow-[0_56px_150px_rgba(0,0,0,0.62),0_0_110px_rgba(37,99,235,0.11)]">
+        <div className="relative overflow-hidden rounded-[22px] sm:rounded-[30px]">
+          <div className="flex h-10 items-center sm:h-12 justify-between border-b border-white/[0.08] bg-[#0a1b28] px-5">
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
@@ -61,11 +61,11 @@ export function DashboardPreview() {
             </div>
           </div>
 
-          <div className="p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-5">
+          <div className="p-3.5 sm:p-6">
+            <div className="flex items-start justify-between gap-3 sm:gap-5">
               <div>
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h3 className="text-lg font-bold tracking-[-0.03em] text-white">
+                  <h3 className="text-sm font-bold sm:text-lg tracking-[-0.03em] text-white">
                     Business overview
                   </h3>
 
@@ -74,7 +74,7 @@ export function DashboardPreview() {
                   </span>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+                <div className="mt-2 hidden flex-wrap items-center gap-2 text-[10px] min-[430px]:flex sm:mt-3 text-slate-400">
                   <span className="mr-1 font-medium text-slate-500">Connected:</span>
                   {["TCGplayer", "eBay", "Mana Pool"].map((label) => (
                     <span
@@ -90,7 +90,7 @@ export function DashboardPreview() {
 
               <button
                 type="button"
-                className="group flex h-10 min-w-[170px] items-center gap-2.5 rounded-xl border border-blue-200/[0.16] bg-[#0d2130] px-3.5 text-left text-[12px] font-medium text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,.03)] transition hover:border-cyan-300/[0.3] hover:bg-[#10283a]"
+                className="group hidden h-10 min-w-[170px] sm:flex items-center gap-2.5 rounded-xl border border-blue-200/[0.16] bg-[#0d2130] px-3.5 text-left text-[12px] font-medium text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,.03)] transition hover:border-cyan-300/[0.3] hover:bg-[#10283a]"
               >
                 <Search className="h-4 w-4 text-blue-200" />
                 <span className="flex-1">Find any card</span>
@@ -100,14 +100,14 @@ export function DashboardPreview() {
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 sm:grid-cols-4">
               <Metric icon={CircleDollarSign} label="Collection value" value={284860} prefix="$" trend="+8.4%" />
               <Metric icon={Boxes} label="Inventory" value={49821} trend="+248" />
               <Metric icon={PackageCheck} label="Listings" value={22640} trend="+6.2%" />
               <Metric icon={TrendingUp} label="Monthly profit" value={6842} prefix="$" trend="+12.4%" />
             </div>
 
-            <div className="mt-4 grid gap-3 lg:grid-cols-[1.5fr_0.76fr]">
+            <div className="mt-3 grid gap-2 sm:mt-4 sm:gap-3 lg:grid-cols-[1.5fr_0.76fr]">
               <PortfolioChart />
               <LiveActivity />
             </div>
@@ -142,7 +142,7 @@ function Metric({
   const animatedValue = useCountUp(value);
 
   return (
-    <div className="group rounded-2xl border border-blue-200/[0.11] bg-[#0a1d2a] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.025)] transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/[0.22] hover:bg-[#0c2232]">
+    <div className="group rounded-xl border border-blue-200/[0.11] bg-[#0a1d2a] p-3 sm:rounded-2xl sm:p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.025)] transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/[0.22] hover:bg-[#0c2232]">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-slate-400">
           {label}
@@ -154,7 +154,7 @@ function Metric({
       </div>
 
       <div className="mt-3 flex items-end justify-between gap-2">
-        <p className="whitespace-nowrap text-[18px] font-extrabold leading-none tracking-[-0.035em] text-white [font-variant-numeric:tabular-nums]">
+        <p className="whitespace-nowrap text-[16px] sm:text-[18px] font-extrabold leading-none tracking-[-0.035em] text-white [font-variant-numeric:tabular-nums]">
           {prefix}
           {animatedValue.toLocaleString()}
         </p>
@@ -180,7 +180,7 @@ function PortfolioChart() {
         </button>
       </div>
 
-      <div className="relative mt-4 h-[178px] overflow-hidden rounded-xl border border-white/[0.055] bg-[#020a10] px-4 pb-7 pt-4">
+      <div className="relative mt-3 h-[150px] sm:mt-4 sm:h-[178px] overflow-hidden rounded-xl border border-white/[0.055] bg-[#020a10] px-4 pb-7 pt-4">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_12%,rgba(59,130,246,0.10),transparent_38%)]" />
 
         {[25, 50, 75].map((top) => (
@@ -224,7 +224,7 @@ function LiveActivity() {
   const activities = useRotateActivity();
 
   return (
-    <div className="rounded-2xl border border-blue-200/[0.1] bg-[#081824] p-4">
+    <div className="hidden rounded-2xl border border-blue-200/[0.1] bg-[#081824] p-4 min-[430px]:block">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[12px] font-bold text-white">Recent updates</p>
