@@ -1886,7 +1886,7 @@ function CardsWorkspace({
 
   return (
     <section className="mt-5 overflow-hidden rounded-[32px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.045),transparent_28%),linear-gradient(180deg,#04101a_0%,#020a12_100%)] shadow-[0_40px_140px_rgba(0,0,0,.42)]">
-      <section className="sticky top-0 z-40 overflow-visible border-b border-white/[0.07] bg-[#04101a]/94 backdrop-blur-2xl">
+      <section className="sticky top-0 z-40 overflow-visible border-b border-cyan-300/[0.09] bg-[#03101a]/97 shadow-[0_18px_55px_rgba(0,0,0,.3)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 border-b border-white/[0.055] px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <div className="mb-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
@@ -1910,7 +1910,7 @@ function CardsWorkspace({
               </span>
             </div>
             <p className="mt-2 text-[13px] text-slate-500">
-              Build, inspect, organize, and refine your deck from one focused creative workspace.
+              Build, inspect, organize, and refine your deck without leaving the studio.
             </p>
           </div>
 
@@ -1977,7 +1977,7 @@ function CardsWorkspace({
               onChange={(event) =>
                 setSearch(event.target.value)
               }
-              placeholder="Search card, type, or role..."
+              placeholder="Search cards, sets, or roles..."
               className="min-w-0 flex-1 bg-transparent text-[13px] text-white outline-none placeholder:text-slate-700"
             />
           </label>
@@ -2043,7 +2043,7 @@ function CardsWorkspace({
       </section>
 
       <div className="grid gap-0 xl:grid-cols-[250px_minmax(0,1fr)_330px]">
-        <aside className="space-y-4 border-r border-white/[0.055] bg-[#04101a]/72 p-4 xl:sticky xl:top-[154px] xl:max-h-[calc(100vh-168px)] xl:self-start xl:overflow-y-auto">
+        <aside className="space-y-4 border-r border-white/[0.055] bg-[#04101a]/72 p-4 xl:self-start">
           {isCommander && commanderCard ? (
             <section className="overflow-hidden rounded-[24px] border border-violet-300/[0.14] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.12),transparent_48%),#07131f] shadow-[0_24px_70px_rgba(0,0,0,.34)]">
               <div className="border-b border-white/[0.055] px-4 py-3">
@@ -2179,12 +2179,12 @@ function CardsWorkspace({
           </section>
         </aside>
 
-        <main className="min-w-0 bg-[#020b13]/55 p-4 sm:p-5">
+        <main className="min-w-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,.04),transparent_34%),#020b13] p-4 sm:p-5">
           <section className="mb-5 overflow-hidden rounded-[26px] border border-cyan-300/[0.14] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,.09),transparent_35%),linear-gradient(135deg,#081b28,#04111b)] p-5 shadow-[0_22px_70px_rgba(0,0,0,.24)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.7)]" /><p className="text-[14px] font-semibold tracking-[-0.01em] text-white">Deck Construction Canvas</p></div>
-                <p className="mt-1 text-[11px] text-slate-600">Drag from Trading Docks, Scryfall, or EDHREC. Every destination is live, account-synced, and reversible.</p>
+                <p className="mt-1 text-[11px] text-slate-600">Drag cards from Trading Docks, Scryfall, or EDHREC. Every change saves automatically.</p>
               </div>
               <span className="rounded-full border border-emerald-300/[0.12] bg-emerald-300/[0.04] px-3 py-1.5 text-[10px] font-semibold text-emerald-300">{externalDropBusy ? "Resolving external card…" : "Autosaves to your account"}</span>
             </div>
@@ -2228,7 +2228,7 @@ function CardsWorkspace({
                     <p className="text-xs font-semibold text-slate-200">{label}</p>
                     <span className="text-xs font-bold text-cyan-300">{count}</span>
                   </div>
-                  <p className="mt-2 text-[10px] leading-4 text-slate-700">Drop Trading Docks, Scryfall, or EDHREC cards here</p>
+                  <p className="mt-2 text-[10px] leading-4 text-slate-700">Drop cards here</p>
                 </div>
               ))}
             </div>
@@ -2318,7 +2318,7 @@ function CardsWorkspace({
               <div className="flex items-center justify-between border-b border-white/[0.055] px-5 py-4">
                 <div>
                   <p className="text-[17px] font-semibold text-white">
-                    Entire Deck List
+                    Deck Canvas
                   </p>
                   <p className="mt-1 text-[12px] text-slate-500">
                     {filteredCards.length} unique cards shown · compact desktop table
@@ -4148,13 +4148,6 @@ function DeckTableRow({
   onCheck: () => void;
   onSelect: () => void;
 }) {
-  const [previewOpen, setPreviewOpen] =
-    useState(false);
-  const [previewPosition, setPreviewPosition] =
-    useState({
-      top: 16,
-      left: 16,
-    });
   const [imageFailed, setImageFailed] =
     useState(false);
 
@@ -4168,62 +4161,16 @@ function DeckTableRow({
     setImageFailed(false);
   }, [imageSource]);
 
-  function openPreview(
-    target: HTMLElement,
-    pointer?: { x: number; y: number },
-  ) {
-    const rect =
-      target.getBoundingClientRect();
-    const previewWidth = 260;
-    const previewHeight = 430;
-    const viewportPadding = 16;
-    const pointerGap = 14;
-
-    let left = pointer ? pointer.x + pointerGap : rect.right + pointerGap;
-
-    if (
-      left + previewWidth >
-      window.innerWidth - viewportPadding
-    ) {
-      left = pointer
-        ? pointer.x - previewWidth - pointerGap
-        : rect.left - previewWidth - pointerGap;
-    }
-
-    left = Math.max(
-      viewportPadding,
-      Math.min(
-        left,
-        window.innerWidth -
-          previewWidth -
-          viewportPadding,
-      ),
-    );
-
-    const belowTop = pointer ? pointer.y + pointerGap : rect.bottom + 10;
-    const top =
-      belowTop + previewHeight <= window.innerHeight - viewportPadding
-        ? belowTop
-        : Math.max(
-            viewportPadding,
-            (pointer?.y ?? rect.top) - previewHeight - pointerGap,
-          );
-
-    setPreviewPosition({
-      top,
-      left,
-    });
-    setPreviewOpen(true);
-  }
-
   return (
     <tr
       onClick={onSelect}
+      onMouseEnter={onSelect}
+      onFocus={onSelect}
       className={[
-        "cursor-pointer border-b border-white/[0.04] transition last:border-b-0",
+        "cursor-pointer border-b border-white/[0.045] transition last:border-b-0",
         selected
-          ? "bg-cyan-400/[0.045]"
-          : "hover:bg-white/[0.018]",
+          ? "bg-cyan-400/[0.065] shadow-[inset_3px_0_0_rgba(103,232,249,.75)]"
+          : "hover:bg-cyan-300/[0.025]",
       ].join(" ")}
     >
       <td
@@ -4245,8 +4192,17 @@ function DeckTableRow({
       </td>
 
       <td className="min-w-0 px-3 py-2.5">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-white/[0.06] bg-slate-950">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect();
+          }}
+          onMouseEnter={onSelect}
+          onFocus={onSelect}
+          className="group/name flex min-w-0 items-center gap-3 text-left"
+        >
+          <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-white/[0.08] bg-slate-950 shadow-[0_7px_18px_rgba(0,0,0,.3)]">
             {!imageFailed ? (
               <img
                 src={imageSource}
@@ -4261,103 +4217,14 @@ function DeckTableRow({
           </div>
 
           <div className="min-w-0">
-            <button
-              type="button"
-              onMouseEnter={(event) =>
-                openPreview(
-                  event.currentTarget,
-                  {
-                    x: event.clientX,
-                    y: event.clientY,
-                  },
-                )
-              }
-              onMouseMove={(event) =>
-                openPreview(event.currentTarget, {
-                  x: event.clientX,
-                  y: event.clientY,
-                })
-              }
-              onMouseLeave={() =>
-                setPreviewOpen(false)
-              }
-              onFocus={(event) =>
-                openPreview(
-                  event.currentTarget,
-                )
-              }
-              onBlur={() =>
-                setPreviewOpen(false)
-              }
-              onClick={(event) => {
-                event.stopPropagation();
-                onSelect();
-              }}
-              className="group/name max-w-full text-left"
-              aria-describedby={`preview-${card.id}`}
-            >
-              <p className="truncate text-[14px] font-semibold text-white underline decoration-transparent underline-offset-4 transition group-hover/name:text-cyan-200 group-hover/name:decoration-cyan-300/40">
-                {card.name}
-              </p>
-              <p className="mt-1 truncate text-[11px] text-slate-500">
-                {card.category} · {card.typeLine}
-              </p>
-            </button>
-
-            {previewOpen ? (
-              <div
-                id={`preview-${card.id}`}
-                role="tooltip"
-                style={{
-                  top: previewPosition.top,
-                  left: previewPosition.left,
-                }}
-                className="pointer-events-none fixed z-[120] w-[260px] rounded-[22px] border border-cyan-300/[0.16] bg-[#04101a]/98 p-3 shadow-[0_28px_90px_rgba(0,0,0,0.62),0_0_34px_rgba(34,211,238,0.12)] backdrop-blur-xl"
-              >
-                <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30">
-                  {!imageFailed ? (
-                    <img
-                      src={imageSource}
-                      alt={card.name}
-                      className="aspect-[0.715] w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex aspect-[0.715] items-center justify-center p-5 text-center text-[12px] text-slate-500">
-                      Card image unavailable
-                    </div>
-                  )}
-                </div>
-
-                <div className="px-1 pb-1 pt-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[15px] font-semibold leading-5 text-white">
-                        {card.name}
-                      </p>
-                      <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                        {card.typeLine}
-                      </p>
-                    </div>
-                    <span className="shrink-0 rounded-lg border border-cyan-300/[0.12] bg-cyan-400/[0.035] px-2 py-1 text-[11px] font-semibold text-cyan-200">
-                      MV {card.manaValue}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between border-t border-white/[0.055] pt-3">
-                    <span className="text-[11px] text-slate-500">
-                      {card.quantity === 1
-                        ? "Single copy"
-                        : `${card.quantity} copies`}
-                    </span>
-                    <span className="text-[13px] font-semibold text-emerald-200">
-                      ${card.price.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+            <p className="truncate text-[14px] font-semibold text-white underline decoration-transparent underline-offset-4 transition group-hover/name:text-cyan-200 group-hover/name:decoration-cyan-300/40">
+              {card.name}
+            </p>
+            <p className="mt-1 truncate text-[11px] text-slate-500">
+              {card.category} · {card.typeLine}
+            </p>
           </div>
-        </div>
+        </button>
       </td>
 
       <td className="hidden truncate px-3 py-2.5 text-[12px] text-slate-400 2xl:table-cell">
@@ -4399,6 +4266,7 @@ function DeckTableRow({
                 : "Illegal"}
             </span>
           ) : null}
+
           {card.gameChanger ? (
             <span className="rounded-full border border-violet-300/[0.12] bg-violet-400/[0.035] px-2 py-1 text-[10px] text-violet-200">
               Game Changer
@@ -4409,6 +4277,7 @@ function DeckTableRow({
     </tr>
   );
 }
+
 
 function inventoryLocationLabel(match: InventoryMatch) {
   const details = [
