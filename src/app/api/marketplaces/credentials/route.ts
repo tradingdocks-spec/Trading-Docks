@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         user_id: user.id,
         marketplace_id: body.marketplaceId,
         connection_method: "api",
-        status: "setup_required",
+        status: body.marketplaceId === "mana-pool" ? "ready" : "setup_required",
         settings: { credentials_saved: true },
         updated_at: new Date().toISOString(),
       },
@@ -107,7 +107,16 @@ export async function POST(request: Request) {
     );
     if (connectionResult.error) throw connectionResult.error;
 
-    return NextResponse.json({ ok: true, masked: labels });
+    return NextResponse.json({
+      ok: true,
+      masked: labels,
+      lastFour:
+        body.marketplaceId === "mana-pool"
+          ? credentials.apiToken?.slice(-4) ?? null
+          : null,
+      status:
+        body.marketplaceId === "mana-pool" ? "ready" : "setup_required",
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not save credentials.";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -132,10 +141,16 @@ export async function GET(request: Request) {
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  const masked = (data?.credential_labels ?? {}) as Record<string, string>;
+
   return NextResponse.json({
     saved: Boolean(data),
-    masked: data?.credential_labels ?? {},
+    masked,
     updatedAt: data?.updated_at ?? null,
+    lastFour:
+      marketplaceId === "mana-pool"
+        ? masked.apiToken?.slice(-4) ?? null
+        : null,
   });
 }
 

@@ -326,6 +326,7 @@ export function MarketplaceWorkspace() {
   const [importAddress, setImportAddress] = useState("Loading permanent address…");
   const [importAddressStatus, setImportAddressStatus] = useState("loading");
   const [emailProcessing, setEmailProcessing] = useState(false);
+  const [manaPoolImporting, setManaPoolImporting] = useState(false);
 
   const loadCredentialStatus = useCallback(async (marketplaceId: string) => {
     setCheckingCredentials(true);
@@ -473,7 +474,7 @@ export function MarketplaceWorkspace() {
         {
           marketplace_id: selected.id,
           connection_method: "api",
-          status: "setup_required",
+          status: selected.id === "mana-pool" ? "ready" : "setup_required",
           settings: { credentials_saved: true },
           last_sync_at: null,
         },
@@ -486,11 +487,80 @@ export function MarketplaceWorkspace() {
           saved: true,
           masked: (result as { masked?: Record<string, string> } | null)?.masked ?? {},
           updatedAt: new Date().toISOString(),
+          lastFour:
+            (result as { lastFour?: string | null } | null)?.lastFour ??
+            ((result as { masked?: Record<string, string> } | null)?.masked?.apiToken?.slice(-4) ?? null),
         },
       }));
-      setNotice(`${selected.name} credentials were encrypted and saved. Authorization is the next step.`);
+      setNotice(
+        selected.id === "mana-pool"
+          ? "Mana Pool API key was encrypted and saved. The connection is ready to import."
+          : `${selected.name} credentials were encrypted and saved. Authorization is the next step.`,
+      );
     }
     setSaving(false);
+  }
+
+  async function importManaPool() {
+    setManaPoolImporting(true);
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/marketplaces/manapool/import", {
+        method: "POST",
+      });
+
+      const result = (await response.json().catch(() => null)) as
+        | {
+            importedInventory?: number;
+            importedOrders?: number;
+            importedPricing?: number;
+            message?: string;
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ?? "Mana Pool import could not be completed.",
+        );
+      }
+
+      setConnections((current) =>
+        current.map((item) =>
+          item.marketplace_id === "mana-pool"
+            ? {
+                ...item,
+                status: "ready",
+                connection_method: "api",
+                last_sync_at: new Date().toISOString(),
+                settings: {
+                  ...(item.settings ?? {}),
+                  credentials_saved: true,
+                  last_import: {
+                    inventory: result?.importedInventory ?? 0,
+                    orders: result?.importedOrders ?? 0,
+                    pricing: result?.importedPricing ?? 0,
+                  },
+                },
+              }
+            : item,
+        ),
+      );
+
+      setNotice(
+        result?.message ??
+          `Mana Pool import complete: ${result?.importedInventory ?? 0} inventory rows, ${result?.importedOrders ?? 0} orders, and ${result?.importedPricing ?? 0} price records.`,
+      );
+    } catch (reason) {
+      setNotice(
+        reason instanceof Error
+          ? reason.message
+          : "Mana Pool import could not be completed.",
+      );
+    } finally {
+      setManaPoolImporting(false);
+    }
   }
 
   async function saveConnection(): Promise<boolean> {
@@ -787,10 +857,24 @@ export function MarketplaceWorkspace() {
                         <input
                           type="password"
                           autoComplete="new-password"
-                          value={credentials.apiToken ?? ""}
-                          onChange={(event) => setCredentials((current) => ({ ...current, apiToken: event.target.value }))}
-                          placeholder={savedCredentials["mana-pool"]?.saved ? "Paste a replacement key" : "Paste the key from Mana Pool"}
-                          className="h-12 w-full rounded-xl border border-white/[.08] bg-[#030c17] pl-10 pr-3 text-sm text-white outline-none placeholder:text-slate-700 focus:border-violet-300/35"
+                          readOnly={
+                            savedCredentials["mana-pool"]?.saved &&
+                            !editingCredentials["mana-pool"]
+                          }
+                          value={
+                            savedCredentials["mana-pool"]?.saved &&
+                            !editingCredentials["mana-pool"]
+                              ? `••••••••••••${savedCredentials["mana-pool"]?.lastFour ?? ""}`
+                              : credentials.apiToken ?? ""
+                          }
+                          onChange={(event) =>
+                            setCredentials((current) => ({
+                              ...current,
+                              apiToken: event.target.value,
+                            }))
+                          }
+                          placeholder="Paste the key from Mana Pool"
+                          className="h-12 w-full rounded-xl border border-white/[.08] bg-[#030c17] pl-10 pr-3 text-sm text-white outline-none placeholder:text-slate-700 focus:border-violet-300/35 read-only:cursor-default read-only:text-emerald-200/80"
                         />
                       </div>
                     </label>
@@ -800,15 +884,85 @@ export function MarketplaceWorkspace() {
                       <p className="text-[9px] leading-4 text-blue-100/55">Your key is encrypted on the server. Trading Docks never asks for your Mana Pool password and never stores this key in browser storage.</p>
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={saving || !databaseReady || !(credentials.apiToken ?? "").trim()}
-                      onClick={() => void saveCredentials()}
-                      className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-violet-400 text-xs font-bold text-[#080312] hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-45"
-                    >
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                      {savedCredentials["mana-pool"]?.saved ? "Encrypt & save replacement key" : "Encrypt & save API key"}
-                    </button>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      {savedCredentials["mana-pool"]?.saved &&
+                      !editingCredentials["mana-pool"] ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={manaPoolImporting || !databaseReady}
+                            onClick={() => void importManaPool()}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-400 text-xs font-bold text-[#080312] hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            {manaPoolImporting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                            {manaPoolImporting
+                              ? "Importing from Mana Pool"
+                              : "Import from Mana Pool"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCredentials((current) => ({
+                                ...current,
+                                "mana-pool": true,
+                              }));
+                              setCredentials((current) => ({
+                                ...current,
+                                apiToken: "",
+                              }));
+                            }}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[.08] bg-white/[.025] text-xs font-bold text-slate-300 hover:bg-white/[.05]"
+                          >
+                            <KeyRound className="h-4 w-4 text-violet-300" />
+                            Replace saved key
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={
+                              saving ||
+                              !databaseReady ||
+                              !(credentials.apiToken ?? "").trim()
+                            }
+                            onClick={() => void saveCredentials()}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-400 text-xs font-bold text-[#080312] hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-45 sm:col-span-2"
+                          >
+                            {saving ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ShieldCheck className="h-4 w-4" />
+                            )}
+                            {savedCredentials["mana-pool"]?.saved
+                              ? "Encrypt & save replacement key"
+                              : "Encrypt & save API key"}
+                          </button>
+                          {savedCredentials["mana-pool"]?.saved ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCredentials((current) => ({
+                                  ...current,
+                                  "mana-pool": false,
+                                }));
+                                setCredentials((current) => ({
+                                  ...current,
+                                  apiToken: "",
+                                }));
+                              }}
+                              className="h-10 rounded-xl border border-white/[.08] bg-white/[.025] text-[10px] font-semibold text-slate-500 sm:col-span-2"
+                            >
+                              Cancel replacement
+                            </button>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
 
                     {!databaseReady ? (
                       <p className="mt-2 text-center text-[9px] leading-4 text-amber-300/70">Marketplace credential storage is not ready. Run the marketplace credential Supabase migration first.</p>
