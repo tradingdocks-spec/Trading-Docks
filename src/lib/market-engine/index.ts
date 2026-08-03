@@ -13,6 +13,14 @@ import type {
 
 export const MARKET_REFRESH_SECONDS = 300;
 
+const ALL_GAMES: GameId[] = [
+  "magic",
+  "pokemon",
+  "pokemon-japan",
+  "lorcana",
+  "one-piece",
+];
+
 const GAME_LABELS: Record<GameId, string> = {
   magic: "Magic: The Gathering",
   pokemon: "Pokémon",
@@ -24,43 +32,51 @@ const GAME_LABELS: Record<GameId, string> = {
 export async function loadMarketPayload(
   requestedGame?: GameId,
 ): Promise<MarketPayload> {
-  const games: GameId[] = requestedGame
+  const requestedGames: GameId[] = requestedGame
     ? [requestedGame]
-    : ["magic", "pokemon", "pokemon-japan", "lorcana", "one-piece"];
+    : ALL_GAMES;
 
-  const entries = await Promise.all(
-    games.map(async (game) => [game, await safeLoad(game)] as const),
+  const loadedEntries: Array<
+    readonly [GameId, MarketCard[]]
+  > = await Promise.all(
+    requestedGames.map(
+      async (game): Promise<
+        readonly [GameId, MarketCard[]]
+      > => [game, await safeLoad(game)] as const,
+    ),
   );
 
-  const empty = {
+  const gameData: Record<GameId, MarketCard[]> = {
     magic: [],
     pokemon: [],
     "pokemon-japan": [],
     lorcana: [],
     "one-piece": [],
-  } satisfies Record<GameId, MarketCard[]>;
-
-  const gameData = {
-    ...empty,
-    ...Object.fromEntries(entries),
   };
 
-  const status = Object.fromEntries(
-    (Object.keys(gameData) as GameId[]).map((game) => {
-      const cards = gameData[game];
-      const first = cards[0];
-      return [
-        game,
-        {
-          game,
-          label: GAME_LABELS[game],
-          source: first?.source ?? "Unavailable",
-          dataQuality: first?.dataQuality ?? "fallback",
-          cardCount: cards.length,
-        } satisfies MarketGameStatus,
-      ];
-    }),
-  ) as Record<GameId, MarketGameStatus>;
+  for (const [game, cards] of loadedEntries) {
+    gameData[game] = cards;
+  }
+
+  const status: Record<GameId, MarketGameStatus> = {
+    magic: createGameStatus("magic", gameData.magic),
+    pokemon: createGameStatus(
+      "pokemon",
+      gameData.pokemon,
+    ),
+    "pokemon-japan": createGameStatus(
+      "pokemon-japan",
+      gameData["pokemon-japan"],
+    ),
+    lorcana: createGameStatus(
+      "lorcana",
+      gameData.lorcana,
+    ),
+    "one-piece": createGameStatus(
+      "one-piece",
+      gameData["one-piece"],
+    ),
+  };
 
   return {
     updatedAt: new Date().toISOString(),
@@ -70,15 +86,49 @@ export async function loadMarketPayload(
   };
 }
 
-async function safeLoad(game: GameId): Promise<MarketCard[]> {
+function createGameStatus(
+  game: GameId,
+  cards: MarketCard[],
+): MarketGameStatus {
+  const firstCard: MarketCard | undefined = cards[0];
+
+  return {
+    game,
+    label: GAME_LABELS[game],
+    source: firstCard?.source ?? "Unavailable",
+    dataQuality:
+      firstCard?.dataQuality ?? "fallback",
+    cardCount: cards.length,
+  };
+}
+
+async function safeLoad(
+  game: GameId,
+): Promise<MarketCard[]> {
   try {
-    if (game === "magic") return await loadMagic();
-    if (game === "pokemon") return await loadPokemon();
-    if (game === "pokemon-japan") return await loadPokemonJapan();
-    if (game === "lorcana") return await loadLorcana();
+    if (game === "magic") {
+      return await loadMagic();
+    }
+
+    if (game === "pokemon") {
+      return await loadPokemon();
+    }
+
+    if (game === "pokemon-japan") {
+      return await loadPokemonJapan();
+    }
+
+    if (game === "lorcana") {
+      return await loadLorcana();
+    }
+
     return await loadOnePiece();
   } catch (error) {
-    console.error(`${game} market adapter failed:`, error);
+    console.error(
+      `${game} market adapter failed:`,
+      error,
+    );
+
     return fallbackCards(game);
   }
 }
