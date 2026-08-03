@@ -2,6 +2,14 @@
 
 import Link from "next/link";
 import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
+import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRightLeft,
   BookOpen,
@@ -53,13 +61,6 @@ import {
   Truck,
   Warehouse,
   X,
-  useEffect,
-  useMemo,
-  useRef,
-  useState } from "react";
-import { createPortal } from "react-dom";
-import {
-  AlertTriangle,
 } from "lucide-react";
 
 import { MetricCard } from "../common/MetricCard";
