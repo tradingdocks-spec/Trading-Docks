@@ -2416,6 +2416,7 @@ function CardsWorkspace({
             <DeckCondensedView
               cards={filteredCards}
               onSelect={setSelectedCardId}
+              onHover={setSelectedCardId}
             />
           ) : null}
 
@@ -2713,11 +2714,12 @@ function groupedDeckCards(cards: DeckCard[]) {
 function DeckCondensedView({
   cards,
   onSelect,
+  onHover,
 }: {
   cards: DeckCard[];
   onSelect: (id: string) => void;
+  onHover: (id: string) => void;
 }) {
-  const [hoveredCard, setHoveredCard] = useState<DeckCard | null>(null);
   const [previewPosition, setPreviewPosition] = useState({ left: 0, top: 0 });
   const groups = groupedDeckCards(cards);
   const mainGroups = groups.filter(
@@ -2793,6 +2795,8 @@ function DeckCondensedView({
               key={card.id}
               type="button"
               onClick={() => onSelect(card.id)}
+                      onMouseEnter={() => onHover(card.id)}
+                      onFocus={() => onHover(card.id)}
               onMouseEnter={(event) => showCardPreview(card, event.currentTarget)}
               onMouseMove={(event) =>
                 showCardPreview(card, event.currentTarget, {
@@ -2863,22 +2867,7 @@ function DeckCondensedView({
           </div>
         </div>
       ) : null}
-      {hoveredCard ? (
-        <div
-          className="pointer-events-none fixed z-[80] hidden w-[260px] overflow-hidden rounded-[18px] border border-cyan-200/25 bg-[#020810] p-2 shadow-[0_28px_90px_rgba(0,0,0,.75)] lg:block"
-          style={{ left: previewPosition.left, top: previewPosition.top }}
-        >
-          <img
-            src={hoveredCard.image || `/api/deck-vault/card-image?name=${encodeURIComponent(hoveredCard.name)}`}
-            alt=""
-            className="aspect-[0.715] w-full rounded-[12px] object-cover"
-          />
-          <div className="flex items-center justify-between gap-3 px-1 pb-1 pt-2">
-            <p className="truncate text-[12px] font-semibold text-white">{hoveredCard.name}</p>
-            <span className="shrink-0 text-[11px] font-black text-cyan-200">×{hoveredCard.quantity}</span>
-          </div>
-        </div>
-      ) : null}
+      
     </section>
   );
 }
@@ -6249,6 +6238,45 @@ function inferCategory(card: ScryfallCardResult) {
   return "Other";
 }
 
+
+function CleanColorIdentity({
+  colors,
+  compact = false,
+}: {
+  colors: ManaColor[];
+  compact?: boolean;
+}) {
+  const identity = displayCommanderColors(colors);
+  const shown = identity.length ? identity : (["C"] as ManaColor[]);
+
+  return (
+    <div
+      className={[
+        "inline-flex items-center rounded-full border border-white/[0.08] bg-[#030b13]/88",
+        compact ? "gap-1 px-1.5 py-1" : "gap-1.5 px-2 py-1.5",
+      ].join(" ")}
+      aria-label={`Color identity: ${shown.map(manaName).join(", ")}`}
+    >
+      {shown.map((color) => (
+        <span
+          key={color}
+          className={[
+            "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-slate-950 shadow-[0_2px_7px_rgba(0,0,0,.4)]",
+            compact ? "h-5 w-5" : "h-6 w-6",
+          ].join(" ")}
+          title={manaName(color)}
+        >
+          <img
+            src={manaSymbolUrl(color)}
+            alt=""
+            className="h-[92%] w-[92%] object-contain"
+          />
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function ManaSymbols({
   colors,
   size = "md",
@@ -6837,7 +6865,7 @@ function ReadinessCheck({
         ? "border-emerald-300/[0.1] bg-emerald-400/[0.025]"
         : "border-amber-300/[0.11] bg-amber-400/[0.025]",
     ].join(" ")}>
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         {ready ? (
           <CheckCircle2 className="h-4 w-4 text-emerald-300" />
         ) : (
