@@ -17,6 +17,7 @@ import {
   LibraryBig,
   PackageCheck,
   PackageSearch,
+  Rocket,
   Percent,
   MessageSquarePlus,
   Scale,
@@ -165,6 +166,7 @@ export const SELLING_NAV: NavigationSection = {
   icon: CircleDollarSign,
   href: "/dashboard/sell-optimizer",
   children: [
+    { href: "/dashboard/seller-launch", label: "Seller Launch", icon: Rocket },
     { href: "/dashboard/sell-optimizer", label: "Sell Optimizer", icon: CircleDollarSign },
     { href: "/dashboard/marketplaces", label: "Marketplaces", icon: Store },
     { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
