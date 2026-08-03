@@ -17,6 +17,7 @@ import {
   LibraryBig,
   PackageCheck,
   PackageSearch,
+  Palette,
   Rocket,
   Percent,
   MessageSquarePlus,
@@ -57,6 +58,11 @@ export const PRIMARY_NAV: NavigationItem[] = [
     href: "/dashboard/inventory",
     label: "Inventory",
     icon: Boxes,
+  },
+  {
+    href: "/dashboard/collector-portfolio",
+    label: "Collector Portfolio",
+    icon: Palette,
   },
   {
     href: "/dashboard/deck-vault",
