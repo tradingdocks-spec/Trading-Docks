@@ -826,6 +826,12 @@ export function DeckDetailWorkspace({
       );
     });
   }
+  function trashCardFromDeck(card: DeckCard) {
+    setUndoCard({ ...card, quantity: 1 });
+    removeCard(card.id);
+  }
+
+
 
   function removeDraggedCard(id: string) {
     const card = cards.find((item) => item.id === id);
@@ -1157,6 +1163,7 @@ export function DeckDetailWorkspace({
             addCard={addCard}
             replaceCard={replaceCard}
             removeCard={removeCard}
+            trashCardFromDeck={trashCardFromDeck}
             beginDrag={beginDrag}
             finishDrag={finishDrag}
             acceptDrop={acceptDrop}
@@ -1222,7 +1229,7 @@ export function DeckDetailWorkspace({
           ].join(" ")}
         >
           <Trash2 className="h-5 w-5" />
-          Drop here to remove one copy from this deck
+          Drop here to remove one copy from this deck · Inventory stays safe
         </div>
       ) : null}
 
@@ -1561,6 +1568,7 @@ function CardsWorkspace({
   addCard,
   replaceCard,
   removeCard,
+  trashCardFromDeck,
   beginDrag,
   finishDrag,
   acceptDrop,
@@ -1596,6 +1604,7 @@ function CardsWorkspace({
   addCard: (card: ScryfallCardResult, section?: DeckDropSection) => void;
   replaceCard: (currentCard: DeckCard, replacement: ScryfallCardResult) => void;
   removeCard: (id: string) => void;
+  trashCardFromDeck: (card: DeckCard) => void;
   beginDrag: (event: DragEvent, payload: DeckDragPayload) => void;
   finishDrag: () => void;
   acceptDrop: (event: DragEvent, target: DeckDropSection | "trash") => Promise<void>;
@@ -2417,6 +2426,7 @@ function CardsWorkspace({
               cards={filteredCards}
               onSelect={setSelectedCardId}
               onHover={setSelectedCardId}
+              onTrash={trashCardFromDeck}
             />
           ) : null}
 
@@ -2598,12 +2608,13 @@ function CardsWorkspace({
                     <InspectorAction
                       tone="rose"
                       onClick={() =>
-                        removeCard(
-                          selectedCard.id,
-                        )
+                        trashCardFromDeck(selectedCard)
                       }
                     >
-                      Remove from Deck
+                      <span className="inline-flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Remove one copy from deck
+                      </span>
                     </InspectorAction>
                   </div>
                 </div>
@@ -2715,45 +2726,20 @@ function DeckCondensedView({
   cards,
   onSelect,
   onHover,
+  onTrash,
 }: {
   cards: DeckCard[];
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
+  onTrash: (card: DeckCard) => void;
 }) {
-  const [previewPosition, setPreviewPosition] = useState({ left: 0, top: 0 });
-  const groups = groupedDeckCards(cards);
+const groups = groupedDeckCards(cards);
   const mainGroups = groups.filter(
     (group) => group.type !== "Sideboard" && group.type !== "Considering",
   );
   const separateGroups = groups.filter(
     (group) => group.type === "Sideboard" || group.type === "Considering",
   );
-
-  const showCardPreview = (
-    card: DeckCard,
-    target: HTMLButtonElement,
-    pointer?: { x: number; y: number },
-  ) => {
-    const rect = target.getBoundingClientRect();
-    const previewWidth = 260;
-    const previewHeight = 410;
-    const gutter = 14;
-    const viewportPadding = 16;
-    const anchorX = pointer?.x ?? rect.right;
-    const anchorY = pointer?.y ?? rect.bottom;
-    const fitsRight =
-      anchorX + gutter + previewWidth <= window.innerWidth - viewportPadding;
-    const left = fitsRight
-      ? anchorX + gutter
-      : Math.max(viewportPadding, anchorX - gutter - previewWidth);
-    const belowTop = anchorY + gutter;
-    const top =
-      belowTop + previewHeight <= window.innerHeight - viewportPadding
-        ? belowTop
-        : Math.max(viewportPadding, anchorY - previewHeight - gutter);
-    setPreviewPosition({ left, top });
-    setHoveredCard(card);
-  };
 
   const identityAccent = (colors: DeckCard["colors"]) => {
     const palette: Record<DeckCard["colors"][number], string> = {
@@ -2795,18 +2781,8 @@ function DeckCondensedView({
               key={card.id}
               type="button"
               onClick={() => onSelect(card.id)}
-                      onMouseEnter={() => onHover(card.id)}
-                      onFocus={() => onHover(card.id)}
-              onMouseEnter={(event) => showCardPreview(card, event.currentTarget)}
-              onMouseMove={(event) =>
-                showCardPreview(card, event.currentTarget, {
-                  x: event.clientX,
-                  y: event.clientY,
-                })
-              }
-              onMouseLeave={() => setHoveredCard(null)}
-              onFocus={(event) => showCardPreview(card, event.currentTarget)}
-              onBlur={() => setHoveredCard(null)}
+              onMouseEnter={() => onHover(card.id)}
+              onFocus={() => onHover(card.id)}
               className="group relative flex min-h-9 w-full items-center gap-2.5 overflow-hidden px-3.5 py-2 text-left transition duration-150 hover:bg-cyan-200/[0.065] focus-visible:bg-cyan-200/[0.065] focus-visible:outline-none"
             >
               <span
@@ -2828,6 +2804,26 @@ function DeckCondensedView({
               </span>
               <span className="w-14 shrink-0 text-right text-[10px] font-medium tabular-nums text-emerald-200/65">
                 ${(card.price * card.quantity).toFixed(2)}
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label={`Remove one copy of ${card.name} from deck`}
+                title="Remove one copy from deck"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onTrash(card);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onTrash(card);
+                  }
+                }}
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-rose-300/[0.14] bg-rose-400/[0.04] text-rose-300/75 opacity-0 transition group-hover:opacity-100 focus:opacity-100 hover:bg-rose-400/[0.1] hover:text-rose-200"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
               </span>
             </button>
           ))}
