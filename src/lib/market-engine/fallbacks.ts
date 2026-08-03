@@ -55,6 +55,12 @@ export function fallbackCards(
         ),
       ],
     ],
+    "pokemon-japan": [
+      ["リザードンex", "ポケモンカード151", 112.5, 3, ""],
+      ["ブラッキーVMAX", "VMAXクライマックス", 486, 1, ""],
+      ["ピカチュウex", "超電ブレイカー", 83.25, 4, ""],
+      ["ゲンガー", "VSTARユニバース", 74.8, 2, ""],
+    ],
     lorcana: [
       ["Elsa — Spirit of Winter", "The First Chapter", 1267.58, 2, ""],
       ["Mickey Mouse — Brave Little Tailor", "The First Chapter", 410, 5, ""],
@@ -95,6 +101,8 @@ export function fallbackCards(
         marketPrice,
         inventoryOwned,
         index,
+        source: "Built-in market reference",
+        dataQuality: "fallback",
       }),
   );
 }

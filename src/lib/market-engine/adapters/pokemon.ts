@@ -95,6 +95,9 @@ export async function loadPokemon(): Promise<MarketCard[]> {
         marketPrice: market,
         inventoryOwned: seed.owned,
         index,
+        source: "Pokémon TCG API",
+        sourceUrl: "https://docs.pokemontcg.io/",
+        dataQuality: "live",
       });
     }),
   );

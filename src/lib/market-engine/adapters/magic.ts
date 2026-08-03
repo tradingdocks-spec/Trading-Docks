@@ -64,6 +64,9 @@ export async function loadMagic(): Promise<MarketCard[]> {
           ),
           inventoryOwned: owned,
           index,
+          source: "Scryfall",
+          sourceUrl: "https://scryfall.com/docs/api",
+          dataQuality: "live",
         });
       },
     ),

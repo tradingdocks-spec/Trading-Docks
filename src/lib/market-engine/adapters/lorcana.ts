@@ -84,6 +84,9 @@ export async function loadLorcana(): Promise<MarketCard[]> {
         ),
         inventoryOwned: [2, 5, 3, 1][index],
         index,
+        source: "Lorcast",
+        sourceUrl: "https://lorcast.com/docs/api/cards",
+        dataQuality: "live",
       });
     }),
   );

@@ -85,6 +85,8 @@ export async function loadOnePiece(): Promise<MarketCard[]> {
         inventoryOwned:
           [6, 16, 2, 9][index],
         index,
+        source: "OPTCG API",
+        dataQuality: "live",
       });
     }),
   );

@@ -13,6 +13,7 @@ import {
 type GameId =
   | "magic"
   | "pokemon"
+  | "pokemon-japan"
   | "lorcana"
   | "one-piece";
 
@@ -38,6 +39,7 @@ const GAMES: Array<{
 }> = [
   { id: "magic", label: "Magic: The Gathering" },
   { id: "pokemon", label: "Pokémon" },
+  { id: "pokemon-japan", label: "Pokémon Japan" },
   { id: "lorcana", label: "Disney Lorcana" },
   { id: "one-piece", label: "One Piece" },
 ];
