@@ -494,7 +494,7 @@ export function MarketplaceWorkspace() {
       }));
       setNotice(
         selected.id === "mana-pool"
-          ? "Mana Pool API key was encrypted and saved. The connection is ready to import."
+          ? "Mana Pool API key was encrypted and connected. You can import supported Mana Pool data now."
           : `${selected.name} credentials were encrypted and saved. Authorization is the next step.`,
       );
     }
@@ -734,8 +734,15 @@ export function MarketplaceWorkspace() {
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filtered.map((marketplace) => {
                 const connection = connections.find((item) => item.marketplace_id === marketplace.id);
-                const isConnected = connection?.status === "ready";
-                const needsAttention = connection?.status === "attention" || connection?.status === "setup_required";
+                const manaPoolCredentialSaved =
+                  marketplace.id === "mana-pool" &&
+                  savedCredentials["mana-pool"]?.saved;
+                const isConnected =
+                  connection?.status === "ready" || manaPoolCredentialSaved;
+                const needsAttention =
+                  !manaPoolCredentialSaved &&
+                  (connection?.status === "attention" ||
+                    connection?.status === "setup_required");
                 return (
                   <article key={marketplace.id} className="rounded-[22px] border border-white/[.08] bg-[#07141e]/90 p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/20">
                     <div className="flex items-start justify-between gap-4">
@@ -883,6 +890,27 @@ export function MarketplaceWorkspace() {
                       <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
                       <p className="text-[9px] leading-4 text-blue-100/55">Your key is encrypted on the server. Trading Docks never asks for your Mana Pool password and never stores this key in browser storage.</p>
                     </div>
+                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[.035] p-3">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                      <p className="text-[9px] leading-4 text-emerald-100/60">
+                        <strong className="text-emerald-100">Self-service connection:</strong>{" "}
+                        Your seller API key connects this workspace directly to Mana Pool. No Trading Docks administrator activation is required.
+                      </p>
+                    </div>
+
+                    {savedCredentials["mana-pool"]?.saved ? (
+                      <div className="mt-4 flex items-start gap-3 rounded-2xl border border-emerald-300/15 bg-emerald-300/[.035] p-4">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                        <div>
+                          <p className="text-[10px] font-semibold text-emerald-100">
+                            Mana Pool connection active
+                          </p>
+                          <p className="mt-1 text-[9px] leading-4 text-emerald-100/55">
+                            This seller API key is connected to the current workspace. No Trading Docks administrator approval is required.
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
                       {savedCredentials["mana-pool"]?.saved &&
@@ -971,13 +999,21 @@ export function MarketplaceWorkspace() {
                 </div>
               ) : null}
 
-              {method === "api" ? (
+              {method === "api" && selected.id !== "mana-pool" ? (
                 <div className="space-y-4 rounded-[22px] border border-cyan-300/12 bg-cyan-300/[.025] p-4">
                   <div className="flex items-start gap-3">
                     <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
                     <div>
-                      <p className="text-xs font-semibold text-cyan-100">Secure platform connection</p>
-                      <p className="mt-1 text-[10px] leading-5 text-slate-500">Trading Docks manages marketplace application credentials. You will never be asked for a Client Secret, API key, RuName, encryption key, or marketplace password here.</p>
+                      <p className="text-xs font-semibold text-cyan-100">
+                        {selected.id === "mana-pool"
+                          ? "Secure seller API connection"
+                          : "Secure platform connection"}
+                      </p>
+                      <p className="mt-1 text-[10px] leading-5 text-slate-500">
+                        {selected.id === "mana-pool"
+                          ? "Use the API key generated inside your own Mana Pool seller account. Trading Docks encrypts it on the server and never asks for your Mana Pool password."
+                          : "Trading Docks manages marketplace application credentials. You will never be asked for a Client Secret, API key, RuName, encryption key, or marketplace password here."}
+                      </p>
                     </div>
                   </div>
                   {selected.id === "ebay" ? (

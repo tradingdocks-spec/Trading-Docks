@@ -116,6 +116,8 @@ export async function POST(request: Request) {
           : null,
       status:
         body.marketplaceId === "mana-pool" ? "ready" : "setup_required",
+      connected: body.marketplaceId === "mana-pool",
+      requiresAdminActivation: false,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not save credentials.";
