@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
   Copy,
   ExternalLink,
   Check,
+  CheckCircle2,
   ChevronRight,
   FileSpreadsheet,
   Inbox,
