@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { SignInEntrance } from "@/components/auth/SignInEntrance";
 import { RouteEntrance } from "@/components/navigation/PolishedNavigation";
@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   description:
     "Manage inventory, marketplace listings, pricing, and sales from one connected card-selling workspace.",
   manifest: "/site.webmanifest",
-  themeColor: "#07121F",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -23,6 +22,11 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
+};
+
+
+export const viewport: Viewport = {
+  themeColor: "#07121F",
 };
 
 type RootLayoutProps = Readonly<{
