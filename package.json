@@ -1,6 +1,6 @@
 {
   "name": "trading-docks",
-  "version": "0.76.7",
+  "version": "0.76.8",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
