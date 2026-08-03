@@ -838,3 +838,59 @@ img[src*="trading-docks-horizontal"] {
   box-shadow: none;
 }
 
+
+/* Trading Docks Experience 1.0 */
+html {
+  scroll-behavior: smooth;
+}
+
+.td-spotlight-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 280ms ease, border-color 280ms ease, background-color 280ms ease;
+}
+
+.td-spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background: radial-gradient(
+    260px circle at var(--td-mouse-x, 50%) var(--td-mouse-y, 50%),
+    rgba(96, 165, 250, 0.12),
+    transparent 68%
+  );
+  transition: opacity 260ms ease;
+}
+
+.td-spotlight-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(125, 211, 252, 0.2);
+}
+
+.td-spotlight-card:hover::before {
+  opacity: 1;
+}
+
+[data-td-reveal] {
+  opacity: 0;
+  transform: translateY(24px) scale(0.985);
+  transition: opacity 700ms cubic-bezier(.2,.8,.2,1), transform 700ms cubic-bezier(.2,.8,.2,1);
+}
+
+[data-td-reveal][data-td-visible="true"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .td-spotlight-card,
+  [data-td-reveal] {
+    transition: none !important;
+    transform: none !important;
+  }
+  [data-td-reveal] { opacity: 1; }
+}

@@ -73,11 +73,11 @@ export function Hero() {
             </div>
 
             <h1 className="mt-7 text-[48px] font-semibold leading-[0.94] tracking-[-0.06em] text-white sm:text-[58px] lg:text-[66px] xl:text-[72px]">
-              Start with your cards.
+              Every card. Every order.
               <span
                 className={`${styles.headlineGlow} mt-1 block bg-gradient-to-r from-cyan-200 via-blue-300 to-blue-500 bg-clip-text text-transparent`}
               >
-                Scale into a real operation.
+                One intelligent workspace.
               </span>
             </h1>
 

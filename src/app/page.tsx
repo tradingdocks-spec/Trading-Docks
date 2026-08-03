@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { AutomationSection } from "@/components/landing/AutomationSection";
 import { BackgroundEffects } from "@/components/landing/BackgroundEffects";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { ExperienceSection } from "@/components/landing/ExperienceSection";
+import { EcosystemSection } from "@/components/landing/EcosystemSection";
+import { LandingExperienceEffects } from "@/components/landing/LandingExperienceEffects";
 import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
@@ -12,6 +15,8 @@ import { PlanJourneySection } from "@/components/landing/PlanJourneySection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { TrustedGames } from "@/components/landing/TrustedGames";
+import { TrustSection } from "@/components/landing/TrustSection";
+import { WorkflowExperienceSection } from "@/components/landing/WorkflowExperienceSection";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
@@ -29,17 +34,22 @@ export default async function HomePage() {
 
   return (
     <main
-      data-landing-version="v234"
+      data-landing-version="v235"
       className="relative min-h-screen overflow-hidden bg-[#02090f] text-white"
     >
       <BackgroundEffects />
+      <LandingExperienceEffects />
       <Header />
       <Hero />
       <TrustedGames />
+      <ExperienceSection />
+      <WorkflowExperienceSection />
       <PlanJourneySection />
       <FeaturesSection />
+      <EcosystemSection />
       <MarketSection />
       <AutomationSection />
+      <TrustSection />
       <TestimonialsSection />
       <PricingSection />
       <FinalCTA />

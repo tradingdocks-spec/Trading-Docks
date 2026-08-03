@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 export const NAV_ITEMS = [
+  { label: "Experience", href: "#experience" },
   { label: "Platform", href: "#platform" },
   { label: "Plans", href: "#plans" },
   { label: "Market", href: "#market" },
