@@ -4311,109 +4311,37 @@ function ColorDemandPie({
     ),
   );
 
-  const radius = 72;
-  const circumference =
-    2 * Math.PI * radius;
-  const gap = 5;
-  let offset = 0;
-
-  const activeEntry = activeColor
-    ? cardCounts.find(
-        (entry) =>
-          entry.color === activeColor,
-      )
-    : null;
+  const maxCount = Math.max(
+    ...cardCounts.map((entry) => entry.count),
+    1,
+  );
+  const highestDemand = cardCounts.reduce(
+    (highest, entry) =>
+      entry.count > highest.count ? entry : highest,
+    cardCounts[0],
+  );
 
   return (
-    <div className="min-w-0 space-y-6">
-      <div className="grid min-w-0 gap-6 xl:grid-cols-[210px_minmax(0,1fr)] xl:items-center">
-        <div className="relative mx-auto h-[205px] w-[205px] max-w-full">
-          <div className="absolute inset-5 rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.08),transparent_65%)] blur-xl" />
-
-          <svg
-            viewBox="0 0 220 220"
-            className="relative h-full w-full -rotate-90"
-            role="img"
-            aria-label="Color demand by cards"
-          >
-            <circle
-              cx="110"
-              cy="110"
-              r={radius}
-              fill="none"
-              stroke="rgba(255,255,255,0.045)"
-              strokeWidth="26"
-            />
-
-            {cardCounts.map((entry) => {
-              const rawLength =
-                (entry.count / total) *
-                circumference;
-              const segmentLength =
-                Math.max(
-                  0,
-                  rawLength - gap,
-                );
-              const dashOffset = -offset;
-              offset += rawLength;
-
-              return (
-                <circle
-                  key={entry.color}
-                  cx="110"
-                  cy="110"
-                  r={radius}
-                  fill="none"
-                  stroke={
-                    palette[entry.color]
-                  }
-                  strokeWidth={
-                    activeColor ===
-                    entry.color
-                      ? 32
-                      : 26
-                  }
-                  strokeLinecap="round"
-                  strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
-                  strokeDashoffset={
-                    dashOffset
-                  }
-                  className="cursor-pointer transition-all duration-300"
-                  onMouseEnter={() =>
-                    setActiveColor(
-                      entry.color,
-                    )
-                  }
-                  onMouseLeave={() =>
-                    setActiveColor(null)
-                  }
-                />
-              );
-            })}
-          </svg>
-
-          <div className="absolute inset-[52px] flex items-center justify-center rounded-full border border-white/[0.07] bg-[#06131f] shadow-[inset_0_0_32px_rgba(0,0,0,0.35)]">
-            <div className="text-center">
-              <p className="text-4xl font-semibold text-white">
-                {activeEntry
-                  ? activeEntry.count
-                  : total}
-              </p>
-              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                {activeEntry
-                  ? `${manaName(
-                      activeEntry.color,
-                    )} Cards`
-                  : "Color Cards"}
-              </p>
-            </div>
+    <div className="min-w-0 space-y-5">
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.055] bg-black/[0.08] px-4 py-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-500">Demand profile</p>
+          <p className="mt-1 text-[13px] text-slate-300">Relative color presence across the deck</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 rounded-xl border border-emerald-300/[0.12] bg-emerald-400/[0.035] px-3 py-2">
+          <ManaSymbols colors={[highestDemand.color]} size="sm" />
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-300/70">Highest</p>
+            <p className="text-[12px] font-semibold text-white">{manaName(highestDemand.color)}</p>
           </div>
         </div>
+      </div>
 
-        <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+      <div className="space-y-3" role="img" aria-label="Color demand by cards">
           {cardCounts.map((entry) => {
             const percentage =
               (entry.count / total) * 100;
+            const relativeWidth = entry.count === 0 ? 0 : Math.max(8, (entry.count / maxCount) * 100);
 
             return (
               <button
@@ -4426,10 +4354,10 @@ function ColorDemandPie({
                   setActiveColor(null)
                 }
                 className={[
-                  "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition",
+                  "group grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition duration-300",
                   activeColor ===
                   entry.color
-                    ? "border-cyan-300/[0.18] bg-cyan-400/[0.04]"
+                    ? "border-white/[0.12] bg-white/[0.035] shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
                     : "border-white/[0.055] bg-white/[0.015]",
                 ].join(" ")}
               >
@@ -4439,48 +4367,26 @@ function ColorDemandPie({
                 />
 
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-white">
-                    {manaName(entry.color)}
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    {entry.count}{" "}
-                    {entry.count === 1
-                      ? "card"
-                      : "cards"}
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-[13px] font-semibold text-white">{manaName(entry.color)}</p>
+                    <p className="text-[11px] font-medium text-slate-400">{entry.count} {entry.count === 1 ? "card" : "cards"}</p>
+                  </div>
+                  <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/[0.055]">
+                    <div className="h-full rounded-full transition-all duration-500 group-hover:brightness-110" style={{ width: `${relativeWidth}%`, background: `linear-gradient(90deg, ${palette[entry.color]}99, ${palette[entry.color]})`, boxShadow: `0 0 18px ${palette[entry.color]}33` }} />
+                  </div>
                 </div>
 
-                <span className="shrink-0 rounded-lg border border-white/[0.055] bg-black/[0.08] px-2 py-1 text-[13px] font-semibold text-slate-100">
+                <span className="min-w-[48px] shrink-0 rounded-lg border border-white/[0.065] bg-black/[0.12] px-2 py-1.5 text-center text-[13px] font-semibold text-slate-100">
                   {percentage.toFixed(0)}%
                 </span>
               </button>
             );
           })}
-        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-5">
-        {cardCounts.map((entry) => (
-          <div
-            key={entry.color}
-            className="min-w-0 rounded-xl border border-white/[0.05] bg-black/[0.08] p-3 text-center"
-          >
-            <div className="flex justify-center">
-              <ManaSymbols
-                colors={[entry.color]}
-                size="sm"
-              />
-            </div>
-            <p className="mt-2 text-[15px] font-semibold text-white">
-              {entry.count}
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              {entry.count === 1
-                ? "card"
-                : "cards"}
-            </p>
-          </div>
-        ))}
+      <div className="flex items-center justify-between gap-4 border-t border-white/[0.055] pt-4 text-[11px] text-slate-500">
+        <span>Percentages include multicolor cards in each matching color.</span>
+        <span className="shrink-0 font-semibold text-slate-300">{total} color matches</span>
       </div>
     </div>
   );
