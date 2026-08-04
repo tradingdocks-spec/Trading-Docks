@@ -9,6 +9,7 @@ import {
   PackageOpen,
   RefreshCw,
   Search,
+  ShoppingCart,
   ShieldAlert,
   TrendingUp,
 } from "lucide-react";
@@ -44,6 +45,22 @@ type Analysis = {
   sources: { referenceUrl: string; pricedAt: string };
 };
 
+type RetailerQuote = {
+  itemPrice: number | null;
+  shipping: number | null;
+  stock: "unchecked" | "in-stock" | "out-of-stock";
+};
+
+const SEALED_SOURCES = [
+  { id: "stomping-grounds", name: "Stomping Grounds", kind: "Specialty retailer", search: (q: string) => `https://www.stompinggroundstcg.com/search?q=${encodeURIComponent(q)}` },
+  { id: "amazon", name: "Amazon", kind: "Marketplace", search: (q: string) => `https://www.amazon.com/s?k=${encodeURIComponent(`${q} commander deck`)}` },
+  { id: "walmart", name: "Walmart", kind: "Retail marketplace", search: (q: string) => `https://www.walmart.com/search?q=${encodeURIComponent(`${q} commander deck`)}` },
+  { id: "gamers-guild-az", name: "Gamers Guild AZ", kind: "Local specialty retailer", search: (q: string) => `https://gamersguildaz.com/search?q=${encodeURIComponent(q)}` },
+  { id: "tcgplayer", name: "TCGplayer", kind: "TCG marketplace", search: (q: string) => `https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=${encodeURIComponent(q)}&view=grid` },
+  { id: "manapool", name: "Mana Pool", kind: "TCG marketplace", search: (q: string) => `https://manapool.com/search?q=${encodeURIComponent(q)}` },
+  { id: "cardsphere", name: "Cardsphere", kind: "Community market reference", search: (q: string) => `https://www.cardsphere.com/search?query=${encodeURIComponent(q)}` },
+] as const;
+
 export function PreconIntelligenceWorkspace() {
   const [catalog, setCatalog] = useState<CatalogDeck[]>([]);
   const [query, setQuery] = useState("");
@@ -56,6 +73,7 @@ export function PreconIntelligenceWorkspace() {
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [loadingDeck, setLoadingDeck] = useState(false);
   const [error, setError] = useState("");
+  const [quotes, setQuotes] = useState<Record<string, RetailerQuote>>({});
 
   useEffect(() => {
     void loadCatalog();
@@ -85,6 +103,7 @@ export function PreconIntelligenceWorkspace() {
       const payload = await response.json() as Analysis & { error?: string };
       if (!response.ok) throw new Error(payload.error || "Could not price this deck.");
       setAnalysis(payload);
+      setQuotes({});
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not price this deck.");
     } finally {
@@ -113,6 +132,12 @@ export function PreconIntelligenceWorkspace() {
   }, [analysis, bulkRate, feePercent, fulfillment, purchasePrice]);
 
   const verdictTone = economics.recovery >= 1.4 ? "emerald" : economics.recovery >= 1.15 ? "cyan" : economics.recovery >= 1 ? "amber" : "rose";
+  const verifiedQuotes = SEALED_SOURCES.flatMap((source) => {
+    const quote = quotes[source.id];
+    if (!quote || quote.stock !== "in-stock" || quote.itemPrice === null) return [];
+    return [{ source, quote, delivered: quote.itemPrice + (quote.shipping ?? 0) }];
+  }).sort((a, b) => a.delivered - b.delivered);
+  const bestQuote = verifiedQuotes[0];
 
   return (
     <main className="min-h-screen bg-[#020b12] px-4 py-6 text-white sm:px-7 lg:px-10">
@@ -192,6 +217,43 @@ export function PreconIntelligenceWorkspace() {
                   <ResultMetric icon={economics.profit >= 0 ? CheckCircle2 : ShieldAlert} label="Net profit" value={money(economics.profit)} detail={`Safe buy: ${money(economics.safeBuyPrice)}`} tone={economics.profit >= 0 ? "emerald" : "rose"} />
                 </section>
 
+                <section className="mt-4 overflow-hidden rounded-2xl border border-white/[0.07] bg-[#071522]">
+                  <div className="flex flex-col gap-4 border-b border-white/[0.06] p-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.15em] text-cyan-300"><ShoppingCart className="h-4 w-4" /> Sealed price comparison</p>
+                      <h3 className="mt-2 text-lg font-semibold">Compare the true delivered cost</h3>
+                      <p className="mt-1 text-xs text-slate-500">Open each live result, verify the exact sealed product, then record its current price and shipping.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl border border-white/[0.07] bg-black/20 px-4 py-3">
+                        <p className="text-[8px] font-bold uppercase tracking-[0.13em] text-slate-600">Sources checked</p>
+                        <p className="mt-1 text-sm font-semibold">{verifiedQuotes.length} of {SEALED_SOURCES.length} verified</p>
+                      </div>
+                      {bestQuote ? <button type="button" onClick={() => setPurchasePrice(bestQuote.delivered)} className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.07] px-4 py-3 text-left text-emerald-200 transition hover:bg-emerald-400/[0.11]"><span className="block text-[8px] font-bold uppercase tracking-[0.13em] opacity-70">Use best price</span><span className="mt-1 block text-sm font-semibold">{money(bestQuote.delivered)} · {bestQuote.source.name}</span></button> : null}
+                    </div>
+                  </div>
+                  <div className="hidden grid-cols-[minmax(190px,1fr)_110px_110px_120px_130px_48px] gap-3 border-b border-white/[0.05] px-5 py-2 text-[8px] font-bold uppercase tracking-[0.13em] text-slate-700 lg:grid">
+                    <span>Source</span><span>Item price</span><span>Shipping</span><span>Availability</span><span className="text-right">Delivered</span><span />
+                  </div>
+                  <div className="divide-y divide-white/[0.055]">
+                    {SEALED_SOURCES.map((source) => {
+                      const quote = quotes[source.id] ?? { itemPrice: null, shipping: null, stock: "unchecked" };
+                      const delivered = quote.itemPrice === null ? null : quote.itemPrice + (quote.shipping ?? 0);
+                      const isBest = bestQuote?.source.id === source.id;
+                      const setQuote = (patch: Partial<RetailerQuote>) => setQuotes((current) => ({ ...current, [source.id]: { ...quote, ...patch } }));
+                      return <div key={source.id} className={`grid gap-3 px-5 py-4 lg:grid-cols-[minmax(190px,1fr)_110px_110px_120px_130px_48px] lg:items-center ${isBest ? "bg-emerald-400/[0.035]" : ""}`}>
+                        <div className="min-w-0"><div className="flex items-center gap-2"><p className="truncate text-xs font-semibold text-slate-200">{source.name}</p>{isBest ? <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-300">Best</span> : null}</div><p className="mt-1 text-[9px] text-slate-600">{source.kind}</p></div>
+                        <PriceField label="Item price" value={quote.itemPrice} onChange={(value) => setQuote({ itemPrice: value, stock: value === null ? quote.stock : "in-stock" })} />
+                        <PriceField label="Shipping" value={quote.shipping} onChange={(value) => setQuote({ shipping: value })} />
+                        <select aria-label={`${source.name} availability`} value={quote.stock} onChange={(event) => setQuote({ stock: event.target.value as RetailerQuote["stock"] })} className="h-10 rounded-lg border border-white/[0.07] bg-[#04101a] px-2 text-[10px] text-slate-300 outline-none focus:border-cyan-300/25"><option value="unchecked">Not checked</option><option value="in-stock">In stock</option><option value="out-of-stock">Out of stock</option></select>
+                        <div className="lg:text-right"><p className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-700 lg:hidden">Delivered</p><p className={`mt-1 text-sm font-semibold lg:mt-0 ${isBest ? "text-emerald-300" : "text-slate-300"}`}>{delivered === null ? "—" : money(delivered)}</p></div>
+                        <a href={source.search(analysis.deck.name)} target="_blank" rel="noreferrer" aria-label={`Check ${source.name}`} title={`Check ${source.name}`} className="inline-flex h-10 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500 transition hover:border-cyan-300/25 hover:text-cyan-200"><ExternalLink className="h-3.5 w-3.5" /></a>
+                      </div>;
+                    })}
+                  </div>
+                  <div className="border-t border-white/[0.06] bg-black/10 px-5 py-3 text-[9px] leading-5 text-slate-600">Prices are saved only for the current comparison. Verify that listings are factory sealed, English, the correct deck—not a four-deck bundle—and immediately available. Cardsphere may serve as a community price reference when no sealed listing exists.</div>
+                </section>
+
                 <section className="mt-4 rounded-2xl border border-white/[0.07] bg-[#071522]">
                   <div className="flex flex-col gap-2 border-b border-white/[0.06] p-5 sm:flex-row sm:items-end sm:justify-between">
                     <div><h3 className="text-base font-semibold">Value stack</h3><p className="mt-1 text-xs text-slate-500">Exact included printings, ranked by total value.</p></div>
@@ -230,6 +292,10 @@ function LoadingState() {
 
 function InputMetric({ label, value, prefix, suffix, step = "0.25", onChange }: { label: string; value: number; prefix?: string; suffix?: string; step?: string; onChange: (value: number) => void }) {
   return <label className="rounded-xl border border-white/[0.07] bg-black/20 p-3"><span className="text-[8px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</span><span className="mt-2 flex items-center gap-1 text-sm font-semibold text-slate-200">{prefix}<input type="number" min="0" step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} className="min-w-0 flex-1 bg-transparent outline-none" />{suffix}</span></label>;
+}
+
+function PriceField({ label, value, onChange }: { label: string; value: number | null; onChange: (value: number | null) => void }) {
+  return <label className="flex h-10 items-center rounded-lg border border-white/[0.07] bg-black/20 px-3 focus-within:border-cyan-300/25"><span className="mr-1 text-[10px] text-slate-600">$</span><input aria-label={label} type="number" min="0" step="0.01" value={value ?? ""} placeholder="0.00" onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))} className="min-w-0 flex-1 bg-transparent text-xs text-slate-200 outline-none placeholder:text-slate-800" /></label>;
 }
 
 function ResultMetric({ icon: Icon, label, value, detail, tone = "slate" }: { icon: typeof Boxes; label: string; value: string; detail: string; tone?: "slate" | "emerald" | "rose" }) {
