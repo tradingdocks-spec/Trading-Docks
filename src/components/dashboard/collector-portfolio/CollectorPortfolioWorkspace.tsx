@@ -53,12 +53,12 @@ type PortfolioData = {
 type PortfolioTab = "home" | "bookshelf" | "showcase" | "trade" | "highlights" | "settings";
 
 const TABS: Array<{ id: PortfolioTab; label: string; icon: typeof BookOpen }> = [
-  { id: "home", label: "Portfolio Home", icon: Sparkles },
-  { id: "bookshelf", label: "Bookshelf", icon: LibraryBig },
-  { id: "showcase", label: "Showcase Studio", icon: Share2 },
-  { id: "trade", label: "Trade Center", icon: MessageCircle },
-  { id: "highlights", label: "Highlights", icon: Star },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "home", label: "Overview", icon: Sparkles },
+  { id: "bookshelf", label: "Binders", icon: LibraryBig },
+  { id: "showcase", label: "Create Showcase", icon: Share2 },
+  { id: "trade", label: "Trades", icon: MessageCircle },
+  { id: "highlights", label: "Featured Cards", icon: Star },
+  { id: "settings", label: "Portfolio Settings", icon: Settings },
 ];
 
 export function CollectorPortfolioWorkspace({ initialData }: { initialData: PortfolioData }) {
@@ -126,9 +126,13 @@ export function CollectorPortfolioWorkspace({ initialData }: { initialData: Port
           <div className="pointer-events-none absolute -right-20 -top-32 h-96 w-96 rounded-full bg-violet-500/[0.18] blur-[130px]" />
           <div className="pointer-events-none absolute -bottom-40 left-[18%] h-80 w-80 rounded-full bg-cyan-400/[0.10] blur-[125px]" />
 
-          <div className="relative flex flex-col gap-7 p-6 sm:p-8 xl:flex-row xl:items-end xl:justify-between">
+          <div className="relative flex flex-col gap-6 p-5 sm:p-6 xl:flex-row xl:items-center xl:justify-between">
             <div className="max-w-4xl">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.07] text-xl font-bold text-cyan-200 shadow-[0_0_30px_rgba(34,211,238,.08)]">
+                  {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : (profile.display_name || profile.username || "C").slice(0, 1).toUpperCase()}
+                </div>
+                <div>
                 <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/[0.18] bg-violet-400/[0.07] px-3 py-2 text-[10px] font-semibold text-violet-100">
                   <Palette className="h-4 w-4 text-violet-300" />
                   Collector Portfolio
@@ -137,16 +141,18 @@ export function CollectorPortfolioWorkspace({ initialData }: { initialData: Port
                   <span className={`h-1.5 w-1.5 rounded-full ${profile.is_public ? "bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.75)]" : "bg-slate-600"}`} />
                   {profile.is_public ? "Public profile live" : "Private draft"}
                 </span>
+                </div>
               </div>
 
-              <h1 className="mt-5 text-4xl font-semibold tracking-[-0.055em] sm:text-6xl">
-                {profile.display_name || "Your collection"}.
+              <h1 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
+                {profile.display_name || "Your collection"}
               </h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base">
-                Organize privately. Showcase publicly. Trade confidently. Turn every binder into a collection worth sharing.
+              <p className="mt-1 text-[11px] font-semibold text-cyan-200/65">@{profile.username || "collector"}{profile.location ? ` · ${profile.location}` : ""}</p>
+              <p className="mt-3 max-w-2xl text-xs leading-6 text-slate-400">
+                {profile.bio || "A curated collection of favorites, trade pieces, and cards worth sharing."}
               </p>
 
-              <div className="mt-7 flex flex-wrap gap-2">
+              <div className="mt-5 flex flex-wrap gap-2">
                 <button onClick={() => setStudioOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-[#031319] shadow-[0_12px_34px_rgba(34,211,238,.18)] transition hover:-translate-y-0.5 hover:bg-cyan-200">
                   <Share2 className="h-4 w-4" />
                   Share portfolio
@@ -162,6 +168,9 @@ export function CollectorPortfolioWorkspace({ initialData }: { initialData: Port
                     Publish profile
                   </button>
                 )}
+                <button onClick={() => setTab("settings")} className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.025] px-4 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.06] hover:text-white">
+                  <Settings className="h-4 w-4" /> Edit profile
+                </button>
               </div>
             </div>
 
@@ -225,17 +234,18 @@ function PortfolioHome({ profile, featuredBinder, binders, totals, onOpenBinder,
   onOpenBinder: (binder: PortfolioBinderView) => void;
   onShare: () => void;
 }) {
+  const recentCards = binders.flatMap((binder) => binder.cards.map((card) => ({ ...card, binderId: binder.id }))).slice(0, 8);
   return (
     <div className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
       <div className="space-y-5">
-        {featuredBinder ? (
-          <section className="group relative min-h-[420px] overflow-hidden rounded-[28px] border border-violet-300/[0.16] bg-[linear-gradient(135deg,#0a1927,#07131e_52%,#170d28)] p-6 shadow-[0_30px_90px_rgba(0,0,0,.34)] sm:p-8">
+        {featuredBinder && (binders.length > 1 || featuredBinder.is_featured) ? (
+          <section className="group relative overflow-hidden rounded-[28px] border border-violet-300/[0.16] bg-[linear-gradient(135deg,#0a1927,#07131e_52%,#170d28)] p-5 shadow-[0_30px_90px_rgba(0,0,0,.34)] sm:p-6">
             <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full blur-3xl" style={{ backgroundColor: `${featuredBinder.accent_color}22` }} />
-            <div className="relative grid gap-7 lg:grid-cols-[300px_1fr] lg:items-center">
+            <div className="relative grid gap-6 lg:grid-cols-[240px_1fr] lg:items-center">
               <BinderCover binder={featuredBinder} large />
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-violet-300">Featured binder</p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">{featuredBinder.title}</h2>
+                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">{featuredBinder.title}</h2>
                 <p className="mt-3 max-w-xl text-sm leading-7 text-slate-500">{featuredBinder.description || "The collection at the center of your portfolio."}</p>
                 <div className="mt-6 grid grid-cols-3 gap-2">
                   <MiniMetric label="Cards" value={featuredBinder.cardCount.toLocaleString()} />
@@ -255,9 +265,12 @@ function PortfolioHome({ profile, featuredBinder, binders, totals, onOpenBinder,
               </div>
             </div>
           </section>
-        ) : (
-          <EmptyPanel title="Your shelf is waiting" body="Create a binder in Inventory and it will appear here automatically." />
-        )}
+        ) : null}
+
+        <section className="rounded-[26px] border border-white/[0.075] bg-[#06131d]/86 p-5 shadow-[0_24px_75px_rgba(0,0,0,.24)]">
+          <div className="flex items-center justify-between gap-4"><div><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-cyan-300">Recently added</p><h2 className="mt-2 text-xl font-semibold text-white">The cards are the collection.</h2></div></div>
+          {recentCards.length ? <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">{recentCards.map((card) => <button key={card.id} onClick={() => { const binder = binders.find((entry) => entry.id === card.binderId); if (binder) onOpenBinder(binder); }} title={card.name} className="group/card relative aspect-[.716] overflow-hidden rounded-xl border border-white/[0.08] bg-black/25 shadow-[0_12px_28px_rgba(0,0,0,.26)] transition hover:-translate-y-1 hover:border-cyan-300/30">{card.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center p-2 text-center text-[8px] text-slate-600">{card.name}</span>}<span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-transparent px-2 pb-2 pt-6 text-left text-[7px] font-semibold text-white opacity-0 transition group-hover/card:opacity-100">{card.name}</span></button>)}</div> : <div className="mt-5 rounded-2xl border border-dashed border-white/[0.08] p-8 text-center text-[10px] text-slate-600">Cards added to binders will appear here.</div>}
+        </section>
 
         <section className="rounded-[26px] border border-white/[0.075] bg-[#06131d]/86 p-5 shadow-[0_24px_75px_rgba(0,0,0,.24)]">
           <div className="flex items-center justify-between">
@@ -277,6 +290,7 @@ function PortfolioHome({ profile, featuredBinder, binders, totals, onOpenBinder,
                 </div>
               </button>
             ))}
+            <Link href="/dashboard/inventory" className="flex min-h-[220px] flex-col items-center justify-center rounded-[22px] border border-dashed border-cyan-300/15 bg-cyan-300/[0.018] text-center transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.035]"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/[0.08] text-cyan-200"><Plus className="h-5 w-5" /></span><span className="mt-3 text-xs font-semibold text-white">Create new binder</span><span className="mt-1 text-[9px] text-slate-600">Build it from Inventory</span></Link>
           </div>
         </section>
       </div>
@@ -285,22 +299,23 @@ function PortfolioHome({ profile, featuredBinder, binders, totals, onOpenBinder,
         <section className="rounded-[26px] border border-emerald-300/[0.12] bg-[linear-gradient(145deg,#071a1b,#06131d)] p-5 shadow-[0_24px_70px_rgba(0,0,0,.24)]">
           <p className="text-[9px] font-bold uppercase tracking-[0.17em] text-emerald-300">Portfolio snapshot</p>
           <p className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-white">{money(totals.value)}</p>
-          <p className="mt-2 text-[11px] text-slate-500">Estimated collection value</p>
+          <div className="mt-2 flex items-center justify-between"><p className="text-[11px] text-slate-500">Estimated market value</p><span className="rounded-full bg-emerald-300/[0.08] px-2 py-1 text-[9px] font-semibold text-emerald-300">Market</span></div>
           <div className="mt-5 h-20 rounded-2xl border border-white/[0.06] bg-[linear-gradient(180deg,rgba(110,231,183,.10),transparent)] p-3">
             <div className="flex h-full items-end gap-1">
               {[22,31,28,42,46,54,51,62,68,74,81,88].map((height, index) => <span key={index} className="flex-1 rounded-t bg-emerald-300/40" style={{ height: `${height}%` }} />)}
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold text-emerald-300"><TrendingUp className="h-4 w-4" /> Collection presentation ready</div>
+          <div className="mt-3 flex justify-between text-[8px] text-slate-700"><span>30 days ago</span><span>Today</span></div>
+          <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold text-emerald-300"><TrendingUp className="h-4 w-4" /> Value history begins with pricing snapshots</div>
         </section>
 
         <section className="rounded-[26px] border border-white/[0.075] bg-[#06131d]/86 p-5">
-          <p className="text-[9px] font-bold uppercase tracking-[0.17em] text-violet-300">Suggested actions</p>
+          <div className="flex items-center justify-between"><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-violet-300">Portfolio activity</p><span className="text-[8px] text-slate-700">Live overview</span></div>
           <div className="mt-4 space-y-2">
-            <ActionRow icon={Globe2} title={profile.is_public ? "Public profile is live" : "Publish your public profile"} detail={profile.is_public ? `/collectors/${profile.username}` : "Choose visibility and claim your username."} />
-            <ActionRow icon={Star} title="Feature your best binder" detail="Make the first impression unforgettable." />
-            <ActionRow icon={MessageCircle} title="Create a trade binder" detail="Let collectors select cards and send interest." />
-            <ActionRow icon={Share2} title="Export a social showcase" detail="Page, spread, entire binder, or portfolio." />
+            <ActionRow icon={Globe2} title={profile.is_public ? "Public profile is live" : "Portfolio is still private"} detail={profile.is_public ? `/collectors/${profile.username}` : "Publish when your collection is ready."} />
+            <ActionRow icon={LibraryBig} title={`${totals.binders} binder${totals.binders === 1 ? "" : "s"} organized`} detail={`${totals.cards.toLocaleString()} total cards across your shelf.`} />
+            <ActionRow icon={MessageCircle} title={`${totals.tradeCards.toLocaleString()} cards available for trade`} detail={totals.tradeCards ? "Collectors can browse your trade-ready cards." : "Mark cards or a binder as available for trade."} />
+            <ActionRow icon={Star} title={featuredBinder?.is_featured ? `${featuredBinder.title} is featured` : "Choose a featured binder"} detail="Control the first collection visitors see." />
           </div>
         </section>
       </div>
@@ -310,12 +325,13 @@ function PortfolioHome({ profile, featuredBinder, binders, totals, onOpenBinder,
 
 function Bookshelf({ binders, onOpen, onEdit, onShare }: { binders: PortfolioBinderView[]; onOpen: (binder: PortfolioBinderView) => void; onEdit: (binder: PortfolioBinderView) => void; onShare: (binder: PortfolioBinderView) => void }) {
   const [query, setQuery] = useState("");
-  const filtered = binders.filter((binder) => `${binder.title} ${binder.description}`.toLowerCase().includes(query.toLowerCase()));
+  const [sort, setSort] = useState<"custom" | "value" | "cards">("custom");
+  const filtered = binders.filter((binder) => `${binder.title} ${binder.description}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sort === "value" ? b.estimatedValue - a.estimatedValue : sort === "cards" ? b.cardCount - a.cardCount : a.portfolio_order - b.portfolio_order);
   return (
     <section className="rounded-[28px] border border-white/[0.075] bg-[#05111b]/90 p-5 shadow-[0_28px_85px_rgba(0,0,0,.28)] sm:p-7">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-300">Digital bookshelf</p><h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-white">Every binder has a story.</h2><p className="mt-2 text-sm text-slate-500">Customize covers, publish selected binders, and create trade-ready collections.</p></div>
-        <label className="flex h-11 min-w-[280px] items-center gap-2 rounded-xl border border-white/[0.08] bg-black/20 px-3"><Search className="h-4 w-4 text-slate-600" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search binders…" className="w-full bg-transparent text-xs text-white outline-none placeholder:text-slate-700" /></label>
+        <div className="flex flex-col gap-2 sm:flex-row"><label className="flex h-11 min-w-[250px] items-center gap-2 rounded-xl border border-white/[0.08] bg-black/20 px-3"><Search className="h-4 w-4 text-slate-600" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search binders…" className="w-full bg-transparent text-xs text-white outline-none placeholder:text-slate-700" /></label><select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} aria-label="Sort binders" className="h-11 rounded-xl border border-white/[0.08] bg-[#07131d] px-3 text-[10px] font-semibold text-slate-300 outline-none"><option value="custom">Custom order</option><option value="value">Highest value</option><option value="cards">Most cards</option></select></div>
       </div>
       {filtered.length ? (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -328,6 +344,7 @@ function Bookshelf({ binders, onOpen, onEdit, onShare }: { binders: PortfolioBin
               </div>
             </article>
           ))}
+          {!query ? <Link href="/dashboard/inventory" className="flex min-h-[300px] flex-col items-center justify-center rounded-[22px] border border-dashed border-cyan-300/15 bg-cyan-300/[0.018] text-center transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.035]"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-300/[0.08] text-cyan-200"><Plus className="h-5 w-5" /></span><span className="mt-4 text-sm font-semibold text-white">Create new binder</span><span className="mt-1 text-[9px] text-slate-600">Organize cards from Inventory</span></Link> : null}
         </div>
       ) : <EmptyPanel title="No binders found" body="Try a different search or create a binder in Inventory." />}
     </section>
@@ -404,7 +421,8 @@ function BinderPresentationEditor({ binder, onClose, onSave }: { binder: Portfol
 }
 
 function BinderCover({ binder, large = false }: { binder: PortfolioBinderView; large?: boolean }) {
-  return <div className={`group/cover relative overflow-hidden rounded-[22px] border border-white/[0.12] shadow-[0_24px_60px_rgba(0,0,0,.38)] transition duration-300 hover:-translate-y-1 ${large ? "aspect-[.76] w-full max-w-[300px]" : "aspect-[.76] w-full"}`} style={{ background: `radial-gradient(circle at 70% 10%, ${binder.accent_color}2e, transparent 34%), linear-gradient(145deg, ${binder.cover_color}, #020617)` }}><div className="absolute inset-y-0 left-0 w-5 bg-black/25 shadow-[8px_0_18px_rgba(0,0,0,.25)]" /><div className="absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" /><div className="absolute inset-0 flex flex-col justify-between p-5"><div className="flex items-center justify-between"><span className="rounded-full border border-white/[0.13] bg-black/20 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-white/70">{binder.is_trade_binder ? "Trade Binder" : "Collector Vault"}</span>{binder.visibility === "private" ? <LockKeyhole className="h-4 w-4 text-white/45" /> : <Globe2 className="h-4 w-4 text-white/55" />}</div><div><div className="mb-4 h-px w-12" style={{ backgroundColor: binder.accent_color }} /><p className={`${large ? "text-2xl" : "text-lg"} font-semibold leading-tight tracking-[-0.035em] text-white`}>{binder.title}</p><p className="mt-2 text-[9px] uppercase tracking-[0.14em] text-white/45">{binder.cardCount} cards · {money(binder.estimatedValue)}</p></div></div><div className="pointer-events-none absolute -left-1/2 top-0 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent opacity-0 blur-sm transition duration-700 group-hover/cover:left-[120%] group-hover/cover:opacity-100" /></div>;
+  const previewCards = binder.cards.filter((card) => card.imageUrl).slice(0, 6);
+  return <div className={`group/cover relative overflow-hidden rounded-[22px] border border-white/[0.12] shadow-[0_24px_60px_rgba(0,0,0,.38)] transition duration-300 hover:-translate-y-1 ${large ? "aspect-[.78] w-full max-w-[300px]" : "aspect-[.78] w-full"}`} style={{ background: `radial-gradient(circle at 70% 10%, ${binder.accent_color}2e, transparent 34%), linear-gradient(145deg, ${binder.cover_color}, #020617)` }}><div className="absolute inset-y-0 left-0 z-20 w-5 bg-black/30 shadow-[8px_0_18px_rgba(0,0,0,.25)]" /><div className="absolute inset-x-7 top-0 z-20 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />{previewCards.length ? <div className="absolute inset-x-7 top-[21%] grid grid-cols-3 gap-1.5 opacity-90">{previewCards.map((card) => <div key={card.id} className="aspect-[.716] overflow-hidden rounded-md border border-white/10 bg-black/30 shadow-lg"><img src={card.imageUrl} alt="" className="h-full w-full object-cover" /></div>)}</div> : null}<div className="absolute inset-x-0 bottom-0 z-10 h-[48%] bg-gradient-to-t from-black via-black/80 to-transparent" /><div className="absolute inset-0 z-20 flex flex-col justify-between p-5"><div className="flex items-center justify-between"><span className="rounded-full border border-white/[0.13] bg-black/45 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-white/80 backdrop-blur">{binder.is_trade_binder ? "Trade Binder" : "Collector Vault"}</span>{binder.visibility === "private" ? <LockKeyhole className="h-4 w-4 text-white/55" /> : <Globe2 className="h-4 w-4 text-white/65" />}</div><div><div className="mb-3 h-px w-12" style={{ backgroundColor: binder.accent_color }} /><p className={`${large ? "text-2xl" : "text-lg"} font-semibold leading-tight tracking-[-0.035em] text-white`}>{binder.title}</p><div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[8px] font-semibold uppercase tracking-[0.12em] text-white/50"><span>{binder.cardCount} cards</span><span>{money(binder.estimatedValue)}</span>{binder.is_trade_binder ? <span className="text-emerald-300/80">Trade ready</span> : null}</div></div></div><div className="pointer-events-none absolute -left-1/2 top-0 z-30 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent opacity-0 blur-sm transition duration-700 group-hover/cover:left-[120%] group-hover/cover:opacity-100" /></div>;
 }
 
 function PublicPagePreview({ binder, page }: { binder?: PortfolioBinderView; page: number }) {
