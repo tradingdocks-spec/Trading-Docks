@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import {
-  Archive, ChevronRight, CircleDot, Crown, Hand, Layers3, Play, RotateCcw,
+  Archive, ArrowRight, CircleDot, Crown, Hand, Layers3, Play, RotateCcw,
   Search, Shuffle, Sparkles, Undo2, X, Zap,
 } from "lucide-react";
 
@@ -10,8 +10,7 @@ import type { DeckCard } from "@/lib/deck-vault/types";
 
 type TestCard = DeckCard & { instanceId: string; tapped?: boolean; enteredTurn?: number };
 type Zone = "hand" | "battlefield" | "graveyard" | "exile" | "library";
-type Phase = "Untap" | "Upkeep" | "Draw" | "Main" | "Combat" | "Second Main" | "End";
-const phases: Phase[] = ["Untap", "Upkeep", "Draw", "Main", "Combat", "Second Main", "End"];
+type BoardPosition = { x: number; y: number };
 
 const isLand = (card: DeckCard) => card.typeLine.toLowerCase().includes("land");
 const isCreature = (card: DeckCard) => card.typeLine.toLowerCase().includes("creature");
@@ -53,7 +52,6 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
   const [graveyard, setGraveyard] = useState<TestCard[]>([]);
   const [exile, setExile] = useState<TestCard[]>([]);
   const [turn, setTurn] = useState(1);
-  const [phase, setPhase] = useState<Phase>("Main");
   const [onThePlay, setOnThePlay] = useState(true);
   const [mulligans, setMulligans] = useState(0);
   const [started, setStarted] = useState(false);
@@ -62,6 +60,7 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
   const [selected, setSelected] = useState<TestCard | null>(null);
   const [openZone, setOpenZone] = useState<"graveyard" | "exile" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [boardPositions, setBoardPositions] = useState<Record<string, BoardPosition>>({});
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -71,7 +70,7 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
   const newHand = useCallback((play = onThePlay) => {
     const shuffled = shuffleCards(expanded);
     setLibrary(shuffled.slice(7)); setHand(shuffled.slice(0, 7)); setBattlefield([]); setGraveyard([]); setExile([]);
-    setTurn(1); setPhase("Main"); setMulligans(0); setManaPool(0); setLandPlayedTurn(null); setSelected(null); setOnThePlay(play); setStarted(true);
+    setTurn(1); setMulligans(0); setManaPool(0); setLandPlayedTurn(null); setSelected(null); setBoardPositions({}); setOnThePlay(play); setStarted(true);
   }, [expanded, onThePlay]);
 
   useEffect(() => { if (!started && expanded.length) newHand(true); }, [expanded, newHand, started]);
@@ -94,20 +93,12 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
   function londonMulligan() {
     const shuffled = shuffleCards([...library, ...hand, ...battlefield, ...graveyard, ...exile]);
     setHand(shuffled.slice(0, 7)); setLibrary(shuffled.slice(7)); setBattlefield([]); setGraveyard([]); setExile([]);
-    setMulligans((value) => value + 1); setTurn(1); setPhase("Main"); setManaPool(0); setLandPlayedTurn(null); setSelected(null);
+    setMulligans((value) => value + 1); setTurn(1); setManaPool(0); setLandPlayedTurn(null); setSelected(null); setBoardPositions({});
   }
 
   function nextTurn() {
-    setTurn((value) => value + 1); setPhase("Untap"); setBattlefield((current) => current.map((card) => ({ ...card, tapped: false })));
+    setTurn((value) => value + 1); setBattlefield((current) => current.map((card) => ({ ...card, tapped: false })));
     setManaPool(0); setLandPlayedTurn(null); draw(1); showToast("Untapped permanents and drew for turn.");
-  }
-
-  function nextPhase() {
-    const index = phases.indexOf(phase);
-    if (index === phases.length - 1) { nextTurn(); return; }
-    const next = phases[index + 1]; setPhase(next);
-    if (next === "Untap") setBattlefield((current) => current.map((card) => ({ ...card, tapped: false })));
-    if (next === "Draw") draw(1);
   }
 
   function tapPermanent(card: TestCard) {
@@ -148,19 +139,16 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
 
     <header className="flex flex-col gap-4 border-b border-white/[0.07] bg-[#06131c]/95 px-5 py-4 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
       <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-300/20 bg-cyan-300/[0.08] text-cyan-300"><Sparkles className="h-5 w-5" /></div><div><div className="flex items-center gap-2"><h2 className="font-semibold tracking-tight">Playtest Studio</h2><span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-200">Sandbox</span></div><p className="text-[11px] text-slate-500">Turn {turn} · {onThePlay ? "On the play" : "On the draw"}</p></div></div>
-      <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-white/[0.07] bg-black/20 p-1">{phases.map((item) => <button key={item} type="button" onClick={() => setPhase(item)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-[10px] font-semibold transition ${phase === item ? "bg-cyan-300 text-[#00131c] shadow-[0_0_20px_rgba(34,211,238,.18)]" : "text-slate-500 hover:text-slate-200"}`}>{item}</button>)}</div>
-      <div className="flex items-center gap-2"><button type="button" onClick={() => newHand(onThePlay)} className="grid h-9 w-9 place-items-center rounded-xl border border-white/[0.08] text-slate-400 hover:bg-white/[0.05]" title="New hand"><Shuffle className="h-4 w-4" /></button><button type="button" onClick={londonMulligan} className="inline-flex h-9 items-center gap-2 rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 text-[11px] font-semibold text-amber-100"><RotateCcw className="h-3.5 w-3.5" /> Mulligan {mulligans ? `(${mulligans})` : ""}</button><button type="button" onClick={nextPhase} className="inline-flex h-9 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-[11px] font-bold text-[#00131c]">Next phase <ChevronRight className="h-3.5 w-3.5" /></button></div>
+      <div className="hidden items-center gap-3 rounded-full border border-cyan-300/[0.12] bg-cyan-300/[0.04] px-4 py-2 text-[11px] text-slate-400 lg:flex"><Sparkles className="h-3.5 w-3.5 text-cyan-300" /><span>Drag cards anywhere · Tap lands for mana</span></div>
+      <div className="flex items-center gap-2"><button type="button" onClick={() => newHand(onThePlay)} className="grid h-9 w-9 place-items-center rounded-xl border border-white/[0.08] text-slate-400 hover:bg-white/[0.05]" title="New hand"><Shuffle className="h-4 w-4" /></button><button type="button" onClick={londonMulligan} className="inline-flex h-9 items-center gap-2 rounded-xl border border-amber-300/15 bg-amber-300/[0.05] px-3 text-[11px] font-semibold text-amber-100"><RotateCcw className="h-3.5 w-3.5" /> Mulligan {mulligans ? `(${mulligans})` : ""}</button><button type="button" onClick={nextTurn} className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-5 text-[11px] font-bold text-[#00131c] shadow-[0_0_28px_rgba(34,211,238,.16)] transition hover:bg-cyan-200">Next turn <ArrowRight className="h-3.5 w-3.5" /></button></div>
     </header>
 
     <div className="grid min-h-[720px] lg:grid-cols-[1fr_168px]">
       <main className="relative flex min-w-0 flex-col bg-[radial-gradient(circle_at_48%_44%,rgba(13,148,136,.14),transparent_38%),linear-gradient(rgba(255,255,255,.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.015)_1px,transparent_1px),linear-gradient(145deg,#071a1e,#041218_58%,#06131c)] bg-[size:auto,38px_38px,38px_38px,auto]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,.35)_100%)]" />
-        <div className="relative flex flex-1 flex-col px-5 pb-4 pt-5 sm:px-8">
-          <div className="mb-3 flex items-center justify-between"><ZoneLabel label="Creatures & permanents" count={battlefield.filter((card) => !isLand(card)).length} /><span className="hidden text-[10px] text-slate-600 sm:block">Select a card for actions · Click a land to tap</span></div>
-          <BoardRow cards={battlefield.filter((card) => !isLand(card))} selected={selected} turn={turn} onSelect={setSelected} empty="Cast a permanent to begin building your board" />
-          <div className="my-5 h-px bg-gradient-to-r from-transparent via-cyan-200/[0.1] to-transparent" />
-          <div className="mb-3 flex items-center justify-between"><ZoneLabel label="Mana base" count={battlefield.filter(isLand).length} /><div className="flex items-center gap-2 rounded-full border border-cyan-300/15 bg-[#04151c]/80 px-3 py-1.5 text-[11px] font-semibold text-cyan-100"><Zap className="h-3.5 w-3.5 text-cyan-300" /> Mana pool <span className="text-base text-white">{manaPool}</span></div></div>
-          <BoardRow cards={battlefield.filter(isLand)} selected={selected} turn={turn} onSelect={tapPermanent} empty="Play a land from your hand" />
+        <div className="relative flex flex-1 flex-col px-4 pb-4 pt-4 sm:px-6">
+          <div className="mb-3 flex items-center justify-between"><ZoneLabel label="Your playmat" count={battlefield.length} /><div className="flex items-center gap-2 rounded-full border border-cyan-300/15 bg-[#04151c]/80 px-3 py-1.5 text-[11px] font-semibold text-cyan-100"><Zap className="h-3.5 w-3.5 text-cyan-300" /> Mana <span className="text-base text-white">{manaPool}</span></div></div>
+          <FreeformBoard cards={battlefield} selected={selected} turn={turn} positions={boardPositions} onPositionsChange={setBoardPositions} onSelect={setSelected} onTapLand={tapPermanent} />
         </div>
 
         <section className="relative border-t border-white/[0.07] bg-[#030c12]/78 px-4 pb-5 pt-4 backdrop-blur-md sm:px-7">
@@ -189,8 +177,39 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
 
 function ZoneLabel({ label, count }: { label: string; count: number }) { return <div className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span><span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[9px] text-slate-500">{count}</span></div>; }
 
-function BoardRow({ cards, selected, turn, onSelect, empty }: { cards: TestCard[]; selected: TestCard | null; turn: number; onSelect: (card: TestCard) => void; empty: string }) {
-  return <div className="flex min-h-[180px] flex-wrap content-start items-start gap-4 rounded-[22px] border border-white/[0.035] bg-black/[0.08] p-4 sm:gap-5">{cards.length ? cards.map((card) => <button key={card.instanceId} type="button" onClick={() => onSelect(card)} className="group relative rounded-xl focus:outline-none"><CardFace card={card} tapped={card.tapped} selected={selected?.instanceId === card.instanceId} />{!card.tapped && isCreature(card) && card.enteredTurn === turn ? <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-amber-300/20 bg-[#21190a]/95 px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-amber-200">Summoning sick</span> : null}</button>) : <div className="grid w-full flex-1 place-items-center"><div className="text-center"><CircleDot className="mx-auto h-5 w-5 text-slate-700" /><p className="mt-2 text-[11px] text-slate-700">{empty}</p></div></div>}</div>;
+function FreeformBoard({ cards, selected, turn, positions, onPositionsChange, onSelect, onTapLand }: { cards: TestCard[]; selected: TestCard | null; turn: number; positions: Record<string, BoardPosition>; onPositionsChange: (value: Record<string, BoardPosition>) => void; onSelect: (card: TestCard) => void; onTapLand: (card: TestCard) => void }) {
+  const boardRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ id: string; pointerId: number; startX: number; startY: number; origin: BoardPosition; moved: boolean } | null>(null);
+
+  useEffect(() => {
+    const next = { ...positions }; let changed = false;
+    cards.forEach((card, index) => { if (!next[card.instanceId]) { const land = isLand(card); next[card.instanceId] = { x: 4 + (index % 7) * 13, y: land ? 66 : 16 + (Math.floor(index / 7) % 2) * 24 }; changed = true; } });
+    if (changed) onPositionsChange(next);
+  }, [cards, onPositionsChange, positions]);
+
+  function pointerDown(event: ReactPointerEvent<HTMLButtonElement>, card: TestCard) {
+    const origin = positions[card.instanceId] ?? { x: 5, y: isLand(card) ? 66 : 16 };
+    dragRef.current = { id: card.instanceId, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function pointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current; const board = boardRef.current; if (!drag || drag.pointerId !== event.pointerId || !board) return;
+    const rect = board.getBoundingClientRect(); const dx = event.clientX - drag.startX; const dy = event.clientY - drag.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
+    onPositionsChange({ ...positions, [drag.id]: { x: Math.max(0, Math.min(88, drag.origin.x + dx / rect.width * 100)), y: Math.max(0, Math.min(70, drag.origin.y + dy / rect.height * 100)) } });
+  }
+  function pointerUp(event: ReactPointerEvent<HTMLButtonElement>, card: TestCard) {
+    const moved = dragRef.current?.moved; dragRef.current = null;
+    if (!moved) { if (isLand(card)) onTapLand(card); else onSelect(card); }
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  return <div ref={boardRef} className="relative min-h-[430px] flex-1 overflow-hidden rounded-[24px] border border-white/[0.045] bg-[radial-gradient(circle_at_50%_40%,rgba(34,211,238,.045),transparent_45%),linear-gradient(180deg,rgba(255,255,255,.018),transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,.025)] touch-none">
+    <div className="pointer-events-none absolute inset-x-5 top-[58%] border-t border-dashed border-cyan-100/[0.07]" />
+    <span className="pointer-events-none absolute left-5 top-4 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-700">Spells & permanents</span><span className="pointer-events-none absolute bottom-4 left-5 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-700">Suggested land area</span>
+    {!cards.length ? <div className="absolute inset-0 grid place-items-center text-center"><div><CircleDot className="mx-auto h-5 w-5 text-slate-700" /><p className="mt-2 text-[11px] text-slate-700">Play a card from your hand to start testing</p></div></div> : null}
+    {cards.map((card) => { const position = positions[card.instanceId] ?? { x: 5, y: isLand(card) ? 66 : 16 }; return <button key={card.instanceId} type="button" style={{ left: `${position.x}%`, top: `${position.y}%`, zIndex: selected?.instanceId === card.instanceId ? 20 : 2 }} onPointerDown={(event) => pointerDown(event, card)} onPointerMove={pointerMove} onPointerUp={(event) => pointerUp(event, card)} className="group absolute cursor-grab rounded-xl focus:outline-none active:cursor-grabbing"><CardFace card={card} tapped={card.tapped} selected={selected?.instanceId === card.instanceId} />{!card.tapped && isCreature(card) && card.enteredTurn === turn ? <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-amber-300/20 bg-[#21190a]/95 px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-amber-200">Summoning sick</span> : null}</button>; })}
+  </div>;
 }
 
 function SideZone({ icon, label, count, children }: { icon: ReactNode; label: string; count: number; children: ReactNode }) { return <div className="flex flex-col items-center border-white/[0.06] p-2 lg:border-b lg:pb-4 lg:pt-3"><div className="mb-2 flex w-full items-center justify-between text-[9px] font-bold uppercase tracking-wider text-slate-600"><span className="flex items-center gap-1">{icon}{label}</span><span>{count}</span></div>{children}</div>; }
