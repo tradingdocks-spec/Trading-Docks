@@ -6,25 +6,21 @@ import {
   BookOpen,
   Check,
   ChevronRight,
-  CircleDollarSign,
   Copy,
   Eye,
   Globe2,
-  Grid3X3,
   Layers3,
   LibraryBig,
   Link2,
   Loader2,
   LockKeyhole,
   MessageCircle,
-  Palette,
   Plus,
   Search,
   Settings,
   Share2,
   Sparkles,
   Star,
-  TrendingUp,
   X,
 } from "lucide-react";
 
@@ -55,10 +51,9 @@ type PortfolioTab = "home" | "bookshelf" | "showcase" | "trade" | "highlights" |
 const TABS: Array<{ id: PortfolioTab; label: string; icon: typeof BookOpen }> = [
   { id: "home", label: "Overview", icon: Sparkles },
   { id: "bookshelf", label: "Binders", icon: LibraryBig },
-  { id: "showcase", label: "Create Showcase", icon: Share2 },
+  { id: "showcase", label: "Showcase", icon: Share2 },
   { id: "trade", label: "Trades", icon: MessageCircle },
-  { id: "highlights", label: "Featured Cards", icon: Star },
-  { id: "settings", label: "Portfolio Settings", icon: Settings },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export function CollectorPortfolioWorkspace({ initialData }: { initialData: PortfolioData }) {
@@ -122,70 +117,38 @@ export function CollectorPortfolioWorkspace({ initialData }: { initialData: Port
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,.10),transparent_30%),radial-gradient(circle_at_top_left,rgba(34,211,238,.07),transparent_32%),#020911] px-4 py-5 text-white sm:px-6 lg:px-8 lg:py-7">
       <div className="mx-auto max-w-[1620px]">
-        <section className="relative overflow-hidden rounded-[30px] border border-violet-300/[0.15] bg-[linear-gradient(135deg,#0b1e2c_0%,#071522_52%,#160d28_100%)] shadow-[0_38px_130px_rgba(0,0,0,.48)]">
-          <div className="pointer-events-none absolute -right-20 -top-32 h-96 w-96 rounded-full bg-violet-500/[0.18] blur-[130px]" />
-          <div className="pointer-events-none absolute -bottom-40 left-[18%] h-80 w-80 rounded-full bg-cyan-400/[0.10] blur-[125px]" />
-
-          <div className="relative flex flex-col gap-6 p-5 sm:p-6 xl:flex-row xl:items-center xl:justify-between">
-            <div className="max-w-4xl">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.07] text-xl font-bold text-cyan-200 shadow-[0_0_30px_rgba(34,211,238,.08)]">
-                  {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : (profile.display_name || profile.username || "C").slice(0, 1).toUpperCase()}
-                </div>
-                <div>
-                <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/[0.18] bg-violet-400/[0.07] px-3 py-2 text-[10px] font-semibold text-violet-100">
-                  <Palette className="h-4 w-4 text-violet-300" />
-                  Collector Portfolio
-                </span>
-                <span className={`inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] ${profile.is_public ? "text-emerald-300" : "text-slate-500"}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${profile.is_public ? "bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.75)]" : "bg-slate-600"}`} />
-                  {profile.is_public ? "Public profile live" : "Private draft"}
-                </span>
-                </div>
+        <section className="relative overflow-hidden rounded-[24px] border border-white/[0.09] bg-[linear-gradient(120deg,#0a1a27,#07131d_62%,#101326)] shadow-[0_24px_80px_rgba(0,0,0,.35)]">
+          <div className="pointer-events-none absolute right-0 top-0 h-52 w-80 bg-cyan-400/[0.055] blur-[90px]" />
+          <div className="relative flex flex-col gap-5 p-5 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.07] text-lg font-bold text-cyan-200">
+                {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : (profile.display_name || profile.username || "C").slice(0, 1).toUpperCase()}
               </div>
-
-              <h1 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
-                {profile.display_name || "Your collection"}
-              </h1>
-              <p className="mt-1 text-[11px] font-semibold text-cyan-200/65">@{profile.username || "collector"}{profile.location ? ` · ${profile.location}` : ""}</p>
-              <p className="mt-3 max-w-2xl text-xs leading-6 text-slate-400">
-                {profile.bio || "A curated collection of favorites, trade pieces, and cards worth sharing."}
-              </p>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                <button onClick={() => setStudioOpen(true)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-[#031319] shadow-[0_12px_34px_rgba(34,211,238,.18)] transition hover:-translate-y-0.5 hover:bg-cyan-200">
-                  <Share2 className="h-4 w-4" />
-                  Share portfolio
-                </button>
-                {profile.is_public ? (
-                  <Link href={`/collectors/${profile.username}`} target="_blank" className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-4 text-xs font-semibold text-white transition hover:bg-white/[0.07]">
-                    <Eye className="h-4 w-4" />
-                    Preview public profile
-                  </Link>
-                ) : (
-                  <button onClick={() => setTab("settings")} className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-4 text-xs font-semibold text-white transition hover:bg-white/[0.07]">
-                    <Globe2 className="h-4 w-4" />
-                    Publish profile
-                  </button>
-                )}
-                <button onClick={() => setTab("settings")} className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.025] px-4 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.06] hover:text-white">
-                  <Settings className="h-4 w-4" /> Edit profile
-                </button>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2"><h1 className="truncate text-2xl font-semibold tracking-[-0.04em]">{profile.display_name || "Your collection"}</h1><span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] ${profile.is_public ? "bg-emerald-300/[0.08] text-emerald-300" : "bg-white/[0.05] text-slate-500"}`}><span className={`h-1.5 w-1.5 rounded-full ${profile.is_public ? "bg-emerald-300" : "bg-slate-600"}`} />{profile.is_public ? "Public" : "Private"}</span></div>
+                <p className="mt-1 truncate text-[10px] font-semibold text-cyan-200/60">@{profile.username || "collector"}{profile.location ? ` · ${profile.location}` : ""}</p>
+                <p className="mt-1 max-w-xl truncate text-[11px] text-slate-500">{profile.bio || "A curated collection of favorites, trade pieces, and cards worth sharing."}</p>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[22px] border border-white/[0.08] bg-white/[0.05] sm:grid-cols-4">
-              <HeroMetric label="Cards" value={initialData.totals.cards.toLocaleString()} />
-              <HeroMetric label="Value" value={money(initialData.totals.value)} accent />
-              <HeroMetric label="Binders" value={String(initialData.totals.binders)} />
-              <HeroMetric label="For trade" value={String(initialData.totals.tradeCards)} />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="grid grid-cols-4 gap-5 border-y border-white/[0.07] py-3 sm:border-y-0 sm:border-r sm:py-0 sm:pr-5">
+                <CompactMetric label="Value" value={money(initialData.totals.value)} accent />
+                <CompactMetric label="Cards" value={initialData.totals.cards.toLocaleString()} />
+                <CompactMetric label="Binders" value={String(initialData.totals.binders)} />
+                <CompactMetric label="Trade" value={String(initialData.totals.tradeCards)} />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setStudioOpen(true)} className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-[11px] font-bold text-[#031319] transition hover:bg-cyan-200 sm:flex-none"><Share2 className="h-4 w-4" /> Share</button>
+                {profile.is_public ? <Link href={`/collectors/${profile.username}`} target="_blank" title="Preview public profile" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.03] text-slate-300 hover:text-white"><Eye className="h-4 w-4" /></Link> : null}
+                <button onClick={() => setTab("settings")} title="Portfolio settings" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.03] text-slate-300 hover:text-white"><Settings className="h-4 w-4" /></button>
+              </div>
             </div>
           </div>
         </section>
 
-        <nav className="mt-5 flex gap-2 overflow-x-auto rounded-[20px] border border-white/[0.07] bg-[#06131d]/88 p-2 shadow-[0_18px_55px_rgba(0,0,0,.22)]">
+        <nav className="mt-4 flex gap-1 overflow-x-auto border-b border-white/[0.08] px-1">
           {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setTab(id)} className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-3.5 text-[11px] font-semibold transition ${tab === id ? "bg-cyan-300 text-[#031319]" : "text-slate-500 hover:bg-white/[0.04] hover:text-white"}`}>
+            <button key={id} onClick={() => setTab(id)} className={`relative inline-flex h-11 shrink-0 items-center gap-2 px-3.5 text-[11px] font-semibold transition ${tab === id ? "text-cyan-200 after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-cyan-300" : "text-slate-500 hover:text-white"}`}>
               <Icon className="h-4 w-4" />
               {label}
             </button>
@@ -226,7 +189,7 @@ export function CollectorPortfolioWorkspace({ initialData }: { initialData: Port
   );
 }
 
-function PortfolioHome({ profile, featuredBinder, binders, totals, onOpenBinder, onShare }: {
+function PortfolioHome({ featuredBinder, binders, totals, onOpenBinder, onShare }: {
   profile: CollectorProfile;
   featuredBinder?: PortfolioBinderView;
   binders: PortfolioBinderView[];
@@ -234,89 +197,27 @@ function PortfolioHome({ profile, featuredBinder, binders, totals, onOpenBinder,
   onOpenBinder: (binder: PortfolioBinderView) => void;
   onShare: () => void;
 }) {
-  const recentCards = binders.flatMap((binder) => binder.cards.map((card) => ({ ...card, binderId: binder.id }))).slice(0, 8);
+  const recentCards = binders.flatMap((binder) => binder.cards.map((card) => ({ ...card, binderId: binder.id }))).slice(0, 10);
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
-      <div className="space-y-5">
-        {featuredBinder && (binders.length > 1 || featuredBinder.is_featured) ? (
-          <section className="group relative overflow-hidden rounded-[28px] border border-violet-300/[0.16] bg-[linear-gradient(135deg,#0a1927,#07131e_52%,#170d28)] p-5 shadow-[0_30px_90px_rgba(0,0,0,.34)] sm:p-6">
-            <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full blur-3xl" style={{ backgroundColor: `${featuredBinder.accent_color}22` }} />
-            <div className="relative grid gap-6 lg:grid-cols-[240px_1fr] lg:items-center">
-              <BinderCover binder={featuredBinder} large />
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-violet-300">Featured binder</p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">{featuredBinder.title}</h2>
-                <p className="mt-3 max-w-xl text-sm leading-7 text-slate-500">{featuredBinder.description || "The collection at the center of your portfolio."}</p>
-                <div className="mt-6 grid grid-cols-3 gap-2">
-                  <MiniMetric label="Cards" value={featuredBinder.cardCount.toLocaleString()} />
-                  <MiniMetric label="Value" value={money(featuredBinder.estimatedValue)} accent />
-                  <MiniMetric label="Pages" value={String(featuredBinder.pageCount)} />
-                </div>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <button onClick={() => onOpenBinder(featuredBinder)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-violet-300 px-4 text-[11px] font-bold text-[#18092b] transition hover:bg-violet-200">
-                    <BookOpen className="h-4 w-4" />
-                    Open binder
-                  </button>
-                  <button onClick={onShare} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.10] bg-white/[0.035] px-4 text-[11px] font-semibold text-white transition hover:bg-white/[0.07]">
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-        ) : null}
+    <div className="space-y-4">
+      <section className="rounded-[24px] border border-white/[0.08] bg-[#06131d]/88 p-5 shadow-[0_22px_70px_rgba(0,0,0,.24)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-cyan-300">Your collection</p><h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">Binders</h2></div>
+          <div className="flex gap-2"><button onClick={onShare} className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.09] px-3 text-[10px] font-semibold text-slate-300 hover:text-white"><Share2 className="h-3.5 w-3.5" /> Share collection</button><Link href="/dashboard/inventory" className="inline-flex h-9 items-center gap-2 rounded-xl bg-cyan-300 px-3 text-[10px] font-bold text-[#031319]"><Plus className="h-3.5 w-3.5" /> New binder</Link></div>
+        </div>
+        {binders.length ? <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{binders.slice(0, 7).map((binder) => <button key={binder.id} onClick={() => onOpenBinder(binder)} className="group flex min-h-[142px] overflow-hidden rounded-[20px] border border-white/[0.075] bg-black/15 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-white/[0.025]"><div className="relative w-[104px] shrink-0 overflow-hidden" style={{ background: `linear-gradient(145deg,${binder.cover_color},#020617)` }}>{binder.cards.filter((card) => card.imageUrl).slice(0, 3).map((card, index) => <img key={card.id} src={card.imageUrl} alt="" className="absolute top-7 h-[78px] w-[56px] rounded-md border border-white/10 object-cover shadow-xl" style={{ left: `${12 + index * 16}px`, zIndex: index }} />)}</div><div className="flex min-w-0 flex-1 flex-col justify-between p-4"><div><div className="flex items-center gap-2"><p className="truncate text-sm font-semibold text-white">{binder.title}</p>{binder.is_featured ? <Star className="h-3 w-3 fill-amber-300 text-amber-300" /> : null}</div><p className="mt-1 line-clamp-2 text-[9px] leading-4 text-slate-600">{binder.description || "Organized collection binder"}</p></div><div className="flex items-end justify-between"><div><p className="text-[13px] font-semibold text-emerald-300">{money(binder.estimatedValue)}</p><p className="mt-0.5 text-[8px] uppercase tracking-[0.1em] text-slate-600">{binder.cardCount} cards · {binder.pageCount} pages</p></div><ChevronRight className="h-4 w-4 text-slate-700 transition group-hover:translate-x-1 group-hover:text-cyan-300" /></div></div></button>)}</div> : <EmptyPanel title="Start your first binder" body="Organize cards from Inventory into a collection you can browse and share." />}
+      </section>
 
-        <section className="rounded-[26px] border border-white/[0.075] bg-[#06131d]/86 p-5 shadow-[0_24px_75px_rgba(0,0,0,.24)]">
-          <div className="flex items-center justify-between gap-4"><div><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-cyan-300">Recently added</p><h2 className="mt-2 text-xl font-semibold text-white">The cards are the collection.</h2></div></div>
-          {recentCards.length ? <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">{recentCards.map((card) => <button key={card.id} onClick={() => { const binder = binders.find((entry) => entry.id === card.binderId); if (binder) onOpenBinder(binder); }} title={card.name} className="group/card relative aspect-[.716] overflow-hidden rounded-xl border border-white/[0.08] bg-black/25 shadow-[0_12px_28px_rgba(0,0,0,.26)] transition hover:-translate-y-1 hover:border-cyan-300/30">{card.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center p-2 text-center text-[8px] text-slate-600">{card.name}</span>}<span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-transparent px-2 pb-2 pt-6 text-left text-[7px] font-semibold text-white opacity-0 transition group-hover/card:opacity-100">{card.name}</span></button>)}</div> : <div className="mt-5 rounded-2xl border border-dashed border-white/[0.08] p-8 text-center text-[10px] text-slate-600">Cards added to binders will appear here.</div>}
+      <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+        <section className="rounded-[24px] border border-white/[0.08] bg-[#06131d]/82 p-5">
+          <div className="flex items-center justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-violet-300">Latest cards</p><h2 className="mt-1 text-base font-semibold text-white">Recently added</h2></div><span className="text-[9px] text-slate-600">{recentCards.length} shown</span></div>
+          {recentCards.length ? <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-8 lg:grid-cols-10">{recentCards.map((card) => <button key={card.id} onClick={() => { const binder = binders.find((entry) => entry.id === card.binderId); if (binder) onOpenBinder(binder); }} title={card.name} className="group/card relative aspect-[.716] overflow-hidden rounded-lg border border-white/[0.08] bg-black/25 transition hover:-translate-y-1 hover:border-cyan-300/30">{card.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center p-1 text-center text-[7px] text-slate-600">{card.name}</span>}</button>)}</div> : <p className="mt-4 text-[10px] text-slate-600">Cards added to binders will appear here.</p>}
         </section>
-
-        <section className="rounded-[26px] border border-white/[0.075] bg-[#06131d]/86 p-5 shadow-[0_24px_75px_rgba(0,0,0,.24)]">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.17em] text-cyan-300">Bookshelf</p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Your collection, presented.</h2>
-            </div>
-            <span className="text-[10px] text-slate-600">{binders.length} binders</span>
-          </div>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {binders.slice(0, 3).map((binder) => (
-              <button key={binder.id} onClick={() => onOpenBinder(binder)} className="group text-left">
-                <BinderCover binder={binder} />
-                <div className="mt-3 flex items-start justify-between gap-3">
-                  <div className="min-w-0"><p className="truncate text-sm font-semibold text-white">{binder.title}</p><p className="mt-1 text-[10px] text-slate-600">{binder.cardCount} cards · {money(binder.estimatedValue)}</p></div>
-                  <ChevronRight className="mt-1 h-4 w-4 text-slate-700 transition group-hover:translate-x-1 group-hover:text-cyan-300" />
-                </div>
-              </button>
-            ))}
-            <Link href="/dashboard/inventory" className="flex min-h-[220px] flex-col items-center justify-center rounded-[22px] border border-dashed border-cyan-300/15 bg-cyan-300/[0.018] text-center transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.035]"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-300/[0.08] text-cyan-200"><Plus className="h-5 w-5" /></span><span className="mt-3 text-xs font-semibold text-white">Create new binder</span><span className="mt-1 text-[9px] text-slate-600">Build it from Inventory</span></Link>
-          </div>
-        </section>
-      </div>
-
-      <div className="space-y-5">
-        <section className="rounded-[26px] border border-emerald-300/[0.12] bg-[linear-gradient(145deg,#071a1b,#06131d)] p-5 shadow-[0_24px_70px_rgba(0,0,0,.24)]">
-          <p className="text-[9px] font-bold uppercase tracking-[0.17em] text-emerald-300">Portfolio snapshot</p>
-          <p className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-white">{money(totals.value)}</p>
-          <div className="mt-2 flex items-center justify-between"><p className="text-[11px] text-slate-500">Estimated market value</p><span className="rounded-full bg-emerald-300/[0.08] px-2 py-1 text-[9px] font-semibold text-emerald-300">Market</span></div>
-          <div className="mt-5 h-20 rounded-2xl border border-white/[0.06] bg-[linear-gradient(180deg,rgba(110,231,183,.10),transparent)] p-3">
-            <div className="flex h-full items-end gap-1">
-              {[22,31,28,42,46,54,51,62,68,74,81,88].map((height, index) => <span key={index} className="flex-1 rounded-t bg-emerald-300/40" style={{ height: `${height}%` }} />)}
-            </div>
-          </div>
-          <div className="mt-3 flex justify-between text-[8px] text-slate-700"><span>30 days ago</span><span>Today</span></div>
-          <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold text-emerald-300"><TrendingUp className="h-4 w-4" /> Value history begins with pricing snapshots</div>
-        </section>
-
-        <section className="rounded-[26px] border border-white/[0.075] bg-[#06131d]/86 p-5">
-          <div className="flex items-center justify-between"><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-violet-300">Portfolio activity</p><span className="text-[8px] text-slate-700">Live overview</span></div>
-          <div className="mt-4 space-y-2">
-            <ActionRow icon={Globe2} title={profile.is_public ? "Public profile is live" : "Portfolio is still private"} detail={profile.is_public ? `/collectors/${profile.username}` : "Publish when your collection is ready."} />
-            <ActionRow icon={LibraryBig} title={`${totals.binders} binder${totals.binders === 1 ? "" : "s"} organized`} detail={`${totals.cards.toLocaleString()} total cards across your shelf.`} />
-            <ActionRow icon={MessageCircle} title={`${totals.tradeCards.toLocaleString()} cards available for trade`} detail={totals.tradeCards ? "Collectors can browse your trade-ready cards." : "Mark cards or a binder as available for trade."} />
-            <ActionRow icon={Star} title={featuredBinder?.is_featured ? `${featuredBinder.title} is featured` : "Choose a featured binder"} detail="Control the first collection visitors see." />
-          </div>
+        <section className="rounded-[24px] border border-emerald-300/[0.11] bg-[linear-gradient(145deg,#07191a,#06131d)] p-5">
+          <div className="flex items-center justify-between"><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-emerald-300">Collection health</p><span className="rounded-full bg-emerald-300/[0.08] px-2 py-1 text-[8px] font-semibold text-emerald-300">Live</span></div>
+          <p className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">{money(totals.value)}</p><p className="mt-1 text-[10px] text-slate-600">Current market value</p>
+          <div className="mt-4 grid grid-cols-3 gap-2"><MiniMetric label="Unique" value={String(totals.uniqueCards)} /><MiniMetric label="Binders" value={String(totals.binders)} /><MiniMetric label="Trade" value={String(totals.tradeCards)} accent /></div>
+          {featuredBinder ? <button onClick={() => onOpenBinder(featuredBinder)} className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/[0.07] bg-black/15 p-3 text-left"><span><span className="block text-[8px] uppercase tracking-[0.12em] text-slate-600">Featured binder</span><span className="mt-1 block text-[11px] font-semibold text-white">{featuredBinder.title}</span></span><ChevronRight className="h-4 w-4 text-slate-600" /></button> : null}
         </section>
       </div>
     </div>
@@ -430,9 +331,8 @@ function PublicPagePreview({ binder, page }: { binder?: PortfolioBinderView; pag
   return <div className="rounded-[22px] border border-white/[0.10] bg-[linear-gradient(145deg,#171126,#0b151f)] p-3 shadow-[0_22px_55px_rgba(0,0,0,.34)]"><div className="mb-3 flex items-center justify-between"><span className="text-[8px] font-bold uppercase tracking-[0.15em] text-violet-200">Page {page}</span><span className="text-[8px] text-slate-700">{cards.length}/9</span></div><div className="grid grid-cols-3 gap-2">{Array.from({ length: 9 }, (_, index) => { const card = cards[index]; return <div key={card?.id ?? index} className="aspect-[.716] overflow-hidden rounded-lg border border-white/[0.07] bg-black/25">{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" /> : null}</div>; })}</div></div>;
 }
 
-function HeroMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <div className="min-w-[118px] bg-black/25 px-4 py-4"><p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">{label}</p><p className={`mt-1 text-lg font-semibold ${accent ? "text-emerald-300" : "text-white"}`}>{value}</p></div>; }
+function CompactMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <div className="min-w-0"><p className={`truncate text-sm font-semibold ${accent ? "text-emerald-300" : "text-white"}`}>{value}</p><p className="mt-0.5 text-[7px] font-bold uppercase tracking-[0.12em] text-slate-600">{label}</p></div>; }
 function MiniMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <div className="rounded-xl border border-white/[0.07] bg-black/20 px-3 py-3"><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-700">{label}</p><p className={`mt-1 text-sm font-semibold ${accent ? "text-emerald-300" : "text-white"}`}>{value}</p></div>; }
-function ActionRow({ icon: Icon, title, detail }: { icon: typeof Globe2; title: string; detail: string }) { return <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/[0.11] bg-cyan-300/[0.04] text-cyan-200"><Icon className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[11px] font-semibold text-slate-200">{title}</p><p className="mt-1 truncate text-[9px] text-slate-600">{detail}</p></div></div>; }
 function ScopeCard({ title, detail }: { title: string; detail: string }) { return <div className="rounded-2xl border border-white/[0.075] bg-black/10 p-4"><Layers3 className="h-5 w-5 text-violet-300" /><p className="mt-4 text-[11px] font-semibold text-white">{title}</p><p className="mt-1 text-[9px] leading-4 text-slate-600">{detail}</p></div>; }
 function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) { return <button title={label} aria-label={label} onClick={onClick} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] text-slate-600 transition hover:border-cyan-300/20 hover:text-cyan-200">{children}</button>; }
 function EmptyPanel({ title, body }: { title: string; body: string }) { return <div className="rounded-[26px] border border-dashed border-white/[0.10] bg-white/[0.018] p-12 text-center"><LibraryBig className="mx-auto h-8 w-8 text-slate-700" /><p className="mt-4 text-lg font-semibold text-slate-300">{title}</p><p className="mt-2 text-[11px] text-slate-600">{body}</p><Link href="/dashboard/inventory" className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-[10px] font-bold text-[#031319]"><Plus className="h-4 w-4" /> Open Inventory</Link></div>; }
