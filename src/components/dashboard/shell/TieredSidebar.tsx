@@ -55,7 +55,7 @@ const SECTION_CONFIG: Array<{
   priorityCount: number;
 }> = [
   { label: "Commerce", section: PURCHASING_NAV, priorityCount: 4 },
-  { label: "", section: SELLING_NAV, priorityCount: 4 },
+  { label: "", section: SELLING_NAV, priorityCount: 6 },
   { label: "Intelligence", section: INSIGHTS_NAV, priorityCount: 4 },
   { label: "Operations", section: OPERATIONS_NAV, priorityCount: 4 },
 ];

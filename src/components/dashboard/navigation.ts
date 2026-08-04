@@ -185,9 +185,9 @@ export const SELLING_NAV: NavigationSection = {
     },
     { href: "/dashboard/seller-launch", label: "Seller Launch", icon: Rocket },
     { href: "/dashboard/sell-optimizer", label: "Sell Optimizer", icon: CircleDollarSign },
+    { href: "/dashboard/card-shows", label: "Card Shows", icon: CalendarRange },
     { href: "/dashboard/marketplaces", label: "Marketplaces", icon: Store },
     { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
-    { href: "/dashboard/card-shows", label: "Card Shows", icon: CalendarRange },
   ],
 };
 

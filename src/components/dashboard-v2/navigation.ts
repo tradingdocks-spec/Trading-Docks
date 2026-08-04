@@ -115,6 +115,11 @@ export const PURCHASING_NAV: NavigationSection = {
 
 export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
   {
+    href: "/dashboard/card-shows",
+    label: "Card Shows",
+    icon: CalendarDays,
+  },
+  {
     href: "/dashboard/marketplaces",
     label: "Marketplaces",
     icon: Store,

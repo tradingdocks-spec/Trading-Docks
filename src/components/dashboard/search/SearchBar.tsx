@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   Boxes,
+  CalendarDays,
   Command,
   FolderKanban,
   History,
@@ -139,6 +140,23 @@ const searchResults: SearchResult[] = [
       "vault",
     ],
     icon: Store,
+  },
+  {
+    id: "card-shows",
+    title: "Card Shows",
+    description: "Plan events, manage show inventory, record sales, and track profit.",
+    href: "/dashboard/card-shows",
+    category: "Commerce",
+    keywords: [
+      "card show",
+      "event",
+      "vendor",
+      "booth",
+      "table",
+      "show inventory",
+      "show sales",
+    ],
+    icon: CalendarDays,
   },
   {
     id: "marketplaces",
