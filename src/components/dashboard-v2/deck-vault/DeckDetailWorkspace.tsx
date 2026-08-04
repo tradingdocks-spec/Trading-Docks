@@ -51,6 +51,7 @@ import type {
 import { ManaPips } from "./ManaPips";
 import { accountStorageKey } from "@/lib/account-storage";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
+import { DeckPlaytest } from "@/components/deck-vault/DeckPlaytest";
 
 const DeckShowcaseStudio = dynamic(
   () =>
@@ -776,6 +777,8 @@ export function DeckDetailWorkspace({
             report={intelligence}
             loading={intelligenceLoading}
           />
+        ) : tab === "Playtest" ? (
+          <DeckPlaytest cards={cards} commanderName={commanderName} />
         ) : (
           <AnalyticsWorkspace
             deck={deck}

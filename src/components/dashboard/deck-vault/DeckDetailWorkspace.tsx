@@ -67,6 +67,7 @@ import {
   saveDeckRecord,
 } from "@/lib/deck-vault/persistence";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
+import { DeckPlaytest } from "@/components/deck-vault/DeckPlaytest";
 
 type StoredInventoryItem = {
   id?: string;
@@ -1209,6 +1210,8 @@ export function DeckDetailWorkspace({
             report={intelligence}
             loading={intelligenceLoading}
           />
+        ) : tab === "Playtest" ? (
+          <DeckPlaytest cards={cards} commanderName={commanderName} />
         ) : (
           <AnalyticsWorkspace
             deck={deck}
