@@ -2739,9 +2739,7 @@ function BinderShowcaseStudio({
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<"showcase" | "trade">("showcase");
-  const [shareUrl, setShareUrl] = useState("");
   const [status, setStatus] = useState("");
-  const [creatingLink, setCreatingLink] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [cardCount, setCardCount] = useState<6 | 9 | 12>(() => items.filter((item) => item.binderPage && item.binderSlot).length >= 9 ? 9 : 6);
   const [exportTitle, setExportTitle] = useState(location.name);
@@ -2757,63 +2755,14 @@ function BinderShowcaseStudio({
     ? `Trading ${location.name} on Trading Docks — ${totalCards} cards · ${currency(totalValue)} estimated value. Message me with offers.`
     : `${location.name} — ${totalCards} cards · ${currency(totalValue)} estimated value. Built and organized with Trading Docks.`;
 
-  async function createPublicLink() {
-    setCreatingLink(true);
-    setStatus("");
-    try {
-      const response = await fetch("/api/binder-shares", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: location.name,
-          mode,
-          payload: {
-            columns: location.binderColumns ?? 3,
-            rows: location.binderRows ?? 3,
-            pages: location.binderPages ?? 20,
-            totalValue,
-            totalCards,
-            occupied,
-            cards: cards.slice(0, 240).map((item) => ({
-              name: item.name,
-              imageUrl: item.imageUrl ?? null,
-              value: item.value,
-              quantity: item.quantity,
-              set: item.set ?? null,
-              condition: item.condition ?? null,
-              finish: item.finish ?? null,
-              page: item.binderPage ?? null,
-              slot: item.binderSlot ?? null,
-            })),
-          },
-        }),
-      });
-      const result = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
-      if (!response.ok || !result?.url) throw new Error(result?.error || "Could not create the binder link.");
-      setShareUrl(result.url);
-      await navigator.clipboard.writeText(result.url);
-      setStatus("Public binder link created and copied.");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not create the binder link.");
-    } finally {
-      setCreatingLink(false);
-    }
+  function openShareStudio() {
+    const params = new URLSearchParams({ tab: "showcase", studio: "share", binder: location.id, page: String(page) });
+    window.location.assign(`/dashboard/collector-portfolio?${params.toString()}`);
   }
 
   async function copyPost() {
-    await navigator.clipboard.writeText([caption, shareUrl || "Create a public link to include it here."].join("\n\n"));
+    await navigator.clipboard.writeText(caption);
     setStatus(mode === "trade" ? "Trade post copied for Discord." : "Showcase caption copied.");
-  }
-
-  async function nativeShare() {
-    const url = shareUrl || window.location.href;
-    if (navigator.share) {
-      await navigator.share({ title: location.name, text: caption, url });
-      setStatus("Share sheet opened.");
-    } else {
-      await navigator.clipboard.writeText(`${caption}\n\n${url}`);
-      setStatus("Share text copied.");
-    }
   }
 
   async function downloadSocialCard() {
@@ -3022,18 +2971,15 @@ function BinderShowcaseStudio({
             </div>
           </div>
 
-          <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="mt-6 flex items-center justify-between rounded-2xl border border-violet-300/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.06))] p-4 transition hover:-translate-y-0.5 hover:border-violet-300/40">
-            <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-300 text-[#18092b]"><BookOpen className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold text-white">Open the full Collector Portfolio</p><p className="mt-1 text-[9px] text-slate-500">Flipbook, full spreads, gallery, public sharing, and binder presentation.</p></div></div><ChevronRight className="h-4 w-4 text-violet-200" />
-          </Link>
+          <button type="button" onClick={openShareStudio} className="mt-6 flex w-full items-center justify-between rounded-2xl border border-violet-300/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.06))] p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300/40">
+            <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-300 text-[#18092b]"><Share2 className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold text-white">Share this binder</p><p className="mt-1 text-[9px] text-slate-500">Use the same Share Studio for a page, spread, entire binder, or portfolio.</p></div></div><ChevronRight className="h-4 w-4 text-violet-200" />
+          </button>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <ShowcaseAction icon={Globe2} title="Create public link" description="Publish a clean read-only binder page." onClick={createPublicLink} loading={creatingLink} />
             <ShowcaseAction icon={Download} title="Export Instagram graphic" description={`Professional 1080 × 1350 poster · ${cardCount}-card layout.`} onClick={downloadSocialCard} loading={downloading} />
             <ShowcaseAction icon={MessageCircle} title="Copy Discord post" description="Caption, collection stats, and trade language." onClick={copyPost} />
-            <ShowcaseAction icon={Share2} title="Open share sheet" description="Send through any supported app on your device." onClick={nativeShare} />
           </div>
 
-          {shareUrl ? <div className="mt-5 rounded-2xl border border-emerald-300/[0.15] bg-emerald-400/[0.045] p-4"><div className="flex items-center gap-2"><Link2 className="h-4 w-4 text-emerald-300" /><p className="text-[10px] font-semibold text-emerald-100">Public binder link</p></div><p className="mt-2 break-all text-[9px] leading-5 text-emerald-200/65">{shareUrl}</p></div> : null}
           {status ? <div className="mt-4 rounded-xl border border-cyan-300/[0.12] bg-cyan-300/[0.035] px-4 py-3 text-[9px] font-semibold text-cyan-100">{status}</div> : null}
         </div>
 

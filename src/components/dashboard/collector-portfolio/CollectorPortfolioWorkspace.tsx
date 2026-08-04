@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Check,
@@ -77,8 +77,20 @@ export function CollectorPortfolioWorkspace({ initialData }: { initialData: Port
   const [binders, setBinders] = useState(initialData.binders);
   const [selectedBinderId, setSelectedBinderId] = useState(initialData.binders[0]?.id ?? "");
   const [studioOpen, setStudioOpen] = useState(false);
+  const [studioPage, setStudioPage] = useState(1);
   const [editingBinder, setEditingBinder] = useState<PortfolioBinderView | null>(null);
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedBinder = params.get("binder");
+    if (requestedBinder) {
+      const match = initialData.binders.find((binder) => binder.location_id === requestedBinder || binder.id === requestedBinder);
+      if (match) setSelectedBinderId(match.id);
+    }
+    setStudioPage(Math.max(1, Number(params.get("page")) || 1));
+    if (params.get("studio") === "share") setStudioOpen(true);
+  }, [initialData.binders]);
 
   const featuredBinder = useMemo(
     () => binders.find((binder) => binder.is_featured) ?? binders[0],
@@ -194,7 +206,7 @@ export function CollectorPortfolioWorkspace({ initialData }: { initialData: Port
         </div>
       </div>
 
-      {studioOpen ? <PortfolioShowcaseStudio profile={profile} binders={binders} selectedBinder={selectedBinder} onClose={() => setStudioOpen(false)} /> : null}
+      {studioOpen ? <PortfolioShowcaseStudio profile={profile} binders={binders} selectedBinder={selectedBinder} initialPage={studioPage} onClose={() => setStudioOpen(false)} /> : null}
       {editingBinder ? <BinderPresentationEditor binder={editingBinder} onClose={() => setEditingBinder(null)} onSave={saveBinder} /> : null}
     </main>
   );
@@ -354,10 +366,10 @@ function PortfolioSettings({ profile, onSave }: { profile: CollectorProfile; onS
   return <section className="grid gap-5 xl:grid-cols-[1fr_420px]"><div className="rounded-[28px] border border-white/[0.075] bg-[#06131d]/90 p-6"><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-cyan-300">Portfolio identity</p><h2 className="mt-2 text-2xl font-semibold text-white">Claim your collector presence.</h2><div className="mt-6 grid gap-4 sm:grid-cols-2"><Field label="Display name"><input value={draft.display_name} onChange={(e) => setDraft({ ...draft, display_name: e.target.value })} className="portfolio-input" /></Field><Field label="Username"><div className="flex items-center rounded-xl border border-white/[0.08] bg-black/20"><span className="pl-3 text-[10px] text-slate-700">/collectors/</span><input value={draft.username} onChange={(e) => setDraft({ ...draft, username: sanitizeUsername(e.target.value) })} className="min-w-0 flex-1 bg-transparent px-2 py-3 text-xs text-white outline-none" /></div></Field><Field label="Bio" wide><textarea value={draft.bio} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} rows={4} className="portfolio-input resize-none" /></Field><Field label="Location"><input value={draft.location ?? ""} onChange={(e) => setDraft({ ...draft, location: e.target.value })} className="portfolio-input" /></Field><Field label="Theme"><select value={draft.theme} onChange={(e) => setDraft({ ...draft, theme: e.target.value })} className="portfolio-input"><option value="aurora">Aurora</option><option value="museum">Museum</option><option value="midnight">Midnight</option><option value="collector">Collector</option></select></Field></div><button onClick={() => void onSave(draft)} className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-[#031319]"><Check className="h-4 w-4" /> Save portfolio</button></div><div className="space-y-4"><ToggleCard title="Public profile" detail="Allow visitors to browse approved portfolio content." checked={draft.is_public} onChange={(checked) => setDraft({ ...draft, is_public: checked })} /><ToggleCard title="Show collection value" detail="Display portfolio and binder value totals publicly." checked={draft.show_collection_value} onChange={(checked) => setDraft({ ...draft, show_collection_value: checked })} /><ToggleCard title="Show location" detail="Display the location entered on your public profile." checked={draft.show_location} onChange={(checked) => setDraft({ ...draft, show_location: checked })} /><div className="rounded-[24px] border border-amber-300/[0.12] bg-amber-400/[0.035] p-5"><LockKeyhole className="h-5 w-5 text-amber-300" /><p className="mt-3 text-sm font-semibold text-amber-100">Private data stays private</p><p className="mt-2 text-[10px] leading-5 text-amber-100/55">Purchase price, cost basis, private notes, marketplace credentials, internal IDs, and non-binder storage locations are never included in public portfolio payloads.</p></div></div></section>;
 }
 
-function PortfolioShowcaseStudio({ profile, binders, selectedBinder, onClose }: { profile: CollectorProfile; binders: PortfolioBinderView[]; selectedBinder?: PortfolioBinderView; onClose: () => void }) {
+function PortfolioShowcaseStudio({ profile, binders, selectedBinder, initialPage = 1, onClose }: { profile: CollectorProfile; binders: PortfolioBinderView[]; selectedBinder?: PortfolioBinderView; initialPage?: number; onClose: () => void }) {
   const [scope, setScope] = useState<"page" | "spread" | "binder" | "portfolio">("spread");
   const [visibility, setVisibility] = useState<"public" | "unlisted" | "private">("unlisted");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const [shareUrl, setShareUrl] = useState("");
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState("");
