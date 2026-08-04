@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BadgeDollarSign,
   Boxes,
+  ChevronDown,
   CheckCircle2,
   ExternalLink,
   PackageOpen,
@@ -74,6 +75,7 @@ export function PreconIntelligenceWorkspace() {
   const [loadingDeck, setLoadingDeck] = useState(false);
   const [error, setError] = useState("");
   const [quotes, setQuotes] = useState<Record<string, RetailerQuote>>({});
+  const [showPriceSources, setShowPriceSources] = useState(false);
 
   useEffect(() => {
     void loadCatalog();
@@ -104,6 +106,7 @@ export function PreconIntelligenceWorkspace() {
       if (!response.ok) throw new Error(payload.error || "Could not price this deck.");
       setAnalysis(payload);
       setQuotes({});
+      setShowPriceSources(false);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not price this deck.");
     } finally {
@@ -116,6 +119,17 @@ export function PreconIntelligenceWorkspace() {
     return catalog.filter((deck) => !needle || `${deck.name} ${deck.code}`.toLowerCase().includes(needle)).slice(0, 80);
   }, [catalog, query]);
 
+  const verifiedQuotes = SEALED_SOURCES.flatMap((source) => {
+    const quote = quotes[source.id];
+    if (!quote || quote.stock !== "in-stock" || quote.itemPrice === null) return [];
+    return [{ source, quote, delivered: quote.itemPrice + (quote.shipping ?? 0) }];
+  }).sort((a, b) => a.delivered - b.delivered);
+  const bestQuote = verifiedQuotes[0];
+  const averageDeckCost = verifiedQuotes.length
+    ? verifiedQuotes.reduce((sum, result) => sum + result.delivered, 0) / verifiedQuotes.length
+    : null;
+  const effectivePurchasePrice = averageDeckCost ?? purchasePrice;
+
   const economics = useMemo(() => {
     const cards = analysis?.deck.cards ?? [];
     const sellableGross = cards.filter((card) => card.unitPrice >= 1).reduce((sum, card) => sum + card.totalPrice, 0);
@@ -123,22 +137,15 @@ export function PreconIntelligenceWorkspace() {
     const bulkRecovery = subDollarCards * Math.max(0, bulkRate);
     const fees = sellableGross * Math.max(0, feePercent) / 100;
     const expectedNet = sellableGross - fees - Math.max(0, fulfillment) + bulkRecovery;
-    const profit = expectedNet - Math.max(0, purchasePrice);
-    const roi = purchasePrice > 0 ? (profit / purchasePrice) * 100 : 0;
+    const profit = expectedNet - Math.max(0, effectivePurchasePrice);
+    const roi = effectivePurchasePrice > 0 ? (profit / effectivePurchasePrice) * 100 : 0;
     const safeBuyPrice = Math.max(0, expectedNet / 1.25);
-    const recovery = purchasePrice > 0 ? expectedNet / purchasePrice : 0;
+    const recovery = effectivePurchasePrice > 0 ? expectedNet / effectivePurchasePrice : 0;
     const verdict = recovery >= 1.4 ? "Strong break" : recovery >= 1.15 ? "Worth reviewing" : recovery >= 1 ? "Thin margin" : "Keep sealed";
     return { sellableGross, subDollarCards, bulkRecovery, fees, expectedNet, profit, roi, safeBuyPrice, recovery, verdict };
-  }, [analysis, bulkRate, feePercent, fulfillment, purchasePrice]);
+  }, [analysis, bulkRate, effectivePurchasePrice, feePercent, fulfillment]);
 
   const verdictTone = economics.recovery >= 1.4 ? "emerald" : economics.recovery >= 1.15 ? "cyan" : economics.recovery >= 1 ? "amber" : "rose";
-  const verifiedQuotes = SEALED_SOURCES.flatMap((source) => {
-    const quote = quotes[source.id];
-    if (!quote || quote.stock !== "in-stock" || quote.itemPrice === null) return [];
-    return [{ source, quote, delivered: quote.itemPrice + (quote.shipping ?? 0) }];
-  }).sort((a, b) => a.delivered - b.delivered);
-  const bestQuote = verifiedQuotes[0];
-
   return (
     <main className="min-h-screen bg-[#020b12] px-4 py-6 text-white sm:px-7 lg:px-10">
       <div className="mx-auto max-w-[1500px]">
@@ -203,7 +210,7 @@ export function PreconIntelligenceWorkspace() {
                   </div>
 
                   <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <InputMetric label="Your sealed cost" prefix="$" value={purchasePrice} onChange={setPurchasePrice} />
+                    <InputMetric label={averageDeckCost === null ? "Your sealed cost" : "Manual cost fallback"} prefix="$" value={purchasePrice} onChange={setPurchasePrice} />
                     <InputMetric label="Marketplace fees" suffix="%" value={feePercent} onChange={setFeePercent} />
                     <InputMetric label="Total fulfillment" prefix="$" value={fulfillment} onChange={setFulfillment} />
                     <InputMetric label="Bulk recovery / card" prefix="$" value={bulkRate} step="0.01" onChange={setBulkRate} />
@@ -218,20 +225,20 @@ export function PreconIntelligenceWorkspace() {
                 </section>
 
                 <section className="mt-4 overflow-hidden rounded-2xl border border-white/[0.07] bg-[#071522]">
-                  <div className="flex flex-col gap-4 border-b border-white/[0.06] p-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <p className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.15em] text-cyan-300"><ShoppingCart className="h-4 w-4" /> Sealed price comparison</p>
-                      <h3 className="mt-2 text-lg font-semibold">Compare the true delivered cost</h3>
-                      <p className="mt-1 text-xs text-slate-500">Open each live result, verify the exact sealed product, then record its current price and shipping.</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl border border-white/[0.07] bg-black/20 px-4 py-3">
-                        <p className="text-[8px] font-bold uppercase tracking-[0.13em] text-slate-600">Sources checked</p>
-                        <p className="mt-1 text-sm font-semibold">{verifiedQuotes.length} of {SEALED_SOURCES.length} verified</p>
+                      <p className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.15em] text-cyan-300"><ShoppingCart className="h-4 w-4" /> Average precon cost</p>
+                      <div className="mt-2 flex items-baseline gap-3">
+                        <h3 className="text-3xl font-semibold tracking-[-0.04em]">{money(effectivePurchasePrice)}</h3>
+                        {bestQuote ? <span className="text-xs text-slate-500">Best found {money(bestQuote.delivered)}</span> : null}
                       </div>
-                      {bestQuote ? <button type="button" onClick={() => setPurchasePrice(bestQuote.delivered)} className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.07] px-4 py-3 text-left text-emerald-200 transition hover:bg-emerald-400/[0.11]"><span className="block text-[8px] font-bold uppercase tracking-[0.13em] opacity-70">Use best price</span><span className="mt-1 block text-sm font-semibold">{money(bestQuote.delivered)} · {bestQuote.source.name}</span></button> : null}
+                      <p className="mt-2 text-xs text-slate-500">{averageDeckCost === null ? "Using your manual cost until a retailer price is verified." : `Average delivered price across ${verifiedQuotes.length} verified ${verifiedQuotes.length === 1 ? "source" : "sources"}. Automatically used in the profit estimate.`}</p>
                     </div>
+                    <button type="button" onClick={() => setShowPriceSources((current) => !current)} aria-expanded={showPriceSources} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/25 hover:text-cyan-200">
+                      {showPriceSources ? "Hide" : "View"} price sources <span className="text-slate-600">{verifiedQuotes.length}/{SEALED_SOURCES.length}</span><ChevronDown className={`h-4 w-4 transition ${showPriceSources ? "rotate-180" : ""}`} />
+                    </button>
                   </div>
+                  {showPriceSources ? <>
                   <div className="hidden grid-cols-[minmax(190px,1fr)_110px_110px_120px_130px_48px] gap-3 border-b border-white/[0.05] px-5 py-2 text-[8px] font-bold uppercase tracking-[0.13em] text-slate-700 lg:grid">
                     <span>Source</span><span>Item price</span><span>Shipping</span><span>Availability</span><span className="text-right">Delivered</span><span />
                   </div>
@@ -252,6 +259,7 @@ export function PreconIntelligenceWorkspace() {
                     })}
                   </div>
                   <div className="border-t border-white/[0.06] bg-black/10 px-5 py-3 text-[9px] leading-5 text-slate-600">Prices are saved only for the current comparison. Verify that listings are factory sealed, English, the correct deck—not a four-deck bundle—and immediately available. Cardsphere may serve as a community price reference when no sealed listing exists.</div>
+                  </> : null}
                 </section>
 
                 <section className="mt-4 rounded-2xl border border-white/[0.07] bg-[#071522]">
