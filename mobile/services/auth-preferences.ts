@@ -1,21 +1,24 @@
 import { Platform } from 'react-native';
 import { appStorage } from '@/services/storage/app-storage';
+import {
+  AUTH_PREFERENCE_KEYS,
+  saveLoginOptionsToStorage,
+  shouldDiscardRestoredSessionFromStorage,
+} from '@/services/auth-preferences-core';
 
-const KEYS = {
-  email: 'td.auth.remembered-email',
-  rememberEmail: 'td.auth.remember-email',
-  keepSignedIn: 'td.auth.keep-signed-in',
-  activeBrowserSession: 'td.auth.browser-session',
-  biometricEnabled: 'td.auth.biometric-enabled',
-};
+function browserSessionStorage() {
+  return Platform.OS === 'web' && typeof window !== 'undefined'
+    ? window.sessionStorage
+    : null;
+}
 
 export const authPreferences = {
   async load() {
     const [email, rememberEmail, keepSignedIn, biometricEnabled] = await Promise.all([
-      appStorage.getItem(KEYS.email),
-      appStorage.getItem(KEYS.rememberEmail),
-      appStorage.getItem(KEYS.keepSignedIn),
-      appStorage.getItem(KEYS.biometricEnabled),
+      appStorage.getItem(AUTH_PREFERENCE_KEYS.email),
+      appStorage.getItem(AUTH_PREFERENCE_KEYS.rememberEmail),
+      appStorage.getItem(AUTH_PREFERENCE_KEYS.keepSignedIn),
+      appStorage.getItem(AUTH_PREFERENCE_KEYS.biometricEnabled),
     ]);
     return {
       email: email ?? '',
@@ -26,27 +29,20 @@ export const authPreferences = {
   },
 
   async saveLoginOptions(email: string, rememberEmail: boolean, keepSignedIn: boolean) {
-    await Promise.all([
-      appStorage.setItem(KEYS.rememberEmail, String(rememberEmail)),
-      appStorage.setItem(KEYS.keepSignedIn, String(keepSignedIn)),
-      rememberEmail ? appStorage.setItem(KEYS.email, email.trim().toLowerCase()) : appStorage.removeItem(KEYS.email),
-    ]);
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      if (keepSignedIn) window.localStorage.removeItem(KEYS.activeBrowserSession);
-      else window.sessionStorage.setItem(KEYS.activeBrowserSession, 'true');
-    }
+    await saveLoginOptionsToStorage(
+      appStorage,
+      email,
+      rememberEmail,
+      keepSignedIn,
+      browserSessionStorage(),
+    );
   },
 
   async shouldDiscardRestoredSession() {
-    const keepSignedIn = await appStorage.getItem(KEYS.keepSignedIn);
-    if (keepSignedIn !== 'false') return false;
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      return window.sessionStorage.getItem(KEYS.activeBrowserSession) !== 'true';
-    }
-    return true;
+    return shouldDiscardRestoredSessionFromStorage(appStorage, browserSessionStorage());
   },
 
   async setBiometricEnabled(value: boolean) {
-    await appStorage.setItem(KEYS.biometricEnabled, String(value));
+    await appStorage.setItem(AUTH_PREFERENCE_KEYS.biometricEnabled, String(value));
   },
 };

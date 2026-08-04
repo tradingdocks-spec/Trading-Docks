@@ -12,7 +12,9 @@
 ## Authentication Problems
 
 - Partially Implemented: Web owner access is hard-coded by email in dashboard code.
-- Partially Implemented: Mobile admin access uses `user_roles`, creating a separate authorization model from web owner logic.
+- Partially Implemented: Mobile admin access uses `user_roles`, creating a separate authorization model from web owner logic. Mobile now routes safely if this lookup fails.
+- Implemented: Mobile email/password auth now renders exact Supabase errors, persists remembered-email preferences only when selected, restores sessions before route guards render, and routes admin users to Command Center when role lookup succeeds.
+- Partially Implemented: Native biometric/session-lock scaffolding remains architecture-only until verified on physical iOS/Android devices.
 - Requires Production Configuration: Supabase Auth settings, OAuth callbacks, recovery flow settings, and MFA are not provable from source.
 
 ## Navigation Issues
@@ -55,6 +57,7 @@
 
 ## Missing Tests
 
+- Implemented: Focused mobile auth tests cover email/password success and failure, session restoration, admin routing, normal routing, remembered email, and keep-me-signed-in discard behavior.
 - Planned: Auth redirect and callback tests.
 - Planned: Plan access and route entitlement tests.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -62,6 +65,7 @@
 - Planned: API route authentication allowlist tests.
 - Planned: Supabase RLS/cross-account isolation tests.
 - Planned: Mobile auth/session/offline queue tests.
+- Planned: Native device tests for biometric unlock and OAuth/magic-link callback handling.
 
 ## Documentation Gaps
 
