@@ -2744,6 +2744,9 @@ function BinderShowcaseStudio({
   const [creatingLink, setCreatingLink] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [cardCount, setCardCount] = useState<6 | 9 | 12>(() => items.filter((item) => item.binderPage && item.binderSlot).length >= 9 ? 9 : 6);
+  const [exportTitle, setExportTitle] = useState(location.name);
+  const [exportStyle, setExportStyle] = useState<"editorial" | "gallery">("editorial");
+  const [exportTheme, setExportTheme] = useState<"harbor" | "midnight" | "carbon">("harbor");
 
   const cards = [...items]
     .filter((item) => item.binderPage && item.binderSlot)
@@ -2823,26 +2826,31 @@ function BinderShowcaseStudio({
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Image export is unavailable.");
 
+      const themes = {
+        harbor: { top: "#071c29", bottom: "#07101b", accent: "#67e8f9", soft: "rgba(103,232,249,.16)", secondary: "#a5f3fc" },
+        midnight: { top: "#101427", bottom: "#090a15", accent: "#a78bfa", soft: "rgba(167,139,250,.16)", secondary: "#ddd6fe" },
+        carbon: { top: "#15191e", bottom: "#090b0e", accent: "#f1f5f9", soft: "rgba(241,245,249,.10)", secondary: "#cbd5e1" },
+      } as const;
+      const palette = themes[exportTheme];
       const gradient = ctx.createLinearGradient(0, 0, 1080, 1350);
-      gradient.addColorStop(0, "#071725");
-      gradient.addColorStop(.55, "#07101d");
-      gradient.addColorStop(1, "#170b28");
+      gradient.addColorStop(0, palette.top);
+      gradient.addColorStop(1, palette.bottom);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 1080, 1350);
 
       const glow = ctx.createRadialGradient(820, 130, 20, 820, 130, 520);
-      glow.addColorStop(0, "rgba(34,211,238,.24)");
-      glow.addColorStop(1, "rgba(34,211,238,0)");
+      glow.addColorStop(0, palette.soft);
+      glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, 1080, 700);
 
-      ctx.strokeStyle = "rgba(103,232,249,.22)";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255,255,255,.10)";
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.roundRect(38, 38, 1004, 1274, 34);
       ctx.stroke();
 
-      ctx.fillStyle = "#67e8f9";
+      ctx.fillStyle = palette.accent;
       ctx.beginPath();
       ctx.roundRect(70, 65, 44, 44, 13);
       ctx.fill();
@@ -2852,26 +2860,30 @@ function BinderShowcaseStudio({
       ctx.fillStyle = "#f8fafc";
       ctx.font = "700 25px Arial";
       ctx.fillText("Trading Docks", 130, 96);
+      ctx.textAlign = "right";
       ctx.fillStyle = "#64748b";
-      ctx.font = "700 15px Arial";
-      ctx.fillText("COLLECTOR PORTFOLIO", 825, 92);
+      ctx.font = "700 13px Arial";
+      ctx.fillText(mode === "trade" ? "TRADE EDITION" : "COLLECTOR EDITION", 1010, 92);
+      ctx.textAlign = "left";
       ctx.fillStyle = "#f8fafc";
-      ctx.font = "700 54px Arial";
-      ctx.fillText(location.name.slice(0, 28), 70, 174);
-      ctx.fillStyle = "#c4b5fd";
-      ctx.font = "700 19px Arial";
-      ctx.fillText(mode === "trade" ? "TRADE BINDER · OPEN TO OFFERS" : "CURATED COLLECTION SHOWCASE", 70, 211);
-
-      [`${totalCards} CARDS`, `${currency(totalValue)} VALUE`, `${occupied} POCKETS`].forEach((value, index) => {
-        const x = 70 + index * 300;
-        ctx.fillStyle = "rgba(255,255,255,.055)";
-        ctx.beginPath();
-        ctx.roundRect(x, 238, 270, 68, 16);
-        ctx.fill();
-        ctx.fillStyle = index === 1 ? "#6ee7b7" : "#e2e8f0";
-        ctx.font = "700 22px Arial";
-        ctx.fillText(value, x + 22, 280);
-      });
+      ctx.font = "700 47px Arial";
+      ctx.fillText((exportTitle.trim() || location.name).slice(0, 34), 70, 168);
+      ctx.fillStyle = palette.secondary;
+      ctx.font = "700 14px Arial";
+      ctx.fillText(mode === "trade" ? "AVAILABLE FOR TRADE  /  OPEN TO OFFERS" : "A CURATED TRADING DOCKS COLLECTION", 70, 202);
+      ctx.fillStyle = "rgba(255,255,255,.09)";
+      ctx.fillRect(70, 230, 940, 1);
+      ctx.font = "700 15px Arial";
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText(`${totalCards.toLocaleString("en-US")} CARDS`, 70, 267);
+      ctx.fillStyle = palette.accent;
+      ctx.fillText(`${currency(totalValue)} EST. VALUE`, 235, 267);
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText(`${occupied.toLocaleString("en-US")} POCKETS`, 490, 267);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#64748b";
+      ctx.fillText(`${Math.min(cardCount, cards.length)} FEATURED`, 1010, 267);
+      ctx.textAlign = "left";
 
       async function loadImage(url: string) {
         return await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -2885,14 +2897,16 @@ function BinderShowcaseStudio({
 
       const columns = cardCount === 12 ? 4 : 3;
       const rows = Math.ceil(cardCount / columns);
-      const cardWidth = cardCount === 6 ? 274 : cardCount === 9 ? 204 : 198;
+      const cardWidth = cardCount === 6 ? 270 : cardCount === 9 ? 204 : 198;
       const cardHeight = Math.round(cardWidth * 1.395);
-      const gapX = cardCount === 12 ? 24 : cardCount === 9 ? 72 : 45;
-      const gapY = cardCount === 6 ? 58 : 24;
+      const labelHeight = exportStyle === "editorial" ? (cardCount === 6 ? 54 : 44) : 0;
+      const plateHeight = cardHeight + labelHeight;
+      const gapX = cardCount === 12 ? 24 : cardCount === 9 ? 72 : 50;
+      const gapY = cardCount === 6 ? 42 : 22;
       const gridWidth = columns * cardWidth + (columns - 1) * gapX;
-      const gridHeight = rows * cardHeight + (rows - 1) * gapY;
+      const gridHeight = rows * plateHeight + (rows - 1) * gapY;
       const gridX = (1080 - gridWidth) / 2;
-      const gridY = 332 + Math.max(0, (810 - gridHeight) / 2);
+      const gridY = 298 + Math.max(0, (880 - gridHeight) / 2);
       for (let index = 0; index < cardCount; index += 1) {
         const card = previewCards[index];
         const x = gridX + (index % columns) * (cardWidth + gapX);
@@ -2902,11 +2916,11 @@ function BinderShowcaseStudio({
         ctx.shadowOffsetY = 14;
         ctx.fillStyle = "rgba(2,8,15,.94)";
         ctx.beginPath();
-        ctx.roundRect(x, y, cardWidth, cardHeight, 18);
+        ctx.roundRect(x, y, cardWidth, plateHeight, 16);
         ctx.fill();
         ctx.shadowColor = "transparent";
-        ctx.strokeStyle = index === 0 ? "rgba(103,232,249,.60)" : "rgba(196,181,253,.20)";
-        ctx.lineWidth = index === 0 ? 3 : 2;
+        ctx.strokeStyle = index === 0 ? palette.accent : "rgba(255,255,255,.12)";
+        ctx.lineWidth = index === 0 ? 2.5 : 1.5;
         ctx.stroke();
 
         if (card?.imageUrl) {
@@ -2924,6 +2938,22 @@ function BinderShowcaseStudio({
           }
         }
 
+        if (card && labelHeight > 0) {
+          ctx.fillStyle = "rgba(3,9,15,.98)";
+          ctx.fillRect(x + 2, y + cardHeight - 1, cardWidth - 4, labelHeight - 1);
+          ctx.fillStyle = "#f8fafc";
+          ctx.font = `700 ${cardCount === 6 ? 14 : 11}px Arial`;
+          ctx.fillText(card.name.slice(0, cardCount === 6 ? 26 : 20), x + 12, y + cardHeight + (cardCount === 6 ? 21 : 17));
+          ctx.fillStyle = "#64748b";
+          ctx.font = `700 ${cardCount === 6 ? 10 : 8}px Arial`;
+          const meta = [card.set?.toUpperCase(), card.condition, card.finish].filter(Boolean).join("  ·  ");
+          ctx.fillText(meta.slice(0, 34), x + 12, y + cardHeight + (cardCount === 6 ? 40 : 33));
+          ctx.textAlign = "right";
+          ctx.fillStyle = palette.accent;
+          ctx.fillText(String(index + 1).padStart(2, "0"), x + cardWidth - 12, y + cardHeight + (cardCount === 6 ? 40 : 33));
+          ctx.textAlign = "left";
+        }
+
       }
 
       ctx.fillStyle = "rgba(255,255,255,.06)";
@@ -2932,7 +2962,7 @@ function BinderShowcaseStudio({
       ctx.font = "600 18px Arial";
       ctx.fillText("Organize · Showcase · Trade", 70, 1283);
       ctx.textAlign = "right";
-      ctx.fillStyle = "#67e8f9";
+      ctx.fillStyle = palette.accent;
       ctx.fillText("TRADINGDOCKS.COM", 1010, 1283);
       ctx.textAlign = "left";
 
@@ -2980,6 +3010,16 @@ function BinderShowcaseStudio({
               {([6, 9, 12] as const).map((count) => <button key={count} type="button" onClick={() => setCardCount(count)} disabled={cards.length < count} className={`rounded-xl border px-3 py-2.5 text-[10px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${cardCount === count ? "border-cyan-300/35 bg-cyan-300/[0.10] text-cyan-100" : "border-white/[0.07] text-slate-500 hover:border-white/[0.14] hover:text-slate-200"}`}>{count} cards</button>)}
             </div>
             {cards.length < 9 ? <p className="mt-3 text-[8px] leading-4 text-slate-600">Add more cards to this binder to unlock the 9- and 12-card layouts.</p> : null}
+            <div className="mt-4 border-t border-white/[0.07] pt-4">
+              <label className="text-[9px] font-semibold text-slate-400">Export title</label>
+              <input value={exportTitle} onChange={(event) => setExportTitle(event.target.value)} maxLength={34} className="mt-2 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-[10px] text-white outline-none transition placeholder:text-slate-700 focus:border-cyan-300/30" placeholder="Name this collection" />
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {(["editorial", "gallery"] as const).map((style) => <button key={style} type="button" onClick={() => setExportStyle(style)} className={`rounded-xl border px-3 py-2.5 text-[9px] font-semibold capitalize transition ${exportStyle === style ? "border-cyan-300/30 bg-cyan-300/[0.08] text-cyan-100" : "border-white/[0.07] text-slate-600"}`}>{style}</button>)}
+              </div>
+              <div className="mt-3 flex gap-2">
+                {(["harbor", "midnight", "carbon"] as const).map((theme) => <button key={theme} type="button" aria-label={`${theme} color theme`} onClick={() => setExportTheme(theme)} className={`h-8 flex-1 rounded-lg border transition ${exportTheme === theme ? "border-white/50 ring-2 ring-cyan-300/20" : "border-white/[0.08]"}`} style={{ background: theme === "harbor" ? "linear-gradient(135deg,#0c3546,#07101b)" : theme === "midnight" ? "linear-gradient(135deg,#28204b,#090a15)" : "linear-gradient(135deg,#343a40,#090b0e)" }} />)}
+              </div>
+            </div>
           </div>
 
           <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="mt-6 flex items-center justify-between rounded-2xl border border-violet-300/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.06))] p-4 transition hover:-translate-y-0.5 hover:border-violet-300/40">
@@ -3001,7 +3041,7 @@ function BinderShowcaseStudio({
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/[0.12] blur-3xl" />
           <div className="relative">
             <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-cyan-300">Live social preview</p>
-            <h4 className="mt-2 text-2xl font-semibold text-white">{location.name}</h4>
+            <h4 className="mt-2 text-2xl font-semibold text-white">{exportTitle.trim() || location.name}</h4>
             <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-violet-200">{mode === "trade" ? "Trade binder" : "Collection showcase"}</p>
             <div className="mt-5 grid grid-cols-3 gap-2">
               <ShowcaseMetric label="Cards" value={totalCards.toLocaleString("en-US")} />

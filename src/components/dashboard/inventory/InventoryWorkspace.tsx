@@ -258,6 +258,7 @@ export function InventoryWorkspace({
   const [editingLocation, setEditingLocation] = useState<LocationRecord | null>(null);
   const [duplicateMatch, setDuplicateMatch] = useState<DuplicateMatch | null>(null);
   const [pendingFile, setPendingFile] = useState<InventoryItem | null>(null);
+  const [pendingBinderPocket, setPendingBinderPocket] = useState<Pick<InventoryItem, "binderPage" | "binderSlot"> | null>(null);
   const [toast, setToast] = useState("");
   const [putAwayOpen, setPutAwayOpen] = useState(false);
   const [deleteItemCandidate, setDeleteItemCandidate] = useState<InventoryItem | null>(null);
@@ -673,7 +674,7 @@ export function InventoryWorkspace({
   function addInventoryItem(item: InventoryItem) {
     const destination = locations.find((location) => location.id === item.locationId);
     const filedItem = destination?.type === "binder"
-      ? assignFirstBinderPocket(item, destination, items)
+      ? assignFirstBinderPocket({ ...item, ...pendingBinderPocket }, destination, items)
       : item;
     setItems((current) => [...current, filedItem]);
     updateLocationTotals(item.locationId, item.quantity, item.value);
@@ -695,6 +696,7 @@ export function InventoryWorkspace({
     ]);
 
     setFileModalOpen(false);
+    setPendingBinderPocket(null);
     setPendingFile(null);
     setDuplicateMatch(null);
     setSelectedLocationId(item.locationId);
@@ -1410,7 +1412,12 @@ export function InventoryWorkspace({
         onClose={() => setOpenLocationId("")}
         onFile={() => {
           if (openLocation) setSelectedLocationId(openLocation.id);
-          setOpenLocationId("");
+          setPendingBinderPocket(null);
+          setFileModalOpen(true);
+        }}
+        onFileToPocket={(binderPage, binderSlot) => {
+          if (openLocation) setSelectedLocationId(openLocation.id);
+          setPendingBinderPocket({ binderPage, binderSlot });
           setFileModalOpen(true);
         }}
         onEdit={() => {
@@ -1446,7 +1453,7 @@ export function InventoryWorkspace({
         open={fileModalOpen}
         locations={locations}
         defaultLocationId={selectedLocation?.id}
-        onClose={() => setFileModalOpen(false)}
+        onClose={() => { setFileModalOpen(false); setPendingBinderPocket(null); }}
         onFile={attemptFile}
       />
 
@@ -2074,6 +2081,7 @@ function LocationContentsModal({
   locations,
   onClose,
   onFile,
+  onFileToPocket,
   onEdit,
   onMove,
   onUpdateItem,
@@ -2091,6 +2099,7 @@ function LocationContentsModal({
   locations: LocationRecord[];
   onClose: () => void;
   onFile: () => void;
+  onFileToPocket: (page: number, slot: string) => void;
   onEdit: () => void;
   onMove: (
     itemId: string,
@@ -2577,8 +2586,8 @@ function VirtualBinderModal({
                 <button type="button" onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={page === pageCount} className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] px-3 text-[10px] font-semibold text-slate-400 disabled:opacity-30">Next <ChevronRight className="h-3.5 w-3.5" /></button>
               </div>
               <div className={`grid gap-5 ${binderView === "spread" ? "lg:grid-cols-2" : ""}`}>
-                <BinderPageSurface page={page} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={(id) => { setSelectedItemId(id); setDetailItemId(id); }} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item, x, y) => setContextMenu({ item, x, y })} />
-                {binderView === "spread" && page < pageCount ? <BinderPageSurface page={page + 1} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={(id) => { setSelectedItemId(id); setDetailItemId(id); }} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item, x, y) => setContextMenu({ item, x, y })} rightPage /> : null}
+                <BinderPageSurface page={page} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={(id) => { setSelectedItemId(id); setDetailItemId(id); }} onAdd={onFileToPocket} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item, x, y) => setContextMenu({ item, x, y })} />
+                {binderView === "spread" && page < pageCount ? <BinderPageSurface page={page + 1} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={(id) => { setSelectedItemId(id); setDetailItemId(id); }} onAdd={onFileToPocket} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item, x, y) => setContextMenu({ item, x, y })} rightPage /> : null}
               </div>
               <div className="mt-5 flex max-w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-white/[0.055] bg-black/10 p-2">
                 {Array.from({ length: Math.min(pageCount, 20) }, (_, index) => index + 1).map((pageNumber) => {
@@ -2788,7 +2797,7 @@ function BinderSettingMetric({ label, value }: { label: string; value: string })
   return <div className="px-3 py-4 text-center"><p className="text-[7px] font-semibold uppercase tracking-[0.13em] text-slate-600">{label}</p><p className="mt-1.5 text-sm font-semibold text-slate-100">{value}</p></div>;
 }
 
-function BinderPageSurface({ page, columns, slots, items, selectedItemId, onSelect, onMove, onRemove, onContextMenu, rightPage = false }: { page: number; columns: number; slots: string[]; items: InventoryItem[]; selectedItemId: string; onSelect: (id: string) => void; onMove: (itemId: string, page: number, slot: string) => void; onRemove: (item: InventoryItem) => void; onContextMenu: (item: InventoryItem, x: number, y: number) => void; rightPage?: boolean }) {
+function BinderPageSurface({ page, columns, slots, items, selectedItemId, onSelect, onAdd, onMove, onRemove, onContextMenu, rightPage = false }: { page: number; columns: number; slots: string[]; items: InventoryItem[]; selectedItemId: string; onSelect: (id: string) => void; onAdd: (page: number, slot: string) => void; onMove: (itemId: string, page: number, slot: string) => void; onRemove: (item: InventoryItem) => void; onContextMenu: (item: InventoryItem, x: number, y: number) => void; rightPage?: boolean }) {
   return (
     <section className="relative overflow-hidden rounded-[24px] border border-cyan-200/[0.11] bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.09),transparent_42%),linear-gradient(145deg,#0b1b25,#08151e_52%,#0a1720)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),inset_0_0_80px_rgba(0,0,0,0.24),0_24px_70px_rgba(0,0,0,0.32)] sm:p-5">
       <div className={`pointer-events-none absolute inset-y-6 ${rightPage ? "left-0" : "right-0"} w-4 bg-gradient-to-${rightPage ? "r" : "l"} from-black/30 to-transparent`} />
@@ -2799,7 +2808,7 @@ function BinderPageSurface({ page, columns, slots, items, selectedItemId, onSele
       <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
         {slots.map((slot) => {
           const item = items.find((candidate) => candidate.binderPage === page && candidate.binderSlot === slot);
-          return <BinderPocket key={slot} slot={slot} item={item} highlighted={item?.id === selectedItemId} onSelect={() => item && onSelect(item.id)} onDropItem={(itemId) => onMove(itemId, page, slot)} onRemove={() => item && onRemove(item)} onContextMenu={(x, y) => item && onContextMenu(item, x, y)} />;
+          return <BinderPocket key={slot} slot={slot} item={item} highlighted={item?.id === selectedItemId} onSelect={() => item ? onSelect(item.id) : onAdd(page, slot)} onDropItem={(itemId) => onMove(itemId, page, slot)} onRemove={() => item && onRemove(item)} onContextMenu={(x, y) => item && onContextMenu(item, x, y)} />;
         })}
       </div>
       <p className="mt-4 text-center text-[8px] font-semibold uppercase tracking-[0.2em] text-slate-700">{page}</p>
@@ -3312,7 +3321,7 @@ function repairUnassignedBinderItems(
 }
 
 function assignFirstBinderPocket(item: InventoryItem, location: LocationRecord, allItems: InventoryItem[]) {
-  const placement = resolveBinderPlacement(location, allItems, item.id);
+  const placement = resolveBinderPlacement(location, allItems, item.id, item.binderPage, item.binderSlot);
   return placement ? { ...item, ...placement } : item;
 }
 
