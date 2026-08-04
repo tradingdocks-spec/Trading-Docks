@@ -50,13 +50,15 @@ export async function loadCollectorPortfolioForCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Authentication required.");
 
-  const [profileResult, bindersResult, locationsResult, itemsResult, featuredResult, tradeResult] = await Promise.all([
+  const [profileResult, bindersResult, locationsResult, itemsResult, featuredResult, tradeResult, requestsResult, wishlistResult] = await Promise.all([
     supabase.from("collector_profiles").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("portfolio_binders").select("*").eq("user_id", user.id).order("portfolio_order"),
     supabase.from("inventory_locations").select("data").eq("user_id", user.id),
     supabase.from("inventory_items").select("data").eq("user_id", user.id),
     supabase.from("portfolio_featured_cards").select("*").eq("user_id", user.id).order("sort_order"),
     supabase.from("binder_card_trade_status").select("*").eq("user_id", user.id),
+    supabase.from("trade_requests").select("*").or(`portfolio_owner_id.eq.${user.id},requester_user_id.eq.${user.id}`).order("updated_at", { ascending: false }),
+    supabase.from("collector_wishlist").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
   ]);
 
   const locations = ((locationsResult.data ?? []) as DataRow[])
@@ -142,6 +144,8 @@ export async function loadCollectorPortfolioForCurrentUser() {
     binders: binderViews,
     featuredCards: featuredResult.data ?? [],
     tradeStatuses: tradeResult.data ?? [],
+    tradeRequests: requestsResult.data ?? [],
+    wishlist: wishlistResult.data ?? [],
     totals: {
       cards: items.reduce((sum, item) => sum + item.quantity, 0),
       uniqueCards: items.length,
