@@ -2743,11 +2743,12 @@ function BinderShowcaseStudio({
   const [status, setStatus] = useState("");
   const [creatingLink, setCreatingLink] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [cardCount, setCardCount] = useState<6 | 9 | 12>(() => items.filter((item) => item.binderPage && item.binderSlot).length >= 9 ? 9 : 6);
 
   const cards = [...items]
     .filter((item) => item.binderPage && item.binderSlot)
     .sort((a, b) => (a.binderPage ?? 999) - (b.binderPage ?? 999) || (a.binderSlot ?? "").localeCompare(b.binderSlot ?? ""));
-  const previewCards = cards.slice(0, 6);
+  const previewCards = cards.slice(0, cardCount);
   const totalCards = items.reduce((sum, item) => sum + item.quantity, 0);
   const caption = mode === "trade"
     ? `Trading ${location.name} on Trading Docks — ${totalCards} cards · ${currency(totalValue)} estimated value. Message me with offers.`
@@ -2835,25 +2836,41 @@ function BinderShowcaseStudio({
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, 1080, 700);
 
+      ctx.strokeStyle = "rgba(103,232,249,.22)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(38, 38, 1004, 1274, 34);
+      ctx.stroke();
+
       ctx.fillStyle = "#67e8f9";
-      ctx.font = "700 26px Arial";
-      ctx.fillText("TRADING DOCKS · COLLECTOR VAULT", 70, 82);
+      ctx.beginPath();
+      ctx.roundRect(70, 65, 44, 44, 13);
+      ctx.fill();
+      ctx.fillStyle = "#05202a";
+      ctx.font = "800 24px Arial";
+      ctx.fillText("T", 84, 96);
       ctx.fillStyle = "#f8fafc";
-      ctx.font = "700 58px Arial";
-      ctx.fillText(location.name.slice(0, 28), 70, 158);
+      ctx.font = "700 25px Arial";
+      ctx.fillText("Trading Docks", 130, 96);
+      ctx.fillStyle = "#64748b";
+      ctx.font = "700 15px Arial";
+      ctx.fillText("COLLECTOR PORTFOLIO", 825, 92);
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "700 54px Arial";
+      ctx.fillText(location.name.slice(0, 28), 70, 174);
       ctx.fillStyle = "#c4b5fd";
-      ctx.font = "700 24px Arial";
-      ctx.fillText(mode === "trade" ? "TRADE BINDER" : "COLLECTION SHOWCASE", 70, 205);
+      ctx.font = "700 19px Arial";
+      ctx.fillText(mode === "trade" ? "TRADE BINDER · OPEN TO OFFERS" : "CURATED COLLECTION SHOWCASE", 70, 211);
 
       [`${totalCards} CARDS`, `${currency(totalValue)} VALUE`, `${occupied} POCKETS`].forEach((value, index) => {
         const x = 70 + index * 300;
         ctx.fillStyle = "rgba(255,255,255,.055)";
         ctx.beginPath();
-        ctx.roundRect(x, 242, 270, 74, 18);
+        ctx.roundRect(x, 238, 270, 68, 16);
         ctx.fill();
         ctx.fillStyle = index === 1 ? "#6ee7b7" : "#e2e8f0";
         ctx.font = "700 22px Arial";
-        ctx.fillText(value, x + 22, 287);
+        ctx.fillText(value, x + 22, 280);
       });
 
       async function loadImage(url: string) {
@@ -2866,18 +2883,30 @@ function BinderShowcaseStudio({
         });
       }
 
-      const cardWidth = 282;
-      const cardHeight = 394;
-      for (let index = 0; index < 6; index += 1) {
+      const columns = cardCount === 12 ? 4 : 3;
+      const rows = Math.ceil(cardCount / columns);
+      const cardWidth = cardCount === 6 ? 274 : cardCount === 9 ? 204 : 198;
+      const cardHeight = Math.round(cardWidth * 1.395);
+      const gapX = cardCount === 12 ? 24 : cardCount === 9 ? 72 : 45;
+      const gapY = cardCount === 6 ? 58 : 24;
+      const gridWidth = columns * cardWidth + (columns - 1) * gapX;
+      const gridHeight = rows * cardHeight + (rows - 1) * gapY;
+      const gridX = (1080 - gridWidth) / 2;
+      const gridY = 332 + Math.max(0, (810 - gridHeight) / 2);
+      for (let index = 0; index < cardCount; index += 1) {
         const card = previewCards[index];
-        const x = 70 + (index % 3) * 310;
-        const y = 365 + Math.floor(index / 3) * 464;
-        ctx.fillStyle = "rgba(2,8,15,.9)";
+        const x = gridX + (index % columns) * (cardWidth + gapX);
+        const y = gridY + Math.floor(index / columns) * (cardHeight + gapY);
+        ctx.shadowColor = "rgba(0,0,0,.62)";
+        ctx.shadowBlur = 28;
+        ctx.shadowOffsetY = 14;
+        ctx.fillStyle = "rgba(2,8,15,.94)";
         ctx.beginPath();
-        ctx.roundRect(x, y, cardWidth, cardHeight, 24);
+        ctx.roundRect(x, y, cardWidth, cardHeight, 18);
         ctx.fill();
-        ctx.strokeStyle = "rgba(196,181,253,.20)";
-        ctx.lineWidth = 2;
+        ctx.shadowColor = "transparent";
+        ctx.strokeStyle = index === 0 ? "rgba(103,232,249,.60)" : "rgba(196,181,253,.20)";
+        ctx.lineWidth = index === 0 ? 3 : 2;
         ctx.stroke();
 
         if (card?.imageUrl) {
@@ -2885,9 +2914,9 @@ function BinderShowcaseStudio({
             const image = await loadImage(card.imageUrl);
             ctx.save();
             ctx.beginPath();
-            ctx.roundRect(x + 10, y + 10, cardWidth - 20, cardHeight - 20, 18);
+            ctx.roundRect(x + 7, y + 7, cardWidth - 14, cardHeight - 14, 13);
             ctx.clip();
-            ctx.drawImage(image, x + 10, y + 10, cardWidth - 20, cardHeight - 20);
+            ctx.drawImage(image, x + 7, y + 7, cardWidth - 14, cardHeight - 14);
             ctx.restore();
           } catch {
             ctx.fillStyle = "rgba(34,211,238,.08)";
@@ -2895,17 +2924,17 @@ function BinderShowcaseStudio({
           }
         }
 
-        ctx.fillStyle = "#f8fafc";
-        ctx.font = "700 20px Arial";
-        ctx.fillText((card?.name || "Open pocket").slice(0, 22), x + 6, y + cardHeight + 34);
-        ctx.fillStyle = "#67e8f9";
-        ctx.font = "700 16px Arial";
-        ctx.fillText(card ? `P${card.binderPage} · ${card.binderSlot}` : "AVAILABLE", x + 6, y + cardHeight + 58);
       }
 
-      ctx.fillStyle = "#64748b";
-      ctx.font = "400 20px Arial";
-      ctx.fillText("Organize. Showcase. Trade. — tradingdocks.com", 70, 1310);
+      ctx.fillStyle = "rgba(255,255,255,.06)";
+      ctx.fillRect(70, 1243, 940, 1);
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = "600 18px Arial";
+      ctx.fillText("Organize · Showcase · Trade", 70, 1283);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#67e8f9";
+      ctx.fillText("TRADINGDOCKS.COM", 1010, 1283);
+      ctx.textAlign = "left";
 
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((value) => value ? resolve(value) : reject(new Error("Export failed")), "image/png");
@@ -2916,7 +2945,7 @@ function BinderShowcaseStudio({
       link.download = `${location.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "binder"}-${mode}.png`;
       link.click();
       URL.revokeObjectURL(url);
-      setStatus("1080 × 1350 social image downloaded.");
+      setStatus(`1080 × 1350 social image with ${Math.min(cardCount, cards.length)} cards downloaded.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not export the social image.");
     } finally {
@@ -2942,13 +2971,24 @@ function BinderShowcaseStudio({
             <button type="button" onClick={() => setMode("trade")} className={`rounded-xl px-4 py-3 text-[10px] font-semibold transition ${mode === "trade" ? "bg-violet-300 text-[#15072a]" : "text-slate-500 hover:text-slate-200"}`}>Trade binder</button>
           </div>
 
+          <div className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div><p className="text-[10px] font-semibold text-slate-200">Cards in graphic</p><p className="mt-1 text-[9px] text-slate-600">Choose the density that best fits your post.</p></div>
+              <span className="rounded-lg border border-cyan-300/[0.12] bg-cyan-300/[0.04] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-[0.13em] text-cyan-200">Instagram 4:5</span>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {([6, 9, 12] as const).map((count) => <button key={count} type="button" onClick={() => setCardCount(count)} disabled={cards.length < count} className={`rounded-xl border px-3 py-2.5 text-[10px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${cardCount === count ? "border-cyan-300/35 bg-cyan-300/[0.10] text-cyan-100" : "border-white/[0.07] text-slate-500 hover:border-white/[0.14] hover:text-slate-200"}`}>{count} cards</button>)}
+            </div>
+            {cards.length < 9 ? <p className="mt-3 text-[8px] leading-4 text-slate-600">Add more cards to this binder to unlock the 9- and 12-card layouts.</p> : null}
+          </div>
+
           <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="mt-6 flex items-center justify-between rounded-2xl border border-violet-300/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.06))] p-4 transition hover:-translate-y-0.5 hover:border-violet-300/40">
             <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-300 text-[#18092b]"><BookOpen className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold text-white">Open the full Collector Portfolio</p><p className="mt-1 text-[9px] text-slate-500">Flipbook, full spreads, gallery, public sharing, and binder presentation.</p></div></div><ChevronRight className="h-4 w-4 text-violet-200" />
           </Link>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <ShowcaseAction icon={Globe2} title="Create public link" description="Publish a clean read-only binder page." onClick={createPublicLink} loading={creatingLink} />
-            <ShowcaseAction icon={Download} title="Download social graphic" description="1080 × 1350 format for Instagram and Discord." onClick={downloadSocialCard} loading={downloading} />
+            <ShowcaseAction icon={Download} title="Export Instagram graphic" description={`Professional 1080 × 1350 poster · ${cardCount}-card layout.`} onClick={downloadSocialCard} loading={downloading} />
             <ShowcaseAction icon={MessageCircle} title="Copy Discord post" description="Caption, collection stats, and trade language." onClick={copyPost} />
             <ShowcaseAction icon={Share2} title="Open share sheet" description="Send through any supported app on your device." onClick={nativeShare} />
           </div>
@@ -2968,10 +3008,10 @@ function BinderShowcaseStudio({
               <ShowcaseMetric label="Value" value={currency(totalValue)} accent />
               <ShowcaseMetric label="Pockets" value={occupied.toLocaleString("en-US")} />
             </div>
-            <div className="mt-5 grid grid-cols-3 gap-2.5">
-              {Array.from({ length: 6 }, (_, index) => {
+            <div className={`mt-5 grid gap-2 ${cardCount === 12 ? "grid-cols-4" : "grid-cols-3"}`}>
+              {Array.from({ length: cardCount }, (_, index) => {
                 const card = previewCards[index];
-                return <div key={card?.id ?? index} className="group relative aspect-[.716] overflow-hidden rounded-xl border border-white/[0.09] bg-black/25 shadow-[0_14px_32px_rgba(0,0,0,.32)]">{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-slate-700"><Plus className="h-5 w-5" /></div>}{card ? <span className="absolute bottom-2 left-2 rounded-md bg-black/75 px-1.5 py-1 text-[7px] font-bold text-cyan-200">P{card.binderPage} · {card.binderSlot}</span> : null}</div>;
+                return <div key={card?.id ?? index} className={`group relative aspect-[.716] overflow-hidden border bg-black/25 shadow-[0_14px_32px_rgba(0,0,0,.32)] ${index === 0 ? "rounded-xl border-cyan-300/45 shadow-[0_14px_34px_rgba(34,211,238,.10)]" : "rounded-lg border-white/[0.09]"}`}>{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-slate-700"><Plus className="h-5 w-5" /></div>}{card ? <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/75 px-1.5 py-1 text-[6px] font-bold text-cyan-200">P{card.binderPage} · {card.binderSlot}</span> : null}</div>;
               })}
             </div>
             <div className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 backdrop-blur"><p className="text-[10px] leading-5 text-slate-300">{caption}</p><div className="mt-4 flex items-center justify-between"><span className="inline-flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-600"><MessageCircle className="h-3.5 w-3.5" /> Social-ready</span><span className="text-[8px] text-slate-700">Page {page} · {binderView}</span></div></div>
