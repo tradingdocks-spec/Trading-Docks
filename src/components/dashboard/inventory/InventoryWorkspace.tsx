@@ -2151,6 +2151,7 @@ function LocationContentsModal({
         locations={locations}
         onClose={onClose}
         onFile={onFile}
+        onFileToPocket={onFileToPocket}
         onEdit={onEdit}
         onMove={onMove}
         onUpdateItem={onUpdateItem}
@@ -2372,6 +2373,7 @@ function VirtualBinderModal({
   locations,
   onClose,
   onFile,
+  onFileToPocket,
   onEdit,
   onMove,
   onUpdateItem,
@@ -2388,6 +2390,7 @@ function VirtualBinderModal({
   locations: LocationRecord[];
   onClose: () => void;
   onFile: () => void;
+  onFileToPocket: (page: number, slot: string) => void;
   onEdit: () => void;
   onMove: (
     itemId: string,
