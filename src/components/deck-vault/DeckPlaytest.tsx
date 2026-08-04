@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type SetStateAction } from "react";
 import {
   Archive, ArrowRight, CircleDot, Crown, Hand, Layers3, Play, RotateCcw,
   Search, Shuffle, Sparkles, Undo2, X, Zap,
@@ -35,12 +35,23 @@ function expandDeck(cards: DeckCard[], commanderName?: string) {
 
 function CardFace({ card, size = "board", tapped = false, selected = false }: { card: TestCard | DeckCard; size?: "hand" | "board" | "rail"; tapped?: boolean; selected?: boolean }) {
   const width = size === "hand" ? "w-[122px] sm:w-[142px] xl:w-[154px]" : size === "rail" ? "w-[74px]" : "w-[98px] sm:w-[112px] xl:w-[124px]";
+  const image = highResolutionImage(card.image);
   return <div className={`${width} shrink-0 transition-all duration-300 ease-out ${tapped ? "mx-4 rotate-90 sm:mx-5" : ""} ${selected ? "-translate-y-3" : ""}`}>
     <div className={`relative aspect-[5/7] overflow-hidden rounded-[11px] border bg-[#07131c] transition-all duration-300 ${selected ? "border-cyan-300 shadow-[0_0_0_3px_rgba(34,211,238,.14),0_28px_65px_rgba(0,0,0,.62)]" : tapped ? "border-cyan-300/45 shadow-[0_0_30px_rgba(34,211,238,.18)]" : "border-white/[0.16] shadow-[0_18px_45px_rgba(0,0,0,.5)]"}`}>
-      {card.image ? <img src={card.image} alt={card.name} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center p-3 text-center text-xs font-semibold text-slate-300">{card.name}</div>}
+      {image ? <img src={image} alt={card.name} draggable={false} decoding="async" className="h-full w-full select-none object-cover [image-rendering:auto]" /> : <div className="grid h-full place-items-center p-3 text-center text-xs font-semibold text-slate-300">{card.name}</div>}
       {selected ? <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-cyan-300/10 to-transparent" /> : null}
     </div>
   </div>;
+}
+
+function highResolutionImage(image?: string) {
+  if (!image) return image;
+  if (image.includes("cards.scryfall.io")) return image.replace("/small/", "/large/").replace("/normal/", "/large/");
+  if (image.includes("/api/scryfall-image/")) {
+    const [path] = image.split("?");
+    return `${path}?size=large`;
+  }
+  return image;
 }
 
 export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; commanderName?: string }) {
@@ -126,6 +137,11 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
     showToast(`Paid ${cost} mana and cast ${card.name}.`);
   }
 
+  function dropFromHand(card: TestCard, position: BoardPosition) {
+    setBoardPositions((current) => ({ ...current, [card.instanceId]: position }));
+    playFromHand(card, false);
+  }
+
   if (!expanded.length) return <section className="mt-6 rounded-[28px] border border-white/[0.08] bg-[#06131f] p-10 text-center"><h2 className="text-xl font-semibold">Add cards before playtesting</h2><p className="mt-2 text-sm text-slate-500">The simulator needs a main deck to shuffle and draw.</p></section>;
 
   const selectedInHand = selected && hand.some((card) => card.instanceId === selected.instanceId);
@@ -148,12 +164,12 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,.35)_100%)]" />
         <div className="relative flex flex-1 flex-col px-4 pb-4 pt-4 sm:px-6">
           <div className="mb-3 flex items-center justify-between"><ZoneLabel label="Your playmat" count={battlefield.length} /><div className="flex items-center gap-2 rounded-full border border-cyan-300/15 bg-[#04151c]/80 px-3 py-1.5 text-[11px] font-semibold text-cyan-100"><Zap className="h-3.5 w-3.5 text-cyan-300" /> Mana <span className="text-base text-white">{manaPool}</span></div></div>
-          <FreeformBoard cards={battlefield} selected={selected} turn={turn} positions={boardPositions} onPositionsChange={setBoardPositions} onSelect={setSelected} onTapLand={tapPermanent} />
+          <FreeformBoard cards={battlefield} hand={hand} selected={selected} turn={turn} positions={boardPositions} onPositionsChange={setBoardPositions} onDropFromHand={dropFromHand} onSelect={setSelected} onTapLand={tapPermanent} />
         </div>
 
         <section className="relative border-t border-white/[0.07] bg-[#030c12]/78 px-4 pb-5 pt-4 backdrop-blur-md sm:px-7">
           <div className="mb-3 flex items-center justify-between"><ZoneLabel label="Hand" count={hand.length} /><div className="flex items-center gap-2"><button type="button" onClick={() => draw(1)} disabled={!library.length} className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-2.5 py-1.5 text-[10px] font-semibold text-slate-400 hover:text-white disabled:opacity-30"><Hand className="h-3 w-3" /> Draw</button><span className="text-[10px] text-slate-600">Select a card to play it</span></div></div>
-          <div className="flex min-h-[220px] items-end gap-2 overflow-x-auto px-2 pb-3 pt-5 sm:gap-3">{hand.map((card) => <button key={card.instanceId} type="button" onClick={() => setSelected(selected?.instanceId === card.instanceId ? null : card)} className="group shrink-0 rounded-xl focus:outline-none"><CardFace card={card} size="hand" selected={selected?.instanceId === card.instanceId} /><p className="mt-2 max-w-[142px] truncate text-center text-[10px] font-medium text-slate-500 group-hover:text-slate-200">{card.name}</p></button>)}</div>
+          <div className="flex min-h-[220px] items-end gap-2 overflow-x-auto px-2 pb-3 pt-5 sm:gap-3">{hand.map((card) => <button key={card.instanceId} type="button" draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-trading-docks-card", card.instanceId); }} onClick={() => setSelected(selected?.instanceId === card.instanceId ? null : card)} className="group shrink-0 cursor-grab rounded-xl focus:outline-none active:cursor-grabbing"><CardFace card={card} size="hand" selected={selected?.instanceId === card.instanceId} /><p className="mt-2 max-w-[142px] truncate text-center text-[10px] font-medium text-slate-500 group-hover:text-slate-200">{card.name}</p></button>)}</div>
         </section>
       </main>
 
@@ -177,7 +193,7 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
 
 function ZoneLabel({ label, count }: { label: string; count: number }) { return <div className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span><span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[9px] text-slate-500">{count}</span></div>; }
 
-function FreeformBoard({ cards, selected, turn, positions, onPositionsChange, onSelect, onTapLand }: { cards: TestCard[]; selected: TestCard | null; turn: number; positions: Record<string, BoardPosition>; onPositionsChange: (value: Record<string, BoardPosition>) => void; onSelect: (card: TestCard) => void; onTapLand: (card: TestCard) => void }) {
+function FreeformBoard({ cards, hand, selected, turn, positions, onPositionsChange, onDropFromHand, onSelect, onTapLand }: { cards: TestCard[]; hand: TestCard[]; selected: TestCard | null; turn: number; positions: Record<string, BoardPosition>; onPositionsChange: Dispatch<SetStateAction<Record<string, BoardPosition>>>; onDropFromHand: (card: TestCard, position: BoardPosition) => void; onSelect: (card: TestCard) => void; onTapLand: (card: TestCard) => void }) {
   const boardRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: string; pointerId: number; startX: number; startY: number; origin: BoardPosition; moved: boolean } | null>(null);
 
@@ -191,20 +207,31 @@ function FreeformBoard({ cards, selected, turn, positions, onPositionsChange, on
     const origin = positions[card.instanceId] ?? { x: 5, y: isLand(card) ? 66 : 16 };
     dragRef.current = { id: card.instanceId, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin, moved: false };
     event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
   }
   function pointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
     const drag = dragRef.current; const board = boardRef.current; if (!drag || drag.pointerId !== event.pointerId || !board) return;
     const rect = board.getBoundingClientRect(); const dx = event.clientX - drag.startX; const dy = event.clientY - drag.startY;
     if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
-    onPositionsChange({ ...positions, [drag.id]: { x: Math.max(0, Math.min(88, drag.origin.x + dx / rect.width * 100)), y: Math.max(0, Math.min(70, drag.origin.y + dy / rect.height * 100)) } });
+    onPositionsChange((current) => ({ ...current, [drag.id]: { x: Math.max(0, Math.min(88, drag.origin.x + dx / rect.width * 100)), y: Math.max(0, Math.min(70, drag.origin.y + dy / rect.height * 100)) } }));
   }
   function pointerUp(event: ReactPointerEvent<HTMLButtonElement>, card: TestCard) {
     const moved = dragRef.current?.moved; dragRef.current = null;
     if (!moved) { if (isLand(card)) onTapLand(card); else onSelect(card); }
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
-  return <div ref={boardRef} className="relative min-h-[430px] flex-1 overflow-hidden rounded-[24px] border border-white/[0.045] bg-[radial-gradient(circle_at_50%_40%,rgba(34,211,238,.045),transparent_45%),linear-gradient(180deg,rgba(255,255,255,.018),transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,.025)] touch-none">
+  function dropCard(event: ReactDragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("application/x-trading-docks-card");
+    const card = hand.find((entry) => entry.instanceId === id);
+    const board = boardRef.current;
+    if (!card || !board) return;
+    const rect = board.getBoundingClientRect();
+    onDropFromHand(card, { x: Math.max(0, Math.min(88, ((event.clientX - rect.left - 58) / rect.width) * 100)), y: Math.max(0, Math.min(70, ((event.clientY - rect.top - 78) / rect.height) * 100)) });
+  }
+
+  return <div ref={boardRef} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={dropCard} className="relative min-h-[430px] flex-1 overflow-hidden rounded-[24px] border border-white/[0.045] bg-[radial-gradient(circle_at_50%_40%,rgba(34,211,238,.045),transparent_45%),linear-gradient(180deg,rgba(255,255,255,.018),transparent)] shadow-[inset_0_1px_0_rgba(255,255,255,.025)] touch-none">
     <div className="pointer-events-none absolute inset-x-5 top-[58%] border-t border-dashed border-cyan-100/[0.07]" />
     <span className="pointer-events-none absolute left-5 top-4 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-700">Spells & permanents</span><span className="pointer-events-none absolute bottom-4 left-5 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-700">Suggested land area</span>
     {!cards.length ? <div className="absolute inset-0 grid place-items-center text-center"><div><CircleDot className="mx-auto h-5 w-5 text-slate-700" /><p className="mt-2 text-[11px] text-slate-700">Play a card from your hand to start testing</p></div></div> : null}
