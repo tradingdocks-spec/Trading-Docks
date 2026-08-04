@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   LibraryBig,
   PackageCheck,
+  PackageOpen,
   PackageSearch,
   Palette,
   Rocket,
@@ -99,6 +100,11 @@ export const PURCHASING_NAV: NavigationSection = {
       href: "/dashboard/sealed-buying",
       label: "Sealed Product Buying",
       icon: PackageCheck,
+    },
+    {
+      href: "/dashboard/precon-intelligence",
+      label: "Precon Breakdowns",
+      icon: PackageOpen,
     },
     {
       href: "/dashboard/bulk-buying",
