@@ -33,8 +33,14 @@ function expandDeck(cards: DeckCard[], commanderName?: string) {
     })));
 }
 
-function CardFace({ card, size = "board", tapped = false, selected = false }: { card: TestCard | DeckCard; size?: "hand" | "board" | "rail"; tapped?: boolean; selected?: boolean }) {
-  const width = size === "hand" ? "w-[122px] sm:w-[142px] xl:w-[154px]" : size === "rail" ? "w-[74px]" : "w-[98px] sm:w-[112px] xl:w-[124px]";
+function CardFace({ card, size = "board", tapped = false, selected = false }: { card: TestCard | DeckCard; size?: "hand" | "board" | "rail" | "preview"; tapped?: boolean; selected?: boolean }) {
+  const width = size === "hand"
+    ? "w-[146px] sm:w-[170px] xl:w-[194px] 2xl:w-[208px]"
+    : size === "preview"
+      ? "w-[320px] 2xl:w-[360px]"
+      : size === "rail"
+        ? "w-[74px]"
+        : "w-[108px] sm:w-[124px] xl:w-[138px]";
   const image = highResolutionImage(card.image);
   return <div className={`${width} shrink-0 transition-all duration-300 ease-out ${tapped ? "mx-4 rotate-90 sm:mx-5" : ""} ${selected ? "-translate-y-3" : ""}`}>
     <div className={`relative aspect-[5/7] overflow-hidden rounded-[11px] border bg-[#07131c] transition-all duration-300 ${selected ? "border-cyan-300 shadow-[0_0_0_3px_rgba(34,211,238,.14),0_28px_65px_rgba(0,0,0,.62)]" : tapped ? "border-cyan-300/45 shadow-[0_0_30px_rgba(34,211,238,.18)]" : "border-white/[0.16] shadow-[0_18px_45px_rgba(0,0,0,.5)]"}`}>
@@ -72,6 +78,7 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
   const [openZone, setOpenZone] = useState<"graveyard" | "exile" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [boardPositions, setBoardPositions] = useState<Record<string, BoardPosition>>({});
+  const [previewCard, setPreviewCard] = useState<TestCard | DeckCard | null>(null);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -168,8 +175,8 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
         </div>
 
         <section className="relative border-t border-white/[0.07] bg-[#030c12]/78 px-4 pb-5 pt-4 backdrop-blur-md sm:px-7">
-          <div className="mb-3 flex items-center justify-between"><ZoneLabel label="Hand" count={hand.length} /><div className="flex items-center gap-2"><button type="button" onClick={() => draw(1)} disabled={!library.length} className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-2.5 py-1.5 text-[10px] font-semibold text-slate-400 hover:text-white disabled:opacity-30"><Hand className="h-3 w-3" /> Draw</button><span className="text-[10px] text-slate-600">Select a card to play it</span></div></div>
-          <div className="flex min-h-[220px] items-end gap-2 overflow-x-auto px-2 pb-3 pt-5 sm:gap-3">{hand.map((card) => <button key={card.instanceId} type="button" draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-trading-docks-card", card.instanceId); }} onClick={() => setSelected(selected?.instanceId === card.instanceId ? null : card)} className="group shrink-0 cursor-grab rounded-xl focus:outline-none active:cursor-grabbing"><CardFace card={card} size="hand" selected={selected?.instanceId === card.instanceId} /><p className="mt-2 max-w-[142px] truncate text-center text-[10px] font-medium text-slate-500 group-hover:text-slate-200">{card.name}</p></button>)}</div>
+          <div className="mb-3 flex items-center justify-between"><ZoneLabel label="Hand" count={hand.length} /><div className="flex items-center gap-2"><button type="button" onClick={() => draw(1)} disabled={!library.length} className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.025] px-2.5 py-1.5 text-[10px] font-semibold text-slate-300 transition hover:border-cyan-300/20 hover:text-white disabled:opacity-30"><Hand className="h-3 w-3" /> Draw</button><span className="hidden text-[10px] font-medium text-slate-400 sm:inline">Tap to select · Drag to play</span></div></div>
+          <div className="grid min-h-[250px] grid-flow-col auto-cols-max items-end justify-start gap-3 overflow-x-auto px-2 pb-3 pt-5 lg:grid-flow-row lg:grid-cols-[repeat(auto-fit,minmax(194px,1fr))] lg:items-start lg:overflow-visible xl:gap-4">{hand.map((card) => <button key={card.instanceId} type="button" draggable title={card.name} aria-label={`Select ${card.name}`} onMouseEnter={() => setPreviewCard(card)} onMouseLeave={() => setPreviewCard(null)} onFocus={() => setPreviewCard(card)} onBlur={() => setPreviewCard(null)} onDragStart={(event) => { setPreviewCard(null); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-trading-docks-card", card.instanceId); }} onClick={() => setSelected(selected?.instanceId === card.instanceId ? null : card)} className="group mx-auto shrink-0 cursor-grab rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/70 focus-visible:ring-offset-4 focus-visible:ring-offset-[#030c12] active:cursor-grabbing"><CardFace card={card} size="hand" selected={selected?.instanceId === card.instanceId} /><p className="mx-auto mt-2 w-[146px] truncate rounded-lg border border-white/[0.08] bg-[#07151e]/90 px-2.5 py-1.5 text-center text-[11px] font-semibold leading-none text-slate-100 shadow-[0_8px_22px_rgba(0,0,0,.32)] transition group-hover:border-cyan-300/25 group-hover:bg-[#0a1d28] group-hover:text-white sm:w-[170px] xl:w-[194px] 2xl:w-[208px]">{card.name}</p></button>)}</div>
         </section>
       </main>
 
@@ -188,10 +195,11 @@ export function DeckPlaytest({ cards, commanderName }: { cards: DeckCard[]; comm
     </div> : null}
 
     {openZone ? <ZoneDrawer title={openZone === "graveyard" ? "Graveyard" : "Exile"} cards={openZone === "graveyard" ? graveyard : exile} onClose={() => setOpenZone(null)} onReturn={(card) => moveCard(card, openZone, "hand")} onSwitch={(card) => moveCard(card, openZone, openZone === "graveyard" ? "exile" : "graveyard")} /> : null}
+    {previewCard ? <div className="pointer-events-none fixed right-7 top-1/2 z-[80] hidden -translate-y-1/2 xl:block"><div className="rounded-[24px] border border-cyan-300/25 bg-[#041018]/95 p-3 shadow-[0_35px_100px_rgba(0,0,0,.75),0_0_55px_rgba(34,211,238,.12)] backdrop-blur-xl"><CardFace card={previewCard} size="preview" /><div className="mt-3 flex items-center justify-between gap-4 px-1"><p className="max-w-[260px] truncate text-sm font-semibold text-white">{previewCard.name}</p><span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.08] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-cyan-200">HD preview</span></div></div></div> : null}
   </div>;
 }
 
-function ZoneLabel({ label, count }: { label: string; count: number }) { return <div className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span><span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[9px] text-slate-500">{count}</span></div>; }
+function ZoneLabel({ label, count }: { label: string; count: number }) { return <div className="flex items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">{label}</span><span className="rounded-full border border-white/[0.07] bg-white/[0.06] px-2 py-0.5 text-[9px] font-semibold text-slate-300">{count}</span></div>; }
 
 function FreeformBoard({ cards, hand, selected, turn, positions, onPositionsChange, onDropFromHand, onSelect, onTapLand }: { cards: TestCard[]; hand: TestCard[]; selected: TestCard | null; turn: number; positions: Record<string, BoardPosition>; onPositionsChange: Dispatch<SetStateAction<Record<string, BoardPosition>>>; onDropFromHand: (card: TestCard, position: BoardPosition) => void; onSelect: (card: TestCard) => void; onTapLand: (card: TestCard) => void }) {
   const boardRef = useRef<HTMLDivElement>(null);
