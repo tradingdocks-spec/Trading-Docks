@@ -91,6 +91,44 @@ export type DeckIntelligenceReport = {
   }>;
 };
 
+export type ComboCard = {
+  name: string;
+  image?: string;
+  inDeck: boolean;
+  isCommander: boolean;
+  ownedQuantity: number;
+  inventoryLocations: string[];
+  price: number | null;
+};
+
+export type DeckCombo = {
+  id: string;
+  cards: ComboCard[];
+  missingCards: ComboCard[];
+  produces: string[];
+  prerequisites: string[];
+  steps: string[];
+  manaNeeded: string;
+  popularity: number | null;
+  bracketTag: string;
+  estimatedComboValue: number | null;
+  spellbookUrl: string;
+};
+
+export type DeckComboReport = {
+  available: boolean;
+  complete: DeckCombo[];
+  oneCardAway: DeckCombo[];
+  summary: {
+    complete: number;
+    oneCardAway: number;
+    ownedMissingPieces: number;
+    bracketSensitive: number;
+  };
+  source: "Commander Spellbook";
+  message?: string;
+};
+
 export type DeckRecord = {
   id: string;
   name: string;

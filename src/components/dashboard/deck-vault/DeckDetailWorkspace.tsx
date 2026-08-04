@@ -53,6 +53,8 @@ import type {
   DeckCard,
   DeckFormat,
   DeckRecord,
+  DeckCombo,
+  DeckComboReport,
   DeckIntelligenceReport,
   InventoryMatch,
   ManaColor,
@@ -1195,6 +1197,7 @@ export function DeckDetailWorkspace({
             report={intelligence}
             loading={intelligenceLoading}
             format={format}
+            cards={cards}
           />
         ) : tab === "Tokens" ? (
           <TokenWorkspace
@@ -5173,11 +5176,56 @@ function IntelligenceWorkspace({
   report,
   loading,
   format,
+  cards,
 }: {
   report: DeckIntelligenceReport | null;
   loading: boolean;
   format: DeckFormat;
+  cards: DeckCard[];
 }) {
+  const [combos, setCombos] = useState<DeckComboReport | null>(null);
+  const [combosLoading, setCombosLoading] = useState(false);
+
+  useEffect(() => {
+    if (format !== "EDH" && format !== "Pauper EDH") {
+      setCombos(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
+      setCombosLoading(true);
+      try {
+        const inventory = await loadOwnedCollection();
+        const response = await fetch("/api/deck-vault/combos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cards, format, inventory }),
+        });
+        const payload = (await response.json()) as DeckComboReport;
+        if (!cancelled) setCombos(payload);
+      } catch {
+        if (!cancelled) {
+          setCombos({
+            available: false,
+            complete: [],
+            oneCardAway: [],
+            summary: { complete: 0, oneCardAway: 0, ownedMissingPieces: 0, bracketSensitive: 0 },
+            source: "Commander Spellbook",
+            message: "Combo data is temporarily unavailable. Your other deck tools are unaffected.",
+          });
+        }
+      } finally {
+        if (!cancelled) setCombosLoading(false);
+      }
+    }, 700);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [format, cards]);
+
   const errors =
     report?.issues.filter(
       (issue) =>
@@ -5253,6 +5301,10 @@ function IntelligenceWorkspace({
         />
       </div>
 
+      {(format === "EDH" || format === "Pauper EDH") ? (
+        <ComboIntelligence report={combos} loading={combosLoading} />
+      ) : null}
+
       <section className="rounded-[28px] border border-white/[0.07] bg-[#06131f] p-6">
         <h3 className="text-[20px] font-semibold text-white">
           Validation Results
@@ -5299,6 +5351,134 @@ function IntelligenceWorkspace({
         </div>
       </section>
     </section>
+  );
+}
+
+function ComboIntelligence({
+  report,
+  loading,
+}: {
+  report: DeckComboReport | null;
+  loading: boolean;
+}) {
+  const [view, setView] = useState<"complete" | "nearby">("complete");
+  const selected = view === "complete" ? report?.complete ?? [] : report?.oneCardAway ?? [];
+
+  return (
+    <section className="relative overflow-hidden rounded-[30px] border border-sky-300/[0.14] bg-[#06131f] p-6 sm:p-7">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_95%_0%,rgba(56,189,248,0.13),transparent_34%),radial-gradient(circle_at_5%_100%,rgba(99,102,241,0.10),transparent_38%)]" />
+      <div className="relative">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07]">
+                <BrainCircuit className="h-4 w-4 text-cyan-200" />
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-300">Combo Intelligence</p>
+            </div>
+            <h2 className="mt-4 text-[28px] font-semibold tracking-[-0.03em] text-white">See the lines already hiding in your deck</h2>
+            <p className="mt-2 max-w-3xl text-[13px] leading-6 text-slate-400">
+              Verified Commander combos, exact execution steps, outcomes, and missing pieces matched against your Trading Docks inventory.
+            </p>
+          </div>
+          <a href="https://commanderspellbook.com/" target="_blank" rel="noreferrer" className="text-[10px] font-semibold text-slate-500 transition hover:text-cyan-200">
+            Data by Commander Spellbook ↗
+          </a>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <ComboMetric label="Complete combos" value={report?.summary.complete ?? 0} tone="emerald" />
+          <ComboMetric label="One card away" value={report?.summary.oneCardAway ?? 0} tone="cyan" />
+          <ComboMetric label="Pieces you own" value={report?.summary.ownedMissingPieces ?? 0} tone="violet" />
+          <ComboMetric label="Bracket-sensitive" value={report?.summary.bracketSensitive ?? 0} tone="amber" />
+        </div>
+
+        <div className="mt-6 flex w-fit gap-1 rounded-xl border border-white/[0.07] bg-black/15 p-1">
+          <button type="button" onClick={() => setView("complete")} className={["h-9 rounded-lg px-4 text-[10px] font-semibold transition", view === "complete" ? "bg-emerald-300 text-[#00150f]" : "text-slate-500 hover:text-white"].join(" ")}>
+            Active combos
+          </button>
+          <button type="button" onClick={() => setView("nearby")} className={["h-9 rounded-lg px-4 text-[10px] font-semibold transition", view === "nearby" ? "bg-cyan-300 text-[#00121c]" : "text-slate-500 hover:text-white"].join(" ")}>
+            One card away
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-black/10 p-5 text-[13px] text-slate-400">
+            <RefreshCw className="h-4 w-4 animate-spin text-cyan-300" /> Scanning verified combo lines…
+          </div>
+        ) : !report?.available ? (
+          <div className="mt-5 rounded-2xl border border-amber-300/[0.12] bg-amber-400/[0.03] p-5 text-[13px] text-amber-100/80">
+            {report?.message ?? "Combo analysis will appear when this Commander deck has cards."}
+          </div>
+        ) : selected.length ? (
+          <div className="mt-5 grid gap-4 xl:grid-cols-2">
+            {selected.map((combo) => <ComboCardView key={combo.id} combo={combo} nearComplete={view === "nearby"} />)}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/10 p-5 text-[13px] text-slate-500">
+            {view === "complete" ? "No complete verified combos were detected in this list." : "No legal one-card-away combos were found for this commander and color identity."}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ComboMetric({ label, value, tone }: { label: string; value: number; tone: "emerald" | "cyan" | "violet" | "amber" }) {
+  const styles = {
+    emerald: "border-emerald-300/[0.12] bg-emerald-400/[0.035] text-emerald-200",
+    cyan: "border-cyan-300/[0.12] bg-cyan-400/[0.035] text-cyan-200",
+    violet: "border-violet-300/[0.12] bg-violet-400/[0.035] text-violet-200",
+    amber: "border-amber-300/[0.12] bg-amber-400/[0.035] text-amber-200",
+  };
+  return <div className={["rounded-2xl border p-4", styles[tone]].join(" ")}><p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500">{label}</p><p className="mt-2 text-3xl font-semibold">{value}</p></div>;
+}
+
+function ComboCardView({ combo, nearComplete }: { combo: DeckCombo; nearComplete: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const missing = combo.missingCards[0];
+  return (
+    <article className="rounded-[24px] border border-white/[0.075] bg-[#04101a]/85 p-5 transition hover:border-cyan-300/[0.15]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-wrap gap-2">
+          {combo.cards.map((card) => (
+            <span key={card.name} className={["rounded-full border px-2.5 py-1.5 text-[10px] font-semibold", !card.inDeck ? "border-cyan-300/20 bg-cyan-400/[0.07] text-cyan-100" : "border-white/[0.08] bg-white/[0.025] text-slate-300"].join(" ")}>
+              {!card.inDeck ? "+ " : ""}{card.name}{card.isCommander ? " · CZ" : ""}
+            </span>
+          ))}
+        </div>
+        <span className={["shrink-0 rounded-lg px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.08em]", nearComplete ? "bg-cyan-400/10 text-cyan-200" : "bg-emerald-400/10 text-emerald-200"].join(" ")}>
+          {nearComplete ? "1 missing" : "Live"}
+        </span>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {combo.produces.map((result) => <span key={result} className="rounded-lg border border-violet-300/[0.12] bg-violet-400/[0.035] px-2.5 py-1.5 text-[9px] font-semibold text-violet-200">{result}</span>)}
+      </div>
+      {missing ? (
+        <div className="mt-4 rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div><p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-600">Missing piece</p><p className="mt-1 text-[13px] font-semibold text-white">{missing.name}</p></div>
+            {missing.ownedQuantity > 0 ? <span className="rounded-lg bg-emerald-400/10 px-2.5 py-1.5 text-[9px] font-semibold text-emerald-200">Owned ×{missing.ownedQuantity}</span> : <span className="text-[10px] text-slate-500">Not in inventory</span>}
+          </div>
+          {missing.inventoryLocations.length ? <p className="mt-2 text-[10px] text-slate-500">Located in {missing.inventoryLocations.join(" · ")}</p> : null}
+        </div>
+      ) : null}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[9px] text-slate-500">
+        {combo.manaNeeded ? <span>Setup mana {combo.manaNeeded}</span> : null}
+        {combo.estimatedComboValue !== null ? <span>Combo value ~${combo.estimatedComboValue.toFixed(2)}</span> : null}
+        {combo.popularity !== null ? <span>{combo.popularity.toLocaleString()} saves</span> : null}
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-white/[0.06] pt-4">
+        <button type="button" onClick={() => setExpanded((value) => !value)} className="text-[10px] font-semibold text-cyan-200">{expanded ? "Hide steps" : "How it works"}</button>
+        <a href={combo.spellbookUrl} target="_blank" rel="noreferrer" className="text-[9px] font-semibold text-slate-500 hover:text-white">View verified combo ↗</a>
+      </div>
+      {expanded ? (
+        <div className="mt-4 space-y-3 rounded-xl border border-white/[0.06] bg-black/10 p-4">
+          {combo.prerequisites.length ? <p className="text-[11px] leading-5 text-amber-100/80"><span className="font-semibold">Before you start:</span> {combo.prerequisites.join(" ")}</p> : null}
+          <ol className="space-y-2">{combo.steps.map((step, index) => <li key={`${combo.id}-${index}`} className="flex gap-3 text-[11px] leading-5 text-slate-400"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400/[0.08] text-[9px] font-semibold text-cyan-200">{index + 1}</span><span>{step}</span></li>)}</ol>
+        </div>
+      ) : null}
+    </article>
   );
 }
 
