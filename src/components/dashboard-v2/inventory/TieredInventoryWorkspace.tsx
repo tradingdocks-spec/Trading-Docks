@@ -2701,7 +2701,7 @@ function VirtualBinderModal({
         ) : null}
 
         {detailItem ? <BinderCardDetail item={detailItem} location={location} onClose={() => setDetailItemId("")} onMove={() => { setMoveCandidate(detailItem); setDetailItemId(""); }} onRemove={() => { setRemoveCandidate(detailItem); setDetailItemId(""); }} onDelete={() => { onDeleteItem(detailItem); setDetailItemId(""); }} onUpdate={(updates) => onUpdateItem(detailItem.id, updates)} /> : null}
-        {moveCandidate ? <MoveInventoryItemModal item={moveCandidate} locations={locations} allItems={allItems} onClose={() => setMoveCandidate(null)} onMove={completeLocationMove} /> : null}
+        {moveCandidate ? <MoveCardPanel item={moveCandidate} currentLocation={location} locations={locations} allItems={allItems} onClose={() => setMoveCandidate(null)} onMove={completeLocationMove} /> : null}
 
         {removeCandidate ? (
           <div className="absolute inset-0 z-[145] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && setRemoveCandidate(null)}>
