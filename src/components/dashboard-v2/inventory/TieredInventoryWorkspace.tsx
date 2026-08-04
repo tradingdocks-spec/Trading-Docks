@@ -2,6 +2,13 @@
 
 import Link from "next/link";
 import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
+import {
   AlertTriangle,
   ArrowLeft,
   ArrowRightLeft,
@@ -18,6 +25,7 @@ import {
   Download,
   Edit3,
   EllipsisVertical,
+  Eye,
   ExternalLink,
   Filter,
   FolderKanban,
@@ -55,13 +63,6 @@ import {
   Truck,
   Warehouse,
   X,
-  import {,
-  import { createPortal } from "react-dom";,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  } from "react";,
 } from "lucide-react";
 
 import { MetricCard } from "../common/MetricCard";
@@ -2535,197 +2536,190 @@ function VirtualBinderModal({
     setContextMenu(null);
   }
 
+  const spreadLeft = binderView === "spread" ? (page % 2 === 0 ? Math.max(1, page - 1) : page) : page;
+  const spreadRight = Math.min(pageCount, spreadLeft + 1);
+  const currentPageItems = items.filter((item) =>
+    binderView === "spread"
+      ? item.binderPage === spreadLeft || item.binderPage === spreadRight
+      : item.binderPage === page,
+  );
+  const inspectorItem = selectedItem ?? currentPageItems[0] ?? null;
+  const usedPercent = Math.min(100, pageCount * slotsPerPage ? (occupied / (pageCount * slotsPerPage)) * 100 : 0);
+
   return (
-    <div className="fixed inset-0 z-[120] flex bg-[#01070c]/92 p-2 backdrop-blur-xl sm:p-4" role="dialog" aria-modal="true" aria-label={`${location.name} virtual binder`}>
-      <div className="relative mx-auto flex h-full w-full max-w-[1600px] flex-col overflow-hidden rounded-[26px] border border-cyan-300/[0.11] bg-[#07131d] shadow-[0_32px_130px_rgba(0,0,0,0.78)]">
-        <header className="flex shrink-0 items-center gap-3 border-b border-white/[0.065] bg-[linear-gradient(105deg,rgba(34,211,238,0.11),rgba(7,19,29,0.97)_42%,rgba(34,211,238,0.055))] px-4 py-3 sm:px-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-cyan-300/[0.18] bg-cyan-300/[0.055] px-3.5 text-[10px] font-semibold text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.1] hover:text-cyan-50"
-          >
-            <ArrowLeft className="h-3.5 w-3.5 text-cyan-300" />
-            <span className="hidden sm:inline">Back to Inventory</span>
-            <span className="sm:hidden">Back</span>
-          </button>
-          <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/[0.18] bg-gradient-to-br from-cyan-400/[0.13] to-cyan-300/[0.05] text-cyan-100 shadow-[0_8px_28px_rgba(34,211,238,0.1)] sm:flex"><BookOpen className="h-5 w-5" /></span>
-          <div className="min-w-0">
-            <p className="text-[8px] font-semibold uppercase tracking-[0.19em] text-cyan-300">Collector Vault · Virtual Binder</p>
-            <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.02em] text-slate-100">{location.name}</h2>
-            <p className="text-[8px] text-slate-600">{columns} × {rows} pockets · {pageCount} physical pages</p>
+    <div className="fixed inset-0 z-[120] bg-[#01070c]/94 p-1.5 backdrop-blur-xl sm:p-3" role="dialog" aria-modal="true" aria-label={`${location.name} virtual binder`}>
+      <div className="relative mx-auto flex h-full w-full max-w-[1820px] flex-col overflow-hidden rounded-[28px] border border-violet-300/[0.14] bg-[#04101a] shadow-[0_42px_160px_rgba(0,0,0,.84)]">
+        <header className="relative shrink-0 overflow-hidden border-b border-white/[0.065] bg-[radial-gradient(circle_at_78%_0%,rgba(139,92,246,.15),transparent_36%),linear-gradient(100deg,#071b28,#06131d_48%,#120b20)] px-3 py-3 sm:px-5">
+          <div className="pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/45 to-transparent" />
+          <div className="relative flex items-center gap-3">
+            <button type="button" onClick={onClose} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-white/[0.09] bg-black/15 px-3 text-[10px] font-semibold text-slate-300 transition hover:border-cyan-300/25 hover:text-white">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Inventory</span>
+            </button>
+
+            <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-violet-300/[0.18] bg-violet-400/[0.07] text-violet-200 sm:flex"><BookOpen className="h-5 w-5" /></span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[8px] font-bold uppercase tracking-[0.19em] text-cyan-300">Binder Studio</p>
+                <span className="hidden items-center gap-1 text-[8px] font-semibold text-emerald-300/80 md:flex"><Check className="h-3 w-3" /> Autosaved</span>
+              </div>
+              <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.025em] text-white">{location.name}</h2>
+              <p className="text-[8px] text-slate-600">{columns} × {rows} pockets · {pageCount} pages · {occupied} cards placed</p>
+            </div>
+
+            <div className="ml-auto hidden items-center gap-2 xl:flex">
+              <BinderStat label="Value" value={currency(totalValue)} accent />
+              <BinderStat label="Cards" value={items.reduce((sum, item) => sum + item.quantity, 0).toLocaleString("en-US")} />
+              <BinderStat label="Used" value={`${occupied}/${pageCount * slotsPerPage}`} />
+            </div>
+
+            <div className="ml-auto flex items-center gap-2 xl:ml-2">
+              <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="hidden h-10 items-center gap-2 rounded-xl border border-violet-300/[0.22] bg-violet-400/[0.07] px-3 text-[9px] font-semibold text-violet-100 transition hover:border-violet-300/40 hover:bg-violet-400/[0.12] md:flex"><Sparkles className="h-3.5 w-3.5" /> Portfolio View</Link>
+              <button type="button" onClick={() => setShowcaseOpen(true)} className="flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-3 text-[9px] font-bold text-[#031319] shadow-[0_10px_26px_rgba(34,211,238,.13)]"><Share2 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Share</span></button>
+              <button type="button" onClick={() => setSettingsOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.09] bg-black/15 text-slate-400 transition hover:text-white"><Settings2 className="h-4 w-4" /></button>
+            </div>
           </div>
-          <div className="ml-auto hidden items-center gap-2 lg:flex">
-            <BinderStat label="Binder value" value={currency(totalValue)} accent />
-            <BinderStat label="Cards" value={items.reduce((sum, item) => sum + item.quantity, 0).toLocaleString("en-US")} />
-            <BinderStat label="Pockets used" value={`${occupied} / ${(pageCount * slotsPerPage).toLocaleString("en-US")}`} />
-            <BinderStat label="Available" value={(pageCount * slotsPerPage - occupied).toLocaleString("en-US")} />
-          </div>
-          <span className="hidden items-center gap-1.5 text-[9px] font-semibold text-emerald-300/80 xl:flex" title="Binder changes are saved automatically"><Check className="h-3 w-3" /> Saved</span>
-          <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="hidden h-10 items-center gap-2 rounded-xl border border-violet-300/[0.26] bg-[linear-gradient(135deg,rgba(139,92,246,.18),rgba(34,211,238,.09))] px-3.5 text-[10px] font-semibold text-violet-100 shadow-[0_10px_32px_rgba(124,58,237,.14)] transition hover:-translate-y-0.5 hover:border-violet-300/45 hover:bg-violet-400/[0.16] md:flex"><Sparkles className="h-3.5 w-3.5 text-violet-300" /> Open Portfolio View</Link>
-          <button type="button" onClick={() => setShowcaseOpen(true)} className="hidden h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.04] text-cyan-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.08] lg:flex" aria-label="Quick share binder"><Share2 className="h-3.5 w-3.5" /></button>
-          <button type="button" onClick={onOpenPutAway} className="hidden h-10 items-center gap-2 rounded-xl border border-amber-300/[0.16] bg-amber-300/[0.045] px-3 text-[10px] font-semibold text-amber-100 transition hover:border-amber-300/30 hover:bg-amber-300/[0.08] md:flex"><PackageOpen className="h-3.5 w-3.5 text-amber-300" /> Put Away <span className="rounded-md bg-amber-300 px-1.5 py-0.5 text-[8px] font-black text-[#211505]">{putAwayCount}</span></button>
-          <button type="button" onClick={() => setSettingsOpen(true)} className="hidden h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.04] px-3.5 text-[10px] font-semibold text-slate-300 transition hover:border-cyan-300/28 hover:bg-cyan-300/[0.07] hover:text-cyan-100 sm:flex"><Settings2 className="h-3.5 w-3.5 text-cyan-300" /> Settings</button>
-          <button type="button" onClick={onFile} className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-300 px-4 text-[10px] font-bold text-[#031319] shadow-[0_8px_24px_rgba(34,211,238,0.18)]"><Plus className="h-3.5 w-3.5" /> Add Card</button>
         </header>
 
-        <div className="flex shrink-0 flex-col gap-3 border-b border-white/[0.055] bg-[#081721] px-5 py-3 sm:flex-row sm:items-center sm:px-6">
-          <label className="relative flex h-12 min-w-0 flex-1 items-center gap-3 rounded-xl border border-white/[0.09] bg-[#050e15] px-4 shadow-inner focus-within:border-cyan-300/35">
-            <Search className="h-4 w-4 shrink-0 text-cyan-300/80" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a card and jump directly to its pocket…" className="min-w-0 flex-1 bg-transparent text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-            {matches.length ? <span className="rounded-lg bg-cyan-400/[0.09] px-2 py-1 text-[9px] font-semibold text-cyan-300">{matches.length} match{matches.length === 1 ? "" : "es"}</span> : null}
-          </label>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setBinderView("single")} className={`flex h-12 items-center gap-2 rounded-xl border px-3 text-[10px] font-semibold ${binderView === "single" ? "border-cyan-300/25 bg-cyan-400/[0.09] text-cyan-200" : "border-white/[0.08] text-slate-500"}`}><Grid3X3 className="h-3.5 w-3.5" /> Single Page</button>
-            <button type="button" onClick={() => setBinderView("spread")} className={`hidden h-12 items-center gap-2 rounded-xl border px-3 text-[10px] font-semibold md:flex ${binderView === "spread" ? "border-cyan-300/25 bg-cyan-400/[0.09] text-cyan-200" : "border-white/[0.08] text-slate-500"}`}><BookOpen className="h-3.5 w-3.5" /> Binder Spread</button>
-            <button type="button" onClick={() => setBinderView("index")} className={`flex h-12 items-center gap-2 rounded-xl border px-3 text-[10px] font-semibold ${binderView === "index" ? "border-cyan-300/25 bg-cyan-400/[0.09] text-cyan-200" : "border-white/[0.08] text-slate-500"}`}><List className="h-3.5 w-3.5" /> Index</button>
+        <div className="shrink-0 border-b border-white/[0.055] bg-[#06131d]/94 px-3 py-2.5 sm:px-5">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/[0.075] bg-black/20 px-3">
+              <Search className="h-4 w-4 text-slate-600" />
+              <input value={query} onChange={(event) => { setQuery(event.target.value); setMatchIndex(0); }} onKeyDown={(event) => { if (event.key === "Enter" && matches.length) jumpToItem(matches[matchIndex] ?? matches[0]); }} placeholder="Search this binder by card, set, pocket, condition…" className="min-w-0 flex-1 bg-transparent text-[10px] text-white outline-none placeholder:text-slate-700" />
+              {query ? <button type="button" onClick={() => { setQuery(""); setJumpMessage(""); }} className="text-slate-600 hover:text-white"><X className="h-3.5 w-3.5" /></button> : null}
+            </label>
+
+            <div className="flex items-center gap-2 overflow-x-auto">
+              <div className="flex rounded-xl border border-white/[0.075] bg-black/20 p-1">
+                {([
+                  ["single", "Page", Grid3X3],
+                  ["spread", "Spread", BookOpen],
+                  ["index", "Index", List],
+                ] as const).map(([value, label, Icon]) => (
+                  <button key={value} type="button" onClick={() => setBinderView(value)} className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[8px] font-semibold transition ${binderView === value ? "bg-violet-300 text-[#18092b]" : "text-slate-600 hover:text-white"}`}>
+                    <Icon className="h-3.5 w-3.5" /> {label}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={onOpenPutAway} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-amber-300/[0.14] bg-amber-300/[0.035] px-3 text-[9px] font-semibold text-amber-100"><PackageOpen className="h-3.5 w-3.5" /> Put Away <span className="rounded-md bg-amber-300 px-1.5 py-0.5 text-[7px] font-black text-[#211505]">{putAwayCount}</span></button>
+              <button type="button" onClick={onFile} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.035] px-3 text-[9px] font-semibold text-cyan-100"><Plus className="h-3.5 w-3.5" /> Add Card</button>
+            </div>
           </div>
+
+          {query && matches.length ? (
+            <div className="mt-2 flex items-center gap-2 overflow-x-auto rounded-xl border border-cyan-300/[0.08] bg-cyan-300/[0.025] px-2 py-1.5">
+              <span className="shrink-0 text-[8px] font-semibold text-cyan-200">{matches.length} result{matches.length === 1 ? "" : "s"}</span>
+              <button type="button" onClick={() => cycleMatch(-1)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500"><ChevronLeft className="h-3 w-3" /></button>
+              <button type="button" onClick={() => cycleMatch(1)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500"><ChevronRight className="h-3 w-3" /></button>
+              {matches.slice(0, 8).map((item) => <button key={item.id} type="button" onClick={() => jumpToItem(item)} className="shrink-0 rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-[8px] font-semibold text-slate-400 hover:border-cyan-300/20 hover:text-cyan-100">{item.name}</button>)}
+            </div>
+          ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-col gap-3 border-b border-violet-300/[0.10] bg-[radial-gradient(circle_at_15%_0%,rgba(139,92,246,.12),transparent_40%),linear-gradient(90deg,rgba(139,92,246,.055),rgba(34,211,238,.025),rgba(16,185,129,.035))] px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-300/[0.18] bg-violet-400/[0.07] text-violet-200"><Palette className="h-4 w-4" /></span>
-            <div>
-              <p className="text-[10px] font-semibold text-violet-100">You are in the private binder editor</p>
-              <p className="mt-0.5 text-[9px] text-slate-600">Open the Collector Portfolio to present, flip through, and share this binder.</p>
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[180px_minmax(0,1fr)] 2xl:grid-cols-[200px_minmax(0,1fr)_310px]">
+          <aside className="hidden min-h-0 border-r border-white/[0.055] bg-[#05111a]/92 p-3 lg:flex lg:flex-col">
+            <div className="rounded-2xl border border-white/[0.07] bg-black/15 p-3">
+              <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Binder capacity</p>
+              <div className="mt-3 flex items-end justify-between"><span className="text-xl font-semibold text-white">{Math.round(usedPercent)}%</span><span className="text-[8px] text-slate-700">{occupied}/{pageCount * slotsPerPage}</span></div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.05]"><div className="h-full rounded-full bg-gradient-to-r from-violet-300 to-cyan-300" style={{ width: `${usedPercent}%` }} /></div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setShowcaseOpen(true)} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[9px] font-semibold text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-100"><Share2 className="h-3.5 w-3.5" /> Quick export</button>
-            <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-violet-300 px-3.5 text-[9px] font-bold text-[#18092b] shadow-[0_9px_24px_rgba(196,181,253,.14)] transition hover:-translate-y-0.5 hover:bg-violet-200"><BookOpen className="h-3.5 w-3.5" /> Open Portfolio Experience</Link>
-          </div>
-        </div>
 
-        {query && matches.length ? (
-          <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-white/[0.055] bg-cyan-400/[0.018] px-5 py-2.5 sm:px-6">
-            <div className="mr-1 flex shrink-0 items-center gap-1">
-              <button type="button" onClick={() => cycleMatch(-1)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500 hover:text-cyan-200" aria-label="Previous match"><ChevronLeft className="h-3.5 w-3.5" /></button>
-              <button type="button" onClick={() => cycleMatch(1)} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500 hover:text-cyan-200" aria-label="Next match"><ChevronRight className="h-3.5 w-3.5" /></button>
+            <div className="mt-4 flex items-center justify-between px-1"><p className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-600">Pages</p><span className="text-[8px] text-slate-700">{pageCount}</span></div>
+            <div className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+              {Array.from({ length: pageCount }, (_, index) => {
+                const pageNumber = index + 1;
+                const count = items.filter((item) => item.binderPage === pageNumber).length;
+                const active = binderView === "spread" ? pageNumber === spreadLeft || pageNumber === spreadRight : pageNumber === page;
+                return <button key={pageNumber} type="button" onClick={() => setPage(pageNumber)} className={`flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition ${active ? "border-violet-300/25 bg-violet-400/[0.08]" : "border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]"}`}><span className={`flex h-7 w-7 items-center justify-center rounded-lg text-[8px] font-bold ${active ? "bg-violet-300 text-[#18092b]" : "bg-white/[0.04] text-slate-600"}`}>{pageNumber}</span><span className="min-w-0 flex-1"><span className={`block text-[9px] font-semibold ${active ? "text-violet-100" : "text-slate-500"}`}>Page {pageNumber}</span><span className="mt-0.5 block text-[7px] text-slate-700">{count}/{slotsPerPage} pockets</span></span></button>;
+              })}
             </div>
-            {matches.slice(0, 12).map((item) => (
-              <button key={item.id} type="button" onClick={() => jumpToItem(item)} className="flex shrink-0 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-left hover:border-cyan-300/25">
-                <span className="max-w-[180px] truncate text-[10px] font-semibold text-slate-300">{item.name}</span>
-                <span className="rounded-md bg-cyan-400/[0.09] px-1.5 py-1 text-[8px] font-bold text-cyan-300">{item.binderPage && item.binderSlot ? `P${item.binderPage} · ${item.binderSlot}` : "Unassigned"}</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
+          </aside>
 
-        <main className="min-h-0 flex-1 overflow-auto p-3 sm:p-5">
-          {binderView === "index" ? (
-            <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-white/[0.07]">
-              <table className="w-full text-left text-[10px]">
-                <thead className="bg-[#0a1923] text-[8px] uppercase tracking-[0.14em] text-slate-600"><tr><th className="px-4 py-3">Card</th><th className="px-4 py-3">Set / Printing</th><th className="px-4 py-3">Condition</th><th className="px-4 py-3">Pocket address</th><th className="px-4 py-3 text-right">Value</th><th className="w-12 px-4 py-3"><span className="sr-only">Actions</span></th></tr></thead>
-                <tbody>{[...items].sort((a,b) => (a.binderPage ?? 999) - (b.binderPage ?? 999) || (a.binderSlot ?? "").localeCompare(b.binderSlot ?? "")).map((item) => <tr key={item.id} onClick={() => openCardDetails(item)} className="group cursor-pointer border-t border-white/[0.045] hover:bg-cyan-400/[0.035]"><td className="px-4 py-3 font-semibold text-slate-200">{item.name}</td><td className="px-4 py-3 text-slate-500">{item.set || "—"} {item.collectorNumber ? `· #${item.collectorNumber}` : ""}</td><td className="px-4 py-3 text-slate-500">{item.condition || "—"} · {item.finish || "—"}</td><td className="px-4 py-3 font-semibold text-cyan-300">{item.binderPage && item.binderSlot ? `Page ${item.binderPage} · ${item.binderSlot}` : "Unassigned"}</td><td className="px-4 py-3 text-right font-semibold text-emerald-300">{currency(item.value)}</td><td className="px-4 py-3"><button type="button" onClick={(event) => { event.stopPropagation(); const rect = event.currentTarget.getBoundingClientRect(); setContextMenu({ item, x: rect.right, y: rect.bottom + 6 }); }} aria-label={`Open actions for ${item.name}`} title="Card actions" className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-slate-500 transition hover:border-cyan-300/25 hover:bg-cyan-400/[0.07] hover:text-cyan-200"><EllipsisVertical className="h-4 w-4" /></button></td></tr>)}</tbody>
-              </table>
-            </div>
-          ) : (
-            <div className={`mx-auto ${binderView === "spread" ? "max-w-[1540px]" : "max-w-[1320px]"}`}>
+          <section className="min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(34,211,238,.035),transparent_30%)] p-3 sm:p-4 lg:p-5">
+            <div className="mx-auto max-w-[1320px]">
               <div className="mb-3 flex items-center justify-between">
-                <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1} className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] px-3 text-[10px] font-semibold text-slate-400 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /> Previous</button>
-                <div className="text-center"><p className="text-[8px] font-semibold uppercase tracking-[0.17em] text-cyan-300">Physical page</p><div className="mt-1 flex items-center gap-2"><span className="text-sm font-semibold text-slate-100">Page {page}</span><span className="text-[9px] text-slate-600">of {pageCount}</span></div></div>
-                <button type="button" onClick={() => setPage((value) => Math.min(pageCount, value + 1))} disabled={page === pageCount} className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] px-3 text-[10px] font-semibold text-slate-400 disabled:opacity-30">Next <ChevronRight className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setPage((current) => Math.max(1, current - (binderView === "spread" ? 2 : 1)))} disabled={page <= 1} className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.07] bg-black/15 px-3 text-[8px] font-semibold text-slate-400 disabled:opacity-25"><ChevronLeft className="h-3.5 w-3.5" /> Previous</button>
+                <div className="text-center"><p className="text-[8px] font-bold uppercase tracking-[0.17em] text-cyan-300">{binderView === "index" ? "Binder index" : binderView === "spread" ? "Physical binder spread" : "Physical binder page"}</p><p className="mt-1 text-[9px] text-slate-600">{binderView === "spread" ? `Pages ${spreadLeft}–${spreadRight}` : `Page ${page}`} of {pageCount}</p></div>
+                <button type="button" onClick={() => setPage((current) => Math.min(pageCount, current + (binderView === "spread" ? 2 : 1)))} disabled={page >= pageCount} className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.07] bg-black/15 px-3 text-[8px] font-semibold text-slate-400 disabled:opacity-25">Next <ChevronRight className="h-3.5 w-3.5" /></button>
               </div>
-              <div className={`grid gap-5 ${binderView === "spread" ? "lg:grid-cols-2" : ""}`}>
-                <BinderPageSurface page={page} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={(id) => { setSelectedItemId(id); setDetailItemId(id); }} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item, x, y) => setContextMenu({ item, x, y })} />
-                {binderView === "spread" && page < pageCount ? <BinderPageSurface page={page + 1} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={(id) => { setSelectedItemId(id); setDetailItemId(id); }} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item, x, y) => setContextMenu({ item, x, y })} rightPage /> : null}
-              </div>
-              <div className="mt-5 flex max-w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-white/[0.055] bg-black/10 p-2">
-                {Array.from({ length: Math.min(pageCount, 20) }, (_, index) => index + 1).map((pageNumber) => {
-                  const hasMatch = matches.some((item) => item.binderPage === pageNumber);
-                  const active = pageNumber === page || (binderView === "spread" && pageNumber === page + 1);
-                  return <button key={pageNumber} type="button" onClick={() => setPage(pageNumber)} className={`relative flex h-9 min-w-9 items-center justify-center rounded-lg text-[9px] font-semibold transition ${active ? "bg-cyan-300 text-[#031319] shadow-[0_6px_18px_rgba(34,211,238,0.2)]" : "text-slate-600 hover:bg-white/[0.04] hover:text-slate-300"}`}>{pageNumber}{hasMatch ? <span className={`absolute bottom-1 h-1 w-1 rounded-full ${active ? "bg-[#031319]" : "bg-cyan-300"}`} /> : null}</button>;
-                })}
-                {pageCount > 20 ? <span className="px-2 text-[9px] text-slate-700">+{pageCount - 20} pages</span> : null}
-              </div>
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                <label className="flex items-center gap-2 text-[9px] text-slate-600">Go to page <input type="number" min={1} max={pageCount} value={page} onChange={(event) => setPage(Math.min(pageCount, Math.max(1, Number(event.target.value) || 1)))} className="h-8 w-16 rounded-lg border border-white/[0.08] bg-[#07141e] px-2 text-center text-[10px] text-slate-300 outline-none" /></label>
-                <span className="text-[9px] text-slate-700">Pocket path: {location.name} → Page {page} → {selectedItem?.binderSlot ?? "select a card"}</span>
-              </div>
-            </div>
-          )}
-        </main>
 
-        {jumpMessage ? <div className="pointer-events-none absolute bottom-5 left-1/2 z-[65] -translate-x-1/2 rounded-xl border border-cyan-300/15 bg-[#081721]/95 px-4 py-2.5 text-[9px] font-semibold text-cyan-200 shadow-xl backdrop-blur">{jumpMessage}</div> : null}
-        {recentlyRemoved ? (
-          <div className="absolute bottom-16 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-emerald-300/20 bg-[#07151b]/95 px-4 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-xl">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300"><Check className="h-4 w-4" /></span>
-            <div><p className="text-[10px] font-semibold text-slate-200">{recentlyRemoved.item.name} sent to Put-Away</p><p className="mt-0.5 text-[8px] text-slate-600">Inventory retained and ready to be filed</p></div>
-            <button type="button" onClick={undoRemoveFromBinder} className="ml-2 flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 text-[9px] font-bold text-cyan-200 hover:border-cyan-300/25"><RotateCcw className="h-3 w-3" /> Undo</button>
-            <button type="button" onClick={() => setRecentlyRemoved(null)} aria-label="Dismiss notification" className="text-slate-600 hover:text-slate-300"><X className="h-3.5 w-3.5" /></button>
+              {binderView === "index" ? (
+                <div className="overflow-hidden rounded-[24px] border border-white/[0.075] bg-[#06131d]/88">
+                  <div className="grid grid-cols-[70px_minmax(0,1fr)_90px_100px] border-b border-white/[0.06] bg-white/[0.025] px-4 py-3 text-[8px] font-bold uppercase tracking-[0.13em] text-slate-600"><span>Pocket</span><span>Card</span><span>Qty</span><span>Value</span></div>
+                  <div className="divide-y divide-white/[0.05]">
+                    {[...items].sort((a,b) => (a.binderPage ?? 999) - (b.binderPage ?? 999) || (a.binderSlot ?? "").localeCompare(b.binderSlot ?? "")).map((item) => <button key={item.id} type="button" onClick={() => jumpToItem(item)} className={`grid w-full grid-cols-[70px_minmax(0,1fr)_90px_100px] items-center px-4 py-3 text-left transition hover:bg-cyan-300/[0.025] ${item.id === selectedItemId ? "bg-cyan-300/[0.045]" : ""}`}><span className="text-[9px] font-semibold text-cyan-200">{item.binderPage ? `P${item.binderPage} · ${item.binderSlot}` : "—"}</span><span className="flex min-w-0 items-center gap-3">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-10 w-7 rounded object-cover" /> : null}<span className="min-w-0"><span className="block truncate text-[10px] font-semibold text-white">{item.name}</span><span className="mt-1 block truncate text-[8px] text-slate-600">{[item.set,item.condition,item.finish].filter(Boolean).join(" · ")}</span></span></span><span className="text-[9px] text-slate-400">{item.quantity}</span><span className="text-[9px] font-semibold text-emerald-300">{currency(item.value)}</span></button>)}
+                  </div>
+                </div>
+              ) : binderView === "spread" ? (
+                <div className="relative grid gap-3 xl:grid-cols-2">
+                  <div className="pointer-events-none absolute bottom-7 left-1/2 top-7 z-30 hidden w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-black/70 to-transparent xl:block" />
+                  <BinderPageSurface page={spreadLeft} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={setSelectedItemId} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item,x,y) => setContextMenu({ item,x,y })} />
+                  <BinderPageSurface page={spreadRight} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={setSelectedItemId} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item,x,y) => setContextMenu({ item,x,y })} rightPage />
+                </div>
+              ) : (
+                <div className="mx-auto max-w-[850px]">
+                  <BinderPageSurface page={page} columns={columns} slots={pageSlots} items={items} selectedItemId={selectedItemId} onSelect={setSelectedItemId} onMove={moveToPocket} onRemove={setRemoveCandidate} onContextMenu={(item,x,y) => setContextMenu({ item,x,y })} />
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="hidden min-h-0 border-l border-white/[0.055] bg-[#05111a]/94 p-4 2xl:block">
+            {inspectorItem ? (
+              <div className="sticky top-0">
+                <div className="flex items-center justify-between"><p className="text-[8px] font-bold uppercase tracking-[0.17em] text-cyan-300">Live inspector</p><button type="button" onClick={() => openCardDetails(inspectorItem)} className="text-[8px] font-semibold text-violet-300 hover:text-violet-200">Full details</button></div>
+                {inspectorItem.imageUrl ? <img src={inspectorItem.imageUrl} alt={inspectorItem.name} className="mt-3 aspect-[.716] w-full rounded-[18px] object-contain shadow-[0_24px_64px_rgba(0,0,0,.48)]" /> : <div className="mt-3 flex aspect-[.716] items-center justify-center rounded-[18px] border border-white/[0.07] bg-black/20"><LibraryBig className="h-10 w-10 text-slate-700" /></div>}
+                <h3 className="mt-4 text-lg font-semibold text-white">{inspectorItem.name}</h3>
+                <p className="mt-1 text-[9px] text-slate-600">{[inspectorItem.set,inspectorItem.condition,inspectorItem.finish].filter(Boolean).join(" · ")}</p>
+                <div className="mt-4 grid grid-cols-2 gap-2"><CompactMetric label="Quantity" value={String(inspectorItem.quantity)} /><CompactMetric label="Value" value={currency(inspectorItem.value)} /><CompactMetric label="Page" value={String(inspectorItem.binderPage ?? "—")} /><CompactMetric label="Pocket" value={inspectorItem.binderSlot ?? "—"} /></div>
+                <div className="mt-4 space-y-2">
+                  <button type="button" onClick={() => openCardDetails(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.035] text-[9px] font-semibold text-cyan-100"><Eye className="h-3.5 w-3.5" /> Inspect card</button>
+                  <button type="button" onClick={() => setMoveCandidate(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-violet-300/[0.14] bg-violet-300/[0.035] text-[9px] font-semibold text-violet-100"><Move className="h-3.5 w-3.5" /> Move card</button>
+                  <button type="button" onClick={() => setRemoveCandidate(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-rose-300/[0.13] bg-rose-300/[0.025] text-[9px] font-semibold text-rose-200"><Trash2 className="h-3.5 w-3.5" /> Send to Put-Away</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-7 w-7 text-slate-700" /><p className="mt-4 text-sm font-semibold text-slate-400">Select a card</p><p className="mt-2 text-[9px] leading-5 text-slate-700">The permanent inspector keeps card details visible without covering your binder.</p></div>
+            )}
+          </aside>
+        </div>
+
+        <footer className="flex shrink-0 items-center gap-3 border-t border-white/[0.055] bg-[#06131d]/96 px-3 py-2 sm:px-5">
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+            {jumpMessage ? <span className="shrink-0 rounded-lg border border-cyan-300/[0.10] bg-cyan-300/[0.025] px-2.5 py-1.5 text-[8px] font-semibold text-cyan-100">{jumpMessage}</span> : <span className="text-[8px] text-slate-700">Drag cards between pockets. Right-click or use the inspector for actions.</span>}
+            {recentlyRemoved ? <button type="button" onClick={undoRemoveFromBinder} className="shrink-0 rounded-lg border border-emerald-300/[0.12] bg-emerald-300/[0.035] px-2.5 py-1.5 text-[8px] font-semibold text-emerald-200">Undo Put-Away</button> : null}
           </div>
-        ) : null}
+          <span className="hidden text-[8px] text-slate-700 md:block">Page {binderView === "spread" ? `${spreadLeft}–${spreadRight}` : page} · {currency(totalValue)}</span>
+        </footer>
+
         {contextMenu ? (
-          <div className="fixed inset-0 z-[80]" onMouseDown={() => setContextMenu(null)}>
-            <div
-              className="fixed max-h-[calc(100dvh-24px)] w-60 overflow-y-auto overscroll-contain rounded-xl border border-cyan-300/[0.18] bg-[#0a1721]/98 p-1.5 shadow-[0_20px_70px_rgba(0,0,0,0.72)] backdrop-blur-xl"
-              style={{
-                left: Math.max(12, Math.min(contextMenu.x, window.innerWidth - 252)),
-                top: Math.max(12, Math.min(contextMenu.y, window.innerHeight - 292)),
-              }}
-              onMouseDown={(event) => event.stopPropagation()}
-              onWheel={(event) => event.stopPropagation()}
-              role="menu"
-              aria-label={`Actions for ${contextMenu.item.name}`}
-            >
-              <div className="border-b border-white/[0.06] px-3 py-2.5"><p className="text-[7px] font-semibold uppercase tracking-[0.16em] text-cyan-300/70">Card actions</p><p className="mt-1 truncate text-[10px] font-semibold text-slate-200">{contextMenu.item.name}</p><p className="mt-0.5 text-[8px] text-slate-600">Page {contextMenu.item.binderPage} · {contextMenu.item.binderSlot}</p></div>
-              <button type="button" onClick={() => openCardDetails(contextMenu.item)} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[10px] font-semibold text-slate-200 hover:bg-white/[0.05]"><LibraryBig className="h-3.5 w-3.5 text-cyan-300" /> View details</button>
-              <button type="button" onClick={() => { setMoveCandidate(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[10px] font-semibold text-cyan-200 hover:bg-cyan-400/[0.07]"><ArrowRightLeft className="h-3.5 w-3.5" /> Move card</button>
-              <button type="button" onClick={() => { setContextMenu(null); onFile(); }} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[10px] font-semibold text-slate-300 hover:bg-white/[0.05]"><RefreshCw className="h-3.5 w-3.5" /> Replace card</button>
-              <div className="my-1 border-t border-white/[0.06]" />
-              <button type="button" onClick={() => { setRemoveCandidate(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[10px] font-semibold text-amber-200 hover:bg-amber-400/[0.08]"><PackageOpen className="h-3.5 w-3.5" /> Send to Put-Away Queue</button>
-              <button type="button" onClick={() => { onDeleteItem(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[10px] font-semibold text-red-200 hover:bg-red-400/[0.08]"><Trash2 className="h-3.5 w-3.5" /> Delete from Inventory</button>
-            </div>
+          <div className="fixed z-[150] w-52 overflow-hidden rounded-xl border border-white/[0.10] bg-[#081721] p-1.5 shadow-[0_22px_70px_rgba(0,0,0,.65)]" style={{ left: Math.min(contextMenu.x, window.innerWidth - 220), top: Math.min(contextMenu.y, window.innerHeight - 230) }}>
+            <button type="button" onClick={() => openCardDetails(contextMenu.item)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[9px] font-semibold text-slate-300 hover:bg-white/[0.05]"><Eye className="h-3.5 w-3.5" /> Inspect card</button>
+            <button type="button" onClick={() => { setMoveCandidate(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[9px] font-semibold text-slate-300 hover:bg-white/[0.05]"><Move className="h-3.5 w-3.5" /> Move card</button>
+            <button type="button" onClick={() => { setRemoveCandidate(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[9px] font-semibold text-rose-200 hover:bg-rose-300/[0.05]"><Trash2 className="h-3.5 w-3.5" /> Send to Put-Away</button>
           </div>
         ) : null}
-        {detailItem ? (
-          <BinderCardDetail
-            item={detailItem}
-            location={location}
-            onClose={() => setDetailItemId("")}
-            onMove={() => setMoveCandidate(detailItem)}
-            onRemove={() => setRemoveCandidate(detailItem)}
-            onDelete={() => onDeleteItem(detailItem)}
-            onUpdate={(updates) => onUpdateItem(detailItem.id, updates)}
-          />
-        ) : null}
-        {moveCandidate ? (
-          <MoveCardPanel item={moveCandidate} currentLocation={location} locations={locations} allItems={allItems} onClose={() => setMoveCandidate(null)} onMove={completeLocationMove} />
-        ) : null}
+
+        {detailItem ? <BinderCardDetail item={detailItem} location={location} onClose={() => setDetailItemId("")} onMove={() => { setMoveCandidate(detailItem); setDetailItemId(""); }} onRemove={() => { setRemoveCandidate(detailItem); setDetailItemId(""); }} onDelete={() => { onDeleteItem(detailItem); setDetailItemId(""); }} onUpdate={(updates) => onUpdateItem(detailItem.id, updates)} /> : null}
+        {moveCandidate ? <MoveInventoryItemModal item={moveCandidate} locations={locations} allItems={allItems} onClose={() => setMoveCandidate(null)} onMove={completeLocationMove} /> : null}
+
         {removeCandidate ? (
-          <div className="absolute inset-0 z-[90] flex items-center justify-center bg-[#01070c]/72 p-5 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && setRemoveCandidate(null)}>
-            <div className="w-full max-w-md rounded-[24px] border border-amber-300/[0.16] bg-[#0a1721] p-6 shadow-[0_28px_100px_rgba(0,0,0,0.68)]" role="alertdialog" aria-modal="true" aria-label="Send card to Put-Away Queue">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-300/15 bg-amber-400/[0.07] text-amber-300"><PackageOpen className="h-5 w-5" /></span>
-              <h3 className="mt-5 text-lg font-semibold text-slate-100">Send to the Put-Away Queue?</h3>
-              <p className="mt-2 text-[10px] leading-5 text-slate-500"><span className="font-semibold text-slate-300">{removeCandidate.name}</span> will leave Page {removeCandidate.binderPage} · {removeCandidate.binderSlot}, but stay safely in inventory until you choose its next location.</p>
-              <div className="mt-4 rounded-xl border border-amber-300/10 bg-amber-300/[0.035] px-3 py-2.5 text-[9px] leading-4 text-amber-100/70">The pocket is cleared only after the card is added to Put-Away. You can Undo immediately.</div>
-              <div className="mt-6 flex gap-2"><button type="button" onClick={() => setRemoveCandidate(null)} className="h-11 flex-1 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-400">Cancel</button><button type="button" onClick={confirmRemoveFromBinder} className="h-11 flex-[1.45] rounded-xl bg-amber-300 text-[10px] font-bold text-[#211505] shadow-[0_10px_28px_rgba(252,211,77,0.14)]">Send to Put-Away</button></div>
+          <div className="absolute inset-0 z-[145] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && setRemoveCandidate(null)}>
+            <div className="w-full max-w-[440px] rounded-[24px] border border-rose-300/[0.16] bg-[#081721] p-5 shadow-[0_28px_90px_rgba(0,0,0,.72)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-rose-300/[0.14] bg-rose-300/[0.04] text-rose-200"><Trash2 className="h-5 w-5" /></div>
+              <h3 className="mt-4 text-lg font-semibold text-white">Send this card to Put-Away?</h3>
+              <p className="mt-2 text-[10px] leading-5 text-slate-500">{removeCandidate.name} will leave this binder pocket, but the inventory record will be retained.</p>
+              <div className="mt-5 flex gap-2"><button type="button" onClick={() => setRemoveCandidate(null)} className="h-11 flex-1 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-400">Cancel</button><button type="button" onClick={confirmRemoveFromBinder} className="h-11 flex-[1.35] rounded-xl bg-rose-300 text-[10px] font-bold text-[#250710]">Send to Put-Away</button></div>
             </div>
           </div>
         ) : null}
-        {showcaseOpen ? (
-          <BinderShowcaseStudio location={location} items={items} page={page} binderView={binderView} totalValue={totalValue} occupied={occupied} onClose={() => setShowcaseOpen(false)} />
-        ) : null}
-        {settingsOpen ? (
-          <BinderSettingsPanel
-            location={location}
-            items={items}
-            onClose={() => setSettingsOpen(false)}
-            onAdvancedEdit={() => {
-              setSettingsOpen(false);
-              onEdit();
-            }}
-            onSave={(updates) => {
-              onUpdateLocation(updates);
-              setSettingsOpen(false);
-              setPage((current) => Math.min(current, updates.binderPages ?? current));
-            }}
-          />
-        ) : null}
+
+        {showcaseOpen ? <BinderShowcaseStudio location={location} items={items} page={page} binderView={binderView} totalValue={totalValue} occupied={occupied} onClose={() => setShowcaseOpen(false)} /> : null}
+        {settingsOpen ? <BinderSettingsPanel location={location} items={items} onClose={() => setSettingsOpen(false)} onAdvancedEdit={() => { setSettingsOpen(false); onEdit(); }} onSave={(updates) => { onUpdateLocation(updates); setSettingsOpen(false); setPage((current) => Math.min(current, updates.binderPages ?? current)); }} /> : null}
       </div>
     </div>
   );
 }
-
 
 function BinderShowcaseStudio({
   location,
