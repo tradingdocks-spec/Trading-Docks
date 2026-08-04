@@ -14,13 +14,34 @@ type PendingCookie = {
 };
 
 const MAX_API_BODY_BYTES = 5 * 1024 * 1024;
-const PROTECTED_API_PREFIXES = [
-  "/api/csv-converter/",
-  "/api/deck-vault/",
-  "/api/inventory/",
-  "/api/tcgcsv/",
-  "/api/tools/",
+const PUBLIC_API_PREFIXES = [
+  "/api/landing-card-image/",
+  "/api/scryfall-card-image/",
+  "/api/scryfall-image/",
+  "/api/tcg-image",
+  "/api/tcgcsv/image/",
+  "/api/card-shows/image/",
+  "/api/card-shows/search",
+  "/api/market-cards",
+  "/api/multi-game-market",
 ];
+
+const API_AUTH_EXEMPT_PREFIXES = [
+  "/api/billing/webhook",
+  "/api/webhooks/",
+  "/api/marketplaces/",
+];
+
+function apiRequiresAuthentication(pathname: string) {
+  if (!pathname.startsWith("/api/")) return false;
+  if (PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return false;
+  }
+  if (API_AUTH_EXEMPT_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return false;
+  }
+  return true;
+}
 
 function redirectWithSessionCookies(
   url: URL,
@@ -115,8 +136,8 @@ export async function updateSession(request: NextRequest) {
     );
   }
 
-  const isProtectedApiRoute = PROTECTED_API_PREFIXES.some((prefix) =>
-    request.nextUrl.pathname.startsWith(prefix),
+  const isProtectedApiRoute = apiRequiresAuthentication(
+    request.nextUrl.pathname,
   );
   if (!user && isProtectedApiRoute) {
     return NextResponse.json(
@@ -147,6 +168,16 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/dashboard";
     url.search = "";
     return redirectWithSessionCookies(url, pendingCookies);
+  }
+
+  if (request.nextUrl.pathname.startsWith("/share/")) {
+    response.headers.set("Cache-Control", "private, no-store, max-age=0");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    response.headers.set("Referrer-Policy", "no-referrer");
+  }
+
+  if (isApiRoute) {
+    response.headers.set("Cache-Control", "no-store");
   }
 
   return response;

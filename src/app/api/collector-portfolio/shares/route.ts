@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { safeText } from "@/lib/public-share-security";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadCollectorPortfolioForCurrentUser } from "@/lib/collector-portfolio-server";
 import { createClient } from "@/lib/supabase/server";
@@ -14,8 +15,16 @@ export async function POST(request: Request) {
     page?: number;
     binderLocationId?: string | null;
   } | null;
-  const scope = body?.scope ?? "binder";
-  const visibility = body?.visibility ?? "unlisted";
+  const permittedScopes = new Set(["page", "spread", "binder", "portfolio"]);
+  const permittedVisibility = new Set(["public", "unlisted", "private"]);
+  const requestedScope = safeText(body?.scope, 20);
+  const requestedVisibility = safeText(body?.visibility, 20);
+  const scope = permittedScopes.has(requestedScope)
+    ? requestedScope as "page" | "spread" | "binder" | "portfolio"
+    : "binder";
+  const visibility = permittedVisibility.has(requestedVisibility)
+    ? requestedVisibility as "public" | "unlisted" | "private"
+    : "unlisted";
   const portfolio = await loadCollectorPortfolioForCurrentUser();
   const binder = portfolio.binders.find((entry) => entry.location_id === body?.binderLocationId) ?? portfolio.binders[0];
 
@@ -33,7 +42,7 @@ export async function POST(request: Request) {
     slot: binder?.show_pocket_locations ? card.binderSlot ?? null : null,
   });
 
-  const startPage = Math.max(1, Number(body?.page ?? 1));
+  const startPage = Math.min(10_000, Math.max(1, Math.round(Number(body?.page ?? 1) || 1)));
   const selectedCards = scope === "page"
     ? binder!.cards.filter((card) => card.binderPage === startPage)
     : scope === "spread"
@@ -95,6 +104,11 @@ export async function POST(request: Request) {
     token,
     visibility,
     payload,
+    is_active: true,
+    revoked_at: null,
+    allow_interested_lists: Boolean(binder?.is_trade_binder),
+    require_account_for_actions: true,
+    noindex: visibility !== "public",
   });
   if (error) return NextResponse.json({ error: error.message.includes("portfolio_shares") ? "Run the Collector Portfolio migration first." : error.message }, { status: 500 });
 
