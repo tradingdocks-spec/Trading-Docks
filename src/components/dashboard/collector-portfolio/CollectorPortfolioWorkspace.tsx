@@ -62,7 +62,11 @@ const TABS: Array<{ id: PortfolioTab; label: string; icon: typeof BookOpen }> = 
 ];
 
 export function CollectorPortfolioWorkspace({ initialData }: { initialData: PortfolioData }) {
-  const [tab, setTab] = useState<PortfolioTab>("home");
+  const [tab, setTab] = useState<PortfolioTab>(() => {
+    if (typeof window === "undefined") return "home";
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    return requested === "showcase" || requested === "bookshelf" || requested === "trade" || requested === "highlights" || requested === "settings" ? requested : "home";
+  });
   const [profile, setProfile] = useState(initialData.profile);
   const [binders, setBinders] = useState(initialData.binders);
   const [selectedBinderId, setSelectedBinderId] = useState(initialData.binders[0]?.id ?? "");
@@ -188,13 +192,13 @@ export function CollectorPortfolioWorkspace({ initialData }: { initialData: Port
               featuredBinder={featuredBinder}
               binders={binders}
               totals={initialData.totals}
-              onOpenBinder={(binder) => { setSelectedBinderId(binder.id); setTab("bookshelf"); }}
+              onOpenBinder={(binder) => { window.location.href = `/dashboard/collector-portfolio/binder/${binder.location_id}`; }}
               onShare={() => setStudioOpen(true)}
             />
           ) : null}
 
           {tab === "bookshelf" ? (
-            <Bookshelf binders={binders} onOpen={(binder) => setSelectedBinderId(binder.id)} onEdit={setEditingBinder} onShare={(binder) => { setSelectedBinderId(binder.id); setStudioOpen(true); }} />
+            <Bookshelf binders={binders} onOpen={(binder) => { window.location.href = `/dashboard/collector-portfolio/binder/${binder.location_id}`; }} onEdit={setEditingBinder} onShare={(binder) => { setSelectedBinderId(binder.id); setStudioOpen(true); }} />
           ) : null}
 
           {tab === "showcase" ? (

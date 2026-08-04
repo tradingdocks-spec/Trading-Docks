@@ -2,13 +2,6 @@
 
 import Link from "next/link";
 import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
-import {
   AlertTriangle,
   ArrowLeft,
   ArrowRightLeft,
@@ -44,6 +37,7 @@ import {
   Move,
   PackageCheck,
   PackageOpen,
+  Palette,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -61,6 +55,13 @@ import {
   Truck,
   Warehouse,
   X,
+  import {,
+  import { createPortal } from "react-dom";,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  } from "react";,
 } from "lucide-react";
 
 import { MetricCard } from "../common/MetricCard";
@@ -2560,7 +2561,8 @@ function VirtualBinderModal({
             <BinderStat label="Available" value={(pageCount * slotsPerPage - occupied).toLocaleString("en-US")} />
           </div>
           <span className="hidden items-center gap-1.5 text-[9px] font-semibold text-emerald-300/80 xl:flex" title="Binder changes are saved automatically"><Check className="h-3 w-3" /> Saved</span>
-          <button type="button" onClick={() => setShowcaseOpen(true)} className="hidden h-10 items-center gap-2 rounded-xl border border-violet-300/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.07))] px-3.5 text-[10px] font-semibold text-violet-100 shadow-[0_8px_28px_rgba(124,58,237,.10)] transition hover:-translate-y-0.5 hover:border-violet-300/40 hover:bg-violet-400/[0.13] md:flex"><Sparkles className="h-3.5 w-3.5 text-violet-300" /> Showcase</button>
+          <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="hidden h-10 items-center gap-2 rounded-xl border border-violet-300/[0.26] bg-[linear-gradient(135deg,rgba(139,92,246,.18),rgba(34,211,238,.09))] px-3.5 text-[10px] font-semibold text-violet-100 shadow-[0_10px_32px_rgba(124,58,237,.14)] transition hover:-translate-y-0.5 hover:border-violet-300/45 hover:bg-violet-400/[0.16] md:flex"><Sparkles className="h-3.5 w-3.5 text-violet-300" /> Open Portfolio View</Link>
+          <button type="button" onClick={() => setShowcaseOpen(true)} className="hidden h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.04] text-cyan-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.08] lg:flex" aria-label="Quick share binder"><Share2 className="h-3.5 w-3.5" /></button>
           <button type="button" onClick={onOpenPutAway} className="hidden h-10 items-center gap-2 rounded-xl border border-amber-300/[0.16] bg-amber-300/[0.045] px-3 text-[10px] font-semibold text-amber-100 transition hover:border-amber-300/30 hover:bg-amber-300/[0.08] md:flex"><PackageOpen className="h-3.5 w-3.5 text-amber-300" /> Put Away <span className="rounded-md bg-amber-300 px-1.5 py-0.5 text-[8px] font-black text-[#211505]">{putAwayCount}</span></button>
           <button type="button" onClick={() => setSettingsOpen(true)} className="hidden h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.04] px-3.5 text-[10px] font-semibold text-slate-300 transition hover:border-cyan-300/28 hover:bg-cyan-300/[0.07] hover:text-cyan-100 sm:flex"><Settings2 className="h-3.5 w-3.5 text-cyan-300" /> Settings</button>
           <button type="button" onClick={onFile} className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-300 px-4 text-[10px] font-bold text-[#031319] shadow-[0_8px_24px_rgba(34,211,238,0.18)]"><Plus className="h-3.5 w-3.5" /> Add Card</button>
@@ -2579,12 +2581,18 @@ function VirtualBinderModal({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-3 border-b border-white/[0.05] bg-[linear-gradient(90deg,rgba(139,92,246,.055),rgba(34,211,238,.025),rgba(16,185,129,.035))] px-5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/[0.16] bg-violet-400/[0.055] px-3 py-1.5 text-[9px] font-semibold text-violet-100"><Sparkles className="h-3 w-3 text-violet-300" /> Showcase ready</span>
-            <span className="text-[9px] text-slate-600">{occupied} featured pockets · {currency(totalValue)} collection value</span>
+        <div className="flex shrink-0 flex-col gap-3 border-b border-violet-300/[0.10] bg-[radial-gradient(circle_at_15%_0%,rgba(139,92,246,.12),transparent_40%),linear-gradient(90deg,rgba(139,92,246,.055),rgba(34,211,238,.025),rgba(16,185,129,.035))] px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-300/[0.18] bg-violet-400/[0.07] text-violet-200"><Palette className="h-4 w-4" /></span>
+            <div>
+              <p className="text-[10px] font-semibold text-violet-100">You are in the private binder editor</p>
+              <p className="mt-0.5 text-[9px] text-slate-600">Open the Collector Portfolio to present, flip through, and share this binder.</p>
+            </div>
           </div>
-          <button type="button" onClick={() => setShowcaseOpen(true)} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.15] bg-cyan-300/[0.045] px-3 text-[9px] font-semibold text-cyan-100 transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.085]"><Share2 className="h-3.5 w-3.5" /> Share, trade, or export</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setShowcaseOpen(true)} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[9px] font-semibold text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-100"><Share2 className="h-3.5 w-3.5" /> Quick export</button>
+            <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-violet-300 px-3.5 text-[9px] font-bold text-[#18092b] shadow-[0_9px_24px_rgba(196,181,253,.14)] transition hover:-translate-y-0.5 hover:bg-violet-200"><BookOpen className="h-3.5 w-3.5" /> Open Portfolio Experience</Link>
+          </div>
         </div>
 
         {query && matches.length ? (
@@ -2940,7 +2948,11 @@ function BinderShowcaseStudio({
             <button type="button" onClick={() => setMode("trade")} className={`rounded-xl px-4 py-3 text-[10px] font-semibold transition ${mode === "trade" ? "bg-violet-300 text-[#15072a]" : "text-slate-500 hover:text-slate-200"}`}>Trade binder</button>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="mt-6 flex items-center justify-between rounded-2xl border border-violet-300/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.06))] p-4 transition hover:-translate-y-0.5 hover:border-violet-300/40">
+            <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-300 text-[#18092b]"><BookOpen className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold text-white">Open the full Collector Portfolio</p><p className="mt-1 text-[9px] text-slate-500">Flipbook, full spreads, gallery, public sharing, and binder presentation.</p></div></div><ChevronRight className="h-4 w-4 text-violet-200" />
+          </Link>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <ShowcaseAction icon={Globe2} title="Create public link" description="Publish a clean read-only binder page." onClick={createPublicLink} loading={creatingLink} />
             <ShowcaseAction icon={Download} title="Download social graphic" description="1080 × 1350 format for Instagram and Discord." onClick={downloadSocialCard} loading={downloading} />
             <ShowcaseAction icon={MessageCircle} title="Copy Discord post" description="Caption, collection stats, and trade language." onClick={copyPost} />
