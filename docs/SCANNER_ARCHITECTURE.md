@@ -11,6 +11,9 @@
 - Implemented: The `/dev/scanner-benchmark` route is a feature-flagged development tool for creating private Magic benchmark datasets without hand-editing JSON.
 - Implemented: Continuous scanner and offer-session contracts live in `mobile/services/continuous-offer-scanner.ts`; see `docs/CONTINUOUS_SCANNER.md` and `docs/CARD_SHOW_OFFER_SCANNER.md`.
 - Implemented: `mobile/services/live-card-recognition.ts` adds the first local live-frame analyzer for native-fed luma samples, including boundary detection, four-corner output, aspect-ratio validation, guide-fill checks, blur, motion, lighting, glare, image fingerprinting, targeted OCR mapping, and Magic adapter handoff.
+- Implemented: `mobile/services/native-scanner-calibration.ts` defines the native QA diagnostics and calibration contract, including camera-ready gating, guide/crop mapping, unavailable-signal auto-capture blocking, capture outcome labels, card-removal rearm checks, and evidence-only foil diagnostics.
+- Implemented: The active Scan screen does not call `takePictureAsync` until `CameraView.onCameraReady` fires.
+- Implemented: Physical still captures append an honest session outcome even when identification is unavailable, then preserve manual exact-printing confirmation as the write gate.
 - Implemented: The mobile project includes `expo-dev-client`, `react-native-vision-camera`, `react-native-nitro-modules`, and `react-native-nitro-image` as the native-capable development-build path for future high-performance frame delivery.
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
 - Partially Implemented: Camera capture is local-first and still does not include a benchmarked native OCR, artwork, set-symbol, or finish-classification provider.
@@ -41,6 +44,14 @@
 - Implemented: `ConfidenceFusionProvider` produces explainable overall and per-signal confidence.
 - Implemented: Magic confidence output includes overall confidence, top three candidates, per-signal scores for name, set code, collector number, artwork, set symbol, layout, finish compatibility, and language compatibility, conflicts, and "Why this match?" explanation lines.
 - Planned: Active visual providers are contracts only. They are replaceable and independently testable, but no production OCR/artwork/finish provider is benchmarked yet.
+
+## Native Device Calibration
+
+- Implemented: The scanner supports a development-only diagnostics overlay behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`; the overlay is hidden when `NODE_ENV` is `production`.
+- Implemented: Diagnostics report camera readiness, preview dimensions, 63:88 guide dimensions, normalized guide crop, capture state, duplicate/removal state, recognition stage, session insertion result, and unavailable visual signals.
+- Implemented: Local guide calibration supports scale and vertical offset. These preferences are stored in user-scoped local app storage and are not production configuration.
+- Partially Implemented: The guide/crop mapping uses preview geometry from the active screen. Native camera-frame crop validation still requires physical device testing because `expo-camera` preview scaling and device safe areas vary by platform.
+- Planned: Device QA must verify iPhone safe areas, Android preview geometry, sleeves, glare, low light, tilted cards, app resume, tab leave/re-enter, and rapid card replacement before auto-capture can be enabled.
 
 ## Multi-TCG Intake
 

@@ -14,7 +14,7 @@
 - Implemented: Platform role does not imply paid membership entitlement; owner/admin/support/analyst roles gain platform authority separately from product access.
 - Implemented: Admin membership overrides are explicit product-entitlement overrides, separate from platform role and Stripe billing state.
 - Implemented: Collector mutation security proposal `supabase/migrations/202608050001_collector_mutation_security_proposal.sql` adds database-layer ownership checks and a transactional Free-plan 500 total-card quantity cap for direct mobile writes, web writes, and offline replay. It has not been applied to production.
-- Implemented: Mobile scanner foundation does not retain card photos by default and does not upload captured images without a clear user scan action. The current mobile build has no camera dependency, so image capture/OCR is unavailable rather than silently uploading photos.
+- Implemented: Mobile scanner foundation does not retain card photos by default and does not upload captured images without a clear user scan action. `expo-camera` supports local still capture, while OCR/artwork/finish recognition remains unavailable until native providers are connected and benchmarked.
 - Implemented: Mobile scanner replay refuses to process queued scan adds unless the authenticated session user matches the queue entry owner.
 - Implemented: Scanner replay diagnostic logging records trigger and failure message only; it does not log passwords, auth tokens, Supabase keys, or captured card images.
 - Implemented: Queued scanner adds remain in user-scoped local storage across sign-out and are not surfaced to a different signed-in account.
@@ -26,6 +26,8 @@
 - Implemented: Multi-TCG unsupported-card observations store detection evidence and confidence, not captured image payloads.
 - Implemented: Continuous scanner sessions persist scanner results and offer fields by user id without storing captured images or sending email/export automatically.
 - Implemented: Live-frame analysis accepts transient in-memory luminance samples and returns bounds, quality metrics, guidance, and image fingerprints without exporting or retaining source images.
+- Implemented: Native scanner diagnostics are development-only, report geometry/state/quality metadata only, and do not log or export source images.
+- Implemented: Local guide calibration preferences are stored by user id in app storage and are not production configuration.
 - Partially Implemented: VisionCamera/Nitro dependencies are installed for a custom Expo development build, but physical-device cleanup and native frame-buffer handling still need QA before production claims.
 - Planned: Before remote OCR, artwork matching, foil analysis, or analytics for continuous scanning, add explicit consent, retention controls, and image-free logging guarantees.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.

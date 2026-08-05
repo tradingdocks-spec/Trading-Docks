@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDMetricTile, TDScreen, TDText } from '@/components/design-system';
@@ -47,6 +47,22 @@ import {
 } from '@/services/scanner-foundation';
 import type { RecognitionCandidate } from '@/services/scanner-intelligence';
 import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
+import {
+  NO_NATIVE_VISUAL_SIGNALS,
+  applyScannerCalibrationToGuide,
+  buildGuideCropMapping,
+  canAutoCaptureNative,
+  captureOutcomeForRecognition,
+  diagnosticsFromFrameAnalysis,
+  isScannerDiagnosticsEnabled,
+  nativeScannerCalibrationKey,
+  normalizeScannerCalibrationPreferences,
+  summarizeFoilDiagnostics,
+  type PreviewDimensions,
+  type ScannerCalibrationPreferences,
+  type ScannerCaptureState,
+  type ScannerDiagnosticsSnapshot,
+} from '@/services/native-scanner-calibration';
 import { appStorage } from '@/services/storage/app-storage';
 import type { StorageLocation } from '@/services/storage-location-manager';
 
@@ -65,6 +81,11 @@ export default function Scan() {
   const [autoScanner, setAutoScanner] = useState(() => createContinuousScannerRuntime({ scanId: createScanId() }));
   const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [previewDimensions, setPreviewDimensions] = useState<PreviewDimensions | null>(null);
+  const [captureState, setCaptureState] = useState<ScannerCaptureState>('idle');
+  const [sessionInsertionResult, setSessionInsertionResult] = useState<ScannerDiagnosticsSnapshot['sessionInsertionResult']>('not_attempted');
+  const [scannerCalibration, setScannerCalibration] = useState<ScannerCalibrationPreferences>(() => normalizeScannerCalibrationPreferences());
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -90,14 +111,42 @@ export default function Scan() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
+  const diagnosticsEnabled = isScannerDiagnosticsEnabled();
   const privacy = scannerPrivacySummary();
-  const guideLayout = useMemo(() => calculateCardGuideLayout({
-    containerWidth: Math.min(width - 32, 520),
+  const previewWidth = Math.min(width - 32, 520);
+  const baseGuideLayout = useMemo(() => calculateCardGuideLayout({
+    containerWidth: previewWidth,
     containerHeight: 440,
     safeTop: insets.top,
     safeBottom: 0,
     reservedVerticalSpace: 120,
-  }), [insets.top, width]);
+  }), [insets.top, previewWidth]);
+  const guideLayout = useMemo(
+    () => applyScannerCalibrationToGuide(baseGuideLayout, previewWidth, scannerCalibration),
+    [baseGuideLayout, previewWidth, scannerCalibration],
+  );
+  const autoCaptureDecision = useMemo(() => canAutoCaptureNative({
+    cameraReady,
+    signalAvailability: NO_NATIVE_VISUAL_SIGNALS,
+    analysis: null,
+  }), [cameraReady]);
+  const diagnosticsSnapshot = useMemo(() => diagnosticsFromFrameAnalysis({
+    cameraReady,
+    previewDimensions,
+    guideDimensions: guideLayout,
+    analysis: null,
+    captureState,
+    duplicateFingerprintStatus: autoScanner.duplicateProtection.awaitingCardRemoval ? 'awaiting_removal' : 'unavailable',
+    recognitionStage: capturedFrame ? 'provider_unavailable' : 'not_started',
+    recognitionLatencyMs: null,
+    sessionInsertionResult,
+    signalAvailability: NO_NATIVE_VISUAL_SIGNALS,
+  }), [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, capturedFrame, captureState, guideLayout, previewDimensions, sessionInsertionResult]);
+  const guideCropMapping = useMemo(
+    () => previewDimensions ? buildGuideCropMapping(previewDimensions, guideLayout) : null,
+    [guideLayout, previewDimensions],
+  );
+  const foilDiagnostics = useMemo(() => summarizeFoilDiagnostics([]), []);
   const sessionTotals = useMemo(() => session ? calculateSessionTotals(session) : null, [session]);
   const offerWorkspace = scannerModeUsesOfferWorkspace(sessionMode);
 
@@ -106,12 +155,22 @@ export default function Scan() {
     void loadScannerContext()
       .then(async (result) => {
         if (!active) return;
-        setContext(result);
         const draft = await loadScannerDraft(result.userId);
         if (draft) {
           setQuery(draft.query);
           setStorageLocationId(draft.confirmation?.storageLocationId ?? null);
         }
+        if (isScannerDiagnosticsEnabled()) {
+          const rawCalibration = await appStorage.getItem(nativeScannerCalibrationKey(result.userId));
+          if (rawCalibration) {
+            try {
+              setScannerCalibration(normalizeScannerCalibrationPreferences(JSON.parse(rawCalibration) as Partial<ScannerCalibrationPreferences>));
+            } catch {
+              setScannerCalibration(normalizeScannerCalibrationPreferences());
+            }
+          }
+        }
+        setContext(result);
         const savedSession = await loadContinuousSession(result.userId);
         setSession(savedSession ?? createContinuousScannerSession({
           id: createScanId(),
@@ -128,6 +187,11 @@ export default function Scan() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!context || !diagnosticsEnabled) return;
+    void appStorage.setItem(nativeScannerCalibrationKey(context.userId), JSON.stringify(scannerCalibration));
+  }, [context, diagnosticsEnabled, scannerCalibration]);
 
   useEffect(() => {
     if (!context || !session) return;
@@ -159,6 +223,10 @@ export default function Scan() {
     });
     setPermission(next);
     setCameraActive(next === 'granted');
+    if (next !== 'granted') {
+      setCameraReady(false);
+      setCaptureState(next === 'unavailable' ? 'failed' : 'idle');
+    }
   }, [cameraAvailable, cameraPermission]);
 
   const requestCamera = async () => {
@@ -176,25 +244,82 @@ export default function Scan() {
       requested: true,
     });
     setPermission(next);
-    if (next !== 'granted') setError('Camera permission is not available. Manual search still works.');
+    if (next === 'granted') {
+      setCameraReady(false);
+      setCaptureState('camera_not_ready');
+    } else {
+      setError('Camera permission is not available. Manual search still works.');
+    }
   };
 
   const captureStill = async () => {
     setError(null);
     setSuccess(null);
+    setSessionInsertionResult('not_attempted');
     if (!cameraRef.current || permission !== 'granted') {
+      setCaptureState('camera_not_ready');
       setError('Camera is not ready. Grant permission or use manual search.');
       return;
     }
+    if (!cameraReady) {
+      setCaptureState('camera_not_ready');
+      setError('Camera is warming up. Hold the card in the guide and try again in a moment.');
+      return;
+    }
     try {
+      setCaptureState('capturing');
       const photo = await cameraRef.current.takePictureAsync({ quality: 1, skipProcessing: false });
-      setCapturedFrame(`${photo.width} x ${photo.height}`);
+      const frameLabel = `${photo.width} x ${photo.height}`;
+      setCapturedFrame(frameLabel);
+      setCaptureState('captured');
       setAutoScanner((current) => markCaptureStarted(current));
-      setSuccess('Still captured locally. Boundary, OCR, artwork, and foil providers are integration points; choose the exact printing below.');
+      if (session) {
+        const recognitionReport = createRecognitionPipelineReport({
+          detectedGame: 'unknown',
+          candidates: [],
+          confidence: {
+            overall: 0,
+            threshold: 82,
+            requiresConfirmation: true,
+            conflicts: ['Native OCR, artwork matching, and finish recognition are not connected.'],
+            signals: [],
+          },
+          recognitionMethod: 'unavailable',
+        });
+        setSession(addRecognitionToSession(session, {
+          stableScanId: createScanId(),
+          candidate: null,
+          recognition: recognitionReport,
+          quantity: 1,
+          destination: 'export_only',
+          notes: 'Physical still captured locally; identification requires manual exact-printing search.',
+        }));
+        setSessionInsertionResult('inserted');
+      } else {
+        setSessionInsertionResult('failed');
+      }
+      setAutoScanner((current) => markScanResult(current, {
+        fingerprint: frameLabel,
+        now: Date.now(),
+        scanId: createScanId(),
+      }));
+      const outcome = captureOutcomeForRecognition({ captured: true, providerAvailable: false, appendedToSession: Boolean(session) });
+      setSuccess(outcome.message);
       setCameraActive(false);
     } catch (captureError) {
+      setCaptureState('failed');
+      setSessionInsertionResult('failed');
       setError(captureError instanceof Error ? captureError.message : 'Could not capture the card image.');
     }
+  };
+
+  const updateCalibration = (patch: Partial<ScannerCalibrationPreferences>) => {
+    setScannerCalibration((current) => normalizeScannerCalibrationPreferences({ ...current, ...patch }));
+  };
+
+  const handlePreviewLayout = (event: LayoutChangeEvent) => {
+    const { width: previewLayoutWidth, height: previewLayoutHeight } = event.nativeEvent.layout;
+    setPreviewDimensions({ width: previewLayoutWidth, height: previewLayoutHeight });
   };
 
   const runSearch = async () => {
@@ -409,9 +534,20 @@ export default function Scan() {
 
         <TDCard style={s.cameraCard}>
           {permission === 'granted' && cameraActive ? (
-            <View style={s.cameraPreview}>
-              <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" enableTorch={torchEnabled} animateShutter autofocus="on" />
-              <View pointerEvents="none" style={[s.cardGuide, { width: guideLayout.width, height: guideLayout.height, left: guideLayout.left }]}>
+            <View style={s.cameraPreview} onLayout={handlePreviewLayout}>
+              <CameraView
+                ref={cameraRef}
+                style={StyleSheet.absoluteFill}
+                facing="back"
+                enableTorch={torchEnabled}
+                animateShutter
+                autofocus="on"
+                onCameraReady={() => {
+                  setCameraReady(true);
+                  setCaptureState('ready');
+                }}
+              />
+              <View pointerEvents="none" style={[s.cardGuide, { width: guideLayout.width, height: guideLayout.height, left: guideLayout.left, top: guideLayout.top }]}>
                 <View style={s.guideCorner} />
                 <View style={[s.guideCorner, s.guideCornerRight]} />
                 <View style={[s.guideCorner, s.guideCornerBottom]} />
@@ -420,11 +556,11 @@ export default function Scan() {
               </View>
               <View style={s.liveStatus}>
                 <TDBadge tone="warning">Manual fallback active</TDBadge>
-                <TDText variant="caption" tone="muted">Pending live boundary provider: corners, motion, blur, glare, lighting, foil tilt.</TDText>
+                <TDText variant="caption" tone="muted">{autoCaptureDecision.ok ? 'Ready for auto-capture' : `Auto-capture unavailable: ${autoCaptureDecision.reason}`}</TDText>
               </View>
               <View style={s.cameraControls}>
                 <TDButton label={torchEnabled ? 'Torch off' : 'Torch on'} variant="secondary" onPress={() => setTorchEnabled((value) => !value)} />
-                <TDButton label="Capture still" onPress={captureStill} />
+                <TDButton label={cameraReady ? 'Capture still' : 'Camera warming'} disabled={!cameraReady} onPress={captureStill} />
               </View>
             </View>
           ) : (
@@ -433,8 +569,20 @@ export default function Scan() {
               <TDText variant="title">{permissionTitle(permission)}</TDText>
               <TDText variant="small" tone="muted" style={s.centerText}>{permissionMessage(permission, Platform.OS)}</TDText>
               <View style={s.syncActions}>
-                <TDButton label={permission === 'granted' ? 'Open camera' : 'Check camera'} variant="secondary" onPress={permission === 'granted' ? () => setCameraActive(true) : requestCamera} />
-                {capturedFrame ? <TDButton label="Retake" variant="secondary" onPress={() => setCameraActive(true)} /> : null}
+                <TDButton
+                  label={permission === 'granted' ? 'Open camera' : 'Check camera'}
+                  variant="secondary"
+                  onPress={permission === 'granted' ? () => {
+                    setCameraReady(false);
+                    setCaptureState('camera_not_ready');
+                    setCameraActive(true);
+                  } : requestCamera}
+                />
+                {capturedFrame ? <TDButton label="Retake" variant="secondary" onPress={() => {
+                  setCameraReady(false);
+                  setCaptureState('camera_not_ready');
+                  setCameraActive(true);
+                }} /> : null}
               </View>
               {capturedFrame ? <TDBadge tone="info">Last still {capturedFrame}</TDBadge> : null}
             </View>
@@ -444,6 +592,41 @@ export default function Scan() {
             <TDBadge tone="neutral">{autoScanner.state.replaceAll('_', ' ')}</TDBadge>
             <TDBadge tone="neutral">{DEFAULT_CONTINUOUS_SCANNER_THRESHOLDS.requiredStabilityMs} ms stable</TDBadge>
           </View>
+          {diagnosticsEnabled ? (
+            <View style={s.diagnosticsCard}>
+              <View style={s.syncHeader}>
+                <View style={s.flex}>
+                  <TDText variant="title">Scanner diagnostics</TDText>
+                  <TDText variant="small" tone="muted">Development-only. No source images are logged or exported.</TDText>
+                </View>
+                <TDBadge tone={cameraReady ? 'success' : 'warning'}>{cameraReady ? 'Camera ready' : 'Camera pending'}</TDBadge>
+              </View>
+              <View style={s.signalGrid}>
+                <DiagnosticCell label="Preview" value={previewDimensions ? `${Math.round(previewDimensions.width)} x ${Math.round(previewDimensions.height)}` : 'unavailable'} />
+                <DiagnosticCell label="Guide" value={`${guideLayout.width} x ${guideLayout.height}`} />
+                <DiagnosticCell label="Guide ratio" value={diagnosticsSnapshot.guideAspectRatio.toFixed(3)} />
+                <DiagnosticCell label="Crop" value={guideCropMapping ? `${Math.round(guideCropMapping.normalizedCrop.width * 100)}% x ${Math.round(guideCropMapping.normalizedCrop.height * 100)}%` : 'unavailable'} />
+                <DiagnosticCell label="Corners" value={`${diagnosticsSnapshot.cardCornersVisible}/4 unavailable`} />
+                <DiagnosticCell label="Fill" value={diagnosticsSnapshot.fillPercentage === null ? 'unavailable' : `${diagnosticsSnapshot.fillPercentage}%`} />
+                <DiagnosticCell label="Blur" value={formatDiagnosticScore(diagnosticsSnapshot.blurScore)} />
+                <DiagnosticCell label="Motion" value={formatDiagnosticScore(diagnosticsSnapshot.motionScore)} />
+                <DiagnosticCell label="Lighting" value={formatDiagnosticScore(diagnosticsSnapshot.lightingScore)} />
+                <DiagnosticCell label="Glare" value={formatDiagnosticScore(diagnosticsSnapshot.glareScore)} />
+                <DiagnosticCell label="Capture" value={diagnosticsSnapshot.captureState.replaceAll('_', ' ')} />
+                <DiagnosticCell label="Duplicate" value={diagnosticsSnapshot.duplicateFingerprintStatus.replaceAll('_', ' ')} />
+                <DiagnosticCell label="Recognition" value={diagnosticsSnapshot.recognitionStage.replaceAll('_', ' ')} />
+                <DiagnosticCell label="Session" value={diagnosticsSnapshot.sessionInsertionResult.replaceAll('_', ' ')} />
+              </View>
+              <View style={s.diagnosticsControls}>
+                <TDButton label="Scale -" variant="secondary" onPress={() => updateCalibration({ guideScale: scannerCalibration.guideScale - 0.02 })} />
+                <TDButton label="Scale +" variant="secondary" onPress={() => updateCalibration({ guideScale: scannerCalibration.guideScale + 0.02 })} />
+                <TDButton label="Guide up" variant="secondary" onPress={() => updateCalibration({ verticalOffset: scannerCalibration.verticalOffset - 8 })} />
+                <TDButton label="Guide down" variant="secondary" onPress={() => updateCalibration({ verticalOffset: scannerCalibration.verticalOffset + 8 })} />
+                <TDButton label="Reset" variant="secondary" onPress={() => updateCalibration(normalizeScannerCalibrationPreferences())} />
+              </View>
+              <TDText variant="caption" tone="muted">Foil test mode: {foilDiagnostics.status}; {foilDiagnostics.frameCount} frames. Finish remains manually editable.</TDText>
+            </View>
+          ) : null}
         </TDCard>
 
         <TDCard variant="outlined" style={s.noticeCard}>
@@ -638,6 +821,15 @@ function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate)
   };
 }
 
+function DiagnosticCell({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.signalCell}>
+      <TDText variant="caption" tone="muted">{label}</TDText>
+      <TDText variant="small">{value}</TDText>
+    </View>
+  );
+}
+
 async function loadContinuousSession(userId: string) {
   const raw = await appStorage.getItem(continuousScannerSessionKey(userId));
   if (!raw) return null;
@@ -665,6 +857,10 @@ function currency(value: number | null | undefined) {
   return value === null || value === undefined ? 'Pricing unavailable' : `$${value.toFixed(2)}`;
 }
 
+function formatDiagnosticScore(value: number | null) {
+  return value === null ? 'unavailable' : value.toFixed(2);
+}
+
 function createScanId() {
   return globalThis.crypto?.randomUUID?.() ?? `scan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -685,6 +881,8 @@ const s = StyleSheet.create({
   liveStatus: { position: 'absolute', top: space.sm, right: space.sm, left: space.sm, gap: space.xs },
   cameraControls: { position: 'absolute', right: space.sm, bottom: space.sm, left: space.sm, flexDirection: 'row', gap: space.sm, justifyContent: 'center', flexWrap: 'wrap' },
   statusRow: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
+  diagnosticsCard: { gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.md, backgroundColor: color.canvasRaised },
+  diagnosticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   centerText: { textAlign: 'center' },
   noticeCard: { gap: space.sm },
   syncCard: { gap: space.md },
