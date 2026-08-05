@@ -5,8 +5,10 @@
 - Implemented: Mobile installs SDK-compatible `expo-camera` and configures camera permission copy through the Expo config plugin.
 - Implemented: The mobile scanner screen supports permission, denied, unavailable, guided preview, torch toggle, still capture, retake, manual search, exact-printing confirmation, Collection add, Storage assignment, Trade Binder status, Wishlist action, offline queueing, and scanner replay recovery.
 - Implemented: Scanner intelligence contracts live in `mobile/services/scanner-intelligence.ts`.
+- Implemented: Multi-TCG scanner contracts live in `mobile/services/multi-tcg-scanner.ts`; see `docs/MULTI_TCG_SCANNER.md`.
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
 - Partially Implemented: Camera capture is local-first and does not yet feed a production OCR/artwork/finish recognition provider.
+- Partially Implemented: Multi-game adapters for Magic, Pokemon, One Piece, and Lorcana are replaceable architecture stubs, not benchmarked recognition providers.
 - Planned: OCR, artwork matching, set-symbol detection, collector-info parsing from image crops, perspective correction, and foil classification need provider implementations plus benchmarks before any accuracy claim.
 
 ## Official Platform Constraints
@@ -17,6 +19,7 @@
 
 ## Provider Pipeline
 
+- Implemented: Game detection runs before game-specific recognition in the multi-TCG architecture.
 - Implemented: `CameraCaptureProvider` captures a still and multi-frame finish sequence.
 - Implemented: `CardBoundaryProvider` normalizes card orientation and perspective and emits `CardRegion` contracts.
 - Implemented: `TextRecognitionProvider` returns OCR observations for name, type line, collector info, set code, collector number, language, and rarity.
@@ -27,6 +30,13 @@
 - Implemented: `PrintingCandidateProvider` ranks possible Scryfall printings.
 - Implemented: `ConfidenceFusionProvider` produces explainable overall and per-signal confidence.
 - Planned: Active visual providers are contracts only. They are replaceable and independently testable, but no production OCR/artwork/finish provider is benchmarked yet.
+
+## Multi-TCG Intake
+
+- Implemented: Supported game ids are `magic`, `pokemon`, `one_piece`, `lorcana`, and `unknown`.
+- Implemented: Mixed sessions can track consecutive cards from different games, per-game totals, unsupported observations, review counts, and combined or game-separated exports.
+- Implemented: Unsupported cards are preserved as unsupported observations and are not forced into the closest supported game.
+- Planned: Active scanner UI needs game badges and manual game correction before multi-game writes are enabled.
 
 ## Recognition Signals
 

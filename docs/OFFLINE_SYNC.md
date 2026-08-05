@@ -63,8 +63,10 @@
 - Implemented: Mobile exposes a compact scanner recovery route for inspecting queued scan details, retrying one, retrying all, and confirmed discard.
 - Implemented: Signing out preserves a user's scanner queue in local storage and stops replay because the worker requires a matching authenticated `userId`.
 - Implemented: Scanner intelligence frame/session contracts are user-scoped and default to no image retention or upload.
+- Implemented: Mixed TCG session contracts are user-scoped and keep unsupported-card observations separate from supported candidates.
 - Implemented: Manual search can show cached recent candidates while offline when a recent match exists.
 - Partially Implemented: Camera capture can happen offline, but active recognition is limited to local contracts and cached Scryfall candidates where available.
+- Partially Implemented: Multi-TCG catalog lookup for Pokemon, One Piece, and Lorcana is not available offline because those provider catalogs are not approved or cached yet.
 - Partially Implemented: New online card search and future OCR/image recognition require network access.
 - Partially Implemented: Native network reconnect replay currently depends on app resume/session restore because no native reachability dependency is installed; Expo Web uses the browser `online` event.
 - Planned: Queue saved session exports locally before email/share/download actions are built.

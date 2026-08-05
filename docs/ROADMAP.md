@@ -55,7 +55,9 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Establish mobile scanner foundation with permission states, manual exact-printing search, confirmation into Collection/Storage/Trade Binder/Wishlist, rapid-scan reset, draft recovery, offline queued adds, and privacy-safe no-photo-retention defaults.
 - Implemented: Harden scanner offline replay with a user-scoped replay worker, generated inventory-id idempotency, automatic retry on session restore/app resume/Expo Web reconnect, visible sync state, and a compact failed-scan recovery route.
 - Implemented: Install and configure `expo-camera`, add guided local capture, and establish multi-signal scanner intelligence contracts plus benchmark contracts.
+- Implemented: Establish multi-TCG scanner architecture with game detection, Magic/Pokemon/One Piece/Lorcana adapter contracts, mixed sessions, universal exports, and unsupported-card handling.
 - Partially Implemented: OCR/image recognition, artwork matching, set-symbol recognition, collector-info cropping, and foil classification are provider contracts only until benchmarked; the scanner does not fake recognition accuracy.
+- Partially Implemented: Multi-TCG catalog providers and universal inventory persistence remain planned; active writes are still Magic-compatible.
 - Partially Implemented: Native network reachability is not independently observed yet; queued scanner adds still retry on app resume, session restoration, and manual retry.
 - Planned: Validate Collector query plans against staging-scale data and add proposed indexes only after measurement.
 - Planned: Apply the Collector mutation security proposal only after staging replay, product-owner approval, and service-role/import impact review.

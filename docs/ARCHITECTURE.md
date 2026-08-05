@@ -147,12 +147,14 @@
 - Implemented: Scanner flow supports permission states, manual search, likely printing candidates, exact-printing selection, confirmation, Collection insert, optional storage assignment, optional Trade Binder status, optional Wishlist action, rapid reset, and interrupted draft persistence.
 - Implemented: SDK-compatible `expo-camera` is installed and configured with camera permission copy. The scanner screen has guided local capture, torch, retake, and still-capture states.
 - Implemented: Multi-signal scanner architecture contracts live in `mobile/services/scanner-intelligence.ts`; see `docs/SCANNER_ARCHITECTURE.md`.
+- Implemented: Multi-TCG scanner architecture contracts live in `mobile/services/multi-tcg-scanner.ts`, adding game detection, Magic/Pokemon/One Piece/Lorcana adapters, mixed sessions, universal exports, and unsupported-card observations.
 - Implemented: Scanner benchmark fixture and metrics contracts exist; see `docs/SCANNER_BENCHMARK.md`.
 - Implemented: Scanner offline replay is centralized in `mobile/services/scanner-replay.ts` with an event bridge mounted in the root mobile frame. It replays queued scanner adds only for the active authenticated user on session restoration, app resume, Expo Web network reconnect, and manual retry.
 - Implemented: Scanner queued adds use the generated inventory item id as part of a stable idempotency key. If a retry finds the item already written for the same user, replay treats the entry as synced instead of inserting a duplicate.
 - Implemented: Scanner recovery UI lives at `/scanner-recovery` and supports inspecting exact queued scan details, retrying one, retrying all, and confirmed discard.
 - Implemented: Recognition-provider interface is defined by `ScannerRecognitionProvider`. The active provider is an explicit unavailable-camera/manual-search foundation; it does not claim OCR accuracy.
 - Partially Implemented: Camera capture is enabled, but OCR, artwork matching, set-symbol recognition, collector-info cropping, and finish detection remain provider contracts until benchmarked implementations are added.
+- Partially Implemented: Active inventory writes remain Magic-compatible. Multi-TCG candidates are modeled but not yet persisted through a universal inventory schema.
 - Partially Implemented: Manual search uses Scryfall printings over the network and cached recent candidates when available offline.
 - Partially Implemented: Native network reconnect detection is not a standalone trigger until an approved reachability dependency is added; app resume and session restore still retry queued scanner adds.
 - Planned: Future OCR/image-recognition providers should implement the same provider interface and must require clear user intent before uploading images.

@@ -48,8 +48,10 @@
 - Partially Implemented: Native direct Collector writes still need the proposed DB migration applied and replay-verified before production reliance; current web writes enforce the limit through the Next.js mutation API.
 - Implemented: Scanner queued adds now replay through a user-scoped worker with generated inventory-id idempotency, so interrupted successful writes can be retried without duplicate inventory insertion.
 - Implemented: Scanner intelligence contracts now separate capture, boundary, OCR, artwork, set symbol, collector info, finish detection, printing candidates, and confidence fusion providers.
+- Implemented: Multi-TCG scanner contracts now separate game detection, game-specific recognition adapters, universal identity, mixed sessions, universal export rows, and unsupported-card observations.
 - Partially Implemented: `expo-camera` is installed and configured, but native camera behavior still needs development-build and physical-device QA before production claims.
 - Partially Implemented: Native scanner replay still lacks a standalone network reachability trigger; without an approved reachability dependency it retries on app resume, session restore, and manual retry while Expo Web also uses the browser reconnect event.
+- Partially Implemented: Inventory remains Magic-compatible in the active write path. Multi-game persistence needs a migration proposal and catalog provider review before production use.
 - Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
@@ -99,6 +101,7 @@
 - Implemented: Focused scanner tests cover permission denied/unavailable states, manual fallback, exact-printing selection, quantity validation, Free-plan limit response, storage assignment payloads, Trade Binder status, Wishlist action, rapid reset, offline queue keys, failed-save rollback shape, user isolation, no image retention by default, and interrupted draft recovery.
 - Implemented: Focused scanner replay tests cover offline queued add shape, reconnect/app-resume/session-restore triggers, user-switch isolation, duplicate interrupted-success replay, successful queue removal, failed/action-required visibility, Free-limit errors, unauthorized replay stops, retry one, retry all, confirmed discard, and exact-printing preservation.
 - Implemented: Focused scanner intelligence tests cover region extraction contracts, missing/conflicting signals, exact-printing ordering, explainable confidence, low-confidence confirmation, foil contract limitations, legal finish validation, duplicate idempotency, session totals, destinations, CSV export, missing prices, benchmark non-claims, and no image retention defaults.
+- Implemented: Focused multi-TCG scanner tests cover Magic/Pokemon/One Piece/Lorcana classification, unknown-card rejection, manual game correction, adapter routing, game-specific metadata preservation, mixed-session totals, universal and separated export, finish taxonomy validation, unsupported finish rejection, user-scoped session recovery, universal inventory contracts, no image retention, and benchmark non-claims.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -179,6 +182,8 @@
 
 1. Run physical-device camera QA for iOS and Android development builds, including permission denial, torch, capture latency, retake, cache behavior, and Expo Web fallback.
 2. Approve an OCR/image-recognition provider and privacy/retention policy before enabling photo upload.
-3. Collect labeled scanner benchmark fixtures before publishing any accuracy, foil, or latency claims.
-4. Add an approved native reachability dependency or platform monitor if scanner replay must trigger immediately on native reconnect while the app remains foregrounded.
-5. Add scanner-to-Deal Desk and card-show prep integrations only after the validated confirmation contract is reviewed.
+3. Review Pokemon, One Piece, and Lorcana catalog licensing/API options and decide whether catalogs are server-hosted, provider-hosted, or cached.
+4. Draft a universal inventory schema proposal that preserves existing Magic rows and supports external provider ids by game.
+5. Collect labeled scanner benchmark fixtures before publishing any game-detection, printing, finish, foil, or latency claims.
+6. Add an approved native reachability dependency or platform monitor if scanner replay must trigger immediately on native reconnect while the app remains foregrounded.
+7. Add scanner-to-Deal Desk and card-show prep integrations only after the validated confirmation contract is reviewed.

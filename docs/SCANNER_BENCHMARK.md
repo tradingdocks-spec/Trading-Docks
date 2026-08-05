@@ -3,8 +3,9 @@
 ## Current Status
 
 - Implemented: Benchmark fixture and metrics contracts live in `mobile/services/scanner-intelligence.ts`.
+- Implemented: Multi-TCG benchmark fixture and metrics contracts live in `mobile/services/multi-tcg-scanner.ts`; see `docs/MULTI_TCG_BENCHMARK.md`.
 - Implemented: Tests assert that benchmark metrics remain `null` until labeled fixtures are actually run.
-- Planned: No labeled image dataset has been collected or executed.
+- Planned: No labeled Magic-only, game-specific, or mixed-stack image dataset has been collected or executed.
 - Planned: Do not publish scanner accuracy, foil accuracy, latency, manual-correction, or failure-rate numbers until the benchmark runner has processed reviewed fixtures.
 
 ## Fixture Categories

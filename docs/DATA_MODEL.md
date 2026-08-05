@@ -29,9 +29,12 @@
 ## Scanner Intelligence Contracts
 
 - Implemented: Scanner frame, normalized image, region, OCR observation, symbol observation, artwork observation, collector-info observation, finish observation, recognition candidate, signal score, confidence, printing resolution, confirmation, destination, session, export row, and benchmark contracts are defined in `mobile/services/scanner-intelligence.ts`.
+- Implemented: Multi-TCG contracts are defined in `mobile/services/multi-tcg-scanner.ts`, including `SupportedTcg`, game detection observations, game adapters, universal card/printing identity, mixed sessions, universal exports, and unsupported-card observations.
 - Implemented: `ScanDestination` separates Collection, user-created Binder, Trade Binder, named Scan Session, and future Deal Desk handoff.
 - Implemented: `ScanExportRow` preserves market price, price source, and price timestamp as nullable fields; missing prices remain unavailable rather than `$0`.
+- Partially Implemented: `inventory_items` is Magic-compatible today because active scanner writes use Scryfall, set code, and collector-number fields. Universal identity should be introduced through a migration proposal only.
 - Partially Implemented: General user-created binder assignment is a typed destination only. Active scanner writes currently support Collection, Storage assignment, Trade Binder status, and Wishlist action.
+- Planned: Preserve existing Magic records by adapting `scryfall_id`, `set_code`, and `collector_number` into the universal contract rather than destructively converting rows.
 - Planned: If user-created binders become a production scanner destination, add a reviewed migration proposal for first-class binder ownership and assignment instead of overloading Trade Binder state.
 - Planned: Persisted scan sessions and saved scanner exports need reviewed schema design before production use.
 
