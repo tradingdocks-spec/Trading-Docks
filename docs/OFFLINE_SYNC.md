@@ -43,3 +43,11 @@
 - Implemented: Replay only attempts queued storage-location assignments for the active user and leaves other users' queued operations isolated.
 - Partially Implemented: Failed replay keeps the queued operation with `lastError`; the UI surfaces pending-sync messages but does not yet provide a full conflict-resolution inbox.
 - Planned: Create/rename/archive location operations currently require online Supabase access. Offline support is limited to assignment and move operations until durable hierarchy conflict rules are approved.
+
+## Trade Binder And Wishlist Offline Behavior
+
+- Implemented: Mobile trade status, wishlist priority, and wishlist add/remove mutations use `collector_trade_binder_wishlist_mutation` queue entries when the online write fails.
+- Implemented: Queue de-dupe keys are scoped by user, target id, and mutation type so repeated updates replace stale queued writes for the same card or wishlist row.
+- Implemented: Replay only attempts queued Trade Binder/Wishlist operations for the active user and preserves other users' queued operations.
+- Partially Implemented: Failed replay records `lastError` and the screen surfaces pending-sync messages, but there is not yet a dedicated conflict-resolution inbox.
+- Planned: Trade-calculator and card-show prep workflows should consume these queued states rather than silently hiding failed updates.

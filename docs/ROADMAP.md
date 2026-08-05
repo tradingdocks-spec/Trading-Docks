@@ -50,6 +50,8 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Add Collector Workspace cursor pagination, server-side search/filter/sort query paths, safe page merging, stale response rejection, and focused pagination tests.
 - Implemented: Add a Storage Location Manager for mobile and web with typed location contracts, owner-scoped create/rename/archive/assign/clear/move flows, Find Card search, recent/favorite locations, unassigned cards, archived-location states, and assignment offline queue support.
 - Partially Implemented: Storage hierarchy metadata is supported through JSON fields in the current schema; database-enforced hierarchy, archive, favorite, and recent columns remain a migration proposal only.
+- Implemented: Add a personal Trade Binder and Wishlist workspace across mobile and web with canonical typed models, search/filter/sort, strict wishlist matching, match summaries, optimistic status/priority updates, and user-scoped mobile offline queue support.
+- Partially Implemented: Trade Calculator, card-show packing lists, peer-to-peer offers, messaging, and live trading remain future work and are not activated by this sprint.
 - Planned: Validate Collector query plans against staging-scale data and add proposed indexes only after measurement.
 - Planned: Apply the Collector mutation security proposal only after staging replay, product-owner approval, and service-role/import impact review.
 - Planned: Add distributed rate limiting for public image/market endpoints.

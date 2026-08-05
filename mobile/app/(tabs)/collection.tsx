@@ -155,6 +155,20 @@ export default function Collection() {
                   accessibilityLabel="Open Storage Location Manager"
                   onPress={() => router.push('/storage-locations' as never)}
                 />
+                <TDButton
+                  label="Trade"
+                  variant="secondary"
+                  iconName="swap-horizontal-outline"
+                  accessibilityLabel="Open Trade Binder"
+                  onPress={() => router.push('/trade-binder' as never)}
+                />
+                <TDButton
+                  label="Wishlist"
+                  variant="secondary"
+                  iconName="star-outline"
+                  accessibilityLabel="Open Wishlist"
+                  onPress={() => router.push('/wishlist' as never)}
+                />
               </View>
             </View>
 

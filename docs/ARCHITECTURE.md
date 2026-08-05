@@ -128,6 +128,17 @@
 - Partially Implemented: Location hierarchy is represented through `inventory_locations.data.parentId` because the active schema has no first-class parent column or database constraint.
 - Partially Implemented: Recent, favorite, and archived metadata are represented in `inventory_locations.data` for this sprint. Database-enforced indexes/constraints require a reviewed migration proposal before production reliance.
 - Planned: Scanner recognition, deck usage, marketplace listing, and portfolio analytics remain separate future integrations. The mobile manager exposes only a scan-to-location integration point.
+
+## Trade Binder And Wishlist Architecture
+
+- Implemented: Shared Trade Binder and Wishlist models live in `mobile/services/trade-binder-wishlist.ts`, with the Next.js adapter at `src/lib/trade-binder-wishlist.ts`.
+- Implemented: Mobile route map: `/trade-binder` shows cards marked with trade statuses, and `/wishlist` shows wanted cards, priorities, and matches. Both are stack routes linked from Collection and do not change the canonical five-tab bar.
+- Implemented: Web route map: `/dashboard/inventory` renders the Collector Workspace with an embedded Trade Binder/Wishlist panel for Binder, Wishlist, and Matches views.
+- Implemented: Data comes from owner-scoped `inventory_items`, `inventory_locations`, `binder_card_trade_status`, and `collector_wishlist` queries.
+- Implemented: Matching is strict for every specified wishlist field: card name must match, set code must match when present, condition must match when present, and finish must match when present. Unspecified set/condition/finish fields are flexible.
+- Partially Implemented: Wishlist exact-printing matching cannot include collector number because `collector_wishlist` has no collector-number column.
+- Partially Implemented: The experience is a personal planning workspace only. It does not create peer-to-peer trade offers, messaging, checkout, or live marketplace workflows.
+- Planned: Future trade-calculator integration should consume `WishlistMatch` and `TradeBinderItem` rather than inventing a parallel matching contract.
 - Implemented: Membership tier, account type, billing status, platform role, and resolved entitlement keys are separate typed concepts.
 - Implemented: Provider identifiers for Stripe and planned RevenueCat live outside the product plan definitions.
 - Partially Implemented: Legacy web admin component variants still use older owner wording but are not the active import path.

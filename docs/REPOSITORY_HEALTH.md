@@ -91,6 +91,7 @@
 - Implemented: Collector mutation tests now cover recognition of proposed database-authoritative ownership and Free-limit errors for offline replay.
 - Implemented: Collector Workspace tests now cover cursor construction, end-of-results state, duplicate page merging, search/filter/sort reset keys, stale response rejection, and exact-printing preservation.
 - Implemented: Focused Storage Location Manager tests cover create payloads, hierarchy paths, search, cards-in-location, unassigned cards, archive-with-assigned-card rejection, cross-user rejection, recent/favorite ordering, assignment validation, missing-location fallback, invalid parent relationships, and offline assignment dedupe keys.
+- Implemented: Focused Trade Binder/Wishlist tests cover binder search/filters, status updates, wishlist add/remove semantics, priority updates, exact/flexible matches, condition/finish mismatch rejection, quantity handling, storage search, optimistic rollback data, offline de-dupe keys, user isolation, empty state, and no-results state.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -159,3 +160,10 @@
 2. Add route-handler or RPC-backed storage mutations if direct table writes become insufficient for workspace/store inventory sharing.
 3. Add a visible mobile offline conflict-resolution surface for failed queued storage assignments.
 4. Validate large-location manager performance with realistic location counts and card-count aggregations.
+
+## Recommended Trade Binder/Wishlist Sprint 1
+
+1. Decide whether wishlist exact printing requires `collector_number`, `language`, or `scryfall_id` columns before trade-calculator work begins.
+2. Add production route/API tests for Trade Binder and Wishlist mutations once route-handler fixtures are available.
+3. Add a dedicated offline conflict-resolution surface for failed Trade Binder and Wishlist queued writes.
+4. Design trade-calculator and card-show prep flows as consumers of the current `TradeBinderItem`, `WishlistItem`, and `WishlistMatch` contracts.

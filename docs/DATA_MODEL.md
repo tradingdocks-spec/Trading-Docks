@@ -105,3 +105,14 @@
 - Partially Implemented: The current schema does not enforce parent existence, prevent hierarchy cycles, or index archived/favorite/recent metadata. Application code validates these states, but database enforcement requires a reviewed migration.
 - Implemented: Archiving a location with assigned cards is blocked by default in active UI/helpers. Explicit archive-with-assignments behavior exists as a contract path but is not the normal UI action.
 - Planned: Migration proposal only: add nullable `parent_location_id`, `archived_at`, `favorite`, `recent_used_at`, constraints preventing self-parenting, indexes for `(user_id, parent_location_id)`, `(user_id, archived_at)`, and `(user_id, favorite, recent_used_at desc)`, plus SQL/RPC validation for cycle prevention.
+
+## Trade Binder And Wishlist
+
+- Implemented: `binder_card_trade_status` stores per-owned-card trade status, optional `trade_value`, `notes`, and `updated_at`, with unique `(user_id, inventory_item_id)` and owner RLS.
+- Implemented: `collector_wishlist` stores wanted card targets with `card_name`, optional `set_code`, optional `target_condition`, optional `target_finish`, optional `target_value`, `priority`, `notes`, and timestamps, with owner RLS.
+- Implemented: Application-level models define `TradeBinderItem`, `TradeStatus`, `WishlistItem`, `WishlistPriority`, `WishlistMatch`, `TradeSummary`, and `WishlistSummary`.
+- Implemented: Trade Binder statuses use existing canonical values: `available`, `reserved`, `pending`, `not_for_trade`, `looking_for_upgrade`, and `for_sale`.
+- Implemented: Wishlist priorities use existing database values: `low`, `medium`, `high`, and `grail`.
+- Implemented: Matching rules are strict when fields are specified and flexible only for omitted wishlist fields.
+- Partially Implemented: `collector_wishlist` does not store collector number, language, or Scryfall id, so exact-printing matching is limited to card name plus set code, condition, and finish.
+- Planned: Add a reviewed migration proposal before requiring wishlist collector-number/Scryfall exactness, durable match snapshots, or trade-calculator audit trails.
