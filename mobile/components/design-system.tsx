@@ -22,9 +22,11 @@ import {
   tdButtonIsDisabled,
   tdInputAccessibility,
   tdInputState,
+  tdSelectableAccessibility,
   type TDBadgeTone,
   type TDButtonSize,
   type TDButtonVariant,
+  type TDMetricTone,
 } from '@/design/component-model';
 import { color, elevation, icon, radius, space, type } from '@/design';
 
@@ -65,6 +67,35 @@ type TDStateProps = {
   message?: string;
   action?: ReactNode;
   accessibilityLabel?: string;
+};
+
+type TDChipProps = {
+  label: string;
+  selected?: boolean;
+  disabled?: boolean;
+  onPress?: () => void;
+  tone?: TDBadgeTone;
+  iconName?: keyof typeof Ionicons.glyphMap;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+};
+
+type TDMetricTileProps = {
+  label: string;
+  value: string;
+  tone?: TDMetricTone;
+  compact?: boolean;
+  style?: StyleProp<ViewStyle>;
+};
+
+type TDIconRowProps = {
+  title: string;
+  description?: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  right?: ReactNode;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
 };
 
 export function TDScreen({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
@@ -124,7 +155,7 @@ export function TDButton({
     >
       {loading ? <ActivityIndicator color={foreground} /> : null}
       {!loading && iconName ? <Ionicons name={iconName} size={icon.md} color={foreground} /> : null}
-      <Text style={[s.buttonText, variant === 'primary' ? s.buttonTextPrimary : s.buttonTextSecondary]}>
+      <Text style={[s.buttonText, variant === 'primary' ? s.buttonTextPrimary : s.buttonTextSecondary]} numberOfLines={2}>
         {label}
       </Text>
     </Pressable>
@@ -181,6 +212,82 @@ export function TDBadge({ children, tone = 'neutral' }: PropsWithChildren<{ tone
     <View accessibilityRole="text" style={[s.badge, badgeTone[tone]]}>
       <Text style={[s.badgeText, badgeTextTone[tone]]}>{children}</Text>
     </View>
+  );
+}
+
+export function TDChip({
+  label,
+  selected,
+  disabled,
+  onPress,
+  tone = 'info',
+  iconName,
+  accessibilityLabel,
+  style,
+}: TDChipProps) {
+  const [focused, setFocused] = useState(false);
+  const chipTone = selected ? tone : 'neutral';
+  const contentColor = selected ? badgeTextTone[tone].color : color.textMuted;
+  return (
+    <Pressable
+      {...tdSelectableAccessibility(accessibilityLabel ?? label, selected, disabled)}
+      disabled={disabled}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onPress={onPress}
+      style={({ pressed }) => [
+        s.chip,
+        chipToneStyle[chipTone],
+        selected && s.chipSelected,
+        focused && s.webFocus,
+        pressed && !disabled && s.pressed,
+        disabled && s.disabled,
+        style,
+      ]}
+    >
+      {iconName ? <Ionicons name={iconName} size={icon.sm} color={contentColor} /> : null}
+      <Text style={[s.chipText, { color: contentColor }]} numberOfLines={1}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function TDMetricTile({ label, value, tone = 'neutral', compact, style }: TDMetricTileProps) {
+  return (
+    <View style={[s.metricTile, compact && s.metricTileCompact, metricTone[tone], style]}>
+      <TDText variant="caption" tone="muted">{label}</TDText>
+      <TDText variant={compact ? 'small' : 'title'}>{value}</TDText>
+    </View>
+  );
+}
+
+export function TDIconRow({ title, description, iconName, right, onPress, accessibilityLabel, style }: TDIconRowProps) {
+  const [focused, setFocused] = useState(false);
+  const content = (
+    <>
+      <View style={s.iconRowIcon}>
+        <Ionicons name={iconName} size={icon.md} color={color.info} />
+      </View>
+      <View style={s.iconRowCopy}>
+        <TDText variant="small">{title}</TDText>
+        {description ? <TDText variant="caption" tone="muted">{description}</TDText> : null}
+      </View>
+      {right}
+    </>
+  );
+
+  if (!onPress) return <View style={[s.iconRow, style]}>{content}</View>;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onPress={onPress}
+      style={({ pressed }) => [s.iconRow, focused && s.webFocus, pressed && s.pressed, style]}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -251,7 +358,7 @@ const s = StyleSheet.create({
   pressed: { opacity: 0.82, transform: [{ scale: 0.985 }] },
   disabled: { opacity: 0.56 },
   webFocus: { borderColor: color.primaryBright, outlineColor: color.primaryBright, outlineStyle: 'solid' as never, outlineWidth: 2 },
-  card: { borderWidth: 1, borderColor: color.border, borderRadius: radius.xl, backgroundColor: color.surface, padding: space.lg },
+  card: { borderWidth: 1, borderColor: color.border, borderRadius: radius.lg, backgroundColor: color.surface, padding: space.md },
   inputWrap: { gap: space.xs },
   inputShell: { minHeight: 52, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.md },
   inputError: { borderColor: color.danger, backgroundColor: color.danger + '12' },
@@ -265,6 +372,14 @@ const s = StyleSheet.create({
   stateIconDanger: { backgroundColor: color.danger + '16' },
   stateIconInfo: { backgroundColor: color.info + '16' },
   divider: { height: 1, backgroundColor: color.border },
+  chip: { minHeight: 40, maxWidth: '100%', borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: space.md, paddingVertical: space.xs, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: space.xs },
+  chipSelected: { borderColor: color.primaryBright },
+  chipText: { fontSize: 11, fontWeight: '900', lineHeight: 15 },
+  metricTile: { flexGrow: 1, flexBasis: '30%', minWidth: 96, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: space.sm, paddingVertical: space.sm, backgroundColor: color.canvasRaised, gap: 2 },
+  metricTileCompact: { minWidth: 82, paddingHorizontal: space.xs },
+  iconRow: { minHeight: 56, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.sm },
+  iconRowIcon: { width: 36, height: 36, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '14' },
+  iconRowCopy: { flex: 1, minWidth: 0 },
 });
 
 const buttonSize = StyleSheet.create({
@@ -314,6 +429,24 @@ const badgeTone = StyleSheet.create({
   danger: { backgroundColor: color.danger + '16', borderColor: color.danger + '55' },
   info: { backgroundColor: color.info + '16', borderColor: color.info + '55' },
   accent: { backgroundColor: color.accent + '16', borderColor: color.accent + '55' },
+});
+
+const chipToneStyle = StyleSheet.create({
+  neutral: { backgroundColor: color.surfaceRaised, borderColor: color.border },
+  success: { backgroundColor: color.success + '18', borderColor: color.success + '66' },
+  warning: { backgroundColor: color.warning + '18', borderColor: color.warning + '66' },
+  danger: { backgroundColor: color.danger + '18', borderColor: color.danger + '66' },
+  info: { backgroundColor: color.primary + '24', borderColor: color.info + '66' },
+  accent: { backgroundColor: color.accent + '18', borderColor: color.accent + '66' },
+});
+
+const metricTone = StyleSheet.create({
+  neutral: { borderColor: color.border },
+  success: { borderColor: color.success + '44' },
+  warning: { borderColor: color.warning + '44' },
+  danger: { borderColor: color.danger + '44' },
+  info: { borderColor: color.info + '44' },
+  accent: { borderColor: color.accent + '44' },
 });
 
 const badgeTextTone = StyleSheet.create({

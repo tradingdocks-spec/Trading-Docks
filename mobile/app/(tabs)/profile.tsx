@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { TDBadge, TDButton, TDCard, TDSectionHeader } from '@/components/design-system';
+import { TDBadge, TDButton, TDCard, TDIconRow, TDSectionHeader, TDText } from '@/components/design-system';
 import { Logo } from '@/components/primitives';
-import { brand as B } from '@/constants/brand';
+import { color, radius, space } from '@/design';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/account';
 import { useAdmin } from '@/providers/admin';
@@ -58,39 +58,36 @@ export default function Profile() {
         <TDCard variant="elevated" style={s.sessionCard}>
           <View style={s.sessionDot} />
           <View style={{ flex: 1 }}>
-            <Text style={s.label}>CURRENT SESSION</Text>
-            <Text style={s.cardTitle}>{activeSession.name}</Text>
-            <Text style={s.meta}>{activeSession.status === 'paused' ? 'Paused and saved locally' : 'Active - available offline'}</Text>
+            <TDText variant="label" tone="success">Current session</TDText>
+            <TDText variant="title">{activeSession.name}</TDText>
+            <TDText variant="caption" tone="muted">{activeSession.status === 'paused' ? 'Paused and saved locally' : 'Active - available offline'}</TDText>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={B.cyan} />
+          <Ionicons name="chevron-forward" size={20} color={color.info} />
         </TDCard>
       ) : null}
 
       <TDCard>
         <View style={s.row}>
           <View>
-            <Text style={s.label}>MOBILE CONNECTION</Text>
-            <Text style={s.cardTitle}>{configured ? 'Supabase configured' : 'Setup required'}</Text>
-            <Text style={s.meta}>{configured ? 'Authentication and account sync are ready.' : 'Add Expo environment variables, then restart.'}</Text>
+            <TDText variant="label" tone="muted">Mobile connection</TDText>
+            <TDText variant="title">{configured ? 'Supabase configured' : 'Setup required'}</TDText>
+            <TDText variant="caption" tone="muted">{configured ? 'Authentication and account sync are ready.' : 'Add Expo environment variables, then restart.'}</TDText>
           </View>
-          <Ionicons name={configured ? 'checkmark-circle' : 'alert-circle'} size={25} color={configured ? B.green : B.amber} />
+          <Ionicons name={configured ? 'checkmark-circle' : 'alert-circle'} size={25} color={configured ? color.success : color.warning} />
         </View>
       </TDCard>
 
       <TDSectionHeader title="Account" />
       {items.map(([title, value, itemIcon]) => (
-        <Pressable key={title} accessibilityRole="button" onPress={() => open(title)}>
-          <TDCard style={s.item}>
-            <View style={s.itemIcon}>
-              <Ionicons name={itemIcon as keyof typeof Ionicons.glyphMap} size={20} color={B.cyan} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.itemTitle}>{title}</Text>
-              <Text style={s.meta}>{value}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={19} color={B.muted} />
-          </TDCard>
-        </Pressable>
+        <TDIconRow
+          key={title}
+          accessibilityLabel={`Open ${title}`}
+          description={value}
+          iconName={itemIcon as keyof typeof Ionicons.glyphMap}
+          onPress={() => open(title)}
+          right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />}
+          title={title}
+        />
       ))}
 
       <TDButton
@@ -104,21 +101,15 @@ export default function Profile() {
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: B.bg },
+  page: { flex: 1, backgroundColor: color.canvas },
   content: { padding: 20, paddingTop: 58, paddingBottom: 140, gap: 14 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 10 },
-  avatar: { width: 53, height: 53, borderRadius: 18, backgroundColor: B.blue, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 53, height: 53, borderRadius: radius.md, backgroundColor: color.primary, alignItems: 'center', justifyContent: 'center' },
   initial: { color: '#fff', fontSize: 22, fontWeight: '900' },
-  name: { color: B.text, fontSize: 17, fontWeight: '900', textTransform: 'capitalize' },
-  email: { color: B.muted, fontSize: 11, marginTop: 3 },
+  name: { color: color.text, fontSize: 17, fontWeight: '900', textTransform: 'capitalize' },
+  email: { color: color.textMuted, fontSize: 11, marginTop: 3 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  label: { color: B.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
-  cardTitle: { color: B.text, fontSize: 15, fontWeight: '900', marginTop: 7 },
-  meta: { color: B.muted, fontSize: 11, marginTop: 4 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  itemIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: B.blue + '20', alignItems: 'center', justifyContent: 'center' },
-  itemTitle: { color: B.text, fontSize: 13, fontWeight: '900' },
-  version: { color: B.muted, textAlign: 'center', fontSize: 10, marginTop: 6 },
-  sessionCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: B.surface2 },
-  sessionDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: B.green },
+  version: { color: color.textMuted, textAlign: 'center', fontSize: 10, marginTop: 6 },
+  sessionCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surfaceRaised },
+  sessionDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: color.success },
 });

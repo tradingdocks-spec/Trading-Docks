@@ -54,13 +54,26 @@ Raw colors remain available only as palette anchors. New product components shou
 
 ## Component Usage
 
-- Implemented: `TDButton`, `TDCard`, `TDInput`, `TDBadge`, `TDText`, `TDScreen`, `TDSectionHeader`, `TDLoadingState`, `TDEmptyState`, `TDErrorState`, and `TDDivider` exist for Expo and Next.js.
+- Implemented: `TDButton`, `TDCard`, `TDInput`, `TDBadge`, `TDChip`, `TDMetricTile`, `TDIconRow`, `TDText`, `TDScreen`, `TDSectionHeader`, `TDLoadingState`, `TDEmptyState`, `TDErrorState`, and `TDDivider` exist for Expo.
+- Implemented: `TDButton`, `TDCard`, `TDInput`, `TDBadge`, `TDText`, `TDScreen`, `TDSectionHeader`, `TDLoadingState`, `TDEmptyState`, `TDErrorState`, and `TDDivider` exist for Next.js.
 - Implemented: Components include typed props, variants, disabled/loading states where relevant, accessible roles/labels where relevant, web focus styling, and native press feedback.
 - Implemented: The Collector Workspace browser uses TD primitives on web and mobile for cards, inputs, badges, screen layout, loading, empty, no-results, and error states.
 - Implemented: The redesigned mobile Home uses the existing TD primitives and shared tokens for header, portfolio card, action buttons, briefing, active-session card, and empty activity state.
 - Implemented: The continuous scanner uses TD primitives, dark semantic tokens, compact badges, equal-height controls, text guidance, and a correctly proportioned 63:88 card guide instead of a generic camera form.
+- Implemented: Mobile Collection, Card Detail, Storage Locations, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile now share chip, metric, card-density, focus, and row primitives where practical.
 - Partially Implemented: Existing `Button`, `Card`, and `Badge` in `src/components/ui` remain supported and are not deleted.
 - Planned: `TDChart`, `TDModal`, `TDToast`, and `TDNavigation` are deferred to later focused tasks.
+
+## Mobile Polish Rules
+
+- Implemented: Mobile card defaults use restrained radius and compact padding; oversized screen cards should opt in only when the content needs it.
+- Implemented: Mobile display and heading text use zero letter spacing so dynamic text and long names do not tighten unpredictably.
+- Implemented: Repeated segmented controls use `TDChip` with selected and disabled accessibility state, visible web focus, and at least a 40 px chip height.
+- Implemented: Summary numbers use `TDMetricTile` for compact, scannable values instead of one-off nested cards.
+- Implemented: Profile/account rows use `TDIconRow` for consistent icon size, touch target, and chevron treatment.
+- Partially Implemented: Authentication still contains a custom marketing/form split because preserving its proven auth behavior is higher priority than a full visual rewrite.
+- Partially Implemented: Dev-only scanner benchmark and admin-only surfaces still include some local chip/metric styles; they are not part of the primary mobile polish pass.
+- Planned: Add visual regression snapshots once stable mobile fixtures and simulator/device targets are available.
 
 ## Navigation Contract Rules
 
@@ -81,6 +94,9 @@ Raw colors remain available only as palette anchors. New product components shou
 - `TDCard`: Shared variants are `default`, `elevated`, `floating`, and `outlined`. Platform elevation implementation may differ.
 - `TDInput`: Both platforms support `label`, `error`, and disabled state. Mobile may use icon/accessory props for native layout; web uses regular DOM input attributes and error association.
 - `TDBadge`: Shared tones are `neutral`, `success`, `warning`, `danger`, `info`, and `accent`.
+- `TDChip`: Mobile selectable controls must use `selected` accessibility state, visible focus on web, disabled state when pending, and short labels that can fit without horizontal scrolling.
+- `TDMetricTile`: Mobile summary metrics should stay compact, wrap into rows, and avoid becoming large decorative cards.
+- `TDIconRow`: Mobile settings/profile rows should use one icon family, one chevron treatment, and a 56 px minimum row height.
 - `TDText`: Shared variants are `display`, `heading`, `title`, `body`, `small`, `caption`, and `label`; shared tones are `primary`, `secondary`, `muted`, `success`, `warning`, `danger`, and `info`. Web may choose semantic HTML with `as`; mobile uses React Native `Text`.
 - Do not add product-specific copy, navigation behavior, data fetching, billing logic, or auth logic inside TD primitives.
 
@@ -102,6 +118,7 @@ Raw colors remain available only as palette anchors. New product components shou
 ## Remaining Debt
 
 - Partially Implemented: `mobile/constants/brand.ts` still supplies many legacy mobile screens.
+- Partially Implemented: Active Auth, welcome, plans, onboarding, Seller/Signals, Deal Desk, admin, and development screens still need incremental token/primitive polish.
 - Partially Implemented: Large web dashboard components still contain hardcoded class strings and bespoke state UI.
 - Partially Implemented: Backup directories preserve older visual systems and contribute lint noise.
 - Planned: Add visual regression screenshots once the app has stable local seeds and route fixtures.

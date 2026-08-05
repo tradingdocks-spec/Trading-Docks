@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TDBadge, TDButton, TDCard, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
+import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDMetricTile, TDScreen, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { useAccount } from '@/providers/account';
 import { CARD_CONDITION_OPTIONS, TRADE_BINDER_STATUS_OPTIONS } from '@/services/collector-mutations';
@@ -384,7 +384,7 @@ export default function Scan() {
           </View>
           <View style={s.chips}>
             {SCANNER_SESSION_MODES.map((mode) => (
-              <Chip key={mode.id} label={mode.label} selected={sessionMode === mode.id} onPress={() => {
+              <TDChip key={mode.id} label={mode.label} selected={sessionMode === mode.id} tone="accent" onPress={() => {
                 if (!context) return;
                 setSessionMode(mode.id);
                 setSession(createContinuousScannerSession({
@@ -399,9 +399,9 @@ export default function Scan() {
           </View>
           {offerWorkspace ? (
             <View style={s.offerGrid}>
-              <Metric label="Market" value={currency(sessionTotals?.marketValue)} />
-              <Metric label="Cash offer" value={currency(sessionTotals?.cashOffer)} />
-              <Metric label="Trade value" value={currency(sessionTotals?.tradeValue)} />
+              <TDMetricTile label="Market" value={currency(sessionTotals?.marketValue)} compact />
+              <TDMetricTile label="Cash offer" value={currency(sessionTotals?.cashOffer)} compact tone="success" />
+              <TDMetricTile label="Trade value" value={currency(sessionTotals?.tradeValue)} compact tone="accent" />
               <TDInput label="Cash %" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
             </View>
           ) : null}
@@ -601,14 +601,10 @@ function OptionRow<T extends string>({ label, options, value, display, onSelect 
     <View style={s.optionGroup}>
       <TDText variant="label" tone="muted">{label}</TDText>
       <View style={s.chips}>
-        {options.map((option) => <Chip key={option} label={display(option)} selected={option === value} onPress={() => onSelect(option)} />)}
+        {options.map((option) => <TDChip key={option} label={display(option)} selected={option === value} onPress={() => onSelect(option)} />)}
       </View>
     </View>
   );
-}
-
-function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[s.chip, selected && s.chipSelected]}><TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText></Pressable>;
 }
 
 function permissionTitle(permission: ScannerPermissionState) {
@@ -673,15 +669,6 @@ function createScanId() {
   return globalThis.crypto?.randomUUID?.() ?? `scan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={s.metric}>
-      <TDText variant="caption" tone="muted">{label}</TDText>
-      <TDText variant="small">{value}</TDText>
-    </View>
-  );
-}
-
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
@@ -705,7 +692,6 @@ const s = StyleSheet.create({
   syncActions: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
   section: { gap: space.md },
   offerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  metric: { minWidth: 120, flexGrow: 1, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, padding: space.sm, backgroundColor: color.canvasRaised, gap: 2 },
   sessionLine: { minHeight: 64, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.canvasRaised },
   candidate: { minHeight: 112, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.canvasRaised },
   candidateSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '24' },
@@ -717,7 +703,5 @@ const s = StyleSheet.create({
   signalCell: { minWidth: 116, flexGrow: 1, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, padding: space.sm, backgroundColor: color.canvasRaised },
   optionGroup: { gap: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
-  chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '30' },
   checkboxRow: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

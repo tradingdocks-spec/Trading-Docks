@@ -35,6 +35,7 @@
 - Partially Implemented: Dashboard shells, topbars, sidebars, workspace frames, metric cards, inventory workspaces, purchasing workspaces, deck vault components, and business operation components have overlapping versions.
 - Partially Implemented: Web and mobile now have first-wave TD primitives, but legacy `src/components/ui`, mobile `foundation.tsx`, mobile `primitives.tsx`, `mobile/constants/brand.ts`, and many screen-local style systems still coexist.
 - Implemented: Shared semantic tokens and first-wave TD primitives provide a canonical migration target for buttons, cards, inputs, badges, text, screen shells, section headers, loading states, empty states, error states, and dividers.
+- Implemented: Mobile adds shared `TDChip`, `TDMetricTile`, and `TDIconRow` primitives and migrates active Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile controls away from duplicated local chip/metric styles.
 - Planned: Pick a canonical component tree and archive or delete superseded versions after review.
 
 ## Potential Bugs
@@ -91,11 +92,13 @@
 - Planned: Cache safe public card data with explicit provider limits and invalidation rules.
 - Planned: Replace duplicate component systems with shared primitives to reduce CSS/runtime weight.
 - Planned: Use shared loading, empty, and error states to reduce repeated rendering logic and bespoke animation code.
+- Partially Implemented: Mobile default card padding/radius is now more compact, but native performance and visual measurement still need device validation.
 
 ## Missing Tests
 
 - Implemented: Focused mobile auth tests cover email/password success and failure, session restoration, admin routing, normal routing, remembered email, and keep-me-signed-in discard behavior.
 - Implemented: Focused mobile design-system tests cover token exports, semantic colors, button disabled/loading behavior, input error state, and accessibility metadata.
+- Implemented: Focused mobile design-system tests now cover selectable control accessibility, minimum touch target constants, and zero negative tracking for mobile display/heading typography.
 - Implemented: Focused mobile navigation/auth contract tests cover protected-route loading, Collector/Seller/Store tab labels, five-tab composition, no Explore placeholder tab, center-action reachability, safe-area sizing, admin route access, normal-user admin denial, fallback account type, and selected tab state.
 - Implemented: Focused identity/access tests cover owner, admin, support, analyst, normal user, missing role, suspended account, admin with Free membership, Seller without admin role, and authorized/unauthorized web admin route decisions.
 - Planned: Auth redirect and callback tests.

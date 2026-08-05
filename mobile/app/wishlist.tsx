@@ -1,8 +1,8 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 
-import { TDBadge, TDButton, TDCard, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
+import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDMetricTile, TDScreen, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { loadMobileTradeBinderWishlist, runMobileTradeWishlistMutation } from '@/services/trade-binder-wishlist-data';
 import {
@@ -100,9 +100,9 @@ export default function WishlistScreen() {
             <TDText variant="small" tone="muted">Track strict targets and see which binder cards satisfy them.</TDText>
             {error ? <TDBadge tone={error.includes('queued') ? 'warning' : 'danger'}>{error.includes('queued') ? 'Pending sync' : 'Update failed'}</TDBadge> : null}
             <View style={s.summaryRow}>
-              <Metric label="Targets" value={String(state.wishlistSummary.totalWishlistItems)} />
-              <Metric label="Matched" value={String(state.wishlistSummary.matchedWishlistItems)} />
-              <Metric label="Exact" value={String(state.wishlistSummary.exactMatchCount)} />
+              <TDMetricTile label="Targets" value={String(state.wishlistSummary.totalWishlistItems)} tone="info" compact />
+              <TDMetricTile label="Matched" value={String(state.wishlistSummary.matchedWishlistItems)} tone={state.wishlistSummary.matchedWishlistItems ? 'success' : 'neutral'} compact />
+              <TDMetricTile label="Exact" value={String(state.wishlistSummary.exactMatchCount)} compact />
             </View>
             <TDCard style={s.addCard}>
               <TDText variant="title">Add wanted card</TDText>
@@ -112,11 +112,11 @@ export default function WishlistScreen() {
             </TDCard>
             <TDInput label="Search wishlist" value={query} onChangeText={setQuery} leftIconName="search-outline" placeholder="Card, set, priority, notes..." />
             <View style={s.chips}>
-              <Chip label="All" selected={priority === 'all'} onPress={() => setPriority('all')} />
-              {WISHLIST_PRIORITY_OPTIONS.map((option) => <Chip key={option} label={wishlistPriorityLabel(option)} selected={priority === option} onPress={() => setPriority(option)} />)}
+              <TDChip label="All" selected={priority === 'all'} onPress={() => setPriority('all')} />
+              {WISHLIST_PRIORITY_OPTIONS.map((option) => <TDChip key={option} label={wishlistPriorityLabel(option)} selected={priority === option} tone="accent" onPress={() => setPriority(option)} />)}
             </View>
             <View style={s.chips}>
-              {(['all', 'matched', 'unmatched'] as const).map((option) => <Chip key={option} label={option} selected={matchState === option} onPress={() => setMatchState(option)} />)}
+              {(['all', 'matched', 'unmatched'] as const).map((option) => <TDChip key={option} label={option} selected={matchState === option} tone="success" onPress={() => setMatchState(option)} />)}
             </View>
           </View>
         }
@@ -134,7 +134,7 @@ export default function WishlistScreen() {
               </View>
               {item.notes ? <TDText variant="small" tone="muted">{item.notes}</TDText> : null}
               <View style={s.chips}>
-                {WISHLIST_PRIORITY_OPTIONS.map((option) => <Chip key={option} label={wishlistPriorityLabel(option)} selected={item.priority === option} disabled={pending === item.id} onPress={() => updatePriority(item, option)} />)}
+                {WISHLIST_PRIORITY_OPTIONS.map((option) => <TDChip key={option} label={wishlistPriorityLabel(option)} selected={item.priority === option} disabled={pending === item.id} tone="accent" onPress={() => updatePriority(item, option)} />)}
               </View>
               {matches.length ? matches.map((match) => (
                 <View key={match.id} style={s.matchRow}>
@@ -155,28 +155,16 @@ export default function WishlistScreen() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return <TDCard style={s.metric}><TDText variant="caption" tone="muted">{label}</TDText><TDText variant="title">{value}</TDText></TDCard>;
-}
-
-function Chip({ label, selected, disabled, onPress }: { label: string; selected: boolean; disabled?: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={onPress} style={[s.chip, selected && s.chipSelected, disabled && s.disabled]}><TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText></Pressable>;
-}
-
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
   header: { gap: space.md },
   back: { alignSelf: 'flex-start' },
   summaryRow: { flexDirection: 'row', gap: space.sm },
-  metric: { flex: 1, padding: space.md, borderRadius: radius.md },
   addCard: { gap: space.md },
   itemCard: { gap: space.md },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
   flex: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
-  chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '30' },
-  disabled: { opacity: 0.6 },
   matchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm },
 });

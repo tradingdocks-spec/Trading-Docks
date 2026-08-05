@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 
-import { TDBadge, TDButton, TDCard, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
+import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDMetricTile, TDScreen, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { supabase } from '@/lib/supabase';
 import {
@@ -97,12 +97,12 @@ export default function ScannerSessionReview() {
               </View>
             </View>
             <TDCard style={s.summary}>
-              <Metric label="Scanned" value={String(totals?.cardsScanned ?? 0)} />
-              <Metric label="Review" value={String(totals?.needsReview ?? 0)} />
-              <Metric label="Market" value={currency(totals?.marketValue)} />
-              <Metric label="Cash" value={currency(totals?.cashOffer)} />
-              <Metric label="Trade" value={currency(totals?.tradeValue)} />
-              <Metric label="No price" value={String(totals?.missingPriceItems ?? 0)} />
+              <TDMetricTile label="Scanned" value={String(totals?.cardsScanned ?? 0)} compact tone="info" />
+              <TDMetricTile label="Review" value={String(totals?.needsReview ?? 0)} compact tone={totals?.needsReview ? 'warning' : 'neutral'} />
+              <TDMetricTile label="Market" value={currency(totals?.marketValue)} compact />
+              <TDMetricTile label="Cash" value={currency(totals?.cashOffer)} compact tone="success" />
+              <TDMetricTile label="Trade" value={currency(totals?.tradeValue)} compact tone="accent" />
+              <TDMetricTile label="No price" value={String(totals?.missingPriceItems ?? 0)} compact tone={totals?.missingPriceItems ? 'warning' : 'neutral'} />
             </TDCard>
             <TDCard style={s.filters}>
               <TDText variant="title">Filters</TDText>
@@ -170,25 +170,8 @@ function ChipRow({ label, options, value, onSelect }: { label: string; options: 
     <View style={s.chipGroup}>
       <TDText variant="label" tone="muted">{label}</TDText>
       <View style={s.chips}>
-        {options.map((option) => <Chip key={option} label={option.replaceAll('_', ' ')} selected={option === value} onPress={() => onSelect(option)} />)}
+        {options.map((option) => <TDChip key={option} label={option.replaceAll('_', ' ')} selected={option === value} onPress={() => onSelect(option)} />)}
       </View>
-    </View>
-  );
-}
-
-function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[s.chip, selected && s.chipSelected]}>
-      <TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText>
-    </Pressable>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={s.metric}>
-      <TDText variant="caption" tone="muted">{label}</TDText>
-      <TDText variant="small">{value}</TDText>
     </View>
   );
 }
@@ -215,12 +198,9 @@ const s = StyleSheet.create({
   iconButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
   flex: { flex: 1 },
   summary: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  metric: { minWidth: 96, flexGrow: 1, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, padding: space.sm, backgroundColor: color.canvasRaised, gap: 2 },
   filters: { gap: space.md },
   chipGroup: { gap: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
-  chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '30' },
   checkboxRow: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   line: { gap: space.md },

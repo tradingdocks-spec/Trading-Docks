@@ -6,6 +6,9 @@ import {
   tdButtonIsDisabled,
   tdInputAccessibility,
   tdInputState,
+  tdSelectableAccessibility,
+  TD_MOBILE_COMFORTABLE_TOUCH_TARGET,
+  TD_MOBILE_MIN_TOUCH_TARGET,
 } from '../design/component-model.ts';
 import { tdTokens } from '../design/shared-tokens.ts';
 
@@ -25,6 +28,10 @@ test('token exports include spacing, type, radius, and elevation foundations', (
   assert.equal(tdTokens.radius.md, 16);
   assert.equal(tdTokens.typography.size.body, 14);
   assert.ok(tdTokens.elevation.raised);
+});
+
+test('shared typography exposes zero tracking for dynamic display text', () => {
+  assert.equal(tdTokens.typography.letterSpacing.none, 0);
 });
 
 test('button disabled behavior includes disabled and loading states', () => {
@@ -50,4 +57,14 @@ test('input error state sets invalid accessibility metadata', () => {
   assert.equal(props.accessibilityHint, 'Required');
   assert.equal(props.accessibilityInvalid, true);
   assert.deepEqual(props.accessibilityState, { disabled: false });
+});
+
+test('selectable controls expose selected and disabled accessibility states', () => {
+  const props = tdSelectableAccessibility('Sort by recent', true, false);
+
+  assert.equal(props.accessibilityRole, 'button');
+  assert.equal(props.accessibilityLabel, 'Sort by recent');
+  assert.deepEqual(props.accessibilityState, { selected: true, disabled: false });
+  assert.ok(TD_MOBILE_MIN_TOUCH_TARGET >= 44);
+  assert.ok(TD_MOBILE_COMFORTABLE_TOUCH_TARGET >= 48);
 });

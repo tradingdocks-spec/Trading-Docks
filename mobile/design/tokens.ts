@@ -27,8 +27,8 @@ export const color = {
 export const space = { xxs: tdTokens.space.half, xs: tdTokens.space.xs, sm: tdTokens.space.sm, md: tdTokens.space.md, lg: tdTokens.space.lg, xl: tdTokens.space.xl, xxl: tdTokens.space.xxl, hero: tdTokens.space.hero } as const;
 export const radius = { xs: tdTokens.radius.xs, sm: tdTokens.radius.sm, md: tdTokens.radius.md, lg: tdTokens.radius.lg, xl: tdTokens.radius.xxl, modal: 32, pill: tdTokens.radius.pill } as const;
 export const type = {
-  display: { fontSize: tdTokens.typography.size.display, lineHeight: tdTokens.typography.lineHeight.display, fontWeight: '900' as const, letterSpacing: -1.3 },
-  heading: { fontSize: tdTokens.typography.size.heading, lineHeight: tdTokens.typography.lineHeight.heading, fontWeight: '900' as const, letterSpacing: -0.7 },
+  display: { fontSize: tdTokens.typography.size.display, lineHeight: tdTokens.typography.lineHeight.display, fontWeight: '900' as const, letterSpacing: tdTokens.typography.letterSpacing.none },
+  heading: { fontSize: tdTokens.typography.size.heading, lineHeight: tdTokens.typography.lineHeight.heading, fontWeight: '900' as const, letterSpacing: tdTokens.typography.letterSpacing.none },
   title: { fontSize: tdTokens.typography.size.title, lineHeight: tdTokens.typography.lineHeight.title, fontWeight: '900' as const },
   body: { fontSize: tdTokens.typography.size.body, lineHeight: tdTokens.typography.lineHeight.body, fontWeight: '500' as const },
   small: { fontSize: tdTokens.typography.size.small, lineHeight: tdTokens.typography.lineHeight.small, fontWeight: '600' as const },

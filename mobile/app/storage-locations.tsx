@@ -7,10 +7,12 @@ import {
   TDBadge,
   TDButton,
   TDCard,
+  TDChip,
   TDEmptyState,
   TDErrorState,
   TDInput,
   TDLoadingState,
+  TDMetricTile,
   TDScreen,
   TDText,
 } from '@/components/design-system';
@@ -131,7 +133,7 @@ export default function StorageLocationsScreen() {
           <TDInput label="Name" value={newName} onChangeText={setNewName} placeholder="Office, Shelf B, Box 14..." />
           <View style={s.typeRow}>
             {STORAGE_LOCATION_TYPES.slice(0, 5).map((type) => (
-              <Chip key={type} label={labelForType(type)} selected={newType === type} onPress={() => setNewType(type)} />
+              <TDChip key={type} label={labelForType(type)} selected={newType === type} tone="info" onPress={() => setNewType(type)} />
             ))}
           </View>
           <TDButton label="Create location" loading={pending === 'create'} disabled={!newName.trim()} onPress={() => run('create', () => createMobileStorageLocation({ name: newName, type: newType }))} />
@@ -174,9 +176,9 @@ export default function StorageLocationsScreen() {
               <TDBadge tone="info">{labelForType(selected.type)}</TDBadge>
             </View>
             <View style={s.metrics}>
-              <Metric label="Records" value={String(selected.assignedCardCount)} />
-              <Metric label="Quantity" value={String(selected.assignedQuantity)} />
-              <Metric label="Children" value={String(selected.childCount)} />
+              <TDMetricTile label="Records" value={String(selected.assignedCardCount)} compact />
+              <TDMetricTile label="Quantity" value={String(selected.assignedQuantity)} compact tone="info" />
+              <TDMetricTile label="Children" value={String(selected.childCount)} compact />
             </View>
             <TDInput label="Rename" value={renameValue} onChangeText={setRenameValue} placeholder={selected.name} />
             <View style={s.actions}>
@@ -230,7 +232,7 @@ function QuickLocations({ title, locations, onSelect }: { title: string; locatio
       <TDText variant="label" tone="muted">{title}</TDText>
       <View style={s.typeRow}>
         {locations.map((location) => (
-          <Chip key={location.id} label={location.name} selected={false} onPress={() => onSelect(location.id)} />
+          <TDChip key={location.id} label={location.name} selected={false} iconName={location.favorite ? 'star' : undefined} onPress={() => onSelect(location.id)} />
         ))}
       </View>
     </View>
@@ -249,23 +251,6 @@ function CardList({ cards, label, pending, onPress }: { cards: CollectionCard[];
           <TDButton label={label} size="sm" variant="secondary" loading={pending === `assign-${card.id}` || pending === `clear-${card.id}`} onPress={() => onPress(card)} />
         </View>
       ))}
-    </View>
-  );
-}
-
-function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[s.chip, selected && s.chipSelected]}>
-      <TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText>
-    </Pressable>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={s.metric}>
-      <TDText variant="caption" tone="muted">{label}</TDText>
-      <TDText variant="title">{value}</TDText>
     </View>
   );
 }
@@ -294,15 +279,12 @@ const s = StyleSheet.create({
   header: { gap: space.xs },
   createCard: { gap: space.md },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
-  chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '30' },
   locationList: { gap: space.sm },
   locationRow: { minHeight: 72, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, padding: space.md, gap: space.xs },
   locationRowSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '22' },
   locationTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   detailCard: { gap: space.md },
   metrics: { flexDirection: 'row', gap: space.sm },
-  metric: { flex: 1, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm },
   actions: { flexDirection: 'row', gap: space.sm },
   cardList: { gap: space.sm },
   cardRow: { minHeight: 64, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm },

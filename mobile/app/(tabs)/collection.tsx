@@ -8,10 +8,12 @@ import {
   TDBadge,
   TDButton,
   TDCard,
+  TDChip,
   TDEmptyState,
   TDErrorState,
   TDInput,
   TDLoadingState,
+  TDMetricTile,
   TDScreen,
   TDText,
 } from '@/components/design-system';
@@ -173,10 +175,10 @@ export default function Collection() {
             </View>
 
             <View style={s.summaryGrid}>
-              <SummaryCard label="Owned" value={summary.totalOwnedCards.toLocaleString()} />
-              <SummaryCard label="Unique" value={summary.uniquePrintings.toLocaleString()} />
-              <SummaryCard label="Storage" value={summary.storageLocationCount.toLocaleString()} />
-              <SummaryCard label="Missing prices" value={summary.missingPriceCount.toLocaleString()} />
+              <TDMetricTile label="Owned" value={summary.totalOwnedCards.toLocaleString()} tone="info" />
+              <TDMetricTile label="Unique" value={summary.uniquePrintings.toLocaleString()} />
+              <TDMetricTile label="Storage" value={summary.storageLocationCount.toLocaleString()} />
+              <TDMetricTile label="Missing prices" value={summary.missingPriceCount.toLocaleString()} tone={summary.missingPriceCount ? 'warning' : 'neutral'} />
             </View>
 
             {summary.freeCardLimit ? (
@@ -217,10 +219,12 @@ export default function Collection() {
             <View style={s.controls}>
               <View style={s.chipRow} accessibilityLabel="Sort collection">
                 {SORT_OPTIONS.map((option) => (
-                  <Chip
+                  <TDChip
                     key={option.value}
                     label={option.label}
                     selected={sort === option.value}
+                    tone="info"
+                    accessibilityLabel={`Sort collection by ${option.label}`}
                     onPress={() => setSort(option.value)}
                   />
                 ))}
@@ -276,15 +280,6 @@ function CollectionFooter({
   if (error) return <TDButton label="Retry page" variant="secondary" onPress={onLoadMore} />;
   if (!hasMore) return <TDText variant="caption" tone="muted" style={s.endText}>End of collection results</TDText>;
   return <TDButton label="Load more" variant="secondary" onPress={onLoadMore} />;
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <TDCard style={s.summaryCard}>
-      <TDText variant="caption" tone="muted">{label}</TDText>
-      <TDText variant="title">{value}</TDText>
-    </TDCard>
-  );
 }
 
 function CollectionCardRow({
@@ -388,20 +383,6 @@ function CollectionState({
   return null;
 }
 
-function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityLabel={`${label} sort`}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[s.chip, selected && s.chipSelected]}
-    >
-      <TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText>
-    </Pressable>
-  );
-}
-
 function IconMode({
   label,
   iconName,
@@ -434,15 +415,12 @@ const s = StyleSheet.create({
   titleCopy: { flex: 1, gap: space.xs },
   headerActions: { alignItems: 'flex-end', gap: space.xs },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  summaryCard: { flexGrow: 1, flexBasis: '45%', padding: space.md, borderRadius: radius.md },
   limitCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },
   staleCard: { gap: space.xs, padding: space.md },
   limitIcon: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '12' },
   flex: { flex: 1 },
   controls: { gap: space.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
-  chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '35' },
   modeRow: { flexDirection: 'row', gap: space.xs },
   modeButton: { width: 46, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   modeButtonSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '35' },

@@ -67,6 +67,8 @@
 - Implemented: Next.js consumes design-system tokens through `src/lib/design-system/tokens.ts`, CSS variables in `src/app/globals.css`, and web primitives in `src/components/design-system/td-primitives.tsx`.
 - Implemented: Expo consumes the same token source through `mobile/design/tokens.ts` and React Native primitives in `mobile/components/design-system.tsx`.
 - Implemented: Expo and Next.js have development-only design-system showcase routes.
+- Implemented: Mobile polish primitives now include `TDChip`, `TDMetricTile`, and `TDIconRow` so active screens share selectable controls, summary metrics, icon rows, focus states, and touch-target behavior.
+- Implemented: Active mobile typography no longer uses negative letter spacing in the Expo token adapter.
 - Partially Implemented: Existing legacy primitives remain in place for incremental migration.
 - Planned: Navigation, modal, toast, chart, and table primitives are later focused architecture tasks.
 
@@ -110,6 +112,15 @@
 - Implemented: Admin access stays outside the primary tab bar and remains additive through protected profile/admin navigation.
 - Implemented: Safe-area height and scroll inset helpers live in `mobile/services/navigation-contract.ts` so screens can keep content clear of the bar.
 - Planned: Dedicated mobile content for Store Business/Activity and deeper Signals workflows remains future product work.
+
+## Mobile Product Polish Architecture
+
+- Implemented: Active mobile Collection, Card Detail, Storage Locations, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile screens use the shared TD chip/metric/row primitives where practical.
+- Implemented: Mobile polish keeps authentication logic, billing, membership, Supabase schemas, scanner recognition providers, and desktop web routes unchanged.
+- Implemented: Mobile screens continue to use the single account-aware bottom tab system and stack destinations for secondary flows.
+- Partially Implemented: Authentication remains visually custom but keeps TD inputs, TD buttons, error state, loading state, remembered-email, magic-link, Google, and Apple entry points.
+- Partially Implemented: Native responsive and accessibility QA still requires device/simulator review for small iPhone, large iPhone, Android, tablet, larger text, and narrow Expo Web.
+- Planned: Future polish should target onboarding/plans/welcome, Seller/Signals, Deal Desk, admin surfaces, and dev-only tools after their product responsibilities are reviewed.
 
 ## Identity And Entitlement Architecture
 

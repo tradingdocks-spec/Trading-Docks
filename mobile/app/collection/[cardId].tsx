@@ -2,12 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import {
   TDBadge,
   TDButton,
   TDCard,
+  TDChip,
   TDEmptyState,
   TDErrorState,
   TDLoadingState,
@@ -297,17 +298,15 @@ function OptionGroup<T extends string>({
         {options.map((option) => {
           const selected = option === value;
           return (
-            <Pressable
+            <TDChip
               key={option}
-              accessibilityRole="button"
               accessibilityLabel={`${display(option)} ${label}`}
-              accessibilityState={{ selected, disabled: pending }}
               disabled={pending || selected}
+              label={display(option)}
               onPress={() => onSelect(option)}
-              style={[s.optionChip, selected && s.optionChipSelected, pending && s.optionChipDisabled]}
-            >
-              <TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{display(option)}</TDText>
-            </Pressable>
+              selected={selected}
+              tone={label === 'Trade Binder' ? 'success' : 'info'}
+            />
           );
         })}
       </View>
@@ -353,8 +352,5 @@ const s = StyleSheet.create({
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   optionGroup: { gap: space.xs },
   optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  optionChip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
-  optionChipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '35' },
-  optionChipDisabled: { opacity: 0.7 },
   errorCard: { gap: space.xs },
 });

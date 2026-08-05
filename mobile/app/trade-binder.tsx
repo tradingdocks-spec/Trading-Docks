@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 
-import { TDBadge, TDButton, TDCard, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
-import { color, radius, space } from '@/design';
+import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDMetricTile, TDScreen, TDText } from '@/components/design-system';
+import { space } from '@/design';
 import { loadMobileTradeBinderWishlist, runMobileTradeWishlistMutation } from '@/services/trade-binder-wishlist-data';
 import {
   TRADE_STATUS_OPTIONS,
@@ -80,17 +80,17 @@ export default function TradeBinderScreen() {
             <TDText variant="small" tone="muted">Cards you have marked for trades, shows, sales, or upgrades.</TDText>
             {error ? <TDBadge tone={error.includes('queued') ? 'warning' : 'danger'}>{error.includes('queued') ? 'Pending sync' : 'Update failed'}</TDBadge> : null}
             <View style={s.summaryRow}>
-              <Metric label="Items" value={String(state.tradeSummary.totalBinderItems)} />
-              <Metric label="Quantity" value={String(state.tradeSummary.totalQuantityAvailable)} />
-              <Metric label="Matches" value={String(state.matches.length)} />
+              <TDMetricTile label="Items" value={String(state.tradeSummary.totalBinderItems)} tone="info" compact />
+              <TDMetricTile label="Quantity" value={String(state.tradeSummary.totalQuantityAvailable)} compact />
+              <TDMetricTile label="Matches" value={String(state.matches.length)} tone={state.matches.length ? 'success' : 'neutral'} compact />
             </View>
             <TDInput label="Search binder" value={query} onChangeText={setQuery} leftIconName="search-outline" placeholder="Card, set, condition, storage..." />
             <View style={s.chips}>
-              <Chip label="All" selected={status === 'all'} onPress={() => setStatus('all')} />
-              {TRADE_STATUS_OPTIONS.filter((option) => option !== 'not_for_trade').map((option) => <Chip key={option} label={tradeStatusLabel(option)} selected={status === option} onPress={() => setStatus(option)} />)}
+              <TDChip label="All" selected={status === 'all'} onPress={() => setStatus('all')} />
+              {TRADE_STATUS_OPTIONS.filter((option) => option !== 'not_for_trade').map((option) => <TDChip key={option} label={tradeStatusLabel(option)} selected={status === option} onPress={() => setStatus(option)} />)}
             </View>
             <View style={s.chips}>
-              {(['recent', 'name', 'quantity'] as const).map((option) => <Chip key={option} label={option} selected={sort === option} onPress={() => setSort(option)} />)}
+              {(['recent', 'name', 'quantity'] as const).map((option) => <TDChip key={option} label={option} selected={sort === option} tone="accent" onPress={() => setSort(option)} />)}
             </View>
           </View>
         }
@@ -108,7 +108,7 @@ export default function TradeBinderScreen() {
             {item.notes ? <TDText variant="small" tone="muted">{item.notes}</TDText> : null}
             <View style={s.chips}>
               {TRADE_STATUS_OPTIONS.map((option) => (
-                <Chip key={option} label={tradeStatusLabel(option)} selected={item.status === option} disabled={pending === item.id} onPress={() => updateStatus(item, option)} />
+                <TDChip key={option} label={tradeStatusLabel(option)} selected={item.status === option} disabled={pending === item.id} tone="success" onPress={() => updateStatus(item, option)} />
               ))}
             </View>
           </TDCard>
@@ -118,30 +118,14 @@ export default function TradeBinderScreen() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return <TDCard style={s.metric}><TDText variant="caption" tone="muted">{label}</TDText><TDText variant="title">{value}</TDText></TDCard>;
-}
-
-function Chip({ label, selected, disabled, onPress }: { label: string; selected: boolean; disabled?: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={onPress} style={[s.chip, selected && s.chipSelected, disabled && s.disabled]}>
-      <TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText>
-    </Pressable>
-  );
-}
-
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
   header: { gap: space.md },
   back: { alignSelf: 'flex-start' },
   summaryRow: { flexDirection: 'row', gap: space.sm },
-  metric: { flex: 1, padding: space.md, borderRadius: radius.md },
   itemCard: { gap: space.md },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
   flex: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
-  chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '30' },
-  disabled: { opacity: 0.6 },
 });

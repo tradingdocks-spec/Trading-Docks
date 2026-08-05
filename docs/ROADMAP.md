@@ -24,6 +24,7 @@ Do not add new production features until the foundation items below are reviewed
 - Partially Implemented: Deck usage, scanner recognition, portfolio analytics, trade transactions, and marketplace listing remain visible as integration points but not complete workflows.
 - Implemented: Redesign mobile Home around a premium one-handed command-center hierarchy using real collection data, active sessions, unavailable states, and one primary bottom navigation system.
 - Implemented: Polish the mobile bottom navigation into one compact, account-aware five-tab bar with consistent Ionicons, restrained center action treatment, selected state, safe-area sizing, and no Explore placeholder tab.
+- Implemented: Add a focused mobile product polish pass with shared TD chips, metric tiles, icon rows, compact card defaults, zero negative tracking, and active-screen migrations for Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Session Review, and Profile.
 - Partially Implemented: Home market movement, recent activity, notifications, and operations signals remain unavailable until real data sources exist.
 - Planned: Remove or archive backup dependency folders and historical release artifacts only after product-owner review.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
@@ -32,6 +33,7 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Continue design-system migration in order: dashboard state surfaces, common cards/headers, input-heavy admin/settings screens, then modal/toast/chart/table primitives.
 - Planned: Retire duplicated legacy navigation modules after import ownership is confirmed and missing route content is prioritized.
 - Planned: Complete native visual QA for the polished bottom bar across small iPhone, large iPhone, Android, narrow Expo Web, larger text, and light/dark browser rendering.
+- Planned: Complete physical-device and simulator visual QA for the broader mobile polish pass across core app screens before release.
 
 ## Sprint 2: Production Configuration Readiness
 
