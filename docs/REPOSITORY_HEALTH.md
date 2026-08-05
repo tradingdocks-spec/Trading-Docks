@@ -22,6 +22,7 @@
 ## Navigation Issues
 
 - Implemented: Active mobile tabs now use `mobile/services/navigation-contract.ts` for account-aware labels, hidden routes, prominent tab selection, selected state, and fallback account behavior.
+- Implemented: Mobile Home now preserves the bottom tab bar as the only primary navigation system; the Home action row is a compact deep-link surface, not a duplicate persistent nav.
 - Implemented: Active web dashboard navigation now uses `src/lib/navigation/contract.ts` and `src/components/dashboard/navigation.ts` for account-aware labels in `TieredDashboardShell` and mobile web bottom nav.
 - Implemented: Admin navigation is additive: normal workspaces remain the default, and Command Center stays protected by route guards.
 - Partially Implemented: Multiple older navigation definitions still exist in dashboard legacy folders and backup snapshots.
@@ -39,6 +40,7 @@
 
 - Implemented: Active web and mobile membership tier names, prices, limits, and plan-card labels now use the canonical `free | collector | seller | store` catalog.
 - Implemented: Authenticated collection surfaces no longer present static sample cards as live user data.
+- Implemented: Mobile Home no longer presents mock collection value, mock movement, mock signals, or fake recent activity as live user data.
 - Partially Implemented: Web `/dashboard/inventory` now uses the Collector Workspace browser; older inventory management components remain in source and need workflow review before retirement.
 - Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
@@ -81,6 +83,7 @@
 - Planned: Auth redirect and callback tests.
 - Implemented: Focused membership entitlement tests cover prices, annual savings, limits, financial access, Deal Desk access, web workspace access, Store employee entitlement, role separation, billing fallback, and unknown-tier fallback.
 - Implemented: Focused Collector Workspace tests cover search filtering, sorting, exact-printing display, storage-location display, trade-binder indicator, wishlist indicator, Free card-limit behavior, empty state, no-results state, and safe missing-price behavior.
+- Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
 - Planned: Public share token validation tests.

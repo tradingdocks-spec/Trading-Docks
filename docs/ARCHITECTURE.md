@@ -158,3 +158,13 @@
 - Performance risks: current browsers limit inventory reads to `COLLECTION_PAGE_SIZE` and debounce search, but server-side pagination cursors and virtualized web tables are future work for very large collections.
 - Mobile/web responsibility differences: mobile prioritizes fast touch browsing, stale/offline visibility, card images, exact printings, and quick status scanning. Web prioritizes dense management, filters, bulk-selection foundation, storage visibility, and import/export navigation.
 - Recommended migration order: stabilize read-only browser and detail routes, add route-level tests/fixtures, add explicit pagination cursors, wire trade/wishlist mutations, wire scanner add-to-collection, then migrate or retire legacy inventory management surfaces.
+
+## Mobile Home Architecture
+
+- Implemented: Mobile Home lives at `mobile/app/(tabs)/index.tsx` and uses the existing account-aware bottom tab architecture as the single primary navigation system.
+- Implemented: Home composition rules live in `mobile/services/mobile-home.ts` so account-type copy, action routing, active-session visibility, and unavailable-state policy remain separate from presentation.
+- Implemented: The Home information hierarchy is compact header, portfolio/collection pulse, smart action row, Today/Harbor briefing, real active-session resume card when present, and recent-activity empty state.
+- Implemented: Home reads real collection summary data through the existing Collector Workspace loader and summarizes saved cards, known value, storage locations, and missing prices. It does not show mock portfolio values, mock charts, mock movement, or fake activity.
+- Implemented: Free, Collector, Seller, and Store share one adaptable composition. Seller and Store route the trade action to Deal Desk; Free and Collector route it to the existing Signals/Trade surface.
+- Partially Implemented: Market movement, recent activity feed, notification counts, and operations signals are unavailable states until backed by real data.
+- Planned: Add native screenshots/manual QA coverage for small phone, large phone, iOS safe area, Android safe area, long text, no user data, populated user data, and offline/stale state.

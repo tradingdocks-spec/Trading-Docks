@@ -21,6 +21,8 @@ Do not add new production features until the foundation items below are reviewed
 - Partially Implemented: Exclude confirmed backup/archive and generated output folders from active root lint scope.
 - Implemented: Establish the first Collector Workspace foundation with shared collection models, mobile/web collection browsers, detail route foundations, and focused collection tests.
 - Partially Implemented: Trade binder, wishlist, deck usage, scanner recognition, and portfolio analytics are visible as integration points but not complete workflows.
+- Implemented: Redesign mobile Home around a premium one-handed command-center hierarchy using real collection data, active sessions, unavailable states, and one primary bottom navigation system.
+- Partially Implemented: Home market movement, recent activity, notifications, and operations signals remain unavailable until real data sources exist.
 - Planned: Remove or archive backup dependency folders and historical release artifacts only after product-owner review.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
 - Planned: Add mobile CI or document why mobile validation is manual.
