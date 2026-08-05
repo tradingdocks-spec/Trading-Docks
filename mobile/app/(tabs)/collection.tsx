@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 
 import {
@@ -23,11 +23,12 @@ import {
   displayFinish,
   displayPrinting,
   displayStorageLocation,
-  filterCollectionCards,
+  collectionRequestKey,
+  mergeCollectionPages,
   priceLabel,
   resolveCollectionViewState,
-  sortCollectionCards,
   summarizeCollectionCards,
+  shouldAcceptCollectionResponse,
   type CollectionCard,
   type CollectionSort,
 } from '@/services/collector-workspace';
@@ -46,51 +47,84 @@ export default function Collection() {
   const { accountType } = useAccount();
   const [cards, setCards] = useState<CollectionCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [staleReason, setStaleReason] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sort, setSort] = useState<CollectionSort>('recently_updated');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('list');
+  const activeRequestKey = useRef('');
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), 250);
     return () => clearTimeout(timer);
   }, [query]);
 
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
+  const loadPage = useCallback((cursor: string | null, reset: boolean) => {
+    const filter = { query: debouncedQuery };
+    const requestKey = collectionRequestKey({ filter, sort });
+    activeRequestKey.current = requestKey;
+    if (reset) {
+      setLoading(true);
+      setCards([]);
+      setNextCursor(null);
+      setHasMore(false);
+    } else {
+      if (!cursor) return;
+      setLoadingMore(true);
+    }
     setError(null);
-    void loadCollectorCollectionPage({ query: debouncedQuery })
+    void loadCollectorCollectionPage({ filter, sort, cursor })
       .then((result) => {
-        if (!active) return;
-        setCards(result.cards);
+        if (!shouldAcceptCollectionResponse(activeRequestKey.current, result.pageInfo.requestKey)) return;
+        setCards((current) => mergeCollectionPages(current, result.cards, reset));
+        setNextCursor(result.pageInfo.nextCursor);
+        setHasMore(result.pageInfo.hasMore);
         setStaleReason(result.stale ? result.unavailableReason ?? 'Showing cached collection data.' : null);
       })
       .catch((loadError) => {
-        if (!active) return;
-        setCards([]);
+        if (!shouldAcceptCollectionResponse(activeRequestKey.current, requestKey)) return;
+        if (reset) setCards([]);
         setError(loadError instanceof Error ? loadError.message : 'Collection data is unavailable.');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!shouldAcceptCollectionResponse(activeRequestKey.current, requestKey)) return;
+        if (reset) setLoading(false);
+        else setLoadingMore(false);
       });
-    return () => {
-      active = false;
-    };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, sort]);
 
-  const visibleCards = useMemo(
-    () => sortCollectionCards(filterCollectionCards(cards, { query: debouncedQuery }), sort),
-    [cards, debouncedQuery, sort],
-  );
+  useEffect(() => {
+    const timer = setTimeout(() => loadPage(null, true), 0);
+    return () => clearTimeout(timer);
+  }, [loadPage]);
+
+  const retry = useCallback(() => {
+    loadPage(null, true);
+  }, [loadPage]);
+
+  const loadMore = useCallback(() => {
+    if (!loading && !loadingMore && hasMore && nextCursor) loadPage(nextCursor, false);
+  }, [hasMore, loadPage, loading, loadingMore, nextCursor]);
+
+  useEffect(() => {
+    return () => {
+      activeRequestKey.current = '';
+    };
+  }, []);
+
+  const visibleCards = cards;
   const summary = useMemo(() => summarizeCollectionCards(cards, accountType), [accountType, cards]);
   const state = resolveCollectionViewState({
     loading,
+    loadingMore,
     error,
     totalCount: cards.length,
     visibleCount: visibleCards.length,
+    hasMore,
   });
 
   return (
@@ -180,8 +214,13 @@ export default function Collection() {
             state={state}
             error={error}
             query={debouncedQuery}
-            onRetry={() => setDebouncedQuery(query)}
+            onRetry={retry}
           />
+        }
+        ListFooterComponent={
+          state === 'ready' || state === 'loading_more' || state === 'end' ? (
+            <CollectionFooter loadingMore={loadingMore} hasMore={hasMore} error={error} onLoadMore={loadMore} />
+          ) : null
         }
         renderItem={({ item }) => (
           <CollectionCardRow
@@ -191,10 +230,29 @@ export default function Collection() {
           />
         )}
         contentContainerStyle={s.listContent}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.45}
         showsVerticalScrollIndicator={false}
       />
     </TDScreen>
   );
+}
+
+function CollectionFooter({
+  loadingMore,
+  hasMore,
+  error,
+  onLoadMore,
+}: {
+  loadingMore: boolean;
+  hasMore: boolean;
+  error: string | null;
+  onLoadMore: () => void;
+}) {
+  if (loadingMore) return <TDLoadingState title="Loading more cards" message="Fetching the next page." />;
+  if (error) return <TDButton label="Retry page" variant="secondary" onPress={onLoadMore} />;
+  if (!hasMore) return <TDText variant="caption" tone="muted" style={s.endText}>End of collection results</TDText>;
+  return <TDButton label="Load more" variant="secondary" onPress={onLoadMore} />;
 }
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
@@ -375,6 +433,7 @@ const s = StyleSheet.create({
   cardImage: { width: '100%', height: '100%' },
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xs, padding: space.xs },
   centerText: { textAlign: 'center' },
+  endText: { textAlign: 'center', paddingVertical: space.lg },
   cardBody: { flex: 1, minWidth: 0, gap: 5 },
   cardTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.xs },
   cardTitle: { flex: 1 },

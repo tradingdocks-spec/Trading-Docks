@@ -78,8 +78,9 @@ export type CollectionFilter = {
   query?: string;
   condition?: CardCondition | 'all';
   finish?: CardFinish | 'all';
+  setCode?: string | 'all';
   storageLocationId?: string | 'all';
-  tradeBinderStatus?: TradeBinderStatus | 'all';
+  tradeBinderStatus?: TradeBinderStatus | 'all' | 'tradeable';
   wishlistStatus?: WishlistStatus | 'all';
 };
 
@@ -106,10 +107,32 @@ export type CollectionSummary = {
 
 export type CollectionViewState =
   | 'loading'
+  | 'loading_more'
   | 'empty'
   | 'no_results'
   | 'ready'
+  | 'end'
   | 'error';
+
+export type CollectionCursor = {
+  sort: CollectionSort;
+  value: string | number | null;
+  id: string;
+};
+
+export type CollectionPageRequest = {
+  filter?: CollectionFilter;
+  sort?: CollectionSort;
+  cursor?: string | null;
+  limit?: number;
+};
+
+export type CollectionPageInfo = {
+  nextCursor: string | null;
+  hasMore: boolean;
+  pageSize: number;
+  requestKey: string;
+};
 
 export type RawInventoryItem = {
   id: string;
@@ -152,6 +175,7 @@ export type BuildCollectionInput = {
 };
 
 export const COLLECTION_PAGE_SIZE = 100;
+export const COLLECTION_MAX_PAGE_SIZE = 100;
 export const COLLECTION_CACHE_KEY_PREFIX = 'trading-docks-collector-workspace-cache-v1';
 
 export function collectorCacheKeyForUser(userId: string) {
@@ -247,6 +271,7 @@ export function filterCollectionCards(
     if (query && !searchHaystack.includes(query)) return false;
     if (filter.condition && filter.condition !== 'all' && card.condition !== filter.condition) return false;
     if (filter.finish && filter.finish !== 'all' && card.printing.finish !== filter.finish) return false;
+    if (filter.setCode && filter.setCode !== 'all' && card.printing.setCode?.toLowerCase() !== filter.setCode.toLowerCase()) return false;
     if (
       filter.storageLocationId &&
       filter.storageLocationId !== 'all' &&
@@ -257,10 +282,12 @@ export function filterCollectionCards(
     if (
       filter.tradeBinderStatus &&
       filter.tradeBinderStatus !== 'all' &&
+      filter.tradeBinderStatus !== 'tradeable' &&
       card.tradeBinderStatus !== filter.tradeBinderStatus
     ) {
       return false;
     }
+    if (filter.tradeBinderStatus === 'tradeable' && card.tradeBinderStatus === 'not_for_trade') return false;
     if (
       filter.wishlistStatus &&
       filter.wishlistStatus !== 'all' &&
@@ -293,20 +320,101 @@ export function sortCollectionCards(cards: CollectionCard[], sort: CollectionSor
 
 export function resolveCollectionViewState({
   loading,
+  loadingMore,
   error,
   totalCount,
   visibleCount,
+  hasMore,
 }: {
   loading: boolean;
+  loadingMore?: boolean;
   error?: string | null;
   totalCount: number;
   visibleCount: number;
+  hasMore?: boolean;
 }): CollectionViewState {
   if (loading) return 'loading';
+  if (loadingMore) return 'loading_more';
   if (error) return 'error';
   if (totalCount === 0) return 'empty';
   if (visibleCount === 0) return 'no_results';
+  if (hasMore === false) return 'end';
   return 'ready';
+}
+
+export function normalizeCollectionPageSize(limit: unknown) {
+  const parsed = typeof limit === 'number' && Number.isFinite(limit) ? Math.floor(limit) : COLLECTION_PAGE_SIZE;
+  return Math.min(Math.max(parsed, 1), COLLECTION_MAX_PAGE_SIZE);
+}
+
+export function collectionRequestKey({
+  filter = {},
+  sort = 'recently_updated',
+  limit = COLLECTION_PAGE_SIZE,
+}: Omit<CollectionPageRequest, 'cursor'>) {
+  return JSON.stringify({
+    filter: {
+      query: normalizeSearchText(filter.query ?? ''),
+      condition: filter.condition ?? 'all',
+      finish: filter.finish ?? 'all',
+      setCode: normalizeSearchText(filter.setCode && filter.setCode !== 'all' ? filter.setCode : ''),
+      storageLocationId: filter.storageLocationId ?? 'all',
+      tradeBinderStatus: filter.tradeBinderStatus ?? 'all',
+      wishlistStatus: filter.wishlistStatus ?? 'all',
+    },
+    sort,
+    limit: normalizeCollectionPageSize(limit),
+  });
+}
+
+export function encodeCollectionCursor(cursor: CollectionCursor) {
+  return [
+    encodeURIComponent(cursor.sort),
+    encodeURIComponent(String(cursor.value ?? '')),
+    encodeURIComponent(cursor.id),
+  ].join('|');
+}
+
+export function decodeCollectionCursor(value?: string | null): CollectionCursor | null {
+  if (!value) return null;
+  const [sort, rawCursorValue, id] = value.split('|').map((part) => decodeURIComponent(part ?? ''));
+  if (!isCollectionSort(sort) || !id) return null;
+  return { sort, value: rawCursorValue || null, id };
+}
+
+export function cursorForCollectionCard(card: CollectionCard, sort: CollectionSort) {
+  return encodeCollectionCursor({ sort, value: sortCursorValue(card, sort), id: card.id });
+}
+
+export function buildCollectionPageInfo({
+  cards,
+  request,
+  hasMore,
+}: {
+  cards: CollectionCard[];
+  request: CollectionPageRequest;
+  hasMore?: boolean;
+}): CollectionPageInfo {
+  const pageSize = normalizeCollectionPageSize(request.limit);
+  const pageHasMore = hasMore ?? cards.length === pageSize;
+  const lastCard = cards.at(-1);
+  return {
+    nextCursor: pageHasMore && lastCard ? cursorForCollectionCard(lastCard, request.sort ?? 'recently_updated') : null,
+    hasMore: pageHasMore,
+    pageSize,
+    requestKey: collectionRequestKey({ filter: request.filter, sort: request.sort, limit: pageSize }),
+  };
+}
+
+export function mergeCollectionPages(existing: CollectionCard[], nextPage: CollectionCard[], reset = false) {
+  if (reset) return [...nextPage];
+  const byId = new Map(existing.map((card) => [card.id, card]));
+  for (const card of nextPage) byId.set(card.id, card);
+  return [...byId.values()];
+}
+
+export function shouldAcceptCollectionResponse(activeRequestKey: string, responseRequestKey: string) {
+  return activeRequestKey === responseRequestKey;
 }
 
 export function summarizeCollectionCards(
@@ -483,6 +591,25 @@ function resolveWishlistStatus(
 
 function normalizeSearchText(value: string) {
   return value.trim().toLowerCase();
+}
+
+function isCollectionSort(value: string): value is CollectionSort {
+  return (
+    value === 'name_asc' ||
+    value === 'name_desc' ||
+    value === 'recently_updated' ||
+    value === 'quantity_desc' ||
+    value === 'set_asc' ||
+    value === 'price_desc'
+  );
+}
+
+function sortCursorValue(card: CollectionCard, sort: CollectionSort): string | number | null {
+  if (sort === 'name_asc' || sort === 'name_desc') return card.cardName;
+  if (sort === 'quantity_desc') return card.quantityOwned;
+  if (sort === 'set_asc') return `${card.printing.setCode ?? ''}:${card.printing.collectorNumber ?? ''}:${card.cardName}`;
+  if (sort === 'price_desc') return card.marketPrice.amount ?? -1;
+  return card.updatedAt ?? null;
 }
 
 function stringValue(value: unknown) {

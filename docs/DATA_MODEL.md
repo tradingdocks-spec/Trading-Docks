@@ -87,3 +87,10 @@
 - Planned: The verification script now includes Free 499/500/over-limit cases, zero quantity, paid tiers, admin-with-Free, explicit override, missing profile/preferences, cross-user mutation, duplicate offline replay, and service-role behavior notes.
 - Planned: Do not apply these Collector mutation security schema changes from this branch.
 - Planned: Do not apply these schema changes from this branch.
+
+## Collector Query Scalability
+
+- Implemented: Active mobile and web collection queries scope `inventory_items`, `inventory_locations`, `binder_card_trade_status`, and `collector_wishlist` by authenticated `user_id`.
+- Implemented: Current inventory indexes include `(user_id, card_name)`, `(user_id, location_id)`, `(user_id, set_code, collector_number)`, `(user_id, scryfall_id)`, `(user_id, updated_at desc)`, and primary key `(user_id, id)`.
+- Partially Implemented: Current indexes support the default recent sort, storage filter, set sort, and ownership lookup. Name search with `ilike`, JSON condition/finish filters, price/quantity sorts, and batched Trade Binder/Wishlist filters should be measured with `explain analyze` in staging.
+- Planned: Proposed index review candidates only, not applied here: `(user_id, quantity desc, id)`, `(user_id, inventory_value desc, id)`, expression indexes for `data->>'condition'` and `data->>'finish'`, and related-table indexes for `binder_card_trade_status(user_id, status, inventory_item_id)` and `collector_wishlist(user_id, card_name)`.

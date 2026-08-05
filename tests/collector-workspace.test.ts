@@ -3,11 +3,17 @@ import test from 'node:test';
 
 import {
   buildCollectionCards,
+  buildCollectionPageInfo,
+  collectionRequestKey,
+  cursorForCollectionCard,
+  decodeCollectionCursor,
   displayPrinting,
   displayStorageLocation,
   filterCollectionCards,
+  mergeCollectionPages,
   priceLabel,
   resolveCollectionViewState,
+  shouldAcceptCollectionResponse,
   sortCollectionCards,
   summarizeCollectionCards,
   collectorCacheKeyForUser,
@@ -109,6 +115,11 @@ test('empty state and no-results state are distinct', () => {
   assert.equal(resolveCollectionViewState({ loading: false, totalCount: 2, visibleCount: 0 }), 'no_results');
 });
 
+test('loading-more and retry states are explicit', () => {
+  assert.equal(resolveCollectionViewState({ loading: false, loadingMore: true, totalCount: 2, visibleCount: 2 }), 'loading_more');
+  assert.equal(resolveCollectionViewState({ loading: false, error: 'network failed', totalCount: 2, visibleCount: 2 }), 'error');
+});
+
 test('missing price is shown as unavailable, not zero', () => {
   assert.equal(cards[1].marketPrice.amount, null);
   assert.equal(priceLabel(cards[1]), 'Price unavailable');
@@ -169,4 +180,62 @@ test('mobile stale collection cache keys are scoped by auth user id', () => {
     collectorCacheKeyForUser('user-a'),
     'trading-docks-collector-workspace-cache-v1:user-a',
   );
+});
+
+test('Collector Workspace first page and next page cursors are deterministic', () => {
+  const pageInfo = buildCollectionPageInfo({
+    cards: [cards[0]],
+    request: { sort: 'recently_updated', limit: 1 },
+  });
+
+  assert.equal(pageInfo.hasMore, true);
+  assert.equal(pageInfo.pageSize, 1);
+  assert.equal(decodeCollectionCursor(pageInfo.nextCursor)?.id, 'rhystic-wot-foil');
+  assert.equal(decodeCollectionCursor(pageInfo.nextCursor)?.sort, 'recently_updated');
+});
+
+test('Collector Workspace end-of-results page has no next cursor', () => {
+  const pageInfo = buildCollectionPageInfo({
+    cards,
+    request: { sort: 'recently_updated', limit: 100 },
+  });
+
+  assert.equal(pageInfo.hasMore, false);
+  assert.equal(pageInfo.nextCursor, null);
+  assert.equal(resolveCollectionViewState({ loading: false, totalCount: cards.length, visibleCount: cards.length, hasMore: false }), 'end');
+});
+
+test('Collector Workspace page merge prevents duplicate cards', () => {
+  const merged = mergeCollectionPages([cards[0]], [cards[0], cards[1]]);
+
+  assert.deepEqual(merged.map((card) => card.id), ['rhystic-wot-foil', 'sol-ring']);
+});
+
+test('Collector Workspace cursor resets when search, filters, or sort changes', () => {
+  const base = collectionRequestKey({ filter: { query: 'sol' }, sort: 'recently_updated' });
+  const searched = collectionRequestKey({ filter: { query: 'rhystic' }, sort: 'recently_updated' });
+  const filtered = collectionRequestKey({ filter: { query: 'sol', tradeBinderStatus: 'tradeable' }, sort: 'recently_updated' });
+  const sorted = collectionRequestKey({ filter: { query: 'sol' }, sort: 'name_asc' });
+
+  assert.notEqual(base, searched);
+  assert.notEqual(base, filtered);
+  assert.notEqual(base, sorted);
+});
+
+test('Collector Workspace stale responses are rejected by request key', () => {
+  const active = collectionRequestKey({ filter: { query: 'new' }, sort: 'name_asc' });
+  const stale = collectionRequestKey({ filter: { query: 'old' }, sort: 'name_asc' });
+
+  assert.equal(shouldAcceptCollectionResponse(active, active), true);
+  assert.equal(shouldAcceptCollectionResponse(active, stale), false);
+});
+
+test('Collector Workspace cursor encodes exact-printing sort position without changing fields', () => {
+  const cursor = cursorForCollectionCard(cards[0], 'set_asc');
+  const decoded = decodeCollectionCursor(cursor);
+
+  assert.equal(decoded?.id, 'rhystic-wot-foil');
+  assert.equal(displayPrinting(cards[0].printing), 'WOT #25');
+  assert.equal(cards[0].condition, 'near_mint');
+  assert.equal(cards[0].printing.finish, 'foil');
 });

@@ -15,7 +15,7 @@ import {
   Tag,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   TDBadge,
@@ -30,15 +30,16 @@ import {
 import { cn } from "@/lib/utils";
 import { loadWebCollectorCollectionPage } from "@/lib/collector-workspace-client-data";
 import {
+  collectionRequestKey,
   displayCondition,
   displayFinish,
   displayPrinting,
   displayStorageLocation,
-  filterCollectionCards,
+  mergeCollectionPages,
   priceLabel,
   resolveCollectionViewState,
-  sortCollectionCards,
   summarizeCollectionCards,
+  shouldAcceptCollectionResponse,
   type CollectionCard,
   type CollectionSort,
 } from "@/lib/collector-workspace";
@@ -63,53 +64,86 @@ export function CollectorWorkspace({
 }) {
   const [cards, setCards] = useState<CollectionCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sort, setSort] = useState<CollectionSort>("recently_updated");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("list");
   const [tradeOnly, setTradeOnly] = useState(false);
   const [wishlistOnly, setWishlistOnly] = useState(false);
+  const activeRequestKey = useRef("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query), 250);
     return () => window.clearTimeout(timer);
   }, [query]);
 
-  useEffect(() => {
-    let active = true;
-    void loadWebCollectorCollectionPage({ query: debouncedQuery })
+  const loadPage = useCallback((cursor: string | null, reset: boolean) => {
+    const filter = {
+      query: debouncedQuery,
+      tradeBinderStatus: tradeOnly ? "tradeable" as const : "all" as const,
+      wishlistStatus: wishlistOnly ? "wanted" as const : "all" as const,
+    };
+    const requestKey = collectionRequestKey({ filter, sort });
+    activeRequestKey.current = requestKey;
+    if (reset) {
+      setLoading(true);
+      setCards([]);
+      setNextCursor(null);
+      setHasMore(false);
+    } else {
+      if (!cursor) return;
+      setLoadingMore(true);
+    }
+    setError(null);
+    void loadWebCollectorCollectionPage({ filter, sort, cursor })
       .then((result) => {
-        if (!active) return;
-        setCards(result.cards);
+        if (!shouldAcceptCollectionResponse(activeRequestKey.current, result.pageInfo.requestKey)) return;
+        setCards((current) => mergeCollectionPages(current, result.cards, reset));
+        setNextCursor(result.pageInfo.nextCursor);
+        setHasMore(result.pageInfo.hasMore);
         setError(null);
       })
       .catch((loadError) => {
-        if (!active) return;
-        setCards([]);
+        if (!shouldAcceptCollectionResponse(activeRequestKey.current, requestKey)) return;
+        if (reset) setCards([]);
         setError(loadError instanceof Error ? loadError.message : "Collection data is unavailable.");
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!shouldAcceptCollectionResponse(activeRequestKey.current, requestKey)) return;
+        if (reset) setLoading(false);
+        else setLoadingMore(false);
       });
-    return () => {
-      active = false;
-    };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, sort, tradeOnly, wishlistOnly]);
 
-  const visibleCards = useMemo(() => {
-    const filtered = filterCollectionCards(cards, {
-      query: debouncedQuery,
-      wishlistStatus: wishlistOnly ? "wanted" : "all",
-    }).filter((card) => !tradeOnly || card.tradeBinderStatus !== "not_for_trade");
-    return sortCollectionCards(filtered, sort);
-  }, [cards, debouncedQuery, sort, tradeOnly, wishlistOnly]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => loadPage(null, true), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadPage]);
+
+  const retry = useCallback(() => loadPage(null, true), [loadPage]);
+  const loadMore = useCallback(() => {
+    if (!loading && !loadingMore && hasMore && nextCursor) loadPage(nextCursor, false);
+  }, [hasMore, loadPage, loading, loadingMore, nextCursor]);
+
+  useEffect(() => {
+    return () => {
+      activeRequestKey.current = "";
+    };
+  }, []);
+
+  const visibleCards = cards;
   const summary = useMemo(() => summarizeCollectionCards(cards, accountType), [accountType, cards]);
   const viewState = resolveCollectionViewState({
     loading,
+    loadingMore,
     error,
     totalCount: cards.length,
     visibleCount: visibleCards.length,
+    hasMore,
   });
   const canUseSellerActions = accountType === "seller" || accountType === "store";
 
@@ -195,7 +229,7 @@ export function CollectorWorkspace({
         {viewState === "loading" ? (
           <LoadingSkeleton />
         ) : viewState === "error" ? (
-          <TDErrorState title="Collection unavailable" message={error ?? "Collection data could not be loaded."} action={<TDButton label="Retry" variant="secondary" onClick={() => setDebouncedQuery(query)} />} />
+          <TDErrorState title="Collection unavailable" message={error ?? "Collection data could not be loaded."} action={<TDButton label="Retry" variant="secondary" onClick={retry} />} />
         ) : viewState === "empty" ? (
           <TDEmptyState title="No cards in this collection yet" message="Saved inventory cards will appear here after they are added through supported collection tools." />
         ) : viewState === "no_results" ? (
@@ -240,6 +274,18 @@ export function CollectorWorkspace({
           </div>
         )}
       </section>
+
+      {(viewState === "ready" || viewState === "loading_more" || viewState === "end") ? (
+        <div className="flex justify-center">
+          {loadingMore ? (
+            <TDText variant="small" tone="muted">Loading more cards...</TDText>
+          ) : hasMore ? (
+            <TDButton label="Load more" variant="secondary" onClick={loadMore} />
+          ) : (
+            <TDText variant="caption" tone="muted">End of collection results</TDText>
+          )}
+        </div>
+      ) : null}
 
       {canUseSellerActions ? (
         <TDCard variant="outlined" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

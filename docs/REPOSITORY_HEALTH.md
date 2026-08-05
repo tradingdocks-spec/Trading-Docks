@@ -89,6 +89,7 @@
 - Implemented: Focused Collector Workspace tests cover search filtering, sorting, exact-printing display, storage-location display, trade-binder indicator, wishlist indicator, Free card-limit behavior, empty state, no-results state, and safe missing-price behavior.
 - Implemented: Focused Collector mutation tests cover ownership rejection, Free-plan limits, quantity validation, condition/finish/storage/trade/wishlist optimistic updates, rollback, trade-filter visibility, user-isolated offline queue entries, and duplicate queued-write prevention.
 - Implemented: Collector mutation tests now cover recognition of proposed database-authoritative ownership and Free-limit errors for offline replay.
+- Implemented: Collector Workspace tests now cover cursor construction, end-of-results state, duplicate page merging, search/filter/sort reset keys, stale response rejection, and exact-printing preservation.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -148,3 +149,5 @@
 5. Replay `202608050001_collector_mutation_security_proposal.sql` in staging and run `verify_collector_mutation_security.sql` before production approval.
 6. Install or use approved disposable Supabase tooling for a clean migration replay; the current Codex environment has no `supabase`, `psql`, or Docker binary available.
 7. Verify service-role inventory import behavior before production rollout; current audit found read-oriented service-role inventory access, while authenticated client/bulk upsert paths will be subject to the proposed trigger.
+8. Run staging query-plan review for large Collector datasets, especially `ilike` search, JSON condition/finish filters, Trade Binder/Wishlist related filters, and price/quantity sorts.
+9. Add web table virtualization and mobile `FlatList` tuning once realistic collection-size fixtures are available.

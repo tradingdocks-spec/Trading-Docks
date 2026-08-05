@@ -33,3 +33,5 @@
 - Planned: After the proposal is applied in staging, offline replay should call the authoritative RPC path where practical and preserve failed writes for user-visible resolution.
 - Planned: Staging validation must replay duplicate queued quantity writes and confirm repeated replay is idempotent from the user's perspective: the latest queued quantity should remain the final value, and authoritative errors must keep the queued operation visible for resolution.
 - Planned: Staging validation must include sign-out/user-switch isolation so a queued mutation for one user cannot replay under another user's session.
+- Implemented: Mobile collection cache remains scoped by auth user id and now represents the cached first page for the active query surface instead of implying a complete offline collection mirror.
+- Partially Implemented: Offline first-page fallback is useful for stale browsing, but paginated offline continuation is not implemented; queued replay still needs durable retry/backoff and user-visible conflict resolution.

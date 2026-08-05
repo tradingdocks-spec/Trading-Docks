@@ -180,6 +180,11 @@
 - Implemented: Storage assignment supports choosing an existing location or clearing the location. Nested binder-page editing remains outside this sprint.
 - Partially Implemented: Mobile has a replay helper for queued collector mutations and replaces duplicate queued writes for the same user/card/action. Automatic network-triggered replay and conflict resolution beyond last queued write wins remain future sync work.
 - Implemented: Mobile replay classifies proposed database-authoritative mutation errors and keeps failed queued writes with `errorCode`/`lastError` metadata.
+- Implemented: Collector collection browsing now uses cursor-shaped page requests shared by mobile and web. Search and available filters are applied to the authenticated user's Supabase query before page retrieval, and pages merge by `inventory_items.id` to prevent duplicate cards.
+- Implemented: Cursor shape is `sort|value|id`, URL-encoded by `encodeCollectionCursor`, with deterministic secondary ordering by `id`.
+- Implemented: The shared page size is `COLLECTION_PAGE_SIZE = 100`, capped by `COLLECTION_MAX_PAGE_SIZE = 100`.
+- Partially Implemented: Mobile and web show initial loading, loading-more, retry/error, stale/offline, and end-of-results states. Web table/grid still needs virtualization if production collections regularly exceed several thousand visible rows.
+- Partially Implemented: Trade Binder and Wishlist filters are batched through related table lookups to avoid N+1 queries, but large related tables may need dedicated RPCs or indexed materialized access paths later.
 
 ### Collector Mutation Security Proposal
 
