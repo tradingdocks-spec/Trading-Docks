@@ -35,3 +35,11 @@
 - Planned: Staging validation must include sign-out/user-switch isolation so a queued mutation for one user cannot replay under another user's session.
 - Implemented: Mobile collection cache remains scoped by auth user id and now represents the cached first page for the active query surface instead of implying a complete offline collection mirror.
 - Partially Implemented: Offline first-page fallback is useful for stale browsing, but paginated offline continuation is not implemented; queued replay still needs durable retry/backoff and user-visible conflict resolution.
+
+## Storage Location Offline Behavior
+
+- Implemented: Mobile storage assignment/move operations enqueue as `collector_storage_location_assignment` when the online Supabase write fails.
+- Implemented: Storage assignment queue entries include `userId` and a de-dupe key scoped by user and inventory item, so repeated moves for the same card replace earlier queued moves instead of replaying duplicates.
+- Implemented: Replay only attempts queued storage-location assignments for the active user and leaves other users' queued operations isolated.
+- Partially Implemented: Failed replay keeps the queued operation with `lastError`; the UI surfaces pending-sync messages but does not yet provide a full conflict-resolution inbox.
+- Planned: Create/rename/archive location operations currently require online Supabase access. Offline support is limited to assignment and move operations until durable hierarchy conflict rules are approved.

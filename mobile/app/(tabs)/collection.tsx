@@ -146,7 +146,16 @@ export default function Collection() {
                   Exact printings, copies, storage, trade state, and wishlist state.
                 </TDText>
               </View>
-              {staleReason ? <TDBadge tone="warning">Offline or stale</TDBadge> : null}
+              <View style={s.headerActions}>
+                {staleReason ? <TDBadge tone="warning">Offline or stale</TDBadge> : null}
+                <TDButton
+                  label="Storage"
+                  variant="secondary"
+                  iconName="file-tray-stacked-outline"
+                  accessibilityLabel="Open Storage Location Manager"
+                  onPress={() => router.push('/storage-locations' as never)}
+                />
+              </View>
             </View>
 
             <View style={s.summaryGrid}>
@@ -409,6 +418,7 @@ const s = StyleSheet.create({
   headerStack: { gap: space.md, marginBottom: space.xs },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.md },
   titleCopy: { flex: 1, gap: space.xs },
+  headerActions: { alignItems: 'flex-end', gap: space.xs },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   summaryCard: { flexGrow: 1, flexBasis: '45%', padding: space.md, borderRadius: radius.md },
   limitCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },

@@ -1,0 +1,312 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+
+import {
+  TDBadge,
+  TDButton,
+  TDCard,
+  TDEmptyState,
+  TDErrorState,
+  TDInput,
+  TDLoadingState,
+  TDScreen,
+  TDText,
+} from '@/components/design-system';
+import { color, radius, space } from '@/design';
+import {
+  assignMobileStorageLocation,
+  createMobileStorageLocation,
+  loadStorageLocationManager,
+  renameMobileStorageLocation,
+  archiveMobileStorageLocation,
+} from '@/services/storage-location-data';
+import {
+  STORAGE_LOCATION_TYPES,
+  cardsInLocation,
+  favoriteLocationSummaries,
+  recentLocationSummaries,
+  searchLocationSummaries,
+  type LocationManagerState,
+  type LocationSummary,
+  type StorageLocationType,
+} from '@/services/storage-location-manager';
+import type { CollectionCard } from '@/services/collector-workspace';
+
+type ScreenState = LocationManagerState & { userId: string; stale: boolean; unavailableReason?: string };
+
+export default function StorageLocationsScreen() {
+  const [state, setState] = useState<ScreenState | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [cardQuery, setCardQuery] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newType, setNewType] = useState<StorageLocationType>('area');
+  const [renameValue, setRenameValue] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+
+  const reload = () => {
+    setLoading(true);
+    void loadStorageLocationManager()
+      .then((result) => {
+        setState(result);
+        setSelectedId((current) => current ?? result.summaries[0]?.id ?? null);
+        setError(null);
+      })
+      .catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Storage locations are unavailable.'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(reload, []);
+
+  const summaries = useMemo(() => searchLocationSummaries(state?.summaries ?? [], query), [query, state]);
+  const selected = useMemo(() => summaries.find((location) => location.id === selectedId) ?? summaries[0] ?? null, [selectedId, summaries]);
+  const selectedCards = useMemo(() => selected && state ? cardsInLocation(state.cards ?? [], selected.id) : [], [selected, state]);
+  const cardResults = useMemo(() => {
+    const normalized = cardQuery.trim().toLowerCase();
+    if (!normalized || !state) return [];
+    return [...state.unassignedCards, ...selectedCards]
+      .filter((card) => `${card.cardName} ${card.printing.setCode ?? ''} ${card.printing.collectorNumber ?? ''}`.toLowerCase().includes(normalized))
+      .slice(0, 8);
+  }, [cardQuery, selectedCards, state]);
+
+  const run = async (key: string, action: () => Promise<{ ok: boolean; error?: string; queued?: boolean; warning?: string } | unknown>) => {
+    setPending(key);
+    setError(null);
+    const result = await action();
+    if (isLocationActionResult(result) && !result.ok) {
+      setError(result.error ?? 'Storage location update failed.');
+      setPending(null);
+      return;
+    }
+    if (isLocationActionResult(result) && result.queued) {
+      setError(result.warning ?? 'Storage move queued for sync.');
+    }
+    setNewName('');
+    setRenameValue('');
+    setCardQuery('');
+    reload();
+    setPending(null);
+  };
+
+  if (loading) {
+    return (
+      <TDScreen style={s.screen}>
+        <TDLoadingState title="Loading locations" message="Building your storage map." />
+      </TDScreen>
+    );
+  }
+
+  if (!state) {
+    return (
+      <TDScreen style={s.screen}>
+        <TDErrorState title="Storage unavailable" message={error ?? 'Storage locations could not be loaded.'} action={<TDButton label="Retry" variant="secondary" onPress={reload} />} />
+      </TDScreen>
+    );
+  }
+
+  return (
+    <TDScreen style={s.screen}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <TDButton label="Back" variant="ghost" iconName="chevron-back" onPress={() => router.back()} style={s.back} />
+        <View style={s.header}>
+          <TDText variant="label" tone="info">Find Card</TDText>
+          <TDText variant="display">Storage</TDText>
+          <TDText variant="small" tone="muted">Answer where a card is, then move it to the right Area, Shelf, Container, Section, or Slot.</TDText>
+        </View>
+
+        {state.stale ? <TDBadge tone="warning">{state.unavailableReason ?? 'Offline or stale'}</TDBadge> : null}
+        {error ? (
+          <TDCard accessibilityRole="alert" variant="outlined" style={s.errorCard}>
+            <TDBadge tone={error.includes('queued') ? 'warning' : 'danger'}>{error.includes('queued') ? 'Pending sync' : 'Update failed'}</TDBadge>
+            <TDText variant="small" tone="muted">{error}</TDText>
+          </TDCard>
+        ) : null}
+
+        <TDCard style={s.createCard}>
+          <TDText variant="title">Create location</TDText>
+          <TDInput label="Name" value={newName} onChangeText={setNewName} placeholder="Office, Shelf B, Box 14..." />
+          <View style={s.typeRow}>
+            {STORAGE_LOCATION_TYPES.slice(0, 5).map((type) => (
+              <Chip key={type} label={labelForType(type)} selected={newType === type} onPress={() => setNewType(type)} />
+            ))}
+          </View>
+          <TDButton label="Create location" loading={pending === 'create'} disabled={!newName.trim()} onPress={() => run('create', () => createMobileStorageLocation({ name: newName, type: newType }))} />
+        </TDCard>
+
+        <TDInput label="Search locations" value={query} onChangeText={setQuery} leftIconName="search-outline" placeholder="Shelf, binder, slot..." />
+        <QuickLocations title="Favorites" locations={favoriteLocationSummaries(state.summaries)} onSelect={setSelectedId} />
+        <QuickLocations title="Recent" locations={recentLocationSummaries(state.summaries)} onSelect={setSelectedId} />
+
+        {summaries.length ? (
+          <View style={s.locationList} accessibilityRole="list">
+            {summaries.map((location) => (
+              <Pressable
+                key={location.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${location.name}, ${location.assignedQuantity} cards`}
+                accessibilityState={{ selected: selected?.id === location.id }}
+                onPress={() => setSelectedId(location.id)}
+                style={[s.locationRow, selected?.id === location.id && s.locationRowSelected]}
+              >
+                <View style={s.locationTitleRow}>
+                  <TDText variant="small">{location.name}</TDText>
+                  <TDBadge tone={location.favorite ? 'accent' : 'neutral'}>{location.assignedQuantity} cards</TDBadge>
+                </View>
+                <TDText variant="caption" tone="muted">{location.path.label}</TDText>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <TDEmptyState title="No locations yet" message="Create an Area, Shelf, Container, Section, or Slot to start organizing." />
+        )}
+
+        {selected ? (
+          <TDCard style={s.detailCard}>
+            <View style={s.locationTitleRow}>
+              <View style={s.flex}>
+                <TDText variant="title">{selected.name}</TDText>
+                <TDText variant="caption" tone="muted">{selected.path.label}</TDText>
+              </View>
+              <TDBadge tone="info">{labelForType(selected.type)}</TDBadge>
+            </View>
+            <View style={s.metrics}>
+              <Metric label="Records" value={String(selected.assignedCardCount)} />
+              <Metric label="Quantity" value={String(selected.assignedQuantity)} />
+              <Metric label="Children" value={String(selected.childCount)} />
+            </View>
+            <TDInput label="Rename" value={renameValue} onChangeText={setRenameValue} placeholder={selected.name} />
+            <View style={s.actions}>
+              <TDButton label="Rename" variant="secondary" loading={pending === 'rename'} onPress={() => run('rename', () => renameMobileStorageLocation(selected.id, renameValue || selected.name))} />
+              <TDButton label="Archive" variant="ghost" loading={pending === 'archive'} onPress={() => run('archive', () => archiveMobileStorageLocation(selected.id))} />
+            </View>
+
+            <TDInput label="Find card" value={cardQuery} onChangeText={setCardQuery} leftIconName="search-outline" placeholder="Search cards to assign or move" />
+            {cardResults.length ? <CardList cards={cardResults} label="Assign here" pending={pending} onPress={(card) => run(`assign-${card.id}`, () => assignMobileStorageLocation({ userId: state.userId, inventoryItemId: card.id, fromLocationId: card.storageLocation?.id ?? null, toLocationId: selected.id }))} /> : null}
+            {selectedCards.length ? (
+              <CardList cards={selectedCards} label="Clear" pending={pending} onPress={(card) => run(`clear-${card.id}`, () => assignMobileStorageLocation({ userId: state.userId, inventoryItemId: card.id, fromLocationId: card.storageLocation?.id ?? null, toLocationId: null }))} />
+            ) : (
+              <TDEmptyState title="No cards assigned" message="Use Find Card or recent locations to move a card here." />
+            )}
+            {state.unassignedCards.length ? (
+              <View style={s.sectionGap}>
+                <TDText variant="label" tone="muted">Unassigned cards</TDText>
+                <CardList cards={state.unassignedCards.slice(0, 5)} label="Assign here" pending={pending} onPress={(card) => run(`assign-${card.id}`, () => assignMobileStorageLocation({ userId: state.userId, inventoryItemId: card.id, fromLocationId: null, toLocationId: selected.id }))} />
+              </View>
+            ) : null}
+          </TDCard>
+        ) : null}
+
+        {state.archivedLocations.length ? (
+          <TDCard variant="outlined" style={s.sectionGap}>
+            <TDText variant="title">Archived locations</TDText>
+            {state.archivedLocations.map((location) => <TDText key={location.id} variant="small" tone="muted">{location.path.label}</TDText>)}
+          </TDCard>
+        ) : null}
+
+        <TDCard variant="outlined" style={s.sectionGap}>
+          <View style={s.locationTitleRow}>
+            <Ionicons name="scan-outline" size={20} color={color.primaryBright} />
+            <TDText variant="title">Scan-to-location</TDText>
+          </View>
+          <TDText variant="small" tone="muted">Integration point only. Scanner recognition is intentionally not enabled in this sprint.</TDText>
+        </TDCard>
+      </ScrollView>
+    </TDScreen>
+  );
+}
+
+function isLocationActionResult(value: unknown): value is { ok: boolean; error?: string; queued?: boolean; warning?: string } {
+  return value !== null && typeof value === 'object' && 'ok' in value;
+}
+
+function QuickLocations({ title, locations, onSelect }: { title: string; locations: LocationSummary[]; onSelect: (id: string) => void }) {
+  if (!locations.length) return null;
+  return (
+    <View style={s.sectionGap}>
+      <TDText variant="label" tone="muted">{title}</TDText>
+      <View style={s.typeRow}>
+        {locations.map((location) => (
+          <Chip key={location.id} label={location.name} selected={false} onPress={() => onSelect(location.id)} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function CardList({ cards, label, pending, onPress }: { cards: CollectionCard[]; label: string; pending: string | null; onPress: (card: CollectionCard) => void }) {
+  return (
+    <View style={s.cardList}>
+      {cards.map((card) => (
+        <View key={card.id} style={s.cardRow}>
+          <View style={s.flex}>
+            <TDText variant="small">{card.cardName}</TDText>
+            <TDText variant="caption" tone="muted">{card.printing.setCode ?? 'Set unavailable'} #{card.printing.collectorNumber ?? '?'} - x{card.quantityOwned}</TDText>
+          </View>
+          <TDButton label={label} size="sm" variant="secondary" loading={pending === `assign-${card.id}` || pending === `clear-${card.id}`} onPress={() => onPress(card)} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[s.chip, selected && s.chipSelected]}>
+      <TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText>
+    </Pressable>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.metric}>
+      <TDText variant="caption" tone="muted">{label}</TDText>
+      <TDText variant="title">{value}</TDText>
+    </View>
+  );
+}
+
+function labelForType(type: StorageLocationType) {
+  const labels: Record<StorageLocationType, string> = {
+    area: 'Area',
+    shelf: 'Shelf',
+    container: 'Container',
+    section: 'Section',
+    slot: 'Slot',
+    binder: 'Binder',
+    box: 'Box',
+    sealed: 'Sealed',
+    bulk: 'Bulk',
+    custom: 'Custom',
+    unknown: 'Unknown',
+  };
+  return labels[type];
+}
+
+const s = StyleSheet.create({
+  screen: { paddingTop: 56 },
+  content: { gap: space.md, paddingBottom: 128 },
+  back: { alignSelf: 'flex-start' },
+  header: { gap: space.xs },
+  createCard: { gap: space.md },
+  typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
+  chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '30' },
+  locationList: { gap: space.sm },
+  locationRow: { minHeight: 72, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, padding: space.md, gap: space.xs },
+  locationRowSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '22' },
+  locationTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  detailCard: { gap: space.md },
+  metrics: { flexDirection: 'row', gap: space.sm },
+  metric: { flex: 1, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm },
+  actions: { flexDirection: 'row', gap: space.sm },
+  cardList: { gap: space.sm },
+  cardRow: { minHeight: 64, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  flex: { flex: 1 },
+  sectionGap: { gap: space.sm },
+  errorCard: { gap: space.xs },
+});

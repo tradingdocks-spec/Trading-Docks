@@ -174,6 +174,13 @@ export default function MobileCollectionCardDetail() {
           <DetailLine label="Language" value={card.printing.language ?? 'Language unavailable'} />
           <DetailLine label="Scryfall ID" value={card.printing.scryfallId ?? 'Unavailable'} />
           <DetailLine label="Price summary" value={priceLabel(card)} muted={card.marketPrice.amount === null} />
+          <TDButton
+            label="Manage storage"
+            variant="secondary"
+            iconName="file-tray-stacked-outline"
+            accessibilityLabel="Open Storage Location Manager"
+            onPress={() => router.push('/storage-locations' as never)}
+          />
         </TDCard>
 
         {mutationError ? (

@@ -118,6 +118,16 @@
 - Implemented: Server guards for privileged web APIs live in `src/lib/identity/server-guards.ts`.
 - Implemented: Mobile role context normalizes `user_roles.role` through the same platform-role vocabulary, but mobile remains client-side UX state.
 - Implemented: Active web admin page, plan preview route, admin users API, marketplace integrations API, and trial invitation API no longer authorize from a hard-coded email.
+
+## Storage Location Manager Architecture
+
+- Implemented: Shared storage-location models and pure contract helpers live in `mobile/services/storage-location-manager.ts`, with the Next.js adapter at `src/lib/storage-location-manager.ts`.
+- Implemented: Mobile uses `mobile/app/storage-locations.tsx` as a protected stack destination outside the primary tab bar. The Collection tab and card-detail route link to it without changing the canonical five-tab navigation.
+- Implemented: Web renders `StorageLocationManager` inside the existing protected Collector Workspace route instead of adding a separate unguarded dashboard surface.
+- Implemented: Both platforms use owner-scoped Supabase queries against `inventory_locations.user_id` and `inventory_items.user_id`.
+- Partially Implemented: Location hierarchy is represented through `inventory_locations.data.parentId` because the active schema has no first-class parent column or database constraint.
+- Partially Implemented: Recent, favorite, and archived metadata are represented in `inventory_locations.data` for this sprint. Database-enforced indexes/constraints require a reviewed migration proposal before production reliance.
+- Planned: Scanner recognition, deck usage, marketplace listing, and portfolio analytics remain separate future integrations. The mobile manager exposes only a scan-to-location integration point.
 - Implemented: Membership tier, account type, billing status, platform role, and resolved entitlement keys are separate typed concepts.
 - Implemented: Provider identifiers for Stripe and planned RevenueCat live outside the product plan definitions.
 - Partially Implemented: Legacy web admin component variants still use older owner wording but are not the active import path.

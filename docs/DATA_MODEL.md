@@ -94,3 +94,14 @@
 - Implemented: Current inventory indexes include `(user_id, card_name)`, `(user_id, location_id)`, `(user_id, set_code, collector_number)`, `(user_id, scryfall_id)`, `(user_id, updated_at desc)`, and primary key `(user_id, id)`.
 - Partially Implemented: Current indexes support the default recent sort, storage filter, set sort, and ownership lookup. Name search with `ilike`, JSON condition/finish filters, price/quantity sorts, and batched Trade Binder/Wishlist filters should be measured with `explain analyze` in staging.
 - Planned: Proposed index review candidates only, not applied here: `(user_id, quantity desc, id)`, `(user_id, inventory_value desc, id)`, expression indexes for `data->>'condition'` and `data->>'finish'`, and related-table indexes for `binder_card_trade_status(user_id, status, inventory_item_id)` and `collector_wishlist(user_id, card_name)`.
+
+## Storage Locations
+
+- Implemented: `inventory_locations` stores user-owned locations with primary key `(user_id, id)`, `name`, `location_type`, flexible `data`, timestamps, and RLS requiring `auth.uid() = user_id`.
+- Implemented: `inventory_items.location_id` stores the current assignment and can be set to an owned location id or cleared to `null`.
+- Implemented: Application-level models define `StorageLocation`, `StorageLocationPath`, `StorageLocationType`, `LocationAssignment`, and `LocationSummary`.
+- Implemented: Canonical hierarchy labels are Area, Shelf, Container, Section, and Slot. Legacy/custom types such as binder, box, sealed, bulk, and custom remain supported for existing records.
+- Partially Implemented: Parent/child hierarchy, favorite, recent, and archive state are encoded in `inventory_locations.data` fields: `parentId`, `favorite`, `recentUsedAt`, and `archivedAt`.
+- Partially Implemented: The current schema does not enforce parent existence, prevent hierarchy cycles, or index archived/favorite/recent metadata. Application code validates these states, but database enforcement requires a reviewed migration.
+- Implemented: Archiving a location with assigned cards is blocked by default in active UI/helpers. Explicit archive-with-assignments behavior exists as a contract path but is not the normal UI action.
+- Planned: Migration proposal only: add nullable `parent_location_id`, `archived_at`, `favorite`, `recent_used_at`, constraints preventing self-parenting, indexes for `(user_id, parent_location_id)`, `(user_id, archived_at)`, and `(user_id, favorite, recent_used_at desc)`, plus SQL/RPC validation for cycle prevention.

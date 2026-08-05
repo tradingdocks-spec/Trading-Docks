@@ -90,6 +90,7 @@
 - Implemented: Focused Collector mutation tests cover ownership rejection, Free-plan limits, quantity validation, condition/finish/storage/trade/wishlist optimistic updates, rollback, trade-filter visibility, user-isolated offline queue entries, and duplicate queued-write prevention.
 - Implemented: Collector mutation tests now cover recognition of proposed database-authoritative ownership and Free-limit errors for offline replay.
 - Implemented: Collector Workspace tests now cover cursor construction, end-of-results state, duplicate page merging, search/filter/sort reset keys, stale response rejection, and exact-printing preservation.
+- Implemented: Focused Storage Location Manager tests cover create payloads, hierarchy paths, search, cards-in-location, unassigned cards, archive-with-assigned-card rejection, cross-user rejection, recent/favorite ordering, assignment validation, missing-location fallback, invalid parent relationships, and offline assignment dedupe keys.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -151,3 +152,10 @@
 7. Verify service-role inventory import behavior before production rollout; current audit found read-oriented service-role inventory access, while authenticated client/bulk upsert paths will be subject to the proposed trigger.
 8. Run staging query-plan review for large Collector datasets, especially `ilike` search, JSON condition/finish filters, Trade Binder/Wishlist related filters, and price/quantity sorts.
 9. Add web table virtualization and mobile `FlatList` tuning once realistic collection-size fixtures are available.
+
+## Recommended Storage Location Sprint 1
+
+1. Review the proposed storage hierarchy migration before production reliance on parent/child constraints, archived columns, favorites, and recent-location indexes.
+2. Add route-handler or RPC-backed storage mutations if direct table writes become insufficient for workspace/store inventory sharing.
+3. Add a visible mobile offline conflict-resolution surface for failed queued storage assignments.
+4. Validate large-location manager performance with realistic location counts and card-count aggregations.

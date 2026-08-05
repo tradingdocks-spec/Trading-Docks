@@ -44,6 +44,7 @@ import {
   type CollectionSort,
 } from "@/lib/collector-workspace";
 import type { AccountTier } from "@/lib/plan-entitlements";
+import { StorageLocationManager } from "./StorageLocationManager";
 
 type DisplayMode = "grid" | "list";
 
@@ -286,6 +287,8 @@ export function CollectorWorkspace({
           )}
         </div>
       ) : null}
+
+      <StorageLocationManager />
 
       {canUseSellerActions ? (
         <TDCard variant="outlined" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
