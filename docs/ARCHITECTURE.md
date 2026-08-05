@@ -48,6 +48,18 @@
 - Implemented: GitHub Actions `quality.yml` runs `npm ci`, `npm run check`, and `npm run build` on pull requests and pushes to main.
 - Partially Implemented: Mobile has `expo lint` but no root CI job for mobile.
 - Planned: No root unit/integration test script is configured.
+- Implemented: Root ESLint scope excludes confirmed historical Expo backups and generated output so active checks focus on the current web/mobile code.
+- Partially Implemented: Backup folders remain in the repository for review; see `docs/REPOSITORY_CLEANUP_PLAN.md` before archiving or deleting them.
+
+## Repository Structure
+
+- Implemented: The active web application path is `src/`.
+- Implemented: The active mobile application path is `mobile/`.
+- Implemented: The active Supabase infrastructure path is `supabase/`.
+- Implemented: `cloudflare/` contains active inbound email worker source.
+- Historical Backup: `mobile_backup/`, `mobile-sdk54-clean-backup/`, and `mobile-sdk57-backup/` are retained snapshots and are excluded from active root lint traversal.
+- Generated Output: `.next/`, `.cache/`, `dist/`, `coverage/`, `mobile/dist/`, `mobile/.expo/`, `node_modules/`, and `node_modules-install-failed/` are not product source.
+- Planned: Archive or delete historical and generated folders only after the cleanup plan's import, workflow, and product-owner review gates pass.
 
 ## Design-System Architecture
 

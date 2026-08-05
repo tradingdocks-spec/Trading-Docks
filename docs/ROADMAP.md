@@ -17,7 +17,9 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Replace legacy Supabase `is_platform_owner()` policies/functions with role-based `is_admin()` equivalents in a reviewed migration.
 - Planned: Replace legacy `business` membership schema values and constraints with canonical `store` in a reviewed migration.
 - Planned: Verify Supabase migrations replay cleanly into a fresh staging project.
-- Planned: Add repository hygiene cleanup for backup dependency folders and historical release artifacts.
+- Implemented: Establish a repository cleanup plan that classifies active apps, backups, generated output, duplicate components, duplicate services, duplicate navigation, duplicate design-system layers, and cleanup risk.
+- Partially Implemented: Exclude confirmed backup/archive and generated output folders from active root lint scope.
+- Planned: Remove or archive backup dependency folders and historical release artifacts only after product-owner review.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
 - Planned: Add mobile CI or document why mobile validation is manual.
 - Planned: Add native-device validation for biometric unlock, Google OAuth, Apple Sign In, and magic-link deep-link callbacks.

@@ -5,9 +5,10 @@
 - Partially Implemented: Multiple dashboard systems coexist in `src/components/dashboard`, `src/components/dashboard-v2`, and older layout folders.
 - Partially Implemented: Large historical release notes and backup mobile directories remain in the root.
 - Partially Implemented: `node_modules-install-failed` appears in the repository tree and should not be part of product source.
-- Partially Implemented: Root README still references an old binder removal release instead of the current OS foundation.
-- Partially Implemented: Repository-wide lint currently fails with 67 errors and 414 warnings. These failures predate this documentation branch, and backup/archive directories contribute heavily to the failure count.
-- Planned: Lint remediation should be handled in a dedicated stabilization task, not mixed into this documentation-only foundation branch.
+- Implemented: Root README now identifies `src/` as the active web app, `mobile/` as the active Expo app, and `supabase/` as active database infrastructure.
+- Implemented: Root ESLint now excludes confirmed backup/archive folders and generated output from active lint traversal.
+- Partially Implemented: Repository-wide lint was previously recorded as failing with 67 errors and 414 warnings. These failures predate this repository stabilization branch, and backup/archive directories contributed heavily to the failure count before the safe exclusions.
+- Planned: Remaining lint remediation should be handled in a dedicated stabilization task and should not be mixed with Collector Workspace product work.
 
 ## Authentication Problems
 
@@ -54,7 +55,8 @@
 - Implemented: Establish a shared membership contract for web, mobile, admin, Stripe adapter code, and future RevenueCat adapter planning.
 - Implemented: Shared identity/access types now separate platform role, account type, membership tier, billing status, and entitlements.
 - Planned: Generate a canonical Supabase schema snapshot from a clean migration replay.
-- Planned: Move historical release notes/backups out of active source or clearly archive them.
+- Partially Implemented: `docs/REPOSITORY_CLEANUP_PLAN.md` now inventories historical backups, generated output, duplicate dashboard systems, duplicate navigation, duplicate design-system layers, unused candidates, and cleanup phases.
+- Planned: Move historical release notes/backups out of active source after product-owner review.
 - Planned: Continue incremental design-system migration rather than sweeping every screen into the new primitives at once.
 - Planned: Deprecate duplicated dashboard navigation modules only after active imports are audited and route content gaps are prioritized.
 
@@ -92,13 +94,14 @@
 ## Recommended Sprint 1
 
 1. Freeze new product features until architecture and membership contracts are reviewed.
-2. Continue from the new canonical navigation contracts by auditing legacy dashboard imports and deciding which old navigation modules can be retired.
-3. Review the new canonical membership catalog and approve Store employee-capacity configuration.
-4. Audit API authentication and entitlement enforcement endpoint by endpoint.
-5. Replay Supabase migrations in a fresh staging project and record the canonical schema.
-6. Add CI coverage for auth, plan gates, billing webhooks, public share safety, and API allowlists.
-7. Remove or archive dependency/build backup artifacts after a separate review-approved cleanup.
-8. Continue design-system migration through shared dashboard states and common cards before attempting modal primitives.
+2. Review `docs/REPOSITORY_CLEANUP_PLAN.md` and approve the cleanup classification before deleting or archiving anything.
+3. Remove generated dependency/build artifacts in a dedicated cleanup PR after review.
+4. Continue from the new canonical navigation contracts by auditing legacy dashboard imports and deciding which old navigation modules can be retired.
+5. Review the new canonical membership catalog and approve Store employee-capacity configuration.
+6. Audit API authentication and entitlement enforcement endpoint by endpoint.
+7. Replay Supabase migrations in a fresh staging project and record the canonical schema.
+8. Add CI coverage for auth, plan gates, billing webhooks, public share safety, API allowlists, mobile TypeScript, mobile tests, and Expo web export.
+9. Continue design-system migration through shared dashboard states and common cards before attempting modal primitives.
 
 ## Recommended Identity Sprint 1
 

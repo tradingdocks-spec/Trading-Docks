@@ -1,6 +1,10 @@
 node_modules/
 .next/
 .cache/
+dist/
+coverage/
+mobile/dist/
+mobile/.expo/
 .env*
 *.log
 .DS_Store

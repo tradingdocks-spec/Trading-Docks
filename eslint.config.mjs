@@ -37,6 +37,16 @@ const eslintConfig = defineConfig([
     "feedback-package/**",
     "feedback-visibility-v65/**",
     "plan_preview_nav_release/**",
+    // Confirmed historical Expo snapshots and generated dependency artifacts.
+    "mobile_backup/**",
+    "mobile-sdk54-clean-backup/**",
+    "mobile-sdk57-backup/**",
+    "node_modules-install-failed/**",
+    // Generated output that is not product source.
+    "dist/**",
+    "coverage/**",
+    "mobile/dist/**",
+    "mobile/.expo/**",
   ]),
 ]);
 
