@@ -15,6 +15,9 @@
 - Implemented: Admin membership overrides are explicit product-entitlement overrides, separate from platform role and Stripe billing state.
 - Implemented: Collector mutation security proposal `supabase/migrations/202608050001_collector_mutation_security_proposal.sql` adds database-layer ownership checks and a transactional Free-plan 500 total-card quantity cap for direct mobile writes, web writes, and offline replay. It has not been applied to production.
 - Implemented: Mobile scanner foundation does not retain card photos by default and does not upload captured images without a clear user scan action. The current mobile build has no camera dependency, so image capture/OCR is unavailable rather than silently uploading photos.
+- Implemented: Mobile scanner replay refuses to process queued scan adds unless the authenticated session user matches the queue entry owner.
+- Implemented: Scanner replay diagnostic logging records trigger and failure message only; it does not log passwords, auth tokens, Supabase keys, or captured card images.
+- Implemented: Queued scanner adds remain in user-scoped local storage across sign-out and are not surfaced to a different signed-in account.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.
 
@@ -39,6 +42,7 @@
 - Planned: Replay the Collector mutation security proposal in staging and run `supabase/verification/verify_collector_mutation_security.sql` before production approval.
 - Planned: Add observability with secret and PII scrubbing.
 - Planned: Before enabling OCR/image-recognition uploads, add explicit consent copy, retention controls, provider logging review, and tests proving photos are not stored by default.
+- Planned: If scanner replay moves to a server RPC, add an auditable server-side idempotency ledger and structured logging that redacts card payloads where required.
 
 ## Access Fallbacks
 

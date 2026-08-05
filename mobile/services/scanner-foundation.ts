@@ -171,6 +171,10 @@ export function scannerQueueKey(confirmation: ScannerConfirmation) {
   return `${confirmation.userId}:${confirmation.candidate.id}:${confirmation.finish}:${confirmation.condition}:${confirmation.storageLocationId ?? 'unassigned'}`;
 }
 
+export function scannerIdempotencyKey(confirmation: ScannerConfirmation, inventoryItemId: string) {
+  return `${scannerQueueKey(confirmation)}:${inventoryItemId}`;
+}
+
 export function resetAfterRapidScan() {
   return {
     query: '',

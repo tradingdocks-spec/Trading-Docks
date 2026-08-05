@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -20,6 +21,7 @@ import {
   type ScannerConfirmation,
   type ScannerPermissionState,
 } from '@/services/scanner-foundation';
+import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
 import type { StorageLocation } from '@/services/storage-location-manager';
 
 type ScannerContext = { userId: string; locations: StorageLocation[]; currentTotalQuantity: number };
@@ -41,6 +43,8 @@ export default function Scan() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncingQueue, setSyncingQueue] = useState(false);
+  const [queuedAdds, setQueuedAdds] = useState<ScannerQueuedAdd[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -58,6 +62,7 @@ export default function Scan() {
           setQuery(draft.query);
           setStorageLocationId(draft.confirmation?.storageLocationId ?? null);
         }
+        setQueuedAdds(await listScannerQueuedAdds(result.userId));
       })
       .catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Scanner context is unavailable.'))
       .finally(() => setLoading(false));
@@ -129,6 +134,7 @@ export default function Scan() {
     } else {
       setSuccess(result.queued ? 'Scan queued for sync.' : 'Card added to Collection.');
       setContext({ ...context, currentTotalQuantity: context.currentTotalQuantity + quantity });
+      setQueuedAdds(await listScannerQueuedAdds(context.userId));
       const reset = resetAfterRapidScan();
       setQuery(reset.query);
       setSelected(null);
@@ -138,6 +144,17 @@ export default function Scan() {
       setAddToWishlist(false);
     }
     setSaving(false);
+  };
+
+  const retryQueue = async () => {
+    if (!context) return;
+    setSyncingQueue(true);
+    setError(null);
+    const result = await retryQueuedScannerAdds({ userId: context.userId, membershipTier: accountType, trigger: 'manual_retry' });
+    setQueuedAdds(await listScannerQueuedAdds(context.userId));
+    setSuccess(result.succeeded ? `${result.succeeded} queued scan${result.succeeded === 1 ? '' : 's'} synced.` : null);
+    if (result.failed) setError(`${result.failed} queued scan${result.failed === 1 ? '' : 's'} still need attention.`);
+    setSyncingQueue(false);
   };
 
   if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading scanner" message="Preparing collection, storage, and confirmation options." /></TDScreen>;
@@ -168,6 +185,23 @@ export default function Scan() {
 
         {error ? <TDErrorState title="Scanner notice" message={error} /> : null}
         {success ? <TDCard accessibilityRole="alert" style={s.noticeCard}><TDBadge tone="success">Success</TDBadge><TDText variant="small">{success}</TDText></TDCard> : null}
+        {queuedAdds.length ? (
+          <TDCard style={s.syncCard}>
+            <View style={s.syncHeader}>
+              <View style={s.flex}>
+                <TDText variant="title">Scanner sync</TDText>
+                <TDText variant="small" tone="muted">{scannerSyncSummary(queuedAdds)}</TDText>
+              </View>
+              <TDBadge tone={queuedAdds.some((entry) => entry.syncState === 'action_required') ? 'warning' : 'info'}>
+                {queuedAdds.length} queued
+              </TDBadge>
+            </View>
+            <View style={s.syncActions}>
+              <TDButton label="Retry" variant="secondary" loading={syncingQueue} onPress={retryQueue} />
+              <TDButton label="Review" variant="secondary" onPress={() => router.push('/scanner-recovery' as never)} />
+            </View>
+          </TDCard>
+        ) : null}
 
         <TDCard style={s.section}>
           <TDText variant="title">Manual search fallback</TDText>
@@ -251,6 +285,14 @@ function permissionMessage(permission: ScannerPermissionState, platform: string)
   return 'Manual search works now. Camera capture requires an approved development build with camera support.';
 }
 
+function scannerSyncSummary(entries: ScannerQueuedAdd[]) {
+  const actionRequired = entries.filter((entry) => entry.syncState === 'action_required').length;
+  const failed = entries.filter((entry) => entry.syncState === 'failed').length;
+  if (actionRequired) return `${actionRequired} queued scan${actionRequired === 1 ? '' : 's'} need action before sync can finish.`;
+  if (failed) return `${failed} queued scan${failed === 1 ? '' : 's'} failed replay and can be retried.`;
+  return 'Queued scanner adds will sync on reconnect, app resume, or manual retry.';
+}
+
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
@@ -259,6 +301,9 @@ const s = StyleSheet.create({
   cameraFrame: { minHeight: 300, borderRadius: radius.lg, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.lg, backgroundColor: color.canvasRaised },
   centerText: { textAlign: 'center' },
   noticeCard: { gap: space.sm },
+  syncCard: { gap: space.md },
+  syncHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  syncActions: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
   section: { gap: space.md },
   candidate: { minHeight: 112, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.canvasRaised },
   candidateSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '24' },

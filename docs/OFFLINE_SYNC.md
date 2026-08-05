@@ -55,7 +55,14 @@
 ## Scanner Offline Behavior
 
 - Implemented: Scanner confirmation writes queue as `collector_scanner_collection_add` when Supabase is unavailable or the insert fails.
-- Implemented: Scanner queue de-dupe keys are scoped by user, exact printing, finish, condition, and storage assignment.
+- Implemented: Scanner queued adds carry the confirmation, generated inventory item id, and stable idempotency key so interrupted successful inserts can be retried without creating duplicate inventory rows.
+- Implemented: Scanner queue entries are strictly scoped by `userId`; replay refuses to run if the authenticated session user does not match the queued scan owner.
+- Implemented: `mobile/services/scanner-replay.ts` replays queued scanner adds on session restoration, app resume, browser network reconnect, and manual retry.
+- Implemented: Scanner replay preserves exact printing, quantity, condition, finish, language, storage location, Trade Binder status, and Wishlist intent.
+- Implemented: Scanner replay recognizes Free-limit, unauthorized, invalid quantity, invalid printing, missing membership, and missing profile errors and keeps failed entries visible with `failed` or `action_required` sync state.
+- Implemented: Mobile exposes a compact scanner recovery route for inspecting queued scan details, retrying one, retrying all, and confirmed discard.
+- Implemented: Signing out preserves a user's scanner queue in local storage and stops replay because the worker requires a matching authenticated `userId`.
 - Implemented: Manual search can show cached recent candidates while offline when a recent match exists.
 - Partially Implemented: New online card search and future OCR/image recognition require network access.
-- Partially Implemented: Queued scanner adds do not yet have a dedicated replay worker or conflict-resolution inbox; they are preserved in the shared offline queue.
+- Partially Implemented: Native network reconnect replay currently depends on app resume/session restore because no native reachability dependency is installed; Expo Web uses the browser `online` event.
+- Planned: Add durable retry/backoff and a server-side idempotency ledger if scanner writes move beyond generated inventory ids and database uniqueness.

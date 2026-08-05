@@ -46,6 +46,8 @@
 - Partially Implemented: Web `/dashboard/inventory` now uses the Collector Workspace browser; older inventory management components remain in source and need workflow review before retirement.
 - Implemented: A forward-only Collector mutation security migration proposal now exists for DB-side ownership and Free-plan total-quantity enforcement, but it is not applied to production.
 - Partially Implemented: Native direct Collector writes still need the proposed DB migration applied and replay-verified before production reliance; current web writes enforce the limit through the Next.js mutation API.
+- Implemented: Scanner queued adds now replay through a user-scoped worker with generated inventory-id idempotency, so interrupted successful writes can be retried without duplicate inventory insertion.
+- Partially Implemented: Native scanner replay still lacks a standalone network reachability trigger; without an approved reachability dependency it retries on app resume, session restore, and manual retry while Expo Web also uses the browser reconnect event.
 - Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
@@ -93,6 +95,7 @@
 - Implemented: Focused Storage Location Manager tests cover create payloads, hierarchy paths, search, cards-in-location, unassigned cards, archive-with-assigned-card rejection, cross-user rejection, recent/favorite ordering, assignment validation, missing-location fallback, invalid parent relationships, and offline assignment dedupe keys.
 - Implemented: Focused Trade Binder/Wishlist tests cover binder search/filters, status updates, wishlist add/remove semantics, priority updates, exact/flexible matches, condition/finish mismatch rejection, quantity handling, storage search, optimistic rollback data, offline de-dupe keys, user isolation, empty state, and no-results state.
 - Implemented: Focused scanner tests cover permission denied/unavailable states, manual fallback, exact-printing selection, quantity validation, Free-plan limit response, storage assignment payloads, Trade Binder status, Wishlist action, rapid reset, offline queue keys, failed-save rollback shape, user isolation, no image retention by default, and interrupted draft recovery.
+- Implemented: Focused scanner replay tests cover offline queued add shape, reconnect/app-resume/session-restore triggers, user-switch isolation, duplicate interrupted-success replay, successful queue removal, failed/action-required visibility, Free-limit errors, unauthorized replay stops, retry one, retry all, confirmed discard, and exact-printing preservation.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -173,5 +176,5 @@
 
 1. Decide whether to add `expo-camera` and native permission configuration in a dedicated camera enablement sprint.
 2. Approve an OCR/image-recognition provider and privacy/retention policy before enabling photo upload.
-3. Add replay handling for `collector_scanner_collection_add` queue entries and a conflict-resolution surface for duplicate scanned cards.
+3. Add an approved native reachability dependency or platform monitor if scanner replay must trigger immediately on native reconnect while the app remains foregrounded.
 4. Add scanner-to-Deal Desk and card-show prep integrations only after the validated confirmation contract is reviewed.

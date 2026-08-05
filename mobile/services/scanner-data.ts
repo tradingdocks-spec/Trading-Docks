@@ -8,7 +8,7 @@ import {
   buildScannerAddPayload,
   normalizeScannerCandidate,
   scannerDraftKey,
-  scannerQueueKey,
+  scannerIdempotencyKey,
   validateScannerConfirmation,
   type ScannerCardCandidate,
   type ScannerConfirmation,
@@ -146,10 +146,11 @@ export async function saveScannerConfirmation({
 }
 
 async function queueScannerAdd(confirmation: ScannerConfirmation, inventoryItemId: string, warning: string): Promise<ScannerSaveResult> {
+  const idempotencyKey = scannerIdempotencyKey(confirmation, inventoryItemId);
   await enqueueOfflineOperation(
     SCANNER_COLLECTION_QUEUE_TYPE,
-    { confirmation, inventoryItemId } as unknown as Record<string, unknown>,
-    { userId: confirmation.userId, dedupeKey: scannerQueueKey(confirmation) },
+    { confirmation, inventoryItemId, idempotencyKey } as unknown as Record<string, unknown>,
+    { userId: confirmation.userId, dedupeKey: idempotencyKey },
   );
   return { ok: true, queued: true, warning, inventoryItemId };
 }
