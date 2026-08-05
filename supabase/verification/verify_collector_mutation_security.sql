@@ -1,7 +1,8 @@
 -- Verification proposal for 202608050001_collector_mutation_security_proposal.sql.
 -- Run only in disposable local/staging Supabase databases.
 -- Covers: Free below/reaching/exceeding limit, quantity increase/decrease,
--- paid tiers, admin role with Free membership, cross-user rejection, and
+-- zero quantity, paid tiers, admin role with Free membership, explicit
+-- membership override, missing identity data, cross-user rejection, and
 -- duplicate/offline replay behavior through idempotent repeated RPC calls.
 
 begin;
@@ -14,6 +15,9 @@ declare
   store_user uuid := '00000000-0000-0000-0000-000000000504';
   admin_free_user uuid := '00000000-0000-0000-0000-000000000505';
   other_user uuid := '00000000-0000-0000-0000-000000000506';
+  override_user uuid := '00000000-0000-0000-0000-000000000507';
+  missing_profile_user uuid := '00000000-0000-0000-0000-000000000508';
+  missing_preferences_user uuid := '00000000-0000-0000-0000-000000000509';
 begin
   insert into auth.users (id, aud, role, email)
   values
@@ -22,7 +26,10 @@ begin
     (seller_user, 'authenticated', 'authenticated', 'seller@example.test'),
     (store_user, 'authenticated', 'authenticated', 'store@example.test'),
     (admin_free_user, 'authenticated', 'authenticated', 'admin-free@example.test'),
-    (other_user, 'authenticated', 'authenticated', 'other@example.test')
+    (other_user, 'authenticated', 'authenticated', 'other@example.test'),
+    (override_user, 'authenticated', 'authenticated', 'override@example.test'),
+    (missing_profile_user, 'authenticated', 'authenticated', 'missing-profile@example.test'),
+    (missing_preferences_user, 'authenticated', 'authenticated', 'missing-preferences@example.test')
   on conflict (id) do nothing;
 
   insert into public.profiles (id, full_name)
@@ -32,7 +39,9 @@ begin
     (seller_user, 'Seller Test User'),
     (store_user, 'Store Test User'),
     (admin_free_user, 'Admin Free Test User'),
-    (other_user, 'Other Test User')
+    (other_user, 'Other Test User'),
+    (override_user, 'Override Test User'),
+    (missing_preferences_user, 'Missing Preferences Test User')
   on conflict (id) do nothing;
 
   insert into public.user_preferences (user_id, preferences)
@@ -42,7 +51,8 @@ begin
     (seller_user, '{"account_type":"seller"}'::jsonb),
     (store_user, '{"account_type":"store"}'::jsonb),
     (admin_free_user, '{"account_type":"collector"}'::jsonb),
-    (other_user, '{"account_type":"collector"}'::jsonb)
+    (other_user, '{"account_type":"collector"}'::jsonb),
+    (override_user, '{"account_type":"collector"}'::jsonb)
   on conflict (user_id) do update
   set preferences = excluded.preferences;
 
@@ -63,6 +73,13 @@ begin
     when undefined_table then
       raise notice 'user_roles table is not present in this replay target; admin-role separation check is skipped.';
   end;
+
+  insert into public.admin_membership_overrides (user_id, plan_id, granted_by)
+  values (override_user, 'collector', admin_free_user)
+  on conflict (user_id) do update
+  set plan_id = excluded.plan_id,
+      granted_by = excluded.granted_by,
+      updated_at = now();
 end;
 $$;
 
@@ -73,11 +90,29 @@ values ('free-a', '00000000-0000-0000-0000-000000000501', 'Free A', 499);
 insert into public.inventory_items (id, user_id, card_name, quantity)
 values ('free-b', '00000000-0000-0000-0000-000000000501', 'Free B', 1);
 
--- Free user exceeding limit should fail.
+-- Zero quantity remains non-destructive and does not consume the Free limit.
+insert into public.inventory_items (id, user_id, card_name, quantity)
+values ('free-zero', '00000000-0000-0000-0000-000000000501', 'Free zero', 0);
+
+-- Free user adding 1 beyond 500 should fail.
 do $$
 begin
   insert into public.inventory_items (id, user_id, card_name, quantity)
-  values ('free-over', '00000000-0000-0000-0000-000000000501', 'Too many', 1);
+  values ('free-over-one', '00000000-0000-0000-0000-000000000501', 'Too many', 1);
+  raise exception 'Expected Free limit rejection did not occur.';
+exception
+  when raise_exception then
+    if sqlerrm not like '%TD_COLLECTOR_FREE_LIMIT_EXCEEDED%' then
+      raise;
+    end if;
+end;
+$$;
+
+-- Free user adding 2 beyond 500 should fail with the same stable code.
+do $$
+begin
+  insert into public.inventory_items (id, user_id, card_name, quantity)
+  values ('free-over-two', '00000000-0000-0000-0000-000000000501', 'Too many again', 2);
   raise exception 'Expected Free limit rejection did not occur.';
 exception
   when raise_exception then
@@ -121,6 +156,11 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000504
 insert into public.inventory_items (id, user_id, card_name, quantity)
 values ('store-many', '00000000-0000-0000-0000-000000000504', 'Store many', 501);
 
+-- Explicit membership override grants paid collection limit behavior without Stripe.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000507', true);
+insert into public.inventory_items (id, user_id, card_name, quantity)
+values ('override-many', '00000000-0000-0000-0000-000000000507', 'Override many', 501);
+
 -- Platform role alone does not grant paid entitlement.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000505', true);
 do $$
@@ -131,6 +171,36 @@ begin
 exception
   when raise_exception then
     if sqlerrm not like '%TD_COLLECTOR_FREE_LIMIT_EXCEEDED%' then
+      raise;
+    end if;
+end;
+$$;
+
+-- Missing profile should fail with a structured membership/profile code.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000508', true);
+do $$
+begin
+  insert into public.inventory_items (id, user_id, card_name, quantity)
+  values ('missing-profile-card', '00000000-0000-0000-0000-000000000508', 'Missing profile', 1);
+  raise exception 'Expected missing-profile rejection did not occur.';
+exception
+  when raise_exception then
+    if sqlerrm not like '%TD_COLLECTOR_MISSING_MEMBERSHIP%' then
+      raise;
+    end if;
+end;
+$$;
+
+-- Missing preferences should fail with the same structured membership/profile code.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000509', true);
+do $$
+begin
+  insert into public.inventory_items (id, user_id, card_name, quantity)
+  values ('missing-preferences-card', '00000000-0000-0000-0000-000000000509', 'Missing preferences', 1);
+  raise exception 'Expected missing-preferences rejection did not occur.';
+exception
+  when raise_exception then
+    if sqlerrm not like '%TD_COLLECTOR_MISSING_MEMBERSHIP%' then
       raise;
     end if;
 end;
@@ -158,5 +228,10 @@ select public.collector_mutate_inventory_item('{"type":"quantity","inventoryItem
 -- Simultaneous inserts are protected by per-user advisory locks in the trigger.
 -- Validate with two concurrent staging sessions inserting Free quantities whose
 -- combined total exceeds 500; one must raise TD_COLLECTOR_FREE_LIMIT_EXCEEDED.
+--
+-- Service-role import behavior: direct inventory writes with only a service-role
+-- key and no user JWT should raise TD_COLLECTOR_UNAUTHORIZED because auth.uid()
+-- is null. Production imports must either execute as the authenticated user or
+-- use a reviewed server pathway that supplies an auditable target user context.
 
 rollback;

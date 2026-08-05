@@ -46,6 +46,7 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Build durable sync/retry queues for mobile offline operations.
 - Planned: Propose and review DB-side Free-plan card-limit enforcement for native direct writes and offline replay.
 - Implemented: Create the Collector mutation security migration proposal and verification SQL for database-level ownership and Free-plan total-quantity enforcement.
+- Partially Implemented: Expand the staging verification script to cover zero quantity, explicit overrides, missing identity data, duplicate replay, and service-role behavior notes; clean database replay is still pending approved Supabase tooling.
 - Planned: Apply the Collector mutation security proposal only after staging replay, product-owner approval, and service-role/import impact review.
 - Planned: Add distributed rate limiting for public image/market endpoints.
 - Planned: Add production monitoring, structured logging, alerting, and PII scrubbing.

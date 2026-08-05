@@ -82,6 +82,8 @@
 - Implemented: The proposal uses per-user transaction advisory locks in the inventory trigger to prevent simultaneous inserts, updates, or offline replay from racing past the Free limit.
 - Implemented: The proposal treats paid Collector, Seller, and legacy `business`/canonical Store billing or explicit membership overrides as unlimited for card quantity; platform role alone does not grant paid inventory limits.
 - Partially Implemented: The active schema is user-owned inventory through `inventory_items.user_id`; no active inventory workspace owner field exists. Store/workspace inventory sharing remains future schema work.
+- Partially Implemented: Static index review found the `(user_id, id)` primary key can support per-user enforcement lookups, but staging should run `explain analyze` against `sum(quantity) where user_id = ? and id <> ?` before production approval. A covering quantity index may be proposed only if staging data shows the need.
 - Planned: Run `supabase/verification/verify_collector_mutation_security.sql` in disposable local/staging Supabase after migration replay.
+- Planned: The verification script now includes Free 499/500/over-limit cases, zero quantity, paid tiers, admin-with-Free, explicit override, missing profile/preferences, cross-user mutation, duplicate offline replay, and service-role behavior notes.
 - Planned: Do not apply these Collector mutation security schema changes from this branch.
 - Planned: Do not apply these schema changes from this branch.

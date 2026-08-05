@@ -58,6 +58,16 @@
 - Race condition risk: current client/API checks can be bypassed by simultaneous direct writes or offline replay. The proposal serializes per-user inventory mutations with `pg_advisory_xact_lock`.
 - Offline replay risk: queued mobile writes can replay after membership or ownership state changes. The mobile replay path now classifies proposed database error codes and retains failed queued writes with error metadata.
 - Workspace/store behavior: active inventory is user-owned. Store/shared workspace inventory is not represented by active inventory fields and requires a later schema design.
+- Service-role behavior: active service-role inventory access found in this audit is read-oriented. Direct service-role inventory writes without a user JWT should be rejected by the proposed trigger because `auth.uid()` is null; future service imports need an auditable authenticated-user or reviewed server pathway.
+
+## Staging Validation Instructions
+
+- Requires Production Configuration: Local replay was unavailable in this Codex environment because `supabase`, `psql`, and Docker were not installed.
+- Use a disposable Supabase project or local instance only; do not point these scripts at production.
+- Replay the full migration chain from `supabase/migrations` in timestamp/name order, then apply `supabase/migrations/202608050001_collector_mutation_security_proposal.sql`.
+- Run `supabase/verification/verify_collector_mutation_security.sql`; then run a two-session concurrency check where both sessions try to increase the same Free user's total above 500 and confirm one raises `TD_COLLECTOR_FREE_LIMIT_EXCEEDED`.
+- Confirm the structured error message, `DETAIL` JSON, and hint remain stable for mobile/web clients: `TD_COLLECTOR_UNAUTHORIZED`, `TD_COLLECTOR_FREE_LIMIT_EXCEEDED`, `TD_COLLECTOR_INVALID_QUANTITY`, and `TD_COLLECTOR_MISSING_MEMBERSHIP`.
+- Confirm rollback in the disposable database by disabling `enforce_collector_inventory_mutation_insert`, `enforce_collector_inventory_mutation_update`, and `enforce_collector_inventory_mutation_delete`, then revoking `collector_mutate_inventory_item(jsonb)`.
 
 ## Rollout And Rollback
 

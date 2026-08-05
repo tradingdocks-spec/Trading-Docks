@@ -146,3 +146,5 @@
 3. Add native manual QA for failed mutation rollback, queued offline mutation replay, sign-out/user-switch isolation, and stale cached collection detail.
 4. Decide whether condition and finish should remain JSON payload fields or become first-class columns in a reviewed schema migration.
 5. Replay `202608050001_collector_mutation_security_proposal.sql` in staging and run `verify_collector_mutation_security.sql` before production approval.
+6. Install or use approved disposable Supabase tooling for a clean migration replay; the current Codex environment has no `supabase`, `psql`, or Docker binary available.
+7. Verify service-role inventory import behavior before production rollout; current audit found read-oriented service-role inventory access, while authenticated client/bulk upsert paths will be subject to the proposed trigger.
