@@ -60,6 +60,8 @@ Raw colors remain available only as palette anchors. New product components shou
 - Implemented: The Collector Workspace browser uses TD primitives on web and mobile for cards, inputs, badges, screen layout, loading, empty, no-results, and error states.
 - Implemented: The redesigned mobile Home uses the existing TD primitives and shared tokens for header, portfolio card, action buttons, briefing, active-session card, and empty activity state.
 - Implemented: The continuous scanner uses TD primitives, dark semantic tokens, compact badges, equal-height controls, text guidance, and a correctly proportioned 63:88 card guide instead of a generic camera form.
+- Implemented: The premium scanner experience uses a near-black navy camera stage, deep navy glass surfaces, electric-blue primary action, cyan guide brackets, emerald success, amber review, and danger recovery states without inline debug cards or large dashboard-style pricing blocks.
+- Implemented: Scanner settings, manual search, and diagnostics use secondary panels; the normal camera surface should show only operational controls and one concise instruction.
 - Implemented: Mobile Collection, Card Detail, Storage Locations, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile now share chip, metric, card-density, focus, and row primitives where practical.
 - Partially Implemented: Existing `Button`, `Card`, and `Badge` in `src/components/ui` remain supported and are not deleted.
 - Planned: `TDChart`, `TDModal`, `TDToast`, and `TDNavigation` are deferred to later focused tasks.

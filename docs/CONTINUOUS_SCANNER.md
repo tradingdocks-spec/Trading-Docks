@@ -3,7 +3,8 @@
 ## Current Status
 
 - Implemented: `mobile/services/continuous-offer-scanner.ts` defines the continuous scanner state machine, card-guide geometry, quality checks, duplicate protection, session model, offer math, local persistence key, filters, undo/remove helpers, confirmation handoff, and CSV serialization.
-- Implemented: The mobile Scan tab now presents a session-first intake workflow, a standard trading-card guide, session mode selection, recent scanned lines, running totals, offer totals, manual pricing, and an explicit Session Review route.
+- Implemented: The mobile Scan tab now presents a camera-first intake workflow with a standard trading-card guide, compact running totals, latest-result tray, manual pricing, and an explicit Session Review route.
+- Implemented: Scanner settings, manual search, diagnostics, and privacy copy are secondary panels so the primary camera workflow stays uninterrupted.
 - Implemented: The guide ratio is based on 63 mm x 88 mm cards: `width / height = 0.7159`.
 - Implemented: `mobile/services/scanner-vision-engine.ts` adds replaceable luma-frame providers for card presence, boundary, perspective, motion, blur, lighting, glare, card removal, frame quality, and region extraction.
 - Implemented: The Vision Engine detects card bounds, four visible corners, 63:88 aspect-ratio fit, rotation, perspective, guide containment/fill, center offset, edge visibility, blur, motion, lighting, glare, distance, stability, normalized crop metadata, image fingerprint, and a single concise guidance message.
@@ -27,6 +28,7 @@
 
 - Implemented: Quality guidance vocabulary includes `Move closer`, `Move farther away`, `Center the card`, `Hold steady`, `Reduce glare`, `Improve lighting`, `Card edge not visible`, `Tilt slightly for foil check`, and `Ready to scan`.
 - Implemented: Guidance is textual and not color-only.
+- Implemented: The premium Scan tab promotes one concise instruction at a time and maps internal capture/recognition progress to product-facing states such as `Reading card`, `Finding printing`, `Match found`, `Review printing`, `Remove card`, and `Ready for next card`.
 - Implemented: Live-frame analysis returns one primary user guidance value at a time: `Place card inside frame`, `Move closer`, `Move farther away`, `Center card`, `Show all four edges`, `Hold steady`, `Improve lighting`, `Reduce glare`, or `Ready`.
 - Planned: Bind the analyzer to VisionCamera frame delivery so camera mode updates continuously while a card is in frame.
 
