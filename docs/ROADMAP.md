@@ -57,8 +57,9 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Install and configure `expo-camera`, add guided local capture, and establish multi-signal scanner intelligence contracts plus benchmark contracts.
 - Implemented: Establish multi-TCG scanner architecture with game detection, Magic/Pokemon/One Piece/Lorcana adapter contracts, mixed sessions, universal exports, and unsupported-card handling.
 - Implemented: Add the Magic recognition provider reference implementation with Scryfall-backed candidate resolution, exact-printing ranking, legal-finish validation, top-three alternatives, explainable confidence, and scanner UI confidence details.
+- Implemented: Add Magic scanner benchmark calibration tooling with private manifest validation, ignored fixture/output paths, JSON/CSV/Markdown reports, threshold classes, and advisory calibration recommendations.
 - Partially Implemented: OCR/image recognition, artwork matching, set-symbol recognition, collector-info cropping, and foil classification are provider contracts only until benchmarked; the scanner does not fake recognition accuracy.
-- Partially Implemented: Magic recognition is metadata-backed and confirmation-first until private fixture benchmarks establish accuracy, latency, and false high-confidence rates.
+- Partially Implemented: Magic recognition is metadata-backed and confirmation-first until product-owner private fixture benchmarks establish accuracy, latency, and false high-confidence rates.
 - Partially Implemented: Multi-TCG catalog providers and universal inventory persistence remain planned; active writes are still Magic-compatible.
 - Partially Implemented: Native network reachability is not independently observed yet; queued scanner adds still retry on app resume, session restoration, and manual retry.
 - Planned: Validate Collector query plans against staging-scale data and add proposed indexes only after measurement.

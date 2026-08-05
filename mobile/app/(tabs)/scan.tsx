@@ -10,7 +10,7 @@ import { color, radius, space } from '@/design';
 import { useAccount } from '@/providers/account';
 import { CARD_CONDITION_OPTIONS, TRADE_BINDER_STATUS_OPTIONS } from '@/services/collector-mutations';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
-import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
+import { classifyMagicRecognition, recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
 import { loadScannerContext, loadScannerDraft, saveScannerConfirmation, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
 import {
   createInterruptedScanDraft,
@@ -92,6 +92,10 @@ export default function Scan() {
   }, [addToWishlist, condition, context, finish, language, quantity, query, selected, storageLocationId, tradeStatus]);
 
   const selectedFinishes = useMemo(() => selected?.finishes.filter((candidateFinish) => candidateFinish === 'normal' || candidateFinish === 'foil' || candidateFinish === 'etched') ?? ['normal'], [selected]);
+  const magicPresentation = useMemo(() => {
+    if (!magicRecognition?.ok) return null;
+    return classifyMagicRecognition(magicRecognition.confidence, magicRecognition.candidates.length);
+  }, [magicRecognition]);
 
   useEffect(() => {
     const next = resolveScannerPermissionState({
@@ -293,11 +297,12 @@ export default function Scan() {
                 <TDText variant="title">Magic recognition</TDText>
                 <TDText variant="small" tone="muted">{magicRecognition.selected.name} - {magicRecognition.selected.setCode ?? 'Set unavailable'} #{magicRecognition.selected.collectorNumber ?? '?'}</TDText>
               </View>
-              <TDBadge tone={magicRecognition.confidence.requiresConfirmation ? 'warning' : 'success'}>
-                {magicRecognition.confidence.overall}%
+              <TDBadge tone={magicPresentation?.tone ?? 'warning'}>
+                {magicPresentation?.label ?? 'Manual review required'} - {magicRecognition.confidence.overall}%
               </TDBadge>
             </View>
-            <TDText variant="small" tone="muted">Assisted by Scryfall metadata. Confirm the exact printing before saving.</TDText>
+            <TDText variant="small" tone="muted">{magicPresentation?.description ?? 'Assisted by Scryfall metadata. Confirm the exact printing before saving.'}</TDText>
+            <TDText variant="caption" tone="muted">Signal source: Scryfall metadata and supplied scanner observations. Visual certainty is not benchmarked yet.</TDText>
             <View style={s.signalGrid}>
               {magicRecognition.confidence.signals.map((signal) => (
                 <View key={signal.key} style={s.signalCell}>

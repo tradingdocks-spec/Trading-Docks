@@ -68,11 +68,139 @@ export type MagicCatalogQuery = {
 
 export type MagicCatalogSearch = (query: MagicCatalogQuery) => Promise<RecognitionCandidate[]>;
 
+export type MagicRecognitionThresholdClass =
+  | 'auto_suggest'
+  | 'one_tap_confirm'
+  | 'review_alternatives'
+  | 'manual_search_required';
+
+export type MagicRecognitionPresentation = {
+  thresholdClass: MagicRecognitionThresholdClass;
+  label: 'Recognized' | 'Likely' | 'Ambiguous' | 'Manual review required';
+  tone: 'success' | 'info' | 'warning';
+  description: string;
+};
+
+export type MagicBenchmarkFrameType =
+  | ScannerBenchmarkCategory
+  | 'double_faced'
+  | 'same_name_reprints'
+  | 'unsupported_card';
+
+export type MagicBenchmarkFixtureManifestEntry = {
+  id: string;
+  localImagePath: string;
+  expectedCardName: string;
+  expectedSetCode: string;
+  expectedCollectorNumber: string;
+  expectedScryfallId: string;
+  expectedLanguage: string;
+  expectedFinish: FinishObservation['finish'];
+  frameType: MagicBenchmarkFrameType;
+  lightingCondition: 'controlled' | 'glare' | 'low_light' | 'mixed' | 'unknown';
+  sleeveStatus: 'unsleeved' | 'single_sleeved' | 'double_sleeved' | 'toploader' | 'unknown';
+  angle: 'flat' | 'slight_angle' | 'steep_angle' | 'unknown';
+  notes: string;
+  observed?: {
+    nameText?: string;
+    nameConfidence?: number;
+    collectorInfoText?: string;
+    setCode?: string | null;
+    collectorNumber?: string | null;
+    language?: string | null;
+    finish?: FinishObservation['finish'];
+    finishConfidence?: number;
+    artworkLayout?: string | null;
+    artworkSimilarity?: number | null;
+    setSymbol?: string | null;
+    setSymbolConfidence?: number | null;
+  };
+  candidateCatalog?: RecognitionCandidate[];
+};
+
+export type MagicBenchmarkFixtureManifest = {
+  schemaVersion: 1;
+  fixtureSetId: string;
+  createdAt: string;
+  fixtures: MagicBenchmarkFixtureManifestEntry[];
+};
+
 export type MagicBenchmarkManifest = {
   fixtureRoot: string;
   fixtures: ScannerBenchmarkFixture[];
   metrics: ScannerBenchmarkMetrics;
   copyrightPolicy: 'private_local_fixtures_only';
+};
+
+export type MagicBenchmarkFixtureResult = {
+  fixtureId: string;
+  sanitizedImageId: string;
+  frameType: MagicBenchmarkFrameType;
+  lightingCondition: MagicBenchmarkFixtureManifestEntry['lightingCondition'];
+  sleeveStatus: MagicBenchmarkFixtureManifestEntry['sleeveStatus'];
+  angle: MagicBenchmarkFixtureManifestEntry['angle'];
+  signalSource: 'observed_signals' | 'expected_metadata_seed' | 'catalog_only';
+  ok: boolean;
+  error: string | null;
+  expected: {
+    cardName: string;
+    setCode: string;
+    collectorNumber: string;
+    scryfallId: string;
+    language: string;
+    finish: FinishObservation['finish'];
+  };
+  top1: {
+    scryfallId: string | null;
+    name: string | null;
+    setCode: string | null;
+    collectorNumber: string | null;
+  };
+  top3: {
+    scryfallId: string;
+    name: string;
+    setCode: string | null;
+    collectorNumber: string | null;
+  }[];
+  scores: {
+    nameTop1: boolean;
+    printingTop1: boolean;
+    printingTop3: boolean;
+    falseHighConfidence: boolean;
+    finishCorrect: boolean | null;
+    unsupportedRejected: boolean | null;
+  };
+  confidence: RecognitionConfidence;
+  thresholdClass: MagicRecognitionThresholdClass;
+  latencyMs: number;
+};
+
+export type MagicBenchmarkMetricsReport = ScannerBenchmarkMetrics & {
+  cardNameTop1Accuracy: number | null;
+  exactPrintingTop1Accuracy: number | null;
+  exactPrintingTop3Accuracy: number | null;
+  falseHighConfidenceRate: number | null;
+  averageConfidence: number | null;
+  finishAccuracy: number | null;
+  unsupportedCardRejectionRate: number | null;
+};
+
+export type MagicCalibrationRecommendation = {
+  kind: 'over_weighted_signal' | 'under_weighted_signal' | 'missing_evidence_inflation' | 'threshold_change' | 'weight_change';
+  signal?: RecognitionSignalScore['key'];
+  recommendation: string;
+  evidence: string;
+  applyAutomatically: false;
+};
+
+export type MagicBenchmarkReport = {
+  generatedAt: string;
+  fixtureSetId: string;
+  fixtureCount: number;
+  metrics: MagicBenchmarkMetricsReport;
+  calibrationRecommendations: MagicCalibrationRecommendation[];
+  results: MagicBenchmarkFixtureResult[];
+  privacy: ReturnType<typeof magicRecognitionPrivacy>;
 };
 
 type MagicCandidateLoadResult =
@@ -104,6 +232,13 @@ export const magicBenchmarkMetricsUnavailable: ScannerBenchmarkMetrics = {
   failureRate: null,
   benchmarkedFixtureCount: 0,
 };
+
+export const MAGIC_RECOGNITION_THRESHOLDS = {
+  autoSuggest: 96,
+  oneTapConfirm: 88,
+  reviewAlternatives: 70,
+  manualSearchRequiredBelow: 70,
+} as const;
 
 export const MagicRecognitionAdapter: TcgRecognitionAdapter = {
   game: 'magic',
@@ -252,6 +387,39 @@ export function explainMagicConfidence(confidence: RecognitionConfidence) {
   return lines;
 }
 
+export function classifyMagicRecognition(confidence: RecognitionConfidence, candidateCount: number): MagicRecognitionPresentation {
+  if (candidateCount === 0 || confidence.overall < MAGIC_RECOGNITION_THRESHOLDS.manualSearchRequiredBelow) {
+    return {
+      thresholdClass: 'manual_search_required',
+      label: 'Manual review required',
+      tone: 'warning',
+      description: 'Recognition signals are too weak or missing. Use manual search and confirm the exact printing.',
+    };
+  }
+  if (confidence.conflicts.length || confidence.requiresConfirmation || candidateCount > 1) {
+    return {
+      thresholdClass: confidence.overall >= MAGIC_RECOGNITION_THRESHOLDS.oneTapConfirm ? 'one_tap_confirm' : 'review_alternatives',
+      label: candidateCount > 1 ? 'Ambiguous' : 'Likely',
+      tone: 'warning',
+      description: 'Confirm the exact printing before saving. Similar printings or missing signals still need review.',
+    };
+  }
+  if (confidence.overall >= MAGIC_RECOGNITION_THRESHOLDS.autoSuggest) {
+    return {
+      thresholdClass: 'auto_suggest',
+      label: 'Recognized',
+      tone: 'success',
+      description: 'Signals strongly agree, but this sprint still keeps confirmation before inventory writes.',
+    };
+  }
+  return {
+    thresholdClass: 'one_tap_confirm',
+    label: 'Likely',
+    tone: 'info',
+    description: 'Signals are strong enough for a streamlined confirmation, not automatic inventory writes.',
+  };
+}
+
 export function isMagicTokenOrUnsupported(candidate: RecognitionCandidate) {
   const name = candidate.name.toLowerCase();
   const layout = candidate.layout?.toLowerCase() ?? '';
@@ -292,6 +460,247 @@ export function createMagicBenchmarkManifest(input: {
     fixtures,
     metrics: magicBenchmarkMetricsUnavailable,
     copyrightPolicy: 'private_local_fixtures_only',
+  };
+}
+
+export function validateMagicBenchmarkFixtureManifest(value: unknown): { ok: true; manifest: MagicBenchmarkFixtureManifest } | { ok: false; errors: string[] } {
+  const errors: string[] = [];
+  if (!value || typeof value !== 'object') return { ok: false, errors: ['Manifest must be an object.'] };
+  const manifest = value as Partial<MagicBenchmarkFixtureManifest>;
+  if (manifest.schemaVersion !== 1) errors.push('schemaVersion must be 1.');
+  if (!stringValue(manifest.fixtureSetId)) errors.push('fixtureSetId is required.');
+  if (!stringValue(manifest.createdAt)) errors.push('createdAt is required.');
+  if (!Array.isArray(manifest.fixtures)) errors.push('fixtures must be an array.');
+  else {
+    const ids = new Set<string>();
+    manifest.fixtures.forEach((fixture, index) => {
+      const prefix = `fixtures[${index}]`;
+      validateRequiredString(fixture.id, `${prefix}.id`, errors);
+      validateRequiredString(fixture.localImagePath, `${prefix}.localImagePath`, errors);
+      validateRequiredString(fixture.expectedCardName, `${prefix}.expectedCardName`, errors);
+      validateRequiredString(fixture.expectedSetCode, `${prefix}.expectedSetCode`, errors);
+      validateRequiredString(fixture.expectedCollectorNumber, `${prefix}.expectedCollectorNumber`, errors);
+      validateRequiredString(fixture.expectedScryfallId, `${prefix}.expectedScryfallId`, errors);
+      validateRequiredString(fixture.expectedLanguage, `${prefix}.expectedLanguage`, errors);
+      validateRequiredString(fixture.expectedFinish, `${prefix}.expectedFinish`, errors);
+      validateRequiredString(fixture.frameType, `${prefix}.frameType`, errors);
+      validateRequiredString(fixture.lightingCondition, `${prefix}.lightingCondition`, errors);
+      validateRequiredString(fixture.sleeveStatus, `${prefix}.sleeveStatus`, errors);
+      validateRequiredString(fixture.angle, `${prefix}.angle`, errors);
+      if (fixture.id) {
+        if (ids.has(fixture.id)) errors.push(`${prefix}.id must be unique.`);
+        ids.add(fixture.id);
+      }
+    });
+  }
+  return errors.length ? { ok: false, errors } : { ok: true, manifest: manifest as MagicBenchmarkFixtureManifest };
+}
+
+export async function runMagicBenchmark(
+  manifest: MagicBenchmarkFixtureManifest,
+  options: {
+    searchCatalog?: MagicCatalogSearch;
+    now?: () => number;
+    generatedAt?: string;
+  } = {},
+): Promise<MagicBenchmarkReport> {
+  const searchCatalog = options.searchCatalog ?? searchScryfallMagicCatalog;
+  const now = options.now ?? (() => Date.now());
+  const results: MagicBenchmarkFixtureResult[] = [];
+  for (const fixture of manifest.fixtures) {
+    const started = now();
+    const signalSource = fixtureSignalSource(fixture);
+    const search: MagicCatalogSearch = fixture.candidateCatalog
+      ? async () => fixture.candidateCatalog ?? []
+      : searchCatalog;
+    const recognition = await recognizeMagicCard(fixtureToRecognitionInput(fixture), search);
+    const latencyMs = Math.max(0, Math.round(now() - started));
+    results.push(buildFixtureResult(fixture, recognition, latencyMs, signalSource));
+  }
+  return {
+    generatedAt: options.generatedAt ?? new Date().toISOString(),
+    fixtureSetId: manifest.fixtureSetId,
+    fixtureCount: manifest.fixtures.length,
+    metrics: calculateMagicBenchmarkMetrics(results),
+    calibrationRecommendations: recommendMagicCalibration(results),
+    results,
+    privacy: magicRecognitionPrivacy(),
+  };
+}
+
+export function calculateMagicBenchmarkMetrics(results: MagicBenchmarkFixtureResult[]): MagicBenchmarkMetricsReport {
+  const successful = results.filter((result) => result.ok);
+  const printable = results.filter((result) => result.scores.unsupportedRejected !== true);
+  const withExpectedFinish = results.filter((result) => result.scores.finishCorrect !== null);
+  const unsupported = results.filter((result) => result.scores.unsupportedRejected !== null);
+  return {
+    correctNameTop1: ratio(successful.filter((result) => result.scores.nameTop1).length, successful.length),
+    correctPrintingTop1: ratio(printable.filter((result) => result.scores.printingTop1).length, printable.length),
+    correctPrintingTop3: ratio(printable.filter((result) => result.scores.printingTop3).length, printable.length),
+    foilClassificationAccuracy: ratio(withExpectedFinish.filter((result) => result.scores.finishCorrect).length, withExpectedFinish.length),
+    falseFoilRate: null,
+    averageScanLatencyMs: results.length ? Math.round(results.reduce((sum, result) => sum + result.latencyMs, 0) / results.length) : null,
+    manualCorrectionRate: ratio(results.filter((result) => result.confidence.requiresConfirmation).length, results.length),
+    failureRate: ratio(results.filter((result) => !result.ok).length, results.length),
+    benchmarkedFixtureCount: results.length,
+    cardNameTop1Accuracy: ratio(successful.filter((result) => result.scores.nameTop1).length, successful.length),
+    exactPrintingTop1Accuracy: ratio(printable.filter((result) => result.scores.printingTop1).length, printable.length),
+    exactPrintingTop3Accuracy: ratio(printable.filter((result) => result.scores.printingTop3).length, printable.length),
+    falseHighConfidenceRate: ratio(results.filter((result) => result.scores.falseHighConfidence).length, results.length),
+    averageConfidence: results.length ? Math.round(results.reduce((sum, result) => sum + result.confidence.overall, 0) / results.length) : null,
+    finishAccuracy: ratio(withExpectedFinish.filter((result) => result.scores.finishCorrect).length, withExpectedFinish.length),
+    unsupportedCardRejectionRate: ratio(unsupported.filter((result) => result.scores.unsupportedRejected).length, unsupported.length),
+  };
+}
+
+export function recommendMagicCalibration(results: MagicBenchmarkFixtureResult[]): MagicCalibrationRecommendation[] {
+  if (!results.length) {
+    return [{
+      kind: 'threshold_change',
+      recommendation: 'Do not change thresholds until private fixtures are available.',
+      evidence: 'No benchmark results were supplied.',
+      applyAutomatically: false,
+    }];
+  }
+  const recommendations: MagicCalibrationRecommendation[] = [];
+  const falseHighConfidence = results.filter((result) => result.scores.falseHighConfidence);
+  if (falseHighConfidence.length) {
+    recommendations.push({
+      kind: 'threshold_change',
+      recommendation: 'Raise or keep the one-tap and auto-suggest thresholds until false high-confidence cases are understood.',
+      evidence: `${falseHighConfidence.length} fixture(s) produced high confidence for an incorrect exact printing.`,
+      applyAutomatically: false,
+    });
+  }
+  const missingEvidenceInflation = results.filter((result) => result.confidence.overall >= SCANNER_CONFIDENCE_THRESHOLD && result.confidence.signals.some((signalScore) => signalScore.score === null));
+  if (missingEvidenceInflation.length) {
+    recommendations.push({
+      kind: 'missing_evidence_inflation',
+      recommendation: 'Keep missing exact-printing evidence confirmation-gated; consider lowering effective confidence when set or collector signals are absent.',
+      evidence: `${missingEvidenceInflation.length} fixture(s) exceeded the threshold while at least one signal was missing.`,
+      applyAutomatically: false,
+    });
+  }
+  const signalMisses = signalMissSummary(results);
+  for (const [key, count] of Object.entries(signalMisses)) {
+    if (count >= Math.max(2, Math.ceil(results.length * 0.25))) {
+      recommendations.push({
+        kind: 'over_weighted_signal',
+        signal: key as RecognitionSignalScore['key'],
+        recommendation: `Review the ${key} weight before changing thresholds.`,
+        evidence: `${count} fixture(s) had low ${key} score among incorrect or manually reviewed results.`,
+        applyAutomatically: false,
+      });
+    }
+  }
+  if (!recommendations.length) {
+    recommendations.push({
+      kind: 'weight_change',
+      recommendation: 'No weight or threshold change is supported by this benchmark run.',
+      evidence: 'No false high-confidence or repeated signal-specific failure pattern was detected.',
+      applyAutomatically: false,
+    });
+  }
+  return recommendations;
+}
+
+export function serializeMagicBenchmarkJson(report: MagicBenchmarkReport) {
+  return `${JSON.stringify(sanitizeMagicBenchmarkReport(report), null, 2)}\n`;
+}
+
+export function serializeMagicBenchmarkCsv(report: MagicBenchmarkReport) {
+  const headers = [
+    'fixture id',
+    'image id',
+    'frame type',
+    'lighting',
+    'sleeve',
+    'angle',
+    'signal source',
+    'ok',
+    'expected name',
+    'expected set',
+    'expected collector',
+    'expected scryfall id',
+    'top1 name',
+    'top1 set',
+    'top1 collector',
+    'top1 scryfall id',
+    'name top1',
+    'printing top1',
+    'printing top3',
+    'false high confidence',
+    'threshold class',
+    'overall confidence',
+    'requires confirmation',
+    'latency ms',
+  ];
+  const rows = report.results.map((result) => [
+    result.fixtureId,
+    result.sanitizedImageId,
+    result.frameType,
+    result.lightingCondition,
+    result.sleeveStatus,
+    result.angle,
+    result.signalSource,
+    result.ok,
+    result.expected.cardName,
+    result.expected.setCode,
+    result.expected.collectorNumber,
+    result.expected.scryfallId,
+    result.top1.name,
+    result.top1.setCode,
+    result.top1.collectorNumber,
+    result.top1.scryfallId,
+    result.scores.nameTop1,
+    result.scores.printingTop1,
+    result.scores.printingTop3,
+    result.scores.falseHighConfidence,
+    result.thresholdClass,
+    result.confidence.overall,
+    result.confidence.requiresConfirmation,
+    result.latencyMs,
+  ]);
+  return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
+}
+
+export function serializeMagicBenchmarkMarkdown(report: MagicBenchmarkReport) {
+  const metrics = report.metrics;
+  const lines = [
+    `# Magic Scanner Benchmark Summary`,
+    '',
+    `Generated: ${report.generatedAt}`,
+    `Fixture set: ${report.fixtureSetId}`,
+    `Fixtures: ${report.fixtureCount}`,
+    '',
+    '## Metrics',
+    '',
+    `- Card name top-1 accuracy: ${formatMetric(metrics.cardNameTop1Accuracy)}`,
+    `- Exact printing top-1 accuracy: ${formatMetric(metrics.exactPrintingTop1Accuracy)}`,
+    `- Exact printing top-3 accuracy: ${formatMetric(metrics.exactPrintingTop3Accuracy)}`,
+    `- False high-confidence rate: ${formatMetric(metrics.falseHighConfidenceRate)}`,
+    `- Average confidence: ${metrics.averageConfidence ?? 'unavailable'}`,
+    `- Average latency: ${metrics.averageScanLatencyMs === null ? 'unavailable' : `${metrics.averageScanLatencyMs} ms`}`,
+    `- Manual correction rate: ${formatMetric(metrics.manualCorrectionRate)}`,
+    `- Finish accuracy: ${formatMetric(metrics.finishAccuracy)}`,
+    `- Unsupported-card rejection rate: ${formatMetric(metrics.unsupportedCardRejectionRate)}`,
+    '',
+    '## Calibration',
+    '',
+    ...report.calibrationRecommendations.map((entry) => `- ${entry.recommendation} Evidence: ${entry.evidence}`),
+    '',
+    '## Privacy',
+    '',
+    '- Source image paths and image contents are intentionally omitted from this report.',
+    `- ${report.privacy.message}`,
+  ];
+  return `${lines.join('\n')}\n`;
+}
+
+export function sanitizeMagicBenchmarkReport(report: MagicBenchmarkReport): MagicBenchmarkReport {
+  return {
+    ...report,
+    results: report.results.map((result) => ({ ...result })),
   };
 }
 
@@ -349,6 +758,123 @@ function scryfallToRecognitionCandidate(card: ScryfallCard): RecognitionCandidat
     layout: card.layout ?? null,
     colorIdentity: card.color_identity ?? [],
   };
+}
+
+function fixtureToRecognitionInput(fixture: MagicBenchmarkFixtureManifestEntry): MagicRecognitionInput {
+  const observed = fixture.observed;
+  const nameText = observed?.nameText ?? fixture.expectedCardName;
+  const collectorInfoText = observed?.collectorInfoText ?? `${observed?.setCode ?? fixture.expectedSetCode} ${observed?.collectorNumber ?? fixture.expectedCollectorNumber} ${observed?.language ?? fixture.expectedLanguage}`;
+  return {
+    nameObservation: nameText ? { regionType: 'name', text: nameText, confidence: observed?.nameConfidence ?? (observed ? 72 : 60) } : undefined,
+    collectorInfoText,
+    finishObservation: observed?.finish ? {
+      finish: observed.finish,
+      confidence: observed.finishConfidence ?? 60,
+      evidence: ['Fixture manifest observed finish signal.'],
+      frameCount: 1,
+    } : undefined,
+    artworkObservation: observed?.artworkLayout || typeof observed?.artworkSimilarity === 'number'
+      ? {
+        fingerprint: null,
+        layout: observed.artworkLayout ?? null,
+        similarity: observed.artworkSimilarity ?? 0,
+      }
+      : undefined,
+    setSymbolObservation: observed?.setSymbol || typeof observed?.setSymbolConfidence === 'number'
+      ? { symbol: observed.setSymbol ?? null, rarity: null, confidence: observed.setSymbolConfidence ?? 0 }
+      : undefined,
+    language: observed?.language ?? fixture.expectedLanguage,
+    cachedCandidates: fixture.candidateCatalog,
+    online: true,
+  };
+}
+
+function buildFixtureResult(
+  fixture: MagicBenchmarkFixtureManifestEntry,
+  recognition: MagicRecognitionResult,
+  latencyMs: number,
+  signalSource: MagicBenchmarkFixtureResult['signalSource'],
+): MagicBenchmarkFixtureResult {
+  const selected = recognition.ok ? recognition.selected : null;
+  const confidence = recognition.ok ? recognition.confidence : emptyConfidence(recognition.reason);
+  const threshold = classifyMagicRecognition(confidence, recognition.ok ? recognition.candidates.length : 0);
+  const top3 = recognition.ok ? recognition.candidates.map((candidate) => ({
+    scryfallId: candidate.id,
+    name: candidate.name,
+    setCode: candidate.setCode,
+    collectorNumber: candidate.collectorNumber,
+  })) : [];
+  const unsupportedFixture = fixture.frameType === 'token' || fixture.frameType === 'unsupported_card';
+  const unsupportedRejected = unsupportedFixture ? selected === null : null;
+  const printingTop1 = selected?.id === fixture.expectedScryfallId;
+  const printingTop3 = top3.some((candidate) => candidate.scryfallId === fixture.expectedScryfallId);
+  const finishSignal = confidence.signals.find((signalScore) => signalScore.key === 'legal_finish');
+  return {
+    fixtureId: fixture.id,
+    sanitizedImageId: sanitizeFixtureImageId(fixture),
+    frameType: fixture.frameType,
+    lightingCondition: fixture.lightingCondition,
+    sleeveStatus: fixture.sleeveStatus,
+    angle: fixture.angle,
+    signalSource,
+    ok: recognition.ok,
+    error: recognition.ok ? null : recognition.reason,
+    expected: {
+      cardName: fixture.expectedCardName,
+      setCode: fixture.expectedSetCode,
+      collectorNumber: fixture.expectedCollectorNumber,
+      scryfallId: fixture.expectedScryfallId,
+      language: fixture.expectedLanguage,
+      finish: fixture.expectedFinish,
+    },
+    top1: {
+      scryfallId: selected?.id ?? null,
+      name: selected?.name ?? null,
+      setCode: selected?.setCode ?? null,
+      collectorNumber: selected?.collectorNumber ?? null,
+    },
+    top3,
+    scores: {
+      nameTop1: normalizeName(selected?.name) === normalizeName(fixture.expectedCardName),
+      printingTop1,
+      printingTop3,
+      falseHighConfidence: confidence.overall >= SCANNER_CONFIDENCE_THRESHOLD && !printingTop1 && !unsupportedFixture,
+      finishCorrect: finishSignal?.score === null || finishSignal === undefined ? null : finishSignal.score >= 80,
+      unsupportedRejected,
+    },
+    confidence,
+    thresholdClass: threshold.thresholdClass,
+    latencyMs,
+  };
+}
+
+function fixtureSignalSource(fixture: MagicBenchmarkFixtureManifestEntry): MagicBenchmarkFixtureResult['signalSource'] {
+  if (fixture.observed) return 'observed_signals';
+  if (fixture.expectedCardName || fixture.expectedSetCode || fixture.expectedCollectorNumber) return 'expected_metadata_seed';
+  return 'catalog_only';
+}
+
+function sanitizeFixtureImageId(fixture: MagicBenchmarkFixtureManifestEntry) {
+  return `${fixture.id}:${fixture.frameType}`;
+}
+
+function signalMissSummary(results: MagicBenchmarkFixtureResult[]) {
+  const counts: Partial<Record<RecognitionSignalScore['key'], number>> = {};
+  for (const result of results) {
+    if (result.scores.printingTop1 && !result.confidence.requiresConfirmation) continue;
+    for (const signalScore of result.confidence.signals) {
+      if (signalScore.score !== null && signalScore.score < 50) counts[signalScore.key] = (counts[signalScore.key] ?? 0) + 1;
+    }
+  }
+  return counts;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function validateRequiredString(value: unknown, field: string, errors: string[]) {
+  if (!stringValue(value)) errors.push(`${field} is required.`);
 }
 
 async function loadMagicCandidates(
@@ -470,4 +996,13 @@ function universalToRecognitionCandidate(candidate: UniversalScanCandidate): Rec
 
 function ratio(numerator: number, denominator: number) {
   return denominator > 0 ? Number((numerator / denominator).toFixed(4)) : null;
+}
+
+function formatMetric(value: number | null) {
+  return value === null ? 'unavailable' : `${Math.round(value * 1000) / 10}%`;
+}
+
+function csvCell(value: unknown) {
+  if (value === null || value === undefined) return '';
+  return `"${String(value).replaceAll('"', '""')}"`;
 }

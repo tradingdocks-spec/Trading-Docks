@@ -5,6 +5,9 @@ dist/
 coverage/
 mobile/dist/
 mobile/.expo/
+mobile/fixtures/private-scanner/
+mobile/fixtures/magic-scanner-private/
+mobile/benchmark-output/
 .env*
 *.log
 .DS_Store

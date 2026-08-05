@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "node --test --experimental-strip-types tests/*.test.ts"
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "benchmark:magic-scanner": "node --experimental-strip-types scripts/run-magic-scanner-benchmark.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

@@ -7,6 +7,7 @@
 - Implemented: Scanner intelligence contracts live in `mobile/services/scanner-intelligence.ts`.
 - Implemented: Multi-TCG scanner contracts live in `mobile/services/multi-tcg-scanner.ts`; see `docs/MULTI_TCG_SCANNER.md`.
 - Implemented: `mobile/services/magic-recognition-provider.ts` is the first real game-specific recognition adapter. It ranks Magic printings from Scryfall metadata, parsed collector info, name OCR observations, layout/artwork observations when provided, legal finishes, and language compatibility.
+- Implemented: Magic scanner calibration tooling validates private fixture manifests, runs local benchmarks, emits sanitized JSON/CSV/Markdown reports, and classifies recognition as recognized, likely, ambiguous, or manual-review required.
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
 - Partially Implemented: Camera capture is local-first and still does not include a benchmarked native OCR, artwork, set-symbol, or finish-classification provider.
 - Partially Implemented: The Magic adapter can resolve and explain likely Magic printings from available metadata signals, but it must require user confirmation when exact-printing signals are missing, weak, conflicting, or below threshold.
@@ -48,7 +49,7 @@
 - Implemented: Missing signals remain `null` and do not add positive confidence.
 - Implemented: Conflicting low scores are surfaced in `RecognitionConfidence.conflicts`.
 - Implemented: Ambiguous resolution returns the top three candidates where available.
-- Partially Implemented: The active mobile UI uses manual Scryfall search plus the Magic recognition adapter to show a likely Magic candidate, top alternatives, per-signal confidence, and "Why this match?" details. Visual image recognition is not presented as benchmarked live recognition.
+- Partially Implemented: The active mobile UI uses manual Scryfall search plus the Magic recognition adapter to show recognized/likely/ambiguous/manual-review states, top alternatives, per-signal confidence, and "Why this match?" details. Visual image recognition is not presented as benchmarked live recognition.
 
 ## Confirmation Rules
 
