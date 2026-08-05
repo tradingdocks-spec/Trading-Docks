@@ -26,6 +26,8 @@
 ## Component Duplication
 
 - Partially Implemented: Dashboard shells, topbars, sidebars, workspace frames, metric cards, inventory workspaces, purchasing workspaces, deck vault components, and business operation components have overlapping versions.
+- Partially Implemented: Web and mobile now have first-wave TD primitives, but legacy `src/components/ui`, mobile `foundation.tsx`, mobile `primitives.tsx`, `mobile/constants/brand.ts`, and many screen-local style systems still coexist.
+- Implemented: Shared semantic tokens and first-wave TD primitives provide a canonical migration target for buttons, cards, inputs, badges, text, screen shells, section headers, loading states, empty states, error states, and dividers.
 - Planned: Pick a canonical component tree and archive or delete superseded versions after review.
 
 ## Potential Bugs
@@ -48,16 +50,19 @@
 - Planned: Establish a shared membership contract for web, mobile, billing, and marketing.
 - Planned: Generate a canonical Supabase schema snapshot from a clean migration replay.
 - Planned: Move historical release notes/backups out of active source or clearly archive them.
+- Planned: Continue incremental design-system migration rather than sweeping every screen into the new primitives at once.
 
 ## Performance Opportunities
 
 - Planned: Audit large client components for bundle size and split heavy dashboard workspaces.
 - Planned: Cache safe public card data with explicit provider limits and invalidation rules.
 - Planned: Replace duplicate component systems with shared primitives to reduce CSS/runtime weight.
+- Planned: Use shared loading, empty, and error states to reduce repeated rendering logic and bespoke animation code.
 
 ## Missing Tests
 
 - Implemented: Focused mobile auth tests cover email/password success and failure, session restoration, admin routing, normal routing, remembered email, and keep-me-signed-in discard behavior.
+- Implemented: Focused mobile design-system tests cover token exports, semantic colors, button disabled/loading behavior, input error state, and accessibility metadata.
 - Planned: Auth redirect and callback tests.
 - Planned: Plan access and route entitlement tests.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -71,6 +76,7 @@
 
 - Partially Implemented: Historical docs exist as release notes, not durable architecture docs.
 - Partially Implemented: Mobile README is still mostly default Expo text.
+- Implemented: `docs/DESIGN_SYSTEM.md` now records the current design-system source of truth, audit findings, token naming, component usage, migration strategy, web/native differences, deprecated patterns, and remaining design-system debt.
 - Planned: Add a canonical environment variable matrix.
 - Planned: Add provider setup runbooks for Stripe, Supabase, Cloudflare, eBay, Mana Pool, Resend, Vercel, and mobile app store builds.
 
@@ -83,3 +89,4 @@
 5. Replay Supabase migrations in a fresh staging project and record the canonical schema.
 6. Add CI coverage for auth, plan gates, billing webhooks, public share safety, and API allowlists.
 7. Remove or archive dependency/build backup artifacts after a separate review-approved cleanup.
+8. Continue design-system migration through shared dashboard states and common cards before attempting navigation or modal primitives.

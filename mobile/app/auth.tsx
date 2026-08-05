@@ -11,12 +11,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
 import { Logo } from '@/components/primitives';
-import { PrimaryButton, Surface } from '@/components/foundation';
+import { TDButton, TDCard, TDErrorState, TDInput } from '@/components/design-system';
 import { color, radius, space, type } from '@/design';
 import { signInWithEmailPassword, signUpWithEmailPassword } from '@/services/auth-email';
 import { signInSocial } from '@/lib/oauth';
@@ -238,10 +237,10 @@ export default function Auth() {
               <View style={s.benefit}><Ionicons name="sync-outline" size={20} color={color.primaryBright} /><Text style={s.benefitText}>One account across every workspace</Text></View>
             </View>
             <View style={[s.formSide, desktop && s.formSideDesktop]}>
-              <Surface style={s.panel} tone="raised">
+              <TDCard style={s.panel} variant="elevated">
                 <Text style={s.formTitle}>{signup ? 'Create your account' : 'Welcome back'}</Text>
                 <Text style={s.formSub}>{signup ? 'Use Google, Apple, or email to begin.' : 'Choose a secure sign-in method.'}</Text>
-                {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
+                {error ? <TDErrorState title="Authentication problem" message={error} accessibilityLabel="Authentication error" /> : null}
                 {notice ? <Text style={s.notice}>{notice}</Text> : null}
                 <View style={s.socials}>
                   <Pressable onPress={() => social('google')} disabled={busy} style={[s.social, busy && s.disabled]}>
@@ -256,13 +255,10 @@ export default function Auth() {
                   )}
                 </View>
                 <View style={s.or}><View style={s.rule} /><Text style={s.orText}>OR CONTINUE WITH EMAIL</Text><View style={s.rule} /></View>
-                <View style={s.input}>
-                  <Ionicons name="mail-outline" size={19} color={color.textMuted} />
-                  <TextInput value={email} onChangeText={setEmail} onSubmitEditing={submit} placeholder="Email address" placeholderTextColor={color.textMuted} autoCapitalize="none" autoComplete="email" keyboardType="email-address" returnKeyType="go" editable={!busy} style={s.field} />
-                </View>
+                <TDInput label="Email address" value={email} onChangeText={setEmail} onSubmitEditing={submit} placeholder="Email address" autoCapitalize="none" autoComplete="email" keyboardType="email-address" returnKeyType="go" disabled={busy} leftIconName="mail-outline" />
                 <View style={s.input}>
                   <Ionicons name="lock-closed-outline" size={19} color={color.textMuted} />
-                  <TextInput value={password} onChangeText={setPassword} onSubmitEditing={submit} placeholder="Password" placeholderTextColor={color.textMuted} secureTextEntry={!showPassword} autoComplete={signup ? 'new-password' : 'current-password'} returnKeyType="go" editable={!busy} style={s.field} />
+                  <TDInput value={password} onChangeText={setPassword} onSubmitEditing={submit} placeholder="Password" secureTextEntry={!showPassword} autoComplete={signup ? 'new-password' : 'current-password'} returnKeyType="go" disabled={busy} containerStyle={s.passwordField} style={s.passwordText} />
                   <Pressable onPress={() => setShowPassword((value) => !value)} hitSlop={10} disabled={busy}>
                     <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={color.textMuted} />
                   </Pressable>
@@ -279,12 +275,12 @@ export default function Auth() {
                     )}
                   </View>
                 )}
-                <PrimaryButton label={busy ? (signup ? 'Creating account...' : 'Signing in...') : (signup ? 'Create account' : 'Sign in')} busy={busy} onPress={submit} />
+                <TDButton label={busy ? (signup ? 'Creating account...' : 'Signing in...') : (signup ? 'Create account' : 'Sign in')} loading={busy} onPress={submit} iconName="arrow-forward" />
                 {!signup && <Pressable onPress={magic} disabled={busy}><Text style={[s.magic, busy && s.disabledText]}>Email me a secure sign-in link</Text></Pressable>}
                 <Pressable onPress={() => { setSignup((value) => !value); setError(null); setNotice(null); }} disabled={busy}>
                   <Text style={s.switch}>{signup ? 'Already have an account? Sign in' : 'New here? Create a Trading Docks account'}</Text>
                 </Pressable>
-              </Surface>
+              </TDCard>
               <View style={s.trust}><Ionicons name="lock-closed-outline" size={15} color={color.success} /><Text style={s.trustText}>Trading Docks never stores your password. Face ID and biometric unlock protect an existing device session; they do not store credentials.</Text></View>
               <Pressable onPress={() => focusSafeRoute('/(tabs)')}><Text style={s.preview}>Continue in preview mode</Text></Pressable>
             </View>
@@ -317,7 +313,6 @@ const s = StyleSheet.create({
   panel: { gap: space.sm, padding: space.lg },
   formTitle: { ...type.title, color: color.text },
   formSub: { ...type.body, color: color.textSecondary, marginBottom: space.sm },
-  error: { color: '#FFB05A', backgroundColor: '#FFB05A14', borderColor: '#FFB05A55', borderWidth: 1, borderRadius: radius.sm, padding: 12, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   notice: { color: color.success, backgroundColor: color.success + '12', borderColor: color.success + '55', borderWidth: 1, borderRadius: radius.sm, padding: 12, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   socials: { gap: space.sm },
   social: { height: 56, borderRadius: radius.md, backgroundColor: color.canvasRaised, borderWidth: 1, borderColor: color.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
@@ -330,6 +325,8 @@ const s = StyleSheet.create({
   orText: { color: color.textMuted, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
   input: { height: 57, borderRadius: radius.md, borderColor: color.border, borderWidth: 1, backgroundColor: color.canvasRaised, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 15 },
   field: { flex: 1, color: color.text, fontSize: 15, outlineStyle: 'none' as never },
+  passwordField: { flex: 1, gap: 0 },
+  passwordText: { paddingHorizontal: 0 },
   options: { gap: 10, paddingVertical: 4 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 28 },
   checkbox: { width: 21, height: 21, borderRadius: 7, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, alignItems: 'center', justifyContent: 'center' },

@@ -1,36 +1,47 @@
 import { Platform } from 'react-native';
+import type { ViewStyle } from 'react-native';
+
+import { tdTokens } from './shared-tokens';
 
 export const color = {
-  canvas: '#06111F',
-  canvasRaised: '#091827',
-  surface: '#0D2033',
-  surfaceRaised: '#112941',
-  surfaceFloating: '#142F49',
-  text: '#F6FAFF',
-  textSecondary: '#A9BBCB',
-  textMuted: '#71899F',
-  primary: '#2688FF',
-  primaryBright: '#66D9FF',
-  success: '#4BE0A0',
-  warning: '#FFC76A',
-  danger: '#FF6F87',
-  border: '#1C3C59',
-  borderStrong: '#2D5272',
-  overlay: 'rgba(2, 8, 16, 0.72)',
+  canvas: tdTokens.color.background.primary,
+  canvasRaised: tdTokens.color.background.secondary,
+  surface: tdTokens.color.surface.default,
+  surfaceRaised: tdTokens.color.surface.elevated,
+  surfaceFloating: tdTokens.color.surface.floating,
+  text: tdTokens.color.text.primary,
+  textSecondary: tdTokens.color.text.secondary,
+  textMuted: tdTokens.color.text.muted,
+  primary: tdTokens.color.action.primary,
+  primaryBright: tdTokens.color.border.focus,
+  success: tdTokens.color.state.success,
+  warning: tdTokens.color.state.warning,
+  danger: tdTokens.color.state.danger,
+  info: tdTokens.color.state.information,
+  accent: tdTokens.color.state.accent,
+  border: tdTokens.color.border.default,
+  borderStrong: tdTokens.color.border.strong,
+  overlay: tdTokens.color.surface.overlay,
 } as const;
 
-export const space = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 24, xl: 32, xxl: 48, hero: 64 } as const;
-export const radius = { sm: 12, md: 16, lg: 20, xl: 28, modal: 34, pill: 999 } as const;
+export const space = { xxs: tdTokens.space.half, xs: tdTokens.space.xs, sm: tdTokens.space.sm, md: tdTokens.space.md, lg: tdTokens.space.lg, xl: tdTokens.space.xl, xxl: tdTokens.space.xxl, hero: tdTokens.space.hero } as const;
+export const radius = { xs: tdTokens.radius.xs, sm: tdTokens.radius.sm, md: tdTokens.radius.md, lg: tdTokens.radius.lg, xl: tdTokens.radius.xxl, modal: 32, pill: tdTokens.radius.pill } as const;
 export const type = {
-  display: { fontSize: 38, lineHeight: 42, fontWeight: '900' as const, letterSpacing: -1.3 },
-  heading: { fontSize: 26, lineHeight: 31, fontWeight: '900' as const, letterSpacing: -0.7 },
-  title: { fontSize: 18, lineHeight: 23, fontWeight: '900' as const },
-  body: { fontSize: 14, lineHeight: 21, fontWeight: '500' as const },
-  label: { fontSize: 11, lineHeight: 15, fontWeight: '900' as const, letterSpacing: 1.2 },
-  caption: { fontSize: 11, lineHeight: 16, fontWeight: '600' as const },
+  display: { fontSize: tdTokens.typography.size.display, lineHeight: tdTokens.typography.lineHeight.display, fontWeight: '900' as const, letterSpacing: -1.3 },
+  heading: { fontSize: tdTokens.typography.size.heading, lineHeight: tdTokens.typography.lineHeight.heading, fontWeight: '900' as const, letterSpacing: -0.7 },
+  title: { fontSize: tdTokens.typography.size.title, lineHeight: tdTokens.typography.lineHeight.title, fontWeight: '900' as const },
+  body: { fontSize: tdTokens.typography.size.body, lineHeight: tdTokens.typography.lineHeight.body, fontWeight: '500' as const },
+  small: { fontSize: tdTokens.typography.size.small, lineHeight: tdTokens.typography.lineHeight.small, fontWeight: '600' as const },
+  label: { fontSize: tdTokens.typography.size.caption, lineHeight: 15, fontWeight: '900' as const, letterSpacing: tdTokens.typography.letterSpacing.label },
+  caption: { fontSize: tdTokens.typography.size.caption, lineHeight: tdTokens.typography.lineHeight.caption, fontWeight: '600' as const },
 } as const;
-export const motion = { tap: 120, fast: 180, standard: 260, slow: 420 } as const;
+export const motion = tdTokens.motion.duration;
+export const breakpoint = tdTokens.breakpoint;
+export const icon = tdTokens.icon;
 export const elevation = {
-  raised: Platform.select({ ios: { shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } }, android: { elevation: 6 }, default: {} }),
-  floating: Platform.select({ ios: { shadowColor: '#000', shadowOpacity: 0.34, shadowRadius: 26, shadowOffset: { width: 0, height: 14 } }, android: { elevation: 12 }, default: {} }),
+  flat: Platform.select({ web: { boxShadow: tdTokens.elevation.flat.shadow } as ViewStyle, ios: { shadowColor: tdTokens.elevation.flat.shadowColor, shadowOpacity: tdTokens.elevation.flat.shadowOpacity, shadowRadius: tdTokens.elevation.flat.shadowRadius, shadowOffset: tdTokens.elevation.flat.shadowOffset }, android: { elevation: tdTokens.elevation.flat.elevation }, default: {} }),
+  raised: Platform.select({ web: { boxShadow: tdTokens.elevation.raised.shadow } as ViewStyle, ios: { shadowColor: tdTokens.elevation.raised.shadowColor, shadowOpacity: tdTokens.elevation.raised.shadowOpacity, shadowRadius: tdTokens.elevation.raised.shadowRadius, shadowOffset: tdTokens.elevation.raised.shadowOffset }, android: { elevation: tdTokens.elevation.raised.elevation }, default: {} }),
+  floating: Platform.select({ web: { boxShadow: tdTokens.elevation.floating.shadow } as ViewStyle, ios: { shadowColor: tdTokens.elevation.floating.shadowColor, shadowOpacity: tdTokens.elevation.floating.shadowOpacity, shadowRadius: tdTokens.elevation.floating.shadowRadius, shadowOffset: tdTokens.elevation.floating.shadowOffset }, android: { elevation: tdTokens.elevation.floating.elevation }, default: {} }),
+  overlay: Platform.select({ web: { boxShadow: tdTokens.elevation.overlay.shadow } as ViewStyle, ios: { shadowColor: tdTokens.elevation.overlay.shadowColor, shadowOpacity: tdTokens.elevation.overlay.shadowOpacity, shadowRadius: tdTokens.elevation.overlay.shadowRadius, shadowOffset: tdTokens.elevation.overlay.shadowOffset }, android: { elevation: tdTokens.elevation.overlay.elevation }, default: {} }),
 } as const;
+export { tdTokens };

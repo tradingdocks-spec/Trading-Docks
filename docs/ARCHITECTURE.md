@@ -47,3 +47,12 @@
 - Implemented: GitHub Actions `quality.yml` runs `npm ci`, `npm run check`, and `npm run build` on pull requests and pushes to main.
 - Partially Implemented: Mobile has `expo lint` but no root CI job for mobile.
 - Planned: No root unit/integration test script is configured.
+
+## Design-System Architecture
+
+- Implemented: Shared design tokens live in `mobile/design/shared-tokens.ts`, with a root re-export endpoint at `design-system/tokens.ts`.
+- Implemented: Next.js consumes design-system tokens through `src/lib/design-system/tokens.ts`, CSS variables in `src/app/globals.css`, and web primitives in `src/components/design-system/td-primitives.tsx`.
+- Implemented: Expo consumes the same token source through `mobile/design/tokens.ts` and React Native primitives in `mobile/components/design-system.tsx`.
+- Implemented: Expo and Next.js have development-only design-system showcase routes.
+- Partially Implemented: Existing legacy primitives remain in place for incremental migration.
+- Planned: Navigation, modal, toast, chart, and table primitives are later focused architecture tasks.
