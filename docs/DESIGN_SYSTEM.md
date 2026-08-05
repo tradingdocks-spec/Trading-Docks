@@ -61,6 +61,10 @@ Raw colors remain available only as palette anchors. New product components shou
 ## Navigation Contract Rules
 
 - Implemented: Mobile navigation labels, visibility, prominent tab selection, and fallback account handling live in `mobile/services/navigation-contract.ts`.
+- Implemented: Mobile primary navigation follows a canonical five-tab rule for every account composition. Placeholder destinations such as the Expo template Explore route must not appear in the primary tab group.
+- Implemented: The active mobile bottom bar uses one Ionicons family, 22px icons, equal-width cells, a minimum 48px touch target, safe-area-aware height, and short labels on one baseline.
+- Implemented: Mobile active state uses color plus filled icon glyphs and selected accessibility state. Inactive state uses the matching outline glyph, so state is not communicated only by color.
+- Implemented: Center actions such as Scan and Deal Desk may be visually emphasized inside the same tab footprint, but must not use oversized floating bubbles or create a second navigation silhouette.
 - Implemented: Web canonical route labels and implementation status live in `src/lib/navigation/contract.ts`; `src/components/dashboard/navigation.ts` adapts that contract to Lucide icons for the active dashboard shell.
 - Implemented: Active navigation items must expose selected state (`aria-current` on web, selected accessibility state on mobile) and visible focus/touch targets.
 - Partially Implemented: Navigation contracts are not a substitute for backend authorization. Admin and entitlement-protected routes still need server/RLS enforcement.
@@ -110,3 +114,4 @@ Raw colors remain available only as palette anchors. New product components shou
 8. For navigation migrations, update the route contract first, wire only the active shell, add route/selected-state tests, and document any labels whose destination content is still partially implemented.
 9. For collection migrations, use the Collector Workspace models first, display unavailable backend fields honestly, and avoid introducing sample card values into authenticated surfaces.
 10. For mobile Home changes, preserve one primary bottom tab navigation system; action rows may deep-link into tabs but must not become a second persistent navigation bar.
+11. For mobile bottom navigation changes, keep exactly five visible primary tabs per account, preserve equal-width cells, keep center emphasis within the bar geometry, and verify no placeholder tab route is exposed.

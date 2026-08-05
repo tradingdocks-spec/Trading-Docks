@@ -12,6 +12,7 @@ export type MobileTabDefinition = {
   route: MobileTabRouteName;
   label: string;
   icon: string;
+  inactiveIcon: string;
   prominent?: boolean;
 };
 
@@ -21,31 +22,47 @@ export type ProtectedRouteResolution =
   | { state: 'allowed'; route: null };
 
 const COLLECTOR_TABS: MobileTabDefinition[] = [
-  { route: 'index', label: 'Home', icon: 'home' },
-  { route: 'collection', label: 'Collection', icon: 'albums' },
-  { route: 'scan', label: 'Scan', icon: 'scan', prominent: true },
-  { route: 'sell', label: 'Signals', icon: 'pulse' },
-  { route: 'profile', label: 'Profile', icon: 'person' },
+  { route: 'index', label: 'Home', icon: 'home', inactiveIcon: 'home-outline' },
+  { route: 'collection', label: 'Collection', icon: 'layers', inactiveIcon: 'layers-outline' },
+  { route: 'scan', label: 'Scan', icon: 'scan', inactiveIcon: 'scan-outline', prominent: true },
+  { route: 'sell', label: 'Signals', icon: 'pulse', inactiveIcon: 'pulse-outline' },
+  { route: 'profile', label: 'Profile', icon: 'person', inactiveIcon: 'person-outline' },
 ];
 
 export const MOBILE_TABS_BY_ACCOUNT: Record<MobileAccountType, MobileTabDefinition[]> = {
   free: COLLECTOR_TABS,
   collector: COLLECTOR_TABS,
   seller: [
-    { route: 'index', label: 'Home', icon: 'home' },
-    { route: 'collection', label: 'Buying', icon: 'albums' },
-    { route: 'deal-desk', label: 'Deal Desk', icon: 'calculator', prominent: true },
-    { route: 'sell', label: 'Signals', icon: 'pulse' },
-    { route: 'profile', label: 'Profile', icon: 'person' },
+    { route: 'index', label: 'Home', icon: 'home', inactiveIcon: 'home-outline' },
+    { route: 'collection', label: 'Collection', icon: 'layers', inactiveIcon: 'layers-outline' },
+    {
+      route: 'deal-desk',
+      label: 'Deal Desk',
+      icon: 'swap-horizontal',
+      inactiveIcon: 'swap-horizontal-outline',
+      prominent: true,
+    },
+    { route: 'sell', label: 'Signals', icon: 'pulse', inactiveIcon: 'pulse-outline' },
+    { route: 'profile', label: 'Profile', icon: 'person', inactiveIcon: 'person-outline' },
   ],
   store: [
-    { route: 'index', label: 'Home', icon: 'home' },
-    { route: 'collection', label: 'Business', icon: 'albums' },
-    { route: 'deal-desk', label: 'Deal Desk', icon: 'calculator', prominent: true },
-    { route: 'sell', label: 'Activity', icon: 'pulse' },
-    { route: 'profile', label: 'Profile', icon: 'person' },
+    { route: 'index', label: 'Home', icon: 'home', inactiveIcon: 'home-outline' },
+    { route: 'collection', label: 'Business', icon: 'business', inactiveIcon: 'business-outline' },
+    {
+      route: 'deal-desk',
+      label: 'Deal Desk',
+      icon: 'swap-horizontal',
+      inactiveIcon: 'swap-horizontal-outline',
+      prominent: true,
+    },
+    { route: 'sell', label: 'Activity', icon: 'pulse', inactiveIcon: 'pulse-outline' },
+    { route: 'profile', label: 'Profile', icon: 'person', inactiveIcon: 'person-outline' },
   ],
 };
+
+export const MOBILE_PRIMARY_TAB_COUNT = 5;
+export const MOBILE_NAV_MIN_TOUCH_TARGET = 48;
+export const MOBILE_NAV_SAFE_AREA_BASE_HEIGHT = 62;
 
 export function normalizeMobileAccountType(value: unknown): MobileAccountType {
   return value === 'collector' || value === 'seller' || value === 'store'
@@ -72,7 +89,28 @@ export function getMobileTabOptions(accountType: unknown, route: MobileTabRouteN
     accessibilityLabel: definition ? `${definition.label} tab` : `${route} tab unavailable`,
     prominent: Boolean(definition?.prominent),
     icon: definition?.icon ?? 'ellipse',
+    inactiveIcon: definition?.inactiveIcon ?? 'ellipse-outline',
   };
+}
+
+export function getMobileVisibleTabRoutes(accountType: unknown) {
+  return getMobileTabs(accountType).map((tab) => tab.route);
+}
+
+export function hasExactlyFivePrimaryTabs(accountType: unknown) {
+  return getMobileTabs(accountType).length === MOBILE_PRIMARY_TAB_COUNT;
+}
+
+export function getMobileTabCellBasis(accountType: unknown) {
+  return `${100 / getMobileTabs(accountType).length}%`;
+}
+
+export function getMobileBottomBarHeight(safeAreaBottom: number) {
+  return MOBILE_NAV_SAFE_AREA_BASE_HEIGHT + Math.max(0, safeAreaBottom);
+}
+
+export function getMobileScrollBottomInset(safeAreaBottom: number) {
+  return getMobileBottomBarHeight(safeAreaBottom) + 28;
 }
 
 export function isMobileTabSelected(pathname: string, route: MobileTabRouteName) {

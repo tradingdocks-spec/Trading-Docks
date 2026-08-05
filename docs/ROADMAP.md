@@ -22,6 +22,7 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Establish the first Collector Workspace foundation with shared collection models, mobile/web collection browsers, detail route foundations, and focused collection tests.
 - Partially Implemented: Trade binder, wishlist, deck usage, scanner recognition, and portfolio analytics are visible as integration points but not complete workflows.
 - Implemented: Redesign mobile Home around a premium one-handed command-center hierarchy using real collection data, active sessions, unavailable states, and one primary bottom navigation system.
+- Implemented: Polish the mobile bottom navigation into one compact, account-aware five-tab bar with consistent Ionicons, restrained center action treatment, selected state, safe-area sizing, and no Explore placeholder tab.
 - Partially Implemented: Home market movement, recent activity, notifications, and operations signals remain unavailable until real data sources exist.
 - Planned: Remove or archive backup dependency folders and historical release artifacts only after product-owner review.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
@@ -29,6 +30,7 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Add native-device validation for biometric unlock, Google OAuth, Apple Sign In, and magic-link deep-link callbacks.
 - Planned: Continue design-system migration in order: dashboard state surfaces, common cards/headers, input-heavy admin/settings screens, then modal/toast/chart/table primitives.
 - Planned: Retire duplicated legacy navigation modules after import ownership is confirmed and missing route content is prioritized.
+- Planned: Complete native visual QA for the polished bottom bar across small iPhone, large iPhone, Android, narrow Expo Web, larger text, and light/dark browser rendering.
 
 ## Sprint 2: Production Configuration Readiness
 

@@ -215,10 +215,10 @@ test('mobile collector navigation uses canonical labels and selected state', () 
   assert.equal(isMobileTabSelected('/(tabs)/collection', 'collection'), true);
 });
 
-test('mobile seller navigation exposes Buying, Deal Desk, Signals, and Profile', () => {
+test('mobile seller navigation exposes Collection, Deal Desk, Signals, and Profile', () => {
   assert.deepEqual(getMobileTabs('seller').map((tab) => tab.label), [
     'Home',
-    'Buying',
+    'Collection',
     'Deal Desk',
     'Signals',
     'Profile',

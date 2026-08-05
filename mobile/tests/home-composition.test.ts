@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { buildMobileHomeComposition } from '../services/mobile-home.ts';
 import type { CollectionSummary } from '../services/collector-workspace.ts';
+import { getMobileScrollBottomInset } from '../services/navigation-contract.ts';
 
 const summary: CollectionSummary = {
   totalOwnedCards: 42,
@@ -83,6 +84,6 @@ test('Home composition keeps one primary navigation system', () => {
 });
 
 test('bottom navigation spacing contract keeps content clear', () => {
-  const minimumBottomPadding = 112;
+  const minimumBottomPadding = getMobileScrollBottomInset(21);
   assert.ok(minimumBottomPadding >= 96);
 });

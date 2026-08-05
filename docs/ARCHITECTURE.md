@@ -73,6 +73,7 @@
 ## Navigation Architecture
 
 - Implemented: Active mobile tabs are configured through `mobile/services/navigation-contract.ts` and rendered by the single Expo Router tab layout in `mobile/app/(tabs)/_layout.tsx`.
+- Implemented: Mobile primary navigation is one safe-area-aware bottom bar with exactly five visible tabs per account composition. The old Expo template Explore placeholder has been removed from the active tab group.
 - Implemented: Mobile route guards wait for auth restoration before evaluating protected admin access; unresolved local account state shows a loading fallback before tabs render.
 - Implemented: Active web dashboard navigation uses `src/lib/navigation/contract.ts` for the canonical route contract and `src/components/dashboard/navigation.ts` as the icon/platform adapter for `TieredDashboardShell`.
 - Implemented: Admin access is an additional protected destination. Mobile exposes `/admin` from the profile entry for role-bearing users, and web exposes `/dashboard/admin` for the owner; neither replaces the normal workspace shell.
@@ -83,7 +84,7 @@
 ### Canonical Route Map
 
 - Mobile Free/Collector: Home `/(tabs)`, Collection `/(tabs)/collection`, Scan `/(tabs)/scan`, Signals `/(tabs)/sell`, Profile `/(tabs)/profile`.
-- Mobile Seller: Home `/(tabs)`, Buying `/(tabs)/collection` (Partially Implemented), Deal Desk `/(tabs)/deal-desk`, Signals `/(tabs)/sell`, Profile `/(tabs)/profile`.
+- Mobile Seller: Home `/(tabs)`, Collection `/(tabs)/collection`, Deal Desk `/(tabs)/deal-desk`, Signals `/(tabs)/sell`, Profile `/(tabs)/profile`.
 - Mobile Store: Home `/(tabs)`, Business `/(tabs)/collection` (Partially Implemented), Deal Desk `/(tabs)/deal-desk`, Activity `/(tabs)/sell` (Partially Implemented), Profile `/(tabs)/profile`.
 - Mobile Admin: Command Center `/admin` remains protected and additive.
 - Web Collector: Dashboard `/dashboard`, Collection `/dashboard/inventory`, Decks `/dashboard/deck-vault`, Trade Binder `/dashboard/collector-portfolio` (Planned dedicated route), Portfolio `/dashboard/collector-portfolio`, Settings `/dashboard/settings`.
@@ -96,11 +97,19 @@
 - Current route map: Expo Router owns `mobile/app` with public auth/onboarding/plans and protected tabs/admin stacks; Next.js App Router owns `src/app/dashboard` with a server-protected dashboard layout and owner-protected admin page.
 - Duplicated navigation implementations: active mobile tabs, web `TieredSidebar`, web `MobileBottomNav`, older dashboard sidebars, `src/components/dashboard/navigation.ts`, `src/components/dashboard/navigation/navigation.ts`, and backup dashboard generations overlap.
 - Route-guard timing risks: mobile auth restoration is gated at root, but account and admin lookups are asynchronous and need loading fallbacks; web dashboard guard is server-side, while owner/admin authority is still not unified with mobile roles.
-- Inconsistent labels: prior mobile Seller/Store tabs used Collector-oriented labels such as Inventory/Signals; web had seller-heavy labels for every account tier.
+- Inconsistent labels: prior mobile Seller/Store tabs used Collector-oriented or prototype labels; active mobile Seller now uses Collection and Store uses Business/Activity while unfinished destination content remains marked Partially Implemented.
 - Account-type drift: active web and mobile code now use `free | collector | seller | store`; legacy `business` values are normalized to Store at runtime and remain as schema/document-key migration debt.
 - Accessibility risks: older navigation components may lack `aria-current`, labels, or focus rings. The active sidebar and web mobile nav now set selected state and focus-visible styling; mobile tabs now set tab accessibility labels and selected state.
 - Intentional mobile/web differences: mobile uses five bottom tabs optimized for touch and deep links; web uses a wider dashboard sidebar plus compact mobile web bottom nav.
 - Migration order: active mobile tab layout, active web dashboard shell, docs/tests, then legacy dashboard import audit, then route content alignment.
+
+### Mobile Bottom Navigation Rules
+
+- Implemented: The account-aware tab mapping is Free/Collector `Home, Collection, Scan, Signals, Profile`; Seller `Home, Collection, Deal Desk, Signals, Profile`; Store `Home, Business, Deal Desk, Activity, Profile`.
+- Implemented: Scan and Deal Desk are center actions and stay reachable through normal tab routes. Their visual treatment is restrained inside the same equal-width tab cell.
+- Implemented: Admin access stays outside the primary tab bar and remains additive through protected profile/admin navigation.
+- Implemented: Safe-area height and scroll inset helpers live in `mobile/services/navigation-contract.ts` so screens can keep content clear of the bar.
+- Planned: Dedicated mobile content for Store Business/Activity and deeper Signals workflows remains future product work.
 
 ## Identity And Entitlement Architecture
 

@@ -22,6 +22,7 @@
 ## Navigation Issues
 
 - Implemented: Active mobile tabs now use `mobile/services/navigation-contract.ts` for account-aware labels, hidden routes, prominent tab selection, selected state, and fallback account behavior.
+- Implemented: Active mobile tabs now render as one compact bottom navigation bar with exactly five visible tabs per account, consistent Ionicons, safe-area-aware height, and no Explore placeholder route in the active tab group.
 - Implemented: Mobile Home now preserves the bottom tab bar as the only primary navigation system; the Home action row is a compact deep-link surface, not a duplicate persistent nav.
 - Implemented: Active web dashboard navigation now uses `src/lib/navigation/contract.ts` and `src/components/dashboard/navigation.ts` for account-aware labels in `TieredDashboardShell` and mobile web bottom nav.
 - Implemented: Admin navigation is additive: normal workspaces remain the default, and Command Center stays protected by route guards.
@@ -78,7 +79,7 @@
 
 - Implemented: Focused mobile auth tests cover email/password success and failure, session restoration, admin routing, normal routing, remembered email, and keep-me-signed-in discard behavior.
 - Implemented: Focused mobile design-system tests cover token exports, semantic colors, button disabled/loading behavior, input error state, and accessibility metadata.
-- Implemented: Focused mobile navigation/auth contract tests cover protected-route loading, Collector/Seller/Store tab labels, admin route access, normal-user admin denial, fallback account type, and selected tab state.
+- Implemented: Focused mobile navigation/auth contract tests cover protected-route loading, Collector/Seller/Store tab labels, five-tab composition, no Explore placeholder tab, center-action reachability, safe-area sizing, admin route access, normal-user admin denial, fallback account type, and selected tab state.
 - Implemented: Focused identity/access tests cover owner, admin, support, analyst, normal user, missing role, suspended account, admin with Free membership, Seller without admin role, and authorized/unauthorized web admin route decisions.
 - Planned: Auth redirect and callback tests.
 - Implemented: Focused membership entitlement tests cover prices, annual savings, limits, financial access, Deal Desk access, web workspace access, Store employee entitlement, role separation, billing fallback, and unknown-tier fallback.
@@ -128,7 +129,7 @@
 
 ## Recommended Navigation Sprint 1
 
-1. Verify route content for labels marked Partially Implemented, especially mobile Seller Buying, mobile Store Business/Activity, web Trade Binder, web Deal Desk, and web admin subareas.
+1. Verify route content for labels marked Partially Implemented, especially mobile Store Business/Activity, mobile Signals, web Trade Binder, web Deal Desk, and web admin subareas.
 2. Verify web and mobile admin navigation after the shared `user_roles` authority change.
 3. Add server-side entitlement tests for dashboard routes so hidden navigation never becomes the only access control.
 4. Retire unused sidebars and navigation definition files after confirming no active imports.

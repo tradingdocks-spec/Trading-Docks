@@ -2,14 +2,20 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAccount } from '@/providers/account';
 import { color, elevation, radius } from '@/design';
-import { getMobileTabOptions, type MobileTabRouteName } from '@/services/navigation-contract';
+import {
+  getMobileBottomBarHeight,
+  getMobileTabOptions,
+  type MobileTabRouteName,
+} from '@/services/navigation-contract';
 
 const tabRoutes: MobileTabRouteName[] = ['index', 'collection', 'scan', 'deal-desk', 'sell', 'profile'];
 
 export default function Layout() {
   const { accountType, ready } = useAccount();
+  const insets = useSafeAreaInsets();
 
   if (!ready) {
     return (
@@ -38,19 +44,29 @@ export default function Layout() {
           tabBarShowLabel: true,
           tabBarActiveTintColor: color.primaryBright,
           tabBarInactiveTintColor: color.textMuted,
-          tabBarStyle: s.tab,
+          tabBarStyle: [
+            s.tab,
+            {
+              height: getMobileBottomBarHeight(insets.bottom),
+              paddingBottom: Math.max(insets.bottom, 6),
+            },
+          ],
+          tabBarItemStyle: s.item,
           tabBarLabelStyle: s.label,
-          tabBarIcon: ({ color: iconColor, size, focused }) => {
-            const base = options.icon;
+          tabBarIcon: ({ color: iconColor, focused }) => {
             return options.prominent ? (
               <View style={[s.center, focused && s.centerActive]}>
-                <Ionicons name={base as any} color="#fff" size={25} />
+                <Ionicons
+                  name={(focused ? options.icon : options.inactiveIcon) as any}
+                  color={focused ? color.text : iconColor}
+                  size={22}
+                />
               </View>
             ) : (
               <Ionicons
-                name={(focused ? base : `${base}-outline`) as any}
+                name={(focused ? options.icon : options.inactiveIcon) as any}
                 color={iconColor}
-                size={size}
+                size={22}
               />
             );
           },
@@ -64,7 +80,9 @@ export default function Layout() {
                 selected: Boolean(props.accessibilityState?.selected),
               }}
               onPress={(event) => {
-                Haptics.selectionAsync();
+                if (Platform.OS !== 'web') {
+                  Haptics.selectionAsync();
+                }
                 props.onPress?.(event as any);
               }}
             />
@@ -79,4 +97,54 @@ export default function Layout() {
   );
 }
 
-const s=StyleSheet.create({loading:{flex:1,alignItems:'center',justifyContent:'center',gap:10,backgroundColor:color.canvas},loadingText:{color:color.textMuted,fontSize:12,fontWeight:'700'},tab:{position:'absolute',left:14,right:14,bottom:Platform.OS==='ios'?18:10,height:Platform.OS==='ios'?76:68,paddingTop:8,paddingBottom:Platform.OS==='ios'?10:7,backgroundColor:'#0A1A2AF5',borderTopWidth:0,borderWidth:1,borderColor:color.border,borderRadius:26,...elevation.floating},label:{fontSize:10,fontWeight:'800'},center:{width:54,height:54,borderRadius:radius.lg,backgroundColor:color.primary,alignItems:'center',justifyContent:'center',marginTop:-22,borderWidth:4,borderColor:color.canvas,...elevation.floating},centerActive:{backgroundColor:color.primaryBright}});
+const s = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: color.canvas,
+  },
+  loadingText: {
+    color: color.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  tab: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingTop: 7,
+    backgroundColor: '#081625F7',
+    borderTopWidth: 1,
+    borderTopColor: color.border,
+    borderWidth: 0,
+    borderRadius: 0,
+    ...elevation.raised,
+  },
+  item: {
+    minHeight: 48,
+    paddingTop: 2,
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 12,
+    marginTop: 1,
+  },
+  center: {
+    width: 42,
+    height: 34,
+    borderRadius: radius.md,
+    backgroundColor: `${color.primary}24`,
+    borderWidth: 1,
+    borderColor: color.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerActive: {
+    backgroundColor: color.primary,
+    borderColor: color.primaryBright,
+  },
+});
