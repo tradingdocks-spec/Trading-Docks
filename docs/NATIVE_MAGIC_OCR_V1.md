@@ -67,6 +67,13 @@ cd mobile
 npx eas build --profile development --platform ios
 ```
 
+## Autolinking Repair Note
+
+- Implemented: Apple autolinking now resolves the local module as a CocoaPods pod named `TradingDocksVisionOcr`.
+- Implemented: `expo-module.config.json` points to `ios/TradingDocksVisionOcr.podspec`; the podspec declares iOS support, `ExpoModulesCore`, Swift source files, and the `TradingDocksVisionOcr` Swift module name.
+- Fixed: The previous mismatch was that `expo-modules-autolinking search` discovered the package, but `resolve --platform apple` omitted it because there was no Apple podspec for CocoaPods to link into the iOS binary.
+- Requires Production Configuration: Install a clean new iOS development build after this fix; an existing installed binary cannot gain the native module through Metro reload alone.
+
 ## Physical iPhone QA
 
 1. Install the new iOS development build.

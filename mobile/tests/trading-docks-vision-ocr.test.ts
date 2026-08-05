@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   recognizeText,
+  getVisionOcrRuntimeDiagnostics,
   validateNativeOcrRequest,
   type NativeOcrRequest,
 } from '../modules/trading-docks-vision-ocr/index.ts';
@@ -42,4 +43,26 @@ test('native OCR adapter returns structured unsupported result without native mo
     assert.equal(result.code, 'unsupported_platform');
     assert.match(result.message, /iOS Apple Vision/);
   }
+});
+
+test('runtime diagnostics report linked module details when native bridge is available', async () => {
+  const diagnostics = await getVisionOcrRuntimeDiagnostics({
+    recognizeText: async () => ({ ok: false, provider: 'apple_vision', code: 'empty_result', message: 'No text', latencyMs: 1, warnings: [] }),
+    getDiagnostics: async () => ({
+      moduleLinked: true,
+      runtimeModuleName: 'TradingDocksVisionOcr',
+      nativeModuleVersion: '0.1.1',
+      platform: 'ios',
+    }),
+  }, 'ios');
+  assert.equal(diagnostics.moduleLinked, true);
+  assert.equal(diagnostics.runtimeModuleName, 'TradingDocksVisionOcr');
+  assert.equal(diagnostics.nativeModuleVersion, '0.1.1');
+});
+
+test('runtime diagnostics remain safe when native bridge is unavailable', async () => {
+  const diagnostics = await getVisionOcrRuntimeDiagnostics(null, 'ios');
+  assert.equal(diagnostics.moduleLinked, false);
+  assert.equal(diagnostics.runtimeModuleName, 'TradingDocksVisionOcr');
+  assert.equal(diagnostics.nativeModuleVersion, 'unavailable');
 });

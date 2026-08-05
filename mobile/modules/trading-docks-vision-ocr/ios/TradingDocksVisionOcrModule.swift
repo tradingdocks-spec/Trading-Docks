@@ -6,6 +6,15 @@ public class TradingDocksVisionOcrModule: Module {
   public func definition() -> ModuleDefinition {
     Name("TradingDocksVisionOcr")
 
+    AsyncFunction("getDiagnostics") { () -> [String: Any] in
+      return [
+        "moduleLinked": true,
+        "runtimeModuleName": "TradingDocksVisionOcr",
+        "nativeModuleVersion": "0.1.1",
+        "platform": "ios"
+      ]
+    }
+
     AsyncFunction("recognizeText") { (request: [String: Any], promise: Promise) in
       let started = Date()
       if #available(iOS 13.0, *) {

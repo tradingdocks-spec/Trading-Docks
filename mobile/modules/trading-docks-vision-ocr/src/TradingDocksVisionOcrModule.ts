@@ -55,6 +55,14 @@ export type NativeOcrResult =
 
 type NativeModuleShape = {
   recognizeText(request: NativeOcrRequest): Promise<NativeOcrResult>;
+  getDiagnostics?: () => Promise<NativeOcrRuntimeDiagnostics>;
+};
+
+export type NativeOcrRuntimeDiagnostics = {
+  moduleLinked: boolean;
+  runtimeModuleName: 'TradingDocksVisionOcr';
+  nativeModuleVersion: string;
+  platform: string;
 };
 
 export async function recognizeText(request: NativeOcrRequest, nativeModule?: NativeModuleShape | null, platform = currentPlatform()): Promise<NativeOcrResult> {
@@ -129,6 +137,28 @@ export function validateNativeOcrRequest(request: NativeOcrRequest): { ok: true 
     };
   }
   return { ok: true };
+}
+
+export async function getVisionOcrRuntimeDiagnostics(nativeModule?: NativeModuleShape | null, platform = currentPlatform()): Promise<NativeOcrRuntimeDiagnostics> {
+  const resolvedNativeModule = nativeModule === undefined ? loadNativeModule(platform) : nativeModule;
+  if (platform !== 'ios' || !resolvedNativeModule?.getDiagnostics) {
+    return {
+      moduleLinked: false,
+      runtimeModuleName: 'TradingDocksVisionOcr',
+      nativeModuleVersion: 'unavailable',
+      platform,
+    };
+  }
+  try {
+    return await resolvedNativeModule.getDiagnostics();
+  } catch {
+    return {
+      moduleLinked: false,
+      runtimeModuleName: 'TradingDocksVisionOcr',
+      nativeModuleVersion: 'unavailable',
+      platform,
+    };
+  }
 }
 
 function loadNativeModule(platform: string): NativeModuleShape | null {

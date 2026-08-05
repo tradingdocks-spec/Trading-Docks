@@ -34,6 +34,7 @@ import {
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { classifyMagicRecognition, recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
 import { recognizeMagicStillCapture, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
+import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from '@/modules/trading-docks-vision-ocr';
 import { loadScannerContext, loadScannerDraft, saveScannerConfirmation, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
 import {
   createInterruptedScanDraft,
@@ -94,6 +95,7 @@ export default function Scan() {
   const [candidates, setCandidates] = useState<ScannerCardCandidate[]>([]);
   const [magicRecognition, setMagicRecognition] = useState<MagicRecognitionResult | null>(null);
   const [magicStillScan, setMagicStillScan] = useState<MagicStillScanResult | null>(null);
+  const [ocrRuntimeDiagnostics, setOcrRuntimeDiagnostics] = useState<NativeOcrRuntimeDiagnostics | null>(null);
   const [showMagicWhy, setShowMagicWhy] = useState(false);
   const [selected, setSelected] = useState<ScannerCardCandidate | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -196,6 +198,11 @@ export default function Scan() {
     if (!context || !diagnosticsEnabled) return;
     void appStorage.setItem(nativeScannerCalibrationKey(context.userId), JSON.stringify(scannerCalibration));
   }, [context, diagnosticsEnabled, scannerCalibration]);
+
+  useEffect(() => {
+    if (!diagnosticsEnabled) return;
+    void getVisionOcrRuntimeDiagnostics().then(setOcrRuntimeDiagnostics);
+  }, [diagnosticsEnabled]);
 
   useEffect(() => {
     if (!context || !session) return;
@@ -627,6 +634,8 @@ export default function Scan() {
                 <DiagnosticCell label="OCR latency" value={magicStillScan?.ok ? `${magicStillScan.ocr.latencyMs} ms` : 'unavailable'} />
                 <DiagnosticCell label="Scryfall" value={magicStillScan?.ok ? `${magicStillScan.lookupLatencyMs} ms` : 'unavailable'} />
                 <DiagnosticCell label="Cleanup" value={cleanupDiagnostic(magicStillScan)} />
+                <DiagnosticCell label="OCR module" value={ocrRuntimeDiagnostics ? `${ocrRuntimeDiagnostics.moduleLinked ? 'linked' : 'unavailable'} ${ocrRuntimeDiagnostics.nativeModuleVersion}` : 'checking'} />
+                <DiagnosticCell label="OCR runtime" value={ocrRuntimeDiagnostics ? `${ocrRuntimeDiagnostics.runtimeModuleName} ${ocrRuntimeDiagnostics.platform}` : 'checking'} />
               </View>
               {magicStillScan?.ok ? (
                 <View style={s.optionGroup}>
