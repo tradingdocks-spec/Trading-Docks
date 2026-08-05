@@ -6,9 +6,11 @@
 - Implemented: The mobile scanner screen supports permission, denied, unavailable, guided preview, torch toggle, still capture, retake, manual search, exact-printing confirmation, Collection add, Storage assignment, Trade Binder status, Wishlist action, offline queueing, and scanner replay recovery.
 - Implemented: Scanner intelligence contracts live in `mobile/services/scanner-intelligence.ts`.
 - Implemented: Multi-TCG scanner contracts live in `mobile/services/multi-tcg-scanner.ts`; see `docs/MULTI_TCG_SCANNER.md`.
+- Implemented: `mobile/services/magic-recognition-provider.ts` is the first real game-specific recognition adapter. It ranks Magic printings from Scryfall metadata, parsed collector info, name OCR observations, layout/artwork observations when provided, legal finishes, and language compatibility.
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
-- Partially Implemented: Camera capture is local-first and does not yet feed a production OCR/artwork/finish recognition provider.
-- Partially Implemented: Multi-game adapters for Magic, Pokemon, One Piece, and Lorcana are replaceable architecture stubs, not benchmarked recognition providers.
+- Partially Implemented: Camera capture is local-first and still does not include a benchmarked native OCR, artwork, set-symbol, or finish-classification provider.
+- Partially Implemented: The Magic adapter can resolve and explain likely Magic printings from available metadata signals, but it must require user confirmation when exact-printing signals are missing, weak, conflicting, or below threshold.
+- Partially Implemented: Pokemon, One Piece, and Lorcana adapters remain replaceable architecture stubs, not benchmarked recognition providers.
 - Planned: OCR, artwork matching, set-symbol detection, collector-info parsing from image crops, perspective correction, and foil classification need provider implementations plus benchmarks before any accuracy claim.
 
 ## Official Platform Constraints
@@ -29,6 +31,7 @@
 - Implemented: `FinishDetectionProvider` classifies nonfoil, likely foil, likely etched, special finish candidate, or indeterminate.
 - Implemented: `PrintingCandidateProvider` ranks possible Scryfall printings.
 - Implemented: `ConfidenceFusionProvider` produces explainable overall and per-signal confidence.
+- Implemented: Magic confidence output includes overall confidence, top three candidates, per-signal scores for name, set code, collector number, artwork, set symbol, layout, finish compatibility, and language compatibility, conflicts, and "Why this match?" explanation lines.
 - Planned: Active visual providers are contracts only. They are replaceable and independently testable, but no production OCR/artwork/finish provider is benchmarked yet.
 
 ## Multi-TCG Intake
@@ -45,14 +48,14 @@
 - Implemented: Missing signals remain `null` and do not add positive confidence.
 - Implemented: Conflicting low scores are surfaced in `RecognitionConfidence.conflicts`.
 - Implemented: Ambiguous resolution returns the top three candidates where available.
-- Partially Implemented: The active mobile UI still uses manual Scryfall search for writes. Visual recognition output is not presented as live recognition until providers and benchmarks exist.
+- Partially Implemented: The active mobile UI uses manual Scryfall search plus the Magic recognition adapter to show a likely Magic candidate, top alternatives, per-signal confidence, and "Why this match?" details. Visual image recognition is not presented as benchmarked live recognition.
 
 ## Confirmation Rules
 
 - Implemented: Exact printing confirmation is required before inventory writes.
 - Implemented: Editable confirmation fields include printing, finish, language, condition, quantity, storage location, Trade Binder status, Wishlist action, purchase price contract, and notes contract.
 - Planned: Quick-confirm preference can be added later only after confidence thresholds and benchmark data are approved.
-- Planned: A "Why this match?" detail view should render `RecognitionConfidence.signals` and conflicts before any quick-confirm flow ships.
+- Implemented: The scanner screen renders `RecognitionConfidence.signals`, conflicts through the explanation text, and requires exact-printing confirmation before writing inventory.
 
 ## Destinations
 
@@ -66,11 +69,13 @@
 - Implemented: Captured frame contracts include `retainedByUser` and `uploadedWithConsent`; defaults are false.
 - Implemented: Scanner replay logging avoids tokens, service-role keys, images, and private user data.
 - Implemented: The scanner does not upload captured images by default.
+- Implemented: Magic recognition sends text metadata queries to Scryfall only; it does not upload captured images, retain captured images by default, or use a paid cloud vision provider.
 - Planned: Remote image-processing providers require explicit consent, HTTPS-only communication, retention controls, and sanitized telemetry rules.
 
 ## Remaining Work
 
 - Planned: Implement benchmarked OCR and artwork providers.
+- Planned: Add native OCR or image-processing dependencies only after privacy, Expo development-build constraints, fixture coverage, and latency budgets are reviewed.
 - Planned: Implement perspective correction and robust region cropping against real images.
 - Planned: Implement multi-frame foil analysis with glare/sleeve/lighting limitations.
 - Planned: Add native physical-device QA for iOS and Android camera permission, torch, capture latency, and cache cleanup.

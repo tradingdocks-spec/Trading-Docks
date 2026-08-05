@@ -1,4 +1,5 @@
 import type { CardCondition } from './collector-workspace.ts';
+import { MagicRecognitionAdapter } from './magic-recognition-provider.ts';
 import type {
   RecognitionConfidence,
   RecognitionSignalScore,
@@ -182,14 +183,7 @@ export type MultiTcgBenchmarkMetrics = ScannerBenchmarkMetrics & {
 
 export const SUPPORTED_TCGS: SupportedTcg[] = ['magic', 'pokemon', 'one_piece', 'lorcana', 'unknown'];
 
-export const magicRecognitionAdapter = createStubAdapter({
-  game: 'magic',
-  label: 'Magic Recognition Adapter',
-  catalogProviderId: 'scryfall',
-  finishTaxonomy: ['normal', 'foil', 'etched', 'special', 'indeterminate'],
-  regionMap: ['name', 'mana_cost', 'type_line', 'set_symbol', 'collector_info'],
-  signalWeights: { ocr_keyword: 0.2, bottom_information_layout: 0.24, logo_symbol_layout: 0.14, border_geometry: 0.12, artwork_embedding: 0.18, aspect_ratio: 0.12 },
-});
+export const magicRecognitionAdapter = MagicRecognitionAdapter;
 
 export const pokemonRecognitionAdapter = createStubAdapter({
   game: 'pokemon',

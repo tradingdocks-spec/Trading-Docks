@@ -4,8 +4,10 @@
 
 - Implemented: Benchmark fixture and metrics contracts live in `mobile/services/scanner-intelligence.ts`.
 - Implemented: Multi-TCG benchmark fixture and metrics contracts live in `mobile/services/multi-tcg-scanner.ts`; see `docs/MULTI_TCG_BENCHMARK.md`.
+- Implemented: Magic benchmark manifest and metrics helpers live in `mobile/services/magic-recognition-provider.ts`.
 - Implemented: Tests assert that benchmark metrics remain `null` until labeled fixtures are actually run.
-- Planned: No labeled Magic-only, game-specific, or mixed-stack image dataset has been collected or executed.
+- Partially Implemented: Magic has a fixture-driven benchmark harness and private local fixture manifest helper, but no labeled Magic-only image dataset has been collected or executed.
+- Planned: No game-specific visual fixture dataset or mixed-stack image dataset has been run against the scanner in this repository.
 - Planned: Do not publish scanner accuracy, foil accuracy, latency, manual-correction, or failure-rate numbers until the benchmark runner has processed reviewed fixtures.
 
 ## Fixture Categories
@@ -31,9 +33,10 @@
 
 ## Metrics
 
-- Planned: Correct card name top-1.
-- Planned: Correct printing top-1.
-- Planned: Correct printing top-3.
+- Implemented: Magic benchmark metrics can calculate correct card name top-1, correct printing top-1, correct printing top-3, average latency, manual-confirmation/correction proxy, failure rate, and fixture count once local results are supplied.
+- Planned: Correct card name top-1 for non-Magic games.
+- Planned: Correct printing top-1 for non-Magic games.
+- Planned: Correct printing top-3 for non-Magic games.
 - Planned: Foil classification accuracy.
 - Planned: False foil rate.
 - Planned: Average scan latency.
@@ -44,6 +47,7 @@
 
 - Do not use screenshots or captured card photos without permission.
 - Do not store benchmark images in the repository unless licensing and privacy review approve them.
+- Magic fixture images should live in a private local directory referenced by manifest metadata, not in Git.
 - Every fixture must record expected name, expected printing identifiers when known, expected finish when relevant, lighting/sleeve notes, and frame URIs.
 - Accuracy reports must include fixture count, fixture mix, provider versions, device models, lighting notes, and date run.
 - Foil benchmarks must include nonfoil glare cases so the false foil rate is measurable.
@@ -52,3 +56,4 @@
 ## Rollout Gate
 
 - Planned: A scanner provider can move from architecture/stub to production candidate only after it runs the benchmark and the product owner accepts thresholds for manual confirmation, quick-confirm eligibility, and fallback behavior.
+- Requires Production Configuration: Product owner must approve fixture mix, threshold targets, device list, acceptable false high-confidence rate, and whether OCR/image processing can use native-only dependencies before visual recognition is marketed as production-ready.

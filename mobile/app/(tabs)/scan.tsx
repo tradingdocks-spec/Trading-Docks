@@ -10,6 +10,7 @@ import { color, radius, space } from '@/design';
 import { useAccount } from '@/providers/account';
 import { CARD_CONDITION_OPTIONS, TRADE_BINDER_STATUS_OPTIONS } from '@/services/collector-mutations';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
+import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
 import { loadScannerContext, loadScannerDraft, saveScannerConfirmation, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
 import {
   createInterruptedScanDraft,
@@ -22,6 +23,7 @@ import {
   type ScannerConfirmation,
   type ScannerPermissionState,
 } from '@/services/scanner-foundation';
+import type { RecognitionCandidate } from '@/services/scanner-intelligence';
 import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
 import type { StorageLocation } from '@/services/storage-location-manager';
 
@@ -38,6 +40,8 @@ export default function Scan() {
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [candidates, setCandidates] = useState<ScannerCardCandidate[]>([]);
+  const [magicRecognition, setMagicRecognition] = useState<MagicRecognitionResult | null>(null);
+  const [showMagicWhy, setShowMagicWhy] = useState(false);
   const [selected, setSelected] = useState<ScannerCardCandidate | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [condition, setCondition] = useState(CARD_CONDITION_OPTIONS[0]);
@@ -142,10 +146,17 @@ export default function Scan() {
     const result = await searchScannerPrintings(query, true);
     if (result.ok) {
       setCandidates(result.candidates);
+      const recognition = await recognizeMagicCard({
+        nameObservation: { regionType: 'name', text: query, confidence: 72 },
+        online: false,
+        cachedCandidates: result.candidates.map(scannerCandidateToRecognitionCandidate),
+      });
+      setMagicRecognition(recognition);
       if (!result.candidates.length) setError('No printings found. Try the exact card name.');
       else if (result.warning) setError(result.warning);
     } else {
       setCandidates([]);
+      setMagicRecognition(null);
       setError(result.reason);
     }
     setSearching(false);
@@ -183,6 +194,8 @@ export default function Scan() {
       setQuery(reset.query);
       setSelected(null);
       setCandidates([]);
+      setMagicRecognition(null);
+      setShowMagicWhy(false);
       setQuantity(1);
       setTradeStatus('not_for_trade');
       setAddToWishlist(false);
@@ -273,6 +286,48 @@ export default function Scan() {
         </TDCard>
 
         {searching ? <TDLoadingState title="Searching printings" message="Looking up exact paper printings." /> : null}
+        {!searching && magicRecognition?.ok && magicRecognition.selected ? (
+          <TDCard style={s.section}>
+            <View style={s.syncHeader}>
+              <View style={s.flex}>
+                <TDText variant="title">Magic recognition</TDText>
+                <TDText variant="small" tone="muted">{magicRecognition.selected.name} - {magicRecognition.selected.setCode ?? 'Set unavailable'} #{magicRecognition.selected.collectorNumber ?? '?'}</TDText>
+              </View>
+              <TDBadge tone={magicRecognition.confidence.requiresConfirmation ? 'warning' : 'success'}>
+                {magicRecognition.confidence.overall}%
+              </TDBadge>
+            </View>
+            <TDText variant="small" tone="muted">Assisted by Scryfall metadata. Confirm the exact printing before saving.</TDText>
+            <View style={s.signalGrid}>
+              {magicRecognition.confidence.signals.map((signal) => (
+                <View key={signal.key} style={s.signalCell}>
+                  <TDText variant="caption" tone="muted">{signal.label}</TDText>
+                  <TDText variant="small">{signal.score === null ? 'Missing' : `${signal.score}%`}</TDText>
+                </View>
+              ))}
+            </View>
+            {magicRecognition.candidates.length > 1 ? (
+              <View style={s.optionGroup}>
+                <TDText variant="label" tone="muted">Top alternatives</TDText>
+                {magicRecognition.candidates.slice(1).map((candidate) => (
+                  <TDText key={candidate.id} variant="caption" tone="muted">{candidate.name} - {candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'}</TDText>
+                ))}
+              </View>
+            ) : null}
+            <TDButton label={showMagicWhy ? 'Hide match details' : 'Why this match?'} variant="secondary" onPress={() => setShowMagicWhy((value) => !value)} />
+            {showMagicWhy ? (
+              <View style={s.optionGroup}>
+                {magicRecognition.explanation.map((line) => <TDText key={line} variant="caption" tone="muted">{line}</TDText>)}
+              </View>
+            ) : null}
+          </TDCard>
+        ) : null}
+        {!searching && magicRecognition && !magicRecognition.ok ? (
+          <TDCard style={s.noticeCard}>
+            <TDBadge tone={magicRecognition.offline ? 'warning' : 'info'}>Magic recognition</TDBadge>
+            <TDText variant="small" tone="muted">{magicRecognition.reason}</TDText>
+          </TDCard>
+        ) : null}
         {!searching && candidates.length ? (
           <View style={s.section}>
             <TDText variant="title">Likely matches</TDText>
@@ -355,6 +410,15 @@ function scannerSyncSummary(entries: ScannerQueuedAdd[]) {
   return 'Queued scanner adds will sync on reconnect, app resume, or manual retry.';
 }
 
+function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate): RecognitionCandidate {
+  return {
+    ...candidate,
+    legalFinishes: candidate.finishes,
+    layout: null,
+    colorIdentity: [],
+  };
+}
+
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
@@ -377,6 +441,8 @@ const s = StyleSheet.create({
   imageFallback: { width: 58, height: 82, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   flex: { flex: 1 },
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  signalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  signalCell: { minWidth: 116, flexGrow: 1, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, padding: space.sm, backgroundColor: color.canvasRaised },
   optionGroup: { gap: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },

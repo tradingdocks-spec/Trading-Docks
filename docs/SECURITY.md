@@ -20,6 +20,7 @@
 - Implemented: Queued scanner adds remain in user-scoped local storage across sign-out and are not surfaced to a different signed-in account.
 - Implemented: Scanner camera permission copy states that photos are used for card scanning and are not retained by default.
 - Implemented: Scanner frame contracts require explicit `uploadedWithConsent` and `retainedByUser` flags, both false by default.
+- Implemented: Magic recognition uses Scryfall metadata queries and explainable local scoring; captured images are not uploaded to Scryfall or any cloud vision provider by default.
 - Implemented: Multi-TCG unsupported-card observations store detection evidence and confidence, not captured image payloads.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.
@@ -47,6 +48,7 @@
 - Planned: Before enabling OCR/image-recognition uploads, add explicit consent copy, retention controls, provider logging review, and tests proving photos are not stored by default.
 - Planned: If scanner replay moves to a server RPC, add an auditable server-side idempotency ledger and structured logging that redacts card payloads where required.
 - Planned: Remote scanner providers must use HTTPS-only communication and sanitized telemetry that excludes images, tokens, service-role keys, and private user data.
+- Planned: If native OCR/image-processing dependencies are added, document Expo Go versus development-build limitations and verify that local image cache cleanup remains privacy-safe.
 - Planned: Pokemon, One Piece, and Lorcana catalog providers require licensing/API review before mobile or server integration; the mobile client must not scrape publisher pages directly.
 
 ## Access Fallbacks
