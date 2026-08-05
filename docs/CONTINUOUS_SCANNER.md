@@ -5,7 +5,8 @@
 - Implemented: `mobile/services/continuous-offer-scanner.ts` defines the continuous scanner state machine, card-guide geometry, quality checks, duplicate protection, session model, offer math, local persistence key, filters, undo/remove helpers, confirmation handoff, and CSV serialization.
 - Implemented: The mobile Scan tab now presents a session-first intake workflow, a standard trading-card guide, session mode selection, recent scanned lines, running totals, offer totals, manual pricing, and an explicit Session Review route.
 - Implemented: The guide ratio is based on 63 mm x 88 mm cards: `width / height = 0.7159`.
-- Implemented: `mobile/services/live-card-recognition.ts` adds a replaceable live-frame analyzer for local luma frames. It detects card bounds, four visible corners, 63:88 aspect-ratio fit, guide containment/fill, blur, motion, lighting, glare, a normalized crop contract, image fingerprint, and a single concise guidance message.
+- Implemented: `mobile/services/scanner-vision-engine.ts` adds replaceable luma-frame providers for card presence, boundary, perspective, motion, blur, lighting, glare, card removal, frame quality, and region extraction.
+- Implemented: The Vision Engine detects card bounds, four visible corners, 63:88 aspect-ratio fit, rotation, perspective, guide containment/fill, center offset, edge visibility, blur, motion, lighting, glare, distance, stability, normalized crop metadata, image fingerprint, and a single concise guidance message.
 - Implemented: The analyzer uses a configurable 650 ms stability window for auto-capture readiness decisions.
 - Implemented: `mobile/services/native-scanner-calibration.ts` prevents native auto-capture when required physical observation signals are unavailable and records diagnostics for device QA.
 - Implemented: The Scan tab waits for `onCameraReady` before capture and records an explicit session outcome for local stills even when identification is unavailable.

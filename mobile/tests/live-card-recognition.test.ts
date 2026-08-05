@@ -46,7 +46,7 @@ test('incorrect object ratio is rejected before auto capture', () => {
   const result = analyzeLiveFrame(frame, config);
   assert.equal(result.aspectRatioOk, false);
   assert.equal(result.readyForAutoCapture, false);
-  assert.equal(result.guidance, 'Show all four edges');
+  assert.equal(result.guidance, 'Tilt slightly');
 });
 
 test('partial card outside guide is rejected', () => {
