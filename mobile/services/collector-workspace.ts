@@ -152,6 +152,11 @@ export type BuildCollectionInput = {
 };
 
 export const COLLECTION_PAGE_SIZE = 100;
+export const COLLECTION_CACHE_KEY_PREFIX = 'trading-docks-collector-workspace-cache-v1';
+
+export function collectorCacheKeyForUser(userId: string) {
+  return `${COLLECTION_CACHE_KEY_PREFIX}:${userId}`;
+}
 
 export function buildCollectionCards({
   items,
@@ -175,8 +180,8 @@ export function buildCollectionCards({
       const quantityOwned = positiveNumber(item.quantity) ?? positiveNumber(payload.quantity) ?? 0;
       const inventoryValue = numberValue(item.inventory_value) ?? numberValue(payload.value);
       const unitMarketValue =
-        numberValue(payload.unitMarketValue) ??
-        (inventoryValue !== null && quantityOwned > 0 ? inventoryValue / quantityOwned : null);
+        positiveNumber(payload.unitMarketValue) ??
+        (inventoryValue !== null && inventoryValue > 0 && quantityOwned > 0 ? inventoryValue / quantityOwned : null);
       const cardName = stringValue(payload.name) || item.card_name || 'Unnamed card';
       const condition = normalizeCardCondition(payload.condition);
       const finish = normalizeCardFinish(payload.finish ?? payload.treatment);
@@ -467,12 +472,10 @@ function resolveWishlistStatus(
     const setMatches = !item.set_code || !printing.setCode || item.set_code.toLowerCase() === printing.setCode.toLowerCase();
     const conditionMatches =
       !item.target_condition ||
-      normalizeCardCondition(item.target_condition) === condition ||
-      condition === 'unknown';
+      normalizeCardCondition(item.target_condition) === condition;
     const finishMatches =
       !item.target_finish ||
-      normalizeCardFinish(item.target_finish) === finish ||
-      finish === 'unknown';
+      normalizeCardFinish(item.target_finish) === finish;
     return nameMatches && setMatches && conditionMatches && finishMatches;
   });
   return match ? 'wanted' : 'not_wishlisted';

@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import {
   buildCollectionCards,
   COLLECTION_PAGE_SIZE,
+  collectorCacheKeyForUser,
   type CollectionCard,
   type RawInventoryItem,
   type RawInventoryLocation,
@@ -9,8 +10,6 @@ import {
   type RawWishlistItem,
 } from '@/services/collector-workspace';
 import { appStorage } from '@/services/storage/app-storage';
-
-const CACHE_KEY = 'trading-docks-collector-workspace-cache-v1';
 
 export type CollectorCollectionPage = {
   cards: CollectionCard[];
@@ -26,15 +25,17 @@ export async function loadCollectorCollectionPage({
   limit?: number;
 } = {}): Promise<CollectorCollectionPage> {
   if (!supabase) {
-    return loadCachedCollectionPage('Supabase collection storage is not configured.');
+    return { cards: [], stale: true, unavailableReason: 'Supabase collection storage is not configured.' };
   }
 
+  let userId: string | null = null;
   try {
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
     if (userError || !user) throw new Error('Sign in again to load your collection.');
+    userId = user.id;
 
     let itemQuery = supabase
       .from('inventory_items')
@@ -75,26 +76,29 @@ export async function loadCollectorCollectionPage({
       tradeStatuses: (tradeStatuses ?? []) as RawTradeBinderStatus[],
       wishlist: (wishlist ?? []) as RawWishlistItem[],
     });
-    await appStorage.setItem(CACHE_KEY, JSON.stringify(cards));
+    await appStorage.setItem(collectorCacheKeyForUser(user.id), JSON.stringify(cards));
     return { cards, stale: false };
   } catch (error) {
-    return loadCachedCollectionPage(
-      error instanceof Error ? error.message : 'Collection data is unavailable.',
-    );
+    const message = error instanceof Error ? error.message : 'Collection data is unavailable.';
+    return userId
+      ? loadCachedCollectionPage(userId, message)
+      : { cards: [], stale: true, unavailableReason: message };
   }
 }
 
 export async function loadCollectorCardById(cardId: string): Promise<CollectorCollectionPage> {
   if (!supabase) {
-    return loadCachedCard(cardId, 'Supabase collection storage is not configured.');
+    return { cards: [], stale: true, unavailableReason: 'Supabase collection storage is not configured.' };
   }
 
+  let userId: string | null = null;
   try {
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
     if (userError || !user) throw new Error('Sign in again to load this card.');
+    userId = user.id;
 
     const { data: item, error: itemError } = await supabase
       .from('inventory_items')
@@ -138,12 +142,15 @@ export async function loadCollectorCardById(cardId: string): Promise<CollectorCo
       stale: false,
     };
   } catch (error) {
-    return loadCachedCard(cardId, error instanceof Error ? error.message : 'Card details are unavailable.');
+    const message = error instanceof Error ? error.message : 'Card details are unavailable.';
+    return userId
+      ? loadCachedCard(userId, cardId, message)
+      : { cards: [], stale: true, unavailableReason: message };
   }
 }
 
-async function loadCachedCollectionPage(unavailableReason: string): Promise<CollectorCollectionPage> {
-  const cached = await appStorage.getItem(CACHE_KEY);
+async function loadCachedCollectionPage(userId: string, unavailableReason: string): Promise<CollectorCollectionPage> {
+  const cached = await appStorage.getItem(collectorCacheKeyForUser(userId));
   if (!cached) return { cards: [], stale: true, unavailableReason };
   try {
     const parsed: unknown = JSON.parse(cached);
@@ -157,8 +164,8 @@ async function loadCachedCollectionPage(unavailableReason: string): Promise<Coll
   }
 }
 
-async function loadCachedCard(cardId: string, unavailableReason: string): Promise<CollectorCollectionPage> {
-  const cached = await loadCachedCollectionPage(unavailableReason);
+async function loadCachedCard(userId: string, cardId: string, unavailableReason: string): Promise<CollectorCollectionPage> {
+  const cached = await loadCachedCollectionPage(userId, unavailableReason);
   return {
     ...cached,
     cards: cached.cards.filter((card) => card.id === cardId),

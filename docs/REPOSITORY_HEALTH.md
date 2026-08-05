@@ -40,7 +40,7 @@
 - Implemented: Active web and mobile membership tier names, prices, limits, and plan-card labels now use the canonical `free | collector | seller | store` catalog.
 - Implemented: Authenticated collection surfaces no longer present static sample cards as live user data.
 - Partially Implemented: Web `/dashboard/inventory` now uses the Collector Workspace browser; older inventory management components remain in source and need workflow review before retirement.
-- Partially Implemented: Collection price display depends on saved inventory value fields and shows unavailable when those fields are missing.
+- Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
 - Partially Implemented: Multiple migration repair files may not replay cleanly in a fresh database without manual sequencing review.

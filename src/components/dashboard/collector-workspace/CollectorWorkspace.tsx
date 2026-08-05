@@ -100,9 +100,8 @@ export function CollectorWorkspace({
   const visibleCards = useMemo(() => {
     const filtered = filterCollectionCards(cards, {
       query: debouncedQuery,
-      tradeBinderStatus: tradeOnly ? "available" : "all",
       wishlistStatus: wishlistOnly ? "wanted" : "all",
-    });
+    }).filter((card) => !tradeOnly || card.tradeBinderStatus !== "not_for_trade");
     return sortCollectionCards(filtered, sort);
   }, [cards, debouncedQuery, sort, tradeOnly, wishlistOnly]);
   const summary = useMemo(() => summarizeCollectionCards(cards, accountType), [accountType, cards]);

@@ -33,6 +33,7 @@
 - Implemented: `CardPrinting` captures `scryfallId`, `setCode`, `setName`, `collectorNumber`, `language`, `finish`, `treatment`, and `imageUrl` when present in saved inventory data.
 - Implemented: `CollectionFilter`, `CollectionSort`, and `CollectionSummary` provide a shared contract for mobile and web search, sorting, visible limits, missing-price handling, trade counts, wishlist counts, and Free-plan card limits.
 - Partially Implemented: Existing Supabase inventory tables store canonical query columns plus a flexible `data` JSON payload. The UI reads both but does not apply schema changes in this sprint.
+- Implemented: Default zero inventory values are treated as missing price data in the Collector Workspace contract so the UI does not present database defaults as live market prices.
 - Partially Implemented: `binder_card_trade_status` stores per-inventory-item trade status. The new browser reads it but does not mutate it.
 - Partially Implemented: `collector_wishlist` stores card-name/set/condition/finish targets. The new browser matches it to owned cards but does not mutate it.
 - Planned: Add a reviewed migration proposal for normalized collection-card, printing, deck-usage, and price-history relationships if JSON payloads become insufficient.

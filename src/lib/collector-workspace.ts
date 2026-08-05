@@ -1,6 +1,7 @@
 export {
   COLLECTION_PAGE_SIZE,
   buildCollectionCards,
+  collectorCacheKeyForUser,
   displayCondition,
   displayFinish,
   displayPrinting,

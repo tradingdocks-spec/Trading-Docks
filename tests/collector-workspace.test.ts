@@ -10,6 +10,7 @@ import {
   resolveCollectionViewState,
   sortCollectionCards,
   summarizeCollectionCards,
+  collectorCacheKeyForUser,
 } from '../mobile/services/collector-workspace.ts';
 
 const cards = buildCollectionCards({
@@ -112,4 +113,60 @@ test('missing price is shown as unavailable, not zero', () => {
   assert.equal(cards[1].marketPrice.amount, null);
   assert.equal(priceLabel(cards[1]), 'Price unavailable');
   assert.equal(summarizeCollectionCards(cards, 'collector').missingPriceCount, 1);
+});
+
+test('default zero inventory value is treated as missing price', () => {
+  const [card] = buildCollectionCards({
+    items: [
+      {
+        id: 'zero-default',
+        card_name: 'Forest',
+        quantity: 1,
+        inventory_value: 0,
+        data: { name: 'Forest', set: 'fdn', collectorNumber: '281' },
+      },
+    ],
+  });
+
+  assert.equal(card.marketPrice.amount, null);
+  assert.equal(priceLabel(card), 'Price unavailable');
+});
+
+test('wishlist matching does not infer specific finish from unknown owned finish', () => {
+  const [card] = buildCollectionCards({
+    items: [
+      {
+        id: 'unknown-finish',
+        card_name: 'Lightning Bolt',
+        set_code: 'clu',
+        collector_number: '141',
+        quantity: 1,
+        data: { name: 'Lightning Bolt', set: 'clu', collectorNumber: '141' },
+      },
+    ],
+    wishlist: [
+      { card_name: 'Lightning Bolt', set_code: 'clu', target_finish: 'foil' },
+    ],
+  });
+
+  assert.equal(card.printing.finish, 'unknown');
+  assert.equal(card.wishlistStatus, 'not_wishlisted');
+});
+
+test('filter combinations require every selected status to match', () => {
+  const filtered = filterCollectionCards(cards, {
+    query: 'sol',
+    wishlistStatus: 'wanted',
+    tradeBinderStatus: 'available',
+  });
+
+  assert.equal(filtered.length, 0);
+});
+
+test('mobile stale collection cache keys are scoped by auth user id', () => {
+  assert.notEqual(collectorCacheKeyForUser('user-a'), collectorCacheKeyForUser('user-b'));
+  assert.equal(
+    collectorCacheKeyForUser('user-a'),
+    'trading-docks-collector-workspace-cache-v1:user-a',
+  );
 });

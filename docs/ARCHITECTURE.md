@@ -130,9 +130,9 @@
 - Implemented: Mobile Card Detail route `mobile/app/collection/[cardId].tsx` loads a single saved inventory item by id and shows image, exact printing, condition, finish, quantity, storage, price unavailable state, and planned trade/wishlist/deck entry points.
 - Implemented: Web Collection route `/dashboard/inventory` now renders `src/components/dashboard/collector-workspace/CollectorWorkspace.tsx` with dense search, filters, sort, list/grid toggle, summary metrics, Free-plan limit messaging, and import/export entry points for Seller/Store entitlements.
 - Implemented: Web Card Detail route `/dashboard/inventory/[cardId]` renders the same saved card facts through `CollectorCardDetail`.
-- Implemented: Collection data loaders read existing `inventory_items`, `inventory_locations`, `binder_card_trade_status`, and `collector_wishlist` tables. Mobile caches the loaded page for offline/stale browsing.
+- Implemented: Collection data loaders read existing `inventory_items`, `inventory_locations`, `binder_card_trade_status`, and `collector_wishlist` tables. Mobile caches the loaded page by authenticated user id for offline/stale browsing.
 - Partially Implemented: Trade binder and wishlist indicators are read-only in this sprint. Mutations are future trade-center work.
-- Partially Implemented: Price display uses saved inventory value/unit market value when present and says unavailable when missing. Live market pricing and price history are future integration work.
+- Partially Implemented: Price display uses positive saved inventory value/unit market value when present and says unavailable when missing or defaulted to zero. Live market pricing and price history are future integration work.
 - Partially Implemented: Existing large inventory management components remain in the repository and should be migrated or retired only after a separate import/workflow review.
 
 ### Collector Route Map
