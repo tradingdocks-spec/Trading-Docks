@@ -256,13 +256,23 @@ export default function Auth() {
                 </View>
                 <View style={s.or}><View style={s.rule} /><Text style={s.orText}>OR CONTINUE WITH EMAIL</Text><View style={s.rule} /></View>
                 <TDInput label="Email address" value={email} onChangeText={setEmail} onSubmitEditing={submit} placeholder="Email address" autoCapitalize="none" autoComplete="email" keyboardType="email-address" returnKeyType="go" disabled={busy} leftIconName="mail-outline" />
-                <View style={s.input}>
-                  <Ionicons name="lock-closed-outline" size={19} color={color.textMuted} />
-                  <TDInput value={password} onChangeText={setPassword} onSubmitEditing={submit} placeholder="Password" secureTextEntry={!showPassword} autoComplete={signup ? 'new-password' : 'current-password'} returnKeyType="go" disabled={busy} containerStyle={s.passwordField} style={s.passwordText} />
-                  <Pressable onPress={() => setShowPassword((value) => !value)} hitSlop={10} disabled={busy}>
-                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={color.textMuted} />
-                  </Pressable>
-                </View>
+                <TDInput
+                  accessibilityLabel="Password"
+                  autoComplete={signup ? 'new-password' : 'current-password'}
+                  disabled={busy}
+                  leftIconName="lock-closed-outline"
+                  onChangeText={setPassword}
+                  onSubmitEditing={submit}
+                  placeholder="Password"
+                  returnKeyType="go"
+                  rightAccessory={(
+                    <Pressable accessibilityLabel={showPassword ? 'Hide password' : 'Show password'} accessibilityRole="button" disabled={busy} hitSlop={10} onPress={() => setShowPassword((value) => !value)}>
+                      <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={color.textMuted} />
+                    </Pressable>
+                  )}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                />
                 {!signup && (
                   <View style={s.options}>
                     <CheckRow checked={rememberEmail} label="Remember my email" onPress={() => setRememberEmail((value) => !value)} />
@@ -323,10 +333,6 @@ const s = StyleSheet.create({
   or: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
   rule: { height: 1, backgroundColor: color.border, flex: 1 },
   orText: { color: color.textMuted, fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  input: { height: 57, borderRadius: radius.md, borderColor: color.border, borderWidth: 1, backgroundColor: color.canvasRaised, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 15 },
-  field: { flex: 1, color: color.text, fontSize: 15, outlineStyle: 'none' as never },
-  passwordField: { flex: 1, gap: 0 },
-  passwordText: { paddingHorizontal: 0 },
   options: { gap: 10, paddingVertical: 4 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 28 },
   checkbox: { width: 21, height: 21, borderRadius: 7, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, alignItems: 'center', justifyContent: 'center' },

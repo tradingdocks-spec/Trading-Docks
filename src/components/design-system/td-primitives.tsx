@@ -8,6 +8,7 @@ type TDButtonSize = "sm" | "md" | "lg";
 type TDBadgeTone = "neutral" | "success" | "warning" | "danger" | "info" | "accent";
 
 type TDButtonProps = ComponentProps<"button"> & {
+  label?: string;
   variant?: TDButtonVariant;
   size?: TDButtonSize;
   loading?: boolean;
@@ -96,6 +97,7 @@ export function TDButton({
   loading,
   disabled,
   icon,
+  label,
   children,
   ...props
 }: TDButtonProps) {
@@ -115,7 +117,7 @@ export function TDButton({
       {...props}
     >
       {loading ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : icon}
-      {children}
+      {children ?? label}
     </button>
   );
 }

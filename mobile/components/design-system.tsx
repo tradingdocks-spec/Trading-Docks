@@ -50,6 +50,7 @@ type TDInputProps = TextInputProps & {
   error?: string | null;
   disabled?: boolean;
   leftIconName?: keyof typeof Ionicons.glyphMap;
+  rightAccessory?: ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
@@ -139,6 +140,7 @@ export function TDInput({
   error,
   disabled,
   leftIconName,
+  rightAccessory,
   containerStyle,
   style,
   accessibilityLabel,
@@ -167,6 +169,7 @@ export function TDInput({
           placeholderTextColor={color.textMuted}
           style={[s.input, style]}
         />
+        {rightAccessory}
       </View>
       {error ? <TDText variant="caption" tone="danger">{error}</TDText> : null}
     </View>
@@ -221,7 +224,12 @@ function TDFeedbackState({
   tone,
 }: TDStateProps & { iconName: keyof typeof Ionicons.glyphMap; tone: 'danger' | 'info' }) {
   return (
-    <TDCard variant="outlined" style={s.state} accessibilityLabel={accessibilityLabel ?? title}>
+    <TDCard
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityRole={tone === 'danger' ? 'alert' : undefined}
+      variant="outlined"
+      style={s.state}
+    >
       <View style={[s.stateIcon, tone === 'danger' ? s.stateIconDanger : s.stateIconInfo]}>
         <Ionicons name={iconName} size={icon.lg} color={tone === 'danger' ? color.danger : color.info} />
       </View>

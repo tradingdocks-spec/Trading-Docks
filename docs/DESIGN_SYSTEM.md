@@ -7,7 +7,8 @@
 - Implemented: Expo adapter lives in `mobile/design/tokens.ts` and preserves the existing `color`, `space`, `radius`, `type`, `motion`, and `elevation` exports for current mobile screens.
 - Implemented: First-wave Expo primitives live in `mobile/components/design-system.tsx`.
 - Implemented: First-wave Next.js primitives live in `src/components/design-system/td-primitives.tsx`.
-- Implemented: Development showcases exist at `mobile/app/dev/design-system.tsx` and `src/app/dev/design-system/page.tsx`; mobile requires `EXPO_PUBLIC_ENABLE_DESIGN_SYSTEM_SHOWCASE=true`, and web returns 404 in production.
+- Implemented: The mobile development showcase exists at `mobile/app/dev/design-system.tsx` and requires `EXPO_PUBLIC_ENABLE_DESIGN_SYSTEM_SHOWCASE=true`.
+- Partially Implemented: The web showcase route exists at `src/app/dev/design-system/page.tsx` as a hard 404 so no showcase payload is included in production output. A web showcase can be reintroduced with a local-only delivery pattern in a later task.
 - Partially Implemented: Only the Expo authentication screen, Expo profile surface, and Next dashboard loading surface have migrated to the new primitives.
 - Planned: Broad dashboard, navigation, modal, toast, chart, table, and complex form migrations are intentionally deferred.
 
@@ -24,6 +25,15 @@
 - Accessibility gaps: Many bespoke Pressables lack explicit roles/labels, some decorative loading/empty states are not named, and some tiny text is below a comfortable scanning floor.
 - Web/native compatibility concerns: React Native Web can warn when deprecated shadow props leak onto web; platform-specific elevation tokens now separate web `boxShadow` from native shadow/elevation. Browser focus states are explicit in TD primitives.
 - Recommended migration order: Auth and account surfaces first, then dashboard loading/empty/error states, then common cards and section headers, then input-heavy admin/settings screens, then navigation, tables, modals, toast, and charts in separate sprints.
+
+## Canonical Token Ownership
+
+- Canonical owner: `mobile/design/shared-tokens.ts` contains the single `tdTokens` object. It is deliberately inside the active Expo project boundary because Expo Metro cannot bundle arbitrary root files without additional Metro configuration.
+- Root endpoint: `design-system/tokens.ts` re-exports the canonical mobile-owned token object for repository-level and future tooling imports.
+- Web endpoint: `src/lib/design-system/tokens.ts` re-exports the root endpoint and defines CSS variable names for Next.js components.
+- Platform adapters: `mobile/design/tokens.ts` maps canonical tokens into React Native-friendly `color`, `space`, `radius`, `type`, `motion`, `breakpoint`, `icon`, and `elevation` exports. `src/app/globals.css` maps the same semantic values into CSS custom properties.
+- Drift rule: token value changes must be made in `mobile/design/shared-tokens.ts` first, then reflected in CSS custom properties in the same change. Do not edit adapter aliases as independent design decisions.
+- Known duplication: CSS custom property literal values in `src/app/globals.css` intentionally duplicate the canonical token values until a build-time CSS token generation step exists.
 
 ## Token Naming
 
@@ -44,6 +54,15 @@ Raw colors remain available only as palette anchors. New product components shou
 - Implemented: Components include typed props, variants, disabled/loading states where relevant, accessible roles/labels where relevant, web focus styling, and native press feedback.
 - Partially Implemented: Existing `Button`, `Card`, and `Badge` in `src/components/ui` remain supported and are not deleted.
 - Planned: `TDChart`, `TDModal`, `TDToast`, and `TDNavigation` are deferred to later focused tasks.
+
+## Component Contract Rules
+
+- `TDButton`: Shared variants are `primary`, `secondary`, `ghost`, and `danger`; shared sizes are `sm`, `md`, and `lg`. Mobile is label-first with `iconName`; web accepts `label` or children with an optional icon node. Loading buttons are disabled on both platforms.
+- `TDCard`: Shared variants are `default`, `elevated`, `floating`, and `outlined`. Platform elevation implementation may differ.
+- `TDInput`: Both platforms support `label`, `error`, and disabled state. Mobile may use icon/accessory props for native layout; web uses regular DOM input attributes and error association.
+- `TDBadge`: Shared tones are `neutral`, `success`, `warning`, `danger`, `info`, and `accent`.
+- `TDText`: Shared variants are `display`, `heading`, `title`, `body`, `small`, `caption`, and `label`; shared tones are `primary`, `secondary`, `muted`, `success`, `warning`, `danger`, and `info`. Web may choose semantic HTML with `as`; mobile uses React Native `Text`.
+- Do not add product-specific copy, navigation behavior, data fetching, billing logic, or auth logic inside TD primitives.
 
 ## Platform Differences
 
@@ -66,3 +85,13 @@ Raw colors remain available only as palette anchors. New product components shou
 - Partially Implemented: Large web dashboard components still contain hardcoded class strings and bespoke state UI.
 - Partially Implemented: Backup directories preserve older visual systems and contribute lint noise.
 - Planned: Add visual regression screenshots once the app has stable local seeds and route fixtures.
+
+## Migration Checklist
+
+1. Confirm the screen already works before changing styling.
+2. Replace only one primitive category at a time, starting with states, cards, inputs, or buttons.
+3. Preserve route decisions, auth calls, Supabase usage, billing behavior, membership display, and local storage behavior.
+4. Use semantic tokens through the platform adapter instead of hardcoded color literals.
+5. Keep accessibility roles, labels, error text, disabled state, and loading state equal to or better than the previous screen.
+6. Run focused lint, TypeScript, affected tests, and the relevant web export/build before committing.
+7. Document any intentional platform difference instead of forcing identical implementation.
