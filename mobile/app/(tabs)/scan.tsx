@@ -1,6 +1,274 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { Pill } from '@/components/primitives';
-import { brand as B } from '@/constants/brand';
-export default function Scan(){return <SafeAreaView style={s.safe}><View style={s.top}><View><Text style={s.kicker}>SMART CAPTURE</Text><Text style={s.title}>Scan a card</Text></View><Pill text="BETA"/></View><View style={s.camera}><View style={s.glow}/><View style={s.frame}><View style={[s.corner,s.tl]}/><View style={[s.corner,s.tr]}/><View style={[s.corner,s.bl]}/><View style={[s.corner,s.br]}/><Ionicons name="image-outline" size={43} color={B.muted}/><Text style={s.frameText}>Center one card inside the frame</Text></View><View style={s.scanLine}/></View><View style={s.helper}><Ionicons name="sparkles" size={18} color={B.cyan}/><Text style={s.helperText}>Trading Docks will identify the card, then let you confirm printing, finish, condition, and quantity.</Text></View><View style={s.controls}><Pressable style={s.small}><Ionicons name="images-outline" size={23} color={B.text}/></Pressable><Pressable style={s.capture}><View style={s.captureInner}/></Pressable><Pressable style={s.small}><Ionicons name="flash-outline" size={23} color={B.text}/></Pressable></View></SafeAreaView>}
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:B.bg,padding:20,paddingTop:48},top:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},kicker:{color:B.cyan,fontSize:10,fontWeight:'900',letterSpacing:1.5},title:{color:B.text,fontSize:34,fontWeight:'900',letterSpacing:-1,marginTop:4},camera:{flex:1,borderRadius:30,backgroundColor:'#02070D',borderColor:B.line,borderWidth:1,marginTop:22,alignItems:'center',justifyContent:'center',overflow:'hidden'},glow:{position:'absolute',width:330,height:330,borderRadius:999,backgroundColor:B.blue+'18'},frame:{width:'76%',aspectRatio:.716,borderRadius:21,backgroundColor:B.surface+'66',alignItems:'center',justifyContent:'center',gap:12},corner:{position:'absolute',width:34,height:34,borderColor:B.cyan},tl:{top:-1,left:-1,borderTopWidth:3,borderLeftWidth:3,borderTopLeftRadius:20},tr:{top:-1,right:-1,borderTopWidth:3,borderRightWidth:3,borderTopRightRadius:20},bl:{bottom:-1,left:-1,borderBottomWidth:3,borderLeftWidth:3,borderBottomLeftRadius:20},br:{bottom:-1,right:-1,borderBottomWidth:3,borderRightWidth:3,borderBottomRightRadius:20},frameText:{color:B.muted,fontSize:12,fontWeight:'700'},scanLine:{position:'absolute',height:2,width:'66%',backgroundColor:B.cyan,shadowColor:B.cyan,shadowOpacity:1,shadowRadius:12},helper:{flexDirection:'row',gap:10,alignItems:'flex-start',backgroundColor:B.surface,borderColor:B.line,borderWidth:1,borderRadius:18,padding:14,marginTop:14},helperText:{color:B.muted,fontSize:11,lineHeight:17,flex:1},controls:{height:98,flexDirection:'row',alignItems:'center',justifyContent:'space-around'},small:{width:48,height:48,borderRadius:16,backgroundColor:B.surface,borderWidth:1,borderColor:B.line,alignItems:'center',justifyContent:'center'},capture:{width:74,height:74,borderRadius:38,borderWidth:3,borderColor:'#fff',alignItems:'center',justifyContent:'center'},captureInner:{width:58,height:58,borderRadius:30,backgroundColor:B.blue}});
+import { Image } from 'expo-image';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+
+import { TDBadge, TDButton, TDCard, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
+import { color, radius, space } from '@/design';
+import { useAccount } from '@/providers/account';
+import { CARD_CONDITION_OPTIONS, TRADE_BINDER_STATUS_OPTIONS } from '@/services/collector-mutations';
+import { displayCondition, displayFinish } from '@/services/collector-workspace';
+import { loadScannerContext, loadScannerDraft, saveScannerConfirmation, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
+import {
+  createInterruptedScanDraft,
+  resetAfterRapidScan,
+  resolveScannerPermissionState,
+  scannerPrivacySummary,
+  tradeStatusForScanner,
+  unavailableCameraProvider,
+  type ScannerCardCandidate,
+  type ScannerConfirmation,
+  type ScannerPermissionState,
+} from '@/services/scanner-foundation';
+import type { StorageLocation } from '@/services/storage-location-manager';
+
+type ScannerContext = { userId: string; locations: StorageLocation[]; currentTotalQuantity: number };
+
+export default function Scan() {
+  const { accountType } = useAccount();
+  const [context, setContext] = useState<ScannerContext | null>(null);
+  const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
+  const [query, setQuery] = useState('');
+  const [candidates, setCandidates] = useState<ScannerCardCandidate[]>([]);
+  const [selected, setSelected] = useState<ScannerCardCandidate | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [condition, setCondition] = useState(CARD_CONDITION_OPTIONS[0]);
+  const [finish, setFinish] = useState<'normal' | 'foil' | 'etched'>('normal');
+  const [language, setLanguage] = useState('en');
+  const [storageLocationId, setStorageLocationId] = useState<string | null>(null);
+  const [tradeStatus, setTradeStatus] = useState(tradeStatusForScanner('not_for_trade'));
+  const [addToWishlist, setAddToWishlist] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const cameraAvailable = false;
+  const privacy = scannerPrivacySummary();
+
+  useEffect(() => {
+    let active = true;
+    void loadScannerContext()
+      .then(async (result) => {
+        if (!active) return;
+        setContext(result);
+        const draft = await loadScannerDraft(result.userId);
+        if (draft) {
+          setQuery(draft.query);
+          setStorageLocationId(draft.confirmation?.storageLocationId ?? null);
+        }
+      })
+      .catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Scanner context is unavailable.'))
+      .finally(() => setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!context) return;
+    void saveScannerDraft(createInterruptedScanDraft({
+      userId: context.userId,
+      query,
+      selectedCandidateId: selected?.id ?? null,
+      confirmation: selected ? { quantity, condition, finish, language, storageLocationId, tradeStatus, addToWishlist } : null,
+    }));
+  }, [addToWishlist, condition, context, finish, language, quantity, query, selected, storageLocationId, tradeStatus]);
+
+  const selectedFinishes = useMemo(() => selected?.finishes.filter((candidateFinish) => candidateFinish === 'normal' || candidateFinish === 'foil' || candidateFinish === 'etched') ?? ['normal'], [selected]);
+
+  const requestCamera = () => {
+    const next = resolveScannerPermissionState({ cameraAvailable, requested: true });
+    setPermission(next);
+    setError(next === 'unavailable'
+      ? 'Camera capture needs an approved camera dependency such as expo-camera. Use manual search in this build.'
+      : null);
+  };
+
+  const runSearch = async () => {
+    setSearching(true);
+    setError(null);
+    setSuccess(null);
+    const result = await searchScannerPrintings(query, true);
+    if (result.ok) {
+      setCandidates(result.candidates);
+      if (!result.candidates.length) setError('No printings found. Try the exact card name.');
+      else if (result.warning) setError(result.warning);
+    } else {
+      setCandidates([]);
+      setError(result.reason);
+    }
+    setSearching(false);
+  };
+
+  const selectCandidate = (candidate: ScannerCardCandidate) => {
+    setSelected(candidate);
+    setFinish((candidate.finishes.find((candidateFinish) => candidateFinish === 'normal' || candidateFinish === 'foil' || candidateFinish === 'etched') ?? 'normal') as 'normal' | 'foil' | 'etched');
+    setLanguage(candidate.language ?? 'en');
+  };
+
+  const save = async () => {
+    if (!context || !selected) return;
+    setSaving(true);
+    setError(null);
+    const confirmation: ScannerConfirmation = {
+      userId: context.userId,
+      candidate: selected,
+      quantity,
+      condition,
+      finish,
+      language,
+      storageLocationId,
+      tradeStatus,
+      addToWishlist,
+    };
+    const result = await saveScannerConfirmation({ confirmation, membershipTier: accountType, currentTotalQuantity: context.currentTotalQuantity });
+    if (!result.ok) {
+      setError(result.error);
+    } else {
+      setSuccess(result.queued ? 'Scan queued for sync.' : 'Card added to Collection.');
+      setContext({ ...context, currentTotalQuantity: context.currentTotalQuantity + quantity });
+      const reset = resetAfterRapidScan();
+      setQuery(reset.query);
+      setSelected(null);
+      setCandidates([]);
+      setQuantity(1);
+      setTradeStatus('not_for_trade');
+      setAddToWishlist(false);
+    }
+    setSaving(false);
+  };
+
+  if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading scanner" message="Preparing collection, storage, and confirmation options." /></TDScreen>;
+
+  return (
+    <TDScreen style={s.screen}>
+      <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={s.header}>
+          <TDText variant="label" tone="info">Scanner</TDText>
+          <TDText variant="display">Scan a card</TDText>
+          <TDText variant="small" tone="muted">Capture is assisted in this sprint: confirm exact printing before anything enters Collection.</TDText>
+        </View>
+
+        <TDCard style={s.cameraCard}>
+          <View style={s.cameraFrame}>
+            <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={42} color={color.textMuted} />
+            <TDText variant="title">{permissionTitle(permission)}</TDText>
+            <TDText variant="small" tone="muted" style={s.centerText}>{permissionMessage(permission, Platform.OS)}</TDText>
+            <TDButton label="Check camera" variant="secondary" onPress={requestCamera} />
+          </View>
+          <TDBadge tone="warning">{unavailableCameraProvider.label}</TDBadge>
+        </TDCard>
+
+        <TDCard variant="outlined" style={s.noticeCard}>
+          <TDBadge tone="info">Privacy</TDBadge>
+          <TDText variant="small" tone="muted">{privacy.message}</TDText>
+        </TDCard>
+
+        {error ? <TDErrorState title="Scanner notice" message={error} /> : null}
+        {success ? <TDCard accessibilityRole="alert" style={s.noticeCard}><TDBadge tone="success">Success</TDBadge><TDText variant="small">{success}</TDText></TDCard> : null}
+
+        <TDCard style={s.section}>
+          <TDText variant="title">Manual search fallback</TDText>
+          <TDText variant="small" tone="muted">Search Scryfall printings by card name. Images are not uploaded, retained, or required.</TDText>
+          <TDInput label="Card name" value={query} onChangeText={setQuery} leftIconName="search-outline" placeholder="Rhystic Study" returnKeyType="search" onSubmitEditing={runSearch} />
+          <TDButton label="Search printings" loading={searching} disabled={query.trim().length < 2} onPress={runSearch} />
+        </TDCard>
+
+        {searching ? <TDLoadingState title="Searching printings" message="Looking up exact paper printings." /> : null}
+        {!searching && candidates.length ? (
+          <View style={s.section}>
+            <TDText variant="title">Likely matches</TDText>
+            {candidates.map((candidate) => (
+              <Pressable key={candidate.id} accessibilityRole="button" accessibilityState={{ selected: selected?.id === candidate.id }} onPress={() => selectCandidate(candidate)} style={[s.candidate, selected?.id === candidate.id && s.candidateSelected]}>
+                {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={s.cardImage} contentFit="cover" /> : <View style={s.imageFallback}><Ionicons name="image-outline" size={22} color={color.textMuted} /></View>}
+                <View style={s.flex}>
+                  <TDText variant="small">{candidate.name}</TDText>
+                  <TDText variant="caption" tone="muted">{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'} - {candidate.language ?? 'language unavailable'}</TDText>
+                  <TDText variant="caption" tone="muted">Finishes: {candidate.finishes.map(displayFinish).join(', ')}</TDText>
+                </View>
+                <TDBadge tone={selected?.id === candidate.id ? 'success' : 'info'}>{Math.round(candidate.confidence * 100)}%</TDBadge>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {!searching && query && !candidates.length && !error ? <TDEmptyState title="No printings yet" message="Run a search to select an exact printing." /> : null}
+
+        {selected ? (
+          <TDCard style={s.section}>
+            <TDText variant="title">Confirm exact printing</TDText>
+            <TDText variant="small" tone="muted">{selected.name} - {selected.setCode ?? 'Set unavailable'} #{selected.collectorNumber ?? '?'}</TDText>
+            <View style={s.quantityRow}>
+              <TDButton label="-" variant="secondary" disabled={quantity <= 1} onPress={() => setQuantity((value) => Math.max(1, value - 1))} />
+              <TDBadge tone="info">Qty {quantity}</TDBadge>
+              <TDButton label="+" variant="secondary" onPress={() => setQuantity((value) => value + 1)} />
+            </View>
+            <OptionRow label="Condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} />
+            <OptionRow label="Finish" options={selectedFinishes as ('normal' | 'foil' | 'etched')[]} value={finish} display={displayFinish} onSelect={setFinish} />
+            <TDInput label="Language" value={language} onChangeText={setLanguage} placeholder="en" />
+            <OptionRow label="Storage" options={['none', ...(context?.locations.map((location) => location.id) ?? [])]} value={storageLocationId ?? 'none'} display={(id) => id === 'none' ? 'Unassigned' : context?.locations.find((location) => location.id === id)?.name ?? 'Unavailable'} onSelect={(id) => setStorageLocationId(id === 'none' ? null : id)} />
+            <OptionRow label="Trade Binder" options={TRADE_BINDER_STATUS_OPTIONS} value={tradeStatus} display={(status) => status.replaceAll('_', ' ')} onSelect={setTradeStatus} />
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: addToWishlist }} onPress={() => setAddToWishlist((value) => !value)} style={s.checkboxRow}>
+              <Ionicons name={addToWishlist ? 'checkbox-outline' : 'square-outline'} size={22} color={color.primaryBright} />
+              <TDText variant="small">Also add this exact card target to Wishlist</TDText>
+            </Pressable>
+            <TDButton label="Add to Collection" loading={saving} onPress={save} />
+          </TDCard>
+        ) : null}
+      </ScrollView>
+    </TDScreen>
+  );
+}
+
+function OptionRow<T extends string>({ label, options, value, display, onSelect }: { label: string; options: T[]; value: T; display: (value: T) => string; onSelect: (value: T) => void }) {
+  return (
+    <View style={s.optionGroup}>
+      <TDText variant="label" tone="muted">{label}</TDText>
+      <View style={s.chips}>
+        {options.map((option) => <Chip key={option} label={display(option)} selected={option === value} onPress={() => onSelect(option)} />)}
+      </View>
+    </View>
+  );
+}
+
+function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[s.chip, selected && s.chipSelected]}><TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText></Pressable>;
+}
+
+function permissionTitle(permission: ScannerPermissionState) {
+  if (permission === 'granted') return 'Camera ready';
+  if (permission === 'denied') return 'Camera permission denied';
+  if (permission === 'unavailable') return 'Camera unavailable';
+  return 'Camera permission not requested';
+}
+
+function permissionMessage(permission: ScannerPermissionState, platform: string) {
+  if (permission === 'unavailable') return `Camera capture is unavailable in ${platform === 'web' ? 'Expo Web' : 'this Expo build'} because no camera module is installed.`;
+  if (permission === 'denied') return 'Enable camera permission in system settings, or continue with manual search.';
+  if (permission === 'granted') return 'Future OCR/image recognition providers will use this state after camera support is installed.';
+  return 'Manual search works now. Camera capture requires an approved development build with camera support.';
+}
+
+const s = StyleSheet.create({
+  screen: { paddingTop: 56 },
+  content: { gap: space.md, paddingBottom: 128 },
+  header: { gap: space.xs },
+  cameraCard: { gap: space.md },
+  cameraFrame: { minHeight: 300, borderRadius: radius.lg, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.lg, backgroundColor: color.canvasRaised },
+  centerText: { textAlign: 'center' },
+  noticeCard: { gap: space.sm },
+  section: { gap: space.md },
+  candidate: { minHeight: 112, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.canvasRaised },
+  candidateSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '24' },
+  cardImage: { width: 58, height: 82, borderRadius: radius.sm, backgroundColor: color.surface },
+  imageFallback: { width: 58, height: 82, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
+  flex: { flex: 1 },
+  quantityRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  optionGroup: { gap: space.xs },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
+  chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '30' },
+  checkboxRow: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm },
+});

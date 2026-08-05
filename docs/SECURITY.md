@@ -14,6 +14,7 @@
 - Implemented: Platform role does not imply paid membership entitlement; owner/admin/support/analyst roles gain platform authority separately from product access.
 - Implemented: Admin membership overrides are explicit product-entitlement overrides, separate from platform role and Stripe billing state.
 - Implemented: Collector mutation security proposal `supabase/migrations/202608050001_collector_mutation_security_proposal.sql` adds database-layer ownership checks and a transactional Free-plan 500 total-card quantity cap for direct mobile writes, web writes, and offline replay. It has not been applied to production.
+- Implemented: Mobile scanner foundation does not retain card photos by default and does not upload captured images without a clear user scan action. The current mobile build has no camera dependency, so image capture/OCR is unavailable rather than silently uploading photos.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.
 
@@ -37,6 +38,7 @@
 - Planned: Add automated cross-account data isolation tests.
 - Planned: Replay the Collector mutation security proposal in staging and run `supabase/verification/verify_collector_mutation_security.sql` before production approval.
 - Planned: Add observability with secret and PII scrubbing.
+- Planned: Before enabling OCR/image-recognition uploads, add explicit consent copy, retention controls, provider logging review, and tests proving photos are not stored by default.
 
 ## Access Fallbacks
 

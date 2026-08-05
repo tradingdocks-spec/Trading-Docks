@@ -51,3 +51,11 @@
 - Implemented: Replay only attempts queued Trade Binder/Wishlist operations for the active user and preserves other users' queued operations.
 - Partially Implemented: Failed replay records `lastError` and the screen surfaces pending-sync messages, but there is not yet a dedicated conflict-resolution inbox.
 - Planned: Trade-calculator and card-show prep workflows should consume these queued states rather than silently hiding failed updates.
+
+## Scanner Offline Behavior
+
+- Implemented: Scanner confirmation writes queue as `collector_scanner_collection_add` when Supabase is unavailable or the insert fails.
+- Implemented: Scanner queue de-dupe keys are scoped by user, exact printing, finish, condition, and storage assignment.
+- Implemented: Manual search can show cached recent candidates while offline when a recent match exists.
+- Partially Implemented: New online card search and future OCR/image recognition require network access.
+- Partially Implemented: Queued scanner adds do not yet have a dedicated replay worker or conflict-resolution inbox; they are preserved in the shared offline queue.

@@ -139,6 +139,17 @@
 - Partially Implemented: Wishlist exact-printing matching cannot include collector number because `collector_wishlist` has no collector-number column.
 - Partially Implemented: The experience is a personal planning workspace only. It does not create peer-to-peer trade offers, messaging, checkout, or live marketplace workflows.
 - Planned: Future trade-calculator integration should consume `WishlistMatch` and `TradeBinderItem` rather than inventing a parallel matching contract.
+
+## Scanner Architecture
+
+- Implemented: Mobile scanner foundation lives in `mobile/app/(tabs)/scan.tsx`, `mobile/services/scanner-foundation.ts`, and `mobile/services/scanner-data.ts`.
+- Implemented: The account-aware center Scan tab opens the dedicated scanner screen.
+- Implemented: Scanner flow supports permission states, manual search, likely printing candidates, exact-printing selection, confirmation, Collection insert, optional storage assignment, optional Trade Binder status, optional Wishlist action, rapid reset, and interrupted draft persistence.
+- Implemented: Recognition-provider interface is defined by `ScannerRecognitionProvider`. The active provider is an explicit unavailable-camera/manual-search foundation; it does not claim OCR accuracy.
+- Partially Implemented: The mobile app does not currently include `expo-camera`, so capture/OCR is unavailable in Expo Go, Expo Web, and native builds until a camera dependency and permissions config are approved.
+- Partially Implemented: Manual search uses Scryfall printings over the network and cached recent candidates when available offline.
+- Planned: Future OCR/image-recognition providers should implement the same provider interface and must require clear user intent before uploading images.
+- Planned: Bluetooth, bulk hardware scanner, and Deal Desk ingestion should consume validated scanner confirmations rather than bypassing Collection, Storage, Trade Binder, and Wishlist contracts.
 - Implemented: Membership tier, account type, billing status, platform role, and resolved entitlement keys are separate typed concepts.
 - Implemented: Provider identifiers for Stripe and planned RevenueCat live outside the product plan definitions.
 - Partially Implemented: Legacy web admin component variants still use older owner wording but are not the active import path.

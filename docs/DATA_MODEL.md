@@ -116,3 +116,12 @@
 - Implemented: Matching rules are strict when fields are specified and flexible only for omitted wishlist fields.
 - Partially Implemented: `collector_wishlist` does not store collector number, language, or Scryfall id, so exact-printing matching is limited to card name plus set code, condition, and finish.
 - Planned: Add a reviewed migration proposal before requiring wishlist collector-number/Scryfall exactness, durable match snapshots, or trade-calculator audit trails.
+
+## Scanner Data Contract
+
+- Implemented: Scanner candidates map to exact-printing fields already used by Collection: Scryfall id, card name, set code, set name, collector number, finish, language, and image URL when available.
+- Implemented: Confirmed scans insert `inventory_items` records with `quantity`, `location_id`, and exact-printing metadata in `data`.
+- Implemented: Optional Trade Binder and Wishlist selections reuse `binder_card_trade_status` and `collector_wishlist` mutation paths.
+- Partially Implemented: The scanner persists interrupted draft state locally by user id. Drafts do not store image URIs or retained photos.
+- Partially Implemented: Scanner-created item ids are app-generated text ids to match the current `inventory_items.id` schema.
+- Planned: Add database-side scanner/import idempotency if rapid scan and offline replay need stronger duplicate prevention than the current queue de-dupe key.
