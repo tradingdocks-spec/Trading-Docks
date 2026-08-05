@@ -60,7 +60,8 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Add Magic scanner benchmark calibration tooling with private manifest validation, ignored fixture/output paths, JSON/CSV/Markdown reports, threshold classes, and advisory calibration recommendations.
 - Implemented: Add a feature-flagged private Magic scanner benchmark builder route for creating local labeled datasets without hand-editing JSON.
 - Implemented: Add continuous scanner/session and card-show offer foundations with standard card guide geometry, quality-gate contracts, duplicate protection, local running sessions, review filters, offer calculations, and CSV serialization.
-- Partially Implemented: Active camera mode still needs real frame-analysis wiring before hands-free auto-capture is production-ready.
+- Implemented: Add the first local live-frame analyzer for development-build frame samples, including card-boundary, four-corner, aspect, guide-fill, blur, motion, lighting, glare, fingerprint, targeted OCR mapping, and Magic adapter handoff tests.
+- Partially Implemented: Active camera mode still needs VisionCamera frame bridge wiring and physical-device QA before hands-free auto-capture is production-ready.
 - Partially Implemented: OCR/image recognition, artwork matching, set-symbol recognition, collector-info cropping, and foil classification are provider contracts only until benchmarked; the scanner does not fake recognition accuracy.
 - Partially Implemented: Magic recognition is metadata-backed and confirmation-first until product-owner private fixture benchmarks establish accuracy, latency, and false high-confidence rates. The builder labels ground truth; it does not determine ground truth from captured images.
 - Partially Implemented: Multi-TCG catalog providers and universal inventory persistence remain planned; active writes are still Magic-compatible.

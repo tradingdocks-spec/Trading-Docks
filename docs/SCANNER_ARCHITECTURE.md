@@ -10,9 +10,11 @@
 - Implemented: Magic scanner calibration tooling validates private fixture manifests, runs local benchmarks, emits sanitized JSON/CSV/Markdown reports, and classifies recognition as recognized, likely, ambiguous, or manual-review required.
 - Implemented: The `/dev/scanner-benchmark` route is a feature-flagged development tool for creating private Magic benchmark datasets without hand-editing JSON.
 - Implemented: Continuous scanner and offer-session contracts live in `mobile/services/continuous-offer-scanner.ts`; see `docs/CONTINUOUS_SCANNER.md` and `docs/CARD_SHOW_OFFER_SCANNER.md`.
+- Implemented: `mobile/services/live-card-recognition.ts` adds the first local live-frame analyzer for native-fed luma samples, including boundary detection, four-corner output, aspect-ratio validation, guide-fill checks, blur, motion, lighting, glare, image fingerprinting, targeted OCR mapping, and Magic adapter handoff.
+- Implemented: The mobile project includes `expo-dev-client`, `react-native-vision-camera`, `react-native-nitro-modules`, and `react-native-nitro-image` as the native-capable development-build path for future high-performance frame delivery.
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
 - Partially Implemented: Camera capture is local-first and still does not include a benchmarked native OCR, artwork, set-symbol, or finish-classification provider.
-- Partially Implemented: The mobile Scan tab now uses a session-first continuous-intake layout and correct 63:88 card guide, but live auto-capture still needs a real frame-analysis provider before hands-free capture is production-ready.
+- Partially Implemented: The mobile Scan tab now uses a session-first continuous-intake layout and correct 63:88 card guide, but live auto-capture still needs the VisionCamera frame bridge and physical-device QA before hands-free capture is production-ready.
 - Partially Implemented: The Magic adapter can resolve and explain likely Magic printings from available metadata signals, but it must require user confirmation when exact-printing signals are missing, weak, conflicting, or below threshold.
 - Partially Implemented: Pokemon, One Piece, and Lorcana adapters remain replaceable architecture stubs, not benchmarked recognition providers.
 - Planned: OCR, artwork matching, set-symbol detection, collector-info parsing from image crops, perspective correction, and foil classification need provider implementations plus benchmarks before any accuracy claim.
@@ -22,17 +24,19 @@
 - Expo Camera: official Expo docs for SDK 54 expose `CameraView`, `useCameraPermissions`, `takePictureAsync`, `enableTorch`, autofocus, and config-plugin permission strings. Photos are saved to app cache when captured, so Trading Docks must delete or avoid retaining them unless the user explicitly saves them. Source: https://docs.expo.dev/versions/v54.0.0/sdk/camera/
 - Expo install path: official Expo docs recommend `npx expo install expo-camera` so the installed native module matches the active Expo SDK. Source: https://docs.expo.dev/versions/latest/sdk/camera/
 - Expo Router static web: the mobile app uses `web.output: "static"` and `npx expo export --platform web`; scanner code must avoid server-only or browser-only assumptions during static rendering. Source: https://docs.expo.dev/router/web/static-rendering/
+- Expo development builds: VisionCamera and Nitro native modules require a custom Expo development build through `expo-dev-client`; this is not an Expo Go workflow.
+- Native rebuild requirement: Adding or changing native camera dependencies requires a prebuild/native rebuild before iOS or Android device QA.
 
 ## Provider Pipeline
 
-- Implemented: Game detection runs before game-specific recognition in the multi-TCG architecture.
-- Implemented: `CameraCaptureProvider` captures a still and multi-frame finish sequence.
-- Implemented: `CardBoundaryProvider` normalizes card orientation and perspective and emits `CardRegion` contracts.
-- Implemented: `TextRecognitionProvider` returns OCR observations for name, type line, collector info, set code, collector number, language, and rarity.
-- Implemented: `ArtworkMatchingProvider` returns layout and artwork fingerprint observations.
-- Implemented: `SetSymbolProvider` returns set symbol and rarity observations.
-- Implemented: `CollectorInfoProvider` parses set code, collector number, language, rarity, and confidence.
-- Implemented: `FinishDetectionProvider` classifies nonfoil, likely foil, likely etched, special finish candidate, or indeterminate.
+- Implemented: Game detection contracts run before game-specific recognition in the multi-TCG architecture.
+- Partially Implemented: `CameraCaptureProvider` still capture exists through `expo-camera`; native continuous frame processing is a development-build integration target.
+- Implemented: `CardBoundaryProvider` contract exists, and `live-card-recognition.ts` provides a luma-frame implementation for bounds/corners/quality observations. Perspective correction is represented in the crop contract but is not yet producing a corrected bitmap.
+- Partially Implemented: `TextRecognitionProvider` contracts support OCR observations for name, type line, collector info, set code, collector number, language, and rarity. No production OCR engine is active yet.
+- Partially Implemented: `ArtworkMatchingProvider` contracts support layout and artwork fingerprint observations. No benchmarked artwork-similarity engine is active yet.
+- Partially Implemented: `SetSymbolProvider` returns set-symbol contracts only; no production set-symbol recognizer is active yet.
+- Implemented: `CollectorInfoProvider` parsing helpers normalize targeted OCR text and parse set code, collector number, language, rarity, and confidence when text observations are supplied.
+- Partially Implemented: `FinishDetectionProvider` can evaluate multi-frame finish evidence contracts conservatively; production foil classification remains unbenchmarked.
 - Implemented: `PrintingCandidateProvider` ranks possible Scryfall printings.
 - Implemented: `ConfidenceFusionProvider` produces explainable overall and per-signal confidence.
 - Implemented: Magic confidence output includes overall confidence, top three candidates, per-signal scores for name, set code, collector number, artwork, set symbol, layout, finish compatibility, and language compatibility, conflicts, and "Why this match?" explanation lines.
@@ -75,6 +79,7 @@
 - Implemented: Scanner replay logging avoids tokens, service-role keys, images, and private user data.
 - Implemented: The scanner does not upload captured images by default.
 - Implemented: Magic recognition sends text metadata queries to Scryfall only; it does not upload captured images, retain captured images by default, or use a paid cloud vision provider.
+- Implemented: Live-frame analysis processes local in-memory frame samples and exports metrics plus a fingerprint; source frames are not logged or exported.
 - Planned: Remote image-processing providers require explicit consent, HTTPS-only communication, retention controls, and sanitized telemetry rules.
 
 ## Remaining Work

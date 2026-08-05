@@ -13,6 +13,7 @@
 - Planned: No game-specific visual fixture dataset or mixed-stack image dataset has been run against the scanner in this repository.
 - Planned: Do not publish scanner accuracy, foil accuracy, latency, manual-correction, or failure-rate numbers until the benchmark runner has processed reviewed fixtures.
 - Planned: Continuous auto-capture thresholds for boundary, motion, blur, glare, lighting, and stability must be benchmarked with real card-show fixture footage before reducing confirmation requirements.
+- Partially Implemented: `mobile/services/live-card-recognition.ts` has synthetic tests for boundary, aspect ratio, partial-card rejection, blur, motion, glare, lighting, auto-capture readiness, OCR mapping, and conflict handling. These tests validate code behavior, not real-world camera accuracy.
 
 ## Fixture Categories
 
@@ -47,6 +48,8 @@
 - Planned: Average scan latency.
 - Planned: Manual correction rate.
 - Planned: Failure rate.
+- Planned: Live-frame analyzer latency on physical iOS and Android development builds.
+- Planned: Auto-capture false-positive and false-negative rates using real fixture footage.
 
 ## Benchmark Rules
 
@@ -65,3 +68,4 @@
 
 - Planned: A scanner provider can move from architecture/stub to production candidate only after it runs the benchmark and the product owner accepts thresholds for manual confirmation, quick-confirm eligibility, and fallback behavior.
 - Requires Production Configuration: Product owner must approve fixture mix, threshold targets, device list, acceptable false high-confidence rate, and whether OCR/image processing can use native-only dependencies before visual recognition is marketed as production-ready.
+- Requires Production Configuration: Physical-device benchmarks must be run from a custom development build because VisionCamera/Nitro frame processing is not available in Expo Go.

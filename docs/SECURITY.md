@@ -25,6 +25,8 @@
 - Implemented: The scanner benchmark builder is gated by `EXPO_PUBLIC_ENABLE_SCANNER_BENCHMARK_BUILDER=true`, is not linked from normal navigation, stores only local ignored fixture paths, and does not upload images or write production analytics.
 - Implemented: Multi-TCG unsupported-card observations store detection evidence and confidence, not captured image payloads.
 - Implemented: Continuous scanner sessions persist scanner results and offer fields by user id without storing captured images or sending email/export automatically.
+- Implemented: Live-frame analysis accepts transient in-memory luminance samples and returns bounds, quality metrics, guidance, and image fingerprints without exporting or retaining source images.
+- Partially Implemented: VisionCamera/Nitro dependencies are installed for a custom Expo development build, but physical-device cleanup and native frame-buffer handling still need QA before production claims.
 - Planned: Before remote OCR, artwork matching, foil analysis, or analytics for continuous scanning, add explicit consent, retention controls, and image-free logging guarantees.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.

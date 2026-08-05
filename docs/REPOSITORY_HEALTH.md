@@ -53,6 +53,9 @@
 - Implemented: Magic scanner calibration now has private fixture manifest validation, ignored local fixture/output paths, sanitized JSON/CSV/Markdown reporting, threshold classification, advisory calibration recommendations, and focused benchmark tooling tests.
 - Implemented: Private scanner benchmark builder service and `/dev/scanner-benchmark` route are feature-flagged, local-only, and covered by focused dataset/manifest/privacy tests.
 - Partially Implemented: `expo-camera` is installed and configured, but native camera behavior still needs development-build and physical-device QA before production claims.
+- Implemented: `expo-dev-client`, VisionCamera, and Nitro dependencies are configured for the live scanner development-build path.
+- Implemented: `mobile/services/live-card-recognition.ts` adds synthetic-tested local frame analysis for card bounds, corners, aspect ratio, guide fit, blur, motion, lighting, glare, fingerprints, targeted OCR mapping, and Magic adapter handoff.
+- Partially Implemented: The active Scan tab still uses the Expo Camera manual fallback and does not yet feed native VisionCamera frames into the analyzer.
 - Partially Implemented: Magic visual recognition still lacks benchmarked OCR, artwork embedding, set-symbol detection, perspective correction, and finish classification providers. The active UI must continue requiring confirmation.
 - Partially Implemented: The benchmark builder captures and labels fixtures, but native image file movement/deletion must still be verified on physical iOS/Android development builds before relying on it for production calibration collection.
 - Partially Implemented: Native scanner replay still lacks a standalone network reachability trigger; without an approved reachability dependency it retries on app resume, session restore, and manual retry while Expo Web also uses the browser reconnect event.
@@ -196,4 +199,5 @@
 6. Use the feature-flagged benchmark builder to collect a reviewed starter dataset, then run `npm run benchmark:magic-scanner -- --manifest <private-manifest.json>` before lowering manual-confirmation friction.
 7. Add an approved native reachability dependency or platform monitor if scanner replay must trigger immediately on native reconnect while the app remains foregrounded.
 8. Add scanner-to-Deal Desk and card-show prep integrations only after the validated confirmation contract is reviewed.
-9. Validate the continuous scanner on physical devices; current implementation includes the state machine, guide geometry, offer session, duplicate protection, and CSV serialization, but live camera boundary/OCR/foil providers are still pending.
+9. Validate the continuous scanner on physical devices; current implementation includes the state machine, guide geometry, offer session, duplicate protection, CSV serialization, and local frame analysis, but native camera frame delivery plus OCR/artwork/foil providers are still pending.
+10. Wire VisionCamera frames into the live analyzer in a development build and capture iOS/Android QA results before changing confirmation friction.

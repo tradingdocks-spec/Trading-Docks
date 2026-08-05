@@ -16,6 +16,8 @@
 - Implemented: Offer configuration supports percentage rules by price range, game, and condition, optional minimum card value, and rounding.
 - Implemented: Missing market price is represented as unavailable and excluded from totals. It is never treated as `$0.00`.
 - Implemented: Running totals include cards scanned, cards recognized, cards needing review, market value, cash offer, trade value, missing-price item count, game totals, and finish totals.
+- Implemented: Continuous scanner entries can consume live analyzer fingerprints and recognition reports when supplied by the native frame pipeline.
+- Partially Implemented: The active UI still requires user confirmation and manual price entry; live auto-captured rows remain gated on native frame delivery, benchmarked recognition, and review-safe confidence thresholds.
 
 ## Destinations
 
@@ -33,5 +35,5 @@
 ## Remaining Work
 
 - Planned: Replace manual pricing with approved market data providers.
-- Planned: Add physical-device QA for rapid show intake.
+- Planned: Add physical-device QA for rapid show intake, including VisionCamera frame delivery, auto-capture timing, card-removal behavior, and repeated-card duplicate protection.
 - Planned: Add durable server-side purchase/trade session persistence after data model review.
