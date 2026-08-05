@@ -217,7 +217,7 @@ const TYPE_CONFIG: Record<
   },
 };
 
-type InventoryPlan = "free" | "collector" | "seller" | "business";
+type InventoryPlan = "free" | "collector" | "seller" | "store";
 type BusinessSavedView =
   | "all"
   | "recent"
@@ -233,7 +233,7 @@ const PLAN_RANK: Record<InventoryPlan, number> = {
   free: 0,
   collector: 1,
   seller: 2,
-  business: 3,
+  store: 3,
 };
 
 export function TieredInventoryWorkspace({
@@ -241,15 +241,15 @@ export function TieredInventoryWorkspace({
   inventoryLimit,
 }: {
   accountType: string;
-  inventoryLimit: number;
+  inventoryLimit: number | null;
 }) {
   const plan: InventoryPlan =
-    accountType === "business" || accountType === "seller" || accountType === "collector"
-      ? accountType
+    accountType === "store" || accountType === "business" || accountType === "seller" || accountType === "collector"
+      ? accountType === "business" ? "store" : accountType
       : "free";
   const canManageCollection = true;
   const canOperate = PLAN_RANK[plan] >= PLAN_RANK.seller;
-  const hasBusinessAnalytics = plan === "business";
+  const hasBusinessAnalytics = plan === "store";
   const [locations, setLocations] = useState<LocationRecord[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const itemsRef = useRef<InventoryItem[]>([]);
@@ -681,7 +681,7 @@ export function TieredInventoryWorkspace({
 
   function attemptFile(item: InventoryItem) {
     const currentUnits = items.reduce((sum, existing) => sum + existing.quantity, 0);
-    if (inventoryLimit > 0 && currentUnits + item.quantity > inventoryLimit) {
+    if (inventoryLimit != null && inventoryLimit > 0 && currentUnits + item.quantity > inventoryLimit) {
       notify(
         `This would exceed your ${inventoryLimit.toLocaleString("en-US")}-item inventory limit. Reduce the quantity or upgrade your plan.`,
       );
@@ -716,7 +716,7 @@ export function TieredInventoryWorkspace({
     if (typeof updates.quantity === "number") {
       const currentUnits = items.reduce((sum, item) => sum + item.quantity, 0);
       const nextUnits = currentUnits - existing.quantity + updates.quantity;
-      if (inventoryLimit > 0 && nextUnits > inventoryLimit) {
+      if (inventoryLimit != null && inventoryLimit > 0 && nextUnits > inventoryLimit) {
         notify(
           `This would exceed your ${inventoryLimit.toLocaleString("en-US")}-item inventory limit. Reduce the quantity or upgrade your plan.`,
         );

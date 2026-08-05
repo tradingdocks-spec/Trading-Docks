@@ -39,7 +39,7 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
     { label: "Analytics", href: "/dashboard/analytics", status: "implemented" },
     { label: "Settings", href: "/dashboard/settings", status: "implemented" },
   ],
-  business: [
+  store: [
     { label: "Dashboard", href: "/dashboard", status: "implemented" },
     { label: "Inventory", href: "/dashboard/inventory", status: "implemented" },
     { label: "Deal Desk", href: "/dashboard/purchasing", status: "partially-implemented" },

@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-const VALID_PLANS = new Set(["free", "collector", "seller", "business"]);
+const VALID_PLANS = new Set(["free", "collector", "seller", "store"]);
 
 type AuthDirectoryUser = {
   id: string;

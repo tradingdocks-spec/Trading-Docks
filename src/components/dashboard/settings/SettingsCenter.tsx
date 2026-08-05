@@ -224,7 +224,7 @@ export function SettingsCenter({
         <nav className="mt-4 hidden grid-cols-3 gap-2 sm:grid lg:grid-cols-4 xl:grid-cols-1">
           {visibleNav.map((item) => {
             const Icon = item.icon;
-            const locked = item.storeOnly && plan !== "business";
+            const locked = item.storeOnly && plan !== "store";
             return (
               <button
                 key={item.id}
@@ -285,7 +285,7 @@ export function SettingsCenter({
           {active === "selling" && <SellingSettings settings={settings} update={update} />}
           {active === "storage" && <StorageSettings settings={settings} update={update} />}
           {active === "notifications" && <NotificationSettings settings={settings} update={update} />}
-          {active === "team" && <TeamSettings locked={plan !== "business"} />}
+          {active === "team" && <TeamSettings locked={plan !== "store"} />}
           {active === "security" && <SecuritySettings />}
           {active === "data" && <DataSettings />}
           {active === "appearance" && <AppearanceSettings settings={settings} update={update} />}

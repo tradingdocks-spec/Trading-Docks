@@ -1,16 +1,31 @@
-export type AccountTier = "free" | "collector" | "seller" | "business";
+import {
+  MEMBERSHIP_PLANS,
+  annualMonthlyPrice,
+  normalizeMembershipTier,
+  type MembershipTier,
+} from "@/lib/membership-catalog";
+
+export type AccountTier = MembershipTier;
 export type PlanFeature =
   | "dashboard"
   | "inventory"
   | "deck-vault"
   | "seller-operations"
   | "business-operations";
+type PlanEntitlement = {
+  name: string;
+  monthlyPrice: number;
+  annualMonthlyPrice: number;
+  annualPrice: number;
+  deckLimit: number | null;
+  inventoryLimit: number | null;
+};
 
-const PLAN_RANK: Record<AccountTier, number> = {
+export const PLAN_RANK: Record<AccountTier, number> = {
   free: 0,
   collector: 1,
   seller: 2,
-  business: 3,
+  store: 3,
 };
 
 const FEATURE_PLAN: Record<PlanFeature, AccountTier> = {
@@ -18,61 +33,34 @@ const FEATURE_PLAN: Record<PlanFeature, AccountTier> = {
   inventory: "free",
   "deck-vault": "free",
   "seller-operations": "seller",
-  "business-operations": "business",
+  "business-operations": "store",
 };
 
-export const PLAN_ENTITLEMENTS: Record<
-  AccountTier,
-  {
-    name: string;
-    monthlyPrice: number;
-    annualMonthlyPrice: number;
-    annualPrice: number;
-    deckLimit: number | null;
-    inventoryLimit: number;
-  }
-> = {
-  free: {
-    name: "Free",
-    monthlyPrice: 0,
-    annualMonthlyPrice: 0,
-    annualPrice: 0,
-    deckLimit: 10,
-    inventoryLimit: 500,
-  },
-  collector: {
-    name: "Collector",
-    monthlyPrice: 4.99,
-    annualMonthlyPrice: 3.75,
-    annualPrice: 44.99,
-    deckLimit: 50,
-    inventoryLimit: 10_000,
-  },
-  seller: {
-    name: "Seller",
-    monthlyPrice: 19.99,
-    annualMonthlyPrice: 14.99,
-    annualPrice: 179.99,
-    deckLimit: null,
-    inventoryLimit: 50_000,
-  },
-  business: {
-    name: "Store",
-    monthlyPrice: 49.99,
-    annualMonthlyPrice: 37.49,
-    annualPrice: 449.99,
-    deckLimit: null,
-    inventoryLimit: 250_000,
-  },
+export const PLAN_ENTITLEMENTS: Record<AccountTier, PlanEntitlement> = {
+  free: planEntitlement("free"),
+  collector: planEntitlement("collector"),
+  seller: planEntitlement("seller"),
+  store: planEntitlement("store"),
 };
 
 export function normalizeAccountTier(value: unknown): AccountTier {
-  return value === "business" ||
-    value === "seller" ||
-    value === "collector" ||
-    value === "free"
-    ? value
-    : "free";
+  return normalizeMembershipTier(value);
+}
+
+export function minimumPlanForFeature(feature: PlanFeature) {
+  return FEATURE_PLAN[feature];
+}
+
+function planEntitlement(tier: AccountTier) {
+  const plan = MEMBERSHIP_PLANS[tier];
+  return {
+    name: plan.name,
+    monthlyPrice: plan.monthlyPrice,
+    annualMonthlyPrice: annualMonthlyPrice(tier),
+    annualPrice: plan.annualPrice,
+    deckLimit: plan.limits.deckLimit,
+    inventoryLimit: plan.limits.cardLimit,
+  };
 }
 
 // Route-level access is centralized in `src/lib/tier-access.ts`.

@@ -12,9 +12,10 @@ Do not add new production features until the foundation items below are reviewed
 - Partially Implemented: Align route labels with canonical Collector, Seller, Store, and Admin navigation while leaving unfinished destination content clearly marked for later product sprints.
 - Implemented: Establish shared identity/access models and move active web admin authorization from email checks to `user_roles`.
 - Planned: Consolidate active dashboard component architecture and mark deprecated dashboard generations.
-- Planned: Align plan tiers, names, pricing, and limits between web and mobile.
+- Implemented: Align active web/mobile plan tiers, names, pricing, limits, entitlement keys, and provider mapping adapters around a canonical membership catalog.
 - Planned: Audit API route authentication, public allowlists, provider callback exemptions, and server-side entitlement checks.
 - Planned: Replace legacy Supabase `is_platform_owner()` policies/functions with role-based `is_admin()` equivalents in a reviewed migration.
+- Planned: Replace legacy `business` membership schema values and constraints with canonical `store` in a reviewed migration.
 - Planned: Verify Supabase migrations replay cleanly into a fresh staging project.
 - Planned: Add repository hygiene cleanup for backup dependency folders and historical release artifacts.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.

@@ -185,7 +185,7 @@ export function TrialsManager() {
         </div>
         <form onSubmit={grantTrial} className="mt-6 grid gap-4 xl:grid-cols-[minmax(240px,1.4fr)_180px_180px_minmax(220px,1fr)_auto] xl:items-end">
           <Field label="Customer email"><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="customer@example.com" className="admin-input" /></Field>
-          <Field label="Trial plan"><select value={plan} onChange={(event) => setPlan(event.target.value)} className="admin-input"><option value="collector">Collector</option><option value="seller">Seller</option><option value="business">Business</option></select></Field>
+          <Field label="Trial plan"><select value={plan} onChange={(event) => setPlan(event.target.value)} className="admin-input"><option value="collector">Collector</option><option value="seller">Seller</option><option value="store">Store</option></select></Field>
           <Field label="Expires"><input type="date" value={endsOn} min={plusDays(1)} onChange={(event) => setEndsOn(event.target.value)} className="admin-input" /></Field>
           <Field label="Internal note"><input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Promotion, beta tester, support…" className="admin-input" /></Field>
           <button disabled={working === "create"} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-300 px-5 text-xs font-bold text-[#17200d] transition hover:bg-amber-200 disabled:opacity-50">{working === "create" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Grant & send</button>

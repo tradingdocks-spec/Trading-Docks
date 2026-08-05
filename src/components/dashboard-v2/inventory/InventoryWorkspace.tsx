@@ -197,7 +197,7 @@ const TYPE_CONFIG: Record<
   },
 };
 
-type InventoryPlan = "free" | "collector" | "seller" | "business";
+type InventoryPlan = "free" | "collector" | "seller" | "store";
 type BusinessSavedView =
   | "all"
   | "recent"
@@ -213,7 +213,7 @@ const PLAN_RANK: Record<InventoryPlan, number> = {
   free: 0,
   collector: 1,
   seller: 2,
-  business: 3,
+  store: 3,
 };
 
 export function InventoryWorkspace({
@@ -224,12 +224,12 @@ export function InventoryWorkspace({
   inventoryLimit: number;
 }) {
   const plan: InventoryPlan =
-    accountType === "business" || accountType === "seller" || accountType === "collector"
-      ? accountType
+    accountType === "store" || accountType === "business" || accountType === "seller" || accountType === "collector"
+      ? accountType === "business" ? "store" : accountType
       : "free";
   const canManageCollection = PLAN_RANK[plan] >= PLAN_RANK.collector;
   const canOperate = PLAN_RANK[plan] >= PLAN_RANK.seller;
-  const hasBusinessAnalytics = plan === "business";
+  const hasBusinessAnalytics = plan === "store";
   const [locations, setLocations] = useState<LocationRecord[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const itemsRef = useRef<InventoryItem[]>([]);

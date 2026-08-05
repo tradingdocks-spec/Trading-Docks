@@ -324,7 +324,7 @@ function WorkspaceFooter({
               {userName}
             </p>
             <p className="mt-0.5 text-[11px] capitalize text-slate-600">
-              {plan === "business" ? "Store workspace" : `${plan} workspace`}
+              {plan === "store" ? "Store workspace" : `${plan} workspace`}
             </p>
           </div>
           {isOwner ? (

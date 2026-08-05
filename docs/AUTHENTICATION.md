@@ -51,7 +51,7 @@
 - Implemented: Authentication identity is the Supabase Auth user id.
 - Implemented: Platform role authority is `public.user_roles`; missing or failed role lookup falls back to normal `user`.
 - Implemented: Account type remains a workspace/product-mode concept: mobile stores `free | collector | seller | store`; web preferences still contain account/workspace metadata.
-- Implemented: Membership tier is separate from platform role and resolves to `free | collector | seller | business`.
+- Implemented: Membership tier is separate from platform role and resolves to `free | collector | seller | store`.
 - Implemented: Billing status is separate from membership tier and is read from `billing_subscriptions` when available.
 - Implemented: Entitlement sets are derived from resolved membership tier, with `admin.command-center` added only by platform role.
 - Implemented: Admin users with Free membership keep Free product entitlements and gain Command Center access separately.

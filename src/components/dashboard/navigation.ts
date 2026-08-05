@@ -346,7 +346,7 @@ export function getAccountAwareNavigationGroups(
   return [
     {
       id: "workspace",
-      label: tier === "business" ? "Store" : "Workspace",
+      label: tier === "store" ? "Store" : "Workspace",
       items: workspaceItems,
     },
     ...(adminItems.length

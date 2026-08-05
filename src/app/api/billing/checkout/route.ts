@@ -33,6 +33,8 @@ export async function POST(request: Request) {
   if (!isPaidPlan(body?.plan) || !isBillingCycle(body?.billing)) {
     return NextResponse.json({ error: "Choose a valid plan and billing cycle." }, { status: 400 });
   }
+  const plan = body.plan;
+  const billing = body.billing;
 
   const stripe = getStripe();
   const { data: existing } = await supabase
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
     customer: existing?.stripe_customer_id || undefined,
     customer_email: existing?.stripe_customer_id ? undefined : user.email,
     client_reference_id: user.id,
-    line_items: [{ price: getPriceId(body.plan, body.billing), quantity: 1 }],
+    line_items: [{ price: getPriceId(plan, billing), quantity: 1 }],
     allow_promotion_codes: true,
     billing_address_collection: "auto",
     success_url: `${origin}/dashboard/billing/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -65,14 +67,14 @@ export async function POST(request: Request) {
     subscription_data: {
       metadata: {
         supabase_user_id: user.id,
-        plan: body.plan,
-        billing_cycle: body.billing,
+        plan,
+        billing_cycle: billing,
       },
     },
     metadata: {
       supabase_user_id: user.id,
-      plan: body.plan,
-      billing_cycle: body.billing,
+      plan,
+      billing_cycle: billing,
     },
   });
 

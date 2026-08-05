@@ -39,7 +39,7 @@ export function PlanAccessGate({
           {requiredPlan} plan or higher
         </p>
         <h1 className="mt-4 text-2xl font-semibold tracking-[-0.03em] text-white">
-          {featureName} is not included on your {plan === "business" ? "Store" : plan.charAt(0).toUpperCase() + plan.slice(1)} plan
+          {featureName} is not included on your {plan === "store" ? "Store" : plan.charAt(0).toUpperCase() + plan.slice(1)} plan
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500">
           Upgrade to unlock this workspace and the additional tools included with the {requiredPlan} plan.

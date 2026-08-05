@@ -27,7 +27,7 @@ export const PLAN_RANK: Record<AccountTier, number> = {
   free: 0,
   collector: 1,
   seller: 2,
-  business: 3,
+  store: 3,
 };
 
 export const FEATURE_MINIMUM_PLAN: Record<PlanFeature, AccountTier> = {
@@ -43,11 +43,11 @@ export const FEATURE_MINIMUM_PLAN: Record<PlanFeature, AccountTier> = {
   orders: "seller",
   "card-shows": "seller",
   automation: "seller",
-  "business-intelligence": "business",
-  "business-operations": "business",
+  "business-intelligence": "store",
+  "business-operations": "store",
   settings: "free",
   support: "free",
-  admin: "business",
+  admin: "store",
 };
 
 export const FEATURE_LABEL: Record<PlanFeature, string> = {
@@ -70,18 +70,18 @@ export const FEATURE_LABEL: Record<PlanFeature, string> = {
   admin: "Admin Control Center",
 };
 
-export const INVENTORY_LIMITS: Record<AccountTier, number> = {
+export const INVENTORY_LIMITS: Record<AccountTier, number | null> = {
   free: PLAN_ENTITLEMENTS.free.inventoryLimit,
   collector: PLAN_ENTITLEMENTS.collector.inventoryLimit,
   seller: PLAN_ENTITLEMENTS.seller.inventoryLimit,
-  business: PLAN_ENTITLEMENTS.business.inventoryLimit,
+  store: PLAN_ENTITLEMENTS.store.inventoryLimit,
 };
 
 export const DECK_LIMITS: Record<AccountTier, number | null> = {
   free: PLAN_ENTITLEMENTS.free.deckLimit,
   collector: PLAN_ENTITLEMENTS.collector.deckLimit,
   seller: PLAN_ENTITLEMENTS.seller.deckLimit,
-  business: PLAN_ENTITLEMENTS.business.deckLimit,
+  store: PLAN_ENTITLEMENTS.store.deckLimit,
 };
 
 export type PlanCapability = {
@@ -196,14 +196,14 @@ export const PLAN_CAPABILITIES: PlanCapability[] = [
   {
     feature: "business-intelligence",
     label: "Business Intelligence",
-    minimumPlan: "business",
+    minimumPlan: "store",
     routes: ["/dashboard/reports"],
     summary: "Advanced store reporting and operational dashboards.",
   },
   {
     feature: "business-operations",
     label: "Store Operations",
-    minimumPlan: "business",
+    minimumPlan: "store",
     routes: [
       "/dashboard/tasks",
       "/dashboard/calendar",
@@ -234,7 +234,7 @@ export const PLAN_CAPABILITIES: PlanCapability[] = [
   {
     feature: "admin",
     label: "Admin Control Center",
-    minimumPlan: "business",
+    minimumPlan: "store",
     routes: ["/dashboard/admin"],
     summary: "Trading Docks owner administration; owner authorization is also required.",
   },

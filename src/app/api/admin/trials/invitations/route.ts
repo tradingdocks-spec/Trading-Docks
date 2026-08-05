@@ -4,7 +4,7 @@ import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildTrialInvitation } from "@/lib/trial-invitation";
 
-const VALID_PLANS = new Set(["collector", "seller", "business"]);
+const VALID_PLANS = new Set(["collector", "seller", "store"]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type RequestBody =

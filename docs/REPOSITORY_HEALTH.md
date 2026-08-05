@@ -36,8 +36,8 @@
 
 ## Potential Bugs
 
-- Partially Implemented: Web and mobile membership tiers/prices diverge.
-- Partially Implemented: Mobile `store` tier and web `business` tier can drift.
+- Implemented: Active web and mobile membership tier names, prices, limits, and plan-card labels now use the canonical `free | collector | seller | store` catalog.
+- Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
 - Partially Implemented: Multiple migration repair files may not replay cleanly in a fresh database without manual sequencing review.
 
@@ -51,7 +51,7 @@
 ## Architecture Improvements
 
 - Planned: Establish canonical web dashboard architecture.
-- Planned: Establish a shared membership contract for web, mobile, billing, and marketing.
+- Implemented: Establish a shared membership contract for web, mobile, admin, Stripe adapter code, and future RevenueCat adapter planning.
 - Implemented: Shared identity/access types now separate platform role, account type, membership tier, billing status, and entitlements.
 - Planned: Generate a canonical Supabase schema snapshot from a clean migration replay.
 - Planned: Move historical release notes/backups out of active source or clearly archive them.
@@ -72,7 +72,8 @@
 - Implemented: Focused mobile navigation/auth contract tests cover protected-route loading, Collector/Seller/Store tab labels, admin route access, normal-user admin denial, fallback account type, and selected tab state.
 - Implemented: Focused identity/access tests cover owner, admin, support, analyst, normal user, missing role, suspended account, admin with Free membership, Seller without admin role, and authorized/unauthorized web admin route decisions.
 - Planned: Auth redirect and callback tests.
-- Planned: Plan access and route entitlement tests.
+- Implemented: Focused membership entitlement tests cover prices, annual savings, limits, financial access, Deal Desk access, web workspace access, Store employee entitlement, role separation, billing fallback, and unknown-tier fallback.
+- Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
 - Planned: Public share token validation tests.
 - Planned: API route authentication allowlist tests.
@@ -92,7 +93,7 @@
 
 1. Freeze new product features until architecture and membership contracts are reviewed.
 2. Continue from the new canonical navigation contracts by auditing legacy dashboard imports and deciding which old navigation modules can be retired.
-3. Align web/mobile membership tier names, prices, limits, and source of truth.
+3. Review the new canonical membership catalog and approve Store employee-capacity configuration.
 4. Audit API authentication and entitlement enforcement endpoint by endpoint.
 5. Replay Supabase migrations in a fresh staging project and record the canonical schema.
 6. Add CI coverage for auth, plan gates, billing webhooks, public share safety, and API allowlists.
@@ -103,8 +104,15 @@
 
 1. Draft and review a Supabase migration that replaces `is_platform_owner()` policies/functions with `user_roles`/`is_admin()`.
 2. Replay migrations in staging to confirm `user_roles`, `admin_audit_log`, `admin_membership_overrides`, and billing tables converge cleanly.
-3. Decide whether `business` and `store` should become one enum value across web, mobile, and database rows.
+3. Draft and review a Supabase migration replacing legacy `business` membership values and constraints with canonical `store`.
 4. Add route-handler tests for privileged admin API permissions once a Next route test harness is configured.
+
+## Recommended Membership Sprint 1
+
+1. Review and approve the canonical plan catalog in `mobile/services/membership-catalog.ts`.
+2. Verify Stripe price IDs match Collector $4.99/$49.99, Seller $14.99/$149.99, and Store $49.99/$499.99 before live billing.
+3. Draft the `business` to `store` Supabase migration for billing subscriptions, admin overrides, trials, account plans, feature access, and admin helper functions.
+4. Add endpoint-level entitlement enforcement tests for billing, admin overrides, and protected dashboard APIs.
 
 ## Recommended Navigation Sprint 1
 

@@ -36,6 +36,7 @@
 ## Integration Architecture
 
 - Implemented: Stripe server helpers, checkout route, portal route, webhook route, and plan price mapping.
+- Implemented: Membership product definitions and entitlements are centralized in `mobile/services/membership-catalog.ts`, with `src/lib/membership-catalog.ts` as the Next.js adapter.
 - Implemented: Supabase service-role admin client exists for server-only operations.
 - Implemented: Cloudflare inbound email worker scripts exist.
 - Partially Implemented: eBay and Mana Pool integration surfaces exist but require provider credentials and production validation.
@@ -84,7 +85,7 @@
 - Duplicated navigation implementations: active mobile tabs, web `TieredSidebar`, web `MobileBottomNav`, older dashboard sidebars, `src/components/dashboard/navigation.ts`, `src/components/dashboard/navigation/navigation.ts`, and backup dashboard generations overlap.
 - Route-guard timing risks: mobile auth restoration is gated at root, but account and admin lookups are asynchronous and need loading fallbacks; web dashboard guard is server-side, while owner/admin authority is still not unified with mobile roles.
 - Inconsistent labels: prior mobile Seller/Store tabs used Collector-oriented labels such as Inventory/Signals; web had seller-heavy labels for every account tier.
-- Account-type drift: mobile uses `free | collector | seller | store`; web plan tier code uses `free | collector | seller | business`. `business` maps to the Store navigation contract until membership vocabulary is unified.
+- Account-type drift: active web and mobile code now use `free | collector | seller | store`; legacy `business` values are normalized to Store at runtime and remain as schema/document-key migration debt.
 - Accessibility risks: older navigation components may lack `aria-current`, labels, or focus rings. The active sidebar and web mobile nav now set selected state and focus-visible styling; mobile tabs now set tab accessibility labels and selected state.
 - Intentional mobile/web differences: mobile uses five bottom tabs optimized for touch and deep links; web uses a wider dashboard sidebar plus compact mobile web bottom nav.
 - Migration order: active mobile tab layout, active web dashboard shell, docs/tests, then legacy dashboard import audit, then route content alignment.
@@ -96,5 +97,16 @@
 - Implemented: Server guards for privileged web APIs live in `src/lib/identity/server-guards.ts`.
 - Implemented: Mobile role context normalizes `user_roles.role` through the same platform-role vocabulary, but mobile remains client-side UX state.
 - Implemented: Active web admin page, plan preview route, admin users API, marketplace integrations API, and trial invitation API no longer authorize from a hard-coded email.
+- Implemented: Membership tier, account type, billing status, platform role, and resolved entitlement keys are separate typed concepts.
+- Implemented: Provider identifiers for Stripe and planned RevenueCat live outside the product plan definitions.
 - Partially Implemented: Legacy web admin component variants still use older owner wording but are not the active import path.
 - Partially Implemented: Database migrations still include older email-owner helper functions and should be replaced in a dedicated migration task.
+
+## Membership And Entitlement Architecture
+
+- Implemented: Canonical plan ids are `free`, `collector`, `seller`, and `store`.
+- Implemented: Active web pricing pages, checkout payloads, Stripe plan mapping, mobile plan cards, route gates, dashboard shells, and admin override UI consume the canonical catalog or adapter.
+- Implemented: Store employee-account entitlement exists, but employee-account capacity is represented as pending configuration rather than a hard-coded seat count.
+- Requires Production Configuration: Stripe price IDs must be verified against the canonical prices before live checkout.
+- Planned: RevenueCat provider mappings exist as planned records only; mobile billing is not active.
+- Planned: Create a reviewed Supabase migration to replace `business` membership values and constraints with `store`.

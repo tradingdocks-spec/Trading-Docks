@@ -140,7 +140,7 @@ export default async function SignUpPage({
 }: SignUpPageProps) {
   const { error, success, email, plan, billing } = await searchParams;
   const selectedPlan =
-    plan === "collector" || plan === "seller" || plan === "business"
+    plan === "collector" || plan === "seller" || plan === "store"
       ? plan
       : "";
   const selectedBilling =

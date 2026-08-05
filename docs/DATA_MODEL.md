@@ -44,10 +44,19 @@
 - Implemented: `admin_membership_overrides.plan_id` can override membership entitlements without changing Stripe billing.
 - Partially Implemented: `admin_account_access` exists in the mobile admin migration with `account_type` and `subscription_status`, but active web membership resolution still uses `billing_subscriptions` plus `admin_membership_overrides`.
 
+## Canonical Membership Fields
+
+- Implemented: Active application code uses `free`, `collector`, `seller`, and `store` as canonical membership tiers.
+- Implemented: Active application code normalizes legacy `business` membership values to `store` for compatibility.
+- Requires Production Configuration: Root Supabase migrations still define `billing_subscriptions.plan_id`, `admin_membership_overrides.plan_id`, and related functions with `business` check constraints.
+- Requires Production Configuration: `account_trials.plan_id` references `account_plans`, and older seed data includes `business`; staging replay must confirm the final product-plan rows before trial grants use Store.
+
 ## Migration Proposal
 
 - Planned: Replace `is_platform_owner()` with `is_admin(minimum_role)` policies in root Supabase migrations and replay into staging.
 - Planned: Update `admin_directory` and `admin_set_membership_override` database functions to authorize through `user_roles`.
+- Planned: Replace `business` plan ids with `store` in `billing_subscriptions`, `admin_membership_overrides`, `account_trials`, `account_plans`, `feature_access.minimum_plan`, and admin helper functions.
+- Planned: Update check constraints so active code can persist Store overrides, Stripe webhooks, and trial grants without database rejection.
 - Planned: Decide whether `admin_account_access` remains a support view or is replaced by `profiles`/`user_preferences` plus billing tables.
 - Planned: Add regression SQL proving owner/admin/support/analyst access, normal-user denial, and protected owner-role mutation behavior.
 - Planned: Do not apply these schema changes from this branch.
