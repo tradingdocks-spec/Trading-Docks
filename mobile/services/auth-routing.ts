@@ -63,8 +63,7 @@ export async function resolvePostAuthRoute({
   if (client && userId) {
     const role = await lookupAdminRole(client, userId);
     if (role) {
-      logAuthDiagnostic('route_admin_after_auth', { role });
-      return '/admin';
+      logAuthDiagnostic('admin_role_available_after_auth', { role });
     }
   }
 

@@ -19,9 +19,12 @@
 
 ## Navigation Issues
 
-- Partially Implemented: Multiple navigation definitions exist.
-- Partially Implemented: Some routes exist in navigation but represent early workspace shells.
-- Partially Implemented: Some implemented pages are not consistently represented in route capability docs.
+- Implemented: Active mobile tabs now use `mobile/services/navigation-contract.ts` for account-aware labels, hidden routes, prominent tab selection, selected state, and fallback account behavior.
+- Implemented: Active web dashboard navigation now uses `src/lib/navigation/contract.ts` and `src/components/dashboard/navigation.ts` for account-aware labels in `TieredDashboardShell` and mobile web bottom nav.
+- Implemented: Admin navigation is additive: normal workspaces remain the default, and Command Center stays protected by route guards.
+- Partially Implemented: Multiple older navigation definitions still exist in dashboard legacy folders and backup snapshots.
+- Partially Implemented: Some canonical labels map to existing workspace shells because dedicated route content is not implemented yet.
+- Partially Implemented: Web admin subnavigation is represented by the current Command Center surface rather than dedicated pages for every admin destination.
 
 ## Component Duplication
 
@@ -51,6 +54,7 @@
 - Planned: Generate a canonical Supabase schema snapshot from a clean migration replay.
 - Planned: Move historical release notes/backups out of active source or clearly archive them.
 - Planned: Continue incremental design-system migration rather than sweeping every screen into the new primitives at once.
+- Planned: Deprecate duplicated dashboard navigation modules only after active imports are audited and route content gaps are prioritized.
 
 ## Performance Opportunities
 
@@ -63,6 +67,7 @@
 
 - Implemented: Focused mobile auth tests cover email/password success and failure, session restoration, admin routing, normal routing, remembered email, and keep-me-signed-in discard behavior.
 - Implemented: Focused mobile design-system tests cover token exports, semantic colors, button disabled/loading behavior, input error state, and accessibility metadata.
+- Implemented: Focused mobile navigation/auth contract tests cover protected-route loading, Collector/Seller/Store tab labels, admin route access, normal-user admin denial, fallback account type, and selected tab state.
 - Planned: Auth redirect and callback tests.
 - Planned: Plan access and route entitlement tests.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -83,10 +88,17 @@
 ## Recommended Sprint 1
 
 1. Freeze new product features until architecture and membership contracts are reviewed.
-2. Decide the canonical dashboard component/navigation system and deprecate duplicates.
+2. Continue from the new canonical navigation contracts by auditing legacy dashboard imports and deciding which old navigation modules can be retired.
 3. Align web/mobile membership tier names, prices, limits, and source of truth.
 4. Audit API authentication and entitlement enforcement endpoint by endpoint.
 5. Replay Supabase migrations in a fresh staging project and record the canonical schema.
 6. Add CI coverage for auth, plan gates, billing webhooks, public share safety, and API allowlists.
 7. Remove or archive dependency/build backup artifacts after a separate review-approved cleanup.
-8. Continue design-system migration through shared dashboard states and common cards before attempting navigation or modal primitives.
+8. Continue design-system migration through shared dashboard states and common cards before attempting modal primitives.
+
+## Recommended Navigation Sprint 1
+
+1. Verify route content for labels marked Partially Implemented, especially mobile Seller Buying, mobile Store Business/Activity, web Trade Binder, web Deal Desk, and web admin subareas.
+2. Unify web owner/admin identity with the mobile `user_roles` model without changing database schema in the navigation branch.
+3. Add server-side entitlement tests for dashboard routes so hidden navigation never becomes the only access control.
+4. Retire unused sidebars and navigation definition files after confirming no active imports.

@@ -14,6 +14,12 @@ import {
   workspaceRouteForAccountType,
 } from '../services/auth-routing.ts';
 import { resolveRestoredSessionState } from '../services/auth-session-core.ts';
+import {
+  getMobileTabs,
+  getMobileTabOptions,
+  isMobileTabSelected,
+  resolveProtectedRouteAccess,
+} from '../services/navigation-contract.ts';
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const values = new Map(Object.entries(initial));
@@ -117,14 +123,14 @@ test('session restoration locks native sessions when biometrics are enabled', ()
   assert.equal(restored.biometricLocked, true);
 });
 
-test('owner/admin users route to Command Center', async () => {
+test('owner/admin users keep their workspace route after sign-in', async () => {
   const route = await resolvePostAuthRoute({
     client: roleClient({ role: 'owner' }),
     userId: 'owner-1',
     accountType: 'collector',
   });
 
-  assert.equal(route, '/admin');
+  assert.equal(route, '/(tabs)');
 });
 
 test('normal users route by account type', async () => {
@@ -183,4 +189,83 @@ test('keep me signed in controls restored session discard behavior', async () =>
 
 test('auth email normalization trims and lowercases without touching passwords', () => {
   assert.equal(normalizeAuthEmail(' USER@Example.COM '), 'user@example.com');
+});
+
+test('protected route guard waits for session restoration before redirecting', () => {
+  assert.deepEqual(
+    resolveProtectedRouteAccess({ authLoading: true, sessionExists: false }),
+    { state: 'loading', route: null },
+  );
+  assert.deepEqual(
+    resolveProtectedRouteAccess({ authLoading: false, sessionExists: false }),
+    { state: 'redirect', route: '/auth' },
+  );
+});
+
+test('mobile collector navigation uses canonical labels and selected state', () => {
+  assert.deepEqual(getMobileTabs('collector').map((tab) => tab.label), [
+    'Home',
+    'Collection',
+    'Scan',
+    'Signals',
+    'Profile',
+  ]);
+  assert.equal(getMobileTabOptions('collector', 'scan').href, undefined);
+  assert.equal(getMobileTabOptions('collector', 'deal-desk').href, null);
+  assert.equal(isMobileTabSelected('/(tabs)/collection', 'collection'), true);
+});
+
+test('mobile seller navigation exposes Buying, Deal Desk, Signals, and Profile', () => {
+  assert.deepEqual(getMobileTabs('seller').map((tab) => tab.label), [
+    'Home',
+    'Buying',
+    'Deal Desk',
+    'Signals',
+    'Profile',
+  ]);
+  assert.equal(getMobileTabOptions('seller', 'scan').href, null);
+  assert.equal(getMobileTabOptions('seller', 'deal-desk').prominent, true);
+});
+
+test('mobile store navigation exposes Business, Deal Desk, Activity, and Profile', () => {
+  assert.deepEqual(getMobileTabs('store').map((tab) => tab.label), [
+    'Home',
+    'Business',
+    'Deal Desk',
+    'Activity',
+    'Profile',
+  ]);
+});
+
+test('admin Command Center access is additive and protected', () => {
+  assert.deepEqual(
+    resolveProtectedRouteAccess({
+      authLoading: false,
+      sessionExists: true,
+      adminLoading: false,
+      isAdmin: true,
+      requiresAdmin: true,
+    }),
+    { state: 'allowed', route: null },
+  );
+  assert.deepEqual(
+    resolveProtectedRouteAccess({
+      authLoading: false,
+      sessionExists: true,
+      adminLoading: false,
+      isAdmin: false,
+      requiresAdmin: true,
+    }),
+    { state: 'redirect', route: '/(tabs)' },
+  );
+});
+
+test('missing mobile account type falls back to collector-safe free navigation', () => {
+  assert.deepEqual(getMobileTabs(undefined).map((tab) => tab.label), [
+    'Home',
+    'Collection',
+    'Scan',
+    'Signals',
+    'Profile',
+  ]);
 });

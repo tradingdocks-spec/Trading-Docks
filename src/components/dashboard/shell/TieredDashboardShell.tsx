@@ -66,6 +66,8 @@ export function TieredDashboardShell({
         <span className="hidden md:inline">Feedback / Report Bug</span>
       </Link>
       <MobileBottomNav
+        accountType={accountType}
+        isOwner={isOwner}
         menuOpen={mobileOpen}
         onOpenMenu={() => setMobileOpen(true)}
       />

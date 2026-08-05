@@ -21,11 +21,21 @@
 - Implemented: The Supabase session uses a dedicated auth storage adapter: browser-safe `localStorage` on Expo Web and SecureStore with AsyncStorage fallback on native mobile.
 - Implemented: Keep me signed in is recorded as an auth preference and session restoration discards non-persistent sessions on a new native launch or a new web browser session.
 - Implemented: Mobile supports optional biometric locking of a restored session on native platforms.
-- Implemented: Owner/Admin users route to the protected Command Center when role lookup succeeds; role lookup failures are logged safely and normal sign-in still routes to a workspace.
+- Implemented: Owner/Admin role lookup is preserved, but sign-in now routes users to their normal workspace while exposing Command Center as an additional protected destination.
 - Partially Implemented: Mobile deep-link auth callback behavior requires production app scheme and provider configuration.
 - Partially Implemented: Mobile admin routing reads `user_roles`, while web owner access is partly email-based.
 - Partially Implemented: Native biometric/session-lock architecture is preserved, but native biometric behavior still requires device testing.
 - Partially Implemented: Diagnostic logging exists for auth events, but production observability and log retention policies are not configured.
+
+## Protected-Route Behavior
+
+- Implemented: Mobile session restoration completes in `AuthProvider` before the root stack renders protected app routes.
+- Implemented: Mobile tab navigation waits for local account-type restoration before evaluating account-specific labels and hidden tabs.
+- Implemented: Mobile admin routes wait for auth and admin-role lookup before rendering, redirect anonymous users to `/auth`, and redirect non-admin signed-in users back to `/(tabs)`.
+- Implemented: Web dashboard routes are protected server-side in `src/app/dashboard/layout.tsx`; anonymous users are redirected to `/sign-in?next=/dashboard`.
+- Implemented: Web Command Center is protected server-side in `src/app/dashboard/admin/page.tsx`; non-owner users are redirected to `/dashboard`.
+- Partially Implemented: Web owner access remains email-based while mobile admin access is role-table based.
+- Partially Implemented: Mobile deep links and Expo Web refresh behavior rely on Expo Router route resolution and the auth root loading gate, but native OAuth/magic-link callback behavior still needs device validation.
 
 ## Authentication Problems
 

@@ -10,7 +10,8 @@
 - Implemented: The mobile development showcase exists at `mobile/app/dev/design-system.tsx` and requires `EXPO_PUBLIC_ENABLE_DESIGN_SYSTEM_SHOWCASE=true`.
 - Partially Implemented: The web showcase route exists at `src/app/dev/design-system/page.tsx` as a hard 404 so no showcase payload is included in production output. A web showcase can be reintroduced with a local-only delivery pattern in a later task.
 - Partially Implemented: Only the Expo authentication screen, Expo profile surface, and Next dashboard loading surface have migrated to the new primitives.
-- Planned: Broad dashboard, navigation, modal, toast, chart, table, and complex form migrations are intentionally deferred.
+- Partially Implemented: Active mobile tabs and the active web dashboard shell now consume centralized navigation contracts and keep selected/focus states explicit.
+- Planned: Broad dashboard, modal, toast, chart, table, and complex form migrations are intentionally deferred.
 
 ## Design-System Audit
 
@@ -55,6 +56,15 @@ Raw colors remain available only as palette anchors. New product components shou
 - Partially Implemented: Existing `Button`, `Card`, and `Badge` in `src/components/ui` remain supported and are not deleted.
 - Planned: `TDChart`, `TDModal`, `TDToast`, and `TDNavigation` are deferred to later focused tasks.
 
+## Navigation Contract Rules
+
+- Implemented: Mobile navigation labels, visibility, prominent tab selection, and fallback account handling live in `mobile/services/navigation-contract.ts`.
+- Implemented: Web canonical route labels and implementation status live in `src/lib/navigation/contract.ts`; `src/components/dashboard/navigation.ts` adapts that contract to Lucide icons for the active dashboard shell.
+- Implemented: Active navigation items must expose selected state (`aria-current` on web, selected accessibility state on mobile) and visible focus/touch targets.
+- Partially Implemented: Navigation contracts are not a substitute for backend authorization. Admin and entitlement-protected routes still need server/RLS enforcement.
+- Partially Implemented: Route content can lag behind a canonical label only when documented as Partially Implemented or Planned; do not silently relabel unfinished product screens as complete.
+- Planned: A future `TDNavigation` primitive can wrap these contracts once legacy dashboard shells are retired.
+
 ## Component Contract Rules
 
 - `TDButton`: Shared variants are `primary`, `secondary`, `ghost`, and `danger`; shared sizes are `sm`, `md`, and `lg`. Mobile is label-first with `iconName`; web accepts `label` or children with an optional icon node. Loading buttons are disabled on both platforms.
@@ -95,3 +105,4 @@ Raw colors remain available only as palette anchors. New product components shou
 5. Keep accessibility roles, labels, error text, disabled state, and loading state equal to or better than the previous screen.
 6. Run focused lint, TypeScript, affected tests, and the relevant web export/build before committing.
 7. Document any intentional platform difference instead of forcing identical implementation.
+8. For navigation migrations, update the route contract first, wire only the active shell, add route/selected-state tests, and document any labels whose destination content is still partially implemented.

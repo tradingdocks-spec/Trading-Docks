@@ -27,6 +27,7 @@ import {
   ShoppingBag,
   ScanSearch,
   ScanLine,
+  ShieldCheck,
   Store,
   Trophy,
   Truck,
@@ -34,6 +35,9 @@ import {
   ContactRound,
   WalletCards,
 } from "lucide-react";
+
+import { WEB_NAVIGATION_CONTRACT } from "@/lib/navigation/contract";
+import { normalizeAccountTier } from "@/lib/plan-entitlements";
 
 export type NavigationItem = {
   href: string;
@@ -282,3 +286,71 @@ export const SECONDARY_NAV: NavigationItem[] = [
     icon: Settings,
   },
 ];
+
+const ICON_BY_LABEL = {
+  Dashboard: LayoutDashboard,
+  Collection: Boxes,
+  Decks: LibraryBig,
+  "Trade Binder": WalletCards,
+  Portfolio: Palette,
+  Settings,
+  Inventory: Boxes,
+  "Deal Desk": PackageSearch,
+  "Buying Sessions": WalletCards,
+  Exports: FileSpreadsheet,
+  Analytics: BarChart3,
+  Employees: Users,
+  Customers: ContactRound,
+  Operations: BriefcaseBusiness,
+  "Command Center": ShieldCheck,
+  Users,
+  Subscriptions: Gem,
+  Sessions: CalendarRange,
+  "System Health": BarChart3,
+  "Audit Log": History,
+  Plans: Gem,
+  "Feature Flags": Bot,
+} satisfies Record<string, React.ComponentType<{ className?: string }>>;
+
+export type AccountAwareNavigationGroup = {
+  id: string;
+  label?: string;
+  items: NavigationItem[];
+};
+
+function itemForContractEntry(entry: { label: string; href: string }): NavigationItem {
+  return {
+    href: entry.href,
+    label: entry.label,
+    icon: ICON_BY_LABEL[entry.label as keyof typeof ICON_BY_LABEL] ?? LayoutDashboard,
+  };
+}
+
+export function getAccountAwareNavigationGroups(
+  accountType: unknown,
+  isOwner: boolean,
+): AccountAwareNavigationGroup[] {
+  const tier = normalizeAccountTier(accountType);
+  const workspaceItems = WEB_NAVIGATION_CONTRACT[tier]
+    .filter((item) => item.status !== "planned")
+    .map(itemForContractEntry);
+  const adminItems = isOwner
+    ? WEB_NAVIGATION_CONTRACT.admin
+        .filter((item, index, list) => {
+          const firstForHref = list.findIndex((candidate) => candidate.href === item.href);
+          return item.status !== "planned" && firstForHref === index;
+        })
+        .map(itemForContractEntry)
+    : [];
+
+  return [
+    {
+      id: "workspace",
+      label: tier === "business" ? "Store" : "Workspace",
+      items: workspaceItems,
+    },
+    ...(adminItems.length
+      ? [{ id: "admin", label: "Admin", items: adminItems }]
+      : []),
+  ];
+}

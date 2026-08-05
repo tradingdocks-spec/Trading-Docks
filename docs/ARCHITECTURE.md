@@ -56,3 +56,35 @@
 - Implemented: Expo and Next.js have development-only design-system showcase routes.
 - Partially Implemented: Existing legacy primitives remain in place for incremental migration.
 - Planned: Navigation, modal, toast, chart, and table primitives are later focused architecture tasks.
+
+## Navigation Architecture
+
+- Implemented: Active mobile tabs are configured through `mobile/services/navigation-contract.ts` and rendered by the single Expo Router tab layout in `mobile/app/(tabs)/_layout.tsx`.
+- Implemented: Mobile route guards wait for auth restoration before evaluating protected admin access; unresolved local account state shows a loading fallback before tabs render.
+- Implemented: Active web dashboard navigation uses `src/lib/navigation/contract.ts` for the canonical route contract and `src/components/dashboard/navigation.ts` as the icon/platform adapter for `TieredDashboardShell`.
+- Implemented: Admin access is an additional protected destination. Mobile exposes `/admin` from the profile entry for role-bearing users, and web exposes `/dashboard/admin` for the owner; neither replaces the normal workspace shell.
+- Partially Implemented: Mobile Seller and Store tab labels now match the canonical navigation contract, but some labels still point at existing workspace screens until dedicated route content is built in a future product sprint.
+- Partially Implemented: Web has a canonical contract for Collector, Seller, Store, and Admin navigation, but destinations without dedicated pages are marked `planned` or mapped to current workspace shells rather than creating new product screens.
+- Partially Implemented: Several older dashboard sidebars, topbars, mobile navs, and navigation definition files still exist for legacy components and should be deprecated only after import ownership is audited.
+
+### Canonical Route Map
+
+- Mobile Free/Collector: Home `/(tabs)`, Collection `/(tabs)/collection`, Scan `/(tabs)/scan`, Signals `/(tabs)/sell`, Profile `/(tabs)/profile`.
+- Mobile Seller: Home `/(tabs)`, Buying `/(tabs)/collection` (Partially Implemented), Deal Desk `/(tabs)/deal-desk`, Signals `/(tabs)/sell`, Profile `/(tabs)/profile`.
+- Mobile Store: Home `/(tabs)`, Business `/(tabs)/collection` (Partially Implemented), Deal Desk `/(tabs)/deal-desk`, Activity `/(tabs)/sell` (Partially Implemented), Profile `/(tabs)/profile`.
+- Mobile Admin: Command Center `/admin` remains protected and additive.
+- Web Collector: Dashboard `/dashboard`, Collection `/dashboard/inventory`, Decks `/dashboard/deck-vault`, Trade Binder `/dashboard/collector-portfolio` (Planned dedicated route), Portfolio `/dashboard/collector-portfolio`, Settings `/dashboard/settings`.
+- Web Seller: Dashboard `/dashboard`, Inventory `/dashboard/inventory`, Deal Desk `/dashboard/purchasing`, Buying Sessions `/dashboard/collection-buying`, Exports `/dashboard/tools/csv-converter`, Analytics `/dashboard/analytics`, Settings `/dashboard/settings`.
+- Web Store: Dashboard `/dashboard`, Inventory `/dashboard/inventory`, Deal Desk `/dashboard/purchasing`, Employees `/dashboard/employees`, Customers `/dashboard/customers`, Operations `/dashboard/tasks`, Analytics `/dashboard/analytics`, Settings `/dashboard/settings`.
+- Web Admin: Command Center `/dashboard/admin`; Users, Subscriptions, Sessions, System Health, Audit Log, Plans, and Feature Flags remain Partially Implemented or Planned inside the current admin surface.
+
+### Navigation Audit
+
+- Current route map: Expo Router owns `mobile/app` with public auth/onboarding/plans and protected tabs/admin stacks; Next.js App Router owns `src/app/dashboard` with a server-protected dashboard layout and owner-protected admin page.
+- Duplicated navigation implementations: active mobile tabs, web `TieredSidebar`, web `MobileBottomNav`, older dashboard sidebars, `src/components/dashboard/navigation.ts`, `src/components/dashboard/navigation/navigation.ts`, and backup dashboard generations overlap.
+- Route-guard timing risks: mobile auth restoration is gated at root, but account and admin lookups are asynchronous and need loading fallbacks; web dashboard guard is server-side, while owner/admin authority is still not unified with mobile roles.
+- Inconsistent labels: prior mobile Seller/Store tabs used Collector-oriented labels such as Inventory/Signals; web had seller-heavy labels for every account tier.
+- Account-type drift: mobile uses `free | collector | seller | store`; web plan tier code uses `free | collector | seller | business`. `business` maps to the Store navigation contract until membership vocabulary is unified.
+- Accessibility risks: older navigation components may lack `aria-current`, labels, or focus rings. The active sidebar and web mobile nav now set selected state and focus-visible styling; mobile tabs now set tab accessibility labels and selected state.
+- Intentional mobile/web differences: mobile uses five bottom tabs optimized for touch and deep links; web uses a wider dashboard sidebar plus compact mobile web bottom nav.
+- Migration order: active mobile tab layout, active web dashboard shell, docs/tests, then legacy dashboard import audit, then route content alignment.

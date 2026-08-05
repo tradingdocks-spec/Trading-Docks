@@ -8,6 +8,8 @@ Do not add new production features until the foundation items below are reviewed
 
 - Implemented: Stabilize the active Expo auth screen, Supabase session restoration, remembered-email preferences, safe admin routing, and focused auth tests.
 - Implemented: Establish first design-system foundation with shared semantic tokens, Expo/Next primitives, development-only showcases, focused primitive tests, and limited auth/profile/loading migrations.
+- Implemented: Establish account-aware navigation contracts for active Expo tabs and the active Next.js dashboard shell, including protected admin access as an additive destination.
+- Partially Implemented: Align route labels with canonical Collector, Seller, Store, and Admin navigation while leaving unfinished destination content clearly marked for later product sprints.
 - Planned: Consolidate active dashboard component architecture and mark deprecated dashboard generations.
 - Planned: Align plan tiers, names, pricing, and limits between web and mobile.
 - Planned: Audit API route authentication, public allowlists, provider callback exemptions, and server-side entitlement checks.
@@ -16,7 +18,8 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
 - Planned: Add mobile CI or document why mobile validation is manual.
 - Planned: Add native-device validation for biometric unlock, Google OAuth, Apple Sign In, and magic-link deep-link callbacks.
-- Planned: Continue design-system migration in order: dashboard state surfaces, common cards/headers, input-heavy admin/settings screens, then navigation/modal/toast/chart/table primitives.
+- Planned: Continue design-system migration in order: dashboard state surfaces, common cards/headers, input-heavy admin/settings screens, then modal/toast/chart/table primitives.
+- Planned: Retire duplicated legacy navigation modules after import ownership is confirmed and missing route content is prioritized.
 
 ## Sprint 2: Production Configuration Readiness
 
