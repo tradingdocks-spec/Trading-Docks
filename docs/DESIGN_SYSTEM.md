@@ -12,6 +12,7 @@
 - Partially Implemented: Only the Expo authentication screen, Expo profile surface, and Next dashboard loading surface have migrated to the new primitives.
 - Partially Implemented: Active mobile tabs and the active web dashboard shell now consume centralized navigation contracts and keep selected/focus states explicit.
 - Implemented: Mobile scanner capture uses existing TD primitives, Ionicons, dark surface tokens, restrained cyan focus accents, accessible button labels, and a simple card-boundary guide.
+- Implemented: The private scanner benchmark builder uses the same mobile TD primitives, dark surface tokens, compact cards, large touch targets, Ionicons, and camera-boundary visual language as the scanner.
 - Planned: Broad dashboard, modal, toast, chart, table, and complex form migrations are intentionally deferred.
 - Planned: A future scanner “Why this match?” detail view should render per-signal confidence with labels, conflicts, and editable uncertain fields rather than color-only status.
 

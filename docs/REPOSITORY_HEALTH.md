@@ -51,8 +51,10 @@
 - Implemented: Multi-TCG scanner contracts now separate game detection, game-specific recognition adapters, universal identity, mixed sessions, universal export rows, and unsupported-card observations.
 - Implemented: Magic recognition now has a real adapter and focused tests for Scryfall-backed candidate ranking, exact-printing ambiguity, legal finish validation, missing-signal confirmation, offline cache fallback, privacy defaults, and benchmark non-claims.
 - Implemented: Magic scanner calibration now has private fixture manifest validation, ignored local fixture/output paths, sanitized JSON/CSV/Markdown reporting, threshold classification, advisory calibration recommendations, and focused benchmark tooling tests.
+- Implemented: Private scanner benchmark builder service and `/dev/scanner-benchmark` route are feature-flagged, local-only, and covered by focused dataset/manifest/privacy tests.
 - Partially Implemented: `expo-camera` is installed and configured, but native camera behavior still needs development-build and physical-device QA before production claims.
 - Partially Implemented: Magic visual recognition still lacks benchmarked OCR, artwork embedding, set-symbol detection, perspective correction, and finish classification providers. The active UI must continue requiring confirmation.
+- Partially Implemented: The benchmark builder captures and labels fixtures, but native image file movement/deletion must still be verified on physical iOS/Android development builds before relying on it for production calibration collection.
 - Partially Implemented: Native scanner replay still lacks a standalone network reachability trigger; without an approved reachability dependency it retries on app resume, session restore, and manual retry while Expo Web also uses the browser reconnect event.
 - Partially Implemented: Inventory remains Magic-compatible in the active write path. Multi-game persistence needs a migration proposal and catalog provider review before production use.
 - Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
@@ -107,6 +109,7 @@
 - Implemented: Focused multi-TCG scanner tests cover Magic/Pokemon/One Piece/Lorcana classification, unknown-card rejection, manual game correction, adapter routing, game-specific metadata preservation, mixed-session totals, universal and separated export, finish taxonomy validation, unsupported finish rejection, user-scoped session recovery, universal inventory contracts, no image retention, and benchmark non-claims.
 - Implemented: Focused Magic recognition tests cover exact name and collector-number matching, ambiguous names, multiple reprints, missing collector number, conflicting set/collector signals, legal and illegal finishes, double-faced layout cues, unsupported/token rejection, top-three ranking, manual fallback, privacy/no-retention defaults, Scryfall failure, offline cached candidates, Magic adapter routing, and fixture-metric non-claims.
 - Implemented: Focused Magic scanner benchmark tests cover manifest validation, missing expected fields, top-1 scoring, top-3 scoring, false high-confidence detection, latency reporting, unsupported-card fixtures, private path exclusion, no image output in reports, and threshold classification.
+- Implemented: Focused scanner benchmark builder tests cover feature-flag disabling, dataset create/resume/recovery, exact-printing requirements, stable fixture ids, duplicate prevention, edit/retake/remove/delete flows, local-only paths, no-upload behavior, incomplete reporting, summary counts, benchmark-ready state, native runner fallback, and privacy acknowledgment.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -190,6 +193,6 @@
 3. Review Pokemon, One Piece, and Lorcana catalog licensing/API options and decide whether catalogs are server-hosted, provider-hosted, or cached.
 4. Draft a universal inventory schema proposal that preserves existing Magic rows and supports external provider ids by game.
 5. Collect labeled scanner benchmark fixtures before publishing any game-detection, printing, finish, foil, or latency claims.
-6. Approve the Magic benchmark fixture mix and private fixture storage process, then run `npm run benchmark:magic-scanner -- --manifest <private-manifest.json>` before lowering manual-confirmation friction.
+6. Use the feature-flagged benchmark builder to collect a reviewed starter dataset, then run `npm run benchmark:magic-scanner -- --manifest <private-manifest.json>` before lowering manual-confirmation friction.
 7. Add an approved native reachability dependency or platform monitor if scanner replay must trigger immediately on native reconnect while the app remains foregrounded.
 8. Add scanner-to-Deal Desk and card-show prep integrations only after the validated confirmation contract is reviewed.

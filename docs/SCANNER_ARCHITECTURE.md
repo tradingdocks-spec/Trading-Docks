@@ -8,6 +8,7 @@
 - Implemented: Multi-TCG scanner contracts live in `mobile/services/multi-tcg-scanner.ts`; see `docs/MULTI_TCG_SCANNER.md`.
 - Implemented: `mobile/services/magic-recognition-provider.ts` is the first real game-specific recognition adapter. It ranks Magic printings from Scryfall metadata, parsed collector info, name OCR observations, layout/artwork observations when provided, legal finishes, and language compatibility.
 - Implemented: Magic scanner calibration tooling validates private fixture manifests, runs local benchmarks, emits sanitized JSON/CSV/Markdown reports, and classifies recognition as recognized, likely, ambiguous, or manual-review required.
+- Implemented: The `/dev/scanner-benchmark` route is a feature-flagged development tool for creating private Magic benchmark datasets without hand-editing JSON.
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
 - Partially Implemented: Camera capture is local-first and still does not include a benchmarked native OCR, artwork, set-symbol, or finish-classification provider.
 - Partially Implemented: The Magic adapter can resolve and explain likely Magic printings from available metadata signals, but it must require user confirmation when exact-printing signals are missing, weak, conflicting, or below threshold.
@@ -57,6 +58,7 @@
 - Implemented: Editable confirmation fields include printing, finish, language, condition, quantity, storage location, Trade Binder status, Wishlist action, purchase price contract, and notes contract.
 - Planned: Quick-confirm preference can be added later only after confidence thresholds and benchmark data are approved.
 - Implemented: The scanner screen renders `RecognitionConfidence.signals`, conflicts through the explanation text, and requires exact-printing confirmation before writing inventory.
+- Implemented: The benchmark builder reuses the current Expo Camera capture pattern and design-system primitives, but it saves fixture labels only; it does not add OCR, recognition, or ground-truth inference.
 
 ## Destinations
 

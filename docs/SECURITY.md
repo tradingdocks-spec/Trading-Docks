@@ -22,6 +22,7 @@
 - Implemented: Scanner frame contracts require explicit `uploadedWithConsent` and `retainedByUser` flags, both false by default.
 - Implemented: Magic recognition uses Scryfall metadata queries and explainable local scoring; captured images are not uploaded to Scryfall or any cloud vision provider by default.
 - Implemented: Magic scanner benchmark reports omit source image paths, image filenames, and image contents. Private fixture and benchmark output directories are ignored by Git.
+- Implemented: The scanner benchmark builder is gated by `EXPO_PUBLIC_ENABLE_SCANNER_BENCHMARK_BUILDER=true`, is not linked from normal navigation, stores only local ignored fixture paths, and does not upload images or write production analytics.
 - Implemented: Multi-TCG unsupported-card observations store detection evidence and confidence, not captured image payloads.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.

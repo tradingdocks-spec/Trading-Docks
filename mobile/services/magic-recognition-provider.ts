@@ -84,7 +84,9 @@ export type MagicRecognitionPresentation = {
 export type MagicBenchmarkFrameType =
   | ScannerBenchmarkCategory
   | 'double_faced'
+  | 'same_name_reprint'
   | 'same_name_reprints'
+  | 'special_finish'
   | 'unsupported_card';
 
 export type MagicBenchmarkFixtureManifestEntry = {

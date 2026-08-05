@@ -6,9 +6,10 @@
 - Implemented: Multi-TCG benchmark fixture and metrics contracts live in `mobile/services/multi-tcg-scanner.ts`; see `docs/MULTI_TCG_BENCHMARK.md`.
 - Implemented: Magic benchmark manifest and metrics helpers live in `mobile/services/magic-recognition-provider.ts`.
 - Implemented: Magic scanner calibration workflow is documented in `docs/MAGIC_SCANNER_CALIBRATION.md`.
+- Implemented: The private benchmark builder route exists at `/dev/scanner-benchmark` and requires `EXPO_PUBLIC_ENABLE_SCANNER_BENCHMARK_BUILDER=true`.
 - Implemented: The local benchmark command is `npm run benchmark:magic-scanner -- --manifest <private-manifest.json>` from `mobile/`.
 - Implemented: Tests assert that benchmark metrics remain `null` until labeled fixtures are actually run.
-- Partially Implemented: Magic has a fixture-driven benchmark runner, report serializers, threshold classes, private local fixture manifest validation, and calibration recommendations, but no labeled Magic-only image dataset has been supplied or executed in this repository.
+- Partially Implemented: Magic has a fixture-driven benchmark runner, report serializers, threshold classes, private local fixture manifest validation, development-only fixture builder, and calibration recommendations, but no labeled Magic-only image dataset has been supplied or executed in this repository.
 - Planned: No game-specific visual fixture dataset or mixed-stack image dataset has been run against the scanner in this repository.
 - Planned: Do not publish scanner accuracy, foil accuracy, latency, manual-correction, or failure-rate numbers until the benchmark runner has processed reviewed fixtures.
 
@@ -53,6 +54,7 @@
 - Magic fixture images should live in a private local directory referenced by manifest metadata, not in Git.
 - `mobile/fixtures/private-scanner/`, `mobile/fixtures/magic-scanner-private/`, and `mobile/benchmark-output/` are ignored by Git.
 - Generated benchmark reports must not include source image paths or filenames.
+- The builder must be disabled in production builds and must not appear in normal navigation.
 - Every fixture must record expected name, expected printing identifiers when known, expected finish when relevant, lighting/sleeve notes, and frame URIs.
 - Accuracy reports must include fixture count, fixture mix, provider versions, device models, lighting notes, and date run.
 - Foil benchmarks must include nonfoil glare cases so the false foil rate is measurable.
