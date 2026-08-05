@@ -122,3 +122,39 @@
 - Requires Production Configuration: Stripe price IDs must be verified against the canonical prices before live checkout.
 - Planned: RevenueCat provider mappings exist as planned records only; mobile billing is not active.
 - Planned: Create a reviewed Supabase migration to replace `business` membership values and constraints with `store`.
+
+## Collector Workspace Architecture
+
+- Implemented: Canonical Collector Workspace models and pure filtering/sorting/summary helpers live in `mobile/services/collector-workspace.ts`, with the Next.js adapter at `src/lib/collector-workspace.ts`.
+- Implemented: Mobile Collection route `mobile/app/(tabs)/collection.tsx` uses the shared model, TD primitives, debounced search, sort controls, list/grid display, `FlatList` virtualization, image placeholders, loading/empty/no-results/error states, and stale-data messaging.
+- Implemented: Mobile Card Detail route `mobile/app/collection/[cardId].tsx` loads a single saved inventory item by id and shows image, exact printing, condition, finish, quantity, storage, price unavailable state, and planned trade/wishlist/deck entry points.
+- Implemented: Web Collection route `/dashboard/inventory` now renders `src/components/dashboard/collector-workspace/CollectorWorkspace.tsx` with dense search, filters, sort, list/grid toggle, summary metrics, Free-plan limit messaging, and import/export entry points for Seller/Store entitlements.
+- Implemented: Web Card Detail route `/dashboard/inventory/[cardId]` renders the same saved card facts through `CollectorCardDetail`.
+- Implemented: Collection data loaders read existing `inventory_items`, `inventory_locations`, `binder_card_trade_status`, and `collector_wishlist` tables. Mobile caches the loaded page for offline/stale browsing.
+- Partially Implemented: Trade binder and wishlist indicators are read-only in this sprint. Mutations are future trade-center work.
+- Partially Implemented: Price display uses saved inventory value/unit market value when present and says unavailable when missing. Live market pricing and price history are future integration work.
+- Partially Implemented: Existing large inventory management components remain in the repository and should be migrated or retired only after a separate import/workflow review.
+
+### Collector Route Map
+
+- Mobile Collection: `/(tabs)/collection`.
+- Mobile Card Detail: `/collection/[cardId]`.
+- Mobile Scanner entry point: `/(tabs)/scan`.
+- Mobile Portfolio/Signals entry point: `/(tabs)/sell` remains Partially Implemented until portfolio navigation receives a dedicated mobile destination.
+- Web Collection: `/dashboard/inventory`.
+- Web Card Detail: `/dashboard/inventory/[cardId]`.
+- Web Decks entry point: `/dashboard/deck-vault`.
+- Web Portfolio and Trade Binder entry point: `/dashboard/collector-portfolio`.
+- Web Scanner entry point: `/dashboard/card-photo-scanner`.
+
+### Collector Audit
+
+- Existing collection functionality: web had a large inventory workspace with storage locations, card filing, Scryfall printing selection, marketplace listing metadata, and cloud persistence. Mobile had a static sample Collection screen.
+- Active versus legacy implementations: the new Collector Workspace browser is active for web `/dashboard/inventory` and mobile `/(tabs)/collection`; older dashboard inventory components remain available but are no longer the route entry point.
+- Current data sources: saved user inventory rows, storage-location rows, trade-status rows, and wishlist rows in Supabase. Mobile uses the same data when configured and a stale cache only after a successful prior load.
+- Missing data contracts: deck usage relationships, mutable trade/wishlist actions, scanner-recognition writes, portfolio analytics, and normalized per-print market-price history are not yet canonical.
+- Storage-location support: implemented as a preview from `inventory_locations` plus item payload `binderPage` and `binderSlot`; missing locations show an unavailable state.
+- Image and pricing dependencies: card images come only from saved `imageUrl`; pricing comes only from saved `unitMarketValue` or inventory value divided by quantity. Scryfall lookup and live price history are not invoked by the browser.
+- Performance risks: current browsers limit inventory reads to `COLLECTION_PAGE_SIZE` and debounce search, but server-side pagination cursors and virtualized web tables are future work for very large collections.
+- Mobile/web responsibility differences: mobile prioritizes fast touch browsing, stale/offline visibility, card images, exact printings, and quick status scanning. Web prioritizes dense management, filters, bulk-selection foundation, storage visibility, and import/export navigation.
+- Recommended migration order: stabilize read-only browser and detail routes, add route-level tests/fixtures, add explicit pagination cursors, wire trade/wishlist mutations, wire scanner add-to-collection, then migrate or retire legacy inventory management surfaces.

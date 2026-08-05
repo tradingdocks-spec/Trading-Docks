@@ -26,11 +26,24 @@
 | Collector portfolio | Partially Implemented | `collector_profiles`, `portfolio_binders`, `portfolio_featured_cards`, `portfolio_shares`, `trade_requests`, `collector_wishlist` |
 | Public share security | Partially Implemented | `binder_shares`, `portfolio_shares`, `public_share_security_events` |
 
+## Collector Workspace Contracts
+
+- Implemented: Application-level Collector Workspace models are defined in `mobile/services/collector-workspace.ts` and re-exported for web from `src/lib/collector-workspace.ts`.
+- Implemented: `CollectionCard` separates card identity (`cardName`, `game`), exact printing (`CardPrinting`), ownership (`quantityOwned`, `condition`), market/pricing data (`MarketPrice`), storage (`StorageLocation`), trade state (`TradeBinderStatus`), and wishlist state (`WishlistStatus`).
+- Implemented: `CardPrinting` captures `scryfallId`, `setCode`, `setName`, `collectorNumber`, `language`, `finish`, `treatment`, and `imageUrl` when present in saved inventory data.
+- Implemented: `CollectionFilter`, `CollectionSort`, and `CollectionSummary` provide a shared contract for mobile and web search, sorting, visible limits, missing-price handling, trade counts, wishlist counts, and Free-plan card limits.
+- Partially Implemented: Existing Supabase inventory tables store canonical query columns plus a flexible `data` JSON payload. The UI reads both but does not apply schema changes in this sprint.
+- Partially Implemented: `binder_card_trade_status` stores per-inventory-item trade status. The new browser reads it but does not mutate it.
+- Partially Implemented: `collector_wishlist` stores card-name/set/condition/finish targets. The new browser matches it to owned cards but does not mutate it.
+- Planned: Add a reviewed migration proposal for normalized collection-card, printing, deck-usage, and price-history relationships if JSON payloads become insufficient.
+
 ## Data Model Risks
 
 - Partially Implemented: Deck vault has multiple table families and migrations, suggesting an incomplete consolidation.
 - Partially Implemented: Inbound email has multiple table naming patterns.
 - Partially Implemented: Marketplace sync run table is created/altered in multiple migrations.
+- Partially Implemented: Collector Workspace currently relies on inventory JSON payload fields for image URL, finish, treatment, binder page, binder slot, and unit market value. Missing fields are displayed as unavailable rather than inferred.
+- Planned: Add pagination cursors or server-side collection query endpoints before very large collections depend on the browser.
 - Requires Production Configuration: `supabase/verification/verify_account_data_isolation.sql` should be run against staging before launch.
 - Planned: Generate a canonical schema snapshot after migration replay passes.
 

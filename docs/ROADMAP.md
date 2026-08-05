@@ -19,6 +19,8 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Verify Supabase migrations replay cleanly into a fresh staging project.
 - Implemented: Establish a repository cleanup plan that classifies active apps, backups, generated output, duplicate components, duplicate services, duplicate navigation, duplicate design-system layers, and cleanup risk.
 - Partially Implemented: Exclude confirmed backup/archive and generated output folders from active root lint scope.
+- Implemented: Establish the first Collector Workspace foundation with shared collection models, mobile/web collection browsers, detail route foundations, and focused collection tests.
+- Partially Implemented: Trade binder, wishlist, deck usage, scanner recognition, and portfolio analytics are visible as integration points but not complete workflows.
 - Planned: Remove or archive backup dependency folders and historical release artifacts only after product-owner review.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
 - Planned: Add mobile CI or document why mobile validation is manual.

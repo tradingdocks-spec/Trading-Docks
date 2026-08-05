@@ -38,6 +38,9 @@
 ## Potential Bugs
 
 - Implemented: Active web and mobile membership tier names, prices, limits, and plan-card labels now use the canonical `free | collector | seller | store` catalog.
+- Implemented: Authenticated collection surfaces no longer present static sample cards as live user data.
+- Partially Implemented: Web `/dashboard/inventory` now uses the Collector Workspace browser; older inventory management components remain in source and need workflow review before retirement.
+- Partially Implemented: Collection price display depends on saved inventory value fields and shows unavailable when those fields are missing.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
 - Partially Implemented: Multiple migration repair files may not replay cleanly in a fresh database without manual sequencing review.
@@ -62,6 +65,8 @@
 
 ## Performance Opportunities
 
+- Implemented: Collector Workspace search is debounced, mobile rendering uses `FlatList`, and data loaders cap reads with `COLLECTION_PAGE_SIZE`.
+- Planned: Add cursor-based pagination and server-side filter endpoints for large collections.
 - Planned: Audit large client components for bundle size and split heavy dashboard workspaces.
 - Planned: Cache safe public card data with explicit provider limits and invalidation rules.
 - Planned: Replace duplicate component systems with shared primitives to reduce CSS/runtime weight.
@@ -75,6 +80,7 @@
 - Implemented: Focused identity/access tests cover owner, admin, support, analyst, normal user, missing role, suspended account, admin with Free membership, Seller without admin role, and authorized/unauthorized web admin route decisions.
 - Planned: Auth redirect and callback tests.
 - Implemented: Focused membership entitlement tests cover prices, annual savings, limits, financial access, Deal Desk access, web workspace access, Store employee entitlement, role separation, billing fallback, and unknown-tier fallback.
+- Implemented: Focused Collector Workspace tests cover search filtering, sorting, exact-printing display, storage-location display, trade-binder indicator, wishlist indicator, Free card-limit behavior, empty state, no-results state, and safe missing-price behavior.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
 - Planned: Public share token validation tests.

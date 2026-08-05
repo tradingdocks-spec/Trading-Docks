@@ -53,6 +53,7 @@ Raw colors remain available only as palette anchors. New product components shou
 
 - Implemented: `TDButton`, `TDCard`, `TDInput`, `TDBadge`, `TDText`, `TDScreen`, `TDSectionHeader`, `TDLoadingState`, `TDEmptyState`, `TDErrorState`, and `TDDivider` exist for Expo and Next.js.
 - Implemented: Components include typed props, variants, disabled/loading states where relevant, accessible roles/labels where relevant, web focus styling, and native press feedback.
+- Implemented: The Collector Workspace browser uses TD primitives on web and mobile for cards, inputs, badges, screen layout, loading, empty, no-results, and error states.
 - Partially Implemented: Existing `Button`, `Card`, and `Badge` in `src/components/ui` remain supported and are not deleted.
 - Planned: `TDChart`, `TDModal`, `TDToast`, and `TDNavigation` are deferred to later focused tasks.
 
@@ -106,3 +107,4 @@ Raw colors remain available only as palette anchors. New product components shou
 6. Run focused lint, TypeScript, affected tests, and the relevant web export/build before committing.
 7. Document any intentional platform difference instead of forcing identical implementation.
 8. For navigation migrations, update the route contract first, wire only the active shell, add route/selected-state tests, and document any labels whose destination content is still partially implemented.
+9. For collection migrations, use the Collector Workspace models first, display unavailable backend fields honestly, and avoid introducing sample card values into authenticated surfaces.
