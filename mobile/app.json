@@ -43,6 +43,13 @@
         {
           "faceIDPermission": "Allow Trading Docks to use Face ID to securely unlock your saved session."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Trading Docks to use your camera to scan Magic cards. Photos are processed for the scan flow and are not retained by default.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

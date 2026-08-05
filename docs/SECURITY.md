@@ -18,6 +18,8 @@
 - Implemented: Mobile scanner replay refuses to process queued scan adds unless the authenticated session user matches the queue entry owner.
 - Implemented: Scanner replay diagnostic logging records trigger and failure message only; it does not log passwords, auth tokens, Supabase keys, or captured card images.
 - Implemented: Queued scanner adds remain in user-scoped local storage across sign-out and are not surfaced to a different signed-in account.
+- Implemented: Scanner camera permission copy states that photos are used for card scanning and are not retained by default.
+- Implemented: Scanner frame contracts require explicit `uploadedWithConsent` and `retainedByUser` flags, both false by default.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.
 
@@ -43,6 +45,7 @@
 - Planned: Add observability with secret and PII scrubbing.
 - Planned: Before enabling OCR/image-recognition uploads, add explicit consent copy, retention controls, provider logging review, and tests proving photos are not stored by default.
 - Planned: If scanner replay moves to a server RPC, add an auditable server-side idempotency ledger and structured logging that redacts card payloads where required.
+- Planned: Remote scanner providers must use HTTPS-only communication and sanitized telemetry that excludes images, tokens, service-role keys, and private user data.
 
 ## Access Fallbacks
 

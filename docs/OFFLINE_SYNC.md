@@ -62,7 +62,10 @@
 - Implemented: Scanner replay recognizes Free-limit, unauthorized, invalid quantity, invalid printing, missing membership, and missing profile errors and keeps failed entries visible with `failed` or `action_required` sync state.
 - Implemented: Mobile exposes a compact scanner recovery route for inspecting queued scan details, retrying one, retrying all, and confirmed discard.
 - Implemented: Signing out preserves a user's scanner queue in local storage and stops replay because the worker requires a matching authenticated `userId`.
+- Implemented: Scanner intelligence frame/session contracts are user-scoped and default to no image retention or upload.
 - Implemented: Manual search can show cached recent candidates while offline when a recent match exists.
+- Partially Implemented: Camera capture can happen offline, but active recognition is limited to local contracts and cached Scryfall candidates where available.
 - Partially Implemented: New online card search and future OCR/image recognition require network access.
 - Partially Implemented: Native network reconnect replay currently depends on app resume/session restore because no native reachability dependency is installed; Expo Web uses the browser `online` event.
+- Planned: Queue saved session exports locally before email/share/download actions are built.
 - Planned: Add durable retry/backoff and a server-side idempotency ledger if scanner writes move beyond generated inventory ids and database uniqueness.

@@ -26,6 +26,15 @@
 | Collector portfolio | Partially Implemented | `collector_profiles`, `portfolio_binders`, `portfolio_featured_cards`, `portfolio_shares`, `trade_requests`, `collector_wishlist` |
 | Public share security | Partially Implemented | `binder_shares`, `portfolio_shares`, `public_share_security_events` |
 
+## Scanner Intelligence Contracts
+
+- Implemented: Scanner frame, normalized image, region, OCR observation, symbol observation, artwork observation, collector-info observation, finish observation, recognition candidate, signal score, confidence, printing resolution, confirmation, destination, session, export row, and benchmark contracts are defined in `mobile/services/scanner-intelligence.ts`.
+- Implemented: `ScanDestination` separates Collection, user-created Binder, Trade Binder, named Scan Session, and future Deal Desk handoff.
+- Implemented: `ScanExportRow` preserves market price, price source, and price timestamp as nullable fields; missing prices remain unavailable rather than `$0`.
+- Partially Implemented: General user-created binder assignment is a typed destination only. Active scanner writes currently support Collection, Storage assignment, Trade Binder status, and Wishlist action.
+- Planned: If user-created binders become a production scanner destination, add a reviewed migration proposal for first-class binder ownership and assignment instead of overloading Trade Binder state.
+- Planned: Persisted scan sessions and saved scanner exports need reviewed schema design before production use.
+
 ## Collector Workspace Contracts
 
 - Implemented: Application-level Collector Workspace models are defined in `mobile/services/collector-workspace.ts` and re-exported for web from `src/lib/collector-workspace.ts`.

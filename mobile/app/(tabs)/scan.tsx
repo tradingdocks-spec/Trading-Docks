@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { TDBadge, TDButton, TDCard, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
@@ -28,8 +29,13 @@ type ScannerContext = { userId: string; locations: StorageLocation[]; currentTot
 
 export default function Scan() {
   const { accountType } = useAccount();
+  const cameraRef = useRef<CameraView | null>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [context, setContext] = useState<ScannerContext | null>(null);
   const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
+  const [cameraActive, setCameraActive] = useState(false);
+  const [torchEnabled, setTorchEnabled] = useState(false);
+  const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [candidates, setCandidates] = useState<ScannerCardCandidate[]>([]);
   const [selected, setSelected] = useState<ScannerCardCandidate | null>(null);
@@ -48,7 +54,7 @@ export default function Scan() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const cameraAvailable = false;
+  const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const privacy = scannerPrivacySummary();
 
   useEffect(() => {
@@ -83,12 +89,50 @@ export default function Scan() {
 
   const selectedFinishes = useMemo(() => selected?.finishes.filter((candidateFinish) => candidateFinish === 'normal' || candidateFinish === 'foil' || candidateFinish === 'etched') ?? ['normal'], [selected]);
 
-  const requestCamera = () => {
-    const next = resolveScannerPermissionState({ cameraAvailable, requested: true });
+  useEffect(() => {
+    const next = resolveScannerPermissionState({
+      cameraAvailable,
+      permissionGranted: cameraPermission?.granted,
+      permissionDenied: cameraPermission ? !cameraPermission.granted && !cameraPermission.canAskAgain : false,
+      requested: Boolean(cameraPermission),
+    });
     setPermission(next);
-    setError(next === 'unavailable'
-      ? 'Camera capture needs an approved camera dependency such as expo-camera. Use manual search in this build.'
-      : null);
+    setCameraActive(next === 'granted');
+  }, [cameraAvailable, cameraPermission]);
+
+  const requestCamera = async () => {
+    setError(null);
+    if (!cameraAvailable) {
+      setPermission('unavailable');
+      setError('Camera capture is unavailable on this platform. Use manual search.');
+      return;
+    }
+    const result = await requestCameraPermission();
+    const next = resolveScannerPermissionState({
+      cameraAvailable,
+      permissionGranted: result.granted,
+      permissionDenied: !result.granted && !result.canAskAgain,
+      requested: true,
+    });
+    setPermission(next);
+    if (next !== 'granted') setError('Camera permission is not available. Manual search still works.');
+  };
+
+  const captureStill = async () => {
+    setError(null);
+    setSuccess(null);
+    if (!cameraRef.current || permission !== 'granted') {
+      setError('Camera is not ready. Grant permission or use manual search.');
+      return;
+    }
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 1, skipProcessing: false });
+      setCapturedFrame(`${photo.width} x ${photo.height}`);
+      setSuccess('Still captured for local confirmation. Recognition providers are not benchmarked yet, so choose the exact printing below.');
+      setCameraActive(false);
+    } catch (captureError) {
+      setError(captureError instanceof Error ? captureError.message : 'Could not capture the card image.');
+    }
   };
 
   const runSearch = async () => {
@@ -169,13 +213,31 @@ export default function Scan() {
         </View>
 
         <TDCard style={s.cameraCard}>
-          <View style={s.cameraFrame}>
-            <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={42} color={color.textMuted} />
-            <TDText variant="title">{permissionTitle(permission)}</TDText>
-            <TDText variant="small" tone="muted" style={s.centerText}>{permissionMessage(permission, Platform.OS)}</TDText>
-            <TDButton label="Check camera" variant="secondary" onPress={requestCamera} />
-          </View>
-          <TDBadge tone="warning">{unavailableCameraProvider.label}</TDBadge>
+          {permission === 'granted' && cameraActive ? (
+            <View style={s.cameraPreview}>
+              <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" enableTorch={torchEnabled} animateShutter autofocus="on" />
+              <View pointerEvents="none" style={s.cardGuide}>
+                <View style={s.guideCorner} />
+                <TDText variant="caption" tone="info">Align card edges</TDText>
+              </View>
+              <View style={s.cameraControls}>
+                <TDButton label={torchEnabled ? 'Torch off' : 'Torch on'} variant="secondary" onPress={() => setTorchEnabled((value) => !value)} />
+                <TDButton label="Capture still" onPress={captureStill} />
+              </View>
+            </View>
+          ) : (
+            <View style={s.cameraFrame}>
+              <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={42} color={color.textMuted} />
+              <TDText variant="title">{permissionTitle(permission)}</TDText>
+              <TDText variant="small" tone="muted" style={s.centerText}>{permissionMessage(permission, Platform.OS)}</TDText>
+              <View style={s.syncActions}>
+                <TDButton label={permission === 'granted' ? 'Open camera' : 'Check camera'} variant="secondary" onPress={permission === 'granted' ? () => setCameraActive(true) : requestCamera} />
+                {capturedFrame ? <TDButton label="Retake" variant="secondary" onPress={() => setCameraActive(true)} /> : null}
+              </View>
+              {capturedFrame ? <TDBadge tone="info">Last still {capturedFrame}</TDBadge> : null}
+            </View>
+          )}
+          <TDBadge tone={permission === 'granted' ? 'info' : 'warning'}>{permission === 'granted' ? 'Camera capture enabled' : unavailableCameraProvider.label}</TDBadge>
         </TDCard>
 
         <TDCard variant="outlined" style={s.noticeCard}>
@@ -279,10 +341,10 @@ function permissionTitle(permission: ScannerPermissionState) {
 }
 
 function permissionMessage(permission: ScannerPermissionState, platform: string) {
-  if (permission === 'unavailable') return `Camera capture is unavailable in ${platform === 'web' ? 'Expo Web' : 'this Expo build'} because no camera module is installed.`;
+  if (permission === 'unavailable') return `Camera capture is unavailable in ${platform === 'web' ? 'this browser' : 'this Expo build'}.`;
   if (permission === 'denied') return 'Enable camera permission in system settings, or continue with manual search.';
-  if (permission === 'granted') return 'Future OCR/image recognition providers will use this state after camera support is installed.';
-  return 'Manual search works now. Camera capture requires an approved development build with camera support.';
+  if (permission === 'granted') return 'Capture is local-first. Recognition providers are architectural until benchmarked.';
+  return 'Manual search works now. Camera capture requires camera permission.';
 }
 
 function scannerSyncSummary(entries: ScannerQueuedAdd[]) {
@@ -299,6 +361,10 @@ const s = StyleSheet.create({
   header: { gap: space.xs },
   cameraCard: { gap: space.md },
   cameraFrame: { minHeight: 300, borderRadius: radius.lg, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.lg, backgroundColor: color.canvasRaised },
+  cameraPreview: { minHeight: 360, overflow: 'hidden', borderRadius: radius.lg, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised },
+  cardGuide: { position: 'absolute', top: 42, right: 28, bottom: 92, left: 28, borderRadius: radius.md, borderWidth: 2, borderColor: color.primaryBright, alignItems: 'center', justifyContent: 'flex-end', padding: space.sm },
+  guideCorner: { position: 'absolute', top: -2, left: -2, width: 42, height: 42, borderTopWidth: 4, borderLeftWidth: 4, borderColor: color.info, borderTopLeftRadius: radius.md },
+  cameraControls: { position: 'absolute', right: space.sm, bottom: space.sm, left: space.sm, flexDirection: 'row', gap: space.sm, justifyContent: 'center', flexWrap: 'wrap' },
   centerText: { textAlign: 'center' },
   noticeCard: { gap: space.sm },
   syncCard: { gap: space.md },
