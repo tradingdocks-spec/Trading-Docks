@@ -25,7 +25,7 @@
 - Implemented: `src/proxy.ts` calls `updateSession` from `src/lib/supabase/proxy.ts`.
 - Implemented: Dashboard and onboarding routes redirect anonymous users to sign-in.
 - Implemented: Most API routes require authentication by default, with explicit public and provider callback/webhook exceptions.
-- Partially Implemented: Owner/admin status is partly hard-coded by email on web and role-table based on mobile.
+- Implemented: Active web and mobile admin status resolves from `user_roles`; hard-coded email authorization has been removed from active web routes.
 
 ## Data Architecture
 
@@ -88,3 +88,13 @@
 - Accessibility risks: older navigation components may lack `aria-current`, labels, or focus rings. The active sidebar and web mobile nav now set selected state and focus-visible styling; mobile tabs now set tab accessibility labels and selected state.
 - Intentional mobile/web differences: mobile uses five bottom tabs optimized for touch and deep links; web uses a wider dashboard sidebar plus compact mobile web bottom nav.
 - Migration order: active mobile tab layout, active web dashboard shell, docs/tests, then legacy dashboard import audit, then route content alignment.
+
+## Identity And Entitlement Architecture
+
+- Implemented: Canonical shared access types live in `mobile/services/access-model.ts`, with the Next.js adapter re-export at `src/lib/identity/access-model.ts`.
+- Implemented: Web server-side access resolution lives in `src/lib/identity/server-access.ts` and reads role, preferences, billing subscription, and membership override records.
+- Implemented: Server guards for privileged web APIs live in `src/lib/identity/server-guards.ts`.
+- Implemented: Mobile role context normalizes `user_roles.role` through the same platform-role vocabulary, but mobile remains client-side UX state.
+- Implemented: Active web admin page, plan preview route, admin users API, marketplace integrations API, and trial invitation API no longer authorize from a hard-coded email.
+- Partially Implemented: Legacy web admin component variants still use older owner wording but are not the active import path.
+- Partially Implemented: Database migrations still include older email-owner helper functions and should be replaced in a dedicated migration task.

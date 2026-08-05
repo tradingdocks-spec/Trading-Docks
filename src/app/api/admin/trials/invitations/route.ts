@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireServerPlatformRole } from "@/lib/identity/server-guards";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { buildTrialInvitation } from "@/lib/trial-invitation";
 
-const OWNER_EMAIL = "tradingdocks@gmail.com";
 const VALID_PLANS = new Set(["collector", "seller", "business"]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -107,12 +107,9 @@ async function sendInvitation({
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return jsonError("Sign in is required.", 401);
-  if (user.email?.trim().toLowerCase() !== OWNER_EMAIL) {
-    return jsonError("Owner access is required.", 403);
-  }
+  const actor = await requireServerPlatformRole("admin");
+  if (!actor) return jsonError("Administrator access is required.", 403);
+  const supabase = createAdminClient();
 
   let body: RequestBody;
   try {
@@ -140,7 +137,7 @@ export async function POST(request: Request) {
         ends_at: endsAt.toISOString(),
         status: "active",
         notes: body.notes?.trim() ?? "",
-        granted_by: user.id,
+        granted_by: actor.user.id,
         invitation_status: "pending",
       })
       .select("id,email,plan_id,ends_at")

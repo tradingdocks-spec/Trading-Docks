@@ -6,7 +6,8 @@
 - Implemented: `PLAN_ENTITLEMENTS` defines names, monthly prices, annual prices, inventory limits, and deck limits.
 - Implemented: `tier-access.ts` maps dashboard features and routes to minimum plans.
 - Implemented: `PlanAccessGate` blocks dashboard screens when the current plan lacks access.
-- Implemented: `getEffectivePlan` reads billing subscriptions, admin membership overrides, user preferences, and owner preview cookies.
+- Implemented: `getEffectivePlan` reads the shared server access resolver and returns membership tier from billing subscriptions or admin membership overrides.
+- Implemented: Owner/admin/support/analyst roles do not automatically upgrade paid membership entitlements.
 - Requires Production Configuration: Stripe price IDs, customer portal, checkout, webhooks, and live/test isolation.
 
 ## Current Web Plan Values
@@ -30,4 +31,12 @@
 - Partially Implemented: `business` on web and `store` on mobile represent the same commercial tier but use different enum values.
 - Partially Implemented: Mobile `collector` claims unlimited collection and decks, while web limits collector to 10,000 inventory and 50 decks.
 - Partially Implemented: Some routes are gated in the client shell, but endpoint-level entitlement enforcement needs a separate audit.
+- Implemented: Platform role, account type, membership tier, billing status, and entitlements now have separate typed models in the identity/access contract.
 - Planned: Membership data should become a shared contract used by web, mobile, billing, and marketing.
+
+## Role Versus Tier
+
+- Platform role controls Trading Docks operational authority, such as Command Center access.
+- Membership tier controls product entitlements, such as purchasing, analytics, and store operations.
+- Billing status describes Stripe subscription state and does not by itself grant platform role.
+- Admin membership overrides change product entitlements without modifying Stripe subscription data.

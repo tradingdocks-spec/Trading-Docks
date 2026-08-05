@@ -1,4 +1,6 @@
-export type AdminRole = 'owner' | 'admin' | 'support' | 'analyst';
+import type { PlatformRole } from '@/services/access-model';
+
+export type AdminRole = Exclude<PlatformRole, 'user'>;
 
 export const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
   owner: 'Owner',

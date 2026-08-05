@@ -1,22 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { encryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const OWNER_EMAIL = "tradingdocks@gmail.com";
-
 function mask(value: string) {
-  return value.length <= 4 ? "••••" : `••••${value.slice(-4)}`;
-}
-
-async function ownerClient() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.email?.trim().toLowerCase() !== OWNER_EMAIL) return null;
-  return { user };
+  return value.length <= 4 ? "****" : `****${value.slice(-4)}`;
 }
 
 function databaseError(error: unknown, fallback: string) {
@@ -64,8 +55,8 @@ function serverConfigurationError() {
 }
 
 export async function GET() {
-  const owner = await ownerClient();
-  if (!owner) return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  const actor = await requireServerPlatformRole("admin");
+  if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   try {
     const { data, error } = await adminClient()
       .from("platform_marketplace_integrations")
@@ -81,8 +72,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const owner = await ownerClient();
-  if (!owner) return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  const actor = await requireServerPlatformRole("admin");
+  if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   const configurationError = serverConfigurationError();
   if (configurationError) {
     return NextResponse.json({ error: configurationError }, { status: 503 });
@@ -113,7 +104,7 @@ export async function POST(request: Request) {
       ...encrypted,
       credential_labels: labels,
       enabled: body.enabled !== false,
-      configured_by: owner.user.id,
+      configured_by: actor.user.id,
       updated_at: new Date().toISOString(),
     }, { onConflict: "marketplace_id" }).select("marketplace_id").single();
     if (error) throw error;
@@ -122,7 +113,7 @@ export async function POST(request: Request) {
     // Audit history is useful, but an older deployment may not have this
     // optional table yet. A missing audit table must not undo a valid save.
     await admin.from("admin_audit_log").insert({
-      actor_id: owner.user.id,
+      actor_id: actor.user.id,
       action: "marketplace.integration.updated",
       target_type: "marketplace",
       target_id: "ebay",
@@ -142,8 +133,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const owner = await ownerClient();
-  if (!owner) return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  const actor = await requireServerPlatformRole("admin");
+  if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
   const body = await request.json().catch(() => null) as { marketplaceId?: string; enabled?: boolean } | null;
   if (body?.marketplaceId !== "ebay" || typeof body.enabled !== "boolean") {
     return NextResponse.json({ error: "Invalid integration update." }, { status: 400 });

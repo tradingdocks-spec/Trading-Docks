@@ -1,4 +1,5 @@
 import { logAuthDiagnostic, logAuthWarning } from './auth-diagnostics.ts';
+import { normalizePlatformRole } from './access-model.ts';
 
 export type MobileAccountType = 'free' | 'collector' | 'seller' | 'store';
 
@@ -40,8 +41,9 @@ export async function lookupAdminRole(
       return null;
     }
 
-    return typeof data?.role === 'string' && data.role.trim()
-      ? data.role
+    const role = normalizePlatformRole(data?.role);
+    return role !== 'user'
+      ? role
       : null;
   } catch (error) {
     logAuthWarning('admin_role_lookup_failed', {

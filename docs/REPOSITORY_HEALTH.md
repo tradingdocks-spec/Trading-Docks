@@ -11,9 +11,10 @@
 
 ## Authentication Problems
 
-- Partially Implemented: Web owner access is hard-coded by email in dashboard code.
-- Partially Implemented: Mobile admin access uses `user_roles`, creating a separate authorization model from web owner logic. Mobile now routes safely if this lookup fails.
-- Implemented: Mobile email/password auth now renders exact Supabase errors, persists remembered-email preferences only when selected, restores sessions before route guards render, and routes admin users to Command Center when role lookup succeeds.
+- Implemented: Active web and mobile admin access now use `user_roles` as the platform-role authority.
+- Implemented: Active web code no longer authorizes admin access from a hard-coded owner email.
+- Partially Implemented: Legacy Supabase migrations still contain email-based `is_platform_owner()` functions and policies.
+- Implemented: Mobile email/password auth now renders exact Supabase errors, persists remembered-email preferences only when selected, restores sessions before route guards render, and exposes Command Center as an additive protected destination when role lookup succeeds.
 - Partially Implemented: Native biometric/session-lock scaffolding remains architecture-only until verified on physical iOS/Android devices.
 - Requires Production Configuration: Supabase Auth settings, OAuth callbacks, recovery flow settings, and MFA are not provable from source.
 
@@ -51,6 +52,7 @@
 
 - Planned: Establish canonical web dashboard architecture.
 - Planned: Establish a shared membership contract for web, mobile, billing, and marketing.
+- Implemented: Shared identity/access types now separate platform role, account type, membership tier, billing status, and entitlements.
 - Planned: Generate a canonical Supabase schema snapshot from a clean migration replay.
 - Planned: Move historical release notes/backups out of active source or clearly archive them.
 - Planned: Continue incremental design-system migration rather than sweeping every screen into the new primitives at once.
@@ -68,6 +70,7 @@
 - Implemented: Focused mobile auth tests cover email/password success and failure, session restoration, admin routing, normal routing, remembered email, and keep-me-signed-in discard behavior.
 - Implemented: Focused mobile design-system tests cover token exports, semantic colors, button disabled/loading behavior, input error state, and accessibility metadata.
 - Implemented: Focused mobile navigation/auth contract tests cover protected-route loading, Collector/Seller/Store tab labels, admin route access, normal-user admin denial, fallback account type, and selected tab state.
+- Implemented: Focused identity/access tests cover owner, admin, support, analyst, normal user, missing role, suspended account, admin with Free membership, Seller without admin role, and authorized/unauthorized web admin route decisions.
 - Planned: Auth redirect and callback tests.
 - Planned: Plan access and route entitlement tests.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -96,9 +99,16 @@
 7. Remove or archive dependency/build backup artifacts after a separate review-approved cleanup.
 8. Continue design-system migration through shared dashboard states and common cards before attempting modal primitives.
 
+## Recommended Identity Sprint 1
+
+1. Draft and review a Supabase migration that replaces `is_platform_owner()` policies/functions with `user_roles`/`is_admin()`.
+2. Replay migrations in staging to confirm `user_roles`, `admin_audit_log`, `admin_membership_overrides`, and billing tables converge cleanly.
+3. Decide whether `business` and `store` should become one enum value across web, mobile, and database rows.
+4. Add route-handler tests for privileged admin API permissions once a Next route test harness is configured.
+
 ## Recommended Navigation Sprint 1
 
 1. Verify route content for labels marked Partially Implemented, especially mobile Seller Buying, mobile Store Business/Activity, web Trade Binder, web Deal Desk, and web admin subareas.
-2. Unify web owner/admin identity with the mobile `user_roles` model without changing database schema in the navigation branch.
+2. Verify web and mobile admin navigation after the shared `user_roles` authority change.
 3. Add server-side entitlement tests for dashboard routes so hidden navigation never becomes the only access control.
 4. Retire unused sidebars and navigation definition files after confirming no active imports.

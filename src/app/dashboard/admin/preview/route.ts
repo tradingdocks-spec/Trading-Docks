@@ -4,6 +4,7 @@ import {
   isPreviewPlan,
   PLAN_PREVIEW_COOKIE,
 } from "@/lib/admin-plan-preview";
+import { resolveServerAccess } from "@/lib/identity/server-access";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -12,7 +13,8 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user?.email?.trim().toLowerCase() !== "tradingdocks@gmail.com") {
+  const access = await resolveServerAccess(supabase, user);
+  if (access.platformRole !== "owner") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

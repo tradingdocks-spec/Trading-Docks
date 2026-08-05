@@ -10,9 +10,11 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Establish first design-system foundation with shared semantic tokens, Expo/Next primitives, development-only showcases, focused primitive tests, and limited auth/profile/loading migrations.
 - Implemented: Establish account-aware navigation contracts for active Expo tabs and the active Next.js dashboard shell, including protected admin access as an additive destination.
 - Partially Implemented: Align route labels with canonical Collector, Seller, Store, and Admin navigation while leaving unfinished destination content clearly marked for later product sprints.
+- Implemented: Establish shared identity/access models and move active web admin authorization from email checks to `user_roles`.
 - Planned: Consolidate active dashboard component architecture and mark deprecated dashboard generations.
 - Planned: Align plan tiers, names, pricing, and limits between web and mobile.
 - Planned: Audit API route authentication, public allowlists, provider callback exemptions, and server-side entitlement checks.
+- Planned: Replace legacy Supabase `is_platform_owner()` policies/functions with role-based `is_admin()` equivalents in a reviewed migration.
 - Planned: Verify Supabase migrations replay cleanly into a fresh staging project.
 - Planned: Add repository hygiene cleanup for backup dependency folders and historical release artifacts.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.

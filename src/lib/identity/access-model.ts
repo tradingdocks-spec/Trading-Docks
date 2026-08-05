@@ -1,0 +1,15 @@
+export {
+  hasPlatformRole,
+  normalizeAccountType,
+  normalizeBillingStatus,
+  normalizeMembershipTier,
+  normalizePlatformRole,
+  resolveAccess,
+  type AccessResolutionInput,
+  type AccountType,
+  type BillingStatus,
+  type EntitlementKey,
+  type MembershipTier,
+  type PlatformRole,
+  type ResolvedAccess,
+} from "../../../mobile/services/access-model";

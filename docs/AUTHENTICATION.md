@@ -23,7 +23,7 @@
 - Implemented: Mobile supports optional biometric locking of a restored session on native platforms.
 - Implemented: Owner/Admin role lookup is preserved, but sign-in now routes users to their normal workspace while exposing Command Center as an additional protected destination.
 - Partially Implemented: Mobile deep-link auth callback behavior requires production app scheme and provider configuration.
-- Partially Implemented: Mobile admin routing reads `user_roles`, while web owner access is partly email-based.
+- Implemented: `user_roles` is now the active web and mobile authority for platform roles.
 - Partially Implemented: Native biometric/session-lock architecture is preserved, but native biometric behavior still requires device testing.
 - Partially Implemented: Diagnostic logging exists for auth events, but production observability and log retention policies are not configured.
 
@@ -34,14 +34,24 @@
 - Implemented: Mobile admin routes wait for auth and admin-role lookup before rendering, redirect anonymous users to `/auth`, and redirect non-admin signed-in users back to `/(tabs)`.
 - Implemented: Web dashboard routes are protected server-side in `src/app/dashboard/layout.tsx`; anonymous users are redirected to `/sign-in?next=/dashboard`.
 - Implemented: Web Command Center is protected server-side in `src/app/dashboard/admin/page.tsx`; non-owner users are redirected to `/dashboard`.
-- Partially Implemented: Web owner access remains email-based while mobile admin access is role-table based.
+- Implemented: Web Command Center access now resolves `user_roles` server-side instead of authorizing from a hard-coded owner email.
 - Partially Implemented: Mobile deep links and Expo Web refresh behavior rely on Expo Router route resolution and the auth root loading gate, but native OAuth/magic-link callback behavior still needs device validation.
 
 ## Authentication Problems
 
-- Partially Implemented: Admin identity is inconsistent between web and mobile.
-- Partially Implemented: Web owner access is hard-coded to `tradingdocks@gmail.com` in active dashboard code.
+- Implemented: Active web and mobile admin access now use the shared platform-role vocabulary: `owner`, `admin`, `support`, `analyst`, and normal `user`.
+- Partially Implemented: Older Supabase migrations still define `is_platform_owner()` and email-based policies; this branch documents migration cleanup but does not apply schema changes.
 - Requires Production Configuration: Supabase Auth settings such as email confirmation, recovery link lifetime, leaked password protection, MFA, and OAuth providers must be verified in the Supabase dashboard.
 - Requires Production Configuration: Google OAuth, Apple Sign In, magic-link redirect URLs, and native deep links must be verified in Supabase and app-platform settings.
 - Implemented: Focused mobile tests cover successful sign-in, invalid credentials, session restoration, owner/admin routing, normal-user routing, remembered email, and keep-me-signed-in behavior.
 - Planned: Add device-level tests for Google OAuth, Apple Sign In, biometric unlock, and native deep-link callback handling.
+
+## Identity And Access Authority
+
+- Implemented: Authentication identity is the Supabase Auth user id.
+- Implemented: Platform role authority is `public.user_roles`; missing or failed role lookup falls back to normal `user`.
+- Implemented: Account type remains a workspace/product-mode concept: mobile stores `free | collector | seller | store`; web preferences still contain account/workspace metadata.
+- Implemented: Membership tier is separate from platform role and resolves to `free | collector | seller | business`.
+- Implemented: Billing status is separate from membership tier and is read from `billing_subscriptions` when available.
+- Implemented: Entitlement sets are derived from resolved membership tier, with `admin.command-center` added only by platform role.
+- Implemented: Admin users with Free membership keep Free product entitlements and gain Command Center access separately.
