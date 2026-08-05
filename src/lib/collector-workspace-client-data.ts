@@ -5,14 +5,18 @@ import {
   buildCollectionCards,
   COLLECTION_PAGE_SIZE,
   type CollectionCard,
+  type StorageLocation,
   type RawInventoryItem,
   type RawInventoryLocation,
   type RawTradeBinderStatus,
   type RawWishlistItem,
 } from "@/lib/collector-workspace";
+import type { CollectorMutation } from "@/lib/collector-mutations";
 
 export type WebCollectorCollectionPage = {
   cards: CollectionCard[];
+  locations: ReturnType<typeof buildWebStorageLocations>;
+  totalQuantity: number;
   stale: false;
 };
 
@@ -75,6 +79,8 @@ export async function loadWebCollectorCollectionPage({
       tradeStatuses: (tradeStatuses ?? []) as RawTradeBinderStatus[],
       wishlist: (wishlist ?? []) as RawWishlistItem[],
     }),
+    locations: buildWebStorageLocations((locations ?? []) as RawInventoryLocation[]),
+    totalQuantity: ((items ?? []) as RawInventoryItem[]).reduce((sum: number, item: RawInventoryItem) => sum + Number(item.quantity ?? 0), 0),
     stale: false,
   };
 }
@@ -95,18 +101,15 @@ export async function loadWebCollectorCardById(cardId: string): Promise<WebColle
     .maybeSingle();
 
   if (itemError) throw new Error(`Card details are unavailable: ${itemError.message}`);
-  if (!item) return { cards: [], stale: false };
+  if (!item) return { cards: [], locations: [], totalQuantity: 0, stale: false };
 
-  const locationId = locationIdForItem(item as RawInventoryItem);
-  const [{ data: locations }, { data: tradeStatuses }, { data: wishlist }] = await Promise.all([
-    locationId
-      ? supabase
-          .from("inventory_locations")
-          .select("id, name, location_type, data")
-          .eq("user_id", user.id)
-          .eq("id", locationId)
-          .limit(1)
-      : Promise.resolve({ data: [] }),
+  const [{ data: locations }, { data: tradeStatuses }, { data: wishlist }, { data: quantityRows }] = await Promise.all([
+    supabase
+      .from("inventory_locations")
+      .select("id, name, location_type, data")
+      .eq("user_id", user.id)
+      .order("name", { ascending: true })
+      .limit(100),
     supabase
       .from("binder_card_trade_status")
       .select("inventory_item_id, status")
@@ -118,6 +121,11 @@ export async function loadWebCollectorCardById(cardId: string): Promise<WebColle
       .select("card_name, set_code, target_condition, target_finish")
       .eq("user_id", user.id)
       .limit(500),
+    supabase
+      .from("inventory_items")
+      .select("quantity")
+      .eq("user_id", user.id)
+      .limit(1000),
   ]);
 
   return {
@@ -127,13 +135,40 @@ export async function loadWebCollectorCardById(cardId: string): Promise<WebColle
       tradeStatuses: (tradeStatuses ?? []) as RawTradeBinderStatus[],
       wishlist: (wishlist ?? []) as RawWishlistItem[],
     }),
+    locations: buildWebStorageLocations((locations ?? []) as RawInventoryLocation[]),
+    totalQuantity: ((quantityRows ?? []) as Array<{ quantity?: number | null }>).reduce((sum: number, row) => sum + Number(row.quantity ?? 0), 0),
     stale: false,
   };
 }
 
-function locationIdForItem(item: RawInventoryItem) {
-  const payload = item.data ?? {};
-  return typeof payload.locationId === "string"
-    ? payload.locationId
-    : item.location_id ?? null;
+export async function runWebCollectorMutation(mutation: CollectorMutation) {
+  const response = await fetch("/api/collector-workspace/mutations", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(mutation),
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) throw new Error(payload.error ?? "Collection update failed.");
+  return payload;
+}
+
+function buildWebStorageLocations(locations: RawInventoryLocation[]): StorageLocation[] {
+  return locations.map((location) => {
+    const payload = location.data ?? {};
+    return {
+      id: location.id,
+      name: typeof payload.name === "string" && payload.name.trim() ? payload.name : location.name ?? "Unnamed location",
+      type: (location.location_type === "binder" ||
+        location.location_type === "box" ||
+        location.location_type === "sealed" ||
+        location.location_type === "bulk" ||
+        location.location_type === "custom"
+        ? location.location_type
+        : "unknown") as StorageLocation["type"],
+      description: typeof payload.description === "string" ? payload.description : null,
+      zone: typeof payload.zone === "string" ? payload.zone : null,
+      binderPage: null,
+      binderSlot: null,
+    };
+  });
 }

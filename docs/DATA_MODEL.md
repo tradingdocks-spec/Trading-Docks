@@ -34,8 +34,11 @@
 - Implemented: `CollectionFilter`, `CollectionSort`, and `CollectionSummary` provide a shared contract for mobile and web search, sorting, visible limits, missing-price handling, trade counts, wishlist counts, and Free-plan card limits.
 - Partially Implemented: Existing Supabase inventory tables store canonical query columns plus a flexible `data` JSON payload. The UI reads both but does not apply schema changes in this sprint.
 - Implemented: Default zero inventory values are treated as missing price data in the Collector Workspace contract so the UI does not present database defaults as live market prices.
-- Partially Implemented: `binder_card_trade_status` stores per-inventory-item trade status. The new browser reads it but does not mutate it.
-- Partially Implemented: `collector_wishlist` stores card-name/set/condition/finish targets. The new browser matches it to owned cards but does not mutate it.
+- Implemented: `binder_card_trade_status` stores per-inventory-item trade status and is now updated by Collector organization actions. RLS scopes writes to `auth.uid() = user_id`.
+- Implemented: `collector_wishlist` stores card-name/set/condition/finish targets and is now toggled by Collector organization actions. The action preserves the selected owned card's exact printing fields where available.
+- Implemented: `inventory_items.quantity` remains non-negative by schema check and action validation. Quantity zero means zero owned copies on the existing row; it does not delete or archive the record.
+- Implemented: `inventory_items.location_id` can be assigned to an existing owned `inventory_locations` id or cleared to `null`.
+- Partially Implemented: Condition and finish are still stored inside `inventory_items.data`; a future schema review may propose first-class columns if reporting/filtering requires stronger database constraints.
 - Planned: Add a reviewed migration proposal for normalized collection-card, printing, deck-usage, and price-history relationships if JSON payloads become insufficient.
 
 ## Data Model Risks
@@ -73,4 +76,5 @@
 - Planned: Update check constraints so active code can persist Store overrides, Stripe webhooks, and trial grants without database rejection.
 - Planned: Decide whether `admin_account_access` remains a support view or is replaced by `profiles`/`user_preferences` plus billing tables.
 - Planned: Add regression SQL proving owner/admin/support/analyst access, normal-user denial, and protected owner-role mutation behavior.
+- Planned: Add a reviewed Supabase RPC/trigger proposal that enforces Free-plan card limits for native direct writes, not only the Next.js web mutation API.
 - Planned: Do not apply these schema changes from this branch.

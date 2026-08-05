@@ -42,7 +42,9 @@
 - Implemented: Active web and mobile membership tier names, prices, limits, and plan-card labels now use the canonical `free | collector | seller | store` catalog.
 - Implemented: Authenticated collection surfaces no longer present static sample cards as live user data.
 - Implemented: Mobile Home no longer presents mock collection value, mock movement, mock signals, or fake recent activity as live user data.
+- Implemented: Collector card detail surfaces now support organization actions with optimistic updates and rollback rather than showing read-only planned action cards.
 - Partially Implemented: Web `/dashboard/inventory` now uses the Collector Workspace browser; older inventory management components remain in source and need workflow review before retirement.
+- Partially Implemented: Native direct Collector writes still need DB-side Free-plan limit enforcement before production reliance; current web writes enforce the limit through the Next.js mutation API.
 - Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
@@ -84,6 +86,7 @@
 - Planned: Auth redirect and callback tests.
 - Implemented: Focused membership entitlement tests cover prices, annual savings, limits, financial access, Deal Desk access, web workspace access, Store employee entitlement, role separation, billing fallback, and unknown-tier fallback.
 - Implemented: Focused Collector Workspace tests cover search filtering, sorting, exact-printing display, storage-location display, trade-binder indicator, wishlist indicator, Free card-limit behavior, empty state, no-results state, and safe missing-price behavior.
+- Implemented: Focused Collector mutation tests cover ownership rejection, Free-plan limits, quantity validation, condition/finish/storage/trade/wishlist optimistic updates, rollback, trade-filter visibility, user-isolated offline queue entries, and duplicate queued-write prevention.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
@@ -133,3 +136,10 @@
 2. Verify web and mobile admin navigation after the shared `user_roles` authority change.
 3. Add server-side entitlement tests for dashboard routes so hidden navigation never becomes the only access control.
 4. Retire unused sidebars and navigation definition files after confirming no active imports.
+
+## Recommended Collector Organization Sprint 1
+
+1. Review the proposed DB-side Free-plan enforcement path for native direct writes and offline replay.
+2. Add integration tests around the Next.js Collector mutation route once route-handler fixtures are available.
+3. Add native manual QA for failed mutation rollback, queued offline mutation replay, sign-out/user-switch isolation, and stale cached collection detail.
+4. Decide whether condition and finish should remain JSON payload fields or become first-class columns in a reviewed schema migration.

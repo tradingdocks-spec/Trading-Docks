@@ -136,11 +136,14 @@
 
 - Implemented: Canonical Collector Workspace models and pure filtering/sorting/summary helpers live in `mobile/services/collector-workspace.ts`, with the Next.js adapter at `src/lib/collector-workspace.ts`.
 - Implemented: Mobile Collection route `mobile/app/(tabs)/collection.tsx` uses the shared model, TD primitives, debounced search, sort controls, list/grid display, `FlatList` virtualization, image placeholders, loading/empty/no-results/error states, and stale-data messaging.
-- Implemented: Mobile Card Detail route `mobile/app/collection/[cardId].tsx` loads a single saved inventory item by id and shows image, exact printing, condition, finish, quantity, storage, price unavailable state, and planned trade/wishlist/deck entry points.
+- Implemented: Mobile Card Detail route `mobile/app/collection/[cardId].tsx` loads a single saved inventory item by id and shows image, exact printing, condition, finish, quantity, storage, price unavailable state, and organization controls.
 - Implemented: Web Collection route `/dashboard/inventory` now renders `src/components/dashboard/collector-workspace/CollectorWorkspace.tsx` with dense search, filters, sort, list/grid toggle, summary metrics, Free-plan limit messaging, and import/export entry points for Seller/Store entitlements.
 - Implemented: Web Card Detail route `/dashboard/inventory/[cardId]` renders the same saved card facts through `CollectorCardDetail`.
 - Implemented: Collection data loaders read existing `inventory_items`, `inventory_locations`, `binder_card_trade_status`, and `collector_wishlist` tables. Mobile caches the loaded page by authenticated user id for offline/stale browsing.
-- Partially Implemented: Trade binder and wishlist indicators are read-only in this sprint. Mutations are future trade-center work.
+- Implemented: Collector organization mutation contracts live in `mobile/services/collector-mutations.ts`, with the Next.js adapter at `src/lib/collector-mutations.ts`.
+- Implemented: Mobile and web card detail surfaces can update owned quantity, condition, finish, storage assignment, Trade Binder status, and Wishlist state with optimistic UI and rollback on failure.
+- Implemented: Web organization writes go through `src/app/api/collector-workspace/mutations/route.ts`, which authenticates the user, scopes the inventory record by `user_id`, validates Free-plan card limits through the canonical membership contract, and then writes through authenticated Supabase/RLS.
+- Partially Implemented: Native mobile writes use Supabase RLS for server-side ownership and queue failed/offline writes by user, but DB-side Free-plan enforcement for direct native writes still needs a reviewed RPC/trigger migration proposal before it can be called production-authoritative.
 - Partially Implemented: Price display uses positive saved inventory value/unit market value when present and says unavailable when missing or defaulted to zero. Live market pricing and price history are future integration work.
 - Partially Implemented: Existing large inventory management components remain in the repository and should be migrated or retired only after a separate import/workflow review.
 
@@ -161,12 +164,20 @@
 - Existing collection functionality: web had a large inventory workspace with storage locations, card filing, Scryfall printing selection, marketplace listing metadata, and cloud persistence. Mobile had a static sample Collection screen.
 - Active versus legacy implementations: the new Collector Workspace browser is active for web `/dashboard/inventory` and mobile `/(tabs)/collection`; older dashboard inventory components remain available but are no longer the route entry point.
 - Current data sources: saved user inventory rows, storage-location rows, trade-status rows, and wishlist rows in Supabase. Mobile uses the same data when configured and a stale cache only after a successful prior load.
-- Missing data contracts: deck usage relationships, mutable trade/wishlist actions, scanner-recognition writes, portfolio analytics, and normalized per-print market-price history are not yet canonical.
+- Missing data contracts: deck usage relationships, scanner-recognition writes, portfolio analytics, trade transactions, marketplace listings, and normalized per-print market-price history are not yet canonical.
 - Storage-location support: implemented as a preview from `inventory_locations` plus item payload `binderPage` and `binderSlot`; missing locations show an unavailable state.
 - Image and pricing dependencies: card images come only from saved `imageUrl`; pricing comes only from saved `unitMarketValue` or inventory value divided by quantity. Scryfall lookup and live price history are not invoked by the browser.
 - Performance risks: current browsers limit inventory reads to `COLLECTION_PAGE_SIZE` and debounce search, but server-side pagination cursors and virtualized web tables are future work for very large collections.
 - Mobile/web responsibility differences: mobile prioritizes fast touch browsing, stale/offline visibility, card images, exact printings, and quick status scanning. Web prioritizes dense management, filters, bulk-selection foundation, storage visibility, and import/export navigation.
-- Recommended migration order: stabilize read-only browser and detail routes, add route-level tests/fixtures, add explicit pagination cursors, wire trade/wishlist mutations, wire scanner add-to-collection, then migrate or retire legacy inventory management surfaces.
+- Recommended migration order: stabilize organization mutations and offline replay, add explicit pagination cursors, propose DB-side native limit enforcement, wire scanner add-to-collection, then migrate or retire legacy inventory management surfaces.
+
+### Collector Mutation Lifecycle
+
+- Implemented: Optimistic updates clone the previous card list, apply the requested local change immediately, and restore the previous list if the write fails.
+- Implemented: Quantity validation rejects negative and fractional values. Quantity zero is stored as zero owned and does not delete or archive the inventory row.
+- Implemented: Trade Binder statuses are canonical: `not_for_trade`, `available`, `reserved`, `pending`, `looking_for_upgrade`, and `for_sale`; every status except `not_for_trade` remains visible in trade filters.
+- Implemented: Storage assignment supports choosing an existing location or clearing the location. Nested binder-page editing remains outside this sprint.
+- Partially Implemented: Mobile has a replay helper for queued collector mutations and replaces duplicate queued writes for the same user/card/action. Automatic network-triggered replay and conflict resolution beyond last queued write wins remain future sync work.
 
 ## Mobile Home Architecture
 

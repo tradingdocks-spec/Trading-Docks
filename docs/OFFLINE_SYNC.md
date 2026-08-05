@@ -7,6 +7,9 @@
 - Implemented: Mobile has an offline operation queue in `mobile/services/storage/offline.ts`.
 - Implemented: Mobile work sessions are persisted locally by `mobile/features/sessions/session-provider.tsx`.
 - Partially Implemented: Offline operations can be enqueued, read, and cleared.
+- Implemented: Collector organization mutations use typed queue entries with a user id and de-dupe key so duplicate offline writes for the same user/card/action are replaced by the latest queued write.
+- Partially Implemented: Mobile exposes a Collector mutation replay helper that only attempts queued collector writes for the active user and leaves unrelated users' queued operations isolated.
+- Partially Implemented: Mobile Collector mutations use optimistic UI and queue writes when Supabase is unavailable or a network write fails.
 
 ## Missing Sync Behavior
 
@@ -17,9 +20,11 @@
 - Planned: Retry/backoff handling.
 - Planned: User-visible pending/synced/error states.
 - Planned: Data model for durable sync history.
+- Planned: Production-grade Collector replay needs durable retry/backoff, server idempotency, and conflict resolution beyond latest queued write wins.
 
 ## Production Guidance
 
 - Do not describe mobile offline sync as complete.
 - Treat current offline support as local persistence and queue scaffolding.
-- Before production mobile workflows depend on offline mode, define operation schemas for scan, buying, trade, card-show, and inventory changes.
+- Before production mobile workflows depend on offline mode, define operation schemas for scan, buying, trade, card-show, and remaining inventory changes.
+- Requires Production Configuration: DB-side Free-plan enforcement for direct native writes needs a reviewed Supabase RPC/trigger before mobile offline replay can be considered production-authoritative.

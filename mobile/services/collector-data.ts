@@ -4,6 +4,7 @@ import {
   COLLECTION_PAGE_SIZE,
   collectorCacheKeyForUser,
   type CollectionCard,
+  type StorageLocation,
   type RawInventoryItem,
   type RawInventoryLocation,
   type RawTradeBinderStatus,
@@ -13,6 +14,8 @@ import { appStorage } from '@/services/storage/app-storage';
 
 export type CollectorCollectionPage = {
   cards: CollectionCard[];
+  locations: StorageLocation[];
+  totalQuantity: number;
   stale: boolean;
   unavailableReason?: string;
 };
@@ -25,7 +28,7 @@ export async function loadCollectorCollectionPage({
   limit?: number;
 } = {}): Promise<CollectorCollectionPage> {
   if (!supabase) {
-    return { cards: [], stale: true, unavailableReason: 'Supabase collection storage is not configured.' };
+    return { cards: [], locations: [], totalQuantity: 0, stale: true, unavailableReason: 'Supabase collection storage is not configured.' };
   }
 
   let userId: string | null = null;
@@ -77,18 +80,18 @@ export async function loadCollectorCollectionPage({
       wishlist: (wishlist ?? []) as RawWishlistItem[],
     });
     await appStorage.setItem(collectorCacheKeyForUser(user.id), JSON.stringify(cards));
-    return { cards, stale: false };
+    return { cards, locations: buildStorageLocations((locations ?? []) as RawInventoryLocation[]), totalQuantity: cards.reduce((sum, card) => sum + card.quantityOwned, 0), stale: false };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Collection data is unavailable.';
     return userId
       ? loadCachedCollectionPage(userId, message)
-      : { cards: [], stale: true, unavailableReason: message };
+      : { cards: [], locations: [], totalQuantity: 0, stale: true, unavailableReason: message };
   }
 }
 
 export async function loadCollectorCardById(cardId: string): Promise<CollectorCollectionPage> {
   if (!supabase) {
-    return { cards: [], stale: true, unavailableReason: 'Supabase collection storage is not configured.' };
+    return { cards: [], locations: [], totalQuantity: 0, stale: true, unavailableReason: 'Supabase collection storage is not configured.' };
   }
 
   let userId: string | null = null;
@@ -107,18 +110,15 @@ export async function loadCollectorCardById(cardId: string): Promise<CollectorCo
       .eq('id', cardId)
       .maybeSingle();
     if (itemError) throw new Error(`Card details are unavailable: ${itemError.message}`);
-    if (!item) return { cards: [], stale: false };
+    if (!item) return { cards: [], locations: [], totalQuantity: 0, stale: false };
 
-    const locationId = locationIdForItem(item as RawInventoryItem);
-    const [{ data: locations }, { data: tradeStatuses }, { data: wishlist }] = await Promise.all([
-      locationId
-        ? supabase
-            .from('inventory_locations')
-            .select('id, name, location_type, data')
-            .eq('user_id', user.id)
-            .eq('id', locationId)
-            .limit(1)
-        : Promise.resolve({ data: [] }),
+    const [{ data: locations }, { data: tradeStatuses }, { data: wishlist }, { data: quantityRows }] = await Promise.all([
+      supabase
+        .from('inventory_locations')
+        .select('id, name, location_type, data')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true })
+        .limit(100),
       supabase
         .from('binder_card_trade_status')
         .select('inventory_item_id, status')
@@ -130,6 +130,11 @@ export async function loadCollectorCardById(cardId: string): Promise<CollectorCo
         .select('card_name, set_code, target_condition, target_finish')
         .eq('user_id', user.id)
         .limit(500),
+      supabase
+        .from('inventory_items')
+        .select('quantity')
+        .eq('user_id', user.id)
+        .limit(1000),
     ]);
 
     return {
@@ -139,28 +144,34 @@ export async function loadCollectorCardById(cardId: string): Promise<CollectorCo
         tradeStatuses: (tradeStatuses ?? []) as RawTradeBinderStatus[],
         wishlist: (wishlist ?? []) as RawWishlistItem[],
       }),
+      locations: buildStorageLocations((locations ?? []) as RawInventoryLocation[]),
+      totalQuantity: (quantityRows ?? []).reduce((sum, row) => sum + Number(row.quantity ?? 0), 0),
       stale: false,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Card details are unavailable.';
     return userId
       ? loadCachedCard(userId, cardId, message)
-      : { cards: [], stale: true, unavailableReason: message };
+      : { cards: [], locations: [], totalQuantity: 0, stale: true, unavailableReason: message };
   }
 }
 
 async function loadCachedCollectionPage(userId: string, unavailableReason: string): Promise<CollectorCollectionPage> {
   const cached = await appStorage.getItem(collectorCacheKeyForUser(userId));
-  if (!cached) return { cards: [], stale: true, unavailableReason };
+  if (!cached) return { cards: [], locations: [], totalQuantity: 0, stale: true, unavailableReason };
   try {
     const parsed: unknown = JSON.parse(cached);
     return {
       cards: Array.isArray(parsed) ? (parsed as CollectionCard[]) : [],
+      locations: [],
+      totalQuantity: Array.isArray(parsed)
+        ? (parsed as CollectionCard[]).reduce((sum, card) => sum + card.quantityOwned, 0)
+        : 0,
       stale: true,
       unavailableReason,
     };
   } catch {
-    return { cards: [], stale: true, unavailableReason };
+    return { cards: [], locations: [], totalQuantity: 0, stale: true, unavailableReason };
   }
 }
 
@@ -172,9 +183,23 @@ async function loadCachedCard(userId: string, cardId: string, unavailableReason:
   };
 }
 
-function locationIdForItem(item: RawInventoryItem) {
-  const payload = item.data ?? {};
-  return typeof payload.locationId === 'string'
-    ? payload.locationId
-    : item.location_id ?? null;
+function buildStorageLocations(locations: RawInventoryLocation[]): StorageLocation[] {
+  return locations.map((location) => {
+    const payload = location.data ?? {};
+    return {
+      id: location.id,
+      name: typeof payload.name === 'string' && payload.name.trim() ? payload.name : location.name ?? 'Unnamed location',
+      type: location.location_type === 'binder' ||
+        location.location_type === 'box' ||
+        location.location_type === 'sealed' ||
+        location.location_type === 'bulk' ||
+        location.location_type === 'custom'
+        ? location.location_type
+        : 'unknown',
+      description: typeof payload.description === 'string' ? payload.description : null,
+      zone: typeof payload.zone === 'string' ? payload.zone : null,
+      binderPage: null,
+      binderSlot: null,
+    };
+  });
 }

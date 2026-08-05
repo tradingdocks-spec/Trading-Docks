@@ -49,6 +49,8 @@
 - Past-due billing grants paid entitlements only while `current_period_end` remains in the future.
 - Suspended accounts receive no product entitlements and no Command Center access.
 - Platform role never implies paid product entitlements.
+- Implemented: Web Collector organization mutations enforce the Free 500-card limit through the canonical membership catalog before quantity writes are accepted.
+- Partially Implemented: Mobile Collector organization mutations validate the Free limit client-side for immediate UX and rely on Supabase RLS for ownership. A DB-side migration proposal is still required for production-authoritative native Free-limit enforcement.
 
 ## Current Gaps
 
