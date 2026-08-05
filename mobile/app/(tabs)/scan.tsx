@@ -33,6 +33,7 @@ import {
 } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { classifyMagicRecognition, recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
+import { recognizeMagicStillCapture, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { loadScannerContext, loadScannerDraft, saveScannerConfirmation, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
 import {
   createInterruptedScanDraft,
@@ -52,7 +53,6 @@ import {
   applyScannerCalibrationToGuide,
   buildGuideCropMapping,
   canAutoCaptureNative,
-  captureOutcomeForRecognition,
   diagnosticsFromFrameAnalysis,
   isScannerDiagnosticsEnabled,
   nativeScannerCalibrationKey,
@@ -67,6 +67,7 @@ import { appStorage } from '@/services/storage/app-storage';
 import type { StorageLocation } from '@/services/storage-location-manager';
 
 type ScannerContext = { userId: string; locations: StorageLocation[]; currentTotalQuantity: number };
+type ScanRecognitionStage = 'idle' | 'reading_title' | 'finding_card' | 'review_ready' | 'failed';
 const INITIAL_SESSION_MODE: ContinuousScannerMode = 'card_show_purchase';
 
 export default function Scan() {
@@ -84,6 +85,7 @@ export default function Scan() {
   const [cameraReady, setCameraReady] = useState(false);
   const [previewDimensions, setPreviewDimensions] = useState<PreviewDimensions | null>(null);
   const [captureState, setCaptureState] = useState<ScannerCaptureState>('idle');
+  const [recognitionStage, setRecognitionStage] = useState<ScanRecognitionStage>('idle');
   const [sessionInsertionResult, setSessionInsertionResult] = useState<ScannerDiagnosticsSnapshot['sessionInsertionResult']>('not_attempted');
   const [scannerCalibration, setScannerCalibration] = useState<ScannerCalibrationPreferences>(() => normalizeScannerCalibrationPreferences());
   const [torchEnabled, setTorchEnabled] = useState(false);
@@ -91,6 +93,7 @@ export default function Scan() {
   const [query, setQuery] = useState('');
   const [candidates, setCandidates] = useState<ScannerCardCandidate[]>([]);
   const [magicRecognition, setMagicRecognition] = useState<MagicRecognitionResult | null>(null);
+  const [magicStillScan, setMagicStillScan] = useState<MagicStillScanResult | null>(null);
   const [showMagicWhy, setShowMagicWhy] = useState(false);
   const [selected, setSelected] = useState<ScannerCardCandidate | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -137,11 +140,11 @@ export default function Scan() {
     analysis: null,
     captureState,
     duplicateFingerprintStatus: autoScanner.duplicateProtection.awaitingCardRemoval ? 'awaiting_removal' : 'unavailable',
-    recognitionStage: capturedFrame ? 'provider_unavailable' : 'not_started',
-    recognitionLatencyMs: null,
+    recognitionStage: recognitionStage === 'review_ready' ? 'recognized' : recognitionStage === 'failed' ? 'failed' : capturedFrame ? 'capture_only' : 'not_started',
+    recognitionLatencyMs: magicStillScan?.ok ? magicStillScan.ocr.latencyMs + magicStillScan.lookupLatencyMs : null,
     sessionInsertionResult,
     signalAvailability: NO_NATIVE_VISUAL_SIGNALS,
-  }), [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, capturedFrame, captureState, guideLayout, previewDimensions, sessionInsertionResult]);
+  }), [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, capturedFrame, captureState, guideLayout, magicStillScan, previewDimensions, recognitionStage, sessionInsertionResult]);
   const guideCropMapping = useMemo(
     () => previewDimensions ? buildGuideCropMapping(previewDimensions, guideLayout) : null,
     [guideLayout, previewDimensions],
@@ -149,6 +152,7 @@ export default function Scan() {
   const foilDiagnostics = useMemo(() => summarizeFoilDiagnostics([]), []);
   const sessionTotals = useMemo(() => session ? calculateSessionTotals(session) : null, [session]);
   const offerWorkspace = scannerModeUsesOfferWorkspace(sessionMode);
+  const acceptedOcrCandidate = magicStillScan?.ok ? magicStillScan.selected : null;
 
   useEffect(() => {
     let active = true;
@@ -272,42 +276,43 @@ export default function Scan() {
       const frameLabel = `${photo.width} x ${photo.height}`;
       setCapturedFrame(frameLabel);
       setCaptureState('captured');
+      setRecognitionStage('reading_title');
       setAutoScanner((current) => markCaptureStarted(current));
-      if (session) {
-        const recognitionReport = createRecognitionPipelineReport({
-          detectedGame: 'unknown',
-          candidates: [],
-          confidence: {
-            overall: 0,
-            threshold: 82,
-            requiresConfirmation: true,
-            conflicts: ['Native OCR, artwork matching, and finish recognition are not connected.'],
-            signals: [],
-          },
-          recognitionMethod: 'unavailable',
-        });
-        setSession(addRecognitionToSession(session, {
-          stableScanId: createScanId(),
-          candidate: null,
-          recognition: recognitionReport,
-          quantity: 1,
-          destination: 'export_only',
-          notes: 'Physical still captured locally; identification requires manual exact-printing search.',
-        }));
-        setSessionInsertionResult('inserted');
+      const scan = await recognizeMagicStillCapture({
+        imageUri: photo.uri,
+        preview: previewDimensions ?? { width: previewWidth, height: 440 },
+        image: { width: photo.width, height: photo.height },
+        guide: guideLayout,
+        online: true,
+        cachedCandidates: candidates.map(scannerCandidateToRecognitionCandidate),
+        onStage: setRecognitionStage,
+      });
+      setMagicStillScan(scan);
+      if (scan.ok) {
+        setCandidates(scan.candidates);
+        setSelected(scan.selected);
+        setMagicRecognition(scan.recognition);
+        setQuery(scan.signals.normalizedTitle ?? query);
+        setSessionInsertionResult('not_attempted');
+        setRecognitionStage('review_ready');
+        setSuccess(scan.selected
+          ? `${scan.selected.name} is ready to confirm. Temporary capture ${scan.cleanup.ok && scan.cleanup.deleted ? 'deleted' : 'cleanup needs review'}.`
+          : 'OCR finished, but no Magic printing was selected. Use manual search.');
       } else {
+        setMagicRecognition(scan.ocr?.ok === false ? { ok: false, reason: scan.reason, offline: false } : null);
         setSessionInsertionResult('failed');
+        setRecognitionStage('failed');
+        setError(`${scan.reason} Manual search is still available.`);
       }
       setAutoScanner((current) => markScanResult(current, {
         fingerprint: frameLabel,
         now: Date.now(),
         scanId: createScanId(),
       }));
-      const outcome = captureOutcomeForRecognition({ captured: true, providerAvailable: false, appendedToSession: Boolean(session) });
-      setSuccess(outcome.message);
       setCameraActive(false);
     } catch (captureError) {
       setCaptureState('failed');
+      setRecognitionStage('failed');
       setSessionInsertionResult('failed');
       setError(captureError instanceof Error ? captureError.message : 'Could not capture the card image.');
     }
@@ -329,6 +334,7 @@ export default function Scan() {
     const result = await searchScannerPrintings(query, true);
     if (result.ok) {
       setCandidates(result.candidates);
+      setMagicStillScan(null);
       const recognition = await recognizeMagicCard({
         nameObservation: { regionType: 'name', text: query, confidence: 72 },
         online: false,
@@ -470,6 +476,7 @@ export default function Scan() {
     setSelected(null);
     setCandidates([]);
     setMagicRecognition(null);
+    setMagicStillScan(null);
     setShowMagicWhy(false);
     setQuantity(1);
     setTradeStatus('not_for_trade');
@@ -496,7 +503,7 @@ export default function Scan() {
         <View style={s.header}>
           <TDText variant="label" tone="info">Scanner</TDText>
           <TDText variant="display">Continuous intake</TDText>
-          <TDText variant="small" tone="muted">Hands-free capture is wired around provider contracts. This build stays confirmation-safe until visual recognition is benchmarked.</TDText>
+          <TDText variant="small" tone="muted">Captured stills are read locally with iOS Apple Vision, then matched against Scryfall. Exact-printing confirmation is still required.</TDText>
         </View>
 
         <TDCard style={s.sessionCard}>
@@ -556,7 +563,7 @@ export default function Scan() {
               </View>
               <View style={s.liveStatus}>
                 <TDBadge tone="warning">Manual fallback active</TDBadge>
-                <TDText variant="caption" tone="muted">{autoCaptureDecision.ok ? 'Ready for auto-capture' : `Auto-capture unavailable: ${autoCaptureDecision.reason}`}</TDText>
+                <TDText variant="caption" tone="muted">{recognitionStageLabel(recognitionStage, autoCaptureDecision.reason)}</TDText>
               </View>
               <View style={s.cameraControls}>
                 <TDButton label={torchEnabled ? 'Torch off' : 'Torch on'} variant="secondary" onPress={() => setTorchEnabled((value) => !value)} />
@@ -616,7 +623,20 @@ export default function Scan() {
                 <DiagnosticCell label="Duplicate" value={diagnosticsSnapshot.duplicateFingerprintStatus.replaceAll('_', ' ')} />
                 <DiagnosticCell label="Recognition" value={diagnosticsSnapshot.recognitionStage.replaceAll('_', ' ')} />
                 <DiagnosticCell label="Session" value={diagnosticsSnapshot.sessionInsertionResult.replaceAll('_', ' ')} />
+                <DiagnosticCell label="OCR stage" value={recognitionStage.replaceAll('_', ' ')} />
+                <DiagnosticCell label="OCR latency" value={magicStillScan?.ok ? `${magicStillScan.ocr.latencyMs} ms` : 'unavailable'} />
+                <DiagnosticCell label="Scryfall" value={magicStillScan?.ok ? `${magicStillScan.lookupLatencyMs} ms` : 'unavailable'} />
+                <DiagnosticCell label="Cleanup" value={cleanupDiagnostic(magicStillScan)} />
               </View>
+              {magicStillScan?.ok ? (
+                <View style={s.optionGroup}>
+                  <TDText variant="caption" tone="muted">Raw title: {magicStillScan.signals.rawTitle ?? 'unavailable'}</TDText>
+                  <TDText variant="caption" tone="muted">Normalized title: {magicStillScan.signals.normalizedTitle ?? 'unavailable'}</TDText>
+                  <TDText variant="caption" tone="muted">Collector OCR: {magicStillScan.signals.rawCollectorText ?? 'unavailable'}</TDText>
+                  <TDText variant="caption" tone="muted">Parsed: {magicStillScan.signals.collectorInfo?.setCode ?? 'set ?'} #{magicStillScan.signals.collectorInfo?.collectorNumber ?? '?'}</TDText>
+                  <TDText variant="caption" tone="muted">Top three: {magicStillScan.candidates.slice(0, 3).map((candidate) => `${candidate.name} ${candidate.setCode ?? '?'} #${candidate.collectorNumber ?? '?'}`).join(' | ') || 'unavailable'}</TDText>
+                </View>
+              ) : null}
               <View style={s.diagnosticsControls}>
                 <TDButton label="Scale -" variant="secondary" onPress={() => updateCalibration({ guideScale: scannerCalibration.guideScale - 0.02 })} />
                 <TDButton label="Scale +" variant="secondary" onPress={() => updateCalibration({ guideScale: scannerCalibration.guideScale + 0.02 })} />
@@ -662,6 +682,8 @@ export default function Scan() {
         </TDCard>
 
         {searching ? <TDLoadingState title="Searching printings" message="Looking up exact paper printings." /> : null}
+        {recognitionStage === 'reading_title' ? <TDLoadingState title="Reading title" message="Apple Vision is reading local guide regions." /> : null}
+        {recognitionStage === 'finding_card' ? <TDLoadingState title="Finding card" message="Matching OCR observations against Scryfall printings." /> : null}
         {!searching && magicRecognition?.ok && magicRecognition.selected ? (
           <TDCard style={s.section}>
             <View style={s.syncHeader}>
@@ -674,7 +696,14 @@ export default function Scan() {
               </TDBadge>
             </View>
             <TDText variant="small" tone="muted">{magicPresentation?.description ?? 'Assisted by Scryfall metadata. Confirm the exact printing before saving.'}</TDText>
-            <TDText variant="caption" tone="muted">Signal source: Scryfall metadata and supplied scanner observations. Visual certainty is not benchmarked yet.</TDText>
+            <TDText variant="caption" tone="muted">Signal source: {magicStillScan?.ok ? 'Apple Vision title/collector OCR plus Scryfall metadata. Artwork and finish remain unavailable.' : 'Scryfall metadata and supplied scanner observations. Visual certainty is not benchmarked yet.'}</TDText>
+            {magicStillScan?.ok ? (
+              <View style={s.optionGroup}>
+                <TDText variant="caption" tone="muted">Raw OCR title: {magicStillScan.signals.rawTitle ?? 'Unavailable'}</TDText>
+                <TDText variant="caption" tone="muted">Normalized title: {magicStillScan.signals.normalizedTitle ?? 'Unavailable'}</TDText>
+                <TDText variant="caption" tone="muted">Collector OCR: {magicStillScan.signals.rawCollectorText ?? 'Unavailable'}</TDText>
+              </View>
+            ) : null}
             <View style={s.signalGrid}>
               {magicRecognition.confidence.signals.map((signal) => (
                 <View key={signal.key} style={s.signalCell}>
@@ -692,6 +721,16 @@ export default function Scan() {
               </View>
             ) : null}
             <TDButton label={showMagicWhy ? 'Hide match details' : 'Why this match?'} variant="secondary" onPress={() => setShowMagicWhy((value) => !value)} />
+            <View style={s.syncActions}>
+              <TDButton label="Accept top match" disabled={!acceptedOcrCandidate} onPress={() => acceptedOcrCandidate ? selectCandidate(acceptedOcrCandidate) : undefined} />
+              <TDButton label="Retake" variant="secondary" onPress={() => {
+                setCameraReady(false);
+                setCaptureState('camera_not_ready');
+                setRecognitionStage('idle');
+                setCameraActive(true);
+              }} />
+              <TDButton label="Manual search" variant="secondary" onPress={() => setMagicStillScan(null)} />
+            </View>
             {showMagicWhy ? (
               <View style={s.optionGroup}>
                 {magicRecognition.explanation.map((line) => <TDText key={line} variant="caption" tone="muted">{line}</TDText>)}
@@ -810,6 +849,21 @@ function scannerSyncSummary(entries: ScannerQueuedAdd[]) {
   if (actionRequired) return `${actionRequired} queued scan${actionRequired === 1 ? '' : 's'} need action before sync can finish.`;
   if (failed) return `${failed} queued scan${failed === 1 ? '' : 's'} failed replay and can be retried.`;
   return 'Queued scanner adds will sync on reconnect, app resume, or manual retry.';
+}
+
+function recognitionStageLabel(stage: ScanRecognitionStage, autoCaptureReason?: string) {
+  if (stage === 'reading_title') return 'Reading title from the local captured still';
+  if (stage === 'finding_card') return 'Finding card in Scryfall';
+  if (stage === 'review_ready') return 'Review the top match and alternatives';
+  if (stage === 'failed') return 'OCR needs manual search fallback';
+  return `Auto-capture unavailable: ${autoCaptureReason ?? 'manual still capture is active'}`;
+}
+
+function cleanupDiagnostic(scan: MagicStillScanResult | null) {
+  if (!scan?.cleanup) return 'unavailable';
+  if (scan.cleanup.ok && scan.cleanup.deleted) return 'deleted';
+  if (scan.cleanup.ok) return scan.cleanup.reason.replaceAll('_', ' ');
+  return 'failed';
 }
 
 function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate): RecognitionCandidate {

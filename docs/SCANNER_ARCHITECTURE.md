@@ -13,16 +13,18 @@
 - Implemented: `mobile/services/scanner-vision-engine.ts` is the first replaceable Vision Engine layer. It provides CardBoundary, Perspective, Motion, Blur, Lighting, Glare, CardPresence, CardRemoval, FrameQuality, and RegionExtraction providers for native-fed luma samples.
 - Implemented: The Vision Engine detects four corners, aspect ratio, rotation, perspective, fill percentage, center offset, edge visibility, confidence, blur, motion, lighting, glare, distance, stability timing, capture readiness, removal/rearm state, FPS, latency, and in-memory normalized crops for title, artwork, set symbol, collector number, bottom-left, and type-line regions.
 - Implemented: `mobile/services/live-card-recognition.ts` now delegates live frame analysis to the Vision Engine, then keeps OCR mapping and Magic adapter handoff separate.
+- Implemented: `mobile/modules/trading-docks-vision-ocr` adds a local Expo iOS module backed by Apple Vision `VNRecognizeTextRequest` for captured-still OCR.
+- Implemented: `mobile/services/magic-ocr-pipeline.ts` maps the visible guide to captured-image regions, reads title and collector text locally, queries Scryfall, returns top-three Magic candidates, deletes temporary captures, and caps title-only confidence.
 - Implemented: `mobile/services/native-scanner-calibration.ts` defines the native QA diagnostics and calibration contract, including camera-ready gating, guide/crop mapping, unavailable-signal auto-capture blocking, capture outcome labels, card-removal rearm checks, and evidence-only foil diagnostics.
 - Implemented: The active Scan screen does not call `takePictureAsync` until `CameraView.onCameraReady` fires.
 - Implemented: Physical still captures append an honest session outcome even when identification is unavailable, then preserve manual exact-printing confirmation as the write gate.
 - Implemented: The mobile project includes `expo-dev-client`, `react-native-vision-camera`, `react-native-nitro-modules`, and `react-native-nitro-image` as the native-capable development-build path for future high-performance frame delivery.
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
-- Partially Implemented: Camera capture is local-first and still does not include a benchmarked native OCR, artwork-recognition, set-symbol-recognition, or finish-classification provider.
+- Partially Implemented: Camera capture is local-first and now includes iOS captured-still OCR, but it still does not include benchmarked artwork recognition, set-symbol recognition, perspective correction, Android OCR, or finish classification.
 - Partially Implemented: The mobile Scan tab now uses a session-first continuous-intake layout and correct 63:88 card guide, but live auto-capture still needs the VisionCamera frame bridge and physical-device QA before hands-free capture is production-ready.
 - Partially Implemented: The Magic adapter can resolve and explain likely Magic printings from available metadata signals, but it must require user confirmation when exact-printing signals are missing, weak, conflicting, or below threshold.
 - Partially Implemented: Pokemon, One Piece, and Lorcana adapters remain replaceable architecture stubs, not benchmarked recognition providers.
-- Planned: OCR, artwork matching, set-symbol detection, collector-info parsing from image crops, perspective correction, and foil classification need provider implementations plus benchmarks before any accuracy claim.
+- Planned: Artwork matching, set-symbol detection, perspective correction, Android OCR, and foil classification need provider implementations plus benchmarks before any accuracy claim.
 
 ## Official Platform Constraints
 
@@ -37,7 +39,7 @@
 - Implemented: Game detection contracts run before game-specific recognition in the multi-TCG architecture.
 - Partially Implemented: `CameraCaptureProvider` still capture exists through `expo-camera`; native continuous frame processing is a development-build integration target.
 - Implemented: `CardBoundaryProvider` contract exists, and `live-card-recognition.ts` provides a luma-frame implementation for bounds/corners/quality observations. Perspective correction is represented in the crop contract but is not yet producing a corrected bitmap.
-- Partially Implemented: `TextRecognitionProvider` contracts support OCR observations for name, type line, collector info, set code, collector number, language, and rarity. No production OCR engine is active yet.
+- Partially Implemented: `TextRecognitionProvider` contracts support OCR observations for name, type line, collector info, set code, collector number, language, and rarity. iOS captured-still OCR is implemented through Apple Vision; Android/web remain unsupported and live frame OCR is not connected.
 - Partially Implemented: `ArtworkMatchingProvider` contracts support layout and artwork fingerprint observations. No benchmarked artwork-similarity engine is active yet.
 - Partially Implemented: `SetSymbolProvider` returns set-symbol contracts only; no production set-symbol recognizer is active yet.
 - Implemented: `CollectorInfoProvider` parsing helpers normalize targeted OCR text and parse set code, collector number, language, rarity, and confidence when text observations are supplied.
@@ -45,7 +47,7 @@
 - Implemented: `PrintingCandidateProvider` ranks possible Scryfall printings.
 - Implemented: `ConfidenceFusionProvider` produces explainable overall and per-signal confidence.
 - Implemented: Magic confidence output includes overall confidence, top three candidates, per-signal scores for name, set code, collector number, artwork, set symbol, layout, finish compatibility, and language compatibility, conflicts, and "Why this match?" explanation lines.
-- Planned: Active visual providers are contracts only. They are replaceable and independently testable, but no production OCR/artwork/finish provider is benchmarked yet.
+- Planned: Artwork, set-symbol, finish, and live-frame OCR providers remain replaceable contracts until benchmarked.
 
 ## Native Device Calibration
 
@@ -97,8 +99,8 @@
 
 ## Remaining Work
 
-- Planned: Implement benchmarked OCR and artwork providers.
-- Planned: Add native OCR or image-processing dependencies only after privacy, Expo development-build constraints, fixture coverage, and latency budgets are reviewed.
+- Partially Implemented: iOS captured-still OCR is implemented, but benchmark accuracy is not claimed until product-owner fixtures and physical-device QA are complete.
+- Planned: Implement benchmarked artwork providers.
 - Planned: Implement perspective correction and robust region cropping against real images.
 - Planned: Implement multi-frame foil analysis with glare/sleeve/lighting limitations.
 - Planned: Add native physical-device QA for iOS and Android camera permission, torch, capture latency, and cache cleanup.

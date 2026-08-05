@@ -64,8 +64,9 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Add continuous scanner/session and card-show offer foundations with standard card guide geometry, quality-gate contracts, duplicate protection, local running sessions, review filters, offer calculations, and CSV serialization.
 - Implemented: Add the first local live-frame analyzer for development-build frame samples, including card-boundary, four-corner, aspect, guide-fill, blur, motion, lighting, glare, fingerprint, targeted OCR mapping, and Magic adapter handoff tests.
 - Implemented: Add native scanner calibration contracts, development-only diagnostics, camera-ready capture gating, local guide calibration, and visible unidentified-capture session outcomes for physical QA.
+- Implemented: Add native iOS Magic OCR v1 with a local Expo Apple Vision module, guide-assisted captured-still crop mapping, OCR normalization, Scryfall top-three lookup, confidence caps, temporary capture cleanup, and diagnostics.
 - Partially Implemented: Active camera mode still needs VisionCamera frame bridge wiring and physical-device QA before hands-free auto-capture is production-ready.
-- Partially Implemented: OCR/image recognition, artwork matching, set-symbol recognition, collector-info cropping, and foil classification are provider contracts only until benchmarked; the scanner does not fake recognition accuracy.
+- Partially Implemented: iOS captured-still OCR is implemented, but artwork matching, set-symbol recognition, perspective correction, Android OCR, and foil classification remain provider contracts until benchmarked; the scanner does not fake recognition accuracy.
 - Partially Implemented: Magic recognition is metadata-backed and confirmation-first until product-owner private fixture benchmarks establish accuracy, latency, and false high-confidence rates. The builder labels ground truth; it does not determine ground truth from captured images.
 - Partially Implemented: Multi-TCG catalog providers and universal inventory persistence remain planned; active writes are still Magic-compatible.
 - Partially Implemented: Native network reachability is not independently observed yet; queued scanner adds still retry on app resume, session restoration, and manual retry.
@@ -79,4 +80,5 @@ Do not add new production features until the foundation items below are reviewed
 
 - Planned: RevenueCat-backed mobile subscriptions if mobile in-app purchases become a production requirement.
 - Planned: Native mobile release pipeline, app store signing, and deep-link verification.
+- Requires Production Configuration: Rebuild the iOS development client after native scanner module changes with `npx eas build --profile development --platform ios`.
 - Planned: Multi-tenant workspace/team permission model hardening beyond current owner/member helpers.

@@ -446,6 +446,23 @@ export async function searchScryfallMagicCatalog(query: MagicCatalogQuery): Prom
   return (payload.data ?? []).slice(0, 24).map(scryfallToRecognitionCandidate).filter((candidate): candidate is RecognitionCandidate => Boolean(candidate));
 }
 
+export async function searchScryfallMagicCatalogFuzzy(query: MagicCatalogQuery): Promise<RecognitionCandidate[]> {
+  if (!query.name) return [];
+  const parts = ['game:paper', query.name.replaceAll('"', '')];
+  if (query.setCode) parts.push(`set:${query.setCode.toLowerCase()}`);
+  if (query.collectorNumber) parts.push(`number:${query.collectorNumber}`);
+  const url = `https://api.scryfall.com/cards/search?${new URLSearchParams({
+    q: parts.join(' '),
+    unique: 'prints',
+    order: 'released',
+    dir: 'desc',
+  }).toString()}`;
+  const response = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'TradingDocksMobile/1.0 magic-recognition' } });
+  if (!response.ok) throw new Error('Scryfall fuzzy candidate search failed.');
+  const payload = await response.json() as { data?: ScryfallCard[] };
+  return (payload.data ?? []).slice(0, 24).map(scryfallToRecognitionCandidate).filter((candidate): candidate is RecognitionCandidate => Boolean(candidate));
+}
+
 export function createMagicBenchmarkManifest(input: {
   fixtureRoot: string;
   fixtures?: ScannerBenchmarkFixture[];

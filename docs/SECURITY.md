@@ -14,7 +14,7 @@
 - Implemented: Platform role does not imply paid membership entitlement; owner/admin/support/analyst roles gain platform authority separately from product access.
 - Implemented: Admin membership overrides are explicit product-entitlement overrides, separate from platform role and Stripe billing state.
 - Implemented: Collector mutation security proposal `supabase/migrations/202608050001_collector_mutation_security_proposal.sql` adds database-layer ownership checks and a transactional Free-plan 500 total-card quantity cap for direct mobile writes, web writes, and offline replay. It has not been applied to production.
-- Implemented: Mobile scanner foundation does not retain card photos by default and does not upload captured images without a clear user scan action. `expo-camera` supports local still capture, while OCR/artwork/finish recognition remains unavailable until native providers are connected and benchmarked.
+- Implemented: Mobile scanner foundation does not retain card photos by default and does not upload captured images without a clear user scan action. `expo-camera` supports local still capture, and iOS captured-still OCR now runs locally through Apple Vision without uploading images.
 - Implemented: Mobile scanner replay refuses to process queued scan adds unless the authenticated session user matches the queue entry owner.
 - Implemented: Scanner replay diagnostic logging records trigger and failure message only; it does not log passwords, auth tokens, Supabase keys, or captured card images.
 - Implemented: Queued scanner adds remain in user-scoped local storage across sign-out and are not surfaced to a different signed-in account.
@@ -30,6 +30,7 @@
 - Implemented: Local guide calibration preferences are stored by user id in app storage and are not production configuration.
 - Partially Implemented: VisionCamera/Nitro dependencies are installed for a custom Expo development build, but physical-device cleanup and native frame-buffer handling still need QA before production claims.
 - Planned: Before remote OCR, artwork matching, foil analysis, or analytics for continuous scanning, add explicit consent, retention controls, and image-free logging guarantees.
+- Implemented: Native Magic OCR v1 deletes temporary captured stills after Apple Vision processing and reports cleanup status without displaying source image paths.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.
 
@@ -56,7 +57,7 @@
 - Planned: Before enabling OCR/image-recognition uploads, add explicit consent copy, retention controls, provider logging review, and tests proving photos are not stored by default.
 - Planned: If scanner replay moves to a server RPC, add an auditable server-side idempotency ledger and structured logging that redacts card payloads where required.
 - Planned: Remote scanner providers must use HTTPS-only communication and sanitized telemetry that excludes images, tokens, service-role keys, and private user data.
-- Planned: If native OCR/image-processing dependencies are added, document Expo Go versus development-build limitations and verify that local image cache cleanup remains privacy-safe.
+- Implemented: Native OCR is an iOS development-build feature, not an Expo Go feature; Android/web return explicit unsupported states.
 - Planned: Before collecting shared scanner fixtures, confirm copyright permission, storage location, retention window, and access controls with the product owner.
 - Planned: Pokemon, One Piece, and Lorcana catalog providers require licensing/API review before mobile or server integration; the mobile client must not scrape publisher pages directly.
 

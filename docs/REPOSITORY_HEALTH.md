@@ -58,8 +58,9 @@
 - Implemented: `mobile/services/live-card-recognition.ts` adds synthetic-tested local frame analysis for card bounds, corners, aspect ratio, guide fit, blur, motion, lighting, glare, fingerprints, targeted OCR mapping, and Magic adapter handoff.
 - Implemented: `mobile/services/native-scanner-calibration.ts` adds synthetic-tested native QA contracts for camera-ready gating, guide/crop geometry, unavailable-signal blocking, visible capture outcomes, card-removal rearm checks, and evidence-only foil diagnostics.
 - Partially Implemented: The active Scan tab still uses the Expo Camera manual fallback and does not yet feed native VisionCamera frames into the analyzer.
+- Implemented: Native iOS Magic OCR v1 adds a local Expo module backed by Apple Vision, guide-assisted crop mapping, OCR normalization, top-three Scryfall matching, confidence caps for title-only observations, and temporary capture deletion.
 - Partially Implemented: Physical-device scanner QA remains unperformed in this repository; iOS/Android preview scaling, safe areas, capture timing, tab resume, sleeves, glare, and rapid replacement must be verified with `docs/NATIVE_SCANNER_QA.md`.
-- Partially Implemented: Magic visual recognition still lacks benchmarked OCR, artwork embedding, set-symbol detection, perspective correction, and finish classification providers. The active UI must continue requiring confirmation.
+- Partially Implemented: Magic visual recognition still lacks benchmarked accuracy, artwork embedding, set-symbol detection, perspective correction, Android OCR, and finish classification providers. The active UI must continue requiring confirmation.
 - Partially Implemented: The benchmark builder captures and labels fixtures, but native image file movement/deletion must still be verified on physical iOS/Android development builds before relying on it for production calibration collection.
 - Partially Implemented: Native scanner replay still lacks a standalone network reachability trigger; without an approved reachability dependency it retries on app resume, session restore, and manual retry while Expo Web also uses the browser reconnect event.
 - Partially Implemented: Inventory remains Magic-compatible in the active write path. Multi-game persistence needs a migration proposal and catalog provider review before production use.
@@ -74,6 +75,7 @@
 - Requires Production Configuration: Validate Stripe, Supabase, Cloudflare, Resend, Vercel, and marketplace settings in staging.
 - Partially Implemented: Cross-account isolation is documented but not automated in CI.
 - Planned: Add durable rate limiting and observability.
+- Requires Production Configuration: The new Apple Vision local module requires a fresh EAS iOS development build before product-owner physical QA.
 
 ## Architecture Improvements
 
@@ -102,6 +104,7 @@
 - Implemented: Focused mobile design-system tests cover token exports, semantic colors, button disabled/loading behavior, input error state, and accessibility metadata.
 - Implemented: Focused mobile design-system tests now cover selectable control accessibility, minimum touch target constants, and zero negative tracking for mobile display/heading typography.
 - Implemented: Focused mobile navigation/auth contract tests cover protected-route loading, Collector/Seller/Store tab labels, five-tab composition, no Explore placeholder tab, center-action reachability, safe-area sizing, admin route access, normal-user admin denial, fallback account type, and selected tab state.
+- Implemented: Focused native Magic OCR tests cover native-module interface validation, unsupported-platform behavior, guide-to-capture mapping, OCR response mapping, title normalization, collector parsing, candidate ordering, confidence caps, cleanup, and scanner-session insertion preparation.
 - Implemented: Focused identity/access tests cover owner, admin, support, analyst, normal user, missing role, suspended account, admin with Free membership, Seller without admin role, and authorized/unauthorized web admin route decisions.
 - Planned: Auth redirect and callback tests.
 - Implemented: Focused membership entitlement tests cover prices, annual savings, limits, financial access, Deal Desk access, web workspace access, Store employee entitlement, role separation, billing fallback, and unknown-tier fallback.
