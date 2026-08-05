@@ -9,6 +9,7 @@
 - Implemented: Replaceable adapter contracts exist for Magic, Pokemon, One Piece, and Lorcana.
 - Implemented: Magic now uses `MagicRecognitionAdapter` from `mobile/services/magic-recognition-provider.ts` as the routed reference implementation instead of the prior stub.
 - Implemented: Mixed scan sessions track candidates, unsupported observations, pending sync count, failed items, combined export mode, and game-separated export mode.
+- Implemented: Continuous scanner sessions can include Magic, Pokemon, One Piece, Lorcana, and unknown lines for local offer/export totals.
 - Implemented: Unsupported cards can be preserved as `UnsupportedCardObservation`; they are not forced into the nearest supported game.
 - Partially Implemented: Magic has Scryfall-backed candidate resolution and explainable ranking, but still depends on supplied OCR/artwork/layout/finish observations and private benchmark fixtures before any production visual-accuracy claim.
 - Partially Implemented: Pokemon, One Piece, and Lorcana adapters are architecture stubs. They define region maps, finish taxonomies, provider ids, and routing, but they do not run production OCR, artwork matching, or game catalog lookup.
@@ -20,6 +21,7 @@
 - Implemented: Game-specific adapter boundaries own region maps, card identifiers, candidate catalog lookup, metadata validation, finish taxonomy, and signal weights.
 - Implemented: Manual game correction updates the candidate, card identity, printing identity, and game-confidence record.
 - Planned: The confirmation UI should expose the detected game badge on every result and allow manual game correction before writing inventory.
+- Partially Implemented: The Session Review route can filter mixed-session lines by game, but non-Magic recognition remains provider-stubbed and must not be marketed as working visual recognition.
 
 ## Game-Specific Fields
 

@@ -12,6 +12,7 @@
 - Partially Implemented: Magic has a fixture-driven benchmark runner, report serializers, threshold classes, private local fixture manifest validation, development-only fixture builder, and calibration recommendations, but no labeled Magic-only image dataset has been supplied or executed in this repository.
 - Planned: No game-specific visual fixture dataset or mixed-stack image dataset has been run against the scanner in this repository.
 - Planned: Do not publish scanner accuracy, foil accuracy, latency, manual-correction, or failure-rate numbers until the benchmark runner has processed reviewed fixtures.
+- Planned: Continuous auto-capture thresholds for boundary, motion, blur, glare, lighting, and stability must be benchmarked with real card-show fixture footage before reducing confirmation requirements.
 
 ## Fixture Categories
 

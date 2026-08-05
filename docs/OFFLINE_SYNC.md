@@ -64,7 +64,9 @@
 - Implemented: Signing out preserves a user's scanner queue in local storage and stops replay because the worker requires a matching authenticated `userId`.
 - Implemented: Scanner intelligence frame/session contracts are user-scoped and default to no image retention or upload.
 - Implemented: Mixed TCG session contracts are user-scoped and keep unsupported-card observations separate from supported candidates.
+- Implemented: Continuous scanner sessions persist locally under a user-scoped key and keep running offer/export lines available through interruption.
 - Implemented: Manual search can show cached recent candidates while offline when a recent match exists.
+- Partially Implemented: Continuous session export can be generated from local data, but share/email/export replay is not durable yet.
 - Partially Implemented: Camera capture can happen offline, but active recognition is limited to local contracts and cached Scryfall candidates where available.
 - Partially Implemented: Multi-TCG catalog lookup for Pokemon, One Piece, and Lorcana is not available offline because those provider catalogs are not approved or cached yet.
 - Partially Implemented: New online card search and future OCR/image recognition require network access.

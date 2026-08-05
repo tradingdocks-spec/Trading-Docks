@@ -58,6 +58,7 @@ Raw colors remain available only as palette anchors. New product components shou
 - Implemented: Components include typed props, variants, disabled/loading states where relevant, accessible roles/labels where relevant, web focus styling, and native press feedback.
 - Implemented: The Collector Workspace browser uses TD primitives on web and mobile for cards, inputs, badges, screen layout, loading, empty, no-results, and error states.
 - Implemented: The redesigned mobile Home uses the existing TD primitives and shared tokens for header, portfolio card, action buttons, briefing, active-session card, and empty activity state.
+- Implemented: The continuous scanner uses TD primitives, dark semantic tokens, compact badges, equal-height controls, text guidance, and a correctly proportioned 63:88 card guide instead of a generic camera form.
 - Partially Implemented: Existing `Button`, `Card`, and `Badge` in `src/components/ui` remain supported and are not deleted.
 - Planned: `TDChart`, `TDModal`, `TDToast`, and `TDNavigation` are deferred to later focused tasks.
 

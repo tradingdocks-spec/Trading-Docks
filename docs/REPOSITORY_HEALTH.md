@@ -196,3 +196,4 @@
 6. Use the feature-flagged benchmark builder to collect a reviewed starter dataset, then run `npm run benchmark:magic-scanner -- --manifest <private-manifest.json>` before lowering manual-confirmation friction.
 7. Add an approved native reachability dependency or platform monitor if scanner replay must trigger immediately on native reconnect while the app remains foregrounded.
 8. Add scanner-to-Deal Desk and card-show prep integrations only after the validated confirmation contract is reviewed.
+9. Validate the continuous scanner on physical devices; current implementation includes the state machine, guide geometry, offer session, duplicate protection, and CSV serialization, but live camera boundary/OCR/foil providers are still pending.

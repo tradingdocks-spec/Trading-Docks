@@ -9,8 +9,10 @@
 - Implemented: `mobile/services/magic-recognition-provider.ts` is the first real game-specific recognition adapter. It ranks Magic printings from Scryfall metadata, parsed collector info, name OCR observations, layout/artwork observations when provided, legal finishes, and language compatibility.
 - Implemented: Magic scanner calibration tooling validates private fixture manifests, runs local benchmarks, emits sanitized JSON/CSV/Markdown reports, and classifies recognition as recognized, likely, ambiguous, or manual-review required.
 - Implemented: The `/dev/scanner-benchmark` route is a feature-flagged development tool for creating private Magic benchmark datasets without hand-editing JSON.
+- Implemented: Continuous scanner and offer-session contracts live in `mobile/services/continuous-offer-scanner.ts`; see `docs/CONTINUOUS_SCANNER.md` and `docs/CARD_SHOW_OFFER_SCANNER.md`.
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
 - Partially Implemented: Camera capture is local-first and still does not include a benchmarked native OCR, artwork, set-symbol, or finish-classification provider.
+- Partially Implemented: The mobile Scan tab now uses a session-first continuous-intake layout and correct 63:88 card guide, but live auto-capture still needs a real frame-analysis provider before hands-free capture is production-ready.
 - Partially Implemented: The Magic adapter can resolve and explain likely Magic printings from available metadata signals, but it must require user confirmation when exact-printing signals are missing, weak, conflicting, or below threshold.
 - Partially Implemented: Pokemon, One Piece, and Lorcana adapters remain replaceable architecture stubs, not benchmarked recognition providers.
 - Planned: OCR, artwork matching, set-symbol detection, collector-info parsing from image crops, perspective correction, and foil classification need provider implementations plus benchmarks before any accuracy claim.
