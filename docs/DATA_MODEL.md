@@ -76,5 +76,12 @@
 - Planned: Update check constraints so active code can persist Store overrides, Stripe webhooks, and trial grants without database rejection.
 - Planned: Decide whether `admin_account_access` remains a support view or is replaced by `profiles`/`user_preferences` plus billing tables.
 - Planned: Add regression SQL proving owner/admin/support/analyst access, normal-user denial, and protected owner-role mutation behavior.
-- Planned: Add a reviewed Supabase RPC/trigger proposal that enforces Free-plan card limits for native direct writes, not only the Next.js web mutation API.
+- Implemented: `supabase/migrations/202608050001_collector_mutation_security_proposal.sql` is a forward-only proposal for database-enforced Collector mutation ownership and Free-plan total-quantity limits. It has not been applied to production.
+- Implemented: The proposed Free limit interpretation is 500 total owned card quantity across `inventory_items.quantity`, not 500 unique inventory rows.
+- Implemented: The proposal preserves zero-quantity behavior as a non-destructive zero-owned inventory row.
+- Implemented: The proposal uses per-user transaction advisory locks in the inventory trigger to prevent simultaneous inserts, updates, or offline replay from racing past the Free limit.
+- Implemented: The proposal treats paid Collector, Seller, and legacy `business`/canonical Store billing or explicit membership overrides as unlimited for card quantity; platform role alone does not grant paid inventory limits.
+- Partially Implemented: The active schema is user-owned inventory through `inventory_items.user_id`; no active inventory workspace owner field exists. Store/workspace inventory sharing remains future schema work.
+- Planned: Run `supabase/verification/verify_collector_mutation_security.sql` in disposable local/staging Supabase after migration replay.
+- Planned: Do not apply these Collector mutation security schema changes from this branch.
 - Planned: Do not apply these schema changes from this branch.

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   applyCollectorMutationOptimistically,
+  classifyCollectorAuthoritativeError,
   isTradeBinderVisibleInTradeFilters,
   mutationQueueKey,
   rollbackCollectorMutation,
@@ -183,6 +184,26 @@ test('offline queue isolates writes by user and replaces duplicate queued mutati
   assert.equal(queue.filter((operation) => operation.userId === 'user-1').length, 1);
   assert.equal((queue.find((operation) => operation.userId === 'user-1')?.payload as { quantity?: number }).quantity, 4);
   assert.equal(queue.filter((operation) => operation.userId === 'user-2').length, 1);
+});
+
+test('authoritative database errors are recognizable for mobile offline replay', () => {
+  assert.deepEqual(
+    classifyCollectorAuthoritativeError(new Error('TD_COLLECTOR_FREE_LIMIT_EXCEEDED')),
+    {
+      authoritative: true,
+      code: 'TD_COLLECTOR_FREE_LIMIT_EXCEEDED',
+      message: 'Free plan collections are limited to 500 total owned cards.',
+    },
+  );
+  assert.deepEqual(
+    classifyCollectorAuthoritativeError({ details: '{"code":"TD_COLLECTOR_UNAUTHORIZED"}' }),
+    {
+      authoritative: true,
+      code: 'TD_COLLECTOR_UNAUTHORIZED',
+      message: 'This queued change is not authorized for the signed-in user.',
+    },
+  );
+  assert.equal(classifyCollectorAuthoritativeError(new Error('network unavailable')), null);
 });
 
 function operationFor(

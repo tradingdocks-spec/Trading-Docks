@@ -5,6 +5,8 @@ export type OfflineOperation = {
   payload: Record<string, unknown>;
   dedupeKey?: string;
   userId?: string;
+  lastError?: string;
+  errorCode?: string;
 };
 
 export function addOfflineOperation(

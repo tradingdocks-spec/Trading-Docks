@@ -144,6 +144,7 @@
 - Implemented: Mobile and web card detail surfaces can update owned quantity, condition, finish, storage assignment, Trade Binder status, and Wishlist state with optimistic UI and rollback on failure.
 - Implemented: Web organization writes go through `src/app/api/collector-workspace/mutations/route.ts`, which authenticates the user, scopes the inventory record by `user_id`, validates Free-plan card limits through the canonical membership contract, and then writes through authenticated Supabase/RLS.
 - Partially Implemented: Native mobile writes use Supabase RLS for server-side ownership and queue failed/offline writes by user, but DB-side Free-plan enforcement for direct native writes still needs a reviewed RPC/trigger migration proposal before it can be called production-authoritative.
+- Implemented: `supabase/migrations/202608050001_collector_mutation_security_proposal.sql` proposes a database trigger and RPC path to enforce inventory ownership and Free-plan 500 total-card quantity limits transactionally for mobile, web, and offline replay. It has not been applied.
 - Partially Implemented: Price display uses positive saved inventory value/unit market value when present and says unavailable when missing or defaulted to zero. Live market pricing and price history are future integration work.
 - Partially Implemented: Existing large inventory management components remain in the repository and should be migrated or retired only after a separate import/workflow review.
 
@@ -178,6 +179,15 @@
 - Implemented: Trade Binder statuses are canonical: `not_for_trade`, `available`, `reserved`, `pending`, `looking_for_upgrade`, and `for_sale`; every status except `not_for_trade` remains visible in trade filters.
 - Implemented: Storage assignment supports choosing an existing location or clearing the location. Nested binder-page editing remains outside this sprint.
 - Partially Implemented: Mobile has a replay helper for queued collector mutations and replaces duplicate queued writes for the same user/card/action. Automatic network-triggered replay and conflict resolution beyond last queued write wins remain future sync work.
+- Implemented: Mobile replay classifies proposed database-authoritative mutation errors and keeps failed queued writes with `errorCode`/`lastError` metadata.
+
+### Collector Mutation Security Proposal
+
+- Implemented: Current direct table ownership is user-scoped through `inventory_items.user_id`; no active workspace-owned inventory field exists.
+- Implemented: The proposal uses `collector_effective_membership_tier(user_id)` to resolve explicit admin membership override first, then current paid billing, then Free fallback when profile/preferences exist.
+- Implemented: Platform role is intentionally not part of the proposed card-limit bypass. Only paid billing or explicit membership override removes the Free limit.
+- Implemented: The proposal adds trigger enforcement for direct table insert/update/delete plus `collector_mutate_inventory_item(jsonb)` as a preferred authoritative mutation path.
+- Planned: Stage replay must verify impact on any service-role imports or legacy inventory tools before production application.
 
 ## Mobile Home Architecture
 

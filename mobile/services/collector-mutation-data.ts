@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import {
   COLLECTION_MUTATION_QUEUE_TYPE,
+  classifyCollectorAuthoritativeError,
   mutationQueueKey,
   validateCollectorMutation,
   type CollectorMutation,
@@ -45,6 +46,8 @@ export async function runMobileCollectorMutation({
     await executeOnlineMutation(mutation, auth, membershipTier, currentTotalQuantity, currentCardQuantity);
     return { ok: true, queued: false };
   } catch (error) {
+    const authoritativeError = classifyCollectorAuthoritativeError(error);
+    if (authoritativeError) return { ok: false, error: authoritativeError.message };
     const message = error instanceof Error ? error.message : 'Collection update failed.';
     return queueCollectorMutation(mutation, message);
   }
@@ -68,8 +71,13 @@ export async function retryQueuedCollectorMutations({
     try {
       const totals = await loadMutationQuantityContext(userId, mutation.inventoryItemId);
       await executeOnlineMutation(mutation, userId, membershipTier, totals.currentTotalQuantity, totals.currentCardQuantity);
-    } catch {
-      remaining.push(operation);
+    } catch (error) {
+      const authoritativeError = classifyCollectorAuthoritativeError(error);
+      remaining.push({
+        ...operation,
+        lastError: authoritativeError?.message ?? (error instanceof Error ? error.message : 'Queued collection update failed.'),
+        errorCode: authoritativeError?.code,
+      });
     }
   }
   await replaceOfflineQueue(remaining);

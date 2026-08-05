@@ -51,6 +51,8 @@
 - Platform role never implies paid product entitlements.
 - Implemented: Web Collector organization mutations enforce the Free 500-card limit through the canonical membership catalog before quantity writes are accepted.
 - Partially Implemented: Mobile Collector organization mutations validate the Free limit client-side for immediate UX and rely on Supabase RLS for ownership. A DB-side migration proposal is still required for production-authoritative native Free-limit enforcement.
+- Implemented: The Collector mutation security proposal interprets the Free limit as 500 total owned card quantity across inventory rows, not 500 unique rows.
+- Implemented: The proposal keeps platform role separate from paid entitlement; an admin role with Free membership remains subject to the Free card limit unless an explicit membership override grants a paid tier.
 
 ## Current Gaps
 

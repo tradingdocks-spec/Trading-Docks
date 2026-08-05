@@ -45,6 +45,8 @@ Do not add new production features until the foundation items below are reviewed
 
 - Planned: Build durable sync/retry queues for mobile offline operations.
 - Planned: Propose and review DB-side Free-plan card-limit enforcement for native direct writes and offline replay.
+- Implemented: Create the Collector mutation security migration proposal and verification SQL for database-level ownership and Free-plan total-quantity enforcement.
+- Planned: Apply the Collector mutation security proposal only after staging replay, product-owner approval, and service-role/import impact review.
 - Planned: Add distributed rate limiting for public image/market endpoints.
 - Planned: Add production monitoring, structured logging, alerting, and PII scrubbing.
 - Planned: Convert demo/sample surfaces into explicit empty states or real data-backed views.

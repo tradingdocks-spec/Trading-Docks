@@ -13,6 +13,7 @@
 - Implemented: Server routes remain authoritative for web admin pages and privileged admin API actions; mobile access state is UX context only.
 - Implemented: Platform role does not imply paid membership entitlement; owner/admin/support/analyst roles gain platform authority separately from product access.
 - Implemented: Admin membership overrides are explicit product-entitlement overrides, separate from platform role and Stripe billing state.
+- Implemented: Collector mutation security proposal `supabase/migrations/202608050001_collector_mutation_security_proposal.sql` adds database-layer ownership checks and a transactional Free-plan 500 total-card quantity cap for direct mobile writes, web writes, and offline replay. It has not been applied to production.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.
 
@@ -34,6 +35,7 @@
 - Partially Implemented: Legacy membership schema constraints still allow/persist `business`; active code now emits canonical `store`, so a reviewed migration is required before production Store billing and overrides can be relied on.
 - Partially Implemented: A tracked `.env.local` file exists in the working tree listing local configuration; do not add secrets and verify ignore rules before commits.
 - Planned: Add automated cross-account data isolation tests.
+- Planned: Replay the Collector mutation security proposal in staging and run `supabase/verification/verify_collector_mutation_security.sql` before production approval.
 - Planned: Add observability with secret and PII scrubbing.
 
 ## Access Fallbacks
@@ -45,3 +47,20 @@
 - Stale billing data: past-due access is honored only while the current period is still in the future; otherwise Free fallback is used.
 - Suspended account: deny entitlements and Command Center access.
 - Admin role with normal subscription: keep normal subscription entitlements and add only admin Command Center authority.
+
+## Collector Mutation Security Audit
+
+- Current ownership enforcement: Implemented through RLS policies on `inventory_items`, `inventory_locations`, `binder_card_trade_status`, and `collector_wishlist` comparing `auth.uid()` to `user_id`.
+- Current insert/update/delete policies: `inventory_items` currently grants authenticated users `select`, `insert`, `update`, and `delete` with owner-only RLS. It does not currently enforce membership limits in the database.
+- Quantity representation: `inventory_items.quantity` is an integer with `check (quantity >= 0)`. Quantity zero remains a row with zero owned copies.
+- Limit interpretation: Free means 500 total owned card quantity, not 500 unique ownership records.
+- Current authoritative membership source: active web code resolves membership from explicit `admin_membership_overrides`, current `billing_subscriptions`, and Free fallback; `user_roles` remains platform authority only.
+- Race condition risk: current client/API checks can be bypassed by simultaneous direct writes or offline replay. The proposal serializes per-user inventory mutations with `pg_advisory_xact_lock`.
+- Offline replay risk: queued mobile writes can replay after membership or ownership state changes. The mobile replay path now classifies proposed database error codes and retains failed queued writes with error metadata.
+- Workspace/store behavior: active inventory is user-owned. Store/shared workspace inventory is not represented by active inventory fields and requires a later schema design.
+
+## Rollout And Rollback
+
+- Staging rollout: replay migrations into disposable staging, apply the proposal, run the verification SQL, test mobile direct writes and web API writes for Free/Collector/Seller/Store users, then inspect structured errors in Supabase client responses.
+- Production approval gates: product owner must approve total-quantity limit interpretation, engineering must approve service-role/import impact, and database owner must approve applying the trigger/RPC migration.
+- Rollback plan: disable the three proposed `enforce_collector_inventory_mutation_*` triggers first, revoke the proposed RPC if needed, then drop proposal functions only after confirming no deployed client depends on them. Do not rewrite historical migrations.

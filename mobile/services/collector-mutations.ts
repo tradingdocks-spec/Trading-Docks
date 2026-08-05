@@ -87,6 +87,21 @@ export type MutationValidationResult =
   | { ok: true }
   | { ok: false; reason: string; code: 'unauthorized' | 'invalid_quantity' | 'free_limit' | 'invalid_value' };
 
+export type CollectorAuthoritativeErrorCode =
+  | 'TD_COLLECTOR_UNAUTHORIZED'
+  | 'TD_COLLECTOR_FREE_LIMIT_EXCEEDED'
+  | 'TD_COLLECTOR_INVALID_QUANTITY'
+  | 'TD_COLLECTOR_MISSING_MEMBERSHIP'
+  | 'TD_COLLECTOR_INVALID_MUTATION'
+  | 'TD_COLLECTOR_INVALID_CONDITION'
+  | 'TD_COLLECTOR_INVALID_FINISH';
+
+export type CollectorAuthoritativeError = {
+  authoritative: true;
+  code: CollectorAuthoritativeErrorCode;
+  message: string;
+};
+
 export type OptimisticMutationResult = {
   cards: CollectionCard[];
   previousCards: CollectionCard[];
@@ -207,6 +222,39 @@ export function mutationQueueKey(mutation: CollectorMutation) {
 
 export function isTradeBinderVisibleInTradeFilters(status: TradeBinderStatus) {
   return status !== 'not_for_trade' && status !== 'unknown';
+}
+
+export function classifyCollectorAuthoritativeError(error: unknown): CollectorAuthoritativeError | null {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const detail = typeof error === 'object' && error !== null && 'details' in error
+    ? String((error as { details?: unknown }).details ?? '')
+    : '';
+  const source = `${message} ${detail}`;
+  const codes: CollectorAuthoritativeErrorCode[] = [
+    'TD_COLLECTOR_UNAUTHORIZED',
+    'TD_COLLECTOR_FREE_LIMIT_EXCEEDED',
+    'TD_COLLECTOR_INVALID_QUANTITY',
+    'TD_COLLECTOR_MISSING_MEMBERSHIP',
+    'TD_COLLECTOR_INVALID_MUTATION',
+    'TD_COLLECTOR_INVALID_CONDITION',
+    'TD_COLLECTOR_INVALID_FINISH',
+  ];
+  const code = codes.find((candidate) => source.includes(candidate));
+  if (!code) return null;
+  return { authoritative: true, code, message: authoritativeMessage(code) };
+}
+
+function authoritativeMessage(code: CollectorAuthoritativeErrorCode) {
+  const messages: Record<CollectorAuthoritativeErrorCode, string> = {
+    TD_COLLECTOR_UNAUTHORIZED: 'This queued change is not authorized for the signed-in user.',
+    TD_COLLECTOR_FREE_LIMIT_EXCEEDED: 'Free plan collections are limited to 500 total owned cards.',
+    TD_COLLECTOR_INVALID_QUANTITY: 'Quantity must be a whole number at or above zero.',
+    TD_COLLECTOR_MISSING_MEMBERSHIP: 'Membership could not be resolved for this collection change.',
+    TD_COLLECTOR_INVALID_MUTATION: 'This queued collection change is not supported.',
+    TD_COLLECTOR_INVALID_CONDITION: 'This queued condition is not supported.',
+    TD_COLLECTOR_INVALID_FINISH: 'This queued finish is not supported.',
+  };
+  return messages[code];
 }
 
 function cloneCard(card: CollectionCard): CollectionCard {
