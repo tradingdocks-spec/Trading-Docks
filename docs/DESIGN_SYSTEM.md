@@ -138,3 +138,20 @@ Raw colors remain available only as palette anchors. New product components shou
 9. For collection migrations, use the Collector Workspace models first, display unavailable backend fields honestly, and avoid introducing sample card values into authenticated surfaces.
 10. For mobile Home changes, preserve one primary bottom tab navigation system; action rows may deep-link into tabs but must not become a second persistent navigation bar.
 11. For mobile bottom navigation changes, keep exactly five visible primary tabs per account, preserve equal-width cells, keep center emphasis within the bar geometry, and verify no placeholder tab route is exposed.
+## Scanner 2.0 Visual Layer
+
+Status: Implemented.
+
+Scanner 2.0 uses the existing Trading Docks design tokens and mobile design-system primitives. It does not introduce a second design system.
+
+Scanner-specific rules:
+
+- Camera-first surfaces use near-black navy and deep translucent navy.
+- Electric blue and cyan are reserved for active guidance.
+- Emerald indicates recognized/added states.
+- Amber indicates review and recoverable failure states.
+- Result trays use compact typography with no more than two text sizes.
+- Missing primary HUD values render as an em dash, not long explanatory copy.
+- Diagnostics remain development-only and must not compete with capture.
+- Icon-only controls require accessibility labels.
+- Motion is restrained and respects reduced-motion settings.

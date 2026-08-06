@@ -107,3 +107,20 @@
 - Planned: Implement multi-frame foil analysis with glare/sleeve/lighting limitations.
 - Planned: Add native physical-device QA for iOS and Android camera permission, torch, capture latency, and cache cleanup.
 - Planned: Add saved session export persistence and queued export replay.
+## Scanner 2.0 Mobile Shell
+
+Status: Implemented.
+
+The active mobile scan route is `mobile/app/(tabs)/scan.tsx`. It now uses named scanner surfaces while preserving the existing scanner data and provider wiring:
+
+- `ScannerHud`
+- `ScannerViewport`
+- `ScannerGuide`
+- `ScannerControls`
+- `ScannerStatus`
+- `ScannerResultTray`
+- `ScannerSessionStrip`
+
+The working reliability systems remain intact: Expo camera, Apple Vision OCR, Magic title normalization, Scryfall exact/fuzzy lookup, top-three candidates, confidence caps, temporary-image cleanup, session insertion, offer math, manual fallback, diagnostics, user-scoped draft/session persistence, duplicate prevention, and removal/rearm behavior.
+
+Scanner 2.0 adds client-side safeguards for double capture and stale lookup completion. In-flight OCR/Scryfall results are ignored if the route unmounts or a retake invalidates the capture token.

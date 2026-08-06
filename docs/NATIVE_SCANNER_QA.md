@@ -83,3 +83,20 @@
 - Expo Go is not the target for future VisionCamera frame processing; development builds are required.
 - No source images are logged, exported, uploaded, or retained by default; iOS still captures are deleted after OCR processing.
 - Foil diagnostics are evidence-only and do not classify finish.
+## Scanner 2.0 Physical-Device QA
+
+Status: Requires Production Configuration.
+
+Run these checks on an iOS development build after this branch:
+
+- Scan tab opens with camera active when permission is granted.
+- No normal state shows an "Open camera" step.
+- Camera is dominant on 320, 375, 390, and 430 px widths.
+- Dynamic Island and safe areas do not clip the HUD.
+- Result trays do not overlap camera controls.
+- Session strip clears the bottom tab bar.
+- Failed result shows only compact recovery copy and Retake/Search manually.
+- Long card names and long set names do not collapse into narrow columns.
+- Reduced Motion suppresses decorative pulse/flash.
+- Apple Vision OCR still returns title and collector observations.
+- TradingDocksVisionOcr remains autolinked in a clean EAS development build.

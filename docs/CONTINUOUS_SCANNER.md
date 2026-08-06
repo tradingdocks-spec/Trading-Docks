@@ -53,3 +53,25 @@
 - Planned: Add physical-device QA for iOS and Android camera timing, safe areas, glare, sleeves, low light, and rapid card replacement.
 - Planned: Validate guide/crop mapping against real device preview scaling before enabling hands-free capture.
 - Planned: Add native share/email export surfaces. Current export support produces CSV data only after explicit user action.
+## Scanner 2.0 High-Volume Workflow
+
+Status: Partially Implemented.
+
+Card Show mode is the default scanner session mode for the premium scanner shell. Implemented behavior includes:
+
+- default condition
+- default finish
+- default language
+- default cash offer rate
+- default destination
+- running card, market, offer, and review totals
+- compact result tray
+- duplicate prevention and removal/rearm contract
+- review session access from the pinned session strip
+
+Planned behavior:
+
+- automatic high-confidence acceptance when product safety rules allow it
+- short undo window with native haptics
+- optional sound
+- native card-presence and removal signals from the full vision engine

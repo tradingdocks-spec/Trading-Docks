@@ -66,3 +66,22 @@
 - Partially Implemented: Apple Vision OCR is iOS development-build behavior; Expo Go is not sufficient for native OCR.
 - Partially Implemented: Recognition is OCR plus Scryfall candidate ranking. Artwork recognition, foil recognition, and benchmarked live visual certainty are not claimed.
 - Planned: Physical-device QA is required before auto-capture can be enabled by default.
+## Scanner 2.0 Product Design
+
+Status: Implemented.
+
+Scanner 2.0 changes the mobile scan tab from a stacked engineering tool into a camera-first TCG vision terminal. The camera opens automatically when permission is available, owns the dominant screen region, and uses one prominent instruction at a time.
+
+Implemented hierarchy:
+
+1. Camera viewport
+2. Active instruction
+3. Compact latest result
+4. Pinned session strip
+5. Secondary controls and sheets
+
+Result behavior is compact by default. Recognized and likely cards show thumbnail, name, set/collector number, confidence, market value, offer value, quantity, and short add/correct/retry actions. Ambiguous results keep the top-three candidates available without blocking the camera. Failed results show only "Couldn't identify card", Retake, and Search manually; unidentified cards do not show pricing, quantity, placeholder thumbnails, or technical lookup errors.
+
+High-volume Card Show mode remains explicit. Defaults for condition, finish, language, destination, and cash offer rate remain configurable in scanner settings. Automatic high-confidence acceptance is still disabled until product safety rules allow it.
+
+See also: `docs/SCANNER_2_INTERACTION_SPEC.md` and `docs/SCANNER_2_VISUAL_SPEC.md`.

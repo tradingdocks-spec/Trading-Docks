@@ -215,3 +215,22 @@
 8. Add scanner-to-Deal Desk and card-show prep integrations only after the validated confirmation contract is reviewed.
 9. Validate the continuous scanner on physical devices; current implementation includes the state machine, guide geometry, offer session, duplicate protection, CSV serialization, and local frame analysis, but native camera frame delivery plus OCR/artwork/foil providers are still pending.
 10. Wire VisionCamera frames into the live analyzer in a development build and capture iOS/Android QA results before changing confirmation friction.
+## Scanner 2.0 Health Notes
+
+Status: Implemented / Partially Implemented.
+
+Implemented improvements:
+
+- Scanner route has named presentation components instead of one giant render tree.
+- Camera starts automatically when permission is granted.
+- Failure UI is compact and does not expose Scryfall or OCR exception text.
+- Scanner lookup details are confined to development diagnostics.
+- Capture path now guards against duplicate capture and stale lookup completion.
+- Missing HUD values use a compact dash rather than long unavailable copy.
+
+Remaining risks:
+
+- Physical-device QA is still required for camera preview framing, haptics, and Dynamic Island behavior.
+- Native card-presence/removal signals are still limited by available provider data.
+- Auto-accept in high-volume mode remains disabled until product safety rules and benchmark evidence support it.
+- Full recognition accuracy and foil recognition remain unclaimed.

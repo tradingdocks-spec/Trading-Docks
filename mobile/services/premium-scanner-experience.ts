@@ -56,6 +56,34 @@ export type PremiumScannerModeDefaults = {
 
 export type PremiumScannerDominantSurface = 'camera_prompt' | 'progress' | 'result_tray' | 'none';
 
+export type Scanner2InteractionState =
+  | 'launching'
+  | 'camera_ready'
+  | 'card_absent'
+  | 'card_present'
+  | 'aligning'
+  | 'stabilizing'
+  | 'capturing'
+  | 'reading'
+  | 'searching'
+  | 'recognized'
+  | 'likely'
+  | 'ambiguous'
+  | 'failed'
+  | 'added'
+  | 'remove_card'
+  | 'rearming'
+  | 'paused'
+  | 'offline'
+  | 'camera_error';
+
+export type Scanner2HudSummary = {
+  modeLabel: string;
+  cardCount: number;
+  offerTotal: number | null;
+  reviewCount: number;
+};
+
 export const PREMIUM_SCANNER_PIPELINE_STATES: PremiumScannerPipelineState[] = [
   'camera_ready',
   'aligning',
@@ -154,12 +182,25 @@ export function buildPremiumResultTray(input: {
 }
 
 export function compactScannerMoney(value: number | null | undefined) {
-  return value === null || value === undefined ? '-' : `$${value.toFixed(2)}`;
+  return value === null || value === undefined ? '—' : `$${value.toFixed(2)}`;
 }
 
 export function scannerCameraHeightForWidth(width: number) {
   const usableWidth = Number.isFinite(width) && width > 0 ? width : 390;
   return Math.round(Math.min(430, Math.max(320, usableWidth * 1.05)));
+}
+
+export function scanner2CameraHeight(input: {
+  width: number;
+  height: number;
+  safeTop: number;
+  safeBottom: number;
+  hasResult: boolean;
+}) {
+  const widthHeight = scannerCameraHeightForWidth(input.width);
+  const available = Math.max(420, input.height - input.safeTop - input.safeBottom - (input.hasResult ? 248 : 178));
+  const target = Math.round(input.height * (input.hasResult ? 0.52 : 0.62));
+  return Math.max(340, Math.min(Math.max(widthHeight, target), available));
 }
 
 export function scannerHudRowsForWidth(width: number) {
@@ -170,6 +211,53 @@ export function scannerHudRowsForWidth(width: number) {
     metricColumns: narrow ? 2 : 3,
     maxStatWidth: narrow ? 118 : 132,
     overflows: false,
+  };
+}
+
+export function scanner2HudLine(input: Scanner2HudSummary) {
+  const cards = `${input.cardCount} card${input.cardCount === 1 ? '' : 's'}`;
+  const offer = `Offer ${compactScannerMoney(input.offerTotal)}`;
+  const review = `${input.reviewCount} review`;
+  return `${input.modeLabel} - ${cards} - ${offer} - ${review}`;
+}
+
+export function resolveScanner2InteractionState(input: {
+  loading: boolean;
+  permission: 'not_requested' | 'granted' | 'denied' | 'unavailable';
+  cameraActive: boolean;
+  cameraReady: boolean;
+  captureState: string;
+  recognitionStage: 'idle' | 'reading_title' | 'finding_card' | 'review_ready' | 'failed';
+  trayKind: PremiumResultTrayKind | null;
+  awaitingCardRemoval: boolean;
+  justAdded: boolean;
+  offline: boolean;
+  hasCameraError: boolean;
+}): Scanner2InteractionState {
+  if (input.loading) return 'launching';
+  if (input.offline) return 'offline';
+  if (input.hasCameraError || input.permission === 'denied' || input.permission === 'unavailable') return 'camera_error';
+  if (!input.cameraActive) return 'paused';
+  if (input.awaitingCardRemoval) return 'remove_card';
+  if (input.justAdded) return 'added';
+  if (input.recognitionStage === 'failed' || input.captureState === 'failed') return 'failed';
+  if (input.recognitionStage === 'reading_title') return 'reading';
+  if (input.recognitionStage === 'finding_card') return 'searching';
+  if (input.trayKind === 'recognized') return 'recognized';
+  if (input.trayKind === 'likely') return 'likely';
+  if (input.trayKind === 'ambiguous') return 'ambiguous';
+  if (input.captureState === 'capturing' || input.captureState === 'captured') return 'capturing';
+  if (input.permission === 'granted' && input.cameraReady) return 'card_absent';
+  if (input.permission === 'granted') return 'camera_ready';
+  return 'camera_ready';
+}
+
+export function scanner2MotionForState(state: Scanner2InteractionState, reduceMotion: boolean) {
+  if (reduceMotion) return { pulse: false, flash: false, progress: state === 'reading' || state === 'searching' };
+  return {
+    pulse: state === 'recognized' || state === 'added',
+    flash: state === 'capturing',
+    progress: state === 'stabilizing' || state === 'reading' || state === 'searching',
   };
 }
 

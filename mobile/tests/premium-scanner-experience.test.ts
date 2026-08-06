@@ -9,6 +9,10 @@ import {
   guidePresentationForPipeline,
   highVolumeCardShowDefaults,
   resolvePremiumScannerPipeline,
+  resolveScanner2InteractionState,
+  scanner2CameraHeight,
+  scanner2HudLine,
+  scanner2MotionForState,
   scannerCameraHeightForWidth,
   scannerHudRowsForWidth,
   scannerTrayLayoutForWidth,
@@ -116,8 +120,63 @@ test('guide presentation uses text in addition to color for accessibility', () =
 });
 
 test('compact scanner money avoids long unavailable copy in constrained HUD cells', () => {
-  assert.equal(compactScannerMoney(null), '-');
+  assert.equal(compactScannerMoney(null), '—');
   assert.equal(compactScannerMoney(12.5), '$12.50');
+});
+
+test('Scanner 2.0 HUD is one compact line without unavailable pricing copy', () => {
+  const line = scanner2HudLine({ modeLabel: 'Card Show', cardCount: 12, offerTotal: null, reviewCount: 2 });
+  assert.equal(line, 'Card Show - 12 cards - Offer — - 2 review');
+  assert.equal(line.includes('Pricing unavailable'), false);
+});
+
+test('Scanner 2.0 camera opens into camera states without an open-camera state', () => {
+  assert.equal(resolveScanner2InteractionState({
+    loading: false,
+    permission: 'granted',
+    cameraActive: true,
+    cameraReady: true,
+    captureState: 'ready',
+    recognitionStage: 'idle',
+    trayKind: null,
+    awaitingCardRemoval: false,
+    justAdded: false,
+    offline: false,
+    hasCameraError: false,
+  }), 'card_absent');
+});
+
+test('Scanner 2.0 state model covers recognized likely ambiguous failure and removal', () => {
+  const base = {
+    loading: false,
+    permission: 'granted' as const,
+    cameraActive: true,
+    cameraReady: true,
+    captureState: 'ready',
+    recognitionStage: 'idle' as const,
+    awaitingCardRemoval: false,
+    justAdded: false,
+    offline: false,
+    hasCameraError: false,
+  };
+  assert.equal(resolveScanner2InteractionState({ ...base, trayKind: 'recognized' }), 'recognized');
+  assert.equal(resolveScanner2InteractionState({ ...base, trayKind: 'likely' }), 'likely');
+  assert.equal(resolveScanner2InteractionState({ ...base, trayKind: 'ambiguous' }), 'ambiguous');
+  assert.equal(resolveScanner2InteractionState({ ...base, trayKind: null, recognitionStage: 'failed' }), 'failed');
+  assert.equal(resolveScanner2InteractionState({ ...base, trayKind: null, awaitingCardRemoval: true }), 'remove_card');
+});
+
+test('Scanner 2.0 camera remains the dominant region on target iPhone widths', () => {
+  for (const width of [320, 375, 390, 430]) {
+    const cameraHeight = scanner2CameraHeight({ width, height: 844, safeTop: 47, safeBottom: 34, hasResult: false });
+    assert.ok(cameraHeight >= 520);
+  }
+});
+
+test('Scanner 2.0 reduced-motion behavior suppresses decorative pulse and flash', () => {
+  assert.deepEqual(scanner2MotionForState('recognized', true), { pulse: false, flash: false, progress: false });
+  assert.deepEqual(scanner2MotionForState('capturing', true), { pulse: false, flash: false, progress: false });
+  assert.equal(scanner2MotionForState('searching', false).progress, true);
 });
 
 test('top HUD uses two safe rows on narrow iPhone widths', () => {

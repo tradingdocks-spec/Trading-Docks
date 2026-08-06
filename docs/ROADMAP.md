@@ -83,3 +83,15 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Native mobile release pipeline, app store signing, and deep-link verification.
 - Requires Production Configuration: Rebuild the iOS development client after native scanner module changes with `npx eas build --profile development --platform ios`.
 - Planned: Multi-tenant workspace/team permission model hardening beyond current owner/member helpers.
+## Scanner 2.0 Product Design
+
+Status: Implemented.
+
+Scanner 2.0 establishes the camera-first mobile scanner shell, compact HUD, compact result tray, failure recovery banner, pinned session strip, Scanner 2.0 state model, reduced-motion contract, and named scanner component structure.
+
+Recommended next scanner work:
+
+1. Physical iOS QA for camera framing, haptics, and Dynamic Island behavior.
+2. Native vision-signal integration for card presence, stabilizing, and removal states.
+3. Product-owner decision on when high-confidence auto-accept can be enabled.
+4. Benchmark-backed recognition and foil-confidence calibration.

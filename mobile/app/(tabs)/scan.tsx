@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
+import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
@@ -25,7 +25,7 @@ import {
   type ContinuousScannerMode,
   type ContinuousScannerSession,
 } from '@/services/continuous-offer-scanner';
-import { displayCondition, displayFinish } from '@/services/collector-workspace';
+import { displayCondition, displayFinish, type CardCondition } from '@/services/collector-workspace';
 import { classifyMagicRecognition, recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
 import { recognizeMagicStillCapture, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from '@/modules/trading-docks-vision-ocr';
@@ -63,8 +63,15 @@ import {
   guidePresentationForPipeline,
   highVolumeCardShowDefaults,
   resolvePremiumScannerPipeline,
-  scannerCameraHeightForWidth,
+  resolveScanner2InteractionState,
+  scanner2CameraHeight,
+  scanner2HudLine,
+  scanner2MotionForState,
   shouldRenderDiagnosticsInline,
+  type PremiumResultTray,
+  type PremiumResultTrayKind,
+  type PremiumScannerGuidePresentation,
+  type PremiumScannerPipelineState,
 } from '@/services/premium-scanner-experience';
 import { appStorage } from '@/services/storage/app-storage';
 import type { StorageLocation } from '@/services/storage-location-manager';
@@ -76,8 +83,10 @@ const INITIAL_SESSION_MODE: ContinuousScannerMode = 'card_show_purchase';
 export default function Scan() {
   const { accountType } = useAccount();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const cameraRef = useRef<CameraView | null>(null);
+  const mountedRef = useRef(true);
+  const activeCaptureIdRef = useRef<string | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [context, setContext] = useState<ScannerContext | null>(null);
   const [sessionMode, setSessionMode] = useState<ContinuousScannerMode>(INITIAL_SESSION_MODE);
@@ -118,13 +127,20 @@ export default function Scan() {
   const [showManualSearchSheet, setShowManualSearchSheet] = useState(false);
   const [showDiagnosticsSheet, setShowDiagnosticsSheet] = useState(false);
   const [showCorrectionTools, setShowCorrectionTools] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
   const privacy = scannerPrivacySummary();
-  const cameraStageHeight = scannerCameraHeightForWidth(width);
+  const cameraStageHeight = scanner2CameraHeight({
+    width,
+    height,
+    safeTop: insets.top,
+    safeBottom: insets.bottom,
+    hasResult: recognitionStage === 'failed' || Boolean(selected),
+  });
   const previewWidth = Math.min(width, 520);
   const baseGuideLayout = useMemo(() => calculateCardGuideLayout({
     containerWidth: previewWidth,
@@ -198,8 +214,29 @@ export default function Scan() {
     isSearching: recognitionStage === 'finding_card' || searching,
     hasCameraPrompt: permission !== 'granted' || !cameraActive,
   });
+  const scanner2State = resolveScanner2InteractionState({
+    loading,
+    permission,
+    cameraActive,
+    cameraReady,
+    captureState,
+    recognitionStage,
+    trayKind: latestResultTray?.kind ?? null,
+    awaitingCardRemoval: autoScanner.duplicateProtection.awaitingCardRemoval,
+    justAdded: Boolean(success && /added|synced/i.test(success)),
+    offline: Boolean(magicRecognition && !magicRecognition.ok && magicRecognition.offline),
+    hasCameraError: captureState === 'camera_not_ready' && Boolean(error),
+  });
+  const guideMotion = scanner2MotionForState(scanner2State, reduceMotion);
+  const hudLine = scanner2HudLine({
+    modeLabel: scannerModeLabel(sessionMode),
+    cardCount: sessionTotals?.cardsScanned ?? 0,
+    offerTotal: sessionTotals?.cashOffer ?? null,
+    reviewCount: sessionTotals?.needsReview ?? 0,
+  });
 
   useEffect(() => {
+    mountedRef.current = true;
     let active = true;
     void loadScannerContext()
       .then(async (result) => {
@@ -233,9 +270,41 @@ export default function Scan() {
       .catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Scanner context is unavailable.'))
       .finally(() => setLoading(false));
     return () => {
+      mountedRef.current = false;
+      activeCaptureIdRef.current = null;
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) setReduceMotion(enabled);
+    });
+    const subscription = AccessibilityInfo.addEventListener?.('reduceMotionChanged', setReduceMotion);
+    return () => {
+      mounted = false;
+      subscription?.remove?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!cameraPermission) return;
+    const nextPermission = resolveScannerPermissionState({
+      cameraAvailable,
+      permissionGranted: cameraPermission.granted,
+      permissionDenied: cameraPermission.status === 'denied',
+      requested: cameraPermission.status !== 'undetermined',
+    });
+    setPermission(nextPermission);
+    if (nextPermission === 'granted') {
+      setCameraActive(true);
+      return;
+    }
+    if (nextPermission === 'not_requested') {
+      void requestCameraPermission();
+    }
+  }, [cameraAvailable, cameraPermission, requestCameraPermission]);
 
   useEffect(() => {
     if (!context || !diagnosticsEnabled) return;
@@ -301,6 +370,7 @@ export default function Scan() {
   };
 
   const captureStill = async () => {
+    if (captureState === 'capturing' || recognitionStage === 'reading_title' || recognitionStage === 'finding_card') return;
     setError(null);
     setSuccess(null);
     setSessionInsertionResult('not_attempted');
@@ -315,8 +385,11 @@ export default function Scan() {
       return;
     }
     try {
+      const captureId = createScanId();
+      activeCaptureIdRef.current = captureId;
       setCaptureState('capturing');
       const photo = await cameraRef.current.takePictureAsync({ quality: 1, skipProcessing: false });
+      if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
       const frameLabel = `${photo.width} x ${photo.height}`;
       setCapturedFrame(frameLabel);
       setCaptureState('captured');
@@ -329,8 +402,11 @@ export default function Scan() {
         guide: guideLayout,
         online: true,
         cachedCandidates: candidates.map(scannerCandidateToRecognitionCandidate),
-        onStage: setRecognitionStage,
+        onStage: (stage) => {
+          if (mountedRef.current && activeCaptureIdRef.current === captureId) setRecognitionStage(stage);
+        },
       });
+      if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
       setMagicStillScan(scan);
       if (scan.ok) {
         setCandidates(scan.candidates);
@@ -351,10 +427,12 @@ export default function Scan() {
       setAutoScanner((current) => markScanResult(current, {
         fingerprint: frameLabel,
         now: Date.now(),
-        scanId: createScanId(),
+        scanId: captureId,
       }));
+      activeCaptureIdRef.current = null;
       setCameraActive(false);
     } catch (captureError) {
+      activeCaptureIdRef.current = null;
       setCaptureState('failed');
       setRecognitionStage('failed');
       setSessionInsertionResult('failed');
@@ -515,80 +593,33 @@ export default function Scan() {
 
   return (
     <TDScreen style={s.scannerShell}>
-      <View style={[s.topHud, { paddingTop: Math.max(insets.top, 10) }]}>
-        <View style={s.hudRow}>
-          <View style={s.modePill}>
-            <Ionicons name="scan-outline" size={16} color={color.primaryBright} />
-            <TDText variant="caption" numberOfLines={1}>{scannerModeLabel(sessionMode)}</TDText>
-          </View>
-          <CompactStat label="Review" value={String(sessionTotals?.needsReview ?? 0)} tone={sessionTotals?.needsReview ? 'warning' : 'neutral'} compact />
-        </View>
-        <View style={s.hudMetricRow}>
-          <CompactStat label="Cards" value={String(sessionTotals?.cardsScanned ?? 0)} compact />
-          <CompactStat label="Market" value={compactScannerMoney(sessionTotals?.marketValue)} compact />
-          <CompactStat label="Offer" value={compactScannerMoney(sessionTotals?.cashOffer)} tone="success" compact />
-        </View>
-      </View>
+      <ScannerHud line={hudLine} reviewCount={sessionTotals?.needsReview ?? 0} topInset={insets.top} onPress={() => setShowSettingsSheet(true)} />
 
-      <View style={[s.cameraStage, { height: cameraStageHeight }]}>
-        {permission === 'granted' && cameraActive ? (
-          <View style={s.cameraViewport} onLayout={handlePreviewLayout}>
-            <CameraView
-              ref={cameraRef}
-              style={StyleSheet.absoluteFill}
-              facing="back"
-              enableTorch={torchEnabled}
-              animateShutter
-              autofocus="on"
-              onCameraReady={() => {
-                setCameraReady(true);
-                setCaptureState('ready');
-              }}
-            />
-            <View pointerEvents="none" style={[s.premiumGuide, { width: guideLayout.width, height: guideLayout.height, left: guideLayout.left, top: guideLayout.top }]}>
-              <View style={[s.guideBracket, guideToneStyle(guidePresentation.tone)]} />
-              <View style={[s.guideBracket, s.guideBracketRight, guideToneStyle(guidePresentation.tone)]} />
-              <View style={[s.guideBracket, s.guideBracketBottom, guideToneStyle(guidePresentation.tone)]} />
-              <View style={[s.guideBracket, s.guideBracketBottomRight, guideToneStyle(guidePresentation.tone)]} />
-              <View style={[s.guideProgress, { width: `${Math.round(guidePresentation.progress * 100)}%` }]} />
-            </View>
-          </View>
-        ) : (
-          <View style={s.cameraEmptyState}>
-            <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={46} color={color.textMuted} />
-            <TDText variant="title">{permissionTitle(permission)}</TDText>
-            <TDText variant="small" tone="muted" style={s.centerText}>{permissionMessage(permission, Platform.OS)}</TDText>
-            <TDButton
-              label={permission === 'granted' ? 'Open camera' : 'Enable camera'}
-              onPress={permission === 'granted' ? () => {
-                setCameraReady(false);
-                setCaptureState('camera_not_ready');
-                setCameraActive(true);
-              } : requestCamera}
-            />
-          </View>
-        )}
-
-        {latestResultTray?.kind !== 'failed' ? <View style={s.cameraScrimTop}>
-          <TDBadge tone={guidePresentation.tone === 'emerald' ? 'success' : guidePresentation.tone === 'amber' ? 'warning' : guidePresentation.tone === 'danger' ? 'danger' : 'info'}>
-            {guidePresentation.statusLabel}
-          </TDBadge>
-          <TDText variant="title" style={s.guideMessage}>{guidePresentation.message}</TDText>
-          <TDText variant="caption" tone="muted">{scannerPipeline === 'aligning' ? 'camera open' : scannerPipeline.replaceAll('_', ' ')}</TDText>
-        </View> : null}
-
-        <View style={s.cameraControls}>
-          <View style={s.secondaryControls}>
-            <IconControl label={torchEnabled ? 'Turn torch off' : 'Turn torch on'} icon={torchEnabled ? 'flash' : 'flash-outline'} onPress={() => setTorchEnabled((value) => !value)} />
-            <IconControl label={cameraActive ? 'Pause camera' : 'Resume camera'} icon={cameraActive ? 'pause-outline' : 'play-outline'} onPress={() => setCameraActive((value) => !value)} />
-          </View>
-          <IconControl label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={captureStill} />
-          <View style={s.secondaryControls}>
-            <IconControl label="Manual search" icon="search-outline" onPress={() => setShowManualSearchSheet(true)} />
-            <IconControl label="Scanner settings" icon="options-outline" onPress={() => setShowSettingsSheet(true)} />
-          </View>
-        </View>
-      </View>
+      <ScannerViewport
+        cameraRef={cameraRef}
+        permission={permission}
+        cameraActive={cameraActive}
+        cameraReady={cameraReady}
+        cameraStageHeight={cameraStageHeight}
+        torchEnabled={torchEnabled}
+        guideLayout={guideLayout}
+        guidePresentation={guidePresentation}
+        guideMotion={guideMotion}
+        scannerPipeline={scannerPipeline}
+        platform={Platform.OS}
+        latestResultKind={latestResultTray?.kind ?? null}
+        onPreviewLayout={handlePreviewLayout}
+        onCameraReady={() => {
+          setCameraReady(true);
+          setCaptureState('ready');
+        }}
+        onToggleTorch={() => setTorchEnabled((value) => !value)}
+        onTogglePause={() => setCameraActive((value) => !value)}
+        onCapture={captureStill}
+        onManualSearch={() => setShowManualSearchSheet(true)}
+        onSettings={() => setShowSettingsSheet(true)}
+        onRequestCamera={requestCamera}
+      />
 
       <ScrollView style={s.scroller} contentContainerStyle={[s.scannerContent, { paddingBottom: Math.max(insets.bottom + 24, 40) }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {error && visibleSurface !== 'result_tray' ? <TDErrorState title="Scanner notice" message={error} /> : null}
@@ -599,44 +630,28 @@ export default function Scan() {
         {visibleSurface === 'progress' && recognitionStage === 'finding_card' ? <TDLoadingState title="Finding match" message="Checking Magic printings." /> : null}
 
         {latestResultTray ? (
-          <TDCard style={[s.resultTray, latestResultTray.kind === 'failed' && s.resultTrayFailed]}>
-            {latestResultTray.kind === 'failed' ? (
-              <View style={s.failedTray}>
-                <View style={s.failedHeader}>
-                  <View style={s.failureIcon}>
-                    <Ionicons name="alert-circle-outline" size={22} color={color.warning} />
-                  </View>
-                  <View style={s.resultText}>
-                    <TDText variant="title">{latestResultTray.title}</TDText>
-                    <TDText variant="small" tone="muted" numberOfLines={3}>{shortFailureMessage(latestResultTray.subtitle)}</TDText>
-                  </View>
-                  <TDBadge tone="warning">{latestResultTray.status}</TDBadge>
-                </View>
-                <View style={s.trayActions}>
-                  <TDButton label="Retake" variant="secondary" onPress={() => {
-                    setCameraReady(false);
-                    setCaptureState('camera_not_ready');
-                    setRecognitionStage('idle');
-                    setCameraActive(true);
-                  }} />
-                  <TDButton label="Search manually" variant="secondary" onPress={() => setShowManualSearchSheet(true)} />
-                </View>
-              </View>
-            ) : <>
-            <View style={s.resultHeader}>
-              {selected?.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={s.trayImage} contentFit="cover" /> : <View style={s.trayImageFallback}><Ionicons name="albums-outline" size={20} color={color.textMuted} /></View>}
-              <View style={s.resultText}>
-                <TDText variant="title" numberOfLines={2}>{latestResultTray.title}</TDText>
-                <TDText variant="caption" tone="muted">{latestResultTray.subtitle}</TDText>
-                <TDText variant="caption" tone="muted">{selected ? `${language} - ${displayFinish(finish)} - ${displayCondition(condition)}` : 'No session row created until a candidate is confirmed.'}</TDText>
-              </View>
-              <TDBadge tone={latestResultTray.kind === 'recognized' ? 'success' : latestResultTray.kind === 'ambiguous' ? 'warning' : 'info'}>{latestResultTray.status}</TDBadge>
-            </View>
-            <View style={s.trayMoneyRow}>
-              <CompactStat label="Market" value={compactScannerMoney(parseOptionalMoney(marketPrice))} />
-              <CompactStat label="Offer" value={selected ? compactScannerMoney((parseOptionalMoney(marketPrice) ?? 0) * quantity * ((parseOptionalPercentage(purchaseRate) ?? 70) / 100)) : '-'} tone="success" />
-              <CompactStat label="Qty" value={String(quantity)} />
-            </View>
+          <ScannerResultTray
+            tray={latestResultTray}
+            selected={selected}
+            language={language}
+            finish={finish}
+            condition={condition}
+            marketPrice={parseOptionalMoney(marketPrice)}
+            offerPrice={selected ? (parseOptionalMoney(marketPrice) ?? 0) * quantity * ((parseOptionalPercentage(purchaseRate) ?? 70) / 100) : null}
+            quantity={quantity}
+            saving={saving}
+            showCorrectionTools={showCorrectionTools}
+            onRetake={() => {
+              activeCaptureIdRef.current = null;
+              setCameraReady(false);
+              setCaptureState('camera_not_ready');
+              setRecognitionStage('idle');
+              setCameraActive(true);
+            }}
+            onManualSearch={() => setShowManualSearchSheet(true)}
+            onToggleCorrection={() => setShowCorrectionTools((value) => !value)}
+            onSave={save}
+          >
             {latestResultTray.expanded && candidates.length > 1 ? (
               <View style={s.optionGroup}>
                 <TDText variant="label" tone="muted">Top printing candidates</TDText>
@@ -671,25 +686,13 @@ export default function Scan() {
                 </Pressable>
               </View>
             ) : null}
-            <View style={s.trayActions}>
-              {selected ? <TDButton label={latestResultTray.primaryAction} loading={saving} onPress={save} /> : null}
-              <TDButton label={showCorrectionTools ? 'Hide correction' : 'Correct'} variant="secondary" disabled={!selected} onPress={() => setShowCorrectionTools((value) => !value)} />
-              <TDButton label="Retake" variant="secondary" onPress={() => {
-                setCameraReady(false);
-                setCaptureState('camera_not_ready');
-                setRecognitionStage('idle');
-                setCameraActive(true);
-              }} />
-              <TDButton label="Manual search" variant="secondary" onPress={() => setShowManualSearchSheet(true)} />
-            </View>
             {magicRecognition?.ok ? (
               <View style={s.optionGroup}>
                 <TDButton label={showMagicWhy ? 'Hide why' : 'Why this match?'} variant="secondary" onPress={() => setShowMagicWhy((value) => !value)} />
                 {showMagicWhy ? magicRecognition.explanation.map((line) => <TDText key={line} variant="caption" tone="muted">{line}</TDText>) : null}
               </View>
             ) : null}
-            </>}
-          </TDCard>
+          </ScannerResultTray>
         ) : null}
 
         {queuedAdds.length ? (
@@ -805,15 +808,283 @@ export default function Scan() {
           </TDCard>
         ) : null}
       </ScrollView>
-      <View style={[s.bottomSessionBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        <View style={s.bottomTotals}>
-          <CompactStat label="Cards" value={String(sessionTotals?.cardsScanned ?? 0)} />
-          <CompactStat label="Market" value={compactScannerMoney(sessionTotals?.marketValue)} />
-          <CompactStat label="Offer" value={compactScannerMoney(sessionTotals?.cashOffer)} tone="success" />
-        </View>
-        <TDButton label="Review Session" variant="secondary" onPress={() => router.push('/scanner-session' as never)} />
-      </View>
+      <ScannerSessionStrip
+        bottomInset={insets.bottom}
+        cardCount={sessionTotals?.cardsScanned ?? 0}
+        marketTotal={sessionTotals?.marketValue ?? null}
+        offerTotal={sessionTotals?.cashOffer ?? null}
+        onReviewSession={() => router.push('/scanner-session' as never)}
+      />
     </TDScreen>
+  );
+}
+
+function ScannerHud({ line, reviewCount, topInset, onPress }: { line: string; reviewCount: number; topInset: number; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Scanner session summary. ${line}`}
+      onPress={onPress}
+      style={[s.topHud, { paddingTop: Math.max(topInset, 10) }]}
+    >
+      <View style={s.hudSummaryIcon}>
+        <Ionicons name="scan-outline" size={15} color={color.primaryBright} />
+      </View>
+      <TDText variant="caption" numberOfLines={1} style={s.hudSummaryText}>{line}</TDText>
+      <TDBadge tone={reviewCount ? 'warning' : 'info'}>{reviewCount} review</TDBadge>
+    </Pressable>
+  );
+}
+
+function ScannerViewport({
+  cameraRef,
+  permission,
+  cameraActive,
+  cameraReady,
+  cameraStageHeight,
+  torchEnabled,
+  guideLayout,
+  guidePresentation,
+  guideMotion,
+  scannerPipeline,
+  platform,
+  latestResultKind,
+  onPreviewLayout,
+  onCameraReady,
+  onToggleTorch,
+  onTogglePause,
+  onCapture,
+  onManualSearch,
+  onSettings,
+  onRequestCamera,
+}: {
+  cameraRef: RefObject<CameraView | null>;
+  permission: ScannerPermissionState;
+  cameraActive: boolean;
+  cameraReady: boolean;
+  cameraStageHeight: number;
+  torchEnabled: boolean;
+  guideLayout: ReturnType<typeof calculateCardGuideLayout>;
+  guidePresentation: PremiumScannerGuidePresentation;
+  guideMotion: ReturnType<typeof scanner2MotionForState>;
+  scannerPipeline: PremiumScannerPipelineState;
+  platform: string;
+  latestResultKind: PremiumResultTrayKind | null;
+  onPreviewLayout: (event: LayoutChangeEvent) => void;
+  onCameraReady: () => void;
+  onToggleTorch: () => void;
+  onTogglePause: () => void;
+  onCapture: () => void;
+  onManualSearch: () => void;
+  onSettings: () => void;
+  onRequestCamera: () => void;
+}) {
+  const showCamera = permission === 'granted' && cameraActive;
+  return (
+    <View style={[s.cameraStage, { height: cameraStageHeight }]}>
+      {showCamera ? (
+        <View style={s.cameraViewport} onLayout={onPreviewLayout}>
+          <CameraView
+            ref={cameraRef}
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            enableTorch={torchEnabled}
+            animateShutter
+            autofocus="on"
+            onCameraReady={onCameraReady}
+          />
+          <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
+        </View>
+      ) : (
+        <View style={s.cameraEmptyState}>
+          <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={42} color={color.textMuted} />
+          <TDText variant="title">{permissionTitle(permission)}</TDText>
+          <TDText variant="small" tone="muted" style={s.centerText}>{permissionMessage(permission, platform)}</TDText>
+          <TDButton
+            label={permission === 'granted' ? 'Resume camera' : 'Enable camera'}
+            onPress={permission === 'granted' ? onTogglePause : onRequestCamera}
+          />
+        </View>
+      )}
+
+      {latestResultKind !== 'failed' ? <ScannerStatus guidePresentation={guidePresentation} scannerPipeline={scannerPipeline} /> : null}
+      <ScannerControls
+        torchEnabled={torchEnabled}
+        cameraActive={cameraActive}
+        cameraReady={cameraReady}
+        permission={permission}
+        onToggleTorch={onToggleTorch}
+        onTogglePause={onTogglePause}
+        onCapture={onCapture}
+        onManualSearch={onManualSearch}
+        onSettings={onSettings}
+      />
+    </View>
+  );
+}
+
+function ScannerGuide({
+  guideLayout,
+  guidePresentation,
+  guideMotion,
+}: {
+  guideLayout: ReturnType<typeof calculateCardGuideLayout>;
+  guidePresentation: PremiumScannerGuidePresentation;
+  guideMotion: ReturnType<typeof scanner2MotionForState>;
+}) {
+  return (
+    <View pointerEvents="none" style={[s.premiumGuide, { width: guideLayout.width, height: guideLayout.height, left: guideLayout.left, top: guideLayout.top }, guideMotion.pulse && s.guidePulse]}>
+      <View style={[s.guideBracket, guideToneStyle(guidePresentation.tone)]} />
+      <View style={[s.guideBracket, s.guideBracketRight, guideToneStyle(guidePresentation.tone)]} />
+      <View style={[s.guideBracket, s.guideBracketBottom, guideToneStyle(guidePresentation.tone)]} />
+      <View style={[s.guideBracket, s.guideBracketBottomRight, guideToneStyle(guidePresentation.tone)]} />
+      {guideMotion.progress ? <View style={[s.guideProgress, { width: `${Math.round(guidePresentation.progress * 100)}%` }]} /> : null}
+      {guideMotion.flash ? <View style={s.captureFlash} /> : null}
+    </View>
+  );
+}
+
+function ScannerStatus({ guidePresentation, scannerPipeline }: { guidePresentation: PremiumScannerGuidePresentation; scannerPipeline: PremiumScannerPipelineState }) {
+  return (
+    <View style={s.cameraScrimTop}>
+      <TDBadge tone={guidePresentation.tone === 'emerald' ? 'success' : guidePresentation.tone === 'amber' ? 'warning' : guidePresentation.tone === 'danger' ? 'danger' : 'info'}>
+        {guidePresentation.statusLabel}
+      </TDBadge>
+      <TDText variant="title" style={s.guideMessage}>{guidePresentation.message}</TDText>
+      <TDText variant="caption" tone="muted">{scannerPipeline === 'aligning' ? 'camera open' : scannerPipeline.replaceAll('_', ' ')}</TDText>
+    </View>
+  );
+}
+
+function ScannerControls({
+  torchEnabled,
+  cameraActive,
+  cameraReady,
+  permission,
+  onToggleTorch,
+  onTogglePause,
+  onCapture,
+  onManualSearch,
+  onSettings,
+}: {
+  torchEnabled: boolean;
+  cameraActive: boolean;
+  cameraReady: boolean;
+  permission: ScannerPermissionState;
+  onToggleTorch: () => void;
+  onTogglePause: () => void;
+  onCapture: () => void;
+  onManualSearch: () => void;
+  onSettings: () => void;
+}) {
+  return (
+    <View style={s.cameraControls}>
+      <View style={s.secondaryControls}>
+        <IconControl label={torchEnabled ? 'Turn torch off' : 'Turn torch on'} icon={torchEnabled ? 'flash' : 'flash-outline'} onPress={onToggleTorch} />
+        <IconControl label={cameraActive ? 'Pause scanner' : 'Resume scanner'} icon={cameraActive ? 'pause-outline' : 'play-outline'} onPress={onTogglePause} />
+      </View>
+      <IconControl label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />
+      <View style={s.secondaryControls}>
+        <IconControl label="Search manually" icon="search-outline" onPress={onManualSearch} />
+        <IconControl label="Scanner settings" icon="options-outline" onPress={onSettings} />
+      </View>
+    </View>
+  );
+}
+
+function ScannerResultTray({
+  tray,
+  selected,
+  language,
+  finish,
+  condition,
+  marketPrice,
+  offerPrice,
+  quantity,
+  saving,
+  showCorrectionTools,
+  onRetake,
+  onManualSearch,
+  onToggleCorrection,
+  onSave,
+  children,
+}: {
+  tray: PremiumResultTray;
+  selected: ScannerCardCandidate | null;
+  language: string;
+  finish: 'normal' | 'foil' | 'etched';
+  condition: CardCondition;
+  marketPrice: number | null;
+  offerPrice: number | null;
+  quantity: number;
+  saving: boolean;
+  showCorrectionTools: boolean;
+  onRetake: () => void;
+  onManualSearch: () => void;
+  onToggleCorrection: () => void;
+  onSave: () => void;
+  children: ReactNode;
+}) {
+  if (tray.kind === 'failed') {
+    return (
+      <TDCard style={[s.resultTray, s.resultTrayFailed]}>
+        <View style={s.failedTray}>
+          <View style={s.failedHeader}>
+            <View style={s.failureIcon}>
+              <Ionicons name="alert-circle-outline" size={22} color={color.warning} />
+            </View>
+            <View style={s.resultText}>
+              <TDText variant="title">{tray.title}</TDText>
+              <TDText variant="small" tone="muted" numberOfLines={3}>{shortFailureMessage(tray.subtitle)}</TDText>
+            </View>
+            <TDBadge tone="warning">{tray.status}</TDBadge>
+          </View>
+          <View style={s.trayActions}>
+            <TDButton label="Retake" variant="secondary" onPress={onRetake} />
+            <TDButton label="Search manually" variant="secondary" onPress={onManualSearch} />
+          </View>
+        </View>
+      </TDCard>
+    );
+  }
+
+  return (
+    <TDCard style={s.resultTray}>
+      <View style={s.resultHeader}>
+        {selected?.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={s.trayImage} contentFit="cover" /> : <View style={s.trayImageFallback}><Ionicons name="albums-outline" size={20} color={color.textMuted} /></View>}
+        <View style={s.resultText}>
+          <TDText variant="title" numberOfLines={2}>{tray.title}</TDText>
+          <TDText variant="caption" tone="muted">{tray.subtitle}</TDText>
+          <TDText variant="caption" tone="muted">{selected ? `${language} - ${displayFinish(finish)} - ${displayCondition(condition)}` : 'No session row created until a candidate is confirmed.'}</TDText>
+        </View>
+        <TDBadge tone={tray.kind === 'recognized' ? 'success' : tray.kind === 'ambiguous' ? 'warning' : 'info'}>{tray.status}</TDBadge>
+      </View>
+      <View style={s.trayMoneyRow}>
+        <CompactStat label="Market" value={compactScannerMoney(marketPrice)} />
+        <CompactStat label="Offer" value={compactScannerMoney(offerPrice)} tone="success" />
+        <CompactStat label="Qty" value={String(quantity)} />
+      </View>
+      {children}
+      <View style={s.trayActions}>
+        {selected ? <TDButton label={tray.primaryAction} loading={saving} onPress={onSave} /> : null}
+        <TDButton label={showCorrectionTools ? 'Hide correction' : 'Correct'} variant="secondary" disabled={!selected} onPress={onToggleCorrection} />
+        <TDButton label="Retake" variant="secondary" onPress={onRetake} />
+        <TDButton label="Search manually" variant="secondary" onPress={onManualSearch} />
+      </View>
+    </TDCard>
+  );
+}
+
+function ScannerSessionStrip({ bottomInset, cardCount, marketTotal, offerTotal, onReviewSession }: { bottomInset: number; cardCount: number; marketTotal: number | null; offerTotal: number | null; onReviewSession: () => void }) {
+  return (
+    <View style={[s.bottomSessionBar, { paddingBottom: Math.max(bottomInset, 10) }]}>
+      <View style={s.bottomTotals}>
+        <CompactStat label="Cards" value={String(cardCount)} />
+        <CompactStat label="Market" value={compactScannerMoney(marketTotal)} />
+        <CompactStat label="Offer" value={compactScannerMoney(offerTotal)} tone="success" />
+      </View>
+      <TDButton label="Review Session" variant="secondary" onPress={onReviewSession} />
+    </View>
   );
 }
 
@@ -972,7 +1243,9 @@ function createScanId() {
 
 const s = StyleSheet.create({
   scannerShell: { flex: 1, backgroundColor: color.canvas },
-  topHud: { gap: space.xs, paddingHorizontal: space.sm, paddingBottom: space.xs, backgroundColor: color.canvas },
+  topHud: { minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingBottom: space.xs, backgroundColor: color.canvas },
+  hudSummaryIcon: { width: 26, height: 26, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: color.primary + '22' },
+  hudSummaryText: { flex: 1, minWidth: 0 },
   hudRow: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs },
   hudMetricRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   modePill: { flex: 1, minHeight: 36, minWidth: 0, borderRadius: radius.pill, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surfaceFloating + 'E8' },
@@ -981,12 +1254,13 @@ const s = StyleSheet.create({
   compactStatSuccess: { borderColor: color.success + '88' },
   compactStatWarning: { borderColor: color.warning + '88' },
   compactStatInfo: { borderColor: color.info + '88' },
-  cameraStage: { minHeight: 320, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center', borderTopWidth: 1, borderBottomWidth: 1, borderColor: color.borderStrong },
+  cameraStage: { minHeight: 340, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center', borderTopWidth: 1, borderBottomWidth: 1, borderColor: color.borderStrong },
   cameraViewport: { flex: 1, backgroundColor: '#010711' },
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
   cameraScrimTop: { position: 'absolute', top: space.md, left: space.md, right: space.md, alignItems: 'center', gap: space.xs, padding: space.sm, borderRadius: radius.lg, backgroundColor: color.canvas + '66' },
   guideMessage: { textAlign: 'center' },
   premiumGuide: { position: 'absolute' },
+  guidePulse: { opacity: 0.96 },
   guideBracket: { position: 'absolute', top: 0, left: 0, width: 52, height: 52, borderTopWidth: 4, borderLeftWidth: 4, borderColor: color.info, borderTopLeftRadius: radius.md },
   guideBracketRight: { left: undefined, right: 0, borderLeftWidth: 0, borderRightWidth: 4, borderTopRightRadius: radius.md },
   guideBracketBottom: { top: undefined, bottom: 0, borderTopWidth: 0, borderBottomWidth: 4, borderBottomLeftRadius: radius.md },
@@ -997,12 +1271,13 @@ const s = StyleSheet.create({
   guideToneWarning: { borderColor: color.warning },
   guideToneDanger: { borderColor: color.danger },
   guideProgress: { position: 'absolute', left: 0, bottom: -10, height: 3, borderRadius: radius.pill, backgroundColor: color.primaryBright },
+  captureFlash: { ...StyleSheet.absoluteFillObject, borderRadius: radius.md, backgroundColor: '#FFFFFF22' },
   iconControl: { width: 46, height: 46, borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceFloating + 'CC' },
   iconControlPrimary: { width: 58, height: 58, borderRadius: radius.lg, borderColor: color.primaryBright, backgroundColor: color.primaryBright },
   iconControlDisabled: { opacity: 0.42 },
   iconControlPressed: { transform: [{ scale: 0.97 }], backgroundColor: color.surfaceRaised },
   scannerContent: { gap: space.md, padding: space.md },
-  resultTray: { gap: space.md, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
+  resultTray: { gap: space.sm, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating + 'F2' },
   resultTrayFailed: { borderColor: color.warning },
   resultHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   resultText: { flex: 1, minWidth: 0, gap: 2 },
@@ -1017,7 +1292,7 @@ const s = StyleSheet.create({
   sheet: { gap: space.md, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
   sheetHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   closeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
-  bottomSessionBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F2' },
+  bottomSessionBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F8' },
   bottomTotals: { flex: 1, minWidth: 0, flexDirection: 'row', gap: space.xs },
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
