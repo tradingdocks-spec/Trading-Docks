@@ -85,6 +85,19 @@ Verify:
 - Failed queued scan retry.
 - Failed queued scan discard confirmation.
 
+## Scanner Session Review QA
+
+Verify:
+
+- Four primary metrics maximum: Cards, Needs review, No price, Offer total.
+- Game, confidence, missing-price, and sort controls open from the filter sheet.
+- Collapsed card rows have no inline text inputs or destructive buttons.
+- Card review sheet preserves quantity, market price, cash percentage, and offer math.
+- Review next advances only after Mark reviewed.
+- Finalize is disabled while cards remain in Needs review.
+- Missing prices render as an em dash and are excluded from totals.
+- Sticky actions do not cover the final card at 320, 375, 390, and 430 px widths.
+
 ## Release Exit Criteria
 
 - Root TypeScript passes.

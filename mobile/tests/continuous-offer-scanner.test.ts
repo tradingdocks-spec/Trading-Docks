@@ -166,6 +166,25 @@ test('percentage changes recalculate cash and trade values without using missing
   assert.equal(calculateSessionTotals(edited).marketValue, null);
 });
 
+test('session review sheet edits preserve quantity price cash percentage and offer math', () => {
+  const session = addRecognitionToSession(
+    createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Offer', mode: 'card_show_purchase' }),
+    { stableScanId: 'scan-1', candidate, recognition: createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' }), marketPrice: 12 },
+  );
+  const edited = editScannerSessionLine(session, session.lines[0].id, {
+    quantity: 3,
+    marketPrice: 8,
+    purchasePercentage: 60,
+    reviewStatus: 'confirmed',
+  });
+  assert.equal(edited.lines[0].quantity, 3);
+  assert.equal(edited.lines[0].marketPrice, 8);
+  assert.equal(edited.lines[0].purchasePercentage, 60);
+  assert.equal(edited.lines[0].cashOffer, 14.4);
+  assert.equal(calculateSessionTotals(edited).cashOffer, 14.4);
+  assert.equal(edited.lines[0].reviewStatus, 'confirmed');
+});
+
 test('session persistence key is user scoped', () => {
   assert.notEqual(continuousScannerSessionKey('user-1'), continuousScannerSessionKey('user-2'));
   assert.ok(continuousScannerSessionKey('user-1').includes('user-1'));

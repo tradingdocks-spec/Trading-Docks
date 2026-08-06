@@ -40,6 +40,7 @@
 - Partially Implemented: Seller/Signals and Deal Desk now use TD primitives and honest unavailable states, but the rest of the active mobile app still needs staged visual QA rather than blanket migration.
 - Implemented: Mobile Design OS Wave 1 migrates the active app shell, Home, Scanner, Collection, Card Detail, and Storage Locations toward the canonical primitives and hierarchy rules.
 - Implemented: Mobile Design OS Wave 2 migrates Trade Binder, Wishlist, Scanner Session Review, Deal Desk, Seller/Signals, Profile, Authentication, Welcome, Onboarding, and Plans toward the canonical primitives and hierarchy rules.
+- Implemented: Scanner Session Review now uses a simplified finalization hierarchy with four metrics, advanced filter sheet, collapsed non-editing rows, dedicated card review sheet, Review next, and sticky safe-area actions while preserving session calculations.
 - Implemented: Mobile Design OS Wave 3 migrates Command Center summary, Settings, Scanner Recovery, and the dev-only design-system showcase while documenting route-by-route final consistency status.
 - Planned: Pick a canonical component tree and archive or delete superseded versions after review.
 

@@ -44,13 +44,13 @@ The migration is visual and structural only. It must preserve authentication, OC
 
 ## Scanner Session Review
 
-- Hero: Session totals for scanned cards, market value, cash offer, trade value, review count, and missing-price count.
-- Primary action: Finalize reviewed cards when lines exist.
-- Supporting information: Compact filters for status, game, confidence, and missing price; row-level quantity, condition, finish, market, offer, and review state.
-- Deferred information: Export and undo are visually secondary to review/finalize actions.
-- Reusable components: `TDNavigationHeader`, `TDMetric`, `TDSegmentedControl`, `TDInput`, `TDListRow`, `TDBadge`, `TDButton`, `TDEmptyState`, `TDErrorState`, `TDLoadingState`.
+- Hero: Four concise metrics for cards, needs review, no price, and offer total.
+- Primary action: Finalize reviewed cards only when no cards remain in Needs review.
+- Supporting information: Compact status segmentation, optional active-filter summary, collapsed rows, Review next, and sticky session actions.
+- Deferred information: Game filters, confidence filters, missing-price-only, sort order, quantity, price, cash percentage, review state, and remove live in sheets.
+- Reusable components: `TDMetric`, `TDSegmentedControl`, `TDSheet`, `TDInput`, `TDBadge`, `TDButton`, `TDEmptyState`, `TDErrorState`, `TDLoadingState`.
 - States: No active session, loading, unavailable, filtered empty, missing price.
-- Mobile hierarchy: Totals and review state precede edit controls.
+- Mobile hierarchy: Totals and review state precede filter sheets and card-review editing.
 - Responsive behavior: Bottom actions respect safe area and do not overlap tab navigation.
 - Accessibility: Missing price is announced as unavailable, destructive remove remains explicit, filter selected states are exposed.
 - Acceptance criteria: Missing price is never substituted as zero and CSV/export remains explicit.

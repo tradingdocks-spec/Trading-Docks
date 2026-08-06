@@ -80,6 +80,7 @@ Raw colors remain available only as palette anchors. New product components shou
 - Implemented: Profile/account rows use `TDIconRow` for consistent icon size, touch target, and chevron treatment.
 - Implemented: Mobile icon-only actions use `TDIconButton` with explicit labels, normalized icon sizes, selected/disabled state, and consistent press feedback.
 - Implemented: Mobile rows and recovery panels use `TDListRow`, `TDSheet`, `TDResultTray`, `TDStatusIndicator`, `TDSessionStrip`, `TDSkeleton`, and `TDToast` as the canonical primitives for list actions, secondary panels, sync/status, scanner/session summaries, loading placeholders, and transient messages.
+- Implemented: Scanner Session Review uses the progressive-disclosure pattern for complex workflows: compact metrics and rows on the main screen, with advanced filters and card editing in sheets.
 - Implemented: The mobile design OS allows only the documented spacing scale, surface levels, icon sizes, and motion durations exported from `mobile/design/component-model.ts`.
 - Partially Implemented: Authentication still contains a custom marketing/form split because preserving its proven auth behavior is higher priority than a full visual rewrite.
 - Partially Implemented: Seller/Signals and Deal Desk now follow the mobile design OS direction, but Home, Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Session Review, Profile, Auth, Plans, Admin, and dev-only surfaces still need visual QA and selective follow-up migration before release.

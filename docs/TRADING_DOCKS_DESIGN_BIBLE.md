@@ -229,6 +229,7 @@ Success:
 - Storage: location path and "where is this card" flow are the hero.
 - Trade Binder/Wishlist: exchange match clarity is the hero.
 - Session Review: current deal/intake totals are the hero.
+- Session Review: default view should answer cards, attention, offer, next review, and finalize. Advanced filters and card edits belong in sheets, not collapsed rows.
 - Deal Desk: current transaction offer is the hero.
 - Profile: signed-in identity and account status are the hero.
 - Auth: sign-in form and trust cues are the hero.

@@ -28,7 +28,7 @@ Routes are classified as:
 | `/storage-locations` | Aligned | Wave 1 uses search-first storage organization, list rows, and honest unavailable states. |
 | `/trade-binder` | Aligned | Wave 2 uses exchange segmentation, compact rows, exact/flexible match copy, and real data only. |
 | `/wishlist` | Aligned | Wave 2 uses priority/match hierarchy and compact exact/flexible target copy. |
-| `/scanner-session` | Aligned | Wave 2 prioritizes review totals, missing-price handling, and safe-area-aware list content. |
+| `/scanner-session` | Aligned | Session Review now prioritizes four metrics, Review next, status tabs, collapsed rows, filter/review sheets, missing-price handling, and safe-area-aware sticky actions. |
 | `/scanner-recovery` | Minor Issue Fixed | Wave 3 uses shared header/list/state primitives and hides idempotency details from normal UI. |
 | `/settings` | Minor Issue Fixed | Wave 3 replaced the legacy settings surface with grouped shared rows and hidden dev diagnostics. |
 
