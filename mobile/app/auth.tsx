@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { Logo } from '@/components/primitives';
-import { TDButton, TDCard, TDErrorState, TDInput } from '@/components/design-system';
+import { TDButton, TDCard, TDErrorState, TDIconButton, TDInput, TDStatusIndicator, TDText } from '@/components/design-system';
 import { color, radius, space, type } from '@/design';
 import { signInWithEmailPassword, signUpWithEmailPassword } from '@/services/auth-email';
 import { signInSocial } from '@/lib/oauth';
@@ -36,7 +36,7 @@ function CheckRow({ checked, label, onPress }: { checked: boolean; label: string
       <View style={[s.checkbox, checked && s.checkboxOn]}>
         {checked && <Ionicons name="checkmark" size={15} color="#02101C" />}
       </View>
-      <Text style={s.checkLabel}>{label}</Text>
+      <TDText variant="small" tone="secondary" style={s.checkLabel}>{label}</TDText>
     </Pressable>
   );
 }
@@ -212,7 +212,7 @@ export default function Auth() {
       <SafeAreaView style={s.safe}>
         <View style={s.loading}>
           <ActivityIndicator color={color.primaryBright} />
-          <Text style={s.loadingText}>Restoring sign-in preferences...</Text>
+          <TDText variant="caption" tone="muted">Restoring sign-in preferences...</TDText>
         </View>
       </SafeAreaView>
     );
@@ -223,29 +223,27 @@ export default function Auth() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={[s.page, desktop && s.pageDesktop]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <View style={[s.shell, desktop && s.shellDesktop]}>
-            <Pressable onPress={() => router.back()} style={s.back}>
-              <Ionicons name="chevron-back" size={22} color={color.text} />
-            </Pressable>
+            <TDIconButton label="Back" iconName="chevron-back" onPress={() => router.back()} />
             <View style={[s.brandSide, desktop && s.brandSideDesktop]}>
               <Logo />
               <View>
-                <Text style={s.kicker}>{signup ? 'CREATE YOUR ACCOUNT' : 'WELCOME BACK'}</Text>
-                <Text style={[s.title, desktop && s.titleDesktop]}>{signup ? 'One account for every Trading Docks workspace.' : 'Sign in to your Trading Docks workspace.'}</Text>
-                <Text style={s.sub}>{signup ? 'Start free, choose your account type, and upgrade whenever you are ready.' : 'Your cards, buying sessions, and Command Center stay synchronized across mobile and web.'}</Text>
+                <TDText variant="label" tone="info">{signup ? 'Create account' : 'Welcome back'}</TDText>
+                <TDText variant="heading" style={desktop && s.titleDesktop}>{signup ? 'Create your Trading Docks workspace.' : 'Sign in to Trading Docks.'}</TDText>
+                <TDText variant="small" tone="secondary" style={s.sub}>{signup ? 'Start free, then choose the workspace that fits your collection or business.' : 'Access your cards, buying sessions, and protected workspace.'}</TDText>
               </View>
-              <View style={s.benefit}><Ionicons name="shield-checkmark-outline" size={20} color={color.success} /><Text style={s.benefitText}>Secure Supabase authentication</Text></View>
-              <View style={s.benefit}><Ionicons name="sync-outline" size={20} color={color.primaryBright} /><Text style={s.benefitText}>One account across every workspace</Text></View>
+              <TDStatusIndicator label="Passwords are never stored on this device" tone="success" />
+              <TDStatusIndicator label="One account across mobile and web" tone="info" />
             </View>
             <View style={[s.formSide, desktop && s.formSideDesktop]}>
               <TDCard style={s.panel} variant="elevated">
-                <Text style={s.formTitle}>{signup ? 'Create your account' : 'Welcome back'}</Text>
-                <Text style={s.formSub}>{signup ? 'Use Google, Apple, or email to begin.' : 'Choose a secure sign-in method.'}</Text>
+                <TDText variant="title">{signup ? 'Create your account' : 'Welcome back'}</TDText>
+                <TDText variant="small" tone="secondary">{signup ? 'Use Google, Apple, or email to begin.' : 'Choose a secure sign-in method.'}</TDText>
                 {error ? <TDErrorState title="Authentication problem" message={error} accessibilityLabel="Authentication error" /> : null}
-                {notice ? <Text style={s.notice}>{notice}</Text> : null}
+                {notice ? <TDText variant="small" tone="success" style={s.notice}>{notice}</TDText> : null}
                 <View style={s.socials}>
                   <Pressable onPress={() => social('google')} disabled={busy} style={[s.social, busy && s.disabled]}>
                     <Ionicons name="logo-google" size={20} color={color.text} />
-                    <Text style={s.socialText}>Continue with Google</Text>
+                    <TDText variant="small" style={s.socialText}>Continue with Google</TDText>
                   </Pressable>
                   {Platform.OS === 'ios' && (
                     <Pressable onPress={() => social('apple')} disabled={busy} style={[s.social, s.apple, busy && s.disabled]}>
@@ -254,7 +252,7 @@ export default function Auth() {
                     </Pressable>
                   )}
                 </View>
-                <View style={s.or}><View style={s.rule} /><Text style={s.orText}>OR CONTINUE WITH EMAIL</Text><View style={s.rule} /></View>
+                <View style={s.or}><View style={s.rule} /><TDText variant="caption" tone="muted" style={s.orText}>Or continue with email</TDText><View style={s.rule} /></View>
                 <TDInput label="Email address" value={email} onChangeText={setEmail} onSubmitEditing={submit} placeholder="Email address" autoCapitalize="none" autoComplete="email" keyboardType="email-address" returnKeyType="go" disabled={busy} leftIconName="mail-outline" />
                 <TDInput
                   accessibilityLabel="Password"
@@ -286,13 +284,13 @@ export default function Auth() {
                   </View>
                 )}
                 <TDButton label={busy ? (signup ? 'Creating account...' : 'Signing in...') : (signup ? 'Create account' : 'Sign in')} loading={busy} onPress={submit} iconName="arrow-forward" />
-                {!signup && <Pressable onPress={magic} disabled={busy}><Text style={[s.magic, busy && s.disabledText]}>Email me a secure sign-in link</Text></Pressable>}
+                {!signup && <Pressable accessibilityRole="button" onPress={magic} disabled={busy}><TDText variant="small" tone="info" style={[s.magic, busy && s.disabledText]}>Email me a secure sign-in link</TDText></Pressable>}
                 <Pressable onPress={() => { setSignup((value) => !value); setError(null); setNotice(null); }} disabled={busy}>
-                  <Text style={s.switch}>{signup ? 'Already have an account? Sign in' : 'New here? Create a Trading Docks account'}</Text>
+                  <TDText variant="small" tone="secondary" style={s.switch}>{signup ? 'Already have an account? Sign in' : 'New here? Create a Trading Docks account'}</TDText>
                 </Pressable>
               </TDCard>
-              <View style={s.trust}><Ionicons name="lock-closed-outline" size={15} color={color.success} /><Text style={s.trustText}>Trading Docks never stores your password. Face ID and biometric unlock protect an existing device session; they do not store credentials.</Text></View>
-              <Pressable onPress={() => focusSafeRoute('/(tabs)')}><Text style={s.preview}>Continue in preview mode</Text></Pressable>
+              <View style={s.trust}><Ionicons name="lock-closed-outline" size={15} color={color.success} /><TDText variant="caption" tone="muted" style={s.trustText}>Face ID and biometric unlock protect an existing device session; they do not store credentials.</TDText></View>
+              <Pressable accessibilityRole="button" onPress={() => focusSafeRoute('/(tabs)')}><TDText variant="small" tone="muted" style={s.preview}>Continue in preview mode</TDText></Pressable>
             </View>
           </View>
         </ScrollView>
@@ -304,25 +302,17 @@ export default function Auth() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: color.canvas },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.sm },
-  loadingText: { ...type.caption, color: color.textMuted },
   page: { flexGrow: 1, padding: space.lg, paddingBottom: space.xxl },
   pageDesktop: { justifyContent: 'center', paddingHorizontal: 48 },
   shell: { width: '100%', maxWidth: 560, alignSelf: 'center', gap: space.lg },
   shellDesktop: { maxWidth: 1160, flexDirection: 'row', alignItems: 'stretch', gap: 40 },
-  back: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: color.surface, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center' },
   brandSide: { gap: space.lg },
   brandSideDesktop: { flex: 1, justifyContent: 'center', paddingRight: 24 },
   formSide: { gap: space.md },
   formSideDesktop: { width: 520, justifyContent: 'center' },
-  kicker: { ...type.label, color: color.primaryBright, marginBottom: space.sm },
-  title: { ...type.display, color: color.text },
-  titleDesktop: { fontSize: 48, lineHeight: 52 },
-  sub: { ...type.body, color: color.textSecondary, marginTop: space.sm, maxWidth: 520 },
-  benefit: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  benefitText: { color: color.textSecondary, fontWeight: '700' },
+  titleDesktop: { fontSize: 40, lineHeight: 45 },
+  sub: { marginTop: space.sm, maxWidth: 520 },
   panel: { gap: space.sm, padding: space.lg },
-  formTitle: { ...type.title, color: color.text },
-  formSub: { ...type.body, color: color.textSecondary, marginBottom: space.sm },
   notice: { color: color.success, backgroundColor: color.success + '12', borderColor: color.success + '55', borderWidth: 1, borderRadius: radius.sm, padding: 12, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   socials: { gap: space.sm },
   social: { height: 56, borderRadius: radius.md, backgroundColor: color.canvasRaised, borderWidth: 1, borderColor: color.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
@@ -337,7 +327,7 @@ const s = StyleSheet.create({
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 28 },
   checkbox: { width: 21, height: 21, borderRadius: 7, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, alignItems: 'center', justifyContent: 'center' },
   checkboxOn: { backgroundColor: color.success, borderColor: color.success },
-  checkLabel: { color: color.textSecondary, fontSize: 13, fontWeight: '700' },
+  checkLabel: { flex: 1 },
   magic: { color: color.primaryBright, textAlign: 'center', fontWeight: '800', fontSize: 12, paddingVertical: 6 },
   switch: { color: color.textSecondary, textAlign: 'center', fontWeight: '800', fontSize: 12, paddingVertical: 6 },
   trust: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 8, paddingHorizontal: 8 },

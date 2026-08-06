@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TDBadge, TDButton, TDCard, TDIconRow, TDSectionHeader, TDText } from '@/components/design-system';
-import { Logo } from '@/components/primitives';
+import { TDBadge, TDButton, TDCard, TDListRow, TDNavigationHeader, TDSectionHeader, TDStatusIndicator, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
+import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/account';
 import { useAdmin } from '@/providers/admin';
@@ -19,15 +20,11 @@ const baseItems = [
 ] as const;
 
 export default function Profile() {
+  const insets = useSafeAreaInsets();
   const { session, configured } = useAuth();
   const { isAdmin, role } = useAdmin();
   const { accountType } = useAccount();
   const { activeSession } = useWorkSession();
-  const items = [
-    ...(isAdmin ? [['Command Center', `${role} access`, 'shield-checkmark-outline'] as const] : []),
-    ['Membership', accountType[0].toUpperCase() + accountType.slice(1), 'diamond-outline'] as const,
-    ...baseItems,
-  ];
 
   const signOut = async () => {
     await supabase?.auth.signOut();
@@ -41,75 +38,64 @@ export default function Profile() {
   };
 
   return (
-    <ScrollView style={s.page} contentContainerStyle={s.content}>
-      <Logo />
-      <View style={s.identity}>
+    <ScrollView style={s.page} contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 14, 34), paddingBottom: getMobileScrollBottomInset(insets.bottom) }]} showsVerticalScrollIndicator={false}>
+      <TDNavigationHeader
+        eyebrow="Profile"
+        title="Account and settings"
+        subtitle="Manage your workspace, membership, security, and support options."
+      />
+      <TDCard variant="floating" style={s.identity}>
         <View style={s.avatar}>
-          <Text style={s.initial}>{(session?.user.email?.[0] ?? 'C').toUpperCase()}</Text>
+          <TDText variant="title">{(session?.user.email?.[0] ?? 'C').toUpperCase()}</TDText>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.name}>{session?.user.email?.split('@')[0] ?? 'Collector'}</Text>
-          <Text style={s.email}>{session?.user.email ?? 'Preview mode'}</Text>
+        <View style={s.flex}>
+          <TDText variant="title" style={s.name}>{session?.user.email?.split('@')[0] ?? 'Collector'}</TDText>
+          <TDText variant="caption" tone="muted">{session?.user.email ?? 'Preview mode'}</TDText>
+          <TDStatusIndicator label={configured ? 'Connection ready' : 'Setup required'} tone={configured ? 'success' : 'warning'} />
         </View>
         <TDBadge tone={session ? 'success' : 'warning'}>{session ? 'Signed in' : 'Preview'}</TDBadge>
-      </View>
-
-      {activeSession ? (
-        <TDCard variant="elevated" style={s.sessionCard}>
-          <View style={s.sessionDot} />
-          <View style={{ flex: 1 }}>
-            <TDText variant="label" tone="success">Current session</TDText>
-            <TDText variant="title">{activeSession.name}</TDText>
-            <TDText variant="caption" tone="muted">{activeSession.status === 'paused' ? 'Paused and saved locally' : 'Active - available offline'}</TDText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={color.info} />
-        </TDCard>
-      ) : null}
-
-      <TDCard>
-        <View style={s.row}>
-          <View>
-            <TDText variant="label" tone="muted">Mobile connection</TDText>
-            <TDText variant="title">{configured ? 'Supabase configured' : 'Setup required'}</TDText>
-            <TDText variant="caption" tone="muted">{configured ? 'Authentication and account sync are ready.' : 'Add Expo environment variables, then restart.'}</TDText>
-          </View>
-          <Ionicons name={configured ? 'checkmark-circle' : 'alert-circle'} size={25} color={configured ? color.success : color.warning} />
-        </View>
       </TDCard>
 
-      <TDSectionHeader title="Account" />
-      {items.map(([title, value, itemIcon]) => (
-        <TDIconRow
-          key={title}
-          accessibilityLabel={`Open ${title}`}
-          description={value}
-          iconName={itemIcon as keyof typeof Ionicons.glyphMap}
-          onPress={() => open(title)}
-          right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />}
-          title={title}
+      {activeSession ? (
+        <TDListRow
+          eyebrow="Current session"
+          title={activeSession.name}
+          description={activeSession.status === 'paused' ? 'Paused and saved locally' : 'Active and available offline'}
+          iconName="radio-outline"
+          right={<Ionicons name="chevron-forward" size={20} color={color.info} />}
+          onPress={() => router.push('/scanner-session' as never)}
         />
+      ) : null}
+
+      <TDSectionHeader title="Account" />
+      <TDListRow title="Membership" description={accountType[0].toUpperCase() + accountType.slice(1)} iconName="diamond-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Membership')} />
+      {isAdmin ? <TDListRow title="Command Center" description={`${role} access is additive to this workspace.`} iconName="shield-checkmark-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Command Center')} /> : null}
+
+      <TDSectionHeader title="Security and preferences" />
+      {baseItems.map(([title, value, itemIcon]) => (
+        <TDListRow key={title} accessibilityLabel={`Open ${title}`} description={value} iconName={itemIcon as keyof typeof Ionicons.glyphMap} onPress={() => open(title)} right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} title={title} />
       ))}
+
+      <TDSectionHeader title="Scanner and support" />
+      <TDListRow title="Scanner settings" description="Camera, OCR, and offline replay preferences." iconName="scan-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => router.push('/settings' as never)} />
+      <TDListRow title="Support" description="Help, account questions, and product feedback." iconName="help-circle-outline" right={<TDBadge tone="neutral">Planned</TDBadge>} />
 
       <TDButton
         label={session ? 'Sign out' : 'Sign in to Trading Docks'}
         onPress={session ? signOut : () => router.push('/auth')}
         variant="secondary"
       />
-      <Text style={s.version}>Trading Docks Mobile Foundation 1.1</Text>
+      <TDText variant="caption" tone="muted" style={s.version}>Trading Docks Mobile Foundation 1.1</TDText>
     </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: color.canvas },
-  content: { padding: 20, paddingTop: 58, paddingBottom: 140, gap: 14 },
+  content: { paddingHorizontal: space.lg, gap: space.md },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 10 },
   avatar: { width: 53, height: 53, borderRadius: radius.md, backgroundColor: color.primary, alignItems: 'center', justifyContent: 'center' },
-  initial: { color: '#fff', fontSize: 22, fontWeight: '900' },
-  name: { color: color.text, fontSize: 17, fontWeight: '900', textTransform: 'capitalize' },
-  email: { color: color.textMuted, fontSize: 11, marginTop: 3 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  flex: { flex: 1, minWidth: 0, gap: 3 },
+  name: { textTransform: 'capitalize' },
   version: { color: color.textMuted, textAlign: 'center', fontSize: 10, marginTop: 6 },
-  sessionCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surfaceRaised },
-  sessionDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: color.success },
 });
