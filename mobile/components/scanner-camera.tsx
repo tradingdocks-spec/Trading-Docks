@@ -1,14 +1,21 @@
-import { forwardRef, useCallback, useImperativeHandle } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Camera,
   CommonResolutions,
-  useCameraDevice,
+  useCameraDevices,
   useFrameOutput,
   usePhotoOutput,
+  type CameraRef,
+  type CameraDevice,
 } from 'react-native-vision-camera';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import {
+  resolveScannerCameraLensSelection,
+  resolveScannerTorchState,
+  scannerCameraSupportsFocus,
+} from '@/services/scanner-camera-controls';
 import { scannerNativeFrameSampling, scannerNativePhotoTarget } from '@/services/scanner-camera-quality';
 import type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraProps } from './scanner-camera-contract';
 export type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraPhoto, ScannerCameraProps } from './scanner-camera-contract';
@@ -17,10 +24,40 @@ const frameSampling = scannerNativeFrameSampling();
 const photoTarget = scannerNativePhotoTarget();
 
 export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>(function ScannerCamera(
-  { active, torchEnabled, userId, onReady, onFrameAnalysis },
+  {
+    active,
+    torchEnabled,
+    lensMode,
+    appForegrounded,
+    focusEnabled,
+    userId,
+    onReady,
+    onFrameAnalysis,
+    onLensOptionsChange,
+    onDeviceDiagnosticsChange,
+    onTorchStateChange,
+    onPreviewStopped,
+  },
   ref,
 ) {
-  const device = useCameraDevice('back', { physicalDevices: ['wide-angle'] });
+  const cameraRef = useRef<CameraRef>(null);
+  const devices = useCameraDevices();
+  const lensSelection = useMemo(
+    () => resolveScannerCameraLensSelection(devices, lensMode),
+    [devices, lensMode],
+  );
+  const device = lensSelection.selectedDevice as CameraDevice | undefined;
+  const deviceSummary = lensSelection.selectedDeviceSummary;
+  const torchState = useMemo(
+    () => resolveScannerTorchState({
+      requested: torchEnabled,
+      active,
+      appForegrounded,
+      deviceHasTorch: Boolean(device?.hasTorch),
+    }),
+    [active, appForegrounded, device?.hasTorch, torchEnabled],
+  );
+  const supportsFocus = scannerCameraSupportsFocus(device);
   const handleFrameAnalysis = useCallback((nativeFrame: ScannerCameraFrame) => {
     onFrameAnalysis(nativeFrame);
   }, [onFrameAnalysis]);
@@ -85,10 +122,22 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
     },
   });
 
+  useEffect(() => {
+    onLensOptionsChange?.(lensSelection.options);
+  }, [lensSelection.options, onLensOptionsChange]);
+
+  useEffect(() => {
+    onDeviceDiagnosticsChange?.(deviceSummary);
+  }, [deviceSummary, onDeviceDiagnosticsChange]);
+
+  useEffect(() => {
+    onTorchStateChange?.(torchState);
+  }, [onTorchStateChange, torchState]);
+
   useImperativeHandle(ref, () => ({
     async capturePhoto() {
       const photo = await photoOutput.capturePhoto({
-        flashMode: torchEnabled ? 'on' : 'off',
+        flashMode: torchState.photoFlashMode,
         enableShutterSound: false,
         enableDistortionCorrection: photoTarget.distortionCorrection,
         enableVirtualDeviceFusion: photoTarget.virtualDeviceFusion,
@@ -105,21 +154,30 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
         photo.dispose();
       }
     },
-  }), [photoOutput, torchEnabled]);
+    async focusAt(point) {
+      if (!cameraRef.current || !supportsFocus || !focusEnabled) return;
+      await cameraRef.current.focusTo(point, {
+        modes: ['AF', 'AE'],
+        autoResetAfter: 2,
+      });
+    },
+  }), [focusEnabled, photoOutput, supportsFocus, torchState.photoFlashMode]);
 
   if (!device) return <View style={StyleSheet.absoluteFill} />;
 
   return (
     <Camera
+      ref={cameraRef}
       style={StyleSheet.absoluteFill}
       device={device}
       outputs={[photoOutput, frameOutput]}
       isActive={active}
-      torchMode={torchEnabled ? 'on' : 'off'}
+      torchMode={torchState.torchProp}
       resizeMode="cover"
-      enableNativeTapToFocusGesture
+      enableNativeTapToFocusGesture={focusEnabled && supportsFocus}
       onStarted={onReady}
       onPreviewStarted={onReady}
+      onPreviewStopped={onPreviewStopped}
     />
   );
 });
