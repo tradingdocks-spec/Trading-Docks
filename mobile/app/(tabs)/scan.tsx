@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
-import { AccessibilityInfo, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { AccessibilityInfo, AppState, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
@@ -67,7 +67,12 @@ import {
   scanner2CameraHeight,
   scanner2HudLine,
   scanner2MotionForState,
+  shouldBlockScannerCapture,
+  shouldScannerCameraRender,
+  shouldShowScannerResumeAction,
   shouldRenderDiagnosticsInline,
+  resolveScanner2CameraLifecycle,
+  type Scanner2CameraLifecycleState,
   type PremiumResultTray,
   type PremiumResultTrayKind,
   type PremiumScannerGuidePresentation,
@@ -87,6 +92,7 @@ export default function Scan() {
   const cameraRef = useRef<CameraView | null>(null);
   const mountedRef = useRef(true);
   const activeCaptureIdRef = useRef<string | null>(null);
+  const activeSearchIdRef = useRef<string | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [context, setContext] = useState<ScannerContext | null>(null);
   const [sessionMode, setSessionMode] = useState<ContinuousScannerMode>(INITIAL_SESSION_MODE);
@@ -95,6 +101,7 @@ export default function Scan() {
   const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
   const [cameraActive, setCameraActive] = useState(false);
   const [userPausedCamera, setUserPausedCamera] = useState(false);
+  const [appForegrounded, setAppForegrounded] = useState(true);
   const [cameraReady, setCameraReady] = useState(false);
   const [previewDimensions, setPreviewDimensions] = useState<PreviewDimensions | null>(null);
   const [captureState, setCaptureState] = useState<ScannerCaptureState>('idle');
@@ -103,6 +110,7 @@ export default function Scan() {
   const [scannerCalibration, setScannerCalibration] = useState<ScannerCalibrationPreferences>(() => normalizeScannerCalibrationPreferences());
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
+  const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [candidates, setCandidates] = useState<ScannerCardCandidate[]>([]);
   const [magicRecognition, setMagicRecognition] = useState<MagicRecognitionResult | null>(null);
@@ -189,6 +197,16 @@ export default function Scan() {
     awaitingCardRemoval: autoScanner.duplicateProtection.awaitingCardRemoval,
     justAdded: Boolean(success && /added|synced/i.test(success)),
   }), [autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, captureState, error, permission, recognitionStage, selected, success]);
+  const scannerProcessing = recognitionStage === 'reading_title' || recognitionStage === 'finding_card' || captureState === 'capturing' || captureState === 'captured';
+  const cameraLifecycle = useMemo(() => resolveScanner2CameraLifecycle({
+    permission,
+    cameraAvailable,
+    cameraReady,
+    userPaused: userPausedCamera,
+    appForegrounded,
+    processing: scannerProcessing,
+    hasCameraError: captureState === 'failed' && Boolean(error),
+  }), [appForegrounded, cameraAvailable, cameraReady, captureState, error, permission, scannerProcessing, userPausedCamera]);
   const guidePresentation = useMemo(
     () => guidePresentationForPipeline(scannerPipeline, autoScanner.lastGuidance),
     [autoScanner.lastGuidance, scannerPipeline],
@@ -274,9 +292,25 @@ export default function Scan() {
     return () => {
       mountedRef.current = false;
       activeCaptureIdRef.current = null;
+      activeSearchIdRef.current = null;
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      const foregrounded = nextState === 'active';
+      setAppForegrounded(foregrounded);
+      if (!foregrounded) {
+        activeCaptureIdRef.current = null;
+        setCameraActive(false);
+        return;
+      }
+      if (permission === 'granted' && !userPausedCamera) setCameraActive(true);
+    };
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [permission, userPausedCamera]);
 
   useEffect(() => () => {
     if (diagnosticCaptureUri) void deleteCapturedStill(diagnosticCaptureUri);
@@ -304,13 +338,13 @@ export default function Scan() {
     });
     setPermission(nextPermission);
     if (nextPermission === 'granted') {
-      if (!userPausedCamera) setCameraActive(true);
+      if (!userPausedCamera && appForegrounded) setCameraActive(true);
       return;
     }
     if (nextPermission === 'not_requested') {
       void requestCameraPermission();
     }
-  }, [cameraAvailable, cameraPermission, requestCameraPermission, userPausedCamera]);
+  }, [appForegrounded, cameraAvailable, cameraPermission, requestCameraPermission, userPausedCamera]);
 
   useEffect(() => {
     if (!context || !diagnosticsEnabled) return;
@@ -345,12 +379,12 @@ export default function Scan() {
       requested: Boolean(cameraPermission),
     });
     setPermission(next);
-    setCameraActive(next === 'granted' && !userPausedCamera);
+    setCameraActive(next === 'granted' && !userPausedCamera && appForegrounded);
     if (next !== 'granted') {
       setCameraReady(false);
       setCaptureState(next === 'unavailable' ? 'failed' : 'idle');
     }
-  }, [cameraAvailable, cameraPermission, userPausedCamera]);
+  }, [appForegrounded, cameraAvailable, cameraPermission, userPausedCamera]);
 
   const requestCamera = async () => {
     setError(null);
@@ -391,6 +425,9 @@ export default function Scan() {
 
   const retakeScan = () => {
     activeCaptureIdRef.current = null;
+    activeSearchIdRef.current = null;
+    setLastCaptureId(null);
+    setCapturedFrame(null);
     void cleanupDiagnosticCapture();
     setMagicStillScan(null);
     setMagicRecognition(null);
@@ -403,11 +440,11 @@ export default function Scan() {
     setRecognitionStage('idle');
     setCaptureState(cameraReady ? 'ready' : 'camera_not_ready');
     setUserPausedCamera(false);
-    setCameraActive(true);
+    setCameraActive(appForegrounded);
   };
 
   const captureStill = async () => {
-    if (captureState === 'capturing' || recognitionStage === 'reading_title' || recognitionStage === 'finding_card') return;
+    if (shouldBlockScannerCapture({ lifecycle: cameraLifecycle, captureState, recognitionStage })) return;
     setError(null);
     setSuccess(null);
     setSessionInsertionResult('not_attempted');
@@ -425,6 +462,7 @@ export default function Scan() {
       if (diagnosticCaptureUri) void cleanupDiagnosticCapture();
       const captureId = createScanId();
       activeCaptureIdRef.current = captureId;
+      setLastCaptureId(captureId);
       setCaptureState('capturing');
       const photo = await cameraRef.current.takePictureAsync({ quality: 1, skipProcessing: false });
       if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
@@ -449,6 +487,7 @@ export default function Scan() {
       if (diagnosticsEnabled) setDiagnosticCaptureUri(photo.uri);
       setMagicStillScan(scan);
       if (scan.ok) {
+        setCaptureState('ready');
         setCandidates(scan.candidates);
         setSelected(scan.selected);
         setMagicRecognition(scan.recognition);
@@ -459,6 +498,7 @@ export default function Scan() {
           ? `${scan.selected.name} is ready to confirm. Temporary capture ${scan.cleanup.ok && scan.cleanup.deleted ? 'deleted' : 'cleanup needs review'}.`
           : 'OCR finished, but no Magic printing was selected. Use manual search.');
       } else {
+        setCaptureState('ready');
         setMagicRecognition(scan.ocr?.ok === false ? { ok: false, reason: scan.reason, offline: false } : null);
         setSessionInsertionResult('failed');
         setRecognitionStage('failed');
@@ -470,10 +510,10 @@ export default function Scan() {
         scanId: captureId,
       }));
       activeCaptureIdRef.current = null;
-      if (!userPausedCamera) setCameraActive(true);
+      if (!userPausedCamera && appForegrounded) setCameraActive(true);
     } catch (captureError) {
       activeCaptureIdRef.current = null;
-      if (!userPausedCamera) setCameraActive(true);
+      if (!userPausedCamera && appForegrounded) setCameraActive(true);
       setCaptureState('failed');
       setRecognitionStage('failed');
       setSessionInsertionResult('failed');
@@ -491,27 +531,39 @@ export default function Scan() {
   };
 
   const runSearch = async () => {
+    const searchId = createScanId();
+    activeSearchIdRef.current = searchId;
     setSearching(true);
     setError(null);
     setSuccess(null);
-    const result = await searchScannerPrintings(query, true);
-    if (result.ok) {
-      setCandidates(result.candidates);
-      setMagicStillScan(null);
-      const recognition = await recognizeMagicCard({
-        nameObservation: { regionType: 'name', text: query, confidence: 72 },
-        online: false,
-        cachedCandidates: result.candidates.map(scannerCandidateToRecognitionCandidate),
-      });
-      setMagicRecognition(recognition);
-      if (!result.candidates.length) setError('No printings found. Try the exact card name.');
-      else if (result.warning) setError(result.warning);
-    } else {
-      setCandidates([]);
-      setMagicRecognition(null);
-      setError(result.reason);
+    try {
+      const result = await searchScannerPrintings(query, true);
+      if (!mountedRef.current || activeSearchIdRef.current !== searchId) return;
+      if (result.ok) {
+        setCandidates(result.candidates);
+        setMagicStillScan(null);
+        const recognition = await recognizeMagicCard({
+          nameObservation: { regionType: 'name', text: query, confidence: 72 },
+          online: false,
+          cachedCandidates: result.candidates.map(scannerCandidateToRecognitionCandidate),
+        });
+        if (!mountedRef.current || activeSearchIdRef.current !== searchId) return;
+        setMagicRecognition(recognition);
+        if (!result.candidates.length) setError('No printings found. Try the exact card name.');
+        else if (result.warning) setError(result.warning);
+      } else {
+        setCandidates([]);
+        setMagicRecognition(null);
+        setError(result.reason);
+      }
+    } catch (searchError) {
+      if (mountedRef.current && activeSearchIdRef.current === searchId) setError(searchError instanceof Error ? searchError.message : 'Search failed. Try again.');
+    } finally {
+      if (mountedRef.current && activeSearchIdRef.current === searchId) {
+        activeSearchIdRef.current = null;
+        setSearching(false);
+      }
     }
-    setSearching(false);
   };
 
   const selectCandidate = (candidate: ScannerCardCandidate) => {
@@ -640,6 +692,7 @@ export default function Scan() {
         cameraRef={cameraRef}
         permission={permission}
         cameraActive={cameraActive}
+        cameraLifecycle={cameraLifecycle}
         cameraReady={cameraReady}
         cameraStageHeight={cameraStageHeight}
         torchEnabled={torchEnabled}
@@ -659,6 +712,8 @@ export default function Scan() {
         onCapture={captureStill}
         onManualSearch={() => setShowManualSearchSheet(true)}
         onSettings={() => setShowSettingsSheet(true)}
+        diagnosticsEnabled={diagnosticsEnabled}
+        onDiagnostics={() => setShowDiagnosticsSheet(true)}
         onRequestCamera={requestCamera}
       />
 
@@ -810,7 +865,9 @@ export default function Scan() {
               <DiagnosticCell label="Guide ratio" value={diagnosticsSnapshot.guideAspectRatio.toFixed(3)} />
               <DiagnosticCell label="Crop" value={guideCropMapping ? `${Math.round(guideCropMapping.normalizedCrop.width * 100)}% x ${Math.round(guideCropMapping.normalizedCrop.height * 100)}%` : 'unavailable'} />
               <DiagnosticCell label="Capture" value={diagnosticsSnapshot.captureState.replaceAll('_', ' ')} />
+              <DiagnosticCell label="Capture ID" value={lastCaptureId ?? 'unavailable'} />
               <DiagnosticCell label="Pipeline" value={scannerPipeline.replaceAll('_', ' ')} />
+              <DiagnosticCell label="Camera state" value={cameraLifecycle.replaceAll('_', ' ')} />
               <DiagnosticCell label="OCR stage" value={recognitionStage.replaceAll('_', ' ')} />
               <DiagnosticCell label="OCR latency" value={magicStillScan?.ok ? `${magicStillScan.ocr.latencyMs} ms` : 'unavailable'} />
               <DiagnosticCell label="Scryfall" value={magicStillScan?.ok ? `${magicStillScan.lookupLatencyMs} ms` : 'unavailable'} />
@@ -824,6 +881,7 @@ export default function Scan() {
               <DiagnosticCell label="Title px" value={magicStillScan?.cropDiagnostics ? rectSummary(magicStillScan.cropDiagnostics.titleCropPixels) : 'unavailable'} />
               <DiagnosticCell label="Collector px" value={magicStillScan?.cropDiagnostics ? rectSummary(magicStillScan.cropDiagnostics.collectorCropPixels) : 'unavailable'} />
               <DiagnosticCell label="Title alternatives" value={magicStillScan?.lookupDiagnostics?.titleAlternatives.join(' | ') || 'unavailable'} />
+              <DiagnosticCell label="OCR attempts" value={magicStillScan?.signals?.titleAttempts.map((attempt) => `${attempt.id}:${attempt.reason}:${attempt.confidence}`).join(' | ') || 'unavailable'} />
               <DiagnosticCell label="Scryfall query" value={magicStillScan?.lookupDiagnostics?.scryfallQueryString ?? 'unavailable'} />
               <DiagnosticCell label="Scryfall status" value={magicStillScan?.lookupDiagnostics?.httpStatus ? String(magicStillScan.lookupDiagnostics.httpStatus) : 'unavailable'} />
               <DiagnosticCell label="Scryfall items" value={magicStillScan?.lookupDiagnostics?.responseItemCount === null || magicStillScan?.lookupDiagnostics?.responseItemCount === undefined ? 'unavailable' : String(magicStillScan.lookupDiagnostics.responseItemCount)} />
@@ -833,7 +891,12 @@ export default function Scan() {
             </View>
             {diagnosticCaptureUri && magicStillScan?.cropDiagnostics ? (
               <View style={s.cropProofGrid}>
-                <CropProof imageUri={diagnosticCaptureUri} label="Title crop proof" crop={magicStillScan.cropDiagnostics.titleCrop} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Full captured image" crop={{ x: 0, y: 0, width: 1, height: 1 }} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Card crop proof" crop={magicStillScan.cropDiagnostics.cardCrop} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Primary title crop" crop={magicStillScan.cropDiagnostics.titleCrops.title_primary} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Expanded title crop" crop={magicStillScan.cropDiagnostics.titleCrops.title_expanded} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Lower title crop" crop={magicStillScan.cropDiagnostics.titleCrops.title_lower} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Wide title crop" crop={magicStillScan.cropDiagnostics.titleCrops.title_wide} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
                 <CropProof imageUri={diagnosticCaptureUri} label="Collector crop proof" crop={magicStillScan.cropDiagnostics.collectorCrop} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
               </View>
             ) : null}
@@ -888,6 +951,7 @@ function ScannerViewport({
   cameraRef,
   permission,
   cameraActive,
+  cameraLifecycle,
   cameraReady,
   cameraStageHeight,
   torchEnabled,
@@ -904,11 +968,14 @@ function ScannerViewport({
   onCapture,
   onManualSearch,
   onSettings,
+  diagnosticsEnabled,
+  onDiagnostics,
   onRequestCamera,
 }: {
   cameraRef: RefObject<CameraView | null>;
   permission: ScannerPermissionState;
   cameraActive: boolean;
+  cameraLifecycle: Scanner2CameraLifecycleState;
   cameraReady: boolean;
   cameraStageHeight: number;
   torchEnabled: boolean;
@@ -925,9 +992,12 @@ function ScannerViewport({
   onCapture: () => void;
   onManualSearch: () => void;
   onSettings: () => void;
+  diagnosticsEnabled: boolean;
+  onDiagnostics: () => void;
   onRequestCamera: () => void;
 }) {
-  const showCamera = permission === 'granted' && cameraActive;
+  const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
+  const showResume = shouldShowScannerResumeAction(cameraLifecycle);
   return (
     <View style={[s.cameraStage, { height: cameraStageHeight }]}>
       {showCamera ? (
@@ -946,12 +1016,10 @@ function ScannerViewport({
       ) : (
         <View style={s.cameraEmptyState}>
           <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={42} color={color.textMuted} />
-          <TDText variant="title">{permissionTitle(permission)}</TDText>
-          <TDText variant="small" tone="muted" style={s.centerText}>{permissionMessage(permission, platform)}</TDText>
-          <TDButton
-            label={permission === 'granted' ? 'Resume camera' : 'Enable camera'}
-            onPress={permission === 'granted' ? onTogglePause : onRequestCamera}
-          />
+          <TDText variant="title">{cameraLifecycleTitle(cameraLifecycle, permission)}</TDText>
+          <TDText variant="small" tone="muted" style={s.centerText}>{cameraLifecycleMessage(cameraLifecycle, permission, platform)}</TDText>
+          {showResume ? <TDButton label="Resume camera" onPress={onTogglePause} /> : null}
+          {permission !== 'granted' && cameraLifecycle !== 'unavailable' ? <TDButton label="Enable camera" onPress={onRequestCamera} /> : null}
         </View>
       )}
 
@@ -966,6 +1034,8 @@ function ScannerViewport({
         onCapture={onCapture}
         onManualSearch={onManualSearch}
         onSettings={onSettings}
+        diagnosticsEnabled={diagnosticsEnabled}
+        onDiagnostics={onDiagnostics}
       />
     </View>
   );
@@ -1014,6 +1084,8 @@ function ScannerControls({
   onCapture,
   onManualSearch,
   onSettings,
+  diagnosticsEnabled,
+  onDiagnostics,
 }: {
   torchEnabled: boolean;
   cameraActive: boolean;
@@ -1024,6 +1096,8 @@ function ScannerControls({
   onCapture: () => void;
   onManualSearch: () => void;
   onSettings: () => void;
+  diagnosticsEnabled: boolean;
+  onDiagnostics: () => void;
 }) {
   return (
     <View style={s.cameraControls}>
@@ -1035,6 +1109,7 @@ function ScannerControls({
       <View style={s.secondaryControls}>
         <IconControl label="Search manually" icon="search-outline" onPress={onManualSearch} />
         <IconControl label="Scanner settings" icon="options-outline" onPress={onSettings} />
+        {diagnosticsEnabled ? <IconControl label="Scanner diagnostics" icon="bug-outline" onPress={onDiagnostics} /> : null}
       </View>
     </View>
   );
@@ -1205,6 +1280,26 @@ function guideToneStyle(tone: 'neutral' | 'cyan' | 'blue' | 'emerald' | 'amber' 
   if (tone === 'danger') return s.guideToneDanger;
   if (tone === 'blue') return s.guideToneBlue;
   return s.guideToneInfo;
+}
+
+function cameraLifecycleTitle(lifecycle: Scanner2CameraLifecycleState, permission: ScannerPermissionState) {
+  if (lifecycle === 'user_paused') return 'Scanner paused';
+  if (lifecycle === 'backgrounded') return 'Scanner paused in background';
+  if (lifecycle === 'starting') return 'Starting camera';
+  if (lifecycle === 'processing_paused') return 'Reading card';
+  if (lifecycle === 'ready') return 'Camera ready';
+  if (lifecycle === 'permission_pending') return 'Camera permission';
+  if (lifecycle === 'error') return 'Camera permission denied';
+  return permissionTitle(permission);
+}
+
+function cameraLifecycleMessage(lifecycle: Scanner2CameraLifecycleState, permission: ScannerPermissionState, platform: string) {
+  if (lifecycle === 'user_paused') return 'Resume when you are ready to scan again.';
+  if (lifecycle === 'backgrounded') return 'Scanning will resume when the app is active.';
+  if (lifecycle === 'starting') return 'Hold the card inside the guide while the camera warms up.';
+  if (lifecycle === 'processing_paused') return 'Keep the card visible while Trading Docks reads the capture.';
+  if (lifecycle === 'permission_pending') return 'Manual search works now. Camera capture requires camera permission.';
+  return permissionMessage(permission, platform);
 }
 
 function permissionTitle(permission: ScannerPermissionState) {

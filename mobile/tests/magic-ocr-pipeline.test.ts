@@ -112,7 +112,7 @@ test('Magic OCR region order uses primary, expanded, lower, full-card fallback',
   const regions = buildMagicOcrRegions({ x: 0.1, y: 0.08, width: 0.8, height: 0.86 });
   assert.deepEqual(
     regions.filter((region) => region.regionType === 'name').map((region) => region.id),
-    ['title_primary', 'title_expanded', 'title_lower', 'full_card'],
+    ['title_primary', 'title_expanded', 'title_lower', 'title_wide', 'full_card'],
   );
 });
 
@@ -133,11 +133,13 @@ test('title ranking falls back from empty primary to expanded and lower title at
     { id: 'primary-empty', requestedRegionId: 'title_primary', regionType: 'name', text: 'U', rawText: 'U', confidence: 94, bounds: { x: 0.1, y: 0.06, width: 0.7, height: 0.1 } },
     { id: 'expanded', requestedRegionId: 'title_expanded', regionType: 'name', text: 'Brainstorm', rawText: 'Brainstorm', confidence: 72, bounds: { x: 0.1, y: 0.08, width: 0.76, height: 0.12 } },
     { id: 'lower', requestedRegionId: 'title_lower', regionType: 'name', text: 'Instant', rawText: 'Instant', confidence: 90, bounds: { x: 0.1, y: 0.58, width: 0.76, height: 0.08 } },
+    { id: 'wide', requestedRegionId: 'title_wide', regionType: 'name', text: 'Brainstorm', rawText: 'Brainstorm', confidence: 70, bounds: { x: 0.05, y: 0.07, width: 0.9, height: 0.15 } },
     { id: 'full-card', requestedRegionId: 'full_card', regionType: 'name', text: 'Brainstorm Instant Draw three cards', rawText: 'Brainstorm Instant Draw three cards', confidence: 88, bounds: { x: 0.1, y: 0.1, width: 0.7, height: 0.8 } },
   ]);
   assert.equal(attempts[0].id, 'title_expanded');
   assert.equal(attempts[0].normalizedText, 'Brainstorm');
   assert.equal(attempts.some((attempt) => attempt.id === 'full_card'), true);
+  assert.equal(attempts.find((attempt) => attempt.id === 'title_primary')?.reason, 'rejected_noise');
 });
 
 test('collector OCR parses set code, collector number suffix, and language', () => {
@@ -189,6 +191,8 @@ test('valid OCR title produces Scryfall query diagnostics', async () => {
   assert.deepEqual(diagnostics, ['rhystic study|WOT|25']);
   if (!result.ok) return;
   assert.equal(result.cropDiagnostics.selectedTitleAttemptId, 'title_primary');
+  assert.equal(result.lookupDiagnostics.outcome, 'success');
+  assert.ok(result.cropDiagnostics.titleCrops.title_wide.width > result.cropDiagnostics.titleCrops.title_primary.width);
 });
 
 test('title-only OCR produces capped candidates when collector data is missing', async () => {
@@ -230,8 +234,9 @@ test('empty OCR title produces a no-title state with lookup diagnostics', async 
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.lookupDiagnostics?.lookupErrorCode, 'no_title_read');
+  assert.equal(result.lookupDiagnostics?.outcome, 'no_title');
   assert.match(result.reason, /No title read/);
-  assert.equal(result.cropDiagnostics?.titleAttempts.length, 0);
+  assert.equal(result.cropDiagnostics?.titleAttempts.every((attempt) => attempt.reason === 'rejected_noise'), true);
 });
 
 test('network failure produces a network lookup state', async () => {
@@ -250,8 +255,31 @@ test('network failure produces a network lookup state', async () => {
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.lookupDiagnostics?.lookupErrorCode, 'network_unavailable');
+  assert.equal(result.lookupDiagnostics?.outcome, 'network_unavailable');
   assert.match(result.reason, /Network unavailable/);
 });
+
+test('cancelled Scryfall lookup produces a structured cancelled state', async () => {
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    recognize: async () => ocr,
+    searchCatalog: async () => {
+      const error = new Error('Cancelled');
+      error.name = 'AbortError';
+      throw error;
+    },
+    cleanup: async () => ({ ok: true, deleted: true }),
+  });
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.lookupDiagnostics?.lookupErrorCode, 'cancelled');
+  assert.equal(result.lookupDiagnostics?.outcome, 'cancelled');
+});
+
 
 test('empty Scryfall response produces a no-match state', async () => {
   const result = await recognizeMagicStillCapture({
@@ -267,6 +295,7 @@ test('empty Scryfall response produces a no-match state', async () => {
   assert.equal(result.ok, false);
   if (result.ok) return;
   assert.equal(result.lookupDiagnostics?.lookupErrorCode, 'no_candidate_found');
+  assert.equal(result.lookupDiagnostics?.outcome, 'no_match');
   assert.match(result.reason, /No matching card/);
 });
 

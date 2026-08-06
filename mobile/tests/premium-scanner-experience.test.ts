@@ -8,6 +8,7 @@ import {
   dominantScannerSurface,
   guidePresentationForPipeline,
   highVolumeCardShowDefaults,
+  resolveScanner2CameraLifecycle,
   resolvePremiumScannerPipeline,
   resolveScanner2InteractionState,
   scanner2CameraHeight,
@@ -17,6 +18,9 @@ import {
   scannerHudRowsForWidth,
   scannerTrayLayoutForWidth,
   scannerVerticalLayoutModel,
+  shouldBlockScannerCapture,
+  shouldScannerCameraRender,
+  shouldShowScannerResumeAction,
   shouldRenderDiagnosticsInline,
 } from '../services/premium-scanner-experience.ts';
 
@@ -150,6 +154,37 @@ test('Scanner 2.0 camera opens into camera states without an open-camera state',
     offline: false,
     hasCameraError: false,
   }), 'card_absent');
+});
+
+test('Scanner 2.0 camera lifecycle separates ready pause processing background and errors', () => {
+  const base = {
+    permission: 'granted' as const,
+    cameraAvailable: true,
+    cameraReady: true,
+    userPaused: false,
+    appForegrounded: true,
+    processing: false,
+    hasCameraError: false,
+  };
+  assert.equal(resolveScanner2CameraLifecycle(base), 'ready');
+  assert.equal(resolveScanner2CameraLifecycle({ ...base, userPaused: true }), 'user_paused');
+  assert.equal(resolveScanner2CameraLifecycle({ ...base, processing: true }), 'processing_paused');
+  assert.equal(resolveScanner2CameraLifecycle({ ...base, appForegrounded: false }), 'backgrounded');
+  assert.equal(resolveScanner2CameraLifecycle({ ...base, permission: 'not_requested' }), 'permission_pending');
+  assert.equal(resolveScanner2CameraLifecycle({ ...base, cameraAvailable: false }), 'unavailable');
+  assert.equal(resolveScanner2CameraLifecycle({ ...base, hasCameraError: true }), 'error');
+});
+
+test('Scanner 2.0 capture and resume actions follow lifecycle source of truth', () => {
+  assert.equal(shouldScannerCameraRender('ready'), true);
+  assert.equal(shouldScannerCameraRender('processing_paused'), true);
+  assert.equal(shouldScannerCameraRender('backgrounded'), false);
+  assert.equal(shouldShowScannerResumeAction('user_paused'), true);
+  assert.equal(shouldShowScannerResumeAction('backgrounded'), false);
+  assert.equal(shouldBlockScannerCapture({ lifecycle: 'ready', captureState: 'ready', recognitionStage: 'idle' }), false);
+  assert.equal(shouldBlockScannerCapture({ lifecycle: 'user_paused', captureState: 'ready', recognitionStage: 'idle' }), true);
+  assert.equal(shouldBlockScannerCapture({ lifecycle: 'ready', captureState: 'capturing', recognitionStage: 'idle' }), true);
+  assert.equal(shouldBlockScannerCapture({ lifecycle: 'ready', captureState: 'ready', recognitionStage: 'reading_title' }), true);
 });
 
 test('Scanner 2.0 state model covers recognized likely ambiguous failure and removal', () => {

@@ -27,7 +27,7 @@ Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It doe
 - `ScannerHud`: compact top status line with mode, card count, offer total, and review count.
 - `ScannerViewport`: bounded camera surface, guide, instruction, and capture controls.
 - `ScannerGuide`: four OCR-aligned corner brackets with state tone.
-- `ScannerControls`: dominant capture fallback plus secondary torch, pause, manual search, and settings.
+- `ScannerControls`: dominant capture fallback plus secondary torch, pause, manual search, settings, and development-only diagnostics.
 - `ScannerStatus`: single active instruction and state label.
 - `ScannerResultTray`: compact recognized/likely/ambiguous/failed result.
 - `ScannerCandidateSheet`: top-three exact printing selection.
@@ -42,7 +42,9 @@ Recognized and likely results show thumbnail, card name, set, collector number, 
 
 Ambiguous results keep the tray compact and expose top-three candidates in a sheet. The camera remains the primary surface.
 
-Failed results show only a compact recovery banner: "Couldn't identify card", Retake, and Search manually. They never show pricing, quantity, placeholder thumbnails, duplicate notices, or technical exception text.
+Failed results show only a compact recovery banner: "Couldn't read the card", Retake, and Search manually. They never show pricing, quantity, placeholder thumbnails, duplicate notices, or technical exception text.
+
+Resume camera is shown only after the user explicitly pauses. Normal ready, starting, processing, failed, and background recovery states do not show an Open Camera or Resume Camera step.
 
 ## Motion Rules
 

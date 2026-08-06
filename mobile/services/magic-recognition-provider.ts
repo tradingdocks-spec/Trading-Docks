@@ -65,7 +65,8 @@ export type MagicLookupErrorCode =
   | 'no_candidate_found'
   | 'network_unavailable'
   | 'service_error'
-  | 'invalid_response';
+  | 'invalid_response'
+  | 'cancelled';
 
 export type MagicCatalogQuery = {
   name?: string;

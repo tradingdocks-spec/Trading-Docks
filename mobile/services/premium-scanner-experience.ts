@@ -77,6 +77,16 @@ export type Scanner2InteractionState =
   | 'offline'
   | 'camera_error';
 
+export type Scanner2CameraLifecycleState =
+  | 'permission_pending'
+  | 'unavailable'
+  | 'starting'
+  | 'ready'
+  | 'user_paused'
+  | 'processing_paused'
+  | 'backgrounded'
+  | 'error';
+
 export type Scanner2HudSummary = {
   modeLabel: string;
   cardCount: number;
@@ -250,6 +260,43 @@ export function resolveScanner2InteractionState(input: {
   if (input.permission === 'granted' && input.cameraReady) return 'card_absent';
   if (input.permission === 'granted') return 'camera_ready';
   return 'camera_ready';
+}
+
+export function resolveScanner2CameraLifecycle(input: {
+  permission: 'not_requested' | 'granted' | 'denied' | 'unavailable';
+  cameraAvailable: boolean;
+  cameraReady: boolean;
+  userPaused: boolean;
+  appForegrounded: boolean;
+  processing: boolean;
+  hasCameraError: boolean;
+}): Scanner2CameraLifecycleState {
+  if (!input.appForegrounded) return 'backgrounded';
+  if (!input.cameraAvailable || input.permission === 'unavailable') return 'unavailable';
+  if (input.hasCameraError || input.permission === 'denied') return 'error';
+  if (input.permission !== 'granted') return 'permission_pending';
+  if (input.userPaused) return 'user_paused';
+  if (input.processing) return 'processing_paused';
+  if (!input.cameraReady) return 'starting';
+  return 'ready';
+}
+
+export function shouldScannerCameraRender(lifecycle: Scanner2CameraLifecycleState) {
+  return lifecycle === 'ready' || lifecycle === 'processing_paused' || lifecycle === 'starting';
+}
+
+export function shouldShowScannerResumeAction(lifecycle: Scanner2CameraLifecycleState) {
+  return lifecycle === 'user_paused';
+}
+
+export function shouldBlockScannerCapture(input: {
+  lifecycle: Scanner2CameraLifecycleState;
+  captureState: string;
+  recognitionStage: 'idle' | 'reading_title' | 'finding_card' | 'review_ready' | 'failed';
+}) {
+  if (input.lifecycle !== 'ready') return true;
+  if (input.captureState === 'capturing' || input.captureState === 'captured' || input.captureState === 'recognizing') return true;
+  return input.recognitionStage === 'reading_title' || input.recognitionStage === 'finding_card';
 }
 
 export function scanner2MotionForState(state: Scanner2InteractionState, reduceMotion: boolean) {

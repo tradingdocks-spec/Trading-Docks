@@ -24,6 +24,7 @@
 - title primary
 - title expanded
 - title lower
+- title wide
 - full-card title fallback
 - collector information
 - bottom left
@@ -36,7 +37,7 @@ The active scanner sends normalized image-space rectangles. Source image paths, 
 
 1. Capture still locally with `expo-camera`.
 2. Display `Reading title`.
-3. Run Apple Vision OCR on guide-assisted regions in this fallback order: primary title crop, expanded title crop, lower title crop, full-card OCR fallback, then manual search if no usable title is found.
+3. Run Apple Vision OCR on guide-assisted regions in this fallback order: primary title crop, expanded title crop, lower title crop, wider title crop, full-card OCR fallback, then manual search if no usable title is found.
 4. Display `Finding card`.
 5. Search Scryfall by normalized title.
 6. Fall back to conservative fuzzy title lookup only when exact title lookup returns nothing.
@@ -59,7 +60,7 @@ The active scanner sends normalized image-space rectangles. Source image paths, 
 - Implemented: Captured images stay local.
 - Implemented: Captured images are not uploaded to Scryfall or a cloud vision provider.
 - Implemented: The temporary `expo-camera` capture is deleted after OCR processing.
-- Implemented: Diagnostics show geometry, OCR text, confidence, latency, cleanup status, crop pixel rectangles, winning title attempt, and local crop-proof overlays only behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`; source image paths are not shown.
+- Implemented: Diagnostics show geometry, OCR text, confidence, latency, Scryfall outcome, cleanup status, crop pixel rectangles, winning title attempt, rejected OCR attempt reasons, and local crop-proof overlays only behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`; source image paths are not shown.
 
 ## Build Requirement
 

@@ -45,7 +45,7 @@
 
 - Implemented: Diagnostics stay behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`.
 - Implemented: Diagnostics are opened through a development icon and are not rendered inline in normal scanner mode.
-- Implemented: Diagnostics include OCR linked status, crop mapping, raw and normalized OCR text, collector parsing, OCR latency, Scryfall latency, top-three candidates, cleanup result, guide calibration, and pipeline state where available.
+- Implemented: Diagnostics include OCR linked status, scanner lifecycle state, capture ID, crop mapping, crop proof overlays, raw and normalized OCR text, OCR attempt reasons, collector parsing, OCR latency, Scryfall outcome and latency, top-three candidates, cleanup result, guide calibration, and pipeline state where available.
 
 ## Accessibility
 
@@ -80,7 +80,7 @@ Implemented hierarchy:
 4. Pinned session strip
 5. Secondary controls and sheets
 
-Result behavior is compact by default. Recognized and likely cards show thumbnail, name, set/collector number, confidence, market value, offer value, quantity, and short add/correct/retry actions. Ambiguous results keep the top-three candidates available without blocking the camera. Failed results show only "Couldn't identify card", Retake, and Search manually; unidentified cards do not show pricing, quantity, placeholder thumbnails, or technical lookup errors.
+Result behavior is compact by default. Recognized and likely cards show thumbnail, name, set/collector number, confidence, market value, offer value, quantity, and short add/correct/retry actions. Ambiguous results keep the top-three candidates available without blocking the camera. Failed results show only "Couldn't read the card", Retake, and Search manually; unidentified cards do not show pricing, quantity, placeholder thumbnails, or technical lookup errors.
 
 High-volume Card Show mode remains explicit. Defaults for condition, finish, language, destination, and cash offer rate remain configurable in scanner settings. Automatic high-confidence acceptance is still disabled until product safety rules allow it.
 

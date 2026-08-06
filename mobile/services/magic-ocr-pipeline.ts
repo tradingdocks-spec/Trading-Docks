@@ -17,7 +17,7 @@ import { parseCollectorInfoText, type CollectorInfoObservation, type Recognition
 export type CaptureDimensions = { width: number; height: number };
 export type CropRect = { x: number; y: number; width: number; height: number };
 export type PixelRect = { x: number; y: number; width: number; height: number };
-export type MagicTitleOcrAttemptId = 'title_primary' | 'title_expanded' | 'title_lower' | 'full_card';
+export type MagicTitleOcrAttemptId = 'title_primary' | 'title_expanded' | 'title_lower' | 'title_wide' | 'full_card';
 
 export type GuideCropMappingInput = {
   preview: CaptureDimensions;
@@ -50,6 +50,7 @@ export type MagicTitleOcrAttempt = {
   confidence: number;
   score: number;
   bounds: CropRect;
+  reason: 'selected' | 'usable_candidate' | 'rejected_noise';
 };
 
 export type MagicOcrSignals = {
@@ -73,6 +74,7 @@ export type MagicStillScanCropDiagnostics = {
   guide: GuideCropMappingInput['guide'];
   cardCrop: CropRect;
   cardCropPixels: PixelRect;
+  titleCrops: Record<MagicTitleOcrAttemptId, CropRect>;
   titleCrop: CropRect;
   titleCropPixels: PixelRect;
   collectorCrop: CropRect;
@@ -83,6 +85,7 @@ export type MagicStillScanCropDiagnostics = {
 };
 
 export type MagicStillScanLookupDiagnostics = {
+  outcome: 'success' | 'no_title' | 'no_match' | 'network_unavailable' | 'service_error' | 'invalid_response' | 'cancelled';
   rawOcrTitle: string | null;
   normalizedOcrTitle: string | null;
   titleAlternatives: string[];
@@ -296,6 +299,7 @@ export function buildMagicOcrRegions(cardCrop: GuideCropMapping['cardCrop']): Na
     region(cardCrop, 'title_primary', 'name', 0.055, 0.026, 0.78, 0.13),
     region(cardCrop, 'title_expanded', 'name', 0.04, 0.012, 0.84, 0.18),
     region(cardCrop, 'title_lower', 'name', 0.055, 0.064, 0.78, 0.14),
+    region(cardCrop, 'title_wide', 'name', 0.03, 0.02, 0.92, 0.16),
     region(cardCrop, 'type_line', 'type_line', 0.07, 0.555, 0.72, 0.075),
     region(cardCrop, 'collector_info', 'collector_info', 0.06, 0.885, 0.62, 0.09),
     region(cardCrop, 'bottom_left', 'bottom_left', 0.06, 0.885, 0.33, 0.09),
@@ -306,7 +310,11 @@ export function buildMagicOcrRegions(cardCrop: GuideCropMapping['cardCrop']): Na
 
 export function buildMagicOcrSignals(observations: NativeOcrObservation[]): MagicOcrSignals {
   const titleAttempts = rankMagicTitleObservations(observations);
-  const title = titleAttempts[0] ?? null;
+  const title = titleAttempts.find((attempt) => attempt.normalizedText) ?? null;
+  const attemptsWithReasons = titleAttempts.map((attempt) => ({
+    ...attempt,
+    reason: attempt.id === title?.id ? 'selected' as const : attempt.reason,
+  }));
   const collector = observations.filter((entry) => entry.regionType === 'collector_info' || entry.regionType === 'collector_number' || entry.regionType === 'language_rarity');
   const rawCollectorText = collector.map((entry) => entry.rawText || entry.text).filter(Boolean).join(' ').trim() || null;
   const rawTitle = title?.rawText ?? null;
@@ -318,7 +326,7 @@ export function buildMagicOcrSignals(observations: NativeOcrObservation[]): Magi
     rawTitle,
     normalizedTitle,
     titleAlternatives,
-    titleAttempts,
+    titleAttempts: attemptsWithReasons,
     selectedTitleAttemptId: title?.id ?? null,
     rawCollectorText,
     collectorInfo: rawCollectorText ? parseMagicCollectorOcr(rawCollectorText) : null,
@@ -359,9 +367,9 @@ export function rankMagicTitleObservations(observations: NativeOcrObservation[])
         confidence: entry.confidence,
         score: titleObservationScore(entry, normalizedText),
         bounds: entry.bounds,
+        reason: normalizedText ? 'usable_candidate' as const : 'rejected_noise' as const,
       };
     })
-    .filter((entry) => entry.normalizedText)
     .sort((a, b) => b.score - a.score);
 }
 
@@ -456,12 +464,14 @@ async function callMagicSearch(
     return await searchWithDiagnostics(query, onDiagnostics);
   } catch (error) {
     if (error instanceof MagicCatalogLookupError && error.code === 'no_candidate_found') return [];
+    if (isAbortError(error)) throw new MagicCatalogLookupError('cancelled', 'Card lookup was cancelled.');
     throw error;
   }
 }
 
 function createStillLookupDiagnostics(signals: MagicOcrSignals, diagnostics: MagicCatalogLookupDiagnostics): MagicStillScanLookupDiagnostics {
   return {
+    outcome: lookupOutcome(diagnostics.errorCode, diagnostics.responseItemCount),
     rawOcrTitle: signals.rawTitle,
     normalizedOcrTitle: signals.normalizedTitle,
     titleAlternatives: signals.titleAlternatives,
@@ -472,6 +482,16 @@ function createStillLookupDiagnostics(signals: MagicOcrSignals, diagnostics: Mag
     lookupLatencyMs: diagnostics.latencyMs,
     topThreeCandidateNames: diagnostics.topThreeCandidateNames,
   };
+}
+
+function lookupOutcome(errorCode: MagicCatalogLookupDiagnostics['errorCode'], responseItemCount: number | null): MagicStillScanLookupDiagnostics['outcome'] {
+  if (errorCode === 'no_title_read') return 'no_title';
+  if (errorCode === 'no_candidate_found') return 'no_match';
+  if (errorCode === 'network_unavailable') return 'network_unavailable';
+  if (errorCode === 'service_error') return 'service_error';
+  if (errorCode === 'invalid_response') return 'invalid_response';
+  if (errorCode === 'cancelled') return 'cancelled';
+  return responseItemCount && responseItemCount > 0 ? 'success' : 'no_match';
 }
 
 function createCropDiagnostics(
@@ -490,6 +510,7 @@ function createCropDiagnostics(
     guide,
     cardCrop: mapping.cardCrop,
     cardCropPixels: mapping.cardCropPixels,
+    titleCrops: titleCropMap(mapping),
     titleCrop: mapping.titleCrop,
     titleCropPixels: mapping.titleCropPixels,
     collectorCrop: mapping.collectorCrop,
@@ -497,6 +518,16 @@ function createCropDiagnostics(
     selectedTitleAttemptId,
     titleAttempts,
     warnings: mapping.warnings,
+  };
+}
+
+function titleCropMap(mapping: GuideCropMapping): Record<MagicTitleOcrAttemptId, CropRect> {
+  return {
+    title_primary: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'title_primary')),
+    title_expanded: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'title_expanded')),
+    title_lower: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'title_lower')),
+    title_wide: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'title_wide')),
+    full_card: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'full_card')),
   };
 }
 
@@ -530,6 +561,7 @@ function titleObservationScore(entry: NativeOcrObservation, normalizedText: stri
     title_primary: 120,
     title_expanded: 105,
     title_lower: 92,
+    title_wide: 82,
     full_card: 0,
   };
   const textScore = scoreTitleLine(normalizedText);
@@ -573,11 +605,15 @@ function scoreTitleLine(value: string) {
 }
 
 function isMagicTitleAttemptId(value: string): value is MagicTitleOcrAttemptId {
-  return value === 'title_primary' || value === 'title_expanded' || value === 'title_lower' || value === 'full_card';
+  return value === 'title_primary' || value === 'title_expanded' || value === 'title_lower' || value === 'title_wide' || value === 'full_card';
 }
 
 function uniqueString(value: string, index: number, array: string[]) {
   return Boolean(value) && array.indexOf(value) === index;
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === 'AbortError';
 }
 
 function region(

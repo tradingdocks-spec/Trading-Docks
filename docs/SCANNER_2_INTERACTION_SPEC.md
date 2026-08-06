@@ -32,7 +32,7 @@ Primary hierarchy:
 | recognized | Match found | Emerald success pulse once | Capture, correct, undo, manual search | Compact result tray, ready to add/session confirm | Success haptic in future native implementation | Match found | Candidate passes recognized threshold | added, remove_card, correcting, rearming | Auto-add only when current safety rules allow |
 | likely | Review printing | Amber guide | Confirm, correct, alternatives, manual search | Compact result tray with one-tap confirmation | Light notification in future native implementation | Likely match, review printing | Candidate exists but confidence requires confirmation | added, ambiguous, correcting, rearming | Keep top candidate visible |
 | ambiguous | Choose printing | Amber guide | Candidate sheet, manual search, retake | Compact tray plus expandable top-three candidate sheet | Warning haptic in future native implementation | Multiple possible printings | Top-three candidates require user choice | likely, added, failed, rearming | Do not block camera with full-screen confirmation |
-| failed | Couldn't identify card | Amber/red brackets without pulsing | Retake, search manually | Small failure banner only | Warning haptic in future native implementation | Could not identify card | No title, no match, network/service issue, invalid response | rearming, paused, manual search | No unknown session row; details go to diagnostics only |
+| failed | Couldn't read the card | Amber/red brackets without pulsing | Retake, search manually | Small failure banner only | Warning haptic in future native implementation | Could not read card | No title, no match, network/service issue, invalid response | rearming, camera_ready, manual search | No unknown session row; details go to diagnostics only |
 | added | Added | Emerald bracket pulse once | Undo, correct, capture | Compact result remains briefly | Success haptic in future native implementation | Added to session | Session insertion succeeds | remove_card, rearming | Undo window remains short and visible |
 | remove_card | Remove card | Emerald brackets, removal instruction | Pause, manual search, settings | Latest result remains compact | None | Remove card to scan next | Duplicate prevention awaits card removal | rearming | Do not scan same stationary card twice |
 | rearming | Ready for next card | Dim slate brackets | Capture, torch, pause, manual search | Latest result may collapse | None | Ready for next card | Card leaves frame or user retakes | card_absent, card_present, capturing | Reset per-capture race token |
@@ -83,6 +83,9 @@ stateDiagram-v2
 ## Reliability Rules
 
 - Camera opens automatically after context load and permission availability.
+- Camera lifecycle is derived from `permission_pending`, `unavailable`, `starting`, `ready`, `user_paused`, `processing_paused`, `backgrounded`, and `error`.
+- Resume camera appears only for explicit `user_paused`.
+- Failed recognition never sets `user_paused`.
 - Manual search is always available when camera or network is unavailable.
 - A scan has one active processing token; stale lookup completion must not overwrite a newer retake.
 - Capture is disabled while capture, OCR, or lookup is active.

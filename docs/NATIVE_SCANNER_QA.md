@@ -5,7 +5,7 @@
 - Implemented: The mobile Scan screen uses `expo-camera` still capture, back camera selection, autofocus, torch toggle, camera permission states, manual Scryfall search, exact-printing confirmation, Collection write handoff, session lines, and user-scoped scanner replay.
 - Implemented: Capture now waits for `onCameraReady` before calling `takePictureAsync`.
 - Implemented: A development-only diagnostics overlay is available when `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true` and `NODE_ENV` is not `production`.
-- Implemented: The diagnostics overlay reports camera readiness, preview dimensions, guide dimensions, guide ratio, normalized guide crop, capture state, duplicate state, recognition stage, session insertion result, and unavailable visual signals.
+- Implemented: The diagnostics overlay reports camera readiness, scanner lifecycle state, capture ID, preview dimensions, captured image dimensions, source and normalized orientation, guide dimensions, guide ratio, normalized guide crop, title crop variants, collector crop, crop pixel sizes, OCR attempts, duplicate state, recognition stage, Scryfall outcome, session insertion result, and unavailable visual signals.
 - Implemented: Local guide calibration preferences support guide scale and vertical offset for device testing; values are stored only in user-scoped local app storage.
 - Implemented: Still captures on the new iOS development build run local Apple Vision OCR, query Scryfall, show top-three Magic candidates, require exact-printing confirmation, and preserve manual search fallback.
 - Implemented: The primary Scan tab now uses a camera-first layout with compact controls, one guide instruction, latest-result tray, secondary settings/manual/diagnostics panels, and a safe-area-aware bottom session bar.
@@ -76,6 +76,13 @@
 - Verify removing the card rearms the next scan.
 - Verify failed capture shows an error and does not discard state.
 - Verify manual exact-printing search still saves through the existing Collection mutation path.
+- Verify primary, expanded, lower, wide, and full-card crop proof overlays align with the captured card.
+- Verify failed OCR Retake resumes camera without a manual Resume camera tap.
+- Verify explicit Pause remains paused until Resume camera is tapped.
+- Verify airplane mode produces network-safe recovery and does not add a session row.
+- Verify repeated retake does not show stale OCR text or stale candidates.
+- Verify one accepted capture adds one session row and does not duplicate.
+- Verify five-card and ten-card sessions preserve running totals.
 
 ## Known Limitations
 
@@ -100,3 +107,5 @@ Run these checks on an iOS development build after this branch:
 - Reduced Motion suppresses decorative pulse/flash.
 - Apple Vision OCR still returns title and collector observations.
 - TradingDocksVisionOcr remains autolinked in a clean EAS development build.
+- Crop proof aligns on a readable Magic card such as Sporecrown Thallid.
+- Long title, old border, borderless, sleeved, glare, low light, angled, partially obscured title, same-name reprint, repeated retake, app background/foreground, airplane mode, five-card session, and ten-card session cases are recorded.
