@@ -108,7 +108,8 @@ test('Wave 2 welcome and setup screens avoid fake metrics and unsupported claims
 test('Wave 1 routes consume mobile design OS primitives for high-traffic surfaces', () => {
   const shell = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
   const home = readFileSync(join(root, 'app', '(tabs)', 'index.tsx'), 'utf8');
-  const scanner = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
+  const scanModes = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
+  const automaticScanner = readFileSync(join(root, 'components', 'scanner', 'automatic-scanner-screen.tsx'), 'utf8');
   const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
   const cardDetail = readFileSync(join(root, 'app', 'collection', '[cardId].tsx'), 'utf8');
   const storage = readFileSync(join(root, 'app', 'storage-locations.tsx'), 'utf8');
@@ -116,8 +117,9 @@ test('Wave 1 routes consume mobile design OS primitives for high-traffic surface
   assert.match(shell, /getMobileBottomNavVisualModel/);
   assert.match(home, /TDNavigationHeader/);
   assert.match(home, /TDListRow/);
-  assert.match(scanner, /batchScannerReviewChipModel/);
-  assert.match(scanner, /TDSessionStrip/);
+  assert.match(scanModes, /Automatic Scan/);
+  assert.match(automaticScanner, /batchScannerReviewChipModel/);
+  assert.match(automaticScanner, /TDSessionStrip/);
   assert.match(collection, /TDInput[\s\S]*Search collection/);
   assert.match(collection, /TDSegmentedControl/);
   assert.match(cardDetail, /TDNavigationHeader/);

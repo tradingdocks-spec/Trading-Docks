@@ -304,7 +304,7 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
                   <TDInput label="Language" value={line.language ?? '-'} editable={false} />
                 </View>
               ) : null}
-              <TDButton label={line.reviewStatus === 'needs_review' ? 'Save & mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
+              <TDButton label={line.reviewStatus === 'needs_review' ? 'Save and mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
               <View style={s.destructiveZone}>
                 <TDButton label="Remove card" variant="danger" onPress={confirmRemove} />
               </View>

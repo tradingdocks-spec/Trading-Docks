@@ -16,10 +16,16 @@ test('Scan tab opens premium Scan Modes instead of the immersive camera', () => 
   assert.doesNotMatch(scanModes, /ScannerCamera/);
 });
 
-test('Grid Scan is documented as planned but has no fake route', () => {
-  assert.match(scanModes, /Grid Scan/);
-  assert.match(scanModes, /planned but not enabled/);
+test('Grid Scan is hidden until supported and has no fake route', () => {
+  assert.doesNotMatch(scanModes, /Grid Scan/);
+  assert.doesNotMatch(scanModes, /planned but not enabled/);
   assert.doesNotMatch(scanModes, /\/scan\/grid/);
+});
+
+test('Review List count is loaded from the user-scoped scanner session', () => {
+  assert.match(scanModes, /loadReviewListCount/);
+  assert.match(scanModes, /continuousScannerSessionKey\(userId\)/);
+  assert.match(scanModes, /session\.userId !== userId/);
 });
 
 test('Automatic Scan route reuses the existing native scanner infrastructure', () => {
@@ -49,8 +55,10 @@ test('Single Scan is manual capture with a focused result sheet', () => {
   assert.match(single, /SingleResultSheet/);
   assert.match(single, /Add card/);
   assert.match(single, /Retake/);
+  assert.match(single, /Single Scan Settings/);
   assert.match(single, /addRecognitionToSession/);
   assert.match(single, /continuousScannerSessionKey/);
+  assert.match(single, /parseScannerSession/);
   assert.doesNotMatch(single, /canAutoCaptureNative/);
 });
 

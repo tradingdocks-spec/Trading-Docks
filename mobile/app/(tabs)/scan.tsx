@@ -1,15 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  TDCard,
   TDText,
 } from '@/components/design-system';
 import { color, radius, space } from '@/design';
+import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/account';
+import {
+  continuousScannerSessionKey,
+  type ContinuousScannerSession,
+} from '@/services/continuous-offer-scanner';
 import { getMobileScrollBottomInset } from '@/services/navigation-contract';
+import { appStorage } from '@/services/storage/app-storage';
 
 const scanModeRows = [
   {
@@ -42,7 +48,21 @@ export default function ScanModesScreen() {
   const insets = useSafeAreaInsets();
   const { accountType } = useAccount();
   const bottomInset = getMobileScrollBottomInset(insets.bottom);
-  const reviewCount = 0;
+  const [reviewCount, setReviewCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    void loadReviewListCount()
+      .then((count) => {
+        if (mounted) setReviewCount(count);
+      })
+      .catch(() => {
+        if (mounted) setReviewCount(0);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.content, { paddingBottom: bottomInset }]}>
@@ -65,16 +85,27 @@ export default function ScanModesScreen() {
         ))}
       </View>
 
-      <TDCard style={s.noteCard}>
-        <TDText variant="label" tone="muted">Grid Scan</TDText>
-        <TDText variant="small" tone="muted">Multi-card grid capture is planned but not enabled until recognition is production-ready.</TDText>
-      </TDCard>
-
       <TDText variant="caption" tone="muted" style={s.footer}>
         {accountType === 'store' ? 'Store workspace' : accountType === 'seller' ? 'Seller workspace' : 'Collection workspace'}
       </TDText>
     </ScrollView>
   );
+}
+
+async function loadReviewListCount() {
+  if (!supabase) return 0;
+  const { data, error } = await supabase.auth.getUser();
+  const userId = data.user?.id;
+  if (error || !userId) return 0;
+  const rawSession = await appStorage.getItem(continuousScannerSessionKey(userId));
+  if (!rawSession) return 0;
+  try {
+    const session = JSON.parse(rawSession) as ContinuousScannerSession;
+    if (session.userId !== userId) return 0;
+    return session.lines.length;
+  } catch {
+    return 0;
+  }
 }
 
 function ScanModeRow({
@@ -172,10 +203,6 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  noteCard: {
-    gap: space.xs,
-    backgroundColor: color.canvasRaised,
   },
   footer: {
     textAlign: 'center',

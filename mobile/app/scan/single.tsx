@@ -16,6 +16,7 @@ import {
   createContinuousScannerSession,
   createRecognitionPipelineReport,
   scannerModeLabel,
+  type ContinuousScannerSession,
 } from '@/services/continuous-offer-scanner';
 import { displayFinish } from '@/services/collector-workspace';
 import { recognizeMagicStillCapture, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
@@ -53,6 +54,7 @@ export default function SingleScanScreen() {
   const [result, setResult] = useState<MagicStillScanResult | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const guideLayout = useMemo(() => calculateCardGuideLayout({
     containerWidth: width,
@@ -116,15 +118,14 @@ export default function SingleScanScreen() {
     if (!result?.ok || !selectedCandidate) return;
     const context = await loadScannerContext();
     const rawSession = await appStorage.getItem(continuousScannerSessionKey(context.userId));
-    const currentSession = rawSession
-      ? JSON.parse(rawSession)
-      : createContinuousScannerSession({
-        id: createScanId(),
-        userId: context.userId,
-        name: scannerModeLabel('collection_intake'),
-        mode: 'collection_intake',
-        defaultDestination: 'collection',
-      });
+    const currentSession = rawSession ? parseScannerSession(rawSession, context.userId) : null;
+    const session = currentSession ?? createContinuousScannerSession({
+      id: createScanId(),
+      userId: context.userId,
+      name: scannerModeLabel('collection_intake'),
+      mode: 'collection_intake',
+      defaultDestination: 'collection',
+    });
     const recognition = createRecognitionPipelineReport({
       detectedGame: 'magic',
       candidates: [selectedCandidate, ...result.candidates.filter((candidate) => candidate.id !== selectedCandidate.id)],
@@ -134,7 +135,7 @@ export default function SingleScanScreen() {
     const finish = selectedCandidate.finishes.includes('normal')
       ? 'normal'
       : selectedCandidate.finishes[0] ?? 'normal';
-    const nextSession = addRecognitionToSession(currentSession, {
+    const nextSession = addRecognitionToSession(session, {
       stableScanId: lastCaptureId ?? createScanId(),
       candidate: selectedCandidate,
       recognition,
@@ -236,7 +237,7 @@ export default function SingleScanScreen() {
       <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
         <HeaderButton label="Back" icon="chevron-back" onPress={() => router.back()} />
         <TDText variant="title" numberOfLines={1}>Single Scan</TDText>
-        <HeaderButton label="Settings" icon="settings-outline" onPress={() => undefined} />
+        <HeaderButton label="Settings" icon="settings-outline" onPress={() => setSettingsOpen(true)} />
       </View>
 
       <View style={s.instruction}>
@@ -268,6 +269,13 @@ export default function SingleScanScreen() {
       {selectedCandidate ? (
         <SingleResultSheet candidate={selectedCandidate} onAdd={addToReviewList} onRetake={retake} />
       ) : null}
+      {settingsOpen ? (
+        <SingleSettingsSheet
+          lensLabel={selectedLensLabel}
+          torchLabel={torchEnabled ? 'On' : 'Off'}
+          onClose={() => setSettingsOpen(false)}
+        />
+      ) : null}
       {message && !selectedCandidate ? (
         <View style={s.messageToast}>
           <TDText variant="small">{message}</TDText>
@@ -286,7 +294,7 @@ function SingleResultSheet({ candidate, onAdd, onRetake }: { candidate: ScannerC
       {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={s.cardImage} contentFit="cover" /> : <View style={s.imageFallback}><Ionicons name="image-outline" size={24} color={color.textMuted} /></View>}
       <View style={s.resultText}>
         <TDText variant="title" numberOfLines={2}>{candidate.name}</TDText>
-        <TDText variant="small" tone="muted">{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'} · {candidate.finishes.map(displayFinish).join(', ')}</TDText>
+        <TDText variant="small" tone="muted">{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'} - {candidate.finishes.map(displayFinish).join(', ')}</TDText>
         <TDText variant="small">Market {market === null ? 'Unavailable' : `$${market.toFixed(2)}`}</TDText>
         <TDText variant="small">Offer {offer === null ? 'Unavailable' : `$${offer.toFixed(2)}`}</TDText>
       </View>
@@ -295,6 +303,36 @@ function SingleResultSheet({ candidate, onAdd, onRetake }: { candidate: ScannerC
         <TDButton label="Retake" variant="secondary" onPress={onRetake} />
       </View>
     </TDCard>
+  );
+}
+
+function SingleSettingsSheet({
+  lensLabel,
+  torchLabel,
+  onClose,
+}: {
+  lensLabel: string;
+  torchLabel: string;
+  onClose: () => void;
+}) {
+  return (
+    <TDCard style={s.settingsSheet}>
+      <TDText variant="title">Single Scan Settings</TDText>
+      <SettingSummaryRow label="Camera" value={lensLabel} />
+      <SettingSummaryRow label="Torch" value={torchLabel} />
+      <SettingSummaryRow label="Capture" value="Manual" />
+      <TDText variant="caption" tone="muted">Automatic tuning stays in Automatic Scan. Single Scan keeps the camera surface focused on one card.</TDText>
+      <TDButton label="Done" variant="secondary" onPress={onClose} />
+    </TDCard>
+  );
+}
+
+function SettingSummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.settingRow}>
+      <TDText variant="small" tone="muted">{label}</TDText>
+      <TDText variant="small">{value}</TDText>
+    </View>
   );
 }
 
@@ -308,6 +346,15 @@ function HeaderButton({ label, icon, disabled, onPress }: { label: string; icon:
 
 function createScanId() {
   return globalThis.crypto?.randomUUID?.() ?? `scan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function parseScannerSession(rawSession: string, userId: string): ContinuousScannerSession | null {
+  try {
+    const session = JSON.parse(rawSession) as ContinuousScannerSession;
+    return session?.userId === userId ? session : null;
+  } catch {
+    return null;
+  }
 }
 
 const s = StyleSheet.create({
@@ -330,6 +377,8 @@ const s = StyleSheet.create({
   lensButton: { minWidth: 42, minHeight: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.sm },
   lensButtonActive: { backgroundColor: color.primaryBright },
   resultSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 40, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
+  settingsSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 45, gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
+  settingRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   cardImage: { width: 72, height: 102, borderRadius: radius.sm, backgroundColor: color.surface },
   imageFallback: { width: 72, height: 102, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   resultText: { flex: 1, minWidth: 0, gap: 4 },

@@ -42,7 +42,7 @@ Visible surface:
 - Secondary line: current session mode and scanned count.
 - Full-screen camera.
 - Four-corner TCG-ratio guide.
-- One instruction at a time: Place card, Hold steady, Reading, Added, Remove card, Ready for next card, or Couldn’t identify.
+- One instruction at a time: Place card, Hold steady, Reading, Added, Remove card, Ready for next card, or Couldn't identify.
 - Bottom controls: Torch and Capture fallback.
 - Small Review shortcut with scanned count.
 
@@ -81,7 +81,7 @@ Implemented structure:
 - Summary: cards, needs review, offer.
 - Tabs: Needs review, All, Done.
 - Compact rows with image, name, printing, condition, finish, market, offer, status, and chevron.
-- Review sheet with image, name, printing, quantity, condition, finish, market, cash percentage, offer, Save & mark reviewed, Choose another printing, Remove, and More options.
+- Review sheet with image, name, printing, quantity, condition, finish, market, cash percentage, offer, Save and mark reviewed, Choose another printing, Remove, and More options.
 - One sticky Finalize action.
 
 ## Camera Controls
@@ -117,3 +117,28 @@ Hierarchy should come from spacing, typography, scale, placement, and subtle ele
 ## Inspiration Boundaries
 
 Reference TCG scanning products informed the workflow hierarchy: scan modes, automatic/manual separation, review queue, progressive disclosure, and camera-first presentation. Trading Docks does not copy reference layouts, colors, icons, wording, or interaction details literally.
+
+## Validation Checkpoint
+
+Status: Implemented for Scanner Product V3 shell, Automatic Scan, Single Scan, and Review List polish.
+
+Validated in this sprint:
+
+- Root TypeScript.
+- Mobile TypeScript.
+- Focused Scanner Product V3 lint.
+- Focused scanner, OCR, camera, offer, and Review List tests.
+- Full mobile test suite.
+- Native vision stack version verification.
+- Expo web export.
+- Expo prebuild config inspection.
+- Expo install check.
+- Apple autolinking search and resolve for `trading-docks-vision-ocr`.
+- `git diff --check`.
+
+Remaining manual QA:
+
+- Physical iOS development build camera pass.
+- Physical Android development build camera pass.
+- Small iPhone, large iPhone, Android phone, and Expo Web narrow viewport review.
+- Long card names, large text, denied camera permission, low light, no network, and repeated scan sessions.
