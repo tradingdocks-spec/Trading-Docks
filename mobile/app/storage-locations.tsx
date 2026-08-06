@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   TDBadge,
@@ -11,12 +12,16 @@ import {
   TDEmptyState,
   TDErrorState,
   TDInput,
+  TDListRow,
   TDLoadingState,
-  TDMetricTile,
+  TDMetric,
+  TDNavigationHeader,
+  TDSegmentedControl,
   TDScreen,
+  TDStatusIndicator,
   TDText,
 } from '@/components/design-system';
-import { color, radius, space } from '@/design';
+import { color, space } from '@/design';
 import {
   assignMobileStorageLocation,
   createMobileStorageLocation,
@@ -35,10 +40,12 @@ import {
   type StorageLocationType,
 } from '@/services/storage-location-manager';
 import type { CollectionCard } from '@/services/collector-workspace';
+import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 
 type ScreenState = LocationManagerState & { userId: string; stale: boolean; unavailableReason?: string };
 
 export default function StorageLocationsScreen() {
+  const insets = useSafeAreaInsets();
   const [state, setState] = useState<ScreenState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -112,18 +119,23 @@ export default function StorageLocationsScreen() {
 
   return (
     <TDScreen style={s.screen}>
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        <TDButton label="Back" variant="ghost" iconName="chevron-back" onPress={() => router.back()} style={s.back} />
-        <View style={s.header}>
-          <TDText variant="label" tone="info">Find Card</TDText>
-          <TDText variant="display">Storage</TDText>
-          <TDText variant="small" tone="muted">Answer where a card is, then move it to the right Area, Shelf, Container, Section, or Slot.</TDText>
-        </View>
+      <ScrollView contentContainerStyle={[s.content, { paddingBottom: getMobileScrollBottomInset(insets.bottom) }]} showsVerticalScrollIndicator={false}>
+        <TDNavigationHeader
+          eyebrow="Find Card"
+          title="Storage map"
+          subtitle="Search locations, see the full path, then move cards with ownership-safe actions."
+          leftAction={<TDButton label="Back" variant="ghost" iconName="chevron-back" onPress={() => router.back()} style={s.back} />}
+          rightAction={state.stale ? <TDBadge tone="warning">Stale</TDBadge> : undefined}
+        />
 
-        {state.stale ? <TDBadge tone="warning">{state.unavailableReason ?? 'Offline or stale'}</TDBadge> : null}
+        <TDInput label="Search locations" value={query} onChangeText={setQuery} leftIconName="search-outline" placeholder="Area, shelf, binder, slot..." />
+        <QuickLocations title="Favorites" locations={favoriteLocationSummaries(state.summaries)} onSelect={setSelectedId} />
+        <QuickLocations title="Recent" locations={recentLocationSummaries(state.summaries)} onSelect={setSelectedId} />
+
+        {state.stale ? <TDStatusIndicator tone="warning" label={state.unavailableReason ?? 'Offline or stale'} /> : null}
         {error ? (
           <TDCard accessibilityRole="alert" variant="outlined" style={s.errorCard}>
-            <TDBadge tone={error.includes('queued') ? 'warning' : 'danger'}>{error.includes('queued') ? 'Pending sync' : 'Update failed'}</TDBadge>
+            <TDStatusIndicator tone={error.includes('queued') ? 'warning' : 'danger'} label={error.includes('queued') ? 'Pending sync' : 'Update failed'} />
             <TDText variant="small" tone="muted">{error}</TDText>
           </TDCard>
         ) : null}
@@ -131,35 +143,29 @@ export default function StorageLocationsScreen() {
         <TDCard style={s.createCard}>
           <TDText variant="title">Create location</TDText>
           <TDInput label="Name" value={newName} onChangeText={setNewName} placeholder="Office, Shelf B, Box 14..." />
-          <View style={s.typeRow}>
-            {STORAGE_LOCATION_TYPES.slice(0, 5).map((type) => (
-              <TDChip key={type} label={labelForType(type)} selected={newType === type} tone="info" onPress={() => setNewType(type)} />
-            ))}
-          </View>
+          <TDSegmentedControl
+            label="Type"
+            options={STORAGE_LOCATION_TYPES.slice(0, 5).map((type) => ({ value: type, label: labelForType(type) }))}
+            value={newType}
+            onChange={setNewType}
+          />
           <TDButton label="Create location" loading={pending === 'create'} disabled={!newName.trim()} onPress={() => run('create', () => createMobileStorageLocation({ name: newName, type: newType }))} />
         </TDCard>
-
-        <TDInput label="Search locations" value={query} onChangeText={setQuery} leftIconName="search-outline" placeholder="Shelf, binder, slot..." />
-        <QuickLocations title="Favorites" locations={favoriteLocationSummaries(state.summaries)} onSelect={setSelectedId} />
-        <QuickLocations title="Recent" locations={recentLocationSummaries(state.summaries)} onSelect={setSelectedId} />
 
         {summaries.length ? (
           <View style={s.locationList} accessibilityRole="list">
             {summaries.map((location) => (
-              <Pressable
+              <TDListRow
                 key={location.id}
-                accessibilityRole="button"
+                title={location.name}
+                description={location.path.label}
+                eyebrow={labelForType(location.type)}
+                iconName={location.favorite ? 'star' : 'file-tray-stacked-outline'}
+                right={<TDBadge tone={location.favorite ? 'accent' : 'neutral'}>{location.assignedQuantity} cards</TDBadge>}
                 accessibilityLabel={`${location.name}, ${location.assignedQuantity} cards`}
-                accessibilityState={{ selected: selected?.id === location.id }}
+                selected={selected?.id === location.id}
                 onPress={() => setSelectedId(location.id)}
-                style={[s.locationRow, selected?.id === location.id && s.locationRowSelected]}
-              >
-                <View style={s.locationTitleRow}>
-                  <TDText variant="small">{location.name}</TDText>
-                  <TDBadge tone={location.favorite ? 'accent' : 'neutral'}>{location.assignedQuantity} cards</TDBadge>
-                </View>
-                <TDText variant="caption" tone="muted">{location.path.label}</TDText>
-              </Pressable>
+              />
             ))}
           </View>
         ) : (
@@ -176,9 +182,9 @@ export default function StorageLocationsScreen() {
               <TDBadge tone="info">{labelForType(selected.type)}</TDBadge>
             </View>
             <View style={s.metrics}>
-              <TDMetricTile label="Records" value={String(selected.assignedCardCount)} compact />
-              <TDMetricTile label="Quantity" value={String(selected.assignedQuantity)} compact tone="info" />
-              <TDMetricTile label="Children" value={String(selected.childCount)} compact />
+              <TDMetric label="Records" value={String(selected.assignedCardCount)} compact />
+              <TDMetric label="Quantity" value={String(selected.assignedQuantity)} compact tone="info" />
+              <TDMetric label="Children" value={String(selected.childCount)} compact />
             </View>
             <TDInput label="Rename" value={renameValue} onChangeText={setRenameValue} placeholder={selected.name} />
             <View style={s.actions}>
@@ -205,7 +211,15 @@ export default function StorageLocationsScreen() {
         {state.archivedLocations.length ? (
           <TDCard variant="outlined" style={s.sectionGap}>
             <TDText variant="title">Archived locations</TDText>
-            {state.archivedLocations.map((location) => <TDText key={location.id} variant="small" tone="muted">{location.path.label}</TDText>)}
+            {state.archivedLocations.map((location) => (
+              <TDListRow
+                key={location.id}
+                title={location.name}
+                description={location.path.label}
+                iconName="archive-outline"
+                right={<TDBadge tone="neutral">Archived</TDBadge>}
+              />
+            ))}
           </TDCard>
         ) : null}
 
@@ -243,13 +257,13 @@ function CardList({ cards, label, pending, onPress }: { cards: CollectionCard[];
   return (
     <View style={s.cardList}>
       {cards.map((card) => (
-        <View key={card.id} style={s.cardRow}>
-          <View style={s.flex}>
-            <TDText variant="small">{card.cardName}</TDText>
-            <TDText variant="caption" tone="muted">{card.printing.setCode ?? 'Set unavailable'} #{card.printing.collectorNumber ?? '?'} - x{card.quantityOwned}</TDText>
-          </View>
-          <TDButton label={label} size="sm" variant="secondary" loading={pending === `assign-${card.id}` || pending === `clear-${card.id}`} onPress={() => onPress(card)} />
-        </View>
+        <TDListRow
+          key={card.id}
+          title={card.cardName}
+          description={`${card.printing.setCode ?? 'Set unavailable'} #${card.printing.collectorNumber ?? '?'} - x${card.quantityOwned}`}
+          iconName="albums-outline"
+          right={<TDButton label={label} size="sm" variant="secondary" loading={pending === `assign-${card.id}` || pending === `clear-${card.id}`} onPress={() => onPress(card)} />}
+        />
       ))}
     </View>
   );
@@ -274,20 +288,16 @@ function labelForType(type: StorageLocationType) {
 
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
-  content: { gap: space.md, paddingBottom: 128 },
+  content: { gap: space.md },
   back: { alignSelf: 'flex-start' },
-  header: { gap: space.xs },
   createCard: { gap: space.md },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   locationList: { gap: space.sm },
-  locationRow: { minHeight: 72, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, padding: space.md, gap: space.xs },
-  locationRowSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '22' },
   locationTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   detailCard: { gap: space.md },
   metrics: { flexDirection: 'row', gap: space.sm },
   actions: { flexDirection: 'row', gap: space.sm },
   cardList: { gap: space.sm },
-  cardRow: { minHeight: 64, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   flex: { flex: 1 },
   sectionGap: { gap: space.sm },
   errorCard: { gap: space.xs },
