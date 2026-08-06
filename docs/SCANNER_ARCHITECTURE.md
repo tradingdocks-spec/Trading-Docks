@@ -24,6 +24,7 @@
 - Implemented: Scanner replay remains user-scoped and idempotent through generated inventory ids and queue idempotency keys.
 - Partially Implemented: Camera capture is local-first and now includes iOS captured-still OCR, but it still does not include benchmarked artwork recognition, set-symbol recognition, perspective correction, Android OCR, or finish classification.
 - Partially Implemented: The mobile Scan tab now uses a session-first continuous-intake layout and correct 63:88 card guide, but live auto-capture still needs the VisionCamera frame bridge and physical-device QA before hands-free capture is production-ready.
+- Planned: `docs/SCANNER_AUTO_CAPTURE_NATIVE_PLAN.md` defines the native frame-delivery, auto-capture gate, removal/rearm, privacy, QA, and rollback requirements. Do not enable hands-free capture until those gates are met.
 - Partially Implemented: The Magic adapter can resolve and explain likely Magic printings from available metadata signals, but it must require user confirmation when exact-printing signals are missing, weak, conflicting, or below threshold.
 - Partially Implemented: Pokemon, One Piece, and Lorcana adapters remain replaceable architecture stubs, not benchmarked recognition providers.
 - Planned: Artwork matching, set-symbol detection, perspective correction, Android OCR, and foil classification need provider implementations plus benchmarks before any accuracy claim.

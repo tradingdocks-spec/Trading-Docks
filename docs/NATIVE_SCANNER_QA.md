@@ -19,6 +19,7 @@ Status: Requires Production Configuration for physical-device release verificati
 - Implemented: The primary Scan tab now uses a camera-first layout with compact header, one guide instruction, Torch/Capture as primary controls, Manual Search inside scanner settings, secondary diagnostics panels, and a safe-area-aware compact session strip.
 - Partially Implemented: The pure live-frame analyzer can evaluate synthetic luma frames for boundaries, motion, blur, lighting, glare, and crop metadata, but it is not wired to native camera frames in the active UI.
 - Planned: Physical-device QA on iOS and Android is required before claiming hands-free auto-capture is operational.
+- Planned: Native auto-capture must follow `docs/SCANNER_AUTO_CAPTURE_NATIVE_PLAN.md`; the current active Scan route remains manual still-capture because real live-frame signals are not wired into the UI.
 - Planned: Native frame delivery, artwork matching, set-symbol detection, perspective-corrected image output, Android OCR, and benchmarked finish classification remain future work.
 
 ## Critical Workflow
