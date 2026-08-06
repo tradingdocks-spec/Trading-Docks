@@ -59,3 +59,9 @@ Implemented: Icon actions have labels, rows expose button semantics, status text
 Requires Production Configuration: Physical iOS and Android QA is still required for dynamic type, VoiceOver, TalkBack, keyboard overlap, home-indicator spacing, long session names, and 100-card performance.
 
 Planned: Native share sheet/export history, printing replacement from the review sheet, and optional haptics remain future work.
+
+## Repository Validation
+
+Implemented: This branch passed root TypeScript, mobile TypeScript, focused lint, session-review UI tests, session persistence and offer calculation tests, full mobile tests, Expo web export, Expo config validation, Expo dependency check, Apple OCR autolinking search/resolve, and `git diff --check`.
+
+Requires Production Configuration: Physical-device QA remains required before calling the Session Review experience release-complete.
