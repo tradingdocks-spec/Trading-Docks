@@ -39,3 +39,9 @@ Implemented: Development diagnostics remain behind the explicit diagnostics flag
 Requires Production Configuration: Validate safe areas, guide placement, tab restoration, camera fill, text size, VoiceOver, TalkBack, failed OCR, no-match lookup, Retake, manual search, background/foreground, and rapid repeated scans on physical devices.
 
 Planned: Native frame delivery into the Vision Engine, benchmarked recognition confidence, artwork/set-symbol detection, Android OCR, and foil classification remain future scanner work.
+
+## Repository Validation
+
+Implemented: The release-candidate branch passed root TypeScript, mobile TypeScript, focused scanner lint, full mobile tests, Expo web export, Expo prebuild config inspection, Expo dependency check, Apple OCR autolinking search/resolve, and `git diff --check`.
+
+Requires Production Configuration: Physical iOS and Android scanner QA, VoiceOver/TalkBack review, and development-build camera/OCR verification remain manual release gates.
