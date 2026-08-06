@@ -8,6 +8,7 @@ import { color, elevation, radius } from '@/design';
 import {
   getMobileBottomNavVisualModel,
   getMobileTabOptions,
+  shouldHideMobileTabBarForRoute,
   type MobileTabRouteName,
 } from '@/services/navigation-contract';
 
@@ -40,6 +41,7 @@ export default function Layout() {
     <Tabs
       screenOptions={({ route }) => {
         const options = getMobileTabOptions(accountType, route.name as MobileTabRouteName);
+        const hideTabBar = shouldHideMobileTabBarForRoute(route.name as MobileTabRouteName);
         return {
           headerShown: false,
           tabBarShowLabel: true,
@@ -47,6 +49,7 @@ export default function Layout() {
           tabBarInactiveTintColor: color.textMuted,
           tabBarStyle: [
             s.tab,
+            hideTabBar && s.tabHidden,
             {
               height: navModel.height,
               paddingBottom: navModel.paddingBottom,
@@ -137,6 +140,9 @@ const s = StyleSheet.create({
     borderWidth: 0,
     borderRadius: 0,
     ...elevation.raised,
+  },
+  tabHidden: {
+    display: 'none',
   },
   item: {
     minHeight: 48,

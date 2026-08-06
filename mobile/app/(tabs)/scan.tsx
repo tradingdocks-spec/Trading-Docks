@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
-import { AccessibilityInfo, AppState, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
+import { AccessibilityInfo, AppState, Platform, Pressable, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -78,7 +78,6 @@ import {
   highVolumeCardShowDefaults,
   resolvePremiumScannerPipeline,
   resolveScanner2InteractionState,
-  scanner2CameraHeight,
   scanner2HeaderModel,
   scanner2MainControls,
   scanner2MotionForState,
@@ -160,14 +159,8 @@ export default function Scan() {
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
   const privacy = scannerPrivacySummary();
-  const cameraStageHeight = scanner2CameraHeight({
-    width,
-    height,
-    safeTop: insets.top,
-    safeBottom: insets.bottom,
-    hasResult: recognitionStage === 'failed' || Boolean(selected),
-  });
-  const previewWidth = Math.min(width, 520);
+  const cameraStageHeight = Math.max(520, height);
+  const previewWidth = width;
   const baseGuideLayout = useMemo(() => calculateCardGuideLayout({
     containerWidth: previewWidth,
     containerHeight: cameraStageHeight,
@@ -276,6 +269,8 @@ export default function Scan() {
     marketTotal: sessionTotals?.marketValue ?? null,
     offerTotal: sessionTotals?.cashOffer ?? null,
   });
+  const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showCorrectionTools;
+  const hideMainControls = scannerProcessing || saving || sheetOpen || scanner2State === 'added' || scanner2State === 'remove_card';
 
   useEffect(() => {
     mountedRef.current = true;
@@ -707,15 +702,7 @@ export default function Scan() {
   if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading scanner" message="Preparing collection, storage, and confirmation options." /></TDScreen>;
 
   return (
-    <TDScreen style={s.scannerShell}>
-      <ScannerHud
-        header={scannerHeader}
-        topInset={insets.top}
-        cameraActive={cameraActive}
-        onTogglePause={toggleCameraPause}
-        onSettings={() => setShowSettingsSheet(true)}
-      />
-
+    <View style={s.immersiveScannerShell}>
       <ScannerViewport
         cameraRef={cameraRef}
         permission={permission}
@@ -739,9 +726,19 @@ export default function Scan() {
         onCapture={captureStill}
         onManualSearch={() => setShowManualSearchSheet(true)}
         onRequestCamera={requestCamera}
+        hideControls={hideMainControls}
       />
 
-      <ScrollView style={s.scroller} contentContainerStyle={[s.scannerContent, { paddingBottom: Math.max(insets.bottom + 24, 40) }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScannerHud
+        header={scannerHeader}
+        topInset={insets.top}
+        cameraActive={cameraActive}
+        onClose={() => router.back()}
+        onTogglePause={toggleCameraPause}
+        onSettings={() => setShowSettingsSheet(true)}
+      />
+
+      <View pointerEvents="box-none" style={s.overlayLayer}>
         {error && visibleSurface !== 'result_tray' ? <TDErrorState title="Scanner notice" message={error} /> : null}
         {success && visibleSurface !== 'result_tray' ? <TDCard accessibilityRole="alert" style={s.noticeCard}><TDBadge tone="success">Success</TDBadge><TDText variant="small">{success}</TDText></TDCard> : null}
 
@@ -946,13 +943,13 @@ export default function Scan() {
             <TDText variant="caption" tone="muted">Foil test mode: {foilDiagnostics.status}; {foilDiagnostics.frameCount} frames. Finish remains manually editable.</TDText>
           </TDCard>
         ) : null}
-      </ScrollView>
+      </View>
       <ScannerSessionStrip
         bottomInset={insets.bottom}
         model={sessionStrip}
         onReviewSession={() => router.push('/scanner-session' as never)}
       />
-    </TDScreen>
+    </View>
   );
 }
 
@@ -960,17 +957,20 @@ function ScannerHud({
   header,
   topInset,
   cameraActive,
+  onClose,
   onTogglePause,
   onSettings,
 }: {
   header: ReturnType<typeof scanner2HeaderModel>;
   topInset: number;
   cameraActive: boolean;
+  onClose: () => void;
   onTogglePause: () => void;
   onSettings: () => void;
 }) {
   return (
     <View style={[s.topHud, { paddingTop: Math.max(topInset, 10) }]}>
+      <HeaderIconControl label="Close scanner" icon="close-outline" onPress={onClose} />
       <View style={s.hudTextStack}>
         <View style={s.hudLine}>
           <TDText variant="small" numberOfLines={1} style={s.hudMode}>{header.line1.mode}</TDText>
@@ -1012,6 +1012,7 @@ function ScannerViewport({
   onCapture,
   onManualSearch,
   onRequestCamera,
+  hideControls,
 }: {
   cameraRef: RefObject<CameraView | null>;
   permission: ScannerPermissionState;
@@ -1032,6 +1033,7 @@ function ScannerViewport({
   onCapture: () => void;
   onManualSearch: () => void;
   onRequestCamera: () => void;
+  hideControls: boolean;
 }) {
   const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
   const showResume = shouldShowScannerResumeAction(cameraLifecycle);
@@ -1068,6 +1070,7 @@ function ScannerViewport({
         onToggleTorch={onToggleTorch}
         onCapture={onCapture}
         onManualSearch={onManualSearch}
+        hidden={hideControls}
       />
     </View>
   );
@@ -1097,11 +1100,8 @@ function ScannerGuide({
 function ScannerStatus({ guidePresentation, scannerPipeline }: { guidePresentation: PremiumScannerGuidePresentation; scannerPipeline: PremiumScannerPipelineState }) {
   return (
     <View style={s.cameraScrimTop}>
-      <TDBadge tone={guidePresentation.tone === 'emerald' ? 'success' : guidePresentation.tone === 'amber' ? 'warning' : guidePresentation.tone === 'danger' ? 'danger' : 'info'}>
-        {guidePresentation.statusLabel}
-      </TDBadge>
       <TDText variant="title" style={s.guideMessage}>{guidePresentation.message}</TDText>
-      <TDText variant="caption" tone="muted">{scannerPipeline === 'aligning' ? 'camera open' : scannerPipeline.replaceAll('_', ' ')}</TDText>
+      <TDText variant="caption" tone="muted">{scannerPipeline === 'failed' ? 'Retake or search manually' : 'Trading Docks scanner'}</TDText>
     </View>
   );
 }
@@ -1113,6 +1113,7 @@ function ScannerControls({
   onToggleTorch,
   onCapture,
   onManualSearch,
+  hidden,
 }: {
   torchEnabled: boolean;
   cameraReady: boolean;
@@ -1120,8 +1121,10 @@ function ScannerControls({
   onToggleTorch: () => void;
   onCapture: () => void;
   onManualSearch: () => void;
+  hidden: boolean;
 }) {
   const controls = scanner2MainControls();
+  if (hidden) return null;
   return (
     <View style={s.cameraControls}>
       {controls.map((control) => {
@@ -1216,7 +1219,7 @@ function ScannerSessionStrip({ bottomInset, model, onReviewSession }: { bottomIn
       onPress={onReviewSession}
       bottomInset={bottomInset}
       tone="info"
-      style={model.compact && s.bottomSessionBarCompact}
+      style={[s.sessionChip, model.compact && s.bottomSessionBarCompact]}
     />
   );
 }
@@ -1417,8 +1420,10 @@ function createScanId() {
 }
 
 const s = StyleSheet.create({
+  immersiveScannerShell: { flex: 1, backgroundColor: '#010711', overflow: 'hidden' },
   scannerShell: { flex: 1, backgroundColor: color.canvas },
-  topHud: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.xs, backgroundColor: color.canvas },
+  overlayLayer: { position: 'absolute', left: space.md, right: space.md, bottom: 92, zIndex: 50, gap: space.sm },
+  topHud: { position: 'absolute', top: 0, left: space.sm, right: space.sm, zIndex: 60, minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.sm, paddingBottom: space.xs, borderRadius: radius.lg, backgroundColor: color.canvas + 'D8' },
   hudTextStack: { flex: 1, minWidth: 0, gap: 2 },
   hudLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   hudMode: { flex: 1, minWidth: 0 },
@@ -1434,10 +1439,10 @@ const s = StyleSheet.create({
   compactStatSuccess: { borderColor: color.success + '88' },
   compactStatWarning: { borderColor: color.warning + '88' },
   compactStatInfo: { borderColor: color.info + '88' },
-  cameraStage: { minHeight: 340, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center', borderTopWidth: 1, borderBottomWidth: 1, borderColor: color.borderStrong },
+  cameraStage: { ...StyleSheet.absoluteFillObject, minHeight: 340, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center', zIndex: 1 },
   cameraViewport: { flex: 1, backgroundColor: '#010711' },
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
-  cameraScrimTop: { position: 'absolute', top: space.md, left: space.md, right: space.md, alignItems: 'center', gap: space.xs, padding: space.sm, borderRadius: radius.lg, backgroundColor: color.canvas + '66' },
+  cameraScrimTop: { position: 'absolute', top: '34%', left: space.md, right: space.md, alignItems: 'center', gap: space.xs, padding: space.sm, borderRadius: radius.lg, backgroundColor: color.canvas + '44', zIndex: 20 },
   guideMessage: { textAlign: 'center' },
   premiumGuide: { position: 'absolute' },
   guidePulse: { opacity: 0.96 },
@@ -1469,7 +1474,7 @@ const s = StyleSheet.create({
   trayMoneyRow: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
   trayActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   correctionPanel: { gap: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.md, backgroundColor: color.canvasRaised },
-  sheet: { gap: space.md, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
+  sheet: { maxHeight: 520, gap: space.md, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
   sheetHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   closeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
   bottomSessionBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 52, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F8' },
@@ -1488,13 +1493,14 @@ const s = StyleSheet.create({
   guideCornerBottom: { top: undefined, bottom: -2, borderTopWidth: 0, borderBottomWidth: 4, borderBottomLeftRadius: radius.md },
   guideCornerBottomRight: { top: undefined, left: undefined, right: -2, bottom: -2, borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 4, borderBottomWidth: 4, borderBottomRightRadius: radius.md },
   liveStatus: { position: 'absolute', top: space.sm, right: space.sm, left: space.sm, gap: space.xs },
-  cameraControls: { position: 'absolute', right: space.sm, bottom: space.sm, left: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, justifyContent: 'center' },
+  cameraControls: { position: 'absolute', right: space.sm, bottom: 108, left: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, justifyContent: 'center', zIndex: 30 },
   scroller: { flex: 1 },
   statusRow: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
   diagnosticsCard: { gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.md, backgroundColor: color.canvasRaised },
   diagnosticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   centerText: { textAlign: 'center' },
   noticeCard: { gap: space.sm },
+  sessionChip: { position: 'absolute', left: space.md, right: space.md, bottom: 0, zIndex: 55, borderTopWidth: 0, borderWidth: 1, borderColor: color.borderStrong, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, backgroundColor: color.canvas + 'E8' },
   syncCard: { gap: space.md },
   syncHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   syncActions: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },

@@ -135,6 +135,10 @@ export function getMobileBottomNavVisualModel(safeAreaBottom: number) {
   };
 }
 
+export function shouldHideMobileTabBarForRoute(route: MobileTabRouteName) {
+  return route === 'scan';
+}
+
 export function isMobileTabSelected(pathname: string, route: MobileTabRouteName) {
   const tabPath = route === 'index' ? '/(tabs)' : `/(tabs)/${route}`;
   return pathname === tabPath || pathname.startsWith(`${tabPath}/`);

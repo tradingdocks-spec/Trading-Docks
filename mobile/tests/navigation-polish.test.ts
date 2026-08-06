@@ -14,6 +14,7 @@ import {
   MOBILE_NAV_MIN_TOUCH_TARGET,
   MOBILE_NAV_SAFE_AREA_BASE_HEIGHT,
   MOBILE_PRIMARY_TAB_COUNT,
+  shouldHideMobileTabBarForRoute,
   resolveProtectedRouteAccess,
 } from '../services/navigation-contract.ts';
 
@@ -98,4 +99,13 @@ test('bottom navigation visual model keeps center action balanced inside the bar
   assert.equal(model.centerAction.oversized, false);
   assert.equal(model.centerAction.staysInsideBar, true);
   assert.ok(model.centerAction.height < model.height);
+});
+
+test('mobile tab bar hides only for active immersive scanner route', () => {
+  assert.equal(shouldHideMobileTabBarForRoute('scan'), true);
+  assert.equal(shouldHideMobileTabBarForRoute('index'), false);
+  assert.equal(shouldHideMobileTabBarForRoute('collection'), false);
+  assert.equal(shouldHideMobileTabBarForRoute('deal-desk'), false);
+  assert.equal(shouldHideMobileTabBarForRoute('sell'), false);
+  assert.equal(shouldHideMobileTabBarForRoute('profile'), false);
 });
