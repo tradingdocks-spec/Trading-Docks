@@ -212,6 +212,33 @@ export type ScannerSessionTotals = {
   finishTotals: Record<string, number>;
 };
 
+export type SessionReviewStatusTab = 'all' | 'needs_review' | 'suggested' | 'confirmed';
+export type SessionReviewGameFilter = SupportedTcg | 'all';
+export type SessionReviewConfidenceFilter = ContinuousConfidenceState | 'all';
+export type SessionReviewSortOrder = 'newest' | 'oldest' | 'needs_review_first' | 'highest_offer';
+
+export type SessionReviewFilterState = {
+  status: SessionReviewStatusTab;
+  game: SessionReviewGameFilter;
+  confidence: SessionReviewConfidenceFilter;
+  missingPriceOnly: boolean;
+  sortOrder: SessionReviewSortOrder;
+};
+
+export type SessionReviewMetric = {
+  id: 'cards' | 'needs_review' | 'missing_price' | 'offer_total';
+  label: string;
+  value: string;
+  tone: 'neutral' | 'success' | 'warning' | 'info';
+};
+
+export type SessionFinalizeEligibility = {
+  canFinalize: boolean;
+  reason: string;
+  readyCount: number;
+  blockingReviewCount: number;
+};
+
 export type ContinuousScannerCsvRow = {
   sessionName: string;
   sessionType: ContinuousScannerMode;
@@ -666,6 +693,122 @@ export function filterScannerSessionLines(
   });
 }
 
+export function defaultSessionReviewFilters(): SessionReviewFilterState {
+  return {
+    status: 'all',
+    game: 'all',
+    confidence: 'all',
+    missingPriceOnly: false,
+    sortOrder: 'needs_review_first',
+  };
+}
+
+export function normalizeSessionReviewStatus(status: SessionReviewStatusTab): ScannerSessionLine['reviewStatus'] | 'all' {
+  return status;
+}
+
+export function filterSessionReviewLines(lines: ScannerSessionLine[], filters: SessionReviewFilterState) {
+  const filtered = filterScannerSessionLines(lines, {
+    game: filters.game,
+    status: normalizeSessionReviewStatus(filters.status),
+    confidence: filters.confidence,
+    missingPrice: filters.missingPriceOnly,
+  });
+  return sortSessionReviewLines(filtered, filters.sortOrder);
+}
+
+export function sortSessionReviewLines(lines: ScannerSessionLine[], sortOrder: SessionReviewSortOrder) {
+  return [...lines].sort((a, b) => {
+    if (sortOrder === 'oldest') return a.createdAt.localeCompare(b.createdAt);
+    if (sortOrder === 'highest_offer') return (b.cashOffer ?? -1) - (a.cashOffer ?? -1) || b.createdAt.localeCompare(a.createdAt);
+    if (sortOrder === 'needs_review_first') {
+      const score = (line: ScannerSessionLine) => line.reviewStatus === 'needs_review' ? 0 : line.reviewStatus === 'suggested' ? 1 : 2;
+      return score(a) - score(b) || b.createdAt.localeCompare(a.createdAt);
+    }
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+}
+
+export function sessionReviewMetrics(totals: ScannerSessionTotals | null): SessionReviewMetric[] {
+  return [
+    { id: 'cards', label: 'Cards', value: String(totals?.cardsScanned ?? 0), tone: 'info' },
+    { id: 'needs_review', label: 'Needs review', value: String(totals?.needsReview ?? 0), tone: totals?.needsReview ? 'warning' : 'neutral' },
+    { id: 'missing_price', label: 'No price', value: String(totals?.missingPriceItems ?? 0), tone: totals?.missingPriceItems ? 'warning' : 'neutral' },
+    { id: 'offer_total', label: 'Offer total', value: formatSessionReviewMoney(totals?.cashOffer), tone: 'success' },
+  ];
+}
+
+export function sessionFinalizeEligibility(session: ContinuousScannerSession): SessionFinalizeEligibility {
+  const blockingReviewCount = session.lines.filter((line) => line.reviewStatus === 'needs_review').length;
+  const readyCount = session.lines.filter((line) => line.reviewStatus !== 'needs_review').length;
+  if (!session.lines.length) {
+    return { canFinalize: false, reason: 'Scan cards before finalizing this session.', readyCount, blockingReviewCount };
+  }
+  if (blockingReviewCount > 0) {
+    return { canFinalize: false, reason: `${blockingReviewCount} card${blockingReviewCount === 1 ? '' : 's'} still need review.`, readyCount, blockingReviewCount };
+  }
+  return { canFinalize: true, reason: `${readyCount} reviewed card${readyCount === 1 ? '' : 's'} ready to finalize.`, readyCount, blockingReviewCount };
+}
+
+export function nextReviewLine(lines: ScannerSessionLine[]) {
+  return sortSessionReviewLines(lines.filter((line) => line.reviewStatus === 'needs_review'), 'oldest')[0] ?? null;
+}
+
+export function reviewedProgressLabel(session: ContinuousScannerSession) {
+  const total = session.lines.length;
+  const reviewed = session.lines.filter((line) => line.reviewStatus !== 'needs_review').length;
+  return `${reviewed} of ${total} reviewed`;
+}
+
+export function hasAdvancedSessionFilters(filters: SessionReviewFilterState) {
+  const defaults = defaultSessionReviewFilters();
+  return filters.game !== defaults.game
+    || filters.confidence !== defaults.confidence
+    || filters.missingPriceOnly !== defaults.missingPriceOnly
+    || filters.sortOrder !== defaults.sortOrder;
+}
+
+export function activeSessionFilterSummary(filters: SessionReviewFilterState) {
+  const parts: string[] = [];
+  if (filters.game !== 'all') parts.push(sessionGameLabel(filters.game));
+  if (filters.status !== 'all') parts.push(sessionReviewStatusLabel(filters.status));
+  if (filters.confidence !== 'all') parts.push(sessionConfidenceLabel(filters.confidence));
+  if (filters.missingPriceOnly) parts.push('Missing price');
+  if (filters.sortOrder !== 'needs_review_first') parts.push(sessionSortLabel(filters.sortOrder));
+  return parts.join(' • ');
+}
+
+export function sessionReviewStatusLabel(status: SessionReviewStatusTab | ScannerSessionLine['reviewStatus']) {
+  if (status === 'needs_review') return 'Needs review';
+  if (status === 'suggested') return 'Suggested';
+  if (status === 'confirmed') return 'Done';
+  return 'All';
+}
+
+export function sessionConfidenceLabel(confidence: ContinuousConfidenceState | 'all') {
+  if (confidence === 'high_confidence') return 'High confidence';
+  if (confidence === 'likely') return 'Likely';
+  if (confidence === 'ambiguous') return 'Ambiguous';
+  if (confidence === 'manual_review_required') return 'Manual review required';
+  return 'All';
+}
+
+export function sessionGameLabel(game: SupportedTcg | 'all') {
+  if (game === 'one_piece') return 'One Piece';
+  if (game === 'pokemon') return 'Pokemon';
+  if (game === 'magic') return 'Magic';
+  if (game === 'lorcana') return 'Lorcana';
+  if (game === 'unknown') return 'Unknown';
+  return 'All';
+}
+
+export function sessionSortLabel(sort: SessionReviewSortOrder) {
+  if (sort === 'oldest') return 'Oldest first';
+  if (sort === 'highest_offer') return 'Highest offer';
+  if (sort === 'newest') return 'Newest first';
+  return 'Needs review first';
+}
+
 export function calculateSessionTotals(session: ContinuousScannerSession): ScannerSessionTotals {
   let knownMarketValue = 0;
   let cashOffer = 0;
@@ -927,6 +1070,10 @@ function roundOffer(value: number, rule: OfferRoundingRule) {
 
 function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+export function formatSessionReviewMoney(value: number | null | undefined) {
+  return value === null || value === undefined ? '—' : `$${value.toFixed(2)}`;
 }
 
 function csvCell(value: unknown) {
