@@ -9,12 +9,12 @@ import {
 } from 'react-native-vision-camera';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { scannerNativeFrameSampling, scannerNativePhotoTarget } from '@/services/scanner-camera-quality';
 import type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraProps } from './scanner-camera-contract';
 export type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraPhoto, ScannerCameraProps } from './scanner-camera-contract';
 
-const SAMPLE_WIDTH = 48;
-const SAMPLE_HEIGHT = 64;
-const FRAME_BUCKETS_PER_SECOND = 8;
+const frameSampling = scannerNativeFrameSampling();
+const photoTarget = scannerNativePhotoTarget();
 
 export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>(function ScannerCamera(
   { active, torchEnabled, userId, onReady, onFrame },
@@ -22,20 +22,20 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
 ) {
   const device = useCameraDevice('back', { physicalDevices: ['wide-angle'] });
   const photoOutput = usePhotoOutput({
-    targetResolution: CommonResolutions.UHD_4_3,
-    quality: 1,
-    qualityPrioritization: 'quality',
+    targetResolution: { width: photoTarget.width, height: photoTarget.height },
+    quality: photoTarget.quality,
+    qualityPrioritization: photoTarget.qualityPrioritization,
   });
   const frameOutput = useFrameOutput({
     targetResolution: CommonResolutions.VGA_4_3,
-    pixelFormat: 'yuv',
-    enablePreviewSizedOutputBuffers: true,
+    pixelFormat: frameSampling.pixelFormat,
+    enablePreviewSizedOutputBuffers: frameSampling.previewSizedBuffers,
     enablePhysicalBufferRotation: true,
     dropFramesWhileBusy: true,
     onFrame(frame) {
       'worklet';
       try {
-        const bucket = Math.floor(frame.timestamp * FRAME_BUCKETS_PER_SECOND);
+        const bucket = Math.floor(frame.timestamp * frameSampling.targetFps);
         const globalKey = '__tradingDocksScannerLastFrameBucket';
         const globalState = globalThis as unknown as Record<string, number>;
         if (globalState[globalKey] === bucket) {
@@ -55,10 +55,10 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
         const buffer = plane ? plane.getPixelBuffer() : frame.getPixelBuffer();
         const source = new Uint8Array(buffer);
         const pixels: number[] = [];
-        for (let y = 0; y < SAMPLE_HEIGHT; y += 1) {
-          const sourceY = Math.min(sourceHeight - 1, Math.floor((y + 0.5) * sourceHeight / SAMPLE_HEIGHT));
-          for (let x = 0; x < SAMPLE_WIDTH; x += 1) {
-            const sourceX = Math.min(sourceWidth - 1, Math.floor((x + 0.5) * sourceWidth / SAMPLE_WIDTH));
+        for (let y = 0; y < frameSampling.height; y += 1) {
+          const sourceY = Math.min(sourceHeight - 1, Math.floor((y + 0.5) * sourceHeight / frameSampling.height));
+          for (let x = 0; x < frameSampling.width; x += 1) {
+            const sourceX = Math.min(sourceWidth - 1, Math.floor((x + 0.5) * sourceWidth / frameSampling.width));
             pixels.push(source[sourceY * bytesPerRow + sourceX] ?? 0);
           }
         }
@@ -66,11 +66,11 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
           id: `native-frame-${Math.round(frame.timestamp * 1000)}`,
           userId,
           capturedAt: Math.round(frame.timestamp * 1000),
-          width: SAMPLE_WIDTH,
-          height: SAMPLE_HEIGHT,
+          width: frameSampling.width,
+          height: frameSampling.height,
           pixels,
           pixelFormat: 'luma8',
-          orientation: SAMPLE_WIDTH > SAMPLE_HEIGHT ? 'landscape' : 'portrait',
+          orientation: frameSampling.width > frameSampling.height ? 'landscape' : 'portrait',
           source: 'vision-camera',
           previewResolution: { width: frame.width, height: frame.height },
         };
@@ -87,8 +87,8 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
       const photo = await photoOutput.capturePhoto({
         flashMode: torchEnabled ? 'on' : 'off',
         enableShutterSound: false,
-        enableDistortionCorrection: true,
-        enableVirtualDeviceFusion: true,
+        enableDistortionCorrection: photoTarget.distortionCorrection,
+        enableVirtualDeviceFusion: photoTarget.virtualDeviceFusion,
       }, {});
       try {
         const path = await photo.saveToTemporaryFileAsync();

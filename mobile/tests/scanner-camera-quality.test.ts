@@ -4,11 +4,15 @@ import test from 'node:test';
 import { calculateCardGuideLayout } from '../services/continuous-offer-scanner.ts';
 import {
   SCANNER_CAMERA_MAX_BOTTOM_GUIDE_CLEARANCE,
+  SCANNER_NATIVE_FRAME_SAMPLE_HEIGHT,
+  SCANNER_NATIVE_FRAME_SAMPLE_WIDTH,
   scannerCameraFraming,
   scannerCameraStageHeight,
   scannerCameraViewQualityProps,
   scannerCaptureOptions,
   scannerGuideHasUsableCaptureArea,
+  scannerNativeFrameSampling,
+  scannerNativePhotoTarget,
 } from '../services/scanner-camera-quality.ts';
 
 test('scanner still capture keeps maximum quality with native orientation processing', () => {
@@ -24,6 +28,26 @@ test('scanner camera view enables supported quality props only', () => {
     autofocus: 'on',
     responsiveOrientationWhenOrientationLocked: true,
   });
+});
+
+test('native live frame sampling stays compact and portrait oriented', () => {
+  const sampling = scannerNativeFrameSampling();
+  assert.equal(sampling.width, SCANNER_NATIVE_FRAME_SAMPLE_WIDTH);
+  assert.equal(sampling.height, SCANNER_NATIVE_FRAME_SAMPLE_HEIGHT);
+  assert.equal(sampling.targetFps, 8);
+  assert.equal(sampling.pixelFormat, 'yuv');
+  assert.equal(sampling.previewSizedBuffers, true);
+  assert.ok(sampling.height > sampling.width);
+});
+
+test('native still capture favors high quality four-by-three photos', () => {
+  const target = scannerNativePhotoTarget();
+  assert.equal(target.width, 3024);
+  assert.equal(target.height, 4032);
+  assert.equal(target.quality, 1);
+  assert.equal(target.qualityPrioritization, 'quality');
+  assert.equal(target.distortionCorrection, true);
+  assert.equal(target.virtualDeviceFusion, true);
 });
 
 test('scanner framing reserves safe area and bottom controls away from the guide', () => {

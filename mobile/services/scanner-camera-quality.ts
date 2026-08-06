@@ -8,6 +8,11 @@ export const SCANNER_CAMERA_BOTTOM_CONTROL_RESERVE = 96;
 export const SCANNER_CAMERA_MIN_BOTTOM_GUIDE_CLEARANCE = 88;
 export const SCANNER_CAMERA_MAX_BOTTOM_GUIDE_CLEARANCE = 144;
 export const SCANNER_CAMERA_TOP_INSET_LIMIT = 72;
+export const SCANNER_NATIVE_FRAME_SAMPLE_WIDTH = 48;
+export const SCANNER_NATIVE_FRAME_SAMPLE_HEIGHT = 64;
+export const SCANNER_NATIVE_FRAME_TARGET_FPS = 8;
+export const SCANNER_NATIVE_PHOTO_TARGET_WIDTH = 3024;
+export const SCANNER_NATIVE_PHOTO_TARGET_HEIGHT = 4032;
 
 export type ScannerCameraFramingInput = {
   viewportWidth: number;
@@ -35,6 +40,27 @@ export function scannerCaptureOptions(): CameraPictureOptions {
   return {
     quality: 1,
     skipProcessing: false,
+  };
+}
+
+export function scannerNativeFrameSampling() {
+  return {
+    width: SCANNER_NATIVE_FRAME_SAMPLE_WIDTH,
+    height: SCANNER_NATIVE_FRAME_SAMPLE_HEIGHT,
+    targetFps: SCANNER_NATIVE_FRAME_TARGET_FPS,
+    pixelFormat: 'yuv' as const,
+    previewSizedBuffers: true,
+  };
+}
+
+export function scannerNativePhotoTarget() {
+  return {
+    width: SCANNER_NATIVE_PHOTO_TARGET_WIDTH,
+    height: SCANNER_NATIVE_PHOTO_TARGET_HEIGHT,
+    quality: 1,
+    qualityPrioritization: 'quality' as const,
+    distortionCorrection: true,
+    virtualDeviceFusion: true,
   };
 }
 
