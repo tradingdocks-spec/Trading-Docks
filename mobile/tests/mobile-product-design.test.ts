@@ -28,10 +28,45 @@ test('mobile product design docs define audit bible component accessibility and 
     'MOBILE_ACCESSIBILITY_STANDARD.md',
     'MOBILE_MOTION_STANDARD.md',
     'MOBILE_VISUAL_MIGRATION_WAVE_1.md',
+    'MOBILE_VISUAL_MIGRATION_WAVE_2.md',
   ]) {
     const content = readFileSync(join(root, '..', 'docs', file), 'utf8');
     assert.match(content, /Status:/);
   }
+});
+
+test('Wave 2 routes consume mobile design OS primitives for remaining customer surfaces', () => {
+  const tradeBinder = readFileSync(join(root, 'app', 'trade-binder.tsx'), 'utf8');
+  const wishlist = readFileSync(join(root, 'app', 'wishlist.tsx'), 'utf8');
+  const scannerSession = readFileSync(join(root, 'app', 'scanner-session.tsx'), 'utf8');
+  const dealDesk = readFileSync(join(root, 'app', '(tabs)', 'deal-desk.tsx'), 'utf8');
+  const sell = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
+  const profile = readFileSync(join(root, 'app', '(tabs)', 'profile.tsx'), 'utf8');
+  const auth = readFileSync(join(root, 'app', 'auth.tsx'), 'utf8');
+  const welcome = readFileSync(join(root, 'app', 'welcome.tsx'), 'utf8');
+  const onboarding = readFileSync(join(root, 'app', 'onboarding.tsx'), 'utf8');
+  const plans = readFileSync(join(root, 'app', 'plans.tsx'), 'utf8');
+
+  assert.match(tradeBinder, /TDSegmentedControl[\s\S]*Exchange view/);
+  assert.match(wishlist, /Exact target|Flexible target/);
+  assert.match(scannerSession, /Finalize reviewed cards/);
+  assert.match(dealDesk, /Review counts and margin reporting require real priced session lines/);
+  assert.match(sell, /Seller metrics unavailable/);
+  assert.match(profile, /Security and preferences/);
+  assert.match(auth, /Passwords are never stored on this device/);
+  assert.match(welcome, /Real collection data only/);
+  assert.match(onboarding, /Step 1 of 1/);
+  assert.match(plans, /Provider purchase pending configuration/);
+});
+
+test('Wave 2 welcome and setup screens avoid fake metrics and unsupported claims', () => {
+  const welcome = readFileSync(join(root, 'app', 'welcome.tsx'), 'utf8');
+  const plans = readFileSync(join(root, 'app', 'plans.tsx'), 'utf8');
+
+  assert.equal(welcome.includes('$24,860.40'), false);
+  assert.equal(welcome.includes('+$684.20'), false);
+  assert.equal(welcome.includes('LIVE'), false);
+  assert.match(plans, /Store employee capacity remains configurable/);
 });
 
 test('Wave 1 routes consume mobile design OS primitives for high-traffic surfaces', () => {

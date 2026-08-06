@@ -113,9 +113,10 @@ Implemented this sprint:
 4. Centralize bottom-navigation visual geometry while preserving the account-aware route contract.
 5. Remove unsupported fake business metrics from Seller/Signals and Deal Desk, replacing them with real session state or honest unavailable states.
 6. Complete Mobile Design OS Migration Wave 1 for the active mobile shell, Home, Scanner, Collection, Card Detail, and Storage Locations without changing OCR, auth, billing, memberships, Supabase schemas, or route authority.
+7. Complete Mobile Design OS Migration Wave 2 for Trade Binder, Wishlist, Scanner Session Review, Deal Desk, Seller/Signals, Profile, Authentication, Welcome, Onboarding, and Plans without changing product behavior.
 
 Remaining staged work:
 
 1. Run physical-device QA across small iPhone, large iPhone, Android, tablet, narrow Expo Web, larger text, and reduced motion.
-2. Migrate Wave 2 active screens incrementally using the migration plan: Trade Binder, Wishlist, Scanner Session Review, Profile, Auth, Plans, Welcome, Onboarding, Seller/Signals, Deal Desk follow-up, and admin surfaces.
+2. Migrate Wave 3 deferred surfaces incrementally using the migration plan: Admin/Command Center, Settings deeper polish, Scanner Recovery follow-up, and dev-only design-system showcases.
 3. Add visual regression screenshots once stable authenticated fixtures exist.
