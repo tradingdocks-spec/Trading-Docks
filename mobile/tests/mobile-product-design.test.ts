@@ -29,10 +29,45 @@ test('mobile product design docs define audit bible component accessibility and 
     'MOBILE_MOTION_STANDARD.md',
     'MOBILE_VISUAL_MIGRATION_WAVE_1.md',
     'MOBILE_VISUAL_MIGRATION_WAVE_2.md',
+    'MOBILE_VISUAL_MIGRATION_WAVE_3.md',
+    'MOBILE_FINAL_CONSISTENCY_AUDIT.md',
+    'MOBILE_RELEASE_QA.md',
   ]) {
     const content = readFileSync(join(root, '..', 'docs', file), 'utf8');
     assert.match(content, /Status:/);
   }
+});
+
+test('Wave 3 admin settings recovery and showcase keep release-safe hierarchy', () => {
+  const adminLayout = readFileSync(join(root, 'app', 'admin', '_layout.tsx'), 'utf8');
+  const adminComponents = readFileSync(join(root, 'components', 'admin.tsx'), 'utf8');
+  const settings = readFileSync(join(root, 'app', 'settings.tsx'), 'utf8');
+  const scannerRecovery = readFileSync(join(root, 'app', 'scanner-recovery.tsx'), 'utf8');
+  const designShowcase = readFileSync(join(root, 'app', 'dev', 'design-system.tsx'), 'utf8');
+
+  assert.match(adminLayout, /resolveProtectedRouteAccess/);
+  assert.match(adminLayout, /Command Center access required/);
+  assert.match(adminComponents, /TDNavigationHeader/);
+  assert.match(adminComponents, /TDListRow/);
+  assert.match(settings, /Security and preferences|Preferences and security/);
+  assert.match(settings, /EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS/);
+  assert.match(scannerRecovery, /Action required/);
+  assert.equal(scannerRecovery.includes('idempotencyKey'), false);
+  assert.match(designShowcase, /EXPO_PUBLIC_ENABLE_DESIGN_SYSTEM_SHOWCASE/);
+  assert.match(designShowcase, /TDScannerGuide/);
+  assert.match(designShowcase, /Disabled action/);
+});
+
+test('Wave 3 docs record final audit scanner recovery matrix and release QA gates', () => {
+  const wave3 = readFileSync(join(root, '..', 'docs', 'MOBILE_VISUAL_MIGRATION_WAVE_3.md'), 'utf8');
+  const audit = readFileSync(join(root, '..', 'docs', 'MOBILE_FINAL_CONSISTENCY_AUDIT.md'), 'utf8');
+  const qa = readFileSync(join(root, '..', 'docs', 'MOBILE_RELEASE_QA.md'), 'utf8');
+
+  assert.match(wave3, /Scanner Recovery Matrix/);
+  assert.match(audit, /Deferred With Reason/);
+  assert.match(qa, /Apple OCR autolinking/);
+  assert.match(qa, /VoiceOver/);
+  assert.match(qa, /TalkBack/);
 });
 
 test('Wave 2 routes consume mobile design OS primitives for remaining customer surfaces', () => {
