@@ -49,6 +49,8 @@ test('Single Scan is manual capture with a focused result sheet', () => {
   assert.match(single, /SingleResultSheet/);
   assert.match(single, /Add card/);
   assert.match(single, /Retake/);
+  assert.match(single, /addRecognitionToSession/);
+  assert.match(single, /continuousScannerSessionKey/);
   assert.doesNotMatch(single, /canAutoCaptureNative/);
 });
 

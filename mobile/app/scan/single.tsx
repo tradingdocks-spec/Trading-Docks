@@ -9,11 +9,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TDButton, TDCard, TDText } from '@/components/design-system';
 import { ScannerCamera, type ScannerCameraFrame, type ScannerCameraHandle } from '@/components/scanner-camera';
 import { color, radius, space } from '@/design';
-import { calculateCardGuideLayout } from '@/services/continuous-offer-scanner';
+import {
+  addRecognitionToSession,
+  calculateCardGuideLayout,
+  continuousScannerSessionKey,
+  createContinuousScannerSession,
+  createRecognitionPipelineReport,
+  scannerModeLabel,
+} from '@/services/continuous-offer-scanner';
 import { displayFinish } from '@/services/collector-workspace';
 import { recognizeMagicStillCapture, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { loadScannerContext } from '@/services/scanner-data';
 import { resolveScannerPermissionState, type ScannerCardCandidate, type ScannerPermissionState } from '@/services/scanner-foundation';
+import { appStorage } from '@/services/storage/app-storage';
 import {
   SCANNER_CAMERA_LENS_LABELS,
   convertPreviewTapToCameraPoint,
@@ -44,6 +52,7 @@ export default function SingleScanScreen() {
   const [stage, setStage] = useState<'idle' | 'reading' | 'matching' | 'result' | 'failed'>('idle');
   const [result, setResult] = useState<MagicStillScanResult | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
 
   const guideLayout = useMemo(() => calculateCardGuideLayout({
     containerWidth: width,
@@ -73,6 +82,8 @@ export default function SingleScanScreen() {
     setStage('reading');
     try {
       const context = await loadScannerContext();
+      const captureId = createScanId();
+      setLastCaptureId(captureId);
       const photo = await cameraRef.current.capturePhoto();
       const scan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
@@ -101,10 +112,46 @@ export default function SingleScanScreen() {
     setStage('idle');
   }, []);
 
-  const addToReviewList = useCallback(() => {
+  const addToReviewList = useCallback(async () => {
+    if (!result?.ok || !selectedCandidate) return;
+    const context = await loadScannerContext();
+    const rawSession = await appStorage.getItem(continuousScannerSessionKey(context.userId));
+    const currentSession = rawSession
+      ? JSON.parse(rawSession)
+      : createContinuousScannerSession({
+        id: createScanId(),
+        userId: context.userId,
+        name: scannerModeLabel('collection_intake'),
+        mode: 'collection_intake',
+        defaultDestination: 'collection',
+      });
+    const recognition = createRecognitionPipelineReport({
+      detectedGame: 'magic',
+      candidates: [selectedCandidate, ...result.candidates.filter((candidate) => candidate.id !== selectedCandidate.id)],
+      confidence: result.recognition.confidence,
+      recognitionMethod: 'metadata_assisted',
+    });
+    const finish = selectedCandidate.finishes.includes('normal')
+      ? 'normal'
+      : selectedCandidate.finishes[0] ?? 'normal';
+    const nextSession = addRecognitionToSession(currentSession, {
+      stableScanId: lastCaptureId ?? createScanId(),
+      candidate: selectedCandidate,
+      recognition,
+      quantity: 1,
+      condition: 'near_mint',
+      finish,
+      language: selectedCandidate.language,
+      marketPrice: selectedCandidate.marketPrice?.usd ?? selectedCandidate.marketPrice?.usdFoil ?? selectedCandidate.marketPrice?.usdEtched ?? null,
+      priceSource: selectedCandidate.marketPrice ? 'scryfall' : null,
+      priceTimestamp: selectedCandidate.marketPrice?.fetchedAt ?? null,
+      destination: 'collection',
+      notes: 'Added from Single Scan.',
+    });
+    await appStorage.setItem(continuousScannerSessionKey(context.userId), JSON.stringify(nextSession));
     setMessage('Added to Review List.');
     router.push('/scanner-session' as never);
-  }, []);
+  }, [lastCaptureId, result, selectedCandidate]);
 
   const handleFrame = useCallback((frame: ScannerCameraFrame) => {
     setPreviewResolution((current) => current?.width === frame.previewResolution.width && current.height === frame.previewResolution.height
@@ -257,6 +304,10 @@ function HeaderButton({ label, icon, disabled, onPress }: { label: string; icon:
       <Ionicons name={icon as any} size={22} color={color.text} />
     </Pressable>
   );
+}
+
+function createScanId() {
+  return globalThis.crypto?.randomUUID?.() ?? `scan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 const s = StyleSheet.create({
