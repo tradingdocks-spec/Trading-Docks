@@ -133,15 +133,15 @@ test('pipeline maps capture and recognition stages to one visible recoverable st
 
 test('guide presentation uses text in addition to color for accessibility', () => {
   const guide = guidePresentationForPipeline('confirmation_required', null);
-  assert.equal(guide.message, 'Review printing');
+  assert.equal(guide.message, 'Hold steady');
   assert.equal(guide.tone, 'amber');
-  assert.equal(guide.statusLabel, 'Review');
+  assert.equal(guide.statusLabel, 'Hold steady');
 });
 
 test('failed scanner guide uses readable-card recovery copy', () => {
   const guide = guidePresentationForPipeline('failed', null);
-  assert.equal(guide.message, "Couldn't read the card");
-  assert.equal(guide.statusLabel, 'Review required');
+  assert.equal(guide.message, "Couldn't identify");
+  assert.equal(guide.statusLabel, "Couldn't identify");
 });
 
 test('compact scanner money avoids long unavailable copy in constrained HUD cells', () => {
@@ -166,7 +166,7 @@ test('Scanner 2.0 compact header uses one visible summary row and omits zero rev
   });
   assert.equal(header.rows, 2);
   assert.equal(header.overflows, false);
-  assert.deepEqual(header.line1, { mode: 'Card Show Purchase', cards: '3 scanned' });
+  assert.deepEqual(header.line1, { mode: 'Card Show Purchase', cards: '3' });
   assert.deepEqual(header.line2, []);
 });
 
@@ -317,10 +317,10 @@ test('compact scanner session strip is one row with review on the right', () => 
   assert.equal(model.compact, false);
 });
 
-test('batch scanner review chip uses scanned and review counts only', () => {
+test('batch scanner review chip stays minimal on the camera surface', () => {
   const model = batchScannerReviewChipModel({ cardCount: 12, reviewCount: 2 });
   assert.equal(model.hidden, false);
-  assert.equal(model.summary, '12 scanned • 2 review');
+  assert.equal(model.summary, '12 scanned');
   assert.equal(model.reviewLabel, 'Review List');
   assert.equal(model.tone, 'warning');
 });
@@ -347,10 +347,11 @@ test('batch scanner notice stays tiny and points correction to review list', () 
 });
 
 test('batch scanner state instruction model stays single-purpose', () => {
-  assert.equal(batchScannerInstructionForState('ready'), 'Place card in guide');
-  assert.equal(batchScannerInstructionForState('matching'), 'Matching printing');
+  assert.equal(batchScannerInstructionForState('ready'), 'Place card in frame');
+  assert.equal(batchScannerInstructionForState('matching'), 'Reading');
+  assert.equal(batchScannerInstructionForState('added'), 'Added');
   assert.equal(batchScannerInstructionForState('remove_card'), 'Remove card');
-  assert.equal(batchScannerInstructionForState('failed'), 'Retake or search');
+  assert.equal(batchScannerInstructionForState('failed'), "Couldn't identify");
 });
 
 test('batch scanner timing summary normalizes latency without image data', () => {

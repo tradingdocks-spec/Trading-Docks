@@ -695,25 +695,24 @@ export function batchScannerNoticeForLine(line: ScannerSessionLine): BatchScanne
 }
 
 export function batchScannerInstructionForState(state: BatchScannerState) {
-  if (state === 'capturing') return 'Capturing';
-  if (state === 'reading') return 'Reading card';
-  if (state === 'matching') return 'Matching printing';
-  if (state === 'added') return 'Added. Keep scanning';
+  if (state === 'capturing') return 'Reading';
+  if (state === 'reading') return 'Reading';
+  if (state === 'matching') return 'Reading';
+  if (state === 'added') return 'Added';
   if (state === 'remove_card') return 'Remove card';
-  if (state === 'rearming') return 'Ready for the next card';
-  if (state === 'failed') return 'Retake or search';
-  if (state === 'paused') return 'Scanner paused';
-  if (state === 'offline') return 'Offline. Search uses recent cards only';
-  if (state === 'camera_error') return 'Camera unavailable';
-  return 'Place card in guide';
+  if (state === 'rearming') return 'Place card in frame';
+  if (state === 'failed') return "Couldn't identify";
+  if (state === 'paused') return 'Place card in frame';
+  if (state === 'offline') return 'Place card in frame';
+  if (state === 'camera_error') return 'Place card in frame';
+  return 'Place card in frame';
 }
 
 export function batchScannerReviewChipModel(input: { cardCount: number; reviewCount: number }): BatchScannerReviewChipModel {
   const scanned = `${input.cardCount} scanned`;
-  const review = input.reviewCount > 0 ? ` • ${input.reviewCount} review` : '';
   return {
     hidden: false,
-    summary: `${scanned}${review}`,
+    summary: scanned,
     reviewLabel: 'Review List',
     tone: input.reviewCount > 0 ? 'warning' : 'info',
   };

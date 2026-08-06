@@ -18,8 +18,6 @@ test('session review route exposes focused presentation components', () => {
     'SessionReviewHeader',
     'SessionSummary',
     'SessionStatusTabs',
-    'SessionFilterSheet',
-    'ActiveFilterSummary',
     'SessionCardRow',
     'CardReviewSheet',
     'SessionFinalizeBar',
@@ -37,13 +35,11 @@ test('default main screen omits advanced game and confidence chip walls', () => 
   assert.equal(beforeFilterSheet.includes('Missing prices are excluded'), false);
 });
 
-test('filter sheet owns game confidence missing-price and sort controls', () => {
-  const filterSheet = section('SessionFilterSheet');
-  assert.match(filterSheet, /FilterChips label="Game"/);
-  assert.match(filterSheet, /FilterChips label="Confidence"/);
-  assert.match(filterSheet, /FilterChips label="Sort order"/);
-  assert.match(filterSheet, /Missing price only/);
-  assert.match(filterSheet, /Clear filters/);
+test('default review list removes the large filter wall', () => {
+  assert.equal(source.includes('function SessionFilterSheet'), false);
+  assert.equal(source.includes('FilterChips label="Game"'), false);
+  assert.equal(source.includes('FilterChips label="Confidence"'), false);
+  assert.equal(source.includes('Missing price only'), false);
 });
 
 test('collapsed card row has no inline editing fields or destructive buttons', () => {
@@ -83,8 +79,8 @@ test('main review route exposes one finalize action', () => {
 test('sticky finalize bar includes safe-area padding and does not own export', () => {
   const bar = section('SessionFinalizeBar');
   assert.match(bar, /paddingBottom: Math\.max\(bottomInset/);
-  assert.match(bar, /Undo last scan/);
   assert.match(bar, /Finalize/);
+  assert.equal(bar.includes('Undo last scan'), false);
   assert.equal(bar.includes('Export'), false);
 });
 

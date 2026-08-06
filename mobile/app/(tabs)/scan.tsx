@@ -3,16 +3,14 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentProps, type RefObject } from 'react';
-import { AccessibilityInfo, AppState, Platform, Pressable, Share, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
+import { AccessibilityInfo, AppState, Platform, Pressable, ScrollView, Share, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  TDBadge,
   TDButton,
   TDCard,
   TDChip,
   TDEmptyState,
-  TDErrorState,
   TDIconButton,
   TDInput,
   TDLoadingState,
@@ -40,7 +38,6 @@ import {
   markScanResult,
   scannerModeLabel,
   shouldAddRecognitionToBatch,
-  undoMostRecentScan,
   type ContinuousScannerMode,
   type ContinuousScannerSession,
   type BatchScannerNoticeModel,
@@ -93,7 +90,6 @@ import {
   buildPremiumResultTray,
   dominantScannerSurface,
   guidePresentationForPipeline,
-  highVolumeCardShowDefaults,
   resolvePremiumScannerPipeline,
   resolveScanner2InteractionState,
   scanner2HeaderModel,
@@ -164,6 +160,11 @@ export default function Scan() {
   const [showSettingsSheet, setShowSettingsSheet] = useState(false);
   const [showManualSearchSheet, setShowManualSearchSheet] = useState(false);
   const [showDiagnosticsSheet, setShowDiagnosticsSheet] = useState(false);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showModeSelectionSheet, setShowModeSelectionSheet] = useState(false);
+  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -247,10 +248,6 @@ export default function Scan() {
     marketPrice: null,
     cashOffer: null,
   }), [error, magicRecognition, recognitionStage]);
-  const highVolumeDefaults = useMemo(
-    () => highVolumeCardShowDefaults({ defaultCondition: condition, defaultFinish: finish, defaultLanguage: language, cashOfferRate: parseOptionalPercentage(purchaseRate) ?? 70 }),
-    [condition, finish, language, purchaseRate],
-  );
   const renderDiagnosticsInline = shouldRenderDiagnosticsInline(diagnosticsEnabled);
   const visibleSurface = dominantScannerSurface({
     hasResultTray: Boolean(failedResultTray),
@@ -299,7 +296,7 @@ export default function Scan() {
     () => buildScannerPerformanceReport(scannerPerformanceSamples),
     [scannerPerformanceSamples],
   );
-  const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet;
+  const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showModeSelectionSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
     saving: false,
@@ -824,51 +821,63 @@ export default function Scan() {
       />
 
       <View pointerEvents="box-none" style={s.overlayLayer}>
-        {error && visibleSurface !== 'result_tray' && !showAddedOverlay ? <TDErrorState title="Scanner notice" message={error} /> : null}
-        {success && visibleSurface !== 'result_tray' && !showAddedOverlay ? <ScannerToast tone="success" title="Scanner sync" message={success} /> : null}
+        {error && visibleSurface !== 'result_tray' && !showAddedOverlay ? <ScannerToast tone="warning" title="Scanner notice" message={error} /> : null}
+        {success && visibleSurface !== 'result_tray' && !showAddedOverlay ? null : null}
         {batchNotice ? (
           <ScannerToast
             tone={batchNotice.tone}
-            title={batchNotice.title}
-            message={scanner2State === 'remove_card' ? `${batchNotice.message} Remove card to rearm.` : batchNotice.message}
-            actions={[
-              { label: batchNotice.undoLabel, onPress: () => {
-                setSession((current) => current ? undoMostRecentScan(current) : current);
-                setBatchNotice(null);
-              } },
-              { label: batchNotice.correctLabel, onPress: () => router.push('/scanner-session' as never) },
-            ]}
+            title={scanner2State === 'remove_card' ? 'Remove card' : 'Added'}
+            message=""
           />
         ) : null}
 
-        {visibleSurface === 'progress' && searching ? <TDLoadingState title="Searching printings" message="Looking up exact paper printings." /> : null}
-        {visibleSurface === 'progress' && recognitionStage === 'reading_title' ? <TDLoadingState title="Reading card" message="Reading card details on this device." /> : null}
-        {visibleSurface === 'progress' && recognitionStage === 'finding_card' ? <TDLoadingState title="Finding match" message="Checking Magic printings." /> : null}
+        {visibleSurface === 'progress' && searching ? null : null}
+        {visibleSurface === 'progress' && recognitionStage === 'reading_title' ? null : null}
+        {visibleSurface === 'progress' && recognitionStage === 'finding_card' ? null : null}
 
         {failedResultTray && !showAddedOverlay ? <ScannerFailureOverlay tray={failedResultTray} onRetake={retakeScan} onManualSearch={() => setShowManualSearchSheet(true)} /> : null}
-
-        {queuedAdds.length ? (
-          <TDCard style={s.syncCard}>
-            <View style={s.syncHeader}>
-              <View style={s.flex}>
-                <TDText variant="title">Scanner sync</TDText>
-                <TDText variant="small" tone="muted">{scannerSyncSummary(queuedAdds)}</TDText>
-              </View>
-              <TDBadge tone={queuedAdds.some((entry) => entry.syncState === 'action_required') ? 'warning' : 'info'}>{queuedAdds.length} queued</TDBadge>
-            </View>
-            <View style={s.syncActions}>
-              <TDButton label="Retry" variant="secondary" loading={syncingQueue} onPress={retryQueue} />
-              <TDButton label="Review" variant="secondary" onPress={() => router.push('/scanner-recovery' as never)} />
-            </View>
-          </TDCard>
-        ) : null}
 
         {showSettingsSheet ? (
           <TDCard style={s.sheet}>
             <SheetHeader title="Scanner settings" onClose={() => setShowSettingsSheet(false)} />
-            <View style={s.chips}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.sheetScroll, { paddingBottom: insets.bottom + 92 }]}>
+              <SettingsRow label="Mode" value={scannerModeLabel(sessionMode)} onPress={() => setShowModeSelectionSheet(true)} />
+              <OptionRow label="Default condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} compact />
+              <TDInput label="Cash offer %" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
+              <ToggleRow label="Auto-capture" enabled={autoCaptureEnabled} onToggle={() => setAutoCaptureEnabled((value) => !value)} />
+              <ToggleRow label="Sound" enabled={soundEnabled} onToggle={() => setSoundEnabled((value) => !value)} />
+              <ToggleRow label="Haptics" enabled={hapticsEnabled} onToggle={() => setHapticsEnabled((value) => !value)} />
+              <SettingsRow label="Advanced Settings" value={showAdvancedSettings ? 'Hide' : 'Show'} onPress={() => setShowAdvancedSettings((value) => !value)} />
+              {showAdvancedSettings ? (
+                <View style={s.advancedSettings}>
+                  <OptionRow label="Default finish" options={['normal', 'foil', 'etched']} value={finish} display={displayFinish} onSelect={setFinish} compact />
+                  <TDInput label="Default language" value={language} onChangeText={setLanguage} placeholder="en" />
+                  <OptionRow label="Destination" options={['collection', 'purchase_intake', 'trade_evaluation', 'export_only']} value={session?.defaultDestination ?? 'purchase_intake'} display={(value) => value.replaceAll('_', ' ')} onSelect={(value) => session ? setSession({ ...session, defaultDestination: value }) : undefined} compact />
+                  <OptionRow label="Trade Binder" options={TRADE_BINDER_STATUS_OPTIONS} value={tradeStatus} display={(status) => status.replaceAll('_', ' ')} onSelect={setTradeStatus} compact />
+                  <OptionRow label="Storage" options={['none', ...(context?.locations.map((location) => location.id) ?? [])]} value={storageLocationId ?? 'none'} display={(id) => id === 'none' ? 'Unassigned' : context?.locations.find((location) => location.id === id)?.name ?? 'Unavailable'} onSelect={(id) => setStorageLocationId(id === 'none' ? null : id)} compact />
+                  <TDButton label={cameraActive ? 'Pause scanner' : 'Resume scanner'} variant="secondary" onPress={toggleCameraPause} />
+                  <TDButton label="Manual search" variant="secondary" iconName="search-outline" onPress={() => {
+                    setShowSettingsSheet(false);
+                    setShowManualSearchSheet(true);
+                  }} />
+                  {queuedAdds.length ? <TDButton label="Scanner recovery" variant="secondary" loading={syncingQueue} onPress={retryQueue} /> : null}
+                  {diagnosticsEnabled ? <TDButton label="Scanner diagnostics" variant="secondary" onPress={() => {
+                    setShowSettingsSheet(false);
+                    setShowDiagnosticsSheet(true);
+                  }} /> : null}
+                  <TDText variant="caption" tone="muted">{privacy.message}</TDText>
+                </View>
+              ) : null}
+            </ScrollView>
+          </TDCard>
+        ) : null}
+
+        {showModeSelectionSheet ? (
+          <TDCard style={s.sheet}>
+            <SheetHeader title="Mode" onClose={() => setShowModeSelectionSheet(false)} />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[s.sheetScroll, { paddingBottom: insets.bottom + 92 }]}>
               {SCANNER_SESSION_MODES.map((mode) => (
-                <TDChip key={mode.id} label={mode.label} selected={sessionMode === mode.id} tone="accent" onPress={() => {
+                <SettingsRow key={mode.id} label={mode.label} value={sessionMode === mode.id ? 'Selected' : ''} onPress={() => {
                   if (!context) return;
                   setSessionMode(mode.id);
                   setSession(createContinuousScannerSession({
@@ -878,27 +887,10 @@ export default function Scan() {
                     mode: mode.id,
                     defaultDestination: mode.id === 'collection_intake' ? 'collection' : undefined,
                   }));
+                  setShowModeSelectionSheet(false);
                 }} />
               ))}
-            </View>
-            <TDInput label="Cash offer %" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
-            <TDButton label={cameraActive ? 'Pause scanner' : 'Resume scanner'} variant="secondary" onPress={toggleCameraPause} />
-            <TDButton label="Manual search" variant="secondary" iconName="search-outline" onPress={() => {
-              setShowSettingsSheet(false);
-              setShowManualSearchSheet(true);
-            }} />
-            <OptionRow label="Default condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} />
-            <OptionRow label="Default finish" options={['normal', 'foil', 'etched']} value={finish} display={displayFinish} onSelect={setFinish} />
-            <TDInput label="Default language" value={language} onChangeText={setLanguage} placeholder="en" />
-            <OptionRow label="Destination" options={['collection', 'purchase_intake', 'trade_evaluation', 'export_only']} value={session?.defaultDestination ?? 'purchase_intake'} display={(value) => value.replaceAll('_', ' ')} onSelect={(value) => session ? setSession({ ...session, defaultDestination: value }) : undefined} />
-            <OptionRow label="Storage" options={['none', ...(context?.locations.map((location) => location.id) ?? [])]} value={storageLocationId ?? 'none'} display={(id) => id === 'none' ? 'Unassigned' : context?.locations.find((location) => location.id === id)?.name ?? 'Unavailable'} onSelect={(id) => setStorageLocationId(id === 'none' ? null : id)} />
-            <OptionRow label="Trade Binder" options={TRADE_BINDER_STATUS_OPTIONS} value={tradeStatus} display={(status) => status.replaceAll('_', ' ')} onSelect={setTradeStatus} />
-            <TDBadge tone="info">High-volume defaults: {highVolumeDefaults.autoAddHighConfidence ? 'auto-add enabled' : 'suggest only'}</TDBadge>
-            {diagnosticsEnabled ? <TDButton label="Scanner diagnostics" variant="secondary" onPress={() => {
-              setShowSettingsSheet(false);
-              setShowDiagnosticsSheet(true);
-            }} /> : null}
-            <TDText variant="caption" tone="muted">{privacy.message}</TDText>
+            </ScrollView>
           </TDCard>
         ) : null}
 
@@ -1030,7 +1022,7 @@ function ScannerHud({
   return (
     <View style={[s.topHud, { paddingTop: Math.max(topInset, 10) }]}>
       <HeaderIconControl label="Close scanner" icon="close-outline" onPress={onClose} />
-      <View style={s.hudTextStack}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Open scanner settings" onPress={onSettings} style={({ pressed }) => [s.hudTextStack, pressed && s.settingsRowPressed]}>
         <View style={s.hudLine}>
           <TDText variant="small" numberOfLines={1} style={s.hudMode}>{header.line1.mode}</TDText>
           <TDText variant="caption" tone="muted" numberOfLines={1}>{header.line1.cards}</TDText>
@@ -1044,10 +1036,7 @@ function ScannerHud({
             ))}
           </View>
         ) : null}
-      </View>
-      <View style={s.hudActions}>
-        <HeaderIconControl label="Scanner settings" icon="options-outline" onPress={onSettings} />
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -1274,9 +1263,32 @@ function SheetHeader({ title, onClose }: { title: string; onClose: () => void })
   );
 }
 
-function OptionRow<T extends string>({ label, options, value, display, onSelect }: { label: string; options: T[]; value: T; display: (value: T) => string; onSelect: (value: T) => void }) {
+function SettingsRow({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
   return (
-    <View style={s.optionGroup}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label}. ${value}`} onPress={onPress} style={({ pressed }) => [s.settingsRow, pressed && s.settingsRowPressed]}>
+      <TDText variant="small">{label}</TDText>
+      <View style={s.settingsRowValue}>
+        {value ? <TDText variant="small" tone="muted" numberOfLines={1}>{value}</TDText> : null}
+        <Ionicons name="chevron-forward" size={18} color={color.textMuted} />
+      </View>
+    </Pressable>
+  );
+}
+
+function ToggleRow({ label, enabled, onToggle }: { label: string; enabled: boolean; onToggle: () => void }) {
+  return (
+    <Pressable accessibilityRole="switch" accessibilityState={{ checked: enabled }} accessibilityLabel={label} onPress={onToggle} style={({ pressed }) => [s.settingsRow, pressed && s.settingsRowPressed]}>
+      <TDText variant="small">{label}</TDText>
+      <View style={[s.switchTrack, enabled && s.switchTrackOn]}>
+        <View style={[s.switchThumb, enabled && s.switchThumbOn]} />
+      </View>
+    </Pressable>
+  );
+}
+
+function OptionRow<T extends string>({ label, options, value, display, onSelect, compact = false }: { label: string; options: T[]; value: T; display: (value: T) => string; onSelect: (value: T) => void; compact?: boolean }) {
+  return (
+    <View style={[s.optionGroup, compact && s.optionGroupCompact]}>
       <TDText variant="label" tone="muted">{label}</TDText>
       <View style={s.chips}>
         {options.map((option) => <TDChip key={option} label={display(option)} selected={option === value} onPress={() => onSelect(option)} />)}
@@ -1325,14 +1337,6 @@ function permissionMessage(permission: ScannerPermissionState, platform: string)
   if (permission === 'denied') return 'Enable camera permission in system settings, or continue with manual search.';
   if (permission === 'granted') return 'Place the card inside the guide, then capture or search manually.';
   return 'Manual search works now. Camera capture requires camera permission.';
-}
-
-function scannerSyncSummary(entries: ScannerQueuedAdd[]) {
-  const actionRequired = entries.filter((entry) => entry.syncState === 'action_required').length;
-  const failed = entries.filter((entry) => entry.syncState === 'failed').length;
-  if (actionRequired) return `${actionRequired} queued scan${actionRequired === 1 ? '' : 's'} need action before sync can finish.`;
-  if (failed) return `${failed} queued scan${failed === 1 ? '' : 's'} failed replay and can be retried.`;
-  return 'Queued scanner adds will sync on reconnect, app resume, or manual retry.';
 }
 
 function cleanupDiagnostic(scan: MagicStillScanResult | null) {
@@ -1432,7 +1436,7 @@ const s = StyleSheet.create({
   immersiveScannerShell: { flex: 1, backgroundColor: '#010711', overflow: 'hidden' },
   scannerShell: { flex: 1, backgroundColor: color.canvas },
   overlayLayer: { position: 'absolute', left: space.md, right: space.md, bottom: 92, zIndex: 50, gap: space.sm },
-  topHud: { position: 'absolute', top: 0, left: space.sm, right: space.sm, zIndex: 60, minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.sm, paddingBottom: space.xs, borderRadius: radius.lg, backgroundColor: color.canvas + 'D8' },
+  topHud: { position: 'absolute', top: 0, left: space.sm, right: space.sm, zIndex: 60, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.xs, paddingBottom: space.xs, backgroundColor: color.canvas + 'B8' },
   hudTextStack: { flex: 1, minWidth: 0, gap: 2 },
   hudLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   hudMode: { flex: 1, minWidth: 0 },
@@ -1451,7 +1455,7 @@ const s = StyleSheet.create({
   cameraStage: { ...StyleSheet.absoluteFillObject, minHeight: 340, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center', zIndex: 1 },
   cameraViewport: { flex: 1, backgroundColor: '#010711' },
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
-  cameraScrimTop: { position: 'absolute', top: '34%', left: space.md, right: space.md, alignItems: 'center', gap: space.xs, padding: space.sm, borderRadius: radius.lg, backgroundColor: color.canvas + '44', zIndex: 20 },
+  cameraScrimTop: { position: 'absolute', top: '23%', left: space.lg, right: space.lg, alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, backgroundColor: color.canvas + '22', zIndex: 20 },
   guideMessage: { textAlign: 'center' },
   premiumGuide: { position: 'absolute' },
   guidePulse: { opacity: 0.96 },
@@ -1483,8 +1487,17 @@ const s = StyleSheet.create({
   trayMoneyRow: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
   trayActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   correctionPanel: { gap: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.md, backgroundColor: color.canvasRaised },
-  sheet: { maxHeight: 520, gap: space.md, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
+  sheet: { maxHeight: 520, gap: space.sm, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
+  sheetScroll: { gap: space.sm },
   sheetHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  settingsRow: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, backgroundColor: color.canvasRaised },
+  settingsRowPressed: { opacity: 0.82 },
+  settingsRowValue: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: space.xs },
+  switchTrack: { width: 42, height: 24, borderRadius: radius.pill, padding: 3, justifyContent: 'center', backgroundColor: color.borderStrong },
+  switchTrackOn: { backgroundColor: color.primaryBright },
+  switchThumb: { width: 18, height: 18, borderRadius: radius.pill, backgroundColor: color.text },
+  switchThumbOn: { alignSelf: 'flex-end', backgroundColor: color.canvas },
+  advancedSettings: { gap: space.sm },
   closeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
   bottomSessionBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 52, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F8' },
   bottomSessionBarCompact: { opacity: 0.92 },
@@ -1509,7 +1522,7 @@ const s = StyleSheet.create({
   diagnosticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   centerText: { textAlign: 'center' },
   noticeCard: { gap: space.sm },
-  scannerToast: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.md, paddingVertical: space.sm, backgroundColor: color.canvas + 'E8' },
+  scannerToast: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.sm, paddingVertical: space.xs, backgroundColor: color.canvas + 'D8' },
   toastActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   failureOverlay: { borderColor: color.warning },
   sessionChip: { position: 'absolute', left: space.md, right: space.md, bottom: 0, zIndex: 55, borderTopWidth: 0, borderWidth: 1, borderColor: color.borderStrong, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, backgroundColor: color.canvas + 'E8' },
@@ -1532,6 +1545,7 @@ const s = StyleSheet.create({
   cropProofImageFrame: { height: 180, overflow: 'hidden', borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, backgroundColor: '#010711' },
   cropProofOverlay: { position: 'absolute', borderWidth: 2, borderColor: color.primaryBright, backgroundColor: color.primaryBright + '18' },
   optionGroup: { gap: space.xs },
+  optionGroupCompact: { gap: 6 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   checkboxRow: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

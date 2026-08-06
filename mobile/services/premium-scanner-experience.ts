@@ -159,16 +159,16 @@ export function guidePresentationForPipeline(
   pipeline: PremiumScannerPipelineState,
   guidance: string | null | undefined,
 ): PremiumScannerGuidePresentation {
-  if (pipeline === 'failed') return guide('failed', "Couldn't read the card", 'danger', 0, 'Review required');
+  if (pipeline === 'failed') return guide('failed', "Couldn't identify", 'danger', 0, "Couldn't identify");
   if (pipeline === 'remove_card') return guide('recognized', 'Remove card', 'emerald', 1, 'Added');
-  if (pipeline === 'added') return guide('recognized', 'Ready for next card', 'emerald', 1, 'Added');
-  if (pipeline === 'reading') return guide('processing', 'Reading card', 'blue', 0.72, 'Reading');
-  if (pipeline === 'searching') return guide('processing', 'Finding match', 'blue', 0.86, 'Searching');
-  if (pipeline === 'candidate_ready') return guide('recognized', 'Match found', 'emerald', 1, 'Match found');
-  if (pipeline === 'confirmation_required') return guide('review_required', 'Review printing', 'amber', 0.92, 'Review');
-  if (pipeline === 'capturing') return guide('capturing', 'Reading card', 'blue', 0.64, 'Capturing');
+  if (pipeline === 'added') return guide('recognized', 'Added', 'emerald', 1, 'Added');
+  if (pipeline === 'reading') return guide('processing', 'Reading', 'blue', 0.72, 'Reading');
+  if (pipeline === 'searching') return guide('processing', 'Reading', 'blue', 0.86, 'Reading');
+  if (pipeline === 'candidate_ready') return guide('recognized', 'Added', 'emerald', 1, 'Added');
+  if (pipeline === 'confirmation_required') return guide('review_required', 'Hold steady', 'amber', 0.92, 'Hold steady');
+  if (pipeline === 'capturing') return guide('capturing', 'Reading', 'blue', 0.64, 'Reading');
   if (pipeline === 'camera_ready') return guide('ready', guidance || 'Hold steady', 'emerald', 0.52, 'Ready');
-  return guide('aligning', guidance || 'Place the card inside the guide.', 'cyan', 0.18, 'Aligning');
+  return guide('aligning', guidance || 'Place card in frame', 'cyan', 0.18, 'Aligning');
 }
 
 export function buildPremiumResultTray(input: {
@@ -258,7 +258,7 @@ export function scanner2HeaderModel(input: Scanner2HudSummary): Scanner2HeaderMo
   return {
     line1: {
       mode: input.modeLabel,
-      cards: `${input.cardCount} scanned`,
+      cards: String(input.cardCount),
     },
     line2: [],
     rows: 2,

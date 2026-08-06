@@ -5,13 +5,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TDBadge, TDButton, TDChip, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDScreen, TDSegmentedControl, TDSheet, TDText } from '@/components/design-system';
+import { TDBadge, TDButton, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDScreen, TDSegmentedControl, TDSheet, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { supabase } from '@/lib/supabase';
 import {
-  activeSessionFilterSummary,
-  buildContinuousScannerCsvRows,
   bulkConfirmReviewedCards,
   calculateSessionTotals,
   continuousScannerSessionKey,
@@ -23,19 +21,12 @@ import {
   nextReviewLine,
   removeScannerSessionLine,
   reviewedProgressLabel,
-  serializeContinuousScannerCsv,
-  sessionConfidenceLabel,
   sessionFinalizeEligibility,
   sessionGameLabel,
   sessionReviewStatusLabel,
-  sessionSortLabel,
-  undoMostRecentScan,
   type ContinuousScannerSession,
   type ScannerSessionLine,
-  type SessionReviewConfidenceFilter,
   type SessionReviewFilterState,
-  type SessionReviewGameFilter,
-  type SessionReviewSortOrder,
   type SessionReviewStatusTab,
 } from '@/services/continuous-offer-scanner';
 import { appStorage } from '@/services/storage/app-storage';
@@ -47,10 +38,7 @@ export default function ScannerSessionReview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<SessionReviewFilterState>(() => defaultSessionReviewFilters());
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
-  const [lastExportSummary, setLastExportSummary] = useState<string | null>(null);
-  const [finalizedMessage, setFinalizedMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -76,7 +64,6 @@ export default function ScannerSessionReview() {
   const visibleLines = useMemo(() => session ? filterSessionReviewLines(session.lines, filters) : [], [filters, session]);
   const selectedLine = useMemo(() => session?.lines.find((line) => line.id === selectedLineId) ?? null, [selectedLineId, session]);
   const finalize = useMemo(() => session ? sessionFinalizeEligibility(session) : null, [session]);
-  const activeSummary = activeSessionFilterSummary(filters);
   const advancedFiltersActive = hasAdvancedSessionFilters(filters);
   const nextLine = session ? nextReviewLine(session.lines) : null;
   const syncNotice = session?.lines.some((line) => line.syncState === 'failed')
@@ -85,23 +72,10 @@ export default function ScannerSessionReview() {
       ? 'Changes are waiting to sync.'
       : null;
 
-  const exportCsv = () => {
-    if (!session) return;
-    const rows = buildContinuousScannerCsvRows(session);
-    const csv = serializeContinuousScannerCsv(rows);
-    setLastExportSummary(`${rows.length} row${rows.length === 1 ? '' : 's'} prepared for export (${csv.length} characters).`);
-  };
-
   const finalizeSession = () => {
     if (!session || !finalize?.canFinalize) return;
     const nextSession = bulkConfirmReviewedCards(session);
     setSession(nextSession);
-    setFinalizedMessage(`${finalize.readyCount} reviewed card${finalize.readyCount === 1 ? '' : 's'} finalized.`);
-  };
-
-  const undoRecent = () => {
-    if (!session) return;
-    setSession(undoMostRecentScan(session));
   };
 
   if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading scanner session" message="Restoring your intake list." /></TDScreen>;
@@ -120,11 +94,8 @@ export default function ScannerSessionReview() {
             <View style={s.headerStack}>
               <SessionReviewHeader
                 title={session.name}
-                subtitle="Review and finalize your cards"
                 filtersActive={advancedFiltersActive}
                 onBack={() => router.back()}
-                onOpenFilters={() => setFilterSheetOpen(true)}
-                onExport={exportCsv}
               />
               <SessionSummary cardCount={totals?.cardsScanned ?? 0} reviewCount={totals?.needsReview ?? 0} offerTotal={totals?.cashOffer ?? null} />
               {nextLine ? (
@@ -136,20 +107,12 @@ export default function ScannerSessionReview() {
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={color.textMuted} />
                 </Pressable>
-              ) : session.lines.length ? (
-                <View style={s.readyNotice}>
-                  <Ionicons name="checkmark-circle-outline" size={18} color={color.success} />
-                  <TDText variant="small">Everything is ready</TDText>
-                </View>
               ) : null}
               <SessionStatusTabs
                 value={filters.status}
                 counts={statusCounts(session.lines)}
                 onChange={(status) => setFilters((current) => ({ ...current, status }))}
               />
-              <ActiveFilterSummary summary={activeSummary} onClear={() => setFilters(defaultSessionReviewFilters())} />
-              {lastExportSummary ? <TDBadge tone="success">{lastExportSummary}</TDBadge> : null}
-              {finalizedMessage ? <TDBadge tone="success">{finalizedMessage}</TDBadge> : null}
               {syncNotice ? (
                 <View style={s.syncNotice}>
                   <Ionicons name="cloud-offline-outline" size={18} color={color.info} />
@@ -169,18 +132,9 @@ export default function ScannerSessionReview() {
           bottomInset={insets.bottom}
           canFinalize={Boolean(finalize?.canFinalize)}
           finalizeReason={finalize?.reason ?? ''}
-          canUndo={session.lines.length > 0}
-          onUndo={undoRecent}
           onFinalize={finalizeSession}
         />
       </View>
-      <SessionFilterSheet
-        visible={filterSheetOpen}
-        filters={filters}
-        onChange={setFilters}
-        onClear={() => setFilters(defaultSessionReviewFilters())}
-        onClose={() => setFilterSheetOpen(false)}
-      />
       <CardReviewSheet
         visible={Boolean(selectedLine)}
         line={selectedLine}
@@ -204,19 +158,15 @@ export default function ScannerSessionReview() {
   );
 }
 
-function SessionReviewHeader({ title, subtitle, filtersActive, onBack, onOpenFilters, onExport }: { title: string; subtitle: string; filtersActive: boolean; onBack: () => void; onOpenFilters: () => void; onExport: () => void }) {
+function SessionReviewHeader({ title, filtersActive, onBack }: { title: string; filtersActive: boolean; onBack: () => void }) {
   return (
     <View style={s.header}>
       <TDIconButton label="Back to scanner" iconName="chevron-back" onPress={onBack} size="sm" />
       <View style={s.headerCopy}>
         <TDText variant="label" tone="muted">Session Review</TDText>
         <TDText variant="heading" numberOfLines={1}>{title}</TDText>
-        <TDText variant="small" tone="muted" numberOfLines={1}>{subtitle}</TDText>
       </View>
-      <View style={s.headerActions}>
-        <TDIconButton label={filtersActive ? 'Filters active' : 'Open filters'} iconName={filtersActive ? 'filter' : 'filter-outline'} selected={filtersActive} onPress={onOpenFilters} size="sm" />
-        <TDIconButton label="Export CSV" iconName="download-outline" onPress={onExport} size="sm" />
-      </View>
+      {filtersActive ? <TDBadge tone="info">Filtered</TDBadge> : null}
     </View>
   );
 }
@@ -249,17 +199,6 @@ function SessionStatusTabs({ value, counts, onChange }: { value: SessionReviewSt
   return <TDSegmentedControl label="Status" options={options} value={value} onChange={onChange} />;
 }
 
-function ActiveFilterSummary({ summary, onClear }: { summary: string; onClear: () => void }) {
-  if (!summary) return null;
-  return (
-    <View style={s.activeFilters}>
-      <Ionicons name="filter" size={16} color={color.info} />
-      <TDText variant="caption" tone="muted" style={s.flex} numberOfLines={2}>{summary}</TDText>
-      <TDButton label="Clear filters" variant="secondary" size="sm" onPress={onClear} />
-    </View>
-  );
-}
-
 function SessionCardRow({ line, onPress }: { line: ScannerSessionLine; onPress: () => void }) {
   const imageUrl = line.recognition.topCandidate?.imageUrl ?? null;
   return (
@@ -290,46 +229,6 @@ function ValuePair({ label, value }: { label: string; value: string }) {
     <View style={s.valuePair}>
       <TDText variant="caption" tone="muted">{label}</TDText>
       <TDText variant="small">{value}</TDText>
-    </View>
-  );
-}
-
-function SessionFilterSheet({ visible, filters, onChange, onClear, onClose }: { visible: boolean; filters: SessionReviewFilterState; onChange: (filters: SessionReviewFilterState) => void; onClear: () => void; onClose: () => void }) {
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={s.modalScrim}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.sheetDock}>
-          <TDSheet title="Filters" onClose={onClose} style={s.modalSheet}>
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={s.sheetScroll}>
-              <FilterChips label="Game" options={gameOptions} value={filters.game} onSelect={(game) => onChange({ ...filters, game })} />
-              <FilterChips label="Confidence" options={confidenceOptions} value={filters.confidence} onSelect={(confidence) => onChange({ ...filters, confidence })} />
-              <FilterChips label="Sort order" options={sortOptions} value={filters.sortOrder} onSelect={(sortOrder) => onChange({ ...filters, sortOrder })} />
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: filters.missingPriceOnly }} onPress={() => onChange({ ...filters, missingPriceOnly: !filters.missingPriceOnly })} style={s.checkboxRow}>
-                <Ionicons name={filters.missingPriceOnly ? 'checkbox-outline' : 'square-outline'} size={22} color={color.primaryBright} />
-                <View style={s.flex}>
-                  <TDText variant="small">Missing price only</TDText>
-                  <TDText variant="caption" tone="muted">Show cards excluded from offer totals.</TDText>
-                </View>
-              </Pressable>
-              <View style={s.sheetActions}>
-                <TDButton label="Clear filters" variant="secondary" onPress={onClear} />
-                <TDButton label="Done" onPress={onClose} />
-              </View>
-            </ScrollView>
-          </TDSheet>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
-  );
-}
-
-function FilterChips<T extends string>({ label, options, value, onSelect }: { label: string; options: { value: T; label: string }[]; value: T; onSelect: (value: T) => void }) {
-  return (
-    <View style={s.filterGroup}>
-      <TDText variant="label" tone="muted">{label}</TDText>
-      <View style={s.chips}>
-        {options.map((option) => <TDChip key={option.value} label={option.label} selected={option.value === value} onPress={() => onSelect(option.value)} />)}
-      </View>
     </View>
   );
 }
@@ -394,8 +293,8 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
               </View>
               <View style={s.offerPanel}>
                 <ValuePair label="Offer" value={formatSessionReviewMoney(nextOffer)} />
-                <TDText variant="caption" tone="muted">{parsedPrice === null ? 'Add a price when one is available.' : 'Offer updates from price, quantity, and cash percentage.'}</TDText>
               </View>
+              <TDButton label="Choose another printing" variant="secondary" disabled onPress={undefined} />
               <Pressable accessibilityRole="button" accessibilityState={{ expanded: moreOptionsOpen }} accessibilityLabel={moreOptionsOpen ? 'Hide more card options' : 'Show more card options'} onPress={() => setMoreOptionsOpen((open) => !open)} style={s.moreOptionsToggle}>
                 <TDText variant="small">More options</TDText>
                 <Ionicons name={moreOptionsOpen ? 'chevron-up' : 'chevron-down'} size={18} color={color.textMuted} />
@@ -403,7 +302,6 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
               {moreOptionsOpen ? (
                 <View style={s.moreOptionsPanel}>
                   <TDInput label="Language" value={line.language ?? '-'} editable={false} />
-                  <TDButton label="Choose another printing" variant="secondary" disabled onPress={undefined} />
                 </View>
               ) : null}
               <TDButton label={line.reviewStatus === 'needs_review' ? 'Save and mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
@@ -417,10 +315,9 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
     </Modal>
   );
 }
-function SessionFinalizeBar({ bottomInset, canFinalize, finalizeReason, canUndo, onUndo, onFinalize }: { bottomInset: number; canFinalize: boolean; finalizeReason: string; canUndo: boolean; onUndo: () => void; onFinalize: () => void }) {
+function SessionFinalizeBar({ bottomInset, canFinalize, finalizeReason, onFinalize }: { bottomInset: number; canFinalize: boolean; finalizeReason: string; onFinalize: () => void }) {
   return (
     <View style={[s.finalizeBar, { paddingBottom: Math.max(bottomInset, space.sm) }]}>
-      <TDButton label="Undo last scan" variant="secondary" size="sm" disabled={!canUndo} onPress={onUndo} />
       <View style={s.finalizeAction}>
         <TDButton label="Finalize" size="sm" disabled={!canFinalize} onPress={onFinalize} />
         <TDText variant="caption" tone={canFinalize ? 'success' : 'muted'} numberOfLines={1}>{finalizeReason}</TDText>
@@ -445,10 +342,6 @@ const statusOptions: { value: SessionReviewStatusTab; label: string }[] = [
   { value: 'confirmed', label: 'Done' },
 ];
 
-const gameOptions: { value: SessionReviewGameFilter; label: string }[] = ['all', 'magic', 'pokemon', 'one_piece', 'lorcana', 'unknown'].map((value) => ({ value: value as SessionReviewGameFilter, label: sessionGameLabel(value as SessionReviewGameFilter) }));
-const confidenceOptions: { value: SessionReviewConfidenceFilter; label: string }[] = ['all', 'high_confidence', 'likely', 'ambiguous', 'manual_review_required'].map((value) => ({ value: value as SessionReviewConfidenceFilter, label: sessionConfidenceLabel(value as SessionReviewConfidenceFilter) }));
-const sortOptions: { value: SessionReviewSortOrder; label: string }[] = ['needs_review_first', 'newest', 'oldest', 'highest_offer'].map((value) => ({ value: value as SessionReviewSortOrder, label: sessionSortLabel(value as SessionReviewSortOrder) }));
-
 function statusCounts(lines: ScannerSessionLine[]): Record<SessionReviewStatusTab, number> {
   return {
     all: lines.length,
@@ -460,7 +353,7 @@ function statusCounts(lines: ScannerSessionLine[]): Record<SessionReviewStatusTa
 
 function plainReviewCopy(line: ScannerSessionLine) {
   if (line.reviewStatus === 'confirmed') return 'Card is marked reviewed.';
-  return 'Confirm the card details before finalizing.';
+  return 'Confirm the printing before finalizing.';
 }
 
 async function loadUserSession() {
