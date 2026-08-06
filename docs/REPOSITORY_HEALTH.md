@@ -38,6 +38,7 @@
 - Implemented: Mobile adds shared `TDChip`, `TDMetricTile`, and `TDIconRow` primitives and migrates active Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile controls away from duplicated local chip/metric styles.
 - Implemented: Mobile design OS now adds canonical `TDIconButton`, `TDListRow`, `TDSheet`, `TDSegmentedControl`, `TDResultTray`, `TDSkeleton`, `TDToast`, `TDStatusIndicator`, `TDNavigationHeader`, `TDScannerGuide`, and `TDSessionStrip` contracts for future mobile screen migrations.
 - Partially Implemented: Seller/Signals and Deal Desk now use TD primitives and honest unavailable states, but the rest of the active mobile app still needs staged visual QA rather than blanket migration.
+- Implemented: Mobile Design OS Wave 1 migrates the active app shell, Home, Scanner, Collection, Card Detail, and Storage Locations toward the canonical primitives and hierarchy rules.
 - Planned: Pick a canonical component tree and archive or delete superseded versions after review.
 
 ## Potential Bugs
@@ -137,6 +138,7 @@
 - Implemented: Focused premium scanner experience tests cover diagnostics separation, failed OCR recovery without unknown-session insertion, high-confidence and ambiguous result trays, three-control scanner layout, compact header/session strip models, pipeline state mapping, text-plus-color guide states, and high-volume defaults without auto inventory insertion.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
 - Implemented: Focused mobile product design tests cover the mobile design OS documentation set and guard against fake business metrics returning to active Seller/Signals and Deal Desk routes.
+- Implemented: Focused mobile product design tests now verify Wave 1 route source contracts for shell navigation, Home, Scanner, Collection, Card Detail, and Storage Locations.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
 - Planned: Public share token validation tests.

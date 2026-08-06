@@ -27,8 +27,30 @@ test('mobile product design docs define audit bible component accessibility and 
     'MOBILE_COMPONENT_CONTRACTS.md',
     'MOBILE_ACCESSIBILITY_STANDARD.md',
     'MOBILE_MOTION_STANDARD.md',
+    'MOBILE_VISUAL_MIGRATION_WAVE_1.md',
   ]) {
     const content = readFileSync(join(root, '..', 'docs', file), 'utf8');
     assert.match(content, /Status:/);
   }
+});
+
+test('Wave 1 routes consume mobile design OS primitives for high-traffic surfaces', () => {
+  const shell = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
+  const home = readFileSync(join(root, 'app', '(tabs)', 'index.tsx'), 'utf8');
+  const scanner = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
+  const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
+  const cardDetail = readFileSync(join(root, 'app', 'collection', '[cardId].tsx'), 'utf8');
+  const storage = readFileSync(join(root, 'app', 'storage-locations.tsx'), 'utf8');
+
+  assert.match(shell, /getMobileBottomNavVisualModel/);
+  assert.match(home, /TDNavigationHeader/);
+  assert.match(home, /TDListRow/);
+  assert.match(scanner, /TDResultTray/);
+  assert.match(scanner, /TDSessionStrip/);
+  assert.match(collection, /TDInput[\s\S]*Search collection/);
+  assert.match(collection, /TDSegmentedControl/);
+  assert.match(cardDetail, /TDNavigationHeader/);
+  assert.match(cardDetail, /Advanced details/);
+  assert.match(storage, /TDListRow/);
+  assert.match(storage, /TDSegmentedControl/);
 });
