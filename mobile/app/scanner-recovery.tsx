@@ -1,10 +1,22 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { TDButton, TDCard, TDEmptyState, TDErrorState, TDLoadingState, TDScreen, TDText, TDBadge } from '@/components/design-system';
-import { color, radius, space } from '@/design';
+import {
+  TDBadge,
+  TDButton,
+  TDCard,
+  TDEmptyState,
+  TDErrorState,
+  TDIconButton,
+  TDListRow,
+  TDLoadingState,
+  TDNavigationHeader,
+  TDStatusIndicator,
+  TDScreen,
+  TDText,
+} from '@/components/design-system';
+import { space } from '@/design';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/account';
 import {
@@ -29,7 +41,7 @@ export default function ScannerRecovery() {
     setLoading(true);
     setError(null);
     try {
-      if (!supabase) throw new Error('Scanner sync is unavailable while Supabase is not configured.');
+      if (!supabase) throw new Error('Scanner sync is unavailable right now.');
       const { data, error: authError } = await supabase.auth.getUser();
       if (authError || !data.user) throw new Error('Sign in again to review queued scans.');
       setUserId(data.user.id);
@@ -72,23 +84,29 @@ export default function ScannerRecovery() {
     setConfirmDiscard(null);
   };
 
-  if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading queued scans" message="Checking scanner sync state for this account." /></TDScreen>;
+  if (loading) {
+    return <TDScreen style={s.screen}><TDLoadingState title="Loading queued scans" message="Checking scanner sync state for this account." /></TDScreen>;
+  }
 
   return (
     <TDScreen style={s.screen}>
       <ScrollView contentContainerStyle={s.content}>
-        <View style={s.header}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back to scanner" onPress={() => router.back()} style={s.backButton}>
-            <Ionicons name="chevron-back" size={20} color={color.text} />
-          </Pressable>
-          <View style={s.flex}>
-            <TDText variant="label" tone="info">Scanner sync</TDText>
-            <TDText variant="display">Queued scans</TDText>
-          </View>
-        </View>
+        <TDNavigationHeader
+          eyebrow="Scanner sync"
+          title="Queued scans"
+          subtitle="Retry or review card adds saved for this signed-in account."
+          leftAction={<TDIconButton label="Back to scanner" iconName="chevron-back" onPress={() => router.back()} />}
+          rightAction={<TDStatusIndicator label={queue.length ? `${queue.length} pending` : 'Clear'} tone={queue.length ? 'warning' : 'success'} />}
+        />
 
         {error ? <TDErrorState title="Scanner recovery unavailable" message={error} /> : null}
-        {!queue.length && !error ? <TDEmptyState title="No queued scans" message="Offline or failed scanner adds for this account will appear here." /> : null}
+        {!queue.length && !error ? (
+          <TDEmptyState
+            title="No queued scans"
+            message="Offline or failed scanner adds for this account will appear here."
+            action={<TDButton label="Open scanner" onPress={() => router.push('/(tabs)/scan' as never)} />}
+          />
+        ) : null}
 
         {queue.length ? (
           <TDCard style={s.actions}>
@@ -100,41 +118,52 @@ export default function ScannerRecovery() {
           </TDCard>
         ) : null}
 
-        {queue.map((entry) => (
-          <TDCard key={entry.operationId} style={s.entry}>
-            <View style={s.entryHeader}>
-              <View style={s.flex}>
-                <TDText variant="title">{entry.confirmation.candidate.name}</TDText>
-                <TDText variant="caption" tone="muted">
-                  {entry.confirmation.candidate.setCode ?? 'Set unavailable'} #{entry.confirmation.candidate.collectorNumber ?? '?'} · Qty {entry.confirmation.quantity}
-                </TDText>
+        {queue.map((entry) => {
+          const copy = scannerRecoveryCopy(entry);
+          return (
+            <View key={entry.operationId} style={s.entry}>
+              <TDListRow
+                title={entry.confirmation.candidate.name}
+                eyebrow={copy.title}
+                description={`${entry.confirmation.candidate.setCode ?? 'Set unavailable'} #${entry.confirmation.candidate.collectorNumber ?? '?'} - Qty ${entry.confirmation.quantity}`}
+                iconName="scan-outline"
+                right={<TDBadge tone={entry.syncState === 'action_required' ? 'warning' : entry.syncState === 'failed' ? 'danger' : 'info'}>{entry.syncState.replaceAll('_', ' ')}</TDBadge>}
+              />
+              <TDText variant="small" tone={entry.syncState === 'failed' ? 'warning' : 'muted'}>{copy.message}</TDText>
+              {expanded === entry.operationId ? (
+                <TDCard variant="outlined" style={s.details}>
+                  <Detail label="Condition" value={entry.confirmation.condition} />
+                  <Detail label="Finish" value={entry.confirmation.finish} />
+                  <Detail label="Language" value={entry.confirmation.language ?? 'Unavailable'} />
+                  <Detail label="Storage" value={entry.confirmation.storageLocationId ?? 'Unassigned'} />
+                  <Detail label="Trade Binder" value={entry.confirmation.tradeStatus.replaceAll('_', ' ')} />
+                  <Detail label="Wishlist" value={entry.confirmation.addToWishlist ? 'Add exact target' : 'No wishlist change'} />
+                </TDCard>
+              ) : null}
+              <View style={s.entryActions}>
+                <TDButton label={expanded === entry.operationId ? 'Hide details' : 'Inspect'} variant="secondary" onPress={() => setExpanded(expanded === entry.operationId ? null : entry.operationId)} />
+                <TDButton label="Retry" variant="secondary" loading={syncing === entry.operationId} onPress={() => retryOne(entry.operationId)} />
+                <TDButton label={confirmDiscard === entry.operationId ? 'Confirm discard' : 'Discard'} variant={confirmDiscard === entry.operationId ? 'danger' : 'secondary'} onPress={() => discardOne(entry.operationId)} />
               </View>
-              <TDBadge tone={entry.syncState === 'action_required' ? 'warning' : entry.syncState === 'failed' ? 'danger' : 'info'}>
-                {entry.syncState.replaceAll('_', ' ')}
-              </TDBadge>
             </View>
-            {entry.lastError ? <TDText variant="small" tone="warning">{entry.lastError}</TDText> : null}
-            {expanded === entry.operationId ? (
-              <View style={s.details}>
-                <Detail label="Condition" value={entry.confirmation.condition} />
-                <Detail label="Finish" value={entry.confirmation.finish} />
-                <Detail label="Language" value={entry.confirmation.language ?? 'Unavailable'} />
-                <Detail label="Storage" value={entry.confirmation.storageLocationId ?? 'Unassigned'} />
-                <Detail label="Trade Binder" value={entry.confirmation.tradeStatus.replaceAll('_', ' ')} />
-                <Detail label="Wishlist" value={entry.confirmation.addToWishlist ? 'Add exact target' : 'No wishlist change'} />
-                <Detail label="Idempotency" value={entry.idempotencyKey} />
-              </View>
-            ) : null}
-            <View style={s.entryActions}>
-              <TDButton label={expanded === entry.operationId ? 'Hide details' : 'Inspect'} variant="secondary" onPress={() => setExpanded(expanded === entry.operationId ? null : entry.operationId)} />
-              <TDButton label="Retry" variant="secondary" loading={syncing === entry.operationId} onPress={() => retryOne(entry.operationId)} />
-              <TDButton label={confirmDiscard === entry.operationId ? 'Confirm discard' : 'Discard'} variant="secondary" onPress={() => discardOne(entry.operationId)} />
-            </View>
-          </TDCard>
-        ))}
+          );
+        })}
       </ScrollView>
     </TDScreen>
   );
+}
+
+function scannerRecoveryCopy(entry: ScannerQueuedAdd) {
+  if (entry.syncState === 'action_required') {
+    if (entry.errorCode === 'free_limit') return { title: 'Action required', message: 'This add exceeds the Free collection limit. Change plan or adjust quantity, then retry.' };
+    if (entry.errorCode === 'unauthorized') return { title: 'Sign in required', message: 'Sign in to the same account before retrying this queued scan.' };
+    if (entry.errorCode === 'invalid_quantity') return { title: 'Quantity needs review', message: 'Open details, confirm quantity, then retry from the scanner flow.' };
+    if (entry.errorCode === 'invalid_printing') return { title: 'Printing needs review', message: 'Confirm the exact printing before this scan can be saved.' };
+    return { title: 'Account needs review', message: 'This queued scan needs account or membership information before it can sync.' };
+  }
+  if (entry.syncState === 'failed') return { title: 'Retry available', message: 'Sync failed. Retry when your connection and session are ready.' };
+  if (entry.syncState === 'syncing') return { title: 'Syncing', message: 'Saving this scan now.' };
+  return { title: 'Pending sync', message: 'This scan is saved locally for this account and ready to retry.' };
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
@@ -149,13 +178,10 @@ function Detail({ label, value }: { label: string; value: string }) {
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  backButton: { width: 44, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
   flex: { flex: 1 },
   actions: { gap: space.md },
   entry: { gap: space.md },
-  entryHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   entryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  details: { gap: space.xs, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm },
+  details: { gap: space.xs },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
 });
