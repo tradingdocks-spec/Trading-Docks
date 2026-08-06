@@ -67,10 +67,11 @@
 - Implemented: Next.js consumes design-system tokens through `src/lib/design-system/tokens.ts`, CSS variables in `src/app/globals.css`, and web primitives in `src/components/design-system/td-primitives.tsx`.
 - Implemented: Expo consumes the same token source through `mobile/design/tokens.ts` and React Native primitives in `mobile/components/design-system.tsx`.
 - Implemented: Expo and Next.js have development-only design-system showcase routes.
-- Implemented: Mobile polish primitives now include `TDChip`, `TDMetricTile`, and `TDIconRow` so active screens share selectable controls, summary metrics, icon rows, focus states, and touch-target behavior.
+- Implemented: Mobile product design OS primitives now include `TDChip`, `TDMetricTile`, `TDIconRow`, `TDIconButton`, `TDListRow`, `TDSheet`, `TDSegmentedControl`, `TDResultTray`, `TDSkeleton`, `TDToast`, `TDStatusIndicator`, `TDNavigationHeader`, `TDScannerGuide`, and `TDSessionStrip` so active screens share selectable controls, summary metrics, icon rows, focus states, status feedback, scanner/session panels, and touch-target behavior.
 - Implemented: Active mobile typography no longer uses negative letter spacing in the Expo token adapter.
+- Implemented: `mobile/design/component-model.ts` documents canonical mobile surface levels, spacing scale, icon sizes, and primitive contract names for tests and future migration reviews.
 - Partially Implemented: Existing legacy primitives remain in place for incremental migration.
-- Planned: Navigation, modal, toast, chart, and table primitives are later focused architecture tasks.
+- Planned: Dense chart/table primitives and a higher-level navigation wrapper are later focused architecture tasks.
 
 ## Navigation Architecture
 
@@ -116,11 +117,15 @@
 ## Mobile Product Polish Architecture
 
 - Implemented: Active mobile Collection, Card Detail, Storage Locations, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile screens use the shared TD chip/metric/row primitives where practical.
+- Implemented: This branch adds the mobile design OS documentation set, a current-state audit, design bible, component/accessibility/motion standards, and a staged migration plan before broad route redesign.
+- Implemented: Active Seller/Signals and Deal Desk routes now use TD primitive composition, preserve session routing, and remove unsupported fake business metrics from authenticated surfaces.
+- Implemented: The mobile bottom navigation visual model is centralized in `mobile/services/navigation-contract.ts`, including safe-area height, 22 px icon sizing, equal-width cells, and restrained center-action geometry.
 - Implemented: Mobile polish keeps authentication logic, billing, membership, Supabase schemas, scanner recognition providers, and desktop web routes unchanged.
 - Implemented: Mobile screens continue to use the single account-aware bottom tab system and stack destinations for secondary flows.
+- Partially Implemented: Broad route visual redesign remains incremental. The audit records Home, Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Session Review, Profile, Auth, Plans, Admin, and dev-only screen status without claiming release-complete polish.
 - Partially Implemented: Authentication remains visually custom but keeps TD inputs, TD buttons, error state, loading state, remembered-email, magic-link, Google, and Apple entry points.
 - Partially Implemented: Native responsive and accessibility QA still requires device/simulator review for small iPhone, large iPhone, Android, tablet, larger text, and narrow Expo Web.
-- Planned: Future polish should target onboarding/plans/welcome, Seller/Signals, Deal Desk, admin surfaces, and dev-only tools after their product responsibilities are reviewed.
+- Planned: Future polish should target onboarding/plans/welcome, deeper Collector surfaces, admin surfaces, and dev-only tools after their product responsibilities are reviewed.
 
 ## Identity And Entitlement Architecture
 

@@ -1,8 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { brand as B } from '@/constants/brand';
+import {
+  TDBadge,
+  TDButton,
+  TDCard,
+  TDErrorState,
+  TDInput,
+  TDLoadingState,
+  TDMetric,
+  TDNavigationHeader,
+  TDSectionHeader,
+  TDSegmentedControl,
+  TDStatusIndicator,
+  TDText,
+} from '@/components/design-system';
+import { color, space } from '@/design';
 import { useWorkSession } from '@/features/sessions/session-provider';
 import {
   createDealDeskRenderState,
@@ -12,19 +27,20 @@ import {
   type DealDeskMode,
 } from '@/services/deal-desk';
 
-const modes: [DealDeskMode, string, keyof typeof Ionicons.glyphMap][] = [
-  ['buy', 'Buy cards', 'cash-outline'],
-  ['trade', 'Trade', 'swap-horizontal-outline'],
-  ['sealed', 'Sealed', 'cube-outline'],
-  ['show', 'Show mode', 'ticket-outline'],
+const modes: { value: DealDeskMode; label: string; iconName: keyof typeof Ionicons.glyphMap }[] = [
+  { value: 'buy', label: 'Buy', iconName: 'cash-outline' },
+  { value: 'trade', label: 'Trade', iconName: 'swap-horizontal-outline' },
+  { value: 'sealed', label: 'Sealed', iconName: 'cube-outline' },
+  { value: 'show', label: 'Show', iconName: 'ticket-outline' },
 ];
 
 export default function DealDesk() {
+  const insets = useSafeAreaInsets();
   const { ready, activeSession, startSession, pauseSession, endSession } = useWorkSession();
   const [mode, setMode] = useState<DealDeskMode>('buy');
-  const [market, setMarket] = useState('684.20');
+  const [market, setMarket] = useState('');
   const [rate, setRate] = useState('65');
-  const [budget, setBudget] = useState('3000');
+  const [budget, setBudget] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const state = useMemo(() => createDealDeskRenderState({
@@ -49,239 +65,110 @@ export default function DealDesk() {
   };
 
   if (state.status === 'loading') {
-    return (
-      <ScrollView style={s.page} contentContainerStyle={s.content}>
-        <Text style={s.kicker}>DEAL DESK</Text>
-        <Text style={s.title}>Loading Deal Desk.</Text>
-        <Text style={s.sub}>Restoring the active buying, trade, or show session.</Text>
-      </ScrollView>
-    );
+    return <TDLoadingState title="Loading Deal Desk" message="Restoring your active transaction session." />;
   }
 
   return (
-    <ScrollView style={s.page} contentContainerStyle={s.content}>
-      <Text style={s.kicker}>DEAL DESK</Text>
-      <Text style={s.title}>Price the deal while the cards are in front of you.</Text>
-      <Text style={s.sub}>Buying, trading, sealed evaluation, and event sessions in one fast workspace.</Text>
+    <ScrollView style={s.page} contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 14, 34), paddingBottom: 112 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+      <TDNavigationHeader
+        eyebrow="Deal Desk"
+        title="Price the current deal"
+        subtitle="Buying, trade, sealed, and show sessions stay local and resumable."
+      />
 
       {state.status === 'error' ? (
-        <View style={s.error}>
-          <Text style={s.errorTitle}>Deal Desk needs attention</Text>
-          <Text style={s.meta}>{error}</Text>
-        </View>
+        <TDErrorState title="Deal Desk needs attention" message={error ?? 'The current session could not be restored.'} />
       ) : null}
 
       {activeSession ? (
-        <View style={s.active}>
-          <View style={s.activeDot} />
+        <TDCard variant="elevated" style={s.activeSession}>
+          <TDStatusIndicator label={activeSession.status === 'paused' ? 'Paused' : 'Active'} tone={activeSession.status === 'paused' ? 'warning' : 'success'} />
           <View style={s.flex}>
-            <Text style={s.activeLabel}>ACTIVE SESSION</Text>
-            <Text style={s.activeName}>{activeSession.name}</Text>
-            <Text style={s.meta}>{activeSession.status === 'paused' ? 'Paused' : 'Saved offline and ready to resume'}</Text>
+            <TDText variant="title">{activeSession.name}</TDText>
+            <TDText variant="caption" tone="muted">{activeSession.status === 'paused' ? 'Saved locally' : 'Available offline'}</TDText>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={activeSession.status === 'paused' ? 'Resume session' : 'Pause session'}
+          <TDButton
+            label={activeSession.status === 'paused' ? 'Resume' : 'Pause'}
+            variant="secondary"
+            size="sm"
             onPress={activeSession.status === 'paused' ? () => startSession(activeSession.type, activeSession.name) : pauseSession}
-            style={s.iconButton}
-          >
-            <Ionicons name={activeSession.status === 'paused' ? 'play' : 'pause'} size={20} color={B.cyan} />
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="End session" onPress={endSession} style={s.iconButton}>
-            <Ionicons name="close" size={20} color={B.muted} />
-          </Pressable>
-        </View>
+          />
+          <TDButton label="End" variant="ghost" size="sm" onPress={endSession} />
+        </TDCard>
       ) : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.modeRow}>
-        {modes.map(([key, label, icon]) => (
-          <Pressable
-            key={key}
-            accessibilityRole="button"
-            accessibilityState={{ selected: mode === key }}
-            onPress={() => setMode(key)}
-            style={[s.mode, mode === key && s.modeActive]}
-          >
-            <Ionicons name={icon} size={18} color={mode === key ? '#fff' : B.muted} />
-            <Text style={[s.modeText, mode === key && s.modeTextActive]}>{label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <TDSegmentedControl label="Session type" options={modes} value={mode} onChange={setMode} />
 
-      {mode === 'buy' ? (
-        <>
-          <View style={s.hero}>
-            <Text style={s.label}>CURRENT OFFER</Text>
-            <Text style={s.value}>{state.offerLabel}</Text>
-            <Text style={s.meta}>{state.missingPrice ? 'Enter market value to calculate an offer.' : `${rate}% of ${currency(Number(market || 0))} market value`}</Text>
-            <View style={s.inputs}>
-              <Field label="MARKET VALUE" value={market} setValue={setMarket} prefix="$" />
-              <Field label="BUY RATE" value={rate} setValue={setRate} suffix="%" />
-            </View>
+      <TDCard variant="floating" style={s.hero}>
+        <View style={s.heroTop}>
+          <View style={s.flex}>
+            <TDText variant="label" tone="info">Current offer</TDText>
+            <TDText variant="display">{state.offerLabel}</TDText>
+            <TDText variant="small" tone="muted">
+              {state.missingPrice ? 'Enter market value to calculate a cash offer.' : `${rate || '0'}% of ${currency(Number(market || 0))} market value`}
+            </TDText>
           </View>
-          <View style={s.summary}>
-            <Summary label="Cards" value="38" />
-            <Summary label="Average rate" value={`${rate}%`} />
-            <Summary label="Budget left" value={`$${state.budgetRemaining.toFixed(0)}`} />
-          </View>
-          <Pressable accessibilityRole="button" onPress={begin} style={s.primary}>
-            <Text style={s.primaryText}>Start scanning this purchase</Text>
-            <Ionicons name="scan" size={20} color="#fff" />
-          </Pressable>
-        </>
-      ) : null}
-      {mode === 'trade' ? <Trade onStart={begin} /> : null}
-      {mode === 'sealed' ? <Sealed onStart={begin} /> : null}
-      {mode === 'show' ? <Show budget={budget} setBudget={setBudget} onStart={begin} /> : null}
-
-      <Text style={s.section}>Saved buying profile</Text>
-      <View style={s.profile}>
-        <View>
-          <Text style={s.profileTitle}>Card Show Standard</Text>
-          <Text style={s.meta}>50% under $5 · 60% $5-$20 · 65% $20+</Text>
+          <TDBadge tone={state.missingPrice ? 'warning' : 'success'}>{state.missingPrice ? 'Needs value' : 'Calculated'}</TDBadge>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={B.muted} />
+        <View style={s.inputs}>
+          <TDInput label="Market value" value={market} onChangeText={setMarket} keyboardType="decimal-pad" placeholder="$0.00" />
+          <TDInput label="Cash rate" value={rate} onChangeText={setRate} keyboardType="numeric" placeholder="65" />
+          <TDInput label="Budget" value={budget} onChangeText={setBudget} keyboardType="decimal-pad" placeholder="Optional" />
+        </View>
+        <TDButton label={ctaForMode(mode)} iconName={iconForMode(mode)} disabled={state.missingPrice && mode === 'buy'} onPress={begin} />
+      </TDCard>
+
+      <View style={s.metrics}>
+        <TDMetric label="Budget left" value={budget ? `$${state.budgetRemaining.toFixed(0)}` : 'Unavailable'} tone={budget ? 'info' : 'neutral'} compact />
+        <TDMetric label="Review" value="Unavailable" compact />
+        <TDMetric label="Margin" value="Unavailable" compact />
       </View>
+
+      <TDSectionHeader title="Mode details" />
+      <TDCard variant="outlined" style={s.modeDetails}>
+        <TDText variant="title">{modeTitle(mode)}</TDText>
+        <TDText variant="small" tone="muted">{modeDescription(mode)}</TDText>
+      </TDCard>
     </ScrollView>
   );
 }
 
-function Field({ label, value, setValue, prefix, suffix }: { label: string; value: string; setValue: (value: string) => void; prefix?: string; suffix?: string }) {
-  return (
-    <View style={s.flex}>
-      <Text style={s.inputLabel}>{label}</Text>
-      <View style={s.inputBox}>
-        {prefix ? <Text style={s.affix}>{prefix}</Text> : null}
-        <TextInput value={value} onChangeText={setValue} keyboardType="decimal-pad" style={s.input} />
-        {suffix ? <Text style={s.affix}>{suffix}</Text> : null}
-      </View>
-    </View>
-  );
+function ctaForMode(mode: DealDeskMode) {
+  if (mode === 'trade') return 'Start trade session';
+  if (mode === 'sealed') return 'Start sealed evaluation';
+  if (mode === 'show') return 'Start show session';
+  return 'Start buying session';
 }
 
-function Summary({ label, value }: { label: string; value: string }) {
-  return (
-    <View>
-      <Text style={s.summaryValue}>{value}</Text>
-      <Text style={s.meta}>{label}</Text>
-    </View>
-  );
+function iconForMode(mode: DealDeskMode): keyof typeof Ionicons.glyphMap {
+  if (mode === 'trade') return 'swap-horizontal-outline';
+  if (mode === 'sealed') return 'cube-outline';
+  if (mode === 'show') return 'ticket-outline';
+  return 'scan-outline';
 }
 
-function Trade({ onStart }: { onStart: () => void }) {
-  return (
-    <View style={s.hero}>
-      <Text style={s.label}>TRADE BALANCE</Text>
-      <View style={s.tradeRow}>
-        <View>
-          <Text style={s.meta}>Your side</Text>
-          <Text style={s.tradeValue}>$186.40</Text>
-        </View>
-        <Ionicons name="swap-horizontal" size={26} color={B.cyan} />
-        <View style={s.alignEnd}>
-          <Text style={s.meta}>Their side</Text>
-          <Text style={s.tradeValue}>$178.25</Text>
-        </View>
-      </View>
-      <View style={s.balance}>
-        <Text style={s.balanceLabel}>Difference</Text>
-        <Text style={s.balanceValue}>$8.15 in your favor</Text>
-      </View>
-      <Pressable accessibilityRole="button" onPress={onStart} style={s.primary}>
-        <Text style={s.primaryText}>Build a new trade</Text>
-        <Ionicons name="add" size={20} color="#fff" />
-      </Pressable>
-    </View>
-  );
+function modeTitle(mode: DealDeskMode) {
+  if (mode === 'trade') return 'Trade evaluation';
+  if (mode === 'sealed') return 'Sealed buying';
+  if (mode === 'show') return 'Card-show intake';
+  return 'Collection purchase';
 }
 
-function Sealed({ onStart }: { onStart: () => void }) {
-  return (
-    <View style={s.hero}>
-      <Text style={s.label}>SEALED PRODUCT EVALUATOR</Text>
-      <Text style={s.product}>Commander Deck Sample</Text>
-      <View style={s.sealedGrid}>
-        <Summary label="Sealed price" value="$54.99" />
-        <Summary label="Singles value" value="$82.40" />
-        <Summary label="Net breakdown" value="$59.75" />
-      </View>
-      <View style={s.good}>
-        <Ionicons name="analytics" size={21} color={B.green} />
-        <View style={s.flex}>
-          <Text style={s.goodTitle}>Marginal breakdown opportunity</Text>
-          <Text style={s.meta}>About $4.76 before labor. Keeping sealed may be preferable.</Text>
-        </View>
-      </View>
-      <Pressable accessibilityRole="button" onPress={onStart} style={s.primary}>
-        <Text style={s.primaryText}>Scan a sealed product</Text>
-        <Ionicons name="barcode-outline" size={20} color="#fff" />
-      </Pressable>
-    </View>
-  );
-}
-
-function Show({ budget, setBudget, onStart }: { budget: string; setBudget: (value: string) => void; onStart: () => void }) {
-  return (
-    <View style={s.hero}>
-      <Text style={s.label}>CARD-SHOW SESSION</Text>
-      <Text style={s.product}>Phoenix Card Expo</Text>
-      <Field label="BUYING BUDGET" value={budget} setValue={setBudget} prefix="$" />
-      <View style={s.sealedGrid}>
-        <Summary label="Spent" value="$1,422" />
-        <Summary label="Market acquired" value="$2,184" />
-        <Summary label="Average cost" value="65.1%" />
-      </View>
-      <Pressable accessibilityRole="button" onPress={onStart} style={s.primary}>
-        <Text style={s.primaryText}>Open show session</Text>
-        <Ionicons name="arrow-forward" size={20} color="#fff" />
-      </Pressable>
-    </View>
-  );
+function modeDescription(mode: DealDeskMode) {
+  if (mode === 'trade') return 'Trade-side comparison is planned. Start a session now and review cards from the scanner flow.';
+  if (mode === 'sealed') return 'Sealed-product breakdown requires real product data before values are shown.';
+  if (mode === 'show') return 'Show sessions keep intake resumable without inventing spend, market, or margin totals.';
+  return 'Enter a real market value and cash rate before starting a buying session.';
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: B.bg },
-  content: { padding: 20, paddingTop: 58, paddingBottom: 130 },
-  active: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: B.surface2, borderRadius: 20, padding: 14, marginTop: 16, borderWidth: 1, borderColor: B.green + '55' },
-  activeDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: B.green },
-  activeLabel: { color: B.green, fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
-  activeName: { color: B.text, fontWeight: '900', fontSize: 14, marginTop: 3 },
-  alignEnd: { alignItems: 'flex-end' },
-  error: { backgroundColor: B.surface2, borderRadius: 18, padding: 14, marginTop: 16, borderWidth: 1, borderColor: B.danger + '55' },
-  errorTitle: { color: B.danger, fontSize: 13, fontWeight: '900' },
-  flex: { flex: 1 },
-  iconButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  kicker: { color: B.cyan, fontSize: 10, fontWeight: '900', letterSpacing: 1.7 },
-  title: { color: B.text, fontSize: 34, lineHeight: 38, fontWeight: '900', letterSpacing: -1.1, marginTop: 10 },
-  sub: { color: B.muted, fontSize: 13, lineHeight: 19, marginTop: 10 },
-  modeRow: { gap: 9, paddingVertical: 20 },
-  mode: { height: 43, borderRadius: 14, paddingHorizontal: 14, backgroundColor: B.surface, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  modeActive: { backgroundColor: B.blue },
-  modeText: { color: B.muted, fontWeight: '800', fontSize: 12 },
-  modeTextActive: { color: '#fff' },
-  hero: { backgroundColor: B.surface, borderRadius: 28, padding: 20, borderWidth: 1, borderColor: B.line },
-  label: { color: B.cyan, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  value: { color: B.text, fontSize: 48, fontWeight: '900', letterSpacing: -1.6, marginTop: 10 },
-  meta: { color: B.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
-  inputs: { flexDirection: 'row', gap: 12, marginTop: 22 },
-  inputLabel: { color: B.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1.2, marginBottom: 7 },
-  inputBox: { height: 52, borderRadius: 15, backgroundColor: B.bg2, borderWidth: 1, borderColor: B.line, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 },
-  input: { flex: 1, color: B.text, fontSize: 17, fontWeight: '900' },
-  affix: { color: B.muted, fontWeight: '900' },
-  summary: { flexDirection: 'row', justifyContent: 'space-between', padding: 18, backgroundColor: B.surface, borderRadius: 22, marginTop: 12 },
-  summaryValue: { color: B.text, fontWeight: '900', fontSize: 17 },
-  primary: { height: 56, borderRadius: 17, backgroundColor: B.blue, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 14 },
-  primaryText: { color: '#fff', fontWeight: '900' },
-  section: { color: B.text, fontSize: 17, fontWeight: '900', marginTop: 24, marginBottom: 11 },
-  profile: { backgroundColor: B.surface, borderRadius: 20, padding: 17, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  profileTitle: { color: B.text, fontWeight: '900', fontSize: 14 },
-  tradeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 23 },
-  tradeValue: { color: B.text, fontSize: 25, fontWeight: '900', marginTop: 5 },
-  balance: { backgroundColor: B.green + '16', borderRadius: 16, padding: 14, marginTop: 18 },
-  balanceLabel: { color: B.green, fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
-  balanceValue: { color: B.text, fontSize: 16, fontWeight: '900', marginTop: 5 },
-  product: { color: B.text, fontSize: 24, fontWeight: '900', marginTop: 10 },
-  sealedGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 22, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: B.line },
-  good: { flexDirection: 'row', gap: 11, alignItems: 'center', backgroundColor: B.green + '12', borderRadius: 17, padding: 14, marginTop: 16 },
-  goodTitle: { color: B.text, fontWeight: '900', fontSize: 13 },
+  page: { flex: 1, backgroundColor: color.canvas },
+  content: { gap: space.md, paddingHorizontal: space.lg },
+  activeSession: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  flex: { flex: 1, minWidth: 0 },
+  hero: { gap: space.md, padding: space.lg },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm },
+  inputs: { gap: space.sm },
+  metrics: { flexDirection: 'row', gap: space.sm },
+  modeDetails: { gap: space.xs },
 });

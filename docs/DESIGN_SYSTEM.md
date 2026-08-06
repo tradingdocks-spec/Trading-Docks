@@ -13,7 +13,9 @@
 - Partially Implemented: Active mobile tabs and the active web dashboard shell now consume centralized navigation contracts and keep selected/focus states explicit.
 - Implemented: Mobile scanner capture uses existing TD primitives, Ionicons, dark surface tokens, restrained cyan focus accents, accessible button labels, and a simple card-boundary guide.
 - Implemented: The private scanner benchmark builder uses the same mobile TD primitives, dark surface tokens, compact cards, large touch targets, Ionicons, and camera-boundary visual language as the scanner.
-- Planned: Broad dashboard, modal, toast, chart, table, and complex form migrations are intentionally deferred.
+- Implemented: Trading Docks mobile design OS documentation now lives in `docs/TRADING_DOCKS_DESIGN_BIBLE.md`, `docs/MOBILE_COMPONENT_CONTRACTS.md`, `docs/MOBILE_ACCESSIBILITY_STANDARD.md`, `docs/MOBILE_MOTION_STANDARD.md`, and `docs/MOBILE_VISUAL_MIGRATION_PLAN.md`.
+- Partially Implemented: Mobile Seller/Signals and Deal Desk now use the TD primitive direction and remove unsupported fake business metrics, while broader route-by-route visual migration remains staged.
+- Planned: Broad dashboard, chart, table, and complex form migrations are intentionally deferred.
 - Planned: A future scanner “Why this match?” detail view should render per-signal confidence with labels, conflicts, and editable uncertain fields rather than color-only status.
 
 ## Design-System Audit
@@ -54,7 +56,7 @@ Raw colors remain available only as palette anchors. New product components shou
 
 ## Component Usage
 
-- Implemented: `TDButton`, `TDCard`, `TDInput`, `TDBadge`, `TDChip`, `TDMetricTile`, `TDIconRow`, `TDText`, `TDScreen`, `TDSectionHeader`, `TDLoadingState`, `TDEmptyState`, `TDErrorState`, and `TDDivider` exist for Expo.
+- Implemented: `TDButton`, `TDCard`, `TDInput`, `TDBadge`, `TDChip`, `TDMetricTile`, `TDIconRow`, `TDIconButton`, `TDListRow`, `TDSheet`, `TDSegmentedControl`, `TDResultTray`, `TDSkeleton`, `TDToast`, `TDStatusIndicator`, `TDNavigationHeader`, `TDScannerGuide`, `TDSessionStrip`, `TDText`, `TDScreen`, `TDSectionHeader`, `TDLoadingState`, `TDEmptyState`, `TDErrorState`, and `TDDivider` exist for Expo.
 - Implemented: `TDButton`, `TDCard`, `TDInput`, `TDBadge`, `TDText`, `TDScreen`, `TDSectionHeader`, `TDLoadingState`, `TDEmptyState`, `TDErrorState`, and `TDDivider` exist for Next.js.
 - Implemented: Components include typed props, variants, disabled/loading states where relevant, accessible roles/labels where relevant, web focus styling, and native press feedback.
 - Implemented: The Collector Workspace browser uses TD primitives on web and mobile for cards, inputs, badges, screen layout, loading, empty, no-results, and error states.
@@ -64,7 +66,7 @@ Raw colors remain available only as palette anchors. New product components shou
 - Implemented: Scanner settings, manual search, and diagnostics use secondary panels; the normal camera surface should show only operational controls and one concise instruction.
 - Implemented: Mobile Collection, Card Detail, Storage Locations, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile now share chip, metric, card-density, focus, and row primitives where practical.
 - Partially Implemented: Existing `Button`, `Card`, and `Badge` in `src/components/ui` remain supported and are not deleted.
-- Planned: `TDChart`, `TDModal`, `TDToast`, and `TDNavigation` are deferred to later focused tasks.
+- Planned: `TDChart`, dense data-table primitives, and a higher-level `TDNavigation` wrapper are deferred to later focused tasks.
 
 ## Mobile Polish Rules
 
@@ -73,8 +75,11 @@ Raw colors remain available only as palette anchors. New product components shou
 - Implemented: Repeated segmented controls use `TDChip` with selected and disabled accessibility state, visible web focus, and at least a 40 px chip height.
 - Implemented: Summary numbers use `TDMetricTile` for compact, scannable values instead of one-off nested cards.
 - Implemented: Profile/account rows use `TDIconRow` for consistent icon size, touch target, and chevron treatment.
+- Implemented: Mobile icon-only actions use `TDIconButton` with explicit labels, normalized icon sizes, selected/disabled state, and consistent press feedback.
+- Implemented: Mobile rows and recovery panels use `TDListRow`, `TDSheet`, `TDResultTray`, `TDStatusIndicator`, `TDSessionStrip`, `TDSkeleton`, and `TDToast` as the canonical primitives for list actions, secondary panels, sync/status, scanner/session summaries, loading placeholders, and transient messages.
+- Implemented: The mobile design OS allows only the documented spacing scale, surface levels, icon sizes, and motion durations exported from `mobile/design/component-model.ts`.
 - Partially Implemented: Authentication still contains a custom marketing/form split because preserving its proven auth behavior is higher priority than a full visual rewrite.
-- Partially Implemented: Dev-only scanner benchmark and admin-only surfaces still include some local chip/metric styles; they are not part of the primary mobile polish pass.
+- Partially Implemented: Seller/Signals and Deal Desk now follow the mobile design OS direction, but Home, Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Session Review, Profile, Auth, Plans, Admin, and dev-only surfaces still need visual QA and selective follow-up migration before release.
 - Planned: Add visual regression snapshots once stable mobile fixtures and simulator/device targets are available.
 
 ## Navigation Contract Rules
@@ -99,6 +104,11 @@ Raw colors remain available only as palette anchors. New product components shou
 - `TDChip`: Mobile selectable controls must use `selected` accessibility state, visible focus on web, disabled state when pending, and short labels that can fit without horizontal scrolling.
 - `TDMetricTile`: Mobile summary metrics should stay compact, wrap into rows, and avoid becoming large decorative cards.
 - `TDIconRow`: Mobile settings/profile rows should use one icon family, one chevron treatment, and a 56 px minimum row height.
+- `TDIconButton`: Icon-only controls must have an accessibility label, at least a 44 px hit target, and use the canonical 16/20/24/28 px icon scale.
+- `TDListRow`: Repeated action rows must keep icon, title, metadata, and trailing action alignment predictable and cannot hide primary state by color alone.
+- `TDSegmentedControl`: Segmented options must expose selected state, support keyboard focus on Expo Web, and avoid changing route or product behavior by themselves.
+- `TDResultTray`, `TDScannerGuide`, and `TDSessionStrip`: Scanner and session surfaces must stay compact, confirmation-first, and free of recognition-accuracy claims that are not supported by benchmark evidence.
+- `TDToast` and `TDStatusIndicator`: Status feedback must include text, not color alone, and must not include secrets, tokens, raw OCR dumps, or private fixture paths.
 - `TDText`: Shared variants are `display`, `heading`, `title`, `body`, `small`, `caption`, and `label`; shared tones are `primary`, `secondary`, `muted`, `success`, `warning`, `danger`, and `info`. Web may choose semantic HTML with `as`; mobile uses React Native `Text`.
 - Do not add product-specific copy, navigation behavior, data fetching, billing logic, or auth logic inside TD primitives.
 
@@ -120,7 +130,7 @@ Raw colors remain available only as palette anchors. New product components shou
 ## Remaining Debt
 
 - Partially Implemented: `mobile/constants/brand.ts` still supplies many legacy mobile screens.
-- Partially Implemented: Active Auth, welcome, plans, onboarding, Seller/Signals, Deal Desk, admin, and development screens still need incremental token/primitive polish.
+- Partially Implemented: Active Auth, welcome, plans, onboarding, admin, and development screens still need incremental token/primitive polish; Seller/Signals and Deal Desk now have the first TD primitive pass but still require physical-device QA.
 - Partially Implemented: Large web dashboard components still contain hardcoded class strings and bespoke state UI.
 - Partially Implemented: Backup directories preserve older visual systems and contribute lint noise.
 - Planned: Add visual regression screenshots once the app has stable local seeds and route fixtures.
@@ -138,6 +148,7 @@ Raw colors remain available only as palette anchors. New product components shou
 9. For collection migrations, use the Collector Workspace models first, display unavailable backend fields honestly, and avoid introducing sample card values into authenticated surfaces.
 10. For mobile Home changes, preserve one primary bottom tab navigation system; action rows may deep-link into tabs but must not become a second persistent navigation bar.
 11. For mobile bottom navigation changes, keep exactly five visible primary tabs per account, preserve equal-width cells, keep center emphasis within the bar geometry, and verify no placeholder tab route is exposed.
+12. For mobile design OS migrations, start from `docs/MOBILE_PRODUCT_DESIGN_AUDIT.md`, preserve data/auth/session behavior, remove unsupported fake values, then apply the component contracts from `docs/MOBILE_COMPONENT_CONTRACTS.md`.
 ## Scanner 2.0 Visual Layer
 
 Status: Implemented.

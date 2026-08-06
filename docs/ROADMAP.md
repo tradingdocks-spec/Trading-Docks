@@ -25,6 +25,8 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Redesign mobile Home around a premium one-handed command-center hierarchy using real collection data, active sessions, unavailable states, and one primary bottom navigation system.
 - Implemented: Polish the mobile bottom navigation into one compact, account-aware five-tab bar with consistent Ionicons, restrained center action treatment, selected state, safe-area sizing, and no Explore placeholder tab.
 - Implemented: Add a focused mobile product polish pass with shared TD chips, metric tiles, icon rows, compact card defaults, zero negative tracking, and active-screen migrations for Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Session Review, and Profile.
+- Implemented: Establish the Trading Docks mobile design OS with a current-state audit, design bible, mobile component contracts, accessibility standard, motion standard, migration plan, expanded TD primitives, centralized nav visual model, and focused Seller/Signals plus Deal Desk polish.
+- Partially Implemented: The mobile design OS is now the migration authority, but full route-by-route visual rollout still requires staged QA rather than a single sweeping redesign.
 - Partially Implemented: Home market movement, recent activity, notifications, and operations signals remain unavailable until real data sources exist.
 - Planned: Remove or archive backup dependency folders and historical release artifacts only after product-owner review.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
@@ -34,6 +36,7 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Retire duplicated legacy navigation modules after import ownership is confirmed and missing route content is prioritized.
 - Planned: Complete native visual QA for the polished bottom bar across small iPhone, large iPhone, Android, narrow Expo Web, larger text, and light/dark browser rendering.
 - Planned: Complete physical-device and simulator visual QA for the broader mobile polish pass across core app screens before release.
+- Planned: Continue mobile visual migration in the order documented in `docs/MOBILE_VISUAL_MIGRATION_PLAN.md`, prioritizing authenticated high-traffic routes, no-fake-data cleanup, and physical-device accessibility checks.
 
 ## Sprint 2: Production Configuration Readiness
 
@@ -97,3 +100,21 @@ Recommended next scanner work:
 2. Native vision-signal integration for card presence, stabilizing, and removal states.
 3. Product-owner decision on when high-confidence auto-accept can be enabled.
 4. Benchmark-backed recognition and foil-confidence calibration.
+
+## Mobile Design OS
+
+Status: Partially Implemented.
+
+Implemented this sprint:
+
+1. Audit active mobile route readiness in `docs/MOBILE_PRODUCT_DESIGN_AUDIT.md`.
+2. Define the Trading Docks visual language, component contracts, accessibility rules, and motion rules in the new mobile design OS docs.
+3. Expand Expo TD primitives without changing auth, billing, Supabase, scanner recognition, OCR module configuration, or memberships.
+4. Centralize bottom-navigation visual geometry while preserving the account-aware route contract.
+5. Remove unsupported fake business metrics from Seller/Signals and Deal Desk, replacing them with real session state or honest unavailable states.
+
+Remaining staged work:
+
+1. Run physical-device QA across small iPhone, large iPhone, Android, tablet, narrow Expo Web, larger text, and reduced motion.
+2. Migrate the remaining active screens incrementally using the migration plan.
+3. Add visual regression screenshots once stable authenticated fixtures exist.

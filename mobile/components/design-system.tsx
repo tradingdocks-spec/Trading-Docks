@@ -99,6 +99,97 @@ type TDIconRowProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+type TDIconButtonProps = {
+  label: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  onPress?: () => void;
+  selected?: boolean;
+  disabled?: boolean;
+  tone?: 'neutral' | 'primary' | 'success' | 'warning' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  style?: StyleProp<ViewStyle>;
+};
+
+type TDListRowProps = {
+  title: string;
+  description?: string;
+  eyebrow?: string;
+  iconName?: keyof typeof Ionicons.glyphMap;
+  right?: ReactNode;
+  selected?: boolean;
+  disabled?: boolean;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+};
+
+type TDSheetProps = PropsWithChildren<{
+  title?: string;
+  onClose?: () => void;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type TDSegmentedControlOption<T extends string> = {
+  value: T;
+  label: string;
+  iconName?: keyof typeof Ionicons.glyphMap;
+};
+
+type TDSegmentedControlProps<T extends string> = {
+  label?: string;
+  options: TDSegmentedControlOption<T>[];
+  value: T;
+  onChange: (value: T) => void;
+  disabled?: boolean;
+};
+
+type TDResultTrayProps = PropsWithChildren<{
+  title: string;
+  subtitle?: string;
+  status?: string;
+  image?: ReactNode;
+  tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+  primaryAction?: ReactNode;
+  secondaryAction?: ReactNode;
+  compact?: boolean;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type TDToastProps = {
+  message: string;
+  tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+  action?: ReactNode;
+};
+
+type TDStatusIndicatorProps = {
+  label: string;
+  tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+};
+
+type TDNavigationHeaderProps = {
+  title: string;
+  eyebrow?: string;
+  subtitle?: string;
+  leftAction?: ReactNode;
+  rightAction?: ReactNode;
+  style?: StyleProp<ViewStyle>;
+};
+
+type TDScannerGuideProps = {
+  tone?: 'neutral' | 'cyan' | 'blue' | 'success' | 'warning' | 'danger';
+  progress?: number;
+  style?: StyleProp<ViewStyle>;
+};
+
+type TDSessionStripProps = {
+  summary: string;
+  actionLabel?: string;
+  onPress?: () => void;
+  bottomInset?: number;
+  tone?: 'neutral' | 'success' | 'warning' | 'info';
+  style?: StyleProp<ViewStyle>;
+};
+
 export function TDScreen({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
   const { width } = useWindowDimensions();
   return (
@@ -261,6 +352,100 @@ export function TDMetricTile({ label, value, tone = 'neutral', compact, style }:
   );
 }
 
+export const TDMetric = TDMetricTile;
+
+export function TDIconButton({
+  label,
+  iconName,
+  onPress,
+  selected,
+  disabled,
+  tone = 'neutral',
+  size = 'md',
+  style,
+}: TDIconButtonProps) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onPress={onPress}
+      style={({ pressed }) => [
+        s.iconButton,
+        iconButtonSize[size],
+        iconButtonTone[tone],
+        selected && s.iconButtonSelected,
+        focused && s.webFocus,
+        pressed && !disabled && s.pressed,
+        disabled && s.disabled,
+        style,
+      ]}
+    >
+      <Ionicons name={iconName} size={size === 'lg' ? icon.lg : size === 'sm' ? icon.sm : icon.md} color={iconButtonColor(tone, selected)} />
+    </Pressable>
+  );
+}
+
+export function TDListRow({
+  title,
+  description,
+  eyebrow,
+  iconName,
+  right,
+  selected,
+  disabled,
+  onPress,
+  accessibilityLabel,
+  style,
+}: TDListRowProps) {
+  const [focused, setFocused] = useState(false);
+  const content = (
+    <>
+      {iconName ? (
+        <View style={[s.listRowIcon, selected && s.listRowIconSelected]}>
+          <Ionicons name={iconName} size={icon.md} color={selected ? color.primaryBright : color.textMuted} />
+        </View>
+      ) : null}
+      <View style={s.listRowCopy}>
+        {eyebrow ? <TDText variant="caption" tone="muted" numberOfLines={1}>{eyebrow}</TDText> : null}
+        <TDText variant="small" numberOfLines={2}>{title}</TDText>
+        {description ? <TDText variant="caption" tone="muted" numberOfLines={2}>{description}</TDText> : null}
+      </View>
+      {right}
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={[s.listRow, selected && s.listRowSelected, disabled && s.disabled, style]}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onPress={onPress}
+      style={({ pressed }) => [
+        s.listRow,
+        selected && s.listRowSelected,
+        focused && s.webFocus,
+        pressed && !disabled && s.pressed,
+        disabled && s.disabled,
+        style,
+      ]}
+    >
+      {content}
+    </Pressable>
+  );
+}
+
 export function TDIconRow({ title, description, iconName, right, onPress, accessibilityLabel, style }: TDIconRowProps) {
   const [focused, setFocused] = useState(false);
   const content = (
@@ -301,6 +486,89 @@ export function TDSectionHeader({ title, action }: { title: string; action?: Rea
   );
 }
 
+export function TDNavigationHeader({ title, eyebrow, subtitle, leftAction, rightAction, style }: TDNavigationHeaderProps) {
+  return (
+    <View style={[s.navigationHeader, style]}>
+      {leftAction}
+      <View style={s.navigationHeaderCopy}>
+        {eyebrow ? <TDText variant="label" tone="info" numberOfLines={1}>{eyebrow}</TDText> : null}
+        <TDText variant="title" numberOfLines={2}>{title}</TDText>
+        {subtitle ? <TDText variant="caption" tone="muted" numberOfLines={2}>{subtitle}</TDText> : null}
+      </View>
+      {rightAction}
+    </View>
+  );
+}
+
+export function TDSheet({ title, onClose, children, style }: TDSheetProps) {
+  return (
+    <TDCard variant="floating" style={[s.sheet, style]}>
+      {title || onClose ? (
+        <View style={s.sheetHeader}>
+          {title ? <TDText variant="title">{title}</TDText> : <View />}
+          {onClose ? <TDIconButton label={`Close ${title ?? 'sheet'}`} iconName="close-outline" onPress={onClose} /> : null}
+        </View>
+      ) : null}
+      {children}
+    </TDCard>
+  );
+}
+
+export function TDSegmentedControl<T extends string>({ label, options, value, onChange, disabled }: TDSegmentedControlProps<T>) {
+  return (
+    <View style={s.segmentedWrap}>
+      {label ? <TDText variant="label" tone="muted">{label}</TDText> : null}
+      <View style={s.segmented} accessibilityRole="tablist">
+        {options.map((option) => {
+          const selected = option.value === value;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="tab"
+              accessibilityLabel={option.label}
+              accessibilityState={{ selected, disabled }}
+              disabled={disabled}
+              onPress={() => onChange(option.value)}
+              style={({ pressed }) => [s.segment, selected && s.segmentSelected, pressed && !disabled && s.pressed, disabled && s.disabled]}
+            >
+              {option.iconName ? <Ionicons name={option.iconName} size={icon.sm} color={selected ? color.text : color.textMuted} /> : null}
+              <Text style={[s.segmentText, selected && s.segmentTextSelected]} numberOfLines={1}>{option.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+export function TDResultTray({
+  title,
+  subtitle,
+  status,
+  image,
+  tone = 'neutral',
+  primaryAction,
+  secondaryAction,
+  compact,
+  children,
+  style,
+}: TDResultTrayProps) {
+  return (
+    <View style={[s.resultTray, resultTrayTone[tone], compact && s.resultTrayCompact, style]}>
+      {image}
+      <View style={s.resultTrayCopy}>
+        <View style={s.resultTrayTitleRow}>
+          <TDText variant="title" numberOfLines={2}>{title}</TDText>
+          {status ? <TDBadge tone={tone === 'neutral' ? 'info' : tone}>{status}</TDBadge> : null}
+        </View>
+        {subtitle ? <TDText variant="caption" tone="muted" numberOfLines={2}>{subtitle}</TDText> : null}
+        {children}
+      </View>
+      {primaryAction || secondaryAction ? <View style={s.resultTrayActions}>{primaryAction}{secondaryAction}</View> : null}
+    </View>
+  );
+}
+
 export function TDLoadingState({ title, message, accessibilityLabel }: TDStateProps) {
   return (
     <View accessibilityLabel={accessibilityLabel ?? title} accessibilityRole="progressbar" style={s.state}>
@@ -308,6 +576,68 @@ export function TDLoadingState({ title, message, accessibilityLabel }: TDStatePr
       <TDText variant="title">{title}</TDText>
       {message ? <TDText variant="small" tone="muted" style={s.stateCopy}>{message}</TDText> : null}
     </View>
+  );
+}
+
+export function TDSkeleton({ lines = 3, style }: { lines?: number; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View accessibilityLabel="Loading content" accessibilityRole="progressbar" style={[s.skeleton, style]}>
+      {Array.from({ length: lines }).map((_, index) => (
+        <View key={index} style={[s.skeletonLine, index === lines - 1 && s.skeletonLineShort]} />
+      ))}
+    </View>
+  );
+}
+
+export function TDToast({ message, tone = 'neutral', action }: TDToastProps) {
+  return (
+    <View accessibilityRole={tone === 'danger' ? 'alert' : 'text'} style={[s.toast, toastTone[tone]]}>
+      <TDText variant="small" style={s.toastMessage}>{message}</TDText>
+      {action}
+    </View>
+  );
+}
+
+export function TDStatusIndicator({ label, tone = 'neutral' }: TDStatusIndicatorProps) {
+  return (
+    <View accessibilityRole="text" accessibilityLabel={label} style={s.statusIndicator}>
+      <View style={[s.statusDot, statusDotTone[tone]]} />
+      <TDText variant="caption" tone={tone === 'neutral' ? 'muted' : tone}>{label}</TDText>
+    </View>
+  );
+}
+
+export function TDScannerGuide({ tone = 'cyan', progress = 0, style }: TDScannerGuideProps) {
+  return (
+    <View pointerEvents="none" style={[s.scannerGuide, style]}>
+      <View style={[s.scannerGuideCorner, scannerGuideTone[tone]]} />
+      <View style={[s.scannerGuideCorner, s.scannerGuideCornerRight, scannerGuideTone[tone]]} />
+      <View style={[s.scannerGuideCorner, s.scannerGuideCornerBottom, scannerGuideTone[tone]]} />
+      <View style={[s.scannerGuideCorner, s.scannerGuideCornerBottomRight, scannerGuideTone[tone]]} />
+      {progress > 0 ? <View style={[s.scannerGuideProgress, { width: `${Math.max(0, Math.min(100, Math.round(progress * 100)))}%` }]} /> : null}
+    </View>
+  );
+}
+
+export function TDSessionStrip({ summary, actionLabel = 'Review', onPress, bottomInset = 0, tone = 'neutral', style }: TDSessionStripProps) {
+  const content = (
+    <>
+      <TDText variant="small" numberOfLines={1} style={s.sessionStripSummary}>{summary}</TDText>
+      <TDText variant="small" tone={tone === 'neutral' ? 'info' : tone} numberOfLines={1}>{actionLabel}</TDText>
+    </>
+  );
+
+  if (!onPress) return <View style={[s.sessionStrip, { paddingBottom: Math.max(bottomInset, space.xs) }, style]}>{content}</View>;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${actionLabel}. ${summary}`}
+      onPress={onPress}
+      style={({ pressed }) => [s.sessionStrip, { paddingBottom: Math.max(bottomInset, space.xs) }, pressed && s.pressed, style]}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -378,10 +708,69 @@ const s = StyleSheet.create({
   chipText: { fontSize: 11, fontWeight: '900', lineHeight: 15 },
   metricTile: { flexGrow: 1, flexBasis: '30%', minWidth: 96, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: space.sm, paddingVertical: space.sm, backgroundColor: color.canvasRaised, gap: 2 },
   metricTileCompact: { minWidth: 82, paddingHorizontal: space.xs },
+  iconButton: { minWidth: 44, minHeight: 44, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconButtonSelected: { borderColor: color.primaryBright },
+  listRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.sm, borderBottomWidth: 1, borderBottomColor: color.border },
+  listRowSelected: { backgroundColor: color.primary + '14' },
+  listRowIcon: { width: 36, height: 36, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceRaised },
+  listRowIconSelected: { backgroundColor: color.primary + '24' },
+  listRowCopy: { flex: 1, minWidth: 0, gap: 2 },
   iconRow: { minHeight: 56, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.sm },
   iconRowIcon: { width: 36, height: 36, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '14' },
   iconRowCopy: { flex: 1, minWidth: 0 },
+  navigationHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  navigationHeaderCopy: { flex: 1, minWidth: 0, gap: 2 },
+  sheet: { gap: space.md, borderColor: color.borderStrong },
+  sheetHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  segmentedWrap: { gap: space.xs },
+  segmented: { minHeight: 44, flexDirection: 'row', borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: 3, backgroundColor: color.canvasRaised },
+  segment: { flex: 1, minHeight: 36, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: space.xs, paddingHorizontal: space.xs },
+  segmentSelected: { backgroundColor: color.primary },
+  segmentText: { color: color.textMuted, fontSize: 12, fontWeight: '900' },
+  segmentTextSelected: { color: color.text },
+  resultTray: { minHeight: 76, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.surfaceFloating, flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.sm },
+  resultTrayCompact: { minHeight: 64 },
+  resultTrayCopy: { flex: 1, minWidth: 0, gap: 2 },
+  resultTrayTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.xs },
+  resultTrayActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  skeleton: { gap: space.sm },
+  skeletonLine: { height: 14, borderRadius: radius.pill, backgroundColor: color.surfaceRaised },
+  skeletonLineShort: { width: '62%' },
+  toast: { minHeight: 44, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.sm },
+  toastMessage: { flex: 1, minWidth: 0 },
+  statusIndicator: { minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  scannerGuide: { minHeight: 240, minWidth: 172 },
+  scannerGuideCorner: { position: 'absolute', top: 0, left: 0, width: 46, height: 46, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: radius.md },
+  scannerGuideCornerRight: { left: undefined, right: 0, borderLeftWidth: 0, borderRightWidth: 3, borderTopRightRadius: radius.md },
+  scannerGuideCornerBottom: { top: undefined, bottom: 0, borderTopWidth: 0, borderBottomWidth: 3, borderBottomLeftRadius: radius.md },
+  scannerGuideCornerBottomRight: { top: undefined, left: undefined, right: 0, bottom: 0, borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 3, borderBottomWidth: 3, borderBottomRightRadius: radius.md },
+  scannerGuideProgress: { position: 'absolute', left: 0, bottom: -8, height: 3, borderRadius: radius.pill, backgroundColor: color.primaryBright },
+  sessionStrip: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingTop: space.sm, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F8' },
+  sessionStripSummary: { flex: 1, minWidth: 0 },
 });
+
+const iconButtonSize = StyleSheet.create({
+  sm: { minWidth: 40, minHeight: 40 },
+  md: { minWidth: 44, minHeight: 44 },
+  lg: { minWidth: 52, minHeight: 52 },
+});
+
+const iconButtonTone = StyleSheet.create({
+  neutral: { backgroundColor: color.surfaceRaised, borderColor: color.border },
+  primary: { backgroundColor: color.primary + '22', borderColor: color.primaryBright + '66' },
+  success: { backgroundColor: color.success + '16', borderColor: color.success + '55' },
+  warning: { backgroundColor: color.warning + '16', borderColor: color.warning + '55' },
+  danger: { backgroundColor: color.danger + '16', borderColor: color.danger + '55' },
+});
+
+function iconButtonColor(tone: TDIconButtonProps['tone'], selected?: boolean) {
+  if (selected || tone === 'primary') return color.primaryBright;
+  if (tone === 'success') return color.success;
+  if (tone === 'warning') return color.warning;
+  if (tone === 'danger') return color.danger;
+  return color.text;
+}
 
 const buttonSize = StyleSheet.create({
   sm: { minHeight: 40, paddingHorizontal: space.md },
@@ -448,6 +837,39 @@ const metricTone = StyleSheet.create({
   danger: { borderColor: color.danger + '44' },
   info: { borderColor: color.info + '44' },
   accent: { borderColor: color.accent + '44' },
+});
+
+const resultTrayTone = StyleSheet.create({
+  neutral: { borderColor: color.border },
+  success: { borderColor: color.success + '66' },
+  warning: { borderColor: color.warning + '66' },
+  danger: { borderColor: color.danger + '66' },
+  info: { borderColor: color.info + '66' },
+});
+
+const toastTone = StyleSheet.create({
+  neutral: { backgroundColor: color.surfaceFloating, borderColor: color.border },
+  success: { backgroundColor: color.success + '16', borderColor: color.success + '55' },
+  warning: { backgroundColor: color.warning + '16', borderColor: color.warning + '55' },
+  danger: { backgroundColor: color.danger + '16', borderColor: color.danger + '55' },
+  info: { backgroundColor: color.info + '16', borderColor: color.info + '55' },
+});
+
+const statusDotTone = StyleSheet.create({
+  neutral: { backgroundColor: color.textMuted },
+  success: { backgroundColor: color.success },
+  warning: { backgroundColor: color.warning },
+  danger: { backgroundColor: color.danger },
+  info: { backgroundColor: color.info },
+});
+
+const scannerGuideTone = StyleSheet.create({
+  neutral: { borderColor: color.textMuted },
+  cyan: { borderColor: color.info },
+  blue: { borderColor: color.primaryBright },
+  success: { borderColor: color.success },
+  warning: { borderColor: color.warning },
+  danger: { borderColor: color.danger },
 });
 
 const badgeTextTone = StyleSheet.create({

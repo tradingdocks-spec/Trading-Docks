@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAccount } from '@/providers/account';
 import { color, elevation, radius } from '@/design';
 import {
-  getMobileBottomBarHeight,
+  getMobileBottomNavVisualModel,
   getMobileTabOptions,
   type MobileTabRouteName,
 } from '@/services/navigation-contract';
@@ -34,6 +34,7 @@ export default function Layout() {
       tabBarAccessibilityLabel: options.accessibilityLabel,
     };
   };
+  const navModel = getMobileBottomNavVisualModel(insets.bottom);
 
   return (
     <Tabs
@@ -47,8 +48,9 @@ export default function Layout() {
           tabBarStyle: [
             s.tab,
             {
-              height: getMobileBottomBarHeight(insets.bottom),
-              paddingBottom: Math.max(insets.bottom, 6),
+              height: navModel.height,
+              paddingBottom: navModel.paddingBottom,
+              paddingTop: navModel.paddingTop,
             },
           ],
           tabBarItemStyle: s.item,
@@ -59,14 +61,14 @@ export default function Layout() {
                 <Ionicons
                   name={(focused ? options.icon : options.inactiveIcon) as any}
                   color={focused ? color.text : iconColor}
-                  size={22}
+                  size={navModel.iconSize}
                 />
               </View>
             ) : (
               <Ionicons
                 name={(focused ? options.icon : options.inactiveIcon) as any}
                 color={iconColor}
-                size={22}
+                size={navModel.iconSize}
               />
             );
           },
@@ -115,7 +117,6 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: 7,
     backgroundColor: '#081625F7',
     borderTopWidth: 1,
     borderTopColor: color.border,

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   getMobileBottomBarHeight,
+  getMobileBottomNavVisualModel,
   getMobileScrollBottomInset,
   getMobileTabCellBasis,
   getMobileTabOptions,
@@ -86,4 +87,15 @@ test('bottom bar safe-area contract keeps accessible touch targets and content i
   assert.equal(phoneInsetHeight, MOBILE_NAV_SAFE_AREA_BASE_HEIGHT + 21);
   assert.ok(MOBILE_NAV_MIN_TOUCH_TARGET >= 48);
   assert.ok(getMobileScrollBottomInset(21) > phoneInsetHeight);
+});
+
+test('bottom navigation visual model keeps center action balanced inside the bar', () => {
+  const model = getMobileBottomNavVisualModel(21);
+
+  assert.equal(model.cellBasis, '20%');
+  assert.equal(model.iconSize, 22);
+  assert.equal(model.labelMaxLines, 1);
+  assert.equal(model.centerAction.oversized, false);
+  assert.equal(model.centerAction.staysInsideBar, true);
+  assert.ok(model.centerAction.height < model.height);
 });

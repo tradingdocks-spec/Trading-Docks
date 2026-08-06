@@ -46,14 +46,14 @@ test('Deal Desk empty state renders without requiring an active session', () => 
 test('Deal Desk populated session render state includes active session details', () => {
   const state = createDealDeskRenderState({
     ready: true,
-    activeSession: { name: 'Phoenix Card Expo', status: 'active' },
+    activeSession: { name: 'Card show session', status: 'active' },
     mode: 'show',
     market: '100',
     rate: '60',
     budget: '500',
   });
   assert.equal(state.status, 'populated');
-  assert.equal(state.activeSessionName, 'Phoenix Card Expo');
+  assert.equal(state.activeSessionName, 'Card show session');
   assert.equal(state.activeSessionStatus, 'active');
 });
 
@@ -86,7 +86,7 @@ test('Deal Desk session mode mapping preserves scanner-session behavior', () => 
   assert.equal(sessionNameForMode('buy'), 'New buying session');
   assert.equal(sessionNameForMode('trade'), 'New trade');
   assert.equal(sessionNameForMode('sealed'), 'Sealed evaluation');
-  assert.equal(sessionNameForMode('show'), 'Phoenix Card Expo');
+  assert.equal(sessionNameForMode('show'), 'Card show session');
   assert.equal(sessionTypeForMode('buy'), 'buying');
   assert.equal(sessionTypeForMode('trade'), 'trade');
   assert.equal(sessionTypeForMode('sealed'), 'buying');

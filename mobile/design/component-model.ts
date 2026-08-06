@@ -6,6 +6,32 @@ export type TDMetricTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
 
 export const TD_MOBILE_MIN_TOUCH_TARGET = 44;
 export const TD_MOBILE_COMFORTABLE_TOUCH_TARGET = 48;
+export const TD_MOBILE_SURFACE_LEVELS = ['base', 'elevated', 'modal'] as const;
+export const TD_MOBILE_SPACING_SCALE = [4, 8, 12, 16, 20, 24, 32, 40, 48] as const;
+export const TD_MOBILE_ICON_SIZES = [16, 20, 24, 28] as const;
+export const TD_MOBILE_COMPONENT_CONTRACTS = [
+  'TDButton',
+  'TDCard',
+  'TDInput',
+  'TDText',
+  'TDSectionHeader',
+  'TDListRow',
+  'TDIconButton',
+  'TDBadge',
+  'TDSheet',
+  'TDSegmentedControl',
+  'TDMetric',
+  'TDResultTray',
+  'TDEmptyState',
+  'TDErrorState',
+  'TDLoadingState',
+  'TDSkeleton',
+  'TDToast',
+  'TDStatusIndicator',
+  'TDNavigationHeader',
+  'TDScannerGuide',
+  'TDSessionStrip',
+] as const;
 
 export function tdButtonIsDisabled(disabled?: boolean, loading?: boolean) {
   return Boolean(disabled || loading);

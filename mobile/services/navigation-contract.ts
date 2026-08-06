@@ -62,7 +62,10 @@ export const MOBILE_TABS_BY_ACCOUNT: Record<MobileAccountType, MobileTabDefiniti
 
 export const MOBILE_PRIMARY_TAB_COUNT = 5;
 export const MOBILE_NAV_MIN_TOUCH_TARGET = 48;
-export const MOBILE_NAV_SAFE_AREA_BASE_HEIGHT = 62;
+export const MOBILE_NAV_SAFE_AREA_BASE_HEIGHT = 64;
+export const MOBILE_NAV_ICON_SIZE = 22;
+export const MOBILE_NAV_CENTER_WIDTH = 42;
+export const MOBILE_NAV_CENTER_HEIGHT = 34;
 
 export function normalizeMobileAccountType(value: unknown): MobileAccountType {
   return value === 'collector' || value === 'seller' || value === 'store'
@@ -111,6 +114,25 @@ export function getMobileBottomBarHeight(safeAreaBottom: number) {
 
 export function getMobileScrollBottomInset(safeAreaBottom: number) {
   return getMobileBottomBarHeight(safeAreaBottom) + 28;
+}
+
+export function getMobileBottomNavVisualModel(safeAreaBottom: number) {
+  const height = getMobileBottomBarHeight(safeAreaBottom);
+  return {
+    height,
+    paddingBottom: Math.max(safeAreaBottom, 6),
+    paddingTop: 8,
+    iconSize: MOBILE_NAV_ICON_SIZE,
+    labelMaxLines: 1,
+    cellBasis: '20%',
+    minTouchTarget: MOBILE_NAV_MIN_TOUCH_TARGET,
+    centerAction: {
+      width: MOBILE_NAV_CENTER_WIDTH,
+      height: MOBILE_NAV_CENTER_HEIGHT,
+      oversized: false,
+      staysInsideBar: true,
+    },
+  };
 }
 
 export function isMobileTabSelected(pathname: string, route: MobileTabRouteName) {

@@ -6,6 +6,8 @@
 - Implemented: The primary screen is organized into a compact two-line header, large camera viewport, one concise guide message, three essential controls, compact latest-result tray, and compact bottom session strip.
 - Implemented: Settings, manual search, diagnostics, privacy copy, and calibration controls are secondary panels instead of always-visible stacked cards.
 - Implemented: The scanner preserves the existing Apple Vision OCR module, guide-assisted crop mapping, Scryfall lookup, top-three candidates, scanner session persistence, offer calculation, temporary-image cleanup, diagnostics data, and manual search fallback.
+- Implemented: Scanner 2.0 remains the reference route for the mobile design OS: compact header, dominant work surface, restrained guide motion, status text plus color, compact result tray, and safe-area session strip.
+- Implemented: Scanner-facing primitives are now documented as reusable contracts in `docs/MOBILE_COMPONENT_CONTRACTS.md`; design changes must not imply unbenchmarked recognition certainty.
 - Partially Implemented: Auto-capture remains gated by camera readiness and unavailable live visual signals. Native live frame delivery still requires physical-device QA before hands-free capture is production-ready.
 - Partially Implemented: High-volume Card Show mode preserves defaults and a compact session workflow, but automatic inventory insertion is not enabled by default.
 - Planned: Physical iPhone QA is required for glare, sleeves, old border, showcase, low light, angled cards, rapid replacement, and ten-card high-volume sessions.
@@ -86,3 +88,5 @@ Result behavior is compact by default. Recognized and likely cards show thumbnai
 High-volume Card Show mode remains explicit. Defaults for condition, finish, language, destination, and cash offer rate remain configurable in scanner settings. Automatic high-confidence acceptance is still disabled until product safety rules allow it.
 
 See also: `docs/SCANNER_2_INTERACTION_SPEC.md` and `docs/SCANNER_2_VISUAL_SPEC.md`.
+
+Mobile design OS references: `docs/TRADING_DOCKS_DESIGN_BIBLE.md`, `docs/MOBILE_ACCESSIBILITY_STANDARD.md`, and `docs/MOBILE_MOTION_STANDARD.md`.

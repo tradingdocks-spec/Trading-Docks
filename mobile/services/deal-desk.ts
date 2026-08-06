@@ -76,7 +76,7 @@ export function routeStoreAccountToDealDesk() {
 }
 
 export function sessionNameForMode(mode: DealDeskMode) {
-  if (mode === 'show') return 'Phoenix Card Expo';
+  if (mode === 'show') return 'Card show session';
   if (mode === 'trade') return 'New trade';
   if (mode === 'sealed') return 'Sealed evaluation';
   return 'New buying session';

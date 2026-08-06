@@ -36,6 +36,8 @@
 - Partially Implemented: Web and mobile now have first-wave TD primitives, but legacy `src/components/ui`, mobile `foundation.tsx`, mobile `primitives.tsx`, `mobile/constants/brand.ts`, and many screen-local style systems still coexist.
 - Implemented: Shared semantic tokens and first-wave TD primitives provide a canonical migration target for buttons, cards, inputs, badges, text, screen shells, section headers, loading states, empty states, error states, and dividers.
 - Implemented: Mobile adds shared `TDChip`, `TDMetricTile`, and `TDIconRow` primitives and migrates active Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile controls away from duplicated local chip/metric styles.
+- Implemented: Mobile design OS now adds canonical `TDIconButton`, `TDListRow`, `TDSheet`, `TDSegmentedControl`, `TDResultTray`, `TDSkeleton`, `TDToast`, `TDStatusIndicator`, `TDNavigationHeader`, `TDScannerGuide`, and `TDSessionStrip` contracts for future mobile screen migrations.
+- Partially Implemented: Seller/Signals and Deal Desk now use TD primitives and honest unavailable states, but the rest of the active mobile app still needs staged visual QA rather than blanket migration.
 - Planned: Pick a canonical component tree and archive or delete superseded versions after review.
 
 ## Potential Bugs
@@ -43,6 +45,7 @@
 - Implemented: Active web and mobile membership tier names, prices, limits, and plan-card labels now use the canonical `free | collector | seller | store` catalog.
 - Implemented: Authenticated collection surfaces no longer present static sample cards as live user data.
 - Implemented: Mobile Home no longer presents mock collection value, mock movement, mock signals, or fake recent activity as live user data.
+- Implemented: Mobile Seller/Signals and Deal Desk no longer present static fake revenue, margin, market, budget, or event-name metrics as authenticated business data.
 - Implemented: Collector card detail surfaces now support organization actions with optimistic updates and rollback rather than showing read-only planned action cards.
 - Partially Implemented: Web `/dashboard/inventory` now uses the Collector Workspace browser; older inventory management components remain in source and need workflow review before retirement.
 - Implemented: A forward-only Collector mutation security migration proposal now exists for DB-side ownership and Free-plan total-quantity enforcement, but it is not applied to production.
@@ -93,6 +96,8 @@
 - Partially Implemented: `docs/REPOSITORY_CLEANUP_PLAN.md` now inventories historical backups, generated output, duplicate dashboard systems, duplicate navigation, duplicate design-system layers, unused candidates, and cleanup phases.
 - Planned: Move historical release notes/backups out of active source after product-owner review.
 - Planned: Continue incremental design-system migration rather than sweeping every screen into the new primitives at once.
+- Implemented: `docs/MOBILE_PRODUCT_DESIGN_AUDIT.md`, `docs/TRADING_DOCKS_DESIGN_BIBLE.md`, `docs/MOBILE_COMPONENT_CONTRACTS.md`, `docs/MOBILE_ACCESSIBILITY_STANDARD.md`, `docs/MOBILE_MOTION_STANDARD.md`, and `docs/MOBILE_VISUAL_MIGRATION_PLAN.md` now define the mobile design OS and migration order.
+- Planned: Apply the mobile design OS screen-by-screen after physical-device QA confirms touch targets, safe areas, larger text, and reduced-motion behavior.
 - Planned: Deprecate duplicated dashboard navigation modules only after active imports are audited and route content gaps are prioritized.
 
 ## Performance Opportunities
@@ -131,6 +136,7 @@
 - Implemented: Focused native scanner calibration tests cover diagnostics gating, local calibration clamps, guide/crop mapping, unavailable-signal auto-capture blocking, camera-ready capture blocking, visible capture outcomes, duplicate/removal rearm, session outcome diagnostics, and non-claiming foil evidence.
 - Implemented: Focused premium scanner experience tests cover diagnostics separation, failed OCR recovery without unknown-session insertion, high-confidence and ambiguous result trays, three-control scanner layout, compact header/session strip models, pipeline state mapping, text-plus-color guide states, and high-volume defaults without auto inventory insertion.
 - Implemented: Focused mobile Home composition tests cover Free, Collector, Seller, Store, empty portfolio, missing movement data, active session visibility, unavailable signal data, one primary navigation system, and bottom-navigation spacing contract.
+- Implemented: Focused mobile product design tests cover the mobile design OS documentation set and guard against fake business metrics returning to active Seller/Signals and Deal Desk routes.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
 - Planned: Public share token validation tests.
@@ -144,6 +150,7 @@
 - Partially Implemented: Historical docs exist as release notes, not durable architecture docs.
 - Partially Implemented: Mobile README is still mostly default Expo text.
 - Implemented: `docs/DESIGN_SYSTEM.md` now records the current design-system source of truth, audit findings, token naming, component usage, migration strategy, web/native differences, deprecated patterns, and remaining design-system debt.
+- Implemented: Mobile product design documentation now records the current route audit, visual language, component contracts, accessibility rules, motion rules, and staged migration plan.
 - Planned: Add a canonical environment variable matrix.
 - Planned: Add provider setup runbooks for Stripe, Supabase, Cloudflare, eBay, Mana Pool, Resend, Vercel, and mobile app store builds.
 

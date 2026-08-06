@@ -2,7 +2,7 @@
 
 Status: Implemented as the visual contract for the mobile Scanner 2.0 route.
 
-Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It does not introduce a second design system.
+Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It does not introduce a second design system. It is the reference implementation for the mobile design OS documented in `docs/TRADING_DOCKS_DESIGN_BIBLE.md`, `docs/MOBILE_COMPONENT_CONTRACTS.md`, `docs/MOBILE_ACCESSIBILITY_STANDARD.md`, and `docs/MOBILE_MOTION_STANDARD.md`.
 
 ## Final Hierarchy
 
@@ -37,6 +37,14 @@ Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It doe
 - `ScannerSettingsSheet`: high-volume defaults and scanner settings.
 - `ScannerManualSearchSheet`: manual exact-printing fallback.
 - `ScannerDiagnosticsSheet`: development-only lookup and OCR diagnostics.
+
+Shared primitive mapping:
+
+- `ScannerGuide` aligns with `TDScannerGuide`.
+- `ScannerResultTray` aligns with `TDResultTray`.
+- `ScannerSessionStrip` aligns with `TDSessionStrip`.
+- Icon actions align with `TDIconButton`.
+- Settings and candidate surfaces align with `TDSheet`.
 
 ## Result Behavior
 

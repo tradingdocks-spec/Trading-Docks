@@ -7,8 +7,12 @@ import {
   tdInputAccessibility,
   tdInputState,
   tdSelectableAccessibility,
+  TD_MOBILE_COMPONENT_CONTRACTS,
   TD_MOBILE_COMFORTABLE_TOUCH_TARGET,
+  TD_MOBILE_ICON_SIZES,
   TD_MOBILE_MIN_TOUCH_TARGET,
+  TD_MOBILE_SPACING_SCALE,
+  TD_MOBILE_SURFACE_LEVELS,
 } from '../design/component-model.ts';
 import { tdTokens } from '../design/shared-tokens.ts';
 
@@ -67,4 +71,38 @@ test('selectable controls expose selected and disabled accessibility states', ()
   assert.deepEqual(props.accessibilityState, { selected: true, disabled: false });
   assert.ok(TD_MOBILE_MIN_TOUCH_TARGET >= 44);
   assert.ok(TD_MOBILE_COMFORTABLE_TOUCH_TARGET >= 48);
+});
+
+test('mobile design OS exposes the canonical primitive contract set', () => {
+  for (const primitive of [
+    'TDButton',
+    'TDCard',
+    'TDInput',
+    'TDText',
+    'TDSectionHeader',
+    'TDListRow',
+    'TDIconButton',
+    'TDBadge',
+    'TDSheet',
+    'TDSegmentedControl',
+    'TDMetric',
+    'TDResultTray',
+    'TDEmptyState',
+    'TDErrorState',
+    'TDLoadingState',
+    'TDSkeleton',
+    'TDToast',
+    'TDStatusIndicator',
+    'TDNavigationHeader',
+    'TDScannerGuide',
+    'TDSessionStrip',
+  ]) {
+    assert.equal(TD_MOBILE_COMPONENT_CONTRACTS.includes(primitive as never), true);
+  }
+});
+
+test('mobile design OS limits surface spacing and icon scales', () => {
+  assert.deepEqual(TD_MOBILE_SURFACE_LEVELS, ['base', 'elevated', 'modal']);
+  assert.deepEqual(TD_MOBILE_SPACING_SCALE, [4, 8, 12, 16, 20, 24, 32, 40, 48]);
+  assert.deepEqual(TD_MOBILE_ICON_SIZES, [16, 20, 24, 28]);
 });

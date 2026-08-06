@@ -15,6 +15,16 @@
 - Required: Run mobile validation from `mobile/package.json` when changing mobile code.
 - Required: Report any validation that is unavailable, skipped, or blocked.
 
+## Mobile Product Design
+
+- Required: Preserve auth, session, Supabase, scanner recognition/OCR, billing, membership, navigation, and offline behavior unless the task explicitly changes them.
+- Required: Use the mobile design OS docs for new or migrated mobile screens: `docs/TRADING_DOCKS_DESIGN_BIBLE.md`, `docs/MOBILE_COMPONENT_CONTRACTS.md`, `docs/MOBILE_ACCESSIBILITY_STANDARD.md`, and `docs/MOBILE_MOTION_STANDARD.md`.
+- Required: Do not show fake prices, fake margins, fake collection values, fake activity, fake events, or invented metrics in authenticated mobile surfaces.
+- Required: Keep one primary mobile bottom navigation system, respect safe-area insets, and ensure scroll content is not hidden behind the bar.
+- Required: Icon-only controls need labels, visible focus on Expo Web, disabled/loading state when relevant, and minimum touch targets.
+- Required: Motion must be restrained, purposeful, and safe under reduced-motion preferences.
+- Required: Manual QA notes must call out untested native behavior, including small phone, large phone, Android, tablet, larger text, reduced motion, and physical camera/OCR paths when affected.
+
 ## Security and Data
 
 - Required: No secrets committed.
