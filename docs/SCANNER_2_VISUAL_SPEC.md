@@ -10,9 +10,9 @@ Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It doe
 2. Camera viewport fills the active route while scanning.
 3. One active instruction appears over the camera.
 4. Three main controls: Torch, Capture, Search.
-5. Compact latest-result tray when needed.
-6. Compact session strip pinned above the safe area while the Scan route hides the normal tab bar.
-7. Settings, diagnostics, correction, and candidate details appear as secondary sheets.
+5. Tiny transient latest-scan confirmation when a row is added.
+6. Compact Review List chip pinned above the safe area while the Scan route hides the normal tab bar.
+7. Settings, diagnostics, and manual search appear as secondary sheets.
 
 ## Visual Direction
 
@@ -26,14 +26,14 @@ Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It doe
 
 ## Scanner Components
 
-- `ScannerHud`: compact two-line header with mode and card count on line 1, then market, offer, and nonzero review count on line 2.
+- `ScannerHud`: compact two-line header with mode and scanned count on line 1, then offer and nonzero review count on line 2.
 - `ScannerViewport`: full-screen camera surface, guide, instruction, and capture controls.
 - `ScannerGuide`: four OCR-aligned corner brackets with state tone.
 - `ScannerControls`: exactly three primary camera controls: Torch, Capture, Search.
 - `ScannerStatus`: single active instruction and state label.
-- `ScannerResultTray`: compact recognized/likely/ambiguous/failed result.
-- `ScannerCandidateSheet`: top-three exact printing selection.
-- `ScannerSessionStrip`: pinned one-row totals and Review action.
+- `ScannerFailureOverlay`: compact failed-read Retake/Search recovery only.
+- `ScannerToast`: tiny Added or Added for review confirmation with Undo and Correct.
+- `ScannerSessionStrip`: pinned one-row scanned/review count and Review List action.
 - `ScannerSettingsSheet`: high-volume defaults and scanner settings.
 - `ScannerManualSearchSheet`: manual exact-printing fallback.
 - `ScannerDiagnosticsSheet`: development-only lookup and OCR diagnostics.
@@ -41,16 +41,15 @@ Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It doe
 Shared primitive mapping:
 
 - `ScannerGuide` aligns with `TDScannerGuide`.
-- `ScannerResultTray` aligns with `TDResultTray`.
 - `ScannerSessionStrip` aligns with `TDSessionStrip`.
 - Icon actions align with `TDIconButton`.
 - Settings and candidate surfaces align with `TDSheet`.
 
 ## Result Behavior
 
-Recognized and likely results show thumbnail, card name, set, collector number, market value, offer value, Add, and Correct. They use confidence wording without showing primary confidence percentages.
+Recognized, likely, and ambiguous supported matches do not render an active result card. They add to the Review List immediately and show only a tiny transient confirmation.
 
-Ambiguous results keep the tray compact and expose top-three candidates in a sheet. The camera remains the primary surface.
+High-confidence matches enter as Suggested. Likely and ambiguous matches enter as Needs review. The camera remains the primary surface.
 
 Failed results show only a compact recovery banner: "Couldn't read the card", Retake, and Search. They never show pricing, quantity, review badges, placeholder thumbnails, duplicate notices, session metadata, or technical exception text.
 
@@ -61,8 +60,7 @@ Resume is available only through the header pause/play control after the user ex
 ## Secondary Surfaces
 
 - Settings sheet: mode, cash percentage, defaults, destination, storage, Trade Binder, and development diagnostics entry.
-- Manual search sheet: search field, Scryfall results, and exact-printing selection.
-- Candidate sheet area: top-three candidates and printing details.
+- Manual search sheet: search field, Scryfall results, and exact-printing selection that adds directly to Review List.
 - Diagnostics sheet: development-only native module, OCR, Scryfall, cleanup, lifecycle, and crop proof details.
 - Session Review route: scanned cards, edits, missing prices, export, and finalize workflow.
 

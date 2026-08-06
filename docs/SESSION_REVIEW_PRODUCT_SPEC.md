@@ -8,6 +8,10 @@ Implemented: Scanner Session Review answers five questions for a beginner: how m
 
 Not Changed: This screen continues to use the existing scanner session data, session persistence, offer calculations, CSV export, undo, removal, user isolation, and missing-price behavior.
 
+Implemented: Scanner Session Review is now the owner of batch card decisions. The active scanner adds rows quickly; this screen owns quantity, condition, finish, language, market price, review status, removal, and finalization.
+
+Implemented: High-confidence scanner rows arrive as Suggested. Likely, ambiguous, and manual-search rows arrive as Needs review unless later edited here.
+
 ## Simplified Hierarchy
 
 Implemented hierarchy:
