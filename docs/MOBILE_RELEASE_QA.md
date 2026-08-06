@@ -78,6 +78,15 @@ Verify:
 - Explicit pause and resume.
 - Full-screen camera fill with no inset card frame or empty tab gap.
 - Torch, Capture, and Search hide during capture, lookup, saving, open sheets, added feedback, and remove-card lockout.
+- High-confidence scan adds to Review List without an Add button.
+- Likely and ambiguous scans add as Needs review without stopping the scanner.
+- Failed scan shows Retake/Search and does not add an unknown row.
+- Manual Search selection adds to Review List and returns to camera.
+- Review List chip updates scanned and review counts.
+- Undo removes the most recent transient batch add.
+- Correct opens Scanner Session Review.
+- Remove-card lockout prevents the same stationary card from being scanned twice.
+- Pricing remains unavailable until Review List enrichment or manual entry; scanner must not block on price.
 - Recognized result does not show a primary confidence percentage.
 - Failed result shows only compact Retake/Search recovery.
 - Added/remove-card feedback remains brief and does not become a full result card.

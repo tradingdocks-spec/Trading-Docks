@@ -14,23 +14,25 @@ Requires Production Configuration: Physical iPhone and Android device QA is stil
 
 Implemented: While `/(tabs)/scan` is active, the normal bottom tab bar is hidden so there is no empty navigation gap below the camera. Leaving the scanner restores the account-aware five-tab navigation.
 
-Implemented: The primary scanner surface is a full-screen camera with a compact top HUD, one prominent guide instruction, four guide corners, exactly three primary controls, transient result/status overlays, and a pinned session summary.
+Implemented: The primary scanner surface is a full-screen camera with a compact top HUD, one prominent guide instruction, four guide corners, exactly three primary controls, transient latest-scan feedback, and a compact Review List chip.
 
-Implemented: The three primary controls remain Torch, Capture, and Search. Pause, settings, correction, manual search, diagnostics, and review actions are secondary overlays or sheets.
+Implemented: The three primary controls remain Torch, Capture, and Search. Pause, settings, diagnostics, and review actions are secondary overlays or sheets.
+
+Implemented: The active scanner no longer renders the full result card, Add button, confidence badge, pricing fields, quantity/condition/finish controls, card metadata, or large totals panel.
 
 ## State Rules
 
 Implemented: Capture, OCR reading, Scryfall searching, saving, open sheets, added feedback, and remove-card lockout hide the primary control row. This keeps one active visual surface at a time.
 
-Implemented: Added and remove-card states use brief status overlays instead of full result cards.
+Implemented: Added and remove-card states use brief status overlays instead of full result cards. Successful supported matches are added to Scanner Session Review immediately.
 
 Implemented: Failed recognition shows a compact recovery overlay with Retake and Search. It does not show pricing, quantity, review badges, placeholder thumbnails, session metadata, or technical lookup details in the primary UI.
 
-Implemented: Recognized and likely results keep confidence wording but do not show confidence percentages in the primary result.
+Implemented: High-confidence results enter the Review List as Suggested. Likely and ambiguous results enter as Needs review. Failed reads do not create unknown session rows.
 
 ## Secondary Surfaces
 
-Implemented: Scanner settings, manual search, diagnostics, correction controls, and top-three alternatives remain available without becoming the primary scanner layout.
+Implemented: Scanner settings, manual search, diagnostics, and Review List correction remain available without becoming the primary scanner layout.
 
 Implemented: Development diagnostics remain behind the explicit diagnostics flag and are not shown to production users.
 

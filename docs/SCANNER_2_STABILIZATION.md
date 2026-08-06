@@ -13,6 +13,18 @@ Status: Implemented as the current Scanner 2.0 reliability contract.
 
 This stabilization pass keeps the current Scanner 2.0 design and provider stack. It does not replace Apple Vision OCR, change native module names, add new TCG adapters, claim benchmark accuracy, retain images by default, or change billing, memberships, schemas, or production configuration.
 
+## Batch Intake Reliability
+
+Implemented: The active scanner inserts supported candidates into the session Review List immediately and no longer waits for an Add button.
+
+Implemented: Successful batch inserts use the existing stable scan id and session persistence path, then enter remove-card lockout to avoid scanning the same stationary card twice.
+
+Implemented: Failed OCR, no-title, no-match, and service failure states do not create unknown session rows. They show compact Retake/Search recovery and keep the user in the scanner.
+
+Implemented: Manual search selection writes one session line and returns to scanning.
+
+Partially Implemented: Provider-level crop timing is not yet split from OCR timing. Development diagnostics currently show capture, OCR, Scryfall lookup, session write, total, and fallback count.
+
 ## Canonical Camera Lifecycle
 
 Implemented: The route derives camera behavior from one lifecycle model in `mobile/services/premium-scanner-experience.ts`:
@@ -79,7 +91,7 @@ Implemented: Still capture uses a capture ID. Retake, unmount, or app background
 
 Implemented: Manual search uses a search ID so stale Scryfall results cannot overwrite newer searches.
 
-Implemented: Retake clears OCR, normalized title, candidates, selected result, result tray, user-facing error, development crop previews, and capture ID while preserving the scanner session and resuming the camera unless the app is backgrounded.
+Implemented: Retake clears OCR, normalized title, candidates, selected result, failed-read overlay, user-facing error, development crop previews, and capture ID while preserving the scanner session and resuming the camera unless the app is backgrounded.
 
 Planned: A network-only retry button for a valid OCR title can be added after physical QA verifies the current failed-state flow.
 

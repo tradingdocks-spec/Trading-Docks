@@ -77,6 +77,7 @@ Screen rules:
 - Sheet padding: 16-24 px.
 - Bottom navigation clearance: use centralized safe-area inset rules, not ad hoc small padding.
 - Scanner exception: the active Scan route may hide the normal bottom navigation so the camera can fill the screen. The account-aware tab bar must restore immediately when leaving scanner mode.
+- Batch scanner exception: the active Scan route is a capture surface, not a decision form. It may show a tiny latest-scan confirmation and Review List chip, but pricing, quantity, condition, finish, confidence explanation, and final decisions belong in Scanner Session Review.
 
 ## Typography
 
