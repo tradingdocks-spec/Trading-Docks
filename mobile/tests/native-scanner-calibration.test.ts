@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { calculateCardGuideLayout, DEFAULT_CONTINUOUS_SCANNER_THRESHOLDS, type ScannerGuideLayout } from '../services/continuous-offer-scanner.ts';
 import type { LiveFrameAnalysisResult } from '../services/live-card-recognition.ts';
 import {
+  NATIVE_FRAME_VISUAL_SIGNALS,
   NO_NATIVE_VISUAL_SIGNALS,
   applyScannerCalibrationToGuide,
   buildGuideCropMapping,
@@ -13,6 +14,7 @@ import {
   isScannerDiagnosticsEnabled,
   nativeScannerCalibrationKey,
   normalizeScannerCalibrationPreferences,
+  scaleScannerGuideLayoutForFrame,
   shouldRearmAfterCardRemoval,
   summarizeFoilDiagnostics,
 } from '../services/native-scanner-calibration.ts';
@@ -50,6 +52,31 @@ test('unavailable observation signals never pass auto-capture readiness', () => 
   });
   assert.equal(decision.ok, false);
   assert.match(decision.reason, /signals_unavailable/);
+});
+
+test('native frame visual signals expose only measured physical gates', () => {
+  assert.equal(NATIVE_FRAME_VISUAL_SIGNALS.boundary, true);
+  assert.equal(NATIVE_FRAME_VISUAL_SIGNALS.corners, true);
+  assert.equal(NATIVE_FRAME_VISUAL_SIGNALS.blur, true);
+  assert.equal(NATIVE_FRAME_VISUAL_SIGNALS.motion, true);
+  assert.equal(NATIVE_FRAME_VISUAL_SIGNALS.lighting, true);
+  assert.equal(NATIVE_FRAME_VISUAL_SIGNALS.glare, true);
+  assert.equal(NATIVE_FRAME_VISUAL_SIGNALS.ocr, false);
+  assert.equal(NATIVE_FRAME_VISUAL_SIGNALS.artwork, false);
+});
+
+test('guide layout scales from preview pixels into live luma frame pixels', () => {
+  const guide = { width: 260, height: 364, left: 65, top: 72, ratio: 260 / 364 };
+  const scaled = scaleScannerGuideLayoutForFrame(
+    guide,
+    { width: 390, height: 728 },
+    { width: 48, height: 64 },
+  );
+  assert.equal(scaled.left, 8);
+  assert.equal(scaled.top, 6);
+  assert.equal(scaled.width, 32);
+  assert.equal(scaled.height, 32);
+  assert.equal(scaled.ratio, 1);
 });
 
 test('auto-capture is blocked before camera ready even with good analysis', () => {

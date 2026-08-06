@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState, type ComponentProps, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type RefObject } from 'react';
 import { AccessibilityInfo, AppState, Platform, Pressable, ScrollView, Share, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,6 +18,7 @@ import {
   TDSessionStrip as TDSessionStripPrimitive,
   TDText,
 } from '@/components/design-system';
+import { ScannerCamera, type ScannerCameraFrame, type ScannerCameraHandle } from '@/components/scanner-camera';
 import { color, radius, space } from '@/design';
 import { useAccount } from '@/providers/account';
 import { CARD_CONDITION_OPTIONS, TRADE_BINDER_STATUS_OPTIONS } from '@/services/collector-mutations';
@@ -36,6 +37,7 @@ import {
   createRecognitionPipelineReport,
   markCaptureStarted,
   markScanResult,
+  nextContinuousScannerRuntime,
   scannerModeLabel,
   shouldAddRecognitionToBatch,
   type ContinuousScannerMode,
@@ -69,23 +71,30 @@ import {
 } from '@/services/scanner-performance-instrumentation';
 import {
   scannerCameraFraming,
-  scannerCameraViewQualityProps,
-  scannerCaptureOptions,
 } from '@/services/scanner-camera-quality';
 import {
+  NATIVE_FRAME_VISUAL_SIGNALS,
   NO_NATIVE_VISUAL_SIGNALS,
   applyScannerCalibrationToGuide,
   buildGuideCropMapping,
+  canAutoCaptureNative,
   diagnosticsFromFrameAnalysis,
   isScannerDiagnosticsEnabled,
   nativeScannerCalibrationKey,
   normalizeScannerCalibrationPreferences,
+  scaleScannerGuideLayoutForFrame,
   summarizeFoilDiagnostics,
   type PreviewDimensions,
   type ScannerCalibrationPreferences,
   type ScannerCaptureState,
   type ScannerDiagnosticsSnapshot,
 } from '@/services/native-scanner-calibration';
+import {
+  DEFAULT_SCANNER_VISION_CONFIG,
+  createScannerVisionEngine,
+  type ScannerVisionConfig,
+  type ScannerVisionResult,
+} from '@/services/scanner-vision-engine';
 import {
   buildPremiumResultTray,
   dominantScannerSurface,
@@ -116,10 +125,14 @@ export default function Scan() {
   const { accountType } = useAccount();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const cameraRef = useRef<CameraView | null>(null);
+  const cameraRef = useRef<ScannerCameraHandle | null>(null);
   const mountedRef = useRef(true);
   const activeCaptureIdRef = useRef<string | null>(null);
   const activeSearchIdRef = useRef<string | null>(null);
+  const autoCaptureInFlightRef = useRef(false);
+  const lastLiveFrameAcceptedAtRef = useRef(0);
+  const visionEngineRef = useRef<ReturnType<typeof createScannerVisionEngine> | null>(null);
+  const visionEngineKeyRef = useRef<string | null>(null);
   const scryfallSearchCacheRef = useRef(new Map<string, ScannerCardCandidate[]>());
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [context, setContext] = useState<ScannerContext | null>(null);
@@ -173,6 +186,7 @@ export default function Scan() {
   const [scannerPerformanceSamples, setScannerPerformanceSamples] = useState<ScannerPerformanceSample[]>([]);
   const [scannerPerformanceJsonSummary, setScannerPerformanceJsonSummary] = useState<string | null>(null);
   const [lastPricingTrace, setLastPricingTrace] = useState<ScannerPricingTrace | null>(null);
+  const [liveVisionResult, setLiveVisionResult] = useState<ScannerVisionResult | null>(null);
   const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
@@ -194,18 +208,28 @@ export default function Scan() {
     () => applyScannerCalibrationToGuide(baseGuideLayout, previewWidth, scannerCalibration),
     [baseGuideLayout, previewWidth, scannerCalibration],
   );
+  const liveFrameAnalysis = useMemo(() => liveVisionResult ? {
+    frameId: liveVisionResult.frameId,
+    observation: liveVisionResult.observation,
+    guidance: liveVisionResult.guidance,
+    readyForAutoCapture: liveVisionResult.readyForAutoCapture,
+    aspectRatio: liveVisionResult.detection.aspectRatio,
+    aspectRatioOk: liveVisionResult.detection.aspectRatio !== null && Math.abs(liveVisionResult.detection.aspectRatio - guideLayout.ratio) <= DEFAULT_SCANNER_VISION_CONFIG.aspectRatioTolerance,
+    crop: liveVisionResult.crop,
+  } : null, [guideLayout.ratio, liveVisionResult]);
+  const visualSignals = liveVisionResult ? NATIVE_FRAME_VISUAL_SIGNALS : NO_NATIVE_VISUAL_SIGNALS;
   const diagnosticsSnapshot = useMemo(() => diagnosticsFromFrameAnalysis({
     cameraReady,
     previewDimensions,
     guideDimensions: guideLayout,
-    analysis: null,
+    analysis: liveFrameAnalysis,
     captureState,
-    duplicateFingerprintStatus: autoScanner.duplicateProtection.awaitingCardRemoval ? 'awaiting_removal' : 'unavailable',
+    duplicateFingerprintStatus: autoScanner.duplicateProtection.awaitingCardRemoval ? 'awaiting_removal' : liveVisionResult ? 'clear' : 'unavailable',
     recognitionStage: recognitionStage === 'review_ready' ? 'recognized' : recognitionStage === 'failed' ? 'failed' : capturedFrame ? 'capture_only' : 'not_started',
     recognitionLatencyMs: magicStillScan?.ok ? magicStillScan.ocr.latencyMs + magicStillScan.lookupLatencyMs : null,
     sessionInsertionResult,
-    signalAvailability: NO_NATIVE_VISUAL_SIGNALS,
-  }), [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, capturedFrame, captureState, guideLayout, magicStillScan, previewDimensions, recognitionStage, sessionInsertionResult]);
+    signalAvailability: visualSignals,
+  }), [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, capturedFrame, captureState, guideLayout, liveFrameAnalysis, liveVisionResult, magicStillScan, previewDimensions, recognitionStage, sessionInsertionResult, visualSignals]);
   const guideCropMapping = useMemo(
     () => previewDimensions ? buildGuideCropMapping(previewDimensions, guideLayout) : null,
     [guideLayout, previewDimensions],
@@ -234,8 +258,8 @@ export default function Scan() {
     hasCameraError: captureState === 'failed' && Boolean(error),
   }), [appForegrounded, cameraAvailable, cameraReady, captureState, error, permission, scannerProcessing, userPausedCamera]);
   const guidePresentation = useMemo(
-    () => guidePresentationForPipeline(scannerPipeline, autoScanner.lastGuidance),
-    [autoScanner.lastGuidance, scannerPipeline],
+    () => guidePresentationForPipeline(scannerPipeline, liveVisionResult?.guidance ?? autoScanner.lastGuidance),
+    [autoScanner.lastGuidance, liveVisionResult?.guidance, scannerPipeline],
   );
   const failedResultTray = useMemo(() => buildPremiumResultTray({
     selectedCandidate: null,
@@ -305,6 +329,44 @@ export default function Scan() {
     state: scanner2State,
   });
   const showAddedOverlay = scanner2State === 'added' || scanner2State === 'remove_card';
+  const handleLiveFrame = useCallback((frame: ScannerCameraFrame) => {
+    if (!mountedRef.current || !context || frame.userId !== context.userId || !previewDimensions) return;
+    const now = Date.now();
+    if (now - lastLiveFrameAcceptedAtRef.current < 90) return;
+    lastLiveFrameAcceptedAtRef.current = now;
+    const frameGuide = scaleScannerGuideLayoutForFrame(guideLayout, previewDimensions, frame);
+    const engineKey = [
+      frame.width,
+      frame.height,
+      frameGuide.left,
+      frameGuide.top,
+      frameGuide.width,
+      frameGuide.height,
+    ].join(':');
+    if (visionEngineKeyRef.current !== engineKey || !visionEngineRef.current) {
+      const config: ScannerVisionConfig = {
+        ...DEFAULT_SCANNER_VISION_CONFIG,
+        guide: frameGuide,
+      };
+      visionEngineRef.current = createScannerVisionEngine({
+        config,
+        initialState: {
+          lastFrameAt: null,
+          stableSince: null,
+          awaitingRemoval: autoScanner.duplicateProtection.awaitingCardRemoval,
+        },
+      });
+      visionEngineKeyRef.current = engineKey;
+    }
+    const result = visionEngineRef.current.analyzeFrame(frame);
+    setLiveVisionResult(result);
+    setAutoScanner((current) => nextContinuousScannerRuntime(
+      current,
+      result.observation,
+      DEFAULT_SCANNER_VISION_CONFIG.thresholds,
+      result.observedAt,
+    ));
+  }, [autoScanner.duplicateProtection.awaitingCardRemoval, context, guideLayout, previewDimensions]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -345,6 +407,7 @@ export default function Scan() {
       activeCaptureIdRef.current = null;
       activeSearchIdRef.current = null;
       if (batchNoticeTimerRef.current) clearTimeout(batchNoticeTimerRef.current);
+      autoCaptureInFlightRef.current = false;
       active = false;
     };
   }, []);
@@ -621,7 +684,7 @@ export default function Scan() {
       setLastCaptureId(captureId);
       setCaptureState('capturing');
       const cameraCaptureStartedAt = scannerNow();
-      const photo = await cameraRef.current.takePictureAsync(scannerCaptureOptions());
+      const photo = await cameraRef.current.capturePhoto();
       const cameraCaptureMs = scannerNow() - cameraCaptureStartedAt;
       if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
       const frameLabel = `${photo.width} x ${photo.height}`;
@@ -692,6 +755,40 @@ export default function Scan() {
       setError(captureError instanceof Error ? captureError.message : 'Could not capture the card image.');
     }
   };
+  const captureStillRef = useRef(captureStill);
+  captureStillRef.current = captureStill;
+
+  useEffect(() => {
+    const decision = canAutoCaptureNative({
+      cameraReady,
+      signalAvailability: visualSignals,
+      analysis: liveFrameAnalysis,
+    });
+    if (
+      !autoCaptureEnabled
+      || !decision.ok
+      || autoCaptureInFlightRef.current
+      || scannerProcessing
+      || autoScanner.duplicateProtection.awaitingCardRemoval
+      || permission !== 'granted'
+      || !cameraActive
+    ) return;
+    autoCaptureInFlightRef.current = true;
+    void captureStillRef.current().finally(() => {
+      setTimeout(() => {
+        autoCaptureInFlightRef.current = false;
+      }, 900);
+    });
+  }, [
+    autoCaptureEnabled,
+    autoScanner.duplicateProtection.awaitingCardRemoval,
+    cameraActive,
+    cameraReady,
+    liveFrameAnalysis,
+    permission,
+    scannerProcessing,
+    visualSignals,
+  ]);
 
   const updateCalibration = (patch: Partial<ScannerCalibrationPreferences>) => {
     setScannerCalibration((current) => normalizeScannerCalibrationPreferences({ ...current, ...patch }));
@@ -807,11 +904,13 @@ export default function Scan() {
         instruction={scannerInstruction}
         platform={Platform.OS}
         latestResultKind={failedResultTray?.kind ?? null}
+        userId={context?.userId ?? 'scanner-user'}
         onPreviewLayout={handlePreviewLayout}
         onCameraReady={() => {
           setCameraReady(true);
           setCaptureState('ready');
         }}
+        onLiveFrame={handleLiveFrame}
         onToggleTorch={() => setTorchEnabled((value) => !value)}
         onCapture={captureStill}
         onRequestCamera={requestCamera}
@@ -1076,14 +1175,16 @@ function ScannerViewport({
   instruction,
   platform,
   latestResultKind,
+  userId,
   onPreviewLayout,
   onCameraReady,
+  onLiveFrame,
   onToggleTorch,
   onCapture,
   onRequestCamera,
   hideControls,
 }: {
-  cameraRef: RefObject<CameraView | null>;
+  cameraRef: RefObject<ScannerCameraHandle | null>;
   permission: ScannerPermissionState;
   cameraActive: boolean;
   cameraLifecycle: Scanner2CameraLifecycleState;
@@ -1096,8 +1197,10 @@ function ScannerViewport({
   instruction: string;
   platform: string;
   latestResultKind: PremiumResultTrayKind | null;
+  userId: string;
   onPreviewLayout: (event: LayoutChangeEvent) => void;
   onCameraReady: () => void;
+  onLiveFrame: (frame: ScannerCameraFrame) => void;
   onToggleTorch: () => void;
   onCapture: () => void;
   onRequestCamera: () => void;
@@ -1109,13 +1212,13 @@ function ScannerViewport({
     <View style={[s.cameraStage, { height: cameraStageHeight }]}>
       {showCamera ? (
         <View style={s.cameraViewport} onLayout={onPreviewLayout}>
-          <CameraView
+          <ScannerCamera
             ref={cameraRef}
-            style={StyleSheet.absoluteFill}
-            facing="back"
-            enableTorch={torchEnabled}
-            {...scannerCameraViewQualityProps()}
-            onCameraReady={onCameraReady}
+            active={showCamera}
+            torchEnabled={torchEnabled}
+            userId={userId}
+            onReady={onCameraReady}
+            onFrame={onLiveFrame}
           />
           <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
         </View>

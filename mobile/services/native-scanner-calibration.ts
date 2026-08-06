@@ -110,6 +110,19 @@ export const NO_NATIVE_VISUAL_SIGNALS: ScannerSignalAvailability = {
   finish: false,
 };
 
+export const NATIVE_FRAME_VISUAL_SIGNALS: ScannerSignalAvailability = {
+  boundary: true,
+  corners: true,
+  perspective: true,
+  blur: true,
+  motion: true,
+  lighting: true,
+  glare: true,
+  ocr: false,
+  artwork: false,
+  finish: false,
+};
+
 export function isScannerDiagnosticsEnabled(env: Record<string, string | undefined> = process.env) {
   return env.NODE_ENV !== 'production' && env[SCANNER_DIAGNOSTICS_DEV_FLAG] === 'true';
 }
@@ -158,6 +171,24 @@ export function buildGuideCropMapping(preview: PreviewDimensions, guide: Scanner
     guideAspectRatio,
     previewAspectRatio,
     aspectRatioError: Math.abs(guideAspectRatio - TRADING_CARD_GUIDE_RATIO),
+  };
+}
+
+export function scaleScannerGuideLayoutForFrame(
+  guide: ScannerGuideLayout,
+  preview: PreviewDimensions,
+  frame: PreviewDimensions,
+): ScannerGuideLayout {
+  const scaleX = frame.width / Math.max(1, preview.width);
+  const scaleY = frame.height / Math.max(1, preview.height);
+  const width = Math.max(1, Math.round(guide.width * scaleX));
+  const height = Math.max(1, Math.round(guide.height * scaleY));
+  return {
+    width,
+    height,
+    left: Math.round(guide.left * scaleX),
+    top: Math.round(guide.top * scaleY),
+    ratio: width / height,
   };
 }
 
