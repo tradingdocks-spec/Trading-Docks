@@ -65,8 +65,10 @@ import {
   resolvePremiumScannerPipeline,
   resolveScanner2InteractionState,
   scanner2CameraHeight,
-  scanner2HudLine,
+  scanner2HeaderModel,
+  scanner2MainControls,
   scanner2MotionForState,
+  scanner2SessionStripModel,
   shouldBlockScannerCapture,
   shouldScannerCameraRender,
   shouldShowScannerResumeAction,
@@ -248,11 +250,17 @@ export default function Scan() {
     hasCameraError: captureState === 'camera_not_ready' && Boolean(error),
   });
   const guideMotion = scanner2MotionForState(scanner2State, reduceMotion);
-  const hudLine = scanner2HudLine({
+  const scannerHeader = scanner2HeaderModel({
     modeLabel: scannerModeLabel(sessionMode),
     cardCount: sessionTotals?.cardsScanned ?? 0,
+    marketTotal: sessionTotals?.marketValue ?? null,
     offerTotal: sessionTotals?.cashOffer ?? null,
     reviewCount: sessionTotals?.needsReview ?? 0,
+  });
+  const sessionStrip = scanner2SessionStripModel({
+    cardCount: sessionTotals?.cardsScanned ?? 0,
+    marketTotal: sessionTotals?.marketValue ?? null,
+    offerTotal: sessionTotals?.cashOffer ?? null,
   });
 
   useEffect(() => {
@@ -686,7 +694,13 @@ export default function Scan() {
 
   return (
     <TDScreen style={s.scannerShell}>
-      <ScannerHud line={hudLine} reviewCount={sessionTotals?.needsReview ?? 0} topInset={insets.top} onPress={() => setShowSettingsSheet(true)} />
+      <ScannerHud
+        header={scannerHeader}
+        topInset={insets.top}
+        cameraActive={cameraActive}
+        onTogglePause={toggleCameraPause}
+        onSettings={() => setShowSettingsSheet(true)}
+      />
 
       <ScannerViewport
         cameraRef={cameraRef}
@@ -708,12 +722,8 @@ export default function Scan() {
           setCaptureState('ready');
         }}
         onToggleTorch={() => setTorchEnabled((value) => !value)}
-        onTogglePause={toggleCameraPause}
         onCapture={captureStill}
         onManualSearch={() => setShowManualSearchSheet(true)}
-        onSettings={() => setShowSettingsSheet(true)}
-        diagnosticsEnabled={diagnosticsEnabled}
-        onDiagnostics={() => setShowDiagnosticsSheet(true)}
         onRequestCamera={requestCamera}
       />
 
@@ -827,6 +837,10 @@ export default function Scan() {
             <OptionRow label="Storage" options={['none', ...(context?.locations.map((location) => location.id) ?? [])]} value={storageLocationId ?? 'none'} display={(id) => id === 'none' ? 'Unassigned' : context?.locations.find((location) => location.id === id)?.name ?? 'Unavailable'} onSelect={(id) => setStorageLocationId(id === 'none' ? null : id)} />
             <OptionRow label="Trade Binder" options={TRADE_BINDER_STATUS_OPTIONS} value={tradeStatus} display={(status) => status.replaceAll('_', ' ')} onSelect={setTradeStatus} />
             <TDBadge tone="info">High-volume defaults: {highVolumeDefaults.autoAddHighConfidence ? 'auto-add enabled' : 'suggest only'}</TDBadge>
+            {diagnosticsEnabled ? <TDButton label="Scanner diagnostics" variant="secondary" onPress={() => {
+              setShowSettingsSheet(false);
+              setShowDiagnosticsSheet(true);
+            }} /> : null}
             <TDText variant="caption" tone="muted">{privacy.message}</TDText>
           </TDCard>
         ) : null}
@@ -921,29 +935,46 @@ export default function Scan() {
       </ScrollView>
       <ScannerSessionStrip
         bottomInset={insets.bottom}
-        cardCount={sessionTotals?.cardsScanned ?? 0}
-        marketTotal={sessionTotals?.marketValue ?? null}
-        offerTotal={sessionTotals?.cashOffer ?? null}
+        model={sessionStrip}
         onReviewSession={() => router.push('/scanner-session' as never)}
       />
     </TDScreen>
   );
 }
 
-function ScannerHud({ line, reviewCount, topInset, onPress }: { line: string; reviewCount: number; topInset: number; onPress: () => void }) {
+function ScannerHud({
+  header,
+  topInset,
+  cameraActive,
+  onTogglePause,
+  onSettings,
+}: {
+  header: ReturnType<typeof scanner2HeaderModel>;
+  topInset: number;
+  cameraActive: boolean;
+  onTogglePause: () => void;
+  onSettings: () => void;
+}) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Scanner session summary. ${line}`}
-      onPress={onPress}
-      style={[s.topHud, { paddingTop: Math.max(topInset, 10) }]}
-    >
-      <View style={s.hudSummaryIcon}>
-        <Ionicons name="scan-outline" size={15} color={color.primaryBright} />
+    <View style={[s.topHud, { paddingTop: Math.max(topInset, 10) }]}>
+      <View style={s.hudTextStack}>
+        <View style={s.hudLine}>
+          <TDText variant="small" numberOfLines={1} style={s.hudMode}>{header.line1.mode}</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{header.line1.cards}</TDText>
+        </View>
+        <View style={s.hudMetricLine}>
+          {header.line2.map((item) => (
+            <TDText key={item.id} variant="caption" tone={item.id === 'offer' ? 'success' : 'muted'} numberOfLines={1} style={s.hudMetric}>
+              {item.label} {item.value}
+            </TDText>
+          ))}
+        </View>
       </View>
-      <TDText variant="caption" numberOfLines={1} style={s.hudSummaryText}>{line}</TDText>
-      <TDBadge tone={reviewCount ? 'warning' : 'info'}>{reviewCount} review</TDBadge>
-    </Pressable>
+      <View style={s.hudActions}>
+        <HeaderIconControl label={cameraActive ? 'Pause scanner' : 'Resume scanner'} icon={cameraActive ? 'pause-outline' : 'play-outline'} onPress={onTogglePause} />
+        <HeaderIconControl label="Scanner settings" icon="options-outline" onPress={onSettings} />
+      </View>
+    </View>
   );
 }
 
@@ -964,12 +995,8 @@ function ScannerViewport({
   onPreviewLayout,
   onCameraReady,
   onToggleTorch,
-  onTogglePause,
   onCapture,
   onManualSearch,
-  onSettings,
-  diagnosticsEnabled,
-  onDiagnostics,
   onRequestCamera,
 }: {
   cameraRef: RefObject<CameraView | null>;
@@ -988,12 +1015,8 @@ function ScannerViewport({
   onPreviewLayout: (event: LayoutChangeEvent) => void;
   onCameraReady: () => void;
   onToggleTorch: () => void;
-  onTogglePause: () => void;
   onCapture: () => void;
   onManualSearch: () => void;
-  onSettings: () => void;
-  diagnosticsEnabled: boolean;
-  onDiagnostics: () => void;
   onRequestCamera: () => void;
 }) {
   const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
@@ -1018,7 +1041,7 @@ function ScannerViewport({
           <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={42} color={color.textMuted} />
           <TDText variant="title">{cameraLifecycleTitle(cameraLifecycle, permission)}</TDText>
           <TDText variant="small" tone="muted" style={s.centerText}>{cameraLifecycleMessage(cameraLifecycle, permission, platform)}</TDText>
-          {showResume ? <TDButton label="Resume camera" onPress={onTogglePause} /> : null}
+          {showResume ? <TDText variant="small" tone="muted">Use the header play control to resume.</TDText> : null}
           {permission !== 'granted' && cameraLifecycle !== 'unavailable' ? <TDButton label="Enable camera" onPress={onRequestCamera} /> : null}
         </View>
       )}
@@ -1026,16 +1049,11 @@ function ScannerViewport({
       {latestResultKind !== 'failed' ? <ScannerStatus guidePresentation={guidePresentation} scannerPipeline={scannerPipeline} /> : null}
       <ScannerControls
         torchEnabled={torchEnabled}
-        cameraActive={cameraActive}
         cameraReady={cameraReady}
         permission={permission}
         onToggleTorch={onToggleTorch}
-        onTogglePause={onTogglePause}
         onCapture={onCapture}
         onManualSearch={onManualSearch}
-        onSettings={onSettings}
-        diagnosticsEnabled={diagnosticsEnabled}
-        onDiagnostics={onDiagnostics}
       />
     </View>
   );
@@ -1076,41 +1094,27 @@ function ScannerStatus({ guidePresentation, scannerPipeline }: { guidePresentati
 
 function ScannerControls({
   torchEnabled,
-  cameraActive,
   cameraReady,
   permission,
   onToggleTorch,
-  onTogglePause,
   onCapture,
   onManualSearch,
-  onSettings,
-  diagnosticsEnabled,
-  onDiagnostics,
 }: {
   torchEnabled: boolean;
-  cameraActive: boolean;
   cameraReady: boolean;
   permission: ScannerPermissionState;
   onToggleTorch: () => void;
-  onTogglePause: () => void;
   onCapture: () => void;
   onManualSearch: () => void;
-  onSettings: () => void;
-  diagnosticsEnabled: boolean;
-  onDiagnostics: () => void;
 }) {
+  const controls = scanner2MainControls();
   return (
     <View style={s.cameraControls}>
-      <View style={s.secondaryControls}>
-        <IconControl label={torchEnabled ? 'Turn torch off' : 'Turn torch on'} icon={torchEnabled ? 'flash' : 'flash-outline'} onPress={onToggleTorch} />
-        <IconControl label={cameraActive ? 'Pause scanner' : 'Resume scanner'} icon={cameraActive ? 'pause-outline' : 'play-outline'} onPress={onTogglePause} />
-      </View>
-      <IconControl label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />
-      <View style={s.secondaryControls}>
-        <IconControl label="Search manually" icon="search-outline" onPress={onManualSearch} />
-        <IconControl label="Scanner settings" icon="options-outline" onPress={onSettings} />
-        {diagnosticsEnabled ? <IconControl label="Scanner diagnostics" icon="bug-outline" onPress={onDiagnostics} /> : null}
-      </View>
+      {controls.map((control) => {
+        if (control === 'torch') return <IconControl key={control} label={torchEnabled ? 'Turn torch off' : 'Turn torch on'} icon={torchEnabled ? 'flash' : 'flash-outline'} onPress={onToggleTorch} />;
+        if (control === 'capture') return <IconControl key={control} label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />;
+        return <IconControl key={control} label="Search manually" icon="search-outline" onPress={onManualSearch} />;
+      })}
     </View>
   );
 }
@@ -1156,15 +1160,14 @@ function ScannerResultTray({
             <View style={s.failureIcon}>
               <Ionicons name="alert-circle-outline" size={22} color={color.warning} />
             </View>
-            <View style={s.resultText}>
-              <TDText variant="title">{tray.title}</TDText>
-              <TDText variant="small" tone="muted" numberOfLines={3}>{shortFailureMessage(tray.subtitle)}</TDText>
+          <View style={s.resultText}>
+            <TDText variant="title">{tray.title}</TDText>
+              <TDText variant="small" tone="muted" numberOfLines={2}>{shortFailureMessage(tray.subtitle)}</TDText>
             </View>
-            <TDBadge tone="warning">{tray.status}</TDBadge>
           </View>
           <View style={s.trayActions}>
             <TDButton label="Retake" variant="secondary" onPress={onRetake} />
-            <TDButton label="Search manually" variant="secondary" onPress={onManualSearch} />
+            <TDButton label="Search" variant="secondary" onPress={onManualSearch} />
           </View>
         </View>
       </TDCard>
@@ -1190,24 +1193,23 @@ function ScannerResultTray({
       {children}
       <View style={s.trayActions}>
         {selected ? <TDButton label={tray.primaryAction} loading={saving} onPress={onSave} /> : null}
-        <TDButton label={showCorrectionTools ? 'Hide correction' : 'Correct'} variant="secondary" disabled={!selected} onPress={onToggleCorrection} />
-        <TDButton label="Retake" variant="secondary" onPress={onRetake} />
-        <TDButton label="Search manually" variant="secondary" onPress={onManualSearch} />
+        <TDButton label={showCorrectionTools ? 'Done' : 'Correct'} variant="secondary" disabled={!selected} onPress={onToggleCorrection} />
       </View>
     </TDCard>
   );
 }
 
-function ScannerSessionStrip({ bottomInset, cardCount, marketTotal, offerTotal, onReviewSession }: { bottomInset: number; cardCount: number; marketTotal: number | null; offerTotal: number | null; onReviewSession: () => void }) {
+function ScannerSessionStrip({ bottomInset, model, onReviewSession }: { bottomInset: number; model: ReturnType<typeof scanner2SessionStripModel>; onReviewSession: () => void }) {
   return (
-    <View style={[s.bottomSessionBar, { paddingBottom: Math.max(bottomInset, 10) }]}>
-      <View style={s.bottomTotals}>
-        <CompactStat label="Cards" value={String(cardCount)} />
-        <CompactStat label="Market" value={compactScannerMoney(marketTotal)} />
-        <CompactStat label="Offer" value={compactScannerMoney(offerTotal)} tone="success" />
-      </View>
-      <TDButton label="Review Session" variant="secondary" onPress={onReviewSession} />
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open scanner session review. ${model.summary}`}
+      onPress={onReviewSession}
+      style={[s.bottomSessionBar, model.compact && s.bottomSessionBarCompact, { paddingBottom: Math.max(bottomInset, 10) }]}
+    >
+      <TDText variant="small" numberOfLines={1} style={s.bottomSessionSummary}>{model.summary}</TDText>
+      <TDText variant="small" tone="info" numberOfLines={1}>{model.reviewLabel}</TDText>
+    </Pressable>
   );
 }
 
@@ -1248,6 +1250,20 @@ function IconControl({
       ]}
     >
       <Ionicons name={icon} size={prominent ? 24 : 20} color={prominent ? color.canvas : color.text} />
+    </Pressable>
+  );
+}
+
+function HeaderIconControl({ label, icon, onPress }: { label: string; icon: ComponentProps<typeof Ionicons>['name']; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [s.headerIconControl, pressed && s.iconControlPressed]}
+    >
+      <Ionicons name={icon} size={19} color={color.text} />
     </Pressable>
   );
 }
@@ -1413,9 +1429,14 @@ function createScanId() {
 
 const s = StyleSheet.create({
   scannerShell: { flex: 1, backgroundColor: color.canvas },
-  topHud: { minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingBottom: space.xs, backgroundColor: color.canvas },
-  hudSummaryIcon: { width: 26, height: 26, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: color.primary + '22' },
-  hudSummaryText: { flex: 1, minWidth: 0 },
+  topHud: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.xs, backgroundColor: color.canvas },
+  hudTextStack: { flex: 1, minWidth: 0, gap: 2 },
+  hudLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  hudMode: { flex: 1, minWidth: 0 },
+  hudMetricLine: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  hudMetric: { minWidth: 0, flexShrink: 1 },
+  hudActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  headerIconControl: { width: 38, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: color.border, backgroundColor: color.surfaceFloating + 'CC' },
   hudRow: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs },
   hudMetricRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   modePill: { flex: 1, minHeight: 36, minWidth: 0, borderRadius: radius.pill, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surfaceFloating + 'E8' },
@@ -1462,8 +1483,9 @@ const s = StyleSheet.create({
   sheet: { gap: space.md, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
   sheetHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   closeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
-  bottomSessionBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F8' },
-  bottomTotals: { flex: 1, minWidth: 0, flexDirection: 'row', gap: space.xs },
+  bottomSessionBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 52, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F8' },
+  bottomSessionBarCompact: { opacity: 0.92 },
+  bottomSessionSummary: { flex: 1, minWidth: 0 },
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
   header: { gap: space.xs },
@@ -1478,7 +1500,6 @@ const s = StyleSheet.create({
   guideCornerBottomRight: { top: undefined, left: undefined, right: -2, bottom: -2, borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 4, borderBottomWidth: 4, borderBottomRightRadius: radius.md },
   liveStatus: { position: 'absolute', top: space.sm, right: space.sm, left: space.sm, gap: space.xs },
   cameraControls: { position: 'absolute', right: space.sm, bottom: space.sm, left: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, justifyContent: 'center' },
-  secondaryControls: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   scroller: { flex: 1 },
   statusRow: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
   diagnosticsCard: { gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.md, backgroundColor: color.canvasRaised },

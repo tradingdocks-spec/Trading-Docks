@@ -65,7 +65,7 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Add the first local live-frame analyzer for development-build frame samples, including card-boundary, four-corner, aspect, guide-fill, blur, motion, lighting, glare, fingerprint, targeted OCR mapping, and Magic adapter handoff tests.
 - Implemented: Add native scanner calibration contracts, development-only diagnostics, camera-ready capture gating, local guide calibration, and visible unidentified-capture session outcomes for physical QA.
 - Implemented: Add native iOS Magic OCR v1 with a local Expo Apple Vision module, guide-assisted captured-still crop mapping, OCR normalization, Scryfall top-three lookup, confidence caps, temporary capture cleanup, and diagnostics.
-- Implemented: Redesign the active Scan tab into a premium camera-first Card Show Purchase experience with compact HUD, large camera viewport, guide states, result tray, secondary settings/manual/diagnostics panels, and safe-area session bar.
+- Implemented: Redesign the active Scan tab into a premium camera-first Card Show Purchase experience with compact two-line header, large camera viewport, one instruction, Torch/Capture/Search controls, compact result tray, secondary settings/manual/diagnostics panels, and safe-area session strip.
 - Implemented: Calibrate Magic still-capture OCR for physical iPhone retry flow by normalizing rotated still dimensions, adding primary/expanded/lower/wide/full-card title fallback regions, exposing development-only crop proof, and ensuring Retake resumes the camera without entering the user-paused state.
 - Implemented: Stabilize Scanner 2.0 end to end with a canonical camera lifecycle, app background guards, wider title OCR fallback, structured Scryfall outcomes, stale manual-search guards, dev-only crop proof diagnostics, and refreshed physical QA documentation.
 - Partially Implemented: Active camera mode still needs VisionCamera frame bridge wiring and physical-device QA before hands-free auto-capture is production-ready.
@@ -89,7 +89,7 @@ Do not add new production features until the foundation items below are reviewed
 
 Status: Implemented.
 
-Scanner 2.0 establishes the camera-first mobile scanner shell, compact HUD, compact result tray, failure recovery banner, pinned session strip, Scanner 2.0 state model, reduced-motion contract, and named scanner component structure.
+Scanner 2.0 establishes the camera-first mobile scanner shell, compact two-line header, exactly three primary controls, compact result tray, failure recovery banner, pinned session strip, Scanner 2.0 state model, reduced-motion contract, and named scanner component structure.
 
 Recommended next scanner work:
 

@@ -8,7 +8,7 @@
 - Implemented: The diagnostics overlay reports camera readiness, scanner lifecycle state, capture ID, preview dimensions, captured image dimensions, source and normalized orientation, guide dimensions, guide ratio, normalized guide crop, title crop variants, collector crop, crop pixel sizes, OCR attempts, duplicate state, recognition stage, Scryfall outcome, session insertion result, and unavailable visual signals.
 - Implemented: Local guide calibration preferences support guide scale and vertical offset for device testing; values are stored only in user-scoped local app storage.
 - Implemented: Still captures on the new iOS development build run local Apple Vision OCR, query Scryfall, show top-three Magic candidates, require exact-printing confirmation, and preserve manual search fallback.
-- Implemented: The primary Scan tab now uses a camera-first layout with compact controls, one guide instruction, latest-result tray, secondary settings/manual/diagnostics panels, and a safe-area-aware bottom session bar.
+- Implemented: The primary Scan tab now uses a camera-first layout with compact two-line header, one guide instruction, exactly three primary controls, latest-result tray, secondary settings/manual/diagnostics panels, and a safe-area-aware compact session strip.
 - Partially Implemented: The pure live-frame analyzer can evaluate synthetic luma frames for boundaries, motion, blur, lighting, glare, and crop metadata, but it is not wired to native camera frames in the active UI.
 - Planned: Physical-device QA on iOS and Android is required before claiming hands-free auto-capture is operational.
 - Planned: Native frame delivery, artwork matching, set-symbol detection, perspective-corrected image output, Android OCR, and benchmarked finish classification remain future work.
@@ -70,7 +70,7 @@
 - Verify failed OCR shows Retake and Manual Search and does not create an automatic unknown-card session row.
 - Verify the latest-result tray fits small iPhone widths and large text.
 - Verify scanner settings, manual search, and diagnostics panels open and close without blocking the camera state.
-- Verify bottom session bar remains above the iOS safe area and mobile tab bar.
+- Verify the compact session strip remains above the iOS safe area and mobile tab bar.
 - Verify temporary capture cleanup status reports deleted in diagnostics.
 - Verify same stationary card does not repeatedly capture when future auto-capture is connected.
 - Verify removing the card rearms the next scan.

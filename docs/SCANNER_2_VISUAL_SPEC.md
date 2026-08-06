@@ -6,11 +6,13 @@ Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It doe
 
 ## Final Hierarchy
 
-1. Camera viewport occupies the dominant region.
-2. One active instruction appears over the camera.
-3. Latest result is compact and close to the camera.
-4. Session strip is pinned above mobile bottom navigation.
-5. Settings, diagnostics, correction, and candidate details appear as secondary sheets.
+1. Compact two-line scanner header.
+2. Camera viewport occupies the dominant region.
+3. One active instruction appears over the camera.
+4. Three main controls: Torch, Capture, Search.
+5. Compact latest-result tray when needed.
+6. Compact session strip pinned above mobile bottom navigation.
+7. Settings, diagnostics, correction, and candidate details appear as secondary sheets.
 
 ## Visual Direction
 
@@ -24,27 +26,35 @@ Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It doe
 
 ## Scanner Components
 
-- `ScannerHud`: compact top status line with mode, card count, offer total, and review count.
+- `ScannerHud`: compact two-line header with mode and card count on line 1, then market, offer, and nonzero review count on line 2.
 - `ScannerViewport`: bounded camera surface, guide, instruction, and capture controls.
 - `ScannerGuide`: four OCR-aligned corner brackets with state tone.
-- `ScannerControls`: dominant capture fallback plus secondary torch, pause, manual search, settings, and development-only diagnostics.
+- `ScannerControls`: exactly three primary camera controls: Torch, Capture, Search.
 - `ScannerStatus`: single active instruction and state label.
 - `ScannerResultTray`: compact recognized/likely/ambiguous/failed result.
 - `ScannerCandidateSheet`: top-three exact printing selection.
-- `ScannerSessionStrip`: pinned session totals and Review Session action.
+- `ScannerSessionStrip`: pinned one-row totals and Review action.
 - `ScannerSettingsSheet`: high-volume defaults and scanner settings.
 - `ScannerManualSearchSheet`: manual exact-printing fallback.
 - `ScannerDiagnosticsSheet`: development-only lookup and OCR diagnostics.
 
 ## Result Behavior
 
-Recognized and likely results show thumbnail, card name, set, collector number, confidence, market value, offer value, and short action controls.
+Recognized and likely results show thumbnail, card name, set, collector number, market value, offer value, Add, and Correct.
 
 Ambiguous results keep the tray compact and expose top-three candidates in a sheet. The camera remains the primary surface.
 
-Failed results show only a compact recovery banner: "Couldn't read the card", Retake, and Search manually. They never show pricing, quantity, placeholder thumbnails, duplicate notices, or technical exception text.
+Failed results show only a compact recovery banner: "Couldn't read the card", Retake, and Search. They never show pricing, quantity, review badges, placeholder thumbnails, duplicate notices, session metadata, or technical exception text.
 
-Resume camera is shown only after the user explicitly pauses. Normal ready, starting, processing, failed, and background recovery states do not show an Open Camera or Resume Camera step.
+Resume is available only through the header pause/play control after the user explicitly pauses. Normal ready, starting, processing, failed, and background recovery states do not show an Open Camera or primary Resume Camera step.
+
+## Secondary Surfaces
+
+- Settings sheet: mode, cash percentage, defaults, destination, storage, Trade Binder, and development diagnostics entry.
+- Manual search sheet: search field, Scryfall results, and exact-printing selection.
+- Candidate sheet area: top-three candidates and printing details.
+- Diagnostics sheet: development-only native module, OCR, Scryfall, cleanup, lifecycle, and crop proof details.
+- Session Review route: scanned cards, edits, missing prices, export, and finalize workflow.
 
 ## Motion Rules
 

@@ -90,8 +90,32 @@ export type Scanner2CameraLifecycleState =
 export type Scanner2HudSummary = {
   modeLabel: string;
   cardCount: number;
+  marketTotal?: number | null;
   offerTotal: number | null;
   reviewCount: number;
+};
+
+export type Scanner2HeaderModel = {
+  line1: {
+    mode: string;
+    cards: string;
+  };
+  line2: {
+    id: 'market' | 'offer' | 'review';
+    label: string;
+    value: string;
+  }[];
+  rows: 2;
+  overflows: false;
+};
+
+export type Scanner2MainControlId = 'torch' | 'capture' | 'search';
+
+export type Scanner2SessionStripModel = {
+  hidden: boolean;
+  summary: string;
+  reviewLabel: string;
+  compact: boolean;
 };
 
 export const PREMIUM_SCANNER_PIPELINE_STATES: PremiumScannerPipelineState[] = [
@@ -217,7 +241,7 @@ export function scannerHudRowsForWidth(width: number) {
   const narrow = width <= 360;
   return {
     rows: 2,
-    topRowItems: ['mode', 'review'],
+    topRowItems: ['mode', 'cards'],
     metricColumns: narrow ? 2 : 3,
     maxStatWidth: narrow ? 118 : 132,
     overflows: false,
@@ -229,6 +253,52 @@ export function scanner2HudLine(input: Scanner2HudSummary) {
   const offer = `Offer ${compactScannerMoney(input.offerTotal)}`;
   const review = `${input.reviewCount} review`;
   return `${input.modeLabel} - ${cards} - ${offer} - ${review}`;
+}
+
+export function scanner2HeaderModel(input: Scanner2HudSummary): Scanner2HeaderModel {
+  const market = compactScannerMoney(input.marketTotal ?? null);
+  const offer = compactScannerMoney(input.offerTotal);
+  const line2: Scanner2HeaderModel['line2'] = [
+    { id: 'market', label: 'Market', value: market },
+    { id: 'offer', label: 'Offer', value: offer },
+  ];
+
+  if (input.reviewCount > 0) {
+    line2.push({
+      id: 'review',
+      label: 'Review',
+      value: String(input.reviewCount),
+    });
+  }
+
+  return {
+    line1: {
+      mode: input.modeLabel,
+      cards: `${input.cardCount} card${input.cardCount === 1 ? '' : 's'}`,
+    },
+    line2,
+    rows: 2,
+    overflows: false,
+  };
+}
+
+export function scanner2MainControls(): Scanner2MainControlId[] {
+  return ['torch', 'capture', 'search'];
+}
+
+export function scanner2SessionStripModel(input: {
+  cardCount: number;
+  marketTotal: number | null;
+  offerTotal: number | null;
+}): Scanner2SessionStripModel {
+  const empty = input.cardCount === 0 && input.marketTotal === null && input.offerTotal === null;
+  const cards = `${input.cardCount} card${input.cardCount === 1 ? '' : 's'}`;
+  return {
+    hidden: false,
+    summary: `${cards}   Market ${compactScannerMoney(input.marketTotal)}   Offer ${compactScannerMoney(input.offerTotal)}`,
+    reviewLabel: 'Review',
+    compact: empty,
+  };
 }
 
 export function resolveScanner2InteractionState(input: {

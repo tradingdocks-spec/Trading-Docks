@@ -3,7 +3,7 @@
 ## Current Status
 
 - Implemented: The active mobile Scan tab now uses a camera-first hierarchy for Card Show Purchase intake.
-- Implemented: The primary screen is organized into a compact top HUD, large camera viewport, concise guide message, latest-result tray, and bottom session bar.
+- Implemented: The primary screen is organized into a compact two-line header, large camera viewport, one concise guide message, three essential controls, compact latest-result tray, and compact bottom session strip.
 - Implemented: Settings, manual search, diagnostics, privacy copy, and calibration controls are secondary panels instead of always-visible stacked cards.
 - Implemented: The scanner preserves the existing Apple Vision OCR module, guide-assisted crop mapping, Scryfall lookup, top-three candidates, scanner session persistence, offer calculation, temporary-image cleanup, diagnostics data, and manual search fallback.
 - Partially Implemented: Auto-capture remains gated by camera readiness and unavailable live visual signals. Native live frame delivery still requires physical-device QA before hands-free capture is production-ready.
@@ -12,10 +12,11 @@
 
 ## Camera-First Hierarchy
 
-- Implemented: Top HUD shows scanner mode, card count, running market value, running cash offer, and review count.
+- Implemented: Top header shows scanner mode and card count on the first line, then running market value, running cash offer, and review count only when greater than zero.
 - Implemented: The camera area uses most of the first viewport, near-black navy background, four corner brackets, and one prominent instruction.
-- Implemented: Controls are compact icon buttons for torch, pause/resume, capture, manual search, settings, and development diagnostics.
-- Implemented: The bottom session bar stays above the safe area and shows card count, market value, offer total, and Session Review navigation.
+- Implemented: The primary camera controls are exactly Torch, Capture, and Search. Capture remains the dominant action.
+- Implemented: Pause and settings are compact header icon actions. Diagnostics is development-only inside scanner settings.
+- Implemented: The bottom session strip stays above the safe area and shows card count, market value, offer total, and Review navigation in one row.
 - Implemented: Manual search and settings are explicit panels opened by user action, not inline content that interrupts scanning.
 
 ## Scanner State Model
@@ -27,10 +28,10 @@
 
 ## Result Tray Behavior
 
-- Implemented: Recognized and likely results render as compact trays with card identity, printing, language, finish, condition, quantity, market value, offer, and action buttons.
+- Implemented: Recognized and likely results render as compact trays with thumbnail, card identity, printing, market value, offer value, Add, and Correct.
 - Implemented: Ambiguous results expand the tray and show top printing candidates.
 - Implemented: Failed OCR produces a recovery tray and does not create an automatic "Unrecognized card" session row from the UI path.
-- Implemented: Correction tools allow alternate printing, manual search, condition, finish, language, quantity, market price, storage, Trade Binder, Wishlist, retake, and undo/remove through the existing session tools.
+- Implemented: Correction tools allow alternate printing, manual search, condition, finish, language, quantity, market price, storage, Trade Binder, Wishlist, retake, and undo/remove through secondary tray or session tools.
 - Partially Implemented: The visual tray uses still-image OCR results and manual pricing; live price ingestion remains outside this sprint.
 
 ## High-Volume Workflow
@@ -44,7 +45,7 @@
 ## Diagnostics Separation
 
 - Implemented: Diagnostics stay behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`.
-- Implemented: Diagnostics are opened through a development icon and are not rendered inline in normal scanner mode.
+- Implemented: Diagnostics are opened from scanner settings only when development diagnostics are enabled and are not rendered inline in normal scanner mode.
 - Implemented: Diagnostics include OCR linked status, scanner lifecycle state, capture ID, crop mapping, crop proof overlays, raw and normalized OCR text, OCR attempt reasons, collector parsing, OCR latency, Scryfall outcome and latency, top-three candidates, cleanup result, guide calibration, and pipeline state where available.
 
 ## Accessibility
@@ -80,7 +81,7 @@ Implemented hierarchy:
 4. Pinned session strip
 5. Secondary controls and sheets
 
-Result behavior is compact by default. Recognized and likely cards show thumbnail, name, set/collector number, confidence, market value, offer value, quantity, and short add/correct/retry actions. Ambiguous results keep the top-three candidates available without blocking the camera. Failed results show only "Couldn't read the card", Retake, and Search manually; unidentified cards do not show pricing, quantity, placeholder thumbnails, or technical lookup errors.
+Result behavior is compact by default. Recognized and likely cards show thumbnail, name, set/collector number, market value, offer value, Add, and Correct. Ambiguous results keep the top-three candidates available without blocking the camera. Failed results show only "Couldn't read the card", Retake, and Search; unidentified cards do not show pricing, quantity, review badges, placeholder thumbnails, session metadata, or technical lookup errors.
 
 High-volume Card Show mode remains explicit. Defaults for condition, finish, language, destination, and cash offer rate remain configurable in scanner settings. Automatic high-confidence acceptance is still disabled until product safety rules allow it.
 

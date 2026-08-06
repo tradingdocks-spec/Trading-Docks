@@ -76,6 +76,14 @@ Implemented: Retake clears OCR, normalized title, candidates, selected result, r
 
 Planned: A network-only retry button for a valid OCR title can be added after physical QA verifies the current failed-state flow.
 
+## Main Screen Simplification
+
+Implemented: The active Scan tab keeps only the compact two-line header, dominant camera viewport, one instruction, Torch/Capture/Search controls, compact result tray, compact session strip, and bottom navigation on the primary surface.
+
+Implemented: Pause and settings are compact header actions. Diagnostics opens from scanner settings and remains unavailable unless `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`.
+
+Implemented: Failed recognition renders one compact recovery banner only. It excludes pricing, quantity, review badges, placeholder thumbnails, session metadata, and technical lookup details.
+
 ## Diagnostics
 
 Implemented: Diagnostics are unavailable unless `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`. They are not rendered inline in normal scanner mode.

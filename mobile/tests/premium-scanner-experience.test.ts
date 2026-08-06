@@ -12,8 +12,11 @@ import {
   resolvePremiumScannerPipeline,
   resolveScanner2InteractionState,
   scanner2CameraHeight,
+  scanner2HeaderModel,
   scanner2HudLine,
+  scanner2MainControls,
   scanner2MotionForState,
+  scanner2SessionStripModel,
   scannerCameraHeightForWidth,
   scannerHudRowsForWidth,
   scannerTrayLayoutForWidth,
@@ -140,6 +143,40 @@ test('Scanner 2.0 HUD is one compact line without unavailable pricing copy', () 
   assert.equal(line.includes('Pricing unavailable'), false);
 });
 
+test('Scanner 2.0 compact header uses two rows and omits zero review copy', () => {
+  const header = scanner2HeaderModel({
+    modeLabel: 'Card Show Purchase',
+    cardCount: 3,
+    marketTotal: 42.1,
+    offerTotal: 29.47,
+    reviewCount: 0,
+  });
+  assert.equal(header.rows, 2);
+  assert.equal(header.overflows, false);
+  assert.deepEqual(header.line1, { mode: 'Card Show Purchase', cards: '3 cards' });
+  assert.deepEqual(header.line2.map((item) => item.id), ['market', 'offer']);
+  assert.equal(header.line2[0].value, '$42.10');
+  assert.equal(header.line2[1].value, '$29.47');
+});
+
+test('Scanner 2.0 compact header includes review only when present', () => {
+  const header = scanner2HeaderModel({
+    modeLabel: 'Card Show Purchase',
+    cardCount: 1,
+    marketTotal: null,
+    offerTotal: null,
+    reviewCount: 1,
+  });
+  assert.deepEqual(header.line2.map((item) => item.id), ['market', 'offer', 'review']);
+  assert.equal(header.line2[2].value, '1');
+});
+
+test('Scanner 2.0 main camera controls are exactly torch capture and search', () => {
+  assert.deepEqual(scanner2MainControls(), ['torch', 'capture', 'search']);
+  assert.equal(scanner2MainControls().includes('settings' as never), false);
+  assert.equal(scanner2MainControls().includes('diagnostics' as never), false);
+});
+
 test('Scanner 2.0 camera opens into camera states without an open-camera state', () => {
   assert.equal(resolveScanner2InteractionState({
     loading: false,
@@ -241,7 +278,7 @@ test('top HUD uses two safe rows on narrow iPhone widths', () => {
     const layout = scannerHudRowsForWidth(width);
     assert.equal(layout.rows, 2);
     assert.equal(layout.overflows, false);
-    assert.deepEqual(layout.topRowItems, ['mode', 'review']);
+    assert.deepEqual(layout.topRowItems, ['mode', 'cards']);
   }
 });
 
@@ -251,6 +288,21 @@ test('failed tray keeps usable text width and excludes pricing and quantity', ()
   assert.equal(layout.includesPricing, false);
   assert.equal(layout.includesQuantity, false);
   assert.ok(layout.textMinWidth >= 180);
+});
+
+test('compact scanner session strip is one row with review on the right', () => {
+  const model = scanner2SessionStripModel({ cardCount: 3, marketTotal: 42.1, offerTotal: 29.47 });
+  assert.equal(model.hidden, false);
+  assert.equal(model.summary, '3 cards   Market $42.10   Offer $29.47');
+  assert.equal(model.reviewLabel, 'Review');
+  assert.equal(model.compact, false);
+});
+
+test('empty scanner session strip stays simplified with missing values compacted', () => {
+  const model = scanner2SessionStripModel({ cardCount: 0, marketTotal: null, offerTotal: null });
+  assert.equal(model.hidden, false);
+  assert.equal(model.summary.includes('Pricing unavailable'), false);
+  assert.equal(model.compact, true);
 });
 
 test('recognized and ambiguous trays keep responsive narrow-width actions', () => {
