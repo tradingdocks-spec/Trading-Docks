@@ -14,9 +14,9 @@ Requires Production Configuration: Physical iPhone and Android device QA is stil
 
 Implemented: While `/(tabs)/scan` is active, the normal bottom tab bar is hidden so there is no empty navigation gap below the camera. Leaving the scanner restores the account-aware five-tab navigation.
 
-Implemented: The primary scanner surface is a full-screen camera with a compact top HUD, one prominent guide instruction, four guide corners, exactly three primary controls, transient latest-scan feedback, and a compact Review List chip.
+Implemented: The primary scanner surface is a full-screen camera with a compact top HUD, one prominent guide instruction, four guide corners, Torch/Capture as primary controls, transient latest-scan feedback, and a compact Review List chip.
 
-Implemented: The three primary controls remain Torch, Capture, and Search. Pause, settings, diagnostics, and review actions are secondary overlays or sheets.
+Implemented: The primary controls remain Torch and Capture. Manual Search, pause, settings, diagnostics, and review actions are secondary overlays or sheets.
 
 Implemented: The active scanner no longer renders the full result card, Add button, confidence badge, pricing fields, quantity/condition/finish controls, card metadata, or large totals panel.
 

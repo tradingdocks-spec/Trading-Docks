@@ -13,10 +13,10 @@ Status: Requires Production Configuration for physical-device release verificati
 - Implemented: The mobile Scan screen uses `expo-camera` still capture, back camera selection, autofocus, torch toggle, camera permission states, manual Scryfall search, exact-printing confirmation, Collection write handoff, session lines, and user-scoped scanner replay.
 - Implemented: Capture now waits for `onCameraReady` before calling `takePictureAsync`.
 - Implemented: A development-only diagnostics overlay is available when `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true` and `NODE_ENV` is not `production`.
-- Implemented: The diagnostics overlay reports camera readiness, scanner lifecycle state, capture ID, preview dimensions, captured image dimensions, source and normalized orientation, guide dimensions, guide ratio, normalized guide crop, title crop variants, collector crop, crop pixel sizes, OCR attempts, duplicate state, recognition stage, Scryfall outcome, session insertion result, and unavailable visual signals.
+- Implemented: The diagnostics overlay reports camera readiness, scanner lifecycle state, capture ID, preview dimensions, captured image dimensions, source and normalized orientation, guide dimensions, guide ratio, normalized guide crop, title crop variants, collector crop, crop pixel sizes, OCR attempts, duplicate state, recognition stage, Scryfall outcome, session insertion result, recent performance averages, sanitized JSON export, and unavailable visual signals.
 - Implemented: Local guide calibration preferences support guide scale and vertical offset for device testing; values are stored only in user-scoped local app storage.
 - Implemented: Still captures on the new iOS development build run local Apple Vision OCR, query Scryfall, show top-three Magic candidates, require exact-printing confirmation, and preserve manual search fallback.
-- Implemented: The primary Scan tab now uses a camera-first layout with compact two-line header, one guide instruction, exactly three primary controls, latest-result tray, secondary settings/manual/diagnostics panels, and a safe-area-aware compact session strip.
+- Implemented: The primary Scan tab now uses a camera-first layout with compact header, one guide instruction, Torch/Capture as primary controls, Manual Search inside scanner settings, secondary diagnostics panels, and a safe-area-aware compact session strip.
 - Partially Implemented: The pure live-frame analyzer can evaluate synthetic luma frames for boundaries, motion, blur, lighting, glare, and crop metadata, but it is not wired to native camera frames in the active UI.
 - Planned: Physical-device QA on iOS and Android is required before claiming hands-free auto-capture is operational.
 - Planned: Native frame delivery, artwork matching, set-symbol detection, perspective-corrected image output, Android OCR, and benchmarked finish classification remain future work.
@@ -47,6 +47,9 @@ Status: Requires Production Configuration for physical-device release verificati
   - duplicate/rearm status
   - recognition stage and latency
   - session insertion result
+  - average scan, OCR, Scryfall, and session-insertion timing from bounded local history
+  - latest preview and capture resolution when available
+  - camera FPS as unavailable until a native measured signal exists
 - Implemented calibration controls:
   - guide scale
   - vertical offset
@@ -54,7 +57,7 @@ Status: Requires Production Configuration for physical-device release verificati
 - Planned diagnostics fields:
   - real card bounds and corners from native frame delivery
   - real blur, motion, lighting, glare, and stability samples from device frames
-  - recognition latency after OCR/artwork providers are connected
+  - measured live camera FPS from native frame delivery
 
 ## Device QA Matrix
 

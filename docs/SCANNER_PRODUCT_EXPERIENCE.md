@@ -16,7 +16,7 @@
 
 - Implemented: Top header shows scanner mode and card count on the first line, then running market value, running cash offer, and review count only when greater than zero.
 - Implemented: The camera area uses most of the first viewport, near-black navy background, four corner brackets, and one prominent instruction.
-- Implemented: The primary camera controls are exactly Torch, Capture, and Search. Capture remains the dominant action.
+- Implemented: The primary camera controls are exactly Torch and Capture. Manual Search remains available from scanner settings and recovery states. Capture remains the dominant action.
 - Implemented: Pause and settings are compact header icon actions. Diagnostics is development-only inside scanner settings.
 - Implemented: The bottom session strip stays above the safe area and shows card count, market value, offer total, and Review navigation in one row.
 - Implemented: The normal mobile bottom tab bar is hidden only while the Scan route is active and restored when leaving the scanner.

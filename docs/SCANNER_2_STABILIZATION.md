@@ -97,7 +97,7 @@ Planned: A network-only retry button for a valid OCR title can be added after ph
 
 ## Main Screen Simplification
 
-Implemented: The active Scan tab keeps only the compact two-line header, full-screen camera viewport, one instruction, Torch/Capture/Search controls, compact result overlays, and compact session strip on the primary surface.
+Implemented: The active Scan tab keeps only the compact header, full-screen camera viewport, one instruction, Torch/Capture controls, compact result overlays, and compact session strip on the primary surface.
 
 Implemented: The Scan route hides normal bottom navigation only while the route is active. Account-aware tabs, deep links, and route restoration remain unchanged outside the scanner.
 

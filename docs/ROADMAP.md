@@ -69,12 +69,12 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Add the first local live-frame analyzer for development-build frame samples, including card-boundary, four-corner, aspect, guide-fill, blur, motion, lighting, glare, fingerprint, targeted OCR mapping, and Magic adapter handoff tests.
 - Implemented: Add native scanner calibration contracts, development-only diagnostics, camera-ready capture gating, local guide calibration, and visible unidentified-capture session outcomes for physical QA.
 - Implemented: Add native iOS Magic OCR v1 with a local Expo Apple Vision module, guide-assisted captured-still crop mapping, OCR normalization, Scryfall top-three lookup, confidence caps, temporary capture cleanup, and diagnostics.
-- Implemented: Redesign the active Scan tab into a premium camera-first Card Show Purchase experience with compact two-line header, large camera viewport, one instruction, Torch/Capture/Search controls, secondary settings/manual/diagnostics panels, and safe-area Review List chip.
+- Implemented: Redesign the active Scan tab into a premium camera-first Card Show Purchase experience with compact header, large camera viewport, one instruction, Torch/Capture controls, secondary settings/manual/diagnostics panels, and safe-area Review List chip.
 - Implemented: Calibrate Magic still-capture OCR for physical iPhone retry flow by normalizing rotated still dimensions, adding primary/expanded/lower/wide/full-card title fallback regions, exposing development-only crop proof, and ensuring Retake resumes the camera without entering the user-paused state.
 - Implemented: Stabilize Scanner 2.0 end to end with a canonical camera lifecycle, app background guards, wider title OCR fallback, structured Scryfall outcomes, stale manual-search guards, dev-only crop proof diagnostics, and refreshed physical QA documentation.
-- Implemented: Promote Scanner 2.0 to an immersive release-candidate presentation that hides normal bottom navigation only on the active Scan route, fills the screen with camera, keeps exactly Torch/Capture/Search as primary controls, uses transient added/remove-card overlays, and removes primary confidence percentages.
+- Implemented: Promote Scanner 2.0 to an immersive release-candidate presentation that hides normal bottom navigation only on the active Scan route, fills the screen with camera, keeps Torch/Capture as primary controls, moves Manual Search into scanner settings, uses transient added/remove-card overlays, and removes primary confidence percentages.
 - Implemented: Convert Scanner 2.0 active capture into batch-first intake: supported matches auto-add to Review List, likely/ambiguous rows are marked Needs review, failed reads do not add unknown rows, manual search selection adds to the list, and active per-card Add/pricing/metadata controls are removed from the camera surface.
-- Partially Implemented: Scanner performance diagnostics now record capture, OCR, Scryfall lookup, session write, total latency, and fallback count, but physical-device benchmark budgets still need measured iOS/Android runs.
+- Partially Implemented: Scanner performance diagnostics now keep a bounded local history with capture, OCR, Scryfall lookup, session write, total-to-session latency, preview/capture resolution, fallback count, measured averages, and sanitized JSON export; physical-device benchmark budgets and camera FPS still need measured iOS/Android runs.
 - Partially Implemented: Active camera mode still needs VisionCamera frame bridge wiring and physical-device QA before hands-free auto-capture is production-ready.
 - Partially Implemented: iOS captured-still OCR is implemented, but artwork matching, set-symbol recognition, perspective correction, Android OCR, and foil classification remain provider contracts until benchmarked; the scanner does not fake recognition accuracy.
 - Partially Implemented: Magic recognition is metadata-backed and confirmation-first until product-owner private fixture benchmarks establish accuracy, latency, and false high-confidence rates. The builder labels ground truth; it does not determine ground truth from captured images.
@@ -96,7 +96,7 @@ Do not add new production features until the foundation items below are reviewed
 
 Status: Implemented.
 
-Scanner 2.0 establishes the camera-first mobile scanner shell, compact two-line header, exactly three primary controls, batch-first Review List insertion, failure recovery banner, pinned Review List chip, Scanner 2.0 state model, reduced-motion contract, and named scanner component structure.
+Scanner 2.0 establishes the camera-first mobile scanner shell, compact header, exactly two primary controls, batch-first Review List insertion, failure recovery banner, pinned Review List chip, Scanner 2.0 state model, reduced-motion contract, and named scanner component structure.
 
 Recommended next scanner work:
 

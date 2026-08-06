@@ -25,7 +25,7 @@ Status: Implemented as the accessibility standard for active mobile redesign wor
 ## Scanner Requirements
 
 - Main status uses one visible instruction.
-- Torch, Capture, and Search controls have explicit labels.
+- Torch and Capture controls have explicit labels; Manual Search remains labeled inside scanner settings and recovery states.
 - Failed recognition uses "Couldn't read the card" plus Retake/Search.
 - Diagnostics are development-only and not announced in normal scanner flow.
 - Reduced motion suppresses decorative pulse/flash.

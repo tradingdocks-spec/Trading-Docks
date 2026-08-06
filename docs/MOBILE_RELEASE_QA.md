@@ -77,7 +77,7 @@ Verify:
 - Duplicate stationary card prevention.
 - Explicit pause and resume.
 - Full-screen camera fill with no inset card frame or empty tab gap.
-- Torch, Capture, and Search hide during capture, lookup, saving, open sheets, added feedback, and remove-card lockout.
+- Torch and Capture hide during capture, lookup, saving, open sheets, added feedback, and remove-card lockout. Manual Search remains available from settings and recovery states.
 - High-confidence scan adds to Review List without an Add button.
 - Likely and ambiguous scans add as Needs review without stopping the scanner.
 - Failed scan shows Retake/Search and does not add an unknown row.

@@ -29,7 +29,7 @@ Scanner 2.0 uses the existing Trading Docks design tokens and primitives. It doe
 - `ScannerHud`: compact two-line header with mode and scanned count on line 1, then offer and nonzero review count on line 2.
 - `ScannerViewport`: full-screen camera surface, guide, instruction, and capture controls.
 - `ScannerGuide`: four OCR-aligned corner brackets with state tone.
-- `ScannerControls`: exactly three primary camera controls: Torch, Capture, Search.
+- `ScannerControls`: exactly two primary camera controls: Torch and Capture. Manual Search is available from scanner settings and recovery states.
 - `ScannerStatus`: single active instruction and state label.
 - `ScannerFailureOverlay`: compact failed-read Retake/Search recovery only.
 - `ScannerToast`: tiny Added or Added for review confirmation with Undo and Correct.

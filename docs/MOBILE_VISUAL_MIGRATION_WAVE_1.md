@@ -39,7 +39,7 @@ Wave 1 covers the active Expo app shell, Home, Scanner, Collection, Card Detail,
 - Components used: existing scanner presentation components plus `TDResultTray`, `TDScannerGuide`, `TDSessionStrip`, `TDIconButton`, `TDSheet`, `TDButton`, `TDText`.
 - Responsive behavior: camera-first layout, no horizontal overflow, narrow-phone safe action row, result tray does not cover bottom navigation.
 - Empty/loading/error states: permission, unavailable camera, failed recognition, retake, searching, and queued-sync states remain visible and compact.
-- Accessibility requirements: exactly three primary camera controls with labels, text plus color for status, reduced-motion support, and no diagnostics announced inline.
+- Accessibility requirements: current primary camera controls use labeled Torch and Capture actions, text plus color for status, reduced-motion support, and no diagnostics announced inline.
 - Acceptance criteria: no Open Camera step, no Resume Camera unless explicitly paused, failed scan creates no unknown row, Retake resumes, OCR/Scryfall behavior unchanged.
 
 ## Collection

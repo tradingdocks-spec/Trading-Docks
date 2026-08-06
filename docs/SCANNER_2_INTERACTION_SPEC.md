@@ -100,7 +100,7 @@ stateDiagram-v2
 - Manual search is always available when camera or network is unavailable.
 - A scan has one active processing token; stale lookup completion must not overwrite a newer retake.
 - Capture is disabled while capture, OCR, or lookup is active.
-- Torch, Capture, and Search hide while capture, OCR, lookup, saving, added/remove-card lockout, or secondary sheets are active.
+- Torch and Capture hide while capture, OCR, lookup, saving, added/remove-card lockout, or secondary sheets are active. Manual Search remains available from settings and recovery states.
 - Failed scans never create unknown session rows.
 - Failure details are diagnostic-only; normal UI uses safe recovery copy.
 - Title-only OCR may produce candidates, but exact-printing confidence stays capped.

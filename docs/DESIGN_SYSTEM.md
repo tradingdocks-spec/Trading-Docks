@@ -170,7 +170,7 @@ Scanner-specific rules:
 - Amber indicates review and recoverable failure states.
 - Result trays use compact typography with no more than two text sizes.
 - Missing primary HUD values render as an em dash, not long explanatory copy.
-- The primary scanner control row has exactly three icon actions: Torch, Capture, and Search. Pause and settings belong in the compact header; diagnostics belongs inside settings and remains development-only.
+- The primary scanner control row has exactly two icon actions: Torch and Capture. Manual Search belongs in scanner settings and recoverable failure states; diagnostics belongs inside settings and remains development-only.
 - Failed scanner results use a compact banner with Retake and Search only; they do not show pricing, quantity, review badges, thumbnails, session metadata, or technical reasons.
 - The scanner session strip is one compact row above bottom navigation, with Review as a small action on the right.
 - Icon-only controls require accessibility labels.

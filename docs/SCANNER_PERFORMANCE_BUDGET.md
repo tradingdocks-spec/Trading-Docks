@@ -8,7 +8,7 @@ Planned: The scanner should feel instant during card-show and purchase workflows
 
 ## Current Instrumentation
 
-Implemented: Development diagnostics record a sanitized timing snapshot for the latest batch add:
+Implemented: Development diagnostics record sanitized timing snapshots for recent batch adds:
 
 - capture latency
 - OCR latency
@@ -16,8 +16,14 @@ Implemented: Development diagnostics record a sanitized timing snapshot for the 
 - session-write latency
 - total scan-to-list latency
 - fallback attempt count
+- preview resolution when available
+- capture resolution when available
 
 Implemented: Diagnostics never include source images, crop images, card photos, tokens, or secrets.
+
+Implemented: `mobile/services/scanner-performance-instrumentation.ts` keeps a bounded 20-sample local history behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`, computes measured averages only from real samples, and exports sanitized JSON from the development diagnostics sheet.
+
+Partially Implemented: Camera FPS is represented in the report contract, but Expo Camera does not currently provide a measured live FPS value in the active route. Reports mark FPS unavailable rather than estimating it.
 
 ## Current Performance Behavior
 
@@ -30,6 +36,8 @@ Implemented: Pricing is not required before inserting a batch line. Missing pric
 Implemented: Failed reads do not create session rows and do not perform collection writes.
 
 Partially Implemented: OCR fallback counts are tracked, but deeper provider-level crop timing is not yet benchmarked separately.
+
+Partially Implemented: Repository validation can prove the instrumentation path and export format, but physical-device measurements for average scan time, preview resolution, capture resolution, and camera FPS still require iOS and Android development-build QA.
 
 ## Budget Targets
 

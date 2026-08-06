@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentProps, type RefObject } from 'react';
-import { AccessibilityInfo, AppState, Platform, Pressable, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
+import { AccessibilityInfo, AppState, Platform, Pressable, Share, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -62,6 +62,13 @@ import {
 } from '@/services/scanner-foundation';
 import type { RecognitionCandidate } from '@/services/scanner-intelligence';
 import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
+import {
+  appendScannerPerformanceSample,
+  buildScannerPerformanceReport,
+  createScannerPerformanceSample,
+  serializeScannerPerformanceReport,
+  type ScannerPerformanceSample,
+} from '@/services/scanner-performance-instrumentation';
 import {
   NO_NATIVE_VISUAL_SIGNALS,
   applyScannerCalibrationToGuide,
@@ -156,6 +163,8 @@ export default function Scan() {
   const [success, setSuccess] = useState<string | null>(null);
   const [batchNotice, setBatchNotice] = useState<(BatchScannerNoticeModel & { lineId: string }) | null>(null);
   const [scanTimings, setScanTimings] = useState<BatchScannerTimingSnapshot[]>([]);
+  const [scannerPerformanceSamples, setScannerPerformanceSamples] = useState<ScannerPerformanceSample[]>([]);
+  const [scannerPerformanceJsonSummary, setScannerPerformanceJsonSummary] = useState<string | null>(null);
   const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
@@ -277,6 +286,10 @@ export default function Scan() {
     cardCount: sessionTotals?.cardsScanned ?? 0,
     reviewCount: sessionTotals?.needsReview ?? 0,
   });
+  const scannerPerformanceReport = useMemo(
+    () => buildScannerPerformanceReport(scannerPerformanceSamples),
+    [scannerPerformanceSamples],
+  );
   const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
@@ -463,6 +476,7 @@ export default function Scan() {
     source: 'assisted_capture' | 'manual_search';
     fingerprint?: string | null;
     timing?: Partial<BatchScannerTimingSnapshot>;
+    captureResolution?: { width: number; height: number } | null;
   }) => {
     if (!session) return null;
     const startedAt = scannerNow();
@@ -513,13 +527,21 @@ export default function Scan() {
       now: scannerNow(),
       scanId: input.stableScanId,
     }));
-    setScanTimings((current) => [
-      batchScannerTimingSummary({
-        ...input.timing,
-        sessionWriteMs: scannerNow() - startedAt,
-      }),
-      ...current,
-    ].slice(0, 5));
+    const timingSummary = batchScannerTimingSummary({
+      ...input.timing,
+      sessionWriteMs: scannerNow() - startedAt,
+    });
+    setScanTimings((current) => [timingSummary, ...current].slice(0, 5));
+    if (diagnosticsEnabled) {
+      setScannerPerformanceSamples((current) => appendScannerPerformanceSample(current, createScannerPerformanceSample({
+        previousSamples: current,
+        source: input.source,
+        timing: timingSummary,
+        cameraFps: null,
+        previewResolution: previewDimensions,
+        captureResolution: input.captureResolution ?? null,
+      })));
+    }
     showBatchNotice({ ...batchScannerNoticeForLine(addedLine), lineId: addedLine.id });
     resetScannerForm({ preserveNotice: true });
     return addedLine;
@@ -612,6 +634,7 @@ export default function Scan() {
             stableScanId: captureId,
             source: 'assisted_capture',
             fingerprint: frameLabel,
+            captureResolution: { width: photo.width, height: photo.height },
             timing: {
               captureMs: cameraCaptureMs,
               cropMs: scan.cropDiagnostics ? null : null,
@@ -724,6 +747,22 @@ export default function Scan() {
     setSuccess(result.succeeded ? `${result.succeeded} queued scan${result.succeeded === 1 ? '' : 's'} synced.` : null);
     if (result.failed) setError(`${result.failed} queued scan${result.failed === 1 ? '' : 's'} still need attention.`);
     setSyncingQueue(false);
+  };
+
+  const exportScannerPerformanceJson = async () => {
+    const json = serializeScannerPerformanceReport(scannerPerformanceReport);
+    setScannerPerformanceJsonSummary(`${scannerPerformanceReport.sampleCount} sample${scannerPerformanceReport.sampleCount === 1 ? '' : 's'} ready (${json.length} characters).`);
+    try {
+      if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(json);
+        setSuccess('Scanner performance JSON copied.');
+        return;
+      }
+      await Share.share({ title: 'Scanner performance diagnostics', message: json });
+      setSuccess('Scanner performance JSON opened for export.');
+    } catch (exportError) {
+      setError(exportError instanceof Error ? exportError.message : 'Scanner performance export failed.');
+    }
   };
 
   if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading scanner" message="Preparing collection, storage, and confirmation options." /></TDScreen>;
@@ -905,6 +944,13 @@ export default function Scan() {
               <DiagnosticCell label="Lookup code" value={magicStillScan?.lookupDiagnostics?.lookupErrorCode ?? 'none'} />
               <DiagnosticCell label="Lookup latency" value={magicStillScan?.lookupDiagnostics ? `${magicStillScan.lookupDiagnostics.lookupLatencyMs} ms` : 'unavailable'} />
               <DiagnosticCell label="Top three" value={magicStillScan?.lookupDiagnostics?.topThreeCandidateNames.join(' | ') || 'unavailable'} />
+              <DiagnosticCell label="Avg scan" value={performanceMs(scannerPerformanceReport.averages.averageScanTimeMs)} />
+              <DiagnosticCell label="Avg OCR" value={performanceMs(scannerPerformanceReport.averages.averageOcrTimeMs)} />
+              <DiagnosticCell label="Avg Scryfall" value={performanceMs(scannerPerformanceReport.averages.averageScryfallLookupTimeMs)} />
+              <DiagnosticCell label="Avg to session" value={performanceMs(scannerPerformanceReport.averages.averageTotalUntilSessionInsertionMs)} />
+              <DiagnosticCell label="Camera FPS" value={performanceFps(scannerPerformanceReport.averages.averageCameraFps)} />
+              <DiagnosticCell label="Preview resolution" value={resolutionSummary(scannerPerformanceReport.latest?.previewResolution ?? null)} />
+              <DiagnosticCell label="Capture resolution" value={resolutionSummary(scannerPerformanceReport.latest?.captureResolution ?? null)} />
               <DiagnosticCell label="Batch timing" value={scanTimingSummary(scanTimings[0])} />
             </View>
             {diagnosticCaptureUri && magicStillScan?.cropDiagnostics ? (
@@ -927,12 +973,14 @@ export default function Scan() {
               </View>
             ) : null}
             <View style={s.diagnosticsControls}>
+              <TDButton label="Copy JSON" variant="secondary" disabled={!scannerPerformanceReport.sampleCount} onPress={exportScannerPerformanceJson} />
               <TDButton label="Scale -" variant="secondary" onPress={() => updateCalibration({ guideScale: scannerCalibration.guideScale - 0.02 })} />
               <TDButton label="Scale +" variant="secondary" onPress={() => updateCalibration({ guideScale: scannerCalibration.guideScale + 0.02 })} />
               <TDButton label="Guide up" variant="secondary" onPress={() => updateCalibration({ verticalOffset: scannerCalibration.verticalOffset - 8 })} />
               <TDButton label="Guide down" variant="secondary" onPress={() => updateCalibration({ verticalOffset: scannerCalibration.verticalOffset + 8 })} />
               <TDButton label="Reset" variant="secondary" onPress={() => updateCalibration(normalizeScannerCalibrationPreferences())} />
             </View>
+            {scannerPerformanceJsonSummary ? <TDText variant="caption" tone="muted">{scannerPerformanceJsonSummary}</TDText> : null}
             <TDText variant="caption" tone="muted">Foil test mode: {foilDiagnostics.status}; {foilDiagnostics.frameCount} frames. Finish remains manually editable.</TDText>
           </TDCard>
         ) : null}
@@ -1278,6 +1326,18 @@ function scanTimingSummary(timing: BatchScannerTimingSnapshot | undefined) {
   return `capture ${timing.captureMs ?? '?'} ms; OCR ${timing.ocrMs ?? '?'} ms; Scryfall ${timing.scryfallMs ?? '?'} ms; session ${timing.sessionWriteMs ?? '?'} ms; total ${timing.totalMs ?? '?'} ms; fallback ${timing.fallbackCount}`;
 }
 
+function performanceMs(value: number | null) {
+  return value === null ? 'unavailable' : `${value} ms`;
+}
+
+function performanceFps(value: number | null) {
+  return value === null ? 'unavailable' : `${value} fps`;
+}
+
+function resolutionSummary(value: { width: number; height: number } | null) {
+  return value ? `${value.width} x ${value.height}` : 'unavailable';
+}
+
 function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate): RecognitionCandidate {
   return {
     ...candidate,
@@ -1340,7 +1400,7 @@ function parseOptionalPercentage(value: string) {
 }
 
 function scannerNow() {
-  return Date.now();
+  return globalThis.performance?.now?.() ?? Date.now();
 }
 
 function createScanId() {
