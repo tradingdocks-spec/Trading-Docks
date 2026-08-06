@@ -37,3 +37,9 @@
 - Required: Label features as Implemented, Partially Implemented, Planned, or Requires Production Configuration.
 - Required: Update `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/AUTHENTICATION.md`, and `docs/SECURITY.md` when behavior changes.
 - Required: Keep product claims aligned with active source, not release-note intent.
+
+## Mobile Release QA
+
+- Implemented: Mobile Design OS work now requires the `docs/MOBILE_RELEASE_QA.md` checklist before release sign-off.
+- Requires Production Configuration: Physical-device VoiceOver, TalkBack, camera, OCR, large-text, reduced-motion, and safe-area QA must be completed or explicitly waived by product ownership.
+- Implemented: Source tests should guard no fake metrics, no normal-user technical scanner recovery details, dev-only showcase gating, and canonical Design OS route usage where practical.

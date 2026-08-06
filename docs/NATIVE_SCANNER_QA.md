@@ -1,5 +1,13 @@
 # Native Scanner QA
 
+Status: Requires Production Configuration for physical-device release verification.
+
+## Wave 3 Release QA Addendum
+
+- Implemented: `docs/MOBILE_RELEASE_QA.md` now defines the native scanner release QA checklist.
+- Requires Production Configuration: Verify camera permission denied, camera unavailable, no-title OCR, no-match, network failure, Scryfall service failure, Retake, Manual Search, stale result cancellation, duplicate capture prevention, explicit pause, app background/foreground, session preservation, queued retry, and queued discard confirmation on physical iOS and Android devices.
+- Implemented: Apple OCR autolinking validation remains part of every final mobile validation pass.
+
 ## Current Status
 
 - Implemented: The mobile Scan screen uses `expo-camera` still capture, back camera selection, autofocus, torch toggle, camera permission states, manual Scryfall search, exact-printing confirmation, Collection write handoff, session lines, and user-scoped scanner replay.

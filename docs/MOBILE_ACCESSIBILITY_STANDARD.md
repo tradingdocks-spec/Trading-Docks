@@ -52,3 +52,9 @@ Verify on:
 - Physical-device VoiceOver and TalkBack testing still require manual QA.
 - Camera preview framing and Dynamic Island safe-area behavior require device validation.
 - Admin mobile accessibility is deferred until customer-facing screens stabilize.
+
+## Wave 3 Release Gate
+
+- Implemented: Source-level tests now guard Wave 3 admin/settings/recovery/showcase hierarchy, hidden scanner diagnostics, and dev showcase gating.
+- Partially Implemented: Cross-platform code exposes labels and selected/disabled states where practical, but final VoiceOver and TalkBack behavior must be verified on physical devices.
+- Requires Production Configuration: Native OCR and camera accessibility QA require an OCR-capable development build.

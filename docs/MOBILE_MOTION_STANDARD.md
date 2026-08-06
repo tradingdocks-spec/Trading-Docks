@@ -52,3 +52,9 @@ When reduced motion is enabled:
 - Keep text/state updates visible.
 - Preserve haptics only where user preference and platform allow.
 - Avoid delaying actions for animation completion.
+
+## Wave 3 Notes
+
+- Implemented: Wave 3 did not add decorative animation loops.
+- Implemented: The dev-only design-system showcase now includes reduced-motion documentation coverage through static state examples rather than animated production behavior.
+- Requires Production Configuration: Reduced-motion behavior still needs manual verification on iOS, Android, and narrow Expo Web as part of release QA.

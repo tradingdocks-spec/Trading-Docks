@@ -17,6 +17,7 @@
 - Partially Implemented: Mobile Seller/Signals and Deal Desk now use the TD primitive direction and remove unsupported fake business metrics, while broader route-by-route visual migration remains staged.
 - Implemented: Mobile Design OS Wave 1 applies the canonical hierarchy and primitive direction to the active app shell, Home, Scanner, Collection, Card Detail, and Storage Locations.
 - Implemented: Mobile Design OS Wave 2 applies the same hierarchy to Trade Binder, Wishlist, Scanner Session Review, Deal Desk, Seller/Signals, Profile, Authentication, Welcome, Onboarding, and Plans.
+- Implemented: Mobile Design OS Wave 3 applies the final polish pass to the Command Center summary, Settings, Scanner Recovery, dev-only design showcase, consistency audit, accessibility audit, and release QA documentation.
 - Planned: Broad dashboard, chart, table, and complex form migrations are intentionally deferred.
 - Planned: A future scanner “Why this match?” detail view should render per-signal confidence with labels, conflicts, and editable uncertain fields rather than color-only status.
 
@@ -84,6 +85,7 @@ Raw colors remain available only as palette anchors. New product components shou
 - Partially Implemented: Seller/Signals and Deal Desk now follow the mobile design OS direction, but Home, Collection, Card Detail, Storage, Trade Binder, Wishlist, Scanner, Session Review, Profile, Auth, Plans, Admin, and dev-only surfaces still need visual QA and selective follow-up migration before release.
 - Partially Implemented: Wave 1 screens now follow the mobile design OS direction, but physical-device QA is still required before claiming release-complete polish.
 - Partially Implemented: Wave 2 customer-facing surfaces now follow the mobile design OS direction, but physical-device QA is still required before claiming release-complete polish.
+- Partially Implemented: Wave 3 completes the active mobile consistency pass, while dense admin detail tools and physical-device QA remain documented release follow-ups.
 - Planned: Add visual regression snapshots once stable mobile fixtures and simulator/device targets are available.
 
 ## Navigation Contract Rules

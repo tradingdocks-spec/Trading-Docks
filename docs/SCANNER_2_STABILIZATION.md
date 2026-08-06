@@ -2,6 +2,13 @@
 
 Status: Implemented as the current Scanner 2.0 reliability contract.
 
+## Wave 3 Recovery Update
+
+- Implemented: Scanner Recovery now uses one concise recovery message per queued add, clear retry/discard actions, and shared TD state/list primitives.
+- Implemented: Normal recovery UI no longer exposes idempotency keys; those details remain diagnostic/developer concerns.
+- Implemented: The scanner recovery matrix in `docs/MOBILE_VISUAL_MIGRATION_WAVE_3.md` documents no-title, no-match, network failure, service failure, camera denied, camera unavailable, capture failed, stale result, duplicate stationary card, and explicit pause behavior.
+- Requires Production Configuration: Native camera/OCR behavior still requires physical-device QA with the OCR-capable development build.
+
 ## Scope
 
 This stabilization pass keeps the current Scanner 2.0 design and provider stack. It does not replace Apple Vision OCR, change native module names, add new TCG adapters, claim benchmark accuracy, retain images by default, or change billing, memberships, schemas, or production configuration.

@@ -40,6 +40,7 @@
 - Partially Implemented: Seller/Signals and Deal Desk now use TD primitives and honest unavailable states, but the rest of the active mobile app still needs staged visual QA rather than blanket migration.
 - Implemented: Mobile Design OS Wave 1 migrates the active app shell, Home, Scanner, Collection, Card Detail, and Storage Locations toward the canonical primitives and hierarchy rules.
 - Implemented: Mobile Design OS Wave 2 migrates Trade Binder, Wishlist, Scanner Session Review, Deal Desk, Seller/Signals, Profile, Authentication, Welcome, Onboarding, and Plans toward the canonical primitives and hierarchy rules.
+- Implemented: Mobile Design OS Wave 3 migrates Command Center summary, Settings, Scanner Recovery, and the dev-only design-system showcase while documenting route-by-route final consistency status.
 - Planned: Pick a canonical component tree and archive or delete superseded versions after review.
 
 ## Potential Bugs
@@ -141,6 +142,7 @@
 - Implemented: Focused mobile product design tests cover the mobile design OS documentation set and guard against fake business metrics returning to active Seller/Signals and Deal Desk routes.
 - Implemented: Focused mobile product design tests now verify Wave 1 route source contracts for shell navigation, Home, Scanner, Collection, Card Detail, and Storage Locations.
 - Implemented: Focused mobile product design tests now verify Wave 2 route source contracts and guard Welcome/Plans against fake metrics or unsupported employee-seat claims.
+- Implemented: Focused mobile product design tests now verify Wave 3 docs, admin/settings/recovery/showcase hierarchy, scanner diagnostic gating, and no idempotency details in normal recovery UI.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
 - Planned: Public share token validation tests.

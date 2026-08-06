@@ -63,3 +63,9 @@ Do not create a second mobile design system. Legacy primitives may remain only u
 - Technical copy in customer states.
 - Filter rows that horizontally scroll without clear affordance.
 - Multiple dominant primary buttons in one screen section.
+
+## Wave 3 Notes
+
+- Implemented: Admin summary, Settings, Scanner Recovery, and the dev-only design-system showcase now use the shared TD primitive direction without adding new primitive APIs.
+- Implemented: `components/admin.tsx` remains a compatibility adapter for active admin routes while rendering through TD-style navigation, row, metric, and badge primitives.
+- Deferred With Reason: Dense admin detail routes may continue using legacy admin-specific controls until a dedicated admin management sprint reviews those workflows.

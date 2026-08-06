@@ -243,3 +243,9 @@ Success:
 - No nested cards.
 - No technical copy in customer-facing states.
 - No more than one dominant primary action per screen.
+
+## Mobile Migration Status
+
+- Implemented: Mobile Design OS Waves 1, 2, and 3 have migrated the active customer-facing mobile routes, Command Center summary, Settings, Scanner Recovery, and the gated dev showcase toward this hierarchy.
+- Partially Implemented: Dense admin management routes are intentionally deferred for a dedicated admin-mobile workflow pass.
+- Requires Production Configuration: Physical-device VoiceOver, TalkBack, camera, OCR, and large-text release QA remain required before declaring release-complete mobile polish.
