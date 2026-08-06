@@ -175,7 +175,7 @@ export default function Scan() {
   const [showDiagnosticsSheet, setShowDiagnosticsSheet] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showModeSelectionSheet, setShowModeSelectionSheet] = useState(false);
-  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
+  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -914,6 +914,7 @@ export default function Scan() {
         onToggleTorch={() => setTorchEnabled((value) => !value)}
         onCapture={captureStill}
         onRequestCamera={requestCamera}
+        autoCaptureEnabled={autoCaptureEnabled}
         hideControls={hideMainControls}
       />
 
@@ -1182,6 +1183,7 @@ function ScannerViewport({
   onToggleTorch,
   onCapture,
   onRequestCamera,
+  autoCaptureEnabled,
   hideControls,
 }: {
   cameraRef: RefObject<ScannerCameraHandle | null>;
@@ -1204,6 +1206,7 @@ function ScannerViewport({
   onToggleTorch: () => void;
   onCapture: () => void;
   onRequestCamera: () => void;
+  autoCaptureEnabled: boolean;
   hideControls: boolean;
 }) {
   const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
@@ -1239,6 +1242,7 @@ function ScannerViewport({
         permission={permission}
         onToggleTorch={onToggleTorch}
         onCapture={onCapture}
+        autoCaptureEnabled={autoCaptureEnabled}
         hidden={hideControls}
       />
     </View>
@@ -1280,6 +1284,7 @@ function ScannerControls({
   permission,
   onToggleTorch,
   onCapture,
+  autoCaptureEnabled,
   hidden,
 }: {
   torchEnabled: boolean;
@@ -1287,6 +1292,7 @@ function ScannerControls({
   permission: ScannerPermissionState;
   onToggleTorch: () => void;
   onCapture: () => void;
+  autoCaptureEnabled: boolean;
   hidden: boolean;
 }) {
   const controls = scanner2MainControls();
@@ -1295,6 +1301,7 @@ function ScannerControls({
     <View style={s.cameraControls}>
       {controls.map((control) => {
         if (control === 'torch') return <IconControl key={control} label={torchEnabled ? 'Turn torch off' : 'Turn torch on'} icon={torchEnabled ? 'flash' : 'flash-outline'} onPress={onToggleTorch} />;
+        if (control === 'capture' && autoCaptureEnabled) return null;
         if (control === 'capture') return <IconControl key={control} label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />;
         return null;
       })}
