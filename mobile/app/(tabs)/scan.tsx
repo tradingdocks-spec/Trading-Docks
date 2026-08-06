@@ -6,7 +6,21 @@ import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNo
 import { AccessibilityInfo, AppState, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
+import {
+  TDBadge,
+  TDButton,
+  TDCard,
+  TDChip,
+  TDEmptyState,
+  TDErrorState,
+  TDIconButton,
+  TDInput,
+  TDLoadingState,
+  TDResultTray,
+  TDScreen,
+  TDSessionStrip as TDSessionStripPrimitive,
+  TDText,
+} from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { useAccount } from '@/providers/account';
 import { CARD_CONDITION_OPTIONS, TRADE_BINDER_STATUS_OPTIONS } from '@/services/collector-mutations';
@@ -1154,37 +1168,32 @@ function ScannerResultTray({
 }) {
   if (tray.kind === 'failed') {
     return (
-      <TDCard style={[s.resultTray, s.resultTrayFailed]}>
-        <View style={s.failedTray}>
-          <View style={s.failedHeader}>
-            <View style={s.failureIcon}>
-              <Ionicons name="alert-circle-outline" size={22} color={color.warning} />
-            </View>
-          <View style={s.resultText}>
-            <TDText variant="title">{tray.title}</TDText>
-              <TDText variant="small" tone="muted" numberOfLines={2}>{shortFailureMessage(tray.subtitle)}</TDText>
-            </View>
-          </View>
-          <View style={s.trayActions}>
-            <TDButton label="Retake" variant="secondary" onPress={onRetake} />
-            <TDButton label="Search" variant="secondary" onPress={onManualSearch} />
-          </View>
+      <TDResultTray
+        title={tray.title}
+        subtitle={shortFailureMessage(tray.subtitle)}
+        status={tray.status}
+        tone="warning"
+        compact
+        image={<Ionicons name="alert-circle-outline" size={22} color={color.warning} />}
+        style={[s.resultTray, s.resultTrayFailed]}
+      >
+        <View style={s.trayActions}>
+          <TDButton label="Retake" variant="secondary" onPress={onRetake} />
+          <TDButton label="Search" variant="secondary" onPress={onManualSearch} />
         </View>
-      </TDCard>
+      </TDResultTray>
     );
   }
 
   return (
-    <TDCard style={s.resultTray}>
-      <View style={s.resultHeader}>
-        {selected?.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={s.trayImage} contentFit="cover" /> : <View style={s.trayImageFallback}><Ionicons name="albums-outline" size={20} color={color.textMuted} /></View>}
-        <View style={s.resultText}>
-          <TDText variant="title" numberOfLines={2}>{tray.title}</TDText>
-          <TDText variant="caption" tone="muted">{tray.subtitle}</TDText>
-          <TDText variant="caption" tone="muted">{selected ? `${language} - ${displayFinish(finish)} - ${displayCondition(condition)}` : 'No session row created until a candidate is confirmed.'}</TDText>
-        </View>
-        <TDBadge tone={tray.kind === 'recognized' ? 'success' : tray.kind === 'ambiguous' ? 'warning' : 'info'}>{tray.status}</TDBadge>
-      </View>
+    <TDResultTray
+      title={tray.title}
+      subtitle={`${tray.subtitle}${selected ? ` - ${language} - ${displayFinish(finish)} - ${displayCondition(condition)}` : ' - No session row created until a candidate is confirmed.'}`}
+      status={tray.status}
+      tone={tray.kind === 'recognized' ? 'success' : tray.kind === 'ambiguous' ? 'warning' : 'info'}
+      image={selected?.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={s.trayImage} contentFit="cover" /> : <Ionicons name="albums-outline" size={20} color={color.textMuted} />}
+      style={s.resultTray}
+    >
       <View style={s.trayMoneyRow}>
         <CompactStat label="Market" value={compactScannerMoney(marketPrice)} />
         <CompactStat label="Offer" value={compactScannerMoney(offerPrice)} tone="success" />
@@ -1195,21 +1204,20 @@ function ScannerResultTray({
         {selected ? <TDButton label={tray.primaryAction} loading={saving} onPress={onSave} /> : null}
         <TDButton label={showCorrectionTools ? 'Done' : 'Correct'} variant="secondary" disabled={!selected} onPress={onToggleCorrection} />
       </View>
-    </TDCard>
+    </TDResultTray>
   );
 }
 
 function ScannerSessionStrip({ bottomInset, model, onReviewSession }: { bottomInset: number; model: ReturnType<typeof scanner2SessionStripModel>; onReviewSession: () => void }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open scanner session review. ${model.summary}`}
+    <TDSessionStripPrimitive
+      summary={model.summary}
+      actionLabel={model.reviewLabel}
       onPress={onReviewSession}
-      style={[s.bottomSessionBar, model.compact && s.bottomSessionBarCompact, { paddingBottom: Math.max(bottomInset, 10) }]}
-    >
-      <TDText variant="small" numberOfLines={1} style={s.bottomSessionSummary}>{model.summary}</TDText>
-      <TDText variant="small" tone="info" numberOfLines={1}>{model.reviewLabel}</TDText>
-    </Pressable>
+      bottomInset={bottomInset}
+      tone="info"
+      style={model.compact && s.bottomSessionBarCompact}
+    />
   );
 }
 
@@ -1236,45 +1244,26 @@ function IconControl({
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
+    <TDIconButton
+      label={label}
+      iconName={icon}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
-        s.iconControl,
-        prominent && s.iconControlPrimary,
-        disabled && s.iconControlDisabled,
-        pressed && !disabled && s.iconControlPressed,
-      ]}
-    >
-      <Ionicons name={icon} size={prominent ? 24 : 20} color={prominent ? color.canvas : color.text} />
-    </Pressable>
+      tone={prominent ? 'primary' : 'neutral'}
+      size={prominent ? 'lg' : 'md'}
+    />
   );
 }
 
 function HeaderIconControl({ label, icon, onPress }: { label: string; icon: ComponentProps<typeof Ionicons>['name']; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => [s.headerIconControl, pressed && s.iconControlPressed]}
-    >
-      <Ionicons name={icon} size={19} color={color.text} />
-    </Pressable>
-  );
+  return <TDIconButton label={label} iconName={icon} onPress={onPress} size="sm" />;
 }
 
 function SheetHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
     <View style={s.sheetHeader}>
       <TDText variant="title">{title}</TDText>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Close ${title}`} onPress={onClose} style={s.closeButton}>
-        <Ionicons name="close-outline" size={22} color={color.text} />
-      </Pressable>
+      <TDIconButton label={`Close ${title}`} iconName="close-outline" onPress={onClose} />
     </View>
   );
 }
