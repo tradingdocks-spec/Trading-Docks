@@ -115,7 +115,7 @@ test('Wave 1 routes consume mobile design OS primitives for high-traffic surface
   assert.match(shell, /getMobileBottomNavVisualModel/);
   assert.match(home, /TDNavigationHeader/);
   assert.match(home, /TDListRow/);
-  assert.match(scanner, /TDResultTray/);
+  assert.match(scanner, /batchScannerReviewChipModel/);
   assert.match(scanner, /TDSessionStrip/);
   assert.match(collection, /TDInput[\s\S]*Search collection/);
   assert.match(collection, /TDSegmentedControl/);

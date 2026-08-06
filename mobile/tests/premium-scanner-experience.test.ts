@@ -3,6 +3,15 @@ import test from 'node:test';
 
 import type { ScannerCardCandidate } from '../services/scanner-foundation.ts';
 import {
+  batchScannerInstructionForState,
+  batchScannerNoticeForLine,
+  batchScannerReviewChipModel,
+  batchScannerReviewStatusForConfidence,
+  batchScannerTimingSummary,
+  shouldAddRecognitionToBatch,
+  type ScannerSessionLine,
+} from '../services/continuous-offer-scanner.ts';
+import {
   buildPremiumResultTray,
   compactScannerMoney,
   dominantScannerSurface,
@@ -142,7 +151,8 @@ test('compact scanner money avoids long unavailable copy in constrained HUD cell
 
 test('Scanner 2.0 HUD is one compact line without unavailable pricing copy', () => {
   const line = scanner2HudLine({ modeLabel: 'Card Show', cardCount: 12, offerTotal: null, reviewCount: 2 });
-  assert.equal(line, 'Card Show - 12 cards - Offer — - 2 review');
+  assert.equal(line.startsWith('Card Show - 12 scanned - Offer'), true);
+  assert.equal(line.endsWith('- 2 review'), true);
   assert.equal(line.includes('Pricing unavailable'), false);
 });
 
@@ -156,10 +166,9 @@ test('Scanner 2.0 compact header uses two rows and omits zero review copy', () =
   });
   assert.equal(header.rows, 2);
   assert.equal(header.overflows, false);
-  assert.deepEqual(header.line1, { mode: 'Card Show Purchase', cards: '3 cards' });
-  assert.deepEqual(header.line2.map((item) => item.id), ['market', 'offer']);
-  assert.equal(header.line2[0].value, '$42.10');
-  assert.equal(header.line2[1].value, '$29.47');
+  assert.deepEqual(header.line1, { mode: 'Card Show Purchase', cards: '3 scanned' });
+  assert.deepEqual(header.line2.map((item) => item.id), ['offer']);
+  assert.equal(header.line2[0].value, '$29.47');
 });
 
 test('Scanner 2.0 compact header includes review only when present', () => {
@@ -170,8 +179,8 @@ test('Scanner 2.0 compact header includes review only when present', () => {
     offerTotal: null,
     reviewCount: 1,
   });
-  assert.deepEqual(header.line2.map((item) => item.id), ['market', 'offer', 'review']);
-  assert.equal(header.line2[2].value, '1');
+  assert.deepEqual(header.line2.map((item) => item.id), ['offer', 'review']);
+  assert.equal(header.line2[1].value, '1');
 });
 
 test('Scanner 2.0 main camera controls are exactly torch capture and search', () => {
@@ -307,6 +316,47 @@ test('compact scanner session strip is one row with review on the right', () => 
   assert.equal(model.summary, '3 cards   Market $42.10   Offer $29.47');
   assert.equal(model.reviewLabel, 'Review');
   assert.equal(model.compact, false);
+});
+
+test('batch scanner review chip uses scanned and review counts only', () => {
+  const model = batchScannerReviewChipModel({ cardCount: 12, reviewCount: 2 });
+  assert.equal(model.hidden, false);
+  assert.equal(model.summary, '12 scanned • 2 review');
+  assert.equal(model.reviewLabel, 'Review List');
+  assert.equal(model.tone, 'warning');
+});
+
+test('batch scanner auto-add policy sends uncertain matches to review list', () => {
+  assert.equal(batchScannerReviewStatusForConfidence('high_confidence'), 'suggested');
+  assert.equal(batchScannerReviewStatusForConfidence('likely'), 'needs_review');
+  assert.equal(batchScannerReviewStatusForConfidence('ambiguous'), 'needs_review');
+  assert.equal(shouldAddRecognitionToBatch({ candidateCount: 1, confidenceState: 'likely' }), true);
+  assert.equal(shouldAddRecognitionToBatch({ candidateCount: 3, confidenceState: 'ambiguous' }), true);
+  assert.equal(shouldAddRecognitionToBatch({ candidateCount: 0, confidenceState: null, failedReason: 'No card title' }), false);
+});
+
+test('batch scanner notice stays tiny and points correction to review list', () => {
+  const line = {
+    cardName: 'Brainstorm',
+    reviewStatus: 'needs_review',
+  } as ScannerSessionLine;
+  const notice = batchScannerNoticeForLine(line);
+  assert.equal(notice.title, 'Added for review');
+  assert.equal(notice.tone, 'warning');
+  assert.equal(notice.correctLabel, 'Correct');
+  assert.equal(notice.message.includes('Keep scanning'), true);
+});
+
+test('batch scanner state instruction model stays single-purpose', () => {
+  assert.equal(batchScannerInstructionForState('ready'), 'Place card in guide');
+  assert.equal(batchScannerInstructionForState('matching'), 'Matching printing');
+  assert.equal(batchScannerInstructionForState('remove_card'), 'Remove card');
+  assert.equal(batchScannerInstructionForState('failed'), 'Retake or search');
+});
+
+test('batch scanner timing summary normalizes latency without image data', () => {
+  const timing = batchScannerTimingSummary({ captureMs: 12.3, ocrMs: 88.8, scryfallMs: 140.2, sessionWriteMs: 5, totalMs: 250.7, fallbackCount: 2 });
+  assert.deepEqual(timing, { captureMs: 12, cropMs: null, ocrMs: 89, scryfallMs: 140, sessionWriteMs: 5, totalMs: 251, fallbackCount: 2 });
 });
 
 test('empty scanner session strip stays simplified with missing values compacted', () => {
