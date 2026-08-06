@@ -14,7 +14,7 @@
 - Implemented: The Vision Engine detects four corners, aspect ratio, rotation, perspective, fill percentage, center offset, edge visibility, confidence, blur, motion, lighting, glare, distance, stability timing, capture readiness, removal/rearm state, FPS, latency, and in-memory normalized crops for title, artwork, set symbol, collector number, bottom-left, and type-line regions.
 - Implemented: `mobile/services/live-card-recognition.ts` now delegates live frame analysis to the Vision Engine, then keeps OCR mapping and Magic adapter handoff separate.
 - Implemented: `mobile/modules/trading-docks-vision-ocr` adds a local Expo iOS module backed by Apple Vision `VNRecognizeTextRequest` for captured-still OCR.
-- Implemented: `mobile/services/magic-ocr-pipeline.ts` maps the visible guide to captured-image regions, reads title and collector text locally, queries Scryfall, returns top-three Magic candidates, deletes temporary captures, and caps title-only confidence.
+- Implemented: `mobile/services/magic-ocr-pipeline.ts` maps the visible guide to captured-image regions, normalizes captured stills to preview orientation, reads title and collector text locally, tries primary/expanded/lower/full-card title OCR fallback regions, queries Scryfall, returns top-three Magic candidates, deletes temporary captures, and caps title-only confidence.
 - Implemented: `mobile/services/native-scanner-calibration.ts` defines the native QA diagnostics and calibration contract, including camera-ready gating, guide/crop mapping, unavailable-signal auto-capture blocking, capture outcome labels, card-removal rearm checks, and evidence-only foil diagnostics.
 - Implemented: The active Scan screen does not call `takePictureAsync` until `CameraView.onCameraReady` fires.
 - Implemented: The active Scan screen now uses the premium camera-first hierarchy documented in `docs/SCANNER_PRODUCT_EXPERIENCE.md`: compact HUD, large camera viewport, result tray, bottom session bar, and secondary panels for settings, manual search, and diagnostics.
@@ -54,9 +54,9 @@
 ## Native Device Calibration
 
 - Implemented: The scanner supports a development-only diagnostics overlay behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`; the overlay is hidden when `NODE_ENV` is `production`.
-- Implemented: Diagnostics report camera readiness, preview dimensions, 63:88 guide dimensions, normalized guide crop, capture state, duplicate/removal state, recognition stage, session insertion result, and unavailable visual signals.
+- Implemented: Diagnostics report camera readiness, preview dimensions, 63:88 guide dimensions, normalized guide crop, capture state, duplicate/removal state, recognition stage, session insertion result, unavailable visual signals, captured-still orientation normalization, OCR crop pixel rectangles, selected title attempt, and local crop-proof overlays.
 - Implemented: Local guide calibration supports scale and vertical offset. These preferences are stored in user-scoped local app storage and are not production configuration.
-- Partially Implemented: The guide/crop mapping uses preview geometry from the active screen. Native camera-frame crop validation still requires physical device testing because `expo-camera` preview scaling and device safe areas vary by platform.
+- Partially Implemented: The guide/crop mapping uses preview geometry from the active screen and handles aspect-fill plus rotated still dimensions. Native camera-frame crop validation still requires physical device testing because `expo-camera` preview scaling and device safe areas vary by platform.
 - Planned: Device QA must verify iPhone safe areas, Android preview geometry, sleeves, glare, low light, tilted cards, app resume, tab leave/re-enter, and rapid card replacement before auto-capture can be enabled.
 
 ## Multi-TCG Intake
@@ -123,4 +123,4 @@ The active mobile scan route is `mobile/app/(tabs)/scan.tsx`. It now uses named 
 
 The working reliability systems remain intact: Expo camera, Apple Vision OCR, Magic title normalization, Scryfall exact/fuzzy lookup, top-three candidates, confidence caps, temporary-image cleanup, session insertion, offer math, manual fallback, diagnostics, user-scoped draft/session persistence, duplicate prevention, and removal/rearm behavior.
 
-Scanner 2.0 adds client-side safeguards for double capture and stale lookup completion. In-flight OCR/Scryfall results are ignored if the route unmounts or a retake invalidates the capture token.
+Scanner 2.0 adds client-side safeguards for double capture and stale lookup completion. In-flight OCR/Scryfall results are ignored if the route unmounts or a retake invalidates the capture token. Failed recognition no longer pauses the camera; Retake clears stale OCR/candidates and returns to the active camera-ready flow while explicit pause/resume remains user-controlled.

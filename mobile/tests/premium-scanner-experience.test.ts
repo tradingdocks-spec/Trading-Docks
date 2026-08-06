@@ -50,7 +50,7 @@ test('OCR failure produces a failed tray without creating an unknown session row
     cashOffer: null,
   });
   assert.equal(tray?.kind, 'failed');
-  assert.equal(tray?.title, "Couldn't identify card");
+  assert.equal(tray?.title, "Couldn't read the card");
   assert.equal(tray?.status, 'Review required');
   assert.deepEqual(tray?.secondaryActions, ['Search manually']);
 });
@@ -119,6 +119,12 @@ test('guide presentation uses text in addition to color for accessibility', () =
   assert.equal(guide.statusLabel, 'Review');
 });
 
+test('failed scanner guide uses readable-card recovery copy', () => {
+  const guide = guidePresentationForPipeline('failed', null);
+  assert.equal(guide.message, "Couldn't read the card");
+  assert.equal(guide.statusLabel, 'Review required');
+});
+
 test('compact scanner money avoids long unavailable copy in constrained HUD cells', () => {
   assert.equal(compactScannerMoney(null), '—');
   assert.equal(compactScannerMoney(12.5), '$12.50');
@@ -164,6 +170,22 @@ test('Scanner 2.0 state model covers recognized likely ambiguous failure and rem
   assert.equal(resolveScanner2InteractionState({ ...base, trayKind: 'ambiguous' }), 'ambiguous');
   assert.equal(resolveScanner2InteractionState({ ...base, trayKind: null, recognitionStage: 'failed' }), 'failed');
   assert.equal(resolveScanner2InteractionState({ ...base, trayKind: null, awaitingCardRemoval: true }), 'remove_card');
+});
+
+test('failed recognition remains a failed scanner state when camera is still active', () => {
+  assert.equal(resolveScanner2InteractionState({
+    loading: false,
+    permission: 'granted',
+    cameraActive: true,
+    cameraReady: true,
+    captureState: 'ready',
+    recognitionStage: 'failed',
+    trayKind: 'failed',
+    awaitingCardRemoval: false,
+    justAdded: false,
+    offline: false,
+    hasCameraError: false,
+  }), 'failed');
 });
 
 test('Scanner 2.0 camera remains the dominant region on target iPhone widths', () => {

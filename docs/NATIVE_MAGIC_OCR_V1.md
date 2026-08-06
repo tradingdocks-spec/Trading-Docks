@@ -5,8 +5,8 @@
 - Implemented: `mobile/modules/trading-docks-vision-ocr` is a local Expo module that uses Apple Vision `VNRecognizeTextRequest` for iOS still-image OCR.
 - Implemented: The TypeScript adapter returns structured success and failure results, including full text, per-region observations, confidence, normalized bounding boxes, latency, orientation, warnings, and native error codes.
 - Implemented: Android and web return explicit unsupported states; they do not pretend OCR works.
-- Implemented: `mobile/services/magic-ocr-pipeline.ts` maps the visible 63:88 guide to captured-image coordinates, requests targeted OCR regions, normalizes Magic title and collector text, queries Scryfall, returns top-three candidates, and deletes temporary captures.
-- Partially Implemented: The mapping is guide-assisted crop mapping. It accounts for preview/image aspect ratio and cover-style preview cropping, but it is not four-corner perspective correction.
+- Implemented: `mobile/services/magic-ocr-pipeline.ts` maps the visible 63:88 guide to captured-image coordinates, normalizes rotated iPhone still dimensions to the live preview orientation, requests targeted OCR regions, normalizes Magic title and collector text, queries Scryfall, returns top-three candidates, and deletes temporary captures.
+- Partially Implemented: The mapping is guide-assisted crop mapping. It accounts for preview/image aspect ratio, cover-style preview cropping, and captured-still orientation mismatch, but it is not four-corner perspective correction.
 - Partially Implemented: Confidence uses real title, set-code, collector-number, and language observations. Artwork, set-symbol, and finish recognition remain unavailable and contribute no positive evidence.
 - Requires Production Configuration: A new EAS development build is mandatory before physical iPhone QA because native Swift code and direct `expo-file-system` dependency resolution changed.
 
@@ -21,7 +21,10 @@
 
 ## OCR Regions
 
-- title
+- title primary
+- title expanded
+- title lower
+- full-card title fallback
 - collector information
 - bottom left
 - bottom right
@@ -33,7 +36,7 @@ The active scanner sends normalized image-space rectangles. Source image paths, 
 
 1. Capture still locally with `expo-camera`.
 2. Display `Reading title`.
-3. Run Apple Vision OCR on guide-assisted regions.
+3. Run Apple Vision OCR on guide-assisted regions in this fallback order: primary title crop, expanded title crop, lower title crop, full-card OCR fallback, then manual search if no usable title is found.
 4. Display `Finding card`.
 5. Search Scryfall by normalized title.
 6. Fall back to conservative fuzzy title lookup only when exact title lookup returns nothing.
@@ -56,7 +59,7 @@ The active scanner sends normalized image-space rectangles. Source image paths, 
 - Implemented: Captured images stay local.
 - Implemented: Captured images are not uploaded to Scryfall or a cloud vision provider.
 - Implemented: The temporary `expo-camera` capture is deleted after OCR processing.
-- Implemented: Diagnostics show geometry, OCR text, confidence, latency, and cleanup status only behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`; source image paths are not shown.
+- Implemented: Diagnostics show geometry, OCR text, confidence, latency, cleanup status, crop pixel rectangles, winning title attempt, and local crop-proof overlays only behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`; source image paths are not shown.
 
 ## Build Requirement
 
@@ -83,9 +86,10 @@ npx eas build --profile development --platform ios
 5. Place a known Magic card inside the 63:88 guide.
 6. Tap `Capture still`.
 7. Confirm `Reading title`, then `Finding card`, then review UI appears.
-8. Verify raw OCR title, normalized title, collector OCR, parsed set/collector, OCR latency, Scryfall latency, and cleanup status.
+8. Verify raw OCR title, normalized title, selected title attempt, title crop proof, collector crop proof, parsed set/collector, OCR latency, Scryfall latency, and cleanup status.
 9. Verify top-three printings include the expected Scryfall printing.
 10. Accept the correct printing and add it to the active scanner session.
 11. Confirm running offer/session totals update and missing pricing displays as unavailable, not zero.
-12. Retake with glare, sleeve, low light, angled card, and same-name reprint examples.
-13. Confirm Android/web show safe unsupported or manual fallback states.
+12. Fail one scan intentionally, then tap Retake and confirm the camera resumes without requiring `Resume camera`.
+13. Retake with glare, sleeve, low light, angled card, and same-name reprint examples.
+14. Confirm Android/web show safe unsupported or manual fallback states.

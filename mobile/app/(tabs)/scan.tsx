@@ -27,7 +27,7 @@ import {
 } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish, type CardCondition } from '@/services/collector-workspace';
 import { classifyMagicRecognition, recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
-import { recognizeMagicStillCapture, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
+import { deleteCapturedStill, recognizeMagicStillCapture, type CropRect, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from '@/modules/trading-docks-vision-ocr';
 import { loadScannerContext, loadScannerDraft, saveScannerConfirmation, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
 import {
@@ -94,6 +94,7 @@ export default function Scan() {
   const [autoScanner, setAutoScanner] = useState(() => createContinuousScannerRuntime({ scanId: createScanId() }));
   const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
   const [cameraActive, setCameraActive] = useState(false);
+  const [userPausedCamera, setUserPausedCamera] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [previewDimensions, setPreviewDimensions] = useState<PreviewDimensions | null>(null);
   const [captureState, setCaptureState] = useState<ScannerCaptureState>('idle');
@@ -106,6 +107,7 @@ export default function Scan() {
   const [candidates, setCandidates] = useState<ScannerCardCandidate[]>([]);
   const [magicRecognition, setMagicRecognition] = useState<MagicRecognitionResult | null>(null);
   const [magicStillScan, setMagicStillScan] = useState<MagicStillScanResult | null>(null);
+  const [diagnosticCaptureUri, setDiagnosticCaptureUri] = useState<string | null>(null);
   const [ocrRuntimeDiagnostics, setOcrRuntimeDiagnostics] = useState<NativeOcrRuntimeDiagnostics | null>(null);
   const [showMagicWhy, setShowMagicWhy] = useState(false);
   const [selected, setSelected] = useState<ScannerCardCandidate | null>(null);
@@ -276,6 +278,10 @@ export default function Scan() {
     };
   }, []);
 
+  useEffect(() => () => {
+    if (diagnosticCaptureUri) void deleteCapturedStill(diagnosticCaptureUri);
+  }, [diagnosticCaptureUri]);
+
   useEffect(() => {
     let mounted = true;
     void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
@@ -298,13 +304,13 @@ export default function Scan() {
     });
     setPermission(nextPermission);
     if (nextPermission === 'granted') {
-      setCameraActive(true);
+      if (!userPausedCamera) setCameraActive(true);
       return;
     }
     if (nextPermission === 'not_requested') {
       void requestCameraPermission();
     }
-  }, [cameraAvailable, cameraPermission, requestCameraPermission]);
+  }, [cameraAvailable, cameraPermission, requestCameraPermission, userPausedCamera]);
 
   useEffect(() => {
     if (!context || !diagnosticsEnabled) return;
@@ -339,12 +345,12 @@ export default function Scan() {
       requested: Boolean(cameraPermission),
     });
     setPermission(next);
-    setCameraActive(next === 'granted');
+    setCameraActive(next === 'granted' && !userPausedCamera);
     if (next !== 'granted') {
       setCameraReady(false);
       setCaptureState(next === 'unavailable' ? 'failed' : 'idle');
     }
-  }, [cameraAvailable, cameraPermission]);
+  }, [cameraAvailable, cameraPermission, userPausedCamera]);
 
   const requestCamera = async () => {
     setError(null);
@@ -369,6 +375,37 @@ export default function Scan() {
     }
   };
 
+  const cleanupDiagnosticCapture = async () => {
+    const uri = diagnosticCaptureUri;
+    setDiagnosticCaptureUri(null);
+    if (uri) await deleteCapturedStill(uri);
+  };
+
+  const toggleCameraPause = () => {
+    setCameraActive((active) => {
+      const nextActive = !active;
+      setUserPausedCamera(!nextActive);
+      return nextActive;
+    });
+  };
+
+  const retakeScan = () => {
+    activeCaptureIdRef.current = null;
+    void cleanupDiagnosticCapture();
+    setMagicStillScan(null);
+    setMagicRecognition(null);
+    setCandidates([]);
+    setSelected(null);
+    setShowMagicWhy(false);
+    setError(null);
+    setSuccess(null);
+    setSessionInsertionResult('not_attempted');
+    setRecognitionStage('idle');
+    setCaptureState(cameraReady ? 'ready' : 'camera_not_ready');
+    setUserPausedCamera(false);
+    setCameraActive(true);
+  };
+
   const captureStill = async () => {
     if (captureState === 'capturing' || recognitionStage === 'reading_title' || recognitionStage === 'finding_card') return;
     setError(null);
@@ -385,6 +422,7 @@ export default function Scan() {
       return;
     }
     try {
+      if (diagnosticCaptureUri) void cleanupDiagnosticCapture();
       const captureId = createScanId();
       activeCaptureIdRef.current = captureId;
       setCaptureState('capturing');
@@ -402,11 +440,13 @@ export default function Scan() {
         guide: guideLayout,
         online: true,
         cachedCandidates: candidates.map(scannerCandidateToRecognitionCandidate),
+        deferCleanup: diagnosticsEnabled,
         onStage: (stage) => {
           if (mountedRef.current && activeCaptureIdRef.current === captureId) setRecognitionStage(stage);
         },
       });
       if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
+      if (diagnosticsEnabled) setDiagnosticCaptureUri(photo.uri);
       setMagicStillScan(scan);
       if (scan.ok) {
         setCandidates(scan.candidates);
@@ -430,9 +470,10 @@ export default function Scan() {
         scanId: captureId,
       }));
       activeCaptureIdRef.current = null;
-      setCameraActive(false);
+      if (!userPausedCamera) setCameraActive(true);
     } catch (captureError) {
       activeCaptureIdRef.current = null;
+      if (!userPausedCamera) setCameraActive(true);
       setCaptureState('failed');
       setRecognitionStage('failed');
       setSessionInsertionResult('failed');
@@ -614,7 +655,7 @@ export default function Scan() {
           setCaptureState('ready');
         }}
         onToggleTorch={() => setTorchEnabled((value) => !value)}
-        onTogglePause={() => setCameraActive((value) => !value)}
+        onTogglePause={toggleCameraPause}
         onCapture={captureStill}
         onManualSearch={() => setShowManualSearchSheet(true)}
         onSettings={() => setShowSettingsSheet(true)}
@@ -641,13 +682,7 @@ export default function Scan() {
             quantity={quantity}
             saving={saving}
             showCorrectionTools={showCorrectionTools}
-            onRetake={() => {
-              activeCaptureIdRef.current = null;
-              setCameraReady(false);
-              setCaptureState('camera_not_ready');
-              setRecognitionStage('idle');
-              setCameraActive(true);
-            }}
+            onRetake={retakeScan}
             onManualSearch={() => setShowManualSearchSheet(true)}
             onToggleCorrection={() => setShowCorrectionTools((value) => !value)}
             onSave={save}
@@ -764,7 +799,10 @@ export default function Scan() {
 
         {diagnosticsEnabled && showDiagnosticsSheet && !renderDiagnosticsInline ? (
           <TDCard style={s.sheet}>
-            <SheetHeader title="Scanner diagnostics" onClose={() => setShowDiagnosticsSheet(false)} />
+            <SheetHeader title="Scanner diagnostics" onClose={() => {
+              setShowDiagnosticsSheet(false);
+              void cleanupDiagnosticCapture();
+            }} />
             <TDText variant="small" tone="muted">Development-only. No source images are logged or exported.</TDText>
             <View style={s.signalGrid}>
               <DiagnosticCell label="Preview" value={previewDimensions ? `${Math.round(previewDimensions.width)} x ${Math.round(previewDimensions.height)}` : 'unavailable'} />
@@ -781,6 +819,10 @@ export default function Scan() {
               <DiagnosticCell label="OCR runtime" value={ocrRuntimeDiagnostics ? `${ocrRuntimeDiagnostics.runtimeModuleName} ${ocrRuntimeDiagnostics.platform}` : 'checking'} />
               <DiagnosticCell label="OCR title" value={magicStillScan?.lookupDiagnostics?.rawOcrTitle ?? 'unavailable'} />
               <DiagnosticCell label="Normalized title" value={magicStillScan?.lookupDiagnostics?.normalizedOcrTitle ?? 'unavailable'} />
+              <DiagnosticCell label="Title attempt" value={magicStillScan?.cropDiagnostics?.selectedTitleAttemptId ?? 'unavailable'} />
+              <DiagnosticCell label="Image fit" value={magicStillScan?.cropDiagnostics ? `${magicStillScan.cropDiagnostics.previewContentFit}; raw ${magicStillScan.cropDiagnostics.rawImage.width} x ${magicStillScan.cropDiagnostics.rawImage.height}; normalized ${magicStillScan.cropDiagnostics.normalizedImage.width} x ${magicStillScan.cropDiagnostics.normalizedImage.height}` : 'unavailable'} />
+              <DiagnosticCell label="Title px" value={magicStillScan?.cropDiagnostics ? rectSummary(magicStillScan.cropDiagnostics.titleCropPixels) : 'unavailable'} />
+              <DiagnosticCell label="Collector px" value={magicStillScan?.cropDiagnostics ? rectSummary(magicStillScan.cropDiagnostics.collectorCropPixels) : 'unavailable'} />
               <DiagnosticCell label="Title alternatives" value={magicStillScan?.lookupDiagnostics?.titleAlternatives.join(' | ') || 'unavailable'} />
               <DiagnosticCell label="Scryfall query" value={magicStillScan?.lookupDiagnostics?.scryfallQueryString ?? 'unavailable'} />
               <DiagnosticCell label="Scryfall status" value={magicStillScan?.lookupDiagnostics?.httpStatus ? String(magicStillScan.lookupDiagnostics.httpStatus) : 'unavailable'} />
@@ -789,6 +831,12 @@ export default function Scan() {
               <DiagnosticCell label="Lookup latency" value={magicStillScan?.lookupDiagnostics ? `${magicStillScan.lookupDiagnostics.lookupLatencyMs} ms` : 'unavailable'} />
               <DiagnosticCell label="Top three" value={magicStillScan?.lookupDiagnostics?.topThreeCandidateNames.join(' | ') || 'unavailable'} />
             </View>
+            {diagnosticCaptureUri && magicStillScan?.cropDiagnostics ? (
+              <View style={s.cropProofGrid}>
+                <CropProof imageUri={diagnosticCaptureUri} label="Title crop proof" crop={magicStillScan.cropDiagnostics.titleCrop} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Collector crop proof" crop={magicStillScan.cropDiagnostics.collectorCrop} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+              </View>
+            ) : null}
             {magicStillScan?.ok ? (
               <View style={s.optionGroup}>
                 <TDText variant="caption" tone="muted">Raw title: {magicStillScan.signals.rawTitle ?? 'unavailable'}</TDText>
@@ -1175,7 +1223,7 @@ function permissionMessage(permission: ScannerPermissionState, platform: string)
 
 function shortFailureMessage(message: string) {
   if (/network/i.test(message)) return 'Network unavailable. Try again when connected or search manually.';
-  if (/no title|usable card title|title read/i.test(message)) return 'No title was read. Retake the card in better light or search manually.';
+  if (/no title|usable card title|title read/i.test(message)) return 'Hold the card closer and keep the title sharp.';
   if (/no matching|no candidate|not find|no supported/i.test(message)) return 'No matching card was found. Retake or search manually.';
   if (/invalid response|service/i.test(message)) return 'Card search is unavailable. Try again or search manually.';
   return 'Try again with the card centered, or search manually.';
@@ -1212,6 +1260,33 @@ function DiagnosticCell({ label, value }: { label: string; value: string }) {
       <TDText variant="small">{value}</TDText>
     </View>
   );
+}
+
+function CropProof({ imageUri, label, crop, imageSize }: { imageUri: string; label: string; crop: CropRect; imageSize: { width: number; height: number } }) {
+  return (
+    <View style={s.cropProof}>
+      <TDText variant="caption" tone="muted">{label}</TDText>
+      <View style={[s.cropProofImageFrame, { aspectRatio: imageSize.width / imageSize.height }]}>
+        <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} contentFit="contain" />
+        <View
+          pointerEvents="none"
+          style={[
+            s.cropProofOverlay,
+            {
+              left: `${Math.round(crop.x * 100)}%`,
+              top: `${Math.round(crop.y * 100)}%`,
+              width: `${Math.round(crop.width * 100)}%`,
+              height: `${Math.round(crop.height * 100)}%`,
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
+function rectSummary(rect: { x: number; y: number; width: number; height: number }) {
+  return `${rect.x},${rect.y} ${rect.width}x${rect.height}`;
 }
 
 async function loadContinuousSession(userId: string) {
@@ -1329,6 +1404,10 @@ const s = StyleSheet.create({
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   signalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   signalCell: { minWidth: 116, flexGrow: 1, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, padding: space.sm, backgroundColor: color.canvasRaised },
+  cropProofGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  cropProof: { flex: 1, minWidth: 150, gap: space.xs },
+  cropProofImageFrame: { height: 180, overflow: 'hidden', borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, backgroundColor: '#010711' },
+  cropProofOverlay: { position: 'absolute', borderWidth: 2, borderColor: color.primaryBright, backgroundColor: color.primaryBright + '18' },
   optionGroup: { gap: space.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   checkboxRow: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm },

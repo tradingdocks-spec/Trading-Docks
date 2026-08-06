@@ -125,7 +125,7 @@ export function guidePresentationForPipeline(
   pipeline: PremiumScannerPipelineState,
   guidance: string | null | undefined,
 ): PremiumScannerGuidePresentation {
-  if (pipeline === 'failed') return guide('failed', "Couldn't identify card", 'danger', 0, 'Review required');
+  if (pipeline === 'failed') return guide('failed', "Couldn't read the card", 'danger', 0, 'Review required');
   if (pipeline === 'remove_card') return guide('recognized', 'Remove card', 'emerald', 1, 'Added');
   if (pipeline === 'added') return guide('recognized', 'Ready for next card', 'emerald', 1, 'Added');
   if (pipeline === 'reading') return guide('processing', 'Reading card', 'blue', 0.72, 'Reading');
@@ -150,7 +150,7 @@ export function buildPremiumResultTray(input: {
   if (input.failedReason) {
     return {
       kind: 'failed',
-      title: "Couldn't identify card",
+      title: "Couldn't read the card",
       subtitle: input.failedReason,
       status: 'Review required',
       expanded: true,
