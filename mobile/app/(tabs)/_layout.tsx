@@ -57,7 +57,16 @@ export default function Layout() {
           tabBarLabelStyle: s.label,
           tabBarIcon: ({ color: iconColor, focused }) => {
             return options.prominent ? (
-              <View style={[s.center, focused && s.centerActive]}>
+              <View
+                style={[
+                  s.center,
+                  {
+                    width: navModel.centerAction.width,
+                    height: navModel.centerAction.height,
+                  },
+                  focused && s.centerActive,
+                ]}
+              >
                 <Ionicons
                   name={(focused ? options.icon : options.inactiveIcon) as any}
                   color={focused ? color.text : iconColor}
@@ -87,6 +96,11 @@ export default function Layout() {
                 }
                 props.onPress?.(event as any);
               }}
+              style={({ pressed }) => [
+                props.style as any,
+                s.tabPressArea,
+                pressed && s.pressedTab,
+              ]}
             />
           ),
         };
@@ -128,15 +142,22 @@ const s = StyleSheet.create({
     minHeight: 48,
     paddingTop: 2,
   },
+  tabPressArea: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressedTab: {
+    opacity: 0.82,
+  },
   label: {
     fontSize: 10,
     fontWeight: '800',
     lineHeight: 12,
     marginTop: 1,
+    maxWidth: 76,
   },
   center: {
-    width: 42,
-    height: 34,
     borderRadius: radius.md,
     backgroundColor: `${color.primary}24`,
     borderWidth: 1,
