@@ -1,9 +1,12 @@
 import { recognizeText, type NativeOcrObservation, type NativeOcrRegion, type NativeOcrResult } from '../modules/trading-docks-vision-ocr/index.ts';
 import {
   classifyMagicRecognition,
+  MagicCatalogLookupError,
   recognizeMagicCard,
   searchScryfallMagicCatalog,
   searchScryfallMagicCatalogFuzzy,
+  type MagicCatalogDiagnosticsSink,
+  type MagicCatalogLookupDiagnostics,
   type MagicCatalogSearch,
   type MagicRecognitionResult,
 } from './magic-recognition-provider.ts';
@@ -37,6 +40,18 @@ export type MagicOcrSignals = {
   ocrConfidence: number | null;
 };
 
+export type MagicStillScanLookupDiagnostics = {
+  rawOcrTitle: string | null;
+  normalizedOcrTitle: string | null;
+  titleAlternatives: string[];
+  scryfallQueryString: string | null;
+  httpStatus: number | null;
+  responseItemCount: number | null;
+  lookupErrorCode: MagicCatalogLookupDiagnostics['errorCode'];
+  lookupLatencyMs: number;
+  topThreeCandidateNames: string[];
+};
+
 export type MagicStillScanResult =
   | {
     ok: true;
@@ -48,6 +63,7 @@ export type MagicStillScanResult =
     confidenceLabel: 'recognized' | 'likely' | 'ambiguous' | 'manual_review_required';
     mapping: GuideCropMapping;
     lookupLatencyMs: number;
+    lookupDiagnostics: MagicStillScanLookupDiagnostics;
     cleanup: CaptureCleanupResult;
   }
   | {
@@ -56,6 +72,8 @@ export type MagicStillScanResult =
     code: 'ocr_failed' | 'candidate_lookup_failed' | 'cleanup_failed';
     ocr?: NativeOcrResult;
     mapping?: GuideCropMapping;
+    signals?: MagicOcrSignals;
+    lookupDiagnostics?: MagicStillScanLookupDiagnostics;
     cleanup?: CaptureCleanupResult;
   };
 
@@ -75,6 +93,7 @@ export async function recognizeMagicStillCapture(input: {
   searchCatalog?: MagicCatalogSearch;
   cleanup?: typeof deleteCapturedStill;
   onStage?: (stage: 'reading_title' | 'finding_card') => void;
+  onLookupDiagnostics?: (diagnostics: MagicStillScanLookupDiagnostics) => void;
 }): Promise<MagicStillScanResult> {
   const mapping = buildGuideAssistedCropMapping({
     preview: input.preview,
@@ -97,11 +116,18 @@ export async function recognizeMagicStillCapture(input: {
   const signals = buildMagicOcrSignals(ocr.observations);
   if (!signals.normalizedTitle) {
     const cleanupResult = await cleanup(input.imageUri);
-    return { ok: false, code: 'candidate_lookup_failed', reason: 'OCR did not find a usable card title.', ocr, mapping, cleanup: cleanupResult };
+    const lookupDiagnostics = createStillLookupDiagnostics(signals, { queryString: null, httpStatus: null, responseItemCount: 0, errorCode: 'no_title_read', latencyMs: 0, topThreeCandidateNames: [] });
+    input.onLookupDiagnostics?.(lookupDiagnostics);
+    return { ok: false, code: 'candidate_lookup_failed', reason: 'No title read. Try again or search manually.', ocr, mapping, signals, lookupDiagnostics, cleanup: cleanupResult };
   }
 
   input.onStage?.('finding_card');
   const started = Date.now();
+  let latestLookupDiagnostics: MagicStillScanLookupDiagnostics | null = null;
+  const onLookupDiagnostics: MagicCatalogDiagnosticsSink = (diagnostics) => {
+    latestLookupDiagnostics = createStillLookupDiagnostics(signals, diagnostics);
+    input.onLookupDiagnostics?.(latestLookupDiagnostics);
+  };
   const recognition = await recognizeMagicCard({
     nameObservation: {
       regionType: 'name',
@@ -112,14 +138,38 @@ export async function recognizeMagicStillCapture(input: {
     collectorInfoObservation: signals.collectorInfo ?? undefined,
     online: input.online,
     cachedCandidates: input.cachedCandidates,
-  }, buildOcrAwareMagicSearch(input.searchCatalog ?? searchScryfallMagicCatalog, signals.titleAlternatives));
+  }, buildOcrAwareMagicSearch(
+    input.searchCatalog ?? searchScryfallMagicCatalog,
+    signals.titleAlternatives,
+    onLookupDiagnostics,
+    input.searchCatalog ? null : searchScryfallMagicCatalogFuzzy,
+  ));
   const lookupLatencyMs = Math.max(0, Date.now() - started);
   const cleanupResult = await cleanup(input.imageUri);
   if (!recognition.ok) {
-    return { ok: false, code: 'candidate_lookup_failed', reason: recognition.reason, ocr, mapping, cleanup: cleanupResult };
+    const lookupDiagnostics = latestLookupDiagnostics ?? createStillLookupDiagnostics(signals, {
+      queryString: signals.normalizedTitle,
+      httpStatus: null,
+      responseItemCount: 0,
+      errorCode: recognition.code ?? 'no_candidate_found',
+      latencyMs: lookupLatencyMs,
+      topThreeCandidateNames: [],
+    });
+    return { ok: false, code: 'candidate_lookup_failed', reason: lookupFailureMessage(recognition), ocr, mapping, signals, lookupDiagnostics, cleanup: cleanupResult };
   }
   const cappedRecognition = capTitleOnlyConfidence(recognition, Boolean(signals.collectorInfo?.setCode), Boolean(signals.collectorInfo?.collectorNumber));
   const candidates = cappedRecognition.candidates.map(recognitionToScannerCandidate).filter((candidate): candidate is ScannerCardCandidate => Boolean(candidate));
+  const lookupDiagnostics = latestLookupDiagnostics ?? createStillLookupDiagnostics(signals, {
+    queryString: signals.normalizedTitle,
+    httpStatus: null,
+    responseItemCount: candidates.length,
+    errorCode: candidates.length ? null : 'no_candidate_found',
+    latencyMs: lookupLatencyMs,
+    topThreeCandidateNames: candidates.slice(0, 3).map((candidate) => candidate.name),
+  });
+  if (!candidates.length) {
+    return { ok: false, code: 'candidate_lookup_failed', reason: 'No matching card found. Try again or search manually.', ocr, mapping, signals, lookupDiagnostics, cleanup: cleanupResult };
+  }
   return {
     ok: true,
     ocr,
@@ -130,6 +180,7 @@ export async function recognizeMagicStillCapture(input: {
     confidenceLabel: confidenceLabel(cappedRecognition),
     mapping,
     lookupLatencyMs,
+    lookupDiagnostics,
     cleanup: cleanupResult,
   };
 }
@@ -272,16 +323,59 @@ export async function deleteCapturedStill(imageUri: string | null | undefined): 
   }
 }
 
-export function buildOcrAwareMagicSearch(primary: MagicCatalogSearch, alternatives: string[]): MagicCatalogSearch {
+export function buildOcrAwareMagicSearch(
+  primary: MagicCatalogSearch,
+  alternatives: string[],
+  onDiagnostics?: MagicCatalogDiagnosticsSink,
+  fuzzySearch: MagicCatalogSearch | null = searchScryfallMagicCatalogFuzzy,
+): MagicCatalogSearch {
   return async (query) => {
-    const exact = await primary(query);
+    const exact = await callMagicSearch(primary, query, onDiagnostics);
     if (exact.length || !query.name) return exact;
     for (const alternative of alternatives.filter((entry) => entry && entry !== query.name)) {
-      const alternativeExact = await primary({ ...query, name: alternative });
+      const alternativeExact = await callMagicSearch(primary, { ...query, name: alternative }, onDiagnostics);
       if (alternativeExact.length) return alternativeExact;
     }
-    return searchScryfallMagicCatalogFuzzy(query);
+    if (!fuzzySearch) return [];
+    return callMagicSearch(fuzzySearch, query, onDiagnostics);
   };
+}
+
+async function callMagicSearch(
+  search: MagicCatalogSearch,
+  query: Parameters<MagicCatalogSearch>[0],
+  onDiagnostics?: MagicCatalogDiagnosticsSink,
+) {
+  try {
+    const searchWithDiagnostics = search as MagicCatalogSearch & ((query: Parameters<MagicCatalogSearch>[0], onDiagnostics?: MagicCatalogDiagnosticsSink) => Promise<RecognitionCandidate[]>);
+    return await searchWithDiagnostics(query, onDiagnostics);
+  } catch (error) {
+    if (error instanceof MagicCatalogLookupError && error.code === 'no_candidate_found') return [];
+    throw error;
+  }
+}
+
+function createStillLookupDiagnostics(signals: MagicOcrSignals, diagnostics: MagicCatalogLookupDiagnostics): MagicStillScanLookupDiagnostics {
+  return {
+    rawOcrTitle: signals.rawTitle,
+    normalizedOcrTitle: signals.normalizedTitle,
+    titleAlternatives: signals.titleAlternatives,
+    scryfallQueryString: diagnostics.queryString,
+    httpStatus: diagnostics.httpStatus,
+    responseItemCount: diagnostics.responseItemCount,
+    lookupErrorCode: diagnostics.errorCode,
+    lookupLatencyMs: diagnostics.latencyMs,
+    topThreeCandidateNames: diagnostics.topThreeCandidateNames,
+  };
+}
+
+function lookupFailureMessage(recognition: MagicRecognitionResult & { ok: false }) {
+  if (recognition.code === 'network_unavailable' || recognition.offline) return 'Network unavailable. Search manually or try again when connected.';
+  if (recognition.code === 'invalid_response') return 'Card search returned an invalid response. Try manual search.';
+  if (recognition.code === 'service_error') return 'Card search service is unavailable. Try manual search.';
+  if (recognition.code === 'no_title_read') return 'No title read. Try again or search manually.';
+  if (recognition.code === 'no_candidate_found') return 'No matching card found. Try again or search manually.';
+  return recognition.reason;
 }
 
 function recognitionToScannerCandidate(candidate: RecognitionCandidate) {

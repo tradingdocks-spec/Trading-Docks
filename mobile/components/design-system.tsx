@@ -10,6 +10,7 @@ import {
   Text,
   TextInput,
   TextInputProps,
+  TextProps,
   TextStyle,
   View,
   ViewProps,
@@ -56,7 +57,7 @@ type TDInputProps = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
 };
 
-type TDTextProps = PropsWithChildren<{
+type TDTextProps = PropsWithChildren<TextProps & {
   variant?: 'display' | 'heading' | 'title' | 'body' | 'small' | 'caption' | 'label';
   tone?: 'primary' | 'secondary' | 'muted' | 'success' | 'warning' | 'danger' | 'info';
   style?: StyleProp<TextStyle>;
@@ -109,8 +110,8 @@ export function TDScreen({ children, style }: PropsWithChildren<{ style?: StyleP
   );
 }
 
-export function TDText({ children, variant = 'body', tone = 'primary', style }: TDTextProps) {
-  return <Text style={[textStyles[variant], toneStyles[tone], style]}>{children}</Text>;
+export function TDText({ children, variant = 'body', tone = 'primary', style, ...textProps }: TDTextProps) {
+  return <Text {...textProps} style={[textStyles[variant], toneStyles[tone], style]}>{children}</Text>;
 }
 
 export function TDButton({

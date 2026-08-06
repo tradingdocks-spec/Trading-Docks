@@ -12,6 +12,7 @@ import {
   recognizeMagicStillCapture,
 } from '../services/magic-ocr-pipeline.ts';
 import type { MagicRecognitionResult } from '../services/magic-recognition-provider.ts';
+import { MagicCatalogLookupError } from '../services/magic-recognition-provider.ts';
 import type { RecognitionCandidate } from '../services/scanner-intelligence.ts';
 import type { NativeOcrResult } from '../modules/trading-docks-vision-ocr/index.ts';
 
@@ -116,6 +117,103 @@ test('OCR-aware Scryfall search falls back to fuzzy title candidates', async () 
   const search = buildOcrAwareMagicSearch(async (query) => query.name === 'Rhystic Study' ? [] : [rhystic], ['Rhystic Stvdy']);
   const result = await search({ name: 'Rhystic Study', setCode: null, collectorNumber: null });
   assert.equal(result[0].id, 'sf-rhystic-wot-25');
+});
+
+test('valid OCR title produces Scryfall query diagnostics', async () => {
+  const diagnostics: string[] = [];
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    recognize: async () => ocr,
+    searchCatalog: async (query) => {
+      diagnostics.push(`${query.name ?? ''}|${query.setCode ?? ''}|${query.collectorNumber ?? ''}`);
+      return [rhystic];
+    },
+    cleanup: async () => ({ ok: true, deleted: true }),
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(diagnostics, ['rhystic study|WOT|25']);
+});
+
+test('title-only OCR produces capped candidates when collector data is missing', async () => {
+  const titleOnlyOcr: NativeOcrResult & { ok: true } = {
+    ...ocr,
+    observations: [ocr.observations[0]],
+  };
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    recognize: async () => titleOnlyOcr,
+    searchCatalog: async () => [rhystic, rhysticMystery],
+    cleanup: async () => ({ ok: true, deleted: true }),
+  });
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.candidates.length, 2);
+  assert.equal(result.recognition.confidence.overall, 69);
+  assert.equal(result.recognition.confidence.requiresConfirmation, true);
+});
+
+test('empty OCR title produces a no-title state with lookup diagnostics', async () => {
+  const noTitleOcr: NativeOcrResult & { ok: true } = {
+    ...ocr,
+    observations: [{ ...ocr.observations[0], text: '', rawText: '', confidence: 0 }],
+  };
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    recognize: async () => noTitleOcr,
+    cleanup: async () => ({ ok: true, deleted: true }),
+  });
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.lookupDiagnostics?.lookupErrorCode, 'no_title_read');
+  assert.match(result.reason, /No title read/);
+});
+
+test('network failure produces a network lookup state', async () => {
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    recognize: async () => ocr,
+    searchCatalog: async () => {
+      throw new MagicCatalogLookupError('network_unavailable', 'Network unavailable while searching Scryfall.');
+    },
+    cleanup: async () => ({ ok: true, deleted: true }),
+  });
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.lookupDiagnostics?.lookupErrorCode, 'network_unavailable');
+  assert.match(result.reason, /Network unavailable/);
+});
+
+test('empty Scryfall response produces a no-match state', async () => {
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    recognize: async () => ocr,
+    searchCatalog: async () => [],
+    cleanup: async () => ({ ok: true, deleted: true }),
+  });
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.lookupDiagnostics?.lookupErrorCode, 'no_candidate_found');
+  assert.match(result.reason, /No matching card/);
 });
 
 test('still capture OCR returns top three and preserves missing pricing for session confirmation', async () => {

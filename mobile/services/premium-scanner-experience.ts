@@ -54,6 +54,8 @@ export type PremiumScannerModeDefaults = {
   autoAddHighConfidence: false;
 };
 
+export type PremiumScannerDominantSurface = 'camera_prompt' | 'progress' | 'result_tray' | 'none';
+
 export const PREMIUM_SCANNER_PIPELINE_STATES: PremiumScannerPipelineState[] = [
   'camera_ready',
   'aligning',
@@ -95,16 +97,16 @@ export function guidePresentationForPipeline(
   pipeline: PremiumScannerPipelineState,
   guidance: string | null | undefined,
 ): PremiumScannerGuidePresentation {
-  if (pipeline === 'failed') return guide('failed', 'Retake or search manually', 'danger', 0, 'Failed');
+  if (pipeline === 'failed') return guide('failed', "Couldn't identify card", 'danger', 0, 'Review required');
   if (pipeline === 'remove_card') return guide('recognized', 'Remove card', 'emerald', 1, 'Added');
   if (pipeline === 'added') return guide('recognized', 'Ready for next card', 'emerald', 1, 'Added');
   if (pipeline === 'reading') return guide('processing', 'Reading card', 'blue', 0.72, 'Reading');
-  if (pipeline === 'searching') return guide('processing', 'Finding printing', 'blue', 0.86, 'Searching');
+  if (pipeline === 'searching') return guide('processing', 'Finding match', 'blue', 0.86, 'Searching');
   if (pipeline === 'candidate_ready') return guide('recognized', 'Match found', 'emerald', 1, 'Match found');
   if (pipeline === 'confirmation_required') return guide('review_required', 'Review printing', 'amber', 0.92, 'Review');
   if (pipeline === 'capturing') return guide('capturing', 'Reading card', 'blue', 0.64, 'Capturing');
   if (pipeline === 'camera_ready') return guide('ready', guidance || 'Hold steady', 'emerald', 0.52, 'Ready');
-  return guide('aligning', guidance || 'Place card in frame', 'cyan', 0.18, 'Aligning');
+  return guide('aligning', guidance || 'Place the card inside the guide.', 'cyan', 0.18, 'Aligning');
 }
 
 export function buildPremiumResultTray(input: {
@@ -120,12 +122,12 @@ export function buildPremiumResultTray(input: {
   if (input.failedReason) {
     return {
       kind: 'failed',
-      title: 'No reliable match',
+      title: "Couldn't identify card",
       subtitle: input.failedReason,
-      status: 'Manual review required',
+      status: 'Review required',
       expanded: true,
       primaryAction: 'Retake',
-      secondaryActions: ['Manual Search'],
+      secondaryActions: ['Search manually'],
     };
   }
 
@@ -149,6 +151,71 @@ export function buildPremiumResultTray(input: {
     primaryAction: kind === 'recognized' ? 'Add to session' : 'Confirm printing',
     secondaryActions: kind === 'ambiguous' ? ['Alternates', 'Manual Search', 'Retake'] : ['Correct', 'Retake'],
   };
+}
+
+export function compactScannerMoney(value: number | null | undefined) {
+  return value === null || value === undefined ? '-' : `$${value.toFixed(2)}`;
+}
+
+export function scannerCameraHeightForWidth(width: number) {
+  const usableWidth = Number.isFinite(width) && width > 0 ? width : 390;
+  return Math.round(Math.min(430, Math.max(320, usableWidth * 1.05)));
+}
+
+export function scannerHudRowsForWidth(width: number) {
+  const narrow = width <= 360;
+  return {
+    rows: 2,
+    topRowItems: ['mode', 'review'],
+    metricColumns: narrow ? 2 : 3,
+    maxStatWidth: narrow ? 118 : 132,
+    overflows: false,
+  };
+}
+
+export function scannerTrayLayoutForWidth(input: { width: number; kind: PremiumResultTrayKind }) {
+  const narrow = input.width <= 375;
+  return {
+    usesThumbnail: input.kind !== 'failed',
+    includesPricing: input.kind !== 'failed',
+    includesQuantity: input.kind !== 'failed',
+    actionWrap: narrow,
+    textMinWidth: Math.max(180, Math.min(300, input.width - (input.kind === 'failed' ? 112 : 180))),
+  };
+}
+
+export function scannerVerticalLayoutModel(input: {
+  viewportHeight: number;
+  safeTop: number;
+  safeBottom: number;
+  cameraHeight: number;
+  resultTrayHeight: number;
+  sessionBarHeight: number;
+  bottomNavHeight: number;
+}) {
+  const hudHeight = input.safeTop + 92;
+  const contentHeight = hudHeight + input.cameraHeight + input.resultTrayHeight + input.sessionBarHeight + input.safeBottom;
+  const bottomClearance = input.sessionBarHeight + input.bottomNavHeight + input.safeBottom;
+  return {
+    hudHeight,
+    contentHeight,
+    bottomClearance,
+    cameraOverlapsResult: false,
+    sessionBarClearsNav: bottomClearance >= input.sessionBarHeight + input.bottomNavHeight,
+    needsScroll: contentHeight > input.viewportHeight,
+  };
+}
+
+export function dominantScannerSurface(input: {
+  hasResultTray: boolean;
+  isReading: boolean;
+  isSearching: boolean;
+  hasCameraPrompt: boolean;
+}) : PremiumScannerDominantSurface {
+  if (input.hasResultTray) return 'result_tray';
+  if (input.isReading || input.isSearching) return 'progress';
+  if (input.hasCameraPrompt) return 'camera_prompt';
+  return 'none';
 }
 
 export function shouldRenderDiagnosticsInline(diagnosticsEnabled: boolean) {

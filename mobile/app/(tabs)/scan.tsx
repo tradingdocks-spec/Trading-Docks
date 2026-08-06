@@ -58,9 +58,12 @@ import {
 } from '@/services/native-scanner-calibration';
 import {
   buildPremiumResultTray,
+  compactScannerMoney,
+  dominantScannerSurface,
   guidePresentationForPipeline,
   highVolumeCardShowDefaults,
   resolvePremiumScannerPipeline,
+  scannerCameraHeightForWidth,
   shouldRenderDiagnosticsInline,
 } from '@/services/premium-scanner-experience';
 import { appStorage } from '@/services/storage/app-storage';
@@ -121,14 +124,15 @@ export default function Scan() {
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
   const privacy = scannerPrivacySummary();
-  const previewWidth = Math.min(width - 32, 520);
+  const cameraStageHeight = scannerCameraHeightForWidth(width);
+  const previewWidth = Math.min(width, 520);
   const baseGuideLayout = useMemo(() => calculateCardGuideLayout({
     containerWidth: previewWidth,
-    containerHeight: 440,
-    safeTop: insets.top,
+    containerHeight: cameraStageHeight,
+    safeTop: 0,
     safeBottom: 0,
     reservedVerticalSpace: 120,
-  }), [insets.top, previewWidth]);
+  }), [cameraStageHeight, previewWidth]);
   const guideLayout = useMemo(
     () => applyScannerCalibrationToGuide(baseGuideLayout, previewWidth, scannerCalibration),
     [baseGuideLayout, previewWidth, scannerCalibration],
@@ -163,7 +167,7 @@ export default function Scan() {
     captureState,
     recognitionStage,
     selectedCandidate: selected,
-    hasError: Boolean(error),
+    hasError: Boolean(error && recognitionStage !== 'failed'),
     awaitingCardRemoval: autoScanner.duplicateProtection.awaitingCardRemoval,
     justAdded: Boolean(success && /added|synced/i.test(success)),
   }), [autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, captureState, error, permission, recognitionStage, selected, success]);
@@ -188,6 +192,12 @@ export default function Scan() {
     [condition, finish, language, purchaseRate],
   );
   const renderDiagnosticsInline = shouldRenderDiagnosticsInline(diagnosticsEnabled);
+  const visibleSurface = dominantScannerSurface({
+    hasResultTray: Boolean(latestResultTray),
+    isReading: recognitionStage === 'reading_title',
+    isSearching: recognitionStage === 'finding_card' || searching,
+    hasCameraPrompt: permission !== 'granted' || !cameraActive,
+  });
 
   useEffect(() => {
     let active = true;
@@ -314,7 +324,7 @@ export default function Scan() {
       setAutoScanner((current) => markCaptureStarted(current));
       const scan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
-        preview: previewDimensions ?? { width: previewWidth, height: 440 },
+        preview: previewDimensions ?? { width: previewWidth, height: cameraStageHeight },
         image: { width: photo.width, height: photo.height },
         guide: guideLayout,
         online: true,
@@ -506,17 +516,21 @@ export default function Scan() {
   return (
     <TDScreen style={s.scannerShell}>
       <View style={[s.topHud, { paddingTop: Math.max(insets.top, 10) }]}>
-        <View style={s.modePill}>
-          <Ionicons name="scan-outline" size={16} color={color.primaryBright} />
-          <TDText variant="caption">{scannerModeLabel(sessionMode)}</TDText>
+        <View style={s.hudRow}>
+          <View style={s.modePill}>
+            <Ionicons name="scan-outline" size={16} color={color.primaryBright} />
+            <TDText variant="caption" numberOfLines={1}>{scannerModeLabel(sessionMode)}</TDText>
+          </View>
+          <CompactStat label="Review" value={String(sessionTotals?.needsReview ?? 0)} tone={sessionTotals?.needsReview ? 'warning' : 'neutral'} compact />
         </View>
-        <CompactStat label="Cards" value={String(sessionTotals?.cardsScanned ?? 0)} />
-        <CompactStat label="Market" value={currency(sessionTotals?.marketValue)} />
-        <CompactStat label="Cash" value={currency(sessionTotals?.cashOffer)} tone="success" />
-        <CompactStat label="Review" value={String(sessionTotals?.needsReview ?? 0)} tone={sessionTotals?.needsReview ? 'warning' : 'neutral'} />
+        <View style={s.hudMetricRow}>
+          <CompactStat label="Cards" value={String(sessionTotals?.cardsScanned ?? 0)} compact />
+          <CompactStat label="Market" value={compactScannerMoney(sessionTotals?.marketValue)} compact />
+          <CompactStat label="Offer" value={compactScannerMoney(sessionTotals?.cashOffer)} tone="success" compact />
+        </View>
       </View>
 
-      <View style={s.cameraStage}>
+      <View style={[s.cameraStage, { height: cameraStageHeight }]}>
         {permission === 'granted' && cameraActive ? (
           <View style={s.cameraViewport} onLayout={handlePreviewLayout}>
             <CameraView
@@ -555,46 +569,72 @@ export default function Scan() {
           </View>
         )}
 
-        <View style={s.cameraScrimTop}>
+        {latestResultTray?.kind !== 'failed' ? <View style={s.cameraScrimTop}>
           <TDBadge tone={guidePresentation.tone === 'emerald' ? 'success' : guidePresentation.tone === 'amber' ? 'warning' : guidePresentation.tone === 'danger' ? 'danger' : 'info'}>
             {guidePresentation.statusLabel}
           </TDBadge>
           <TDText variant="title" style={s.guideMessage}>{guidePresentation.message}</TDText>
-          <TDText variant="caption" tone="muted">{scannerPipeline.replaceAll('_', ' ')}</TDText>
-        </View>
+          <TDText variant="caption" tone="muted">{scannerPipeline === 'aligning' ? 'camera open' : scannerPipeline.replaceAll('_', ' ')}</TDText>
+        </View> : null}
 
         <View style={s.cameraControls}>
-          <IconControl label={torchEnabled ? 'Turn torch off' : 'Turn torch on'} icon={torchEnabled ? 'flash' : 'flash-outline'} onPress={() => setTorchEnabled((value) => !value)} />
-          <IconControl label={cameraActive ? 'Pause camera' : 'Resume camera'} icon={cameraActive ? 'pause-outline' : 'play-outline'} onPress={() => setCameraActive((value) => !value)} />
+          <View style={s.secondaryControls}>
+            <IconControl label={torchEnabled ? 'Turn torch off' : 'Turn torch on'} icon={torchEnabled ? 'flash' : 'flash-outline'} onPress={() => setTorchEnabled((value) => !value)} />
+            <IconControl label={cameraActive ? 'Pause camera' : 'Resume camera'} icon={cameraActive ? 'pause-outline' : 'play-outline'} onPress={() => setCameraActive((value) => !value)} />
+          </View>
           <IconControl label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={captureStill} />
-          <IconControl label="Manual search" icon="search-outline" onPress={() => setShowManualSearchSheet(true)} />
-          <IconControl label="Scanner settings" icon="options-outline" onPress={() => setShowSettingsSheet(true)} />
-          {diagnosticsEnabled ? <IconControl label="Scanner diagnostics" icon="bug-outline" onPress={() => setShowDiagnosticsSheet(true)} /> : null}
+          <View style={s.secondaryControls}>
+            <IconControl label="Manual search" icon="search-outline" onPress={() => setShowManualSearchSheet(true)} />
+            <IconControl label="Scanner settings" icon="options-outline" onPress={() => setShowSettingsSheet(true)} />
+          </View>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={[s.scannerContent, { paddingBottom: Math.max(insets.bottom + 116, 148) }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        {error ? <TDErrorState title="Scanner notice" message={error} /> : null}
-        {success ? <TDCard accessibilityRole="alert" style={s.noticeCard}><TDBadge tone="success">Success</TDBadge><TDText variant="small">{success}</TDText></TDCard> : null}
+      <ScrollView style={s.scroller} contentContainerStyle={[s.scannerContent, { paddingBottom: Math.max(insets.bottom + 24, 40) }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        {error && visibleSurface !== 'result_tray' ? <TDErrorState title="Scanner notice" message={error} /> : null}
+        {success && visibleSurface !== 'result_tray' ? <TDCard accessibilityRole="alert" style={s.noticeCard}><TDBadge tone="success">Success</TDBadge><TDText variant="small">{success}</TDText></TDCard> : null}
 
-        {searching ? <TDLoadingState title="Searching printings" message="Looking up exact paper printings." /> : null}
-        {recognitionStage === 'reading_title' ? <TDLoadingState title="Reading card" message="Apple Vision is reading local guide regions." /> : null}
-        {recognitionStage === 'finding_card' ? <TDLoadingState title="Finding printing" message="Matching OCR observations against Scryfall printings." /> : null}
+        {visibleSurface === 'progress' && searching ? <TDLoadingState title="Searching printings" message="Looking up exact paper printings." /> : null}
+        {visibleSurface === 'progress' && recognitionStage === 'reading_title' ? <TDLoadingState title="Reading card" message="Reading card details on this device." /> : null}
+        {visibleSurface === 'progress' && recognitionStage === 'finding_card' ? <TDLoadingState title="Finding match" message="Checking Magic printings." /> : null}
 
         {latestResultTray ? (
           <TDCard style={[s.resultTray, latestResultTray.kind === 'failed' && s.resultTrayFailed]}>
+            {latestResultTray.kind === 'failed' ? (
+              <View style={s.failedTray}>
+                <View style={s.failedHeader}>
+                  <View style={s.failureIcon}>
+                    <Ionicons name="alert-circle-outline" size={22} color={color.warning} />
+                  </View>
+                  <View style={s.resultText}>
+                    <TDText variant="title">{latestResultTray.title}</TDText>
+                    <TDText variant="small" tone="muted" numberOfLines={3}>{shortFailureMessage(latestResultTray.subtitle)}</TDText>
+                  </View>
+                  <TDBadge tone="warning">{latestResultTray.status}</TDBadge>
+                </View>
+                <View style={s.trayActions}>
+                  <TDButton label="Retake" variant="secondary" onPress={() => {
+                    setCameraReady(false);
+                    setCaptureState('camera_not_ready');
+                    setRecognitionStage('idle');
+                    setCameraActive(true);
+                  }} />
+                  <TDButton label="Search manually" variant="secondary" onPress={() => setShowManualSearchSheet(true)} />
+                </View>
+              </View>
+            ) : <>
             <View style={s.resultHeader}>
               {selected?.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={s.trayImage} contentFit="cover" /> : <View style={s.trayImageFallback}><Ionicons name="albums-outline" size={20} color={color.textMuted} /></View>}
-              <View style={s.flex}>
-                <TDText variant="title">{latestResultTray.title}</TDText>
+              <View style={s.resultText}>
+                <TDText variant="title" numberOfLines={2}>{latestResultTray.title}</TDText>
                 <TDText variant="caption" tone="muted">{latestResultTray.subtitle}</TDText>
                 <TDText variant="caption" tone="muted">{selected ? `${language} - ${displayFinish(finish)} - ${displayCondition(condition)}` : 'No session row created until a candidate is confirmed.'}</TDText>
               </View>
-              <TDBadge tone={latestResultTray.kind === 'recognized' ? 'success' : latestResultTray.kind === 'failed' ? 'danger' : latestResultTray.kind === 'ambiguous' ? 'warning' : 'info'}>{latestResultTray.status}</TDBadge>
+              <TDBadge tone={latestResultTray.kind === 'recognized' ? 'success' : latestResultTray.kind === 'ambiguous' ? 'warning' : 'info'}>{latestResultTray.status}</TDBadge>
             </View>
             <View style={s.trayMoneyRow}>
-              <CompactStat label="Market" value={currency(parseOptionalMoney(marketPrice))} />
-              <CompactStat label="Offer" value={selected ? currency((parseOptionalMoney(marketPrice) ?? 0) * quantity * ((parseOptionalPercentage(purchaseRate) ?? 70) / 100)) : 'Pricing unavailable'} tone="success" />
+              <CompactStat label="Market" value={compactScannerMoney(parseOptionalMoney(marketPrice))} />
+              <CompactStat label="Offer" value={selected ? compactScannerMoney((parseOptionalMoney(marketPrice) ?? 0) * quantity * ((parseOptionalPercentage(purchaseRate) ?? 70) / 100)) : '-'} tone="success" />
               <CompactStat label="Qty" value={String(quantity)} />
             </View>
             {latestResultTray.expanded && candidates.length > 1 ? (
@@ -648,6 +688,7 @@ export default function Scan() {
                 {showMagicWhy ? magicRecognition.explanation.map((line) => <TDText key={line} variant="caption" tone="muted">{line}</TDText>) : null}
               </View>
             ) : null}
+            </>}
           </TDCard>
         ) : null}
 
@@ -735,6 +776,15 @@ export default function Scan() {
               <DiagnosticCell label="Cleanup" value={cleanupDiagnostic(magicStillScan)} />
               <DiagnosticCell label="OCR module" value={ocrRuntimeDiagnostics ? `${ocrRuntimeDiagnostics.moduleLinked ? 'linked' : 'unavailable'} ${ocrRuntimeDiagnostics.nativeModuleVersion}` : 'checking'} />
               <DiagnosticCell label="OCR runtime" value={ocrRuntimeDiagnostics ? `${ocrRuntimeDiagnostics.runtimeModuleName} ${ocrRuntimeDiagnostics.platform}` : 'checking'} />
+              <DiagnosticCell label="OCR title" value={magicStillScan?.lookupDiagnostics?.rawOcrTitle ?? 'unavailable'} />
+              <DiagnosticCell label="Normalized title" value={magicStillScan?.lookupDiagnostics?.normalizedOcrTitle ?? 'unavailable'} />
+              <DiagnosticCell label="Title alternatives" value={magicStillScan?.lookupDiagnostics?.titleAlternatives.join(' | ') || 'unavailable'} />
+              <DiagnosticCell label="Scryfall query" value={magicStillScan?.lookupDiagnostics?.scryfallQueryString ?? 'unavailable'} />
+              <DiagnosticCell label="Scryfall status" value={magicStillScan?.lookupDiagnostics?.httpStatus ? String(magicStillScan.lookupDiagnostics.httpStatus) : 'unavailable'} />
+              <DiagnosticCell label="Scryfall items" value={magicStillScan?.lookupDiagnostics?.responseItemCount === null || magicStillScan?.lookupDiagnostics?.responseItemCount === undefined ? 'unavailable' : String(magicStillScan.lookupDiagnostics.responseItemCount)} />
+              <DiagnosticCell label="Lookup code" value={magicStillScan?.lookupDiagnostics?.lookupErrorCode ?? 'none'} />
+              <DiagnosticCell label="Lookup latency" value={magicStillScan?.lookupDiagnostics ? `${magicStillScan.lookupDiagnostics.lookupLatencyMs} ms` : 'unavailable'} />
+              <DiagnosticCell label="Top three" value={magicStillScan?.lookupDiagnostics?.topThreeCandidateNames.join(' | ') || 'unavailable'} />
             </View>
             {magicStillScan?.ok ? (
               <View style={s.optionGroup}>
@@ -755,12 +805,11 @@ export default function Scan() {
           </TDCard>
         ) : null}
       </ScrollView>
-
       <View style={[s.bottomSessionBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <View style={s.bottomTotals}>
           <CompactStat label="Cards" value={String(sessionTotals?.cardsScanned ?? 0)} />
-          <CompactStat label="Market" value={currency(sessionTotals?.marketValue)} />
-          <CompactStat label="Offer" value={currency(sessionTotals?.cashOffer)} tone="success" />
+          <CompactStat label="Market" value={compactScannerMoney(sessionTotals?.marketValue)} />
+          <CompactStat label="Offer" value={compactScannerMoney(sessionTotals?.cashOffer)} tone="success" />
         </View>
         <TDButton label="Review Session" variant="secondary" onPress={() => router.push('/scanner-session' as never)} />
       </View>
@@ -768,11 +817,11 @@ export default function Scan() {
   );
 }
 
-function CompactStat({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'neutral' | 'success' | 'warning' | 'info' }) {
+function CompactStat({ label, value, tone = 'neutral', compact = false }: { label: string; value: string; tone?: 'neutral' | 'success' | 'warning' | 'info'; compact?: boolean }) {
   return (
-    <View style={[s.compactStat, tone === 'success' && s.compactStatSuccess, tone === 'warning' && s.compactStatWarning, tone === 'info' && s.compactStatInfo]}>
-      <TDText variant="caption" tone="muted">{label}</TDText>
-      <TDText variant="small">{value}</TDText>
+    <View style={[s.compactStat, compact && s.compactStatNarrow, tone === 'success' && s.compactStatSuccess, tone === 'warning' && s.compactStatWarning, tone === 'info' && s.compactStatInfo]}>
+      <TDText variant="caption" tone="muted" numberOfLines={1}>{label}</TDText>
+      <TDText variant="small" numberOfLines={1}>{value}</TDText>
     </View>
   );
 }
@@ -849,8 +898,16 @@ function permissionTitle(permission: ScannerPermissionState) {
 function permissionMessage(permission: ScannerPermissionState, platform: string) {
   if (permission === 'unavailable') return `Camera capture is unavailable in ${platform === 'web' ? 'this browser' : 'this Expo build'}.`;
   if (permission === 'denied') return 'Enable camera permission in system settings, or continue with manual search.';
-  if (permission === 'granted') return 'Capture is local-first. Recognition providers are architectural until benchmarked.';
+  if (permission === 'granted') return 'Place the card inside the guide, then capture or search manually.';
   return 'Manual search works now. Camera capture requires camera permission.';
+}
+
+function shortFailureMessage(message: string) {
+  if (/network/i.test(message)) return 'Network unavailable. Try again when connected or search manually.';
+  if (/no title|usable card title|title read/i.test(message)) return 'No title was read. Retake the card in better light or search manually.';
+  if (/no matching|no candidate|not find|no supported/i.test(message)) return 'No matching card was found. Retake or search manually.';
+  if (/invalid response|service/i.test(message)) return 'Card search is unavailable. Try again or search manually.';
+  return 'Try again with the card centered, or search manually.';
 }
 
 function scannerSyncSummary(entries: ScannerQueuedAdd[]) {
@@ -909,26 +966,25 @@ function parseOptionalPercentage(value: string) {
   return Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : null;
 }
 
-function currency(value: number | null | undefined) {
-  return value === null || value === undefined ? 'Pricing unavailable' : `$${value.toFixed(2)}`;
-}
-
 function createScanId() {
   return globalThis.crypto?.randomUUID?.() ?? `scan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 const s = StyleSheet.create({
   scannerShell: { flex: 1, backgroundColor: color.canvas },
-  topHud: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingBottom: space.xs, backgroundColor: color.canvas + 'EE' },
-  modePill: { minHeight: 36, borderRadius: radius.pill, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surfaceFloating + 'E8' },
-  compactStat: { minHeight: 36, minWidth: 62, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, justifyContent: 'center', backgroundColor: color.surfaceFloating + 'D8' },
+  topHud: { gap: space.xs, paddingHorizontal: space.sm, paddingBottom: space.xs, backgroundColor: color.canvas },
+  hudRow: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  hudMetricRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  modePill: { flex: 1, minHeight: 36, minWidth: 0, borderRadius: radius.pill, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surfaceFloating + 'E8' },
+  compactStat: { minHeight: 36, minWidth: 62, maxWidth: 132, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, justifyContent: 'center', backgroundColor: color.surfaceFloating + 'D8' },
+  compactStatNarrow: { flex: 1, minWidth: 0 },
   compactStatSuccess: { borderColor: color.success + '88' },
   compactStatWarning: { borderColor: color.warning + '88' },
   compactStatInfo: { borderColor: color.info + '88' },
-  cameraStage: { height: '58%', minHeight: 470, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center' },
+  cameraStage: { minHeight: 320, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center', borderTopWidth: 1, borderBottomWidth: 1, borderColor: color.borderStrong },
   cameraViewport: { flex: 1, backgroundColor: '#010711' },
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
-  cameraScrimTop: { position: 'absolute', top: 72, left: space.md, right: space.md, alignItems: 'center', gap: space.xs, padding: space.sm, borderRadius: radius.lg, backgroundColor: color.canvas + '66' },
+  cameraScrimTop: { position: 'absolute', top: space.md, left: space.md, right: space.md, alignItems: 'center', gap: space.xs, padding: space.sm, borderRadius: radius.lg, backgroundColor: color.canvas + '66' },
   guideMessage: { textAlign: 'center' },
   premiumGuide: { position: 'absolute' },
   guideBracket: { position: 'absolute', top: 0, left: 0, width: 52, height: 52, borderTopWidth: 4, borderLeftWidth: 4, borderColor: color.info, borderTopLeftRadius: radius.md },
@@ -941,7 +997,7 @@ const s = StyleSheet.create({
   guideToneWarning: { borderColor: color.warning },
   guideToneDanger: { borderColor: color.danger },
   guideProgress: { position: 'absolute', left: 0, bottom: -10, height: 3, borderRadius: radius.pill, backgroundColor: color.primaryBright },
-  iconControl: { width: 48, height: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceFloating + 'CC' },
+  iconControl: { width: 46, height: 46, borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceFloating + 'CC' },
   iconControlPrimary: { width: 58, height: 58, borderRadius: radius.lg, borderColor: color.primaryBright, backgroundColor: color.primaryBright },
   iconControlDisabled: { opacity: 0.42 },
   iconControlPressed: { transform: [{ scale: 0.97 }], backgroundColor: color.surfaceRaised },
@@ -949,6 +1005,10 @@ const s = StyleSheet.create({
   resultTray: { gap: space.md, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
   resultTrayFailed: { borderColor: color.warning },
   resultHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  resultText: { flex: 1, minWidth: 0, gap: 2 },
+  failedTray: { gap: space.md },
+  failedHeader: { minHeight: 72, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  failureIcon: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.warning + '18' },
   trayImage: { width: 54, height: 76, borderRadius: radius.sm, backgroundColor: color.surface },
   trayImageFallback: { width: 54, height: 76, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   trayMoneyRow: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
@@ -957,8 +1017,8 @@ const s = StyleSheet.create({
   sheet: { gap: space.md, borderColor: color.borderStrong, backgroundColor: color.surfaceFloating },
   sheetHeader: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   closeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
-  bottomSessionBar: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 12, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F2' },
-  bottomTotals: { flex: 1, flexDirection: 'row', gap: space.xs },
+  bottomSessionBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F2' },
+  bottomTotals: { flex: 1, minWidth: 0, flexDirection: 'row', gap: space.xs },
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
   header: { gap: space.xs },
@@ -972,7 +1032,9 @@ const s = StyleSheet.create({
   guideCornerBottom: { top: undefined, bottom: -2, borderTopWidth: 0, borderBottomWidth: 4, borderBottomLeftRadius: radius.md },
   guideCornerBottomRight: { top: undefined, left: undefined, right: -2, bottom: -2, borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 4, borderBottomWidth: 4, borderBottomRightRadius: radius.md },
   liveStatus: { position: 'absolute', top: space.sm, right: space.sm, left: space.sm, gap: space.xs },
-  cameraControls: { position: 'absolute', right: space.sm, bottom: space.sm, left: space.sm, flexDirection: 'row', gap: space.sm, justifyContent: 'center', flexWrap: 'wrap' },
+  cameraControls: { position: 'absolute', right: space.sm, bottom: space.sm, left: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, justifyContent: 'center' },
+  secondaryControls: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  scroller: { flex: 1 },
   statusRow: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
   diagnosticsCard: { gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.md, backgroundColor: color.canvasRaised },
   diagnosticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },

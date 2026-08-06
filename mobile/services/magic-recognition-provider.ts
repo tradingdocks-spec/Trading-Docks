@@ -58,7 +58,14 @@ export type MagicRecognitionResult =
     explanation: string[];
     source: 'scryfall' | 'cache' | 'injected';
   }
-  | { ok: false; reason: string; offline?: boolean };
+  | { ok: false; reason: string; code?: MagicLookupErrorCode; offline?: boolean };
+
+export type MagicLookupErrorCode =
+  | 'no_title_read'
+  | 'no_candidate_found'
+  | 'network_unavailable'
+  | 'service_error'
+  | 'invalid_response';
 
 export type MagicCatalogQuery = {
   name?: string;
@@ -67,6 +74,17 @@ export type MagicCatalogQuery = {
 };
 
 export type MagicCatalogSearch = (query: MagicCatalogQuery) => Promise<RecognitionCandidate[]>;
+
+export type MagicCatalogLookupDiagnostics = {
+  queryString: string | null;
+  httpStatus: number | null;
+  responseItemCount: number | null;
+  errorCode: MagicLookupErrorCode | null;
+  latencyMs: number;
+  topThreeCandidateNames: string[];
+};
+
+export type MagicCatalogDiagnosticsSink = (diagnostics: MagicCatalogLookupDiagnostics) => void;
 
 export type MagicRecognitionThresholdClass =
   | 'auto_suggest'
@@ -207,7 +225,21 @@ export type MagicBenchmarkReport = {
 
 type MagicCandidateLoadResult =
   | { ok: true; candidates: RecognitionCandidate[]; source: 'scryfall' | 'cache' | 'injected' }
-  | { ok: false; reason: string; offline?: boolean };
+  | { ok: false; reason: string; code?: MagicLookupErrorCode; offline?: boolean };
+
+export class MagicCatalogLookupError extends Error {
+  readonly code: MagicLookupErrorCode;
+  readonly status: number | null;
+  readonly queryString: string | null;
+
+  constructor(code: MagicLookupErrorCode, message: string, options: { status?: number | null; queryString?: string | null } = {}) {
+    super(message);
+    this.name = 'MagicCatalogLookupError';
+    this.code = code;
+    this.status = options.status ?? null;
+    this.queryString = options.queryString ?? null;
+  }
+}
 
 type ScryfallCard = {
   id?: string;
@@ -428,39 +460,85 @@ export function isMagicTokenOrUnsupported(candidate: RecognitionCandidate) {
   return name.includes('token') || layout === 'token';
 }
 
-export async function searchScryfallMagicCatalog(query: MagicCatalogQuery): Promise<RecognitionCandidate[]> {
+export async function searchScryfallMagicCatalog(query: MagicCatalogQuery, onDiagnostics?: MagicCatalogDiagnosticsSink): Promise<RecognitionCandidate[]> {
   const parts = ['game:paper'];
   if (query.name) parts.push(`!"${query.name.replaceAll('"', '')}"`);
   if (query.setCode) parts.push(`set:${query.setCode.toLowerCase()}`);
   if (query.collectorNumber) parts.push(`number:${query.collectorNumber}`);
-  if (parts.length === 1) return [];
-  const url = `https://api.scryfall.com/cards/search?${new URLSearchParams({
-    q: parts.join(' '),
-    unique: 'prints',
-    order: 'released',
-    dir: 'desc',
-  }).toString()}`;
-  const response = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'TradingDocksMobile/1.0 magic-recognition' } });
-  if (!response.ok) throw new Error('Scryfall candidate search failed.');
-  const payload = await response.json() as { data?: ScryfallCard[] };
-  return (payload.data ?? []).slice(0, 24).map(scryfallToRecognitionCandidate).filter((candidate): candidate is RecognitionCandidate => Boolean(candidate));
+  if (parts.length === 1) {
+    onDiagnostics?.(emptyLookupDiagnostics(null, 'no_title_read'));
+    return [];
+  }
+  return runScryfallSearch(parts.join(' '), 'Scryfall candidate search failed.', onDiagnostics);
 }
 
-export async function searchScryfallMagicCatalogFuzzy(query: MagicCatalogQuery): Promise<RecognitionCandidate[]> {
+export async function searchScryfallMagicCatalogFuzzy(query: MagicCatalogQuery, onDiagnostics?: MagicCatalogDiagnosticsSink): Promise<RecognitionCandidate[]> {
   if (!query.name) return [];
   const parts = ['game:paper', query.name.replaceAll('"', '')];
   if (query.setCode) parts.push(`set:${query.setCode.toLowerCase()}`);
   if (query.collectorNumber) parts.push(`number:${query.collectorNumber}`);
+  return runScryfallSearch(parts.join(' '), 'Scryfall fuzzy candidate search failed.', onDiagnostics);
+}
+
+async function runScryfallSearch(
+  queryString: string,
+  failureMessage: string,
+  onDiagnostics?: MagicCatalogDiagnosticsSink,
+): Promise<RecognitionCandidate[]> {
+  const started = Date.now();
   const url = `https://api.scryfall.com/cards/search?${new URLSearchParams({
-    q: parts.join(' '),
+    q: queryString,
     unique: 'prints',
     order: 'released',
     dir: 'desc',
   }).toString()}`;
-  const response = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'TradingDocksMobile/1.0 magic-recognition' } });
-  if (!response.ok) throw new Error('Scryfall fuzzy candidate search failed.');
-  const payload = await response.json() as { data?: ScryfallCard[] };
-  return (payload.data ?? []).slice(0, 24).map(scryfallToRecognitionCandidate).filter((candidate): candidate is RecognitionCandidate => Boolean(candidate));
+  try {
+    const response = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'TradingDocksMobile/1.0 magic-recognition' } });
+    if (!response.ok) {
+      const code: MagicLookupErrorCode = response.status === 404 ? 'no_candidate_found' : 'service_error';
+      onDiagnostics?.(emptyLookupDiagnostics(queryString, code, response.status, Date.now() - started));
+      if (response.status === 404) return [];
+      throw new MagicCatalogLookupError(code, failureMessage, { status: response.status, queryString });
+    }
+    const payload = await response.json() as { data?: unknown };
+    if (!Array.isArray(payload.data)) {
+      onDiagnostics?.(emptyLookupDiagnostics(queryString, 'invalid_response', response.status, Date.now() - started));
+      throw new MagicCatalogLookupError('invalid_response', 'Scryfall returned an invalid candidate response.', { status: response.status, queryString });
+    }
+    const candidates = payload.data
+      .slice(0, 24)
+      .map((card) => scryfallToRecognitionCandidate(card as ScryfallCard))
+      .filter((candidate): candidate is RecognitionCandidate => Boolean(candidate));
+    onDiagnostics?.({
+      queryString,
+      httpStatus: response.status,
+      responseItemCount: candidates.length,
+      errorCode: candidates.length ? null : 'no_candidate_found',
+      latencyMs: Math.max(0, Date.now() - started),
+      topThreeCandidateNames: candidates.slice(0, 3).map((candidate) => candidate.name),
+    });
+    return candidates;
+  } catch (error) {
+    if (error instanceof MagicCatalogLookupError) throw error;
+    onDiagnostics?.(emptyLookupDiagnostics(queryString, 'network_unavailable', null, Date.now() - started));
+    throw new MagicCatalogLookupError('network_unavailable', 'Network unavailable while searching Scryfall.', { queryString });
+  }
+}
+
+function emptyLookupDiagnostics(
+  queryString: string | null,
+  errorCode: MagicLookupErrorCode,
+  httpStatus: number | null = null,
+  latencyMs = 0,
+): MagicCatalogLookupDiagnostics {
+  return {
+    queryString,
+    httpStatus,
+    responseItemCount: 0,
+    errorCode,
+    latencyMs: Math.max(0, latencyMs),
+    topThreeCandidateNames: [],
+  };
 }
 
 export function createMagicBenchmarkManifest(input: {
@@ -908,6 +986,7 @@ async function loadMagicCandidates(
     return { ok: true, candidates, source: searchCatalog === searchScryfallMagicCatalog ? 'scryfall' : 'injected' };
   } catch (error) {
     if (input.cachedCandidates?.length) return { ok: true, candidates: input.cachedCandidates, source: 'cache' };
+    if (error instanceof MagicCatalogLookupError) return { ok: false, reason: error.message, code: error.code, offline: error.code === 'network_unavailable' };
     return { ok: false, reason: error instanceof Error ? error.message : 'Magic recognition catalog search failed.' };
   }
 }
