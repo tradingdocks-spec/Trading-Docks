@@ -186,7 +186,7 @@ export function buildPremiumResultTray(input: {
       kind: 'failed',
       title: "Couldn't read the card",
       subtitle: input.failedReason,
-      status: 'Review required',
+      status: '',
       expanded: true,
       primaryAction: 'Retake',
       secondaryActions: ['Search manually'],
@@ -197,7 +197,6 @@ export function buildPremiumResultTray(input: {
   if (!candidate) return null;
 
   const confidence = input.confidenceLabel ?? 'Review printing';
-  const score = input.confidenceScore === null ? '' : ` - ${input.confidenceScore}%`;
   const kind: PremiumResultTrayKind = input.candidateCount >= 3 && confidence.toLowerCase().includes('ambiguous')
     ? 'ambiguous'
     : confidence.toLowerCase().includes('recognized')
@@ -208,7 +207,7 @@ export function buildPremiumResultTray(input: {
     kind,
     title: candidate.name,
     subtitle: `${candidate.setCode ?? 'Set unavailable'} #${candidate.collectorNumber ?? '?'} - ${candidate.language ?? 'language unavailable'}`,
-    status: `${confidence}${score}`,
+    status: confidence,
     expanded: kind === 'ambiguous',
     primaryAction: kind === 'recognized' ? 'Add to session' : 'Confirm printing',
     secondaryActions: kind === 'ambiguous' ? ['Alternates', 'Manual Search', 'Retake'] : ['Correct', 'Retake'],

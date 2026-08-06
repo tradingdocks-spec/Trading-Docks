@@ -58,7 +58,7 @@ test('OCR failure produces a failed tray without creating an unknown session row
   });
   assert.equal(tray?.kind, 'failed');
   assert.equal(tray?.title, "Couldn't read the card");
-  assert.equal(tray?.status, 'Review required');
+  assert.equal(tray?.status, '');
   assert.deepEqual(tray?.secondaryActions, ['Search manually']);
 });
 
@@ -75,6 +75,8 @@ test('high-confidence result tray stays compact and session-oriented', () => {
   });
   assert.equal(tray?.kind, 'recognized');
   assert.equal(tray?.expanded, false);
+  assert.equal(tray?.status, 'Recognized');
+  assert.equal(tray?.status.includes('%'), false);
   assert.equal(tray?.primaryAction, 'Add to session');
 });
 

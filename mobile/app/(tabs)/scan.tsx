@@ -39,7 +39,7 @@ import {
   type ContinuousScannerMode,
   type ContinuousScannerSession,
 } from '@/services/continuous-offer-scanner';
-import { displayCondition, displayFinish, type CardCondition } from '@/services/collector-workspace';
+import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { classifyMagicRecognition, recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
 import { deleteCapturedStill, recognizeMagicStillCapture, type CropRect, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from '@/modules/trading-docks-vision-ocr';
@@ -271,6 +271,7 @@ export default function Scan() {
   });
   const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showCorrectionTools;
   const hideMainControls = scannerProcessing || saving || sheetOpen || scanner2State === 'added' || scanner2State === 'remove_card';
+  const showAddedOverlay = scanner2State === 'added' || scanner2State === 'remove_card';
 
   useEffect(() => {
     mountedRef.current = true;
@@ -739,20 +740,18 @@ export default function Scan() {
       />
 
       <View pointerEvents="box-none" style={s.overlayLayer}>
-        {error && visibleSurface !== 'result_tray' ? <TDErrorState title="Scanner notice" message={error} /> : null}
-        {success && visibleSurface !== 'result_tray' ? <TDCard accessibilityRole="alert" style={s.noticeCard}><TDBadge tone="success">Success</TDBadge><TDText variant="small">{success}</TDText></TDCard> : null}
+        {error && visibleSurface !== 'result_tray' && !showAddedOverlay ? <TDErrorState title="Scanner notice" message={error} /> : null}
+        {success && visibleSurface !== 'result_tray' && !showAddedOverlay ? <ScannerToast tone="success" title="Added" message={success} /> : null}
+        {showAddedOverlay ? <ScannerToast tone="success" title={scanner2State === 'remove_card' ? 'Added' : 'Saved'} message={scanner2State === 'remove_card' ? 'Remove card to scan the next one.' : 'Ready for the next card.'} /> : null}
 
         {visibleSurface === 'progress' && searching ? <TDLoadingState title="Searching printings" message="Looking up exact paper printings." /> : null}
         {visibleSurface === 'progress' && recognitionStage === 'reading_title' ? <TDLoadingState title="Reading card" message="Reading card details on this device." /> : null}
         {visibleSurface === 'progress' && recognitionStage === 'finding_card' ? <TDLoadingState title="Finding match" message="Checking Magic printings." /> : null}
 
-        {latestResultTray ? (
+        {latestResultTray && !showAddedOverlay ? (
           <ScannerResultTray
             tray={latestResultTray}
             selected={selected}
-            language={language}
-            finish={finish}
-            condition={condition}
             marketPrice={parseOptionalMoney(marketPrice)}
             offerPrice={selected ? (parseOptionalMoney(marketPrice) ?? 0) * quantity * ((parseOptionalPercentage(purchaseRate) ?? 70) / 100) : null}
             quantity={quantity}
@@ -1139,9 +1138,6 @@ function ScannerControls({
 function ScannerResultTray({
   tray,
   selected,
-  language,
-  finish,
-  condition,
   marketPrice,
   offerPrice,
   quantity,
@@ -1155,9 +1151,6 @@ function ScannerResultTray({
 }: {
   tray: PremiumResultTray;
   selected: ScannerCardCandidate | null;
-  language: string;
-  finish: 'normal' | 'foil' | 'etched';
-  condition: CardCondition;
   marketPrice: number | null;
   offerPrice: number | null;
   quantity: number;
@@ -1174,7 +1167,7 @@ function ScannerResultTray({
       <TDResultTray
         title={tray.title}
         subtitle={shortFailureMessage(tray.subtitle)}
-        status={tray.status}
+        status=""
         tone="warning"
         compact
         image={<Ionicons name="alert-circle-outline" size={22} color={color.warning} />}
@@ -1191,7 +1184,7 @@ function ScannerResultTray({
   return (
     <TDResultTray
       title={tray.title}
-      subtitle={`${tray.subtitle}${selected ? ` - ${language} - ${displayFinish(finish)} - ${displayCondition(condition)}` : ' - No session row created until a candidate is confirmed.'}`}
+      subtitle={selected ? tray.subtitle : 'Select an exact printing before adding.'}
       status={tray.status}
       tone={tray.kind === 'recognized' ? 'success' : tray.kind === 'ambiguous' ? 'warning' : 'info'}
       image={selected?.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={s.trayImage} contentFit="cover" /> : <Ionicons name="albums-outline" size={20} color={color.textMuted} />}
@@ -1200,7 +1193,7 @@ function ScannerResultTray({
       <View style={s.trayMoneyRow}>
         <CompactStat label="Market" value={compactScannerMoney(marketPrice)} />
         <CompactStat label="Offer" value={compactScannerMoney(offerPrice)} tone="success" />
-        <CompactStat label="Qty" value={String(quantity)} />
+        {quantity > 1 ? <CompactStat label="Qty" value={String(quantity)} /> : null}
       </View>
       {children}
       <View style={s.trayActions}>
@@ -1221,6 +1214,20 @@ function ScannerSessionStrip({ bottomInset, model, onReviewSession }: { bottomIn
       tone="info"
       style={[s.sessionChip, model.compact && s.bottomSessionBarCompact]}
     />
+  );
+}
+
+function ScannerToast({ title, message, tone }: { title: string; message: string; tone: 'success' | 'warning' | 'info' }) {
+  const iconName: ComponentProps<typeof Ionicons>['name'] = tone === 'success' ? 'checkmark-circle-outline' : tone === 'warning' ? 'alert-circle-outline' : 'information-circle-outline';
+  const iconColor = tone === 'success' ? color.success : tone === 'warning' ? color.warning : color.info;
+  return (
+    <View accessibilityRole="alert" style={s.scannerToast}>
+      <Ionicons name={iconName} size={22} color={iconColor} />
+      <View style={s.flex}>
+        <TDText variant="small">{title}</TDText>
+        <TDText variant="caption" tone="muted">{message}</TDText>
+      </View>
+    </View>
   );
 }
 
@@ -1500,6 +1507,7 @@ const s = StyleSheet.create({
   diagnosticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   centerText: { textAlign: 'center' },
   noticeCard: { gap: space.sm },
+  scannerToast: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.md, paddingVertical: space.sm, backgroundColor: color.canvas + 'E8' },
   sessionChip: { position: 'absolute', left: space.md, right: space.md, bottom: 0, zIndex: 55, borderTopWidth: 0, borderWidth: 1, borderColor: color.borderStrong, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, backgroundColor: color.canvas + 'E8' },
   syncCard: { gap: space.md },
   syncHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
