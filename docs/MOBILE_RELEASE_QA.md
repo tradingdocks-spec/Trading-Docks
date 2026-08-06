@@ -59,6 +59,7 @@ Verify each route where supported:
 - Primary action remains visible at larger text sizes.
 - Bottom navigation does not cover content.
 - Scanner guidance has a text equivalent.
+- Scan route hides bottom navigation only while active and restores it after Back/Profile/Home navigation.
 
 ## Scanner QA
 
@@ -75,6 +76,11 @@ Verify:
 - Stale result cancellation.
 - Duplicate stationary card prevention.
 - Explicit pause and resume.
+- Full-screen camera fill with no inset card frame or empty tab gap.
+- Torch, Capture, and Search hide during capture, lookup, saving, open sheets, added feedback, and remove-card lockout.
+- Recognized result does not show a primary confidence percentage.
+- Failed result shows only compact Retake/Search recovery.
+- Added/remove-card feedback remains brief and does not become a full result card.
 - Session preservation after app background/foreground.
 - Failed queued scan retry.
 - Failed queued scan discard confirmation.

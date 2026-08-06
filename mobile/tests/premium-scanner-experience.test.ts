@@ -22,6 +22,7 @@ import {
   scannerTrayLayoutForWidth,
   scannerVerticalLayoutModel,
   shouldBlockScannerCapture,
+  shouldHideScannerPrimaryControls,
   shouldScannerCameraRender,
   shouldShowScannerResumeAction,
   shouldRenderDiagnosticsInline,
@@ -177,6 +178,14 @@ test('Scanner 2.0 main camera controls are exactly torch capture and search', ()
   assert.deepEqual(scanner2MainControls(), ['torch', 'capture', 'search']);
   assert.equal(scanner2MainControls().includes('settings' as never), false);
   assert.equal(scanner2MainControls().includes('diagnostics' as never), false);
+});
+
+test('Scanner 2.0 primary controls hide during progress sheets and add lockout', () => {
+  assert.equal(shouldHideScannerPrimaryControls({ processing: true, saving: false, sheetOpen: false, state: 'camera_ready' }), true);
+  assert.equal(shouldHideScannerPrimaryControls({ processing: false, saving: true, sheetOpen: false, state: 'recognized' }), true);
+  assert.equal(shouldHideScannerPrimaryControls({ processing: false, saving: false, sheetOpen: true, state: 'likely' }), true);
+  assert.equal(shouldHideScannerPrimaryControls({ processing: false, saving: false, sheetOpen: false, state: 'remove_card' }), true);
+  assert.equal(shouldHideScannerPrimaryControls({ processing: false, saving: false, sheetOpen: false, state: 'camera_ready' }), false);
 });
 
 test('Scanner 2.0 camera opens into camera states without an open-camera state', () => {

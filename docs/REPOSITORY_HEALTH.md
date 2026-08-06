@@ -71,6 +71,7 @@
 - Implemented: Scanner 2.0 now has a canonical camera lifecycle model, app background guards, stale manual-search guards, structured Scryfall outcomes, and a dedicated stabilization document.
 - Implemented: Normal scanner mode no longer renders development diagnostics inline; diagnostics remain available only through the explicit development flag and panel.
 - Implemented: Scanner 2.0 layout simplification removes pause, settings, and diagnostics from the primary control row; diagnostics now opens only from scanner settings when the development flag is enabled.
+- Implemented: Scanner 2.0 release-candidate presentation now hides the normal tab bar only on the active Scan route, uses a full-screen camera surface, keeps exactly Torch/Capture/Search as primary controls, and converts added/remove-card feedback into transient overlays.
 - Partially Implemented: Physical-device scanner QA remains unperformed in this repository; iOS/Android preview scaling, safe areas, capture timing, tab resume, sleeves, glare, and rapid replacement must be verified with `docs/NATIVE_SCANNER_QA.md`.
 - Partially Implemented: The premium scanner UI still depends on manual still capture until native frame delivery is wired to the Vision Engine and validated on devices.
 - Partially Implemented: Magic visual recognition still lacks benchmarked accuracy, artwork embedding, set-symbol detection, perspective correction, Android OCR, and finish classification providers. The active UI must continue requiring confirmation.
@@ -241,6 +242,7 @@ Implemented improvements:
 - Camera starts automatically when permission is granted.
 - Failure UI is compact and does not expose Scryfall or OCR exception text.
 - Scanner lookup details are confined to development diagnostics.
+- Immersive release-candidate scanner docs are captured in `docs/IMMERSIVE_SCANNER_RELEASE_CANDIDATE.md`.
 - Capture path now guards against duplicate capture and stale lookup completion.
 - Missing HUD values use a compact dash rather than long unavailable copy.
 

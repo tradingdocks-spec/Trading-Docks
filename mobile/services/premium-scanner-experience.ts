@@ -285,6 +285,15 @@ export function scanner2MainControls(): Scanner2MainControlId[] {
   return ['torch', 'capture', 'search'];
 }
 
+export function shouldHideScannerPrimaryControls(input: {
+  processing: boolean;
+  saving: boolean;
+  sheetOpen: boolean;
+  state: Scanner2InteractionState;
+}) {
+  return input.processing || input.saving || input.sheetOpen || input.state === 'added' || input.state === 'remove_card';
+}
+
 export function scanner2SessionStripModel(input: {
   cardCount: number;
   marketTotal: number | null;

@@ -83,6 +83,7 @@ import {
   scanner2MotionForState,
   scanner2SessionStripModel,
   shouldBlockScannerCapture,
+  shouldHideScannerPrimaryControls,
   shouldScannerCameraRender,
   shouldShowScannerResumeAction,
   shouldRenderDiagnosticsInline,
@@ -270,7 +271,12 @@ export default function Scan() {
     offerTotal: sessionTotals?.cashOffer ?? null,
   });
   const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showCorrectionTools;
-  const hideMainControls = scannerProcessing || saving || sheetOpen || scanner2State === 'added' || scanner2State === 'remove_card';
+  const hideMainControls = shouldHideScannerPrimaryControls({
+    processing: scannerProcessing,
+    saving,
+    sheetOpen,
+    state: scanner2State,
+  });
   const showAddedOverlay = scanner2State === 'added' || scanner2State === 'remove_card';
 
   useEffect(() => {

@@ -85,7 +85,11 @@ Planned: A network-only retry button for a valid OCR title can be added after ph
 
 ## Main Screen Simplification
 
-Implemented: The active Scan tab keeps only the compact two-line header, dominant camera viewport, one instruction, Torch/Capture/Search controls, compact result tray, compact session strip, and bottom navigation on the primary surface.
+Implemented: The active Scan tab keeps only the compact two-line header, full-screen camera viewport, one instruction, Torch/Capture/Search controls, compact result overlays, and compact session strip on the primary surface.
+
+Implemented: The Scan route hides normal bottom navigation only while the route is active. Account-aware tabs, deep links, and route restoration remain unchanged outside the scanner.
+
+Implemented: The scanner hides primary controls during capture, OCR, lookup, saving, open sheets, added feedback, and remove-card lockout so the user sees one active scanner surface at a time.
 
 Implemented: Pause and settings are compact header actions. Diagnostics opens from scanner settings and remains unavailable unless `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`.
 

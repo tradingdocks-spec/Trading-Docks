@@ -76,6 +76,7 @@ Screen rules:
 - Card padding: 16 px, 24 px only for heroes.
 - Sheet padding: 16-24 px.
 - Bottom navigation clearance: use centralized safe-area inset rules, not ad hoc small padding.
+- Scanner exception: the active Scan route may hide the normal bottom navigation so the camera can fill the screen. The account-aware tab bar must restore immediately when leaving scanner mode.
 
 ## Typography
 
@@ -221,7 +222,7 @@ Success:
 
 ## Screen-Specific Hero Rules
 
-- Scanner: camera viewport is the hero.
+- Scanner: camera viewport is the hero and should not be placed inside a page-style card while active scanning is underway.
 - Home: current account/work summary is the hero.
 - Collection: search and inventory result quality are the hero.
 - Card Detail: card image is the hero.

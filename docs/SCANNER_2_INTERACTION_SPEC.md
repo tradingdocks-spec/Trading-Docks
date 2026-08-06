@@ -6,7 +6,7 @@ Scanner 2.0 is a camera-first Trading Docks vision terminal for high-speed TCG i
 
 ## Product Principle
 
-The scanner should feel closer to a professional card-show buying terminal than a settings screen. The camera is the primary surface, the instruction is the primary text, the latest result is compact, and session totals stay pinned and glanceable.
+The scanner should feel closer to a professional card-show buying terminal than a settings screen. The camera is the primary surface, the instruction is the primary text, the latest result is compact, and session totals stay pinned and glanceable. While the active Scan route is open, normal bottom navigation is hidden and restored when the user leaves the route.
 
 Primary hierarchy:
 
@@ -34,8 +34,8 @@ Primary hierarchy:
 | likely | Review printing | Amber guide | Add, Correct, alternatives; Torch, Capture, Search remain camera controls | Compact result tray with one-tap confirmation | Light notification in future native implementation | Likely match, review printing | Candidate exists but confidence requires confirmation | added, ambiguous, correcting, rearming | Keep top candidate visible |
 | ambiguous | Choose printing | Amber guide | Candidate sheet, Search, Retake | Compact tray plus expandable top-three candidate sheet | Warning haptic in future native implementation | Multiple possible printings | Top-three candidates require user choice | likely, added, failed, rearming | Do not block camera with full-screen confirmation |
 | failed | Couldn't read the card | Amber/red brackets without pulsing | Retake, Search | Small failure banner only | Warning haptic in future native implementation | Could not read card | No title, no match, network/service issue, invalid response | rearming, camera_ready, manual search | No unknown session row; details go to diagnostics only |
-| added | Added | Emerald bracket pulse once | Torch, Capture, Search; result tray keeps compact confirmation | Compact result remains briefly | Success haptic in future native implementation | Added to session | Session insertion succeeds | remove_card, rearming | Undo window remains in session review tools |
-| remove_card | Remove card | Emerald brackets, removal instruction | Torch, Capture, Search; pause/settings in header | Latest result remains compact | None | Remove card to scan next | Duplicate prevention awaits card removal | rearming | Do not scan same stationary card twice |
+| added | Added | Emerald bracket pulse once | Controls hidden briefly | Compact transient overlay | Success haptic in future native implementation | Added to session | Session insertion succeeds | remove_card, rearming | Undo window remains in session review tools |
+| remove_card | Remove card | Emerald brackets, removal instruction | Controls hidden; pause/settings remain in header | Compact transient overlay | None | Remove card to scan next | Duplicate prevention awaits card removal | rearming | Do not scan same stationary card twice |
 | rearming | Ready for next card | Dim slate brackets | Torch, Capture, Search | Latest result may collapse | None | Ready for next card | Card leaves frame or user retakes | card_absent, card_present, capturing | Reset per-capture race token |
 | paused | Scanner paused | Slate paused guide | Header Resume, Search | Existing result remains | None | Scanner paused | User pauses camera or app lifecycle pauses preview | camera_ready, offline | Resume should not replay stale capture |
 | offline | Offline | Slate/amber guide | Manual search from cache, retry, pause | Cached result only if user-scoped and fresh | None | Offline | Network state unavailable during lookup | camera_ready, searching, failed | User-visible network recovery |
@@ -90,6 +90,7 @@ stateDiagram-v2
 - Manual search is always available when camera or network is unavailable.
 - A scan has one active processing token; stale lookup completion must not overwrite a newer retake.
 - Capture is disabled while capture, OCR, or lookup is active.
+- Torch, Capture, and Search hide while capture, OCR, lookup, saving, added/remove-card lockout, or secondary sheets are active.
 - Failed scans never create unknown session rows.
 - Failure details are diagnostic-only; normal UI uses safe recovery copy.
 - Title-only OCR may produce candidates, but exact-printing confidence stays capped.
