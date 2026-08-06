@@ -68,6 +68,10 @@
 - Implemented: Native iOS Magic OCR v1 adds a local Expo module backed by Apple Vision, guide-assisted crop mapping, OCR normalization, top-three Scryfall matching, confidence caps for title-only observations, and temporary capture deletion.
 - Implemented: The local OCR module now includes an Apple podspec so `expo-modules-autolinking resolve --platform apple` emits the `TradingDocksVisionOcr` pod and `TradingDocksVisionOcrModule` registration.
 - Implemented: The active Scan tab now uses a premium camera-first hierarchy with compact header, large guide viewport, exactly two primary controls, secondary settings/manual/diagnostics panels, and a compact Review List chip.
+- Implemented: Scanner Product V3 now splits the mobile scanner into Scan Modes, Automatic Scan, Single Scan, and Review List so the tab route is no longer an overloaded camera/settings/review surface.
+- Implemented: Automatic Scan keeps pricing, confidence, card metadata, condition, finish, and offer math out of the active camera surface while preserving those data paths for Review List.
+- Implemented: Single Scan adds a manual one-card capture flow that writes to the shared user-scoped scanner session contract.
+- Planned: Grid Scan remains intentionally disabled until real multi-card recognition and post-processing are benchmarked.
 - Implemented: The active scanner is now batch-first intake: supported matches add directly to Scanner Session Review, likely/ambiguous rows are Needs review, failed reads do not create unknown rows, and per-card Add/pricing/metadata controls are no longer rendered on the camera surface.
 - Implemented: Magic still-capture OCR now normalizes rotated iPhone captures to the live preview orientation, uses primary/expanded/lower/wide/full-card title OCR fallback regions, exposes development-only crop proof, and keeps failed Retake recovery out of the user-paused camera state.
 - Implemented: Scanner 2.0 now has a canonical camera lifecycle model, app background guards, stale manual-search guards, structured Scryfall outcomes, and a dedicated stabilization document.

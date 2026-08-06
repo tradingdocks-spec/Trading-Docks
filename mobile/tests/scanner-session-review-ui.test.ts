@@ -23,6 +23,8 @@ test('session review route exposes focused presentation components', () => {
     'SessionFinalizeBar',
     'SessionEmptyState',
   ].forEach((name) => assert.match(source, new RegExp(`function ${name}\\b`)));
+  assert.match(source, /Review List/);
+  assert.match(source, /cardCount === 1/);
 });
 
 test('default main screen omits advanced game and confidence chip walls', () => {
@@ -60,7 +62,7 @@ test('card review sheet owns editable fields and preserves review actions', () =
   assert.match(sheet, /label="Finish"/);
   assert.match(sheet, /label="Market price"/);
   assert.match(sheet, /label="Cash percentage"/);
-  assert.match(sheet, /Save and mark reviewed/);
+  assert.match(sheet, /Save & mark reviewed/);
   assert.match(sheet, /Choose another printing/);
   assert.match(sheet, /Remove card/);
   assert.match(sheet, /More options/);

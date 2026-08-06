@@ -17,6 +17,10 @@
 - Implemented: `mobile/services/magic-ocr-pipeline.ts` maps the visible guide to captured-image regions, normalizes captured stills to preview orientation, reads title and collector text locally, tries primary/expanded/lower/wide/full-card title OCR fallback regions, queries Scryfall, returns top-three Magic candidates, deletes temporary captures, and caps title-only confidence.
 - Implemented: `mobile/services/native-scanner-calibration.ts` defines the native QA diagnostics and calibration contract, including camera-ready gating, guide/crop mapping, unavailable-signal auto-capture blocking, capture outcome labels, card-removal rearm checks, and evidence-only foil diagnostics.
 - Implemented: The active Scan screen does not call `takePictureAsync` until `CameraView.onCameraReady` fires.
+- Implemented: Scanner Product V3 separates the mobile Scan tab into Scan Modes, Automatic Scan, Single Scan, and Review List. See `docs/SCANNER_PRODUCT_V3.md`.
+- Implemented: Automatic Scan now lives at `/scan/automatic` and remains the camera-first hands-free workflow.
+- Implemented: Single Scan now lives at `/scan/single` and uses the same captured-still OCR and scanner session contracts for deliberate one-card capture.
+- Planned: Grid Scan remains a future route contract only; no fake multi-card route is shipped.
 - Implemented: The active Scan screen now uses the premium camera-first hierarchy documented in `docs/SCANNER_PRODUCT_EXPERIENCE.md`: compact header, large camera viewport, Torch/Capture controls, compact result tray, compact session strip, and secondary panels for settings, manual search, and diagnostics.
 - Implemented: The active Scan screen uses `mobile/services/scanner-camera-quality.ts` for safe-area-aware guide framing, full-quality still capture options, autofocus, shutter feedback, and iOS responsive captured-still orientation when supported by Expo Camera SDK 54.
 - Implemented: Scanner diagnostics are no longer rendered inline in the normal scanner experience; they remain development-only behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`.

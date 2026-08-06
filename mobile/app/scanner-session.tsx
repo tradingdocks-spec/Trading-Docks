@@ -93,7 +93,7 @@ export default function ScannerSessionReview() {
           ListHeaderComponent={(
             <View style={s.headerStack}>
               <SessionReviewHeader
-                title={session.name}
+                cardCount={totals?.cardsScanned ?? 0}
                 filtersActive={advancedFiltersActive}
                 onBack={() => router.back()}
               />
@@ -158,13 +158,13 @@ export default function ScannerSessionReview() {
   );
 }
 
-function SessionReviewHeader({ title, filtersActive, onBack }: { title: string; filtersActive: boolean; onBack: () => void }) {
+function SessionReviewHeader({ cardCount, filtersActive, onBack }: { cardCount: number; filtersActive: boolean; onBack: () => void }) {
   return (
     <View style={s.header}>
       <TDIconButton label="Back to scanner" iconName="chevron-back" onPress={onBack} size="sm" />
       <View style={s.headerCopy}>
-        <TDText variant="label" tone="muted">Session Review</TDText>
-        <TDText variant="heading" numberOfLines={1}>{title}</TDText>
+        <TDText variant="heading" numberOfLines={1}>Review List</TDText>
+        <TDText variant="small" tone="muted" numberOfLines={1}>{cardCount} card{cardCount === 1 ? '' : 's'}</TDText>
       </View>
       {filtersActive ? <TDBadge tone="info">Filtered</TDBadge> : null}
     </View>
@@ -304,7 +304,7 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
                   <TDInput label="Language" value={line.language ?? '-'} editable={false} />
                 </View>
               ) : null}
-              <TDButton label={line.reviewStatus === 'needs_review' ? 'Save and mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
+              <TDButton label={line.reviewStatus === 'needs_review' ? 'Save & mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
               <View style={s.destructiveZone}>
                 <TDButton label="Remove card" variant="danger" onPress={confirmRemove} />
               </View>
