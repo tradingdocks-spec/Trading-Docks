@@ -8,7 +8,6 @@ import {
   TDCard,
   TDEmptyState,
   TDListRow,
-  TDMetric,
   TDNavigationHeader,
   TDSectionHeader,
   TDText,
@@ -42,11 +41,12 @@ export default function Sell() {
           </View>
           <TDBadge tone={activeSession ? 'success' : 'neutral'}>{activeSession ? 'Active' : 'Quiet'}</TDBadge>
         </View>
-        <View style={s.metrics}>
-          <TDMetric label="Orders" value="Unavailable" compact />
-          <TDMetric label="Offers" value="Unavailable" compact />
-          <TDMetric label="Margin" value="Unavailable" compact />
-        </View>
+        <TDListRow
+          title="Seller metrics unavailable"
+          description="Orders, offers, and margin reporting will appear after real marketplace or POS data is connected."
+          iconName="analytics-outline"
+          right={<TDBadge tone="neutral">Planned</TDBadge>}
+        />
       </TDCard>
 
       <TDSectionHeader title="Next actions" />
@@ -92,5 +92,4 @@ const s = StyleSheet.create({
   hero: { gap: space.md, padding: space.lg },
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm },
   flex: { flex: 1, minWidth: 0 },
-  metrics: { flexDirection: 'row', gap: space.sm },
 });

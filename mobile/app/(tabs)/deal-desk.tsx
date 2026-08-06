@@ -9,8 +9,8 @@ import {
   TDCard,
   TDErrorState,
   TDInput,
+  TDListRow,
   TDLoadingState,
-  TDMetric,
   TDNavigationHeader,
   TDSectionHeader,
   TDSegmentedControl,
@@ -118,10 +118,19 @@ export default function DealDesk() {
         <TDButton label={ctaForMode(mode)} iconName={iconForMode(mode)} disabled={state.missingPrice && mode === 'buy'} onPress={begin} />
       </TDCard>
 
-      <View style={s.metrics}>
-        <TDMetric label="Budget left" value={budget ? `$${state.budgetRemaining.toFixed(0)}` : 'Unavailable'} tone={budget ? 'info' : 'neutral'} compact />
-        <TDMetric label="Review" value="Unavailable" compact />
-        <TDMetric label="Margin" value="Unavailable" compact />
+      <View style={s.dealFacts}>
+        <TDListRow
+          title="Budget remaining"
+          description={budget ? `$${state.budgetRemaining.toFixed(0)} left from the entered budget.` : 'Add a budget when you want a spend check.'}
+          iconName="wallet-outline"
+          right={<TDBadge tone={budget ? 'info' : 'neutral'}>{budget ? 'Ready' : 'Unavailable'}</TDBadge>}
+        />
+        <TDListRow
+          title="Review and margin"
+          description="Review counts and margin reporting require real priced session lines before they appear here."
+          iconName="analytics-outline"
+          right={<TDBadge tone="neutral">Unavailable</TDBadge>}
+        />
       </View>
 
       <TDSectionHeader title="Mode details" />
@@ -169,6 +178,6 @@ const s = StyleSheet.create({
   hero: { gap: space.md, padding: space.lg },
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm },
   inputs: { gap: space.sm },
-  metrics: { flexDirection: 'row', gap: space.sm },
+  dealFacts: { gap: space.xs },
   modeDetails: { gap: space.xs },
 });
