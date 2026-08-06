@@ -35,6 +35,19 @@ export type ContinuousScanState =
   | 'cooldown'
   | 'ready_for_next';
 
+export type BatchScannerState =
+  | 'ready'
+  | 'capturing'
+  | 'reading'
+  | 'matching'
+  | 'added'
+  | 'remove_card'
+  | 'rearming'
+  | 'failed'
+  | 'paused'
+  | 'offline'
+  | 'camera_error';
+
 export type ContinuousConfidenceState =
   | 'high_confidence'
   | 'likely'
@@ -210,6 +223,31 @@ export type ScannerSessionTotals = {
   missingPriceItems: number;
   gameTotals: Partial<Record<SupportedTcg, { cards: number; quantity: number }>>;
   finishTotals: Record<string, number>;
+};
+
+export type BatchScannerReviewChipModel = {
+  hidden: boolean;
+  summary: string;
+  reviewLabel: 'Review List';
+  tone: 'info' | 'warning';
+};
+
+export type BatchScannerNoticeModel = {
+  title: string;
+  message: string;
+  tone: 'success' | 'warning' | 'info';
+  undoLabel: 'Undo';
+  correctLabel: 'Correct';
+};
+
+export type BatchScannerTimingSnapshot = {
+  captureMs: number | null;
+  cropMs: number | null;
+  ocrMs: number | null;
+  scryfallMs: number | null;
+  sessionWriteMs: number | null;
+  totalMs: number | null;
+  fallbackCount: number;
 };
 
 export type SessionReviewStatusTab = 'all' | 'needs_review' | 'suggested' | 'confirmed';
@@ -625,6 +663,71 @@ export function addRecognitionToSession(
     updatedAt: line.createdAt,
     lines: [...session.lines, line],
     undoneLines: [],
+  };
+}
+
+export function batchScannerReviewStatusForConfidence(confidence: ContinuousConfidenceState): ScannerSessionLine['reviewStatus'] {
+  return confidence === 'high_confidence' ? 'suggested' : 'needs_review';
+}
+
+export function shouldAddRecognitionToBatch(input: { candidateCount: number; confidenceState: ContinuousConfidenceState | null; failedReason?: string | null }) {
+  if (input.failedReason) return false;
+  return input.candidateCount > 0 && input.confidenceState !== null;
+}
+
+export function batchScannerNoticeForLine(line: ScannerSessionLine): BatchScannerNoticeModel {
+  if (line.reviewStatus === 'needs_review') {
+    return {
+      title: 'Added for review',
+      message: `${line.cardName} needs review. Keep scanning.`,
+      tone: 'warning',
+      undoLabel: 'Undo',
+      correctLabel: 'Correct',
+    };
+  }
+  return {
+    title: 'Added',
+    message: `${line.cardName} is in the review list.`,
+    tone: 'success',
+    undoLabel: 'Undo',
+    correctLabel: 'Correct',
+  };
+}
+
+export function batchScannerInstructionForState(state: BatchScannerState) {
+  if (state === 'capturing') return 'Capturing';
+  if (state === 'reading') return 'Reading card';
+  if (state === 'matching') return 'Matching printing';
+  if (state === 'added') return 'Added. Keep scanning';
+  if (state === 'remove_card') return 'Remove card';
+  if (state === 'rearming') return 'Ready for the next card';
+  if (state === 'failed') return 'Retake or search';
+  if (state === 'paused') return 'Scanner paused';
+  if (state === 'offline') return 'Offline. Search uses recent cards only';
+  if (state === 'camera_error') return 'Camera unavailable';
+  return 'Place card in guide';
+}
+
+export function batchScannerReviewChipModel(input: { cardCount: number; reviewCount: number }): BatchScannerReviewChipModel {
+  const scanned = `${input.cardCount} scanned`;
+  const review = input.reviewCount > 0 ? ` • ${input.reviewCount} review` : '';
+  return {
+    hidden: false,
+    summary: `${scanned}${review}`,
+    reviewLabel: 'Review List',
+    tone: input.reviewCount > 0 ? 'warning' : 'info',
+  };
+}
+
+export function batchScannerTimingSummary(input: Partial<BatchScannerTimingSnapshot>): BatchScannerTimingSnapshot {
+  return {
+    captureMs: normalizeTiming(input.captureMs),
+    cropMs: normalizeTiming(input.cropMs),
+    ocrMs: normalizeTiming(input.ocrMs),
+    scryfallMs: normalizeTiming(input.scryfallMs),
+    sessionWriteMs: normalizeTiming(input.sessionWriteMs),
+    totalMs: normalizeTiming(input.totalMs),
+    fallbackCount: Math.max(0, Math.round(input.fallbackCount ?? 0)),
   };
 }
 
@@ -1070,6 +1173,11 @@ function roundOffer(value: number, rule: OfferRoundingRule) {
 
 function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function normalizeTiming(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.round(value));
 }
 
 export function formatSessionReviewMoney(value: number | null | undefined) {

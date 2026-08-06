@@ -248,17 +248,15 @@ export function scannerHudRowsForWidth(width: number) {
 }
 
 export function scanner2HudLine(input: Scanner2HudSummary) {
-  const cards = `${input.cardCount} card${input.cardCount === 1 ? '' : 's'}`;
+  const cards = `${input.cardCount} scanned`;
   const offer = `Offer ${compactScannerMoney(input.offerTotal)}`;
   const review = `${input.reviewCount} review`;
   return `${input.modeLabel} - ${cards} - ${offer} - ${review}`;
 }
 
 export function scanner2HeaderModel(input: Scanner2HudSummary): Scanner2HeaderModel {
-  const market = compactScannerMoney(input.marketTotal ?? null);
   const offer = compactScannerMoney(input.offerTotal);
   const line2: Scanner2HeaderModel['line2'] = [
-    { id: 'market', label: 'Market', value: market },
     { id: 'offer', label: 'Offer', value: offer },
   ];
 
@@ -273,7 +271,7 @@ export function scanner2HeaderModel(input: Scanner2HudSummary): Scanner2HeaderMo
   return {
     line1: {
       mode: input.modeLabel,
-      cards: `${input.cardCount} card${input.cardCount === 1 ? '' : 's'}`,
+      cards: `${input.cardCount} scanned`,
     },
     line2,
     rows: 2,

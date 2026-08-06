@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type RefObject } from 'react';
 import { AccessibilityInfo, AppState, Platform, Pressable, StyleSheet, View, useWindowDimensions, type AppStateStatus, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,7 +16,6 @@ import {
   TDIconButton,
   TDInput,
   TDLoadingState,
-  TDResultTray,
   TDScreen,
   TDSessionStrip as TDSessionStripPrimitive,
   TDText,
@@ -27,6 +26,10 @@ import { CARD_CONDITION_OPTIONS, TRADE_BINDER_STATUS_OPTIONS } from '@/services/
 import {
   SCANNER_SESSION_MODES,
   addRecognitionToSession,
+  batchScannerInstructionForState,
+  batchScannerNoticeForLine,
+  batchScannerReviewChipModel,
+  batchScannerTimingSummary,
   calculateCardGuideLayout,
   calculateSessionTotals,
   continuousScannerSessionKey,
@@ -36,14 +39,18 @@ import {
   markCaptureStarted,
   markScanResult,
   scannerModeLabel,
+  shouldAddRecognitionToBatch,
+  undoMostRecentScan,
   type ContinuousScannerMode,
   type ContinuousScannerSession,
+  type BatchScannerNoticeModel,
+  type BatchScannerTimingSnapshot,
 } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
-import { classifyMagicRecognition, recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
+import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
 import { deleteCapturedStill, recognizeMagicStillCapture, type CropRect, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from '@/modules/trading-docks-vision-ocr';
-import { loadScannerContext, loadScannerDraft, saveScannerConfirmation, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
+import { loadScannerContext, loadScannerDraft, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
 import {
   createInterruptedScanDraft,
   resetAfterRapidScan,
@@ -51,7 +58,6 @@ import {
   scannerPrivacySummary,
   tradeStatusForScanner,
   type ScannerCardCandidate,
-  type ScannerConfirmation,
   type ScannerPermissionState,
 } from '@/services/scanner-foundation';
 import type { RecognitionCandidate } from '@/services/scanner-intelligence';
@@ -72,7 +78,6 @@ import {
 } from '@/services/native-scanner-calibration';
 import {
   buildPremiumResultTray,
-  compactScannerMoney,
   dominantScannerSurface,
   guidePresentationForPipeline,
   highVolumeCardShowDefaults,
@@ -81,18 +86,16 @@ import {
   scanner2HeaderModel,
   scanner2MainControls,
   scanner2MotionForState,
-  scanner2SessionStripModel,
   shouldBlockScannerCapture,
   shouldHideScannerPrimaryControls,
   shouldScannerCameraRender,
   shouldShowScannerResumeAction,
   shouldRenderDiagnosticsInline,
   resolveScanner2CameraLifecycle,
-  type Scanner2CameraLifecycleState,
-  type PremiumResultTray,
-  type PremiumResultTrayKind,
   type PremiumScannerGuidePresentation,
   type PremiumScannerPipelineState,
+  type PremiumResultTrayKind,
+  type Scanner2CameraLifecycleState,
 } from '@/services/premium-scanner-experience';
 import { appStorage } from '@/services/storage/app-storage';
 import type { StorageLocation } from '@/services/storage-location-manager';
@@ -109,6 +112,7 @@ export default function Scan() {
   const mountedRef = useRef(true);
   const activeCaptureIdRef = useRef<string | null>(null);
   const activeSearchIdRef = useRef<string | null>(null);
+  const scryfallSearchCacheRef = useRef(new Map<string, ScannerCardCandidate[]>());
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [context, setContext] = useState<ScannerContext | null>(null);
   const [sessionMode, setSessionMode] = useState<ContinuousScannerMode>(INITIAL_SESSION_MODE);
@@ -133,7 +137,6 @@ export default function Scan() {
   const [magicStillScan, setMagicStillScan] = useState<MagicStillScanResult | null>(null);
   const [diagnosticCaptureUri, setDiagnosticCaptureUri] = useState<string | null>(null);
   const [ocrRuntimeDiagnostics, setOcrRuntimeDiagnostics] = useState<NativeOcrRuntimeDiagnostics | null>(null);
-  const [showMagicWhy, setShowMagicWhy] = useState(false);
   const [selected, setSelected] = useState<ScannerCardCandidate | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [condition, setCondition] = useState(CARD_CONDITION_OPTIONS[0]);
@@ -141,21 +144,20 @@ export default function Scan() {
   const [language, setLanguage] = useState('en');
   const [storageLocationId, setStorageLocationId] = useState<string | null>(null);
   const [tradeStatus, setTradeStatus] = useState(tradeStatusForScanner('not_for_trade'));
-  const [addToWishlist, setAddToWishlist] = useState(false);
-  const [marketPrice, setMarketPrice] = useState('');
   const [purchaseRate, setPurchaseRate] = useState('70');
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [syncingQueue, setSyncingQueue] = useState(false);
   const [queuedAdds, setQueuedAdds] = useState<ScannerQueuedAdd[]>([]);
   const [showSettingsSheet, setShowSettingsSheet] = useState(false);
   const [showManualSearchSheet, setShowManualSearchSheet] = useState(false);
   const [showDiagnosticsSheet, setShowDiagnosticsSheet] = useState(false);
-  const [showCorrectionTools, setShowCorrectionTools] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [batchNotice, setBatchNotice] = useState<(BatchScannerNoticeModel & { lineId: string }) | null>(null);
+  const [scanTimings, setScanTimings] = useState<BatchScannerTimingSnapshot[]>([]);
+  const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
@@ -191,11 +193,6 @@ export default function Scan() {
   );
   const foilDiagnostics = useMemo(() => summarizeFoilDiagnostics([]), []);
   const sessionTotals = useMemo(() => session ? calculateSessionTotals(session) : null, [session]);
-  const selectedFinishes = useMemo(() => selected?.finishes.filter((candidateFinish) => candidateFinish === 'normal' || candidateFinish === 'foil' || candidateFinish === 'etched') ?? ['normal'], [selected]);
-  const magicPresentation = useMemo(() => {
-    if (!magicRecognition?.ok) return null;
-    return classifyMagicRecognition(magicRecognition.confidence, magicRecognition.candidates.length);
-  }, [magicRecognition]);
   const scannerPipeline = useMemo(() => resolvePremiumScannerPipeline({
     permissionGranted: permission === 'granted',
     cameraReady,
@@ -205,8 +202,8 @@ export default function Scan() {
     selectedCandidate: selected,
     hasError: Boolean(error && recognitionStage !== 'failed'),
     awaitingCardRemoval: autoScanner.duplicateProtection.awaitingCardRemoval,
-    justAdded: Boolean(success && /added|synced/i.test(success)),
-  }), [autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, captureState, error, permission, recognitionStage, selected, success]);
+    justAdded: Boolean(batchNotice),
+  }), [autoScanner.duplicateProtection.awaitingCardRemoval, batchNotice, cameraActive, cameraReady, captureState, error, permission, recognitionStage, selected]);
   const scannerProcessing = recognitionStage === 'reading_title' || recognitionStage === 'finding_card' || captureState === 'capturing' || captureState === 'captured';
   const cameraLifecycle = useMemo(() => resolveScanner2CameraLifecycle({
     permission,
@@ -221,25 +218,25 @@ export default function Scan() {
     () => guidePresentationForPipeline(scannerPipeline, autoScanner.lastGuidance),
     [autoScanner.lastGuidance, scannerPipeline],
   );
-  const latestResultTray = useMemo(() => buildPremiumResultTray({
-    selectedCandidate: selected,
-    topCandidate: magicRecognition?.ok ? magicRecognition.selected : null,
-    candidateCount: candidates.length,
-    confidenceLabel: magicPresentation?.label ?? null,
-    confidenceScore: magicRecognition?.ok ? magicRecognition.confidence.overall : null,
+  const failedResultTray = useMemo(() => buildPremiumResultTray({
+    selectedCandidate: null,
+    topCandidate: null,
+    candidateCount: 0,
+    confidenceLabel: null,
+    confidenceScore: null,
     failedReason: recognitionStage === 'failed'
       ? error ?? (!magicRecognition?.ok ? magicRecognition?.reason : null) ?? 'Recognition did not complete.'
       : null,
-    marketPrice: parseOptionalMoney(marketPrice),
+    marketPrice: null,
     cashOffer: null,
-  }), [candidates.length, error, magicPresentation?.label, magicRecognition, marketPrice, recognitionStage, selected]);
+  }), [error, magicRecognition, recognitionStage]);
   const highVolumeDefaults = useMemo(
     () => highVolumeCardShowDefaults({ defaultCondition: condition, defaultFinish: finish, defaultLanguage: language, cashOfferRate: parseOptionalPercentage(purchaseRate) ?? 70 }),
     [condition, finish, language, purchaseRate],
   );
   const renderDiagnosticsInline = shouldRenderDiagnosticsInline(diagnosticsEnabled);
   const visibleSurface = dominantScannerSurface({
-    hasResultTray: Boolean(latestResultTray),
+    hasResultTray: Boolean(failedResultTray),
     isReading: recognitionStage === 'reading_title',
     isSearching: recognitionStage === 'finding_card' || searching,
     hasCameraPrompt: permission !== 'granted' || !cameraActive,
@@ -251,13 +248,25 @@ export default function Scan() {
     cameraReady,
     captureState,
     recognitionStage,
-    trayKind: latestResultTray?.kind ?? null,
+    trayKind: null,
     awaitingCardRemoval: autoScanner.duplicateProtection.awaitingCardRemoval,
-    justAdded: Boolean(success && /added|synced/i.test(success)),
+    justAdded: Boolean(batchNotice),
     offline: Boolean(magicRecognition && !magicRecognition.ok && magicRecognition.offline),
     hasCameraError: captureState === 'camera_not_ready' && Boolean(error),
   });
   const guideMotion = scanner2MotionForState(scanner2State, reduceMotion);
+  const scannerInstruction = batchScannerInstructionForState(
+    scanner2State === 'capturing' ? 'capturing'
+      : scanner2State === 'reading' ? 'reading'
+        : scanner2State === 'searching' ? 'matching'
+          : scanner2State === 'added' ? 'added'
+            : scanner2State === 'remove_card' ? 'remove_card'
+              : scanner2State === 'failed' ? 'failed'
+                : scanner2State === 'paused' ? 'paused'
+                  : scanner2State === 'offline' ? 'offline'
+                    : scanner2State === 'camera_error' ? 'camera_error'
+                      : 'ready',
+  );
   const scannerHeader = scanner2HeaderModel({
     modeLabel: scannerModeLabel(sessionMode),
     cardCount: sessionTotals?.cardsScanned ?? 0,
@@ -265,15 +274,14 @@ export default function Scan() {
     offerTotal: sessionTotals?.cashOffer ?? null,
     reviewCount: sessionTotals?.needsReview ?? 0,
   });
-  const sessionStrip = scanner2SessionStripModel({
+  const sessionStrip = batchScannerReviewChipModel({
     cardCount: sessionTotals?.cardsScanned ?? 0,
-    marketTotal: sessionTotals?.marketValue ?? null,
-    offerTotal: sessionTotals?.cashOffer ?? null,
+    reviewCount: sessionTotals?.needsReview ?? 0,
   });
-  const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showCorrectionTools;
+  const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
-    saving,
+    saving: false,
     sheetOpen,
     state: scanner2State,
   });
@@ -317,6 +325,7 @@ export default function Scan() {
       mountedRef.current = false;
       activeCaptureIdRef.current = null;
       activeSearchIdRef.current = null;
+      if (batchNoticeTimerRef.current) clearTimeout(batchNoticeTimerRef.current);
       active = false;
     };
   }, []);
@@ -391,9 +400,9 @@ export default function Scan() {
       userId: context.userId,
       query,
       selectedCandidateId: selected?.id ?? null,
-      confirmation: selected ? { quantity, condition, finish, language, storageLocationId, tradeStatus, addToWishlist } : null,
+      confirmation: selected ? { quantity, condition, finish, language, storageLocationId, tradeStatus, addToWishlist: false } : null,
     }));
-  }, [addToWishlist, condition, context, finish, language, quantity, query, selected, storageLocationId, tradeStatus]);
+  }, [condition, context, finish, language, quantity, query, selected, storageLocationId, tradeStatus]);
 
   useEffect(() => {
     const next = resolveScannerPermissionState({
@@ -439,6 +448,84 @@ export default function Scan() {
     if (uri) await deleteCapturedStill(uri);
   };
 
+  const showBatchNotice = (notice: BatchScannerNoticeModel & { lineId: string }) => {
+    if (batchNoticeTimerRef.current) clearTimeout(batchNoticeTimerRef.current);
+    setBatchNotice(notice);
+    batchNoticeTimerRef.current = setTimeout(() => {
+      setBatchNotice(null);
+      batchNoticeTimerRef.current = null;
+    }, 2400);
+  };
+
+  const addCandidateToBatch = (input: {
+    candidate: ScannerCardCandidate;
+    recognition: MagicRecognitionResult | null;
+    stableScanId: string;
+    source: 'assisted_capture' | 'manual_search';
+    fingerprint?: string | null;
+    timing?: Partial<BatchScannerTimingSnapshot>;
+  }) => {
+    if (!session) return null;
+    const startedAt = scannerNow();
+    const recognitionReport = createRecognitionPipelineReport({
+      detectedGame: 'magic',
+      candidates: [input.candidate, ...candidates.filter((candidate) => candidate.id !== input.candidate.id)],
+      confidence: input.recognition?.ok ? input.recognition.confidence : {
+        overall: Math.round(input.candidate.confidence * 100),
+        threshold: 82,
+        requiresConfirmation: true,
+        conflicts: input.source === 'manual_search' ? ['Manual search entries require review in the list.'] : ['Assisted capture requires review.'],
+        signals: [],
+      },
+      recognitionMethod: input.source === 'manual_search' ? 'manual_search' : 'metadata_assisted',
+    });
+    if (!shouldAddRecognitionToBatch({
+      candidateCount: recognitionReport.topThree.length,
+      confidenceState: recognitionReport.confidenceState,
+    })) return null;
+    const rate = parseOptionalPercentage(purchaseRate) ?? session.offerConfig.defaultCashPercentage;
+    const candidateFinish = (input.candidate.finishes.find((candidateFinishOption) => candidateFinishOption === finish) ?? input.candidate.finishes.find((candidateFinishOption) => candidateFinishOption === 'normal' || candidateFinishOption === 'foil' || candidateFinishOption === 'etched') ?? finish) as 'normal' | 'foil' | 'etched';
+    const sessionWithRate = {
+      ...session,
+      offerConfig: { ...session.offerConfig, defaultCashPercentage: rate },
+    };
+    const nextSession = addRecognitionToSession(sessionWithRate, {
+      stableScanId: input.stableScanId,
+      candidate: input.candidate,
+      recognition: recognitionReport,
+      quantity,
+      condition,
+      finish: candidateFinish,
+      language: input.candidate.language ?? language,
+      marketPrice: null,
+      priceSource: null,
+      priceTimestamp: null,
+      storageLocationId,
+      tradeStatus,
+      destination: sessionWithRate.defaultDestination,
+      notes: 'Pricing and final card decisions are handled in the Review List.',
+    });
+    const addedLine = nextSession.lines[nextSession.lines.length - 1];
+    setSession(nextSession);
+    setSessionInsertionResult('inserted');
+    setAutoScanner((current) => markScanResult(current, {
+      printingId: input.candidate.id,
+      fingerprint: input.fingerprint ?? capturedFrame,
+      now: scannerNow(),
+      scanId: input.stableScanId,
+    }));
+    setScanTimings((current) => [
+      batchScannerTimingSummary({
+        ...input.timing,
+        sessionWriteMs: scannerNow() - startedAt,
+      }),
+      ...current,
+    ].slice(0, 5));
+    showBatchNotice({ ...batchScannerNoticeForLine(addedLine), lineId: addedLine.id });
+    resetScannerForm({ preserveNotice: true });
+    return addedLine;
+  };
+
   const toggleCameraPause = () => {
     setCameraActive((active) => {
       const nextActive = !active;
@@ -457,7 +544,6 @@ export default function Scan() {
     setMagicRecognition(null);
     setCandidates([]);
     setSelected(null);
-    setShowMagicWhy(false);
     setError(null);
     setSuccess(null);
     setSessionInsertionResult('not_attempted');
@@ -483,12 +569,15 @@ export default function Scan() {
       return;
     }
     try {
+      const captureStartedAt = scannerNow();
       if (diagnosticCaptureUri) void cleanupDiagnosticCapture();
       const captureId = createScanId();
       activeCaptureIdRef.current = captureId;
       setLastCaptureId(captureId);
       setCaptureState('capturing');
+      const cameraCaptureStartedAt = scannerNow();
       const photo = await cameraRef.current.takePictureAsync({ quality: 1, skipProcessing: false });
+      const cameraCaptureMs = scannerNow() - cameraCaptureStartedAt;
       if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
       const frameLabel = `${photo.width} x ${photo.height}`;
       setCapturedFrame(frameLabel);
@@ -513,14 +602,32 @@ export default function Scan() {
       if (scan.ok) {
         setCaptureState('ready');
         setCandidates(scan.candidates);
-        setSelected(scan.selected);
+        const batchCandidate = scan.selected ?? scan.candidates[0] ?? null;
+        setSelected(batchCandidate);
         setMagicRecognition(scan.recognition);
         setQuery(scan.signals.normalizedTitle ?? query);
-        setSessionInsertionResult('not_attempted');
-        setRecognitionStage('review_ready');
-        setSuccess(scan.selected
-          ? `${scan.selected.name} is ready to confirm. Temporary capture ${scan.cleanup.ok && scan.cleanup.deleted ? 'deleted' : 'cleanup needs review'}.`
-          : 'OCR finished, but no Magic printing was selected. Use manual search.');
+        if (batchCandidate) {
+          addCandidateToBatch({
+            candidate: batchCandidate,
+            recognition: scan.recognition,
+            stableScanId: captureId,
+            source: 'assisted_capture',
+            fingerprint: frameLabel,
+            timing: {
+              captureMs: cameraCaptureMs,
+              cropMs: scan.cropDiagnostics ? null : null,
+              ocrMs: scan.ocr.latencyMs,
+              scryfallMs: scan.lookupLatencyMs,
+              totalMs: scannerNow() - captureStartedAt,
+              fallbackCount: Math.max(0, scan.signals.titleAttempts.length - 1),
+            },
+          });
+          setRecognitionStage('idle');
+        } else {
+          setSessionInsertionResult('failed');
+          setRecognitionStage('failed');
+          setError('No Magic printing was selected. Retake or search manually.');
+        }
       } else {
         setCaptureState('ready');
         setMagicRecognition(scan.ocr?.ok === false ? { ok: false, reason: scan.reason, offline: false } : null);
@@ -528,11 +635,6 @@ export default function Scan() {
         setRecognitionStage('failed');
         setError(`${scan.reason} Manual search is still available.`);
       }
-      setAutoScanner((current) => markScanResult(current, {
-        fingerprint: frameLabel,
-        now: Date.now(),
-        scanId: captureId,
-      }));
       activeCaptureIdRef.current = null;
       if (!userPausedCamera && appForegrounded) setCameraActive(true);
     } catch (captureError) {
@@ -556,14 +658,20 @@ export default function Scan() {
 
   const runSearch = async () => {
     const searchId = createScanId();
+    const searchQuery = query.trim();
+    const cacheKey = searchQuery.toLowerCase();
     activeSearchIdRef.current = searchId;
     setSearching(true);
     setError(null);
     setSuccess(null);
     try {
-      const result = await searchScannerPrintings(query, true);
+      const cachedCandidates = scryfallSearchCacheRef.current.get(cacheKey);
+      const result = cachedCandidates
+        ? { ok: true as const, candidates: cachedCandidates, assisted: false }
+        : await searchScannerPrintings(searchQuery, true);
       if (!mountedRef.current || activeSearchIdRef.current !== searchId) return;
       if (result.ok) {
+        if (!cachedCandidates) scryfallSearchCacheRef.current.set(cacheKey, result.candidates);
         setCandidates(result.candidates);
         setMagicStillScan(null);
         const recognition = await recognizeMagicCard({
@@ -596,103 +704,16 @@ export default function Scan() {
     setLanguage(candidate.language ?? 'en');
   };
 
-  const save = async () => {
-    if (!context || !selected || !session) return;
-    setSaving(true);
-    setError(null);
-    const recognitionReport = createRecognitionPipelineReport({
-      detectedGame: 'magic',
-      candidates: [selected, ...candidates.filter((candidate) => candidate.id !== selected.id)],
-      confidence: magicRecognition?.ok ? magicRecognition.confidence : {
-        overall: Math.round(selected.confidence * 100),
-        threshold: 82,
-        requiresConfirmation: true,
-        conflicts: ['Manual search requires exact-printing confirmation.'],
-        signals: [],
-      },
-      recognitionMethod: selected.recognitionMode === 'manual_search' ? 'manual_search' : 'metadata_assisted',
-    });
-    const price = parseOptionalMoney(marketPrice);
-    const rate = parseOptionalPercentage(purchaseRate) ?? session.offerConfig.defaultCashPercentage;
-    const sessionWithRate = {
-      ...session,
-      offerConfig: { ...session.offerConfig, defaultCashPercentage: rate },
-    };
-    const nextSession = addRecognitionToSession(sessionWithRate, {
-      stableScanId: createScanId(),
-      candidate: selected,
-      recognition: recognitionReport,
-      quantity,
-      condition,
-      finish,
-      language,
-      marketPrice: price,
-      priceSource: price === null ? null : 'manual',
-      priceTimestamp: price === null ? null : new Date().toISOString(),
-      storageLocationId,
-      tradeStatus,
-      destination: sessionWithRate.defaultDestination,
-      notes: price === null ? 'Pricing unavailable; excluded from offer totals until manually priced.' : '',
-    });
-    setSession(nextSession);
-    setAutoScanner((current) => markScanResult(current, {
-      printingId: selected.id,
-      fingerprint: capturedFrame,
-      now: Date.now(),
-      scanId: createScanId(),
-    }));
-
-    if (sessionMode !== 'collection_intake') {
-      setSuccess(`${selected.name} added to ${scannerModeLabel(sessionMode)} session for review.`);
-      resetScannerForm();
-      setSaving(false);
-      return;
-    }
-
-    const confirmation: ScannerConfirmation = {
-      userId: context.userId,
-      candidate: selected,
-      quantity,
-      condition,
-      finish,
-      language,
-      storageLocationId,
-      tradeStatus,
-      addToWishlist,
-    };
-    const result = await saveScannerConfirmation({ confirmation, membershipTier: accountType, currentTotalQuantity: context.currentTotalQuantity });
-    if (!result.ok) {
-      setError(result.error);
-    } else {
-      setSuccess(result.queued ? 'Scan queued for sync.' : 'Card added to Collection.');
-      setContext({ ...context, currentTotalQuantity: context.currentTotalQuantity + quantity });
-      setQueuedAdds(await listScannerQueuedAdds(context.userId));
-      const reset = resetAfterRapidScan();
-      setQuery(reset.query);
-      setSelected(null);
-      setCandidates([]);
-      setMagicRecognition(null);
-      setShowMagicWhy(false);
-      setQuantity(1);
-      setTradeStatus('not_for_trade');
-      setAddToWishlist(false);
-      setMarketPrice('');
-    }
-    setSaving(false);
-  };
-
-  const resetScannerForm = () => {
+  const resetScannerForm = (options: { preserveNotice?: boolean } = {}) => {
     const reset = resetAfterRapidScan();
     setQuery(reset.query);
     setSelected(null);
     setCandidates([]);
     setMagicRecognition(null);
     setMagicStillScan(null);
-    setShowMagicWhy(false);
     setQuantity(1);
     setTradeStatus('not_for_trade');
-    setAddToWishlist(false);
-    setMarketPrice('');
+    if (!options.preserveNotice) setBatchNotice(null);
   };
 
   const retryQueue = async () => {
@@ -721,9 +742,10 @@ export default function Scan() {
         guideLayout={guideLayout}
         guidePresentation={guidePresentation}
         guideMotion={guideMotion}
+        instruction={scannerInstruction}
         scannerPipeline={scannerPipeline}
         platform={Platform.OS}
-        latestResultKind={latestResultTray?.kind ?? null}
+        latestResultKind={failedResultTray?.kind ?? null}
         onPreviewLayout={handlePreviewLayout}
         onCameraReady={() => {
           setCameraReady(true);
@@ -739,77 +761,33 @@ export default function Scan() {
       <ScannerHud
         header={scannerHeader}
         topInset={insets.top}
-        cameraActive={cameraActive}
         onClose={() => router.back()}
-        onTogglePause={toggleCameraPause}
         onSettings={() => setShowSettingsSheet(true)}
       />
 
       <View pointerEvents="box-none" style={s.overlayLayer}>
         {error && visibleSurface !== 'result_tray' && !showAddedOverlay ? <TDErrorState title="Scanner notice" message={error} /> : null}
-        {success && visibleSurface !== 'result_tray' && !showAddedOverlay ? <ScannerToast tone="success" title="Added" message={success} /> : null}
-        {showAddedOverlay ? <ScannerToast tone="success" title={scanner2State === 'remove_card' ? 'Added' : 'Saved'} message={scanner2State === 'remove_card' ? 'Remove card to scan the next one.' : 'Ready for the next card.'} /> : null}
+        {success && visibleSurface !== 'result_tray' && !showAddedOverlay ? <ScannerToast tone="success" title="Scanner sync" message={success} /> : null}
+        {batchNotice ? (
+          <ScannerToast
+            tone={batchNotice.tone}
+            title={batchNotice.title}
+            message={scanner2State === 'remove_card' ? `${batchNotice.message} Remove card to rearm.` : batchNotice.message}
+            actions={[
+              { label: batchNotice.undoLabel, onPress: () => {
+                setSession((current) => current ? undoMostRecentScan(current) : current);
+                setBatchNotice(null);
+              } },
+              { label: batchNotice.correctLabel, onPress: () => router.push('/scanner-session' as never) },
+            ]}
+          />
+        ) : null}
 
         {visibleSurface === 'progress' && searching ? <TDLoadingState title="Searching printings" message="Looking up exact paper printings." /> : null}
         {visibleSurface === 'progress' && recognitionStage === 'reading_title' ? <TDLoadingState title="Reading card" message="Reading card details on this device." /> : null}
         {visibleSurface === 'progress' && recognitionStage === 'finding_card' ? <TDLoadingState title="Finding match" message="Checking Magic printings." /> : null}
 
-        {latestResultTray && !showAddedOverlay ? (
-          <ScannerResultTray
-            tray={latestResultTray}
-            selected={selected}
-            marketPrice={parseOptionalMoney(marketPrice)}
-            offerPrice={selected ? (parseOptionalMoney(marketPrice) ?? 0) * quantity * ((parseOptionalPercentage(purchaseRate) ?? 70) / 100) : null}
-            quantity={quantity}
-            saving={saving}
-            showCorrectionTools={showCorrectionTools}
-            onRetake={retakeScan}
-            onManualSearch={() => setShowManualSearchSheet(true)}
-            onToggleCorrection={() => setShowCorrectionTools((value) => !value)}
-            onSave={save}
-          >
-            {latestResultTray.expanded && candidates.length > 1 ? (
-              <View style={s.optionGroup}>
-                <TDText variant="label" tone="muted">Top printing candidates</TDText>
-                {candidates.slice(0, 3).map((candidate) => (
-                  <Pressable key={candidate.id} accessibilityRole="button" accessibilityLabel={`Select ${candidate.name} ${candidate.setCode ?? 'unknown set'} ${candidate.collectorNumber ?? 'unknown number'}`} accessibilityState={{ selected: selected?.id === candidate.id }} onPress={() => selectCandidate(candidate)} style={[s.candidate, selected?.id === candidate.id && s.candidateSelected]}>
-                    {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={s.cardImage} contentFit="cover" /> : <View style={s.imageFallback}><Ionicons name="image-outline" size={20} color={color.textMuted} /></View>}
-                    <View style={s.flex}>
-                      <TDText variant="small">{candidate.name}</TDText>
-                      <TDText variant="caption" tone="muted">{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'} - {candidate.language ?? 'language unavailable'}</TDText>
-                    </View>
-                    <TDBadge tone={selected?.id === candidate.id ? 'success' : 'info'}>{Math.round(candidate.confidence * 100)}%</TDBadge>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-            {showCorrectionTools && selected ? (
-              <View style={s.correctionPanel}>
-                <View style={s.quantityRow}>
-                  <TDButton label="-" variant="secondary" disabled={quantity <= 1} onPress={() => setQuantity((value) => Math.max(1, value - 1))} />
-                  <TDBadge tone="info">Qty {quantity}</TDBadge>
-                  <TDButton label="+" variant="secondary" onPress={() => setQuantity((value) => value + 1)} />
-                </View>
-                <OptionRow label="Condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} />
-                <OptionRow label="Finish" options={selectedFinishes as ('normal' | 'foil' | 'etched')[]} value={finish} display={displayFinish} onSelect={setFinish} />
-                <TDInput label="Language" value={language} onChangeText={setLanguage} placeholder="en" />
-                <TDInput label="Market price" value={marketPrice} onChangeText={setMarketPrice} keyboardType="decimal-pad" placeholder="Pricing unavailable" />
-                <OptionRow label="Storage" options={['none', ...(context?.locations.map((location) => location.id) ?? [])]} value={storageLocationId ?? 'none'} display={(id) => id === 'none' ? 'Unassigned' : context?.locations.find((location) => location.id === id)?.name ?? 'Unavailable'} onSelect={(id) => setStorageLocationId(id === 'none' ? null : id)} />
-                <OptionRow label="Trade Binder" options={TRADE_BINDER_STATUS_OPTIONS} value={tradeStatus} display={(status) => status.replaceAll('_', ' ')} onSelect={setTradeStatus} />
-                <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: addToWishlist }} onPress={() => setAddToWishlist((value) => !value)} style={s.checkboxRow}>
-                  <Ionicons name={addToWishlist ? 'checkbox-outline' : 'square-outline'} size={22} color={color.primaryBright} />
-                  <TDText variant="small">Add exact target to Wishlist</TDText>
-                </Pressable>
-              </View>
-            ) : null}
-            {magicRecognition?.ok ? (
-              <View style={s.optionGroup}>
-                <TDButton label={showMagicWhy ? 'Hide why' : 'Why this match?'} variant="secondary" onPress={() => setShowMagicWhy((value) => !value)} />
-                {showMagicWhy ? magicRecognition.explanation.map((line) => <TDText key={line} variant="caption" tone="muted">{line}</TDText>) : null}
-              </View>
-            ) : null}
-          </ScannerResultTray>
-        ) : null}
+        {failedResultTray && !showAddedOverlay ? <ScannerFailureOverlay tray={failedResultTray} onRetake={retakeScan} onManualSearch={() => setShowManualSearchSheet(true)} /> : null}
 
         {queuedAdds.length ? (
           <TDCard style={s.syncCard}>
@@ -846,6 +824,7 @@ export default function Scan() {
               ))}
             </View>
             <TDInput label="Cash offer %" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
+            <TDButton label={cameraActive ? 'Pause scanner' : 'Resume scanner'} variant="secondary" onPress={toggleCameraPause} />
             <OptionRow label="Default condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} />
             <OptionRow label="Default finish" options={['normal', 'foil', 'etched']} value={finish} display={displayFinish} onSelect={setFinish} />
             <TDInput label="Default language" value={language} onChangeText={setLanguage} placeholder="en" />
@@ -870,6 +849,13 @@ export default function Scan() {
             {candidates.map((candidate) => (
               <Pressable key={candidate.id} accessibilityRole="button" accessibilityLabel={`Select ${candidate.name}`} accessibilityState={{ selected: selected?.id === candidate.id }} onPress={() => {
                 selectCandidate(candidate);
+                addCandidateToBatch({
+                  candidate,
+                  recognition: magicRecognition,
+                  stableScanId: createScanId(),
+                  source: 'manual_search',
+                  timing: { fallbackCount: 1 },
+                });
                 setShowManualSearchSheet(false);
               }} style={[s.candidate, selected?.id === candidate.id && s.candidateSelected]}>
                 {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={s.cardImage} contentFit="cover" /> : <View style={s.imageFallback}><Ionicons name="image-outline" size={20} color={color.textMuted} /></View>}
@@ -918,6 +904,7 @@ export default function Scan() {
               <DiagnosticCell label="Lookup code" value={magicStillScan?.lookupDiagnostics?.lookupErrorCode ?? 'none'} />
               <DiagnosticCell label="Lookup latency" value={magicStillScan?.lookupDiagnostics ? `${magicStillScan.lookupDiagnostics.lookupLatencyMs} ms` : 'unavailable'} />
               <DiagnosticCell label="Top three" value={magicStillScan?.lookupDiagnostics?.topThreeCandidateNames.join(' | ') || 'unavailable'} />
+              <DiagnosticCell label="Batch timing" value={scanTimingSummary(scanTimings[0])} />
             </View>
             {diagnosticCaptureUri && magicStillScan?.cropDiagnostics ? (
               <View style={s.cropProofGrid}>
@@ -961,16 +948,12 @@ export default function Scan() {
 function ScannerHud({
   header,
   topInset,
-  cameraActive,
   onClose,
-  onTogglePause,
   onSettings,
 }: {
   header: ReturnType<typeof scanner2HeaderModel>;
   topInset: number;
-  cameraActive: boolean;
   onClose: () => void;
-  onTogglePause: () => void;
   onSettings: () => void;
 }) {
   return (
@@ -990,7 +973,6 @@ function ScannerHud({
         </View>
       </View>
       <View style={s.hudActions}>
-        <HeaderIconControl label={cameraActive ? 'Pause scanner' : 'Resume scanner'} icon={cameraActive ? 'pause-outline' : 'play-outline'} onPress={onTogglePause} />
         <HeaderIconControl label="Scanner settings" icon="options-outline" onPress={onSettings} />
       </View>
     </View>
@@ -1008,6 +990,7 @@ function ScannerViewport({
   guideLayout,
   guidePresentation,
   guideMotion,
+  instruction,
   scannerPipeline,
   platform,
   latestResultKind,
@@ -1029,6 +1012,7 @@ function ScannerViewport({
   guideLayout: ReturnType<typeof calculateCardGuideLayout>;
   guidePresentation: PremiumScannerGuidePresentation;
   guideMotion: ReturnType<typeof scanner2MotionForState>;
+  instruction: string;
   scannerPipeline: PremiumScannerPipelineState;
   platform: string;
   latestResultKind: PremiumResultTrayKind | null;
@@ -1067,7 +1051,7 @@ function ScannerViewport({
         </View>
       )}
 
-      {latestResultKind !== 'failed' ? <ScannerStatus guidePresentation={guidePresentation} scannerPipeline={scannerPipeline} /> : null}
+      {latestResultKind !== 'failed' ? <ScannerStatus instruction={instruction} scannerPipeline={scannerPipeline} /> : null}
       <ScannerControls
         torchEnabled={torchEnabled}
         cameraReady={cameraReady}
@@ -1102,10 +1086,10 @@ function ScannerGuide({
   );
 }
 
-function ScannerStatus({ guidePresentation, scannerPipeline }: { guidePresentation: PremiumScannerGuidePresentation; scannerPipeline: PremiumScannerPipelineState }) {
+function ScannerStatus({ instruction, scannerPipeline }: { instruction: string; scannerPipeline: PremiumScannerPipelineState }) {
   return (
     <View style={s.cameraScrimTop}>
-      <TDText variant="title" style={s.guideMessage}>{guidePresentation.message}</TDText>
+      <TDText variant="title" style={s.guideMessage}>{instruction}</TDText>
       <TDText variant="caption" tone="muted">{scannerPipeline === 'failed' ? 'Retake or search manually' : 'Trading Docks scanner'}</TDText>
     </View>
   );
@@ -1141,89 +1125,36 @@ function ScannerControls({
   );
 }
 
-function ScannerResultTray({
-  tray,
-  selected,
-  marketPrice,
-  offerPrice,
-  quantity,
-  saving,
-  showCorrectionTools,
-  onRetake,
-  onManualSearch,
-  onToggleCorrection,
-  onSave,
-  children,
-}: {
-  tray: PremiumResultTray;
-  selected: ScannerCardCandidate | null;
-  marketPrice: number | null;
-  offerPrice: number | null;
-  quantity: number;
-  saving: boolean;
-  showCorrectionTools: boolean;
-  onRetake: () => void;
-  onManualSearch: () => void;
-  onToggleCorrection: () => void;
-  onSave: () => void;
-  children: ReactNode;
-}) {
-  if (tray.kind === 'failed') {
-    return (
-      <TDResultTray
-        title={tray.title}
-        subtitle={shortFailureMessage(tray.subtitle)}
-        status=""
-        tone="warning"
-        compact
-        image={<Ionicons name="alert-circle-outline" size={22} color={color.warning} />}
-        style={[s.resultTray, s.resultTrayFailed]}
-      >
-        <View style={s.trayActions}>
-          <TDButton label="Retake" variant="secondary" onPress={onRetake} />
-          <TDButton label="Search" variant="secondary" onPress={onManualSearch} />
-        </View>
-      </TDResultTray>
-    );
-  }
-
+function ScannerFailureOverlay({ tray, onRetake, onManualSearch }: { tray: NonNullable<ReturnType<typeof buildPremiumResultTray>>; onRetake: () => void; onManualSearch: () => void }) {
   return (
-    <TDResultTray
-      title={tray.title}
-      subtitle={selected ? tray.subtitle : 'Select an exact printing before adding.'}
-      status={tray.status}
-      tone={tray.kind === 'recognized' ? 'success' : tray.kind === 'ambiguous' ? 'warning' : 'info'}
-      image={selected?.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={s.trayImage} contentFit="cover" /> : <Ionicons name="albums-outline" size={20} color={color.textMuted} />}
-      style={s.resultTray}
-    >
-      <View style={s.trayMoneyRow}>
-        <CompactStat label="Market" value={compactScannerMoney(marketPrice)} />
-        <CompactStat label="Offer" value={compactScannerMoney(offerPrice)} tone="success" />
-        {quantity > 1 ? <CompactStat label="Qty" value={String(quantity)} /> : null}
+    <View accessibilityRole="alert" style={[s.scannerToast, s.failureOverlay]}>
+      <Ionicons name="alert-circle-outline" size={22} color={color.warning} />
+      <View style={s.flex}>
+        <TDText variant="small">{tray.title}</TDText>
+        <TDText variant="caption" tone="muted">{shortFailureMessage(tray.subtitle)}</TDText>
       </View>
-      {children}
-      <View style={s.trayActions}>
-        {selected ? <TDButton label={tray.primaryAction} loading={saving} onPress={onSave} /> : null}
-        <TDButton label={showCorrectionTools ? 'Done' : 'Correct'} variant="secondary" disabled={!selected} onPress={onToggleCorrection} />
+      <View style={s.toastActions}>
+        <TDButton label="Retake" variant="secondary" onPress={onRetake} />
+        <TDButton label="Search" variant="secondary" onPress={onManualSearch} />
       </View>
-    </TDResultTray>
+    </View>
   );
 }
 
-function ScannerSessionStrip({ bottomInset, model, onReviewSession }: { bottomInset: number; model: ReturnType<typeof scanner2SessionStripModel>; onReviewSession: () => void }) {
+function ScannerSessionStrip({ bottomInset, model, onReviewSession }: { bottomInset: number; model: ReturnType<typeof batchScannerReviewChipModel>; onReviewSession: () => void }) {
   return (
     <TDSessionStripPrimitive
       summary={model.summary}
       actionLabel={model.reviewLabel}
       onPress={onReviewSession}
       bottomInset={bottomInset}
-      tone="info"
-      style={[s.sessionChip, model.compact && s.bottomSessionBarCompact]}
+      tone={model.tone}
+      style={s.sessionChip}
     />
   );
 }
 
-function ScannerToast({ title, message, tone }: { title: string; message: string; tone: 'success' | 'warning' | 'info' }) {
+function ScannerToast({ title, message, tone, actions = [] }: { title: string; message: string; tone: 'success' | 'warning' | 'info'; actions?: { label: string; onPress: () => void }[] }) {
   const iconName: ComponentProps<typeof Ionicons>['name'] = tone === 'success' ? 'checkmark-circle-outline' : tone === 'warning' ? 'alert-circle-outline' : 'information-circle-outline';
   const iconColor = tone === 'success' ? color.success : tone === 'warning' ? color.warning : color.info;
   return (
@@ -1233,15 +1164,11 @@ function ScannerToast({ title, message, tone }: { title: string; message: string
         <TDText variant="small">{title}</TDText>
         <TDText variant="caption" tone="muted">{message}</TDText>
       </View>
-    </View>
-  );
-}
-
-function CompactStat({ label, value, tone = 'neutral', compact = false }: { label: string; value: string; tone?: 'neutral' | 'success' | 'warning' | 'info'; compact?: boolean }) {
-  return (
-    <View style={[s.compactStat, compact && s.compactStatNarrow, tone === 'success' && s.compactStatSuccess, tone === 'warning' && s.compactStatWarning, tone === 'info' && s.compactStatInfo]}>
-      <TDText variant="caption" tone="muted" numberOfLines={1}>{label}</TDText>
-      <TDText variant="small" numberOfLines={1}>{value}</TDText>
+      {actions.length ? (
+        <View style={s.toastActions}>
+          {actions.map((action) => <TDButton key={action.label} label={action.label} variant="secondary" onPress={action.onPress} />)}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -1360,6 +1287,11 @@ function cleanupDiagnostic(scan: MagicStillScanResult | null) {
   return 'failed';
 }
 
+function scanTimingSummary(timing: BatchScannerTimingSnapshot | undefined) {
+  if (!timing) return 'unavailable';
+  return `capture ${timing.captureMs ?? '?'} ms; OCR ${timing.ocrMs ?? '?'} ms; Scryfall ${timing.scryfallMs ?? '?'} ms; session ${timing.sessionWriteMs ?? '?'} ms; total ${timing.totalMs ?? '?'} ms; fallback ${timing.fallbackCount}`;
+}
+
 function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate): RecognitionCandidate {
   return {
     ...candidate,
@@ -1416,16 +1348,13 @@ async function loadContinuousSession(userId: string) {
   }
 }
 
-function parseOptionalMoney(value: string) {
-  const clean = value.trim();
-  if (!clean) return null;
-  const parsed = Number(clean.replace(/[$,]/g, ''));
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-}
-
 function parseOptionalPercentage(value: string) {
   const parsed = Number(value.trim());
   return Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : null;
+}
+
+function scannerNow() {
+  return Date.now();
 }
 
 function createScanId() {
@@ -1514,6 +1443,8 @@ const s = StyleSheet.create({
   centerText: { textAlign: 'center' },
   noticeCard: { gap: space.sm },
   scannerToast: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.md, paddingVertical: space.sm, backgroundColor: color.canvas + 'E8' },
+  toastActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  failureOverlay: { borderColor: color.warning },
   sessionChip: { position: 'absolute', left: space.md, right: space.md, bottom: 0, zIndex: 55, borderTopWidth: 0, borderWidth: 1, borderColor: color.borderStrong, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, backgroundColor: color.canvas + 'E8' },
   syncCard: { gap: space.md },
   syncHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
