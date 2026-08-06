@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDMetricTile, TDScreen, TDText } from '@/components/design-system';
-import { color, radius, space } from '@/design';
+import { TDBadge, TDButton, TDCard, TDChip, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDListRow, TDLoadingState, TDMetric, TDNavigationHeader, TDStatusIndicator, TDScreen, TDText } from '@/components/design-system';
+import { space } from '@/design';
+import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 import { loadMobileTradeBinderWishlist, runMobileTradeWishlistMutation } from '@/services/trade-binder-wishlist-data';
 import {
   WISHLIST_PRIORITY_OPTIONS,
@@ -20,6 +22,7 @@ import { displayCondition, displayFinish, displayPrinting, displayStorageLocatio
 type ScreenState = TradeBinderWishlistState & { userId: string; stale: boolean; unavailableReason?: string };
 
 export default function WishlistScreen() {
+  const insets = useSafeAreaInsets();
   const [state, setState] = useState<ScreenState | null>(null);
   const [query, setQuery] = useState('');
   const [cardName, setCardName] = useState('');
@@ -90,22 +93,30 @@ export default function WishlistScreen() {
       <FlatList
         data={visible}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={s.content}
+        contentContainerStyle={[s.content, { paddingBottom: getMobileScrollBottomInset(insets.bottom) }]}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={s.header}>
-            <TDButton label="Back" variant="ghost" iconName="chevron-back" onPress={() => router.back()} style={s.back} />
-            <TDText variant="label" tone="info">Wishlist</TDText>
-            <TDText variant="display">Wanted cards</TDText>
-            <TDText variant="small" tone="muted">Track strict targets and see which binder cards satisfy them.</TDText>
-            {error ? <TDBadge tone={error.includes('queued') ? 'warning' : 'danger'}>{error.includes('queued') ? 'Pending sync' : 'Update failed'}</TDBadge> : null}
+            <TDNavigationHeader
+              eyebrow="Wishlist"
+              title="Wanted cards"
+              subtitle="Prioritize targets and review exact or flexible binder matches."
+              leftAction={<TDIconButton label="Back" iconName="chevron-back" onPress={() => router.back()} />}
+              rightAction={error ? <TDStatusIndicator label={error.includes('queued') ? 'Pending sync' : 'Update failed'} tone={error.includes('queued') ? 'warning' : 'danger'} /> : undefined}
+            />
             <View style={s.summaryRow}>
-              <TDMetricTile label="Targets" value={String(state.wishlistSummary.totalWishlistItems)} tone="info" compact />
-              <TDMetricTile label="Matched" value={String(state.wishlistSummary.matchedWishlistItems)} tone={state.wishlistSummary.matchedWishlistItems ? 'success' : 'neutral'} compact />
-              <TDMetricTile label="Exact" value={String(state.wishlistSummary.exactMatchCount)} compact />
+              <TDMetric label="Targets" value={String(state.wishlistSummary.totalWishlistItems)} tone="info" compact />
+              <TDMetric label="Matched" value={String(state.wishlistSummary.matchedWishlistItems)} tone={state.wishlistSummary.matchedWishlistItems ? 'success' : 'neutral'} compact />
+              <TDMetric label="Exact" value={String(state.wishlistSummary.exactMatchCount)} compact />
             </View>
-            <TDCard style={s.addCard}>
-              <TDText variant="title">Add wanted card</TDText>
+            <TDCard variant="outlined" style={s.addCard}>
+              <View style={s.addHeader}>
+                <View style={s.flex}>
+                  <TDText variant="title">Add wanted card</TDText>
+                  <TDText variant="caption" tone="muted">Use a set code only when the exact printing matters.</TDText>
+                </View>
+                <TDBadge tone="info">{priority === 'all' ? 'Medium' : wishlistPriorityLabel(priority)}</TDBadge>
+              </View>
               <TDInput label="Card name" value={cardName} onChangeText={setCardName} placeholder="Rhystic Study" />
               <TDInput label="Set code" value={setCode} onChangeText={setSetCode} placeholder="Optional, e.g. WOT" autoCapitalize="characters" />
               <TDButton label="Add to Wishlist" loading={pending === 'add'} disabled={!cardName.trim()} onPress={addWishlist} />
@@ -124,30 +135,31 @@ export default function WishlistScreen() {
         renderItem={({ item }) => {
           const matches = state.matches.filter((match) => match.wishlistItem.id === item.id);
           return (
-            <TDCard style={s.itemCard}>
-              <View style={s.row}>
-                <View style={s.flex}>
-                  <TDText variant="title">{item.cardName}</TDText>
-                  <TDText variant="caption" tone="muted">{[item.setCode ?? 'Any set', item.targetCondition, item.targetFinish].join(' - ')}</TDText>
-                </View>
-                <TDBadge tone={item.priority === 'grail' ? 'accent' : 'info'}>{wishlistPriorityLabel(item.priority)}</TDBadge>
-              </View>
+            <View style={s.itemWrap}>
+              <TDListRow
+                title={item.cardName}
+                eyebrow={matches.length ? `${matches.length} binder match${matches.length === 1 ? '' : 'es'}` : 'No binder matches'}
+                description={targetDescription(item)}
+                iconName="star-outline"
+                right={<TDBadge tone={item.priority === 'grail' ? 'accent' : 'info'}>{wishlistPriorityLabel(item.priority)}</TDBadge>}
+                accessibilityLabel={`${item.cardName}, ${wishlistPriorityLabel(item.priority)}, ${matches.length} matches`}
+              />
               {item.notes ? <TDText variant="small" tone="muted">{item.notes}</TDText> : null}
               <View style={s.chips}>
                 {WISHLIST_PRIORITY_OPTIONS.map((option) => <TDChip key={option} label={wishlistPriorityLabel(option)} selected={item.priority === option} disabled={pending === item.id} tone="accent" onPress={() => updatePriority(item, option)} />)}
               </View>
               {matches.length ? matches.map((match) => (
-                <View key={match.id} style={s.matchRow}>
-                  <View style={s.flex}>
-                    <TDText variant="small">{match.binderItem.card.cardName}</TDText>
-                    <TDText variant="caption" tone="muted">{displayPrinting(match.binderItem.card.printing)} - {displayCondition(match.binderItem.card.condition)} - {displayFinish(match.binderItem.card.printing.finish)}</TDText>
-                    <TDText variant="caption" tone="muted">{displayStorageLocation(match.binderItem.card)}</TDText>
-                  </View>
-                  <TDBadge tone={match.matchType === 'exact' ? 'success' : 'warning'}>{match.matchType} x{match.quantityAvailable}</TDBadge>
-                </View>
+                <TDListRow
+                  key={match.id}
+                  title={match.binderItem.card.cardName}
+                  eyebrow={match.matchType === 'exact' ? 'Exact match' : 'Flexible match'}
+                  description={`${displayPrinting(match.binderItem.card.printing)} - ${displayCondition(match.binderItem.card.condition)} - ${displayFinish(match.binderItem.card.printing.finish)} - ${displayStorageLocation(match.binderItem.card)}`}
+                  iconName="git-compare-outline"
+                  right={<TDBadge tone={match.matchType === 'exact' ? 'success' : 'warning'}>{match.matchType} x{match.quantityAvailable}</TDBadge>}
+                />
               )) : <TDText variant="small" tone="muted">No binder matches yet.</TDText>}
               <TDButton label="Remove" variant="ghost" loading={pending === item.id} onPress={() => removeWishlist(item)} />
-            </TDCard>
+            </View>
           );
         }}
       />
@@ -155,16 +167,19 @@ export default function WishlistScreen() {
   );
 }
 
+function targetDescription(item: WishlistItem) {
+  const specificity = item.setCode ? 'Exact target' : 'Flexible target';
+  return `${specificity} - ${item.setCode ?? 'Any set'} - ${item.targetCondition ?? 'Any condition'} - ${item.targetFinish ?? 'Any finish'}`;
+}
+
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
-  content: { gap: space.md, paddingBottom: 128 },
+  content: { gap: space.md },
   header: { gap: space.md },
-  back: { alignSelf: 'flex-start' },
   summaryRow: { flexDirection: 'row', gap: space.sm },
+  addHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   addCard: { gap: space.md },
-  itemCard: { gap: space.md },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: space.sm },
+  itemWrap: { gap: space.sm },
   flex: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  matchRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm },
 });
