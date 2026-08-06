@@ -21,6 +21,7 @@ import type { NativeOcrResult } from '../modules/trading-docks-vision-ocr/index.
 
 const rhystic: RecognitionCandidate = {
   id: 'sf-rhystic-wot-25',
+  oracleId: 'oracle-rhystic',
   name: 'Rhystic Study',
   setCode: 'WOT',
   setName: 'Wilds of Eldraine',
@@ -30,6 +31,7 @@ const rhystic: RecognitionCandidate = {
   imageUrl: 'https://img.example/rhystic.jpg',
   confidence: 0.95,
   recognitionMode: 'assisted_capture',
+  marketPrice: { usd: 41.24, usdFoil: 65.5, usdEtched: null, source: 'scryfall', fetchedAt: '2026-08-06T00:00:00.000Z' },
   legalFinishes: ['normal', 'foil'],
   layout: 'normal',
   colorIdentity: ['U'],
@@ -316,6 +318,9 @@ test('still capture OCR returns top three and preserves missing pricing for sess
   if (!result.ok) return;
   assert.equal(result.candidates.length, 3);
   assert.equal(result.selected?.name, 'Rhystic Study');
+  assert.equal(result.selected?.oracleId, 'oracle-rhystic');
+  assert.equal(result.selected?.marketPrice?.usd, 41.24);
+  assert.equal(result.selected?.marketPrice?.usdFoil, 65.5);
   assert.equal(result.cleanup.deleted, true);
   assert.equal(result.cropDiagnostics.titleAttempts[0].normalizedText, 'Rhystic Study');
   assert.equal(result.recognition.explanation.some((line) => /Name OCR/.test(line)), true);

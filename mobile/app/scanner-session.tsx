@@ -212,7 +212,7 @@ function SessionCardRow({ line, onPress }: { line: ScannerSessionLine; onPress: 
         <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionGameLabel(line.game)} • {line.setCode ?? 'Set unavailable'} #{line.collectorNumber ?? '?'}</TDText>
         <TDText variant="caption" tone="muted" numberOfLines={1}>{displayCondition(line.condition)} • {displayFinish(String(line.finish) as never)}</TDText>
         <View style={s.cardValues}>
-          <ValuePair label="Market" value={formatSessionReviewMoney(line.marketPrice)} />
+          <ValuePair label="Market" value={formatReviewLineMoney(line.marketPrice, line.priceSource)} />
           <ValuePair label="Offer" value={formatSessionReviewMoney(line.cashOffer)} />
         </View>
         <View style={s.cardMetaRow}>
@@ -288,7 +288,7 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
                 <TDInput label="Quantity" value={quantity} keyboardType="numeric" onChangeText={setQuantity} />
                 <TDInput label="Condition" value={displayCondition(line.condition)} editable={false} />
                 <TDInput label="Finish" value={displayFinish(String(line.finish) as never)} editable={false} />
-                <TDInput label="Market price" value={marketPrice} keyboardType="decimal-pad" placeholder="-" onChangeText={setMarketPrice} />
+                <TDInput label="Market price" value={marketPrice} keyboardType="decimal-pad" placeholder={line.priceSource === 'pricing_pending' ? 'Pricing...' : '-'} onChangeText={setMarketPrice} />
                 <TDInput label="Cash percentage" value={purchasePercentage} keyboardType="numeric" onChangeText={setPurchasePercentage} />
               </View>
               <View style={s.offerPanel}>
@@ -349,6 +349,11 @@ function statusCounts(lines: ScannerSessionLine[]): Record<SessionReviewStatusTa
     suggested: lines.filter((line) => line.reviewStatus === 'suggested').length,
     confirmed: lines.filter((line) => line.reviewStatus === 'confirmed').length,
   };
+}
+
+function formatReviewLineMoney(value: number | null, source: string | null) {
+  if (value === null && source === 'pricing_pending') return 'Pricing...';
+  return formatSessionReviewMoney(value);
 }
 
 function plainReviewCopy(line: ScannerSessionLine) {

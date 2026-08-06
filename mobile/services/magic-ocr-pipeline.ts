@@ -543,6 +543,7 @@ function lookupFailureMessage(recognition: MagicRecognitionResult & { ok: false 
 function recognitionToScannerCandidate(candidate: RecognitionCandidate) {
   return normalizeScannerCandidate({
     id: candidate.id,
+    oracleId: candidate.oracleId,
     name: candidate.name,
     setCode: candidate.setCode,
     setName: candidate.setName,
@@ -552,6 +553,7 @@ function recognitionToScannerCandidate(candidate: RecognitionCandidate) {
     imageUrl: candidate.imageUrl,
     confidence: candidate.confidence,
     recognitionMode: 'assisted_capture',
+    marketPrice: candidate.marketPrice,
   });
 }
 

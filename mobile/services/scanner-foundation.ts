@@ -33,6 +33,7 @@ export type ScannerRecognitionInput = {
 
 export type ScannerCardCandidate = {
   id: string;
+  oracleId?: string | null;
   name: string;
   setCode: string | null;
   setName: string | null;
@@ -219,6 +220,7 @@ export function scannerPrivacySummary() {
 
 export function normalizeScannerCandidate(raw: {
   id?: unknown;
+  oracleId?: unknown;
   name?: unknown;
   setCode?: unknown;
   setName?: unknown;
@@ -238,6 +240,7 @@ export function normalizeScannerCandidate(raw: {
     : [];
   return {
     id,
+    oracleId: stringValue(raw.oracleId),
     name,
     setCode: stringValue(raw.setCode)?.toUpperCase() ?? null,
     setName: stringValue(raw.setName) ?? null,

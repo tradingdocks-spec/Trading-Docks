@@ -244,6 +244,7 @@ export class MagicCatalogLookupError extends Error {
 
 type ScryfallCard = {
   id?: string;
+  oracle_id?: string | null;
   name?: string;
   set?: string;
   set_name?: string;
@@ -844,6 +845,7 @@ function scryfallToRecognitionCandidate(card: ScryfallCard): RecognitionCandidat
   const legalFinishes = normalizeFinishes(card.finishes);
   return {
     id: card.id,
+    oracleId: card.oracle_id ?? null,
     name: card.name,
     setCode: card.set?.toUpperCase() ?? null,
     setName: card.set_name ?? null,

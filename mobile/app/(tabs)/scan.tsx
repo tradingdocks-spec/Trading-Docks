@@ -59,7 +59,7 @@ import {
 } from '@/services/scanner-foundation';
 import type { RecognitionCandidate } from '@/services/scanner-intelligence';
 import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
-import { enrichScannerSessionLinePrice } from '@/services/scanner-price-enrichment';
+import { enrichScannerSessionLinePrice, type ScannerPricingTrace } from '@/services/scanner-price-enrichment';
 import {
   appendScannerPerformanceSample,
   buildScannerPerformanceReport,
@@ -172,6 +172,7 @@ export default function Scan() {
   const [scanTimings, setScanTimings] = useState<BatchScannerTimingSnapshot[]>([]);
   const [scannerPerformanceSamples, setScannerPerformanceSamples] = useState<ScannerPerformanceSample[]>([]);
   const [scannerPerformanceJsonSummary, setScannerPerformanceJsonSummary] = useState<string | null>(null);
+  const [lastPricingTrace, setLastPricingTrace] = useState<ScannerPricingTrace | null>(null);
   const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
@@ -517,7 +518,7 @@ export default function Scan() {
       finish: candidateFinish,
       language: input.candidate.language ?? language,
       marketPrice: null,
-      priceSource: null,
+      priceSource: input.candidate.marketPrice ? 'pricing_pending' : null,
       priceTimestamp: null,
       storageLocationId,
       tradeStatus,
@@ -550,6 +551,7 @@ export default function Scan() {
     }
     showBatchNotice({ ...batchScannerNoticeForLine(addedLine), lineId: addedLine.id });
     void Promise.resolve().then(() => {
+      const pricingStartedAt = scannerNow();
       setSession((current) => {
         if (!current) return current;
         const enrichment = enrichScannerSessionLinePrice({
@@ -558,7 +560,10 @@ export default function Scan() {
           stableScanId: addedLine.stableScanId,
           candidate: input.candidate,
           finish: candidateFinish,
+          startedAt: pricingStartedAt,
+          now: scannerNow,
         });
+        if (diagnosticsEnabled) setLastPricingTrace(enrichment.trace);
         return enrichment.session;
       });
     });
@@ -966,6 +971,22 @@ export default function Scan() {
               <DiagnosticCell label="Preview resolution" value={resolutionSummary(scannerPerformanceReport.latest?.previewResolution ?? null)} />
               <DiagnosticCell label="Capture resolution" value={resolutionSummary(scannerPerformanceReport.latest?.captureResolution ?? null)} />
               <DiagnosticCell label="Batch timing" value={scanTimingSummary(scanTimings[0])} />
+              <DiagnosticCell label="Pricing outcome" value={lastPricingTrace?.pricingOutcome ?? 'unavailable'} />
+              <DiagnosticCell label="Pricing capture" value={lastPricingTrace?.captureId ?? 'unavailable'} />
+              <DiagnosticCell label="Pricing row" value={lastPricingTrace?.sessionRowId ?? 'unavailable'} />
+              <DiagnosticCell label="Scryfall card" value={lastPricingTrace?.scryfallCardId ?? 'unavailable'} />
+              <DiagnosticCell label="Oracle ID" value={lastPricingTrace?.oracleId ?? 'unavailable'} />
+              <DiagnosticCell label="Price identity" value={lastPricingTrace ? `${lastPricingTrace.cardName} ${lastPricingTrace.setCode ?? '?'} #${lastPricingTrace.collectorNumber ?? '?'}` : 'unavailable'} />
+              <DiagnosticCell label="Price finish" value={lastPricingTrace?.finish ?? 'unavailable'} />
+              <DiagnosticCell label="prices.usd" value={priceTraceValue(lastPricingTrace?.pricesUsd)} />
+              <DiagnosticCell label="prices.usd_foil" value={priceTraceValue(lastPricingTrace?.pricesUsdFoil)} />
+              <DiagnosticCell label="prices.usd_etched" value={priceTraceValue(lastPricingTrace?.pricesUsdEtched)} />
+              <DiagnosticCell label="Selected price" value={lastPricingTrace?.selectedPriceField ?? 'unavailable'} />
+              <DiagnosticCell label="Parsed price" value={priceTraceValue(lastPricingTrace?.parsedValue)} />
+              <DiagnosticCell label="Enrichment target" value={lastPricingTrace?.enrichmentTargetRowId ?? 'unavailable'} />
+              <DiagnosticCell label="Persist result" value={lastPricingTrace?.persistenceResult ?? 'unavailable'} />
+              <DiagnosticCell label="Offer recalc" value={lastPricingTrace?.offerRecalculationResult ?? 'unavailable'} />
+              <DiagnosticCell label="Pricing latency" value={performanceMs(lastPricingTrace?.pricingLatencyMs ?? null)} />
             </View>
             {diagnosticCaptureUri && magicStillScan?.cropDiagnostics ? (
               <View style={s.cropProofGrid}>
@@ -1357,6 +1378,10 @@ function performanceMs(value: number | null) {
 
 function performanceFps(value: number | null) {
   return value === null ? 'unavailable' : `${value} fps`;
+}
+
+function priceTraceValue(value: number | null | undefined) {
+  return typeof value === 'number' ? `$${value.toFixed(2)}` : 'unavailable';
 }
 
 function resolutionSummary(value: { width: number; height: number } | null) {

@@ -23,6 +23,7 @@ type ScannerSaveResult =
 
 type ScryfallCard = {
   id?: string;
+  oracle_id?: string | null;
   name?: string;
   set?: string;
   set_name?: string;
@@ -175,6 +176,7 @@ async function saveRecentScannerCandidates(candidates: ScannerCardCandidate[]) {
 function cardToCandidate(card: ScryfallCard) {
   return normalizeScannerCandidate({
     id: card.id,
+    oracleId: card.oracle_id,
     name: card.name,
     setCode: card.set,
     setName: card.set_name,

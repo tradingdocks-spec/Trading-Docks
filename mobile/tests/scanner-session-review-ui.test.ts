@@ -48,8 +48,9 @@ test('collapsed card row has no inline editing fields or destructive buttons', (
   assert.equal(row.includes('Remove card'), false);
   assert.equal(row.includes('Review"'), false);
   assert.match(row, /onPress/);
-  assert.match(row, /formatSessionReviewMoney\(line\.marketPrice\)/);
+  assert.match(row, /formatReviewLineMoney\(line\.marketPrice, line\.priceSource\)/);
   assert.match(row, /formatSessionReviewMoney\(line\.cashOffer\)/);
+  assert.match(source, /Pricing\.\.\./);
 });
 
 test('card review sheet owns editable fields and preserves review actions', () => {
