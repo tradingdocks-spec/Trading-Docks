@@ -24,7 +24,7 @@ Implemented hierarchy:
 6. Collapsed card list.
 7. Safe-area-aware sticky session actions.
 
-Implemented: The main screen uses at most four primary metrics: Cards, Needs review, No price, and Offer total. Missing money values render as an em dash, never `$0.00`.
+Implemented: The main screen uses one compact summary row for Cards, Needs review, and Offer total. Missing money values render as an em dash, never `$0.00`.
 
 ## Progressive Disclosure
 
@@ -40,7 +40,7 @@ Implemented: Long card names are limited to two lines. Missing prices remain una
 
 ## Review Sheet Contract
 
-Implemented: The card review sheet shows identity, confidence/status, quantity, condition, finish, language, market price, cash percentage, offer, concise confidence explanation, Mark reviewed or Save changes, disabled Choose another printing placeholder, and separated Remove card action.
+Implemented: The card review sheet shows identity, concise review copy, quantity, condition, finish, market price, cash percentage, offer, Save and mark reviewed or Save changes, an advanced More options section for language and alternate-printing placeholder, and separated Remove card action.
 
 Partially Implemented: Choosing another printing remains a future scanner/manual-search integration. The button is visible but disabled so the current release does not invent replacement-printing behavior.
 

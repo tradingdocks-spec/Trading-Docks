@@ -86,7 +86,7 @@ Verify:
 - Undo removes the most recent transient batch add.
 - Correct opens Scanner Session Review.
 - Remove-card lockout prevents the same stationary card from being scanned twice.
-- Pricing remains unavailable until Review List enrichment or manual entry; scanner must not block on price.
+- Scryfall pricing enriches Review List rows only after insertion when a positive exact-printing price is available; scanner must not block on price.
 - Recognized result does not show a primary confidence percentage.
 - Failed result shows only compact Retake/Search recovery.
 - Added/remove-card feedback remains brief and does not become a full result card.

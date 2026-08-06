@@ -42,6 +42,15 @@ export type ScannerCardCandidate = {
   imageUrl?: string | null;
   confidence: number;
   recognitionMode: ScannerRecognitionMode;
+  marketPrice?: ScannerCandidateMarketPrice | null;
+};
+
+export type ScannerCandidateMarketPrice = {
+  usd: number | null;
+  usdFoil: number | null;
+  usdEtched: number | null;
+  source: 'scryfall';
+  fetchedAt: string | null;
 };
 
 export type ScannerRecognitionResult =
@@ -219,6 +228,7 @@ export function normalizeScannerCandidate(raw: {
   imageUrl?: unknown;
   confidence?: unknown;
   recognitionMode?: unknown;
+  marketPrice?: ScannerCandidateMarketPrice | null;
 }): ScannerCardCandidate | null {
   const id = stringValue(raw.id);
   const name = stringValue(raw.name);
@@ -237,6 +247,7 @@ export function normalizeScannerCandidate(raw: {
     imageUrl: stringValue(raw.imageUrl),
     confidence: typeof raw.confidence === 'number' && Number.isFinite(raw.confidence) ? Math.max(0, Math.min(1, raw.confidence)) : 0,
     recognitionMode: raw.recognitionMode === 'assisted_capture' ? 'assisted_capture' : 'manual_search',
+    marketPrice: normalizeCandidateMarketPrice(raw.marketPrice),
   };
 }
 
@@ -261,4 +272,19 @@ export const unavailableCameraProvider: ScannerRecognitionProvider = {
 
 function stringValue(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function normalizeCandidateMarketPrice(value: ScannerCandidateMarketPrice | null | undefined): ScannerCandidateMarketPrice | null {
+  if (!value || value.source !== 'scryfall') return null;
+  return {
+    usd: normalizePositivePrice(value.usd),
+    usdFoil: normalizePositivePrice(value.usdFoil),
+    usdEtched: normalizePositivePrice(value.usdEtched),
+    source: 'scryfall',
+    fetchedAt: stringValue(value.fetchedAt),
+  };
+}
+
+function normalizePositivePrice(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null;
 }

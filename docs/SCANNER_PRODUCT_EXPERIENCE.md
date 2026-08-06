@@ -37,7 +37,7 @@
 - Implemented: Failed OCR produces a compact recovery tray and does not create an automatic "Unrecognized card" session row from the UI path.
 - Implemented: Added and remove-card states use brief transient overlays rather than full result cards.
 - Implemented: Correction tools allow alternate printing, manual search, condition, finish, language, quantity, market price, storage, Trade Binder, Wishlist, retake, and undo/remove through secondary tray or session tools.
-- Partially Implemented: The visual tray uses still-image OCR results and manual pricing; live price ingestion remains outside this sprint.
+- Partially Implemented: The visual tray uses still-image OCR results. Scryfall price metadata can enrich Review List rows after insertion, while provider freshness policy, normalized price history, and stale-price display remain outside this sprint.
 
 ## High-Volume Workflow
 

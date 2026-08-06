@@ -6,7 +6,7 @@
 - Implemented: The mobile Scan tab can add confirmed manual-search results into a persistent running session rather than immediately finalizing purchase inventory.
 - Implemented: Session lines include game, card name, set code, collector number, exact printing id, language, finish, condition, quantity, confidence, market price, price source, price timestamp, buying percentage, cash offer, trade value, destination, review status, and notes.
 - Implemented: The Session Review route supports filters by game, review status, confidence, and missing price; edit quantity, price, and purchase percentage; bulk confirm; undo recent scan; remove; and explicit CSV preparation.
-- Partially Implemented: Market prices are manual/unavailable in this sprint. No live pricing provider is activated.
+- Partially Implemented: Scryfall prices enrich scanner session rows asynchronously when Scryfall returns a positive USD, foil, or etched price for the exact printing. Missing, zero, or stale prices remain unavailable and can still be edited manually in Review List.
 - Partially Implemented: Native share sheet and email CSV are planned; this sprint only prepares explicit CSV content.
 
 ## Offer Rules
@@ -17,7 +17,7 @@
 - Implemented: Missing market price is represented as unavailable and excluded from totals. It is never treated as `$0.00`.
 - Implemented: Running totals include cards scanned, cards recognized, cards needing review, market value, cash offer, trade value, missing-price item count, game totals, and finish totals.
 - Implemented: Continuous scanner entries can consume live analyzer fingerprints and recognition reports when supplied by the native frame pipeline.
-- Partially Implemented: The active UI still requires user confirmation and manual price entry; live auto-captured rows remain gated on native frame delivery, benchmarked recognition, and review-safe confidence thresholds.
+- Partially Implemented: The active UI does not block on pricing; Review List remains the place for final card decisions and manual price correction. Live auto-captured rows remain gated on native frame delivery, benchmarked recognition, and review-safe confidence thresholds.
 
 ## Destinations
 

@@ -254,6 +254,7 @@ type ScryfallCard = {
   color_identity?: string[];
   image_uris?: { normal?: string; large?: string };
   card_faces?: { image_uris?: { normal?: string; large?: string } }[];
+  prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null };
 };
 
 export const magicBenchmarkMetricsUnavailable: ScannerBenchmarkMetrics = {
@@ -853,9 +854,27 @@ function scryfallToRecognitionCandidate(card: ScryfallCard): RecognitionCandidat
     imageUrl: card.image_uris?.normal ?? card.image_uris?.large ?? card.card_faces?.[0]?.image_uris?.normal ?? null,
     confidence: 0,
     recognitionMode: 'assisted_capture',
+    marketPrice: scryfallPriceMetadata(card.prices),
     layout: card.layout ?? null,
     colorIdentity: card.color_identity ?? [],
   };
+}
+
+function scryfallPriceMetadata(prices: ScryfallCard['prices']) {
+  if (!prices) return null;
+  return {
+    usd: parseScryfallPrice(prices.usd),
+    usdFoil: parseScryfallPrice(prices.usd_foil),
+    usdEtched: parseScryfallPrice(prices.usd_etched),
+    source: 'scryfall' as const,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+function parseScryfallPrice(value: string | null | undefined) {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) / 100 : null;
 }
 
 function fixtureToRecognitionInput(fixture: MagicBenchmarkFixtureManifestEntry): MagicRecognitionInput {

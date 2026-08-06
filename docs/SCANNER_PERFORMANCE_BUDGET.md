@@ -31,7 +31,7 @@ Implemented: The active scanner no longer waits for manual Add confirmation afte
 
 Implemented: Manual Scryfall searches use an in-memory route cache keyed by normalized query text to avoid duplicate lookups during a scanner session.
 
-Implemented: Pricing is not required before inserting a batch line. Missing prices remain unavailable and are handled in Review List totals.
+Implemented: Pricing is not required before inserting a batch line. Scryfall price enrichment runs asynchronously after insertion and updates the matching Review List row only when a positive exact-printing price is available. Missing prices remain unavailable and are handled in Review List totals.
 
 Implemented: Failed reads do not create session rows and do not perform collection writes.
 

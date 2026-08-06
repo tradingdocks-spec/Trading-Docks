@@ -31,6 +31,7 @@ type ScryfallCard = {
   finishes?: string[];
   image_uris?: { normal?: string; large?: string };
   card_faces?: { image_uris?: { normal?: string; large?: string } }[];
+  prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null };
 };
 
 export async function searchScannerPrintings(query: string, online = true): Promise<ScannerRecognitionResult> {
@@ -183,7 +184,25 @@ function cardToCandidate(card: ScryfallCard) {
     imageUrl: card.image_uris?.normal ?? card.image_uris?.large ?? card.card_faces?.[0]?.image_uris?.normal ?? null,
     confidence: 0.91,
     recognitionMode: 'manual_search',
+    marketPrice: scryfallPriceMetadata(card.prices),
   });
+}
+
+function scryfallPriceMetadata(prices: ScryfallCard['prices']) {
+  if (!prices) return null;
+  return {
+    usd: parseScryfallPrice(prices.usd),
+    usdFoil: parseScryfallPrice(prices.usd_foil),
+    usdEtched: parseScryfallPrice(prices.usd_etched),
+    source: 'scryfall' as const,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+function parseScryfallPrice(value: string | null | undefined) {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) / 100 : null;
 }
 
 function createId(prefix: string) {

@@ -3,7 +3,7 @@
 ## Current Status
 
 - Implemented: `mobile/services/continuous-offer-scanner.ts` defines the continuous scanner state machine, card-guide geometry, quality checks, duplicate protection, session model, offer math, local persistence key, filters, undo/remove helpers, confirmation handoff, and CSV serialization.
-- Implemented: The mobile Scan tab now presents a camera-first intake workflow with a standard trading-card guide, compact running totals, latest-result tray, manual pricing, and an explicit Session Review route.
+- Implemented: The mobile Scan tab now presents a camera-first intake workflow with a standard trading-card guide, compact running totals, latest-result tray, asynchronous Scryfall price enrichment when available, manual price correction, and an explicit Session Review route.
 - Implemented: Scanner settings, manual search, diagnostics, and privacy copy are secondary panels so the primary camera workflow stays uninterrupted.
 - Implemented: The guide ratio is based on 63 mm x 88 mm cards: `width / height = 0.7159`.
 - Implemented: `mobile/services/scanner-vision-engine.ts` adds replaceable luma-frame providers for card presence, boundary, perspective, motion, blur, lighting, glare, card removal, frame quality, and region extraction.

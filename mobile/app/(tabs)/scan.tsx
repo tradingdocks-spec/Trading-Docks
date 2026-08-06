@@ -62,6 +62,7 @@ import {
 } from '@/services/scanner-foundation';
 import type { RecognitionCandidate } from '@/services/scanner-intelligence';
 import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
+import { enrichScannerSessionLinePrice } from '@/services/scanner-price-enrichment';
 import {
   appendScannerPerformanceSample,
   buildScannerPerformanceReport,
@@ -543,6 +544,19 @@ export default function Scan() {
       })));
     }
     showBatchNotice({ ...batchScannerNoticeForLine(addedLine), lineId: addedLine.id });
+    void Promise.resolve().then(() => {
+      setSession((current) => {
+        if (!current) return current;
+        const enrichment = enrichScannerSessionLinePrice({
+          session: current,
+          lineId: addedLine.id,
+          stableScanId: addedLine.stableScanId,
+          candidate: input.candidate,
+          finish: candidateFinish,
+        });
+        return enrichment.session;
+      });
+    });
     resetScannerForm({ preserveNotice: true });
     return addedLine;
   };

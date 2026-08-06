@@ -135,6 +135,7 @@
 - Implemented: Confirmed scans insert `inventory_items` records with `quantity`, `location_id`, and exact-printing metadata in `data`.
 - Implemented: Continuous scanner session lines are local user-scoped records containing scan identity, game, exact-printing fields, condition, finish, quantity, price fields, offer fields, destination, confidence, review status, and sync state.
 - Implemented: Offer sessions keep market value, cash offer, trade value, and estimated margin separate; missing prices remain `null`.
+- Partially Implemented: Scanner candidate records can carry nullable Scryfall USD price metadata for normal, foil, and etched finishes. The active scanner applies that metadata asynchronously to matching session lines with stale-row and manual-price guards; it does not persist a normalized price-history table.
 - Implemented: Optional Trade Binder and Wishlist selections reuse `binder_card_trade_status` and `collector_wishlist` mutation paths.
 - Partially Implemented: The scanner persists interrupted draft state locally by user id. Drafts do not store image URIs or retained photos.
 - Partially Implemented: Scanner-created item ids are app-generated text ids to match the current `inventory_items.id` schema.
