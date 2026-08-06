@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useCallback, useImperativeHandle } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Camera,
@@ -17,10 +17,13 @@ const frameSampling = scannerNativeFrameSampling();
 const photoTarget = scannerNativePhotoTarget();
 
 export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>(function ScannerCamera(
-  { active, torchEnabled, userId, onReady, onFrame },
+  { active, torchEnabled, userId, onReady, onFrameAnalysis },
   ref,
 ) {
   const device = useCameraDevice('back', { physicalDevices: ['wide-angle'] });
+  const handleFrameAnalysis = useCallback((nativeFrame: ScannerCameraFrame) => {
+    onFrameAnalysis(nativeFrame);
+  }, [onFrameAnalysis]);
   const photoOutput = usePhotoOutput({
     targetResolution: { width: photoTarget.width, height: photoTarget.height },
     quality: photoTarget.quality,
@@ -32,27 +35,27 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
     enablePreviewSizedOutputBuffers: frameSampling.previewSizedBuffers,
     enablePhysicalBufferRotation: true,
     dropFramesWhileBusy: true,
-    onFrame(frame) {
+    onFrame: (nativeCameraFrame) => {
       'worklet';
       try {
-        const bucket = Math.floor(frame.timestamp * frameSampling.targetFps);
+        const bucket = Math.floor(nativeCameraFrame.timestamp * frameSampling.targetFps);
         const globalKey = '__tradingDocksScannerLastFrameBucket';
         const globalState = globalThis as unknown as Record<string, number>;
         if (globalState[globalKey] === bucket) {
-          frame.dispose();
+          nativeCameraFrame.dispose();
           return;
         }
         globalState[globalKey] = bucket;
-        if (!frame.hasPixelBuffer) {
-          frame.dispose();
+        if (!nativeCameraFrame.hasPixelBuffer) {
+          nativeCameraFrame.dispose();
           return;
         }
-        const planes = frame.isPlanar ? frame.getPlanes() : [];
+        const planes = nativeCameraFrame.isPlanar ? nativeCameraFrame.getPlanes() : [];
         const plane = planes[0];
-        const sourceWidth = plane?.width ?? frame.width;
-        const sourceHeight = plane?.height ?? frame.height;
-        const bytesPerRow = plane?.bytesPerRow ?? frame.bytesPerRow ?? sourceWidth;
-        const buffer = plane ? plane.getPixelBuffer() : frame.getPixelBuffer();
+        const sourceWidth = plane?.width ?? nativeCameraFrame.width;
+        const sourceHeight = plane?.height ?? nativeCameraFrame.height;
+        const bytesPerRow = plane?.bytesPerRow ?? nativeCameraFrame.bytesPerRow ?? sourceWidth;
+        const buffer = plane ? plane.getPixelBuffer() : nativeCameraFrame.getPixelBuffer();
         const source = new Uint8Array(buffer);
         const pixels: number[] = [];
         for (let y = 0; y < frameSampling.height; y += 1) {
@@ -63,21 +66,21 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
           }
         }
         const sample: ScannerCameraFrame = {
-          id: `native-frame-${Math.round(frame.timestamp * 1000)}`,
+          id: `native-frame-${Math.round(nativeCameraFrame.timestamp * 1000)}`,
           userId,
-          capturedAt: Math.round(frame.timestamp * 1000),
+          capturedAt: Math.round(nativeCameraFrame.timestamp * 1000),
           width: frameSampling.width,
           height: frameSampling.height,
           pixels,
           pixelFormat: 'luma8',
           orientation: frameSampling.width > frameSampling.height ? 'landscape' : 'portrait',
           source: 'vision-camera',
-          previewResolution: { width: frame.width, height: frame.height },
+          previewResolution: { width: nativeCameraFrame.width, height: nativeCameraFrame.height },
         };
-        scheduleOnRN(onFrame, sample);
-        frame.dispose();
+        scheduleOnRN(handleFrameAnalysis, sample);
+        nativeCameraFrame.dispose();
       } catch {
-        frame.dispose();
+        nativeCameraFrame.dispose();
       }
     },
   });

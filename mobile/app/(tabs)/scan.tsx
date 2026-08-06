@@ -1221,7 +1221,7 @@ function ScannerViewport({
             torchEnabled={torchEnabled}
             userId={userId}
             onReady={onCameraReady}
-            onFrame={onLiveFrame}
+            onFrameAnalysis={onLiveFrame}
           />
           <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
         </View>

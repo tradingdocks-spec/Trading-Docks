@@ -21,6 +21,5 @@ export type ScannerCameraProps = {
   torchEnabled: boolean;
   userId: string;
   onReady: () => void;
-  onFrame: (frame: ScannerCameraFrame) => void;
+  onFrameAnalysis: (frame: ScannerCameraFrame) => void;
 };
-
