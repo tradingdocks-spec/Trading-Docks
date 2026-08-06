@@ -2,8 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  appendScannerCameraEvent,
+  buildScannerCameraQualityProfile,
   convertPreviewTapToCameraPoint,
+  isApprovedTorchTransitionReason,
   normalizeScannerCameraLensMode,
+  normalizeScannerCameraSelectionMode,
+  resolveAutoCaptureReadiness,
   resolveScannerCameraLensSelection,
   resolveScannerFocusRequest,
   resolveScannerTorchState,
@@ -11,6 +16,7 @@ import {
   shouldIgnoreFrameAfterLensSwitch,
   shouldWarnAboutTorchThrash,
   type ScannerCameraDeviceLike,
+  type ScannerCameraRuntimeEvent,
 } from '../services/scanner-camera-controls.ts';
 
 const standardDevice: ScannerCameraDeviceLike = {
@@ -19,9 +25,14 @@ const standardDevice: ScannerCameraDeviceLike = {
   position: 'back',
   type: 'wide-angle',
   minZoom: 1,
+  neutralZoom: 1,
   maxZoom: 8,
   supportsFocusMetering: true,
   hasTorch: true,
+  supportedFPSRanges: [{ min: 24, max: 60 }],
+  getSupportedResolutions: (stream) => stream === 'photo'
+    ? [{ width: 4032, height: 3024 }, { width: 1920, height: 1080 }]
+    : [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }],
 };
 
 const closeUpDevice: ScannerCameraDeviceLike = {
@@ -130,6 +141,57 @@ test('unsupported lens preference falls back to auto', () => {
 test('lens preference normalization defaults safely', () => {
   assert.equal(normalizeScannerCameraLensMode('macro'), 'macro');
   assert.equal(normalizeScannerCameraLensMode('business'), 'auto');
+  assert.equal(normalizeScannerCameraSelectionMode('raw'), 'raw');
+});
+
+test('camera diagnostics enumerate rear devices and quality profile', () => {
+  const selection = resolveScannerCameraLensSelection([standardDevice, closeUpDevice, telephotoDevice], 'auto');
+
+  assert.equal(selection.rearDevices.length, 3);
+  assert.equal(selection.selectedDeviceSummary?.id, 'wide');
+  assert.equal(selection.selectedDeviceSummary?.formatsCount, null);
+  assert.deepEqual(selection.selectedDeviceSummary?.maxPhotoResolution, { width: 4032, height: 3024 });
+  assert.deepEqual(selection.selectedDeviceSummary?.fpsRanges, [{ min: 24, max: 60 }]);
+  assert.equal(selection.qualityProfile?.targetFps, 30);
+  assert.equal(selection.qualityProfile?.defaultZoom, 1);
+  assert.match(selection.qualityProfile?.selectedFormatLabel ?? '', /quality-first 30fps/);
+});
+
+test('close-up lens prefers short focus distance over only lens type', () => {
+  const closeFocusDevice: ScannerCameraDeviceLike = {
+    ...standardDevice,
+    id: 'macro-wide',
+    minFocusDistance: 1.5,
+  };
+  const distantUltraWide: ScannerCameraDeviceLike = {
+    ...closeUpDevice,
+    id: 'distant-ultra',
+    minFocusDistance: 9,
+  };
+
+  const selection = resolveScannerCameraLensSelection([distantUltraWide, closeFocusDevice], 'macro');
+
+  assert.equal(selection.selectedDevice?.id, 'macro-wide');
+});
+
+test('raw camera selection is development-only selectable by id', () => {
+  const selection = resolveScannerCameraLensSelection([standardDevice, closeUpDevice], 'raw', 'ultra');
+
+  assert.equal(selection.requestedMode, 'raw');
+  assert.equal(selection.resolvedMode, 'raw');
+  assert.equal(selection.selectedDevice?.id, 'ultra');
+});
+
+test('quality profile uses neutral zoom and stable VisionCamera constraints', () => {
+  const profile = buildScannerCameraQualityProfile(standardDevice);
+
+  assert.equal(profile.targetFps, 30);
+  assert.deepEqual(profile.photoResolution, { width: 4032, height: 3024 });
+  assert.deepEqual(profile.frameResolution, { width: 640, height: 480 });
+  assert.equal(profile.constraints.binned, false);
+  assert.equal(profile.constraints.photoBias, true);
+  assert.equal(profile.constraints.frameBias, true);
+  assert.equal(profile.defaultZoom, 1);
 });
 
 test('lens switch cancels stale frame analysis until ready', () => {
@@ -164,4 +226,81 @@ test('torch diagnostics warn on unexplained rapid transitions', () => {
     { at: 900, state: 'off', reason: 'lifecycle' },
     { at: 800, state: 'on', reason: 'capture' },
   ], 1000), true);
+});
+
+test('torch transition classification accepts expected lifecycle reasons only', () => {
+  assert.equal(isApprovedTorchTransitionReason('user'), true);
+  assert.equal(isApprovedTorchTransitionReason('capture'), false);
+  assert.equal(isApprovedTorchTransitionReason('device_change'), true);
+  assert.equal(isApprovedTorchTransitionReason('unknown'), false);
+});
+
+test('camera event log keeps latest entries first and bounded', () => {
+  let events: ScannerCameraRuntimeEvent[] = [];
+  for (let index = 0; index < 18; index += 1) {
+    events = appendScannerCameraEvent(events, {
+      at: index,
+      type: 'device_change',
+      oldValue: String(index),
+      newValue: String(index + 1),
+      reason: 'device_change',
+    }, 16);
+  }
+
+  assert.equal(events.length, 16);
+  assert.equal(events[0].at, 17);
+  assert.equal(events[15].at, 2);
+});
+
+test('auto-capture readiness lists exact rejection reasons', () => {
+  const readiness = resolveAutoCaptureReadiness({
+    frameCount: 4,
+    firstFrameAt: 1000,
+    latestFrameAt: 1600,
+    cardPresence: true,
+    cornersVisible: 4,
+    guideFill: 0.42,
+    aspectRatio: 0.716,
+    centerOffset: 0.1,
+    blur: 0.6,
+    motion: 0.2,
+    lighting: 0.8,
+    glare: 0.1,
+    stableDurationMs: 700,
+    removalState: 'clear',
+    processing: false,
+    duplicateBlocked: false,
+    cameraReady: true,
+  });
+
+  assert.equal(readiness.ready, true);
+  assert.equal(readiness.label, 'READY');
+  assert.equal(readiness.effectiveFps, 6.7);
+
+  const blocked = resolveAutoCaptureReadiness({
+    ...{
+      frameCount: 0,
+      firstFrameAt: null,
+      latestFrameAt: null,
+      cardPresence: false,
+      cornersVisible: null,
+      guideFill: null,
+      aspectRatio: null,
+      centerOffset: null,
+      blur: null,
+      motion: null,
+      lighting: null,
+      glare: null,
+      stableDurationMs: null,
+      removalState: 'awaiting_removal' as const,
+      processing: true,
+      duplicateBlocked: true,
+      cameraReady: false,
+    },
+  });
+
+  assert.equal(blocked.ready, false);
+  assert.ok(blocked.reasons.includes('camera not ready'));
+  assert.ok(blocked.reasons.includes('card presence unavailable'));
+  assert.ok(blocked.reasons.includes('remove previous card'));
 });

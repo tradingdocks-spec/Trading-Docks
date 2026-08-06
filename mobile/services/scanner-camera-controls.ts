@@ -1,4 +1,5 @@
 export type ScannerCameraLensMode = 'auto' | 'macro' | 'standard' | 'telephoto';
+export type ScannerCameraSelectionMode = ScannerCameraLensMode | 'raw';
 
 export type ScannerCameraPoint = {
   x: number;
@@ -39,18 +40,40 @@ export type ScannerCameraDeviceLike = {
   supportsFocusLocking?: boolean;
   supportsSmoothAutoFocus?: boolean;
   hasTorch?: boolean;
+  supportedFPSRanges?: { min: number; max: number }[];
+  getSupportedResolutions?: (outputStreamType: 'photo' | 'video' | 'stream' | 'depth-photo' | 'depth-stream') => ScannerCameraSize[];
 };
 
 export type ScannerCameraDeviceSummary = {
   id: string;
   name: string;
+  position: string | null;
   physicalDevices: ScannerPhysicalDeviceType[];
+  formatsCount: number | null;
+  maxPhotoResolution: ScannerCameraSize | null;
+  maxVideoResolution: ScannerCameraSize | null;
+  fpsRanges: { min: number; max: number }[];
   minZoom: number | null;
   neutralZoom: number | null;
   maxZoom: number | null;
   minFocusDistance: number | null;
   supportsFocus: boolean;
   hasTorch: boolean;
+};
+
+export type ScannerCameraQualityProfile = {
+  selectedFormatLabel: string;
+  targetFps: number;
+  photoResolution: ScannerCameraSize;
+  frameResolution: ScannerCameraSize;
+  previewResolution: ScannerCameraSize | null;
+  constraints: {
+    fps: number;
+    binned: boolean;
+    photoBias: boolean;
+    frameBias: boolean;
+  };
+  defaultZoom: number | null;
 };
 
 export type ScannerCameraLensOption = {
@@ -63,11 +86,13 @@ export type ScannerCameraLensOption = {
 };
 
 export type ScannerCameraLensSelection = {
-  requestedMode: ScannerCameraLensMode;
-  resolvedMode: ScannerCameraLensMode;
+  requestedMode: ScannerCameraSelectionMode;
+  resolvedMode: ScannerCameraSelectionMode;
   selectedDevice: ScannerCameraDeviceLike | undefined;
   selectedDeviceSummary: ScannerCameraDeviceSummary | null;
   options: ScannerCameraLensOption[];
+  rearDevices: ScannerCameraDeviceSummary[];
+  qualityProfile: ScannerCameraQualityProfile | null;
 };
 
 export type ScannerFocusRequestInput = {
@@ -122,12 +147,74 @@ export type ScannerTorchState = {
 export type ScannerTorchTransition = {
   at: number;
   state: 'on' | 'off';
-  reason: 'user' | 'device_change' | 'lifecycle' | 'camera_error' | 'capture' | 'unknown';
+  reason: ScannerCameraEventReason;
+};
+
+export type ScannerCameraEventReason =
+  | 'user'
+  | 'device_change'
+  | 'lifecycle'
+  | 'camera_error'
+  | 'app_state'
+  | 'processing'
+  | 'frame_processor'
+  | 'auto_capture'
+  | 'capture'
+  | 'session'
+  | 'pricing'
+  | 'unknown';
+
+export type ScannerCameraRuntimeEvent = {
+  id: string;
+  at: number;
+  type:
+    | 'camera_mount'
+    | 'camera_unmount'
+    | 'device_change'
+    | 'is_active_change'
+    | 'torch_change'
+    | 'app_state_change'
+    | 'processing_change'
+    | 'frame_processor_change'
+    | 'auto_capture_change'
+    | 'session_change'
+    | 'pricing_change'
+    | 'focus_request';
+  oldValue: string;
+  newValue: string;
+  reason: ScannerCameraEventReason;
+};
+
+export type ScannerFrameMetricsInput = {
+  frameCount: number;
+  firstFrameAt: number | null;
+  latestFrameAt: number | null;
+  cardPresence: boolean;
+  cornersVisible: number | null;
+  guideFill: number | null;
+  aspectRatio: number | null;
+  centerOffset: number | null;
+  blur: number | null;
+  motion: number | null;
+  lighting: number | null;
+  glare: number | null;
+  stableDurationMs: number | null;
+  removalState: 'clear' | 'awaiting_removal' | 'unavailable';
+  processing: boolean;
+  duplicateBlocked: boolean;
+  cameraReady: boolean;
+};
+
+export type ScannerAutoCaptureReadiness = {
+  ready: boolean;
+  label: 'READY' | 'BLOCKED';
+  reasons: string[];
+  effectiveFps: number | null;
 };
 
 export const SCANNER_CAMERA_LENS_LABELS: Record<ScannerCameraLensMode, { label: string; shortLabel: string }> = {
   auto: { label: 'Auto', shortLabel: 'Auto' },
-  macro: { label: 'Macro / Close-up', shortLabel: '0.5x' },
+  macro: { label: 'Close-up', shortLabel: '0.5x' },
   standard: { label: 'Standard', shortLabel: '1x' },
   telephoto: { label: 'Telephoto', shortLabel: '2x' },
 };
@@ -141,7 +228,12 @@ export function summarizeScannerCameraDevice(device: ScannerCameraDeviceLike | u
   return {
     id: device.id,
     name: device.localizedName ?? device.modelID ?? device.id,
+    position: device.position ?? null,
     physicalDevices: scannerCameraDeviceTypes(device),
+    formatsCount: null,
+    maxPhotoResolution: maxResolution(readSupportedResolutions(device, 'photo')),
+    maxVideoResolution: maxResolution(readSupportedResolutions(device, 'video')),
+    fpsRanges: normalizeFpsRanges(device.supportedFPSRanges),
     minZoom: finiteOrNull(device.minZoom),
     neutralZoom: finiteOrNull(device.neutralZoom),
     maxZoom: finiteOrNull(device.maxZoom),
@@ -164,13 +256,16 @@ export function scannerCameraDeviceTypes(device: ScannerCameraDeviceLike): Scann
 
 export function resolveScannerCameraLensSelection(
   devices: ScannerCameraDeviceLike[],
-  requestedMode: ScannerCameraLensMode,
+  requestedMode: ScannerCameraSelectionMode,
+  rawDeviceId?: string | null,
 ): ScannerCameraLensSelection {
   const backDevices = devices.filter((device) => device.position === 'back');
+  const rearDevices = backDevices.map((device) => summarizeScannerCameraDevice(device)).filter((device): device is ScannerCameraDeviceSummary => Boolean(device));
   const autoDevice = selectAutoScannerDevice(backDevices);
-  const macroDevice = selectScannerDeviceByType(backDevices, 'ultra-wide-angle');
+  const macroDevice = selectCloseUpScannerDevice(backDevices);
   const standardDevice = selectScannerDeviceByType(backDevices, 'wide-angle') ?? autoDevice;
   const telephotoDevice = selectScannerDeviceByType(backDevices, 'telephoto');
+  const rawDevice = rawDeviceId ? backDevices.find((device) => device.id === rawDeviceId) : undefined;
   const optionMap: Record<ScannerCameraLensMode, ScannerCameraDeviceLike | undefined> = {
     auto: autoDevice,
     macro: macroDevice,
@@ -189,7 +284,7 @@ export function resolveScannerCameraLensSelection(
       warning: mode === 'telephoto' && device ? 'Telephoto may need more distance for close card scanning.' : undefined,
     };
   });
-  const requestedDevice = optionMap[requestedMode];
+  const requestedDevice = requestedMode === 'raw' ? rawDevice : optionMap[requestedMode];
   const resolvedMode = requestedDevice ? requestedMode : 'auto';
   const selectedDevice = requestedDevice ?? autoDevice;
   return {
@@ -198,6 +293,8 @@ export function resolveScannerCameraLensSelection(
     selectedDevice,
     selectedDeviceSummary: summarizeScannerCameraDevice(selectedDevice),
     options,
+    rearDevices,
+    qualityProfile: selectedDevice ? buildScannerCameraQualityProfile(selectedDevice) : null,
   };
 }
 
@@ -207,6 +304,10 @@ export function scannerCameraPreferenceKey(userId: string) {
 
 export function normalizeScannerCameraLensMode(value: unknown): ScannerCameraLensMode {
   return value === 'macro' || value === 'standard' || value === 'telephoto' ? value : 'auto';
+}
+
+export function normalizeScannerCameraSelectionMode(value: unknown): ScannerCameraSelectionMode {
+  return value === 'raw' ? 'raw' : normalizeScannerCameraLensMode(value);
 }
 
 export function resolveScannerFocusRequest(input: ScannerFocusRequestInput): ScannerFocusRequestState {
@@ -260,6 +361,76 @@ export function resolveScannerTorchState(input: ScannerTorchStateInput): Scanner
   };
 }
 
+export function buildScannerCameraQualityProfile(device: ScannerCameraDeviceLike): ScannerCameraQualityProfile {
+  const photoResolution = bestScannerResolution(readSupportedResolutions(device, 'photo'), { width: 3024, height: 4032 });
+  const frameResolution = { width: 640, height: 480 };
+  const targetFps = bestScannerFps(normalizeFpsRanges(device.supportedFPSRanges));
+  const defaultZoom = finiteOrNull(device.neutralZoom) ?? finiteOrNull(device.minZoom);
+  return {
+    selectedFormatLabel: `quality-first ${targetFps}fps ${photoResolution.width}x${photoResolution.height}`,
+    targetFps,
+    photoResolution,
+    frameResolution,
+    previewResolution: null,
+    constraints: {
+      fps: targetFps,
+      binned: false,
+      photoBias: true,
+      frameBias: true,
+    },
+    defaultZoom,
+  };
+}
+
+export function appendScannerCameraEvent(
+  events: ScannerCameraRuntimeEvent[],
+  event: Omit<ScannerCameraRuntimeEvent, 'id'>,
+  limit = 80,
+): ScannerCameraRuntimeEvent[] {
+  return [{
+    ...event,
+    id: `${event.type}-${Math.round(event.at)}-${events.length}`,
+  }, ...events].slice(0, limit);
+}
+
+export function isApprovedTorchTransitionReason(reason: ScannerCameraEventReason) {
+  return reason === 'user' || reason === 'app_state' || reason === 'device_change' || reason === 'camera_error' || reason === 'lifecycle';
+}
+
+export function resolveAutoCaptureReadiness(input: ScannerFrameMetricsInput): ScannerAutoCaptureReadiness {
+  const reasons: string[] = [];
+  if (!input.cameraReady) reasons.push('camera not ready');
+  if (input.processing) reasons.push('scanner processing');
+  if (input.duplicateBlocked) reasons.push('duplicate protection awaiting removal');
+  if (!input.cardPresence) reasons.push('card presence unavailable');
+  if (input.cornersVisible !== null && input.cornersVisible < 3) reasons.push('card boundary incomplete');
+  if (input.guideFill === null) reasons.push('guide fill unavailable');
+  else if (input.guideFill < 0.38) reasons.push('move closer');
+  else if (input.guideFill > 0.92) reasons.push('move away');
+  if (input.centerOffset === null) reasons.push('center offset unavailable');
+  else if (input.centerOffset > 0.24) reasons.push('center card');
+  if (input.blur === null) reasons.push('blur unavailable');
+  else if (input.blur < 0.42) reasons.push('blur too high');
+  if (input.motion === null) reasons.push('motion unavailable');
+  else if (input.motion > 0.34) reasons.push('motion too high');
+  if (input.lighting === null) reasons.push('lighting unavailable');
+  else if (input.lighting < 0.22) reasons.push('lighting too low');
+  if (input.glare === null) reasons.push('glare unavailable');
+  else if (input.glare > 0.5) reasons.push('reduce glare');
+  if (input.stableDurationMs === null) reasons.push('stability unavailable');
+  else if (input.stableDurationMs < 420) reasons.push('hold steady');
+  if (input.removalState === 'awaiting_removal') reasons.push('remove previous card');
+  const effectiveFps = input.firstFrameAt !== null && input.latestFrameAt !== null && input.latestFrameAt > input.firstFrameAt
+    ? Math.round((input.frameCount / ((input.latestFrameAt - input.firstFrameAt) / 1000)) * 10) / 10
+    : null;
+  return {
+    ready: reasons.length === 0,
+    label: reasons.length === 0 ? 'READY' : 'BLOCKED',
+    reasons,
+    effectiveFps,
+  };
+}
+
 export function shouldWarnAboutTorchThrash(transitions: ScannerTorchTransition[], now: number): boolean {
   const recent = transitions.filter((transition) => now - transition.at <= SCANNER_TORCH_THRASH_WINDOW_MS);
   if (recent.length < 3) return false;
@@ -280,6 +451,13 @@ function selectAutoScannerDevice(devices: ScannerCameraDeviceLike[]) {
   return [...devices].sort((a, b) => scannerDeviceScore(b) - scannerDeviceScore(a))[0];
 }
 
+function selectCloseUpScannerDevice(devices: ScannerCameraDeviceLike[]) {
+  const withFocusDistance = devices
+    .filter((device) => finiteOrNull(device.minFocusDistance) !== null)
+    .sort((a, b) => (finiteOrNull(a.minFocusDistance) ?? Number.POSITIVE_INFINITY) - (finiteOrNull(b.minFocusDistance) ?? Number.POSITIVE_INFINITY))[0];
+  return withFocusDistance ?? selectScannerDeviceByType(devices, 'ultra-wide-angle');
+}
+
 function selectScannerDeviceByType(devices: ScannerCameraDeviceLike[], type: ScannerPhysicalDeviceType) {
   return [...devices]
     .filter((device) => scannerCameraDeviceTypes(device).includes(type))
@@ -289,12 +467,56 @@ function selectScannerDeviceByType(devices: ScannerCameraDeviceLike[], type: Sca
 function scannerDeviceScore(device: ScannerCameraDeviceLike) {
   const types = scannerCameraDeviceTypes(device);
   let score = 0;
-  if (scannerCameraSupportsFocus(device)) score += 4;
+  if (scannerCameraSupportsFocus(device)) score += 8;
   if (device.hasTorch) score += 3;
+  if (finiteOrNull(device.minFocusDistance) !== null) score += Math.max(0, 6 - (finiteOrNull(device.minFocusDistance) ?? 6));
+  if (types.includes('ultra-wide-angle')) score += 3;
   if (types.includes('wide-angle')) score += 2;
-  if (types.includes('ultra-wide-angle')) score += 1;
-  if (!device.isVirtualDevice) score += 1;
+  if (!device.isVirtualDevice) score += 2;
+  const photo = maxResolution(readSupportedResolutions(device, 'photo'));
+  if (photo) score += Math.min(4, (photo.width * photo.height) / 4_000_000);
   return score;
+}
+
+function readSupportedResolutions(device: ScannerCameraDeviceLike, stream: 'photo' | 'video' | 'stream' | 'depth-photo' | 'depth-stream') {
+  try {
+    return device.getSupportedResolutions?.(stream) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function maxResolution(resolutions: ScannerCameraSize[]) {
+  return [...resolutions].sort((a, b) => (b.width * b.height) - (a.width * a.height))[0] ?? null;
+}
+
+function bestScannerResolution(resolutions: ScannerCameraSize[], fallback: ScannerCameraSize) {
+  const candidates = resolutions.length ? resolutions : [fallback];
+  return [...candidates].sort((a, b) => {
+    const aPixels = a.width * a.height;
+    const bPixels = b.width * b.height;
+    const targetPixels = fallback.width * fallback.height;
+    return Math.abs(aPixels - targetPixels) - Math.abs(bPixels - targetPixels);
+  })[0];
+}
+
+function normalizeFpsRanges(ranges: unknown): { min: number; max: number }[] {
+  if (!Array.isArray(ranges)) return [];
+  return ranges
+    .map((range) => {
+      if (!range || typeof range !== 'object') return null;
+      const candidate = range as { min?: unknown; max?: unknown };
+      const min = finiteOrNull(candidate.min);
+      const max = finiteOrNull(candidate.max);
+      return min === null || max === null ? null : { min, max };
+    })
+    .filter((range): range is { min: number; max: number } => Boolean(range));
+}
+
+function bestScannerFps(ranges: { min: number; max: number }[]) {
+  if (ranges.some((range) => range.min <= 30 && range.max >= 30)) return 30;
+  const max = ranges.reduce((current, range) => Math.max(current, range.max), 0);
+  return max >= 24 ? Math.min(max, 30) : 30;
 }
 
 function finiteOrNull(value: unknown) {

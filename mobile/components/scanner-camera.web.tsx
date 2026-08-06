@@ -5,10 +5,10 @@ import { StyleSheet } from 'react-native';
 import { scannerCameraViewQualityProps, scannerCaptureOptions } from '@/services/scanner-camera-quality';
 import type { ScannerCameraHandle, ScannerCameraProps } from './scanner-camera-contract';
 
-export type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraPhoto, ScannerCameraProps } from './scanner-camera-contract';
+export type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraPhoto, ScannerCameraProps, ScannerCameraSessionSummary } from './scanner-camera-contract';
 
 export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>(function ScannerCamera(
-  { torchEnabled, onReady, onLensOptionsChange, onDeviceDiagnosticsChange, onTorchStateChange },
+  { torchEnabled, onReady, onLensOptionsChange, onCameraInventoryChange, onDeviceDiagnosticsChange, onQualityProfileChange, onSessionConfigChange, onTorchStateChange },
   ref,
 ) {
   const cameraRef = useRef<CameraView | null>(null);
@@ -28,18 +28,35 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
   }, [onLensOptionsChange]);
 
   useEffect(() => {
-    onDeviceDiagnosticsChange?.({
+    const summary = {
       id: 'web-back-camera',
       name: 'Browser camera',
+      position: 'back',
       physicalDevices: ['wide-angle'],
+      formatsCount: null,
+      maxPhotoResolution: null,
+      maxVideoResolution: null,
+      fpsRanges: [],
       minZoom: null,
       neutralZoom: null,
       maxZoom: null,
       minFocusDistance: null,
       supportsFocus: false,
       hasTorch: torchEnabled,
+    };
+    onDeviceDiagnosticsChange?.(summary);
+    onCameraInventoryChange?.({
+      requestedMode: 'auto',
+      resolvedMode: 'auto',
+      selectedDevice: undefined,
+      selectedDeviceSummary: summary,
+      options: [{ mode: 'auto', label: 'Auto', shortLabel: 'Auto', supported: true, deviceId: 'web-back-camera' }],
+      rearDevices: [summary],
+      qualityProfile: null,
     });
-  }, [onDeviceDiagnosticsChange, torchEnabled]);
+    onQualityProfileChange?.(null);
+    onSessionConfigChange?.(null);
+  }, [onCameraInventoryChange, onDeviceDiagnosticsChange, onQualityProfileChange, onSessionConfigChange, torchEnabled]);
 
   useEffect(() => {
     onTorchStateChange?.({

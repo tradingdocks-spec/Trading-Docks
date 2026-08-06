@@ -8,6 +8,7 @@ import {
   usePhotoOutput,
   type CameraRef,
   type CameraDevice,
+  type Constraint,
 } from 'react-native-vision-camera';
 import { scheduleOnRN } from 'react-native-worklets';
 
@@ -17,8 +18,8 @@ import {
   scannerCameraSupportsFocus,
 } from '@/services/scanner-camera-controls';
 import { scannerNativeFrameSampling, scannerNativePhotoTarget } from '@/services/scanner-camera-quality';
-import type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraProps } from './scanner-camera-contract';
-export type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraPhoto, ScannerCameraProps } from './scanner-camera-contract';
+import type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraProps, ScannerCameraSessionSummary } from './scanner-camera-contract';
+export type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraPhoto, ScannerCameraProps, ScannerCameraSessionSummary } from './scanner-camera-contract';
 
 const frameSampling = scannerNativeFrameSampling();
 const photoTarget = scannerNativePhotoTarget();
@@ -28,13 +29,17 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
     active,
     torchEnabled,
     lensMode,
+    rawDeviceId,
     appForegrounded,
     focusEnabled,
     userId,
     onReady,
     onFrameAnalysis,
     onLensOptionsChange,
+    onCameraInventoryChange,
     onDeviceDiagnosticsChange,
+    onQualityProfileChange,
+    onSessionConfigChange,
     onTorchStateChange,
     onPreviewStopped,
   },
@@ -43,11 +48,12 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
   const cameraRef = useRef<CameraRef>(null);
   const devices = useCameraDevices();
   const lensSelection = useMemo(
-    () => resolveScannerCameraLensSelection(devices, lensMode),
-    [devices, lensMode],
+    () => resolveScannerCameraLensSelection(devices, rawDeviceId ? 'raw' : lensMode, rawDeviceId),
+    [devices, lensMode, rawDeviceId],
   );
   const device = lensSelection.selectedDevice as CameraDevice | undefined;
   const deviceSummary = lensSelection.selectedDeviceSummary;
+  const qualityProfile = lensSelection.qualityProfile;
   const torchState = useMemo(
     () => resolveScannerTorchState({
       requested: torchEnabled,
@@ -58,6 +64,28 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
     [active, appForegrounded, device?.hasTorch, torchEnabled],
   );
   const supportsFocus = scannerCameraSupportsFocus(device);
+  const handleSessionConfigSelected = useCallback((config: unknown) => {
+    const candidate = config as {
+      photo?: { width?: number; height?: number };
+      video?: { width?: number; height?: number };
+      fps?: number;
+      frameRate?: number;
+    };
+    const photoResolution = sizeFromUnknown(candidate.photo);
+    const videoResolution = sizeFromUnknown(candidate.video);
+    const fps = typeof candidate.fps === 'number'
+      ? candidate.fps
+      : typeof candidate.frameRate === 'number'
+        ? candidate.frameRate
+        : qualityProfile?.targetFps ?? null;
+    const summary: ScannerCameraSessionSummary = {
+      selectedFormat: qualityProfile?.selectedFormatLabel ?? 'VisionCamera selected config',
+      photoResolution,
+      videoResolution,
+      fps,
+    };
+    onSessionConfigChange?.(summary);
+  }, [onSessionConfigChange, qualityProfile]);
   const handleFrameAnalysis = useCallback((nativeFrame: ScannerCameraFrame) => {
     onFrameAnalysis(nativeFrame);
   }, [onFrameAnalysis]);
@@ -121,14 +149,31 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
       }
     },
   });
+  const constraints = useMemo<Constraint[]>(() => {
+    if (!qualityProfile) return [];
+    return [
+      { fps: qualityProfile.constraints.fps },
+      { binned: qualityProfile.constraints.binned },
+      { resolutionBias: photoOutput },
+      { resolutionBias: frameOutput },
+    ];
+  }, [frameOutput, photoOutput, qualityProfile]);
 
   useEffect(() => {
     onLensOptionsChange?.(lensSelection.options);
   }, [lensSelection.options, onLensOptionsChange]);
 
   useEffect(() => {
+    onCameraInventoryChange?.(lensSelection);
+  }, [lensSelection, onCameraInventoryChange]);
+
+  useEffect(() => {
     onDeviceDiagnosticsChange?.(deviceSummary);
   }, [deviceSummary, onDeviceDiagnosticsChange]);
+
+  useEffect(() => {
+    onQualityProfileChange?.(qualityProfile);
+  }, [onQualityProfileChange, qualityProfile]);
 
   useEffect(() => {
     onTorchStateChange?.(torchState);
@@ -171,8 +216,11 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
       style={StyleSheet.absoluteFill}
       device={device}
       outputs={[photoOutput, frameOutput]}
+      constraints={constraints}
       isActive={active}
       torchMode={torchState.torchProp}
+      zoom={qualityProfile?.defaultZoom ?? undefined}
+      onSessionConfigSelected={handleSessionConfigSelected}
       resizeMode="cover"
       enableNativeTapToFocusGesture={focusEnabled && supportsFocus}
       onStarted={onReady}
@@ -181,3 +229,10 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
     />
   );
 });
+
+function sizeFromUnknown(value: unknown) {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as { width?: unknown; height?: unknown };
+  if (typeof candidate.width !== 'number' || typeof candidate.height !== 'number') return null;
+  return { width: candidate.width, height: candidate.height };
+}

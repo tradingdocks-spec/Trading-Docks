@@ -8,6 +8,7 @@ import { AccessibilityInfo, AppState, Platform, Pressable, ScrollView, Share, St
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  TDBadge,
   TDButton,
   TDCard,
   TDChip,
@@ -19,7 +20,7 @@ import {
   TDSessionStrip as TDSessionStripPrimitive,
   TDText,
 } from '@/components/design-system';
-import { ScannerCamera, type ScannerCameraFrame, type ScannerCameraHandle } from '@/components/scanner-camera';
+import { ScannerCamera, type ScannerCameraFrame, type ScannerCameraHandle, type ScannerCameraSessionSummary } from '@/components/scanner-camera';
 import { color, radius, space } from '@/design';
 import { useAccount } from '@/providers/account';
 import { CARD_CONDITION_OPTIONS, TRADE_BINDER_STATUS_OPTIONS } from '@/services/collector-mutations';
@@ -75,17 +76,23 @@ import {
 } from '@/services/scanner-camera-quality';
 import {
   SCANNER_CAMERA_LENS_LABELS,
+  appendScannerCameraEvent,
   convertPreviewTapToCameraPoint,
   normalizeScannerCameraLensMode,
+  normalizeScannerCameraSelectionMode,
+  resolveAutoCaptureReadiness,
   resolveScannerFocusRequest,
   scannerCameraPreferenceKey,
   scannerFocusReticleDuration,
   shouldIgnoreFrameAfterLensSwitch,
   shouldWarnAboutTorchThrash,
   type ScannerCameraDeviceSummary,
+  type ScannerCameraLensSelection,
   type ScannerCameraLensMode,
   type ScannerCameraLensOption,
   type ScannerCameraPoint,
+  type ScannerCameraQualityProfile,
+  type ScannerCameraRuntimeEvent,
   type ScannerFocusConversion,
   type ScannerTorchState,
   type ScannerTorchTransition,
@@ -171,10 +178,14 @@ export default function Scan() {
   const [torchEnabled, setTorchEnabled] = useState(false);
   const [torchState, setTorchState] = useState<ScannerTorchState | null>(null);
   const [cameraLensMode, setCameraLensMode] = useState<ScannerCameraLensMode>('auto');
+  const [rawCameraDeviceId, setRawCameraDeviceId] = useState<string | null>(null);
   const [cameraLensOptions, setCameraLensOptions] = useState<ScannerCameraLensOption[]>([
     { mode: 'auto', label: 'Auto', shortLabel: 'Auto', supported: true, deviceId: null },
   ]);
+  const [cameraInventory, setCameraInventory] = useState<ScannerCameraLensSelection | null>(null);
   const [cameraDeviceDiagnostics, setCameraDeviceDiagnostics] = useState<ScannerCameraDeviceSummary | null>(null);
+  const [cameraQualityProfile, setCameraQualityProfile] = useState<ScannerCameraQualityProfile | null>(null);
+  const [cameraSessionSummary, setCameraSessionSummary] = useState<ScannerCameraSessionSummary | null>(null);
   const [focusDiagnostics, setFocusDiagnostics] = useState<{
     requestedPoint: ScannerCameraPoint;
     convertedPoint: ScannerFocusConversion['normalizedPoint'];
@@ -194,6 +205,10 @@ export default function Scan() {
   });
   const [lastCameraSwitchDurationMs, setLastCameraSwitchDurationMs] = useState<number | null>(null);
   const [torchWarning, setTorchWarning] = useState<string | null>(null);
+  const [cameraEvents, setCameraEvents] = useState<ScannerCameraRuntimeEvent[]>([]);
+  const [liveFrameCount, setLiveFrameCount] = useState(0);
+  const [firstLiveFrameAt, setFirstLiveFrameAt] = useState<number | null>(null);
+  const [latestLiveFrameAt, setLatestLiveFrameAt] = useState<number | null>(null);
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
   const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -220,6 +235,7 @@ export default function Scan() {
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showModeSelectionSheet, setShowModeSelectionSheet] = useState(false);
   const [showCameraSelectionSheet, setShowCameraSelectionSheet] = useState(false);
+  const [showCameraInspectorSheet, setShowCameraInspectorSheet] = useState(false);
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
@@ -371,7 +387,41 @@ export default function Scan() {
     () => buildScannerPerformanceReport(scannerPerformanceSamples),
     [scannerPerformanceSamples],
   );
-  const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showModeSelectionSheet || showCameraSelectionSheet;
+  const autoCaptureReadiness = useMemo(() => resolveAutoCaptureReadiness({
+    frameCount: liveFrameCount,
+    firstFrameAt: firstLiveFrameAt,
+    latestFrameAt: latestLiveFrameAt,
+    cardPresence: Boolean(liveVisionResult?.detection.cardPresent),
+    cornersVisible: diagnosticsSnapshot.cardCornersVisible,
+    guideFill: diagnosticsSnapshot.fillPercentage,
+    aspectRatio: liveVisionResult?.detection.aspectRatio ?? null,
+    centerOffset: liveVisionResult?.detection.centerOffset.normalized ?? null,
+    blur: diagnosticsSnapshot.blurScore,
+    motion: diagnosticsSnapshot.motionScore,
+    lighting: diagnosticsSnapshot.lightingScore,
+    glare: diagnosticsSnapshot.glareScore,
+    stableDurationMs: diagnosticsSnapshot.stabilityMs,
+    removalState: autoScanner.duplicateProtection.awaitingCardRemoval ? 'awaiting_removal' : 'clear',
+    processing: scannerProcessing,
+    duplicateBlocked: autoScanner.duplicateProtection.awaitingCardRemoval,
+    cameraReady,
+  }), [
+    autoScanner.duplicateProtection.awaitingCardRemoval,
+    cameraReady,
+    diagnosticsSnapshot.blurScore,
+    diagnosticsSnapshot.cardCornersVisible,
+    diagnosticsSnapshot.fillPercentage,
+    diagnosticsSnapshot.glareScore,
+    diagnosticsSnapshot.lightingScore,
+    diagnosticsSnapshot.motionScore,
+    diagnosticsSnapshot.stabilityMs,
+    firstLiveFrameAt,
+    latestLiveFrameAt,
+    liveFrameCount,
+    liveVisionResult,
+    scannerProcessing,
+  ]);
+  const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showModeSelectionSheet || showCameraSelectionSheet || showCameraInspectorSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
     saving: false,
@@ -379,6 +429,33 @@ export default function Scan() {
     state: scanner2State,
   });
   const showAddedOverlay = scanner2State === 'added' || scanner2State === 'remove_card';
+  const logCameraEvent = useCallback((event: Omit<ScannerCameraRuntimeEvent, 'id'>) => {
+    setCameraEvents((current) => appendScannerCameraEvent(current, event));
+  }, []);
+  const previousProcessingRef = useRef(scannerProcessing);
+  const previousAutoCaptureRef = useRef(autoCaptureEnabled);
+  useEffect(() => {
+    if (previousProcessingRef.current === scannerProcessing) return;
+    logCameraEvent({
+      at: scannerNow(),
+      type: 'processing_change',
+      oldValue: previousProcessingRef.current ? 'processing' : 'idle',
+      newValue: scannerProcessing ? 'processing' : 'idle',
+      reason: 'processing',
+    });
+    previousProcessingRef.current = scannerProcessing;
+  }, [logCameraEvent, scannerProcessing]);
+  useEffect(() => {
+    if (previousAutoCaptureRef.current === autoCaptureEnabled) return;
+    logCameraEvent({
+      at: scannerNow(),
+      type: 'auto_capture_change',
+      oldValue: previousAutoCaptureRef.current ? 'enabled' : 'disabled',
+      newValue: autoCaptureEnabled ? 'enabled' : 'disabled',
+      reason: 'auto_capture',
+    });
+    previousAutoCaptureRef.current = autoCaptureEnabled;
+  }, [autoCaptureEnabled, logCameraEvent]);
   const handleLiveFrame = useCallback((frame: ScannerCameraFrame) => {
     if (!mountedRef.current || !context || frame.userId !== context.userId || !previewDimensions) return;
     if (shouldIgnoreFrameAfterLensSwitch({
@@ -386,6 +463,9 @@ export default function Scan() {
       switchStartedAt: cameraLensSwitchStartedAtRef.current,
       cameraReady,
     })) return;
+    setLiveFrameCount((count) => count + 1);
+    setFirstLiveFrameAt((current) => current ?? frame.capturedAt);
+    setLatestLiveFrameAt(frame.capturedAt);
     setPreviewSourceDimensions((current) => (
       current?.width === frame.previewResolution.width && current.height === frame.previewResolution.height
         ? current
@@ -442,10 +522,18 @@ export default function Scan() {
         const rawCameraPreferences = await appStorage.getItem(scannerCameraPreferenceKey(result.userId));
         if (rawCameraPreferences) {
           try {
-            const parsed = JSON.parse(rawCameraPreferences) as { lensMode?: unknown };
-            setCameraLensMode(normalizeScannerCameraLensMode(parsed.lensMode));
+            const parsed = JSON.parse(rawCameraPreferences) as { lensMode?: unknown; rawDeviceId?: unknown };
+            const mode = normalizeScannerCameraSelectionMode(parsed.lensMode);
+            if (mode === 'raw' && typeof parsed.rawDeviceId === 'string') {
+              setCameraLensMode('auto');
+              setRawCameraDeviceId(parsed.rawDeviceId);
+            } else {
+              setCameraLensMode(normalizeScannerCameraLensMode(parsed.lensMode));
+              setRawCameraDeviceId(null);
+            }
           } catch {
             setCameraLensMode('auto');
+            setRawCameraDeviceId(null);
           }
         }
         if (isScannerDiagnosticsEnabled()) {
@@ -485,6 +573,13 @@ export default function Scan() {
   useEffect(() => {
     const handleAppStateChange = (nextState: AppStateStatus) => {
       const foregrounded = nextState === 'active';
+      logCameraEvent({
+        at: scannerNow(),
+        type: 'app_state_change',
+        oldValue: appForegrounded ? 'active' : 'background',
+        newValue: foregrounded ? 'active' : 'background',
+        reason: 'app_state',
+      });
       setAppForegrounded(foregrounded);
       if (!foregrounded) {
         activeCaptureIdRef.current = null;
@@ -495,7 +590,7 @@ export default function Scan() {
     };
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [permission, userPausedCamera]);
+  }, [appForegrounded, logCameraEvent, permission, userPausedCamera]);
 
   useEffect(() => () => {
     if (diagnosticCaptureUri) void deleteCapturedStill(diagnosticCaptureUri);
@@ -548,8 +643,8 @@ export default function Scan() {
 
   useEffect(() => {
     if (!context) return;
-    void appStorage.setItem(scannerCameraPreferenceKey(context.userId), JSON.stringify({ lensMode: cameraLensMode }));
-  }, [cameraLensMode, context]);
+    void appStorage.setItem(scannerCameraPreferenceKey(context.userId), JSON.stringify(rawCameraDeviceId ? { lensMode: 'raw', rawDeviceId: rawCameraDeviceId } : { lensMode: cameraLensMode }));
+  }, [cameraLensMode, context, rawCameraDeviceId]);
 
   useEffect(() => {
     if (torchState?.torchEnabled && !torchState.torchSupported) {
@@ -566,8 +661,15 @@ export default function Scan() {
         ...current,
         isActiveTransitions: current.isActiveTransitions + 1,
       }));
+      logCameraEvent({
+        at: scannerNow(),
+        type: 'is_active_change',
+        oldValue: wasActive ? 'active' : 'inactive',
+        newValue: cameraActive ? 'active' : 'inactive',
+        reason: 'lifecycle',
+      });
     }
-  }, [cameraActive]);
+  }, [cameraActive, logCameraEvent]);
 
   useEffect(() => {
     if (!context) return;
@@ -897,16 +999,30 @@ export default function Scan() {
       ...current,
       previewStarts: current.previewStarts + 1,
     }));
+    logCameraEvent({
+      at: readyAt,
+      type: 'frame_processor_change',
+      oldValue: 'initializing',
+      newValue: 'ready',
+      reason: 'frame_processor',
+    });
     setCameraReady(true);
     setCaptureState('ready');
-  }, []);
+  }, [logCameraEvent]);
 
   const handleCameraPreviewStopped = useCallback(() => {
     setCameraLifecycleDiagnostics((current) => ({
       ...current,
       previewStops: current.previewStops + 1,
     }));
-  }, []);
+    logCameraEvent({
+      at: scannerNow(),
+      type: 'frame_processor_change',
+      oldValue: 'ready',
+      newValue: 'stopped',
+      reason: 'frame_processor',
+    });
+  }, [logCameraEvent]);
 
   const handleCameraDeviceDiagnostics = useCallback((summary: ScannerCameraDeviceSummary | null) => {
     const previousDeviceId = activeCameraDeviceIdRef.current;
@@ -918,23 +1034,44 @@ export default function Scan() {
           deviceChanges: current.deviceChanges + 1,
         }));
       }
+      logCameraEvent({
+        at: scannerNow(),
+        type: 'device_change',
+        oldValue: previousDeviceId ?? 'none',
+        newValue: summary?.id ?? 'none',
+        reason: 'device_change',
+      });
       activeCameraDeviceIdRef.current = summary?.id ?? null;
     }
-  }, []);
+  }, [logCameraEvent]);
 
   const handleCameraMounted = useCallback(() => {
     setCameraLifecycleDiagnostics((current) => ({
       ...current,
       mounts: current.mounts + 1,
     }));
-  }, []);
+    logCameraEvent({
+      at: scannerNow(),
+      type: 'camera_mount',
+      oldValue: 'unmounted',
+      newValue: 'mounted',
+      reason: 'lifecycle',
+    });
+  }, [logCameraEvent]);
 
   const handleCameraUnmounted = useCallback(() => {
     setCameraLifecycleDiagnostics((current) => ({
       ...current,
       unmounts: current.unmounts + 1,
     }));
-  }, []);
+    logCameraEvent({
+      at: scannerNow(),
+      type: 'camera_unmount',
+      oldValue: 'mounted',
+      newValue: 'unmounted',
+      reason: 'lifecycle',
+    });
+  }, [logCameraEvent]);
 
   const handleTorchStateChange = useCallback((nextTorchState: ScannerTorchState) => {
     setTorchState(nextTorchState);
@@ -950,23 +1087,45 @@ export default function Scan() {
       if (shouldWarnAboutTorchThrash(nextTransitions, transition.at)) {
         setTorchWarning('Torch changed repeatedly without a user action. Check camera lifecycle diagnostics.');
       }
+      logCameraEvent({
+        at: transition.at,
+        type: 'torch_change',
+        oldValue: previous?.state ?? 'unknown',
+        newValue: nextTorchState.torchProp,
+        reason: transition.reason,
+      });
     }
-  }, []);
+  }, [logCameraEvent]);
 
   const updateCameraLensOptions = useCallback((options: ScannerCameraLensOption[]) => {
     setCameraLensOptions(options);
-    if (!options.some((option) => option.mode === cameraLensMode && option.supported)) {
+    if (!rawCameraDeviceId && !options.some((option) => option.mode === cameraLensMode && option.supported)) {
       setCameraLensMode('auto');
     }
-  }, [cameraLensMode]);
+  }, [cameraLensMode, rawCameraDeviceId]);
+
+  const handleCameraInventoryChange = useCallback((selection: ScannerCameraLensSelection) => {
+    setCameraInventory(selection);
+  }, []);
 
   const selectCameraLens = useCallback((mode: ScannerCameraLensMode) => {
     const option = cameraLensOptions.find((candidateOption) => candidateOption.mode === mode);
-    if (!option?.supported || mode === cameraLensMode) {
+    if (!option?.supported) {
+      setShowCameraSelectionSheet(false);
+      return;
+    }
+    if (!rawCameraDeviceId && mode === cameraLensMode) {
       setShowCameraSelectionSheet(false);
       return;
     }
     cameraLensSwitchStartedAtRef.current = scannerNow();
+    logCameraEvent({
+      at: cameraLensSwitchStartedAtRef.current,
+      type: 'device_change',
+      oldValue: rawCameraDeviceId ?? cameraLensMode,
+      newValue: mode,
+      reason: 'device_change',
+    });
     activeCaptureIdRef.current = null;
     activeSearchIdRef.current = null;
     autoCaptureInFlightRef.current = false;
@@ -975,15 +1134,45 @@ export default function Scan() {
     setLiveVisionResult(null);
     setFocusReticle(null);
     setLastCameraSwitchDurationMs(null);
+    setRawCameraDeviceId(null);
     setCameraLensMode(mode);
     setShowCameraSelectionSheet(false);
-  }, [cameraLensMode, cameraLensOptions]);
+  }, [cameraLensMode, cameraLensOptions, logCameraEvent, rawCameraDeviceId]);
+
+  const selectRawCameraDevice = useCallback((deviceId: string) => {
+    cameraLensSwitchStartedAtRef.current = scannerNow();
+    logCameraEvent({
+      at: cameraLensSwitchStartedAtRef.current,
+      type: 'device_change',
+      oldValue: rawCameraDeviceId ?? cameraLensMode,
+      newValue: deviceId,
+      reason: 'device_change',
+    });
+    activeCaptureIdRef.current = null;
+    activeSearchIdRef.current = null;
+    autoCaptureInFlightRef.current = false;
+    setCameraReady(false);
+    setCaptureState('camera_not_ready');
+    setLiveVisionResult(null);
+    setFocusReticle(null);
+    setLastCameraSwitchDurationMs(null);
+    setRawCameraDeviceId(deviceId);
+    setShowCameraInspectorSheet(false);
+    setShowCameraSelectionSheet(false);
+  }, [cameraLensMode, logCameraEvent, rawCameraDeviceId]);
 
   const handlePreviewFocusTap = useCallback(async (event: GestureResponderEvent) => {
     const requestedPoint = {
       x: event.nativeEvent.locationX,
       y: event.nativeEvent.locationY,
     };
+    logCameraEvent({
+      at: scannerNow(),
+      type: 'focus_request',
+      oldValue: focusDiagnostics?.outcome ?? 'none',
+      newValue: `${Math.round(requestedPoint.x)},${Math.round(requestedPoint.y)}`,
+      reason: 'user',
+    });
     const supportsFocus = Boolean(cameraDeviceDiagnostics?.supportsFocus);
     const focusRequest = resolveScannerFocusRequest({
       active: permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle),
@@ -1045,7 +1234,9 @@ export default function Scan() {
     cameraLifecycle,
     cameraRef,
     cameraStageHeight,
+    focusDiagnostics?.outcome,
     hapticsEnabled,
+    logCameraEvent,
     permission,
     previewDimensions,
     previewSourceDimensions,
@@ -1161,7 +1352,9 @@ export default function Scan() {
   if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading scanner" message="Preparing collection, storage, and confirmation options." /></TDScreen>;
 
   const supportedCameraLensOptions = cameraLensOptions.filter((option) => option.supported);
-  const selectedCameraLensLabel = supportedCameraLensOptions.find((option) => option.mode === cameraLensMode)?.label
+  const selectedCameraLensLabel = rawCameraDeviceId
+    ? `Raw ${cameraInventory?.rearDevices.find((device) => device.id === rawCameraDeviceId)?.name ?? 'camera'}`
+    : supportedCameraLensOptions.find((option) => option.mode === cameraLensMode)?.label
     ?? SCANNER_CAMERA_LENS_LABELS[cameraLensMode].label;
 
   return (
@@ -1176,6 +1369,7 @@ export default function Scan() {
         torchEnabled={torchEnabled}
         torchSupported={torchState?.torchSupported ?? true}
         cameraLensMode={cameraLensMode}
+        rawCameraDeviceId={rawCameraDeviceId}
         appForegrounded={appForegrounded}
         scannerProcessing={scannerProcessing}
         focusReticle={focusReticle}
@@ -1195,7 +1389,10 @@ export default function Scan() {
         onRequestCamera={requestCamera}
         onPreviewFocusTap={handlePreviewFocusTap}
         onLensOptionsChange={updateCameraLensOptions}
+        onCameraInventoryChange={handleCameraInventoryChange}
         onDeviceDiagnosticsChange={handleCameraDeviceDiagnostics}
+        onQualityProfileChange={setCameraQualityProfile}
+        onSessionConfigChange={setCameraSessionSummary}
         onTorchStateChange={handleTorchStateChange}
         onCameraMounted={handleCameraMounted}
         onCameraUnmounted={handleCameraUnmounted}
@@ -1287,7 +1484,56 @@ export default function Scan() {
                   {cameraLensMode === option.mode ? <Ionicons name="checkmark-circle" size={20} color={color.primaryBright} /> : null}
                 </Pressable>
               ))}
+              {diagnosticsEnabled ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open raw camera inspector"
+                  onPress={() => {
+                    setShowCameraSelectionSheet(false);
+                    setShowCameraInspectorSheet(true);
+                  }}
+                  style={({ pressed }) => [s.lensOption, pressed && s.settingsRowPressed]}
+                >
+                  <View style={s.flex}>
+                    <TDText variant="small">Raw cameras</TDText>
+                    <TDText variant="caption" tone="muted">Development-only hardware comparison.</TDText>
+                  </View>
+                  <Ionicons name="construct-outline" size={20} color={color.warning} />
+                </Pressable>
+              ) : null}
             </View>
+          </TDCard>
+        ) : null}
+
+        {diagnosticsEnabled && showCameraInspectorSheet ? (
+          <TDCard style={s.sheet}>
+            <SheetHeader title="Camera Inspector" onClose={() => setShowCameraInspectorSheet(false)} />
+            <TDText variant="small" tone="muted">Development-only. Raw device IDs are hidden from normal scanner settings.</TDText>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[s.sheetScroll, { paddingBottom: insets.bottom + 92 }]}>
+              {(cameraInventory?.rearDevices ?? []).map((device, index) => (
+                <Pressable
+                  key={device.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: rawCameraDeviceId === device.id || cameraDeviceDiagnostics?.id === device.id }}
+                  accessibilityLabel={`Select raw camera ${index + 1}`}
+                  onPress={() => selectRawCameraDevice(device.id)}
+                  style={({ pressed }) => [s.rawCameraCard, rawCameraDeviceId === device.id && s.lensOptionSelected, pressed && s.settingsRowPressed]}
+                >
+                  <View style={s.rawCameraHeader}>
+                    <TDText variant="small">Camera {index + 1}</TDText>
+                    <TDBadge tone={device.hasTorch ? 'success' : 'neutral'}>{device.hasTorch ? 'Torch' : 'No torch'}</TDBadge>
+                  </View>
+                  <TDText variant="caption" tone="muted">{device.name}</TDText>
+                  <TDText variant="caption" tone="muted">ID {device.id}</TDText>
+                  <TDText variant="caption" tone="muted">Physical {device.physicalDevices.join(' | ') || 'unavailable'}</TDText>
+                  <TDText variant="caption" tone="muted">Focus {device.supportsFocus ? 'yes' : 'no'}; min focus {device.minFocusDistance ?? 'not exposed'}</TDText>
+                  <TDText variant="caption" tone="muted">Zoom {device.minZoom ?? '?'} / {device.neutralZoom ?? 'n/a'} / {device.maxZoom ?? '?'}</TDText>
+                  <TDText variant="caption" tone="muted">Max photo {resolutionSummary(device.maxPhotoResolution)}; max video {resolutionSummary(device.maxVideoResolution)}</TDText>
+                  <TDText variant="caption" tone="muted">FPS {device.fpsRanges.map((range) => `${range.min}-${range.max}`).join(', ') || 'unavailable'}</TDText>
+                </Pressable>
+              ))}
+              {cameraInventory?.rearDevices.length ? null : <TDEmptyState title="No rear cameras discovered" message="VisionCamera has not returned camera devices yet." />}
+            </ScrollView>
           </TDCard>
         ) : null}
 
@@ -1360,8 +1606,18 @@ export default function Scan() {
               <DiagnosticCell label="Camera lens" value={selectedCameraLensLabel} />
               <DiagnosticCell label="Device ID" value={cameraDeviceDiagnostics?.id ?? 'unavailable'} />
               <DiagnosticCell label="Device name" value={cameraDeviceDiagnostics?.name ?? 'unavailable'} />
+              <DiagnosticCell label="Position" value={cameraDeviceDiagnostics?.position ?? 'unavailable'} />
               <DiagnosticCell label="Physical devices" value={cameraDeviceDiagnostics?.physicalDevices.join(' | ') || 'unavailable'} />
+              <DiagnosticCell label="Formats count" value={cameraDeviceDiagnostics?.formatsCount === null ? 'not exposed by VisionCamera 5' : String(cameraDeviceDiagnostics?.formatsCount ?? 'unavailable')} />
+              <DiagnosticCell label="Selected format" value={cameraSessionSummary?.selectedFormat ?? cameraQualityProfile?.selectedFormatLabel ?? 'unavailable'} />
+              <DiagnosticCell label="Photo target" value={resolutionSummary(cameraQualityProfile?.photoResolution ?? null)} />
+              <DiagnosticCell label="Frame target" value={resolutionSummary(cameraQualityProfile?.frameResolution ?? null)} />
+              <DiagnosticCell label="Actual photo" value={resolutionSummary(cameraSessionSummary?.photoResolution ?? null)} />
+              <DiagnosticCell label="Actual video" value={resolutionSummary(cameraSessionSummary?.videoResolution ?? null)} />
+              <DiagnosticCell label="FPS target" value={cameraQualityProfile ? `${cameraQualityProfile.targetFps} fps` : 'unavailable'} />
+              <DiagnosticCell label="FPS actual" value={cameraSessionSummary?.fps ? `${cameraSessionSummary.fps} fps` : 'unavailable'} />
               <DiagnosticCell label="Zoom range" value={cameraDeviceDiagnostics ? `${cameraDeviceDiagnostics.minZoom ?? '?'} / ${cameraDeviceDiagnostics.neutralZoom ?? 'n/a'} / ${cameraDeviceDiagnostics.maxZoom ?? '?'}` : 'unavailable'} />
+              <DiagnosticCell label="Default zoom" value={cameraQualityProfile?.defaultZoom === null || cameraQualityProfile?.defaultZoom === undefined ? 'unavailable' : String(cameraQualityProfile.defaultZoom)} />
               <DiagnosticCell label="Min focus distance" value={cameraDeviceDiagnostics?.minFocusDistance === null ? 'not exposed by VisionCamera' : String(cameraDeviceDiagnostics?.minFocusDistance ?? 'unavailable')} />
               <DiagnosticCell label="Supports focus" value={cameraDeviceDiagnostics?.supportsFocus ? 'yes' : 'no'} />
               <DiagnosticCell label="Has torch" value={cameraDeviceDiagnostics?.hasTorch ? 'yes' : 'no'} />
@@ -1375,6 +1631,19 @@ export default function Scan() {
               <DiagnosticCell label="Preview starts" value={`${cameraLifecycleDiagnostics.previewStarts} / ${cameraLifecycleDiagnostics.previewStops}`} />
               <DiagnosticCell label="Device changes" value={String(cameraLifecycleDiagnostics.deviceChanges)} />
               <DiagnosticCell label="Active transitions" value={String(cameraLifecycleDiagnostics.isActiveTransitions)} />
+              <DiagnosticCell label="Frame count" value={String(liveFrameCount)} />
+              <DiagnosticCell label="Effective FPS" value={autoCaptureReadiness.effectiveFps === null ? 'unavailable' : `${autoCaptureReadiness.effectiveFps} fps`} />
+              <DiagnosticCell label="Auto capture" value={autoCaptureReadiness.label} />
+              <DiagnosticCell label="Auto blocked by" value={autoCaptureReadiness.reasons.join(' | ') || 'ready'} />
+              <DiagnosticCell label="Card presence" value={liveVisionResult?.detection.cardPresent ? 'present' : 'unavailable'} />
+              <DiagnosticCell label="Corners" value={String(diagnosticsSnapshot.cardCornersVisible)} />
+              <DiagnosticCell label="Fill" value={diagnosticsSnapshot.fillPercentage === null ? 'unavailable' : diagnosticsSnapshot.fillPercentage.toFixed(2)} />
+              <DiagnosticCell label="Center offset" value={liveVisionResult?.detection.centerOffset ? liveVisionResult.detection.centerOffset.normalized.toFixed(2) : 'unavailable'} />
+              <DiagnosticCell label="Blur" value={diagnosticsSnapshot.blurScore === null ? 'unavailable' : diagnosticsSnapshot.blurScore.toFixed(2)} />
+              <DiagnosticCell label="Motion" value={diagnosticsSnapshot.motionScore === null ? 'unavailable' : diagnosticsSnapshot.motionScore.toFixed(2)} />
+              <DiagnosticCell label="Lighting" value={diagnosticsSnapshot.lightingScore === null ? 'unavailable' : diagnosticsSnapshot.lightingScore.toFixed(2)} />
+              <DiagnosticCell label="Glare" value={diagnosticsSnapshot.glareScore === null ? 'unavailable' : diagnosticsSnapshot.glareScore.toFixed(2)} />
+              <DiagnosticCell label="Stable" value={diagnosticsSnapshot.stabilityMs === null ? 'unavailable' : `${diagnosticsSnapshot.stabilityMs} ms`} />
               <DiagnosticCell label="OCR stage" value={recognitionStage.replaceAll('_', ' ')} />
               <DiagnosticCell label="OCR latency" value={magicStillScan?.ok ? `${magicStillScan.ocr.latencyMs} ms` : 'unavailable'} />
               <DiagnosticCell label="Scryfall" value={magicStillScan?.ok ? `${magicStillScan.lookupLatencyMs} ms` : 'unavailable'} />
@@ -1419,6 +1688,15 @@ export default function Scan() {
               <DiagnosticCell label="Persist result" value={lastPricingTrace?.persistenceResult ?? 'unavailable'} />
               <DiagnosticCell label="Offer recalc" value={lastPricingTrace?.offerRecalculationResult ?? 'unavailable'} />
               <DiagnosticCell label="Pricing latency" value={performanceMs(lastPricingTrace?.pricingLatencyMs ?? null)} />
+            </View>
+            <View style={s.eventLog}>
+              <TDText variant="label" tone="muted">Camera event log</TDText>
+              {cameraEvents.slice(0, 12).map((event) => (
+                <TDText key={event.id} variant="caption" tone="muted">
+                  {Math.round(event.at)} {event.type}: {event.oldValue} -&gt; {event.newValue} ({event.reason})
+                </TDText>
+              ))}
+              {cameraEvents.length ? null : <TDText variant="caption" tone="muted">No camera events recorded yet.</TDText>}
             </View>
             {diagnosticCaptureUri && magicStillScan?.cropDiagnostics ? (
               <View style={s.cropProofGrid}>
@@ -1504,6 +1782,7 @@ function ScannerViewport({
   torchEnabled,
   torchSupported,
   cameraLensMode,
+  rawCameraDeviceId,
   appForegrounded,
   scannerProcessing,
   focusReticle,
@@ -1523,7 +1802,10 @@ function ScannerViewport({
   onRequestCamera,
   onPreviewFocusTap,
   onLensOptionsChange,
+  onCameraInventoryChange,
   onDeviceDiagnosticsChange,
+  onQualityProfileChange,
+  onSessionConfigChange,
   onTorchStateChange,
   onCameraMounted,
   onCameraUnmounted,
@@ -1539,6 +1821,7 @@ function ScannerViewport({
   torchEnabled: boolean;
   torchSupported: boolean;
   cameraLensMode: ScannerCameraLensMode;
+  rawCameraDeviceId: string | null;
   appForegrounded: boolean;
   scannerProcessing: boolean;
   focusReticle: ScannerCameraPoint | null;
@@ -1558,7 +1841,10 @@ function ScannerViewport({
   onRequestCamera: () => void;
   onPreviewFocusTap: (event: GestureResponderEvent) => void;
   onLensOptionsChange: (options: ScannerCameraLensOption[]) => void;
+  onCameraInventoryChange: (selection: ScannerCameraLensSelection) => void;
   onDeviceDiagnosticsChange: (summary: ScannerCameraDeviceSummary | null) => void;
+  onQualityProfileChange: (profile: ScannerCameraQualityProfile | null) => void;
+  onSessionConfigChange: (summary: ScannerCameraSessionSummary | null) => void;
   onTorchStateChange: (state: ScannerTorchState) => void;
   onCameraMounted: () => void;
   onCameraUnmounted: () => void;
@@ -1583,6 +1869,7 @@ function ScannerViewport({
             active={showCamera}
             torchEnabled={torchEnabled}
             lensMode={cameraLensMode}
+            rawDeviceId={rawCameraDeviceId}
             appForegrounded={appForegrounded}
             focusEnabled={!scannerProcessing}
             userId={userId}
@@ -1590,7 +1877,10 @@ function ScannerViewport({
             onPreviewStopped={onCameraPreviewStopped}
             onFrameAnalysis={onLiveFrame}
             onLensOptionsChange={onLensOptionsChange}
+            onCameraInventoryChange={onCameraInventoryChange}
             onDeviceDiagnosticsChange={onDeviceDiagnosticsChange}
+            onQualityProfileChange={onQualityProfileChange}
+            onSessionConfigChange={onSessionConfigChange}
             onTorchStateChange={onTorchStateChange}
           />
           <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
@@ -2031,6 +2321,8 @@ const s = StyleSheet.create({
   lensOptionList: { gap: space.sm },
   lensOption: { minHeight: 52, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, paddingVertical: space.xs, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, backgroundColor: color.canvasRaised },
   lensOptionSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '24' },
+  rawCameraCard: { minHeight: 124, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, gap: 4, backgroundColor: color.canvasRaised },
+  rawCameraHeader: { minHeight: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
   switchTrack: { width: 42, height: 24, borderRadius: radius.pill, padding: 3, justifyContent: 'center', backgroundColor: color.borderStrong },
   switchTrackOn: { backgroundColor: color.primaryBright },
   switchThumb: { width: 18, height: 18, borderRadius: radius.pill, backgroundColor: color.text },
@@ -2078,6 +2370,7 @@ const s = StyleSheet.create({
   quantityRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   signalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   signalCell: { minWidth: 116, flexGrow: 1, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, padding: space.sm, backgroundColor: color.canvasRaised },
+  eventLog: { gap: 4, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, padding: space.sm, backgroundColor: color.canvasRaised },
   cropProofGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   cropProof: { flex: 1, minWidth: 150, gap: space.xs },
   cropProofImageFrame: { height: 180, overflow: 'hidden', borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, backgroundColor: '#010711' },
