@@ -12,6 +12,7 @@ import {
   normalizeMagicTitleOcr,
   parseMagicCollectorOcr,
   rankMagicTitleObservations,
+  recognizeSequentialMagicTitle,
   recognizeMagicStillCapture,
 } from '../services/magic-ocr-pipeline.ts';
 import type { MagicRecognitionResult } from '../services/magic-recognition-provider.ts';
@@ -110,11 +111,11 @@ test('preview guide maps through aspect-fill offsets and keeps title crop inside
   assert.ok(mapping.cardCropPixels.height > mapping.titleCropPixels.height);
 });
 
-test('Magic OCR region order uses primary, expanded, lower, full-card fallback', () => {
+test('Magic OCR region order uses primary, expanded, upper-card, full-card fallback', () => {
   const regions = buildMagicOcrRegions({ x: 0.1, y: 0.08, width: 0.8, height: 0.86 });
   assert.deepEqual(
     regions.filter((region) => region.regionType === 'name').map((region) => region.id),
-    ['title_primary', 'title_expanded', 'title_lower', 'title_wide', 'full_card'],
+    ['title_primary', 'title_expanded', 'upper_card', 'full_card'],
   );
 });
 
@@ -130,18 +131,79 @@ test('title OCR normalization removes isolated mana and numeric noise without ha
   assert.equal(normalized.alternatives.includes('Brainstorm'), true);
 });
 
-test('title ranking falls back from empty primary to expanded and lower title attempts before full card', () => {
+test('title ranking falls back from empty primary to expanded and upper-card attempts before full card', () => {
   const attempts = rankMagicTitleObservations([
     { id: 'primary-empty', requestedRegionId: 'title_primary', regionType: 'name', text: 'U', rawText: 'U', confidence: 94, bounds: { x: 0.1, y: 0.06, width: 0.7, height: 0.1 } },
     { id: 'expanded', requestedRegionId: 'title_expanded', regionType: 'name', text: 'Brainstorm', rawText: 'Brainstorm', confidence: 72, bounds: { x: 0.1, y: 0.08, width: 0.76, height: 0.12 } },
-    { id: 'lower', requestedRegionId: 'title_lower', regionType: 'name', text: 'Instant', rawText: 'Instant', confidence: 90, bounds: { x: 0.1, y: 0.58, width: 0.76, height: 0.08 } },
-    { id: 'wide', requestedRegionId: 'title_wide', regionType: 'name', text: 'Brainstorm', rawText: 'Brainstorm', confidence: 70, bounds: { x: 0.05, y: 0.07, width: 0.9, height: 0.15 } },
+    { id: 'upper', requestedRegionId: 'upper_card', regionType: 'name', text: 'Brainstorm', rawText: 'Brainstorm', confidence: 70, bounds: { x: 0.05, y: 0.07, width: 0.9, height: 0.25 } },
     { id: 'full-card', requestedRegionId: 'full_card', regionType: 'name', text: 'Brainstorm Instant Draw three cards', rawText: 'Brainstorm Instant Draw three cards', confidence: 88, bounds: { x: 0.1, y: 0.1, width: 0.7, height: 0.8 } },
   ]);
   assert.equal(attempts[0].id, 'title_expanded');
   assert.equal(attempts[0].normalizedText, 'Brainstorm');
   assert.equal(attempts.some((attempt) => attempt.id === 'full_card'), true);
   assert.equal(attempts.find((attempt) => attempt.id === 'title_primary')?.reason, 'rejected_noise');
+});
+
+test('sequential OCR stops after a strong title and treats collector OCR as optional', async () => {
+  const calls: string[] = [];
+  const result = await recognizeSequentialMagicTitle({
+    imageUri: 'file:///tmp/card.jpg',
+    regions: buildMagicOcrRegions({ x: 0.1, y: 0.08, width: 0.8, height: 0.86 }),
+    recognize: async (request) => {
+      calls.push(request.regions[0].id);
+      if (request.regions[0].id === 'title_primary') {
+        return {
+          ok: true,
+          provider: 'apple_vision',
+          fullText: 'Brainstorm',
+          latencyMs: 8,
+          orientationUsed: 'up',
+          warnings: [],
+          observations: [{ id: 'primary:0', requestedRegionId: 'title_primary', regionType: 'name', text: 'Brainstorm', rawText: 'Brainstorm', confidence: 92, bounds: { x: 0.1, y: 0.06, width: 0.7, height: 0.08 } }],
+        };
+      }
+      return {
+        ok: false,
+        provider: 'apple_vision',
+        code: 'empty_result',
+        message: 'No collector text.',
+        latencyMs: 5,
+        warnings: [],
+      };
+    },
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls, ['title_primary', 'collector_info']);
+  if (result.ok) {
+    assert.equal(result.observations[0].requestedRegionId, 'title_primary');
+    assert.match(result.warnings.join(' '), /Optional collector OCR failed/);
+  }
+});
+
+test('sequential OCR falls back through expanded, upper-card, and full-card regions', async () => {
+  const calls: string[] = [];
+  const result = await recognizeSequentialMagicTitle({
+    imageUri: 'file:///tmp/card.jpg',
+    regions: buildMagicOcrRegions({ x: 0.1, y: 0.08, width: 0.8, height: 0.86 }),
+    recognize: async (request) => {
+      const id = request.regions[0].id;
+      calls.push(id);
+      if (id !== 'full_card') {
+        return { ok: false, provider: 'apple_vision', code: 'empty_result', message: 'empty', latencyMs: 2, warnings: [] };
+      }
+      return {
+        ok: true,
+        provider: 'apple_vision',
+        fullText: 'Rhystic Study',
+        latencyMs: 10,
+        orientationUsed: 'up',
+        warnings: [],
+        observations: [{ id: 'full:0', requestedRegionId: 'full_card', regionType: 'name', text: 'Rhystic Study', rawText: 'Rhystic Study', confidence: 84, bounds: { x: 0.1, y: 0.08, width: 0.7, height: 0.5 } }],
+      };
+    },
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls, ['title_primary', 'title_expanded', 'upper_card', 'full_card', 'collector_info']);
 });
 
 test('collector OCR parses set code, collector number suffix, and language', () => {
@@ -194,7 +256,7 @@ test('valid OCR title produces Scryfall query diagnostics', async () => {
   if (!result.ok) return;
   assert.equal(result.cropDiagnostics.selectedTitleAttemptId, 'title_primary');
   assert.equal(result.lookupDiagnostics.outcome, 'success');
-  assert.ok(result.cropDiagnostics.titleCrops.title_wide.width > result.cropDiagnostics.titleCrops.title_primary.width);
+  assert.ok(result.cropDiagnostics.titleCrops.upper_card.height > result.cropDiagnostics.titleCrops.title_primary.height);
 });
 
 test('title-only OCR produces capped candidates when collector data is missing', async () => {

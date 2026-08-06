@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,9 +19,16 @@ import {
   type ContinuousScannerSession,
 } from '@/services/continuous-offer-scanner';
 import { displayFinish } from '@/services/collector-workspace';
-import { recognizeMagicStillCapture, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
+import { recognizeMagicStillCapture, type CropRect, type MagicStillScanCropDiagnostics, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { loadScannerContext } from '@/services/scanner-data';
 import { resolveScannerPermissionState, type ScannerCardCandidate, type ScannerPermissionState } from '@/services/scanner-foundation';
+import {
+  SINGLE_SCAN_FOCUS_SETTLE_MS,
+  createSingleScanQualityAnalyzer,
+  resolveSingleScanCaptureQuality,
+  singleScanUserFacingFailure,
+  type SingleScanCaptureQuality,
+} from '@/services/single-scan-capture-quality';
 import { appStorage } from '@/services/storage/app-storage';
 import {
   SCANNER_CAMERA_LENS_LABELS,
@@ -55,6 +62,11 @@ export default function SingleScanScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [quality, setQuality] = useState<SingleScanCaptureQuality>(() => resolveSingleScanCaptureQuality(null, { cameraReady: false, focusSettling: false }));
+  const [diagnosticCaptureUri, setDiagnosticCaptureUri] = useState<string | null>(null);
+  const [cropDiagnostics, setCropDiagnostics] = useState<MagicStillScanCropDiagnostics | null>(null);
+  const focusSettlingUntilRef = useRef(0);
+  const activeCaptureIdRef = useRef<string | null>(null);
 
   const guideLayout = useMemo(() => calculateCardGuideLayout({
     containerWidth: width,
@@ -66,6 +78,13 @@ export default function SingleScanScreen() {
   const supportedLensOptions = lensOptions.filter((option) => option.supported);
   const selectedLensLabel = supportedLensOptions.find((option) => option.mode === lensMode)?.label ?? SCANNER_CAMERA_LENS_LABELS[lensMode].label;
   const selectedCandidate = result?.ok ? result.selected ?? result.candidates[0] ?? null : null;
+  const qualityAnalyzer = useMemo(() => createSingleScanQualityAnalyzer({
+    view: { width, height },
+    guide: guideLayout,
+  }), [guideLayout, height, width]);
+  const focusSettling = Date.now() < focusSettlingUntilRef.current;
+  const currentQuality = resolveSingleScanCaptureQuality(quality.vision, { cameraReady, focusSettling });
+  const canCapture = currentQuality.canCapture && !processing;
 
   const requestCamera = useCallback(async () => {
     const request = await requestCameraPermission();
@@ -79,36 +98,57 @@ export default function SingleScanScreen() {
 
   const captureSingle = useCallback(async () => {
     if (!cameraRef.current || !cameraReady || processing) return;
+    const captureQuality = resolveSingleScanCaptureQuality(quality.vision, { cameraReady, focusSettling: Date.now() < focusSettlingUntilRef.current });
+    if (!captureQuality.canCapture) {
+      setQuality(captureQuality);
+      setMessage(captureQuality.guidance);
+      return;
+    }
     setProcessing(true);
     setMessage(null);
     setStage('reading');
     try {
       const context = await loadScannerContext();
       const captureId = createScanId();
+      activeCaptureIdRef.current = captureId;
       setLastCaptureId(captureId);
       const photo = await cameraRef.current.capturePhoto();
       const scan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
-        preview: previewResolution ?? { width, height },
+        preview: { width, height },
         image: { width: photo.width, height: photo.height },
         guide: guideLayout,
         online: true,
         cachedCandidates: [],
+        sequentialTitleOcr: true,
+        deferCleanup: isDevelopmentDiagnostics(),
         onStage: (nextStage) => setStage(nextStage === 'reading_title' ? 'reading' : 'matching'),
       });
+      if (activeCaptureIdRef.current !== captureId) return;
+      if (isDevelopmentDiagnostics()) {
+        setDiagnosticCaptureUri(photo.uri);
+        setCropDiagnostics(scan.cropDiagnostics ?? null);
+      }
       setResult(scan);
       setStage(scan.ok ? 'result' : 'failed');
-      setMessage(scan.ok ? null : scan.reason);
+      if (scan.ok) {
+        setMessage(null);
+      } else {
+        const friendly = singleScanUserFacingFailure(scan.reason);
+        setMessage(`${friendly.title} ${friendly.message}`);
+      }
       void context;
     } catch (error) {
       setStage('failed');
-      setMessage(error instanceof Error ? error.message : 'Could not scan this card.');
+      const friendly = singleScanUserFacingFailure(error instanceof Error ? error.message : 'Could not scan this card.');
+      setMessage(`${friendly.title} ${friendly.message}`);
     } finally {
       setProcessing(false);
     }
-  }, [cameraReady, guideLayout, height, previewResolution, processing, width]);
+  }, [cameraReady, guideLayout, height, processing, quality.vision, width]);
 
   const retake = useCallback(() => {
+    activeCaptureIdRef.current = null;
     setResult(null);
     setMessage(null);
     setStage('idle');
@@ -158,7 +198,16 @@ export default function SingleScanScreen() {
     setPreviewResolution((current) => current?.width === frame.previewResolution.width && current.height === frame.previewResolution.height
       ? current
       : frame.previewResolution);
-  }, []);
+    const nextQuality = qualityAnalyzer.analyzeFrame(frame);
+    setQuality(resolveSingleScanCaptureQuality(nextQuality.vision, {
+      cameraReady,
+      focusSettling: Date.now() < focusSettlingUntilRef.current,
+    }));
+  }, [cameraReady, qualityAnalyzer]);
+
+  useEffect(() => {
+    qualityAnalyzer.reset();
+  }, [qualityAnalyzer]);
 
   const handlePreviewTap = useCallback(async (event: GestureResponderEvent) => {
     const requestedPoint = { x: event.nativeEvent.locationX, y: event.nativeEvent.locationY };
@@ -177,9 +226,11 @@ export default function SingleScanScreen() {
     });
     if (!conversion.normalizedPoint) return;
     setFocusReticle(requestedPoint);
+    focusSettlingUntilRef.current = Date.now() + SINGLE_SCAN_FOCUS_SETTLE_MS;
+    setQuality((current) => resolveSingleScanCaptureQuality(current.vision, { cameraReady, focusSettling: true }));
     setTimeout(() => setFocusReticle(null), scannerFocusReticleDuration(false));
     await cameraRef.current.focusAt(conversion.normalizedPoint);
-  }, [deviceSummary?.supportsFocus, height, permission, previewResolution, processing, width]);
+  }, [cameraReady, deviceSummary?.supportsFocus, height, permission, previewResolution, processing, width]);
 
   const currentInstruction = stage === 'reading'
     ? 'Reading'
@@ -189,7 +240,7 @@ export default function SingleScanScreen() {
         ? "Couldn't identify"
         : stage === 'result'
           ? 'Review result'
-          : 'Tap Capture';
+          : currentQuality.guidance;
 
   if (!cameraPermission?.granted && permission !== 'granted') {
     return (
@@ -261,9 +312,9 @@ export default function SingleScanScreen() {
         </View>
         <View style={s.controlRow}>
           <HeaderButton label={torchEnabled ? 'Torch on' : 'Torch'} icon={torchEnabled ? 'flashlight' : 'flashlight-outline'} disabled={torchState?.torchSupported === false} onPress={() => setTorchEnabled((value) => !value)} />
-          <TDButton label="Capture" loading={processing} disabled={!cameraReady || processing} onPress={captureSingle} />
+          <TDButton label="Capture" loading={processing} disabled={!canCapture} onPress={captureSingle} />
         </View>
-        <TDText variant="caption" tone="muted" style={s.centerText}>Camera {selectedLensLabel}</TDText>
+        <TDText variant="caption" tone="muted" style={s.centerText}>Camera {selectedLensLabel} - {currentQuality.fillRatio === null ? 'align card in guide' : `${Math.round(currentQuality.fillRatio * 100)}% fill`}</TDText>
       </View>
 
       {selectedCandidate ? (
@@ -273,6 +324,8 @@ export default function SingleScanScreen() {
         <SingleSettingsSheet
           lensLabel={selectedLensLabel}
           torchLabel={torchEnabled ? 'On' : 'Off'}
+          diagnosticCaptureUri={diagnosticCaptureUri}
+          cropDiagnostics={cropDiagnostics}
           onClose={() => setSettingsOpen(false)}
         />
       ) : null}
@@ -280,6 +333,7 @@ export default function SingleScanScreen() {
         <View style={s.messageToast}>
           <TDText variant="small">{message}</TDText>
           <TDButton label="Retake" variant="secondary" onPress={retake} />
+          {stage === 'failed' ? <TDButton label="Search manually" variant="secondary" onPress={() => router.push('/scan/automatic' as never)} /> : null}
         </View>
       ) : null}
     </View>
@@ -309,10 +363,14 @@ function SingleResultSheet({ candidate, onAdd, onRetake }: { candidate: ScannerC
 function SingleSettingsSheet({
   lensLabel,
   torchLabel,
+  diagnosticCaptureUri,
+  cropDiagnostics,
   onClose,
 }: {
   lensLabel: string;
   torchLabel: string;
+  diagnosticCaptureUri: string | null;
+  cropDiagnostics: MagicStillScanCropDiagnostics | null;
   onClose: () => void;
 }) {
   return (
@@ -321,9 +379,46 @@ function SingleSettingsSheet({
       <SettingSummaryRow label="Camera" value={lensLabel} />
       <SettingSummaryRow label="Torch" value={torchLabel} />
       <SettingSummaryRow label="Capture" value="Manual" />
+      {diagnosticCaptureUri && cropDiagnostics ? <SingleCropProof imageUri={diagnosticCaptureUri} diagnostics={cropDiagnostics} /> : null}
       <TDText variant="caption" tone="muted">Automatic tuning stays in Automatic Scan. Single Scan keeps the camera surface focused on one card.</TDText>
       <TDButton label="Done" variant="secondary" onPress={onClose} />
     </TDCard>
+  );
+}
+
+function SingleCropProof({ imageUri, diagnostics }: { imageUri: string; diagnostics: MagicStillScanCropDiagnostics }) {
+  return (
+    <View style={s.cropProof}>
+      <TDText variant="label" tone="muted">Crop proof</TDText>
+      <View style={s.cropImageWrap}>
+        <Image source={{ uri: imageUri }} style={s.cropImage} contentFit="fill" />
+        <CropBox crop={diagnostics.cardCrop} tone="card" />
+        <CropBox crop={diagnostics.titleCrop} tone="title" />
+        <CropBox crop={diagnostics.collectorCrop} tone="collector" />
+      </View>
+      <TDText variant="caption" tone="muted">
+        Title {diagnostics.titleCropPixels.width} x {diagnostics.titleCropPixels.height} px - Collector {diagnostics.collectorCropPixels.width} x {diagnostics.collectorCropPixels.height} px
+      </TDText>
+    </View>
+  );
+}
+
+function CropBox({ crop, tone }: { crop: CropRect; tone: 'card' | 'title' | 'collector' }) {
+  const borderColor = tone === 'card' ? color.primaryBright : tone === 'title' ? color.success : color.warning;
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        s.cropBox,
+        {
+          left: `${crop.x * 100}%`,
+          top: `${crop.y * 100}%`,
+          width: `${crop.width * 100}%`,
+          height: `${crop.height * 100}%`,
+          borderColor,
+        },
+      ]}
+    />
   );
 }
 
@@ -346,6 +441,10 @@ function HeaderButton({ label, icon, disabled, onPress }: { label: string; icon:
 
 function createScanId() {
   return globalThis.crypto?.randomUUID?.() ?? `scan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function isDevelopmentDiagnostics() {
+  return typeof __DEV__ !== 'undefined' && __DEV__;
 }
 
 function parseScannerSession(rawSession: string, userId: string): ContinuousScannerSession | null {
@@ -379,6 +478,10 @@ const s = StyleSheet.create({
   resultSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 40, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
   settingsSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 45, gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
   settingRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
+  cropProof: { gap: space.xs },
+  cropImageWrap: { width: 132, height: 176, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },
+  cropImage: { width: '100%', height: '100%' },
+  cropBox: { position: 'absolute', borderWidth: 2 },
   cardImage: { width: 72, height: 102, borderRadius: radius.sm, backgroundColor: color.surface },
   imageFallback: { width: 72, height: 102, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   resultText: { flex: 1, minWidth: 0, gap: 4 },

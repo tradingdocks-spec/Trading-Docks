@@ -17,7 +17,7 @@ import { parseCollectorInfoText, type CollectorInfoObservation, type Recognition
 export type CaptureDimensions = { width: number; height: number };
 export type CropRect = { x: number; y: number; width: number; height: number };
 export type PixelRect = { x: number; y: number; width: number; height: number };
-export type MagicTitleOcrAttemptId = 'title_primary' | 'title_expanded' | 'title_lower' | 'title_wide' | 'full_card';
+export type MagicTitleOcrAttemptId = 'title_primary' | 'title_expanded' | 'upper_card' | 'full_card' | 'collector_info';
 
 export type GuideCropMappingInput = {
   preview: CaptureDimensions;
@@ -51,6 +51,8 @@ export type MagicTitleOcrAttempt = {
   score: number;
   bounds: CropRect;
   reason: 'selected' | 'usable_candidate' | 'rejected_noise';
+  latencyMs: number | null;
+  rejectionReason: string | null;
 };
 
 export type MagicOcrSignals = {
@@ -140,6 +142,7 @@ export async function recognizeMagicStillCapture(input: {
   searchCatalog?: MagicCatalogSearch;
   cleanup?: typeof deleteCapturedStill;
   deferCleanup?: boolean;
+  sequentialTitleOcr?: boolean;
   onStage?: (stage: 'reading_title' | 'finding_card') => void;
   onLookupDiagnostics?: (diagnostics: MagicStillScanLookupDiagnostics) => void;
 }): Promise<MagicStillScanResult> {
@@ -153,12 +156,18 @@ export async function recognizeMagicStillCapture(input: {
     ? Promise.resolve<CaptureCleanupResult>({ ok: true, deleted: false, reason: 'deferred_for_diagnostics' })
     : cleanup(input.imageUri);
   input.onStage?.('reading_title');
-  const ocr = await (input.recognize ?? recognizeText)({
-    imageUri: input.imageUri,
-    regions: mapping.regions,
-    languages: ['en-US'],
-    recognitionLevel: 'accurate',
-  });
+  const ocr = input.sequentialTitleOcr
+    ? await recognizeSequentialMagicTitle({
+      imageUri: input.imageUri,
+      regions: mapping.regions,
+      recognize: input.recognize ?? recognizeText,
+    })
+    : await (input.recognize ?? recognizeText)({
+      imageUri: input.imageUri,
+      regions: mapping.regions,
+      languages: ['en-US'],
+      recognitionLevel: 'accurate',
+    });
   if (!ocr.ok) {
     const cleanupResult = await cleanupCapture();
     const cropDiagnostics = createCropDiagnostics(input.preview, input.guide, mapping, [], null);
@@ -298,14 +307,87 @@ export function buildMagicOcrRegions(cardCrop: GuideCropMapping['cardCrop']): Na
   return [
     region(cardCrop, 'title_primary', 'name', 0.055, 0.026, 0.78, 0.13),
     region(cardCrop, 'title_expanded', 'name', 0.04, 0.012, 0.84, 0.18),
-    region(cardCrop, 'title_lower', 'name', 0.055, 0.064, 0.78, 0.14),
-    region(cardCrop, 'title_wide', 'name', 0.03, 0.02, 0.92, 0.16),
+    region(cardCrop, 'upper_card', 'name', 0.035, 0.02, 0.93, 0.25),
+    region(cardCrop, 'full_card', 'name', 0.035, 0.02, 0.93, 0.93),
     region(cardCrop, 'type_line', 'type_line', 0.07, 0.555, 0.72, 0.075),
     region(cardCrop, 'collector_info', 'collector_info', 0.06, 0.885, 0.62, 0.09),
     region(cardCrop, 'bottom_left', 'bottom_left', 0.06, 0.885, 0.33, 0.09),
     region(cardCrop, 'bottom_right', 'bottom_right', 0.38, 0.885, 0.4, 0.09),
-    region(cardCrop, 'full_card', 'name', 0.035, 0.02, 0.93, 0.93),
   ];
+}
+
+export async function recognizeSequentialMagicTitle(input: {
+  imageUri: string;
+  regions: NativeOcrRegion[];
+  recognize: typeof recognizeText;
+}): Promise<NativeOcrResult> {
+  const selectedObservations: NativeOcrObservation[] = [];
+  const warnings: string[] = [];
+  let fullText: string[] = [];
+  let totalLatencyMs = 0;
+  let lastFailure: NativeOcrResult | null = null;
+  const titleOrder: MagicTitleOcrAttemptId[] = ['title_primary', 'title_expanded', 'upper_card', 'full_card'];
+  for (const regionId of titleOrder) {
+    const regionEntry = input.regions.find((regionCandidate) => regionCandidate.id === regionId);
+    if (!regionEntry) continue;
+    const started = Date.now();
+    const result = await input.recognize({
+      imageUri: input.imageUri,
+      regions: [regionEntry],
+      languages: ['en-US'],
+      recognitionLevel: 'accurate',
+    });
+    const latencyMs = Math.max(0, Date.now() - started);
+    totalLatencyMs += latencyMs;
+    if (!result.ok) {
+      lastFailure = result;
+      warnings.push(`OCR ${regionId} failed: ${result.message}`);
+      continue;
+    }
+    const observations = result.observations.map((observation) => ({ ...observation, latencyMs }));
+    selectedObservations.push(...observations);
+    fullText = [...fullText, result.fullText].filter(Boolean);
+    const signals = buildMagicOcrSignals(selectedObservations);
+    const selected = signals.titleAttempts.find((attempt) => attempt.id === regionId && attempt.normalizedText);
+    if (selected?.normalizedText && selected.confidence >= 70 && selected.normalizedText.length >= 3) break;
+  }
+  const collectorRegion = input.regions.find((regionEntry) => regionEntry.id === 'collector_info');
+  if (selectedObservations.some((observation) => observation.regionType === 'name') && collectorRegion) {
+    const started = Date.now();
+    const collector = await input.recognize({
+      imageUri: input.imageUri,
+      regions: [collectorRegion],
+      languages: ['en-US'],
+      recognitionLevel: 'accurate',
+    });
+    const latencyMs = Math.max(0, Date.now() - started);
+    totalLatencyMs += latencyMs;
+    if (collector.ok) {
+      selectedObservations.push(...collector.observations.map((observation) => ({ ...observation, latencyMs })));
+      if (collector.fullText) fullText.push(collector.fullText);
+    } else {
+      warnings.push(`Optional collector OCR failed: ${collector.message}`);
+    }
+  }
+  if (selectedObservations.length) {
+    return {
+      ok: true,
+      provider: 'apple_vision',
+      fullText: fullText.join('\n'),
+      observations: selectedObservations,
+      latencyMs: totalLatencyMs,
+      orientationUsed: 'sequential',
+      warnings,
+    };
+  }
+  return lastFailure ?? {
+    ok: false,
+    provider: 'apple_vision',
+    code: 'empty_result',
+    message: 'Apple Vision OCR did not return readable text for the requested regions.',
+    latencyMs: totalLatencyMs,
+    warnings,
+  };
 }
 
 export function buildMagicOcrSignals(observations: NativeOcrObservation[]): MagicOcrSignals {
@@ -360,6 +442,9 @@ export function rankMagicTitleObservations(observations: NativeOcrObservation[])
     .map((entry) => {
       const normalized = normalizeMagicTitleOcr(entry.rawText || entry.text);
       const normalizedText = isUsableMagicTitleLine(normalized.normalized) ? normalized.normalized : null;
+      const latencyMs = typeof (entry as NativeOcrObservation & { latencyMs?: unknown }).latencyMs === 'number'
+        ? (entry as NativeOcrObservation & { latencyMs: number }).latencyMs
+        : null;
       return {
         id: entry.requestedRegionId as MagicTitleOcrAttemptId,
         rawText: entry.rawText || entry.text,
@@ -368,6 +453,8 @@ export function rankMagicTitleObservations(observations: NativeOcrObservation[])
         score: titleObservationScore(entry, normalizedText),
         bounds: entry.bounds,
         reason: normalizedText ? 'usable_candidate' as const : 'rejected_noise' as const,
+        latencyMs,
+        rejectionReason: normalizedText ? null : 'OCR text did not normalize to a usable Magic title.',
       };
     })
     .sort((a, b) => b.score - a.score);
@@ -525,9 +612,9 @@ function titleCropMap(mapping: GuideCropMapping): Record<MagicTitleOcrAttemptId,
   return {
     title_primary: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'title_primary')),
     title_expanded: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'title_expanded')),
-    title_lower: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'title_lower')),
-    title_wide: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'title_wide')),
+    upper_card: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'upper_card')),
     full_card: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'full_card')),
+    collector_info: rectFromRegion(mapping.regions.find((regionEntry) => regionEntry.id === 'collector_info')),
   };
 }
 
@@ -562,9 +649,9 @@ function titleObservationScore(entry: NativeOcrObservation, normalizedText: stri
   const attemptWeight: Record<MagicTitleOcrAttemptId, number> = {
     title_primary: 120,
     title_expanded: 105,
-    title_lower: 92,
-    title_wide: 82,
-    full_card: 0,
+    upper_card: 82,
+    full_card: -60,
+    collector_info: -120,
   };
   const textScore = scoreTitleLine(normalizedText);
   const topCardBonus = entry.bounds.y <= 0.28 ? 26 : entry.bounds.y <= 0.45 ? 8 : -18;
@@ -607,7 +694,7 @@ function scoreTitleLine(value: string) {
 }
 
 function isMagicTitleAttemptId(value: string): value is MagicTitleOcrAttemptId {
-  return value === 'title_primary' || value === 'title_expanded' || value === 'title_lower' || value === 'title_wide' || value === 'full_card';
+  return value === 'title_primary' || value === 'title_expanded' || value === 'upper_card' || value === 'full_card' || value === 'collector_info';
 }
 
 function uniqueString(value: string, index: number, array: string[]) {

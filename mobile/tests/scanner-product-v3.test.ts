@@ -56,10 +56,25 @@ test('Single Scan is manual capture with a focused result sheet', () => {
   assert.match(single, /Add card/);
   assert.match(single, /Retake/);
   assert.match(single, /Single Scan Settings/);
+  assert.match(single, /createSingleScanQualityAnalyzer/);
+  assert.match(single, /singleScanUserFacingFailure/);
+  assert.match(single, /sequentialTitleOcr/);
   assert.match(single, /addRecognitionToSession/);
   assert.match(single, /continuousScannerSessionKey/);
   assert.match(single, /parseScannerSession/);
   assert.doesNotMatch(single, /canAutoCaptureNative/);
+});
+
+test('Single Scan uses view dimensions for still-crop mapping instead of native preview resolution', () => {
+  assert.match(single, /preview: \{ width, height \}/);
+  assert.doesNotMatch(single, /preview: previewResolution \?\? \{ width, height \}/);
+});
+
+test('Single Scan blocks poor capture quality before OCR', () => {
+  assert.match(single, /currentQuality\.guidance/);
+  assert.match(single, /disabled=\{!canCapture\}/);
+  assert.match(single, /captureQuality\.canCapture/);
+  assert.match(single, /setMessage\(captureQuality\.guidance\)/);
 });
 
 test('scanner settings use simple rows with advanced disclosure', () => {

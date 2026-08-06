@@ -1708,8 +1708,8 @@ export default function AutomaticScannerScreen() {
                 <CropProof imageUri={diagnosticCaptureUri} label="Card crop proof" crop={magicStillScan.cropDiagnostics.cardCrop} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
                 <CropProof imageUri={diagnosticCaptureUri} label="Primary title crop" crop={magicStillScan.cropDiagnostics.titleCrops.title_primary} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
                 <CropProof imageUri={diagnosticCaptureUri} label="Expanded title crop" crop={magicStillScan.cropDiagnostics.titleCrops.title_expanded} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
-                <CropProof imageUri={diagnosticCaptureUri} label="Lower title crop" crop={magicStillScan.cropDiagnostics.titleCrops.title_lower} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
-                <CropProof imageUri={diagnosticCaptureUri} label="Wide title crop" crop={magicStillScan.cropDiagnostics.titleCrops.title_wide} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Upper-card title fallback" crop={magicStillScan.cropDiagnostics.titleCrops.upper_card} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
+                <CropProof imageUri={diagnosticCaptureUri} label="Full-card fallback" crop={magicStillScan.cropDiagnostics.titleCrops.full_card} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
                 <CropProof imageUri={diagnosticCaptureUri} label="Collector crop proof" crop={magicStillScan.cropDiagnostics.collectorCrop} imageSize={magicStillScan.cropDiagnostics.normalizedImage} />
               </View>
             ) : null}

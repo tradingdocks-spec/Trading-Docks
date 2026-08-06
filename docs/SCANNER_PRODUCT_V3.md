@@ -71,6 +71,25 @@ Flow:
 
 The result sheet shows image, card name, set/collector number, market value when available, offer value when available, Add card, and Retake. Add card writes into the same user-scoped scanner session storage used by Automatic Scan.
 
+Single Scan capture-quality gates:
+
+- Implemented: Capture is blocked until the card is detected, centered, stable, and sharp enough.
+- Implemented: Card fill targets roughly 70-90% of the guide before OCR runs.
+- Implemented: Too-small cards show Move closer; blurry cards show Tap card to focus; moving cards show Hold steady.
+- Implemented: A brief focus-settle window prevents immediate OCR after tap-to-focus.
+- Implemented: Still-capture crop mapping uses the actual camera view dimensions because the guide is rendered in view coordinates, not native preview-buffer coordinates.
+- Implemented: Development diagnostics can show a crop proof overlay for the full captured image, card crop, title crop, and collector crop. Captured images are not retained outside development diagnostics.
+
+Single Scan OCR order:
+
+1. Tight title band.
+2. Expanded title band.
+3. Upper 25% of the card.
+4. Full card.
+5. Optional collector region after a title signal exists.
+
+The sequence stops once a strong usable title is found and does not require collector-number OCR before card lookup.
+
 ## Review List
 
 Review List is the post-processing queue.
@@ -113,6 +132,7 @@ Hierarchy should come from spacing, typography, scale, placement, and subtle ele
 - Implemented: State is communicated with text, not color alone.
 - Implemented: Reduced motion suppresses scanner guide pulse/flash patterns where supported by existing scanner motion logic.
 - Planned: Physical-device QA must verify 320, 375, 390, and 430 px widths, Dynamic Island, home indicator, large text, long names, and bottom-sheet overlap.
+- Planned: Physical-device OCR QA must compare raw and preprocessed title crops before any image preprocessing is enabled.
 
 ## Inspiration Boundaries
 
