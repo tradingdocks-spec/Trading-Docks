@@ -136,7 +136,7 @@ export function getMobileBottomNavVisualModel(safeAreaBottom: number) {
 }
 
 export function shouldHideMobileTabBarForRoute(route: MobileTabRouteName) {
-  return route === 'scan';
+  return false;
 }
 
 export function isMobileTabSelected(pathname: string, route: MobileTabRouteName) {
