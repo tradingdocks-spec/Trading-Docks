@@ -101,8 +101,8 @@ test('bottom navigation visual model keeps center action balanced inside the bar
   assert.ok(model.centerAction.height < model.height);
 });
 
-test('mobile tab bar hides only for active immersive scanner route', () => {
-  assert.equal(shouldHideMobileTabBarForRoute('scan'), true);
+test('mobile tab bar remains visible on Scan Modes', () => {
+  assert.equal(shouldHideMobileTabBarForRoute('scan'), false);
   assert.equal(shouldHideMobileTabBarForRoute('index'), false);
   assert.equal(shouldHideMobileTabBarForRoute('collection'), false);
   assert.equal(shouldHideMobileTabBarForRoute('deal-desk'), false);

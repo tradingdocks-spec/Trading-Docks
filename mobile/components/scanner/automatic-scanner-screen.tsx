@@ -1402,6 +1402,7 @@ export default function AutomaticScannerScreen() {
 
       <ScannerHud
         header={scannerHeader}
+        sessionName={scannerModeLabel(sessionMode)}
         topInset={insets.top}
         onClose={() => router.back()}
         onSettings={() => setShowSettingsSheet(true)}
@@ -1413,8 +1414,8 @@ export default function AutomaticScannerScreen() {
         {batchNotice ? (
           <ScannerToast
             tone={batchNotice.tone}
-            title={scanner2State === 'remove_card' ? 'Remove card' : 'Added'}
-            message=""
+            title={batchNotice.title}
+            message={batchNotice.message}
           />
         ) : null}
 
@@ -1430,17 +1431,16 @@ export default function AutomaticScannerScreen() {
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.sheetScroll, { paddingBottom: insets.bottom + 92 }]}>
               <SettingsRow label="Mode" value={scannerModeLabel(sessionMode)} onPress={() => setShowModeSelectionSheet(true)} />
               <SettingsRow label="Camera" value={selectedCameraLensLabel} onPress={() => setShowCameraSelectionSheet(true)} />
-              <ToggleRow label="Auto-capture" enabled={autoCaptureEnabled} onToggle={() => setAutoCaptureEnabled((value) => !value)} />
-              <ToggleRow label="Torch default" enabled={torchEnabled} disabled={torchState?.torchSupported === false} onToggle={toggleTorch} />
-              {torchWarning ? <TDText variant="caption" tone="danger">{torchWarning}</TDText> : null}
-              <TDInput label="Cash offer %" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
+              <ToggleRow label="Auto Capture" enabled={autoCaptureEnabled} onToggle={() => setAutoCaptureEnabled((value) => !value)} />
               <OptionRow label="Default condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} compact />
+              <TDInput label="Cash Offer" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
+              <ToggleRow label="Sound" enabled={soundEnabled} onToggle={() => setSoundEnabled((value) => !value)} />
+              <ToggleRow label="Haptics" enabled={hapticsEnabled} onToggle={() => setHapticsEnabled((value) => !value)} />
+              {torchWarning ? <TDText variant="caption" tone="danger">{torchWarning}</TDText> : null}
               <SettingsRow label="Advanced Settings" value={showAdvancedSettings ? 'Hide' : 'Show'} onPress={() => setShowAdvancedSettings((value) => !value)} />
               {showAdvancedSettings ? (
                 <View style={s.advancedSettings}>
                   <OptionRow label="Stable duration" options={['normal', 'long']} value="normal" display={(value) => value === 'normal' ? 'Standard' : 'Long'} onSelect={() => undefined} compact />
-                  <ToggleRow label="Sound" enabled={soundEnabled} onToggle={() => setSoundEnabled((value) => !value)} />
-                  <ToggleRow label="Haptics" enabled={hapticsEnabled} onToggle={() => setHapticsEnabled((value) => !value)} />
                   <OptionRow label="Default finish" options={['normal', 'foil', 'etched']} value={finish} display={displayFinish} onSelect={setFinish} compact />
                   <TDInput label="Default language" value={language} onChangeText={setLanguage} placeholder="en" />
                   <OptionRow label="Destination" options={['collection', 'purchase_intake', 'trade_evaluation', 'export_only']} value={session?.defaultDestination ?? 'purchase_intake'} display={(value) => value.replaceAll('_', ' ')} onSelect={(value) => session ? setSession({ ...session, defaultDestination: value }) : undefined} compact />
@@ -1455,6 +1455,10 @@ export default function AutomaticScannerScreen() {
                   {diagnosticsEnabled ? <TDButton label="Scanner diagnostics" variant="secondary" onPress={() => {
                     setShowSettingsSheet(false);
                     setShowDiagnosticsSheet(true);
+                  }} /> : null}
+                  {diagnosticsEnabled ? <TDButton label="Camera QA" variant="secondary" onPress={() => {
+                    setShowSettingsSheet(false);
+                    router.push('/dev/camera-qa' as never);
                   }} /> : null}
                   <TDText variant="caption" tone="muted">{privacy.message}</TDText>
                 </View>
@@ -1741,11 +1745,13 @@ export default function AutomaticScannerScreen() {
 
 function ScannerHud({
   header,
+  sessionName,
   topInset,
   onClose,
   onSettings,
 }: {
   header: ReturnType<typeof scanner2HeaderModel>;
+  sessionName: string;
   topInset: number;
   onClose: () => void;
   onSettings: () => void;
@@ -1755,19 +1761,12 @@ function ScannerHud({
       <HeaderIconControl label="Close scanner" icon="close-outline" onPress={onClose} />
       <Pressable accessibilityRole="button" accessibilityLabel="Open scanner settings" onPress={onSettings} style={({ pressed }) => [s.hudTextStack, pressed && s.settingsRowPressed]}>
         <View style={s.hudLine}>
-          <TDText variant="small" numberOfLines={1} style={s.hudMode}>{header.line1.mode}</TDText>
-          <TDText variant="caption" tone="muted" numberOfLines={1}>{header.line1.cards}</TDText>
+          <TDText variant="title" numberOfLines={1} style={s.hudMode}>Automatic Scan</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{header.line1.cards} scanned</TDText>
         </View>
-        {header.line2.length ? (
-          <View style={s.hudMetricLine}>
-            {header.line2.map((item) => (
-              <TDText key={item.id} variant="caption" tone={item.id === 'offer' ? 'success' : 'muted'} numberOfLines={1} style={s.hudMetric}>
-                {item.label} {item.value}
-              </TDText>
-            ))}
-          </View>
-        ) : null}
+        <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionName}</TDText>
       </Pressable>
+      <HeaderIconControl label="Open scanner settings" icon="settings-outline" onPress={onSettings} />
     </View>
   );
 }
@@ -1989,8 +1988,7 @@ function ScannerControls({
     <View style={s.cameraControls}>
       {controls.map((control) => {
         if (control === 'torch') return <IconControl key={control} label={torchSupported ? (torchEnabled ? 'Turn torch off' : 'Turn torch on') : 'Torch unavailable on this camera'} icon={torchEnabled ? 'flash' : 'flash-outline'} disabled={!torchSupported} onPress={onToggleTorch} />;
-        if (control === 'capture' && autoCaptureEnabled) return null;
-        if (control === 'capture') return <IconControl key={control} label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />;
+        if (control === 'capture') return <IconControl key={control} label={autoCaptureEnabled ? 'Capture fallback' : 'Capture card'} icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />;
         return null;
       })}
     </View>

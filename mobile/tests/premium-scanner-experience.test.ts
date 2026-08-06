@@ -312,7 +312,7 @@ test('failed tray keeps usable text width and excludes pricing and quantity', ()
 test('compact scanner session strip is one row with review on the right', () => {
   const model = scanner2SessionStripModel({ cardCount: 3, marketTotal: 42.1, offerTotal: 29.47 });
   assert.equal(model.hidden, false);
-  assert.equal(model.summary, '3 cards   Market $42.10   Offer $29.47');
+  assert.equal(model.summary, '3 scanned');
   assert.equal(model.reviewLabel, 'Review');
   assert.equal(model.compact, false);
 });

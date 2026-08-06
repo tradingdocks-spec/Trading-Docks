@@ -6,7 +6,7 @@ import test from 'node:test';
 const repo = join(process.cwd(), '..');
 
 test('active Scan route uses native frame signals through the shared camera adapter', () => {
-  const scan = readFileSync(join(process.cwd(), 'app', '(tabs)', 'scan.tsx'), 'utf8');
+  const scan = readFileSync(join(process.cwd(), 'components', 'scanner', 'automatic-scanner-screen.tsx'), 'utf8');
   const nativeCamera = readFileSync(join(process.cwd(), 'components', 'scanner-camera.tsx'), 'utf8');
   const webCamera = readFileSync(join(process.cwd(), 'components', 'scanner-camera.web.tsx'), 'utf8');
 

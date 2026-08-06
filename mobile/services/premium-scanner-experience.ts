@@ -284,11 +284,11 @@ export function scanner2SessionStripModel(input: {
   marketTotal: number | null;
   offerTotal: number | null;
 }): Scanner2SessionStripModel {
-  const empty = input.cardCount === 0 && input.marketTotal === null && input.offerTotal === null;
-  const cards = `${input.cardCount} card${input.cardCount === 1 ? '' : 's'}`;
+  const empty = input.cardCount === 0;
+  const cards = `${input.cardCount} scanned`;
   return {
     hidden: false,
-    summary: `${cards}   Market ${compactScannerMoney(input.marketTotal)}   Offer ${compactScannerMoney(input.offerTotal)}`,
+    summary: cards,
     reviewLabel: 'Review',
     compact: empty,
   };
