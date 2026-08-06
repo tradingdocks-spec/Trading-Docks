@@ -64,7 +64,7 @@
 - Implemented: `expo-dev-client`, VisionCamera, and Nitro dependencies are configured for the live scanner development-build path.
 - Implemented: `mobile/services/live-card-recognition.ts` adds synthetic-tested local frame analysis for card bounds, corners, aspect ratio, guide fit, blur, motion, lighting, glare, fingerprints, targeted OCR mapping, and Magic adapter handoff.
 - Implemented: `mobile/services/native-scanner-calibration.ts` adds synthetic-tested native QA contracts for camera-ready gating, guide/crop geometry, unavailable-signal blocking, visible capture outcomes, card-removal rearm checks, and evidence-only foil diagnostics.
-- Partially Implemented: The active Scan tab still uses the Expo Camera manual fallback and does not yet feed native VisionCamera frames into the analyzer.
+- Partially Implemented: The active Scan tab now has a native VisionCamera frame-output adapter that feeds bounded luma samples into the analyzer, with Expo Camera retained for web fallback. Physical iOS and Android development-build validation is still pending.
 - Implemented: Native iOS Magic OCR v1 adds a local Expo module backed by Apple Vision, guide-assisted crop mapping, OCR normalization, top-three Scryfall matching, confidence caps for title-only observations, and temporary capture deletion.
 - Implemented: The local OCR module now includes an Apple podspec so `expo-modules-autolinking resolve --platform apple` emits the `TradingDocksVisionOcr` pod and `TradingDocksVisionOcrModule` registration.
 - Implemented: The active Scan tab now uses a premium camera-first hierarchy with compact header, large guide viewport, exactly two primary controls, secondary settings/manual/diagnostics panels, and a compact Review List chip.
@@ -237,7 +237,7 @@
 7. Add an approved native reachability dependency or platform monitor if scanner replay must trigger immediately on native reconnect while the app remains foregrounded.
 8. Add scanner-to-Deal Desk and card-show prep integrations only after the validated confirmation contract is reviewed.
 9. Validate the continuous scanner on physical devices; current implementation includes the state machine, guide geometry, offer session, duplicate protection, CSV serialization, and local frame analysis, but native camera frame delivery plus OCR/artwork/foil providers are still pending.
-10. Wire VisionCamera frames into the live analyzer in a development build and capture iOS/Android QA results before changing confirmation friction.
+10. Validate VisionCamera frame delivery, auto-capture, same-card removal, and OCR handoff on physical iOS/Android development builds before changing confirmation friction.
 ## Scanner 2.0 Health Notes
 
 Status: Implemented / Partially Implemented.

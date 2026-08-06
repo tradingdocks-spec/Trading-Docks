@@ -1,6 +1,6 @@
 # Scanner Native Auto-Capture Plan
 
-Status: Planned.
+Status: Partially Implemented.
 
 ## Audit Result
 
@@ -8,23 +8,25 @@ Partially Implemented: Trading Docks has a real Vision Engine service in `mobile
 
 Partially Implemented: `mobile/services/native-scanner-calibration.ts` defines the safety gate for native auto-capture and blocks capture when required physical signals are unavailable.
 
-Partially Implemented: The active mobile Scan route still uses Expo Camera `CameraView` still capture. It does not yet feed live VisionCamera frames into the Vision Engine.
+Implemented: The active mobile Scan route uses a platform camera adapter. Native builds use a VisionCamera preview and frame output, while Expo Web keeps the Expo Camera fallback.
 
-Implemented: The active route passes `NO_NATIVE_VISUAL_SIGNALS` into diagnostics, so repository-supported auto-capture must remain disabled. No fake signal, fake FPS, or fake readiness value should be introduced.
+Implemented: The native adapter feeds bounded native VisionCamera luma samples into the Vision Engine. Diagnostics expose native physical gates only after measured frames arrive. No fake signal, fake FPS, or fake readiness value should be introduced.
+
+Requires Production Configuration: Physical iOS and Android development-build validation is still required before calling hands-free capture production-ready.
 
 ## Current Stack
 
-- Implemented: `expo-camera` provides permission handling, preview, torch, `onCameraReady`, and manual `takePictureAsync`.
-- Implemented: `react-native-vision-camera`, `react-native-nitro-modules`, and `react-native-nitro-image` are installed as the development-build path for native frame delivery.
+- Implemented: `expo-camera` provides permission handling and the Expo Web fallback.
+- Implemented: `react-native-vision-camera`, `react-native-vision-camera-worklets`, `react-native-worklets`, `react-native-nitro-modules`, and `react-native-nitro-image` are installed as the development-build path for native frame delivery.
 - Implemented: Synthetic tests cover Vision Engine readiness and same-card removal/rearm behavior.
-- Planned: The active UI needs a VisionCamera-backed frame source before hands-free capture can be enabled.
+- Partially Implemented: The active UI enables native hands-free capture through the frame-signal gate. Physical-device proof is still pending.
 
 ## Required Native Implementation
 
-Planned:
+Implemented locally:
 
 1. Replace or wrap the active scanner preview with a development-build VisionCamera component.
-2. Add a native frame processor that emits bounded luma samples or approved native observations only.
+2. Add a native frame output that emits bounded luma samples only.
 3. Feed those samples into `createScannerVisionEngine`.
 4. Update the live guide from measured `ScannerVisionResult.guidance`, `cornerGlow`, `guideTone`, and `captureState`.
 5. Call still capture only when `canAutoCaptureNative` returns ready and `ScannerVisionResult.shouldCapture` is true.
@@ -32,6 +34,9 @@ Planned:
 7. Preserve manual Capture and Manual Search fallbacks.
 8. Keep source images and crops in memory only unless the user explicitly opts into benchmark capture.
 9. Record measured camera FPS and frame-analysis latency only from native frame delivery.
+
+Requires Production Configuration:
+
 10. Validate on physical iOS and Android development builds before changing confirmation friction.
 
 ## Acceptance Criteria
