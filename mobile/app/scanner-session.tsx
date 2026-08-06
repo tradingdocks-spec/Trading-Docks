@@ -81,6 +81,11 @@ export default function ScannerSessionReview() {
   const activeSummary = activeSessionFilterSummary(filters);
   const advancedFiltersActive = hasAdvancedSessionFilters(filters);
   const nextLine = session ? nextReviewLine(session.lines) : null;
+  const syncNotice = session?.lines.some((line) => line.syncState === 'failed')
+    ? 'Some changes need attention before they sync.'
+    : session?.lines.some((line) => line.syncState === 'pending_sync')
+      ? 'Changes are waiting to sync.'
+      : null;
 
   const exportCsv = () => {
     if (!session) return;
@@ -157,12 +162,18 @@ export default function ScannerSessionReview() {
                   <TDText variant="caption" tone="muted">Cards without prices are excluded from offer totals. Open a card to add a market price.</TDText>
                 </View>
               ) : null}
+              {syncNotice ? (
+                <View style={s.syncNotice}>
+                  <Ionicons name="cloud-offline-outline" size={18} color={color.info} />
+                  <TDText variant="caption" tone="muted">{syncNotice}</TDText>
+                </View>
+              ) : null}
             </View>
           )}
           renderItem={({ item }) => <SessionCardRow line={item} onPress={() => setSelectedLineId(item.id)} />}
           ListEmptyComponent={(
             session.lines.length
-              ? <SessionEmptyState kind="no_results" onPrimary={() => setFilters(defaultSessionReviewFilters())} />
+              ? <SessionEmptyState kind={filters.status === 'needs_review' && !nextLine ? 'all_reviewed' : 'no_results'} onPrimary={filters.status === 'needs_review' && !nextLine ? finalizeSession : () => setFilters(defaultSessionReviewFilters())} />
               : <SessionEmptyState kind="no_cards" onPrimary={() => router.push('/(tabs)/scan' as never)} />
           )}
         />
@@ -416,7 +427,10 @@ function SessionFinalizeBar({ bottomInset, canFinalize, finalizeReason, canUndo,
   );
 }
 
-function SessionEmptyState({ kind, onPrimary }: { kind: 'no_cards' | 'no_results'; onPrimary: () => void }) {
+function SessionEmptyState({ kind, onPrimary }: { kind: 'no_cards' | 'no_results' | 'all_reviewed'; onPrimary: () => void }) {
+  if (kind === 'all_reviewed') {
+    return <TDEmptyState title="Everything is ready" message="There are no cards left in Needs review." action={<TDButton label="Finalize session" onPress={onPrimary} />} />;
+  }
   if (kind === 'no_results') {
     return <TDEmptyState title="No cards match these filters" message="Clear filters to return to the full session." action={<TDButton label="Clear filters" variant="secondary" onPress={onPrimary} />} />;
   }
@@ -482,6 +496,7 @@ const s = StyleSheet.create({
   readyNotice: { minHeight: 48, borderRadius: radius.md, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.success + '10' },
   activeFilters: { minHeight: 42, borderRadius: radius.md, paddingHorizontal: space.sm, paddingVertical: space.xs, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.canvasRaised },
   priceNotice: { borderRadius: radius.md, padding: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.warning + '10' },
+  syncNotice: { borderRadius: radius.md, padding: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.info + '10' },
   cardRow: { minHeight: 132, flexDirection: 'row', gap: space.sm, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: color.border },
   pressedRow: { opacity: 0.82 },
   cardImage: { width: 58, height: 82, borderRadius: radius.sm, backgroundColor: color.surface },
