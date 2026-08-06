@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   TDBadge,
@@ -11,8 +12,12 @@ import {
   TDChip,
   TDEmptyState,
   TDErrorState,
+  TDListRow,
   TDLoadingState,
+  TDMetric,
+  TDNavigationHeader,
   TDScreen,
+  TDStatusIndicator,
   TDText,
 } from '@/components/design-system';
 import { color, radius, space } from '@/design';
@@ -38,8 +43,10 @@ import {
   type StorageLocation,
   type TradeBinderStatus,
 } from '@/services/collector-workspace';
+import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 
 export default function MobileCollectionCardDetail() {
+  const insets = useSafeAreaInsets();
   const { cardId } = useLocalSearchParams<{ cardId?: string }>();
   const { accountType } = useAccount();
   const [cards, setCards] = useState<CollectionCard[]>([]);
@@ -142,9 +149,14 @@ export default function MobileCollectionCardDetail() {
 
   return (
     <TDScreen style={s.screen}>
-      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        <TDButton label="Back" variant="ghost" iconName="chevron-back" onPress={() => router.back()} style={s.backButton} />
-        {staleReason ? <TDBadge tone="warning">Offline or stale</TDBadge> : null}
+      <ScrollView contentContainerStyle={[s.content, { paddingBottom: getMobileScrollBottomInset(insets.bottom) }]} showsVerticalScrollIndicator={false}>
+        <TDNavigationHeader
+          eyebrow={displayPrinting(card.printing)}
+          title={card.cardName}
+          subtitle={card.printing.setName ?? 'Set name unavailable'}
+          leftAction={<TDButton label="Back" variant="ghost" iconName="chevron-back" onPress={() => router.back()} style={s.backButton} />}
+          rightAction={staleReason ? <TDBadge tone="warning">Stale</TDBadge> : undefined}
+        />
 
         <View style={s.hero}>
           <View style={s.imageFrame}>
@@ -159,42 +171,40 @@ export default function MobileCollectionCardDetail() {
           </View>
 
           <View style={s.heroCopy}>
-            <TDText variant="label" tone="info">{displayPrinting(card.printing)}</TDText>
-            <TDText variant="display">{card.cardName}</TDText>
-            <TDText variant="small" tone="muted">{card.printing.setName ?? 'Set name unavailable'}</TDText>
             <View style={s.badgeRow}>
               <TDBadge tone="info">x{card.quantityOwned}</TDBadge>
               <TDBadge tone="neutral">{displayCondition(card.condition)}</TDBadge>
               <TDBadge tone="neutral">{displayFinish(card.printing.finish)}</TDBadge>
             </View>
+            <View style={s.summaryGrid}>
+              <TDMetric label="Value" value={priceLabel(card)} tone={card.marketPrice.amount === null ? 'neutral' : 'info'} compact />
+              <TDMetric label="Storage" value={card.storageLocation ? card.storageLocation.name : 'Unassigned'} compact />
+            </View>
+            <TDButton
+              label={card.storageLocation ? 'Move location' : 'Assign location'}
+              iconName="file-tray-stacked-outline"
+              accessibilityLabel="Open Storage Location Manager"
+              onPress={() => router.push('/storage-locations' as never)}
+            />
           </View>
         </View>
 
         <TDCard style={s.detailCard}>
-          <DetailLine label="Storage location" value={displayStorageLocation(card)} />
-          <DetailLine label="Language" value={card.printing.language ?? 'Language unavailable'} />
-          <DetailLine label="Scryfall ID" value={card.printing.scryfallId ?? 'Unavailable'} />
+          <TDText variant="title">Printing and value</TDText>
+          <DetailLine label="Printing" value={displayPrinting(card.printing)} />
           <DetailLine label="Price summary" value={priceLabel(card)} muted={card.marketPrice.amount === null} />
-          <TDButton
-            label="Manage storage"
-            variant="secondary"
-            iconName="file-tray-stacked-outline"
-            accessibilityLabel="Open Storage Location Manager"
-            onPress={() => router.push('/storage-locations' as never)}
-          />
+          <DetailLine label="Language" value={card.printing.language ?? 'Language unavailable'} />
         </TDCard>
 
         {mutationError ? (
           <TDCard accessibilityRole="alert" variant="outlined" style={s.errorCard}>
-            <TDBadge tone={mutationError.includes('queued') ? 'warning' : 'danger'}>
-              {mutationError.includes('queued') ? 'Pending sync' : 'Update failed'}
-            </TDBadge>
+            <TDStatusIndicator tone={mutationError.includes('queued') ? 'warning' : 'danger'} label={mutationError.includes('queued') ? 'Pending sync' : 'Update failed'} />
             <TDText variant="small" tone="muted">{mutationError}</TDText>
           </TDCard>
         ) : null}
 
         <TDCard style={s.actionPanel}>
-          <TDText variant="title">Organization</TDText>
+          <TDText variant="title">Ownership</TDText>
           <TDText variant="small" tone="muted">
             Quantity zero is saved as zero owned. It does not delete or archive the collection record.
           </TDText>
@@ -231,6 +241,17 @@ export default function MobileCollectionCardDetail() {
             pending={pendingMutation === 'finish'}
             onSelect={(finish) => runMutation({ type: 'finish', userId: userId ?? '', inventoryItemId: card.id, finish })}
           />
+        </TDCard>
+
+        <TDCard style={s.actionPanel}>
+          <TDText variant="title">Organization</TDText>
+          <TDListRow
+            title={displayStorageLocation(card)}
+            description="Move this card to an existing location or clear the assignment."
+            iconName="file-tray-stacked-outline"
+            right={<TDBadge tone={card.storageLocation ? 'info' : 'neutral'}>{card.storageLocation ? 'Assigned' : 'Open'}</TDBadge>}
+            onPress={() => router.push('/storage-locations' as never)}
+          />
           <OptionGroup
             label="Storage"
             value={card.storageLocation?.id ?? 'none'}
@@ -239,6 +260,10 @@ export default function MobileCollectionCardDetail() {
             pending={pendingMutation === 'storage'}
             onSelect={(locationId) => runMutation({ type: 'storage', userId: userId ?? '', inventoryItemId: card.id, storageLocationId: locationId === 'none' ? null : locationId })}
           />
+        </TDCard>
+
+        <TDCard style={s.actionPanel}>
+          <TDText variant="title">Exchange status</TDText>
           <OptionGroup
             label="Trade Binder"
             value={card.tradeBinderStatus === 'unknown' ? 'not_for_trade' : card.tradeBinderStatus}
@@ -266,7 +291,8 @@ export default function MobileCollectionCardDetail() {
         </TDCard>
 
         <TDCard variant="outlined">
-          <TDText variant="title">Future integration points</TDText>
+          <TDText variant="title">Advanced details</TDText>
+          <DetailLine label="Scryfall ID" value={card.printing.scryfallId ?? 'Unavailable'} />
           <TDText variant="small" tone="muted">
             Scanner recognition, portfolio analytics, and deck-editing usage will connect here after their dedicated sprints.
           </TDText>
@@ -337,7 +363,7 @@ function DetailLine({ label, value, muted = false }: { label: string; value: str
 
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
-  content: { gap: space.md, paddingBottom: 120 },
+  content: { gap: space.md },
   backButton: { alignSelf: 'flex-start' },
   hero: { gap: space.lg },
   imageFrame: { width: '100%', maxWidth: 320, aspectRatio: 0.72, alignSelf: 'center', borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised },
@@ -345,6 +371,7 @@ const s = StyleSheet.create({
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.sm },
   heroCopy: { gap: space.xs },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.xs },
+  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   detailCard: { gap: space.sm },
   detailLine: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.md, paddingVertical: space.xs },
   detailValue: { flex: 1, textAlign: 'right' },

@@ -3,18 +3,22 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   TDBadge,
   TDButton,
   TDCard,
-  TDChip,
   TDEmptyState,
   TDErrorState,
+  TDIconButton,
   TDInput,
   TDLoadingState,
-  TDMetricTile,
+  TDMetric,
+  TDNavigationHeader,
   TDScreen,
+  TDSegmentedControl,
+  TDStatusIndicator,
   TDText,
 } from '@/components/design-system';
 import { color, radius, space } from '@/design';
@@ -34,6 +38,7 @@ import {
   type CollectionCard,
   type CollectionSort,
 } from '@/services/collector-workspace';
+import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 
 type DisplayMode = 'grid' | 'list';
 
@@ -46,6 +51,7 @@ const SORT_OPTIONS: { value: CollectionSort; label: string }[] = [
 ];
 
 export default function Collection() {
+  const insets = useSafeAreaInsets();
   const { accountType } = useAccount();
   const [cards, setCards] = useState<CollectionCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,45 +146,28 @@ export default function Collection() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={s.headerStack}>
-            <View style={s.titleRow}>
-              <View style={s.titleCopy}>
-                <TDText variant="label" tone="info">Collection</TDText>
-                <TDText variant="display">Your cards</TDText>
-                <TDText variant="small" tone="muted">
-                  Exact printings, copies, storage, trade state, and wishlist state.
-                </TDText>
-              </View>
-              <View style={s.headerActions}>
-                {staleReason ? <TDBadge tone="warning">Offline or stale</TDBadge> : null}
-                <TDButton
-                  label="Storage"
-                  variant="secondary"
-                  iconName="file-tray-stacked-outline"
-                  accessibilityLabel="Open Storage Location Manager"
-                  onPress={() => router.push('/storage-locations' as never)}
-                />
-                <TDButton
-                  label="Trade"
-                  variant="secondary"
-                  iconName="swap-horizontal-outline"
-                  accessibilityLabel="Open Trade Binder"
-                  onPress={() => router.push('/trade-binder' as never)}
-                />
-                <TDButton
-                  label="Wishlist"
-                  variant="secondary"
-                  iconName="star-outline"
-                  accessibilityLabel="Open Wishlist"
-                  onPress={() => router.push('/wishlist' as never)}
-                />
-              </View>
-            </View>
+            <TDNavigationHeader
+              eyebrow="Collection"
+              title="Find an owned card"
+              subtitle="Search exact printings, quantity, condition, finish, and storage."
+              rightAction={staleReason ? <TDBadge tone="warning">Stale</TDBadge> : undefined}
+            />
+
+            <TDInput
+              label="Search collection"
+              accessibilityLabel="Search collection by card name, set, collector number, or storage location"
+              leftIconName="search-outline"
+              placeholder="Card name, set, number, storage..."
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+            />
 
             <View style={s.summaryGrid}>
-              <TDMetricTile label="Owned" value={summary.totalOwnedCards.toLocaleString()} tone="info" />
-              <TDMetricTile label="Unique" value={summary.uniquePrintings.toLocaleString()} />
-              <TDMetricTile label="Storage" value={summary.storageLocationCount.toLocaleString()} />
-              <TDMetricTile label="Missing prices" value={summary.missingPriceCount.toLocaleString()} tone={summary.missingPriceCount ? 'warning' : 'neutral'} />
+              <TDMetric label="Owned" value={summary.totalOwnedCards.toLocaleString()} tone="info" compact />
+              <TDMetric label="Unique" value={summary.uniquePrintings.toLocaleString()} compact />
+              <TDMetric label="Storage" value={summary.storageLocationCount.toLocaleString()} compact />
+              <TDMetric label="Missing prices" value={summary.missingPriceCount.toLocaleString()} tone={summary.missingPriceCount ? 'warning' : 'neutral'} compact />
             </View>
 
             {summary.freeCardLimit ? (
@@ -201,38 +190,44 @@ export default function Collection() {
 
             {staleReason ? (
               <TDCard variant="outlined" style={s.staleCard}>
-                <TDBadge tone="warning">Stale data</TDBadge>
+                <TDStatusIndicator tone="warning" label="Showing cached collection data" />
                 <TDText variant="caption" tone="muted">{staleReason}</TDText>
               </TDCard>
             ) : null}
 
-            <TDInput
-              label="Search collection"
-              accessibilityLabel="Search collection by card name, set, collector number, or storage location"
-              leftIconName="search-outline"
-              placeholder="Search cards, sets, collector numbers, storage..."
-              value={query}
-              onChangeText={setQuery}
-              returnKeyType="search"
-            />
-
             <View style={s.controls}>
-              <View style={s.chipRow} accessibilityLabel="Sort collection">
-                {SORT_OPTIONS.map((option) => (
-                  <TDChip
-                    key={option.value}
-                    label={option.label}
-                    selected={sort === option.value}
-                    tone="info"
-                    accessibilityLabel={`Sort collection by ${option.label}`}
-                    onPress={() => setSort(option.value)}
-                  />
-                ))}
-              </View>
+              <TDSegmentedControl label="Sort" options={SORT_OPTIONS} value={sort} onChange={setSort} />
               <View style={s.modeRow}>
                 <IconMode label="List view" iconName="list-outline" selected={displayMode === 'list'} onPress={() => setDisplayMode('list')} />
                 <IconMode label="Grid view" iconName="grid-outline" selected={displayMode === 'grid'} onPress={() => setDisplayMode('grid')} />
               </View>
+            </View>
+
+            <View style={s.secondaryActions}>
+              <TDButton
+                label="Storage"
+                variant="secondary"
+                size="sm"
+                iconName="file-tray-stacked-outline"
+                accessibilityLabel="Open Storage Location Manager"
+                onPress={() => router.push('/storage-locations' as never)}
+              />
+              <TDButton
+                label="Trade"
+                variant="ghost"
+                size="sm"
+                iconName="swap-horizontal-outline"
+                accessibilityLabel="Open Trade Binder"
+                onPress={() => router.push('/trade-binder' as never)}
+              />
+              <TDButton
+                label="Wishlist"
+                variant="ghost"
+                size="sm"
+                iconName="star-outline"
+                accessibilityLabel="Open Wishlist"
+                onPress={() => router.push('/wishlist' as never)}
+              />
             </View>
           </View>
         }
@@ -256,7 +251,7 @@ export default function Collection() {
             onPress={() => router.push({ pathname: '/collection/[cardId]', params: { cardId: item.id } })}
           />
         )}
-        contentContainerStyle={s.listContent}
+        contentContainerStyle={[s.listContent, { paddingBottom: getMobileScrollBottomInset(insets.bottom) }]}
         onEndReached={loadMore}
         onEndReachedThreshold={0.45}
         showsVerticalScrollIndicator={false}
@@ -395,35 +390,22 @@ function IconMode({
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[s.modeButton, selected && s.modeButtonSelected]}
-    >
-      <Ionicons name={iconName} size={18} color={selected ? color.text : color.textMuted} />
-    </Pressable>
+    <TDIconButton label={label} iconName={iconName} selected={selected} onPress={onPress} />
   );
 }
 
 const s = StyleSheet.create({
   screen: { paddingTop: 56, paddingBottom: 0 },
-  listContent: { gap: space.md, paddingBottom: 130 },
+  listContent: { gap: space.md },
   headerStack: { gap: space.md, marginBottom: space.xs },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.md },
-  titleCopy: { flex: 1, gap: space.xs },
-  headerActions: { alignItems: 'flex-end', gap: space.xs },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   limitCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },
   staleCard: { gap: space.xs, padding: space.md },
   limitIcon: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '12' },
   flex: { flex: 1 },
-  controls: { gap: space.sm },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  controls: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space.sm },
+  secondaryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   modeRow: { flexDirection: 'row', gap: space.xs },
-  modeButton: { width: 46, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
-  modeButtonSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '35' },
   gridRow: { gap: space.sm },
   cardListItem: { width: '100%' },
   cardGridItem: { flex: 1, maxWidth: '50%' },
