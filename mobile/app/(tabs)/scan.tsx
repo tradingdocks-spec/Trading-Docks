@@ -71,6 +71,11 @@ import {
   type ScannerPerformanceSample,
 } from '@/services/scanner-performance-instrumentation';
 import {
+  scannerCameraFraming,
+  scannerCameraViewQualityProps,
+  scannerCaptureOptions,
+} from '@/services/scanner-camera-quality';
+import {
   NO_NATIVE_VISUAL_SIGNALS,
   applyScannerCalibrationToGuide,
   buildGuideCropMapping,
@@ -171,15 +176,18 @@ export default function Scan() {
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
   const privacy = scannerPrivacySummary();
-  const cameraStageHeight = Math.max(520, height);
+  const cameraFraming = useMemo(() => scannerCameraFraming({
+    viewportWidth: width,
+    viewportHeight: height,
+    safeTop: insets.top,
+    safeBottom: insets.bottom,
+  }), [height, insets.bottom, insets.top, width]);
+  const cameraStageHeight = cameraFraming.cameraStageHeight;
   const previewWidth = width;
-  const baseGuideLayout = useMemo(() => calculateCardGuideLayout({
-    containerWidth: previewWidth,
-    containerHeight: cameraStageHeight,
-    safeTop: 0,
-    safeBottom: 0,
-    reservedVerticalSpace: 120,
-  }), [cameraStageHeight, previewWidth]);
+  const baseGuideLayout = useMemo(
+    () => calculateCardGuideLayout(cameraFraming.guideLayoutInput),
+    [cameraFraming],
+  );
   const guideLayout = useMemo(
     () => applyScannerCalibrationToGuide(baseGuideLayout, previewWidth, scannerCalibration),
     [baseGuideLayout, previewWidth, scannerCalibration],
@@ -611,7 +619,7 @@ export default function Scan() {
       setLastCaptureId(captureId);
       setCaptureState('capturing');
       const cameraCaptureStartedAt = scannerNow();
-      const photo = await cameraRef.current.takePictureAsync({ quality: 1, skipProcessing: false });
+      const photo = await cameraRef.current.takePictureAsync(scannerCaptureOptions());
       const cameraCaptureMs = scannerNow() - cameraCaptureStartedAt;
       if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
       const frameLabel = `${photo.width} x ${photo.height}`;
@@ -1096,8 +1104,7 @@ function ScannerViewport({
             style={StyleSheet.absoluteFill}
             facing="back"
             enableTorch={torchEnabled}
-            animateShutter
-            autofocus="on"
+            {...scannerCameraViewQualityProps()}
             onCameraReady={onCameraReady}
           />
           <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />

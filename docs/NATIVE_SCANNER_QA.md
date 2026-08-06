@@ -12,6 +12,8 @@ Status: Requires Production Configuration for physical-device release verificati
 
 - Implemented: The mobile Scan screen uses `expo-camera` still capture, back camera selection, autofocus, torch toggle, camera permission states, manual Scryfall search, exact-printing confirmation, Collection write handoff, session lines, and user-scoped scanner replay.
 - Implemented: Capture now waits for `onCameraReady` before calling `takePictureAsync`.
+- Implemented: Scanner camera framing now accounts for top and bottom safe-area space before computing the 63:88 guide, keeping the guide clear of the compact header and bottom controls in supported viewport tests.
+- Implemented: Still capture uses a centralized maximum-quality Expo Camera options contract with native orientation processing enabled; iOS responsive captured-still orientation is enabled where the installed Expo Camera SDK supports it.
 - Implemented: A development-only diagnostics overlay is available when `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true` and `NODE_ENV` is not `production`.
 - Implemented: The diagnostics overlay reports camera readiness, scanner lifecycle state, capture ID, preview dimensions, captured image dimensions, source and normalized orientation, guide dimensions, guide ratio, normalized guide crop, title crop variants, collector crop, crop pixel sizes, OCR attempts, duplicate state, recognition stage, Scryfall outcome, session insertion result, recent performance averages, sanitized JSON export, and unavailable visual signals.
 - Implemented: Local guide calibration preferences support guide scale and vertical offset for device testing; values are stored only in user-scoped local app storage.
@@ -76,6 +78,8 @@ Status: Requires Production Configuration for physical-device release verificati
 - Verify torch toggles without restarting the scanner.
 - Verify guide matches a sleeved Magic card without stretching.
 - Verify safe-area top inset does not push the guide off-screen.
+- Verify the guide is not hidden by the compact header, bottom session strip, or system safe areas on small and large phones.
+- Verify portrait and rotated still captures report correct dimensions and OCR crop orientation on a clean iOS development build.
 - Verify leaving and re-entering the Scan tab resets camera readiness cleanly.
 - Verify app background and foreground do not trigger capture.
 - Verify manual capture creates OCR results and does not add a session line until the user confirms a candidate.
