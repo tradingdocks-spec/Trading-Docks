@@ -156,7 +156,7 @@ test('Scanner 2.0 HUD is one compact line without unavailable pricing copy', () 
   assert.equal(line.includes('Pricing unavailable'), false);
 });
 
-test('Scanner 2.0 compact header uses two rows and omits zero review copy', () => {
+test('Scanner 2.0 compact header uses one visible summary row and omits zero review copy', () => {
   const header = scanner2HeaderModel({
     modeLabel: 'Card Show Purchase',
     cardCount: 3,
@@ -167,11 +167,10 @@ test('Scanner 2.0 compact header uses two rows and omits zero review copy', () =
   assert.equal(header.rows, 2);
   assert.equal(header.overflows, false);
   assert.deepEqual(header.line1, { mode: 'Card Show Purchase', cards: '3 scanned' });
-  assert.deepEqual(header.line2.map((item) => item.id), ['offer']);
-  assert.equal(header.line2[0].value, '$29.47');
+  assert.deepEqual(header.line2, []);
 });
 
-test('Scanner 2.0 compact header includes review only when present', () => {
+test('Scanner 2.0 compact header keeps offer and review out of the active camera HUD', () => {
   const header = scanner2HeaderModel({
     modeLabel: 'Card Show Purchase',
     cardCount: 1,
@@ -179,12 +178,12 @@ test('Scanner 2.0 compact header includes review only when present', () => {
     offerTotal: null,
     reviewCount: 1,
   });
-  assert.deepEqual(header.line2.map((item) => item.id), ['offer', 'review']);
-  assert.equal(header.line2[1].value, '1');
+  assert.deepEqual(header.line2, []);
 });
 
-test('Scanner 2.0 main camera controls are exactly torch capture and search', () => {
-  assert.deepEqual(scanner2MainControls(), ['torch', 'capture', 'search']);
+test('Scanner 2.0 main camera controls are exactly torch and capture', () => {
+  assert.deepEqual(scanner2MainControls(), ['torch', 'capture']);
+  assert.equal(scanner2MainControls().includes('search' as never), false);
   assert.equal(scanner2MainControls().includes('settings' as never), false);
   assert.equal(scanner2MainControls().includes('diagnostics' as never), false);
 });

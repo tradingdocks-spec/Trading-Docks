@@ -32,6 +32,9 @@ test('default main screen omits advanced game and confidence chip walls', () => 
   assert.equal(beforeFilterSheet.includes('FilterChips label="Game"'), false);
   assert.equal(beforeFilterSheet.includes('FilterChips label="Confidence"'), false);
   assert.match(beforeFilterSheet, /SessionStatusTabs/);
+  assert.match(beforeFilterSheet, /SessionSummary cardCount/);
+  assert.equal(beforeFilterSheet.includes('Finalize reviewed cards'), false);
+  assert.equal(beforeFilterSheet.includes('Missing prices are excluded'), false);
 });
 
 test('filter sheet owns game confidence missing-price and sort controls', () => {
@@ -56,13 +59,25 @@ test('collapsed card row has no inline editing fields or destructive buttons', (
 test('card review sheet owns editable fields and preserves review actions', () => {
   const sheet = section('CardReviewSheet');
   assert.match(sheet, /label="Quantity"/);
+  assert.match(sheet, /label="Condition"/);
+  assert.match(sheet, /label="Finish"/);
   assert.match(sheet, /label="Market price"/);
   assert.match(sheet, /label="Cash percentage"/);
-  assert.match(sheet, /Mark reviewed/);
+  assert.match(sheet, /Save and mark reviewed/);
   assert.match(sheet, /Choose another printing/);
   assert.match(sheet, /Remove card/);
+  assert.match(sheet, /More options/);
   assert.match(sheet, /parseOptionalMoney/);
   assert.match(sheet, /parseOptionalPercentage/);
+  assert.equal(sheet.includes('Missing signals'), false);
+  assert.equal(sheet.includes('Why review?'), false);
+  assert.equal(sheet.includes('sessionConfidenceLabel'), false);
+});
+
+test('main review route exposes one finalize action', () => {
+  const finalizeLabels = source.match(/label="Finalize"/g) ?? [];
+  assert.equal(finalizeLabels.length, 1);
+  assert.equal(source.includes('Finalize session'), false);
 });
 
 test('sticky finalize bar includes safe-area padding and does not own export', () => {

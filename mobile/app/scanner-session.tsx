@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TDBadge, TDButton, TDChip, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDMetric, TDScreen, TDSegmentedControl, TDSheet, TDText } from '@/components/design-system';
+import { TDBadge, TDButton, TDChip, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDScreen, TDSegmentedControl, TDSheet, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { supabase } from '@/lib/supabase';
@@ -27,7 +27,6 @@ import {
   sessionConfidenceLabel,
   sessionFinalizeEligibility,
   sessionGameLabel,
-  sessionReviewMetrics,
   sessionReviewStatusLabel,
   sessionSortLabel,
   undoMostRecentScan,
@@ -74,7 +73,6 @@ export default function ScannerSessionReview() {
   }, [session, userId]);
 
   const totals = useMemo(() => session ? calculateSessionTotals(session) : null, [session]);
-  const metrics = useMemo(() => sessionReviewMetrics(totals), [totals]);
   const visibleLines = useMemo(() => session ? filterSessionReviewLines(session.lines, filters) : [], [filters, session]);
   const selectedLine = useMemo(() => session?.lines.find((line) => line.id === selectedLineId) ?? null, [selectedLineId, session]);
   const finalize = useMemo(() => session ? sessionFinalizeEligibility(session) : null, [session]);
@@ -128,11 +126,7 @@ export default function ScannerSessionReview() {
                 onOpenFilters={() => setFilterSheetOpen(true)}
                 onExport={exportCsv}
               />
-              <SessionSummary metrics={metrics} />
-              <View style={s.primaryAction}>
-                <TDButton label="Finalize reviewed cards" iconName="checkmark-done-outline" disabled={!finalize?.canFinalize} onPress={finalizeSession} />
-                <TDText variant="caption" tone={finalize?.canFinalize ? 'success' : 'warning'}>{finalize?.reason}</TDText>
-              </View>
+              <SessionSummary cardCount={totals?.cardsScanned ?? 0} reviewCount={totals?.needsReview ?? 0} offerTotal={totals?.cashOffer ?? null} />
               {nextLine ? (
                 <Pressable accessibilityRole="button" accessibilityLabel={`Review next card. ${reviewedProgressLabel(session)}`} onPress={() => setSelectedLineId(nextLine.id)} style={s.reviewNext}>
                   <View style={s.reviewNextIcon}><Ionicons name="arrow-forward" size={18} color={color.primaryBright} /></View>
@@ -156,12 +150,6 @@ export default function ScannerSessionReview() {
               <ActiveFilterSummary summary={activeSummary} onClear={() => setFilters(defaultSessionReviewFilters())} />
               {lastExportSummary ? <TDBadge tone="success">{lastExportSummary}</TDBadge> : null}
               {finalizedMessage ? <TDBadge tone="success">{finalizedMessage}</TDBadge> : null}
-              {totals?.missingPriceItems ? (
-                <View style={s.priceNotice}>
-                  <Ionicons name="alert-circle-outline" size={18} color={color.warning} />
-                  <TDText variant="caption" tone="muted">Cards without prices are excluded from offer totals. Open a card to add a market price.</TDText>
-                </View>
-              ) : null}
               {syncNotice ? (
                 <View style={s.syncNotice}>
                   <Ionicons name="cloud-offline-outline" size={18} color={color.info} />
@@ -173,7 +161,7 @@ export default function ScannerSessionReview() {
           renderItem={({ item }) => <SessionCardRow line={item} onPress={() => setSelectedLineId(item.id)} />}
           ListEmptyComponent={(
             session.lines.length
-              ? <SessionEmptyState kind={filters.status === 'needs_review' && !nextLine ? 'all_reviewed' : 'no_results'} onPrimary={filters.status === 'needs_review' && !nextLine ? finalizeSession : () => setFilters(defaultSessionReviewFilters())} />
+              ? <SessionEmptyState kind={filters.status === 'needs_review' && !nextLine ? 'all_reviewed' : 'no_results'} onPrimary={() => setFilters(defaultSessionReviewFilters())} />
               : <SessionEmptyState kind="no_cards" onPrimary={() => router.push('/(tabs)/scan' as never)} />
           )}
         />
@@ -233,10 +221,22 @@ function SessionReviewHeader({ title, subtitle, filtersActive, onBack, onOpenFil
   );
 }
 
-function SessionSummary({ metrics }: { metrics: ReturnType<typeof sessionReviewMetrics> }) {
+function SessionSummary({ cardCount, reviewCount, offerTotal }: { cardCount: number; reviewCount: number; offerTotal: number | null }) {
   return (
-    <View style={s.summaryGrid} accessibilityLabel="Session summary">
-      {metrics.slice(0, 4).map((metric) => <TDMetric key={metric.id} label={metric.label} value={metric.value} compact tone={metric.tone} style={s.summaryMetric} />)}
+    <View style={s.summaryRow} accessibilityLabel={`${cardCount} cards, ${reviewCount} needs review, offer ${formatSessionReviewMoney(offerTotal)}`}>
+      <SummaryItem label="Cards" value={String(cardCount)} />
+      <SummaryItem label="Needs review" value={String(reviewCount)} tone={reviewCount ? 'warning' : 'muted'} />
+      <SummaryItem label="Offer" value={formatSessionReviewMoney(offerTotal)} tone="success" />
+    </View>
+  );
+}
+
+function SummaryItem({ label, value, tone = 'muted' }: { label: string; value: string; tone?: 'muted' | 'warning' | 'success' }) {
+  const valueTone = tone === 'muted' ? undefined : tone;
+  return (
+    <View style={s.summaryItem}>
+      <TDText variant="caption" tone="muted" numberOfLines={1}>{label}</TDText>
+      <TDText variant="small" tone={valueTone} numberOfLines={1}>{value}</TDText>
     </View>
   );
 }
@@ -338,12 +338,14 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
   const [quantity, setQuantity] = useState('1');
   const [marketPrice, setMarketPrice] = useState('');
   const [purchasePercentage, setPurchasePercentage] = useState('70');
+  const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
 
   useEffect(() => {
     if (!line) return;
     setQuantity(String(line.quantity));
     setMarketPrice(line.marketPrice === null ? '' : String(line.marketPrice));
     setPurchasePercentage(String(line.purchasePercentage));
+    setMoreOptionsOpen(false);
   }, [line]);
 
   if (!line) return null;
@@ -379,31 +381,32 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
                 {imageUrl ? <Image source={{ uri: imageUrl }} style={s.sheetImage} contentFit="cover" /> : <View style={s.sheetImageMissing}><Ionicons name="image-outline" size={28} color={color.textMuted} /></View>}
                 <View style={s.flex}>
                   <TDText variant="heading" numberOfLines={2}>{line.cardName}</TDText>
-                  <TDText variant="small" tone="muted">{sessionGameLabel(line.game)} • {line.setCode ?? 'Set unavailable'} #{line.collectorNumber ?? '?'}</TDText>
-                  <View style={s.statusLine}>
-                    <TDBadge tone={line.reviewStatus === 'confirmed' ? 'success' : line.reviewStatus === 'needs_review' ? 'warning' : 'info'}>{sessionReviewStatusLabel(line.reviewStatus)}</TDBadge>
-                    <TDBadge tone="info">{sessionConfidenceLabel(line.confidence)}</TDBadge>
-                  </View>
+                  <TDText variant="small" tone="muted">{sessionGameLabel(line.game)} - {line.setCode ?? 'Set unavailable'} #{line.collectorNumber ?? '?'}</TDText>
+                  <TDText variant="caption" tone="muted">{plainReviewCopy(line)}</TDText>
                 </View>
               </View>
               <View style={s.detailGrid}>
                 <TDInput label="Quantity" value={quantity} keyboardType="numeric" onChangeText={setQuantity} />
                 <TDInput label="Condition" value={displayCondition(line.condition)} editable={false} />
                 <TDInput label="Finish" value={displayFinish(String(line.finish) as never)} editable={false} />
-                <TDInput label="Language" value={line.language ?? '—'} editable={false} />
-                <TDInput label="Market price" value={marketPrice} keyboardType="decimal-pad" placeholder="—" onChangeText={setMarketPrice} />
+                <TDInput label="Market price" value={marketPrice} keyboardType="decimal-pad" placeholder="-" onChangeText={setMarketPrice} />
                 <TDInput label="Cash percentage" value={purchasePercentage} keyboardType="numeric" onChangeText={setPurchasePercentage} />
               </View>
               <View style={s.offerPanel}>
                 <ValuePair label="Offer" value={formatSessionReviewMoney(nextOffer)} />
-                <TDText variant="caption" tone="muted">{parsedPrice === null ? 'Missing prices are excluded from totals until reviewed.' : 'Offer updates from price, quantity, and cash percentage.'}</TDText>
+                <TDText variant="caption" tone="muted">{parsedPrice === null ? 'Add a price when one is available.' : 'Offer updates from price, quantity, and cash percentage.'}</TDText>
               </View>
-              <View style={s.confidencePanel}>
-                <TDText variant="label" tone="muted">Why review?</TDText>
-                <TDText variant="caption" tone="muted">{line.recognition.conflictingSignals.length ? line.recognition.conflictingSignals.join(' ') : line.recognition.missingSignals.length ? `Missing signals: ${line.recognition.missingSignals.join(', ')}` : 'No conflicts recorded. Confirm exact printing before finalizing.'}</TDText>
-              </View>
-              <TDButton label={line.reviewStatus === 'needs_review' ? 'Mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
-              <TDButton label="Choose another printing" variant="secondary" disabled onPress={undefined} />
+              <Pressable accessibilityRole="button" accessibilityState={{ expanded: moreOptionsOpen }} accessibilityLabel={moreOptionsOpen ? 'Hide more card options' : 'Show more card options'} onPress={() => setMoreOptionsOpen((open) => !open)} style={s.moreOptionsToggle}>
+                <TDText variant="small">More options</TDText>
+                <Ionicons name={moreOptionsOpen ? 'chevron-up' : 'chevron-down'} size={18} color={color.textMuted} />
+              </Pressable>
+              {moreOptionsOpen ? (
+                <View style={s.moreOptionsPanel}>
+                  <TDInput label="Language" value={line.language ?? '-'} editable={false} />
+                  <TDButton label="Choose another printing" variant="secondary" disabled onPress={undefined} />
+                </View>
+              ) : null}
+              <TDButton label={line.reviewStatus === 'needs_review' ? 'Save and mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
               <View style={s.destructiveZone}>
                 <TDButton label="Remove card" variant="danger" onPress={confirmRemove} />
               </View>
@@ -414,7 +417,6 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
     </Modal>
   );
 }
-
 function SessionFinalizeBar({ bottomInset, canFinalize, finalizeReason, canUndo, onUndo, onFinalize }: { bottomInset: number; canFinalize: boolean; finalizeReason: string; canUndo: boolean; onUndo: () => void; onFinalize: () => void }) {
   return (
     <View style={[s.finalizeBar, { paddingBottom: Math.max(bottomInset, space.sm) }]}>
@@ -429,7 +431,7 @@ function SessionFinalizeBar({ bottomInset, canFinalize, finalizeReason, canUndo,
 
 function SessionEmptyState({ kind, onPrimary }: { kind: 'no_cards' | 'no_results' | 'all_reviewed'; onPrimary: () => void }) {
   if (kind === 'all_reviewed') {
-    return <TDEmptyState title="Everything is ready" message="There are no cards left in Needs review." action={<TDButton label="Finalize session" onPress={onPrimary} />} />;
+    return <TDEmptyState title="Everything is ready" message="Use the sticky Finalize action when you are ready." action={<TDButton label="View all" variant="secondary" onPress={onPrimary} />} />;
   }
   if (kind === 'no_results') {
     return <TDEmptyState title="No cards match these filters" message="Clear filters to return to the full session." action={<TDButton label="Clear filters" variant="secondary" onPress={onPrimary} />} />;
@@ -438,9 +440,8 @@ function SessionEmptyState({ kind, onPrimary }: { kind: 'no_cards' | 'no_results
 }
 
 const statusOptions: { value: SessionReviewStatusTab; label: string }[] = [
-  { value: 'all', label: 'All' },
   { value: 'needs_review', label: 'Needs review' },
-  { value: 'suggested', label: 'Suggested' },
+  { value: 'all', label: 'All' },
   { value: 'confirmed', label: 'Done' },
 ];
 
@@ -455,6 +456,11 @@ function statusCounts(lines: ScannerSessionLine[]): Record<SessionReviewStatusTa
     suggested: lines.filter((line) => line.reviewStatus === 'suggested').length,
     confirmed: lines.filter((line) => line.reviewStatus === 'confirmed').length,
   };
+}
+
+function plainReviewCopy(line: ScannerSessionLine) {
+  if (line.reviewStatus === 'confirmed') return 'Card is marked reviewed.';
+  return 'Confirm the card details before finalizing.';
 }
 
 async function loadUserSession() {
@@ -488,14 +494,12 @@ const s = StyleSheet.create({
   header: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   headerCopy: { flex: 1, minWidth: 0, gap: 2 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  summaryMetric: { flexBasis: '47%', flexGrow: 1, minWidth: 132 },
-  primaryAction: { gap: space.xs },
+  summaryRow: { minHeight: 56, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.canvasRaised },
+  summaryItem: { flex: 1, minWidth: 0, gap: 2 },
   reviewNext: { minHeight: 60, borderRadius: radius.lg, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surfaceFloating },
   reviewNextIcon: { width: 34, height: 34, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '14' },
   readyNotice: { minHeight: 48, borderRadius: radius.md, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.success + '10' },
   activeFilters: { minHeight: 42, borderRadius: radius.md, paddingHorizontal: space.sm, paddingVertical: space.xs, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.canvasRaised },
-  priceNotice: { borderRadius: radius.md, padding: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.warning + '10' },
   syncNotice: { borderRadius: radius.md, padding: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.info + '10' },
   cardRow: { minHeight: 132, flexDirection: 'row', gap: space.sm, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: color.border },
   pressedRow: { opacity: 0.82 },
@@ -518,10 +522,10 @@ const s = StyleSheet.create({
   sheetIdentity: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   sheetImage: { width: 86, height: 120, borderRadius: radius.md, backgroundColor: color.surface },
   sheetImageMissing: { width: 86, height: 120, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
-  statusLine: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, paddingTop: space.xs },
   detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   offerPanel: { gap: space.xs, borderRadius: radius.md, padding: space.md, backgroundColor: color.canvasRaised },
-  confidencePanel: { gap: space.xs, borderRadius: radius.md, padding: space.md, backgroundColor: color.canvasRaised },
+  moreOptionsToggle: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: color.surface },
+  moreOptionsPanel: { gap: space.sm, borderRadius: radius.md, padding: space.md, backgroundColor: color.canvasRaised },
   destructiveZone: { borderTopWidth: 1, borderTopColor: color.border, paddingTop: space.md },
   finalizeBar: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 76, borderTopWidth: 1, borderTopColor: color.borderStrong, paddingHorizontal: space.md, paddingTop: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.canvas + 'F4' },
   finalizeAction: { flex: 1, gap: 2 },

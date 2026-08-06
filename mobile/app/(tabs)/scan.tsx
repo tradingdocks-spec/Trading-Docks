@@ -93,7 +93,6 @@ import {
   shouldRenderDiagnosticsInline,
   resolveScanner2CameraLifecycle,
   type PremiumScannerGuidePresentation,
-  type PremiumScannerPipelineState,
   type PremiumResultTrayKind,
   type Scanner2CameraLifecycleState,
 } from '@/services/premium-scanner-experience';
@@ -743,7 +742,6 @@ export default function Scan() {
         guidePresentation={guidePresentation}
         guideMotion={guideMotion}
         instruction={scannerInstruction}
-        scannerPipeline={scannerPipeline}
         platform={Platform.OS}
         latestResultKind={failedResultTray?.kind ?? null}
         onPreviewLayout={handlePreviewLayout}
@@ -753,7 +751,6 @@ export default function Scan() {
         }}
         onToggleTorch={() => setTorchEnabled((value) => !value)}
         onCapture={captureStill}
-        onManualSearch={() => setShowManualSearchSheet(true)}
         onRequestCamera={requestCamera}
         hideControls={hideMainControls}
       />
@@ -825,6 +822,10 @@ export default function Scan() {
             </View>
             <TDInput label="Cash offer %" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
             <TDButton label={cameraActive ? 'Pause scanner' : 'Resume scanner'} variant="secondary" onPress={toggleCameraPause} />
+            <TDButton label="Manual search" variant="secondary" iconName="search-outline" onPress={() => {
+              setShowSettingsSheet(false);
+              setShowManualSearchSheet(true);
+            }} />
             <OptionRow label="Default condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} />
             <OptionRow label="Default finish" options={['normal', 'foil', 'etched']} value={finish} display={displayFinish} onSelect={setFinish} />
             <TDInput label="Default language" value={language} onChangeText={setLanguage} placeholder="en" />
@@ -964,13 +965,15 @@ function ScannerHud({
           <TDText variant="small" numberOfLines={1} style={s.hudMode}>{header.line1.mode}</TDText>
           <TDText variant="caption" tone="muted" numberOfLines={1}>{header.line1.cards}</TDText>
         </View>
-        <View style={s.hudMetricLine}>
-          {header.line2.map((item) => (
-            <TDText key={item.id} variant="caption" tone={item.id === 'offer' ? 'success' : 'muted'} numberOfLines={1} style={s.hudMetric}>
-              {item.label} {item.value}
-            </TDText>
-          ))}
-        </View>
+        {header.line2.length ? (
+          <View style={s.hudMetricLine}>
+            {header.line2.map((item) => (
+              <TDText key={item.id} variant="caption" tone={item.id === 'offer' ? 'success' : 'muted'} numberOfLines={1} style={s.hudMetric}>
+                {item.label} {item.value}
+              </TDText>
+            ))}
+          </View>
+        ) : null}
       </View>
       <View style={s.hudActions}>
         <HeaderIconControl label="Scanner settings" icon="options-outline" onPress={onSettings} />
@@ -991,14 +994,12 @@ function ScannerViewport({
   guidePresentation,
   guideMotion,
   instruction,
-  scannerPipeline,
   platform,
   latestResultKind,
   onPreviewLayout,
   onCameraReady,
   onToggleTorch,
   onCapture,
-  onManualSearch,
   onRequestCamera,
   hideControls,
 }: {
@@ -1013,14 +1014,12 @@ function ScannerViewport({
   guidePresentation: PremiumScannerGuidePresentation;
   guideMotion: ReturnType<typeof scanner2MotionForState>;
   instruction: string;
-  scannerPipeline: PremiumScannerPipelineState;
   platform: string;
   latestResultKind: PremiumResultTrayKind | null;
   onPreviewLayout: (event: LayoutChangeEvent) => void;
   onCameraReady: () => void;
   onToggleTorch: () => void;
   onCapture: () => void;
-  onManualSearch: () => void;
   onRequestCamera: () => void;
   hideControls: boolean;
 }) {
@@ -1051,14 +1050,13 @@ function ScannerViewport({
         </View>
       )}
 
-      {latestResultKind !== 'failed' ? <ScannerStatus instruction={instruction} scannerPipeline={scannerPipeline} /> : null}
+      {latestResultKind !== 'failed' ? <ScannerStatus instruction={instruction} /> : null}
       <ScannerControls
         torchEnabled={torchEnabled}
         cameraReady={cameraReady}
         permission={permission}
         onToggleTorch={onToggleTorch}
         onCapture={onCapture}
-        onManualSearch={onManualSearch}
         hidden={hideControls}
       />
     </View>
@@ -1086,11 +1084,10 @@ function ScannerGuide({
   );
 }
 
-function ScannerStatus({ instruction, scannerPipeline }: { instruction: string; scannerPipeline: PremiumScannerPipelineState }) {
+function ScannerStatus({ instruction }: { instruction: string }) {
   return (
     <View style={s.cameraScrimTop}>
       <TDText variant="title" style={s.guideMessage}>{instruction}</TDText>
-      <TDText variant="caption" tone="muted">{scannerPipeline === 'failed' ? 'Retake or search manually' : 'Trading Docks scanner'}</TDText>
     </View>
   );
 }
@@ -1101,7 +1098,6 @@ function ScannerControls({
   permission,
   onToggleTorch,
   onCapture,
-  onManualSearch,
   hidden,
 }: {
   torchEnabled: boolean;
@@ -1109,7 +1105,6 @@ function ScannerControls({
   permission: ScannerPermissionState;
   onToggleTorch: () => void;
   onCapture: () => void;
-  onManualSearch: () => void;
   hidden: boolean;
 }) {
   const controls = scanner2MainControls();
@@ -1119,19 +1114,18 @@ function ScannerControls({
       {controls.map((control) => {
         if (control === 'torch') return <IconControl key={control} label={torchEnabled ? 'Turn torch off' : 'Turn torch on'} icon={torchEnabled ? 'flash' : 'flash-outline'} onPress={onToggleTorch} />;
         if (control === 'capture') return <IconControl key={control} label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />;
-        return <IconControl key={control} label="Search manually" icon="search-outline" onPress={onManualSearch} />;
+        return null;
       })}
     </View>
   );
 }
 
-function ScannerFailureOverlay({ tray, onRetake, onManualSearch }: { tray: NonNullable<ReturnType<typeof buildPremiumResultTray>>; onRetake: () => void; onManualSearch: () => void }) {
+function ScannerFailureOverlay({ onRetake, onManualSearch }: { tray: NonNullable<ReturnType<typeof buildPremiumResultTray>>; onRetake: () => void; onManualSearch: () => void }) {
   return (
     <View accessibilityRole="alert" style={[s.scannerToast, s.failureOverlay]}>
       <Ionicons name="alert-circle-outline" size={22} color={color.warning} />
       <View style={s.flex}>
-        <TDText variant="small">{tray.title}</TDText>
-        <TDText variant="caption" tone="muted">{shortFailureMessage(tray.subtitle)}</TDText>
+        <TDText variant="small">Could not identify card</TDText>
       </View>
       <View style={s.toastActions}>
         <TDButton label="Retake" variant="secondary" onPress={onRetake} />
@@ -1262,14 +1256,6 @@ function permissionMessage(permission: ScannerPermissionState, platform: string)
   if (permission === 'denied') return 'Enable camera permission in system settings, or continue with manual search.';
   if (permission === 'granted') return 'Place the card inside the guide, then capture or search manually.';
   return 'Manual search works now. Camera capture requires camera permission.';
-}
-
-function shortFailureMessage(message: string) {
-  if (/network/i.test(message)) return 'Network unavailable. Try again when connected or search manually.';
-  if (/no title|usable card title|title read/i.test(message)) return 'Hold the card closer and keep the title sharp.';
-  if (/no matching|no candidate|not find|no supported/i.test(message)) return 'No matching card was found. Retake or search manually.';
-  if (/invalid response|service/i.test(message)) return 'Card search is unavailable. Try again or search manually.';
-  return 'Try again with the card centered, or search manually.';
 }
 
 function scannerSyncSummary(entries: ScannerQueuedAdd[]) {

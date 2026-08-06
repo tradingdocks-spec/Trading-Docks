@@ -109,7 +109,7 @@ export type Scanner2HeaderModel = {
   overflows: false;
 };
 
-export type Scanner2MainControlId = 'torch' | 'capture' | 'search';
+export type Scanner2MainControlId = 'torch' | 'capture';
 
 export type Scanner2SessionStripModel = {
   hidden: boolean;
@@ -255,32 +255,19 @@ export function scanner2HudLine(input: Scanner2HudSummary) {
 }
 
 export function scanner2HeaderModel(input: Scanner2HudSummary): Scanner2HeaderModel {
-  const offer = compactScannerMoney(input.offerTotal);
-  const line2: Scanner2HeaderModel['line2'] = [
-    { id: 'offer', label: 'Offer', value: offer },
-  ];
-
-  if (input.reviewCount > 0) {
-    line2.push({
-      id: 'review',
-      label: 'Review',
-      value: String(input.reviewCount),
-    });
-  }
-
   return {
     line1: {
       mode: input.modeLabel,
       cards: `${input.cardCount} scanned`,
     },
-    line2,
+    line2: [],
     rows: 2,
     overflows: false,
   };
 }
 
 export function scanner2MainControls(): Scanner2MainControlId[] {
-  return ['torch', 'capture', 'search'];
+  return ['torch', 'capture'];
 }
 
 export function shouldHideScannerPrimaryControls(input: {

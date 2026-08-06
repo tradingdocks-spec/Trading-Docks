@@ -84,7 +84,8 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
 
   assert.match(tradeBinder, /TDSegmentedControl[\s\S]*Exchange view/);
   assert.match(wishlist, /Exact target|Flexible target/);
-  assert.match(scannerSession, /Finalize reviewed cards/);
+  assert.match(scannerSession, /Save and mark reviewed/);
+  assert.doesNotMatch(scannerSession, /Finalize reviewed cards/);
   assert.match(dealDesk, /Review counts and margin reporting require real priced session lines/);
   assert.match(sell, /Seller metrics unavailable/);
   assert.match(profile, /Security and preferences/);
