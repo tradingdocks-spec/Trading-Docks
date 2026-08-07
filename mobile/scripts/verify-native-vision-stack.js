@@ -2,8 +2,10 @@
 
 const { existsSync, readFileSync } = require('node:fs');
 const path = require('node:path');
+const { patchPodfile, WORKAROUND_BEGIN } = require('../plugins/with-vision-camera-release-workaround');
 
 const appRoot = path.resolve(__dirname, '..');
+const APP_JSON = path.join(appRoot, 'app.json');
 
 function readPackage(packageName) {
   const packagePath = path.join(appRoot, 'node_modules', packageName, 'package.json');
@@ -36,6 +38,11 @@ function assertHeaderMissing(packageName, relativeHeaderPath) {
 }
 
 function verifyNativeVisionStack() {
+  const appConfig = JSON.parse(readFileSync(APP_JSON, 'utf8')).expo;
+  if (!appConfig.plugins?.includes('./plugins/with-vision-camera-release-workaround')) {
+    throw new Error('VisionCamera Release Swift compiler workaround plugin is not registered in app.json.');
+  }
+
   const versions = {
     expo: assertInstalledVersion('expo', '54.0.36'),
     reactNative: assertInstalledVersion('react-native', '0.81.5'),
@@ -61,6 +68,23 @@ function verifyNativeVisionStack() {
     throw new Error(`Unexpected VisionCameraWorklets Nitro authoring version ${expectedNitro}`);
   }
 
+  const patchedPodfile = patchPodfile(samplePodfile());
+  if (!patchedPodfile.includes(WORKAROUND_BEGIN)) {
+    throw new Error('VisionCamera Release Swift compiler workaround was not inserted into the Podfile sample.');
+  }
+  if (!patchedPodfile.includes("target.name == 'VisionCamera'")) {
+    throw new Error('VisionCamera Release Swift compiler workaround must be scoped to the VisionCamera pod.');
+  }
+  if (!patchedPodfile.includes("build_config.name == 'Release'")) {
+    throw new Error('VisionCamera Release Swift compiler workaround must be scoped to Release configuration.');
+  }
+  if (!patchedPodfile.includes("SWIFT_OPTIMIZATION_LEVEL'] = '-Onone'")) {
+    throw new Error('VisionCamera Release Swift compiler workaround must disable Swift optimization for VisionCamera Release.');
+  }
+  if (!patchedPodfile.includes("SWIFT_COMPILATION_MODE'] = 'singlefile'")) {
+    throw new Error('VisionCamera Release Swift compiler workaround must use singlefile Swift compilation for VisionCamera Release.');
+  }
+
   try {
     readPackage('react-native-worklets-core');
     throw new Error('react-native-worklets-core is installed but is not part of the Expo SDK 54 VisionCamera V5 stack');
@@ -71,6 +95,21 @@ function verifyNativeVisionStack() {
   }
 
   return versions;
+}
+
+function samplePodfile() {
+  return `target 'TradingDocks' do
+  use_expo_modules!
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false
+    )
+  end
+end
+`;
 }
 
 if (require.main === module) {

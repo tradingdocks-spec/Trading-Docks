@@ -68,7 +68,8 @@
           "cameraPermission": "Allow Trading Docks to use your camera to scan trading cards. Photos are processed for the scan flow and are not retained by default.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "./plugins/with-vision-camera-release-workaround"
     ],
     "experiments": {
       "typedRoutes": true,

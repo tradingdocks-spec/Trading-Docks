@@ -60,6 +60,7 @@
 ## Native Device Calibration
 
 - Implemented: The scanner supports a development-only diagnostics overlay behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`; the overlay is hidden when `NODE_ENV` is `production`.
+- Implemented: iOS preview/Release builds use `mobile/plugins/with-vision-camera-release-workaround.js` to scope a Swift compiler workaround to the `VisionCamera` pod only. The workaround exists because Xcode 26 / Swift 6.2 can crash compiling VisionCamera V5/Nitro Swift in Release optimization; it does not change scanner UX, OCR behavior, or app-wide optimization.
 - Implemented: Diagnostics report camera readiness, scanner lifecycle state, capture ID, preview dimensions, 63:88 guide dimensions, normalized guide crop, capture state, duplicate/removal state, recognition stage, session insertion result, unavailable visual signals, captured-still orientation normalization, OCR crop pixel rectangles, selected/rejected title attempts, Scryfall outcome, and local crop-proof overlays.
 - Implemented: Local guide calibration supports scale and vertical offset. These preferences are stored in user-scoped local app storage and are not production configuration.
 - Partially Implemented: The guide/crop mapping uses preview geometry from the active screen and handles aspect-fill plus rotated still dimensions. Native camera-frame crop validation still requires physical device testing because `expo-camera` preview scaling and device safe areas vary by platform.

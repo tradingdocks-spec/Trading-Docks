@@ -16,6 +16,7 @@ Status: Partially Implemented. This blocker table records the remaining items be
 | MRC-010 | Privacy disclosures | BLOCKER | iOS and Android | Partially Implemented | Product owner + legal | Disclosure matrix exists; analytics/crash provider remains undecided. | This branch | Complete App Privacy and Play Data Safety from approved policy. |
 | MRC-011 | Store assets | BLOCKER | iOS and Android | Planned | Product owner + design | Asset inventory exists in `docs/MOBILE_STORE_ASSETS.md`. | This branch | Produce approved screenshots, descriptions, keywords, review notes, demo-account flow, and support/legal metadata. |
 | MRC-012 | Release validation | BLOCKER | All | Partially Implemented | Engineering | Automated checks pass in this workspace; physical native QA remains manual. | This branch | All validation commands pass and unresolved native-only behavior is explicitly accepted or fixed. |
+| MRC-013 | VisionCamera iOS Release compiler | Resolved for preview | iOS preview/production | Implemented | Engineering | Failed EAS preview build `f03e95c5-40ae-4c72-a145-e139c807356d` crashed Swift while compiling `VisionCamera` Release with Xcode/iOS 26 SDK. Clear-cache preview build `ad078e21-dcff-48bc-a2ff-20770d4144bf` completed successfully after the scoped pod workaround. | This branch | Use the same workaround for production until upstream VisionCamera/Nitro or EAS Xcode toolchain removes the Release compiler crash; physical RC QA can resume on the successful preview build. |
 
 ## Release Decision
 
