@@ -44,6 +44,8 @@ export type ScannerCardCandidate = {
   confidence: number;
   recognitionMode: ScannerRecognitionMode;
   marketPrice?: ScannerCandidateMarketPrice | null;
+  specialPrintingLabels?: string[];
+  scryfallMetadata?: ScannerCandidateScryfallMetadata | null;
 };
 
 export type ScannerCandidateMarketPrice = {
@@ -52,6 +54,15 @@ export type ScannerCandidateMarketPrice = {
   usdEtched: number | null;
   source: 'scryfall';
   fetchedAt: string | null;
+};
+
+export type ScannerCandidateScryfallMetadata = {
+  releasedAt?: string | null;
+  setType?: string | null;
+  promo?: boolean;
+  promoTypes?: string[];
+  frameEffects?: string[];
+  layout?: string | null;
 };
 
 export type ScannerRecognitionResult =
@@ -231,6 +242,8 @@ export function normalizeScannerCandidate(raw: {
   confidence?: unknown;
   recognitionMode?: unknown;
   marketPrice?: ScannerCandidateMarketPrice | null;
+  specialPrintingLabels?: unknown;
+  scryfallMetadata?: ScannerCandidateScryfallMetadata | null;
 }): ScannerCardCandidate | null {
   const id = stringValue(raw.id);
   const name = stringValue(raw.name);
@@ -251,6 +264,8 @@ export function normalizeScannerCandidate(raw: {
     confidence: typeof raw.confidence === 'number' && Number.isFinite(raw.confidence) ? Math.max(0, Math.min(1, raw.confidence)) : 0,
     recognitionMode: raw.recognitionMode === 'assisted_capture' ? 'assisted_capture' : 'manual_search',
     marketPrice: normalizeCandidateMarketPrice(raw.marketPrice),
+    specialPrintingLabels: normalizeStringArray(raw.specialPrintingLabels),
+    scryfallMetadata: normalizeScryfallMetadata(raw.scryfallMetadata),
   };
 }
 
@@ -290,4 +305,22 @@ function normalizeCandidateMarketPrice(value: ScannerCandidateMarketPrice | null
 
 function normalizePositivePrice(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null;
+}
+
+function normalizeStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? [...new Set(value.map((entry) => stringValue(entry)).filter((entry): entry is string => Boolean(entry)))]
+    : [];
+}
+
+function normalizeScryfallMetadata(value: ScannerCandidateScryfallMetadata | null | undefined): ScannerCandidateScryfallMetadata | null {
+  if (!value) return null;
+  return {
+    releasedAt: stringValue(value.releasedAt),
+    setType: stringValue(value.setType),
+    promo: value.promo === true,
+    promoTypes: normalizeStringArray(value.promoTypes),
+    frameEffects: normalizeStringArray(value.frameEffects),
+    layout: stringValue(value.layout),
+  };
 }

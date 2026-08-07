@@ -1,4 +1,5 @@
 import { normalizeCardFinish, type CardFinish } from './collector-workspace.ts';
+import { parseBottomLeftPrintingText, refineExactPrintingConfidence } from './exact-printing-recognition.ts';
 import type { TcgRecognitionAdapter, UniversalScanCandidate } from './multi-tcg-scanner.ts';
 import {
   SCANNER_CONFIDENCE_THRESHOLD,
@@ -41,6 +42,7 @@ export type MagicRecognitionInput = {
   nameObservation?: OCRObservation;
   collectorInfoObservation?: CollectorInfoObservation;
   collectorInfoText?: string;
+  bottomLeftPrintingText?: string | null;
   artworkObservation?: ArtworkObservation;
   setSymbolObservation?: SymbolObservation;
   finishObservation?: FinishObservation;
@@ -252,6 +254,11 @@ type ScryfallCard = {
   lang?: string;
   finishes?: string[];
   layout?: string;
+  released_at?: string;
+  set_type?: string;
+  promo?: boolean;
+  promo_types?: string[];
+  frame_effects?: string[];
   color_identity?: string[];
   image_uris?: { normal?: string; large?: string };
   card_faces?: { image_uris?: { normal?: string; large?: string } }[];
@@ -314,6 +321,7 @@ export async function recognizeMagicCard(
   searchCatalog: MagicCatalogSearch = searchScryfallMagicCatalog,
 ): Promise<MagicRecognitionResult> {
   const collectorInfo = input.collectorInfoObservation ?? (input.collectorInfoText ? parseCollectorInfoText(input.collectorInfoText) : undefined);
+  const bottomLeftEvidence = parseBottomLeftPrintingText(input.bottomLeftPrintingText ?? input.collectorInfoText);
   const query: MagicCatalogQuery = {
     name: normalizeName(input.nameObservation?.text),
     setCode: collectorInfo?.setCode ?? null,
@@ -332,15 +340,19 @@ export async function recognizeMagicCard(
   });
   const selected = ranked[0] ?? null;
   const confidence = selected
-    ? scoreMagicCandidate({
+    ? refineExactPrintingConfidence({
       candidate: selected,
-      nameObservation: input.nameObservation,
-      collectorInfo,
-      artworkObservation: input.artworkObservation,
-      setSymbolObservation: input.setSymbolObservation,
-      finishObservation: input.finishObservation,
-      language: input.language ?? collectorInfo?.language ?? null,
-    })
+      evidence: bottomLeftEvidence,
+      confidence: scoreMagicCandidate({
+        candidate: selected,
+        nameObservation: input.nameObservation,
+        collectorInfo,
+        artworkObservation: input.artworkObservation,
+        setSymbolObservation: input.setSymbolObservation,
+        finishObservation: input.finishObservation,
+        language: input.language ?? collectorInfo?.language ?? null,
+      }),
+    }).confidence
     : emptyConfidence('No supported Magic printing matched the observed signals.');
   return {
     ok: true,
@@ -857,9 +869,45 @@ function scryfallToRecognitionCandidate(card: ScryfallCard): RecognitionCandidat
     confidence: 0,
     recognitionMode: 'assisted_capture',
     marketPrice: scryfallPriceMetadata(card.prices),
+    specialPrintingLabels: scryfallSpecialLabels(card),
+    scryfallMetadata: {
+      releasedAt: card.released_at ?? null,
+      setType: card.set_type ?? null,
+      promo: card.promo === true,
+      promoTypes: card.promo_types ?? [],
+      frameEffects: card.frame_effects ?? [],
+      layout: card.layout ?? null,
+    },
     layout: card.layout ?? null,
     colorIdentity: card.color_identity ?? [],
   };
+}
+
+function scryfallSpecialLabels(card: ScryfallCard) {
+  const labels = new Set<string>();
+  const set = card.set?.toUpperCase();
+  const setName = card.set_name?.toLowerCase();
+  const promoTypes = card.promo_types ?? [];
+  const frameEffects = card.frame_effects ?? [];
+  if (set === 'PLST' || setName === 'the list' || promoTypes.some((type) => normalizeScryfallTag(type) === 'the list')) labels.add('The List');
+  if (card.promo) labels.add('Promo');
+  for (const type of promoTypes) {
+    const normalized = normalizeScryfallTag(type);
+    if (normalized.includes('secret lair')) labels.add('Secret Lair');
+    if (normalized.includes('commander')) labels.add('Commander');
+  }
+  for (const effect of frameEffects) {
+    const normalized = normalizeScryfallTag(effect);
+    if (normalized === 'showcase') labels.add('Showcase');
+    if (normalized === 'borderless') labels.add('Borderless');
+    if (normalized === 'extended art' || normalized === 'extendedart') labels.add('Extended Art');
+    if (normalized === 'retro') labels.add('Retro Frame');
+  }
+  return [...labels];
+}
+
+function normalizeScryfallTag(value: string) {
+  return value.toLowerCase().replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function scryfallPriceMetadata(prices: ScryfallCard['prices']) {

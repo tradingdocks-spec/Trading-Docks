@@ -33,6 +33,7 @@ export type CardRegionType =
   | 'set_code'
   | 'collector_number'
   | 'language_rarity'
+  | 'bottom_left_printing'
   | 'finish_evidence';
 
 export type CardRegion = {
@@ -44,7 +45,7 @@ export type CardRegion = {
 };
 
 export type OCRObservation = {
-  regionType: Extract<CardRegionType, 'name' | 'type_line' | 'collector_info' | 'set_code' | 'collector_number' | 'language_rarity'>;
+  regionType: Extract<CardRegionType, 'name' | 'type_line' | 'collector_info' | 'set_code' | 'collector_number' | 'language_rarity' | 'bottom_left_printing'>;
   text: string;
   confidence: number;
 };
@@ -90,6 +91,7 @@ export type RecognitionSignalKey =
   | 'set_symbol'
   | 'layout'
   | 'legal_finish'
+  | 'list_printing'
   | 'finish_evidence'
   | 'color_frame';
 
@@ -265,6 +267,7 @@ export function buildCardRegions(frame: ScannerFrame): CardRegion[] {
     region(base, 'type_line', 0.08, 0.57, 0.84, 0.07),
     region(base, 'set_symbol', 0.72, 0.57, 0.16, 0.07),
     region(base, 'collector_info', 0.07, 0.9, 0.52, 0.07),
+    region(base, 'bottom_left_printing', 0.045, 0.872, 0.48, 0.1),
     region(base, 'set_code', 0.07, 0.9, 0.16, 0.07),
     region(base, 'collector_number', 0.23, 0.9, 0.2, 0.07),
     region(base, 'language_rarity', 0.43, 0.9, 0.16, 0.07),

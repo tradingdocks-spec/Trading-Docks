@@ -6,7 +6,7 @@ export type NativeOcrRecognitionLevel = 'fast' | 'accurate';
 
 export type NativeOcrRegion = {
   id: string;
-  regionType: Extract<CardRegionType, 'name' | 'type_line' | 'collector_info' | 'collector_number' | 'language_rarity'> | 'bottom_left' | 'bottom_right';
+  regionType: Extract<CardRegionType, 'name' | 'type_line' | 'collector_info' | 'collector_number' | 'language_rarity' | 'bottom_left_printing'> | 'bottom_left' | 'bottom_right';
   x: number;
   y: number;
   width: number;

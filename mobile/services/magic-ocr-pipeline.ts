@@ -34,6 +34,8 @@ export type GuideCropMapping = {
   titleCropPixels: PixelRect;
   collectorCrop: CropRect;
   collectorCropPixels: PixelRect;
+  bottomLeftPrintingCrop: CropRect;
+  bottomLeftPrintingCropPixels: PixelRect;
   rawImage: CaptureDimensions & { orientation: 'portrait' | 'landscape' };
   normalizedImage: CaptureDimensions & { orientation: 'portrait' | 'landscape'; rotatedFromRaw: boolean };
   previewContentFit: 'cover';
@@ -63,6 +65,7 @@ export type MagicOcrSignals = {
   titleAttempts: MagicTitleOcrAttempt[];
   selectedTitleAttemptId: MagicTitleOcrAttemptId | null;
   rawCollectorText: string | null;
+  rawBottomLeftPrintingText: string | null;
   collectorInfo: CollectorInfoObservation | null;
   observations: NativeOcrObservation[];
   ocrConfidence: number | null;
@@ -82,6 +85,8 @@ export type MagicStillScanCropDiagnostics = {
   titleCropPixels: PixelRect;
   collectorCrop: CropRect;
   collectorCropPixels: PixelRect;
+  bottomLeftPrintingCrop: CropRect;
+  bottomLeftPrintingCropPixels: PixelRect;
   selectedTitleAttemptId: MagicTitleOcrAttemptId | null;
   titleAttempts: MagicTitleOcrAttempt[];
   warnings: string[];
@@ -207,6 +212,7 @@ export async function recognizeMagicStillCapture(input: {
     },
     collectorInfoText: signals.rawCollectorText ?? undefined,
     collectorInfoObservation: signals.collectorInfo ?? undefined,
+    bottomLeftPrintingText: signals.rawBottomLeftPrintingText,
     online: input.online,
     cachedCandidates: input.cachedCandidates,
   }, buildOcrAwareMagicSearch(
@@ -294,6 +300,7 @@ export function mapPreviewGuideToCapturedImage(input: GuideCropMappingInput): Gu
   const regions = buildMagicOcrRegions(cardCrop);
   const titleCrop = regions.find((regionEntry) => regionEntry.id === 'title_primary') ?? regions[0];
   const collectorCrop = regions.find((regionEntry) => regionEntry.id === 'collector_info') ?? regions[0];
+  const bottomLeftPrintingCrop = regions.find((regionEntry) => regionEntry.id === 'bottomLeftPrintingRegion') ?? collectorCrop;
   return {
     cardCrop,
     cardCropPixels: toPixelRect(cardCrop, imageWidth, imageHeight),
@@ -301,6 +308,8 @@ export function mapPreviewGuideToCapturedImage(input: GuideCropMappingInput): Gu
     titleCropPixels: toPixelRect(rectFromRegion(titleCrop), imageWidth, imageHeight),
     collectorCrop: rectFromRegion(collectorCrop),
     collectorCropPixels: toPixelRect(rectFromRegion(collectorCrop), imageWidth, imageHeight),
+    bottomLeftPrintingCrop: rectFromRegion(bottomLeftPrintingCrop),
+    bottomLeftPrintingCropPixels: toPixelRect(rectFromRegion(bottomLeftPrintingCrop), imageWidth, imageHeight),
     rawImage: { width: rawImageWidth, height: rawImageHeight, orientation: rawOrientation },
     normalizedImage: { width: imageWidth, height: imageHeight, orientation: imageWidth >= imageHeight ? 'landscape' : 'portrait', rotatedFromRaw: shouldRotateForPreview },
     previewContentFit: 'cover',
@@ -320,6 +329,7 @@ export function buildMagicOcrRegions(cardCrop: GuideCropMapping['cardCrop']): Na
     region(cardCrop, 'full_card', 'name', 0.035, 0.02, 0.93, 0.93),
     region(cardCrop, 'type_line', 'type_line', 0.07, 0.555, 0.72, 0.075),
     region(cardCrop, 'collector_info', 'collector_info', 0.06, 0.885, 0.62, 0.09),
+    region(cardCrop, 'bottomLeftPrintingRegion', 'bottom_left_printing', 0.045, 0.855, 0.5, 0.125),
     region(cardCrop, 'bottom_left', 'bottom_left', 0.06, 0.885, 0.33, 0.09),
     region(cardCrop, 'bottom_right', 'bottom_right', 0.38, 0.885, 0.4, 0.09),
   ];
@@ -362,6 +372,7 @@ export async function recognizeSequentialMagicTitle(input: {
     if (selected?.normalizedText && selected.confidence >= 70 && selected.normalizedText.length >= 3) break;
   }
   const collectorRegion = input.includeCollectorOcr ? input.regions.find((regionEntry) => regionEntry.id === 'collector_info') : null;
+  const bottomLeftPrintingRegion = input.includeCollectorOcr ? input.regions.find((regionEntry) => regionEntry.id === 'bottomLeftPrintingRegion') : null;
   if (selectedObservations.some((observation) => observation.regionType === 'name') && collectorRegion) {
     const started = Date.now();
     const collector = await input.recognize({
@@ -377,6 +388,23 @@ export async function recognizeSequentialMagicTitle(input: {
       if (collector.fullText) fullText.push(collector.fullText);
     } else {
       warnings.push(`Optional collector OCR failed: ${collector.message}`);
+    }
+  }
+  if (selectedObservations.some((observation) => observation.regionType === 'name') && bottomLeftPrintingRegion) {
+    const started = Date.now();
+    const bottomLeftPrinting = await input.recognize({
+      imageUri: input.imageUri,
+      regions: [bottomLeftPrintingRegion],
+      languages: ['en-US'],
+      recognitionLevel: 'accurate',
+    });
+    const latencyMs = Math.max(0, Date.now() - started);
+    totalLatencyMs += latencyMs;
+    if (bottomLeftPrinting.ok) {
+      selectedObservations.push(...bottomLeftPrinting.observations.map((observation) => ({ ...observation, latencyMs })));
+      if (bottomLeftPrinting.fullText) fullText.push(bottomLeftPrinting.fullText);
+    } else {
+      warnings.push(`Optional bottom-left printing OCR failed: ${bottomLeftPrinting.message}`);
     }
   }
   if (selectedObservations.length) {
@@ -407,8 +435,14 @@ export function buildMagicOcrSignals(observations: NativeOcrObservation[]): Magi
     ...attempt,
     reason: attempt.id === title?.id ? 'selected' as const : attempt.reason,
   }));
-  const collector = observations.filter((entry) => entry.regionType === 'collector_info' || entry.regionType === 'collector_number' || entry.regionType === 'language_rarity');
+  const collector = observations.filter((entry) => entry.regionType === 'collector_info' || entry.regionType === 'collector_number' || entry.regionType === 'language_rarity' || entry.regionType === 'bottom_left_printing');
   const rawCollectorText = collector.map((entry) => entry.rawText || entry.text).filter(Boolean).join(' ').trim() || null;
+  const rawBottomLeftPrintingText = observations
+    .filter((entry) => entry.regionType === 'bottom_left_printing' || entry.requestedRegionId === 'bottomLeftPrintingRegion')
+    .map((entry) => entry.rawText || entry.text)
+    .filter(Boolean)
+    .join(' ')
+    .trim() || null;
   const rawTitle = title?.rawText ?? null;
   const normalizedTitle = title?.normalizedText ?? null;
   const titleAlternatives = titleAttempts
@@ -421,6 +455,7 @@ export function buildMagicOcrSignals(observations: NativeOcrObservation[]): Magi
     titleAttempts: attemptsWithReasons,
     selectedTitleAttemptId: title?.id ?? null,
     rawCollectorText,
+    rawBottomLeftPrintingText,
     collectorInfo: rawCollectorText ? parseMagicCollectorOcr(rawCollectorText) : null,
     observations,
     ocrConfidence: title?.confidence ?? null,
@@ -612,6 +647,8 @@ function createCropDiagnostics(
     titleCropPixels: mapping.titleCropPixels,
     collectorCrop: mapping.collectorCrop,
     collectorCropPixels: mapping.collectorCropPixels,
+    bottomLeftPrintingCrop: mapping.bottomLeftPrintingCrop,
+    bottomLeftPrintingCropPixels: mapping.bottomLeftPrintingCropPixels,
     selectedTitleAttemptId,
     titleAttempts,
     warnings: mapping.warnings,
@@ -651,6 +688,8 @@ function recognitionToScannerCandidate(candidate: RecognitionCandidate) {
     confidence: candidate.confidence,
     recognitionMode: 'assisted_capture',
     marketPrice: candidate.marketPrice,
+    specialPrintingLabels: candidate.specialPrintingLabels,
+    scryfallMetadata: candidate.scryfallMetadata,
   });
 }
 
