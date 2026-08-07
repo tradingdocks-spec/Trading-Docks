@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildMobileHomeComposition } from '../services/mobile-home.ts';
-import type { CollectionSummary } from '../services/collector-workspace.ts';
+import { buildMobileHomeComposition, buildRecentAdds } from '../services/mobile-home.ts';
+import type { CollectionCard, CollectionSummary } from '../services/collector-workspace.ts';
 import { getMobileScrollBottomInset } from '../services/navigation-contract.ts';
 
 const summary: CollectionSummary = {
@@ -22,8 +22,10 @@ test('Free Home composition focuses scan and collection without fake portfolio v
   const home = buildMobileHomeComposition({ accountType: 'free', summary, activeSession: null });
   assert.equal(home.workspaceLabel, 'Free workspace');
   assert.equal(home.portfolioState, 'ready');
+  assert.equal(home.hero.title, 'Collection value');
   assert.match(home.portfolioMessage, /Value unavailable/);
-  assert.deepEqual(home.actions.map((action) => action.key), ['scan', 'collection', 'trade', 'search']);
+  assert.deepEqual(home.actions.map((action) => action.key), ['scan', 'collection', 'add', 'review']);
+  assert.ok(home.actions.length <= 4);
 });
 
 test('Collector Home composition emphasizes portfolio and storage', () => {
@@ -35,7 +37,7 @@ test('Collector Home composition emphasizes portfolio and storage', () => {
 
 test('Seller Home composition routes trade action to Deal Desk', () => {
   const home = buildMobileHomeComposition({ accountType: 'seller', summary, activeSession: null });
-  const trade = home.actions.find((action) => action.key === 'trade');
+  const trade = home.actions.find((action) => action.key === 'review');
   assert.equal(home.workspaceLabel, 'Seller workspace');
   assert.equal(trade?.label, 'Deal Desk');
   assert.equal(trade?.route, '/(tabs)/deal-desk');
@@ -45,6 +47,7 @@ test('Store Home composition uses one shared composition with store copy', () =>
   const home = buildMobileHomeComposition({ accountType: 'store', summary, activeSession: null });
   assert.equal(home.workspaceLabel, 'Store workspace');
   assert.equal(home.briefingTitle, 'Harbor briefing');
+  assert.equal(home.hero.eyebrow, 'Business snapshot');
 });
 
 test('empty portfolio state avoids mock activity', () => {
@@ -57,6 +60,7 @@ test('empty portfolio state avoids mock activity', () => {
 test('missing movement data is disclosed instead of charted', () => {
   const home = buildMobileHomeComposition({ accountType: 'collector', summary, activeSession: null });
   assert.match(home.briefingMessage, /Market movement is not available yet/);
+  assert.match(home.insight.message, /unavailable prices/);
 });
 
 test('active session is visible only when real session exists', () => {
@@ -80,10 +84,75 @@ test('unavailable signal data is explicit', () => {
 test('Home composition keeps one primary navigation system', () => {
   const home = buildMobileHomeComposition({ accountType: 'collector', summary, activeSession: null });
   assert.equal(home.actions.length, 4);
-  assert.equal(home.actions.every((action) => action.route.startsWith('/(tabs)')), true);
+  assert.equal(home.actions.filter((action) => action.key === 'scan').length, 1);
+});
+
+test('Recent Adds carousel uses real card records without invented price or image data', () => {
+  const cards: CollectionCard[] = [
+    collectionCard({ id: 'old', cardName: 'Older Card', updatedAt: '2026-08-01T12:00:00Z', imageUrl: null, price: null }),
+    collectionCard({ id: 'new', cardName: 'New Card', updatedAt: '2026-08-05T12:00:00Z', imageUrl: 'https://example.test/new.jpg', price: 4.25 }),
+  ];
+
+  const recent = buildRecentAdds(cards, 2);
+
+  assert.equal(recent[0].id, 'new');
+  assert.equal(recent[0].imageUrl, 'https://example.test/new.jpg');
+  assert.equal(recent[0].price, '$4.25');
+  assert.equal(recent[1].imageUrl, null);
+  assert.equal(recent[1].price, 'Price unavailable');
+});
+
+test('Home composition carries recent cards into the premium hierarchy', () => {
+  const cards = [collectionCard({ id: 'one', cardName: 'Island', updatedAt: '2026-08-05T12:00:00Z' })];
+  const home = buildMobileHomeComposition({ accountType: 'collector', summary, activeSession: null, recentCards: cards });
+
+  assert.equal(home.recentAdds.length, 1);
+  assert.equal(home.recentAdds[0].title, 'Island');
 });
 
 test('bottom navigation spacing contract keeps content clear', () => {
   const minimumBottomPadding = getMobileScrollBottomInset(21);
   assert.ok(minimumBottomPadding >= 96);
 });
+
+function collectionCard({
+  id,
+  cardName,
+  updatedAt,
+  imageUrl = null,
+  price = null,
+}: {
+  id: string;
+  cardName: string;
+  updatedAt: string;
+  imageUrl?: string | null;
+  price?: number | null;
+}): CollectionCard {
+  return {
+    id,
+    cardName,
+    game: 'Magic: The Gathering',
+    printing: {
+      scryfallId: id,
+      setCode: 'tdo',
+      setName: 'Trading Docks',
+      collectorNumber: '1',
+      language: 'en',
+      finish: 'normal',
+      treatment: null,
+      imageUrl,
+    },
+    condition: 'near_mint',
+    quantityOwned: 1,
+    storageLocation: null,
+    tradeBinderStatus: 'not_for_trade',
+    wishlistStatus: 'not_wishlisted',
+    marketPrice: {
+      amount: price,
+      currency: 'USD',
+      source: price === null ? 'unavailable' : 'inventory',
+      updatedAt,
+    },
+    updatedAt,
+  };
+}

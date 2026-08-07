@@ -115,8 +115,10 @@ test('Wave 1 routes consume mobile design OS primitives for high-traffic surface
   const storage = readFileSync(join(root, 'app', 'storage-locations.tsx'), 'utf8');
 
   assert.match(shell, /getMobileBottomNavVisualModel/);
-  assert.match(home, /TDNavigationHeader/);
-  assert.match(home, /TDListRow/);
+  assert.match(home, /HomeHero/);
+  assert.match(home, /QuickActions/);
+  assert.match(home, /RecentAddsCarousel/);
+  assert.equal(home.includes('TDListRow'), false);
   assert.match(scanModes, /Automatic Scan/);
   assert.match(automaticScanner, /batchScannerReviewChipModel/);
   assert.match(automaticScanner, /TDSessionStrip/);

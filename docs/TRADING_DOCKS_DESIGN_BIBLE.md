@@ -224,7 +224,7 @@ Success:
 ## Screen-Specific Hero Rules
 
 - Scanner: camera viewport is the hero and should not be placed inside a page-style card while active scanning is underway.
-- Home: current account/work summary is the hero.
+- Home: current account/work summary is the hero. The active mobile route follows `docs/HOME_PRODUCT_V2.md`: compact account header, one hero, at most four quick actions, real Recent Adds, and one insight.
 - Collection: search and inventory result quality are the hero.
 - Card Detail: card image is the hero.
 - Storage: location path and "where is this card" flow are the hero.
@@ -250,5 +250,6 @@ Success:
 ## Mobile Migration Status
 
 - Implemented: Mobile Design OS Waves 1, 2, and 3 have migrated the active customer-facing mobile routes, Command Center summary, Settings, Scanner Recovery, and the gated dev showcase toward this hierarchy.
+- Implemented: Mobile Home now uses the Home Product V2 card-first hierarchy and no longer uses a dense list-row dashboard pattern.
 - Partially Implemented: Dense admin management routes are intentionally deferred for a dedicated admin-mobile workflow pass.
 - Requires Production Configuration: Physical-device VoiceOver, TalkBack, camera, OCR, and large-text release QA remain required before declaring release-complete mobile polish.
