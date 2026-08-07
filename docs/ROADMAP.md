@@ -155,4 +155,24 @@ Remaining release work:
 2. Decide whether paid mobile subscriptions are included in the first TestFlight; if yes, implement the approved StoreKit/Google Play Billing provider and backend entitlement reconciliation.
 3. Verify production builds hide `/dev/*`, diagnostics sheets, crop proofs, scanner benchmark builder, and design-system showcase routes.
 4. Confirm privacy policy, terms, support URL, delete-account compliance, App Privacy, Data Safety, screenshots, and review notes.
-5. Add production route-level error boundary and visual regression coverage after authenticated fixtures are stable.
+5. Add visual regression coverage after authenticated fixtures are stable.
+
+## Mobile Production Release Readiness
+
+Status: Partially Implemented.
+
+Implemented this pass:
+
+1. Set canonical mobile identifiers in `mobile/app.json`: iOS bundle id `com.tradingdocks.app` and Android package `com.tradingdocks.app`.
+2. Added typed mobile release configuration for production-safe support/legal links, version/build display, development-tool gates, and public-env secret detection.
+3. Added a support-assisted account deletion request route and linked it from Profile and Settings without adding unsafe client-side destructive deletion.
+4. Added a production-safe mobile route error boundary and not-found fallback.
+5. Added `mobile/scripts/verify-production-release.js` and `npm run verify:production-release`.
+6. Documented production env requirements, store assets, blocker table, privacy disclosure matrix, and Free-only mobile RC billing strategy.
+
+Remaining release work:
+
+1. Run physical-device iOS/Android QA on a clean EAS build.
+2. Product-owner/legal approval for account deletion policy, support email/URL, privacy URL, terms URL, App Privacy, Data Safety, screenshots, and review notes.
+3. Keep paid mobile upgrades disabled or informational until native billing and backend entitlement reconciliation are approved.
+4. Do not claim scanner/OCR/auto-capture production accuracy until measured device benchmarks support it.

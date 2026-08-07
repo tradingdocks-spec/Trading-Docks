@@ -26,6 +26,19 @@ Status: Partially Implemented. This document records the current privacy posture
 | Logs | Diagnostic logs are intended to exclude passwords, tokens, secrets, and source images. | MEDIUM; production logging provider not finalized |
 | Admin data | Admin surfaces expose account/subscription/system data to privileged roles only. | HIGH; production RBAC/RLS verification required |
 
+## Store Disclosure Matrix
+
+| Data category | Collected | Linked to user | Tracking | Purpose | Retention/source |
+| --- | --- | --- | --- | --- | --- |
+| Account identifiers | Yes | Yes | No tracking implemented | Authentication, support, account recovery. | Supabase auth/profile records. |
+| Email address | Yes | Yes | No tracking implemented | Sign-in, support, deletion requests. | Supabase auth and support email flow. |
+| Collection data | Yes | Yes | No tracking implemented | User collection, storage, Trade Binder, Wishlist, scanner review. | Supabase user-owned rows and user-scoped local cache. |
+| Camera images | Temporary only | No persistent default | No | Card scan processing. | In-memory or temporary file; deleted by default after processing. |
+| OCR text/card metadata | Yes when scanning | Yes when saved to collection/session | No tracking implemented | Exact-printing lookup and user confirmation. | Local OCR output, Scryfall metadata lookup, scanner session rows. |
+| Payment/subscription state | Yes when configured | Yes | No tracking implemented | Membership entitlement display and backend authorization. | Backend subscription records; mobile native billing is Planned. |
+| Diagnostics/benchmark data | Development only | Potentially device-associated in local dev | No | Scanner QA and calibration. | Local-only development tooling behind flags; not for production builds. |
+| Crash/analytics data | Not finalized | Not finalized | Not finalized | Planned observability. | Requires provider decision before disclosure can be final. |
+
 ## Security Checks
 
 - No secret environment values should be logged or bundled into mobile builds.

@@ -16,14 +16,16 @@ Physical-device QA remains required before any TestFlight or store release claim
 - BLOCKER: Physical-device QA is not complete for iOS, Android, camera permission denial, native VisionCamera, Apple Vision OCR, VoiceOver, TalkBack, large text, offline replay, and account switching.
 - BLOCKER: Mobile paid membership purchase is not active or approved. Digital subscriptions must use an Apple/Google-compliant purchase architecture before paid mobile upgrade UI can process payments.
 - BLOCKER: Production environment gates must be verified for `/dev/*`, scanner diagnostics, benchmark builder, and design-system showcase before release builds.
-- BLOCKER: Delete-account, support URL, privacy URL, terms URL, App Privacy, Data Safety, subscription metadata, and review notes need product-owner/legal confirmation.
+- BLOCKER: Account deletion now has a support-assisted mobile request path, but backend self-service deletion is Planned and App Store deletion policy copy still needs product-owner/legal confirmation.
+- BLOCKER: Support, privacy, and terms links now have production-safe defaults; product-owner/legal must confirm final store metadata URLs before submission.
+- BLOCKER: App Privacy, Data Safety, subscription metadata, screenshots, review notes, and physical-device evidence remain incomplete.
 
 ## Route Audit
 
 | Route | Purpose | Primary action | States | Dependencies | Release status |
 | --- | --- | --- | --- | --- | --- |
 | `/` | Launch gate after auth/session restoration. | Redirect to tabs or welcome. | Implemented branded loading; no empty/error/offline UI. | Auth restoration. | POLISH |
-| `/_layout` | Root providers, biometric lock, scanner replay bridge, stack shell. | Restore app session. | Implemented branded loading; route-level crash recovery remains planned. | Auth, account, admin, scanner replay. | HIGH |
+| `/_layout` | Root providers, biometric lock, scanner replay bridge, stack shell. | Restore app session. | Implemented branded loading and production-safe route error boundary. | Auth, account, admin, scanner replay. | HIGH |
 | `/welcome` | Unauthenticated product entry. | Get Started or Sign In. | Implemented compact launch copy; no offline dependency. | None. | POLISH |
 | `/auth` | Sign in, sign up, magic link, OAuth, biometric preference. | Submit credentials or provider flow. | Implemented loading/error states and sanitized customer copy; native OAuth/magic-link QA remains required. | Supabase auth, local auth preferences. | HIGH |
 | `/onboarding` | Select account intent. | Continue to auth. | Implemented one decision; does not force purchase. | Local account preference. | POLISH |
@@ -42,8 +44,8 @@ Physical-device QA remains required before any TestFlight or store release claim
 | `/scanner-recovery` | Recover failed queued scanner adds. | Retry or discard queued scans. | Implemented pending/failed/action-required states; needs user-switch and reconnect device QA. | Scanner replay queue, auth user id. | HIGH |
 | `/(tabs)/deal-desk` | Store/Seller offer workspace. | Start/manage buying session. | Implemented render fix and empty/populated states; scanner/session math regression QA remains. | Account type, session storage, pricing availability. | HIGH |
 | `/(tabs)/sell` | Seller signals/operations surface. | Review selling signals. | Implemented honest unavailable states for unsupported metrics. | Account type, seller entitlements. | MEDIUM |
-| `/(tabs)/profile` | Profile, membership, security, admin entry. | Manage account/sign out. | Implemented sections and sign-out; delete-account/support/legal store compliance remains. | Auth, account, admin role. | HIGH |
-| `/settings` | Preferences and diagnostics gates. | Update preferences/security. | Implemented settings groups; diagnostics are gated by env flag. | Auth preference storage. | MEDIUM |
+| `/(tabs)/profile` | Profile, membership, security, admin entry. | Manage account/sign out. | Implemented sections, sign-out, support/legal links, account deletion request, and app version/build display; legal approval remains required. | Auth, account, admin role. | HIGH |
+| `/settings` | Preferences and diagnostics gates. | Update preferences/security. | Implemented settings groups, support/legal links, account deletion request, About version/build, and production-gated diagnostics. | Auth preference storage. | MEDIUM |
 | `/admin/*` | Protected Command Center. | Manage platform operations. | Implemented protected admin routes; customer release should keep access additive and server-authorized. | Admin role from user_roles, Supabase RPCs. | HIGH |
 | `/dev/design-system` | Design-system showcase. | Inspect primitives. | Gated by `EXPO_PUBLIC_ENABLE_DESIGN_SYSTEM_SHOWCASE`; verify production exclusion. | Development env flag. | BLOCKER if exposed |
 | `/dev/camera-qa` | Native camera diagnostics. | Inspect camera device/format. | Gated by scanner diagnostics flag; includes internal device data. | Development env flag, VisionCamera. | BLOCKER if exposed |
@@ -54,7 +56,7 @@ Physical-device QA remains required before any TestFlight or store release claim
 ## Cross-Cutting Findings
 
 - Visual hierarchy: Implemented for main tabs and scanner surfaces; admin surfaces are functional but denser and should stay internal.
-- Loading: Implemented branded startup and many route-specific states; route-level error boundary remains planned.
+- Loading: Implemented branded startup, route-level error boundary, and many route-specific states.
 - Empty/error/offline: Implemented unevenly. Collection/scanner/recovery are strongest; profile/settings/admin should continue converging on shared state components.
 - Navigation: Account-aware tabs are implemented. Admin remains additive. Deep-link and browser/Expo Web refresh behavior still require manual QA.
 - Motion/haptics: Motion standard exists and is partially adopted. Reduce Motion physical QA remains required.

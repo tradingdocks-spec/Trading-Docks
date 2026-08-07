@@ -48,6 +48,8 @@
 - Partially Implemented: eBay and Mana Pool integration surfaces exist but require provider credentials and production validation.
 - Planned: RevenueCat is not installed in active root or mobile dependencies.
 - Planned: Mobile paid purchase architecture is documented in `docs/MOBILE_BILLING_RELEASE_ARCHITECTURE.md`; native subscriptions require StoreKit/Google Play Billing approval and backend entitlement reconciliation before release.
+- Implemented: Mobile release environment rules live in `docs/MOBILE_PRODUCTION_ENV.md` and `mobile/services/mobile-release-config.ts`; `mobile/scripts/verify-production-release.js` validates production identifiers, forbidden public secrets, development flags, version/build metadata, and EAS profile presence.
+- Partially Implemented: The first mobile RC billing strategy is Free-only native account creation with display-only paid entitlement state. Paid mobile upgrades remain Planned until StoreKit/Google Play Billing and backend entitlement reconciliation are approved.
 
 ## Build and CI
 
@@ -57,6 +59,7 @@
 - Planned: No root unit/integration test script is configured.
 - Implemented: Root ESLint scope excludes confirmed historical Expo backups and generated output so active checks focus on the current web/mobile code.
 - Partially Implemented: Backup folders remain in the repository for review; see `docs/REPOSITORY_CLEANUP_PLAN.md` before archiving or deleting them.
+- Implemented: Mobile now has `npm run verify:production-release` for release-readiness checks; CI still needs a mobile job that runs it with production-style public environment values.
 
 ## Repository Structure
 
@@ -175,6 +178,8 @@
 - Implemented: Scanner offline replay is centralized in `mobile/services/scanner-replay.ts` with an event bridge mounted in the root mobile frame. It replays queued scanner adds only for the active authenticated user on session restoration, app resume, Expo Web network reconnect, and manual retry.
 - Implemented: Scanner queued adds use the generated inventory item id as part of a stable idempotency key. If a retry finds the item already written for the same user, replay treats the entry as synced instead of inserting a duplicate.
 - Implemented: Scanner recovery UI lives at `/scanner-recovery` and supports inspecting exact queued scan details, retrying one, retrying all, and confirmed discard.
+- Implemented: Mobile production dev tooling gates redirect `/dev/design-system`, `/dev/camera-qa`, and `/dev/scanner-benchmark` when their explicit development flags are disabled or when `NODE_ENV=production`.
+- Implemented: Mobile root stack exposes a production-safe error boundary and a branded not-found fallback without leaking stack traces, provider details, or secret-bearing messages to customers.
 - Implemented: Recognition-provider interface is defined by `ScannerRecognitionProvider`. The active provider is an explicit unavailable-camera/manual-search foundation; it does not claim OCR accuracy.
 - Partially Implemented: Camera capture is enabled, but OCR, artwork matching, set-symbol recognition, collector-info cropping, and finish detection remain provider contracts until benchmarked implementations are added.
 - Partially Implemented: Active inventory writes remain Magic-compatible. Multi-TCG candidates are modeled but not yet persisted through a universal inventory schema.

@@ -32,6 +32,9 @@
 - Planned: Before remote OCR, artwork matching, foil analysis, or analytics for continuous scanning, add explicit consent, retention controls, and image-free logging guarantees.
 - Implemented: Native Magic OCR v1 deletes temporary captured stills after Apple Vision processing and reports cleanup status without displaying source image paths.
 - Implemented: The mobile release privacy audit is captured in `docs/MOBILE_PRIVACY_RELEASE_AUDIT.md`; no source card images are retained by default, and scanner benchmark/camera diagnostics remain development-gated.
+- Implemented: Mobile production release config blocks public service-role/secret-shaped `EXPO_PUBLIC_*` values, gates diagnostics/showcases behind non-production development flags, and exposes support/legal links from a typed release config.
+- Implemented: Mobile root route errors render generic recovery copy and do not display raw exception details to production users.
+- Partially Implemented: Mobile account deletion is support-assisted through a visible request path. Backend self-service deletion remains Planned and must be approved before claiming fully automated deletion compliance.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.
 
@@ -62,6 +65,7 @@
 - Planned: Before collecting shared scanner fixtures, confirm copyright permission, storage location, retention window, and access controls with the product owner.
 - Planned: Pokemon, One Piece, and Lorcana catalog providers require licensing/API review before mobile or server integration; the mobile client must not scrape publisher pages directly.
 - Planned: Before mobile paid subscriptions ship, backend subscription/entitlement state must remain authoritative and native purchase receipts must be reconciled through an approved StoreKit/Google Play Billing architecture.
+- Planned: Complete App Privacy and Play Data Safety disclosures from the mobile privacy matrix before external release.
 
 ## Access Fallbacks
 

@@ -122,7 +122,15 @@ Verify:
 - Expo Web export passes.
 - Expo config prebuild passes.
 - `expo install --check` passes.
+- `npm run verify:production-release` passes with production public env values.
 - Apple OCR autolinking search and Apple resolve include `trading-docks-vision-ocr` and `TradingDocksVisionOcrModule`.
 - `git diff --check` passes.
 - Manual physical-device QA is complete or explicitly deferred by product owner.
 - `docs/MOBILE_RELEASE_CANDIDATE_AUDIT.md`, `docs/MOBILE_BILLING_RELEASE_ARCHITECTURE.md`, `docs/MOBILE_PRIVACY_RELEASE_AUDIT.md`, and `docs/MOBILE_STORE_RELEASE_CHECKLIST.md` are reviewed by product owner before Release Candidate status is claimed.
+
+## TestFlight Smoke Test
+
+- Install the clean EAS iOS development or TestFlight build and confirm launch, auth restoration, Store account routing to Deal Desk, Profile, Settings, account deletion request, legal/support links, and root error recovery.
+- Confirm `/dev/design-system`, `/dev/camera-qa`, and `/dev/scanner-benchmark` redirect away when development flags are not enabled.
+- Confirm Scanner Automatic and Single Scan still require confirmation/review and do not claim OCR or recognition certainty beyond measured behavior.
+- Confirm paid upgrades are not processed in the native app for the Free-only RC strategy.

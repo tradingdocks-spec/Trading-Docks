@@ -96,6 +96,10 @@
 - Partially Implemented: Mobile/web parity still has gaps for active workspace authority, Store/team shared inventory, mobile Deck Vault, and seller/store operational data. Current status is documented in `docs/MOBILE_WEB_DATA_PARITY.md`.
 - Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
+- Implemented: Mobile production identifiers now use `com.tradingdocks.app` for iOS and Android.
+- Implemented: Mobile production-release verification now checks identifiers, app version/build metadata, EAS profile presence, forbidden public secrets, development flags, and required production Supabase public env when run with `NODE_ENV=production`.
+- Partially Implemented: Mobile account deletion is visible and support-assisted; backend self-service deletion remains Planned.
+- Partially Implemented: Mobile paid upgrade processing remains disabled/unimplemented for the Free-only RC strategy; entitlement display must continue to come from backend authority.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
 - Partially Implemented: Multiple migration repair files may not replay cleanly in a fresh database without manual sequencing review.
 

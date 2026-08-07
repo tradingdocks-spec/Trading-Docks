@@ -31,8 +31,8 @@ Release severity: BLOCKER until physical-device QA, store metadata, legal URLs, 
 
 | Item | Current status | Release requirement |
 | --- | --- | --- |
-| Application id | Requires Production Configuration: no explicit `android.package` is set in `mobile/app.json`, and `expo config --type prebuild` currently resolves `com.placeholder.appid`. | Add/confirm final package before Play release. |
-| Version code | Planned through EAS remote auto-increment. | Confirm production sequence. |
+| Application id | Implemented: `com.tradingdocks.app` is set in `mobile/app.json`. | Confirm Google Play Console package ownership. |
+| Version code | Implemented: `android.versionCode` is `1`; EAS remote auto-increment is configured. | Confirm production sequence before every release. |
 | AAB | Planned. | Build with production profile. |
 | Adaptive icon | Implemented assets referenced. | Visual QA in launcher. |
 | Data Safety | Planned. | Complete based on privacy audit. |
@@ -47,7 +47,8 @@ Release severity: BLOCKER until physical-device QA, store metadata, legal URLs, 
 
 - Implemented: `development`, `preview`, and `production` profiles exist in `mobile/eas.json`.
 - Implemented: production auto-increment is enabled.
-- Requires Production Configuration: production environment values, Android package, store credentials, and diagnostics/dev-route exclusion validation.
+- Requires Production Configuration: production environment values, store credentials, and diagnostics/dev-route exclusion validation.
+- Requires Production Configuration: `mobile/app.json` native identifiers changed in this release-readiness pass, so a clean EAS build is required before TestFlight or Play internal testing.
 
 ## Release Commands
 
@@ -73,4 +74,5 @@ Do not submit to App Review or Play production without explicit product-owner ap
 - Apple OCR autolinking search and resolve include the native OCR module.
 - Production builds hide diagnostics and development routes.
 - Billing architecture is approved or paid mobile purchase UI is disabled.
+- `npm run verify:production-release` passes with production public env values.
 - Physical-device QA is complete and documented.
