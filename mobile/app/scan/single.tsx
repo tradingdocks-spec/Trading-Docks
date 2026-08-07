@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TDButton, TDCard, TDText } from '@/components/design-system';
 import { ScannerCamera, type ScannerCameraFrame, type ScannerCameraHandle } from '@/components/scanner-camera';
+import { PrintingSelectorSheet } from '@/components/scanner/printing-selector-sheet';
 import { color, radius, space } from '@/design';
 import {
   addRecognitionToSession,
@@ -19,7 +20,8 @@ import {
   scannerModeLabel,
   type ContinuousScannerSession,
 } from '@/services/continuous-offer-scanner';
-import { displayFinish } from '@/services/collector-workspace';
+import type { CardFinish } from '@/services/collector-workspace';
+import { defaultFinishForPrinting, finishLabel, supportedVisibleFinishes } from '@/services/exact-printing-recognition';
 import { recognizeMagicStillCapture, type CropRect, type MagicStillScanCropDiagnostics, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { loadScannerContext } from '@/services/scanner-data';
 import { resolveScannerPermissionState, type ScannerCardCandidate, type ScannerPermissionState } from '@/services/scanner-foundation';
@@ -47,6 +49,7 @@ import {
   resolveScannerManualCapturePolicy,
   type ScannerCaptureDiagnostic,
 } from '@/services/scanner-capture-policy';
+import { selectScryfallScannerPrice } from '@/services/scanner-price-enrichment';
 import { resolveSingleScanReadiness, shouldEmitReadyHaptic, type ScannerReadinessTone } from '@/services/scanner-readiness';
 
 export default function SingleScanScreen() {
@@ -73,6 +76,9 @@ export default function SingleScanScreen() {
   const [lastCaptureDiagnostic, setLastCaptureDiagnostic] = useState<ScannerCaptureDiagnostic | null>(null);
   const [diagnosticCaptureUri, setDiagnosticCaptureUri] = useState<string | null>(null);
   const [cropDiagnostics, setCropDiagnostics] = useState<MagicStillScanCropDiagnostics | null>(null);
+  const [correctedCandidate, setCorrectedCandidate] = useState<ScannerCardCandidate | null>(null);
+  const [selectedFinish, setSelectedFinish] = useState<CardFinish>('normal');
+  const [printingSelectorOpen, setPrintingSelectorOpen] = useState(false);
   const focusSettlingUntilRef = useRef(0);
   const activeCaptureIdRef = useRef<string | null>(null);
   const previousReadinessStateRef = useRef<ReturnType<typeof resolveSingleScanReadiness>['state'] | null>(null);
@@ -86,7 +92,8 @@ export default function SingleScanScreen() {
   }), [height, insets.bottom, insets.top, width]);
   const supportedLensOptions = lensOptions.filter((option) => option.supported);
   const selectedLensLabel = supportedLensOptions.find((option) => option.mode === lensMode)?.label ?? SCANNER_CAMERA_LENS_LABELS[lensMode].label;
-  const selectedCandidate = result?.ok ? result.selected ?? result.candidates[0] ?? null : null;
+  const recognizedCandidate = result?.ok ? result.selected ?? result.candidates[0] ?? null : null;
+  const selectedCandidate = correctedCandidate ?? recognizedCandidate;
   const qualityAnalyzer = useMemo(() => createSingleScanQualityAnalyzer({
     view: { width, height },
     guide: guideLayout,
@@ -140,6 +147,7 @@ export default function SingleScanScreen() {
         online: true,
         cachedCandidates: [],
         sequentialTitleOcr: true,
+        includeCollectorOcr: true,
         deferCleanup: isDevelopmentDiagnostics(),
         onStage: (nextStage) => setStage(nextStage === 'reading_title' ? 'reading' : 'matching'),
       });
@@ -149,6 +157,11 @@ export default function SingleScanScreen() {
         setCropDiagnostics(scan.cropDiagnostics ?? null);
       }
       setResult(scan);
+      if (scan.ok) {
+        const nextCandidate = scan.selected ?? scan.candidates[0] ?? null;
+        setCorrectedCandidate(null);
+        setSelectedFinish(nextCandidate ? defaultFinishForPrinting(nextCandidate).finish : 'normal');
+      }
       setStage(scan.ok ? 'result' : 'failed');
       if (scan.ok) {
         setMessage(null);
@@ -171,6 +184,8 @@ export default function SingleScanScreen() {
     setResult(null);
     setMessage(null);
     setStage('idle');
+    setCorrectedCandidate(null);
+    setSelectedFinish('normal');
   }, []);
 
   const addToReviewList = useCallback(async () => {
@@ -191,9 +206,8 @@ export default function SingleScanScreen() {
       confidence: result.recognition.confidence,
       recognitionMethod: 'metadata_assisted',
     });
-    const finish = selectedCandidate.finishes.includes('normal')
-      ? 'normal'
-      : selectedCandidate.finishes[0] ?? 'normal';
+    const finish = defaultFinishForPrinting(selectedCandidate, selectedFinish).finish;
+    const market = selectScryfallScannerPrice(selectedCandidate, finish);
     const nextSession = addRecognitionToSession(session, {
       stableScanId: lastCaptureId ?? createScanId(),
       candidate: selectedCandidate,
@@ -202,8 +216,8 @@ export default function SingleScanScreen() {
       condition: 'near_mint',
       finish,
       language: selectedCandidate.language,
-      marketPrice: selectedCandidate.marketPrice?.usd ?? selectedCandidate.marketPrice?.usdFoil ?? selectedCandidate.marketPrice?.usdEtched ?? null,
-      priceSource: selectedCandidate.marketPrice ? 'scryfall' : null,
+      marketPrice: market,
+      priceSource: market === null ? 'unavailable' : 'scryfall',
       priceTimestamp: selectedCandidate.marketPrice?.fetchedAt ?? null,
       destination: 'collection',
       notes: 'Added from Single Scan.',
@@ -211,7 +225,7 @@ export default function SingleScanScreen() {
     await appStorage.setItem(continuousScannerSessionKey(context.userId), JSON.stringify(nextSession));
     setMessage('Added to Review List.');
     router.push('/scanner-session' as never);
-  }, [lastCaptureId, result, selectedCandidate]);
+  }, [lastCaptureId, result, selectedCandidate, selectedFinish]);
 
   const handleFrame = useCallback((frame: ScannerCameraFrame) => {
     setPreviewResolution((current) => current?.width === frame.previewResolution.width && current.height === frame.previewResolution.height
@@ -337,8 +351,27 @@ export default function SingleScanScreen() {
       </View>
 
       {selectedCandidate ? (
-        <SingleResultSheet candidate={selectedCandidate} onAdd={addToReviewList} onRetake={retake} />
+        <SingleResultSheet
+          candidate={selectedCandidate}
+          selectedFinish={selectedFinish}
+          onFinishChange={setSelectedFinish}
+          onAdd={addToReviewList}
+          onOtherPrintings={() => setPrintingSelectorOpen(true)}
+          onRetake={retake}
+        />
       ) : null}
+      <PrintingSelectorSheet
+        visible={printingSelectorOpen}
+        currentCandidate={selectedCandidate}
+        currentFinish={selectedFinish}
+        onClose={() => setPrintingSelectorOpen(false)}
+        onSelect={(candidate, finish, fallbackMessage) => {
+          setCorrectedCandidate(candidate);
+          setSelectedFinish(finish);
+          setPrintingSelectorOpen(false);
+          if (fallbackMessage) setMessage(fallbackMessage);
+        }}
+      />
       {settingsOpen ? (
         <SingleSettingsSheet
           lensLabel={selectedLensLabel}
@@ -360,20 +393,50 @@ export default function SingleScanScreen() {
   );
 }
 
-function SingleResultSheet({ candidate, onAdd, onRetake }: { candidate: ScannerCardCandidate; onAdd: () => void; onRetake: () => void }) {
-  const market = candidate.marketPrice?.usd ?? candidate.marketPrice?.usdFoil ?? candidate.marketPrice?.usdEtched ?? null;
+function SingleResultSheet({
+  candidate,
+  selectedFinish,
+  onFinishChange,
+  onAdd,
+  onOtherPrintings,
+  onRetake,
+}: {
+  candidate: ScannerCardCandidate;
+  selectedFinish: CardFinish;
+  onFinishChange: (finish: CardFinish) => void;
+  onAdd: () => void;
+  onOtherPrintings: () => void;
+  onRetake: () => void;
+}) {
+  const finishes = supportedVisibleFinishes(candidate);
+  const market = selectScryfallScannerPrice(candidate, selectedFinish);
   const offer = market === null ? null : Math.round(market * 0.7 * 100) / 100;
   return (
     <TDCard style={s.resultSheet}>
       {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={s.cardImage} contentFit="cover" /> : <View style={s.imageFallback}><Ionicons name="image-outline" size={24} color={color.textMuted} /></View>}
       <View style={s.resultText}>
         <TDText variant="title" numberOfLines={2}>{candidate.name}</TDText>
-        <TDText variant="small" tone="muted">{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'} - {candidate.finishes.map(displayFinish).join(', ')}</TDText>
+        <TDText variant="small" tone="muted">{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'} - {candidate.specialPrintingLabels?.join(', ') || 'Exact printing'}</TDText>
         <TDText variant="small">Market {market === null ? 'Unavailable' : `$${market.toFixed(2)}`}</TDText>
         <TDText variant="small">Offer {offer === null ? 'Unavailable' : `$${offer.toFixed(2)}`}</TDText>
+        <View style={s.finishControl}>
+          {finishes.map((finish) => (
+            <Pressable
+              key={finish}
+              accessibilityRole="button"
+              accessibilityState={{ selected: selectedFinish === finish }}
+              accessibilityLabel={`Use ${finishLabel(finish)} finish`}
+              onPress={() => onFinishChange(finish)}
+              style={[s.finishButton, selectedFinish === finish && s.finishButtonActive]}
+            >
+              <TDText variant="caption" tone={selectedFinish === finish ? 'primary' : 'muted'}>{finishLabel(finish)}</TDText>
+            </Pressable>
+          ))}
+        </View>
       </View>
       <View style={s.resultActions}>
         <TDButton label="Add card" onPress={onAdd} />
+        <TDButton label="View other printings" variant="secondary" onPress={onOtherPrintings} />
         <TDButton label="Retake" variant="secondary" onPress={onRetake} />
       </View>
     </TDCard>
@@ -528,5 +591,8 @@ const s = StyleSheet.create({
   imageFallback: { width: 72, height: 102, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   resultText: { flex: 1, minWidth: 0, gap: 4 },
   resultActions: { gap: space.sm },
+  finishControl: { minHeight: 34, flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingTop: 2 },
+  finishButton: { minHeight: 30, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
+  finishButtonActive: { borderColor: color.primaryBright, backgroundColor: color.primaryBright + '24' },
   messageToast: { position: 'absolute', left: space.md, right: space.md, bottom: space.xl, zIndex: 40, borderRadius: radius.md, padding: space.md, gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
 });

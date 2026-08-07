@@ -6,9 +6,11 @@ import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, Scro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TDBadge, TDButton, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDScreen, TDSegmentedControl, TDSheet, TDText } from '@/components/design-system';
+import { PrintingSelectorSheet } from '@/components/scanner/printing-selector-sheet';
 import { color, radius, space } from '@/design';
 import { useAccount } from '@/providers/account';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
+import { finishLabel, supportedVisibleFinishes } from '@/services/exact-printing-recognition';
 import { supabase } from '@/lib/supabase';
 import {
   buildScannerCollectionConfirmation,
@@ -26,12 +28,15 @@ import {
   sessionFinalizeEligibility,
   sessionGameLabel,
   sessionReviewStatusLabel,
+  updateScannerSessionLineFinish,
+  updateScannerSessionLinePrinting,
   type ContinuousScannerSession,
   type ScannerSessionLine,
   type SessionReviewFilterState,
   type SessionReviewStatusTab,
 } from '@/services/continuous-offer-scanner';
 import { loadScannerContext, saveScannerConfirmation } from '@/services/scanner-data';
+import { selectScryfallScannerPrice } from '@/services/scanner-price-enrichment';
 import { appStorage } from '@/services/storage/app-storage';
 
 export default function ScannerSessionReview() {
@@ -181,10 +186,10 @@ export default function ScannerSessionReview() {
         onSave={(lineId, patch, advance) => {
           const nextSession = editScannerSessionLine(session, lineId, patch);
           setSession(nextSession);
-          if (advance) {
+          if (advance === true) {
             const next = nextReviewLine(nextSession.lines.filter((line) => line.id !== lineId));
             setSelectedLineId(next?.id ?? null);
-          } else {
+          } else if (advance === false) {
             setSelectedLineId(null);
           }
         }}
@@ -272,11 +277,13 @@ function ValuePair({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible: boolean; line: ScannerSessionLine | null; onClose: () => void; onSave: (lineId: string, patch: Partial<ScannerSessionLine>, advance: boolean) => void; onRemove: (lineId: string) => void }) {
+function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible: boolean; line: ScannerSessionLine | null; onClose: () => void; onSave: (lineId: string, patch: Partial<ScannerSessionLine>, advance: boolean | 'stay') => void; onRemove: (lineId: string) => void }) {
   const [quantity, setQuantity] = useState('1');
   const [marketPrice, setMarketPrice] = useState('');
   const [purchasePercentage, setPurchasePercentage] = useState('70');
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
+  const [printingSelectorOpen, setPrintingSelectorOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!line) return;
@@ -284,10 +291,14 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
     setMarketPrice(line.marketPrice === null ? '' : String(line.marketPrice));
     setPurchasePercentage(String(line.purchasePercentage));
     setMoreOptionsOpen(false);
+    setPrintingSelectorOpen(false);
+    setNotice(null);
   }, [line]);
 
   if (!line) return null;
   const imageUrl = line.recognition.topCandidate?.imageUrl ?? null;
+  const activeCandidate = line.recognition.topThree.find((candidate) => candidate.id === line.exactPrintingId) ?? line.recognition.topCandidate;
+  const supportedFinishes = activeCandidate ? supportedVisibleFinishes(activeCandidate) : [];
   const parsedQuantity = Math.max(1, Number(quantity) || 1);
   const parsedPrice = parseOptionalMoney(marketPrice);
   const parsedRate = parseOptionalPercentage(purchasePercentage) ?? line.purchasePercentage;
@@ -326,14 +337,48 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
               <View style={s.detailGrid}>
                 <TDInput label="Quantity" value={quantity} keyboardType="numeric" onChangeText={setQuantity} />
                 <TDInput label="Condition" value={displayCondition(line.condition)} editable={false} />
-                <TDInput label="Finish" value={displayFinish(String(line.finish) as never)} editable={false} />
                 <TDInput label="Market price" value={marketPrice} keyboardType="decimal-pad" placeholder={line.priceSource === 'pricing_pending' ? 'Pricing...' : '-'} onChangeText={setMarketPrice} />
                 <TDInput label="Cash percentage" value={purchasePercentage} keyboardType="numeric" onChangeText={setPurchasePercentage} />
               </View>
+              {notice ? (
+                <View style={s.syncNotice}>
+                  <Ionicons name="information-circle-outline" size={18} color={color.info} />
+                  <TDText variant="caption" tone="muted">{notice}</TDText>
+                </View>
+              ) : null}
+              {supportedFinishes.length ? (
+                <View style={s.finishControlBlock}>
+                  <TDText variant="caption" tone="muted">Finish</TDText>
+                  <View style={s.finishControl}>
+                    {supportedFinishes.map((finish) => (
+                      <Pressable
+                        key={finish}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: line.finish === finish }}
+                        accessibilityLabel={`Use ${finishLabel(finish)} finish`}
+                        onPress={() => {
+                          const result = updateScannerSessionLineFinish(lineSessionShell(line), line.id, finish);
+                          const updatedLine = result.session.lines[0];
+                          setMarketPrice(updatedLine.marketPrice === null ? '' : String(updatedLine.marketPrice));
+                          onSave(line.id, {
+                            finish,
+                            marketPrice: updatedLine.marketPrice,
+                            priceSource: updatedLine.priceSource,
+                            priceTimestamp: updatedLine.priceTimestamp,
+                          }, 'stay');
+                        }}
+                        style={[s.finishButton, line.finish === finish && s.finishButtonActive]}
+                      >
+                        <TDText variant="caption" tone={line.finish === finish ? 'primary' : 'muted'}>{finishLabel(finish)}</TDText>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
               <View style={s.offerPanel}>
                 <ValuePair label="Offer" value={formatSessionReviewMoney(nextOffer)} />
               </View>
-              <TDButton label="Choose another printing" variant="secondary" disabled onPress={undefined} />
+              <TDButton label="View other printings" variant="secondary" disabled={!activeCandidate} onPress={() => setPrintingSelectorOpen(true)} />
               <Pressable accessibilityRole="button" accessibilityState={{ expanded: moreOptionsOpen }} accessibilityLabel={moreOptionsOpen ? 'Hide more card options' : 'Show more card options'} onPress={() => setMoreOptionsOpen((open) => !open)} style={s.moreOptionsToggle}>
                 <TDText variant="small">More options</TDText>
                 <Ionicons name={moreOptionsOpen ? 'chevron-up' : 'chevron-down'} size={18} color={color.textMuted} />
@@ -341,6 +386,8 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
               {moreOptionsOpen ? (
                 <View style={s.moreOptionsPanel}>
                   <TDInput label="Language" value={line.language ?? '-'} editable={false} />
+                  <TDInput label="Bottom-left OCR" value={bottomLeftEvidence(line)} editable={false} />
+                  <TDInput label="Confidence evidence" value={line.recognition.conflictingSignals.join('; ') || 'No conflicts'} editable={false} />
                 </View>
               ) : null}
               <TDButton label={line.reviewStatus === 'needs_review' ? 'Save and mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
@@ -351,6 +398,36 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
           </TDSheet>
         </KeyboardAvoidingView>
       </View>
+      <PrintingSelectorSheet
+        visible={printingSelectorOpen}
+        currentCandidate={activeCandidate ?? null}
+        currentFinish={String(line.finish)}
+        onClose={() => setPrintingSelectorOpen(false)}
+        onSelect={(candidate, finish, fallbackMessage) => {
+          const result = updateScannerSessionLinePrinting(lineSessionShell(line), line.id, candidate);
+          const updatedLine = result.session.lines[0];
+          const price = selectScryfallScannerPrice(candidate, finish);
+          setMarketPrice(price === null ? '' : String(price));
+          onSave(line.id, {
+            cardName: candidate.name,
+            setCode: candidate.setCode,
+            collectorNumber: candidate.collectorNumber,
+            exactPrintingId: candidate.id,
+            language: candidate.language,
+            finish,
+            marketPrice: price,
+            priceSource: price === null ? 'unavailable' : 'scryfall',
+            priceTimestamp: candidate.marketPrice?.fetchedAt ?? updatedLine.priceTimestamp,
+            reviewStatus: 'confirmed',
+            confidence: 'likely',
+            confidenceScore: updatedLine.confidenceScore,
+            recognition: updatedLine.recognition,
+            notes: updatedLine.notes,
+          }, 'stay');
+          setNotice(fallbackMessage ?? result.fallbackMessage ?? 'Printing updated.');
+          setPrintingSelectorOpen(false);
+        }}
+      />
     </Modal>
   );
 }
@@ -393,6 +470,34 @@ function statusCounts(lines: ScannerSessionLine[]): Record<SessionReviewStatusTa
 function formatReviewLineMoney(value: number | null, source: string | null) {
   if (value === null && source === 'pricing_pending') return 'Pricing...';
   return formatSessionReviewMoney(value);
+}
+
+function bottomLeftEvidence(line: ScannerSessionLine) {
+  const signal = line.recognition.signals.find((entry) => entry.key === 'list_printing' || entry.label.includes('Bottom-left'));
+  return signal?.evidence ?? 'No bottom-left evidence captured';
+}
+
+function lineSessionShell(line: ScannerSessionLine): ContinuousScannerSession {
+  return {
+    id: 'review-sheet',
+    userId: 'review-sheet',
+    name: 'Review',
+    mode: 'collection_intake',
+    createdAt: line.createdAt,
+    updatedAt: line.createdAt,
+    autoConfirm: 'suggest_only',
+    offerConfig: {
+      defaultCashPercentage: line.purchasePercentage,
+      defaultTradePercentage: 80,
+      minimumCardValue: null,
+      rounding: 'nearest_cent',
+      rules: [],
+    },
+    defaultDestination: line.destination,
+    paused: false,
+    lines: [line],
+    undoneLines: [],
+  };
 }
 
 function plainReviewCopy(line: ScannerSessionLine) {
@@ -460,6 +565,10 @@ const s = StyleSheet.create({
   sheetImage: { width: 86, height: 120, borderRadius: radius.md, backgroundColor: color.surface },
   sheetImageMissing: { width: 86, height: 120, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   detailGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  finishControlBlock: { gap: space.xs },
+  finishControl: { minHeight: 36, flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  finishButton: { minHeight: 34, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
+  finishButtonActive: { borderColor: color.primaryBright, backgroundColor: color.primaryBright + '24' },
   offerPanel: { gap: space.xs, borderRadius: radius.md, padding: space.md, backgroundColor: color.canvasRaised },
   moreOptionsToggle: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: color.surface },
   moreOptionsPanel: { gap: space.sm, borderRadius: radius.md, padding: space.md, backgroundColor: color.canvasRaised },

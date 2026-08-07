@@ -7,6 +7,7 @@ import type {
 } from './scanner-intelligence.ts';
 import type { ScannerCardCandidate, ScannerConfirmation } from './scanner-foundation.ts';
 import type { SupportedTcg } from './multi-tcg-scanner.ts';
+import { defaultFinishForPrinting } from './exact-printing-recognition.ts';
 
 export const STANDARD_TRADING_CARD_WIDTH_MM = 63;
 export const STANDARD_TRADING_CARD_HEIGHT_MM = 88;
@@ -730,11 +731,67 @@ export function batchScannerTimingSummary(input: Partial<BatchScannerTimingSnaps
   };
 }
 
-export function editScannerSessionLine(session: ContinuousScannerSession, lineId: string, patch: Partial<Pick<ScannerSessionLine, 'condition' | 'finish' | 'quantity' | 'purchasePercentage' | 'marketPrice' | 'priceSource' | 'priceTimestamp' | 'destination' | 'storageLocationId' | 'binderId' | 'reviewStatus' | 'syncState' | 'notes'>>) {
+export function editScannerSessionLine(session: ContinuousScannerSession, lineId: string, patch: Partial<Pick<ScannerSessionLine, 'cardName' | 'setCode' | 'collectorNumber' | 'exactPrintingId' | 'language' | 'confidence' | 'confidenceScore' | 'condition' | 'finish' | 'quantity' | 'purchasePercentage' | 'marketPrice' | 'priceSource' | 'priceTimestamp' | 'destination' | 'storageLocationId' | 'binderId' | 'reviewStatus' | 'syncState' | 'notes' | 'recognition'>>) {
   return {
     ...session,
     updatedAt: new Date().toISOString(),
     lines: session.lines.map((line) => line.id === lineId ? recalculateLine({ ...line, ...patch }, session.offerConfig) : line),
+  };
+}
+
+export function updateScannerSessionLineFinish(session: ContinuousScannerSession, lineId: string, finish: CardFinish) {
+  const line = session.lines.find((item) => item.id === lineId);
+  const candidate = line?.recognition.topThree.find((item) => item.id === line.exactPrintingId) ?? line?.recognition.topCandidate ?? null;
+  if (!line || !candidate || !candidate.finishes.includes(finish)) return { session, changed: false, reason: 'unsupported_finish' as const };
+  const marketPrice = selectLineScryfallPrice(candidate, finish);
+  return {
+    session: editScannerSessionLine(session, lineId, {
+      finish,
+      marketPrice,
+      priceSource: marketPrice === null ? 'unavailable' : 'scryfall',
+      priceTimestamp: candidate.marketPrice?.fetchedAt ?? new Date().toISOString(),
+    }),
+    changed: true,
+    reason: null,
+  };
+}
+
+export function updateScannerSessionLinePrinting(session: ContinuousScannerSession, lineId: string, candidate: ScannerCardCandidate) {
+  const line = session.lines.find((item) => item.id === lineId);
+  if (!line) return { session, changed: false, fallbackMessage: null };
+  const finish = defaultFinishForPrinting(candidate, String(line.finish));
+  const marketPrice = selectLineScryfallPrice(candidate, finish.finish);
+  const nextRecognition: RecognitionPipelineReport = {
+    ...line.recognition,
+    topCandidate: candidate,
+    topThree: [candidate, ...line.recognition.topThree.filter((entry) => entry.id !== candidate.id)].slice(0, 3),
+    requiresManualConfirmation: false,
+    confidenceState: 'likely',
+  };
+  return {
+    session: {
+      ...session,
+      updatedAt: new Date().toISOString(),
+      lines: session.lines.map((item) => item.id === lineId ? recalculateLine({
+        ...item,
+        cardName: candidate.name,
+        setCode: candidate.setCode,
+        collectorNumber: candidate.collectorNumber,
+        exactPrintingId: candidate.id,
+        language: candidate.language,
+        finish: finish.finish,
+        marketPrice,
+        priceSource: marketPrice === null ? 'unavailable' : 'scryfall',
+        priceTimestamp: candidate.marketPrice?.fetchedAt ?? new Date().toISOString(),
+        reviewStatus: 'confirmed',
+        confidence: 'likely',
+        confidenceScore: Math.max(item.confidenceScore, Math.round(candidate.confidence * 100)),
+        notes: item.notes ? `${item.notes} Printing manually corrected.` : 'Printing manually corrected.',
+        recognition: nextRecognition,
+      }, session.offerConfig) : item),
+    },
+    changed: true,
+    fallbackMessage: finish.fallbackMessage,
   };
 }
 
@@ -1158,6 +1215,17 @@ function normalizeLineFinish(finish: ScannerSessionLine['finish']): CardFinish[]
   if (finish === 'nonfoil') return ['normal'];
   if (finish === 'normal' || finish === 'foil' || finish === 'etched') return [finish];
   return ['normal'];
+}
+
+function selectLineScryfallPrice(candidate: ScannerCardCandidate, finish: CardFinish | string) {
+  const prices = candidate.marketPrice;
+  if (!prices || prices.source !== 'scryfall') return null;
+  const amount = finish === 'foil'
+    ? prices.usdFoil
+    : finish === 'etched'
+      ? prices.usdEtched
+      : prices.usd;
+  return typeof amount === 'number' && Number.isFinite(amount) && amount > 0 ? roundCurrency(amount) : null;
 }
 
 function clampPercentage(value: number) {
