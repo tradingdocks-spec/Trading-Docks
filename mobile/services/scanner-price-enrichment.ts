@@ -35,9 +35,9 @@ export function selectScryfallScannerPrice(candidate: ScannerCardCandidate, fini
   const prices = candidate.marketPrice;
   if (!prices || prices.source !== 'scryfall') return null;
   const amount = finish === 'foil'
-    ? prices.usdFoil ?? prices.usd
+    ? prices.usdFoil
     : finish === 'etched'
-      ? prices.usdEtched ?? prices.usdFoil ?? prices.usd
+      ? prices.usdEtched
       : prices.usd;
   return typeof amount === 'number' && Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) / 100 : null;
 }
@@ -92,8 +92,8 @@ function samePrinting(line: ScannerSessionLine, candidate: ScannerCardCandidate)
 function selectedScryfallPriceField(finish: CardFinish | string, prices: ScannerCardCandidate['marketPrice']) {
   if (!prices) return 'none';
   if (finish === 'etched' && prices.usdEtched !== null) return 'usd_etched';
-  if ((finish === 'etched' || finish === 'foil') && prices.usdFoil !== null) return 'usd_foil';
-  if (prices.usd !== null) return 'usd';
+  if (finish === 'foil' && prices.usdFoil !== null) return 'usd_foil';
+  if (finish !== 'foil' && finish !== 'etched' && prices.usd !== null) return 'usd';
   return 'none';
 }
 
