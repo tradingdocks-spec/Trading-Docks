@@ -70,11 +70,13 @@ test('Single Scan uses view dimensions for still-crop mapping instead of native 
   assert.doesNotMatch(single, /preview: previewResolution \?\? \{ width, height \}/);
 });
 
-test('Single Scan blocks poor capture quality before OCR', () => {
+test('Single Scan treats poor capture quality as advisory before OCR', () => {
   assert.match(single, /currentQuality\.guidance/);
   assert.match(single, /disabled=\{!canCapture\}/);
-  assert.match(single, /captureQuality\.canCapture/);
-  assert.match(single, /setMessage\(captureQuality\.guidance\)/);
+  assert.match(single, /resolveScannerManualCapturePolicy/);
+  assert.match(single, /createScannerCaptureDiagnostic/);
+  assert.match(single, /lastCaptureDiagnostic\.forced/);
+  assert.doesNotMatch(single, /setMessage\(captureQuality\.guidance\)/);
 });
 
 test('scanner settings use simple rows with advanced disclosure', () => {

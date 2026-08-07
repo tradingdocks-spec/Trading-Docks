@@ -41,6 +41,11 @@ import {
   type ScannerCameraPoint,
   type ScannerTorchState,
 } from '@/services/scanner-camera-controls';
+import {
+  createScannerCaptureDiagnostic,
+  resolveScannerManualCapturePolicy,
+  type ScannerCaptureDiagnostic,
+} from '@/services/scanner-capture-policy';
 
 export default function SingleScanScreen() {
   const insets = useSafeAreaInsets();
@@ -63,6 +68,7 @@ export default function SingleScanScreen() {
   const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [quality, setQuality] = useState<SingleScanCaptureQuality>(() => resolveSingleScanCaptureQuality(null, { cameraReady: false, focusSettling: false }));
+  const [lastCaptureDiagnostic, setLastCaptureDiagnostic] = useState<ScannerCaptureDiagnostic | null>(null);
   const [diagnosticCaptureUri, setDiagnosticCaptureUri] = useState<string | null>(null);
   const [cropDiagnostics, setCropDiagnostics] = useState<MagicStillScanCropDiagnostics | null>(null);
   const focusSettlingUntilRef = useRef(0);
@@ -84,7 +90,13 @@ export default function SingleScanScreen() {
   }), [guideLayout, height, width]);
   const focusSettling = Date.now() < focusSettlingUntilRef.current;
   const currentQuality = resolveSingleScanCaptureQuality(quality.vision, { cameraReady, focusSettling });
-  const canCapture = currentQuality.canCapture && !processing;
+  const manualCapturePolicy = resolveScannerManualCapturePolicy({
+    cameraInitialized: cameraReady,
+    permissionGranted: permission === 'granted',
+    appForegrounded: true,
+    processing,
+  });
+  const canCapture = manualCapturePolicy.canCapture;
 
   const requestCamera = useCallback(async () => {
     const request = await requestCameraPermission();
@@ -97,13 +109,17 @@ export default function SingleScanScreen() {
   }, [requestCameraPermission]);
 
   const captureSingle = useCallback(async () => {
-    if (!cameraRef.current || !cameraReady || processing) return;
+    const manualPolicy = resolveScannerManualCapturePolicy({
+      cameraInitialized: cameraReady,
+      permissionGranted: permission === 'granted',
+      appForegrounded: true,
+      processing,
+    });
+    if (!cameraRef.current || !manualPolicy.canCapture) return;
     const captureQuality = resolveSingleScanCaptureQuality(quality.vision, { cameraReady, focusSettling: Date.now() < focusSettlingUntilRef.current });
-    if (!captureQuality.canCapture) {
-      setQuality(captureQuality);
-      setMessage(captureQuality.guidance);
-      return;
-    }
+    const captureDiagnostic = createScannerCaptureDiagnostic({ trigger: 'manual', quality: captureQuality });
+    setQuality(captureQuality);
+    setLastCaptureDiagnostic(captureDiagnostic);
     setProcessing(true);
     setMessage(null);
     setStage('reading');
@@ -145,7 +161,7 @@ export default function SingleScanScreen() {
     } finally {
       setProcessing(false);
     }
-  }, [cameraReady, guideLayout, height, processing, quality.vision, width]);
+  }, [cameraReady, guideLayout, height, permission, processing, quality.vision, width]);
 
   const retake = useCallback(() => {
     activeCaptureIdRef.current = null;
@@ -324,6 +340,7 @@ export default function SingleScanScreen() {
         <SingleSettingsSheet
           lensLabel={selectedLensLabel}
           torchLabel={torchEnabled ? 'On' : 'Off'}
+          lastCaptureDiagnostic={lastCaptureDiagnostic}
           diagnosticCaptureUri={diagnosticCaptureUri}
           cropDiagnostics={cropDiagnostics}
           onClose={() => setSettingsOpen(false)}
@@ -363,12 +380,14 @@ function SingleResultSheet({ candidate, onAdd, onRetake }: { candidate: ScannerC
 function SingleSettingsSheet({
   lensLabel,
   torchLabel,
+  lastCaptureDiagnostic,
   diagnosticCaptureUri,
   cropDiagnostics,
   onClose,
 }: {
   lensLabel: string;
   torchLabel: string;
+  lastCaptureDiagnostic: ScannerCaptureDiagnostic | null;
   diagnosticCaptureUri: string | null;
   cropDiagnostics: MagicStillScanCropDiagnostics | null;
   onClose: () => void;
@@ -379,6 +398,12 @@ function SingleSettingsSheet({
       <SettingSummaryRow label="Camera" value={lensLabel} />
       <SettingSummaryRow label="Torch" value={torchLabel} />
       <SettingSummaryRow label="Capture" value="Manual" />
+      {lastCaptureDiagnostic ? (
+        <SettingSummaryRow
+          label="Last trigger"
+          value={`${lastCaptureDiagnostic.trigger}${lastCaptureDiagnostic.forced ? ' forced' : ''} / ${lastCaptureDiagnostic.qualityReason}`}
+        />
+      ) : null}
       {diagnosticCaptureUri && cropDiagnostics ? <SingleCropProof imageUri={diagnosticCaptureUri} diagnostics={cropDiagnostics} /> : null}
       <TDText variant="caption" tone="muted">Automatic tuning stays in Automatic Scan. Single Scan keeps the camera surface focused on one card.</TDText>
       <TDButton label="Done" variant="secondary" onPress={onClose} />
