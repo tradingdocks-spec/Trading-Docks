@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { logAuthDiagnostic, logAuthWarning } from '@/services/auth-diagnostics';
 import { authPreferences } from '@/services/auth-preferences';
 import { resolveRestoredSessionState } from '@/services/auth-session-core';
+import { configureRevenueCatForUser, logOutRevenueCatUser } from '@/services/revenuecat';
 
 type AuthState = {
   session: Session | null;
@@ -77,6 +78,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (mounted) {
           setSession(restored.session);
           setBiometricLocked(restored.biometricLocked);
+          if (restored.session?.user.id) void configureRevenueCatForUser(restored.session.user.id);
+          else void logOutRevenueCatUser();
           logAuthDiagnostic('session_restore_complete', {
             restored: Boolean(restored.session),
             biometricLocked: restored.biometricLocked,
@@ -100,6 +103,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const { data } = client.auth.onAuthStateChange((event, next) => {
       if (!mounted) return;
       setSession(next);
+      if (next?.user.id) void configureRevenueCatForUser(next.user.id);
+      else void logOutRevenueCatUser();
       if (event === 'SIGNED_OUT') setBiometricLocked(false);
       logAuthDiagnostic('auth_state_changed', { event, hasSession: Boolean(next) });
     });

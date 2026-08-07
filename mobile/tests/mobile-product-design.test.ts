@@ -92,10 +92,10 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
   assert.match(auth, /Passwords are never stored on this device/);
   assert.match(welcome, /Your TCG collection, wherever you trade/);
   assert.match(onboarding, /You can review paid plans later/);
-  assert.match(plans, /Mobile purchase flow pending release approval/);
+  assert.match(plans, /Trading Docks backend membership remains the authority/);
   assert.doesNotMatch(welcome, /Preview mobile|SAMPLE DATA|DEMO/);
   assert.doesNotMatch(auth, /Continue in preview mode|Supabase is not configured|environment variables/);
-  assert.doesNotMatch(plans, /RevenueCat|Provider purchase pending configuration/);
+  assert.doesNotMatch(plans, /Provider purchase pending configuration|secret|webhook secret/i);
 });
 
 test('Wave 2 welcome and setup screens avoid fake metrics and unsupported claims', () => {

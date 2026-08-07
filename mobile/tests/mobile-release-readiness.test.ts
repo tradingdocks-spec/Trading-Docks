@@ -119,6 +119,8 @@ test('production release validator fails unsafe inputs and passes canonical conf
       NODE_ENV: 'production',
       EXPO_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
       EXPO_PUBLIC_SUPABASE_ANON_KEY: 'sb_publishable_example',
+      EXPO_PUBLIC_REVENUECAT_IOS_API_KEY: 'appl_public_example',
+      EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY: 'goog_public_example',
     },
   });
   assert.equal(ok.ok, true);
@@ -135,4 +137,25 @@ test('production release validator fails unsafe inputs and passes canonical conf
   });
   assert.equal(bad.ok, false);
   assert.match(bad.errors.join(' '), /placeholder|diagnostics|SUPABASE_URL|Forbidden/);
+});
+
+test('production release validator requires public RevenueCat SDK configuration once purchases are enabled', () => {
+  const app = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo;
+  const eas = JSON.parse(readFileSync(join(root, 'eas.json'), 'utf8'));
+  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+
+  const result = verifyProductionRelease({
+    appConfig: app,
+    easConfig: eas,
+    packageConfig: pkg,
+    env: {
+      NODE_ENV: 'production',
+      EXPO_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: 'sb_publishable_example',
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join(' '), /EXPO_PUBLIC_REVENUECAT_IOS_API_KEY/);
+  assert.match(result.errors.join(' '), /EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY/);
 });
