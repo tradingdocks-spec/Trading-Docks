@@ -288,6 +288,8 @@ test('auto-capture readiness lists exact rejection reasons', () => {
 
   assert.equal(readiness.ready, true);
   assert.equal(readiness.label, 'READY');
+  assert.equal(readiness.instruction, 'Ready');
+  assert.equal(readiness.visualState, 'ready');
   assert.equal(readiness.effectiveFps, 6.7);
 
   const blocked = resolveAutoCaptureReadiness({
@@ -313,7 +315,32 @@ test('auto-capture readiness lists exact rejection reasons', () => {
   });
 
   assert.equal(blocked.ready, false);
-  assert.ok(blocked.reasons.includes('camera not ready'));
-  assert.ok(blocked.reasons.includes('card presence unavailable'));
-  assert.ok(blocked.reasons.includes('remove previous card'));
+  assert.deepEqual(blocked.reasons, ['camera not ready']);
+  assert.equal(blocked.primaryReason, 'camera_unavailable');
+  assert.equal(blocked.instruction, 'Place card in frame');
+});
+
+test('auto-capture readiness does not block on unavailable optional lighting and glare', () => {
+  const readiness = resolveAutoCaptureReadiness({
+    frameCount: 8,
+    firstFrameAt: 1000,
+    latestFrameAt: 1800,
+    cardPresence: true,
+    cornersVisible: null,
+    guideFill: 0.58,
+    aspectRatio: null,
+    centerOffset: 0.08,
+    blur: 0.64,
+    motion: 0.12,
+    lighting: null,
+    glare: null,
+    stableDurationMs: 620,
+    removalState: 'clear',
+    processing: false,
+    duplicateBlocked: false,
+    cameraReady: true,
+  });
+
+  assert.equal(readiness.ready, true);
+  assert.deepEqual(readiness.reasons, []);
 });

@@ -1,3 +1,5 @@
+import { resolveAutomaticScannerReadiness, type ScannerReadinessReason, type ScannerReadinessState } from './scanner-readiness.ts';
+
 export type ScannerCameraLensMode = 'auto' | 'macro' | 'standard' | 'telephoto';
 export type ScannerCameraSelectionMode = ScannerCameraLensMode | 'raw';
 
@@ -211,6 +213,9 @@ export type ScannerAutoCaptureReadiness = {
   ready: boolean;
   label: 'READY' | 'BLOCKED';
   reasons: string[];
+  primaryReason: ScannerReadinessReason;
+  visualState: ScannerReadinessState;
+  instruction: string;
   effectiveFps: number | null;
 };
 
@@ -402,35 +407,30 @@ export function isApprovedTorchTransitionReason(reason: ScannerCameraEventReason
 }
 
 export function resolveAutoCaptureReadiness(input: ScannerFrameMetricsInput): ScannerAutoCaptureReadiness {
-  const reasons: string[] = [];
-  if (!input.cameraReady) reasons.push('camera not ready');
-  if (input.processing) reasons.push('scanner processing');
-  if (input.duplicateBlocked) reasons.push('duplicate protection awaiting removal');
-  if (!input.cardPresence) reasons.push('card presence unavailable');
-  if (input.cornersVisible !== null && input.cornersVisible < 3) reasons.push('card boundary incomplete');
-  if (input.guideFill === null) reasons.push('guide fill unavailable');
-  else if (input.guideFill < 0.38) reasons.push('move closer');
-  else if (input.guideFill > 0.92) reasons.push('move away');
-  if (input.centerOffset === null) reasons.push('center offset unavailable');
-  else if (input.centerOffset > 0.24) reasons.push('center card');
-  if (input.blur === null) reasons.push('blur unavailable');
-  else if (input.blur < 0.42) reasons.push('blur too high');
-  if (input.motion === null) reasons.push('motion unavailable');
-  else if (input.motion > 0.34) reasons.push('motion too high');
-  if (input.lighting === null) reasons.push('lighting unavailable');
-  else if (input.lighting < 0.22) reasons.push('lighting too low');
-  if (input.glare === null) reasons.push('glare unavailable');
-  else if (input.glare > 0.5) reasons.push('reduce glare');
-  if (input.stableDurationMs === null) reasons.push('stability unavailable');
-  else if (input.stableDurationMs < 420) reasons.push('hold steady');
-  if (input.removalState === 'awaiting_removal') reasons.push('remove previous card');
+  const readiness = resolveAutomaticScannerReadiness({
+    cameraReady: input.cameraReady,
+    processing: input.processing,
+    cardPresent: input.cardPresence,
+    fillRatio: input.guideFill,
+    centerOffset: input.centerOffset,
+    blurScore: input.blur,
+    motionScore: input.motion,
+    lightingScore: input.lighting,
+    glareScore: input.glare,
+    stableDurationMs: input.stableDurationMs,
+    duplicateBlocked: input.duplicateBlocked,
+    awaitingRemoval: input.removalState === 'awaiting_removal',
+  });
   const effectiveFps = input.firstFrameAt !== null && input.latestFrameAt !== null && input.latestFrameAt > input.firstFrameAt
     ? Math.round((input.frameCount / ((input.latestFrameAt - input.firstFrameAt) / 1000)) * 10) / 10
     : null;
   return {
-    ready: reasons.length === 0,
-    label: reasons.length === 0 ? 'READY' : 'BLOCKED',
-    reasons,
+    ready: readiness.autoCaptureReady,
+    label: readiness.autoCaptureReady ? 'READY' : 'BLOCKED',
+    reasons: readiness.reasons,
+    primaryReason: readiness.reason,
+    visualState: readiness.state,
+    instruction: readiness.message,
     effectiveFps,
   };
 }

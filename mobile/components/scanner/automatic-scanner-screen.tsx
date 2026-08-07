@@ -98,6 +98,7 @@ import {
   type ScannerTorchState,
   type ScannerTorchTransition,
 } from '@/services/scanner-camera-controls';
+import { shouldEmitReadyHaptic } from '@/services/scanner-readiness';
 import {
   NATIVE_FRAME_VISUAL_SIGNALS,
   NO_NATIVE_VISUAL_SIGNALS,
@@ -324,10 +325,6 @@ export default function AutomaticScannerScreen() {
     processing: scannerProcessing,
     hasCameraError: captureState === 'failed' && Boolean(error),
   }), [appForegrounded, cameraAvailable, cameraReady, captureState, error, permission, scannerProcessing, userPausedCamera]);
-  const guidePresentation = useMemo(
-    () => guidePresentationForPipeline(scannerPipeline, liveVisionResult?.guidance ?? autoScanner.lastGuidance),
-    [autoScanner.lastGuidance, liveVisionResult?.guidance, scannerPipeline],
-  );
   const failedResultTray = useMemo(() => buildPremiumResultTray({
     selectedCandidate: null,
     topCandidate: null,
@@ -361,18 +358,6 @@ export default function AutomaticScannerScreen() {
     hasCameraError: captureState === 'camera_not_ready' && Boolean(error),
   });
   const guideMotion = scanner2MotionForState(scanner2State, reduceMotion);
-  const scannerInstruction = batchScannerInstructionForState(
-    scanner2State === 'capturing' ? 'capturing'
-      : scanner2State === 'reading' ? 'reading'
-        : scanner2State === 'searching' ? 'matching'
-          : scanner2State === 'added' ? 'added'
-            : scanner2State === 'remove_card' ? 'remove_card'
-              : scanner2State === 'failed' ? 'failed'
-                : scanner2State === 'paused' ? 'paused'
-                  : scanner2State === 'offline' ? 'offline'
-                    : scanner2State === 'camera_error' ? 'camera_error'
-                      : 'ready',
-  );
   const scannerHeader = scanner2HeaderModel({
     modeLabel: scannerModeLabel(sessionMode),
     cardCount: sessionTotals?.cardsScanned ?? 0,
@@ -394,7 +379,7 @@ export default function AutomaticScannerScreen() {
     latestFrameAt: latestLiveFrameAt,
     cardPresence: Boolean(liveVisionResult?.detection.cardPresent),
     cornersVisible: diagnosticsSnapshot.cardCornersVisible,
-    guideFill: diagnosticsSnapshot.fillPercentage,
+    guideFill: diagnosticsSnapshot.fillPercentage === null ? null : diagnosticsSnapshot.fillPercentage / 100,
     aspectRatio: liveVisionResult?.detection.aspectRatio ?? null,
     centerOffset: liveVisionResult?.detection.centerOffset.normalized ?? null,
     blur: diagnosticsSnapshot.blurScore,
@@ -422,6 +407,21 @@ export default function AutomaticScannerScreen() {
     liveVisionResult,
     scannerProcessing,
   ]);
+  const guidePresentation = useMemo(
+    () => guidePresentationForPipeline(
+      scannerPipeline,
+      autoCaptureReadiness.instruction ?? liveVisionResult?.guidance ?? autoScanner.lastGuidance,
+      autoCaptureReadiness.visualState,
+    ),
+    [autoCaptureReadiness.instruction, autoCaptureReadiness.visualState, autoScanner.lastGuidance, liveVisionResult?.guidance, scannerPipeline],
+  );
+  const scannerInstruction = scanner2State === 'added' || scanner2State === 'remove_card' || scanner2State === 'failed'
+    ? batchScannerInstructionForState(
+      scanner2State === 'added' ? 'added'
+        : scanner2State === 'remove_card' ? 'remove_card'
+          : 'failed',
+    )
+    : autoCaptureReadiness.instruction;
   const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showModeSelectionSheet || showCameraSelectionSheet || showCameraInspectorSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
@@ -435,6 +435,7 @@ export default function AutomaticScannerScreen() {
   }, []);
   const previousProcessingRef = useRef(scannerProcessing);
   const previousAutoCaptureRef = useRef(autoCaptureEnabled);
+  const previousReadinessStateRef = useRef(autoCaptureReadiness.visualState);
   useEffect(() => {
     if (previousProcessingRef.current === scannerProcessing) return;
     logCameraEvent({
@@ -457,6 +458,16 @@ export default function AutomaticScannerScreen() {
     });
     previousAutoCaptureRef.current = autoCaptureEnabled;
   }, [autoCaptureEnabled, logCameraEvent]);
+  useEffect(() => {
+    if (
+      hapticsEnabled
+      && Platform.OS !== 'web'
+      && shouldEmitReadyHaptic(previousReadinessStateRef.current, autoCaptureReadiness.visualState)
+    ) {
+      void Haptics.selectionAsync();
+    }
+    previousReadinessStateRef.current = autoCaptureReadiness.visualState;
+  }, [autoCaptureReadiness.visualState, hapticsEnabled]);
   const handleLiveFrame = useCallback((frame: ScannerCameraFrame) => {
     if (!mountedRef.current || !context || frame.userId !== context.userId || !previewDimensions) return;
     if (shouldIgnoreFrameAfterLensSwitch({
@@ -996,6 +1007,7 @@ export default function AutomaticScannerScreen() {
     if (
       !autoCaptureEnabled
       || !decision.ok
+      || !autoCaptureReadiness.ready
       || autoCaptureInFlightRef.current
       || scannerProcessing
       || autoScanner.duplicateProtection.awaitingCardRemoval
@@ -1010,6 +1022,7 @@ export default function AutomaticScannerScreen() {
     });
   }, [
     autoCaptureEnabled,
+    autoCaptureReadiness.ready,
     autoScanner.duplicateProtection.awaitingCardRemoval,
     cameraActive,
     cameraReady,
@@ -1651,6 +1664,7 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Torch actual" value={torchState?.torchProp ?? 'unavailable'} />
               <DiagnosticCell label="Photo flash" value={torchState?.photoFlashMode ?? 'off'} />
               <DiagnosticCell label="Focus point" value={focusDiagnostics ? `${Math.round(focusDiagnostics.requestedPoint.x)},${Math.round(focusDiagnostics.requestedPoint.y)} -> ${focusDiagnostics.convertedPoint ? `${focusDiagnostics.convertedPoint.x.toFixed(3)},${focusDiagnostics.convertedPoint.y.toFixed(3)}` : 'unavailable'}` : 'unavailable'} />
+              <DiagnosticCell label="Focus age" value={focusDiagnostics?.latencyMs === null || focusDiagnostics?.latencyMs === undefined ? 'unavailable' : `${focusDiagnostics.latencyMs} ms`} />
               <DiagnosticCell label="Focus outcome" value={focusDiagnostics ? `${focusDiagnostics.outcome}${focusDiagnostics.latencyMs === null ? '' : ` ${focusDiagnostics.latencyMs} ms`}${focusDiagnostics.error ? ` ${focusDiagnostics.error}` : ''}` : 'unavailable'} />
               <DiagnosticCell label="Switch duration" value={lastCameraSwitchDurationMs === null ? 'unavailable' : `${lastCameraSwitchDurationMs} ms`} />
               <DiagnosticCell label="Camera mounts" value={`${cameraLifecycleDiagnostics.mounts} / ${cameraLifecycleDiagnostics.unmounts}`} />
@@ -1659,6 +1673,9 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Active transitions" value={String(cameraLifecycleDiagnostics.isActiveTransitions)} />
               <DiagnosticCell label="Frame count" value={String(liveFrameCount)} />
               <DiagnosticCell label="Effective FPS" value={autoCaptureReadiness.effectiveFps === null ? 'unavailable' : `${autoCaptureReadiness.effectiveFps} fps`} />
+              <DiagnosticCell label="Readiness state" value={autoCaptureReadiness.visualState.replaceAll('_', ' ')} />
+              <DiagnosticCell label="Readiness reason" value={autoCaptureReadiness.primaryReason.replaceAll('_', ' ')} />
+              <DiagnosticCell label="Readiness copy" value={autoCaptureReadiness.instruction} />
               <DiagnosticCell label="Auto capture" value={autoCaptureReadiness.label} />
               <DiagnosticCell label="Auto blocked by" value={autoCaptureReadiness.reasons.join(' | ') || 'ready'} />
               <DiagnosticCell label="Card presence" value={liveVisionResult?.detection.cardPresent ? 'present' : 'unavailable'} />

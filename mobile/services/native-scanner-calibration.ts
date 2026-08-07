@@ -198,7 +198,7 @@ export function canAutoCaptureNative(input: {
   analysis?: LiveFrameAnalysisResult | null;
 }): NativeAutoCaptureDecision {
   if (!input.cameraReady) return { ok: false, reason: 'camera_not_ready' };
-  const required: (keyof ScannerSignalAvailability)[] = ['boundary', 'corners', 'perspective', 'blur', 'motion', 'lighting', 'glare'];
+  const required: (keyof ScannerSignalAvailability)[] = ['boundary', 'blur', 'motion'];
   const missing = required.filter((key) => !input.signalAvailability[key]);
   if (missing.length) return { ok: false, reason: `signals_unavailable:${missing.join(',')}` };
   if (!input.analysis) return { ok: false, reason: 'no_frame_analysis' };
