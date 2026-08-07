@@ -735,6 +735,18 @@ export default function AutomaticScannerScreen() {
     }, 2400);
   };
 
+  const resetScannerForm = (options: { preserveNotice?: boolean } = {}) => {
+    const reset = resetAfterRapidScan();
+    setQuery(reset.query);
+    setSelected(null);
+    setCandidates([]);
+    setMagicRecognition(null);
+    setMagicStillScan(null);
+    setQuantity(1);
+    setTradeStatus('not_for_trade');
+    if (!options.preserveNotice) setBatchNotice(null);
+  };
+
   const addCandidateToBatch = (input: {
     candidate: ScannerCardCandidate;
     recognition: MagicRecognitionResult | null;
@@ -970,7 +982,10 @@ export default function AutomaticScannerScreen() {
     }
   };
   const captureStillRef = useRef(captureStill);
-  captureStillRef.current = captureStill;
+
+  useEffect(() => {
+    captureStillRef.current = captureStill;
+  }, [captureStill]);
 
   useEffect(() => {
     const decision = canAutoCaptureNative({
@@ -1315,18 +1330,6 @@ export default function AutomaticScannerScreen() {
     setSelected(candidate);
     setFinish((candidate.finishes.find((candidateFinish) => candidateFinish === 'normal' || candidateFinish === 'foil' || candidateFinish === 'etched') ?? 'normal') as 'normal' | 'foil' | 'etched');
     setLanguage(candidate.language ?? 'en');
-  };
-
-  const resetScannerForm = (options: { preserveNotice?: boolean } = {}) => {
-    const reset = resetAfterRapidScan();
-    setQuery(reset.query);
-    setSelected(null);
-    setCandidates([]);
-    setMagicRecognition(null);
-    setMagicStillScan(null);
-    setQuantity(1);
-    setTradeStatus('not_for_trade');
-    if (!options.preserveNotice) setBatchNotice(null);
   };
 
   const retryQueue = async () => {

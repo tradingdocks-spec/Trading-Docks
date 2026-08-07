@@ -88,8 +88,7 @@ export default function SingleScanScreen() {
     view: { width, height },
     guide: guideLayout,
   }), [guideLayout, height, width]);
-  const focusSettling = Date.now() < focusSettlingUntilRef.current;
-  const currentQuality = resolveSingleScanCaptureQuality(quality.vision, { cameraReady, focusSettling });
+  const currentQuality = quality;
   const manualCapturePolicy = resolveScannerManualCapturePolicy({
     cameraInitialized: cameraReady,
     permissionGranted: permission === 'granted',
