@@ -5,6 +5,8 @@ export const MOBILE_CANONICAL_SITE_URL = 'https://www.tradingdocks.com';
 export const MOBILE_PUBLIC_ENV_KEYS = {
   supabaseUrl: 'EXPO_PUBLIC_SUPABASE_URL',
   supabaseAnonKey: 'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+  revenueCatIosApiKey: 'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY',
+  revenueCatAndroidApiKey: 'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY',
   supportUrl: 'EXPO_PUBLIC_SUPPORT_URL',
   privacyUrl: 'EXPO_PUBLIC_PRIVACY_URL',
   termsUrl: 'EXPO_PUBLIC_TERMS_URL',
