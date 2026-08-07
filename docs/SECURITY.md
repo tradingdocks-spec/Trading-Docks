@@ -64,7 +64,9 @@
 - Implemented: Native OCR is an iOS development-build feature, not an Expo Go feature; Android/web return explicit unsupported states.
 - Planned: Before collecting shared scanner fixtures, confirm copyright permission, storage location, retention window, and access controls with the product owner.
 - Planned: Pokemon, One Piece, and Lorcana catalog providers require licensing/API review before mobile or server integration; the mobile client must not scrape publisher pages directly.
-- Planned: Before mobile paid subscriptions ship, backend subscription/entitlement state must remain authoritative and native purchase receipts must be reconciled through an approved StoreKit/Google Play Billing architecture.
+- Implemented: Mobile RevenueCat purchases do not grant canonical paid access client-side.
+- Implemented: `/api/webhooks/revenuecat` authenticates RevenueCat delivery with a server-only Authorization secret, validates the Supabase UUID appUserID, records event ids for idempotency, stores provider state separately, and reconciles the canonical effective membership row.
+- Requires Production Configuration: `REVENUECAT_WEBHOOK_AUTHORIZATION` must be configured only in the trusted server environment. RevenueCat webhook secrets, RevenueCat REST API secrets, and Supabase service-role keys must never be placed in EAS public env or browser code.
 - Planned: Complete App Privacy and Play Data Safety disclosures from the mobile privacy matrix before external release.
 
 ## Access Fallbacks
@@ -84,6 +86,7 @@
 - Quantity representation: `inventory_items.quantity` is an integer with `check (quantity >= 0)`. Quantity zero remains a row with zero owned copies.
 - Limit interpretation: Free means 500 total owned card quantity, not 500 unique ownership records.
 - Current authoritative membership source: active web code resolves membership from explicit `admin_membership_overrides`, current `billing_subscriptions`, and Free fallback; `user_roles` remains platform authority only.
+- Partially Implemented: Provider subscription state now supports Apple/Google/Stripe/manual modeling through `billing_provider_subscriptions`; current server access still consumes the canonical effective `billing_subscriptions` row plus overrides.
 - Race condition risk: current client/API checks can be bypassed by simultaneous direct writes or offline replay. The proposal serializes per-user inventory mutations with `pg_advisory_xact_lock`.
 - Offline replay risk: queued mobile writes can replay after membership or ownership state changes. The mobile replay path now classifies proposed database error codes and retains failed queued writes with error metadata.
 - Workspace/store behavior: active inventory is user-owned. Store/shared workspace inventory is not represented by active inventory fields and requires a later schema design.

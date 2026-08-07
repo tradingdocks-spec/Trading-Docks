@@ -2,6 +2,8 @@
 
 Status: Partially Implemented. This contract defines public mobile environment variables and release validation rules.
 
+Server-only billing variables for the Next.js backend are documented here because paid mobile subscriptions depend on backend reconciliation. These variables must be configured in the hosting environment, not in EAS public mobile env.
+
 ## Required
 
 | Variable | Purpose | Production rule |
@@ -37,6 +39,16 @@ These defaults come from existing repository documentation and public legal rout
 - Any `EXPO_PUBLIC_*` value containing `sb_secret`.
 - Any secret provider key, OAuth secret, webhook secret, signing secret, private token, or service credential.
 - RevenueCat webhook secrets and REST API keys. Mobile may contain only public SDK keys.
+
+## Server-Only Billing Environment
+
+| Variable | Purpose | Exposure rule |
+| --- | --- | --- |
+| `REVENUECAT_WEBHOOK_AUTHORIZATION` | Shared authorization value checked by `/api/webhooks/revenuecat`. | Server-only; configure in the Next.js hosting environment as a secret/sensitive value. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Existing server admin key used by trusted webhook code to reconcile provider state. | Server-only; never expose to mobile or browser JavaScript. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Existing server/web Supabase project URL used by the admin client. | Public URL is acceptable, but it does not grant access without the service-role key. |
+
+No RevenueCat secret REST API key is required by the current implementation because the webhook reconciles authenticated event payloads and does not call RevenueCat's REST API. Add one only if future server-side customer-state verification is implemented.
 
 ## Validation
 

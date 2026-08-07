@@ -100,8 +100,8 @@
 - Implemented: Mobile production identifiers now use `com.tradingdocks.app` for iOS and Android.
 - Implemented: Mobile production-release verification now checks identifiers, app version/build metadata, EAS profile presence, forbidden public secrets, development flags, and required production Supabase public env when run with `NODE_ENV=production`.
 - Partially Implemented: Mobile account deletion is visible and support-assisted; backend self-service deletion remains Planned.
-- Partially Implemented: Mobile RevenueCat purchase and Restore Purchases entry points are implemented, but mobile paid access remains blocked until backend webhook reconciliation updates canonical Trading Docks membership records.
-- Requires Production Configuration: `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`, `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`, RevenueCat Offering packages, Apple Sandbox purchase/restore QA, and a clean EAS rebuild are required before paid mobile subscription release.
+- Partially Implemented: Mobile RevenueCat purchase and Restore Purchases entry points are implemented, and a trusted server webhook now reconciles authenticated RevenueCat events into provider state plus canonical membership. Paid access remains blocked until the migration is applied in staging/production, the RevenueCat dashboard webhook is configured, and Sandbox purchase/restore QA passes.
+- Requires Production Configuration: `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`, `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`, server-only `REVENUECAT_WEBHOOK_AUTHORIZATION`, RevenueCat Offering packages, RevenueCat webhook URL, Apple Sandbox purchase/restore QA, and approved release validation are required before paid mobile subscription release.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
 - Partially Implemented: Multiple migration repair files may not replay cleanly in a fresh database without manual sequencing review.
 

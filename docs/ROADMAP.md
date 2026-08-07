@@ -33,7 +33,7 @@ Do not add new production features until the foundation items below are reviewed
 - Planned: Remove or archive backup dependency folders and historical release artifacts only after product-owner review.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
 - Implemented: Integrate the RevenueCat mobile SDK, Supabase UUID appUserID lifecycle, package/entitlement mapping, custom mobile Membership purchase UI, Restore Purchases entry point, public config validation, and focused subscription contract tests.
-- Partially Implemented: RevenueCat purchase/restore results do not yet unlock protected access because backend webhook reconciliation is still Planned and physical Sandbox QA is pending.
+- Partially Implemented: RevenueCat purchase/restore results do not unlock protected access from the client. Backend webhook reconciliation is implemented in source, but migration rollout, dashboard configuration, and physical Sandbox QA are pending.
 - Planned: Add mobile CI or document why mobile validation is manual.
 - Planned: Add native-device validation for biometric unlock, Google OAuth, Apple Sign In, and magic-link deep-link callbacks.
 - Planned: Continue design-system migration in order: dashboard state surfaces, common cards/headers, input-heavy admin/settings screens, then modal/toast/chart/table primitives.

@@ -40,8 +40,9 @@
 - Requires Production Configuration: Existing Stripe price IDs must be checked against the canonical prices before live billing is enabled.
 - Implemented: RevenueCat mobile SDK integration maps active entitlements `Collector`, `Seller`, and `Store` to canonical tiers `collector`, `seller`, and `store`.
 - Implemented: RevenueCat package identifiers are `collector_monthly`, `collector_yearly`, `seller_monthly`, `seller_yearly`, `store_monthly`, and `store_yearly`; product identifiers remain owned by RevenueCat/App Store configuration.
-- Partially Implemented: Mobile can initiate RevenueCat purchase and restore flows, but protected access still requires backend canonical membership reconciliation.
-- Requires Production Configuration: RevenueCat public SDK keys, Offering/package configuration, Sandbox purchase/restore QA, and webhook reconciliation must pass before paid mobile subscriptions are production-ready.
+- Implemented: Server-side RevenueCat webhook reconciliation stores provider state separately and updates the canonical effective membership row after authenticated events.
+- Partially Implemented: Mobile can initiate RevenueCat purchase and restore flows, but paid mobile access still requires migration rollout, RevenueCat dashboard webhook configuration, and Sandbox replay.
+- Requires Production Configuration: RevenueCat public SDK keys, Offering/package configuration, server-only webhook authorization, Sandbox purchase/restore QA, and staging migration verification must pass before paid mobile subscriptions are production-ready.
 
 ## Safe Fallbacks
 
@@ -52,6 +53,8 @@
 - Past-due billing grants paid entitlements only while `current_period_end` remains in the future.
 - Suspended accounts receive no product entitlements and no Command Center access.
 - Platform role never implies paid product entitlements.
+- Apple, Stripe, and future Google provider states are resolved together; expiration of one provider must not downgrade a user while another valid paid provider remains active.
+- Manual/admin membership override remains explicit and separate from provider billing state.
 - Implemented: Web Collector organization mutations enforce the Free 500-card limit through the canonical membership catalog before quantity writes are accepted.
 - Partially Implemented: Mobile Collector organization mutations validate the Free limit client-side for immediate UX and rely on Supabase RLS for ownership. A DB-side migration proposal is still required for production-authoritative native Free-limit enforcement.
 - Implemented: The Collector mutation security proposal interprets the Free limit as 500 total owned card quantity across inventory rows, not 500 unique rows.
@@ -60,5 +63,6 @@
 ## Current Gaps
 
 - Requires Production Configuration: `billing_subscriptions.plan_id`, `admin_membership_overrides.plan_id`, `account_trials.plan_id`, and legacy admin SQL still contain `business` check constraints in migrations.
+- Partially Implemented: `202608070001_revenuecat_subscription_reconciliation.sql` updates `billing_subscriptions` for RevenueCat compatibility and adds provider-state tables; staging replay is still required before production rollout.
 - Partially Implemented: Route gates exist for dashboard UI, but endpoint-level entitlement enforcement still needs an API-by-API audit.
 - Partially Implemented: Store employee-account capacity is intentionally pending; no numeric seat count is committed in the product contract.

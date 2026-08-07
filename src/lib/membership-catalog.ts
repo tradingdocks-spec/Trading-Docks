@@ -22,4 +22,4 @@ export {
   type PlanLimits,
   type ProviderPlanMapping,
   type RouteEntitlementKey,
-} from "../../mobile/services/membership-catalog";
+} from "../../mobile/services/membership-catalog.ts";

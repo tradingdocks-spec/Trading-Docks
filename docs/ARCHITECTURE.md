@@ -46,8 +46,8 @@
 - Implemented: Supabase service-role admin client exists for server-only operations.
 - Implemented: Cloudflare inbound email worker scripts exist.
 - Partially Implemented: eBay and Mana Pool integration surfaces exist but require provider credentials and production validation.
-- Planned: RevenueCat is not installed in active root or mobile dependencies.
-- Planned: Mobile paid purchase architecture is documented in `docs/MOBILE_BILLING_RELEASE_ARCHITECTURE.md`; native subscriptions require StoreKit/Google Play Billing approval and backend entitlement reconciliation before release.
+- Implemented: RevenueCat is installed in the active mobile app and mobile purchase/restore entry points use Supabase user UUID as the RevenueCat appUserID.
+- Partially Implemented: Server-side RevenueCat reconciliation lives at `/api/webhooks/revenuecat`, stores provider state in Supabase, and updates the canonical effective billing row; staging migration replay and Sandbox QA remain required before paid access release.
 - Implemented: Mobile release environment rules live in `docs/MOBILE_PRODUCTION_ENV.md` and `mobile/services/mobile-release-config.ts`; `mobile/scripts/verify-production-release.js` validates production identifiers, forbidden public secrets, development flags, version/build metadata, and EAS profile presence.
 - Partially Implemented: The first mobile RC billing strategy is Free-only native account creation with display-only paid entitlement state. Paid mobile upgrades remain Planned until StoreKit/Google Play Billing and backend entitlement reconciliation are approved.
 
@@ -141,6 +141,7 @@
 
 - Implemented: Canonical shared access types live in `mobile/services/access-model.ts`, with the Next.js adapter re-export at `src/lib/identity/access-model.ts`.
 - Implemented: Web server-side access resolution lives in `src/lib/identity/server-access.ts` and reads role, preferences, billing subscription, and membership override records.
+- Implemented: RevenueCat provider reconciliation is server-only. Mobile never promotes canonical membership directly after purchase or restore.
 - Implemented: Server guards for privileged web APIs live in `src/lib/identity/server-guards.ts`.
 - Implemented: Mobile role context normalizes `user_roles.role` through the same platform-role vocabulary, but mobile remains client-side UX state.
 - Implemented: Active web admin page, plan preview route, admin users API, marketplace integrations API, and trial invitation API no longer authorize from a hard-coded email.
