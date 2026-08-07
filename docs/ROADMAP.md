@@ -187,16 +187,16 @@ Implemented this checkpoint:
 
 1. Added one typed `PlatformAccessContext` separating auth identity, platform role, account type, membership tier, billing status, entitlements, workspace id, workspace role, provider state, suspension, and warnings.
 2. Added a typed action-based capability registry.
-3. Added a representative route-access registry.
+3. Added explicit active dashboard route-access classification with fail-closed behavior for unknown dashboard paths.
 4. Added reusable server route and API capability guards.
 5. Added client-safe access adapters for navigation and upgrade display.
-6. Migrated representative dashboard sidebar/page gating, `/dashboard/admin`, `/api/csv-converter/resolve`, and `/api/orders/reconciliation`.
-7. Added source-contract tests for tier normalization, capability behavior, route/API agreement, and legacy drift prevention.
+6. Migrated active user-facing dashboard API plan gates to `requireApiCapability` where capabilities apply.
+7. Added source-contract tests for tier normalization, capability behavior, route/API agreement, active dashboard/API classification coverage, and legacy drift prevention.
 
 Recommended next checkpoint:
 
-1. Migrate the remaining dashboard API routes from direct `hasPlanAccess` checks to `requireApiCapability`.
-2. Expand the route registry to every dashboard route and remove fallback classification once coverage is complete.
+1. Add route-handler integration fixtures for `401` unauthenticated and `403` unauthorized behavior.
+2. Audit webhook, OAuth callback, cron, and server-only API authorization separately from user capability guards.
 3. Resolve workspace-owned inventory and Store employee semantics before team workflows become production critical.
 4. Create a forward-only SQL plan to replace historical email-based owner helpers with `user_roles` helpers.
 5. Align Stripe and RevenueCat provider-state reconciliation behind the same server access lifecycle.

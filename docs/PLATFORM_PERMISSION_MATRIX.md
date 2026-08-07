@@ -38,7 +38,7 @@ Permissions are resolved from identity, platform role, account type, membership 
 
 ## Permission Order
 
-Status: Implemented for representative route/API coverage
+Status: Implemented for active route/API classification coverage
 
 Server-side order must remain:
 
@@ -52,11 +52,11 @@ Server-side order must remain:
 
 ## Capability Registry
 
-Status: Partially Implemented
+Status: Implemented for active access decisions
 
 The first typed capability registry lives in `mobile/services/platform-access.ts`. Capabilities are action names such as `collection.read`, `orders.manage`, `employees.manage`, `workspace.members.manage`, and `platform.admin`.
 
-The registry is now the preferred implementation point for new access checks. Legacy direct plan checks should be migrated rather than copied.
+The registry is now the preferred implementation point for new access checks. Web route and API guards consume capabilities instead of direct plan checks where a capability exists. Display-only plan copy may still read membership data, but active authorization should use capability decisions.
 
 ## P0/P1 Permission Gaps
 
@@ -65,4 +65,4 @@ The registry is now the preferred implementation point for new access checks. Le
 | Historical email-based owner helpers still exist in Supabase migrations/functions. | P1 | Active application code should not authorize admin access from email alone. |
 | Direct inventory writes need database-level total quantity enforcement for Free accounts. | P0/P1 | Proposal migration exists but production application requires approval. |
 | Support and analyst roles are typed but not fully mapped to route-specific capabilities. | P1 | Requires explicit product-owner permission model. |
-| Unknown dashboard paths currently fail closed to a high-tier feature bucket. | P1 | Safe default, but should be replaced by complete route registry coverage. |
+| Unknown dashboard paths fail closed. | P1 | Safe default is implemented; active dashboard pages are covered by registry tests, and future routes must be classified before launch. |

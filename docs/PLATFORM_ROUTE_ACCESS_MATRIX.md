@@ -22,10 +22,10 @@ This matrix records current route intent and access expectations. It does not gu
 | Route family | Minimum membership | Account/workspace | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `/dashboard` | Free | Any | Implemented | Protected dashboard entry. |
-| `/dashboard/inventory` | Free | Any | Partially Implemented | Canonical collection/inventory surface. |
+| `/dashboard/inventory`, `/dashboard/collection` | Free | Any | Partially Implemented | Canonical collection/inventory surfaces; `/dashboard/collection` is explicitly classified as collection access. |
 | `/dashboard/deck-vault` | Free | Collector+ | Partially Implemented | Free has deck limits. |
 | `/dashboard/collector-portfolio` | Collector | Collector+ | Partially Implemented | Value/portfolio features require Collector. |
-| `/dashboard/purchasing` | Seller | Seller/Store | Partially Implemented | Deal Desk route family. |
+| `/dashboard/purchasing` and nested buying aliases | Seller | Seller/Store | Partially Implemented | Deal Desk route family. Canonical aliases under `/dashboard/purchasing/*` are explicitly classified. |
 | `/dashboard/collection-buying` | Seller | Seller/Store | Partially Implemented | Buying workflow. |
 | `/dashboard/sealed-buying` | Seller | Seller/Store | Partially Implemented | Buying workflow. |
 | `/dashboard/bulk-buying` | Seller | Seller/Store | Partially Implemented | Buying workflow. |
@@ -34,9 +34,12 @@ This matrix records current route intent and access expectations. It does not gu
 | `/dashboard/card-shows` | Seller | Seller/Store | Partially Implemented | Seller tools. |
 | `/dashboard/marketplaces` | Seller | Seller/Store | Partially Implemented | Seller tools. |
 | `/dashboard/orders` | Seller | Seller/Store | Partially Implemented | Seller tools. |
-| `/dashboard/analytics` | Seller | Seller/Store | Partially Implemented | Seller/Store analytics. |
+| `/dashboard/analytics`, `/dashboard/automation`, `/dashboard/tools`, `/dashboard/csv-converter` | Seller | Seller/Store | Partially Implemented | Seller/Store analytics, automation, and export tools. |
 | `/dashboard/employees` | Store | Store | Partially Implemented | Store operations. Employee limits remain pending configuration. |
-| `/dashboard/customers` | Store | Store | Partially Implemented | Store operations. |
+| `/dashboard/customers`, `/dashboard/crm`, `/dashboard/business` | Store | Store | Partially Implemented | Store operations. |
+| `/dashboard/calendar`, `/dashboard/tasks`, `/dashboard/tournaments` | Store | Store | Partially Implemented | Store operations and event/task coordination. |
+| `/dashboard/payroll`, `/dashboard/vendors`, `/dashboard/supplies`, `/dashboard/supply-orders` | Store | Store workspace roles | Partially Implemented | Store workspace role rules are explicit in the capability registry. |
+| `/dashboard/reports`, `/dashboard/business-intelligence`, `/dashboard/finances` | Store | Store workspace roles | Partially Implemented | Store reporting and financial routes require higher workspace authority where configured. |
 | `/dashboard/organization` | Store | Store | Partially Implemented | Store operations. |
 | `/dashboard/settings` | Free | Any | Implemented | Protected settings. |
 | `/dashboard/admin` | Role: owner/admin | Any | Partially Implemented | Admin is additive and must not replace normal workspace. |
@@ -64,14 +67,16 @@ Status: Partially Implemented
 
 Status: Partially Implemented
 
-`src/lib/platform/route-access.ts` now defines a typed representative route registry. Initial covered routes include public/auth routes, dashboard, inventory/collection, orders, analytics, CRM, employees, settings, admin, and development-only design-system access.
+`src/lib/platform/route-access.ts` now defines the typed route registry for active public, auth, share, dashboard, admin, and development-only route families.
 
-Unmapped dashboard routes currently fail closed to a store-level protected bucket in the registry until each route is explicitly classified.
+Unmapped dashboard routes fail closed with a blocked classification until each route is explicitly classified. Tests walk `src/app/dashboard/**/page.tsx` and fail if an active dashboard page is missing from the registry.
+
+The registry uses capability and workspace requirements rather than direct plan branching when a capability exists. Platform admin remains additive and requires `user_roles` authority.
 
 ## Route Protection Gaps
 
 | Gap | Severity | Notes |
 | --- | --- | --- |
-| Some web dashboard route families are older product surfaces with overlapping responsibilities. | P1 | Consolidate behind a route registry before broader redesign. |
+| Some web dashboard route families are older product surfaces with overlapping responsibilities. | P1 | They are explicitly classified, but content ownership still needs product review before consolidation. |
 | Admin sub-navigation collapses many destinations to `/dashboard/admin`. | P2 | Safe, but not a complete route map for future Command Center work. |
 | Share routes need continued review for token scoping and no-store/noindex behavior. | P1 | Public token routes are sensitive. |

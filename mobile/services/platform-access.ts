@@ -29,6 +29,7 @@ export type WorkspaceRole = 'owner' | 'admin' | 'manager' | 'member' | 'viewer';
 export type PlatformCapability =
   | 'collection.read'
   | 'collection.write'
+  | 'deck.manage'
   | 'scanner.use'
   | 'scanner.advanced'
   | 'binder.manage'
@@ -45,7 +46,10 @@ export type PlatformCapability =
   | 'payroll.manage'
   | 'vendors.manage'
   | 'supplies.manage'
+  | 'events.manage'
+  | 'finances.manage'
   | 'businessIntelligence.view'
+  | 'support.access'
   | 'workspace.manage'
   | 'workspace.members.manage'
   | 'billing.manage'
@@ -125,6 +129,7 @@ export const WORKSPACE_ROLE_RANK: Record<WorkspaceRole, number> = {
 export const CAPABILITY_REGISTRY: Record<PlatformCapability, CapabilityRequirement> = {
   'collection.read': { capability: 'collection.read', label: 'Read collection', minimumTier: 'free' },
   'collection.write': { capability: 'collection.write', label: 'Manage collection', minimumTier: 'free' },
+  'deck.manage': { capability: 'deck.manage', label: 'Manage Deck Vault', minimumTier: 'free' },
   'scanner.use': { capability: 'scanner.use', label: 'Use scanner', minimumTier: 'free', entitlement: 'card-scanner' },
   'scanner.advanced': { capability: 'scanner.advanced', label: 'Advanced scanner tools', minimumTier: 'collector' },
   'binder.manage': { capability: 'binder.manage', label: 'Manage Trade Binder', minimumTier: 'collector', entitlement: 'trade-binder' },
@@ -141,7 +146,10 @@ export const CAPABILITY_REGISTRY: Record<PlatformCapability, CapabilityRequireme
   'payroll.manage': { capability: 'payroll.manage', label: 'Manage payroll', minimumTier: 'store', minimumWorkspaceRole: 'admin' },
   'vendors.manage': { capability: 'vendors.manage', label: 'Manage vendors', minimumTier: 'store', minimumWorkspaceRole: 'manager' },
   'supplies.manage': { capability: 'supplies.manage', label: 'Manage supplies', minimumTier: 'store', minimumWorkspaceRole: 'member' },
+  'events.manage': { capability: 'events.manage', label: 'Manage events', minimumTier: 'store', minimumWorkspaceRole: 'member' },
+  'finances.manage': { capability: 'finances.manage', label: 'Manage finances', minimumTier: 'store', minimumWorkspaceRole: 'admin' },
   'businessIntelligence.view': { capability: 'businessIntelligence.view', label: 'View business intelligence', minimumTier: 'store' },
+  'support.access': { capability: 'support.access', label: 'Access support', minimumTier: 'free' },
   'workspace.manage': { capability: 'workspace.manage', label: 'Manage workspace', minimumTier: 'store', minimumWorkspaceRole: 'admin' },
   'workspace.members.manage': { capability: 'workspace.members.manage', label: 'Manage workspace members', minimumTier: 'store', minimumWorkspaceRole: 'admin' },
   'billing.manage': { capability: 'billing.manage', label: 'Manage billing', minimumWorkspaceRole: 'owner' },

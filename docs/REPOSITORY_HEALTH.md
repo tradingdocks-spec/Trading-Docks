@@ -315,21 +315,23 @@ Implemented improvements:
 
 - Added a typed platform access model and capability registry.
 - Added route, client, server, and API guard adapters.
-- Migrated a representative set of dashboard UI and API checks.
+- Migrated active dashboard route classification and protected API authorization checks to the platform access contract where capabilities apply.
 - Added tests preventing new active `business` tier branching, duplicate capability registries, and email-based admin authority in active authority files.
+- Added tests requiring active dashboard pages and API route handlers to be explicitly classified.
 
 Remaining risks:
 
-- Many existing API routes still use direct `hasPlanAccess` checks and should be migrated in a dedicated pass.
-- The route registry currently covers a representative subset; unmapped dashboard routes fail closed until classified.
+- Historical/display helper modules such as legacy tier and dashboard entitlement utilities still exist and should be retired only after import audits.
+- Webhook and server-only API routes remain deliberately outside user capability guards and require route-local authorization review.
+- Unmapped dashboard routes fail closed until classified.
 - Historical Supabase SQL still includes email-based owner helper behavior and requires a reviewed forward-only migration.
 - Workspace role semantics exist in the access model, but Store employee permissions need product-owner confirmation before broad rollout.
 - RLS still needs the previously proposed Free total-card limit enforcement before direct mobile/offline writes are production complete.
 
 Recommended next stabilization task:
 
-1. Migrate all remaining dashboard APIs to `requireApiCapability`.
-2. Add route registry entries for every dashboard route and remove fallback reliance.
-3. Add route-handler integration fixtures for 401/403 API behavior.
+1. Add route-handler integration fixtures for 401/403 API behavior.
+2. Audit webhook, OAuth callback, cron, and server-only routes for route-local authorization and rate limiting.
+3. Retire or quarantine legacy access helper modules after import ownership is confirmed.
 4. Draft the `user_roles` SQL helper migration and staging verification plan.
 5. Audit all admin APIs for platform role scope, support/analyst permissions, and override logging.

@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCardShowGame } from "@/lib/card-show-games";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { hasPlanAccess } from "@/lib/tier-access";
-
-async function requireFeatureAccess() {
-  if (!hasPlanAccess(await getEffectivePlan(), "card-shows")) {
-    return NextResponse.json(
-      { error: "Card Shows requires a higher Trading Docks plan." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,8 +70,8 @@ function jsonError(code: string, error: string, status: number, retryAfter?: str
 }
 
 export async function GET(request: NextRequest) {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
+  const capability = await requireApiCapability("buying.manage");
+  if (!capability.ok) return capability.response;
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
   const game = request.nextUrl.searchParams.get("game") ?? "";
   const gameConfig = getCardShowGame(game);

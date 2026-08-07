@@ -1,9 +1,7 @@
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { createClient } from "@/lib/supabase/server";
-import { hasPlanAccess } from "@/lib/tier-access";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 
@@ -32,13 +30,10 @@ function maskedLabel(value: string) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
-
-  if (!hasPlanAccess(await getEffectivePlan(), "marketplaces")) {
-    return NextResponse.json({ error: "A Seller or Store membership is required." }, { status: 403 });
-  }
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const { supabase } = capability;
+  const user = capability.user!;
 
   const body = (await request.json().catch(() => null)) as {
     marketplaceId?: unknown;
@@ -126,9 +121,10 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const { supabase } = capability;
+  const user = capability.user!;
 
   const marketplaceId = new URL(request.url).searchParams.get("marketplaceId");
   if (!marketplaceId || !ALLOWED_MARKETPLACES.has(marketplaceId)) {
@@ -157,9 +153,10 @@ export async function GET(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const { supabase } = capability;
+  const user = capability.user!;
 
   const marketplaceId = new URL(request.url).searchParams.get("marketplaceId");
   if (!marketplaceId || !ALLOWED_MARKETPLACES.has(marketplaceId)) {

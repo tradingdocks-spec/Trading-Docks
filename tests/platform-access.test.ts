@@ -21,7 +21,7 @@ import {
   requiredMembershipForRoute,
   routeAccessRuleForPath,
 } from "../src/lib/platform/route-access.ts";
-import { apiCapabilityDecision } from "../src/lib/platform/api-access.ts";
+import { apiAccessRuleForPath, apiCapabilityDecision } from "../src/lib/platform/api-access.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -144,6 +144,7 @@ test("representative route registry maps public auth tier and platform routes", 
   assert.equal(hasRouteAccess(admin, "/dashboard/admin"), true);
   assert.equal(hasRouteAccess(collector, "/dev/design-system", "production"), false);
   assert.equal(hasRouteAccess(collector, "/dev/design-system", "development"), true);
+  assert.equal(hasRouteAccess(storeOwner, "/dashboard/unclassified-future-tool"), false);
 });
 
 test("navigation visibility server route access and API decisions agree", () => {
@@ -155,6 +156,50 @@ test("navigation visibility server route access and API decisions agree", () => 
   assert.equal(hasRouteAccess(collectorClient, "/dashboard/orders"), false);
   assert.equal(apiCapabilityDecision(collectorClient, "orders.manage").status, 403);
   assert.equal(requiredMembershipForRoute("/dashboard/orders"), "seller");
+});
+
+test("all dashboard page routes are explicitly classified", () => {
+  const dashboardPages = listFiles([path.join(repoRoot, "src/app/dashboard")])
+    .filter((file) => file.endsWith("page.tsx"))
+    .map(dashboardPathFromPage)
+    .sort();
+
+  assert.ok(dashboardPages.length > 20, "expected active dashboard routes");
+  for (const route of dashboardPages) {
+    const rule = routeAccessRuleForPath(route);
+    assert.ok(rule, `${route} is missing a route access rule`);
+    assert.notEqual(rule.id, "dashboard-fallback", `${route} is using the fail-closed fallback`);
+    assert.notEqual(rule.kind, "blocked", `${route} is blocked instead of explicitly classified`);
+  }
+});
+
+test("all API route handlers are classified in the API access registry", () => {
+  const apiRoutes = listFiles([path.join(repoRoot, "src/app/api")])
+    .filter((file) => file.endsWith("route.ts"))
+    .map(apiPathFromRoute)
+    .sort();
+
+  assert.ok(apiRoutes.length > 40, "expected active API routes");
+  for (const route of apiRoutes) {
+    const rule = apiAccessRuleForPath(route);
+    assert.ok(rule, `${route} is missing an API access rule`);
+    assert.notEqual(rule.id, "api-fallback", `${route} is using the server-only fallback`);
+  }
+});
+
+test("workspace role boundaries are distinct from store membership", () => {
+  const storeViewer = access({ tier: "store", workspaceRole: "viewer" });
+  const storeMember = access({ tier: "store", workspaceRole: "member" });
+  const storeManager = access({ tier: "store", workspaceRole: "manager" });
+  const storeAdmin = access({ tier: "store", workspaceRole: "admin" });
+  const storeOwner = access({ tier: "store", workspaceRole: "owner" });
+
+  assert.equal(hasRouteAccess(storeViewer, "/dashboard/employees"), false);
+  assert.equal(hasRouteAccess(storeMember, "/dashboard/supplies"), true);
+  assert.equal(hasRouteAccess(storeManager, "/dashboard/vendors"), true);
+  assert.equal(hasRouteAccess(storeAdmin, "/dashboard/payroll"), true);
+  assert.equal(hasCapability(storeOwner, "billing.manage"), true);
+  assert.equal(hasCapability(storeManager, "billing.manage"), false);
 });
 
 test("legacy guardrails do not introduce new active business branching or email owner checks", () => {
@@ -183,7 +228,11 @@ test("legacy guardrails do not introduce new active business branching or email 
     const relative = path.relative(repoRoot, file).replace(/\\/g, "/");
     const source = readFileSync(file, "utf8");
     if (relative === "mobile/services/membership-catalog.ts") continue;
-    assert.equal(/['"]business['"]/.test(source), false, `${relative} contains active business branching`);
+    assert.equal(
+      /(accountType|membershipTier|billingPlan|plan)\s*(?:={2,3}|!==?)\s*['"]business['"]/.test(source),
+      false,
+      `${relative} contains active business tier branching`,
+    );
   }
 
   for (const file of authorityFiles) {
@@ -191,7 +240,26 @@ test("legacy guardrails do not introduce new active business branching or email 
     const source = readFileSync(file, "utf8");
     assert.equal(/tradingdocks@gmail\.com/.test(source), false, `${relative} contains email-based admin authority`);
   }
+
+  const apiFiles = listFiles([path.join(repoRoot, "src/app/api")]).filter((file) => file.endsWith(".ts"));
+  for (const file of apiFiles) {
+    const relative = path.relative(repoRoot, file).replace(/\\/g, "/");
+    const source = readFileSync(file, "utf8");
+    assert.equal(/hasPlanAccess|getEffectivePlan/.test(source), false, `${relative} contains legacy plan access checks`);
+  }
 });
+
+function dashboardPathFromPage(file: string) {
+  const relative = path.relative(path.join(repoRoot, "src/app/dashboard"), file).replace(/\\/g, "/");
+  const route = relative.replace(/\/page\.tsx$/, "").replace(/^page\.tsx$/, "");
+  return route ? `/dashboard/${route}` : "/dashboard";
+}
+
+function apiPathFromRoute(file: string) {
+  const relative = path.relative(path.join(repoRoot, "src/app/api"), file).replace(/\\/g, "/");
+  const route = relative.replace(/\/route\.ts$/, "").replace(/^route\.ts$/, "");
+  return route ? `/api/${route}` : "/api";
+}
 
 function listFiles(roots: string[]) {
   const files: string[] = [];

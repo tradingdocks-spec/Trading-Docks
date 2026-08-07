@@ -46,7 +46,9 @@ Status: Partially Implemented
 
 Status: Partially Implemented
 
-The first reusable server-side route and API guards now live in `src/lib/platform/server-access.ts`. API capability decisions return `401` for unauthenticated callers and `403` for authenticated callers without capability access.
+The reusable server-side route and API guards live in `src/lib/platform/server-access.ts`. API capability decisions return `401` for unauthenticated callers and `403` for authenticated callers without capability access.
+
+Active dashboard routes are classified in `src/lib/platform/route-access.ts`; unknown dashboard routes fail closed. Active API routes are classified in `src/lib/platform/api-access.ts`; webhooks remain route-local/server-only and are not migrated to user capability checks.
 
 The client-safe adapter intentionally omits server-only provider detail and is not authorization.
 

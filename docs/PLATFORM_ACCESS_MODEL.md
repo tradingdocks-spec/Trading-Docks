@@ -45,19 +45,21 @@ Status: Implemented
 
 Status: Partially Implemented
 
-Representative surfaces now consume the model:
+Active web route and API authorization now consume the model:
 
 - Dashboard shell passes a client-safe access snapshot.
 - Sidebar and plan gate use route/capability access instead of direct plan-feature checks.
 - `/dashboard/admin` uses the reusable server route guard.
 - `/api/csv-converter/resolve` uses the API capability guard for `csv.export`.
 - `/api/orders/reconciliation` uses the API capability guard for `orders.manage`.
+- Active dashboard page routes are explicitly classified by `src/lib/platform/route-access.ts`; unknown dashboard paths fail closed.
+- Active `src/app/api` route handlers are classified by `src/lib/platform/api-access.ts`; user-facing protected routes migrate to `requireApiCapability`.
 
 ## Remaining Work
 
 Status: Planned
 
-- Migrate the rest of the API route tree from plan-feature checks to API capabilities.
-- Replace remaining `hasPlanAccess` route checks with route registry checks.
+- Add route-handler integration fixtures for standard `401` unauthenticated and `403` unauthorized API responses.
+- Continue retiring legacy display/helper modules once imports are audited.
 - Expand workspace-owned data authorization before broader Store/team workflows.
 - Replace historical email-based SQL owner helpers with `user_roles` SQL helpers.
