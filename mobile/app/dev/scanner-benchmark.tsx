@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
+import { Redirect } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -246,11 +247,7 @@ export default function ScannerBenchmarkBuilder() {
   };
 
   if (!enabled) {
-    return (
-      <TDScreen style={s.screen}>
-        <TDErrorState title="Benchmark builder unavailable" message="Set EXPO_PUBLIC_ENABLE_SCANNER_BENCHMARK_BUILDER=true in a development environment to use this local-only tool." />
-      </TDScreen>
-    );
+    return <Redirect href="/(tabs)" />;
   }
 
   if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading builder" message="Checking for a local benchmark dataset." /></TDScreen>;

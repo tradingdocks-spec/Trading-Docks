@@ -7,7 +7,7 @@ const routeSource = readFileSync(resolve('app/dev/camera-qa.tsx'), 'utf8');
 
 test('Camera QA route is gated behind scanner diagnostics', () => {
   assert.match(routeSource, /isScannerDiagnosticsEnabled\(\)/);
-  assert.match(routeSource, /Camera QA unavailable/);
+  assert.match(routeSource, /<Redirect href="\/\(tabs\)" \/>/);
 });
 
 test('Camera QA route avoids OCR session pricing scanner flows', () => {

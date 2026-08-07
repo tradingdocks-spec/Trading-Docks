@@ -50,10 +50,10 @@ test('Wave 3 admin settings recovery and showcase keep release-safe hierarchy', 
   assert.match(adminComponents, /TDNavigationHeader/);
   assert.match(adminComponents, /TDListRow/);
   assert.match(settings, /Security and preferences|Preferences and security/);
-  assert.match(settings, /EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS/);
+  assert.match(settings, /MOBILE_PUBLIC_ENV_KEYS\.scannerDiagnostics/);
   assert.match(scannerRecovery, /Action required/);
   assert.equal(scannerRecovery.includes('idempotencyKey'), false);
-  assert.match(designShowcase, /EXPO_PUBLIC_ENABLE_DESIGN_SYSTEM_SHOWCASE/);
+  assert.match(designShowcase, /MOBILE_PUBLIC_ENV_KEYS\.designSystemShowcase/);
   assert.match(designShowcase, /TDScannerGuide/);
   assert.match(designShowcase, /Disabled action/);
 });

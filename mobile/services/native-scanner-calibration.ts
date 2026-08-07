@@ -1,4 +1,5 @@
 import { TRADING_CARD_GUIDE_RATIO, type CardBoundaryObservation, type ScannerGuideLayout } from './continuous-offer-scanner.ts';
+import { isDevelopmentToolEnabled } from './mobile-release-config.ts';
 import type { LiveFrameAnalysisResult, NormalizedCardCrop } from './live-card-recognition.ts';
 
 export const SCANNER_DIAGNOSTICS_DEV_FLAG = 'EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS';
@@ -124,7 +125,7 @@ export const NATIVE_FRAME_VISUAL_SIGNALS: ScannerSignalAvailability = {
 };
 
 export function isScannerDiagnosticsEnabled(env: Record<string, string | undefined> = process.env) {
-  return env.NODE_ENV !== 'production' && env[SCANNER_DIAGNOSTICS_DEV_FLAG] === 'true';
+  return isDevelopmentToolEnabled(SCANNER_DIAGNOSTICS_DEV_FLAG, env);
 }
 
 export function nativeScannerCalibrationKey(userId: string) {

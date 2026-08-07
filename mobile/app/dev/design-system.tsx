@@ -1,3 +1,4 @@
+import { Redirect } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
@@ -25,9 +26,10 @@ import {
   TDDivider,
 } from '@/components/design-system';
 import { space } from '@/design';
+import { isDevelopmentToolEnabled, MOBILE_PUBLIC_ENV_KEYS } from '@/services/mobile-release-config';
 
 export default function DesignSystemShowcase() {
-  if (process.env.EXPO_PUBLIC_ENABLE_DESIGN_SYSTEM_SHOWCASE !== 'true') return null;
+  if (!isDevelopmentToolEnabled(MOBILE_PUBLIC_ENV_KEYS.designSystemShowcase)) return <Redirect href="/(tabs)" />;
 
   return (
     <TDScreen>

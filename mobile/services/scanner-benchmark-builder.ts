@@ -9,6 +9,7 @@ import {
   validateMagicBenchmarkFixtureManifest,
 } from './magic-recognition-provider.ts';
 import type { ScannerCardCandidate } from './scanner-foundation.ts';
+import { isDevelopmentToolEnabled } from './mobile-release-config.ts';
 
 export const SCANNER_BENCHMARK_BUILDER_FLAG = 'EXPO_PUBLIC_ENABLE_SCANNER_BENCHMARK_BUILDER';
 export const SCANNER_BENCHMARK_FIXTURE_ROOT = [
@@ -72,7 +73,7 @@ export type BenchmarkExecutionResult =
   | { ok: false; error: string };
 
 export function isScannerBenchmarkBuilderEnabled(env: Record<string, string | undefined> = process.env) {
-  return env.NODE_ENV !== 'production' && env[SCANNER_BENCHMARK_BUILDER_FLAG] === 'true';
+  return isDevelopmentToolEnabled(SCANNER_BENCHMARK_BUILDER_FLAG, env);
 }
 
 export function createBenchmarkDataset(input: { name: string; now?: string; privacyAcknowledged?: boolean }): BenchmarkDataset {

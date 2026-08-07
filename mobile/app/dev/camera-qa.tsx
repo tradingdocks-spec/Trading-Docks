@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, ScrollView, StyleSheet, View, type AppStateStatus } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -176,15 +176,7 @@ export default function CameraQaScreen() {
   }, []);
 
   if (!diagnosticsEnabled) {
-    return (
-      <View style={[styles.screen, { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.md }]}>
-        <TDCard style={styles.card}>
-          <TDText variant="title">Camera QA unavailable</TDText>
-          <TDText variant="small" tone="muted">Enable scanner diagnostics to open this development-only camera inspector.</TDText>
-          <TDButton label="Back" variant="secondary" onPress={() => router.back()} />
-        </TDCard>
-      </View>
-    );
+    return <Redirect href="/(tabs)" />;
   }
 
   return (
