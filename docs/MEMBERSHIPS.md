@@ -39,6 +39,7 @@
 - Implemented: Stripe price mapping is separate from product definitions through `MEMBERSHIP_PROVIDER_MAPPINGS`.
 - Requires Production Configuration: Existing Stripe price IDs must be checked against the canonical prices before live billing is enabled.
 - Planned: RevenueCat mappings are represented as planned provider rows only; RevenueCat is not active.
+- Partially Implemented: The first mobile RC strategy is Free-only mobile account creation with paid entitlement display only. Native Collector/Seller/Store purchases remain Planned until approved StoreKit/Google Play Billing or RevenueCat integration is implemented and reconciled through the backend.
 
 ## Safe Fallbacks
 

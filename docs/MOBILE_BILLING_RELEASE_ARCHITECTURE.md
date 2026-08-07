@@ -36,9 +36,17 @@ The client must never be the authority for paid access. Mobile may show current 
 
 ## Mobile Payment Provider Decision
 
+- Implemented for the first mobile RC strategy: Option A is Free-only mobile account creation and read-only/display-only paid membership state. Mobile must not process Collector, Seller, or Store upgrades in-app until native subscriptions are approved and implemented.
 - Planned: RevenueCat remains the likely cross-platform subscription adapter because the repository already models planned provider mappings.
 - Requires Production Configuration: RevenueCat products, Apple subscription group, Google base plans, webhooks, restore purchases, and backend entitlement reconciliation are not configured.
 - Implemented: Provider identifiers are separate from plan definitions, so product copy and entitlement keys can remain stable while providers change.
+
+## Paid Upgrade Behavior For This RC
+
+- Implemented: Mobile may display the canonical plan catalog and the user's resolved entitlement state.
+- Partially Implemented: Paid tiers can be reflected from backend subscription data when already present.
+- Planned: Mobile does not complete paid upgrades, restore purchases, or native receipt validation.
+- Release rule: any paid upgrade control must remain disabled, informational, or routed to a product-owner-approved compliant flow. Do not route native iOS users to Stripe checkout for in-app digital subscription access without legal/product approval.
 
 ## Release Guardrails
 
