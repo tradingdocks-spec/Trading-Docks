@@ -143,6 +143,7 @@ export async function recognizeMagicStillCapture(input: {
   cleanup?: typeof deleteCapturedStill;
   deferCleanup?: boolean;
   sequentialTitleOcr?: boolean;
+  includeCollectorOcr?: boolean;
   onStage?: (stage: 'reading_title' | 'finding_card') => void;
   onLookupDiagnostics?: (diagnostics: MagicStillScanLookupDiagnostics) => void;
 }): Promise<MagicStillScanResult> {
@@ -161,6 +162,7 @@ export async function recognizeMagicStillCapture(input: {
       imageUri: input.imageUri,
       regions: mapping.regions,
       recognize: input.recognize ?? recognizeText,
+      includeCollectorOcr: input.includeCollectorOcr ?? false,
     })
     : await (input.recognize ?? recognizeText)({
       imageUri: input.imageUri,
@@ -320,6 +322,7 @@ export async function recognizeSequentialMagicTitle(input: {
   imageUri: string;
   regions: NativeOcrRegion[];
   recognize: typeof recognizeText;
+  includeCollectorOcr?: boolean;
 }): Promise<NativeOcrResult> {
   const selectedObservations: NativeOcrObservation[] = [];
   const warnings: string[] = [];
@@ -351,7 +354,7 @@ export async function recognizeSequentialMagicTitle(input: {
     const selected = signals.titleAttempts.find((attempt) => attempt.id === regionId && attempt.normalizedText);
     if (selected?.normalizedText && selected.confidence >= 70 && selected.normalizedText.length >= 3) break;
   }
-  const collectorRegion = input.regions.find((regionEntry) => regionEntry.id === 'collector_info');
+  const collectorRegion = input.includeCollectorOcr ? input.regions.find((regionEntry) => regionEntry.id === 'collector_info') : null;
   if (selectedObservations.some((observation) => observation.regionType === 'name') && collectorRegion) {
     const started = Date.now();
     const collector = await input.recognize({

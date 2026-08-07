@@ -144,7 +144,7 @@ test('title ranking falls back from empty primary to expanded and upper-card att
   assert.equal(attempts.find((attempt) => attempt.id === 'title_primary')?.reason, 'rejected_noise');
 });
 
-test('sequential OCR stops after a strong title and treats collector OCR as optional', async () => {
+test('sequential OCR stops after a strong title without collector OCR on the critical path', async () => {
   const calls: string[] = [];
   const result = await recognizeSequentialMagicTitle({
     imageUri: 'file:///tmp/card.jpg',
@@ -173,11 +173,47 @@ test('sequential OCR stops after a strong title and treats collector OCR as opti
     },
   });
   assert.equal(result.ok, true);
-  assert.deepEqual(calls, ['title_primary', 'collector_info']);
+  assert.deepEqual(calls, ['title_primary']);
   if (result.ok) {
     assert.equal(result.observations[0].requestedRegionId, 'title_primary');
-    assert.match(result.warnings.join(' '), /Optional collector OCR failed/);
+    assert.doesNotMatch(result.warnings.join(' '), /Optional collector OCR failed/);
   }
+});
+
+test('sequential OCR can opt into collector OCR for background refinement', async () => {
+  const calls: string[] = [];
+  const result = await recognizeSequentialMagicTitle({
+    imageUri: 'file:///tmp/card.jpg',
+    regions: buildMagicOcrRegions({ x: 0.1, y: 0.08, width: 0.8, height: 0.86 }),
+    includeCollectorOcr: true,
+    recognize: async (request) => {
+      calls.push(request.regions[0].id);
+      if (request.regions[0].id === 'collector_info') {
+        return {
+          ok: true,
+          provider: 'apple_vision',
+          fullText: 'STA 13 EN',
+          latencyMs: 6,
+          orientationUsed: 'up',
+          warnings: [],
+          observations: [{ id: 'collector:0', requestedRegionId: 'collector_info', regionType: 'collector_info', text: 'STA 13 EN', rawText: 'STA 13 EN', confidence: 82, bounds: { x: 0.1, y: 0.9, width: 0.5, height: 0.06 } }],
+        };
+      }
+      return {
+        ok: true,
+        provider: 'apple_vision',
+        fullText: 'Brainstorm',
+        latencyMs: 8,
+        orientationUsed: 'up',
+        warnings: [],
+        observations: [{ id: 'primary:0', requestedRegionId: 'title_primary', regionType: 'name', text: 'Brainstorm', rawText: 'Brainstorm', confidence: 92, bounds: { x: 0.1, y: 0.06, width: 0.7, height: 0.08 } }],
+      };
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls, ['title_primary', 'collector_info']);
+  if (result.ok) assert.equal(result.observations.some((observation) => observation.regionType === 'collector_info'), true);
 });
 
 test('sequential OCR falls back through expanded, upper-card, and full-card regions', async () => {
@@ -203,7 +239,7 @@ test('sequential OCR falls back through expanded, upper-card, and full-card regi
     },
   });
   assert.equal(result.ok, true);
-  assert.deepEqual(calls, ['title_primary', 'title_expanded', 'upper_card', 'full_card', 'collector_info']);
+  assert.deepEqual(calls, ['title_primary', 'title_expanded', 'upper_card', 'full_card']);
 });
 
 test('collector OCR parses set code, collector number suffix, and language', () => {
