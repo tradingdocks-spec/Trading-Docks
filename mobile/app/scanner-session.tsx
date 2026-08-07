@@ -7,9 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TDBadge, TDButton, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDScreen, TDSegmentedControl, TDSheet, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
+import { useAccount } from '@/providers/account';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { supabase } from '@/lib/supabase';
 import {
+  buildScannerCollectionConfirmation,
   bulkConfirmReviewedCards,
   calculateSessionTotals,
   continuousScannerSessionKey,
@@ -29,14 +31,18 @@ import {
   type SessionReviewFilterState,
   type SessionReviewStatusTab,
 } from '@/services/continuous-offer-scanner';
+import { loadScannerContext, saveScannerConfirmation } from '@/services/scanner-data';
 import { appStorage } from '@/services/storage/app-storage';
 
 export default function ScannerSessionReview() {
   const insets = useSafeAreaInsets();
+  const { accountType } = useAccount();
   const [session, setSession] = useState<ContinuousScannerSession | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [finalizing, setFinalizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [filters, setFilters] = useState<SessionReviewFilterState>(() => defaultSessionReviewFilters());
   const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
 
@@ -72,10 +78,36 @@ export default function ScannerSessionReview() {
       ? 'Changes are waiting to sync.'
       : null;
 
-  const finalizeSession = () => {
-    if (!session || !finalize?.canFinalize) return;
-    const nextSession = bulkConfirmReviewedCards(session);
-    setSession(nextSession);
+  const finalizeSession = async () => {
+    if (!session || !finalize?.canFinalize || !userId || finalizing) return;
+    setFinalizing(true);
+    setSyncError(null);
+    const confirmedSession = bulkConfirmReviewedCards(session);
+    setSession(confirmedSession);
+    try {
+      const context = await loadScannerContext();
+      if (context.userId !== userId) throw new Error('Sign in again to sync this scanner session.');
+      let runningTotal = context.currentTotalQuantity;
+      let nextSession = confirmedSession;
+      for (const line of confirmedSession.lines) {
+        if (line.destination !== 'collection') continue;
+        const confirmation = buildScannerCollectionConfirmation(line, userId);
+        if (!confirmation) continue;
+        const result = await saveScannerConfirmation({
+          confirmation,
+          membershipTier: accountType,
+          currentTotalQuantity: runningTotal,
+        });
+        nextSession = editScannerSessionLine(nextSession, line.id, { syncState: result.ok ? (result.queued ? 'pending_sync' : 'synced') : 'failed' });
+        if (result.ok) runningTotal += confirmation.quantity;
+        if (!result.ok) setSyncError(result.error);
+      }
+      setSession(nextSession);
+    } catch (finalizeError) {
+      setSyncError(finalizeError instanceof Error ? finalizeError.message : 'Scanner session sync failed.');
+    } finally {
+      setFinalizing(false);
+    }
   };
 
   if (loading) return <TDScreen style={s.screen}><TDLoadingState title="Loading scanner session" message="Restoring your intake list." /></TDScreen>;
@@ -119,6 +151,12 @@ export default function ScannerSessionReview() {
                   <TDText variant="caption" tone="muted">{syncNotice}</TDText>
                 </View>
               ) : null}
+              {syncError ? (
+                <View style={s.syncNotice}>
+                  <Ionicons name="alert-circle-outline" size={18} color={color.warning} />
+                  <TDText variant="caption" tone="warning">{syncError}</TDText>
+                </View>
+              ) : null}
             </View>
           )}
           renderItem={({ item }) => <SessionCardRow line={item} onPress={() => setSelectedLineId(item.id)} />}
@@ -132,6 +170,7 @@ export default function ScannerSessionReview() {
           bottomInset={insets.bottom}
           canFinalize={Boolean(finalize?.canFinalize)}
           finalizeReason={finalize?.reason ?? ''}
+          finalizing={finalizing}
           onFinalize={finalizeSession}
         />
       </View>
@@ -315,11 +354,11 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
     </Modal>
   );
 }
-function SessionFinalizeBar({ bottomInset, canFinalize, finalizeReason, onFinalize }: { bottomInset: number; canFinalize: boolean; finalizeReason: string; onFinalize: () => void }) {
+function SessionFinalizeBar({ bottomInset, canFinalize, finalizeReason, finalizing, onFinalize }: { bottomInset: number; canFinalize: boolean; finalizeReason: string; finalizing: boolean; onFinalize: () => void }) {
   return (
     <View style={[s.finalizeBar, { paddingBottom: Math.max(bottomInset, space.sm) }]}>
       <View style={s.finalizeAction}>
-        <TDButton label="Finalize" size="sm" disabled={!canFinalize} onPress={onFinalize} />
+        <TDButton label="Finalize" size="sm" loading={finalizing} disabled={!canFinalize || finalizing} onPress={onFinalize} />
         <TDText variant="caption" tone={canFinalize ? 'success' : 'muted'} numberOfLines={1}>{finalizeReason}</TDText>
       </View>
     </View>

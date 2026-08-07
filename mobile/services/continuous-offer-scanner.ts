@@ -730,7 +730,7 @@ export function batchScannerTimingSummary(input: Partial<BatchScannerTimingSnaps
   };
 }
 
-export function editScannerSessionLine(session: ContinuousScannerSession, lineId: string, patch: Partial<Pick<ScannerSessionLine, 'condition' | 'finish' | 'quantity' | 'purchasePercentage' | 'marketPrice' | 'priceSource' | 'priceTimestamp' | 'destination' | 'storageLocationId' | 'binderId' | 'reviewStatus' | 'notes'>>) {
+export function editScannerSessionLine(session: ContinuousScannerSession, lineId: string, patch: Partial<Pick<ScannerSessionLine, 'condition' | 'finish' | 'quantity' | 'purchasePercentage' | 'marketPrice' | 'priceSource' | 'priceTimestamp' | 'destination' | 'storageLocationId' | 'binderId' | 'reviewStatus' | 'syncState' | 'notes'>>) {
   return {
     ...session,
     updatedAt: new Date().toISOString(),
