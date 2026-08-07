@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCameraPermissions } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TDButton, TDCard, TDText } from '@/components/design-system';
@@ -46,6 +47,7 @@ import {
   resolveScannerManualCapturePolicy,
   type ScannerCaptureDiagnostic,
 } from '@/services/scanner-capture-policy';
+import { resolveSingleScanReadiness, shouldEmitReadyHaptic, type ScannerReadinessTone } from '@/services/scanner-readiness';
 
 export default function SingleScanScreen() {
   const insets = useSafeAreaInsets();
@@ -73,6 +75,7 @@ export default function SingleScanScreen() {
   const [cropDiagnostics, setCropDiagnostics] = useState<MagicStillScanCropDiagnostics | null>(null);
   const focusSettlingUntilRef = useRef(0);
   const activeCaptureIdRef = useRef<string | null>(null);
+  const previousReadinessStateRef = useRef<ReturnType<typeof resolveSingleScanReadiness>['state'] | null>(null);
 
   const guideLayout = useMemo(() => calculateCardGuideLayout({
     containerWidth: width,
@@ -89,6 +92,7 @@ export default function SingleScanScreen() {
     guide: guideLayout,
   }), [guideLayout, height, width]);
   const currentQuality = quality;
+  const readiness = resolveSingleScanReadiness({ quality: currentQuality, stage });
   const manualCapturePolicy = resolveScannerManualCapturePolicy({
     cameraInitialized: cameraReady,
     permissionGranted: permission === 'granted',
@@ -247,15 +251,15 @@ export default function SingleScanScreen() {
     await cameraRef.current.focusAt(conversion.normalizedPoint);
   }, [cameraReady, deviceSummary?.supportsFocus, height, permission, previewResolution, processing, width]);
 
-  const currentInstruction = stage === 'reading'
-    ? 'Reading'
-    : stage === 'matching'
-      ? 'Reading'
-      : stage === 'failed'
-        ? "Couldn't identify"
-        : stage === 'result'
-          ? 'Review result'
-          : currentQuality.guidance;
+  useEffect(() => {
+    if (shouldEmitReadyHaptic(previousReadinessStateRef.current, readiness.state) && Platform.OS !== 'web') {
+      void Haptics.selectionAsync();
+    }
+    previousReadinessStateRef.current = readiness.state;
+  }, [readiness.state]);
+
+  const currentInstruction = readiness.message;
+  const guideToneStyle = singleGuideToneStyle(readiness.tone);
 
   if (!cameraPermission?.granted && permission !== 'granted') {
     return (
@@ -293,10 +297,10 @@ export default function SingleScanScreen() {
       </Pressable>
 
       <View pointerEvents="none" style={[s.guide, { left: guideLayout.left, top: guideLayout.top, width: guideLayout.width, height: guideLayout.height }]}>
-        <View style={s.corner} />
-        <View style={[s.corner, s.cornerRight]} />
-        <View style={[s.corner, s.cornerBottom]} />
-        <View style={[s.corner, s.cornerBottomRight]} />
+        <View style={[s.corner, guideToneStyle]} />
+        <View style={[s.corner, s.cornerRight, guideToneStyle]} />
+        <View style={[s.corner, s.cornerBottom, guideToneStyle]} />
+        <View style={[s.corner, s.cornerBottomRight, guideToneStyle]} />
       </View>
       {focusReticle ? <View pointerEvents="none" style={[s.focusReticle, { left: focusReticle.x - 18, top: focusReticle.y - 18 }]} /> : null}
 
@@ -327,7 +331,7 @@ export default function SingleScanScreen() {
         </View>
         <View style={s.controlRow}>
           <HeaderButton label={torchEnabled ? 'Torch on' : 'Torch'} icon={torchEnabled ? 'flashlight' : 'flashlight-outline'} disabled={torchState?.torchSupported === false} onPress={() => setTorchEnabled((value) => !value)} />
-          <TDButton label="Capture" loading={processing} disabled={!canCapture} onPress={captureSingle} />
+          <TDButton label="Capture" loading={processing} disabled={!canCapture} onPress={captureSingle} style={readiness.state === 'ready' ? s.captureReady : undefined} />
         </View>
         <TDText variant="caption" tone="muted" style={s.centerText}>Camera {selectedLensLabel} - {currentQuality.fillRatio === null ? 'align card in guide' : `${Math.round(currentQuality.fillRatio * 100)}% fill`}</TDText>
       </View>
@@ -463,6 +467,14 @@ function HeaderButton({ label, icon, disabled, onPress }: { label: string; icon:
   );
 }
 
+function singleGuideToneStyle(tone: ScannerReadinessTone) {
+  if (tone === 'emerald') return s.guideToneReady;
+  if (tone === 'amber') return s.guideToneWarning;
+  if (tone === 'blue') return s.guideToneReading;
+  if (tone === 'coral') return s.guideToneFailure;
+  return s.guideToneSearching;
+}
+
 function createScanId() {
   return globalThis.crypto?.randomUUID?.() ?? `scan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -488,6 +500,11 @@ const s = StyleSheet.create({
   disabled: { opacity: 0.42 },
   guide: { position: 'absolute', zIndex: 10 },
   corner: { position: 'absolute', top: 0, left: 0, width: 52, height: 52, borderTopWidth: 4, borderLeftWidth: 4, borderColor: color.primaryBright, borderTopLeftRadius: radius.md },
+  guideToneSearching: { borderColor: color.info },
+  guideToneWarning: { borderColor: color.warning },
+  guideToneReady: { borderColor: color.success },
+  guideToneReading: { borderColor: color.primaryBright },
+  guideToneFailure: { borderColor: color.danger },
   cornerRight: { left: undefined, right: 0, borderLeftWidth: 0, borderRightWidth: 4, borderTopRightRadius: radius.md },
   cornerBottom: { top: undefined, bottom: 0, borderTopWidth: 0, borderBottomWidth: 4, borderBottomLeftRadius: radius.md },
   cornerBottomRight: { top: undefined, left: undefined, right: 0, bottom: 0, borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 4, borderBottomWidth: 4, borderBottomRightRadius: radius.md },
@@ -496,6 +513,7 @@ const s = StyleSheet.create({
   centerText: { textAlign: 'center' },
   bottomControls: { position: 'absolute', left: space.md, right: space.md, bottom: 0, zIndex: 30, gap: space.sm },
   controlRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  captureReady: { backgroundColor: color.success, borderColor: color.success },
   lensControl: { alignSelf: 'center', minHeight: 38, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 2, padding: 3, backgroundColor: color.surfaceFloating + 'DD' },
   lensButton: { minWidth: 42, minHeight: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.sm },
   lensButtonActive: { backgroundColor: color.primaryBright },

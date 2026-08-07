@@ -71,7 +71,7 @@ test('Single Scan uses view dimensions for still-crop mapping instead of native 
 });
 
 test('Single Scan treats poor capture quality as advisory before OCR', () => {
-  assert.match(single, /currentQuality\.guidance/);
+  assert.match(single, /resolveSingleScanReadiness/);
   assert.match(single, /disabled=\{!canCapture\}/);
   assert.match(single, /resolveScannerManualCapturePolicy/);
   assert.match(single, /createScannerCaptureDiagnostic/);

@@ -1,4 +1,5 @@
 import type { ScannerCardCandidate } from './scanner-foundation.ts';
+import type { ScannerReadinessState } from './scanner-readiness.ts';
 
 export type PremiumScannerPipelineState =
   | 'camera_ready'
@@ -158,6 +159,7 @@ export function resolvePremiumScannerPipeline(input: {
 export function guidePresentationForPipeline(
   pipeline: PremiumScannerPipelineState,
   guidance: string | null | undefined,
+  readinessState?: ScannerReadinessState,
 ): PremiumScannerGuidePresentation {
   if (pipeline === 'failed') return guide('failed', "Couldn't identify", 'danger', 0, "Couldn't identify");
   if (pipeline === 'remove_card') return guide('recognized', 'Remove card', 'emerald', 1, 'Added');
@@ -167,8 +169,13 @@ export function guidePresentationForPipeline(
   if (pipeline === 'candidate_ready') return guide('recognized', 'Added', 'emerald', 1, 'Added');
   if (pipeline === 'confirmation_required') return guide('review_required', 'Hold steady', 'amber', 0.92, 'Hold steady');
   if (pipeline === 'capturing') return guide('capturing', 'Reading', 'blue', 0.64, 'Reading');
-  if (pipeline === 'camera_ready') return guide('ready', guidance || 'Hold steady', 'emerald', 0.52, 'Ready');
-  return guide('aligning', guidance || 'Place card in frame', 'cyan', 0.18, 'Aligning');
+  if (pipeline === 'camera_ready') {
+    if (readinessState === 'ready') return guide('ready', guidance || 'Ready', 'emerald', 0.52, 'Ready');
+    if (readinessState === 'needs_attention') return guide('aligning', guidance || 'Hold steady', 'amber', 0.34, guidance || 'Hold steady');
+    if (readinessState === 'processing') return guide('processing', 'Reading', 'blue', 0.72, 'Reading');
+    return guide('aligning', guidance || 'Place card in frame', 'cyan', 0.18, 'Place card in frame');
+  }
+  return guide('aligning', guidance || 'Place card in frame', 'cyan', 0.18, 'Place card in frame');
 }
 
 export function buildPremiumResultTray(input: {
