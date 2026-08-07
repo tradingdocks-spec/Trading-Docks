@@ -8,6 +8,7 @@ import { TDBadge, TDButton, TDCard, TDListRow, TDNavigationHeader, TDSectionHead
 import { color, radius, space } from '@/design';
 import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 import { getMobileAppVersionInfo, getMobileReleaseLinks } from '@/services/mobile-release-config';
+import { getMembershipPlan } from '@/services/membership-catalog';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/account';
 import { useAdmin } from '@/providers/admin';
@@ -46,6 +47,7 @@ export default function Profile() {
   };
 
   const accountLabel = accountType[0].toUpperCase() + accountType.slice(1);
+  const currentPlan = getMembershipPlan(accountType);
 
   return (
     <ScrollView style={s.page} contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 26, 56), paddingBottom: getMobileScrollBottomInset(insets.bottom) }]} showsVerticalScrollIndicator={false}>
@@ -80,7 +82,7 @@ export default function Profile() {
       ) : null}
 
       <TDSectionHeader title="Essentials" />
-      <TDListRow title="Membership" description={`${accountLabel} workspace access`} iconName="diamond-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Membership')} />
+      <TDListRow title="Manage Membership" description={`Current plan: ${currentPlan.name}`} iconName="diamond-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Membership')} />
       {isAdmin ? <TDListRow title="Command Center" description={`${role} access is additive to this workspace.`} iconName="shield-checkmark-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Command Center')} /> : null}
       <TDListRow title="Settings" description="Security, notifications, appearance, and scanner preferences." iconName="settings-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Settings')} />
 

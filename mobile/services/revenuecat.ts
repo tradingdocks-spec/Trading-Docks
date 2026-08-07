@@ -31,6 +31,10 @@ export type RevenueCatPackageSummary = {
   title: string;
 };
 
+export type RevenueCatBillingSource = 'app_store' | 'web' | 'admin' | 'unknown';
+export type RevenueCatPurchaseIntent = 'subscribe' | 'upgrade' | 'switch' | 'current' | 'manage';
+export type RevenueCatSyncState = 'idle' | 'backend_pending' | 'membership_updated';
+
 export type RevenueCatCustomerSnapshot = {
   activeTier: MembershipTier;
   activeEntitlements: RevenueCatEntitlementIdentifier[];
@@ -45,6 +49,8 @@ export type RevenueCatStatus =
   | 'loading'
   | 'purchasing'
   | 'restoring'
+  | 'syncing_backend'
+  | 'backend_pending'
   | 'synced'
   | 'failed';
 
@@ -59,6 +65,24 @@ export type RevenueCatBackendSyncContract = {
   canonicalAuthority: 'trading_docks_backend';
   clientMayGrantEntitlements: false;
   requiresWebhookReconciliation: true;
+};
+
+export type RevenueCatCurrentMembershipSummary = {
+  tier: MembershipTier;
+  statusLabel: 'Active' | 'Free' | 'Unknown';
+  billingSource: RevenueCatBillingSource;
+  billingSourceLabel: 'App Store' | 'Web' | 'Admin' | 'Unknown';
+};
+
+export type RevenueCatSelectionSummary = {
+  tier: RevenueCatPurchasePlan;
+  cycle: RevenueCatPurchaseCycle;
+  packageIdentifier: RevenueCatPackageIdentifier;
+  package: RevenueCatPackageSummary | null;
+  priceLabel: string;
+  periodLabel: 'monthly' | 'yearly';
+  savingsLabel: string | null;
+  missingReason: 'package_missing' | 'localized_price_missing' | null;
 };
 
 type PurchasesModule = typeof import('react-native-purchases').default;
@@ -141,6 +165,140 @@ export function packageCatalogEntry(identifier: string): RevenueCatPlanPackage |
     : null;
 }
 
+export function findRevenueCatPackage(
+  catalog: RevenueCatCatalogPlan[],
+  tier: RevenueCatPurchasePlan,
+  cycle: RevenueCatPurchaseCycle,
+) {
+  return catalog.find((plan) => plan.tier === tier)?.packages[cycle] ?? null;
+}
+
+export function summarizeRevenueCatSelection({
+  catalog,
+  tier,
+  cycle,
+}: {
+  catalog: RevenueCatCatalogPlan[];
+  tier: RevenueCatPurchasePlan;
+  cycle: RevenueCatPurchaseCycle;
+}): RevenueCatSelectionSummary {
+  const selectedPackage = findRevenueCatPackage(catalog, tier, cycle);
+  const monthly = findRevenueCatPackage(catalog, tier, 'monthly');
+  const yearly = findRevenueCatPackage(catalog, tier, 'yearly');
+  return {
+    tier,
+    cycle,
+    packageIdentifier: packageIdentifierFor(tier, cycle),
+    package: selectedPackage,
+    priceLabel: selectedPackage?.localizedPrice?.trim() || 'Unavailable',
+    periodLabel: cycle,
+    savingsLabel: yearlySavingsLabel(monthly?.localizedPrice, yearly?.localizedPrice),
+    missingReason: !selectedPackage
+      ? 'package_missing'
+      : selectedPackage.localizedPrice?.trim()
+        ? null
+        : 'localized_price_missing',
+  };
+}
+
+export function summarizeRevenueCatCurrentMembership({
+  canonicalTier,
+  providerSnapshot,
+}: {
+  canonicalTier: MembershipTier;
+  providerSnapshot?: RevenueCatCustomerSnapshot | null;
+}): RevenueCatCurrentMembershipSummary {
+  const providerTier = providerSnapshot?.activeTier ?? 'free';
+  const billingSource = canonicalTier !== 'free' && providerTier === canonicalTier
+    ? 'app_store'
+    : canonicalTier !== 'free'
+      ? 'web'
+      : 'unknown';
+  return {
+    tier: canonicalTier,
+    statusLabel: canonicalTier === 'free' ? 'Free' : 'Active',
+    billingSource,
+    billingSourceLabel: billingSourceLabel(billingSource),
+  };
+}
+
+export function revenueCatPurchaseIntent({
+  currentTier,
+  selectedTier,
+  billingSource,
+}: {
+  currentTier: MembershipTier;
+  selectedTier: RevenueCatPurchasePlan;
+  billingSource: RevenueCatBillingSource;
+}): RevenueCatPurchaseIntent {
+  if (currentTier === selectedTier) return billingSource === 'app_store' ? 'manage' : 'current';
+  if (TIER_ORDER[currentTier] < TIER_ORDER[selectedTier]) return currentTier === 'free' ? 'subscribe' : 'upgrade';
+  return 'switch';
+}
+
+export function revenueCatCtaLabel({
+  currentTier,
+  selectedTier,
+  billingSource,
+  status,
+}: {
+  currentTier: MembershipTier;
+  selectedTier: RevenueCatPurchasePlan;
+  billingSource: RevenueCatBillingSource;
+  status: RevenueCatStatus;
+}) {
+  if (status === 'purchasing') return 'Processing...';
+  if (status === 'syncing_backend' || status === 'backend_pending') return 'Refresh account';
+  const selectedName = selectedTierName(selectedTier);
+  const intent = revenueCatPurchaseIntent({ currentTier, selectedTier, billingSource });
+  if (intent === 'manage') return 'Manage subscription';
+  if (intent === 'current') return 'Current plan';
+  if (intent === 'upgrade') return `Upgrade to ${selectedName}`;
+  if (intent === 'switch') return `Switch to ${selectedName}`;
+  return 'Subscribe';
+}
+
+export function revenueCatUserMessage(
+  result: RevenueCatPurchaseResult,
+  action: 'purchase' | 'restore',
+) {
+  if (result.ok) {
+    if (action === 'restore' && result.snapshot.activeTier === 'free') {
+      return 'No active App Store subscription was found for this Apple account.';
+    }
+    return action === 'restore'
+      ? 'Purchases restored. Updating your account...'
+      : 'Purchase confirmed. Updating your Trading Docks account...';
+  }
+  if (result.status === 'cancelled') return null;
+  if (result.status === 'pending') return 'Purchase is pending. We will update your account when the store confirms it.';
+  if (result.status === 'not_configured') return 'Mobile purchases are not configured for this build.';
+  if (result.status === 'unavailable') return 'Purchases are available only in native iOS and Android builds.';
+  return action === 'restore'
+    ? 'Restore could not be completed. Check your connection and try again.'
+    : 'Purchase could not be completed. Try again or restore purchases.';
+}
+
+export function revenueCatBackendSyncMessage({
+  providerTier,
+  canonicalTier,
+  action,
+}: {
+  providerTier: MembershipTier;
+  canonicalTier: MembershipTier;
+  action: 'purchase' | 'restore';
+}) {
+  if (providerTier === 'free') {
+    return action === 'restore'
+      ? 'No active App Store subscription was found for this Apple account.'
+      : 'The store returned no paid membership. Trading Docks access was not changed.';
+  }
+  if (TIER_ORDER[canonicalTier] >= TIER_ORDER[providerTier]) return 'Membership updated';
+  return action === 'restore'
+    ? 'Purchases restored. Updating your account...'
+    : 'Purchase confirmed. Updating your Trading Docks account...';
+}
+
 export function buildRevenueCatBackendSyncContract(appUserId: string, snapshot: RevenueCatCustomerSnapshot): RevenueCatBackendSyncContract {
   return {
     provider: 'revenuecat',
@@ -203,7 +361,8 @@ export async function purchaseRevenueCatPackage(identifier: RevenueCatPackageIde
     return { ok: true, status: 'purchased', snapshot: customerInfoToSnapshot(result.customerInfo) };
   } catch (error) {
     if (isUserCancelled(error)) return { ok: false, status: 'cancelled', message: 'Purchase cancelled.' };
-    return { ok: false, status: 'failed', message: errorMessage(error, 'Purchase failed. Try again or restore purchases.') };
+    if (isPendingPurchase(error)) return { ok: false, status: 'pending', message: 'Purchase is pending.' };
+    return { ok: false, status: 'failed', message: 'Purchase could not be completed. Try again or restore purchases.' };
   }
 }
 
@@ -213,8 +372,8 @@ export async function restoreRevenueCatPurchases(): Promise<RevenueCatPurchaseRe
     const Purchases = await loadPurchases();
     const info = await Purchases.restorePurchases();
     return { ok: true, status: 'restored', snapshot: customerInfoToSnapshot(info) };
-  } catch (error) {
-    return { ok: false, status: 'failed', message: errorMessage(error, 'Restore failed. Check your connection and try again.') };
+  } catch {
+    return { ok: false, status: 'failed', message: 'Restore could not be completed. Check your connection and try again.' };
   }
 }
 
@@ -264,8 +423,8 @@ async function currentPackages(Purchases: PurchasesModule) {
 }
 
 async function loadPurchases(): Promise<PurchasesModule> {
-  const module = await import('react-native-purchases');
-  return module.default;
+  const purchasesModule = await import('react-native-purchases');
+  return purchasesModule.default;
 }
 
 function isUserCancelled(error: unknown) {
@@ -275,8 +434,48 @@ function isUserCancelled(error: unknown) {
     && Boolean((error as { userCancelled?: unknown }).userCancelled);
 }
 
+function isPendingPurchase(error: unknown) {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return false;
+  const code = String((error as { code?: unknown }).code).toUpperCase();
+  return code.includes('PAYMENT_PENDING') || code.includes('PENDING');
+}
+
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function selectedTierName(tier: RevenueCatPurchasePlan) {
+  if (tier === 'collector') return 'Collector';
+  if (tier === 'seller') return 'Seller';
+  return 'Store';
+}
+
+function billingSourceLabel(source: RevenueCatBillingSource): RevenueCatCurrentMembershipSummary['billingSourceLabel'] {
+  if (source === 'app_store') return 'App Store';
+  if (source === 'web') return 'Web';
+  if (source === 'admin') return 'Admin';
+  return 'Unknown';
+}
+
+function yearlySavingsLabel(monthly: string | undefined, yearly: string | undefined) {
+  const monthlyNumber = parseLocalizedPrice(monthly);
+  const yearlyNumber = parseLocalizedPrice(yearly);
+  if (monthlyNumber === null || yearlyNumber === null) return null;
+  const savings = monthlyNumber * 12 - yearlyNumber;
+  if (savings <= 0) return null;
+  const percent = Math.round((savings / (monthlyNumber * 12)) * 100);
+  return percent > 0 ? `Save ${percent}%` : null;
+}
+
+function parseLocalizedPrice(value: string | undefined) {
+  if (!value) return null;
+  const normalized = value.replace(/[^0-9.,]/g, '');
+  if (!normalized) return null;
+  const decimal = normalized.includes(',') && !normalized.includes('.')
+    ? normalized.replace(',', '.')
+    : normalized.replace(/,/g, '');
+  const parsed = Number(decimal);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function getRevenueCatRuntimePlatform() {
