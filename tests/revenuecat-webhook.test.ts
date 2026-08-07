@@ -6,6 +6,7 @@ import {
   planMappingForRevenueCatProduct,
   providerStateFromRevenueCatEvent,
   resolveEffectiveMembership,
+  revenueCatAuthorizationDiagnostics,
   verifyRevenueCatAuthorization,
 } from "../src/lib/revenuecat/reconciliation.ts";
 
@@ -33,11 +34,29 @@ function payload(overrides: Record<string, unknown> = {}) {
   };
 }
 
-test("authorized RevenueCat webhook accepts exact or bearer authorization", () => {
+test("authorized RevenueCat webhook requires exact configured Authorization value", () => {
   assert.equal(verifyRevenueCatAuthorization("secret-value", "secret-value"), true);
-  assert.equal(verifyRevenueCatAuthorization("Bearer secret-value", "secret-value"), true);
+  assert.equal(verifyRevenueCatAuthorization("Bearer secret-value", "Bearer secret-value"), true);
+  assert.equal(verifyRevenueCatAuthorization("Bearer secret-value", "secret-value"), false);
+  assert.equal(verifyRevenueCatAuthorization("secret-value", "Bearer secret-value"), false);
   assert.equal(verifyRevenueCatAuthorization("wrong", "secret-value"), false);
   assert.equal(verifyRevenueCatAuthorization(null, "secret-value"), false);
+});
+
+test("RevenueCat webhook authorization trims surrounding whitespace without trimming content", () => {
+  assert.equal(verifyRevenueCatAuthorization("  secret-value  ", "secret-value"), true);
+  assert.equal(verifyRevenueCatAuthorization("secret-value", "  secret-value  "), true);
+  assert.equal(verifyRevenueCatAuthorization("secret value", "secret-value"), false);
+});
+
+test("RevenueCat webhook diagnostics never expose secret material", () => {
+  assert.deepEqual(revenueCatAuthorizationDiagnostics("Bearer secret-value", "secret-value"), {
+    authorizationHeaderPresent: true,
+    authorizationHeaderLength: 19,
+    configuredSecretPresent: true,
+    configuredSecretLength: 12,
+    lengthsMatch: false,
+  });
 });
 
 test("RevenueCat TEST event normalizes without a real Supabase user", () => {

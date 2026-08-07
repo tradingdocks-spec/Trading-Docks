@@ -6,6 +6,7 @@ import {
   resolveEffectiveMembership,
   isSupabaseUserId,
   verifyRevenueCatAuthorization,
+  revenueCatAuthorizationDiagnostics,
   type ProviderSubscriptionEntitlement,
   type RevenueCatProviderState,
 } from "@/lib/revenuecat/reconciliation";
@@ -196,11 +197,19 @@ async function saveCanonicalMembership({
 }
 
 export async function POST(request: Request) {
+  const authorizationHeader = request.headers.get("authorization");
+  const configuredSecret = process.env.REVENUECAT_WEBHOOK_AUTHORIZATION;
   if (!verifyRevenueCatAuthorization(
-    request.headers.get("authorization"),
-    process.env.REVENUECAT_WEBHOOK_AUTHORIZATION,
+    authorizationHeader,
+    configuredSecret,
   )) {
-    return NextResponse.json({ error: "Unauthorized webhook." }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: "Unauthorized webhook.",
+        diagnostics: revenueCatAuthorizationDiagnostics(authorizationHeader, configuredSecret),
+      },
+      { status: 401 },
+    );
   }
 
   const payload = await request.json().catch(() => null);

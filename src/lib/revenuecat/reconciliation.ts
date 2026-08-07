@@ -126,7 +126,7 @@ const KNOWN_EVENT_TYPES = new Set<RevenueCatEventType>([
 
 export function verifyRevenueCatAuthorization(header: string | null, expectedSecret: string | undefined) {
   if (!header || !expectedSecret) return false;
-  const supplied = header.replace(/^Bearer\s+/i, "").trim();
+  const supplied = header.trim();
   const expected = expectedSecret.trim();
   if (!supplied || !expected || supplied.length !== expected.length) return false;
 
@@ -135,6 +135,22 @@ export function verifyRevenueCatAuthorization(header: string | null, expectedSec
     mismatch |= expected.charCodeAt(index) ^ supplied.charCodeAt(index);
   }
   return mismatch === 0;
+}
+
+export function revenueCatAuthorizationDiagnostics(
+  header: string | null,
+  expectedSecret: string | undefined,
+) {
+  const supplied = header?.trim() ?? "";
+  const expected = expectedSecret?.trim() ?? "";
+
+  return {
+    authorizationHeaderPresent: Boolean(header),
+    authorizationHeaderLength: supplied.length,
+    configuredSecretPresent: Boolean(expectedSecret),
+    configuredSecretLength: expected.length,
+    lengthsMatch: supplied.length === expected.length,
+  };
 }
 
 export function isSupabaseUserId(value: unknown): value is string {
