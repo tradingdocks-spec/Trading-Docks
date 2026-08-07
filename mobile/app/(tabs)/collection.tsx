@@ -38,6 +38,7 @@ import {
   type CollectionSort,
 } from '@/services/collector-workspace';
 import { getMobileScrollBottomInset } from '@/services/navigation-contract';
+import { humanizeReleaseError, releaseEmptyState, releaseLoadingState } from '@/services/mobile-release-ux';
 
 type DisplayMode = 'grid' | 'list';
 
@@ -359,30 +360,35 @@ function CollectionState({
   onRetry: () => void;
 }) {
   if (state === 'loading') {
-    return <TDLoadingState title="Loading collection" message="Fetching the latest saved card records." />;
+    const copy = releaseLoadingState('collection');
+    return <TDLoadingState title={copy.title} message={copy.message} />;
   }
   if (state === 'error') {
+    const copy = humanizeReleaseError(error, 'query_failed');
     return (
       <TDErrorState
-        title="Collection unavailable"
-        message={error ?? 'Collection data could not be loaded.'}
-        action={<TDButton label="Retry" variant="secondary" onPress={onRetry} />}
+        title={copy.title}
+        message={copy.message}
+        action={<TDButton label={copy.actionLabel ?? 'Retry'} variant="secondary" onPress={onRetry} />}
       />
     );
   }
   if (state === 'empty') {
+    const copy = releaseEmptyState('collection');
     return (
       <TDEmptyState
-        title="No cards in your collection yet"
-        message="Saved inventory cards will appear here after they are added through supported collection tools."
+        title={copy.title}
+        message={copy.message}
+        action={<TDButton label={copy.actionLabel ?? 'Scan a card'} onPress={() => router.push('/scan' as never)} />}
       />
     );
   }
   if (state === 'no_results') {
+    const copy = releaseEmptyState('search_results');
     return (
       <TDEmptyState
-        title="No matching cards"
-        message={`No collection records match "${query}".`}
+        title={copy.title}
+        message={query ? `No cards match "${query}". Try a different name, set, number, or location.` : copy.message}
       />
     );
   }

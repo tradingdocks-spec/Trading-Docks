@@ -26,10 +26,12 @@ import {
   TDDivider,
 } from '@/components/design-system';
 import { space } from '@/design';
-import { isDevelopmentToolEnabled, MOBILE_PUBLIC_ENV_KEYS } from '@/services/mobile-release-config';
+import { MOBILE_PUBLIC_ENV_KEYS } from '@/services/mobile-release-config';
+import { isMobileDevRouteEnabled } from '@/services/mobile-release-ux';
 
 export default function DesignSystemShowcase() {
-  if (!isDevelopmentToolEnabled(MOBILE_PUBLIC_ENV_KEYS.designSystemShowcase)) return <Redirect href="/(tabs)" />;
+  const designSystemFlag = MOBILE_PUBLIC_ENV_KEYS.designSystemShowcase;
+  if (!designSystemFlag || !isMobileDevRouteEnabled('/dev/design-system')) return <Redirect href="/(tabs)" />;
 
   return (
     <TDScreen>

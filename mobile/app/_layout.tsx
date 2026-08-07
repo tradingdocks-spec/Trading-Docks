@@ -11,15 +11,17 @@ import { ScannerReplayBridge } from '@/components/scanner-replay-bridge';
 import { Logo } from '@/components/primitives';
 import { TDButton, TDCard, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
+import { releaseErrorState, releaseLoadingState } from '@/services/mobile-release-ux';
 
 function AppFrame() {
   const { loading, biometricLocked } = useAuth();
+  const loadingCopy = releaseLoadingState('profile');
   if (loading) {
     return (
       <View style={s.loading}>
         <View style={s.brandPanel}>
           <Logo />
-          <TDText variant="caption" tone="muted" style={s.loadingText}>Restoring your workspace</TDText>
+          <TDText variant="caption" tone="muted" style={s.loadingText}>{loadingCopy.message}</TDText>
         </View>
       </View>
     );
@@ -33,13 +35,14 @@ export default function RootLayout() {
 }
 
 export function ErrorBoundary({ retry }: { error: Error; retry: () => void }) {
+  const errorCopy = releaseErrorState('query_failed');
   return (
     <View style={s.loading}>
       <TDCard variant="floating" style={s.errorCard}>
         <Logo />
         <TDText variant="title" style={s.errorText}>Something went wrong</TDText>
         <TDText variant="small" tone="muted" style={s.errorText}>
-          Trading Docks hit a problem while opening this screen.
+          {errorCopy.message}
         </TDText>
         <View style={s.errorActions}>
           <TDButton label="Try again" onPress={retry} />

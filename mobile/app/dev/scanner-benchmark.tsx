@@ -30,6 +30,7 @@ import {
   type BenchmarkSleeveStatus,
 } from '@/services/scanner-benchmark-builder';
 import type { MagicBenchmarkFixtureManifestEntry, MagicBenchmarkFrameType } from '@/services/magic-recognition-provider';
+import { isMobileDevRouteEnabled } from '@/services/mobile-release-ux';
 import { appStorage } from '@/services/storage/app-storage';
 
 const DATASET_STORAGE_KEY = 'trading-docks-dev-scanner-benchmark-dataset-v1';
@@ -43,7 +44,7 @@ const FACES: BenchmarkCardFace[] = ['front', 'back'];
 const DAMAGE: BenchmarkDamageState[] = ['normal', 'damaged'];
 
 export default function ScannerBenchmarkBuilder() {
-  const enabled = isScannerBenchmarkBuilderEnabled();
+  const enabled = isScannerBenchmarkBuilderEnabled() && isMobileDevRouteEnabled('/dev/scanner-benchmark');
   const cameraRef = useRef<CameraView | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [dataset, setDataset] = useState<BenchmarkDataset | null>(null);

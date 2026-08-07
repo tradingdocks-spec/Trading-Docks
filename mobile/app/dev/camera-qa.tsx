@@ -32,6 +32,7 @@ import {
   isScannerDiagnosticsEnabled,
   type PreviewDimensions,
 } from '@/services/native-scanner-calibration';
+import { isMobileDevRouteEnabled } from '@/services/mobile-release-ux';
 
 const qaUserId = 'development-camera-qa';
 
@@ -57,7 +58,7 @@ export default function CameraQaScreen() {
   const [firstFrameAt, setFirstFrameAt] = useState<number | null>(null);
   const [latestFrameAt, setLatestFrameAt] = useState<number | null>(null);
 
-  const diagnosticsEnabled = isScannerDiagnosticsEnabled();
+  const diagnosticsEnabled = isScannerDiagnosticsEnabled() && isMobileDevRouteEnabled('/dev/camera-qa');
   const permissionGranted = Boolean(cameraPermission?.granted);
   const supportedOptions = useMemo(() => lensOptions.filter((option) => option.supported), [lensOptions]);
   const readiness = useMemo(() => resolveAutoCaptureReadiness({

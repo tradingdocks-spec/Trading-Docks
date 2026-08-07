@@ -26,6 +26,7 @@ import {
   retryQueuedScannerAdds,
   type ScannerQueuedAdd,
 } from '@/services/scanner-replay';
+import { releaseEmptyState, releaseLoadingState, releaseSyncCopy } from '@/services/mobile-release-ux';
 
 export default function ScannerRecovery() {
   const { accountType } = useAccount();
@@ -85,7 +86,8 @@ export default function ScannerRecovery() {
   };
 
   if (loading) {
-    return <TDScreen style={s.screen}><TDLoadingState title="Loading queued scans" message="Checking scanner sync state for this account." /></TDScreen>;
+    const copy = releaseLoadingState('scanner_session');
+    return <TDScreen style={s.screen}><TDLoadingState title={copy.title} message={copy.message} /></TDScreen>;
   }
 
   return (
@@ -102,7 +104,7 @@ export default function ScannerRecovery() {
         {error ? <TDErrorState title="Scanner recovery unavailable" message={error} /> : null}
         {!queue.length && !error ? (
           <TDEmptyState
-            title="No queued scans"
+            title={releaseEmptyState('scanner_session').title}
             message="Offline or failed scanner adds for this account will appear here."
             action={<TDButton label="Open scanner" onPress={() => router.push('/(tabs)/scan' as never)} />}
           />
@@ -161,9 +163,16 @@ function scannerRecoveryCopy(entry: ScannerQueuedAdd) {
     if (entry.errorCode === 'invalid_printing') return { title: 'Printing needs review', message: 'Confirm the exact printing before this scan can be saved.' };
     return { title: 'Account needs review', message: 'This queued scan needs account or membership information before it can sync.' };
   }
-  if (entry.syncState === 'failed') return { title: 'Retry available', message: 'Sync failed. Retry when your connection and session are ready.' };
-  if (entry.syncState === 'syncing') return { title: 'Syncing', message: 'Saving this scan now.' };
-  return { title: 'Pending sync', message: 'This scan is saved locally for this account and ready to retry.' };
+  if (entry.syncState === 'failed') {
+    const copy = releaseSyncCopy('sync_failed');
+    return { title: copy.label, message: copy.message };
+  }
+  if (entry.syncState === 'syncing') {
+    const copy = releaseSyncCopy('syncing');
+    return { title: copy.label, message: copy.message };
+  }
+  const copy = releaseSyncCopy('pending_changes');
+  return { title: copy.label, message: copy.message };
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
