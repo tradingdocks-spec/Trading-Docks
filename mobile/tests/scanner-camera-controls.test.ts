@@ -5,6 +5,7 @@ import {
   SCANNER_CAMERA_LENS_LABELS,
   appendScannerCameraEvent,
   buildScannerCameraQualityProfile,
+  createScannerCameraSwitchPlan,
   convertPreviewTapToCameraPoint,
   isApprovedTorchTransitionReason,
   normalizeScannerCameraLensMode,
@@ -120,7 +121,7 @@ test('lens selection exposes only supported rear lens modes', () => {
   const selection = resolveScannerCameraLensSelection([standardDevice, closeUpDevice, telephotoDevice], 'telephoto');
   const supportedModes = selection.options.filter((option) => option.supported).map((option) => option.mode);
 
-  assert.deepEqual(supportedModes, ['auto', 'macro', 'standard', 'telephoto']);
+  assert.deepEqual(supportedModes, ['auto', 'close', 'standard', 'telephoto']);
   assert.equal(selection.selectedDevice?.id, 'tele');
   assert.equal(selection.selectedDeviceSummary?.hasTorch, false);
   assert.equal(selection.options.find((option) => option.mode === 'telephoto')?.deviceId, 'tele');
@@ -151,7 +152,8 @@ test('unsupported lens preference falls back to auto', () => {
 });
 
 test('lens preference normalization defaults safely', () => {
-  assert.equal(normalizeScannerCameraLensMode('macro'), 'macro');
+  assert.equal(normalizeScannerCameraLensMode('macro'), 'close');
+  assert.equal(normalizeScannerCameraLensMode('close'), 'close');
   assert.equal(normalizeScannerCameraLensMode('business'), 'auto');
   assert.equal(normalizeScannerCameraSelectionMode('raw'), 'raw');
 });
@@ -182,9 +184,28 @@ test('close-up lens prefers short focus distance over only lens type', () => {
     minFocusDistance: 9,
   };
 
-  const selection = resolveScannerCameraLensSelection([distantUltraWide, closeFocusDevice], 'macro');
+  const selection = resolveScannerCameraLensSelection([distantUltraWide, closeFocusDevice], 'close');
 
   assert.equal(selection.selectedDevice?.id, 'macro-wide');
+});
+
+test('duplicate lens mappings are hidden from normal controls', () => {
+  const virtualMultiCamera: ScannerCameraDeviceLike = {
+    ...standardDevice,
+    id: 'virtual-back',
+    localizedName: 'Back Dual Wide Camera',
+    isVirtualDevice: true,
+    physicalDevices: [
+      { ...closeUpDevice, id: 'physical-ultra', position: 'back' },
+      { ...standardDevice, id: 'physical-wide', position: 'back' },
+    ],
+  };
+  const selection = resolveScannerCameraLensSelection([virtualMultiCamera], 'standard');
+  const supportedModes = selection.options.filter((option) => option.supported).map((option) => option.mode);
+
+  assert.deepEqual(supportedModes, ['auto', 'close']);
+  assert.equal(selection.resolvedMode, 'auto');
+  assert.match(selection.options.find((option) => option.mode === 'standard')?.mappingReason ?? '', /same physical camera/);
 });
 
 test('raw camera selection is development-only selectable by id', () => {
@@ -196,15 +217,65 @@ test('raw camera selection is development-only selectable by id', () => {
 });
 
 test('quality profile uses neutral zoom and stable VisionCamera constraints', () => {
-  const profile = buildScannerCameraQualityProfile(standardDevice);
+  const profile = buildScannerCameraQualityProfile(standardDevice, 'standard');
 
   assert.equal(profile.targetFps, 30);
   assert.deepEqual(profile.photoResolution, { width: 4032, height: 3024 });
-  assert.deepEqual(profile.frameResolution, { width: 640, height: 480 });
+  assert.deepEqual(profile.frameResolution, { width: 768, height: 576 });
   assert.equal(profile.constraints.binned, false);
   assert.equal(profile.constraints.photoBias, true);
   assert.equal(profile.constraints.frameBias, true);
   assert.equal(profile.defaultZoom, 1);
+});
+
+test('mode-specific quality profiles change frame targets without fake zoom switching', () => {
+  const closeProfile = buildScannerCameraQualityProfile(closeUpDevice, 'close');
+  const teleProfile = buildScannerCameraQualityProfile(telephotoDevice, 'telephoto');
+
+  assert.match(closeProfile.selectedFormatLabel, /^close quality-first/);
+  assert.match(teleProfile.selectedFormatLabel, /^telephoto quality-first/);
+  assert.deepEqual(closeProfile.frameResolution, { width: 768, height: 576 });
+  assert.deepEqual(teleProfile.frameResolution, { width: 640, height: 480 });
+  assert.equal(closeProfile.defaultZoom, 0.5);
+  assert.equal(teleProfile.defaultZoom, 2);
+});
+
+test('camera switch plan blocks capture while preserving session state', () => {
+  const previous = resolveScannerCameraLensSelection([standardDevice, closeUpDevice], 'standard');
+  const next = resolveScannerCameraLensSelection([standardDevice, closeUpDevice], 'close');
+  const plan = createScannerCameraSwitchPlan({ previous, next, torchRequested: true });
+
+  assert.equal(plan.deviceChanged, true);
+  assert.equal(plan.blockAutoCapture, true);
+  assert.equal(plan.resetStabilityTimer, true);
+  assert.equal(plan.preserveSession, true);
+  assert.equal(plan.preserveTorch, true);
+});
+
+test('auto-capture readiness blocks while camera mode is switching', () => {
+  const readiness = resolveAutoCaptureReadiness({
+    frameCount: 8,
+    firstFrameAt: 1000,
+    latestFrameAt: 1800,
+    cardPresence: true,
+    cornersVisible: 4,
+    guideFill: 0.58,
+    aspectRatio: 0.716,
+    centerOffset: 0.08,
+    blur: 0.64,
+    motion: 0.12,
+    lighting: 0.8,
+    glare: 0.1,
+    stableDurationMs: 620,
+    removalState: 'clear',
+    processing: false,
+    duplicateBlocked: false,
+    cameraReady: true,
+    cameraSwitching: true,
+  });
+
+  assert.equal(readiness.ready, false);
+  assert.equal(readiness.primaryReason, 'camera_unavailable');
 });
 
 test('lens switch cancels stale frame analysis until ready', () => {

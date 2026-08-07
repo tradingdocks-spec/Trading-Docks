@@ -121,10 +121,15 @@ Implemented structure:
 - Lens selection uses supported device options only.
 - User-visible choices are Auto, Close-up, Standard, and Telephoto where supported.
 - User-visible lens chips use named modes (`Auto`, `Close`, `Std`, `Tele`) rather than fake digital zoom labels.
+- Implemented: Camera mode is separate from digital zoom. Close-up is canonical `close`, with legacy `macro` preferences normalized.
+- Implemented: Fixed modes that map to the same physical rear camera are hidden from normal controls to avoid no-op choices.
+- Implemented: `ScannerCamera` remounts on resolved device/profile changes and uses mode-specific still/frame targets from the camera quality profile.
 - Development Camera QA shows every rear camera and the mapping reason for each lens mode.
+- Development Camera QA and scanner diagnostics include a Cycle cameras action for physical-device validation.
 - Raw device IDs are development-only in Camera Inspector and Camera QA.
 - Tap-to-focus uses the shared scanner camera adapter and visible reticle.
 - Torch is treated as illumination, not still-photo flash.
+- See `docs/SCANNER_CAMERA_SELECTION.md`.
 
 ## Visual Hierarchy
 

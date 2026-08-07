@@ -1210,6 +1210,24 @@ export default function AutomaticScannerScreen() {
     setShowCameraSelectionSheet(false);
   }, [cameraLensMode, logCameraEvent, rawCameraDeviceId]);
 
+  const cycleSupportedCameraLens = useCallback(() => {
+    const options = cameraLensOptions.filter((option) => option.supported);
+    const modes = options.map((option) => option.mode);
+    if (!modes.length) return;
+    const currentIndex = modes.indexOf(cameraLensMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length] ?? 'auto';
+    const previousDevice = cameraDeviceDiagnostics?.id ?? rawCameraDeviceId ?? 'unavailable';
+    const nextOption = options.find((option) => option.mode === nextMode);
+    logCameraEvent({
+      at: scannerNow(),
+      type: 'device_change',
+      oldValue: `${cameraLensMode}:${previousDevice}`,
+      newValue: `${nextMode}:${nextOption?.deviceId ?? 'pending'}`,
+      reason: 'device_change',
+    });
+    selectCameraLens(nextMode);
+  }, [cameraDeviceDiagnostics?.id, cameraLensMode, cameraLensOptions, logCameraEvent, rawCameraDeviceId, selectCameraLens]);
+
   const handlePreviewFocusTap = useCallback(async (event: GestureResponderEvent) => {
     const requestedPoint = {
       x: event.nativeEvent.locationX,
@@ -1497,6 +1515,7 @@ export default function AutomaticScannerScreen() {
                     setShowSettingsSheet(false);
                     router.push('/dev/camera-qa' as never);
                   }} /> : null}
+                  {diagnosticsEnabled ? <TDButton label="Cycle cameras" variant="secondary" onPress={cycleSupportedCameraLens} /> : null}
                   <TDText variant="caption" tone="muted">{privacy.message}</TDText>
                 </View>
               ) : null}

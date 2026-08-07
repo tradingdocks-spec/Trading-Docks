@@ -150,6 +150,20 @@ export default function CameraQaScreen() {
     });
   }, [lensMode, logCameraEvent, rawDeviceId]);
 
+  const cycleLensMode = useCallback(() => {
+    if (!supportedOptions.length) return;
+    const currentIndex = supportedOptions.findIndex((option) => option.mode === lensMode);
+    const nextOption = supportedOptions[(currentIndex + 1) % supportedOptions.length] ?? supportedOptions[0];
+    logCameraEvent({
+      at: qaNow(),
+      type: 'device_change',
+      oldValue: `${rawDeviceId ?? lensMode}:${deviceSummary?.id ?? 'unavailable'}`,
+      newValue: `${nextOption.mode}:${nextOption.deviceId ?? 'pending'}`,
+      reason: 'device_change',
+    });
+    selectLensMode(nextOption.mode);
+  }, [deviceSummary?.id, lensMode, logCameraEvent, rawDeviceId, selectLensMode, supportedOptions]);
+
   const handleFrameAnalysis = useCallback((frame: ScannerCameraFrame) => {
     setFrameCount((count) => count + 1);
     setFirstFrameAt((current) => current ?? frame.capturedAt);
@@ -251,6 +265,7 @@ export default function CameraQaScreen() {
           <View style={styles.row}>
             <TDButton label={cameraActive ? 'Pause' : 'Resume'} variant="secondary" disabled={!permissionGranted} onPress={() => setCameraActive((active) => !active)} />
             <TDButton label={torchEnabled ? 'Torch off' : 'Torch on'} variant="secondary" disabled={!deviceSummary?.hasTorch} onPress={() => setTorchEnabled((enabled) => !enabled)} />
+            <TDButton label="Cycle cameras" variant="secondary" disabled={supportedOptions.length < 2} onPress={cycleLensMode} />
           </View>
         </TDCard>
 
@@ -259,6 +274,8 @@ export default function CameraQaScreen() {
           <Metric label="Device ID" value={deviceSummary?.id ?? 'unavailable'} />
           <Metric label="Physical" value={deviceSummary?.physicalDevices.join(' | ') || 'unavailable'} />
           <Metric label="Selected" value={rawDeviceId ? `Raw ${rawDeviceId}` : SCANNER_CAMERA_LENS_LABELS[lensMode].label} />
+          <Metric label="Neutral zoom" value={deviceSummary?.neutralZoom === null || deviceSummary?.neutralZoom === undefined ? 'unavailable' : String(deviceSummary.neutralZoom)} />
+          <Metric label="Focus distance" value={deviceSummary?.minFocusDistance === null ? 'not exposed' : String(deviceSummary?.minFocusDistance ?? 'unavailable')} />
           <Metric label="Selected format" value={sessionSummary?.selectedFormat ?? qualityProfile?.selectedFormatLabel ?? 'unavailable'} />
           <Metric label="Photo target" value={resolutionSummary(qualityProfile?.photoResolution ?? null)} />
           <Metric label="Actual photo" value={resolutionSummary(sessionSummary?.photoResolution ?? null)} />

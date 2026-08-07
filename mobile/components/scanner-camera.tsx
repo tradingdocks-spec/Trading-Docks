@@ -2,7 +2,6 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import { StyleSheet, View } from 'react-native';
 import {
   Camera,
-  CommonResolutions,
   useCameraDevices,
   useFrameOutput,
   usePhotoOutput,
@@ -22,7 +21,7 @@ import type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraProps, Scann
 export type { ScannerCameraFrame, ScannerCameraHandle, ScannerCameraPhoto, ScannerCameraProps, ScannerCameraSessionSummary } from './scanner-camera-contract';
 
 const frameSampling = scannerNativeFrameSampling();
-const photoTarget = scannerNativePhotoTarget();
+const fallbackPhotoTarget = scannerNativePhotoTarget();
 
 export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>(function ScannerCamera(
   {
@@ -89,13 +88,15 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
   const handleFrameAnalysis = useCallback((nativeFrame: ScannerCameraFrame) => {
     onFrameAnalysis(nativeFrame);
   }, [onFrameAnalysis]);
+  const photoTarget = qualityProfile?.photoResolution ?? { width: fallbackPhotoTarget.width, height: fallbackPhotoTarget.height };
+  const frameTarget = qualityProfile?.frameResolution ?? { width: frameSampling.width, height: frameSampling.height };
   const photoOutput = usePhotoOutput({
-    targetResolution: { width: photoTarget.width, height: photoTarget.height },
-    quality: photoTarget.quality,
-    qualityPrioritization: photoTarget.qualityPrioritization,
+    targetResolution: photoTarget,
+    quality: fallbackPhotoTarget.quality,
+    qualityPrioritization: fallbackPhotoTarget.qualityPrioritization,
   });
   const frameOutput = useFrameOutput({
-    targetResolution: CommonResolutions.VGA_4_3,
+    targetResolution: frameTarget,
     pixelFormat: frameSampling.pixelFormat,
     enablePreviewSizedOutputBuffers: frameSampling.previewSizedBuffers,
     enablePhysicalBufferRotation: true,
@@ -184,8 +185,8 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
       const photo = await photoOutput.capturePhoto({
         flashMode: torchState.photoFlashMode,
         enableShutterSound: false,
-        enableDistortionCorrection: photoTarget.distortionCorrection,
-        enableVirtualDeviceFusion: photoTarget.virtualDeviceFusion,
+        enableDistortionCorrection: fallbackPhotoTarget.distortionCorrection,
+        enableVirtualDeviceFusion: fallbackPhotoTarget.virtualDeviceFusion,
       }, {});
       try {
         const path = await photo.saveToTemporaryFileAsync();
@@ -209,9 +210,15 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
   }), [focusEnabled, photoOutput, supportsFocus, torchState.photoFlashMode]);
 
   if (!device) return <View style={StyleSheet.absoluteFill} />;
+  const cameraKey = [
+    device.id,
+    qualityProfile?.selectedFormatLabel ?? 'default-profile',
+    qualityProfile?.targetFps ?? 'fps-auto',
+  ].join(':');
 
   return (
     <Camera
+      key={cameraKey}
       ref={cameraRef}
       style={StyleSheet.absoluteFill}
       device={device}

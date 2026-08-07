@@ -23,7 +23,7 @@ Status: Implemented as the mobile release QA checklist for the Design OS migrati
 Verify:
 
 - Welcome, Onboarding, Auth, Plans.
-- Home, Collection, Card Detail, Storage Locations.
+- Home Product V2, Collection, Card Detail, Storage Locations.
 - Scanner, Scanner Session Review, Scanner Recovery.
 - Trade Binder and Wishlist.
 - Deal Desk and Seller/Signals.
@@ -65,6 +65,10 @@ Verify each route where supported:
 
 Verify:
 
+- Camera mode Auto, Close-up, Standard, and Telephoto availability on the target device.
+- Camera mode changes update the development Camera QA device name, physical device types, selected format, focus distance, neutral zoom, preview resolution, capture resolution, and switch duration.
+- Duplicate fixed camera modes are hidden when VisionCamera maps them to the same physical rear camera.
+- Switching camera modes blocks auto-capture, clears stale frame analysis, preserves the session, and rearms after readiness returns.
 - Camera permission denied.
 - Camera unavailable.
 - Poor lighting.

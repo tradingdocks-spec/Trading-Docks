@@ -1,7 +1,8 @@
 import { resolveAutomaticScannerReadiness, type ScannerReadinessReason, type ScannerReadinessState } from './scanner-readiness.ts';
 
-export type ScannerCameraLensMode = 'auto' | 'macro' | 'standard' | 'telephoto';
-export type ScannerCameraSelectionMode = ScannerCameraLensMode | 'raw';
+export type ScannerCameraMode = 'auto' | 'close' | 'standard' | 'telephoto';
+export type ScannerCameraLensMode = ScannerCameraMode;
+export type ScannerCameraSelectionMode = ScannerCameraLensMode | 'raw' | 'macro';
 
 export type ScannerCameraPoint = {
   x: number;
@@ -79,7 +80,7 @@ export type ScannerCameraQualityProfile = {
 };
 
 export type ScannerCameraLensOption = {
-  mode: ScannerCameraLensMode;
+  mode: ScannerCameraMode;
   label: string;
   shortLabel: string;
   supported: boolean;
@@ -92,11 +93,27 @@ export type ScannerCameraLensOption = {
 export type ScannerCameraLensSelection = {
   requestedMode: ScannerCameraSelectionMode;
   resolvedMode: ScannerCameraSelectionMode;
+  resolvedCameraMode: ScannerCameraMode | 'raw';
   selectedDevice: ScannerCameraDeviceLike | undefined;
   selectedDeviceSummary: ScannerCameraDeviceSummary | null;
   options: ScannerCameraLensOption[];
   rearDevices: ScannerCameraDeviceSummary[];
   qualityProfile: ScannerCameraQualityProfile | null;
+};
+
+export type ScannerCameraSwitchPlan = {
+  deviceChanged: boolean;
+  profileChanged: boolean;
+  invalidateFrameAnalysis: boolean;
+  resetStabilityTimer: boolean;
+  blockAutoCapture: boolean;
+  rearmScanner: boolean;
+  preserveSession: boolean;
+  preserveTorch: boolean;
+  oldMode: ScannerCameraSelectionMode;
+  newMode: ScannerCameraSelectionMode;
+  oldDeviceId: string | null;
+  newDeviceId: string | null;
 };
 
 export type ScannerFocusRequestInput = {
@@ -207,6 +224,7 @@ export type ScannerFrameMetricsInput = {
   processing: boolean;
   duplicateBlocked: boolean;
   cameraReady: boolean;
+  cameraSwitching?: boolean;
 };
 
 export type ScannerAutoCaptureReadiness = {
@@ -219,9 +237,9 @@ export type ScannerAutoCaptureReadiness = {
   effectiveFps: number | null;
 };
 
-export const SCANNER_CAMERA_LENS_LABELS: Record<ScannerCameraLensMode, { label: string; shortLabel: string }> = {
+export const SCANNER_CAMERA_LENS_LABELS: Record<ScannerCameraMode, { label: string; shortLabel: string }> = {
   auto: { label: 'Auto', shortLabel: 'Auto' },
-  macro: { label: 'Close-up', shortLabel: 'Close' },
+  close: { label: 'Close-up', shortLabel: 'Close' },
   standard: { label: 'Standard', shortLabel: 'Std' },
   telephoto: { label: 'Telephoto', shortLabel: 'Tele' },
 };
@@ -270,40 +288,52 @@ export function resolveScannerCameraLensSelection(
   const rearDevices = backDevices.map((device) => summarizeScannerCameraDevice(device)).filter((device): device is ScannerCameraDeviceSummary => Boolean(device));
   const autoDevice = selectAutoScannerDevice(backDevices);
   const macroDevice = selectCloseUpScannerDevice(backDevices);
-  const standardDevice = selectScannerDeviceByType(backDevices, 'wide-angle') ?? autoDevice;
-  const telephotoDevice = selectScannerDeviceByType(backDevices, 'telephoto');
+  const standardDevice = selectActualScannerDeviceByType(backDevices, 'wide-angle') ?? autoDevice;
+  const telephotoDevice = selectActualScannerDeviceByType(backDevices, 'telephoto');
   const rawDevice = rawDeviceId ? backDevices.find((device) => device.id === rawDeviceId) : undefined;
-  const optionMap: Record<ScannerCameraLensMode, ScannerCameraDeviceLike | undefined> = {
+  const normalizedRequestedMode = requestedMode === 'macro' ? 'close' : requestedMode;
+  const optionMap: Record<ScannerCameraMode, ScannerCameraDeviceLike | undefined> = {
     auto: autoDevice,
-    macro: macroDevice,
+    close: macroDevice,
     standard: standardDevice,
     telephoto: telephotoDevice,
   };
-  const options = (Object.keys(SCANNER_CAMERA_LENS_LABELS) as ScannerCameraLensMode[]).map((mode) => {
+  const duplicateDeviceIds = new Set<string>();
+  const options = (Object.keys(SCANNER_CAMERA_LENS_LABELS) as ScannerCameraMode[]).map((mode) => {
     const device = optionMap[mode];
     const labels = SCANNER_CAMERA_LENS_LABELS[mode];
+    const duplicate = Boolean(device?.id && mode !== 'auto' && duplicateDeviceIds.has(device.id));
+    if (device?.id && mode !== 'auto' && !duplicate) duplicateDeviceIds.add(device.id);
     return {
       mode,
       label: labels.label,
       shortLabel: labels.shortLabel,
-      supported: Boolean(device),
+      supported: Boolean(device) && !duplicate,
       deviceId: device?.id ?? null,
       effectiveZoom: scannerCameraEffectiveZoom(device),
-      mappingReason: scannerCameraLensMappingReason(mode, device),
+      mappingReason: duplicate
+        ? `${labels.label} maps to the same physical camera as another supported mode, so it is hidden from normal scanner controls.`
+        : scannerCameraLensMappingReason(mode, device),
       warning: mode === 'telephoto' && device ? 'Telephoto may need more distance for close card scanning.' : undefined,
     };
   });
-  const requestedDevice = requestedMode === 'raw' ? rawDevice : optionMap[requestedMode];
-  const resolvedMode = requestedDevice ? requestedMode : 'auto';
-  const selectedDevice = requestedDevice ?? autoDevice;
+  const requestedDevice = normalizedRequestedMode === 'raw' ? rawDevice : optionMap[normalizedRequestedMode];
+  const requestedOption = normalizedRequestedMode === 'raw'
+    ? null
+    : options.find((option) => option.mode === normalizedRequestedMode);
+  const requestedSupported = normalizedRequestedMode === 'raw' ? Boolean(requestedDevice) : Boolean(requestedOption?.supported);
+  const resolvedMode = requestedDevice && requestedSupported ? requestedMode : 'auto';
+  const selectedDevice = requestedSupported ? requestedDevice : autoDevice;
+  const selectedCameraMode = selectedDevice && resolvedMode !== 'raw' ? normalizeScannerCameraMode(resolvedMode) : resolvedMode === 'raw' ? 'raw' : 'auto';
   return {
     requestedMode,
     resolvedMode,
+    resolvedCameraMode: selectedCameraMode,
     selectedDevice,
     selectedDeviceSummary: summarizeScannerCameraDevice(selectedDevice),
     options,
     rearDevices,
-    qualityProfile: selectedDevice ? buildScannerCameraQualityProfile(selectedDevice) : null,
+    qualityProfile: selectedDevice ? buildScannerCameraQualityProfile(selectedDevice, selectedCameraMode === 'raw' ? 'auto' : selectedCameraMode) : null,
   };
 }
 
@@ -312,7 +342,8 @@ export function scannerCameraPreferenceKey(userId: string) {
 }
 
 export function normalizeScannerCameraLensMode(value: unknown): ScannerCameraLensMode {
-  return value === 'macro' || value === 'standard' || value === 'telephoto' ? value : 'auto';
+  if (value === 'close' || value === 'macro') return 'close';
+  return value === 'standard' || value === 'telephoto' ? value : 'auto';
 }
 
 export function normalizeScannerCameraSelectionMode(value: unknown): ScannerCameraSelectionMode {
@@ -370,13 +401,18 @@ export function resolveScannerTorchState(input: ScannerTorchStateInput): Scanner
   };
 }
 
-export function buildScannerCameraQualityProfile(device: ScannerCameraDeviceLike): ScannerCameraQualityProfile {
-  const photoResolution = bestScannerResolution(readSupportedResolutions(device, 'photo'), { width: 3024, height: 4032 });
-  const frameResolution = { width: 640, height: 480 };
+export function buildScannerCameraQualityProfile(device: ScannerCameraDeviceLike, mode: ScannerCameraMode = 'auto'): ScannerCameraQualityProfile {
+  const photoTargetByMode = mode === 'telephoto'
+    ? { width: 3024, height: 4032 }
+    : mode === 'close'
+      ? { width: 3024, height: 3024 }
+      : { width: 3024, height: 4032 };
+  const frameResolution = mode === 'telephoto' ? { width: 640, height: 480 } : { width: 768, height: 576 };
+  const photoResolution = bestScannerResolution(readSupportedResolutions(device, 'photo'), photoTargetByMode);
   const targetFps = bestScannerFps(normalizeFpsRanges(device.supportedFPSRanges));
   const defaultZoom = finiteOrNull(device.neutralZoom) ?? finiteOrNull(device.minZoom);
   return {
-    selectedFormatLabel: `quality-first ${targetFps}fps ${photoResolution.width}x${photoResolution.height}`,
+    selectedFormatLabel: `${mode} quality-first ${targetFps}fps ${photoResolution.width}x${photoResolution.height}`,
     targetFps,
     photoResolution,
     frameResolution,
@@ -388,6 +424,37 @@ export function buildScannerCameraQualityProfile(device: ScannerCameraDeviceLike
       frameBias: true,
     },
     defaultZoom,
+  };
+}
+
+export function createScannerCameraSwitchPlan({
+  previous,
+  next,
+  torchRequested,
+}: {
+  previous: ScannerCameraLensSelection | null;
+  next: ScannerCameraLensSelection;
+  torchRequested: boolean;
+}): ScannerCameraSwitchPlan {
+  const oldDeviceId = previous?.selectedDeviceSummary?.id ?? null;
+  const newDeviceId = next.selectedDeviceSummary?.id ?? null;
+  const oldProfile = previous?.qualityProfile?.selectedFormatLabel ?? null;
+  const newProfile = next.qualityProfile?.selectedFormatLabel ?? null;
+  const deviceChanged = oldDeviceId !== newDeviceId;
+  const profileChanged = oldProfile !== newProfile;
+  return {
+    deviceChanged,
+    profileChanged,
+    invalidateFrameAnalysis: deviceChanged || profileChanged,
+    resetStabilityTimer: deviceChanged || profileChanged,
+    blockAutoCapture: deviceChanged || profileChanged,
+    rearmScanner: deviceChanged || profileChanged,
+    preserveSession: true,
+    preserveTorch: torchRequested && Boolean(next.selectedDeviceSummary?.hasTorch),
+    oldMode: previous?.resolvedMode ?? 'auto',
+    newMode: next.resolvedMode,
+    oldDeviceId,
+    newDeviceId,
   };
 }
 
@@ -408,7 +475,7 @@ export function isApprovedTorchTransitionReason(reason: ScannerCameraEventReason
 
 export function resolveAutoCaptureReadiness(input: ScannerFrameMetricsInput): ScannerAutoCaptureReadiness {
   const readiness = resolveAutomaticScannerReadiness({
-    cameraReady: input.cameraReady,
+    cameraReady: input.cameraReady && !input.cameraSwitching,
     processing: input.processing,
     cardPresent: input.cardPresence,
     fillRatio: input.guideFill,
@@ -457,13 +524,17 @@ function selectAutoScannerDevice(devices: ScannerCameraDeviceLike[]) {
 
 function selectCloseUpScannerDevice(devices: ScannerCameraDeviceLike[]) {
   const withFocusDistance = devices
+    .filter((device) => !device.isVirtualDevice)
     .filter((device) => finiteOrNull(device.minFocusDistance) !== null)
     .sort((a, b) => (finiteOrNull(a.minFocusDistance) ?? Number.POSITIVE_INFINITY) - (finiteOrNull(b.minFocusDistance) ?? Number.POSITIVE_INFINITY))[0];
-  return withFocusDistance ?? selectScannerDeviceByType(devices, 'ultra-wide-angle');
+  return withFocusDistance ?? selectActualScannerDeviceByType(devices, 'ultra-wide-angle');
 }
 
-function selectScannerDeviceByType(devices: ScannerCameraDeviceLike[], type: ScannerPhysicalDeviceType) {
-  return [...devices]
+function selectActualScannerDeviceByType(devices: ScannerCameraDeviceLike[], type: ScannerPhysicalDeviceType) {
+  const actual = [...devices]
+    .filter((device) => !device.isVirtualDevice && device.type === type)
+    .sort((a, b) => scannerDeviceScore(b) - scannerDeviceScore(a))[0];
+  return actual ?? [...devices]
     .filter((device) => scannerCameraDeviceTypes(device).includes(type))
     .sort((a, b) => scannerDeviceScore(b) - scannerDeviceScore(a))[0];
 }
@@ -486,7 +557,7 @@ function scannerCameraEffectiveZoom(device: ScannerCameraDeviceLike | undefined)
   return finiteOrNull(device?.neutralZoom) ?? finiteOrNull(device?.minZoom);
 }
 
-function scannerCameraLensMappingReason(mode: ScannerCameraLensMode, device: ScannerCameraDeviceLike | undefined) {
+function scannerCameraLensMappingReason(mode: ScannerCameraMode, device: ScannerCameraDeviceLike | undefined) {
   if (!device) return `${SCANNER_CAMERA_LENS_LABELS[mode].label} is unavailable on discovered rear cameras.`;
   const summary = summarizeScannerCameraDevice(device);
   const types = summary?.physicalDevices.join(', ') || device.type || 'unknown optics';
@@ -494,10 +565,14 @@ function scannerCameraLensMappingReason(mode: ScannerCameraLensMode, device: Sca
     ? 'unknown close-focus distance'
     : `${summary?.minFocusDistance} minimum focus distance`;
   const focusSupport = summary?.supportsFocus ? 'focus metering supported' : 'focus metering unavailable';
-  if (mode === 'macro') return `Selected ${summary?.name ?? device.id} for close-up scanning from ${types}; ${focus}; ${focusSupport}.`;
+  if (mode === 'close') return `Selected ${summary?.name ?? device.id} for close-up scanning from ${types}; ${focus}; ${focusSupport}.`;
   if (mode === 'standard') return `Selected ${summary?.name ?? device.id} as the primary wide-angle scanner camera from ${types}.`;
   if (mode === 'telephoto') return `Selected ${summary?.name ?? device.id} because a real telephoto device is exposed from ${types}.`;
   return `Selected ${summary?.name ?? device.id} by scanner score using close focus, focus support, preview stability, torch, and photo quality.`;
+}
+
+function normalizeScannerCameraMode(value: ScannerCameraSelectionMode): ScannerCameraMode {
+  return value === 'macro' || value === 'close' ? 'close' : value === 'standard' || value === 'telephoto' ? value : 'auto';
 }
 
 function readSupportedResolutions(device: ScannerCameraDeviceLike, stream: 'photo' | 'video' | 'stream' | 'depth-photo' | 'depth-stream') {
