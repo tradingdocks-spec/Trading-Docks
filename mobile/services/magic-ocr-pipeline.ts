@@ -13,6 +13,7 @@ import {
 import type { ScannerGuideLayout } from './continuous-offer-scanner.ts';
 import { normalizeScannerCandidate, type ScannerCardCandidate } from './scanner-foundation.ts';
 import { parseCollectorInfoText, type CollectorInfoObservation, type RecognitionCandidate } from './scanner-intelligence.ts';
+import { createCachedMagicCatalogSearch } from './scanner-cache-prewarming.ts';
 
 export type CaptureDimensions = { width: number; height: number };
 export type CropRect = { x: number; y: number; width: number; height: number };
@@ -131,6 +132,12 @@ export type CaptureCleanupResult =
   | { ok: true; deleted: false; reason: 'no_uri' | 'non_file_uri' | 'deferred_for_diagnostics' }
   | { ok: false; deleted: false; reason: string };
 
+const cachedScryfallMagicCatalogSearch = createCachedMagicCatalogSearch({
+  search: searchScryfallMagicCatalog,
+  maxEntries: 80,
+  ttlMs: 5 * 60 * 1000,
+});
+
 export async function recognizeMagicStillCapture(input: {
   imageUri: string;
   preview: CaptureDimensions;
@@ -203,7 +210,7 @@ export async function recognizeMagicStillCapture(input: {
     online: input.online,
     cachedCandidates: input.cachedCandidates,
   }, buildOcrAwareMagicSearch(
-    input.searchCatalog ?? searchScryfallMagicCatalog,
+    input.searchCatalog ?? cachedScryfallMagicCatalogSearch,
     signals.titleAlternatives,
     onLookupDiagnostics,
     input.searchCatalog ? null : searchScryfallMagicCatalogFuzzy,
