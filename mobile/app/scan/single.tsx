@@ -408,18 +408,40 @@ function SingleResultSheet({
   onOtherPrintings: () => void;
   onRetake: () => void;
 }) {
+  const { width } = useWindowDimensions();
   const finishes = supportedVisibleFinishes(candidate);
   const market = selectScryfallScannerPrice(candidate, selectedFinish);
   const offer = market === null ? null : Math.round(market * 0.7 * 100) / 100;
+  const compact = width <= 340;
+  const artStyle = compact ? s.resultArtCompact : width >= 410 ? s.resultArtLarge : s.resultArt;
+  const priceTone = market === null ? 'muted' : 'primary';
   return (
-    <TDCard style={s.resultSheet}>
-      {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={s.cardImage} contentFit="cover" /> : <View style={s.imageFallback}><Ionicons name="image-outline" size={24} color={color.textMuted} /></View>}
-      <View style={s.resultText}>
-        <TDText variant="title" numberOfLines={2}>{candidate.name}</TDText>
-        <TDText variant="small" tone="muted">{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'} - {candidate.specialPrintingLabels?.join(', ') || 'Exact printing'}</TDText>
-        <TDText variant="small">Market {market === null ? 'Unavailable' : `$${market.toFixed(2)}`}</TDText>
-        <TDText variant="small">Offer {offer === null ? 'Unavailable' : `$${offer.toFixed(2)}`}</TDText>
-        <View style={s.finishControl}>
+    <View style={s.resultSheet}>
+      <View style={s.resultArtFrame}>
+        {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={artStyle} contentFit="cover" /> : <View style={[artStyle, s.imageFallback]}><Ionicons name="image-outline" size={24} color={color.textMuted} /></View>}
+      </View>
+      <View style={s.resultCopy}>
+        <TDText variant="title" numberOfLines={2} style={s.resultTitle}>{candidate.name}</TDText>
+        <View style={s.resultMetaRow}>
+          <TDText variant="caption" tone="muted" numberOfLines={1} style={s.resultMeta}>{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'}</TDText>
+          <View style={s.exactPrintingPill}>
+            <TDText variant="caption" tone="muted" numberOfLines={1}>{candidate.specialPrintingLabels?.[0] ?? 'Exact printing'}</TDText>
+          </View>
+        </View>
+        <View style={s.priceRow}>
+          <View style={s.priceCell}>
+            <TDText variant="caption" tone="muted">Market</TDText>
+            <TDText variant="small" tone={priceTone}>{market === null ? 'Unavailable' : `$${market.toFixed(2)}`}</TDText>
+          </View>
+          <View style={s.priceDivider} />
+          <View style={s.priceCell}>
+            <TDText variant="caption" tone="muted">Offer</TDText>
+            <TDText variant="small" tone={offer === null ? 'muted' : 'primary'}>{offer === null ? 'Unavailable' : `$${offer.toFixed(2)}`}</TDText>
+          </View>
+        </View>
+        <View style={s.finishBlock}>
+          <TDText variant="caption" tone="muted">Finish</TDText>
+          <View style={s.finishControl}>
           {finishes.map((finish) => (
             <Pressable
               key={finish}
@@ -432,14 +454,25 @@ function SingleResultSheet({
               <TDText variant="caption" tone={selectedFinish === finish ? 'primary' : 'muted'}>{finishLabel(finish)}</TDText>
             </Pressable>
           ))}
+          </View>
         </View>
       </View>
       <View style={s.resultActions}>
-        <TDButton label="Add card" onPress={onAdd} />
-        <TDButton label="View other printings" variant="secondary" onPress={onOtherPrintings} />
-        <TDButton label="Retake" variant="secondary" onPress={onRetake} />
+        <TDButton label="Add card" onPress={onAdd} size="lg" style={s.addCardButton} />
+        <View style={s.secondaryActions}>
+          <ResultTextAction label="Other printings" onPress={onOtherPrintings} />
+          <ResultTextAction label="Retake" tone="muted" onPress={onRetake} />
+        </View>
       </View>
-    </TDCard>
+    </View>
+  );
+}
+
+function ResultTextAction({ label, tone = 'primary', onPress }: { label: string; tone?: 'primary' | 'muted'; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [s.textAction, pressed && s.textActionPressed]}>
+      <TDText variant="small" tone={tone}>{label}</TDText>
+    </Pressable>
   );
 }
 
@@ -580,19 +613,34 @@ const s = StyleSheet.create({
   lensControl: { alignSelf: 'center', minHeight: 38, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 2, padding: 3, backgroundColor: color.surfaceFloating + 'DD' },
   lensButton: { minWidth: 42, minHeight: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.sm },
   lensButtonActive: { backgroundColor: color.primaryBright },
-  resultSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 40, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
+  resultSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 40, maxHeight: '58%', borderRadius: radius.lg, padding: space.md, gap: space.sm, alignItems: 'stretch', backgroundColor: color.surfaceFloating + 'F8', shadowColor: '#000000', shadowOpacity: 0.32, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
   settingsSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 45, gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
   settingRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   cropProof: { gap: space.xs },
   cropImageWrap: { width: 132, height: 176, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },
   cropImage: { width: '100%', height: '100%' },
   cropBox: { position: 'absolute', borderWidth: 2 },
-  cardImage: { width: 72, height: 102, borderRadius: radius.sm, backgroundColor: color.surface },
-  imageFallback: { width: 72, height: 102, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
-  resultText: { flex: 1, minWidth: 0, gap: 4 },
-  resultActions: { gap: space.sm },
-  finishControl: { minHeight: 34, flexDirection: 'row', flexWrap: 'wrap', gap: 4, paddingTop: 2 },
-  finishButton: { minHeight: 30, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
+  resultArtFrame: { alignItems: 'center', justifyContent: 'center' },
+  resultArtCompact: { width: 86, height: 120, borderRadius: radius.sm, backgroundColor: color.surface },
+  resultArt: { width: 98, height: 137, borderRadius: radius.sm, backgroundColor: color.surface },
+  resultArtLarge: { width: 108, height: 151, borderRadius: radius.sm, backgroundColor: color.surface },
+  imageFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
+  resultCopy: { minWidth: 0, gap: space.xs },
+  resultTitle: { textAlign: 'center', lineHeight: 25 },
+  resultMetaRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs },
+  resultMeta: { flexShrink: 1, maxWidth: 120 },
+  exactPrintingPill: { maxWidth: 150, minHeight: 22, borderRadius: radius.pill, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
+  priceRow: { minHeight: 46, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, paddingHorizontal: space.md, backgroundColor: color.surface + 'CC' },
+  priceCell: { flex: 1, minWidth: 0, alignItems: 'center', gap: 2 },
+  priceDivider: { width: 1, alignSelf: 'stretch', backgroundColor: color.border },
+  finishBlock: { gap: space.xs, alignItems: 'center' },
+  resultActions: { gap: space.xs },
+  addCardButton: { alignSelf: 'stretch' },
+  secondaryActions: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.md },
+  textAction: { minHeight: 44, minWidth: 96, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.sm },
+  textActionPressed: { backgroundColor: color.surface },
+  finishControl: { minHeight: 38, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
+  finishButton: { minHeight: 36, minWidth: 78, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   finishButtonActive: { borderColor: color.primaryBright, backgroundColor: color.primaryBright + '24' },
   messageToast: { position: 'absolute', left: space.md, right: space.md, bottom: space.xl, zIndex: 40, borderRadius: radius.md, padding: space.md, gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
 });
