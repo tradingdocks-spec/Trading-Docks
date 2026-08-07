@@ -1,8 +1,14 @@
 # Mobile Web Data Parity
 
-Status: Partially Implemented.
+Status: Partially Implemented
 
 Trading Docks mobile is not a separate product database. Permanent account data should resolve from the same Supabase auth user and shared backend tables used by TradingDocks.com. Mobile may keep caches, scanner work-in-progress, offline queues, preferences, camera settings, and diagnostics locally, but those are not canonical records.
+
+## Platform Data Rule
+
+Status: Implemented
+
+Mobile and web are different clients of one Trading Docks account system. Mobile may maintain local-only caches, scanner drafts, offline queues, preferences, camera settings, and diagnostics, but canonical account, membership, inventory, billing, role, and workspace records must resolve from shared backend authority.
 
 ## Source Matrix
 
@@ -21,6 +27,18 @@ Trading Docks mobile is not a separate product database. Permanent account data 
 | Deck Vault | `deck_vault_decks` plus local recovery cache | No full active mobile Deck Vault workspace yet | `deck_vault_decks` | Planned for mobile |
 | Purchasing / offers | Web purchasing and order tables/routes | Mobile scanner session offer math and Deal Desk session data | Mixed: shared inventory plus route-specific purchasing tables | Partially Implemented |
 | Seller/store data | Web marketplace/order/workspace tables | Mobile surfaces mostly show honest unavailable or scanner/session state | Shared backend tables where implemented | Partially Implemented |
+
+## Authority Parity Matrix
+
+| Concept | Web authority path | Mobile authority path | Parity status | Risk |
+| --- | --- | --- | --- | --- |
+| Auth user | Supabase SSR/server clients | Expo Supabase client | Implemented | Low if env contracts remain valid. |
+| Platform role | Server access resolver and `user_roles` | Client-safe access model from user role lookup | Partially Implemented | Mobile can display cached role; server remains authoritative. |
+| Account type | Profile/preference/workspace helpers | Account provider and navigation contract | Partially Implemented | Store/business terminology can drift without contract tests. |
+| Membership tier | Billing tables plus shared catalog adapter | Shared catalog plus RevenueCat client state display | Partially Implemented | Mobile must not grant tier without webhook reconciliation. |
+| Billing status | Stripe/RevenueCat server records | RevenueCat SDK display only | Partially Implemented | Provider parity needs continued testing. |
+| Feature entitlements | Server resolver and tier access | Client-safe entitlement model for UX | Partially Implemented | Backend must still authorize writes/actions. |
+| Admin access | Server role checks | Additive entry in mobile | Partially Implemented | Historical email owner helpers remain database debt. |
 
 ## Auth Parity
 
@@ -73,3 +91,11 @@ Scanner intake remains local-first:
 - Scanner finalization now uses the canonical collection write path, but duplicate-success interruption should still be validated against staging RLS and database constraints.
 - Deck Vault is web-backed and does not yet have a full mobile workspace.
 - Seller/store operational data remains web-first except where mobile scanner/session workflows explicitly support it.
+- Stripe and RevenueCat billing providers are not yet fully unified behind one provider-state resolver.
+- Web has duplicate route families for buying, Deal Desk, inventory, and store operations that make parity harder to reason about.
+
+## First Parity Refactor
+
+Status: Planned
+
+Move route access, membership resolution, account type, and entitlement checks behind a single typed platform authority package. Web should use server-safe functions from that package. Mobile should use a client-safe adapter for display, caching, and navigation only.

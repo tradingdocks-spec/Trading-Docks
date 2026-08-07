@@ -260,6 +260,7 @@ export const MEMBERSHIP_PROVIDER_MAPPINGS: ProviderPlanMapping[] = [
 ];
 
 export function normalizeAccountType(value: unknown): AccountType {
+  if (value === 'business') return 'store';
   return value === 'collector' || value === 'seller' || value === 'store'
     ? value
     : 'free';
