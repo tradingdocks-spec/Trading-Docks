@@ -269,3 +269,32 @@ Remaining risks:
 - Native card-presence/removal signals are still limited by available provider data.
 - Auto-accept in high-volume mode remains disabled until product safety rules and benchmark evidence support it.
 - Full recognition accuracy and foil recognition remain unclaimed.
+
+## Mobile Release Candidate Health
+
+Status: Partially Implemented.
+
+Implemented improvements:
+
+- Root mobile launch now uses branded workspace restoration instead of a floating spinner.
+- Unauthenticated welcome copy is compact, product-scoped, and no longer exposes a preview bypass or fake metrics.
+- Auth-facing errors are sanitized for customers while internal diagnostics continue to avoid passwords, tokens, and secrets.
+- Onboarding captures account intent without forcing paid plan purchase.
+- Legacy `/experience` fake demo metrics were removed from the active route surface.
+- Mobile plan copy no longer names internal billing providers or implies paid mobile purchase is ready.
+- Release audit, billing architecture, privacy audit, and store checklist docs were added.
+
+Current release blockers:
+
+- Physical-device QA remains incomplete for iOS, Android, native camera/OCR, scanner replay, accessibility, larger text, and user switching.
+- Mobile paid subscription architecture is not approved or implemented; paid in-app digital access must be StoreKit/Google Play compliant.
+- Production builds still need explicit validation that development routes and scanner diagnostics are not exposed.
+- Store/legal assets are incomplete: privacy URL, terms URL, support URL, delete-account policy, App Privacy, Play Data Safety, screenshots, and review notes.
+
+Recommended next release sprint:
+
+1. Run the full physical QA matrix from `docs/MOBILE_STORE_RELEASE_CHECKLIST.md` and record results without estimating performance or scanner accuracy.
+2. Decide whether TestFlight includes paid upgrades. If yes, build the approved mobile billing provider; if no, keep paid purchase UI disabled.
+3. Add automated production-gate assertions for `/dev/*`, scanner diagnostics, benchmark builder, and design showcase.
+4. Add a production error boundary and route-level recovery copy.
+5. Confirm store metadata, support/legal URLs, and account deletion policy with product owner/legal.

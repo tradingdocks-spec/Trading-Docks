@@ -108,7 +108,7 @@ export default function Auth() {
 
     const client = supabase;
     if (!client) {
-      setError('Supabase is not configured. Add the mobile environment variables and restart Expo.');
+      setError(authErrorMessage('configuration'));
       return;
     }
 
@@ -131,7 +131,7 @@ export default function Auth() {
 
     if (result.error) {
       setBusy(false);
-      setError(result.error.message);
+      setError(authErrorMessage(result.error.message));
       logAuthWarning(signup ? 'email_signup_failed' : 'email_signin_failed', {
         message: result.error.message,
       });
@@ -157,7 +157,7 @@ export default function Auth() {
     setError(null);
     setNotice(null);
     if (!supabase) {
-      setError('Supabase is not configured. Add the mobile environment variables and restart Expo.');
+      setError(authErrorMessage('configuration'));
       return;
     }
     if (!email.trim()) {
@@ -175,7 +175,7 @@ export default function Auth() {
     });
     setBusy(false);
     if (otpError) {
-      setError(otpError.message);
+      setError(authErrorMessage(otpError.message));
       logAuthWarning('magic_link_failed', { message: otpError.message });
       return;
     }
@@ -200,7 +200,7 @@ export default function Auth() {
       await routeAfterLogin(user?.id ?? null);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Please try again.';
-      setError(message);
+      setError(authErrorMessage(message));
       logAuthWarning('social_signin_failed', { provider, message });
     } finally {
       setBusy(false);
@@ -238,7 +238,7 @@ export default function Auth() {
               <TDCard style={s.panel} variant="elevated">
                 <TDText variant="title">{signup ? 'Create your account' : 'Welcome back'}</TDText>
                 <TDText variant="small" tone="secondary">{signup ? 'Use Google, Apple, or email to begin.' : 'Choose a secure sign-in method.'}</TDText>
-                {error ? <TDErrorState title="Authentication problem" message={error} accessibilityLabel="Authentication error" /> : null}
+                {error ? <TDErrorState title="We could not sign you in" message={error} accessibilityLabel="Authentication error" /> : null}
                 {notice ? <TDText variant="small" tone="success" style={s.notice}>{notice}</TDText> : null}
                 <View style={s.socials}>
                   <Pressable onPress={() => social('google')} disabled={busy} style={[s.social, busy && s.disabled]}>
@@ -290,7 +290,6 @@ export default function Auth() {
                 </Pressable>
               </TDCard>
               <View style={s.trust}><Ionicons name="lock-closed-outline" size={15} color={color.success} /><TDText variant="caption" tone="muted" style={s.trustText}>Face ID and biometric unlock protect an existing device session; they do not store credentials.</TDText></View>
-              <Pressable accessibilityRole="button" onPress={() => focusSafeRoute('/(tabs)')}><TDText variant="small" tone="muted" style={s.preview}>Continue in preview mode</TDText></Pressable>
             </View>
           </View>
         </ScrollView>
@@ -332,5 +331,24 @@ const s = StyleSheet.create({
   switch: { color: color.textSecondary, textAlign: 'center', fontWeight: '800', fontSize: 12, paddingVertical: 6 },
   trust: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 8, paddingHorizontal: 8 },
   trustText: { ...type.caption, color: color.textMuted, flex: 1, lineHeight: 18 },
-  preview: { color: color.textMuted, textAlign: 'center', fontSize: 12, fontWeight: '700', paddingTop: 4 },
 });
+
+function authErrorMessage(raw: string) {
+  const message = raw.toLowerCase();
+  if (message.includes('configuration') || message.includes('environment')) {
+    return 'Trading Docks is not ready to sign in on this build. Please try again later.';
+  }
+  if (message.includes('invalid login') || message.includes('invalid credentials')) {
+    return 'Check your email and password, then try again.';
+  }
+  if (message.includes('rate') || message.includes('too many')) {
+    return 'Too many attempts. Wait a moment, then try again.';
+  }
+  if (message.includes('network') || message.includes('fetch')) {
+    return 'Check your connection, then try again.';
+  }
+  if (message.includes('email')) {
+    return 'Check your email address and try again.';
+  }
+  return 'Please try again. If the problem continues, contact support.';
+}

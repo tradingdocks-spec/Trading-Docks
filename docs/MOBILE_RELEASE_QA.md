@@ -30,6 +30,8 @@ Verify:
 - Profile and Settings.
 - Admin Command Center summary and access denial.
 - Dev-only Design System route with flag enabled and disabled.
+- Dev-only Camera QA and Scanner Benchmark Builder routes with flags enabled and disabled.
+- Legacy `/experience` route redirect and `/modal` fallback.
 
 ## State Coverage
 
@@ -123,3 +125,4 @@ Verify:
 - Apple OCR autolinking search and Apple resolve include `trading-docks-vision-ocr` and `TradingDocksVisionOcrModule`.
 - `git diff --check` passes.
 - Manual physical-device QA is complete or explicitly deferred by product owner.
+- `docs/MOBILE_RELEASE_CANDIDATE_AUDIT.md`, `docs/MOBILE_BILLING_RELEASE_ARCHITECTURE.md`, `docs/MOBILE_PRIVACY_RELEASE_AUDIT.md`, and `docs/MOBILE_STORE_RELEASE_CHECKLIST.md` are reviewed by product owner before Release Candidate status is claimed.

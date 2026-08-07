@@ -24,6 +24,7 @@ import type { ScannerCardCandidate } from '../services/scanner-foundation.ts';
 test('feature flag disables the benchmark builder by default', () => {
   assert.equal(isScannerBenchmarkBuilderEnabled({}), false);
   assert.equal(isScannerBenchmarkBuilderEnabled({ [SCANNER_BENCHMARK_BUILDER_FLAG]: 'true' }), true);
+  assert.equal(isScannerBenchmarkBuilderEnabled({ NODE_ENV: 'production', [SCANNER_BENCHMARK_BUILDER_FLAG]: 'true' }), false);
 });
 
 test('create dataset initializes an empty manifest and privacy gate', () => {

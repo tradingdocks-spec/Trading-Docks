@@ -31,6 +31,7 @@
 - Partially Implemented: VisionCamera/Nitro dependencies are installed for a custom Expo development build, but physical-device cleanup and native frame-buffer handling still need QA before production claims.
 - Planned: Before remote OCR, artwork matching, foil analysis, or analytics for continuous scanning, add explicit consent, retention controls, and image-free logging guarantees.
 - Implemented: Native Magic OCR v1 deletes temporary captured stills after Apple Vision processing and reports cleanup status without displaying source image paths.
+- Implemented: The mobile release privacy audit is captured in `docs/MOBILE_PRIVACY_RELEASE_AUDIT.md`; no source card images are retained by default, and scanner benchmark/camera diagnostics remain development-gated.
 - Implemented: Marketplace credential migrations attempt to restrict encrypted payload columns.
 - Implemented: Public share migrations revoke anonymous privileges from private tables.
 
@@ -60,6 +61,7 @@
 - Implemented: Native OCR is an iOS development-build feature, not an Expo Go feature; Android/web return explicit unsupported states.
 - Planned: Before collecting shared scanner fixtures, confirm copyright permission, storage location, retention window, and access controls with the product owner.
 - Planned: Pokemon, One Piece, and Lorcana catalog providers require licensing/API review before mobile or server integration; the mobile client must not scrape publisher pages directly.
+- Planned: Before mobile paid subscriptions ship, backend subscription/entitlement state must remain authoritative and native purchase receipts must be reconciled through an approved StoreKit/Google Play Billing architecture.
 
 ## Access Fallbacks
 

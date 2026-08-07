@@ -16,6 +16,9 @@
 - Implemented: Expo SDK 54, Expo Router 6, React Native 0.81, React 19.1.
 - Implemented: Routes live in `mobile/app`, including root stack, tabs, auth, onboarding, settings, plans, admin, and experience screens.
 - Implemented: Root mobile frame wires `AuthProvider`, `AdminProvider`, `AccountProvider`, `SessionProvider`, biometric gate, status bar, and stack navigation.
+- Implemented: The root launch gate now renders a branded startup state while auth restores, then routes to the authenticated workspace or Welcome without showing a transient login screen.
+- Implemented: Legacy `/experience` demo content redirects to the active tabs route so fake portfolio values are not exposed as a production surface.
+- Partially Implemented: `/plans` displays the canonical membership catalog but does not process paid mobile subscriptions.
 - Partially Implemented: Mobile account state is local-first and not yet aligned with web billing as the source of truth.
 - Partially Implemented: Admin mobile APIs expect Supabase RPCs/tables that require migrations and production setup.
 - Partially Implemented: Mobile/web data parity is documented in `docs/MOBILE_WEB_DATA_PARITY.md`. Collection, storage, Trade Binder, and Wishlist use shared Supabase tables; scanner intake remains local-first until Review List finalization writes collection records through the canonical backend path.
@@ -44,6 +47,7 @@
 - Implemented: Cloudflare inbound email worker scripts exist.
 - Partially Implemented: eBay and Mana Pool integration surfaces exist but require provider credentials and production validation.
 - Planned: RevenueCat is not installed in active root or mobile dependencies.
+- Planned: Mobile paid purchase architecture is documented in `docs/MOBILE_BILLING_RELEASE_ARCHITECTURE.md`; native subscriptions require StoreKit/Google Play Billing approval and backend entitlement reconciliation before release.
 
 ## Build and CI
 

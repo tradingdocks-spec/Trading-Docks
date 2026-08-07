@@ -135,3 +135,24 @@ Remaining staged work:
 1. Run physical-device QA across small iPhone, large iPhone, Android, tablet, narrow Expo Web, larger text, and reduced motion.
 2. Complete physical-device release QA and then schedule the dedicated admin management mobile sprint for dense admin detail tools.
 3. Add visual regression screenshots once stable authenticated fixtures exist.
+
+## Mobile Release Candidate Pass
+
+Status: Partially Implemented.
+
+Implemented this pass:
+
+1. Added `docs/MOBILE_RELEASE_CANDIDATE_AUDIT.md` with a current route-by-route release audit and BLOCKER/HIGH/MEDIUM/POLISH classification.
+2. Added `docs/MOBILE_BILLING_RELEASE_ARCHITECTURE.md` to separate mobile digital subscription requirements from web Stripe billing and real-world/physical-goods workflows.
+3. Added `docs/MOBILE_PRIVACY_RELEASE_AUDIT.md` and `docs/MOBILE_STORE_RELEASE_CHECKLIST.md` for store-readiness and privacy review.
+4. Replaced fake legacy `/experience` demo content with a redirect to the active workspace.
+5. Replaced the default template modal with a branded fallback and removed customer-facing provider/configuration copy from the mobile plan path.
+6. Polished launch, welcome, auth error, and onboarding copy without changing auth mechanics, membership pricing, Supabase schemas, billing providers, or scanner recognition.
+
+Remaining release work:
+
+1. Complete physical-device QA before claiming Release Candidate status.
+2. Decide whether paid mobile subscriptions are included in the first TestFlight; if yes, implement the approved StoreKit/Google Play Billing provider and backend entitlement reconciliation.
+3. Verify production builds hide `/dev/*`, diagnostics sheets, crop proofs, scanner benchmark builder, and design-system showcase routes.
+4. Confirm privacy policy, terms, support URL, delete-account compliance, App Privacy, Data Safety, screenshots, and review notes.
+5. Add production route-level error boundary and visual regression coverage after authenticated fixtures are stable.

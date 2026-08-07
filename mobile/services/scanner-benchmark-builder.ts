@@ -72,7 +72,7 @@ export type BenchmarkExecutionResult =
   | { ok: false; error: string };
 
 export function isScannerBenchmarkBuilderEnabled(env: Record<string, string | undefined> = process.env) {
-  return env[SCANNER_BENCHMARK_BUILDER_FLAG] === 'true';
+  return env.NODE_ENV !== 'production' && env[SCANNER_BENCHMARK_BUILDER_FLAG] === 'true';
 }
 
 export function createBenchmarkDataset(input: { name: string; now?: string; privacyAcknowledged?: boolean }): BenchmarkDataset {

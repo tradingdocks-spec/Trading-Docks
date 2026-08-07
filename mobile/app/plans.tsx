@@ -33,7 +33,7 @@ export default function Plans() {
     }
     Alert.alert(
       `${selectedPlan.name} selected`,
-      `${cycle === 'yearly' ? formatPlanPrice(selectedPlan, 'yearly') + ' per year' : formatPlanPrice(selectedPlan, 'monthly') + ' per month'} will be connected to Apple App Store and Google Play billing through RevenueCat.`,
+      `${cycle === 'yearly' ? formatPlanPrice(selectedPlan, 'yearly') + ' per year' : formatPlanPrice(selectedPlan, 'monthly') + ' per month'} is not available for purchase in this mobile build. Create an account now and review upgrade options later.`,
       [
         { text: 'Not now', style: 'cancel' },
         { text: 'Create account', onPress: () => router.push('/auth') },
@@ -66,7 +66,7 @@ export default function Plans() {
             value={cycle}
             onChange={setCycle}
           />
-          <TDStatusIndicator label={selectedPlan.type === 'free' ? 'No payment method required' : 'Provider purchase pending configuration'} tone={selectedPlan.type === 'free' ? 'success' : 'warning'} />
+          <TDStatusIndicator label={selectedPlan.type === 'free' ? 'No payment method required' : 'Mobile purchase flow pending release approval'} tone={selectedPlan.type === 'free' ? 'success' : 'warning'} />
         </TDCard>
 
         <View style={s.planStack}>
@@ -104,7 +104,7 @@ export default function Plans() {
 
         <TDButton label={selectedPlan.type === 'free' ? 'Start Free' : `Continue with ${selectedPlan.name}`} iconName="arrow-forward" onPress={continueWithPlan} />
         <TDText variant="caption" tone="muted" style={s.finePrint}>
-          Store employee capacity remains configurable until product ownership finalizes seat packaging. Provider identifiers stay separate from this product catalog.
+          Store employee capacity remains configurable until product ownership finalizes seat packaging. Paid mobile upgrades are not processed in this build.
         </TDText>
       </ScrollView>
     </SafeAreaView>

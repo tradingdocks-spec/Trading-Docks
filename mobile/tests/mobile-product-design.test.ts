@@ -90,19 +90,52 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
   assert.match(sell, /Seller metrics unavailable/);
   assert.match(profile, /Security and preferences/);
   assert.match(auth, /Passwords are never stored on this device/);
-  assert.match(welcome, /Real collection data only/);
-  assert.match(onboarding, /Step 1 of 1/);
-  assert.match(plans, /Provider purchase pending configuration/);
+  assert.match(welcome, /Your TCG collection, wherever you trade/);
+  assert.match(onboarding, /You can review paid plans later/);
+  assert.match(plans, /Mobile purchase flow pending release approval/);
+  assert.doesNotMatch(welcome, /Preview mobile|SAMPLE DATA|DEMO/);
+  assert.doesNotMatch(auth, /Continue in preview mode|Supabase is not configured|environment variables/);
+  assert.doesNotMatch(plans, /RevenueCat|Provider purchase pending configuration/);
 });
 
 test('Wave 2 welcome and setup screens avoid fake metrics and unsupported claims', () => {
   const welcome = readFileSync(join(root, 'app', 'welcome.tsx'), 'utf8');
   const plans = readFileSync(join(root, 'app', 'plans.tsx'), 'utf8');
+  const experience = readFileSync(join(root, 'app', 'experience.tsx'), 'utf8');
+  const modal = readFileSync(join(root, 'app', 'modal.tsx'), 'utf8');
 
   assert.equal(welcome.includes('$24,860.40'), false);
   assert.equal(welcome.includes('+$684.20'), false);
   assert.equal(welcome.includes('LIVE'), false);
+  assert.equal(experience.includes('+$216.34'), false);
+  assert.equal(experience.includes('COLLECTION LIVE'), false);
+  assert.equal(modal.includes('This is a modal'), false);
   assert.match(plans, /Store employee capacity remains configurable/);
+});
+
+test('release candidate docs and customer-facing routes avoid development leakage', () => {
+  for (const file of [
+    'MOBILE_RELEASE_CANDIDATE_AUDIT.md',
+    'MOBILE_BILLING_RELEASE_ARCHITECTURE.md',
+    'MOBILE_PRIVACY_RELEASE_AUDIT.md',
+    'MOBILE_STORE_RELEASE_CHECKLIST.md',
+  ]) {
+    const content = readFileSync(join(root, '..', 'docs', file), 'utf8');
+    assert.match(content, /Status:/);
+    assert.match(content, /BLOCKER|HIGH|MEDIUM|POLISH/);
+  }
+
+  const audit = readFileSync(join(root, '..', 'docs', 'MOBILE_RELEASE_CANDIDATE_AUDIT.md'), 'utf8');
+  const billing = readFileSync(join(root, '..', 'docs', 'MOBILE_BILLING_RELEASE_ARCHITECTURE.md'), 'utf8');
+  const privacy = readFileSync(join(root, '..', 'docs', 'MOBILE_PRIVACY_RELEASE_AUDIT.md'), 'utf8');
+  const checklist = readFileSync(join(root, '..', 'docs', 'MOBILE_STORE_RELEASE_CHECKLIST.md'), 'utf8');
+
+  assert.match(audit, /Physical-device QA remains required/);
+  assert.match(audit, /BLOCKER/);
+  assert.match(billing, /DIGITAL FEATURE\/SUBSCRIPTION/);
+  assert.match(billing, /StoreKit/);
+  assert.match(privacy, /No source card images are retained by default/);
+  assert.match(checklist, /TestFlight/);
 });
 
 test('Wave 1 routes consume mobile design OS primitives for high-traffic surfaces', () => {

@@ -19,7 +19,7 @@ export default function Onboarding() {
 
   const choose = async (type: AccountType) => {
     await setAccountType(type);
-    router.push(type === 'free' ? '/auth' : '/plans');
+    router.push('/auth');
   };
 
   return (
@@ -28,7 +28,7 @@ export default function Onboarding() {
         <TDNavigationHeader
           eyebrow="Setup"
           title="Choose your workspace"
-          subtitle="Pick the account path that matches how you use Trading Docks today."
+          subtitle="Pick how you use Trading Docks today. You can review paid plans later."
           leftAction={<TDIconButton label="Back" iconName="chevron-back" onPress={() => router.back()} />}
           rightAction={<TDBadge tone="info">Step 1 of 1</TDBadge>}
         />
@@ -45,7 +45,7 @@ export default function Onboarding() {
               <TDListRow
                 key={plan.type}
                 title={plan.name}
-                eyebrow={selected ? 'Selected' : plan.type === 'free' ? 'Free start' : 'Paid workspace'}
+                eyebrow={selected ? 'Selected' : plan.type === 'free' ? 'Free start' : 'Workspace intent'}
                 description={`${plan.audience}. ${plan.headlineFeatures.slice(0, 2).join(', ')}.`}
                 iconName={icons[plan.type]}
                 selected={selected}
@@ -58,6 +58,7 @@ export default function Onboarding() {
         </View>
 
         <View style={s.actions}>
+          <TDButton label="Continue" iconName="arrow-forward" onPress={() => router.push('/auth')} />
           <TDButton label="Skip for now" variant="ghost" iconName="arrow-forward-outline" onPress={() => router.push('/auth')} />
         </View>
       </ScrollView>
