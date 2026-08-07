@@ -98,6 +98,29 @@ test('Automatic Scan prioritizes one readiness reason for users', () => {
   assert.equal(readiness.reasons.length, 1);
 });
 
+test('Automatic Scan uses restrained green waiting state after a card is added', () => {
+  const readiness = resolveAutomaticScannerReadiness({
+    cameraReady: true,
+    processing: false,
+    cardPresent: true,
+    fillRatio: 0.66,
+    centerOffset: 0.08,
+    blurScore: 0.72,
+    motionScore: 0.12,
+    lightingScore: 0.7,
+    glareScore: 0.1,
+    stableDurationMs: 620,
+    awaitingRemoval: true,
+  });
+
+  assert.equal(readiness.autoCaptureReady, false);
+  assert.equal(readiness.state, 'ready');
+  assert.equal(readiness.reason, 'remove_card');
+  assert.equal(readiness.message, 'Remove card');
+  assert.equal(readiness.tone, 'emerald');
+  assert.deepEqual(readiness.reasons, ['remove previous card']);
+});
+
 test('Ready haptic fires once on transition into Ready', () => {
   assert.equal(shouldEmitReadyHaptic(null, 'ready'), true);
   assert.equal(shouldEmitReadyHaptic('needs_attention', 'ready'), true);

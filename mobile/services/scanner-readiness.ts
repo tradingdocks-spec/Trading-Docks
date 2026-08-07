@@ -121,7 +121,10 @@ export function resolveAutomaticScannerReadiness(input: ScannerReadinessMetrics)
 
   if (!input.cameraReady) return { ...blocked('camera_unavailable', 'camera not ready'), reasons };
   if (input.processing) return { ...scannerReadinessModel('processing', 'reading'), reasons: ['scanner processing'] };
-  if (input.duplicateBlocked || input.awaitingRemoval) return { ...blocked('remove_card', 'remove previous card'), reasons };
+  if (input.duplicateBlocked || input.awaitingRemoval) {
+    reasons.push('remove previous card');
+    return { ...scannerReadinessModel('ready', 'remove_card'), reasons };
+  }
   if (!input.cardPresent) return { ...blocked('no_card', 'card not present'), reasons };
   if (input.fillRatio === null) return { ...blocked('no_card', 'guide fill unavailable'), reasons };
   if (input.fillRatio < AUTO_MIN_FILL) return { ...blocked('too_small', 'move closer'), reasons };

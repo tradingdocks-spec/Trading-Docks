@@ -100,13 +100,25 @@ export function resolveSingleScanCaptureQuality(
 export function singleScanUserFacingFailure(reason: string) {
   if (/Apple Vision OCR did not return readable text|No title read|readable text/i.test(reason)) {
     return {
-      title: "Couldn't read the card title.",
+      title: "Couldn't read the card.",
       message: 'Move closer, tap the card to focus, and try again.',
     };
   }
+  if (/network|fetch|timeout|offline/i.test(reason)) {
+    return {
+      title: 'Lookup failed.',
+      message: 'Check your connection, retake, or search manually.',
+    };
+  }
+  if (/no match|not found|no card|empty/i.test(reason)) {
+    return {
+      title: "Couldn't identify.",
+      message: 'Retake the card or search manually.',
+    };
+  }
   return {
-    title: 'Could not scan this card.',
-    message: reason,
+    title: "Couldn't identify.",
+    message: 'Retake the card or search manually.',
   };
 }
 

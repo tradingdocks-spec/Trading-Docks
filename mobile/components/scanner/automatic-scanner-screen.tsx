@@ -211,6 +211,7 @@ export default function AutomaticScannerScreen() {
   const [liveFrameCount, setLiveFrameCount] = useState(0);
   const [firstLiveFrameAt, setFirstLiveFrameAt] = useState<number | null>(null);
   const [latestLiveFrameAt, setLatestLiveFrameAt] = useState<number | null>(null);
+  const [cameraLensSwitching, setCameraLensSwitching] = useState(false);
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
   const [lastCaptureId, setLastCaptureId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -391,9 +392,11 @@ export default function AutomaticScannerScreen() {
     processing: scannerProcessing,
     duplicateBlocked: autoScanner.duplicateProtection.awaitingCardRemoval,
     cameraReady,
+    cameraSwitching: cameraLensSwitching,
   }), [
     autoScanner.duplicateProtection.awaitingCardRemoval,
     cameraReady,
+    cameraLensSwitching,
     diagnosticsSnapshot.blurScore,
     diagnosticsSnapshot.cardCornersVisible,
     diagnosticsSnapshot.fillPercentage,
@@ -1044,6 +1047,7 @@ export default function AutomaticScannerScreen() {
       setLastCameraSwitchDurationMs(Math.round(readyAt - cameraLensSwitchStartedAtRef.current));
       cameraLensSwitchStartedAtRef.current = null;
     }
+    setCameraLensSwitching(false);
     setCameraLifecycleDiagnostics((current) => ({
       ...current,
       previewStarts: current.previewStarts + 1,
@@ -1178,6 +1182,7 @@ export default function AutomaticScannerScreen() {
     activeCaptureIdRef.current = null;
     activeSearchIdRef.current = null;
     autoCaptureInFlightRef.current = false;
+    setCameraLensSwitching(true);
     setCameraReady(false);
     setCaptureState('camera_not_ready');
     setLiveVisionResult(null);
@@ -1200,6 +1205,7 @@ export default function AutomaticScannerScreen() {
     activeCaptureIdRef.current = null;
     activeSearchIdRef.current = null;
     autoCaptureInFlightRef.current = false;
+    setCameraLensSwitching(true);
     setCameraReady(false);
     setCaptureState('camera_not_ready');
     setLiveVisionResult(null);
@@ -2060,7 +2066,8 @@ function ScannerFailureOverlay({ onRetake, onManualSearch }: { tray: NonNullable
     <View accessibilityRole="alert" style={[s.scannerToast, s.failureOverlay]}>
       <Ionicons name="alert-circle-outline" size={22} color={color.warning} />
       <View style={s.flex}>
-        <TDText variant="small">Could not identify card</TDText>
+        <TDText variant="small">{"Couldn't identify"}</TDText>
+        <TDText variant="caption" tone="muted">Retake the card or search manually.</TDText>
       </View>
       <View style={s.toastActions}>
         <TDButton label="Retake" variant="secondary" onPress={onRetake} />

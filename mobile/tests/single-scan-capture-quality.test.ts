@@ -62,10 +62,25 @@ test('focus settle blocks capture briefly before OCR', () => {
 test('user-facing OCR error is nontechnical while raw provider error can remain diagnostic', () => {
   const raw = 'Apple Vision OCR did not return readable text for the requested regions.';
   const friendly = singleScanUserFacingFailure(raw);
-  assert.equal(friendly.title, "Couldn't read the card title.");
+  assert.equal(friendly.title, "Couldn't read the card.");
   assert.equal(friendly.message, 'Move closer, tap the card to focus, and try again.');
   assert.doesNotMatch(`${friendly.title} ${friendly.message}`, /Apple Vision|requested regions/);
   assert.match(raw, /Apple Vision OCR/);
+});
+
+test('user-facing lookup failures stay short and recoverable', () => {
+  const network = singleScanUserFacingFailure('Scryfall network timeout');
+  const unknown = singleScanUserFacingFailure('Native provider returned an internal exception');
+
+  assert.deepEqual(network, {
+    title: 'Lookup failed.',
+    message: 'Check your connection, retake, or search manually.',
+  });
+  assert.deepEqual(unknown, {
+    title: "Couldn't identify.",
+    message: 'Retake the card or search manually.',
+  });
+  assert.doesNotMatch(`${unknown.title} ${unknown.message}`, /Native provider|internal exception/);
 });
 
 function centeredGuide() {
