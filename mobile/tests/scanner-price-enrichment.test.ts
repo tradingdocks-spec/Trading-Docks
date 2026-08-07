@@ -43,6 +43,7 @@ test('Scryfall scanner price selection respects finish and never returns zero', 
   assert.equal(selectScryfallScannerPrice(candidate, 'foil'), 65.5);
   assert.equal(selectScryfallScannerPrice({ ...candidate, finishes: ['etched'], marketPrice: { ...candidate.marketPrice!, usdEtched: 72.34 } }, 'etched'), 72.34);
   assert.equal(selectScryfallScannerPrice({ ...candidate, marketPrice: { ...candidate.marketPrice!, usd: 0, usdFoil: null } }, 'normal'), null);
+  assert.equal(selectScryfallScannerPrice({ ...candidate, marketPrice: { ...candidate.marketPrice!, usdFoil: null } }, 'foil'), null);
 });
 
 test('scanner price enrichment updates the exact inserted nonfoil row and recalculates totals', () => {

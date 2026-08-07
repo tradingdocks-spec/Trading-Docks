@@ -178,3 +178,12 @@ Remaining manual QA:
 - Small iPhone, large iPhone, Android phone, and Expo Web narrow viewport review.
 - Long card names, large text, denied camera permission, low light, no network, and repeated scan sessions.
 - Device matrix: close-up camera, standard camera, telephoto camera, sleeved card, foil, glare, white border, black border, borderless, old-frame Magic, modern frame, dark card, light card, rotated card, partial occlusion, and rapid card replacement.
+
+## Exact Printing Recognition
+
+- Implemented: Magic still capture defines `bottomLeftPrintingRegion` for bottom-left set, collector, language, and The List evidence.
+- Implemented: The List evidence is compared with Scryfall metadata and conflicts route to Review List instead of silently changing the printing.
+- Implemented: Single Scan and Review List support Nonfoil, Foil, and Etched controls only when the selected Scryfall printing supports those finishes.
+- Implemented: `View other printings` lets users replace the selected exact printing on the same scanner session row.
+- Partially Implemented: Bottom-left OCR improves review confidence, but it is not a benchmarked visual recognition guarantee.
+- See `docs/EXACT_PRINTING_RECOGNITION.md`.

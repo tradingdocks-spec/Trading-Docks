@@ -805,7 +805,9 @@ export default function AutomaticScannerScreen() {
       storageLocationId,
       tradeStatus,
       destination: sessionWithRate.defaultDestination,
-      notes: 'Pricing and final card decisions are handled in the Review List.',
+      notes: recognitionReport.confidenceState === 'high_confidence'
+        ? 'Pricing and final card decisions are handled in the Review List.'
+        : 'Confirm printing. Pricing and final card decisions are handled in the Review List.',
     });
     const addedLine = nextSession.lines[nextSession.lines.length - 1];
     setSession(nextSession);

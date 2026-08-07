@@ -117,6 +117,7 @@ test('Magic OCR region order uses primary, expanded, upper-card, full-card fallb
     regions.filter((region) => region.regionType === 'name').map((region) => region.id),
     ['title_primary', 'title_expanded', 'upper_card', 'full_card'],
   );
+  assert.equal(regions.some((region) => region.id === 'bottomLeftPrintingRegion' && region.regionType === 'bottom_left_printing'), true);
 });
 
 test('title OCR normalization preserves punctuation and adds conservative alternatives', () => {
@@ -212,7 +213,7 @@ test('sequential OCR can opt into collector OCR for background refinement', asyn
   });
 
   assert.equal(result.ok, true);
-  assert.deepEqual(calls, ['title_primary', 'collector_info']);
+  assert.deepEqual(calls, ['title_primary', 'collector_info', 'bottomLeftPrintingRegion']);
   if (result.ok) assert.equal(result.observations.some((observation) => observation.regionType === 'collector_info'), true);
 });
 
@@ -255,6 +256,7 @@ test('OCR signals preserve raw and normalized values', () => {
   assert.equal(signals.normalizedTitle, 'Rhystic Study');
   assert.equal(signals.selectedTitleAttemptId, 'title_primary');
   assert.equal(signals.rawCollectorText, 'WOT 25 EN');
+  assert.equal(signals.rawBottomLeftPrintingText, null);
   assert.equal(signals.collectorInfo?.collectorNumber, '25');
 });
 
@@ -293,6 +295,7 @@ test('valid OCR title produces Scryfall query diagnostics', async () => {
   assert.equal(result.cropDiagnostics.selectedTitleAttemptId, 'title_primary');
   assert.equal(result.lookupDiagnostics.outcome, 'success');
   assert.ok(result.cropDiagnostics.titleCrops.upper_card.height > result.cropDiagnostics.titleCrops.title_primary.height);
+  assert.ok(result.cropDiagnostics.bottomLeftPrintingCropPixels.width > 0);
 });
 
 test('title-only OCR produces capped candidates when collector data is missing', async () => {

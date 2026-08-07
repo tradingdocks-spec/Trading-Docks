@@ -59,13 +59,15 @@ test('card review sheet owns editable fields and preserves review actions', () =
   const sheet = section('CardReviewSheet');
   assert.match(sheet, /label="Quantity"/);
   assert.match(sheet, /label="Condition"/);
-  assert.match(sheet, /label="Finish"/);
+  assert.match(sheet, /finishLabel\(finish\)/);
   assert.match(sheet, /label="Market price"/);
   assert.match(sheet, /label="Cash percentage"/);
   assert.match(sheet, /Save and mark reviewed/);
-  assert.match(sheet, /Choose another printing/);
+  assert.match(sheet, /View other printings/);
+  assert.match(sheet, /PrintingSelectorSheet/);
   assert.match(sheet, /Remove card/);
   assert.match(sheet, /More options/);
+  assert.match(sheet, /Bottom-left OCR/);
   assert.match(sheet, /parseOptionalMoney/);
   assert.match(sheet, /parseOptionalPercentage/);
   assert.equal(sheet.includes('Missing signals'), false);
