@@ -69,8 +69,10 @@
 - Implemented: The local OCR module now includes an Apple podspec so `expo-modules-autolinking resolve --platform apple` emits the `TradingDocksVisionOcr` pod and `TradingDocksVisionOcrModule` registration.
 - Implemented: The active Scan tab now uses a premium camera-first hierarchy with compact header, large guide viewport, exactly two primary controls, secondary settings/manual/diagnostics panels, and a compact Review List chip.
 - Implemented: Scanner Product V3 now splits the mobile scanner into Scan Modes, Automatic Scan, Single Scan, and Review List so the tab route is no longer an overloaded camera/settings/review surface.
+- Implemented: Scanner readiness feedback is now shared between Single Scan and Automatic Scan, with one visible instruction and auto-capture no longer blocked solely by unavailable optional lighting/glare diagnostics.
 - Implemented: Automatic Scan keeps pricing, confidence, card metadata, condition, finish, and offer math out of the active camera surface while preserving those data paths for Review List.
 - Implemented: Single Scan adds a manual one-card capture flow that writes to the shared user-scoped scanner session contract.
+- Implemented: Scanner Review List finalization now persists collection-destination lines through the canonical scanner confirmation path into `inventory_items` or the user-scoped offline queue instead of only marking the session locally reviewed.
 - Planned: Grid Scan remains intentionally disabled until real multi-card recognition and post-processing are benchmarked.
 - Implemented: The active scanner is now batch-first intake: supported matches add directly to Scanner Session Review, likely/ambiguous rows are Needs review, failed reads do not create unknown rows, and per-card Add/pricing/metadata controls are no longer rendered on the camera surface.
 - Implemented: Magic still-capture OCR now normalizes rotated iPhone captures to the live preview orientation, uses primary/expanded/lower/wide/full-card title OCR fallback regions, exposes development-only crop proof, and keeps failed Retake recovery out of the user-paused camera state.
@@ -88,6 +90,7 @@
 - Partially Implemented: The benchmark builder captures and labels fixtures, but native image file movement/deletion must still be verified on physical iOS/Android development builds before relying on it for production calibration collection.
 - Partially Implemented: Native scanner replay still lacks a standalone network reachability trigger; without an approved reachability dependency it retries on app resume, session restore, and manual retry while Expo Web also uses the browser reconnect event.
 - Partially Implemented: Inventory remains Magic-compatible in the active write path. Multi-game persistence needs a migration proposal and catalog provider review before production use.
+- Partially Implemented: Mobile/web parity still has gaps for active workspace authority, Store/team shared inventory, mobile Deck Vault, and seller/store operational data. Current status is documented in `docs/MOBILE_WEB_DATA_PARITY.md`.
 - Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.

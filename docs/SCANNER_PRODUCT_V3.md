@@ -57,6 +57,16 @@ Hidden from the active camera surface:
 
 Successful scans show a small transient toast and then require card removal before rearming.
 
+### Readiness Language
+
+- Implemented: Single Scan and Automatic Scan now share one readiness model with four user-facing states: Searching, Needs Attention, Ready, and Processing.
+- Implemented: Searching uses cyan brackets and the copy `Place card in frame`.
+- Implemented: Needs Attention uses amber brackets and exactly one short instruction: `Move closer`, `Move away`, `Too dark`, `Hold steady`, `Tap card to focus`, `Center card`, or `Reduce glare`.
+- Implemented: Ready uses emerald brackets and the copy `Ready`; Single Scan turns the Capture button green while leaving manual capture controlled only by camera lifecycle.
+- Implemented: Processing uses subdued blue/cyan and the copy `Reading`.
+- Implemented: Automatic Scan evaluates the same readiness model before firing auto-capture. Required gates are camera ready, card present, reasonable fill, reasonable centering, acceptable blur, acceptable motion, stability, and duplicate/removal readiness. Lighting and glare block only when clearly unusable, and unavailable optional lighting/glare signals do not permanently block capture.
+- Implemented: Development diagnostics show readiness state, readiness reason, readiness copy, fill, center offset, blur, motion, lighting, glare, focus timing, stable duration, and auto-capture readiness.
+
 ## Single Scan
 
 Single Scan is intentionally slower and more deliberate.
@@ -104,6 +114,7 @@ Implemented structure:
 - Compact rows with image, name, printing, condition, finish, market, offer, status, and chevron.
 - Review sheet with image, name, printing, quantity, condition, finish, market, cash percentage, offer, Save and mark reviewed, Choose another printing, Remove, and More options.
 - One sticky Finalize action.
+- Implemented: Finalize now writes reviewed collection-destination scanner lines through the canonical `saveScannerConfirmation` path so mobile scanner results can persist to shared `inventory_items` instead of remaining only in local Review List storage.
 
 ## Camera Controls
 

@@ -18,6 +18,7 @@
 - Implemented: Root mobile frame wires `AuthProvider`, `AdminProvider`, `AccountProvider`, `SessionProvider`, biometric gate, status bar, and stack navigation.
 - Partially Implemented: Mobile account state is local-first and not yet aligned with web billing as the source of truth.
 - Partially Implemented: Admin mobile APIs expect Supabase RPCs/tables that require migrations and production setup.
+- Partially Implemented: Mobile/web data parity is documented in `docs/MOBILE_WEB_DATA_PARITY.md`. Collection, storage, Trade Binder, and Wishlist use shared Supabase tables; scanner intake remains local-first until Review List finalization writes collection records through the canonical backend path.
 
 ## Authentication Boundary
 
@@ -32,6 +33,8 @@
 - Implemented: Supabase migration history covers profiles, workspaces, preferences, billing subscriptions, inventory, deck vault, marketplace connections, credentials, orders, buylist feeds, feedback, inbound email, collector portfolio, and public sharing.
 - Implemented: RLS is enabled in migrations for many business tables.
 - Partially Implemented: Several migrations recreate or repair the same objects, especially deck vault, marketplace sync runs, and inbound email. Staging replay must be verified.
+- Implemented: Active mobile Collection reads canonical `inventory_items`, `inventory_locations`, `binder_card_trade_status`, and `collector_wishlist` rows scoped by the authenticated Supabase user.
+- Partially Implemented: Mobile workspace/team data still needs a server-authoritative active workspace resolver before Store shared-inventory workflows are considered complete.
 
 ## Integration Architecture
 
