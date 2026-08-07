@@ -263,10 +263,33 @@ export function annualSavings(tier: MembershipTier) {
   return Number(Math.max(0, plan.monthlyPrice * 12 - plan.annualPrice).toFixed(2));
 }
 
+export function annualMonthlyPrice(tier: MembershipTier) {
+  const plan = MEMBERSHIP_PLANS[tier];
+  return Number((plan.annualPrice / 12).toFixed(2));
+}
+
 export function getMembershipPlan(tier: unknown) {
   return MEMBERSHIP_PLANS[normalizeMembershipTier(tier)];
 }
 
+export function getEntitlementsForTier(tier: unknown) {
+  return [...getMembershipPlan(tier).entitlementKeys];
+}
+
 export function hasMembershipEntitlement(tier: unknown, entitlement: EntitlementKey) {
   return getMembershipPlan(tier).entitlementKeys.includes(entitlement);
+}
+
+export function billingStatusAllowsPaidEntitlements({
+  status,
+  periodEnd,
+  now = new Date(),
+}: {
+  status: BillingStatus;
+  periodEnd?: string | null;
+  now?: Date;
+}) {
+  if (status === "active" || status === "trialing") return true;
+  if (status !== "past_due" || !periodEnd) return false;
+  return new Date(periodEnd).getTime() > now.getTime();
 }

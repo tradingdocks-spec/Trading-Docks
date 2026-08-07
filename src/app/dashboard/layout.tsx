@@ -3,29 +3,26 @@ import { redirect } from "next/navigation";
 
 import { LegacyAccountDataCleanup } from "@/components/dashboard/account/LegacyAccountDataCleanup";
 import { TieredDashboardShell } from "@/components/dashboard/shell/TieredDashboardShell";
-import { createClient } from "@/lib/supabase/server";
+import { resolveCurrentPlatformAccess } from "@/lib/platform/server-access";
 import { getEffectivePlan } from "@/lib/effective-plan";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/sign-in?next=/dashboard");
-
-  const { data } = await supabase
+  const platform = await resolveCurrentPlatformAccess();
+  if (!platform.user) redirect("/sign-in?next=/dashboard");
+  const isOwner = platform.access.canAccessCommandCenter;
+  const { data } = await platform.supabase
     .from("user_preferences")
     .select("preferences")
-    .eq("user_id", user.id)
+    .eq("user_id", platform.user.id)
     .maybeSingle();
   const preferences =
     data?.preferences && typeof data.preferences === "object" && !Array.isArray(data.preferences)
-      ? data.preferences
+      ? (data.preferences as Record<string, unknown>)
       : {};
-  const isOwner =
-    user.email?.trim().toLowerCase() === "tradingdocks@gmail.com";
   const effectivePlan = await getEffectivePlan();
 
   return (
-    <LegacyAccountDataCleanup userId={user.id}>
+    <LegacyAccountDataCleanup userId={platform.user.id}>
       <TieredDashboardShell
         accountType={effectivePlan}
         inventoryModules={
@@ -36,9 +33,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             : []
         }
         userName={
-          typeof user.user_metadata?.full_name === "string"
-            ? user.user_metadata.full_name
-            : user.email?.split("@")[0] ?? "Collector"
+          typeof platform.user.user_metadata?.full_name === "string"
+            ? platform.user.user_metadata.full_name
+            : platform.user.email?.split("@")[0] ?? "Collector"
         }
         isOwner={isOwner}
       >

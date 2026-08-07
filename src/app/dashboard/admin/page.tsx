@@ -1,16 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { AdminControlCenter } from "@/components/dashboard/admin/AdminControlCenterWithPreview";
-import { createClient } from "@/lib/supabase/server";
+import { requireRouteAccess } from "@/lib/platform/server-access";
 
 export default async function AdminPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const result = await requireRouteAccess("/dashboard/admin");
+  if (!result.user) redirect("/sign-in?next=/dashboard/admin");
+  if (!result.access.canAccessCommandCenter) redirect("/dashboard");
 
-  if (!user) redirect("/sign-in?next=/dashboard/admin");
-  if (user.email?.trim().toLowerCase() !== "tradingdocks@gmail.com") {
-    redirect("/dashboard");
-  }
-
-  return <AdminControlCenter ownerEmail={user.email} />;
+  return <AdminControlCenter ownerEmail={result.user.email ?? ""} />;
 }
