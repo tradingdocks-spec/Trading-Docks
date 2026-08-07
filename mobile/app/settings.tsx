@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 import { TDBadge, TDButton, TDIconButton, TDListRow, TDNavigationHeader, TDSectionHeader, TDStatusIndicator, TDText } from '@/components/design-system';
 import { color, space } from '@/design';
+import { getMobileAppVersionInfo, getMobileReleaseLinks, isDevelopmentToolEnabled, MOBILE_PUBLIC_ENV_KEYS } from '@/services/mobile-release-config';
 
 type SettingKey = 'biometric' | 'sync' | 'haptics' | 'notifications' | 'diagnostics';
 
@@ -33,7 +35,9 @@ const initialValues: Record<SettingKey, boolean> = {
 
 export default function Settings() {
   const [values, setValues] = useState(initialValues);
-  const diagnosticsEnabled = process.env.EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS === 'true';
+  const diagnosticsEnabled = isDevelopmentToolEnabled(MOBILE_PUBLIC_ENV_KEYS.scannerDiagnostics);
+  const links = getMobileReleaseLinks();
+  const version = getMobileAppVersionInfo();
 
   const setValue = (key: SettingKey, value: boolean) => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -87,7 +91,15 @@ export default function Settings() {
         <View style={s.section}>
           <TDSectionHeader title="Support and privacy" />
           <TDListRow title="Privacy" description="Camera captures are not retained by default." iconName="shield-checkmark-outline" right={<TDBadge tone="success">Protected</TDBadge>} />
-          <TDListRow title="Support" description="Help and product feedback are planned for a dedicated support surface." iconName="help-circle-outline" right={<TDBadge tone="neutral">Planned</TDBadge>} />
+          <TDListRow title="Support" description="Help, account questions, and product feedback." iconName="help-circle-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => void Linking.openURL(links.support.url)} />
+          <TDListRow title="Privacy Policy" description={links.privacy.url} iconName="shield-checkmark-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => void Linking.openURL(links.privacy.url)} />
+          <TDListRow title="Terms of Service" description={links.terms.url} iconName="document-text-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => void Linking.openURL(links.terms.url)} />
+          <TDListRow title="Delete Account" description="Request account deletion and review consequences." iconName="trash-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => router.push('/account-delete' as never)} />
+        </View>
+
+        <View style={s.section}>
+          <TDSectionHeader title="About" />
+          <TDListRow title="Trading Docks" description={`Version ${version.version} - Build ${version.build}`} iconName="information-circle-outline" right={<TDBadge tone="neutral">{version.name}</TDBadge>} />
         </View>
 
         <TDButton label="Return to profile" variant="secondary" iconName="person-outline" onPress={() => router.push('/(tabs)/profile' as never)} />

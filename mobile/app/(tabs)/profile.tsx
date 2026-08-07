@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TDBadge, TDButton, TDCard, TDListRow, TDNavigationHeader, TDSectionHeader, TDStatusIndicator, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { getMobileScrollBottomInset } from '@/services/navigation-contract';
+import { getMobileAppVersionInfo, getMobileReleaseLinks } from '@/services/mobile-release-config';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/account';
 import { useAdmin } from '@/providers/admin';
@@ -25,6 +27,8 @@ export default function Profile() {
   const { isAdmin, role } = useAdmin();
   const { accountType } = useAccount();
   const { activeSession } = useWorkSession();
+  const links = getMobileReleaseLinks();
+  const version = getMobileAppVersionInfo();
 
   const signOut = async () => {
     await supabase?.auth.signOut();
@@ -35,6 +39,10 @@ export default function Profile() {
     if (title === 'Command Center') router.push('/admin');
     else if (title === 'Membership') router.push('/plans');
     else if (title === 'Settings' || title === 'Security' || title === 'Appearance' || title === 'Notifications') router.push('/settings');
+  };
+
+  const openLink = (url: string) => {
+    void Linking.openURL(url);
   };
 
   return (
@@ -69,6 +77,7 @@ export default function Profile() {
 
       <TDSectionHeader title="Account" />
       <TDListRow title="Membership" description={accountType[0].toUpperCase() + accountType.slice(1)} iconName="diamond-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Membership')} />
+      <TDListRow title="Delete Account" description="Request account deletion and review data consequences." iconName="trash-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => router.push('/account-delete' as never)} />
       {isAdmin ? <TDListRow title="Command Center" description={`${role} access is additive to this workspace.`} iconName="shield-checkmark-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Command Center')} /> : null}
 
       <TDSectionHeader title="Security and preferences" />
@@ -78,14 +87,22 @@ export default function Profile() {
 
       <TDSectionHeader title="Scanner and support" />
       <TDListRow title="Scanner settings" description="Camera, OCR, and offline replay preferences." iconName="scan-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => router.push('/settings' as never)} />
-      <TDListRow title="Support" description="Help, account questions, and product feedback." iconName="help-circle-outline" right={<TDBadge tone="neutral">Planned</TDBadge>} />
+      <TDListRow title="Support" description="Help, account questions, and product feedback." iconName="help-circle-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.support.url)} />
+      <TDListRow title="Privacy Policy" description={links.privacy.configuredFromEnv ? 'Configured for this build.' : 'Using documented Trading Docks legal page.'} iconName="shield-checkmark-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.privacy.url)} />
+      <TDListRow title="Terms of Service" description={links.terms.configuredFromEnv ? 'Configured for this build.' : 'Using documented Trading Docks legal page.'} iconName="document-text-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.terms.url)} />
+
+      <TDSectionHeader title="About" />
+      <TDCard style={s.aboutCard}>
+        <TDText variant="title">{version.name}</TDText>
+        <TDText variant="small" tone="muted">Version {version.version}</TDText>
+        <TDText variant="caption" tone="muted">Build {version.build}</TDText>
+      </TDCard>
 
       <TDButton
         label={session ? 'Sign out' : 'Sign in to Trading Docks'}
         onPress={session ? signOut : () => router.push('/auth')}
         variant="secondary"
       />
-      <TDText variant="caption" tone="muted" style={s.version}>Trading Docks Mobile Foundation 1.1</TDText>
     </ScrollView>
   );
 }
@@ -97,5 +114,5 @@ const s = StyleSheet.create({
   avatar: { width: 53, height: 53, borderRadius: radius.md, backgroundColor: color.primary, alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1, minWidth: 0, gap: 3 },
   name: { textTransform: 'capitalize' },
-  version: { color: color.textMuted, textAlign: 'center', fontSize: 10, marginTop: 6 },
+  aboutCard: { gap: space.xs },
 });
