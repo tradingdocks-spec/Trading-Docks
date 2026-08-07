@@ -49,6 +49,7 @@
 - Implemented: Active web and mobile membership tier names, prices, limits, and plan-card labels now use the canonical `free | collector | seller | store` catalog.
 - Implemented: Authenticated collection surfaces no longer present static sample cards as live user data.
 - Implemented: Mobile Home no longer presents mock collection value, mock movement, mock signals, or fake recent activity as live user data.
+- Implemented: Mobile Home Product V2 now shows one account-aware summary hero, four or fewer quick actions, real Recent Adds from owned collection rows, and one contextual insight.
 - Implemented: Mobile Seller/Signals and Deal Desk no longer present static fake revenue, margin, market, budget, or event-name metrics as authenticated business data.
 - Implemented: Collector card detail surfaces now support organization actions with optimistic updates and rollback rather than showing read-only planned action cards.
 - Partially Implemented: Web `/dashboard/inventory` now uses the Collector Workspace browser; older inventory management components remain in source and need workflow review before retirement.
@@ -84,7 +85,9 @@
 - Partially Implemented: Batch scanner latency diagnostics are available in the development panel with bounded local history, measured averages, preview/capture resolution when available, sanitized JSON export, bounded public catalog lookup caching, prewarming result reporting, and a development benchmark harness; capture/OCR/Scryfall/session-write budgets and camera FPS still need measured physical-device benchmark runs.
 - Partially Implemented: Scanner price enrichment now uses Scryfall price metadata after Review List insertion, but provider freshness, normalized price history, stale-price display, and failure telemetry still need product and data-model review.
 - Implemented: Scanner camera framing now uses a safe-area-aware helper so the 63:88 guide avoids the compact header, bottom controls, and device insets in source-tested viewport cases; still capture settings are centralized at maximum quality with native orientation processing and supported iOS responsive orientation.
-- Partially Implemented: The premium scanner UI still depends on manual still capture until native frame delivery is wired to the Vision Engine and validated on devices.
+- Implemented: Scanner camera selection now separates camera mode from zoom, normalizes legacy `macro` to `close`, hides duplicate no-op fixed modes, remounts when the resolved device/profile changes, and exposes development-only Camera QA cycling.
+- Partially Implemented: The actual Auto/Close-up/Standard/Telephoto camera inventory must still be measured on physical iOS/Android devices; no repository-only test can prove the device hardware mapping.
+- Partially Implemented: The premium scanner UI still depends on manual still capture until native frame delivery is validated on devices.
 - Planned: `docs/SCANNER_AUTO_CAPTURE_NATIVE_PLAN.md` records the required native frame bridge, measured FPS, auto-capture gate, same-card removal/rearm, privacy, physical QA, and rollback criteria before hands-free capture can be enabled.
 - Partially Implemented: Magic visual recognition still lacks benchmarked accuracy, artwork embedding, set-symbol detection, perspective correction, Android OCR, and finish classification providers. The active UI must continue requiring confirmation.
 - Partially Implemented: The benchmark builder captures and labels fixtures, but native image file movement/deletion must still be verified on physical iOS/Android development builds before relying on it for production calibration collection.
@@ -114,6 +117,7 @@
 - Planned: Move historical release notes/backups out of active source after product-owner review.
 - Planned: Continue incremental design-system migration rather than sweeping every screen into the new primitives at once.
 - Implemented: `docs/MOBILE_PRODUCT_DESIGN_AUDIT.md`, `docs/TRADING_DOCKS_DESIGN_BIBLE.md`, `docs/MOBILE_COMPONENT_CONTRACTS.md`, `docs/MOBILE_ACCESSIBILITY_STANDARD.md`, `docs/MOBILE_MOTION_STANDARD.md`, and `docs/MOBILE_VISUAL_MIGRATION_PLAN.md` now define the mobile design OS and migration order.
+- Implemented: `docs/HOME_PRODUCT_V2.md` and `docs/SCANNER_CAMERA_SELECTION.md` document the active mobile Home and camera-selection contracts.
 - Planned: Apply the mobile design OS screen-by-screen after physical-device QA confirms touch targets, safe areas, larger text, and reduced-motion behavior.
 - Planned: Deprecate duplicated dashboard navigation modules only after active imports are audited and route content gaps are prioritized.
 
