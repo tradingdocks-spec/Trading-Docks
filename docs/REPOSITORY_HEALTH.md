@@ -100,7 +100,8 @@
 - Implemented: Mobile production identifiers now use `com.tradingdocks.app` for iOS and Android.
 - Implemented: Mobile production-release verification now checks identifiers, app version/build metadata, EAS profile presence, forbidden public secrets, development flags, and required production Supabase public env when run with `NODE_ENV=production`.
 - Partially Implemented: Mobile account deletion is visible and support-assisted; backend self-service deletion remains Planned.
-- Partially Implemented: Mobile paid upgrade processing remains disabled/unimplemented for the Free-only RC strategy; entitlement display must continue to come from backend authority.
+- Partially Implemented: Mobile RevenueCat purchase and Restore Purchases entry points are implemented, but mobile paid access remains blocked until backend webhook reconciliation updates canonical Trading Docks membership records.
+- Requires Production Configuration: `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`, `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY`, RevenueCat Offering packages, Apple Sandbox purchase/restore QA, and a clean EAS rebuild are required before paid mobile subscription release.
 - Partially Implemented: Some API allowlisted endpoints may expose expensive external calls without durable rate limiting.
 - Partially Implemented: Multiple migration repair files may not replay cleanly in a fresh database without manual sequencing review.
 
@@ -116,6 +117,7 @@
 
 - Planned: Establish canonical web dashboard architecture.
 - Implemented: Establish a shared membership contract for web, mobile, admin, Stripe adapter code, and future RevenueCat adapter planning.
+- Implemented: Add a centralized mobile RevenueCat service that keeps Supabase UUID as `appUserID`, maps `Collector`/`Seller`/`Store` entitlements into canonical tiers, and keeps provider purchase state separate from backend authorization.
 - Implemented: Shared identity/access types now separate platform role, account type, membership tier, billing status, and entitlements.
 - Planned: Generate a canonical Supabase schema snapshot from a clean migration replay.
 - Partially Implemented: `docs/REPOSITORY_CLEANUP_PLAN.md` now inventories historical backups, generated output, duplicate dashboard systems, duplicate navigation, duplicate design-system layers, unused candidates, and cleanup phases.
@@ -168,6 +170,7 @@
 - Implemented: Focused mobile product design tests now verify Wave 3 docs, admin/settings/recovery/showcase hierarchy, scanner diagnostic gating, and no idempotency details in normal recovery UI.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
+- Implemented: Focused RevenueCat membership tests cover Supabase UUID identity, logout/account switching, entitlement precedence, package/product mapping, localized pricing usage, restore/purchase UI contracts, Stripe compatibility language, and no client-side entitlement escalation.
 - Planned: Public share token validation tests.
 - Planned: API route authentication allowlist tests.
 - Planned: Supabase RLS/cross-account isolation tests.

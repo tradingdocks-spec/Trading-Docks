@@ -38,8 +38,10 @@
 
 - Implemented: Stripe price mapping is separate from product definitions through `MEMBERSHIP_PROVIDER_MAPPINGS`.
 - Requires Production Configuration: Existing Stripe price IDs must be checked against the canonical prices before live billing is enabled.
-- Planned: RevenueCat mappings are represented as planned provider rows only; RevenueCat is not active.
-- Partially Implemented: The first mobile RC strategy is Free-only mobile account creation with paid entitlement display only. Native Collector/Seller/Store purchases remain Planned until approved StoreKit/Google Play Billing or RevenueCat integration is implemented and reconciled through the backend.
+- Implemented: RevenueCat mobile SDK integration maps active entitlements `Collector`, `Seller`, and `Store` to canonical tiers `collector`, `seller`, and `store`.
+- Implemented: RevenueCat package identifiers are `collector_monthly`, `collector_yearly`, `seller_monthly`, `seller_yearly`, `store_monthly`, and `store_yearly`; product identifiers remain owned by RevenueCat/App Store configuration.
+- Partially Implemented: Mobile can initiate RevenueCat purchase and restore flows, but protected access still requires backend canonical membership reconciliation.
+- Requires Production Configuration: RevenueCat public SDK keys, Offering/package configuration, Sandbox purchase/restore QA, and webhook reconciliation must pass before paid mobile subscriptions are production-ready.
 
 ## Safe Fallbacks
 

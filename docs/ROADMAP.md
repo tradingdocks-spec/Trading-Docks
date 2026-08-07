@@ -32,6 +32,8 @@ Do not add new production features until the foundation items below are reviewed
 - Partially Implemented: Home market movement, recent activity, notifications, and operations signals remain unavailable until real data sources exist.
 - Planned: Remove or archive backup dependency folders and historical release artifacts only after product-owner review.
 - Planned: Add missing tests for auth redirects, plan gates, billing webhook behavior, public share token safety, and key route handlers.
+- Implemented: Integrate the RevenueCat mobile SDK, Supabase UUID appUserID lifecycle, package/entitlement mapping, custom mobile Membership purchase UI, Restore Purchases entry point, public config validation, and focused subscription contract tests.
+- Partially Implemented: RevenueCat purchase/restore results do not yet unlock protected access because backend webhook reconciliation is still Planned and physical Sandbox QA is pending.
 - Planned: Add mobile CI or document why mobile validation is manual.
 - Planned: Add native-device validation for biometric unlock, Google OAuth, Apple Sign In, and magic-link deep-link callbacks.
 - Planned: Continue design-system migration in order: dashboard state surfaces, common cards/headers, input-heavy admin/settings screens, then modal/toast/chart/table primitives.
@@ -98,7 +100,7 @@ Do not add new production features until the foundation items below are reviewed
 
 ## Later
 
-- Planned: RevenueCat-backed mobile subscriptions if mobile in-app purchases become a production requirement.
+- Partially Implemented: RevenueCat-backed mobile subscriptions are wired in the app, but production access activation is blocked by webhook reconciliation, public EAS SDK-key configuration, clean EAS rebuild, and physical Sandbox purchase/restore QA.
 - Planned: Native mobile release pipeline, app store signing, and deep-link verification.
 - Requires Production Configuration: Rebuild the iOS development client after native scanner module changes with `npx eas build --profile development --platform ios`.
 - Planned: Multi-tenant workspace/team permission model hardening beyond current owner/member helpers.
