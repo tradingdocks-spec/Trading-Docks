@@ -140,7 +140,7 @@ function HomeHero({
           <TDText variant="label" tone="muted">{eyebrow}</TDText>
           <TDText variant="title">{title}</TDText>
         </View>
-        <TDBadge tone={tone}>{state}</TDBadge>
+        <TDBadge tone={tone}>{heroStateLabel(state)}</TDBadge>
       </View>
       {loading ? (
         <TDSkeleton lines={2} style={s.heroSkeleton} />
@@ -189,7 +189,7 @@ function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
     <View style={s.section}>
       <View style={s.sectionHeader}>
         <TDText variant="title">Recent Adds</TDText>
-        <TDText variant="caption" tone="muted">Real saved cards</TDText>
+        <TDText variant="caption" tone="muted">Latest inventory</TDText>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.recentList}>
         {cards.map((card) => (
@@ -296,6 +296,13 @@ function tap() {
   if (Platform.OS !== 'web') void Haptics.selectionAsync();
 }
 
+function heroStateLabel(state: 'ready' | 'empty' | 'unavailable' | 'stale') {
+  if (state === 'ready') return 'Synced';
+  if (state === 'empty') return 'Start';
+  if (state === 'stale') return 'Cached';
+  return 'Offline';
+}
+
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: color.canvas },
   content: { paddingHorizontal: space.md, gap: space.lg },
@@ -313,8 +320,8 @@ const s = StyleSheet.create({
   section: { gap: space.sm },
   sectionHeader: { minHeight: 28, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.sm },
   recentList: { gap: space.sm, paddingRight: space.md },
-  recentCard: { width: 138, gap: 4, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.xs, backgroundColor: color.surfaceFloating },
-  cardImageFrame: { height: 184, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },
+  recentCard: { width: 148, gap: 5, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.xs, backgroundColor: color.surfaceFloating },
+  cardImageFrame: { height: 198, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },
   cardImage: { width: '100%', height: '100%' },
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xs, padding: space.xs },
   quantityPill: { position: 'absolute', right: 6, top: 6, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: color.canvas + 'D8' },

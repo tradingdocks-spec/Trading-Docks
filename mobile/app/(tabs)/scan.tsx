@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  TDButton,
   TDText,
 } from '@/components/design-system';
 import { color, radius, space } from '@/design';
@@ -25,6 +26,7 @@ const scanModeRows = [
     icon: 'scan-outline',
     route: '/scan/automatic',
     primary: true,
+    cta: 'Start scanning',
   },
   {
     id: 'single',
@@ -33,6 +35,7 @@ const scanModeRows = [
     icon: 'radio-button-on-outline',
     route: '/scan/single',
     primary: false,
+    cta: 'Open',
   },
   {
     id: 'review',
@@ -41,6 +44,7 @@ const scanModeRows = [
     icon: 'list-outline',
     route: '/scanner-session',
     primary: false,
+    cta: 'Review',
   },
 ] as const;
 
@@ -67,18 +71,25 @@ export default function ScanModesScreen() {
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.content, { paddingBottom: bottomInset }]}>
       <View style={s.header}>
+        <TDText variant="label" tone="info">{accountType === 'store' ? 'Store intake' : accountType === 'seller' ? 'Seller intake' : 'Collection intake'}</TDText>
         <TDText variant="display">Scan</TDText>
-        <TDText variant="small" tone="muted">Choose how Trading Docks should read cards today.</TDText>
+        <TDText variant="small" tone="muted">Automatic Scan is the fastest path. Single Scan and Review stay close when you need control.</TDText>
       </View>
 
       <View style={s.modeList}>
-        {scanModeRows.map((row) => (
+        <PrimaryScanMode
+          count={reviewCount}
+          onStart={() => router.push('/scan/automatic' as never)}
+          onSingle={() => router.push('/scan/single' as never)}
+          onReview={() => router.push('/scanner-session' as never)}
+        />
+        {scanModeRows.filter((row) => !row.primary).map((row) => (
           <ScanModeRow
             key={row.id}
             title={row.title}
             description={row.description}
             icon={row.icon}
-            primary={row.primary}
+            cta={row.cta}
             count={row.id === 'review' && reviewCount > 0 ? reviewCount : null}
             onPress={() => router.push(row.route as never)}
           />
@@ -108,18 +119,53 @@ async function loadReviewListCount() {
   }
 }
 
+function PrimaryScanMode({
+  count,
+  onStart,
+  onSingle,
+  onReview,
+}: {
+  count: number;
+  onStart: () => void;
+  onSingle: () => void;
+  onReview: () => void;
+}) {
+  return (
+    <View style={s.primaryCard}>
+      <View style={s.primaryTop}>
+        <View style={s.primaryIcon}>
+          <Ionicons name="scan-outline" size={26} color={color.text} />
+        </View>
+        <View style={s.modeText}>
+          <TDText variant="heading" numberOfLines={1}>Automatic Scan</TDText>
+          <TDText variant="small" tone="muted">Hands-free capture, exact-printing review, and rapid add flow.</TDText>
+        </View>
+      </View>
+      <TDButton label="Start scanning" iconName="scan-outline" onPress={onStart} />
+      <View style={s.inlineLinks}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open Single Scan" onPress={onSingle} style={({ pressed }) => [s.linkButton, pressed && s.modeRowPressed]}>
+          <TDText variant="small" tone="info">Single Scan</TDText>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Open Review List${count > 0 ? ` with ${count} cards` : ''}`} onPress={onReview} style={({ pressed }) => [s.linkButton, pressed && s.modeRowPressed]}>
+          <TDText variant="small" tone={count > 0 ? 'warning' : 'info'}>{count > 0 ? `Review ${count}` : 'Review List'}</TDText>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function ScanModeRow({
   title,
   description,
   icon,
-  primary,
+  cta,
   count,
   onPress,
 }: {
   title: string;
   description: string;
   icon: string;
-  primary?: boolean;
+  cta: string;
   count: number | null;
   onPress: () => void;
 }) {
@@ -130,12 +176,11 @@ function ScanModeRow({
       onPress={onPress}
       style={({ pressed }) => [
         s.modeRow,
-        primary && s.modeRowPrimary,
         pressed && s.modeRowPressed,
       ]}
     >
-      <View style={[s.modeIcon, primary && s.modeIconPrimary]}>
-        <Ionicons name={icon as any} size={22} color={primary ? color.text : color.primaryBright} />
+      <View style={s.modeIcon}>
+        <Ionicons name={icon as any} size={21} color={color.primaryBright} />
       </View>
       <View style={s.modeText}>
         <View style={s.modeTitleRow}>
@@ -144,16 +189,16 @@ function ScanModeRow({
         </View>
         <TDText variant="small" tone="muted" numberOfLines={1}>{description}</TDText>
       </View>
-      <Ionicons name="chevron-forward" size={20} color={color.textMuted} />
+      <TDText variant="caption" tone="info">{cta}</TDText>
     </Pressable>
   );
 }
 
 const s = StyleSheet.create({
   content: {
-    gap: space.lg,
+    gap: space.md,
     paddingHorizontal: space.md,
-    paddingTop: space.xl,
+    paddingTop: space.lg,
   },
   screen: {
     flex: 1,
@@ -165,19 +210,48 @@ const s = StyleSheet.create({
   modeList: {
     gap: space.sm,
   },
-  modeRow: {
-    minHeight: 86,
+  primaryCard: {
     borderRadius: radius.lg,
+    padding: space.md,
+    gap: space.md,
+    backgroundColor: color.primary + '20',
+    borderWidth: 1,
+    borderColor: color.primaryBright + '55',
+  },
+  primaryTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  primaryIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.primaryBright,
+  },
+  inlineLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: space.sm,
+  },
+  linkButton: {
+    minHeight: 38,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: space.md,
+  },
+  modeRow: {
+    minHeight: 68,
+    borderRadius: radius.md,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
     backgroundColor: color.surfaceFloating,
-  },
-  modeRowPrimary: {
-    minHeight: 96,
-    backgroundColor: color.primary + '22',
   },
   modeRowPressed: {
     opacity: 0.82,
@@ -190,9 +264,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: color.primary + '18',
-  },
-  modeIconPrimary: {
-    backgroundColor: color.primaryBright,
   },
   modeText: {
     flex: 1,

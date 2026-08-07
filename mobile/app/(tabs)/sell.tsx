@@ -6,8 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   TDBadge,
   TDCard,
-  TDEmptyState,
   TDListRow,
+  TDMetric,
   TDNavigationHeader,
   TDSectionHeader,
   TDText,
@@ -27,7 +27,7 @@ export default function Sell() {
       <TDNavigationHeader
         eyebrow={workspaceLabel}
         title={headlineForAccount(accountType)}
-        subtitle="Only real saved sessions and available workspace shortcuts are shown here."
+        subtitle={subtitleForAccount(accountType)}
       />
 
       <TDCard variant="floating" style={s.hero}>
@@ -41,15 +41,14 @@ export default function Sell() {
           </View>
           <TDBadge tone={activeSession ? 'success' : 'neutral'}>{activeSession ? 'Active' : 'Quiet'}</TDBadge>
         </View>
-        <TDListRow
-          title="Seller metrics unavailable"
-          description="Orders, offers, and margin reporting will appear after real marketplace or POS data is connected."
-          iconName="analytics-outline"
-          right={<TDBadge tone="neutral">Planned</TDBadge>}
-        />
+        <View style={s.signalGrid}>
+          <TDMetric label="Active session" value={activeSession ? String(activeSession.itemCount) : '0'} tone={activeSession ? 'success' : 'neutral'} compact />
+          <TDMetric label="Market alerts" value="Soon" compact />
+          <TDMetric label="Data source" value="Saved" tone="info" compact />
+        </View>
       </TDCard>
 
-      <TDSectionHeader title="Next actions" />
+      <TDSectionHeader title="Available now" />
       <TDListRow
         title="Open Deal Desk"
         description="Start or resume a buying, trade, sealed, or show session."
@@ -72,10 +71,17 @@ export default function Sell() {
         onPress={() => router.push('/(tabs)/collection' as never)}
       />
 
-      <TDEmptyState
-        title="Seller metrics are not connected yet"
-        message="Sales, order, and margin reporting will appear here after real marketplace or POS data is wired."
-      />
+      <TDCard variant="outlined" style={s.comingSoon}>
+        <View style={s.comingSoonIcon}>
+          <Ionicons name="pulse-outline" size={20} color={color.info} />
+        </View>
+        <View style={s.flex}>
+          <TDText variant="small">Signals will stay grounded in your cards</TDText>
+          <TDText variant="caption" tone="muted">
+            Price movement, sales, order, and margin intelligence will appear only after those real data feeds are connected.
+          </TDText>
+        </View>
+      </TDCard>
     </ScrollView>
   );
 }
@@ -83,7 +89,13 @@ export default function Sell() {
 function headlineForAccount(accountType: string) {
   if (accountType === 'store') return 'Store activity and operations';
   if (accountType === 'seller') return 'Seller signals and workflow shortcuts';
-  return 'Market signals and collection opportunities';
+  return 'Collection signals';
+}
+
+function subtitleForAccount(accountType: string) {
+  if (accountType === 'store') return 'Use saved sessions and workspace shortcuts while operations metrics are being connected.';
+  if (accountType === 'seller') return 'Use saved sessions and seller shortcuts while live margin and marketplace signals are being connected.';
+  return 'Signals focus on your saved collection until live market intelligence is connected.';
 }
 
 const s = StyleSheet.create({
@@ -91,5 +103,8 @@ const s = StyleSheet.create({
   content: { gap: space.md, paddingHorizontal: space.lg },
   hero: { gap: space.md, padding: space.lg },
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm },
+  signalGrid: { flexDirection: 'row', gap: space.xs },
+  comingSoon: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
+  comingSoonIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '16' },
   flex: { flex: 1, minWidth: 0 },
 });

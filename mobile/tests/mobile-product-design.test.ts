@@ -87,8 +87,8 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
   assert.match(scannerSession, /Save and mark reviewed/);
   assert.doesNotMatch(scannerSession, /Finalize reviewed cards/);
   assert.match(dealDesk, /Review counts and margin reporting require real priced session lines/);
-  assert.match(sell, /Seller metrics unavailable/);
-  assert.match(profile, /Security and preferences/);
+  assert.match(sell, /Signals will stay grounded in your cards/);
+  assert.match(profile, /Preferences/);
   assert.match(auth, /Passwords are never stored on this device/);
   assert.match(welcome, /Your TCG collection, wherever you trade/);
   assert.match(onboarding, /You can review paid plans later/);
@@ -153,12 +153,43 @@ test('Wave 1 routes consume mobile design OS primitives for high-traffic surface
   assert.match(home, /RecentAddsCarousel/);
   assert.equal(home.includes('TDListRow'), false);
   assert.match(scanModes, /Automatic Scan/);
+  assert.match(scanModes, /Start scanning/);
   assert.match(automaticScanner, /batchScannerReviewChipModel/);
   assert.match(automaticScanner, /TDSessionStrip/);
   assert.match(collection, /TDInput[\s\S]*Search collection/);
-  assert.match(collection, /TDSegmentedControl/);
+  assert.match(collection, /filterRail/);
   assert.match(cardDetail, /TDNavigationHeader/);
   assert.match(cardDetail, /Advanced details/);
   assert.match(storage, /TDListRow/);
   assert.match(storage, /TDSegmentedControl/);
+});
+
+test('release polish pass removes beta copy and elevates primary scanner and inventory hierarchy', () => {
+  const home = readFileSync(join(root, 'app', '(tabs)', 'index.tsx'), 'utf8');
+  const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
+  const scanModes = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
+  const signals = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
+  const profile = readFileSync(join(root, 'app', '(tabs)', 'profile.tsx'), 'utf8');
+
+  assert.doesNotMatch(home, /Real saved cards/);
+  assert.doesNotMatch(home, /<TDBadge tone=\{tone\}>\{state\}<\/TDBadge>/);
+  assert.match(home, /Latest inventory/);
+  assert.match(home, /heroStateLabel/);
+
+  assert.match(collection, /Your cards/);
+  assert.match(collection, /filterRail/);
+  assert.match(collection, /summaryStrip/);
+  assert.doesNotMatch(collection, /<TDSegmentedControl label="Sort"/);
+
+  assert.match(scanModes, /PrimaryScanMode/);
+  assert.match(scanModes, /Automatic Scan is the fastest path/);
+  assert.match(scanModes, /Start scanning/);
+
+  assert.match(signals, /Collection signals/);
+  assert.match(signals, /Signals will stay grounded in your cards/);
+  assert.doesNotMatch(signals, /<TDEmptyState/);
+
+  assert.match(profile, /paddingTop: Math\.max\(insets\.top \+ 26, 56\)/);
+  assert.match(profile, /<TDSectionHeader title="Essentials"/);
+  assert.match(profile, /<TDSectionHeader title="Support and legal"/);
 });

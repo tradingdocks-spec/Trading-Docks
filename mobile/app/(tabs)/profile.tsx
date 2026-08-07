@@ -45,12 +45,14 @@ export default function Profile() {
     void Linking.openURL(url);
   };
 
+  const accountLabel = accountType[0].toUpperCase() + accountType.slice(1);
+
   return (
-    <ScrollView style={s.page} contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 14, 34), paddingBottom: getMobileScrollBottomInset(insets.bottom) }]} showsVerticalScrollIndicator={false}>
+    <ScrollView style={s.page} contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 26, 56), paddingBottom: getMobileScrollBottomInset(insets.bottom) }]} showsVerticalScrollIndicator={false}>
       <TDNavigationHeader
         eyebrow="Profile"
-        title="Account and settings"
-        subtitle="Manage your workspace, membership, security, and support options."
+        title="Account"
+        subtitle="Membership, security, scanner preferences, and support."
       />
       <TDCard variant="floating" style={s.identity}>
         <View style={s.avatar}>
@@ -59,9 +61,11 @@ export default function Profile() {
         <View style={s.flex}>
           <TDText variant="title" style={s.name}>{session?.user.email?.split('@')[0] ?? 'Collector'}</TDText>
           <TDText variant="caption" tone="muted">{session?.user.email ?? 'Preview mode'}</TDText>
-          <TDStatusIndicator label={configured ? 'Connection ready' : 'Setup required'} tone={configured ? 'success' : 'warning'} />
+          <View style={s.identityMeta}>
+            <TDStatusIndicator label={configured ? 'Connected' : 'Setup required'} tone={configured ? 'success' : 'warning'} />
+            <TDBadge tone="info">{accountLabel}</TDBadge>
+          </View>
         </View>
-        <TDBadge tone={session ? 'success' : 'warning'}>{session ? 'Signed in' : 'Preview'}</TDBadge>
       </TDCard>
 
       {activeSession ? (
@@ -75,21 +79,22 @@ export default function Profile() {
         />
       ) : null}
 
-      <TDSectionHeader title="Account" />
-      <TDListRow title="Membership" description={accountType[0].toUpperCase() + accountType.slice(1)} iconName="diamond-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Membership')} />
-      <TDListRow title="Delete Account" description="Request account deletion and review data consequences." iconName="trash-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => router.push('/account-delete' as never)} />
+      <TDSectionHeader title="Essentials" />
+      <TDListRow title="Membership" description={`${accountLabel} workspace access`} iconName="diamond-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Membership')} />
       {isAdmin ? <TDListRow title="Command Center" description={`${role} access is additive to this workspace.`} iconName="shield-checkmark-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Command Center')} /> : null}
+      <TDListRow title="Settings" description="Security, notifications, appearance, and scanner preferences." iconName="settings-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Settings')} />
 
-      <TDSectionHeader title="Security and preferences" />
-      {baseItems.map(([title, value, itemIcon]) => (
+      <TDSectionHeader title="Preferences" />
+      {baseItems.filter(([title]) => title !== 'Settings').map(([title, value, itemIcon]) => (
         <TDListRow key={title} accessibilityLabel={`Open ${title}`} description={value} iconName={itemIcon as keyof typeof Ionicons.glyphMap} onPress={() => open(title)} right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} title={title} />
       ))}
-
-      <TDSectionHeader title="Scanner and support" />
       <TDListRow title="Scanner settings" description="Camera, OCR, and offline replay preferences." iconName="scan-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => router.push('/settings' as never)} />
+
+      <TDSectionHeader title="Support and legal" />
       <TDListRow title="Support" description="Help, account questions, and product feedback." iconName="help-circle-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.support.url)} />
       <TDListRow title="Privacy Policy" description={links.privacy.configuredFromEnv ? 'Configured for this build.' : 'Using documented Trading Docks legal page.'} iconName="shield-checkmark-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.privacy.url)} />
       <TDListRow title="Terms of Service" description={links.terms.configuredFromEnv ? 'Configured for this build.' : 'Using documented Trading Docks legal page.'} iconName="document-text-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.terms.url)} />
+      <TDListRow title="Delete Account" description="Request account deletion and review data consequences." iconName="trash-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => router.push('/account-delete' as never)} />
 
       <TDSectionHeader title="About" />
       <TDCard style={s.aboutCard}>
@@ -113,6 +118,7 @@ const s = StyleSheet.create({
   identity: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 10 },
   avatar: { width: 53, height: 53, borderRadius: radius.md, backgroundColor: color.primary, alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1, minWidth: 0, gap: 3 },
+  identityMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.xs },
   name: { textTransform: 'capitalize' },
   aboutCard: { gap: space.xs },
 });

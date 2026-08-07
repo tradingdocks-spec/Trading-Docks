@@ -17,7 +17,6 @@ import {
   TDMetric,
   TDNavigationHeader,
   TDScreen,
-  TDSegmentedControl,
   TDStatusIndicator,
   TDText,
 } from '@/components/design-system';
@@ -148,26 +147,46 @@ export default function Collection() {
           <View style={s.headerStack}>
             <TDNavigationHeader
               eyebrow="Collection"
-              title="Find an owned card"
-              subtitle="Search exact printings, quantity, condition, finish, and storage."
+              title="Your cards"
+              subtitle="Search exact printings, condition, finish, quantity, and storage."
               rightAction={staleReason ? <TDBadge tone="warning">Stale</TDBadge> : undefined}
             />
 
-            <TDInput
-              label="Search collection"
-              accessibilityLabel="Search collection by card name, set, collector number, or storage location"
-              leftIconName="search-outline"
-              placeholder="Card name, set, number, storage..."
-              value={query}
-              onChangeText={setQuery}
-              returnKeyType="search"
-            />
+            <View style={s.searchControls}>
+              <TDInput
+                accessibilityLabel="Search collection by card name, set, collector number, or storage location"
+                containerStyle={s.searchInput}
+                leftIconName="search-outline"
+                placeholder="Name, set, number, storage..."
+                value={query}
+                onChangeText={setQuery}
+                returnKeyType="search"
+              />
+              <View style={s.modeRow}>
+                <IconMode label="List view" iconName="list-outline" selected={displayMode === 'list'} onPress={() => setDisplayMode('list')} />
+                <IconMode label="Grid view" iconName="grid-outline" selected={displayMode === 'grid'} onPress={() => setDisplayMode('grid')} />
+              </View>
+            </View>
 
-            <View style={s.summaryGrid}>
+            <View style={s.filterRail} accessibilityLabel="Collection sort and shortcuts">
+              {SORT_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.value}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Sort by ${option.label}`}
+                  accessibilityState={{ selected: sort === option.value }}
+                  onPress={() => setSort(option.value)}
+                  style={({ pressed }) => [s.sortChip, sort === option.value && s.sortChipSelected, pressed && s.pressed]}
+                >
+                  <TDText variant="caption" tone={sort === option.value ? 'primary' : 'muted'} numberOfLines={1}>{option.label}</TDText>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={s.summaryStrip}>
               <TDMetric label="Owned" value={summary.totalOwnedCards.toLocaleString()} tone="info" compact />
               <TDMetric label="Unique" value={summary.uniquePrintings.toLocaleString()} compact />
               <TDMetric label="Storage" value={summary.storageLocationCount.toLocaleString()} compact />
-              <TDMetric label="Missing prices" value={summary.missingPriceCount.toLocaleString()} tone={summary.missingPriceCount ? 'warning' : 'neutral'} compact />
             </View>
 
             {summary.freeCardLimit ? (
@@ -194,14 +213,6 @@ export default function Collection() {
                 <TDText variant="caption" tone="muted">{staleReason}</TDText>
               </TDCard>
             ) : null}
-
-            <View style={s.controls}>
-              <TDSegmentedControl label="Sort" options={SORT_OPTIONS} value={sort} onChange={setSort} />
-              <View style={s.modeRow}>
-                <IconMode label="List view" iconName="list-outline" selected={displayMode === 'list'} onPress={() => setDisplayMode('list')} />
-                <IconMode label="Grid view" iconName="grid-outline" selected={displayMode === 'grid'} onPress={() => setDisplayMode('grid')} />
-              </View>
-            </View>
 
             <View style={s.secondaryActions}>
               <TDButton
@@ -395,16 +406,20 @@ function IconMode({
 }
 
 const s = StyleSheet.create({
-  screen: { paddingTop: 56, paddingBottom: 0 },
+  screen: { paddingTop: 48, paddingBottom: 0 },
   listContent: { gap: space.md },
-  headerStack: { gap: space.md, marginBottom: space.xs },
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  headerStack: { gap: space.sm, marginBottom: space.xs },
+  searchControls: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
+  searchInput: { flex: 1 },
+  filterRail: { flexDirection: 'row', gap: space.xs },
+  sortChip: { minHeight: 34, flex: 1, minWidth: 0, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xs, backgroundColor: color.canvasRaised },
+  sortChipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '24' },
+  summaryStrip: { flexDirection: 'row', gap: space.xs },
   limitCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },
   staleCard: { gap: space.xs, padding: space.md },
   limitIcon: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '12' },
   flex: { flex: 1 },
-  controls: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: space.sm },
-  secondaryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  secondaryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: -space.xs },
   modeRow: { flexDirection: 'row', gap: space.xs },
   gridRow: { gap: space.sm },
   cardListItem: { width: '100%' },
