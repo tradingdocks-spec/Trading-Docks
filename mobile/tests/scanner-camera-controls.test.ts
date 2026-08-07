@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  SCANNER_CAMERA_LENS_LABELS,
   appendScannerCameraEvent,
   buildScannerCameraQualityProfile,
   convertPreviewTapToCameraPoint,
@@ -122,6 +123,15 @@ test('lens selection exposes only supported rear lens modes', () => {
   assert.deepEqual(supportedModes, ['auto', 'macro', 'standard', 'telephoto']);
   assert.equal(selection.selectedDevice?.id, 'tele');
   assert.equal(selection.selectedDeviceSummary?.hasTorch, false);
+  assert.equal(selection.options.find((option) => option.mode === 'telephoto')?.deviceId, 'tele');
+  assert.match(selection.options.find((option) => option.mode === 'telephoto')?.mappingReason ?? '', /real telephoto/);
+});
+
+test('lens controls use named modes instead of fake digital zoom labels', () => {
+  const labels = Object.values(SCANNER_CAMERA_LENS_LABELS).map((label) => label.shortLabel);
+
+  assert.deepEqual(labels, ['Auto', 'Close', 'Std', 'Tele']);
+  assert.doesNotMatch(labels.join(' '), /0\.5x|2x|5x/);
 });
 
 test('auto lens prefers focus and torch for scanning', () => {
@@ -136,6 +146,8 @@ test('unsupported lens preference falls back to auto', () => {
   assert.equal(selection.resolvedMode, 'auto');
   assert.equal(selection.selectedDevice?.id, 'wide');
   assert.deepEqual(selection.options.filter((option) => option.supported).map((option) => option.mode), ['auto', 'standard']);
+  assert.equal(selection.options.find((option) => option.mode === 'telephoto')?.supported, false);
+  assert.match(selection.options.find((option) => option.mode === 'telephoto')?.mappingReason ?? '', /unavailable/);
 });
 
 test('lens preference normalization defaults safely', () => {
@@ -155,6 +167,7 @@ test('camera diagnostics enumerate rear devices and quality profile', () => {
   assert.equal(selection.qualityProfile?.targetFps, 30);
   assert.equal(selection.qualityProfile?.defaultZoom, 1);
   assert.match(selection.qualityProfile?.selectedFormatLabel ?? '', /quality-first 30fps/);
+  assert.ok(selection.options.every((option) => option.mappingReason.length > 0));
 });
 
 test('close-up lens prefers short focus distance over only lens type', () => {

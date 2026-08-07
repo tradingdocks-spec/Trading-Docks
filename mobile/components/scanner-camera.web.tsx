@@ -24,7 +24,7 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
   }), []);
 
   useEffect(() => {
-    onLensOptionsChange?.([{ mode: 'auto', label: 'Auto', shortLabel: 'Auto', supported: true, deviceId: 'web-back-camera' }]);
+    onLensOptionsChange?.([{ mode: 'auto', label: 'Auto', shortLabel: 'Auto', supported: true, deviceId: 'web-back-camera', effectiveZoom: null, mappingReason: 'Web camera fallback uses the browser-selected video input.' }]);
   }, [onLensOptionsChange]);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
       resolvedMode: 'auto',
       selectedDevice: undefined,
       selectedDeviceSummary: summary,
-      options: [{ mode: 'auto', label: 'Auto', shortLabel: 'Auto', supported: true, deviceId: 'web-back-camera' }],
+      options: [{ mode: 'auto', label: 'Auto', shortLabel: 'Auto', supported: true, deviceId: 'web-back-camera', effectiveZoom: null, mappingReason: 'Web camera fallback uses the browser-selected video input.' }],
       rearDevices: [summary],
       qualityProfile: null,
     });

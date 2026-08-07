@@ -180,7 +180,7 @@ export default function AutomaticScannerScreen() {
   const [cameraLensMode, setCameraLensMode] = useState<ScannerCameraLensMode>('auto');
   const [rawCameraDeviceId, setRawCameraDeviceId] = useState<string | null>(null);
   const [cameraLensOptions, setCameraLensOptions] = useState<ScannerCameraLensOption[]>([
-    { mode: 'auto', label: 'Auto', shortLabel: 'Auto', supported: true, deviceId: null },
+    { mode: 'auto', label: 'Auto', shortLabel: 'Auto', supported: true, deviceId: null, effectiveZoom: null, mappingReason: 'Waiting for native camera discovery.' },
   ]);
   const [cameraInventory, setCameraInventory] = useState<ScannerCameraLensSelection | null>(null);
   const [cameraDeviceDiagnostics, setCameraDeviceDiagnostics] = useState<ScannerCameraDeviceSummary | null>(null);

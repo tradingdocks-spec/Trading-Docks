@@ -288,6 +288,20 @@ export default function CameraQaScreen() {
         </TDCard>
 
         <TDCard style={styles.card}>
+          <TDText variant="label" tone="muted">Lens mappings</TDText>
+          {lensOptions.map((option) => (
+            <View key={option.mode} style={styles.mappingRow}>
+              <TDText variant="small">{option.label}</TDText>
+              <TDText variant="caption" tone="muted">
+                {option.supported ? option.deviceId ?? 'device pending' : 'Unsupported'}
+                {option.effectiveZoom === null ? '' : ` / ${option.effectiveZoom}x effective zoom`}
+              </TDText>
+              <TDText variant="caption" tone="muted">{option.mappingReason}</TDText>
+            </View>
+          ))}
+        </TDCard>
+
+        <TDCard style={styles.card}>
           <TDText variant="label" tone="muted">Camera events</TDText>
           {events.slice(0, 8).map((event) => (
             <TDText key={event.id} variant="caption" tone="muted">
@@ -327,6 +341,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   flex: { flex: 1, minWidth: 0 },
   metric: { minHeight: 40, borderRadius: radius.sm, borderWidth: 1, borderColor: color.border, padding: space.sm, backgroundColor: color.canvasRaised },
+  mappingRow: { minHeight: 72, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, gap: 4, backgroundColor: color.canvasRaised },
   rawDevice: { minHeight: 82, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, gap: 4, backgroundColor: color.canvasRaised },
   selectedDevice: { borderColor: color.primaryBright, backgroundColor: color.primary + '24' },
   emptyCamera: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.lg, backgroundColor: '#010711' },

@@ -82,6 +82,8 @@ export type ScannerCameraLensOption = {
   shortLabel: string;
   supported: boolean;
   deviceId: string | null;
+  effectiveZoom: number | null;
+  mappingReason: string;
   warning?: string;
 };
 
@@ -214,9 +216,9 @@ export type ScannerAutoCaptureReadiness = {
 
 export const SCANNER_CAMERA_LENS_LABELS: Record<ScannerCameraLensMode, { label: string; shortLabel: string }> = {
   auto: { label: 'Auto', shortLabel: 'Auto' },
-  macro: { label: 'Close-up', shortLabel: '0.5x' },
-  standard: { label: 'Standard', shortLabel: '1x' },
-  telephoto: { label: 'Telephoto', shortLabel: '2x' },
+  macro: { label: 'Close-up', shortLabel: 'Close' },
+  standard: { label: 'Standard', shortLabel: 'Std' },
+  telephoto: { label: 'Telephoto', shortLabel: 'Tele' },
 };
 
 export const SCANNER_FOCUS_RETICLE_MS = 700;
@@ -281,6 +283,8 @@ export function resolveScannerCameraLensSelection(
       shortLabel: labels.shortLabel,
       supported: Boolean(device),
       deviceId: device?.id ?? null,
+      effectiveZoom: scannerCameraEffectiveZoom(device),
+      mappingReason: scannerCameraLensMappingReason(mode, device),
       warning: mode === 'telephoto' && device ? 'Telephoto may need more distance for close card scanning.' : undefined,
     };
   });
@@ -476,6 +480,24 @@ function scannerDeviceScore(device: ScannerCameraDeviceLike) {
   const photo = maxResolution(readSupportedResolutions(device, 'photo'));
   if (photo) score += Math.min(4, (photo.width * photo.height) / 4_000_000);
   return score;
+}
+
+function scannerCameraEffectiveZoom(device: ScannerCameraDeviceLike | undefined) {
+  return finiteOrNull(device?.neutralZoom) ?? finiteOrNull(device?.minZoom);
+}
+
+function scannerCameraLensMappingReason(mode: ScannerCameraLensMode, device: ScannerCameraDeviceLike | undefined) {
+  if (!device) return `${SCANNER_CAMERA_LENS_LABELS[mode].label} is unavailable on discovered rear cameras.`;
+  const summary = summarizeScannerCameraDevice(device);
+  const types = summary?.physicalDevices.join(', ') || device.type || 'unknown optics';
+  const focus = summary?.minFocusDistance === null
+    ? 'unknown close-focus distance'
+    : `${summary?.minFocusDistance} minimum focus distance`;
+  const focusSupport = summary?.supportsFocus ? 'focus metering supported' : 'focus metering unavailable';
+  if (mode === 'macro') return `Selected ${summary?.name ?? device.id} for close-up scanning from ${types}; ${focus}; ${focusSupport}.`;
+  if (mode === 'standard') return `Selected ${summary?.name ?? device.id} as the primary wide-angle scanner camera from ${types}.`;
+  if (mode === 'telephoto') return `Selected ${summary?.name ?? device.id} because a real telephoto device is exposed from ${types}.`;
+  return `Selected ${summary?.name ?? device.id} by scanner score using close focus, focus support, preview stability, torch, and photo quality.`;
 }
 
 function readSupportedResolutions(device: ScannerCameraDeviceLike, stream: 'photo' | 'video' | 'stream' | 'depth-photo' | 'depth-stream') {
