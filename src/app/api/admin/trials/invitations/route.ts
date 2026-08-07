@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
 import { buildTrialInvitation } from "@/lib/trial-invitation";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
-const OWNER_EMAIL = "tradingdocks@gmail.com";
-const VALID_PLANS = new Set(["collector", "seller", "business"]);
+const VALID_PLANS = new Set(["collector", "seller", "business", "store"]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeTrialRecord(row: Record<string, unknown> | null) {
+  if (!row) return null;
+  const id = typeof row.id === "string" ? row.id : "";
+  const email = typeof row.email === "string" ? row.email : "";
+  const plan_id = typeof row.plan_id === "string" ? row.plan_id : "";
+  const ends_at = typeof row.ends_at === "string" ? row.ends_at : "";
+  const status = typeof row.status === "string" ? row.status : undefined;
+  return { id, email, plan_id, ends_at, status };
+}
 
 type RequestBody =
   | { action: "grant"; email: string; planId: string; endsAt: string; notes?: string }
@@ -107,11 +116,11 @@ async function sendInvitation({
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return jsonError("Sign in is required.", 401);
-  if (user.email?.trim().toLowerCase() !== OWNER_EMAIL) {
-    return jsonError("Owner access is required.", 403);
+  const access = await requireApiCapability("platform.admin");
+  if (!access.ok) return access.response;
+
+  if (!access.user) {
+    return jsonError("Sign in is required.", 401);
   }
 
   let body: RequestBody;
@@ -131,7 +140,7 @@ export async function POST(request: Request) {
       return jsonError("Choose an expiration date in the future.", 400);
     }
 
-    const { data: trial, error: insertError } = await supabase
+    const { data: trial, error: insertError } = await access.supabase
       .from("account_trials")
       .insert({
         email,
@@ -140,20 +149,21 @@ export async function POST(request: Request) {
         ends_at: endsAt.toISOString(),
         status: "active",
         notes: body.notes?.trim() ?? "",
-        granted_by: user.id,
+        granted_by: access.user.id,
         invitation_status: "pending",
       })
       .select("id,email,plan_id,ends_at")
       .single();
     if (insertError) {
       if (insertError.code === "23505") {
-        const { data: existingTrial, error: existingError } = await supabase
+        const { data: existingTrial, error: existingError } = await access.supabase
           .from("account_trials")
           .select("id,email,plan_id,ends_at,status")
           .ilike("email", email)
           .in("status", ["active", "scheduled"])
           .maybeSingle();
-        if (existingError || !existingTrial) {
+        const existingTrialRecord = normalizeTrialRecord(existingTrial);
+        if (existingError || !existingTrialRecord) {
           return jsonError(
             "This email already has an open trial. Use Resend invitation in the trial directory.",
             409,
@@ -161,34 +171,40 @@ export async function POST(request: Request) {
         }
         try {
           const resendId = await sendInvitation({
-            email: existingTrial.email,
-            planId: existingTrial.plan_id,
-            endsAt: existingTrial.ends_at,
+            email: existingTrialRecord.email,
+            planId: existingTrialRecord.plan_id,
+            endsAt: existingTrialRecord.ends_at,
             request,
           });
-          await supabase.from("account_trials").update({
-            invitation_status: "sent",
-            invitation_sent_at: new Date().toISOString(),
-            invitation_email_id: resendId,
-            invitation_error: "",
-          }).eq("id", existingTrial.id);
+          await access.supabase
+            .from("account_trials")
+            .update({
+              invitation_status: "sent",
+              invitation_sent_at: new Date().toISOString(),
+              invitation_email_id: resendId,
+              invitation_error: "",
+            })
+            .eq("id", existingTrialRecord.id);
           return NextResponse.json({
             ok: true,
-            trialId: existingTrial.id,
+            trialId: existingTrialRecord.id,
             emailSent: true,
             reusedExistingTrial: true,
           });
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Invitation failed.";
-          await supabase.from("account_trials").update({
-            invitation_status: "failed",
-            invitation_error: message,
-          }).eq("id", existingTrial.id);
+          await access.supabase
+            .from("account_trials")
+            .update({
+              invitation_status: "failed",
+              invitation_error: message,
+            })
+            .eq("id", existingTrialRecord.id);
           return NextResponse.json({
             ok: false,
             trialGranted: true,
-            trialId: existingTrial.id,
+            trialId: existingTrialRecord.id,
             error: `The existing trial is still active, but the invitation was not sent: ${message}`,
           }, { status: 502 });
         }
@@ -196,26 +212,35 @@ export async function POST(request: Request) {
       return jsonError(`Could not grant trial: ${insertError.message}`, 400);
     }
 
+    const createdTrial = normalizeTrialRecord(trial);
+    if (!createdTrial) return jsonError("Trial was created but no record was returned.", 500);
+
     try {
       const resendId = await sendInvitation({
-        email: trial.email,
-        planId: trial.plan_id,
-        endsAt: trial.ends_at,
+        email: createdTrial.email,
+        planId: createdTrial.plan_id,
+        endsAt: createdTrial.ends_at,
         request,
       });
-      await supabase.from("account_trials").update({
-        invitation_status: "sent",
-        invitation_sent_at: new Date().toISOString(),
-        invitation_email_id: resendId,
-        invitation_error: "",
-      }).eq("id", trial.id);
-      return NextResponse.json({ ok: true, trialId: trial.id, emailSent: true });
+      await access.supabase
+        .from("account_trials")
+        .update({
+          invitation_status: "sent",
+          invitation_sent_at: new Date().toISOString(),
+          invitation_email_id: resendId,
+          invitation_error: "",
+        })
+        .eq("id", createdTrial.id);
+      return NextResponse.json({ ok: true, trialId: createdTrial.id, emailSent: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invitation failed.";
-      await supabase.from("account_trials").update({
-        invitation_status: "failed",
-        invitation_error: message,
-      }).eq("id", trial.id);
+      await access.supabase
+        .from("account_trials")
+        .update({
+          invitation_status: "failed",
+          invitation_error: message,
+        })
+        .eq("id", createdTrial.id);
       return NextResponse.json({
         ok: false,
         trialGranted: true,
@@ -225,36 +250,44 @@ export async function POST(request: Request) {
   }
 
   if (body.action === "resend") {
-    const { data: trial, error } = await supabase
+    const { data: trial, error } = await access.supabase
       .from("account_trials")
       .select("id,email,plan_id,ends_at,status")
       .eq("id", body.trialId)
       .single();
-    if (error || !trial) return jsonError("Trial not found.", 404);
-    if (!["active", "scheduled"].includes(trial.status)) {
+    const trialRecord = normalizeTrialRecord(trial);
+    if (error || !trialRecord) return jsonError("Trial not found.", 404);
+    const trialStatus = trialRecord.status ?? "";
+    if (!["active", "scheduled"].includes(trialStatus)) {
       return jsonError("Only open trials can receive another invitation.", 400);
     }
     try {
       const resendId = await sendInvitation({
-        email: trial.email,
-        planId: trial.plan_id,
-        endsAt: trial.ends_at,
+        email: trialRecord.email,
+        planId: trialRecord.plan_id,
+        endsAt: trialRecord.ends_at,
         request,
       });
-      await supabase.from("account_trials").update({
-        invitation_status: "sent",
-        invitation_sent_at: new Date().toISOString(),
-        invitation_email_id: resendId,
-        invitation_error: "",
-      }).eq("id", trial.id);
+      await access.supabase
+        .from("account_trials")
+        .update({
+          invitation_status: "sent",
+          invitation_sent_at: new Date().toISOString(),
+          invitation_email_id: resendId,
+          invitation_error: "",
+        })
+        .eq("id", trialRecord.id);
       return NextResponse.json({ ok: true, emailSent: true });
     } catch (sendError) {
       const message =
         sendError instanceof Error ? sendError.message : "Invitation failed.";
-      await supabase.from("account_trials").update({
-        invitation_status: "failed",
-        invitation_error: message,
-      }).eq("id", trial.id);
+      await access.supabase
+        .from("account_trials")
+        .update({
+          invitation_status: "failed",
+          invitation_error: message,
+        })
+        .eq("id", trialRecord.id);
       return jsonError(`Invitation was not sent: ${message}`, 502);
     }
   }

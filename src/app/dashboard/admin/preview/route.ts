@@ -4,15 +4,11 @@ import {
   isPreviewPlan,
   PLAN_PREVIEW_COOKIE,
 } from "@/lib/admin-plan-preview";
-import { createClient } from "@/lib/supabase/server";
+import { requireRouteAccess } from "@/lib/platform/server-access";
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user?.email?.trim().toLowerCase() !== "tradingdocks@gmail.com") {
+  const result = await requireRouteAccess("/dashboard/admin/preview");
+  if (!result.access.canAccessCommandCenter) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

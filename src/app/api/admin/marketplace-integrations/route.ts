@@ -2,21 +2,12 @@ import { NextResponse } from "next/server";
 
 import { encryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 
-const OWNER_EMAIL = "tradingdocks@gmail.com";
-
 function mask(value: string) {
   return value.length <= 4 ? "••••" : `••••${value.slice(-4)}`;
-}
-
-async function ownerClient() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || user.email?.trim().toLowerCase() !== OWNER_EMAIL) return null;
-  return { user };
 }
 
 function databaseError(error: unknown, fallback: string) {
@@ -64,8 +55,8 @@ function serverConfigurationError() {
 }
 
 export async function GET() {
-  const owner = await ownerClient();
-  if (!owner) return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  const access = await requireApiCapability("platform.admin");
+  if (!access.ok) return access.response;
   try {
     const { data, error } = await adminClient()
       .from("platform_marketplace_integrations")
@@ -81,8 +72,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const owner = await ownerClient();
-  if (!owner) return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  const access = await requireApiCapability("platform.admin");
+  if (!access.ok) return access.response;
   const configurationError = serverConfigurationError();
   if (configurationError) {
     return NextResponse.json({ error: configurationError }, { status: 503 });
@@ -108,21 +99,23 @@ export async function POST(request: Request) {
       Object.entries(credentials).map(([key, value]) => [key, mask(value)]),
     );
     const admin = adminClient();
-    const { data, error } = await admin.from("platform_marketplace_integrations").upsert({
-      marketplace_id: "ebay",
-      ...encrypted,
-      credential_labels: labels,
-      enabled: body.enabled !== false,
-      configured_by: owner.user.id,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "marketplace_id" }).select("marketplace_id").single();
+    const { data, error } = await admin
+      .from("platform_marketplace_integrations")
+      .upsert({
+        marketplace_id: "ebay",
+        ...encrypted,
+        credential_labels: labels,
+        enabled: body.enabled !== false,
+        configured_by: access.user.id,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "marketplace_id" })
+      .select("marketplace_id")
+      .single();
     if (error) throw error;
     if (!data) throw new Error("Supabase did not confirm the saved integration.");
 
-    // Audit history is useful, but an older deployment may not have this
-    // optional table yet. A missing audit table must not undo a valid save.
-    await admin.from("admin_audit_log").insert({
-      actor_id: owner.user.id,
+    await access.supabase.from("admin_audit_log").insert({
+      actor_id: access.user.id,
       action: "marketplace.integration.updated",
       target_type: "marketplace",
       target_id: "ebay",
@@ -142,8 +135,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const owner = await ownerClient();
-  if (!owner) return NextResponse.json({ error: "Owner access required." }, { status: 403 });
+  const access = await requireApiCapability("platform.admin");
+  if (!access.ok) return access.response;
   const body = await request.json().catch(() => null) as { marketplaceId?: string; enabled?: boolean } | null;
   if (body?.marketplaceId !== "ebay" || typeof body.enabled !== "boolean") {
     return NextResponse.json({ error: "Invalid integration update." }, { status: 400 });
