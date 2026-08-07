@@ -73,7 +73,9 @@ The result sheet shows image, card name, set/collector number, market value when
 
 Single Scan capture-quality gates:
 
-- Implemented: Capture is blocked until the card is detected, centered, stable, and sharp enough.
+- Implemented: Manual Capture is enabled when the camera is initialized, permission is granted, the app is foregrounded, and the scanner is not already processing.
+- Implemented: Card quality is advisory for manual capture. Poor fill, blur, motion, centering, or incomplete stability can mark the capture as forced and may route the result to review, but it does not block the shutter.
+- Implemented: Auto-capture remains quality gated and continues to require readiness before firing.
 - Implemented: Card fill targets roughly 70-90% of the guide before OCR runs.
 - Implemented: Too-small cards show Move closer; blurry cards show Tap card to focus; moving cards show Hold steady.
 - Implemented: A brief focus-settle window prevents immediate OCR after tap-to-focus.
@@ -86,9 +88,9 @@ Single Scan OCR order:
 2. Expanded title band.
 3. Upper 25% of the card.
 4. Full card.
-5. Optional collector region after a title signal exists.
+5. Optional collector region only when explicitly requested for background refinement.
 
-The sequence stops once a strong usable title is found and does not require collector-number OCR before card lookup.
+The sequence stops once a strong usable title is found and does not run collector-number OCR before card lookup on the critical path.
 
 ## Review List
 
@@ -107,6 +109,8 @@ Implemented structure:
 
 - Lens selection uses supported device options only.
 - User-visible choices are Auto, Close-up, Standard, and Telephoto where supported.
+- User-visible lens chips use named modes (`Auto`, `Close`, `Std`, `Tele`) rather than fake digital zoom labels.
+- Development Camera QA shows every rear camera and the mapping reason for each lens mode.
 - Raw device IDs are development-only in Camera Inspector and Camera QA.
 - Tap-to-focus uses the shared scanner camera adapter and visible reticle.
 - Torch is treated as illumination, not still-photo flash.
@@ -162,3 +166,4 @@ Remaining manual QA:
 - Physical Android development build camera pass.
 - Small iPhone, large iPhone, Android phone, and Expo Web narrow viewport review.
 - Long card names, large text, denied camera permission, low light, no network, and repeated scan sessions.
+- Device matrix: close-up camera, standard camera, telephoto camera, sleeved card, foil, glare, white border, black border, borderless, old-frame Magic, modern frame, dark card, light card, rotated card, partial occlusion, and rapid card replacement.

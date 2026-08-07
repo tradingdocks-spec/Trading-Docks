@@ -10,6 +10,9 @@
 - Implemented: The local benchmark command is `npm run benchmark:magic-scanner -- --manifest <private-manifest.json>` from `mobile/`.
 - Implemented: Tests assert that benchmark metrics remain `null` until labeled fixtures are actually run.
 - Implemented: Native scanner calibration diagnostics can record preview, guide, capture, duplicate, recognition, and session outcome state for physical-device QA without logging source images.
+- Implemented: `mobile/services/scanner-benchmark-harness.ts` creates sanitized benchmark run summaries from measured scanner performance samples, including first scan latency, warm scan latency, OCR latency, Scryfall lookup latency, total time until session insertion, camera FPS, preview resolution, capture resolution, fallback count, success rate, review rate, and failure rate.
+- Implemented: `mobile/services/scanner-cache-prewarming.ts` provides bounded TTL caches for public catalog lookup terms and prewarming result reporting for OCR, Scryfall lookup cache, camera frame processor, recognition service, and pricing service.
+- Implemented: The default still-capture Scryfall lookup path uses a bounded, non-user-data cache keyed by normalized card name, set code, and collector number.
 - Partially Implemented: Magic has a fixture-driven benchmark runner, report serializers, threshold classes, private local fixture manifest validation, development-only fixture builder, and calibration recommendations, but no labeled Magic-only image dataset has been supplied or executed in this repository.
 - Planned: No game-specific visual fixture dataset or mixed-stack image dataset has been run against the scanner in this repository.
 - Planned: Do not publish scanner accuracy, foil accuracy, latency, manual-correction, or failure-rate numbers until the benchmark runner has processed reviewed fixtures.
@@ -41,6 +44,7 @@
 
 - Implemented: Magic benchmark metrics can calculate correct card name top-1, correct printing top-1, correct printing top-3, average latency, manual-confirmation/correction proxy, failure rate, and fixture count once local results are supplied.
 - Implemented: Magic benchmark reports include false high-confidence rate, average confidence, finish accuracy where supported, unsupported-card rejection rate, and manual-confirmation requirement.
+- Implemented: Development scanner benchmark summaries can export measured first-scan latency, warm-scan latency, OCR latency, Scryfall lookup latency, total-until-session-insertion latency, effective camera FPS, preview resolution, capture resolution, OCR fallback count, success/failure rate, and review rate without source images or source image paths.
 - Planned: Correct card name top-1 for non-Magic games.
 - Planned: Correct printing top-1 for non-Magic games.
 - Planned: Correct printing top-3 for non-Magic games.
@@ -60,6 +64,7 @@
 - Magic fixture images should live in a private local directory referenced by manifest metadata, not in Git.
 - `mobile/fixtures/private-scanner/`, `mobile/fixtures/magic-scanner-private/`, and `mobile/benchmark-output/` are ignored by Git.
 - Generated benchmark reports must not include source image paths or filenames.
+- Development scanner benchmark harness exports are sanitized JSON/Markdown summaries only. They do not include source images, image filenames, file URIs, or local Windows paths.
 - The builder must be disabled in production builds and must not appear in normal navigation.
 - Every fixture must record expected name, expected printing identifiers when known, expected finish when relevant, lighting/sleeve notes, and frame URIs.
 - Accuracy reports must include fixture count, fixture mix, provider versions, device models, lighting notes, and date run.
