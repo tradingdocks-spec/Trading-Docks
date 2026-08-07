@@ -64,6 +64,7 @@ import {
 import type { RecognitionCandidate } from '@/services/scanner-intelligence';
 import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
 import { enrichScannerSessionLinePrice, type ScannerPricingTrace } from '@/services/scanner-price-enrichment';
+import { runScannerParallelEnrichment } from '@/services/scanner-parallel-enrichment';
 import {
   appendScannerPerformanceSample,
   buildScannerPerformanceReport,
@@ -767,7 +768,7 @@ export default function AutomaticScannerScreen() {
       ...session,
       offerConfig: { ...session.offerConfig, defaultCashPercentage: rate },
     };
-    const nextSession = addRecognitionToSession(sessionWithRate, {
+    const nextSession: ContinuousScannerSession = addRecognitionToSession(sessionWithRate, {
       stableScanId: input.stableScanId,
       candidate: input.candidate,
       recognition: recognitionReport,
@@ -808,21 +809,39 @@ export default function AutomaticScannerScreen() {
       })));
     }
     showBatchNotice({ ...batchScannerNoticeForLine(addedLine), lineId: addedLine.id });
-    void Promise.resolve().then(() => {
+    void Promise.resolve().then(async () => {
       const pricingStartedAt = scannerNow();
-      setSession((current) => {
-        if (!current) return current;
-        const enrichment = enrichScannerSessionLinePrice({
-          session: current,
-          lineId: addedLine.id,
-          stableScanId: addedLine.stableScanId,
-          candidate: input.candidate,
-          finish: candidateFinish,
-          startedAt: pricingStartedAt,
-          now: scannerNow,
-        });
-        if (diagnosticsEnabled) setLastPricingTrace(enrichment.trace);
-        return enrichment.session;
+      const enrichment = await runScannerParallelEnrichment({
+        session: nextSession,
+        lineId: addedLine.id,
+        stableScanId: addedLine.stableScanId,
+        tasks: [{
+          name: 'pricing',
+          run: ({ session: enrichmentSession }) => {
+            const pricing = enrichScannerSessionLinePrice({
+              session: enrichmentSession,
+              lineId: addedLine.id,
+              stableScanId: addedLine.stableScanId,
+              candidate: input.candidate,
+              finish: candidateFinish,
+              startedAt: pricingStartedAt,
+              now: scannerNow,
+            });
+            if (diagnosticsEnabled) setLastPricingTrace(pricing.trace);
+            return pricing.session;
+          },
+        }],
+      });
+      setSession((latest) => {
+        if (!latest) return latest;
+        const currentLine = latest.lines.find((line) => line.id === addedLine.id);
+        if (!currentLine || currentLine.stableScanId !== addedLine.stableScanId || currentLine.exactPrintingId !== input.candidate.id) return latest;
+        const enrichedLine = enrichment.session.lines.find((line) => line.id === addedLine.id);
+        if (!enrichedLine) return latest;
+        return {
+          ...latest,
+          lines: latest.lines.map((line) => line.id === addedLine.id ? enrichedLine : line),
+        };
       });
     });
     resetScannerForm({ preserveNotice: true });
