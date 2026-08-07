@@ -9,6 +9,7 @@ import { TieredSidebar } from "./TieredSidebar";
 import { Topbar } from "./Topbar";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { PlanAccessGate } from "../access/PlanAccessGate";
+import type { ClientSafePlatformAccess } from "@/lib/platform/client-access";
 
 export function TieredDashboardShell({
   children,
@@ -16,12 +17,14 @@ export function TieredDashboardShell({
   inventoryModules,
   userName,
   isOwner,
+  clientAccess,
 }: {
   children: ReactNode;
   accountType: string;
   inventoryModules: string[];
   userName: string;
   isOwner: boolean;
+  clientAccess?: ClientSafePlatformAccess;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -33,6 +36,7 @@ export function TieredDashboardShell({
         inventoryModules={inventoryModules}
         userName={userName}
         isOwner={isOwner}
+        clientAccess={clientAccess}
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
@@ -54,7 +58,7 @@ export function TieredDashboardShell({
         ].join(" ")}
       >
         <main className="min-h-[calc(100vh-64px)] pb-[calc(92px+env(safe-area-inset-bottom))] md:min-h-[calc(100vh-72px)] md:pb-0">
-          <PlanAccessGate accountType={accountType}>{children}</PlanAccessGate>
+          <PlanAccessGate accountType={accountType} clientAccess={clientAccess}>{children}</PlanAccessGate>
         </main>
       </div>
       <Link

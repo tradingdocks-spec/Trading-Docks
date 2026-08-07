@@ -20,17 +20,21 @@ import {
   type NavigationItem,
 } from "../navigation";
 import {
-  featureForPath,
-  hasPlanAccess,
-  minimumPlanName,
   normalizeAccountTier,
 } from "@/lib/tier-access";
+import {
+  canShowRoute,
+  clientAccessFromTier,
+  type ClientSafePlatformAccess,
+} from "@/lib/platform/client-access";
+import { requiredMembershipLabelForRoute } from "@/lib/platform/route-access";
 
 type SidebarProps = {
   accountType: string;
   inventoryModules: string[];
   userName: string;
   isOwner: boolean;
+  clientAccess?: ClientSafePlatformAccess;
   collapsed: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
@@ -41,6 +45,7 @@ export function TieredSidebar({
   accountType,
   userName,
   isOwner,
+  clientAccess,
   collapsed,
   mobileOpen,
   onCloseMobile,
@@ -87,7 +92,9 @@ export function TieredSidebar({
                 items={group.items}
                 collapsed={collapsed}
                 pathname={pathname}
-                plan={plan}
+                clientAccess={clientAccess ?? clientAccessFromTier(plan, {
+                  platformRole: isOwner ? "admin" : "user",
+                })}
                 onNavigate={onCloseMobile}
               />
             </div>
@@ -167,14 +174,14 @@ function NavigationGroup({
   items,
   collapsed,
   pathname,
-  plan,
+  clientAccess,
   onNavigate,
 }: {
   label?: string;
   items: ReadonlyArray<NavigationItem>;
   collapsed: boolean;
   pathname: string;
-  plan: ReturnType<typeof normalizeAccountTier>;
+  clientAccess: ClientSafePlatformAccess;
   onNavigate: () => void;
 }) {
   return (
@@ -187,7 +194,7 @@ function NavigationGroup({
             item={item}
             collapsed={collapsed}
             pathname={pathname}
-            plan={plan}
+            clientAccess={clientAccess}
             onNavigate={onNavigate}
           />
         ))}
@@ -200,17 +207,17 @@ function NavigationRow({
   item,
   collapsed,
   pathname,
-  plan,
+  clientAccess,
   onNavigate,
 }: {
   item: NavigationItem;
   collapsed: boolean;
   pathname: string;
-  plan: ReturnType<typeof normalizeAccountTier>;
+  clientAccess: ClientSafePlatformAccess;
   onNavigate: () => void;
 }) {
-  const feature = featureForPath(item.href);
-  const allowed = hasPlanAccess(plan, feature);
+  const allowed = canShowRoute(clientAccess, item.href, process.env.NODE_ENV);
+  const requiredPlan = requiredMembershipLabelForRoute(item.href);
   const active =
     item.href === "/dashboard"
       ? pathname === item.href
@@ -255,7 +262,7 @@ function NavigationRow({
           </span>
           {!allowed ? (
             <span className="rounded-full border border-blue-300/[0.11] bg-blue-400/[0.035] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-200/65">
-              {minimumPlanName(feature)}
+              {requiredPlan ?? "Upgrade"}
             </span>
           ) : null}
         </>

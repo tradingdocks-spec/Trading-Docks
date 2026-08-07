@@ -306,3 +306,30 @@ Recommended next release sprint:
 3. Add automated production-gate assertions for `/dev/*`, scanner diagnostics, benchmark builder, and design showcase.
 4. Add a production error boundary and route-level recovery copy.
 5. Confirm store metadata, support/legal URLs, and account deletion policy with product owner/legal.
+
+## Platform Authority Health
+
+Status: Partially Implemented.
+
+Implemented improvements:
+
+- Added a typed platform access model and capability registry.
+- Added route, client, server, and API guard adapters.
+- Migrated a representative set of dashboard UI and API checks.
+- Added tests preventing new active `business` tier branching, duplicate capability registries, and email-based admin authority in active authority files.
+
+Remaining risks:
+
+- Many existing API routes still use direct `hasPlanAccess` checks and should be migrated in a dedicated pass.
+- The route registry currently covers a representative subset; unmapped dashboard routes fail closed until classified.
+- Historical Supabase SQL still includes email-based owner helper behavior and requires a reviewed forward-only migration.
+- Workspace role semantics exist in the access model, but Store employee permissions need product-owner confirmation before broad rollout.
+- RLS still needs the previously proposed Free total-card limit enforcement before direct mobile/offline writes are production complete.
+
+Recommended next stabilization task:
+
+1. Migrate all remaining dashboard APIs to `requireApiCapability`.
+2. Add route registry entries for every dashboard route and remove fallback reliance.
+3. Add route-handler integration fixtures for 401/403 API behavior.
+4. Draft the `user_roles` SQL helper migration and staging verification plan.
+5. Audit all admin APIs for platform role scope, support/analyst permissions, and override logging.

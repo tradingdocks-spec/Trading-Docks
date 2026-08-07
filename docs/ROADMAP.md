@@ -178,3 +178,25 @@ Remaining release work:
 2. Product-owner/legal approval for account deletion policy, support email/URL, privacy URL, terms URL, App Privacy, Data Safety, screenshots, and review notes.
 3. Keep paid mobile upgrades disabled or informational until native billing and backend entitlement reconciliation are approved.
 4. Do not claim scanner/OCR/auto-capture production accuracy until measured device benchmarks support it.
+
+## Platform Authority Refactor
+
+Status: Partially Implemented.
+
+Implemented this checkpoint:
+
+1. Added one typed `PlatformAccessContext` separating auth identity, platform role, account type, membership tier, billing status, entitlements, workspace id, workspace role, provider state, suspension, and warnings.
+2. Added a typed action-based capability registry.
+3. Added a representative route-access registry.
+4. Added reusable server route and API capability guards.
+5. Added client-safe access adapters for navigation and upgrade display.
+6. Migrated representative dashboard sidebar/page gating, `/dashboard/admin`, `/api/csv-converter/resolve`, and `/api/orders/reconciliation`.
+7. Added source-contract tests for tier normalization, capability behavior, route/API agreement, and legacy drift prevention.
+
+Recommended next checkpoint:
+
+1. Migrate the remaining dashboard API routes from direct `hasPlanAccess` checks to `requireApiCapability`.
+2. Expand the route registry to every dashboard route and remove fallback classification once coverage is complete.
+3. Resolve workspace-owned inventory and Store employee semantics before team workflows become production critical.
+4. Create a forward-only SQL plan to replace historical email-based owner helpers with `user_roles` helpers.
+5. Align Stripe and RevenueCat provider-state reconciliation behind the same server access lifecycle.

@@ -42,6 +42,14 @@ Status: Partially Implemented
 | Inventory ownership enforcement | Authoritative through RLS/RPC/API | May optimistically update and queue writes. |
 | Scanner image handling | Receives no images by default | Keeps captures/crops in memory unless user explicitly acts. |
 
+## Access Authority Refactor
+
+Status: Partially Implemented
+
+The first reusable server-side route and API guards now live in `src/lib/platform/server-access.ts`. API capability decisions return `401` for unauthenticated callers and `403` for authenticated callers without capability access.
+
+The client-safe adapter intentionally omits server-only provider detail and is not authorization.
+
 ## Production Security Gate
 
 Status: Planned

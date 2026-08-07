@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { hasPlanAccess } from "@/lib/tier-access";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 type InputRow = {
   scryfallId?: string;
@@ -22,19 +21,9 @@ type ScryfallCard = {
   prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null };
 };
 
-async function requireFeatureAccess() {
-  if (!hasPlanAccess(await getEffectivePlan(), "csv-tools")) {
-    return NextResponse.json(
-      { error: "Csv Tools requires a higher Trading Docks plan." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
-
 export async function POST(request: Request) {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
+  const capability = await requireApiCapability("csv.export");
+  if (!capability.ok) return capability.response;
   const body = (await request.json().catch(() => null)) as { rows?: InputRow[] } | null;
   const rows = body?.rows?.slice(0, 500) ?? [];
   if (!rows.length) return NextResponse.json({ cards: [] });

@@ -60,6 +60,14 @@ Status: Partially Implemented
 - UI hiding is not authorization. Backend checks remain required for privileged data and mutations.
 - Missing account type should fall back to a safe workspace route, not an admin-only or paid-only route.
 
+## Route Registry Implementation
+
+Status: Partially Implemented
+
+`src/lib/platform/route-access.ts` now defines a typed representative route registry. Initial covered routes include public/auth routes, dashboard, inventory/collection, orders, analytics, CRM, employees, settings, admin, and development-only design-system access.
+
+Unmapped dashboard routes currently fail closed to a store-level protected bucket in the registry until each route is explicitly classified.
+
 ## Route Protection Gaps
 
 | Gap | Severity | Notes |

@@ -6,28 +6,35 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import {
-  featureForPath,
-  hasPlanAccess,
-  FEATURE_LABEL,
-  minimumPlanName,
   normalizeAccountTier,
 } from "@/lib/tier-access";
+import {
+  canShowRoute,
+  clientAccessFromTier,
+  type ClientSafePlatformAccess,
+} from "@/lib/platform/client-access";
+import {
+  requiredMembershipLabelForRoute,
+  routeAccessLabel,
+} from "@/lib/platform/route-access";
 
 export function PlanAccessGate({
   accountType,
+  clientAccess,
   children,
 }: {
   accountType: string;
+  clientAccess?: ClientSafePlatformAccess;
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const plan = normalizeAccountTier(accountType);
-  const feature = featureForPath(pathname);
+  const access = clientAccess ?? clientAccessFromTier(plan);
 
-  if (hasPlanAccess(plan, feature)) return children;
+  if (canShowRoute(access, pathname, process.env.NODE_ENV)) return children;
 
-  const requiredPlan = minimumPlanName(feature);
-  const featureName = FEATURE_LABEL[feature];
+  const requiredPlan = requiredMembershipLabelForRoute(pathname) ?? "Required";
+  const featureName = routeAccessLabel(pathname);
 
   return (
     <div className="flex min-h-[calc(100vh-72px)] items-center justify-center px-5 py-10">

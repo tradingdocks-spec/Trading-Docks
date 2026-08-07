@@ -38,7 +38,7 @@ Permissions are resolved from identity, platform role, account type, membership 
 
 ## Permission Order
 
-Status: Partially Implemented
+Status: Implemented for representative route/API coverage
 
 Server-side order must remain:
 
@@ -49,6 +49,14 @@ Server-side order must remain:
 5. Resolve membership tier and entitlement set.
 6. Apply route/API permission checks.
 7. Fail closed when required authority is missing.
+
+## Capability Registry
+
+Status: Partially Implemented
+
+The first typed capability registry lives in `mobile/services/platform-access.ts`. Capabilities are action names such as `collection.read`, `orders.manage`, `employees.manage`, `workspace.members.manage`, and `platform.admin`.
+
+The registry is now the preferred implementation point for new access checks. Legacy direct plan checks should be migrated rather than copied.
 
 ## P0/P1 Permission Gaps
 

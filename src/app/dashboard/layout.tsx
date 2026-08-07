@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { LegacyAccountDataCleanup } from "@/components/dashboard/account/LegacyAccountDataCleanup";
 import { TieredDashboardShell } from "@/components/dashboard/shell/TieredDashboardShell";
 import { resolveServerAccess } from "@/lib/identity/server-access";
+import { toClientSafeAccess } from "@/lib/platform/client-access";
+import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
 import { createClient } from "@/lib/supabase/server";
 import { getEffectivePlan } from "@/lib/effective-plan";
 
@@ -22,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       ? data.preferences
       : {};
   const access = await resolveServerAccess(supabase, user);
+  const platformAccess = await resolvePlatformAccessForUser(supabase, user);
   const effectivePlan = await getEffectivePlan();
 
   return (
@@ -41,6 +44,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             : user.email?.split("@")[0] ?? "Collector"
         }
         isOwner={access.isAdmin}
+        clientAccess={toClientSafeAccess(platformAccess)}
       >
         {children}
       </TieredDashboardShell>

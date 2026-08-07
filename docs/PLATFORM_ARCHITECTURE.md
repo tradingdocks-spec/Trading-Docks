@@ -68,6 +68,8 @@ Status: Partially Implemented
 
 ## Recommended First Implementation Refactor
 
-Status: Planned
+Status: Partially Implemented
 
-Create one server-side access and entitlement package consumed by web route guards, API routes, Stripe reconciliation, RevenueCat reconciliation, and admin checks. Mobile should consume a client-safe adapter from the same type contract but never become the authority for privileged operations.
+Created the first shared typed access model in `mobile/services/platform-access.ts` with server wrappers in `src/lib/platform/`. The model now powers representative dashboard navigation, page gating, `/dashboard/admin`, `/api/csv-converter/resolve`, and `/api/orders/reconciliation`.
+
+Remaining work is to migrate the rest of the route and API tree, then align Stripe and RevenueCat provider-state resolution behind the same server access lifecycle.

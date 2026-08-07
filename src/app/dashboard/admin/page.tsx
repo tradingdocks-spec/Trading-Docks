@@ -1,18 +1,8 @@
-import { redirect } from "next/navigation";
-
 import { AdminControlCenter } from "@/components/dashboard/admin/AdminControlCenterWithPreview";
-import { canAccessAdminRoute, resolveServerAccess } from "@/lib/identity/server-access";
-import { createClient } from "@/lib/supabase/server";
+import { requireRouteAccess } from "@/lib/platform/server-access";
 
 export default async function AdminPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, access } = await requireRouteAccess("/dashboard/admin", "/dashboard");
 
-  if (!user) redirect("/sign-in?next=/dashboard/admin");
-  const access = await resolveServerAccess(supabase, user);
-  if (!canAccessAdminRoute(access)) {
-    redirect("/dashboard");
-  }
-
-  return <AdminControlCenter adminIdentityLabel={user.email ?? access.platformRole} />;
+  return <AdminControlCenter adminIdentityLabel={user!.email ?? access.platformRole} />;
 }

@@ -1,24 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { hasPlanAccess } from "@/lib/tier-access";
-
-async function requireFeatureAccess() {
-  if (!hasPlanAccess(await getEffectivePlan(), "orders")) {
-    return NextResponse.json(
-      { error: "Orders requires a higher Trading Docks plan." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export async function PATCH(request: Request) {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  const capability = await requireApiCapability("orders.manage");
+  if (!capability.ok) return capability.response;
+  const { supabase } = capability;
+  const user = capability.user!;
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   const orderId = String(body?.orderId ?? "");
   if (!orderId) return NextResponse.json({ error: "Order is required." }, { status: 400 });
