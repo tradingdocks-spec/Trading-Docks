@@ -15,6 +15,7 @@ import {
   type ScannerDraft,
   type ScannerRecognitionResult,
 } from '@/services/scanner-foundation';
+export { lookupScannerPrintings } from '@/services/scanner-printing-lookup';
 
 type ScannerSaveResult =
   | { ok: true; queued?: false; inventoryItemId: string }
@@ -30,6 +31,12 @@ type ScryfallCard = {
   collector_number?: string;
   lang?: string;
   finishes?: string[];
+  released_at?: string;
+  set_type?: string;
+  promo?: boolean;
+  promo_types?: string[];
+  frame_effects?: string[];
+  layout?: string;
   image_uris?: { normal?: string; large?: string };
   card_faces?: { image_uris?: { normal?: string; large?: string } }[];
   prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null };
@@ -187,7 +194,43 @@ function cardToCandidate(card: ScryfallCard) {
     confidence: 0.91,
     recognitionMode: 'manual_search',
     marketPrice: scryfallPriceMetadata(card.prices),
+    specialPrintingLabels: scryfallSpecialLabels(card),
+    scryfallMetadata: {
+      releasedAt: card.released_at ?? null,
+      setType: card.set_type ?? null,
+      promo: card.promo === true,
+      promoTypes: card.promo_types ?? [],
+      frameEffects: card.frame_effects ?? [],
+      layout: card.layout ?? null,
+    },
   });
+}
+
+function scryfallSpecialLabels(card: ScryfallCard) {
+  const labels = new Set<string>();
+  const set = card.set?.toUpperCase();
+  const setName = card.set_name?.toLowerCase();
+  const promoTypes = card.promo_types ?? [];
+  const frameEffects = card.frame_effects ?? [];
+  if (set === 'PLST' || setName === 'the list' || promoTypes.some((type) => normalizeScryfallTag(type) === 'the list')) labels.add('The List');
+  if (card.promo) labels.add('Promo');
+  for (const type of promoTypes) {
+    const normalized = normalizeScryfallTag(type);
+    if (normalized.includes('secret lair')) labels.add('Secret Lair');
+    if (normalized.includes('commander')) labels.add('Commander');
+  }
+  for (const effect of frameEffects) {
+    const normalized = normalizeScryfallTag(effect);
+    if (normalized === 'showcase') labels.add('Showcase');
+    if (normalized === 'borderless') labels.add('Borderless');
+    if (normalized === 'extended art' || normalized === 'extendedart') labels.add('Extended Art');
+    if (normalized === 'retro') labels.add('Retro Frame');
+  }
+  return [...labels];
+}
+
+function normalizeScryfallTag(value: string) {
+  return value.toLowerCase().replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function scryfallPriceMetadata(prices: ScryfallCard['prices']) {
