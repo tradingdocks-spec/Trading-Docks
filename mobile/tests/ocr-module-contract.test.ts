@@ -17,7 +17,9 @@ test('OCR Expo module Apple config matches Swift and JS runtime names', () => {
   assert.equal(config.apple.podspecPath, 'ios/TradingDocksVisionOcr.podspec');
   assert.match(swift, /public class TradingDocksVisionOcrModule: Module/);
   assert.match(swift, /Name\("TradingDocksVisionOcr"\)/);
+  assert.match(swift, /AsyncFunction\("recognizeFrameTitle"\)/);
   assert.match(js, /requireNativeModule\('TradingDocksVisionOcr'\)/);
+  assert.match(js, /recognizeFrameTitle/);
 });
 
 test('OCR module has an Apple podspec so resolve emits a pod', () => {

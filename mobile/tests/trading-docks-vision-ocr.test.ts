@@ -3,8 +3,11 @@ import test from 'node:test';
 
 import {
   recognizeText,
+  recognizeFrameTitle,
   getVisionOcrRuntimeDiagnostics,
+  validateNativeLiveTitleOcrRequest,
   validateNativeOcrRequest,
+  type NativeLiveTitleOcrRequest,
   type NativeOcrRequest,
 } from '../modules/trading-docks-vision-ocr/index.ts';
 
@@ -65,4 +68,62 @@ test('runtime diagnostics remain safe when native bridge is unavailable', async 
   assert.equal(diagnostics.moduleLinked, false);
   assert.equal(diagnostics.runtimeModuleName, 'TradingDocksVisionOcr');
   assert.equal(diagnostics.nativeModuleVersion, 'unavailable');
+});
+
+const liveRequest: NativeLiveTitleOcrRequest = {
+  frameId: 'frame-1',
+  width: 4,
+  height: 4,
+  pixels: Array.from({ length: 16 }, () => 128),
+  roi: { x: 0.1, y: 0.05, width: 0.8, height: 0.15 },
+  recognitionLevel: 'fast',
+  languages: ['en-US'],
+  orientation: 'portrait',
+};
+
+test('native live title OCR request validation accepts bounded luma frames and ROI', () => {
+  assert.equal(validateNativeLiveTitleOcrRequest(liveRequest).ok, true);
+});
+
+test('native live title OCR validation rejects mismatched pixels and invalid ROI', () => {
+  const result = validateNativeLiveTitleOcrRequest({
+    ...liveRequest,
+    pixels: [1, 2, 3],
+    roi: { x: 0.9, y: 0.1, width: 0.3, height: 0.1 },
+  });
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.result.code, 'invalid_request');
+});
+
+test('native live title OCR adapter returns structured unsupported result without frame retention', async () => {
+  const result = await recognizeFrameTitle(liveRequest, null, 'android');
+  assert.equal(result.ok, false);
+  if (result.ok === false) {
+    assert.equal(result.code, 'unsupported_platform');
+    assert.match(result.message, /live frame title OCR/);
+    assert.match(result.warnings.join(' '), /unsupported/);
+  }
+});
+
+test('native live title OCR adapter passes frame request to linked module', async () => {
+  const result = await recognizeFrameTitle(liveRequest, {
+    recognizeText: async () => ({ ok: false, provider: 'apple_vision', code: 'empty_result', message: 'No text', latencyMs: 1, warnings: [] }),
+    recognizeFrameTitle: async (request) => ({
+      ok: true,
+      provider: 'apple_vision',
+      frameId: request.frameId,
+      text: 'Sol Ring',
+      confidence: 91,
+      durationMs: 23,
+      roi: request.roi,
+      warnings: [],
+    }),
+  }, 'ios');
+
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.text, 'Sol Ring');
+    assert.equal(result.durationMs, 23);
+    assert.deepEqual(result.roi, liveRequest.roi);
+  }
 });

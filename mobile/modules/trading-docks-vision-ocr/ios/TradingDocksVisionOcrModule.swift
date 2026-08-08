@@ -3,6 +3,8 @@ import UIKit
 import Vision
 
 public class TradingDocksVisionOcrModule: Module {
+  private let liveOcrQueue = DispatchQueue(label: "com.tradingdocks.visionocr.live-title", qos: .userInitiated)
+
   public func definition() -> ModuleDefinition {
     Name("TradingDocksVisionOcr")
 
@@ -23,6 +25,23 @@ public class TradingDocksVisionOcrModule: Module {
         promise.resolve(self.errorResult(
           code: "vision_unavailable",
           message: "Apple Vision text recognition requires iOS 13 or newer.",
+          started: started,
+          warnings: []
+        ))
+      }
+    }
+
+    AsyncFunction("recognizeFrameTitle") { (request: [String: Any], promise: Promise) in
+      let started = Date()
+      if #available(iOS 13.0, *) {
+        self.liveOcrQueue.async {
+          self.recognizeFrameTitle(request: request, started: started, promise: promise)
+        }
+      } else {
+        promise.resolve(self.liveTitleErrorResult(
+          frameId: request["frameId"] as? String ?? "unknown-frame",
+          code: "vision_unavailable",
+          message: "Apple Vision live title OCR requires iOS 13 or newer.",
           started: started,
           warnings: []
         ))
@@ -149,6 +168,104 @@ public class TradingDocksVisionOcrModule: Module {
     ])
   }
 
+  @available(iOS 13.0, *)
+  private func recognizeFrameTitle(request: [String: Any], started: Date, promise: Promise) {
+    let frameId = request["frameId"] as? String ?? "unknown-frame"
+    guard let width = request["width"] as? Int,
+          let height = request["height"] as? Int,
+          width > 0,
+          height > 0,
+          let pixels = request["pixels"] as? [Int],
+          pixels.count == width * height,
+          let roi = request["roi"] as? [String: Any],
+          let x = roi["x"] as? Double,
+          let y = roi["y"] as? Double,
+          let roiWidth = roi["width"] as? Double,
+          let roiHeight = roi["height"] as? Double,
+          x >= 0,
+          y >= 0,
+          roiWidth > 0,
+          roiHeight > 0,
+          x + roiWidth <= 1,
+          y + roiHeight <= 1 else {
+      promise.resolve(liveTitleErrorResult(
+        frameId: frameId,
+        code: "invalid_request",
+        message: "Live title OCR requires normalized ROI and a bounded luma frame.",
+        started: started,
+        warnings: []
+      ))
+      return
+    }
+
+    guard let cgImage = makeLumaImage(width: width, height: height, pixels: pixels) else {
+      promise.resolve(liveTitleErrorResult(
+        frameId: frameId,
+        code: "invalid_request",
+        message: "Live title OCR could not prepare the luma frame.",
+        started: started,
+        warnings: []
+      ))
+      return
+    }
+
+    let languages = request["languages"] as? [String] ?? ["en-US"]
+    let level = request["recognitionLevel"] as? String ?? "fast"
+    let visionRequest = VNRecognizeTextRequest()
+    visionRequest.recognitionLevel = level == "accurate" ? .accurate : .fast
+    visionRequest.recognitionLanguages = languages
+    visionRequest.usesLanguageCorrection = true
+    visionRequest.regionOfInterest = CGRect(x: x, y: 1.0 - y - roiHeight, width: roiWidth, height: roiHeight)
+
+    let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
+    do {
+      try handler.perform([visionRequest])
+      let candidates = (visionRequest.results ?? [])
+        .compactMap { observation -> (String, Float)? in
+          guard let candidate = observation.topCandidates(1).first else {
+            return nil
+          }
+          let text = candidate.string.trimmingCharacters(in: .whitespacesAndNewlines)
+          return text.isEmpty ? nil : (text, candidate.confidence)
+        }
+      guard let best = candidates.sorted(by: { $0.1 > $1.1 }).first else {
+        promise.resolve([
+          "ok": false,
+          "provider": "apple_vision",
+          "frameId": frameId,
+          "code": "empty_result",
+          "message": "Apple Vision OCR did not return readable title text for the live frame.",
+          "durationMs": latencyMs(started),
+          "warnings": []
+        ])
+        return
+      }
+      promise.resolve([
+        "ok": true,
+        "provider": "apple_vision",
+        "frameId": frameId,
+        "text": best.0,
+        "confidence": Int(max(0, min(100, round(best.1 * 100)))),
+        "durationMs": latencyMs(started),
+        "roi": [
+          "x": x,
+          "y": y,
+          "width": roiWidth,
+          "height": roiHeight
+        ],
+        "warnings": []
+      ])
+    } catch {
+      promise.resolve(liveTitleErrorResult(
+        frameId: frameId,
+        code: "vision_failed",
+        message: "Apple Vision live title OCR failed while processing the ROI.",
+        started: started,
+        warnings: []
+      ))
+    }
+  }
+
   private func mapRegionType(_ regionType: String) -> String {
     switch regionType {
     case "title":
@@ -171,8 +288,42 @@ public class TradingDocksVisionOcrModule: Module {
     ]
   }
 
+  private func liveTitleErrorResult(frameId: String, code: String, message: String, started: Date, warnings: [String]) -> [String: Any] {
+    return [
+      "ok": false,
+      "provider": "apple_vision",
+      "frameId": frameId,
+      "code": code,
+      "message": message,
+      "durationMs": latencyMs(started),
+      "warnings": warnings
+    ]
+  }
+
   private func latencyMs(_ started: Date) -> Int {
     return max(0, Int(Date().timeIntervalSince(started) * 1000))
+  }
+
+  private func makeLumaImage(width: Int, height: Int, pixels: [Int]) -> CGImage? {
+    let clamped = pixels.map { UInt8(max(0, min(255, $0))) }
+    let data = Data(clamped)
+    guard let provider = CGDataProvider(data: data as CFData),
+          let colorSpace = CGColorSpace(name: CGColorSpace.linearGray) else {
+      return nil
+    }
+    return CGImage(
+      width: width,
+      height: height,
+      bitsPerComponent: 8,
+      bitsPerPixel: 8,
+      bytesPerRow: width,
+      space: colorSpace,
+      bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+      provider: provider,
+      decode: nil,
+      shouldInterpolate: false,
+      intent: .defaultIntent
+    )
   }
 }
 

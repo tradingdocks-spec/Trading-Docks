@@ -681,6 +681,7 @@ export function addRecognitionToSession(
   input: {
     stableScanId: string;
     candidate: ScannerCardCandidate | null;
+    identity?: { cardName: string; oracleId?: string | null } | null;
     recognition: RecognitionPipelineReport;
     quantity?: number;
     condition?: CardCondition;
@@ -722,7 +723,7 @@ export function addRecognitionToSession(
     id: `${session.id}:${input.stableScanId}`,
     stableScanId: input.stableScanId,
     game: input.recognition.detectedGame,
-    cardName: candidate?.name ?? 'Unrecognized card',
+    cardName: candidate?.name ?? input.identity?.cardName ?? 'Unrecognized card',
     setCode: candidate?.setCode ?? null,
     collectorNumber: candidate?.collectorNumber ?? null,
     exactPrintingId: candidate?.id ?? null,

@@ -47,6 +47,7 @@ import {
   type ContinuousScannerSession,
   type BatchScannerNoticeModel,
   type BatchScannerTimingSnapshot,
+  type RecognitionPipelineReport,
 } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
@@ -76,13 +77,21 @@ import {
 } from '@/services/scanner-performance-instrumentation';
 import {
   SCANNER_SCAN_MODES,
+  buildRapidMagicNameIndex,
   createRapidScanRuntime,
+  markRapidIdentityEmitted,
   nextRapidScanRuntime,
   rapidScanSamplingRate,
   scannerScanModeLabel,
   type RapidScanRuntime,
   type ScannerScanMode,
 } from '@/services/rapid-scan-pipeline';
+import {
+  createRapidLiveOcrState,
+  runRapidLiveTitleOcr,
+  stopRapidLiveOcr,
+  type RapidLiveOcrState,
+} from '@/services/rapid-scan-live-ocr';
 import {
   scannerCameraFraming,
 } from '@/services/scanner-camera-quality';
@@ -170,6 +179,8 @@ export default function AutomaticScannerScreen() {
   const activeSearchIdRef = useRef<string | null>(null);
   const autoCaptureInFlightRef = useRef(false);
   const lastLiveFrameAcceptedAtRef = useRef(0);
+  const lastRapidOcrSampleAtRef = useRef(0);
+  const rapidLiveOcrStateRef = useRef<RapidLiveOcrState>(createRapidLiveOcrState());
   const visionEngineRef = useRef<ReturnType<typeof createScannerVisionEngine> | null>(null);
   const visionEngineKeyRef = useRef<string | null>(null);
   const scryfallSearchCacheRef = useRef(new Map<string, ScannerCardCandidate[]>());
@@ -268,6 +279,7 @@ export default function AutomaticScannerScreen() {
   const [scannerPerformanceJsonSummary, setScannerPerformanceJsonSummary] = useState<string | null>(null);
   const [lastPricingTrace, setLastPricingTrace] = useState<ScannerPricingTrace | null>(null);
   const [liveVisionResult, setLiveVisionResult] = useState<ScannerVisionResult | null>(null);
+  const [rapidLiveOcrMetrics, setRapidLiveOcrMetrics] = useState(() => createRapidLiveOcrState().metrics);
   const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusReticleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraLensSwitchStartedAtRef = useRef<number | null>(null);
@@ -393,6 +405,23 @@ export default function AutomaticScannerScreen() {
     needsReview: line.reviewStatus === 'needs_review',
     syncState: line.syncState,
   })), [session]);
+  const rapidNameIndex = useMemo(() => buildRapidMagicNameIndex([
+    ...candidates
+      .filter((candidate) => candidate.oracleId)
+      .map((candidate) => ({
+        name: candidate.name,
+        oracleId: candidate.oracleId ?? candidate.id,
+        scryfallId: candidate.id,
+      })),
+    ...(session?.lines ?? [])
+      .map((line) => line.recognition.topCandidate)
+      .filter((candidate): candidate is NonNullable<RecognitionPipelineReport['topCandidate']> => Boolean(candidate?.oracleId))
+      .map((candidate) => ({
+        name: candidate.name,
+        oracleId: candidate.oracleId ?? candidate.id,
+        scryfallId: candidate.id,
+      })),
+  ]), [candidates, session]);
   const scannerPerformanceReport = useMemo(
     () => buildScannerPerformanceReport(scannerPerformanceSamples),
     [scannerPerformanceSamples],
@@ -497,6 +526,110 @@ export default function AutomaticScannerScreen() {
     }
     previousReadinessStateRef.current = autoCaptureReadiness.visualState;
   }, [autoCaptureReadiness.visualState, hapticsEnabled]);
+
+  const showBatchNotice = useCallback((notice: BatchScannerNoticeModel & { lineId: string }) => {
+    if (batchNoticeTimerRef.current) clearTimeout(batchNoticeTimerRef.current);
+    setBatchNotice(notice);
+    batchNoticeTimerRef.current = setTimeout(() => {
+      setBatchNotice(null);
+      batchNoticeTimerRef.current = null;
+    }, 2400);
+  }, []);
+
+  const handleRapidLiveOcrFrame = useCallback((frame: ScannerCameraFrame, fingerprint: string | null, observedAt: number) => {
+    if (!context || !session || rapidNameIndex.records.length === 0) return;
+    const sampleIntervalMs = 1000 / rapidScanSamplingRate(rapidRuntime.state);
+    if (observedAt - lastRapidOcrSampleAtRef.current < sampleIntervalMs) return;
+    lastRapidOcrSampleAtRef.current = observedAt;
+
+    void runRapidLiveTitleOcr({
+      state: rapidLiveOcrStateRef.current,
+      frame,
+      nameIndex: rapidNameIndex,
+      destination: scannerSettingsDestination(session) === 'binder' ? 'binder' : scannerSettingsDestination(session) === 'storage_location' ? 'storage' : 'collection',
+      createResultId: createScanId,
+      now: scannerNow,
+    }).then(({ state, outcome }) => {
+      if (!mountedRef.current) return;
+      rapidLiveOcrStateRef.current = state;
+      setRapidLiveOcrMetrics(state.metrics);
+      if (outcome.status !== 'added') return;
+      const report = rapidLiveRecognitionReport({
+        cardName: outcome.result.cardName,
+        confidenceClass: outcome.result.confidenceClass,
+        confidenceScore: outcome.confidence,
+        reason: 'Live title ROI OCR matched the local Rapid Scan name index.',
+      });
+      const lineId = outcome.result.id;
+      setSession((current) => {
+        if (!current || current.lines.some((line) => line.stableScanId === lineId)) return current;
+        return addRecognitionToSession(current, {
+          stableScanId: lineId,
+          candidate: null,
+          identity: { cardName: outcome.result.cardName, oracleId: outcome.result.oracleId },
+          recognition: report,
+          quantity,
+          condition,
+          finish,
+          language,
+          marketPrice: null,
+          priceSource: null,
+          priceTimestamp: null,
+          storageLocationId: current.defaultDestination === 'binder' ? binderLocationId : storageLocationId,
+          binderId: current.defaultDestination === 'binder' ? binderLocationId : null,
+          binderPage: current.defaultDestination === 'binder' ? parseDestinationPage(binderPage) : null,
+          binderSlot: current.defaultDestination === 'binder' ? binderSlot.trim() || null : null,
+          tradeStatus,
+          destination: current.defaultDestination,
+          notes: 'Rapid Scan live title OCR matched locally. Exact printing and price require Review or background refinement.',
+        });
+      });
+      setSessionInsertionResult('inserted');
+      setRapidRuntime((current) => markRapidIdentityEmitted(current, {
+        at: observedAt,
+        fingerprint,
+        title: outcome.result.cardName,
+      }));
+      setAutoScanner((current) => markScanResult(current, {
+        printingId: null,
+        fingerprint,
+        now: scannerNow(),
+        scanId: lineId,
+      }));
+      showBatchNotice({
+        lineId,
+        title: 'Added to Review',
+        message: `${outcome.result.cardName} matched live. Keep scanning.`,
+        tone: outcome.result.reviewRequired ? 'warning' : 'success',
+        undoLabel: 'Undo',
+        correctLabel: 'Correct',
+      });
+    }).catch((liveOcrError) => {
+      rapidLiveOcrStateRef.current = {
+        ...rapidLiveOcrStateRef.current,
+        inFlight: false,
+      };
+      setRapidLiveOcrMetrics(rapidLiveOcrStateRef.current.metrics);
+      if (diagnosticsEnabled) setError(liveOcrError instanceof Error ? liveOcrError.message : 'Live OCR failed.');
+    });
+  }, [
+    binderLocationId,
+    binderPage,
+    binderSlot,
+    condition,
+    context,
+    diagnosticsEnabled,
+    finish,
+    language,
+    quantity,
+    rapidNameIndex,
+    rapidRuntime.state,
+    session,
+    showBatchNotice,
+    storageLocationId,
+    tradeStatus,
+  ]);
+
   const handleLiveFrame = useCallback((frame: ScannerCameraFrame) => {
     if (!mountedRef.current || !context || frame.userId !== context.userId || !previewDimensions) return;
     if (shouldIgnoreFrameAfterLensSwitch({
@@ -548,6 +681,7 @@ export default function AutomaticScannerScreen() {
       result.observedAt,
     ));
     if (scanMode === 'rapid_scan') {
+      handleRapidLiveOcrFrame(frame, result.crop?.fingerprint ?? null, result.observedAt);
       setRapidRuntime((current) => {
         const transition = nextRapidScanRuntime(current, {
           at: result.observedAt,
@@ -558,7 +692,7 @@ export default function AutomaticScannerScreen() {
         return transition.runtime;
       });
     }
-  }, [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, context, guideLayout, previewDimensions, scanMode]);
+  }, [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, context, guideLayout, handleRapidLiveOcrFrame, previewDimensions, scanMode]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -620,6 +754,7 @@ export default function AutomaticScannerScreen() {
       if (batchNoticeTimerRef.current) clearTimeout(batchNoticeTimerRef.current);
       if (focusReticleTimerRef.current) clearTimeout(focusReticleTimerRef.current);
       autoCaptureInFlightRef.current = false;
+      rapidLiveOcrStateRef.current = stopRapidLiveOcr(rapidLiveOcrStateRef.current);
       active = false;
     };
   }, []);
@@ -777,15 +912,6 @@ export default function AutomaticScannerScreen() {
     const uri = diagnosticCaptureUri;
     setDiagnosticCaptureUri(null);
     if (uri) await deleteCapturedStill(uri);
-  };
-
-  const showBatchNotice = (notice: BatchScannerNoticeModel & { lineId: string }) => {
-    if (batchNoticeTimerRef.current) clearTimeout(batchNoticeTimerRef.current);
-    setBatchNotice(notice);
-    batchNoticeTimerRef.current = setTimeout(() => {
-      setBatchNotice(null);
-      batchNoticeTimerRef.current = null;
-    }, 2400);
   };
 
   const resetScannerForm = (options: { preserveNotice?: boolean } = {}) => {
@@ -1441,7 +1567,20 @@ export default function AutomaticScannerScreen() {
   const exportScannerPerformanceJson = async () => {
     const json = serializeScannerPerformanceReport(scannerPerformanceReport);
     const summary = serializeScannerBenchmarkSummary(scannerPerformanceReport);
-    const exportText = `${summary}\n\n${json}`;
+    const rapidLiveSummary = [
+      '',
+      '## Rapid Live OCR',
+      `Frames sampled: ${rapidLiveOcrMetrics.framesSampled}`,
+      `OCR started: ${rapidLiveOcrMetrics.ocrStarted}`,
+      `OCR completed: ${rapidLiveOcrMetrics.ocrCompleted}`,
+      `Frames skipped: ${rapidLiveOcrMetrics.framesSkipped}`,
+      `Stale results discarded: ${rapidLiveOcrMetrics.staleResultsDiscarded}`,
+      `Last OCR duration: ${performanceMs(rapidLiveOcrMetrics.lastOcrDurationMs)}`,
+      `Last local match: ${performanceMs(rapidLiveOcrMetrics.lastLocalMatchMs)}`,
+      `Last identity latency: ${performanceMs(rapidLiveOcrMetrics.lastIdentityLatencyMs)}`,
+      `Last frame-to-result latency: ${performanceMs(rapidLiveOcrMetrics.lastFrameToResultLatencyMs)}`,
+    ].join('\n');
+    const exportText = `${summary}${rapidLiveSummary}\n\n${json}\n\n${JSON.stringify({ rapidLiveOcr: rapidLiveOcrMetrics }, null, 2)}`;
     setScannerPerformanceJsonSummary(`${scannerPerformanceReport.sampleCount} sample${scannerPerformanceReport.sampleCount === 1 ? '' : 's'} ready (${exportText.length} characters).`);
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -1775,6 +1914,12 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Active transitions" value={String(cameraLifecycleDiagnostics.isActiveTransitions)} />
               <DiagnosticCell label="Frame count" value={String(liveFrameCount)} />
               <DiagnosticCell label="Effective FPS" value={autoCaptureReadiness.effectiveFps === null ? 'unavailable' : `${autoCaptureReadiness.effectiveFps} fps`} />
+              <DiagnosticCell label="Rapid OCR sampled" value={String(rapidLiveOcrMetrics.framesSampled)} />
+              <DiagnosticCell label="Rapid OCR skipped" value={String(rapidLiveOcrMetrics.framesSkipped)} />
+              <DiagnosticCell label="Rapid OCR stale" value={String(rapidLiveOcrMetrics.staleResultsDiscarded)} />
+              <DiagnosticCell label="Rapid OCR ms" value={performanceMs(rapidLiveOcrMetrics.lastOcrDurationMs)} />
+              <DiagnosticCell label="Rapid match ms" value={performanceMs(rapidLiveOcrMetrics.lastLocalMatchMs)} />
+              <DiagnosticCell label="Rapid identity ms" value={performanceMs(rapidLiveOcrMetrics.lastIdentityLatencyMs)} />
               <DiagnosticCell label="Readiness state" value={autoCaptureReadiness.visualState.replaceAll('_', ' ')} />
               <DiagnosticCell label="Readiness reason" value={autoCaptureReadiness.primaryReason.replaceAll('_', ' ')} />
               <DiagnosticCell label="Readiness copy" value={autoCaptureReadiness.instruction} />
@@ -2419,6 +2564,43 @@ function rapidScannerInstruction(runtime: RapidScanRuntime, fallback: string) {
 
 function rapidScannerSamplingLabel(runtime: RapidScanRuntime) {
   return `${rapidScanSamplingRate(runtime.state)} fps target`;
+}
+
+function rapidLiveRecognitionReport(input: {
+  cardName: string;
+  confidenceClass: 'high' | 'medium' | 'low';
+  confidenceScore: number;
+  reason: string;
+}): RecognitionPipelineReport {
+  const confidenceState = input.confidenceClass === 'high'
+    ? 'high_confidence'
+    : input.confidenceClass === 'medium'
+      ? 'likely'
+      : 'ambiguous';
+  return {
+    detectedGame: 'magic',
+    topCandidate: null,
+    topThree: [],
+    overallConfidence: Math.max(0, Math.min(100, Math.round(input.confidenceScore))),
+    confidenceState,
+    signals: [{
+      key: 'name_ocr',
+      label: 'Live title OCR',
+      score: input.confidenceScore / 100,
+      weight: 1,
+      evidence: input.reason,
+    }],
+    missingSignals: ['Exact printing, set code, collector number, image, and price refine after Rapid identity.'],
+    conflictingSignals: [],
+    finish: {
+      finish: 'indeterminate',
+      confidence: 0,
+      evidence: ['Rapid live title OCR does not classify finish.'],
+      frameCount: 0,
+    },
+    recognitionMethod: 'metadata_assisted',
+    requiresManualConfirmation: confidenceState !== 'high_confidence',
+  };
 }
 
 function priceTraceValue(value: number | null | undefined) {

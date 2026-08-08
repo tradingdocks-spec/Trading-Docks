@@ -11,9 +11,11 @@
 - Implemented: Rapid Scan confidence routing separates High, Medium, and Low outcomes into append confirmed, append review, continue reading, or Precision fallback.
 - Implemented: Rapid Scan result-tray and batch-session helpers keep destination inheritance separate from recognition.
 - Implemented: Rapid Scan metrics track frame sampling rate, card-presence latency, title crop latency, OCR latency, local fuzzy match latency, identity latency, printing refinement latency, new-card detection latency, and effective cards per minute.
-- Partially Implemented: The active Automatic Scan route displays Rapid Scan as the default throughput mode, hides the still-capture button in Rapid mode, shows recent results as a thin tray, and keeps Precision Scan as the still-capture fallback.
+- Implemented: `TradingDocksVisionOcr.recognizeFrameTitle` accepts a bounded luma frame plus normalized title ROI and returns title text, confidence, and duration without writing a temporary image.
+- Implemented: `mobile/services/rapid-scan-live-ocr.ts` controls live title OCR backpressure, stale-result discard, ROI normalization, native OCR result handling, local matching, and Precision fallback.
+- Partially Implemented: The active Automatic Scan route displays Rapid Scan as the default throughput mode, hides the still-capture button in Rapid mode, samples live frames into native title ROI OCR, shows recent results as a thin tray, and keeps Precision Scan as the still-capture fallback.
 - Partially Implemented: The native camera already feeds bounded luma video frames into the Vision Engine for boundary, quality, card presence, fingerprint, and rearm state.
-- Planned: A native live-frame title OCR provider is still required before Rapid Scan can identify cards from video frames without still capture.
+- Partially Implemented: Live title OCR now exists for iOS development builds, but it depends on a compact in-memory Magic name index. The repository does not yet ship a full MTG name catalog asset, so arbitrary-card coverage requires a catalog packaging sprint.
 - Planned: Background exact-printing refinement needs live bottom-left OCR and printing candidate updates connected to session lines.
 - Planned: Physical benchmark runs are required before publishing cards-per-minute or accuracy claims.
 
@@ -49,7 +51,8 @@ Use a 50-card physical benchmark before changing thresholds:
 
 ## Remaining Gaps
 
-- Planned: Native frame OCR from in-memory title ROI.
+- Implemented: Native iOS frame OCR from in-memory luma title ROI.
+- Requires Production Configuration: A fresh EAS iOS development/preview build is required before physical QA because the native OCR module API changed.
 - Planned: Bottom-left OCR refinement without interrupting preview throughput.
 - Planned: Session-line background printing updates.
 - Planned: Physical CPU, battery, and thermal testing.

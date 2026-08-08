@@ -20,6 +20,17 @@ export type NativeOcrRequest = {
   recognitionLevel?: NativeOcrRecognitionLevel;
 };
 
+export type NativeLiveTitleOcrRequest = {
+  frameId: string;
+  width: number;
+  height: number;
+  pixels: number[];
+  roi: { x: number; y: number; width: number; height: number };
+  languages?: string[];
+  recognitionLevel?: NativeOcrRecognitionLevel;
+  orientation?: 'portrait' | 'landscape';
+};
+
 export type NativeOcrObservation = OCRObservation & {
   id: string;
   requestedRegionId: string;
@@ -53,8 +64,36 @@ export type NativeOcrResult =
     warnings: string[];
   };
 
+export type NativeLiveTitleOcrResult =
+  | {
+    ok: true;
+    provider: 'apple_vision';
+    frameId: string;
+    text: string;
+    confidence: number;
+    durationMs: number;
+    roi: NativeLiveTitleOcrRequest['roi'];
+    warnings: string[];
+  }
+  | {
+    ok: false;
+    provider: 'apple_vision' | 'unsupported_platform' | 'native_module_unavailable';
+    frameId: string;
+    code:
+      | 'unsupported_platform'
+      | 'native_module_unavailable'
+      | 'invalid_request'
+      | 'vision_unavailable'
+      | 'vision_failed'
+      | 'empty_result';
+    message: string;
+    durationMs: number;
+    warnings: string[];
+  };
+
 type NativeModuleShape = {
   recognizeText(request: NativeOcrRequest): Promise<NativeOcrResult>;
+  recognizeFrameTitle?: (request: NativeLiveTitleOcrRequest) => Promise<NativeLiveTitleOcrResult>;
   getDiagnostics?: () => Promise<NativeOcrRuntimeDiagnostics>;
 };
 
@@ -96,6 +135,39 @@ export async function recognizeText(request: NativeOcrRequest, nativeModule?: Na
   });
 }
 
+export async function recognizeFrameTitle(request: NativeLiveTitleOcrRequest, nativeModule?: NativeModuleShape | null, platform = currentPlatform()): Promise<NativeLiveTitleOcrResult> {
+  const validation = validateNativeLiveTitleOcrRequest(request);
+  if (!validation.ok) return validation.result;
+  if (platform !== 'ios') {
+    return {
+      ok: false,
+      provider: 'unsupported_platform',
+      frameId: request.frameId,
+      code: 'unsupported_platform',
+      message: 'Trading Docks live frame title OCR is implemented for iOS Apple Vision only.',
+      durationMs: 0,
+      warnings: ['Android and web live OCR are explicitly unsupported in this branch.'],
+    };
+  }
+  const resolvedNativeModule = nativeModule === undefined ? loadNativeModule(platform) : nativeModule;
+  if (!resolvedNativeModule?.recognizeFrameTitle) {
+    return {
+      ok: false,
+      provider: 'native_module_unavailable',
+      frameId: request.frameId,
+      code: 'native_module_unavailable',
+      message: 'TradingDocksVisionOcr live frame OCR is not available. Install a new EAS development build.',
+      durationMs: 0,
+      warnings: ['No frame image was logged, uploaded, or retained.'],
+    };
+  }
+  return resolvedNativeModule.recognizeFrameTitle({
+    ...request,
+    languages: request.languages?.length ? request.languages : ['en-US'],
+    recognitionLevel: request.recognitionLevel ?? 'fast',
+  });
+}
+
 export function validateNativeOcrRequest(request: NativeOcrRequest): { ok: true } | { ok: false; result: NativeOcrResult } {
   const invalidRegion = request.regions.find((region) => (
     !region.id ||
@@ -132,6 +204,47 @@ export function validateNativeOcrRequest(request: NativeOcrRequest): { ok: true 
         code: 'invalid_request',
         message: 'OCR regions must be normalized, in-bounds rectangles.',
         latencyMs: 0,
+        warnings: [],
+      },
+    };
+  }
+  return { ok: true };
+}
+
+export function validateNativeLiveTitleOcrRequest(request: NativeLiveTitleOcrRequest): { ok: true } | { ok: false; result: Extract<NativeLiveTitleOcrResult, { ok: false }> } {
+  const invalidRoi = (
+    !request.roi ||
+    !Number.isFinite(request.roi.x) ||
+    !Number.isFinite(request.roi.y) ||
+    !Number.isFinite(request.roi.width) ||
+    !Number.isFinite(request.roi.height) ||
+    request.roi.x < 0 ||
+    request.roi.y < 0 ||
+    request.roi.width <= 0 ||
+    request.roi.height <= 0 ||
+    request.roi.x + request.roi.width > 1 ||
+    request.roi.y + request.roi.height > 1
+  );
+  const expectedPixels = Math.floor(request.width) * Math.floor(request.height);
+  if (
+    !request.frameId ||
+    !Number.isFinite(request.width) ||
+    !Number.isFinite(request.height) ||
+    request.width <= 0 ||
+    request.height <= 0 ||
+    !Array.isArray(request.pixels) ||
+    request.pixels.length !== expectedPixels ||
+    invalidRoi
+  ) {
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        provider: 'apple_vision',
+        frameId: request.frameId || 'unknown-frame',
+        code: 'invalid_request',
+        message: 'Live title OCR requires normalized ROI and a bounded luma frame.',
+        durationMs: 0,
         warnings: [],
       },
     };
