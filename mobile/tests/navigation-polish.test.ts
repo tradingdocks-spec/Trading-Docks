@@ -54,14 +54,30 @@ test('active route state remains stable for primary and nested tab routes', () =
   assert.equal(isMobileTabSelected('/(tabs)/profile', 'sell'), false);
 });
 
-test('center actions remain reachable for Collector scan and Seller Deal Desk', () => {
+test('center action remains Scan for every account type and Deal Desk is contextual', () => {
   const collectorScan = getMobileTabOptions('collector', 'scan');
+  const sellerScan = getMobileTabOptions('seller', 'scan');
+  const storeScan = getMobileTabOptions('store', 'scan');
   const sellerDealDesk = getMobileTabOptions('seller', 'deal-desk');
 
   assert.equal(collectorScan.href, undefined);
   assert.equal(collectorScan.prominent, true);
-  assert.equal(sellerDealDesk.href, undefined);
-  assert.equal(sellerDealDesk.prominent, true);
+  assert.equal(sellerScan.prominent, true);
+  assert.equal(storeScan.prominent, true);
+  assert.equal(sellerDealDesk.href, null);
+  assert.equal(sellerDealDesk.prominent, false);
+});
+
+test('Mobile V1 primary tab labels are Home Collection Scan Intelligence Account', () => {
+  for (const accountType of accountTypes) {
+    assert.deepEqual(getMobileTabs(accountType).map((tab) => tab.label), [
+      'Home',
+      'Collection',
+      'Scan',
+      'Intelligence',
+      'Account',
+    ]);
+  }
 });
 
 test('admin access remains additive and outside primary mobile tabs', () => {
@@ -117,5 +133,6 @@ test('mobile tab layout consumes canonical account-aware route definitions', () 
   const layout = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
 
   assert.match(layout, /getMobileVisibleTabRoutes\(accountType\)/);
+  assert.match(layout, /<Tabs\.Screen name="deal-desk" options=\{\{ href: null, title: 'Deal Desk' \}\}/);
   assert.doesNotMatch(layout, /const tabRoutes:\s*MobileTabRouteName\[\]\s*=\s*\[/);
 });

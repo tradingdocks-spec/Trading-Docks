@@ -205,7 +205,7 @@ test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', 
   const singleScan = readFileSync(join(root, 'app', 'scan', 'single.tsx'), 'utf8');
 
   assert.match(shell, /surface\.dock/);
-  assert.match(shell, /edge\.subtle/);
+  assert.match(shell, /edge\.highlight/);
   assert.match(home, /DockSurface[\s\S]*Primary workspace actions/);
   assert.match(home, /DockCardWell/);
   assert.match(collection, /DockMetric[\s\S]*Owned/);

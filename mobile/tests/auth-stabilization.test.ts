@@ -202,38 +202,39 @@ test('protected route guard waits for session restoration before redirecting', (
   );
 });
 
-test('mobile collector navigation uses canonical labels and selected state', () => {
+test('mobile collector navigation uses canonical release labels and selected state', () => {
   assert.deepEqual(getMobileTabs('collector').map((tab) => tab.label), [
     'Home',
     'Collection',
     'Scan',
-    'Signals',
-    'Profile',
+    'Intelligence',
+    'Account',
   ]);
   assert.equal(getMobileTabOptions('collector', 'scan').href, undefined);
   assert.equal(getMobileTabOptions('collector', 'deal-desk').href, null);
   assert.equal(isMobileTabSelected('/(tabs)/collection', 'collection'), true);
 });
 
-test('mobile seller navigation exposes Collection, Deal Desk, Signals, and Profile', () => {
+test('mobile seller navigation keeps Scan primary and Deal Desk contextual', () => {
   assert.deepEqual(getMobileTabs('seller').map((tab) => tab.label), [
     'Home',
     'Collection',
-    'Deal Desk',
-    'Signals',
-    'Profile',
+    'Scan',
+    'Intelligence',
+    'Account',
   ]);
-  assert.equal(getMobileTabOptions('seller', 'scan').href, null);
-  assert.equal(getMobileTabOptions('seller', 'deal-desk').prominent, true);
+  assert.equal(getMobileTabOptions('seller', 'scan').href, undefined);
+  assert.equal(getMobileTabOptions('seller', 'scan').prominent, true);
+  assert.equal(getMobileTabOptions('seller', 'deal-desk').href, null);
 });
 
-test('mobile store navigation exposes Business, Deal Desk, Activity, and Profile', () => {
+test('mobile store navigation keeps the same five primary destinations', () => {
   assert.deepEqual(getMobileTabs('store').map((tab) => tab.label), [
     'Home',
-    'Business',
-    'Deal Desk',
-    'Activity',
-    'Profile',
+    'Collection',
+    'Scan',
+    'Intelligence',
+    'Account',
   ]);
 });
 
@@ -265,7 +266,7 @@ test('missing mobile account type falls back to collector-safe free navigation',
     'Home',
     'Collection',
     'Scan',
-    'Signals',
-    'Profile',
+    'Intelligence',
+    'Account',
   ]);
 });

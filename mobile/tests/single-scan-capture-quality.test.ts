@@ -27,7 +27,7 @@ test('view guide maps into frame coordinates without using native preview dimens
 
 test('card too small blocks Single Scan capture with Move closer guidance', () => {
   const analyzer = createSingleScanQualityAnalyzer({ view: { width: 240, height: 360 }, guide: centeredGuide() });
-  const result = analyzer.analyzeFrame(frameWithCard({ cardWidth: 86, cardHeight: 120, x: 77, y: 104, detail: true, capturedAt: 1000 }));
+  const result = analyzer.analyzeFrame(frameWithCard({ cardWidth: 72, cardHeight: 101, x: 84, y: 110, detail: true, capturedAt: 1000 }));
   assert.equal(result.canCapture, false);
   assert.equal(result.reason, 'too_small');
   assert.equal(result.guidance, 'Move closer');
@@ -56,7 +56,7 @@ test('focus settle blocks capture briefly before OCR', () => {
   assert.equal(ready.canCapture, false);
   assert.equal(ready.reason, 'focus_settling');
   assert.equal(ready.guidance, 'Hold steady');
-  assert.equal(SINGLE_SCAN_FOCUS_SETTLE_MS, 450);
+  assert.equal(SINGLE_SCAN_FOCUS_SETTLE_MS, 180);
 });
 
 test('user-facing OCR error is nontechnical while raw provider error can remain diagnostic', () => {

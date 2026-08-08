@@ -40,12 +40,12 @@ test('native live frame sampling stays compact and portrait oriented', () => {
   assert.ok(sampling.height > sampling.width);
 });
 
-test('native still capture favors high quality four-by-three photos', () => {
+test('native still capture uses an OCR-safe balanced four-by-three target', () => {
   const target = scannerNativePhotoTarget();
-  assert.equal(target.width, 3024);
-  assert.equal(target.height, 4032);
-  assert.equal(target.quality, 1);
-  assert.equal(target.qualityPrioritization, 'quality');
+  assert.equal(target.width, 1920);
+  assert.equal(target.height, 2560);
+  assert.equal(target.quality, 0.86);
+  assert.equal(target.qualityPrioritization, 'balanced');
   assert.equal(target.distortionCorrection, true);
   assert.equal(target.virtualDeviceFusion, true);
 });
