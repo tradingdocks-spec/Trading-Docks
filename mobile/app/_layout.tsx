@@ -10,7 +10,8 @@ import { BiometricGate } from '@/components/biometric-gate';
 import { ScannerReplayBridge } from '@/components/scanner-replay-bridge';
 import { Logo } from '@/components/primitives';
 import { TDButton, TDCard, TDText } from '@/components/design-system';
-import { color, radius, space } from '@/design';
+import { TradingDocksLaunchChoreography } from '@/components/signature-loading';
+import { color, space } from '@/design';
 import { releaseErrorState, releaseLoadingState } from '@/services/mobile-release-ux';
 
 function AppFrame() {
@@ -19,10 +20,7 @@ function AppFrame() {
   if (loading) {
     return (
       <View style={s.loading}>
-        <View style={s.brandPanel}>
-          <Logo />
-          <TDText variant="caption" tone="muted" style={s.loadingText}>{loadingCopy.message}</TDText>
-        </View>
+        <TradingDocksLaunchChoreography message={loadingCopy.message} />
       </View>
     );
   }
@@ -55,8 +53,6 @@ export function ErrorBoundary({ retry }: { error: Error; retry: () => void }) {
 
 const s = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.sm, backgroundColor: color.canvas },
-  brandPanel: { alignItems: 'center', gap: space.md, borderRadius: radius.lg, padding: space.lg, backgroundColor: color.surfaceFloating },
-  loadingText: { textAlign: 'center' },
   errorCard: { width: '100%', maxWidth: 360, gap: space.md, alignItems: 'center' },
   errorText: { textAlign: 'center' },
   errorActions: { width: '100%', gap: space.sm },
