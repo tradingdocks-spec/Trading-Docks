@@ -9,8 +9,9 @@ Trading Docks must use one binder platform across Mobile, Headquarters, and publ
 - Implemented: Shared TypeScript binder contracts live in `mobile/services/physical-binder.ts`.
 - Implemented: Web imports the same contract through `src/lib/physical-binder.ts`.
 - Implemented: The contract references the existing backend model: `portfolio_binders`, `portfolio_shares`, `inventory_locations`, and `inventory_items`.
-- Partially Implemented: Current web portfolio sharing already uses portfolio share routes and tokens.
-- Planned: Mobile binder creation, slot editing, and share-link UI need a dedicated product pass on top of this shared contract.
+- Implemented: Current web portfolio sharing uses portfolio share routes and tokens.
+- Implemented: Mobile exposes a physical binder list, cover cards, page/spread pocket view, public share-link creation, native share/copy handoff, and share-link revocation against the same route and token contract.
+- Partially Implemented: Mobile binder creation and slot editing still route through Storage Locations and Card Detail rather than a dedicated binder editor.
 
 ## Physical Binder Model
 
@@ -26,7 +27,9 @@ The shared model supports:
 
 - Implemented: Share request normalization supports binder, page, spread, and portfolio scopes.
 - Implemented: Visibility supports private, unlisted, and public values.
-- Partially Implemented: Public web share routes exist today, but share-link unification still needs route-level product review before deprecating legacy binder-share paths.
+- Implemented: Public web share routes render read-only binder/portfolio pages from canonical `portfolio_shares` tokens.
+- Implemented: The share API accepts Headquarters cookie auth and mobile Supabase bearer auth, then writes owner-scoped share rows server-side.
+- Partially Implemented: Share privacy is currently selected at link creation; an inline privacy toggle beyond revoke/regenerate remains future UX.
 
 ## Contract Rules
 

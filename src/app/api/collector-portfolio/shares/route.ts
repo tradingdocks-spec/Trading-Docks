@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { safeText } from "@/lib/public-share-security";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { loadCollectorPortfolioForCurrentUser } from "@/lib/collector-portfolio-server";
+import { loadCollectorPortfolioForUser } from "@/lib/collector-portfolio-server";
 import { createClient } from "@/lib/supabase/server";
+import type { User } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await authenticatePortfolioShareRequest(request);
   if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
 
   const body = await request.json().catch(() => null) as {
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const visibility = permittedVisibility.has(requestedVisibility)
     ? requestedVisibility as "public" | "unlisted" | "private"
     : "unlisted";
-  const portfolio = await loadCollectorPortfolioForCurrentUser();
+  const portfolio = await loadCollectorPortfolioForUser(user);
   const binder = portfolio.binders.find((entry) => entry.location_id === body?.binderLocationId) ?? portfolio.binders[0];
 
   if (scope !== "portfolio" && !binder) return NextResponse.json({ error: "Choose a binder before sharing." }, { status: 400 });
@@ -113,4 +113,39 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ error: error.message.includes("portfolio_shares") ? "Run the Collector Portfolio migration first." : error.message }, { status: 500 });
 
   return NextResponse.json({ url: `${new URL(request.url).origin}/share/portfolio/${token}` });
+}
+
+export async function DELETE(request: Request) {
+  const user = await authenticatePortfolioShareRequest(request);
+  if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+
+  const body = await request.json().catch(() => null) as { token?: string } | null;
+  const token = safeText(body?.token, 80);
+  if (!token) return NextResponse.json({ error: "Share token is required." }, { status: 400 });
+
+  const { error } = await createAdminClient()
+    .from("portfolio_shares")
+    .update({
+      is_active: false,
+      revoked_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id)
+    .eq("token", token);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+async function authenticatePortfolioShareRequest(request: Request): Promise<User | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) return user;
+
+  const authorization = request.headers.get("authorization");
+  const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  if (!token) return null;
+
+  const { data, error } = await createAdminClient().auth.getUser(token);
+  if (error) return null;
+  return data.user ?? null;
 }

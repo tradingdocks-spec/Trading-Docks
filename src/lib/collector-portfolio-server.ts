@@ -6,7 +6,11 @@ import type {
   PortfolioInventoryLocation,
 } from "@/lib/collector-portfolio";
 import { slugifyPortfolioValue } from "@/lib/collector-portfolio";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { User } from "@supabase/supabase-js";
+
+type PortfolioSupabaseClient = Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>;
 
 type DataRow = { data: unknown };
 
@@ -49,7 +53,14 @@ export async function loadCollectorPortfolioForCurrentUser() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Authentication required.");
+  return loadCollectorPortfolioForAuthenticatedUser(supabase, user);
+}
 
+export async function loadCollectorPortfolioForUser(user: User) {
+  return loadCollectorPortfolioForAuthenticatedUser(createAdminClient(), user);
+}
+
+async function loadCollectorPortfolioForAuthenticatedUser(supabase: PortfolioSupabaseClient, user: User) {
   const [profileResult, bindersResult, locationsResult, itemsResult, featuredResult, tradeResult, requestsResult, wishlistResult] = await Promise.all([
     supabase.from("collector_profiles").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("portfolio_binders").select("*").eq("user_id", user.id).order("portfolio_order"),

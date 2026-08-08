@@ -6,9 +6,13 @@ import { fileURLToPath } from "node:url";
 
 import {
   BINDER_PLATFORM_BACKEND_TABLES,
+  binderShareStatusLabel,
   binderSlotLabels,
+  buildPhysicalBinderState,
   buildBinderSpread,
+  createBinderSharePayload,
   normalizeBinderShareRequest,
+  revokeBinderSharePayload,
   validateBinderPlacement,
   type PhysicalBinder,
   type PhysicalBinderCardPlacement,
@@ -83,4 +87,37 @@ test("binder share requests normalize to the shared public link contract", () =>
     normalizeBinderShareRequest({ binderId: "binder-1", scope: "market" as never, visibility: "secret" as never }),
     { binderId: "binder-1", scope: "binder", visibility: "unlisted", page: undefined },
   );
+});
+
+test("mobile and Headquarters binder state share the same location-backed entity", () => {
+  const state = buildPhysicalBinderState({
+    userId: "user-1",
+    cards: [{
+      ...card,
+      storageLocation: { id: "loc-1", name: "Trade Night Binder", type: "binder", binderPage: 4, binderSlot: "B2" },
+    } as CollectionCard],
+    rawLocations: [{ id: "loc-1", name: "Trade Night Binder", location_type: "binder", data: { type: "binder", binderPages: 12, binderRows: 3, binderColumns: 3 } }],
+    rawBinders: [{ id: "binder-1", user_id: "user-1", location_id: "loc-1", title: "HQ Binder", visibility: "unlisted" }],
+    rawShares: [{ id: "share-1", token: "share-token", resource_id: "loc-1", visibility: "unlisted", is_active: true, revoked_at: null, share_type: "binder" }],
+    activeBinderId: "binder-1",
+    page: 4,
+  });
+
+  assert.equal(state.activeBinder?.id, "binder-1");
+  assert.equal(state.activeBinder?.locationId, "loc-1");
+  assert.equal(state.activeBinder?.name, "HQ Binder");
+  assert.equal(state.activeSpread?.right.pockets.find((pocket) => pocket.slot === "B2")?.placement?.inventoryItemId, "card-1");
+  assert.equal(state.activeBinder?.shareLink?.url, "/share/portfolio/share-token");
+});
+
+test("binder share create and revoke payloads use the canonical token contract", () => {
+  assert.deepEqual(createBinderSharePayload({ binderId: "loc-1", scope: "binder", visibility: "unlisted" }), {
+    scope: "binder",
+    visibility: "unlisted",
+    page: 1,
+    binderLocationId: "loc-1",
+  });
+
+  assert.deepEqual(revokeBinderSharePayload({ token: "share-token" }).token, "share-token");
+  assert.equal(binderShareStatusLabel({ token: "share-token", url: "/share/portfolio/share-token", visibility: "unlisted", scope: "binder", active: false }), "Revoked");
 });
