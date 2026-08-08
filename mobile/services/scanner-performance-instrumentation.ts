@@ -94,6 +94,23 @@ export function serializeScannerPerformanceReport(report: ScannerPerformanceRepo
   return JSON.stringify(report, null, 2);
 }
 
+export function serializeScannerBenchmarkSummary(report: ScannerPerformanceReport) {
+  const lines = [
+    '# Trading Docks Scanner Benchmark',
+    '',
+    `Samples: ${report.sampleCount}/${report.historyLimit}`,
+    `Average scan time: ${formatMs(report.averages.averageScanTimeMs)}`,
+    `Average OCR time: ${formatMs(report.averages.averageOcrTimeMs)}`,
+    `Average Scryfall lookup time: ${formatMs(report.averages.averageScryfallLookupTimeMs)}`,
+    `Average total until session insertion: ${formatMs(report.averages.averageTotalUntilSessionInsertionMs)}`,
+    `Average camera FPS: ${report.averages.averageCameraFps === null ? 'unavailable' : `${report.averages.averageCameraFps} fps`}`,
+    `Preview resolution: ${formatResolution(report.latest?.previewResolution ?? null)}`,
+    `Capture resolution: ${formatResolution(report.latest?.captureResolution ?? null)}`,
+    `Unavailable: ${report.unavailable.length ? report.unavailable.join(', ') : 'none'}`,
+  ];
+  return lines.join('\n');
+}
+
 function nextSequence(samples: ScannerPerformanceSample[]) {
   return (samples[0]?.sequence ?? 0) + 1;
 }
@@ -116,6 +133,14 @@ function normalizeMetric(value: number | null | undefined) {
 function normalizeResolution(value: ScannerResolution | null | undefined): ScannerResolution | null {
   if (!value || !Number.isFinite(value.width) || !Number.isFinite(value.height) || value.width <= 0 || value.height <= 0) return null;
   return { width: Math.round(value.width), height: Math.round(value.height) };
+}
+
+function formatMs(value: number | null) {
+  return value === null ? 'unavailable' : `${value} ms`;
+}
+
+function formatResolution(value: ScannerResolution | null) {
+  return value ? `${value.width}x${value.height}` : 'unavailable';
 }
 
 function unavailablePerformanceFields(samples: ScannerPerformanceSample[]) {

@@ -6,6 +6,7 @@ import {
   appendScannerPerformanceSample,
   buildScannerPerformanceReport,
   createScannerPerformanceSample,
+  serializeScannerBenchmarkSummary,
   serializeScannerPerformanceReport,
   type ScannerPerformanceSample,
 } from '../services/scanner-performance-instrumentation.ts';
@@ -65,4 +66,25 @@ test('scanner performance JSON omits images users and local paths', () => {
   assert.doesNotMatch(json, /file:|imageUri|uri|userId|localImagePath|token|secret/i);
   assert.match(json, /averageTotalUntilSessionInsertionMs/);
   assert.match(json, /captureResolution/);
+});
+
+test('compact benchmark summary reports tunable scanner timings without sensitive data', () => {
+  const sample = createScannerPerformanceSample({
+    previousSamples: [],
+    source: 'assisted_capture',
+    timing: { captureMs: 44, cropMs: null, ocrMs: 120, scryfallMs: 180, sessionWriteMs: 8, totalMs: 410, fallbackCount: 0 },
+    cameraFps: 28,
+    previewResolution: { width: 390, height: 844 },
+    captureResolution: { width: 3024, height: 4032 },
+  });
+  const summary = serializeScannerBenchmarkSummary(buildScannerPerformanceReport([sample]));
+
+  assert.match(summary, /Average scan time: 44 ms/);
+  assert.match(summary, /Average OCR time: 120 ms/);
+  assert.match(summary, /Average Scryfall lookup time: 180 ms/);
+  assert.match(summary, /Average total until session insertion: 418 ms/);
+  assert.match(summary, /Average camera FPS: 28 fps/);
+  assert.match(summary, /Preview resolution: 390x844/);
+  assert.match(summary, /Capture resolution: 3024x4032/);
+  assert.doesNotMatch(summary, /file:|imageUri|uri|userId|localImagePath|token|secret/i);
 });

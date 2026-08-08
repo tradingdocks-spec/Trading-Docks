@@ -16,6 +16,7 @@ Price, image, collector OCR, and secondary metadata must not block the user when
 - Implemented: Failed reads do not create unknown inventory rows.
 - Implemented: Price enrichment runs after Review List insertion when Scryfall price metadata is available.
 - Implemented: Automatic Scan now allows the current ready vision frame to trigger capture before same-card removal state blocks the next scan.
+- Implemented: Development diagnostics keep a bounded local benchmark history and can export/copy a compact Markdown summary plus sanitized JSON.
 - Partially Implemented: Physical-device benchmark numbers are not available from repository-only validation.
 
 ## Automatic Scan State Machine
@@ -30,6 +31,8 @@ Current state order:
 6. Successful intake enters Review List.
 7. Same-card protection requires removal before rearming.
 
+When scanner diagnostics are enabled outside production, Automatic Scan shows a compact QA overlay for `cardPresent`, `stable`, `ready`, `captureArmed`, `captureFired`, `processing`, `awaitingRemoval`, `removed`, and `rearmed`, plus safe timing deltas. The overlay must remain hidden in production.
+
 ## Measurements
 
 Requires Physical Measurement:
@@ -42,7 +45,7 @@ Requires Physical Measurement:
 - Preview resolution.
 - Capture resolution.
 
-Do not estimate these values. Record them from the development diagnostics panel or a dedicated physical benchmark run.
+Do not estimate these values. Record them from the development diagnostics panel, the compact benchmark export, or a dedicated physical benchmark run.
 
 ## Remaining Risks
 

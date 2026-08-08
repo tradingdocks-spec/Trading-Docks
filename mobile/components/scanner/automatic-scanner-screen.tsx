@@ -40,6 +40,7 @@ import {
   markCaptureStarted,
   markScanResult,
   nextContinuousScannerRuntime,
+  scannerDestinationLabel,
   scannerModeLabel,
   shouldAddRecognitionToBatch,
   type ContinuousScannerMode,
@@ -69,6 +70,7 @@ import {
   appendScannerPerformanceSample,
   buildScannerPerformanceReport,
   createScannerPerformanceSample,
+  serializeScannerBenchmarkSummary,
   serializeScannerPerformanceReport,
   type ScannerPerformanceSample,
 } from '@/services/scanner-performance-instrumentation';
@@ -227,6 +229,9 @@ export default function AutomaticScannerScreen() {
   const [finish, setFinish] = useState<'normal' | 'foil' | 'etched'>('normal');
   const [language, setLanguage] = useState('en');
   const [storageLocationId, setStorageLocationId] = useState<string | null>(null);
+  const [binderLocationId, setBinderLocationId] = useState<string | null>(null);
+  const [binderPage, setBinderPage] = useState('1');
+  const [binderSlot, setBinderSlot] = useState('');
   const [tradeStatus, setTradeStatus] = useState(tradeStatusForScanner('not_for_trade'));
   const [purchaseRate, setPurchaseRate] = useState('70');
   const [loading, setLoading] = useState(true);
@@ -534,6 +539,8 @@ export default function AutomaticScannerScreen() {
         if (draft) {
           setQuery(draft.query);
           setStorageLocationId(draft.confirmation?.storageLocationId ?? null);
+          setBinderPage(draft.confirmation?.binderPage ? String(draft.confirmation.binderPage) : '1');
+          setBinderSlot(draft.confirmation?.binderSlot ?? '');
         }
         const rawCameraPreferences = await appStorage.getItem(scannerCameraPreferenceKey(result.userId));
         if (rawCameraPreferences) {
@@ -693,9 +700,9 @@ export default function AutomaticScannerScreen() {
       userId: context.userId,
       query,
       selectedCandidateId: selected?.id ?? null,
-      confirmation: selected ? { quantity, condition, finish, language, storageLocationId, tradeStatus, addToWishlist: false } : null,
+      confirmation: selected ? { quantity, condition, finish, language, storageLocationId, binderPage: parseDestinationPage(binderPage), binderSlot: binderSlot.trim() || null, tradeStatus, addToWishlist: false } : null,
     }));
-  }, [condition, context, finish, language, quantity, query, selected, storageLocationId, tradeStatus]);
+  }, [binderPage, binderSlot, condition, context, finish, language, quantity, query, selected, storageLocationId, tradeStatus]);
 
   useEffect(() => {
     const next = resolveScannerPermissionState({
@@ -795,6 +802,7 @@ export default function AutomaticScannerScreen() {
       ...session,
       offerConfig: { ...session.offerConfig, defaultCashPercentage: rate },
     };
+    const effectiveStorageLocationId = sessionWithRate.defaultDestination === 'binder' ? binderLocationId : storageLocationId;
     const nextSession: ContinuousScannerSession = addRecognitionToSession(sessionWithRate, {
       stableScanId: input.stableScanId,
       candidate: input.candidate,
@@ -806,7 +814,10 @@ export default function AutomaticScannerScreen() {
       marketPrice: null,
       priceSource: input.candidate.marketPrice ? 'pricing_pending' : null,
       priceTimestamp: null,
-      storageLocationId,
+      storageLocationId: effectiveStorageLocationId,
+      binderId: sessionWithRate.defaultDestination === 'binder' ? binderLocationId : null,
+      binderPage: sessionWithRate.defaultDestination === 'binder' ? parseDestinationPage(binderPage) : null,
+      binderSlot: sessionWithRate.defaultDestination === 'binder' ? binderSlot.trim() || null : null,
       tradeStatus,
       destination: sessionWithRate.defaultDestination,
       notes: recognitionReport.confidenceState === 'high_confidence'
@@ -1397,15 +1408,17 @@ export default function AutomaticScannerScreen() {
 
   const exportScannerPerformanceJson = async () => {
     const json = serializeScannerPerformanceReport(scannerPerformanceReport);
-    setScannerPerformanceJsonSummary(`${scannerPerformanceReport.sampleCount} sample${scannerPerformanceReport.sampleCount === 1 ? '' : 's'} ready (${json.length} characters).`);
+    const summary = serializeScannerBenchmarkSummary(scannerPerformanceReport);
+    const exportText = `${summary}\n\n${json}`;
+    setScannerPerformanceJsonSummary(`${scannerPerformanceReport.sampleCount} sample${scannerPerformanceReport.sampleCount === 1 ? '' : 's'} ready (${exportText.length} characters).`);
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(json);
-        setSuccess('Scanner performance JSON copied.');
+        await navigator.clipboard.writeText(exportText);
+        setSuccess('Scanner benchmark report copied.');
         return;
       }
-      await Share.share({ title: 'Scanner performance diagnostics', message: json });
-      setSuccess('Scanner performance JSON opened for export.');
+      await Share.share({ title: 'Scanner performance diagnostics', message: exportText });
+      setSuccess('Scanner benchmark report opened for export.');
     } catch (exportError) {
       setError(exportError instanceof Error ? exportError.message : 'Scanner performance export failed.');
     }
@@ -1471,6 +1484,21 @@ export default function AutomaticScannerScreen() {
       />
 
       <View pointerEvents="box-none" style={s.overlayLayer}>
+        {diagnosticsEnabled ? (
+          <AutoScanDiagnosticsOverlay
+            cardPresent={Boolean(liveVisionResult?.detection.cardPresent)}
+            stable={autoCaptureReadiness.primaryReason !== 'motion' && diagnosticsSnapshot.stabilityMs !== null}
+            ready={autoCaptureReadiness.ready}
+            captureArmed={autoCaptureEnabled && autoCaptureReadiness.ready}
+            captureFired={scannerProcessing || captureState !== 'idle'}
+            processing={scannerProcessing}
+            awaitingRemoval={autoScanner.duplicateProtection.awaitingCardRemoval}
+            removed={!autoScanner.duplicateProtection.awaitingCardRemoval && autoScanner.duplicateProtection.lastCaptureAt !== null}
+            rearmed={!autoScanner.duplicateProtection.awaitingCardRemoval && autoCaptureEnabled}
+            timings={scanTimings[0]}
+            frameDeltaMs={diagnosticsSnapshot.stabilityMs}
+          />
+        ) : null}
         {error && visibleSurface !== 'result_tray' && !showAddedOverlay ? <ScannerToast tone="warning" title="Scanner notice" message={error} /> : null}
         {success && visibleSurface !== 'result_tray' && !showAddedOverlay ? null : null}
         {batchNotice ? (
@@ -1505,9 +1533,20 @@ export default function AutomaticScannerScreen() {
                   <OptionRow label="Stable duration" options={['normal', 'long']} value="normal" display={(value) => value === 'normal' ? 'Standard' : 'Long'} onSelect={() => undefined} compact />
                   <OptionRow label="Default finish" options={['normal', 'foil', 'etched']} value={finish} display={displayFinish} onSelect={setFinish} compact />
                   <TDInput label="Default language" value={language} onChangeText={setLanguage} placeholder="en" />
-                  <OptionRow label="Destination" options={['collection', 'purchase_intake', 'trade_evaluation', 'export_only']} value={session?.defaultDestination ?? 'purchase_intake'} display={(value) => value.replaceAll('_', ' ')} onSelect={(value) => session ? setSession({ ...session, defaultDestination: value }) : undefined} compact />
+                  <OptionRow<ContinuousScannerSession['defaultDestination']> label="Destination" options={['collection', 'storage_location', 'binder', 'trade_binder']} value={scannerSettingsDestination(session)} display={scannerDestinationLabel} onSelect={(value) => session ? setSession({ ...session, defaultDestination: value }) : undefined} compact />
                   <OptionRow label="Trade Binder" options={TRADE_BINDER_STATUS_OPTIONS} value={tradeStatus} display={(status) => status.replaceAll('_', ' ')} onSelect={setTradeStatus} compact />
-                  <OptionRow label="Storage" options={['none', ...(context?.locations.map((location) => location.id) ?? [])]} value={storageLocationId ?? 'none'} display={(id) => id === 'none' ? 'Unassigned' : context?.locations.find((location) => location.id === id)?.name ?? 'Unavailable'} onSelect={(id) => setStorageLocationId(id === 'none' ? null : id)} compact />
+                  {session?.defaultDestination === 'storage_location' ? (
+                    <OptionRow label="Storage" options={['none', ...(context?.locations.map((location) => location.id) ?? [])]} value={storageLocationId ?? 'none'} display={(id) => id === 'none' ? 'Unassigned' : context?.locations.find((location) => location.id === id)?.name ?? 'Unavailable'} onSelect={(id) => setStorageLocationId(id === 'none' ? null : id)} compact />
+                  ) : null}
+                  {session?.defaultDestination === 'binder' ? (
+                    <>
+                      <OptionRow label="Binder" options={['none', ...(context?.locations.filter((location) => location.type === 'binder').map((location) => location.id) ?? [])]} value={binderLocationId ?? 'none'} display={(id) => id === 'none' ? 'Choose binder' : context?.locations.find((location) => location.id === id)?.name ?? 'Unavailable'} onSelect={(id) => setBinderLocationId(id === 'none' ? null : id)} compact />
+                      <View style={s.destinationCoordinateRow}>
+                        <TDInput label="Page" value={binderPage} keyboardType="numeric" onChangeText={setBinderPage} containerStyle={s.destinationCoordinateInput} />
+                        <TDInput label="Slot" value={binderSlot} autoCapitalize="characters" onChangeText={setBinderSlot} containerStyle={s.destinationCoordinateInput} />
+                      </View>
+                    </>
+                  ) : null}
                   <TDButton label={cameraActive ? 'Pause scanner' : 'Resume scanner'} variant="secondary" onPress={toggleCameraPause} />
                   <TDButton label="Manual search" variant="secondary" iconName="search-outline" onPress={() => {
                     setShowSettingsSheet(false);
@@ -2182,6 +2221,72 @@ function OptionRow<T extends string>({ label, options, value, display, onSelect,
   );
 }
 
+function scannerSettingsDestination(session: ContinuousScannerSession | null): ContinuousScannerSession['defaultDestination'] {
+  const destination = session?.defaultDestination;
+  return destination === 'storage_location' || destination === 'binder' || destination === 'trade_binder' ? destination : 'collection';
+}
+
+function parseDestinationPage(value: string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+}
+
+function AutoScanDiagnosticsOverlay({
+  cardPresent,
+  stable,
+  ready,
+  captureArmed,
+  captureFired,
+  processing,
+  awaitingRemoval,
+  removed,
+  rearmed,
+  timings,
+  frameDeltaMs,
+}: {
+  cardPresent: boolean;
+  stable: boolean;
+  ready: boolean;
+  captureArmed: boolean;
+  captureFired: boolean;
+  processing: boolean;
+  awaitingRemoval: boolean;
+  removed: boolean;
+  rearmed: boolean;
+  timings?: BatchScannerTimingSnapshot;
+  frameDeltaMs: number | null;
+}) {
+  const flags = [
+    ['cardPresent', cardPresent],
+    ['stable', stable],
+    ['ready', ready],
+    ['captureArmed', captureArmed],
+    ['captureFired', captureFired],
+    ['processing', processing],
+    ['awaitingRemoval', awaitingRemoval],
+    ['removed', removed],
+    ['rearmed', rearmed],
+  ] as const;
+  return (
+    <View pointerEvents="none" style={s.autoDiagnosticsOverlay}>
+      <TDText variant="caption" tone="info">Auto Scan QA</TDText>
+      <View style={s.autoDiagnosticsFlags}>
+        {flags.map(([label, value]) => (
+          <View key={label} style={[s.autoDiagnosticsFlag, value && s.autoDiagnosticsFlagOn]}>
+            <TDText variant="caption" tone={value ? 'success' : 'muted'}>{label}</TDText>
+          </View>
+        ))}
+      </View>
+      <TDText variant="caption" tone="muted">
+        frame {performanceMs(frameDeltaMs)} · capture {performanceMs(timings?.captureMs ?? null)} · OCR {performanceMs(timings?.ocrMs ?? null)}
+      </TDText>
+      <TDText variant="caption" tone="muted">
+        lookup {performanceMs(timings?.scryfallMs ?? null)} · result {performanceMs(timings?.totalMs ?? null)} · rearm {awaitingRemoval ? 'waiting' : 'ready'}
+      </TDText>
+    </View>
+  );
+}
+
 function guideToneStyle(tone: 'neutral' | 'cyan' | 'blue' | 'emerald' | 'amber' | 'danger') {
   if (tone === 'emerald') return s.guideToneSuccess;
   if (tone === 'amber') return s.guideToneWarning;
@@ -2394,6 +2499,8 @@ const s = StyleSheet.create({
   switchThumb: { width: 18, height: 18, borderRadius: radius.pill, backgroundColor: color.text },
   switchThumbOn: { alignSelf: 'flex-end', backgroundColor: color.canvas },
   advancedSettings: { gap: space.sm },
+  destinationCoordinateRow: { flexDirection: 'row', gap: space.sm },
+  destinationCoordinateInput: { flex: 1 },
   closeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
   bottomSessionBar: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 52, paddingTop: space.sm, paddingHorizontal: space.md, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F8' },
   bottomSessionBarCompact: { opacity: 0.92 },
@@ -2416,6 +2523,21 @@ const s = StyleSheet.create({
   statusRow: { flexDirection: 'row', gap: space.xs, flexWrap: 'wrap' },
   diagnosticsCard: { gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.md, backgroundColor: color.canvasRaised },
   diagnosticsControls: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  autoDiagnosticsOverlay: {
+    position: 'absolute',
+    left: space.sm,
+    right: space.sm,
+    top: 96,
+    gap: 4,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: color.primaryBright + '26',
+    padding: space.xs,
+    backgroundColor: color.canvas + 'D8',
+  },
+  autoDiagnosticsFlags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  autoDiagnosticsFlag: { borderRadius: radius.pill, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: color.surface },
+  autoDiagnosticsFlagOn: { backgroundColor: color.success + '18' },
   centerText: { textAlign: 'center' },
   noticeCard: { gap: space.sm },
   scannerToast: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.sm, paddingVertical: space.xs, backgroundColor: color.canvas + 'D8' },
