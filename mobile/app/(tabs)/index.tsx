@@ -255,7 +255,7 @@ function ActionableInsight({
   message: string;
   tone: 'info' | 'warning' | 'success';
   activeSessionVisible: boolean;
-  activeSessionRoute: '/(tabs)/scan' | '/(tabs)/deal-desk';
+  activeSessionRoute: '/(tabs)/scan' | '/deal-desk';
 }) {
   return (
     <DockTray style={s.insight}>

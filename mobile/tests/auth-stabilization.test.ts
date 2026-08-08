@@ -136,8 +136,8 @@ test('owner/admin users keep their workspace route after sign-in', async () => {
 test('normal users route by account type', async () => {
   assert.equal(workspaceRouteForAccountType('free'), '/(tabs)');
   assert.equal(workspaceRouteForAccountType('collector'), '/(tabs)');
-  assert.equal(workspaceRouteForAccountType('seller'), '/(tabs)/deal-desk');
-  assert.equal(workspaceRouteForAccountType('store'), '/(tabs)/deal-desk');
+  assert.equal(workspaceRouteForAccountType('seller'), '/(tabs)');
+  assert.equal(workspaceRouteForAccountType('store'), '/(tabs)');
 
   const route = await resolvePostAuthRoute({
     client: roleClient({ role: null }),
@@ -145,7 +145,7 @@ test('normal users route by account type', async () => {
     accountType: 'seller',
   });
 
-  assert.equal(route, '/(tabs)/deal-desk');
+  assert.equal(route, '/(tabs)');
 });
 
 test('role lookup failure still routes safely for normal users', async () => {
@@ -211,7 +211,6 @@ test('mobile collector navigation uses canonical release labels and selected sta
     'Account',
   ]);
   assert.equal(getMobileTabOptions('collector', 'scan').href, undefined);
-  assert.equal(getMobileTabOptions('collector', 'deal-desk').href, null);
   assert.equal(isMobileTabSelected('/(tabs)/collection', 'collection'), true);
 });
 
@@ -225,7 +224,6 @@ test('mobile seller navigation keeps Scan primary and Deal Desk contextual', () 
   ]);
   assert.equal(getMobileTabOptions('seller', 'scan').href, undefined);
   assert.equal(getMobileTabOptions('seller', 'scan').prominent, true);
-  assert.equal(getMobileTabOptions('seller', 'deal-desk').href, null);
 });
 
 test('mobile store navigation keeps the same five primary destinations', () => {

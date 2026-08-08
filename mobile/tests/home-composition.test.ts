@@ -35,12 +35,12 @@ test('Collector Home composition emphasizes portfolio and storage', () => {
   assert.match(home.portfolioMessage, /3 storage locations/);
 });
 
-test('Seller Home composition routes trade action to Deal Desk', () => {
+test('Seller Home composition keeps review contextual outside the tab bar', () => {
   const home = buildMobileHomeComposition({ accountType: 'seller', summary, activeSession: null });
   const trade = home.actions.find((action) => action.key === 'review');
   assert.equal(home.workspaceLabel, 'Seller workspace');
-  assert.equal(trade?.label, 'Deal Desk');
-  assert.equal(trade?.route, '/(tabs)/deal-desk');
+  assert.equal(trade?.label, 'Review');
+  assert.equal(trade?.route, '/scanner-session');
 });
 
 test('Store Home composition uses one shared composition with store copy', () => {
@@ -72,7 +72,7 @@ test('active session is visible only when real session exists', () => {
   });
   assert.equal(hidden.activeSessionVisible, false);
   assert.equal(visible.activeSessionVisible, true);
-  assert.equal(visible.activeSessionRoute, '/(tabs)/deal-desk');
+  assert.equal(visible.activeSessionRoute, '/deal-desk');
 });
 
 test('unavailable signal data is explicit', () => {

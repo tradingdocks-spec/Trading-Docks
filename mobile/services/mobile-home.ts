@@ -8,7 +8,7 @@ export type HomeAction = {
   key: HomeActionKey;
   label: string;
   helper: string;
-  route: '/(tabs)/scan' | '/(tabs)/collection' | '/(tabs)/deal-desk' | '/scanner-session';
+  route: '/(tabs)/scan' | '/(tabs)/collection' | '/deal-desk' | '/scanner-session';
   icon: string;
 };
 
@@ -50,7 +50,7 @@ export type HomeComposition = {
   recentAdds: HomeRecentCard[];
   insight: HomeInsight;
   activeSessionVisible: boolean;
-  activeSessionRoute: '/(tabs)/scan' | '/(tabs)/deal-desk';
+  activeSessionRoute: '/(tabs)/scan' | '/deal-desk';
 };
 
 export function buildMobileHomeComposition({
@@ -94,7 +94,7 @@ export function buildMobileHomeComposition({
     recentAdds: buildRecentAdds(recentCards),
     insight: homeInsight(accountType, portfolioState, summary, activeSession),
     activeSessionVisible: Boolean(activeSession),
-    activeSessionRoute: business ? '/(tabs)/deal-desk' : '/(tabs)/scan',
+    activeSessionRoute: business ? '/deal-desk' : '/(tabs)/scan',
   };
 }
 
@@ -145,7 +145,7 @@ function briefingMessage(
   if (portfolioState === 'empty') return 'Start with Scan or Collection. Trading Docks will stay quiet until there is real data to summarize.';
   if (!summary) return 'No collection summary is available.';
   if (accountType === 'store') return `${summary.totalOwnedCards.toLocaleString()} loaded cards. Shared operations signals are not wired yet.`;
-  if (accountType === 'seller') return `${summary.totalOwnedCards.toLocaleString()} loaded cards. Deal Desk signals are available from the Deal Desk tab.`;
+  if (accountType === 'seller') return `${summary.totalOwnedCards.toLocaleString()} loaded cards. Inventory intelligence is based on saved collection records.`;
   return `${summary.totalOwnedCards.toLocaleString()} loaded cards. Market movement is not available yet.`;
 }
 
@@ -153,9 +153,9 @@ function actionsForAccount(accountType: AccountType): HomeAction[] {
   const reviewAction: HomeAction = accountType === 'seller' || accountType === 'store'
     ? {
         key: 'review',
-        label: 'Deal Desk',
-        helper: 'Resume buying flow',
-        route: '/(tabs)/deal-desk',
+        label: 'Review',
+        helper: 'Session list',
+        route: '/scanner-session',
         icon: 'calculator-outline',
       }
     : {

@@ -7,7 +7,7 @@ const root = process.cwd();
 
 test('active seller and deal desk routes do not render fake business metrics', () => {
   const sell = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
-  const dealDesk = readFileSync(join(root, 'app', '(tabs)', 'deal-desk.tsx'), 'utf8');
+  const dealDesk = readFileSync(join(root, 'app', 'deal-desk.tsx'), 'utf8');
 
   for (const source of [sell, dealDesk]) {
     assert.equal(source.includes('$1,842.60'), false);
@@ -74,7 +74,7 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
   const tradeBinder = readFileSync(join(root, 'app', 'trade-binder.tsx'), 'utf8');
   const wishlist = readFileSync(join(root, 'app', 'wishlist.tsx'), 'utf8');
   const scannerSession = readFileSync(join(root, 'app', 'scanner-session.tsx'), 'utf8');
-  const dealDesk = readFileSync(join(root, 'app', '(tabs)', 'deal-desk.tsx'), 'utf8');
+  const dealDesk = readFileSync(join(root, 'app', 'deal-desk.tsx'), 'utf8');
   const sell = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
   const profile = readFileSync(join(root, 'app', '(tabs)', 'profile.tsx'), 'utf8');
   const auth = readFileSync(join(root, 'app', 'auth.tsx'), 'utf8');

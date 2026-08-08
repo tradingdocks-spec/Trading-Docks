@@ -14,12 +14,12 @@ import {
 
 const nativeHostTags = new Set(['View', 'Pressable', 'ScrollView', 'SafeAreaView', 'KeyboardAvoidingView', 'TouchableOpacity']);
 
-test('Store authentication routes to Deal Desk', () => {
-  assert.equal(routeStoreAccountToDealDesk(), '/(tabs)/deal-desk');
+test('Deal Desk remains a contextual route outside the primary tab bar', () => {
+  assert.equal(routeStoreAccountToDealDesk(), '/deal-desk');
 });
 
 test('Deal Desk route has no direct raw text children in native host components', () => {
-  const issues = findRawNativeTextChildren(join(process.cwd(), 'app', '(tabs)', 'deal-desk.tsx'));
+  const issues = findRawNativeTextChildren(join(process.cwd(), 'app', 'deal-desk.tsx'));
   assert.deepEqual(issues, []);
 });
 

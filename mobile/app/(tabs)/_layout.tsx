@@ -112,9 +112,6 @@ export default function Layout() {
       {tabRoutes.map((route) => (
         <Tabs.Screen key={route} name={route} options={optionsFor(route)} />
       ))}
-      {!tabRoutes.includes('deal-desk') ? (
-        <Tabs.Screen name="deal-desk" options={{ href: null, title: 'Deal Desk' }} />
-      ) : null}
     </Tabs>
   );
 }

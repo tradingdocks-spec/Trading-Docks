@@ -50,7 +50,6 @@ test('active route state remains stable for primary and nested tab routes', () =
   assert.equal(isMobileTabSelected('/(tabs)', 'index'), true);
   assert.equal(isMobileTabSelected('/(tabs)/collection', 'collection'), true);
   assert.equal(isMobileTabSelected('/(tabs)/collection/card-1', 'collection'), true);
-  assert.equal(isMobileTabSelected('/(tabs)/deal-desk', 'deal-desk'), true);
   assert.equal(isMobileTabSelected('/(tabs)/profile', 'sell'), false);
 });
 
@@ -58,14 +57,14 @@ test('center action remains Scan for every account type and Deal Desk is context
   const collectorScan = getMobileTabOptions('collector', 'scan');
   const sellerScan = getMobileTabOptions('seller', 'scan');
   const storeScan = getMobileTabOptions('store', 'scan');
-  const sellerDealDesk = getMobileTabOptions('seller', 'deal-desk');
 
   assert.equal(collectorScan.href, undefined);
   assert.equal(collectorScan.prominent, true);
   assert.equal(sellerScan.prominent, true);
   assert.equal(storeScan.prominent, true);
-  assert.equal(sellerDealDesk.href, null);
-  assert.equal(sellerDealDesk.prominent, false);
+  for (const accountType of accountTypes) {
+    assert.equal(getMobileVisibleTabRoutes(accountType).includes('deal-desk' as never), false);
+  }
 });
 
 test('Mobile V1 primary tab labels are Home Collection Scan Intelligence Account', () => {
@@ -124,7 +123,6 @@ test('mobile tab bar remains visible on Scan Modes', () => {
   assert.equal(shouldHideMobileTabBarForRoute('scan'), false);
   assert.equal(shouldHideMobileTabBarForRoute('index'), false);
   assert.equal(shouldHideMobileTabBarForRoute('collection'), false);
-  assert.equal(shouldHideMobileTabBarForRoute('deal-desk'), false);
   assert.equal(shouldHideMobileTabBarForRoute('sell'), false);
   assert.equal(shouldHideMobileTabBarForRoute('profile'), false);
 });
@@ -133,6 +131,6 @@ test('mobile tab layout consumes canonical account-aware route definitions', () 
   const layout = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
 
   assert.match(layout, /getMobileVisibleTabRoutes\(accountType\)/);
-  assert.match(layout, /<Tabs\.Screen name="deal-desk" options=\{\{ href: null, title: 'Deal Desk' \}\}/);
+  assert.doesNotMatch(layout, /name="deal-desk"/);
   assert.doesNotMatch(layout, /const tabRoutes:\s*MobileTabRouteName\[\]\s*=\s*\[/);
 });

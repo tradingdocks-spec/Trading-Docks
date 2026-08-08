@@ -18,10 +18,8 @@ export type RoleLookupClient = {
   };
 };
 
-export function workspaceRouteForAccountType(accountType: MobileAccountType) {
-  return accountType === 'seller' || accountType === 'store'
-    ? '/(tabs)/deal-desk'
-    : '/(tabs)';
+export function workspaceRouteForAccountType(_accountType: MobileAccountType) {
+  return '/(tabs)';
 }
 
 export async function lookupAdminRole(

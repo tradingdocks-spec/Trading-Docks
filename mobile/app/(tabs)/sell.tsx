@@ -34,7 +34,7 @@ export default function Sell() {
   const insets = useSafeAreaInsets();
   const { accountType } = useAccount();
   const { activeSession } = useWorkSession();
-  const workspaceLabel = accountType === 'store' ? 'Activity' : accountType === 'seller' ? 'Signals' : 'Signals';
+  const workspaceLabel = 'Inventory Intelligence';
   const [cards, setCards] = useState<CollectionCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [staleReason, setStaleReason] = useState<string | null>(null);
@@ -76,8 +76,8 @@ export default function Sell() {
         <View style={s.heroTop}>
           <DockHeader
             eyebrow="Today"
-            title={activeSession ? activeSession.name : 'No active selling session'}
-            subtitle={activeSession ? `${activeSession.status} - ${activeSession.itemCount} item${activeSession.itemCount === 1 ? '' : 's'}` : 'Start from the scanner, Deal Desk, or Collection when real work is ready.'}
+            title={activeSession ? activeSession.name : 'Inventory health'}
+            subtitle={activeSession ? `${activeSession.status} - ${activeSession.itemCount} item${activeSession.itemCount === 1 ? '' : 's'}` : 'Storage gaps, missing prices, duplicates, and trade markers from saved cards.'}
             style={s.flex}
           />
           <TDBadge tone={activeSession ? 'success' : 'neutral'}>{activeSession ? 'Active' : 'Quiet'}</TDBadge>
@@ -122,11 +122,11 @@ export default function Sell() {
       <TDSectionHeader title="Useful actions" />
       <DockSurface style={s.actionDock}>
         <TDListRow
-          title="Open Deal Desk"
-          description="Start or resume a buying, trade, sealed, or show session."
-          iconName="swap-horizontal-outline"
+          title="Find a card"
+          description="Search saved cards, storage, binder status, condition, finish, and exact printing."
+          iconName="search-outline"
           right={<Ionicons name="chevron-forward" size={20} color={color.textMuted} />}
-          onPress={() => router.push('/(tabs)/deal-desk' as never)}
+          onPress={() => router.push('/(tabs)/collection' as never)}
         />
         <DockRail compact>
           <TDButton

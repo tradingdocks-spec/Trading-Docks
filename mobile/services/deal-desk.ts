@@ -1,5 +1,3 @@
-import { workspaceRouteForAccountType, type MobileAccountType } from './auth-routing.ts';
-
 export type DealDeskMode = 'buy' | 'trade' | 'sealed' | 'show';
 export type DealDeskSession = { name: string; status: 'active' | 'paused' };
 
@@ -72,7 +70,7 @@ export function createDealDeskRenderState(input: {
 }
 
 export function routeStoreAccountToDealDesk() {
-  return workspaceRouteForAccountType('store' satisfies MobileAccountType);
+  return '/deal-desk';
 }
 
 export function sessionNameForMode(mode: DealDeskMode) {

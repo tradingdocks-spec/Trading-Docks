@@ -4,7 +4,6 @@ export type MobileTabRouteName =
   | 'index'
   | 'collection'
   | 'scan'
-  | 'deal-desk'
   | 'sell'
   | 'profile';
 

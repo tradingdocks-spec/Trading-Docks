@@ -40,7 +40,7 @@ test('production mobile routes documented in the completion audit exist or are d
     '/scanner-session',
     '/scanner-recovery',
     '/(tabs)/sell',
-    '/(tabs)/deal-desk',
+    '/deal-desk',
     '/(tabs)/profile',
     '/plans',
     '/settings',
