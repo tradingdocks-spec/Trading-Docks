@@ -426,6 +426,23 @@ export function shouldAcceptCollectionResponse(activeRequestKey: string, respons
   return activeRequestKey === responseRequestKey;
 }
 
+export function buildInventorySearchFilterExpression(query: string, locationIds?: string[] | null) {
+  const pattern = `%${query.trim().replace(/[%_]/g, '')}%`;
+  const filters = [
+    `card_name.ilike.${pattern}`,
+    `set_code.ilike.${pattern}`,
+    `collector_number.ilike.${pattern}`,
+  ];
+  if (locationIds?.length) {
+    filters.push(`location_id.in.(${locationIds.map(encodeSupabaseListValue).join(',')})`);
+  }
+  return filters.join(',');
+}
+
+function encodeSupabaseListValue(value: string) {
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
 export function summarizeCollectionCards(
   cards: CollectionCard[],
   tier: unknown,

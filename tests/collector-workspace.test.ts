@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   buildCollectionCards,
   buildCollectionPageInfo,
+  buildInventorySearchFilterExpression,
   collectionRequestKey,
   cursorForCollectionCard,
   decodeCollectionCursor,
@@ -80,6 +81,15 @@ const cards = buildCollectionCards({
 test('Collector Workspace search filters by card and set text', () => {
   assert.equal(filterCollectionCards(cards, { query: 'rhystic' }).length, 1);
   assert.equal(filterCollectionCards(cards, { query: 'ltc 301' }).length, 1);
+});
+
+test('Collector Workspace server search includes matching storage locations', () => {
+  const expression = buildInventorySearchFilterExpression('Binder', ['binder-1', 'box-2']);
+
+  assert.match(expression, /card_name\.ilike\.%Binder%/);
+  assert.match(expression, /set_code\.ilike\.%Binder%/);
+  assert.match(expression, /collector_number\.ilike\.%Binder%/);
+  assert.match(expression, /location_id\.in\.\("binder-1","box-2"\)/);
 });
 
 test('Collector Workspace sorting supports quantity and set printing order', () => {

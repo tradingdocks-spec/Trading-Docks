@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import {
   buildCollectionCards,
   buildCollectionPageInfo,
+  buildInventorySearchFilterExpression,
   COLLECTION_PAGE_SIZE,
   collectorCacheKeyForUser,
   decodeCollectionCursor,
@@ -220,6 +221,7 @@ async function loadRelatedFilterIds(userId: string, filter?: CollectionFilter) {
   if (!supabase) return { blocked: false as const };
   const tradeStatus = filter?.tradeBinderStatus;
   const wishlistStatus = filter?.wishlistStatus;
+  const searchText = filter?.query?.trim();
   const [tradeResult, wishlistResult] = await Promise.all([
     tradeStatus && tradeStatus !== 'all'
       ? supabase
@@ -240,8 +242,18 @@ async function loadRelatedFilterIds(userId: string, filter?: CollectionFilter) {
       : Promise.resolve({ data: null, error: null }),
   ]);
 
+  const locationResult = searchText
+    ? await supabase
+      .from('inventory_locations')
+      .select('id')
+      .eq('user_id', userId)
+      .ilike('name', `%${searchText.replace(/[%_]/g, '')}%`)
+      .limit(50)
+    : { data: null, error: null };
+
   if (tradeResult.error) throw new Error(`Trade Binder filters are unavailable: ${tradeResult.error.message}`);
   if (wishlistResult.error) throw new Error(`Wishlist filters are unavailable: ${wishlistResult.error.message}`);
+  if (locationResult.error) throw new Error(`Storage location search is unavailable: ${locationResult.error.message}`);
 
   const tradeIds = tradeStatus && tradeStatus !== 'all'
     ? (tradeResult.data ?? []).map((row) => row.inventory_item_id).filter((id): id is string => typeof id === 'string' && id.length > 0)
@@ -249,11 +261,15 @@ async function loadRelatedFilterIds(userId: string, filter?: CollectionFilter) {
   const wishlistNames = wishlistStatus === 'wanted'
     ? [...new Set((wishlistResult.data ?? []).map((row) => row.card_name).filter((name): name is string => typeof name === 'string' && name.length > 0))]
     : null;
+  const locationIds = searchText
+    ? (locationResult.data ?? []).map((row) => row.id).filter((id): id is string => typeof id === 'string' && id.length > 0)
+    : null;
 
   return {
     blocked: Boolean((tradeIds && tradeIds.length === 0) || (wishlistNames && wishlistNames.length === 0)),
     tradeIds,
     wishlistNames,
+    locationIds,
   };
 }
 
@@ -261,8 +277,7 @@ function applyInventoryFilters(query: InventoryQuery, filter: CollectionFilter |
   let next = query;
   const cleanQuery = filter?.query?.trim();
   if (cleanQuery) {
-    const pattern = `%${cleanQuery.replace(/[%_]/g, '')}%`;
-    next = next.or(`card_name.ilike.${pattern},set_code.ilike.${pattern},collector_number.ilike.${pattern}`);
+    next = next.or(buildInventorySearchFilterExpression(cleanQuery, 'locationIds' in related ? related.locationIds : null));
   }
   if (filter?.condition && filter.condition !== 'all') next = next.eq('data->>condition', filter.condition);
   if (filter?.finish && filter.finish !== 'all') next = next.eq('data->>finish', filter.finish);
@@ -297,6 +312,7 @@ function applyInventoryCursor(query: InventoryQuery, sort: CollectionSort, curso
 type InventoryQuery = {
   eq(column: string, value: unknown): InventoryQuery;
   gt(column: string, value: unknown): InventoryQuery;
+  ilike(column: string, value: string): InventoryQuery;
   in(column: string, values: unknown[]): InventoryQuery;
   limit(count: number): InventoryQuery;
   or(filters: string): InventoryQuery;
