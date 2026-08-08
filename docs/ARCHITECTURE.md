@@ -147,7 +147,8 @@ Status: Partially Implemented
 - Implemented: Collection search now includes user-scoped storage-location matches in addition to card name, set, and collector number.
 - Implemented: Shared physical-binder contracts now exist for mobile and web so future UI work does not create a mobile-only binder model.
 - Implemented: Automatic Scan's current-frame trigger can fire before same-card removal state blocks rearm, preserving duplicate protection for the next card.
-- Partially Implemented: Physical binder UI, scan destination selection, Card Show percentage mode, Home visual art-piece treatment, and measured scanner latency/FPS remain follow-up work.
+- Implemented: Physical binder UI, public binder share creation/revocation, scan destination selection, Card Show percentage mode, Home visual art-piece treatment, and scanner benchmark export are now present in Mobile V1.
+- Requires Production Configuration: Measured scanner latency/FPS still require physical iOS/Android benchmark runs.
 
 ## Identity And Entitlement Architecture
 
@@ -164,7 +165,7 @@ Status: Partially Implemented
 - Implemented: Mobile uses `mobile/app/storage-locations.tsx` as a protected stack destination outside the primary tab bar. The Collection tab and card-detail route link to it without changing the canonical five-tab navigation.
 - Implemented: Web renders `StorageLocationManager` inside the existing protected Collector Workspace route instead of adding a separate unguarded dashboard surface.
 - Implemented: Both platforms use owner-scoped Supabase queries against `inventory_locations.user_id` and `inventory_items.user_id`.
-- Partially Implemented: Location hierarchy is represented through `inventory_locations.data.parentId` because the active schema has no first-class parent column or database constraint.
+- Partially Implemented: Location hierarchy is represented through `inventory_locations.data.parentId` because the active schema has no first-class parent column or database constraint. Mobile can create child locations and render breadcrumbs; database enforcement remains proposed work.
 - Partially Implemented: Recent, favorite, and archived metadata are represented in `inventory_locations.data` for this sprint. Database-enforced indexes/constraints require a reviewed migration proposal before production reliance.
 - Planned: Scanner recognition, deck usage, marketplace listing, and portfolio analytics remain separate future integrations. The mobile manager exposes only a scan-to-location integration point.
 

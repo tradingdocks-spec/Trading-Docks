@@ -22,6 +22,7 @@ If a user can see it in the release app, it must work. If it does not work on mo
 | `/(tabs)/collection` | FUNCTIONAL BUT NEEDS POLISH | Keep | Browse, search, sort, pagination, empty/error/stale states exist. Advanced edits live in card detail/storage/binder/wishlist flows. |
 | `/collection/[cardId]` | FUNCTIONAL BUT NEEDS POLISH | Keep | Owned card detail supports quantity, condition, finish, storage, trade, wishlist actions. |
 | `/storage-locations` | FUNCTIONAL BUT NEEDS POLISH | Keep | Mobile storage manager is useful for V1 collection organization; scan-to-location remains clearly marked as integration-only and must not be promoted. |
+| `/physical-binders` | FUNCTIONAL BUT NEEDS PHYSICAL QA | Keep | Mobile physical binder list, page/spread pocket view, share-link creation, native share/copy, and revoke use the canonical portfolio share contract. |
 | `/trade-binder` | FUNCTIONAL BUT NEEDS POLISH | Keep | Useful V1 collection companion; no marketplace or peer trading workflow exposed. |
 | `/wishlist` | FUNCTIONAL BUT NEEDS POLISH | Keep | Useful V1 collection companion; matching is local to owned binder and wishlist records. |
 | `/(tabs)/scan` | PRODUCTION READY | Keep | One scan hub, no duplicated secondary rows after Stage B. |
@@ -53,7 +54,8 @@ If a user can see it in the release app, it must work. If it does not work on mo
 | Auth | OAuth / magic link entries | PRODUCTION READY | Entry points preserved. Provider production redirects still require device QA. |
 | Home | Scan | PRODUCTION READY | Routes to Scan hub. |
 | Home | Collection | PRODUCTION READY | Routes to Collection. |
-| Home | Add Card | PARTIAL | Routes to Collection; no standalone manual-add flow. Keep as collection handoff or rename if physical QA finds confusion. |
+| Home | Find Card | PRODUCTION READY | Routes to Storage Locations for hierarchy search and movement. |
+| Home | Binder | FUNCTIONAL BUT NEEDS PHYSICAL QA | Routes to physical binders for page/spread viewing and share-link actions. |
 | Home | Review / Deal Desk | PRODUCTION READY | Routes by account type to review list or Deal Desk. |
 | Home | Notifications icon | REMOVE FROM MOBILE V1 | Removed from the production Home header until mobile notifications are connected. |
 | Collection | Storage | PRODUCTION READY | Routes to storage manager. |

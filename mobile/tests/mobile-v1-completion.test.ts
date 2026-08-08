@@ -32,6 +32,7 @@ test('production mobile routes documented in the completion audit exist or are d
     '/(tabs)/collection',
     '/collection/[cardId]',
     '/storage-locations',
+    '/physical-binders',
     '/trade-binder',
     '/wishlist',
     '/(tabs)/scan',
@@ -62,6 +63,7 @@ test('visible production route actions point to existing mobile routes', () => {
     'app/(tabs)/scan.tsx',
     'app/(tabs)/sell.tsx',
     'app/(tabs)/profile.tsx',
+    'app/physical-binders.tsx',
     'app/settings.tsx',
     'app/scan/single.tsx',
     'components/scanner/automatic-scanner-screen.tsx',
@@ -106,4 +108,6 @@ test('development tools remain gated and out of production navigation', () => {
   assert.match(releaseUx, /MOBILE_PUBLIC_ENV_KEYS\.scannerDiagnostics/);
   assert.doesNotMatch(profile, /\/admin\//);
   assert.match(scan, /diagnosticsEnabled \? <TDButton label="Camera QA"/);
+  assert.match(scan, /diagnosticsEnabled \? \(\s*<AutoScanDiagnosticsOverlay/);
+  assert.match(scan, /Auto Scan QA/);
 });
