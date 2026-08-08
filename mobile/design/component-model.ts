@@ -41,6 +41,12 @@ export const TD_MOBILE_COMPONENT_CONTRACTS = [
   'DockCardWell',
   'DockSection',
   'DockHeader',
+  'CollectibleCard',
+  'CollectibleThumbnail',
+  'CollectibleStack',
+  'CollectibleWell',
+  'CollectibleHero',
+  'LocationBreadcrumb',
 ] as const;
 
 export function tdButtonIsDisabled(disabled?: boolean, loading?: boolean) {

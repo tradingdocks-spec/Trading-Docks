@@ -1,14 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  CollectibleCard,
   DockAction,
-  DockCardWell,
   DockHeader,
   DockRail,
   DockSection,
@@ -197,41 +196,21 @@ function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
     >
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.recentList}>
         {cards.map((card) => (
-          <Pressable
+          <CollectibleCard
             key={card.id}
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${card.title}. ${card.subtitle}. ${card.metadata}. ${card.quantityLabel}`}
+            title={card.title}
+            subtitle={card.subtitle}
+            metadata={card.metadata}
+            imageUrl={card.imageUrl}
+            quantityLabel={card.quantityLabel}
             onPress={() => {
               tap();
               router.push(`/collection/${card.id}` as never);
             }}
-            style={({ pressed }) => [s.recentCard, pressed && s.pressed]}
+            style={s.recentCard}
           >
-            <DockCardWell style={s.cardImageFrame}>
-              {card.imageUrl ? (
-                <Image
-                  source={{ uri: card.imageUrl }}
-                  style={s.cardImage}
-                  contentFit="cover"
-                  transition={150}
-                  alt={`${card.title} card image`}
-                  accessibilityLabel={`${card.title} card image`}
-                />
-              ) : (
-                <View style={s.imagePlaceholder}>
-                  <Ionicons name="image-outline" size={22} color={color.textMuted} />
-                  <TDText variant="caption" tone="muted" style={s.centerText}>No image</TDText>
-                </View>
-              )}
-              <View style={s.quantityPill}>
-                <TDText variant="caption">{card.quantityLabel}</TDText>
-              </View>
-            </DockCardWell>
-            <TDText variant="small" numberOfLines={1}>{card.title}</TDText>
-            <TDText variant="caption" tone="muted" numberOfLines={1}>{card.subtitle}</TDText>
-            <TDText variant="caption" tone="secondary" numberOfLines={1}>{card.metadata}</TDText>
             <TDText variant="caption" tone={card.price === 'Price unavailable' ? 'muted' : 'primary'} numberOfLines={1}>{card.price}</TDText>
-          </Pressable>
+          </CollectibleCard>
         ))}
       </ScrollView>
     </DockSection>
@@ -364,11 +343,7 @@ const s = StyleSheet.create({
   scanAction: { minHeight: 62, marginBottom: space.xs, borderBottomColor: '#00000088' },
   actionRail: { borderTopWidth: 1, borderTopColor: color.primaryBright + '18', paddingTop: space.xs },
   recentList: { gap: space.sm, paddingRight: space.md },
-  recentCard: { width: 148, gap: 5 },
-  cardImageFrame: { height: 198, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },
-  cardImage: { width: '100%', height: '100%' },
-  imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xs, padding: space.xs },
-  quantityPill: { position: 'absolute', right: 6, top: 6, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: color.canvas + 'D8' },
+  recentCard: { width: 148 },
   emptySkeleton: { minHeight: 118 },
   emptyCard: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
   emptyIcon: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.primary + '18' },
@@ -377,6 +352,5 @@ const s = StyleSheet.create({
   insightWarning: { backgroundColor: color.warning + '18' },
   insightSuccess: { backgroundColor: color.success + '18' },
   resumeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
-  centerText: { textAlign: 'center' },
   pressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },
 });

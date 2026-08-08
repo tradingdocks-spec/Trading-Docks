@@ -11,6 +11,7 @@ import {
   DockRail,
   DockSurface,
   DockTray,
+  LocationBreadcrumb,
   TDBadge,
   TDButton,
   TDEmptyState,
@@ -216,21 +217,16 @@ export default function Collection() {
             ) : null}
 
             {summary.freeCardLimit ? (
-              <DockTray active={summary.freeCardLimitExceeded} style={s.limitCard}>
-                <View style={s.limitIcon}>
-                  <Ionicons name="lock-closed-outline" size={18} color={summary.freeCardLimitExceeded ? color.danger : color.info} />
-                </View>
+              <View style={s.limitMeter} accessibilityLabel={`Free plan card limit ${summary.totalOwnedCards} of ${summary.freeCardLimit}`}>
                 <View style={s.flex}>
-                  <TDText variant="small">
-                    Free plan card limit: {summary.totalOwnedCards}/{summary.freeCardLimit}
-                  </TDText>
+                  <View style={s.limitTrack}>
+                    <View style={[s.limitFill, { width: `${Math.min(100, Math.round((summary.totalOwnedCards / summary.freeCardLimit) * 100))}%` }, summary.freeCardLimitExceeded && s.limitFillExceeded]} />
+                  </View>
                   <TDText variant="caption" tone={summary.freeCardLimitExceeded ? 'danger' : 'muted'}>
-                    {summary.freeCardLimitExceeded
-                      ? 'Card limit exceeded. Upgrade before adding more cards.'
-                      : `${summary.freeCardLimitRemaining} card slots remaining.`}
+                    Free plan: {summary.totalOwnedCards}/{summary.freeCardLimit} cards · {summary.freeCardLimitExceeded ? 'Limit exceeded' : `${summary.freeCardLimitRemaining} remaining`}
                   </TDText>
                 </View>
-              </DockTray>
+              </View>
             ) : null}
 
             {staleReason ? (
@@ -356,10 +352,7 @@ function CollectionCardRow({
           </View>
           <TDText variant="caption" tone="muted">{displayPrinting(card.printing)}</TDText>
           <TDText variant="caption" tone="secondary">{displayCondition(card.condition)} - {displayFinish(card.printing.finish)}</TDText>
-          <View style={s.locationChip}>
-            <Ionicons name="location-outline" size={14} color={color.warning} />
-            <TDText variant="caption" tone="primary" numberOfLines={2}>{displayStorageLocation(card)}</TDText>
-          </View>
+          <LocationBreadcrumb compact path={displayStorageLocation(card)} />
           <View style={s.indicators}>
             <TDBadge tone={card.tradeBinderStatus === 'not_for_trade' ? 'neutral' : 'success'}>
               {card.tradeBinderStatus === 'not_for_trade' ? 'Not for trade' : 'Trade binder'}
@@ -453,9 +446,11 @@ const s = StyleSheet.create({
   summaryStrip: { flexDirection: 'row', gap: space.xs },
   healthStrip: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: space.xs, padding: space.xs },
   healthMetric: { flex: 1, minWidth: 0, borderRadius: radius.sm, backgroundColor: color.canvas + '88', paddingHorizontal: space.xs, paddingVertical: 6 },
-  limitCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },
+  limitMeter: { gap: 5, paddingHorizontal: space.xs, paddingVertical: 2 },
   staleCard: { gap: space.xs, padding: space.md },
-  limitIcon: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '12' },
+  limitTrack: { height: 5, borderRadius: radius.pill, overflow: 'hidden', backgroundColor: color.canvasRaised },
+  limitFill: { height: '100%', borderRadius: radius.pill, backgroundColor: color.primaryBright },
+  limitFillExceeded: { backgroundColor: color.danger },
   flex: { flex: 1 },
   secondaryActions: { flexWrap: 'wrap', gap: space.xs, marginTop: -space.xs },
   modeRow: { flexDirection: 'row', gap: space.xs },
@@ -475,5 +470,4 @@ const s = StyleSheet.create({
   cardTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.xs },
   cardTitle: { flex: 1 },
   indicators: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.xs },
-  locationChip: { alignSelf: 'flex-start', maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.control, backgroundColor: color.warning + '14', paddingHorizontal: space.xs, paddingVertical: 5 },
 });

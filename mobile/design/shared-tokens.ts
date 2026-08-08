@@ -68,6 +68,17 @@ export const tdTokens = {
       information: '#22d3ee',
       accent: '#8b5cf6',
     },
+    role: {
+      activeNavigation: '#22d3ee',
+      scanner: '#22d3ee',
+      primaryAction: '#2688ff',
+      success: '#31d99a',
+      attention: '#ffc76a',
+      decks: '#8b5cf6',
+      structure: '#06111f',
+      content: '#f6faff',
+      metadata: '#71899f',
+    },
   },
   typography: {
     family: {
@@ -196,6 +207,8 @@ export const tdTokens = {
       fast: 180,
       standard: 260,
       slow: 420,
+      launchMin: 700,
+      launchMax: 1000,
     },
     easing: {
       standard: 'cubic-bezier(0.22, 1, 0.36, 1)',

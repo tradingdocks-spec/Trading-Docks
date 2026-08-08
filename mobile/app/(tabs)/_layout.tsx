@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAccount } from '@/providers/account';
-import { color, edge, elevation, radius, surface } from '@/design';
+import { color, edge, elevation, radius, semanticColor, surface } from '@/design';
 import {
   getMobileBottomNavVisualModel,
   getMobileTabOptions,
@@ -43,7 +43,7 @@ export default function Layout() {
         return {
           headerShown: false,
           tabBarShowLabel: true,
-          tabBarActiveTintColor: color.primaryBright,
+          tabBarActiveTintColor: semanticColor.activeNavigation,
           tabBarInactiveTintColor: color.textMuted,
           tabBarStyle: [
             s.tab,
@@ -134,15 +134,15 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: `${surface.dock}F7`,
+    backgroundColor: `${surface.dock}FA`,
     borderTopWidth: 1,
     borderTopColor: edge.highlight,
     borderWidth: 0,
     borderRadius: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
     elevation: 18,
     ...elevation.raised,
   },
@@ -171,20 +171,20 @@ const s = StyleSheet.create({
   },
   center: {
     borderRadius: radius.control,
-    backgroundColor: `${color.primary}24`,
+    backgroundColor: `${semanticColor.scanner}18`,
     borderWidth: 1,
-    borderColor: edge.highlight,
+    borderColor: semanticColor.scanner + '44',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: color.primaryBright,
+    shadowColor: semanticColor.scanner,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.16,
     shadowRadius: 7,
     elevation: 6,
   },
   centerActive: {
-    backgroundColor: color.primary,
-    borderColor: color.primaryBright,
+    backgroundColor: semanticColor.primaryAction,
+    borderColor: semanticColor.activeNavigation,
     transform: [{ translateY: -1 }],
   },
 });

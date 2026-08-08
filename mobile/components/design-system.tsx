@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { PropsWithChildren, ReactNode, useState } from 'react';
 import {
@@ -253,6 +254,54 @@ type DockHeaderProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+type CollectibleThumbnailProps = {
+  title: string;
+  imageUrl?: string | null;
+  subtitle?: string;
+  quantityLabel?: string;
+  size?: 'sm' | 'md' | 'lg';
+  style?: StyleProp<ViewStyle>;
+};
+
+type CollectibleWellProps = PropsWithChildren<{
+  lifted?: boolean;
+  accessibilityLabel?: string;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type CollectibleCardProps = PropsWithChildren<{
+  title: string;
+  subtitle?: string;
+  imageUrl?: string | null;
+  metadata?: string;
+  quantityLabel?: string;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type CollectibleStackProps = {
+  count: number;
+  tone?: 'neutral' | 'decks' | 'scanner';
+  style?: StyleProp<ViewStyle>;
+};
+
+type CollectibleHeroProps = PropsWithChildren<{
+  title: string;
+  eyebrow?: string;
+  subtitle?: string;
+  imageUrl?: string | null;
+  tone?: 'neutral' | 'decks' | 'scanner';
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type LocationBreadcrumbProps = {
+  path: string | string[] | null | undefined;
+  compact?: boolean;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+};
+
 export const TRADING_DOCKS_MATERIAL_CLASSES = [
   'canvas',
   'structuralDock',
@@ -392,6 +441,136 @@ export function DockHeader({ title, eyebrow, subtitle, right, style }: DockHeade
       {right}
     </View>
   );
+}
+
+export function CollectibleThumbnail({ title, imageUrl, subtitle, quantityLabel, size = 'md', style }: CollectibleThumbnailProps) {
+  return (
+    <View accessibilityLabel={`${title} collectible thumbnail`} accessibilityRole="image" style={[s.collectibleThumbnail, collectibleThumbnailSize[size], style]}>
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={s.collectibleImage}
+          contentFit="cover"
+          transition={140}
+          alt={`${title} card image`}
+          accessibilityLabel={`${title} card image`}
+        />
+      ) : (
+        <View style={s.collectiblePlaceholder}>
+          <Ionicons name="image-outline" size={icon.lg} color={color.textMuted} />
+          <TDText variant="caption" tone="muted" style={s.centerText}>{subtitle ?? 'Image unavailable'}</TDText>
+        </View>
+      )}
+      {quantityLabel ? (
+        <View style={s.collectibleQuantity}>
+          <TDText variant="caption">{quantityLabel}</TDText>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+export function CollectibleWell({ children, lifted, accessibilityLabel, onPress, style }: CollectibleWellProps) {
+  const [focused, setFocused] = useState(false);
+  const contentStyle = [s.collectibleWell, lifted && s.collectibleWellLifted, focused && s.webFocus, style];
+  if (!onPress) {
+    return <View accessibilityLabel={accessibilityLabel} style={contentStyle}>{children}</View>;
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onPress={onPress}
+      style={({ pressed }) => [contentStyle, pressed && s.collectiblePressed]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+export function CollectibleCard({ title, subtitle, imageUrl, metadata, quantityLabel, onPress, children, style }: CollectibleCardProps) {
+  return (
+    <CollectibleWell accessibilityLabel={`Open ${title}`} onPress={onPress} style={[s.collectibleCard, style]}>
+      <CollectibleThumbnail title={title} imageUrl={imageUrl} quantityLabel={quantityLabel} />
+      <View style={s.collectibleCopy}>
+        <TDText variant="small" numberOfLines={2}>{title}</TDText>
+        {subtitle ? <TDText variant="caption" tone="muted" numberOfLines={1}>{subtitle}</TDText> : null}
+        {metadata ? <TDText variant="caption" tone="secondary" numberOfLines={1}>{metadata}</TDText> : null}
+        {children}
+      </View>
+    </CollectibleWell>
+  );
+}
+
+export function CollectibleStack({ count, tone = 'neutral', style }: CollectibleStackProps) {
+  return (
+    <View accessibilityLabel={`${count} collectible objects`} accessibilityRole="image" style={[s.collectibleStack, style]}>
+      {[0, 1, 2].map((index) => (
+        <View
+          key={index}
+          style={[
+            s.collectibleStackLayer,
+            tone === 'decks' && s.collectibleStackDecks,
+            tone === 'scanner' && s.collectibleStackScanner,
+            { transform: [{ translateX: index * 5 }, { translateY: index * -3 }] },
+          ]}
+        />
+      ))}
+      <TDText variant="caption" tone="muted" style={s.collectibleStackCount}>{count}</TDText>
+    </View>
+  );
+}
+
+export function CollectibleHero({ title, eyebrow, subtitle, imageUrl, tone = 'neutral', children, style }: CollectibleHeroProps) {
+  return (
+    <DockSurface level="raised" material="collectibleObject" style={[s.collectibleHero, tone === 'decks' && s.collectibleHeroDecks, tone === 'scanner' && s.collectibleHeroScanner, style]}>
+      <View style={s.collectibleHeroLight} />
+      {imageUrl ? <CollectibleThumbnail title={title} imageUrl={imageUrl} size="lg" style={s.collectibleHeroImage} /> : null}
+      <View style={s.collectibleHeroCopy}>
+        {eyebrow ? <TDText variant="caption" tone={tone === 'decks' ? 'warning' : 'info'} numberOfLines={1}>{eyebrow}</TDText> : null}
+        <TDText variant="display" numberOfLines={2}>{title}</TDText>
+        {subtitle ? <TDText variant="small" tone="muted" numberOfLines={2}>{subtitle}</TDText> : null}
+        {children}
+      </View>
+    </DockSurface>
+  );
+}
+
+export function LocationBreadcrumb({ path, compact, accessibilityLabel, style }: LocationBreadcrumbProps) {
+  const parts = Array.isArray(path)
+    ? path.filter(Boolean)
+    : String(path ?? '').split(/[›>]/).map((part) => part.trim()).filter(Boolean);
+  const visibleParts = parts.length ? parts : ['Unassigned'];
+  const tone = parts.length ? 'warning' : 'muted';
+  return (
+    <View
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabel ?? `Location ${visibleParts.join(', ')}`}
+      style={[s.locationBreadcrumb, compact && s.locationBreadcrumbCompact, !parts.length && s.locationBreadcrumbEmpty, style]}
+    >
+      <Ionicons name={locationIconFor(visibleParts[visibleParts.length - 1])} size={compact ? icon.xs : icon.sm} color={parts.length ? color.warning : color.textMuted} />
+      <View style={s.locationBreadcrumbParts}>
+        {visibleParts.map((part, index) => (
+          <View key={`${part}-${index}`} style={s.locationPart}>
+            {index > 0 ? <TDText variant="caption" tone="muted">›</TDText> : null}
+            <TDText variant="caption" tone={tone} numberOfLines={1}>{part}</TDText>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function locationIconFor(value: string): keyof typeof Ionicons.glyphMap {
+  const normalized = value.toLowerCase();
+  if (normalized.includes('binder') || normalized.includes('page')) return 'albums-outline';
+  if (normalized.includes('box') || normalized.includes('container')) return 'cube-outline';
+  if (normalized.includes('shelf') || normalized.includes('cabinet')) return 'file-tray-stacked-outline';
+  if (normalized.includes('slot') || normalized.includes('pocket')) return 'grid-outline';
+  if (normalized.includes('case')) return 'briefcase-outline';
+  return 'location-outline';
 }
 
 export function TDButton({
@@ -955,6 +1134,38 @@ const s = StyleSheet.create({
   scannerGuideProgress: { position: 'absolute', left: 0, bottom: -8, height: 3, borderRadius: radius.pill, backgroundColor: color.primaryBright },
   sessionStrip: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingTop: space.sm, borderTopWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'F8' },
   sessionStripSummary: { flex: 1, minWidth: 0 },
+  collectibleWell: { borderRadius: radius.object, backgroundColor: surface.inset, padding: space.xs, overflow: 'hidden', borderTopWidth: 1, borderTopColor: edge.highlight, borderBottomWidth: 1, borderBottomColor: '#00000088', ...elevation.raised },
+  collectibleWellLifted: { transform: [{ translateY: -2 }], shadowOpacity: 0.28, borderTopColor: color.primaryBright + '44' },
+  collectiblePressed: { opacity: 0.9, transform: [{ translateY: -3 }, { scale: 1.01 }] },
+  collectibleCard: { width: 148, gap: space.xs, backgroundColor: 'transparent', borderBottomColor: 'transparent' },
+  collectibleThumbnail: { borderRadius: radius.object, overflow: 'hidden', backgroundColor: surface.raised, borderWidth: 1, borderColor: edge.subtle },
+  collectibleImage: { width: '100%', height: '100%' },
+  collectiblePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xs, padding: space.xs },
+  collectibleQuantity: { position: 'absolute', right: 6, top: 6, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: color.canvas + 'D8' },
+  collectibleCopy: { gap: 2 },
+  collectibleStack: { width: 68, height: 56, justifyContent: 'flex-end' },
+  collectibleStackLayer: { position: 'absolute', left: 0, bottom: 6, width: 46, height: 34, borderRadius: 8, borderWidth: 1, borderColor: edge.subtle, backgroundColor: surface.raised },
+  collectibleStackDecks: { borderColor: color.accent + '55', backgroundColor: color.accent + '18' },
+  collectibleStackScanner: { borderColor: color.primaryBright + '55', backgroundColor: color.primary + '18' },
+  collectibleStackCount: { position: 'absolute', right: 0, bottom: 0 },
+  collectibleHero: { minHeight: 180, gap: space.md, padding: space.md, overflow: 'hidden' },
+  collectibleHeroDecks: { borderColor: color.accent + '44', backgroundColor: color.accent + '10' },
+  collectibleHeroScanner: { borderColor: color.primaryBright + '44', backgroundColor: color.primary + '10' },
+  collectibleHeroLight: { position: 'absolute', top: -76, right: -52, width: 190, height: 190, borderRadius: 100, backgroundColor: color.text + '08' },
+  collectibleHeroImage: { width: '100%', height: 220 },
+  collectibleHeroCopy: { gap: space.xs },
+  locationBreadcrumb: { alignSelf: 'flex-start', maxWidth: '100%', minHeight: 30, borderRadius: radius.control, backgroundColor: color.warning + '12', flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.xs, paddingVertical: 5 },
+  locationBreadcrumbCompact: { minHeight: 24, paddingVertical: 3 },
+  locationBreadcrumbEmpty: { backgroundColor: surface.inset },
+  locationBreadcrumbParts: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 3 },
+  locationPart: { maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 3 },
+  centerText: { textAlign: 'center' },
+});
+
+const collectibleThumbnailSize = StyleSheet.create({
+  sm: { width: 78, height: 108 },
+  md: { width: '100%', height: 198 },
+  lg: { width: '100%', height: 240 },
 });
 
 const iconButtonSize = StyleSheet.create({

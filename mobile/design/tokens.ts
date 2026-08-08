@@ -24,6 +24,18 @@ export const color = {
   overlay: tdTokens.color.surface.overlay,
 } as const;
 
+export const semanticColor = {
+  activeNavigation: tdTokens.color.role.activeNavigation,
+  scanner: tdTokens.color.role.scanner,
+  primaryAction: tdTokens.color.role.primaryAction,
+  success: tdTokens.color.role.success,
+  attention: tdTokens.color.role.attention,
+  decks: tdTokens.color.role.decks,
+  structure: tdTokens.color.role.structure,
+  content: tdTokens.color.role.content,
+  metadata: tdTokens.color.role.metadata,
+} as const;
+
 export const surface = {
   canvas: tdTokens.depth.surface.canvas,
   dock: tdTokens.depth.surface.dock,
@@ -63,6 +75,8 @@ export const motionDuration = {
   fast: tdTokens.motion.duration.fast,
   standard: tdTokens.motion.duration.standard,
   sheet: tdTokens.motion.duration.slow,
+  launchMin: tdTokens.motion.duration.launchMin,
+  launchMax: tdTokens.motion.duration.launchMax,
 } as const;
 export const breakpoint = tdTokens.breakpoint;
 export const icon = tdTokens.icon;
