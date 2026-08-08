@@ -15,7 +15,6 @@ import {
   DockSurface,
   DockTray,
   TDBadge,
-  TDIconButton,
   TDSkeleton,
   TDText,
 } from '@/components/design-system';
@@ -117,7 +116,6 @@ function HomeHeader({ workspaceLabel }: { workspaceLabel: string }) {
         <TDText variant="caption" tone="muted">Trading Docks</TDText>
         <TDText variant="title">{workspaceLabel}</TDText>
       </View>
-      <TDIconButton label="Notifications unavailable" iconName="notifications-outline" onPress={tap} />
     </View>
   );
 }
