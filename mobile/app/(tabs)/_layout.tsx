@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAccount } from '@/providers/account';
-import { color, elevation, radius } from '@/design';
+import { color, edge, elevation, radius, surface } from '@/design';
 import {
   getMobileBottomNavVisualModel,
   getMobileTabOptions,
@@ -134,9 +134,9 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#081625F7',
+    backgroundColor: `${surface.dock}F7`,
     borderTopWidth: 1,
-    borderTopColor: color.border,
+    borderTopColor: edge.subtle,
     borderWidth: 0,
     borderRadius: 0,
     ...elevation.raised,
@@ -164,10 +164,10 @@ const s = StyleSheet.create({
     maxWidth: 76,
   },
   center: {
-    borderRadius: radius.md,
+    borderRadius: radius.control,
     backgroundColor: `${color.primary}24`,
     borderWidth: 1,
-    borderColor: color.borderStrong,
+    borderColor: edge.highlight,
     alignItems: 'center',
     justifyContent: 'center',
   },

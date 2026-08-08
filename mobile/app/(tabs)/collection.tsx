@@ -6,15 +6,18 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  DockCardWell,
+  DockMetric,
+  DockRail,
+  DockSurface,
+  DockTray,
   TDBadge,
   TDButton,
-  TDCard,
   TDEmptyState,
   TDErrorState,
   TDIconButton,
   TDInput,
   TDLoadingState,
-  TDMetric,
   TDNavigationHeader,
   TDScreen,
   TDStatusIndicator,
@@ -154,45 +157,47 @@ export default function Collection() {
               rightAction={staleReason ? <TDBadge tone="warning">Stale</TDBadge> : undefined}
             />
 
-            <View style={s.searchControls}>
-              <TDInput
-                accessibilityLabel="Search collection by card name, set, collector number, or storage location"
-                containerStyle={s.searchInput}
-                leftIconName="search-outline"
-                placeholder="Name, set, number, storage..."
-                value={query}
-                onChangeText={setQuery}
-                returnKeyType="search"
-              />
-              <View style={s.modeRow}>
-                <IconMode label="List view" iconName="list-outline" selected={displayMode === 'list'} onPress={() => setDisplayMode('list')} />
-                <IconMode label="Grid view" iconName="grid-outline" selected={displayMode === 'grid'} onPress={() => setDisplayMode('grid')} />
+            <DockSurface style={s.controlDock}>
+              <View style={s.searchControls}>
+                <TDInput
+                  accessibilityLabel="Search collection by card name, set, collector number, or storage location"
+                  containerStyle={s.searchInput}
+                  leftIconName="search-outline"
+                  placeholder="Name, set, number, storage..."
+                  value={query}
+                  onChangeText={setQuery}
+                  returnKeyType="search"
+                />
+                <View style={s.modeRow}>
+                  <IconMode label="List view" iconName="list-outline" selected={displayMode === 'list'} onPress={() => setDisplayMode('list')} />
+                  <IconMode label="Grid view" iconName="grid-outline" selected={displayMode === 'grid'} onPress={() => setDisplayMode('grid')} />
+                </View>
               </View>
-            </View>
 
-            <View style={s.filterRail} accessibilityLabel="Collection sort and shortcuts">
-              {SORT_OPTIONS.map((option) => (
-                <Pressable
-                  key={option.value}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Sort by ${option.label}`}
-                  accessibilityState={{ selected: sort === option.value }}
-                  onPress={() => setSort(option.value)}
-                  style={({ pressed }) => [s.sortChip, sort === option.value && s.sortChipSelected, pressed && s.pressed]}
-                >
-                  <TDText variant="caption" tone={sort === option.value ? 'primary' : 'muted'} numberOfLines={1}>{option.label}</TDText>
-                </Pressable>
-              ))}
-            </View>
+              <DockRail compact style={s.filterRail} accessibilityLabel="Collection sort and shortcuts">
+                {SORT_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Sort by ${option.label}`}
+                    accessibilityState={{ selected: sort === option.value }}
+                    onPress={() => setSort(option.value)}
+                    style={({ pressed }) => [s.sortChip, sort === option.value && s.sortChipSelected, pressed && s.pressed]}
+                  >
+                    <TDText variant="caption" tone={sort === option.value ? 'primary' : 'muted'} numberOfLines={1}>{option.label}</TDText>
+                  </Pressable>
+                ))}
+              </DockRail>
+            </DockSurface>
 
             <View style={s.summaryStrip}>
-              <TDMetric label="Owned" value={summary.totalOwnedCards.toLocaleString()} tone="info" compact />
-              <TDMetric label="Unique" value={summary.uniquePrintings.toLocaleString()} compact />
-              <TDMetric label="Storage" value={summary.storageLocationCount.toLocaleString()} compact />
+              <DockMetric label="Owned" value={summary.totalOwnedCards.toLocaleString()} tone="active" />
+              <DockMetric label="Unique" value={summary.uniquePrintings.toLocaleString()} />
+              <DockMetric label="Storage" value={summary.storageLocationCount.toLocaleString()} />
             </View>
 
             {summary.freeCardLimit ? (
-              <TDCard variant={summary.freeCardLimitExceeded ? 'outlined' : 'default'} style={s.limitCard}>
+              <DockTray active={summary.freeCardLimitExceeded} style={s.limitCard}>
                 <View style={s.limitIcon}>
                   <Ionicons name="lock-closed-outline" size={18} color={summary.freeCardLimitExceeded ? color.danger : color.info} />
                 </View>
@@ -206,17 +211,17 @@ export default function Collection() {
                       : `${summary.freeCardLimitRemaining} card slots remaining.`}
                   </TDText>
                 </View>
-              </TDCard>
+              </DockTray>
             ) : null}
 
             {staleReason ? (
-              <TDCard variant="outlined" style={s.staleCard}>
+              <DockTray style={s.staleCard}>
                 <TDStatusIndicator tone="warning" label="Showing cached collection data" />
                 <TDText variant="caption" tone="muted">{staleReason}</TDText>
-              </TDCard>
+              </DockTray>
             ) : null}
 
-            <View style={s.secondaryActions}>
+            <DockRail compact style={s.secondaryActions}>
               <TDButton
                 label="Storage"
                 variant="secondary"
@@ -241,7 +246,7 @@ export default function Collection() {
                 accessibilityLabel="Open Wishlist"
                 onPress={() => router.push('/wishlist' as never)}
               />
-            </View>
+            </DockRail>
           </View>
         }
         ListEmptyComponent={
@@ -306,8 +311,8 @@ function CollectionCardRow({
       onPress={onPress}
       style={({ pressed }) => [compact ? s.cardGridItem : s.cardListItem, pressed && s.pressed]}
     >
-      <TDCard variant="elevated" style={[s.cardShell, compact && s.cardShellGrid]}>
-        <View style={[s.imageFrame, compact && s.imageFrameGrid]}>
+      <DockSurface level="raised" style={[s.cardShell, compact && s.cardShellGrid]}>
+        <DockCardWell style={[s.imageFrame, compact && s.imageFrameGrid]}>
           {card.printing.imageUrl ? (
             <Image
               source={{ uri: card.printing.imageUrl }}
@@ -323,7 +328,7 @@ function CollectionCardRow({
               <TDText variant="caption" tone="muted" style={s.centerText}>Image unavailable</TDText>
             </View>
           )}
-        </View>
+        </DockCardWell>
         <View style={s.cardBody}>
           <View style={s.cardTitleRow}>
             <TDText variant="title" style={s.cardTitle}>{card.cardName}</TDText>
@@ -344,7 +349,7 @@ function CollectionCardRow({
             {priceLabel(card)}
           </TDText>
         </View>
-      </TDCard>
+      </DockSurface>
     </Pressable>
   );
 }
@@ -416,17 +421,18 @@ const s = StyleSheet.create({
   screen: { paddingBottom: 0 },
   listContent: { gap: space.md },
   headerStack: { gap: space.sm, marginBottom: space.xs },
+  controlDock: { gap: space.sm, padding: space.sm },
   searchControls: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },
   searchInput: { flex: 1 },
-  filterRail: { flexDirection: 'row', gap: space.xs },
-  sortChip: { minHeight: 34, flex: 1, minWidth: 0, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xs, backgroundColor: color.canvasRaised },
+  filterRail: { gap: space.xs },
+  sortChip: { minHeight: 34, flex: 1, minWidth: 0, borderRadius: radius.control, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xs },
   sortChipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '24' },
   summaryStrip: { flexDirection: 'row', gap: space.xs },
   limitCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },
   staleCard: { gap: space.xs, padding: space.md },
   limitIcon: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '12' },
   flex: { flex: 1 },
-  secondaryActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: -space.xs },
+  secondaryActions: { flexWrap: 'wrap', gap: space.xs, marginTop: -space.xs },
   modeRow: { flexDirection: 'row', gap: space.xs },
   gridRow: { gap: space.sm },
   cardListItem: { width: '100%' },

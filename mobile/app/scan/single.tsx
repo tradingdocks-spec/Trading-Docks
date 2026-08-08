@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TDButton, TDCard, TDText } from '@/components/design-system';
+import { DockCardWell, DockSurface, TDButton, TDCard, TDText } from '@/components/design-system';
 import { ScannerCamera, type ScannerCameraFrame, type ScannerCameraHandle } from '@/components/scanner-camera';
 import { PrintingSelectorSheet } from '@/components/scanner/printing-selector-sheet';
 import { color, radius, space } from '@/design';
@@ -411,16 +411,17 @@ function SingleResultSheet({
   const { width } = useWindowDimensions();
   const finishes = supportedVisibleFinishes(candidate);
   const market = selectScryfallScannerPrice(candidate, selectedFinish);
+  const offer = market === null ? null : market * 0.7;
   const compact = width <= 340;
   const artStyle = compact ? s.resultArtCompact : width >= 410 ? s.resultArtLarge : s.resultArt;
   return (
-    <View style={s.resultSheet}>
+    <DockSurface level="raised" style={s.resultSheet}>
       <View style={s.resultHandle} />
-      <View style={s.resultArtFrame}>
+      <DockCardWell lifted style={s.resultArtFrame}>
         {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={artStyle} contentFit="cover" /> : <View style={[artStyle, s.imageFallback]}><Ionicons name="image-outline" size={24} color={color.textMuted} /></View>}
-      </View>
+      </DockCardWell>
       <View style={s.resultCopy}>
-        <TDText variant={compact ? 'small' : 'title'} numberOfLines={2} style={s.resultTitle}>{candidate.name}</TDText>
+        <TDText variant={compact ? 'title' : 'heading'} adjustsFontSizeToFit minimumFontScale={0.82} numberOfLines={2} style={s.resultTitle}>{candidate.name}</TDText>
         <View style={s.resultMetaRow}>
           <TDText variant="caption" tone="muted" numberOfLines={1} style={s.resultMeta}>{candidate.setCode ?? 'Set unavailable'} #{candidate.collectorNumber ?? '?'}</TDText>
           <View style={s.exactPrintingPill}>
@@ -429,10 +430,15 @@ function SingleResultSheet({
         </View>
         {market !== null ? (
           <View style={s.priceRow}>
-          <View style={s.priceCell}>
-            <TDText variant="caption" tone="muted">Market</TDText>
-            <TDText variant="small">${market.toFixed(2)}</TDText>
-          </View>
+            <View style={s.priceCell}>
+              <TDText variant="caption" tone="muted">Market</TDText>
+              <TDText variant="title">${market.toFixed(2)}</TDText>
+            </View>
+            <View style={s.priceDivider} />
+            <View style={s.priceCell}>
+              <TDText variant="caption" tone="muted">Offer</TDText>
+              <TDText variant="title">${offer!.toFixed(2)}</TDText>
+            </View>
           </View>
         ) : (
           <TDText variant="caption" tone="muted" style={s.resultPriceNote}>No market price for this finish.</TDText>
@@ -462,7 +468,7 @@ function SingleResultSheet({
           <ResultTextAction label="Retake" tone="muted" onPress={onRetake} />
         </View>
       </View>
-    </View>
+    </DockSurface>
   );
 }
 
@@ -611,7 +617,7 @@ const s = StyleSheet.create({
   lensControl: { alignSelf: 'center', minHeight: 38, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 2, padding: 3, backgroundColor: color.surfaceFloating + 'DD' },
   lensButton: { minWidth: 42, minHeight: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.sm },
   lensButtonActive: { backgroundColor: color.primaryBright },
-  resultSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 40, maxHeight: '60%', borderRadius: radius.lg, paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.md, gap: space.sm, alignItems: 'stretch', backgroundColor: color.surfaceFloating + 'F8', shadowColor: '#000000', shadowOpacity: 0.32, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
+  resultSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 40, maxHeight: '64%', paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: space.md, gap: space.sm, alignItems: 'stretch', backgroundColor: color.surfaceFloating + 'F8' },
   resultHandle: { alignSelf: 'center', width: 38, height: 4, borderRadius: radius.pill, backgroundColor: color.borderStrong },
   settingsSheet: { position: 'absolute', left: space.md, right: space.md, bottom: space.lg, zIndex: 45, gap: space.sm, backgroundColor: color.surfaceFloating + 'F8' },
   settingRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
@@ -619,18 +625,19 @@ const s = StyleSheet.create({
   cropImageWrap: { width: 132, height: 176, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },
   cropImage: { width: '100%', height: '100%' },
   cropBox: { position: 'absolute', borderWidth: 2 },
-  resultArtFrame: { alignItems: 'center', justifyContent: 'center' },
-  resultArtCompact: { width: 98, height: 137, borderRadius: radius.sm, backgroundColor: color.surface },
-  resultArt: { width: 116, height: 162, borderRadius: radius.sm, backgroundColor: color.surface },
-  resultArtLarge: { width: 128, height: 179, borderRadius: radius.sm, backgroundColor: color.surface },
+  resultArtFrame: { alignSelf: 'center', alignItems: 'center', justifyContent: 'center', padding: 3 },
+  resultArtCompact: { width: 112, height: 156, borderRadius: radius.object, backgroundColor: color.surface },
+  resultArt: { width: 132, height: 184, borderRadius: radius.object, backgroundColor: color.surface },
+  resultArtLarge: { width: 146, height: 204, borderRadius: radius.object, backgroundColor: color.surface },
   imageFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   resultCopy: { minWidth: 0, gap: space.xs },
-  resultTitle: { textAlign: 'center', lineHeight: 24 },
+  resultTitle: { textAlign: 'center' },
   resultMetaRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs },
-  resultMeta: { flexShrink: 1, maxWidth: 120 },
+  resultMeta: { flexShrink: 1, maxWidth: 150 },
   exactPrintingPill: { maxWidth: 150, minHeight: 22, borderRadius: radius.pill, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
-  priceRow: { alignSelf: 'center', minHeight: 42, minWidth: 132, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.md, backgroundColor: color.surface + 'CC' },
+  priceRow: { alignSelf: 'center', minHeight: 50, minWidth: 212, borderRadius: radius.control, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.md, backgroundColor: color.surface + 'CC' },
   priceCell: { minWidth: 0, alignItems: 'center', gap: 2 },
+  priceDivider: { width: 1, height: 28, marginHorizontal: space.md, backgroundColor: color.border },
   resultPriceNote: { textAlign: 'center' },
   finishBlock: { gap: space.xs, alignItems: 'center' },
   resultActions: { gap: space.xs },

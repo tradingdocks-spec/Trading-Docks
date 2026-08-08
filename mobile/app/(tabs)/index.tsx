@@ -7,9 +7,14 @@ import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  DockAction,
+  DockCardWell,
+  DockHeader,
+  DockRail,
+  DockSection,
+  DockSurface,
+  DockTray,
   TDBadge,
-  TDButton,
-  TDCard,
   TDIconButton,
   TDSkeleton,
   TDText,
@@ -109,7 +114,7 @@ function HomeHeader({ workspaceLabel }: { workspaceLabel: string }) {
   return (
     <View style={s.header}>
       <View style={s.headerTitle}>
-        <TDText variant="label" tone="muted">Trading Docks</TDText>
+        <TDText variant="caption" tone="muted">Trading Docks</TDText>
         <TDText variant="title">{workspaceLabel}</TDText>
       </View>
       <TDIconButton label="Notifications unavailable" iconName="notifications-outline" onPress={tap} />
@@ -134,14 +139,12 @@ function HomeHero({
 }) {
   const tone = state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'info';
   return (
-    <TDCard variant="floating" style={s.hero}>
-      <View style={s.heroTop}>
-        <View style={s.flex}>
-          <TDText variant="label" tone="muted">{eyebrow}</TDText>
-          <TDText variant="title">{title}</TDText>
-        </View>
-        <TDBadge tone={tone}>{heroStateLabel(state)}</TDBadge>
-      </View>
+    <DockSurface level="raised" tone={state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'neutral'} style={s.hero}>
+      <DockHeader
+        eyebrow={eyebrow}
+        title={title}
+        right={<TDBadge tone={tone}>{heroStateLabel(state)}</TDBadge>}
+      />
       {loading ? (
         <TDSkeleton lines={2} style={s.heroSkeleton} />
       ) : (
@@ -150,7 +153,7 @@ function HomeHero({
           <TDText variant="small" tone="muted">{supporting}</TDText>
         </>
       )}
-    </TDCard>
+    </DockSurface>
   );
 }
 
@@ -158,39 +161,34 @@ function QuickActions({ actions }: { actions: HomeAction[] }) {
   const primary = actions[0];
   const secondary = actions.slice(1, 4);
   return (
-    <View style={s.quickActions} accessibilityLabel="Primary workspace actions">
-      <TDButton
+    <DockSurface accessibilityLabel="Primary workspace actions" style={s.quickActions}>
+      <DockAction
         label={primary.label}
         iconName={primary.icon as keyof typeof Ionicons.glyphMap}
-        accessibilityLabel={`${primary.label}: ${primary.helper}`}
         onPress={() => go(primary)}
+        prominent
         style={s.scanAction}
       />
-      <View style={s.secondaryActions}>
+      <DockRail compact>
         {secondary.map((action) => (
-          <Pressable
+          <DockAction
             key={action.key}
-            accessibilityRole="button"
-            accessibilityLabel={`${action.label}: ${action.helper}`}
+            label={action.label}
+            iconName={action.icon as keyof typeof Ionicons.glyphMap}
             onPress={() => go(action)}
-            style={({ pressed }) => [s.quickAction, pressed && s.pressed]}
-          >
-            <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={20} color={color.primaryBright} />
-            <TDText variant="caption" numberOfLines={1}>{action.label}</TDText>
-          </Pressable>
+          />
         ))}
-      </View>
-    </View>
+      </DockRail>
+    </DockSurface>
   );
 }
 
 function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
   return (
-    <View style={s.section}>
-      <View style={s.sectionHeader}>
-        <TDText variant="title">Recent Adds</TDText>
-        <TDText variant="caption" tone="muted">Latest inventory</TDText>
-      </View>
+    <DockSection
+      title="Recent Adds"
+      action={<TDText variant="caption" tone="muted">Latest inventory</TDText>}
+    >
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.recentList}>
         {cards.map((card) => (
           <Pressable
@@ -203,7 +201,7 @@ function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
             }}
             style={({ pressed }) => [s.recentCard, pressed && s.pressed]}
           >
-            <View style={s.cardImageFrame}>
+            <DockCardWell style={s.cardImageFrame}>
               {card.imageUrl ? (
                 <Image
                   source={{ uri: card.imageUrl }}
@@ -221,7 +219,7 @@ function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
               <View style={s.quantityPill}>
                 <TDText variant="caption">{card.quantityLabel}</TDText>
               </View>
-            </View>
+            </DockCardWell>
             <TDText variant="small" numberOfLines={1}>{card.title}</TDText>
             <TDText variant="caption" tone="muted" numberOfLines={1}>{card.subtitle}</TDText>
             <TDText variant="caption" tone="secondary" numberOfLines={1}>{card.metadata}</TDText>
@@ -229,14 +227,14 @@ function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
           </Pressable>
         ))}
       </ScrollView>
-    </View>
+    </DockSection>
   );
 }
 
 function EmptyCollectionHero({ loading }: { loading: boolean }) {
   if (loading) return <TDSkeleton lines={3} style={s.emptySkeleton} />;
   return (
-    <TDCard variant="outlined" style={s.emptyCard}>
+    <DockTray style={s.emptyCard}>
       <View style={s.emptyIcon}>
         <Ionicons name="scan-outline" size={24} color={color.primaryBright} />
       </View>
@@ -244,7 +242,7 @@ function EmptyCollectionHero({ loading }: { loading: boolean }) {
         <TDText variant="title">Start your collection</TDText>
         <TDText variant="small" tone="muted">Scan, review, then organize the first real card.</TDText>
       </View>
-    </TDCard>
+    </DockTray>
   );
 }
 
@@ -262,7 +260,7 @@ function ActionableInsight({
   activeSessionRoute: '/(tabs)/scan' | '/(tabs)/deal-desk';
 }) {
   return (
-    <TDCard variant="outlined" style={s.insight}>
+    <DockTray style={s.insight}>
       <View style={[s.insightIcon, tone === 'warning' && s.insightWarning, tone === 'success' && s.insightSuccess]}>
         <Ionicons name={tone === 'warning' ? 'alert-circle-outline' : tone === 'success' ? 'checkmark-circle-outline' : 'sparkles-outline'} size={20} color={tone === 'warning' ? color.warning : tone === 'success' ? color.success : color.primaryBright} />
       </View>
@@ -283,7 +281,7 @@ function ActionableInsight({
           <Ionicons name="arrow-forward" size={18} color={color.primaryBright} />
         </Pressable>
       ) : null}
-    </TDCard>
+    </DockTray>
   );
 }
 
@@ -310,17 +308,12 @@ const s = StyleSheet.create({
   headerTitle: { flex: 1, minWidth: 0 },
   flex: { flex: 1, minWidth: 0 },
   hero: { gap: space.md, padding: space.lg, overflow: 'hidden' },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.md },
   heroValue: { marginTop: space.xs },
   heroSkeleton: { marginTop: space.sm },
-  quickActions: { gap: space.sm },
+  quickActions: { gap: space.sm, padding: space.sm },
   scanAction: { minHeight: 54 },
-  secondaryActions: { flexDirection: 'row', gap: space.sm },
-  quickAction: { flex: 1, minHeight: 72, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', gap: space.xs, paddingHorizontal: space.xs, backgroundColor: color.surfaceFloating },
-  section: { gap: space.sm },
-  sectionHeader: { minHeight: 28, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.sm },
   recentList: { gap: space.sm, paddingRight: space.md },
-  recentCard: { width: 148, gap: 5, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.xs, backgroundColor: color.surfaceFloating },
+  recentCard: { width: 148, gap: 5 },
   cardImageFrame: { height: 198, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },
   cardImage: { width: '100%', height: '100%' },
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xs, padding: space.xs },
