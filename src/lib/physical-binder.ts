@@ -1,0 +1,18 @@
+export {
+  BINDER_PLATFORM_BACKEND_TABLES,
+  binderSlotLabels,
+  buildBinderPage,
+  buildBinderSpread,
+  normalizeBinderShareRequest,
+  placementKey,
+  validateBinderPlacement,
+  type BinderShareLink,
+  type BinderShareRequest,
+  type BinderShareScope,
+  type PhysicalBinder,
+  type PhysicalBinderCardPlacement,
+  type PhysicalBinderPage,
+  type PhysicalBinderPocket,
+  type PhysicalBinderSpread,
+  type PhysicalBinderVisibility,
+} from "../../mobile/services/physical-binder.ts";
