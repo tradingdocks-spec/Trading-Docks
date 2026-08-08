@@ -20,7 +20,7 @@ test('Single Scan result sheet keeps one dominant CTA and compact result hierarc
   assert.match(resultSheet, /numberOfLines=\{2\}/);
   assert.match(resultSheet, /candidate\.setCode \?\? 'Set unavailable'\} #\{candidate\.collectorNumber/);
   assert.match(resultSheet, /Market/);
-  assert.doesNotMatch(resultSheet, /Offer/);
+  assert.match(resultSheet, /Offer/);
   assert.match(resultSheet, /No market price for this finish/);
   assert.match(resultSheet, /supportedVisibleFinishes\(candidate\)/);
   assert.match(resultSheet, /<TDButton label="Add card" onPress=\{onAdd\} size="lg" iconName="add-circle-outline"/);

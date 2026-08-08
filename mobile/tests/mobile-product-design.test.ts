@@ -193,3 +193,30 @@ test('release polish pass removes beta copy and elevates primary scanner and inv
   assert.match(profile, /<TDSectionHeader title="Essentials"/);
   assert.match(profile, /<TDSectionHeader title="Support and legal"/);
 });
+
+test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', () => {
+  const shell = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
+  const home = readFileSync(join(root, 'app', '(tabs)', 'index.tsx'), 'utf8');
+  const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
+  const scanModes = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
+  const signals = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
+  const profile = readFileSync(join(root, 'app', '(tabs)', 'profile.tsx'), 'utf8');
+  const singleScan = readFileSync(join(root, 'app', 'scan', 'single.tsx'), 'utf8');
+
+  assert.match(shell, /surface\.dock/);
+  assert.match(shell, /edge\.subtle/);
+  assert.match(home, /DockSurface[\s\S]*Primary workspace actions/);
+  assert.match(home, /DockCardWell/);
+  assert.match(collection, /DockMetric[\s\S]*Owned/);
+  assert.match(collection, /DockCardWell/);
+  assert.match(scanModes, /DockSurface[\s\S]*PrimaryScanMode/);
+  assert.match(scanModes, /DockAction label="Single Scan"/);
+  assert.doesNotMatch(scanModes, /scanModeRows/);
+  assert.doesNotMatch(scanModes, /function ScanModeRow/);
+  assert.match(signals, /DockMetric label="Data source" value="Saved"/);
+  assert.doesNotMatch(signals, /value="Soon"/);
+  assert.match(profile, /DockSurface[\s\S]*Manage Membership/);
+  assert.match(singleScan, /DockSurface level="raised" style=\{s\.resultSheet\}/);
+  assert.match(singleScan, /DockCardWell lifted/);
+  assert.match(singleScan, /Offer/);
+});
