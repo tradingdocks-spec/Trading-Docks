@@ -17,7 +17,7 @@ Routes are classified as:
 | `/(tabs)` Home | Aligned | Wave 1 migrated to shared navigation/header/list/metric patterns. |
 | `/(tabs)/collection` | Aligned | Wave 1 migrated search, sort, metrics, safe bottom inset, and collection rows. |
 | `/(tabs)/scan` | Aligned | Wave 1 preserved OCR/camera behavior while using scanner primitives and result/session strips. |
-| `/(tabs)/deal-desk` | Minor Issue Fixed | Wave 3 removed the remaining dashboard-like unavailable metric grid and replaced it with transaction facts. |
+| `/deal-desk` | Contextual Route | Wave 3 removed the remaining dashboard-like unavailable metric grid and replaced it with transaction facts. It is no longer a primary bottom tab. |
 | `/(tabs)/sell` | Minor Issue Fixed | Wave 3 replaced unavailable metric tiles with one honest status row. |
 | `/(tabs)/profile` | Aligned | Wave 2 grouped profile into account, membership, security/preferences, scanner/support, and sign-out areas. |
 | `/auth` | Aligned | Wave 2 preserved auth behavior while simplifying brand hierarchy, trust copy, and controls. |

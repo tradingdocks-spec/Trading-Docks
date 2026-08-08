@@ -71,7 +71,7 @@ The migration is visual and structural only. It must preserve authentication, OC
 ## Seller / Signals Follow-Up
 
 - Hero: Account-aware work summary with active session when real data exists.
-- Primary action: Open Deal Desk for seller/store users or Scan Cards for collector/free users.
+- Primary action: Review scanner sessions for seller/store users or Scan Cards for collector/free users.
 - Supporting information: Signals/activity shortcuts and unavailable metrics.
 - Deferred information: Marketplace, order, margin, and analytics modules stay planned until real data exists.
 - Reusable components: `TDNavigationHeader`, `TDMetric`, `TDListRow`, `TDBadge`, `TDEmptyState`.

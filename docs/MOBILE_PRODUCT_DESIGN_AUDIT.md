@@ -10,7 +10,7 @@ Active mobile app paths reviewed:
 - `mobile/app/(tabs)/index.tsx`
 - `mobile/app/(tabs)/collection.tsx`
 - `mobile/app/(tabs)/scan.tsx`
-- `mobile/app/(tabs)/deal-desk.tsx`
+- `mobile/app/deal-desk.tsx`
 - `mobile/app/(tabs)/sell.tsx`
 - `mobile/app/(tabs)/profile.tsx`
 - `mobile/app/auth.tsx`
@@ -47,7 +47,7 @@ Historical backup folders were not included as active product surfaces.
 | `/(tabs)` Home | Account-aware overview | Know what matters next | Portfolio/status card | Smart action row | Moderate migration |
 | `/(tabs)/collection` | Inventory browser | Find and open owned cards | Title/search plus metrics | Search collection | Moderate migration |
 | `/(tabs)/scan` | Scanner intake | Capture and confirm cards quickly | Camera viewport | Capture | Minor polish |
-| `/(tabs)/deal-desk` | Buying/trade terminal | Price and start a deal | Offer calculator | Start session | Partially Implemented |
+| `/deal-desk` | Buying/trade terminal | Contextual session review | Offer calculator | Start session | Partially Implemented |
 | `/(tabs)/sell` | Seller signals/activity | See seller work | Honest unavailable summary | Shortcut actions | Partially Implemented |
 | `/(tabs)/profile` | Account/settings hub | Manage account/session | Identity row | Settings/membership rows | Moderate migration |
 | `/auth` | Authentication | Sign in safely | Auth form panel | Sign in | Moderate migration |

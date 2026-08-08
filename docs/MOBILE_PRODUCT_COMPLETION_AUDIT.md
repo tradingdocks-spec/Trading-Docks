@@ -30,7 +30,7 @@ If a user can see it in the release app, it must work. If it does not work on mo
 | `/scanner-session` | FUNCTIONAL BUT NEEDS PHYSICAL QA | Keep | Review list and finalize/save flows exist. Must be verified on device after scanner capture. |
 | `/scanner-recovery` | PRODUCTION READY | Keep | Recovery for queued scanner writes; user-scoped and action-required states exist. |
 | `/(tabs)/sell` | PRODUCTION READY | Keep as Intelligence | Uses current loaded collection/session data for valuable cards, duplicates, missing prices, storage gaps, trade markers, wishlist overlap, foils, and recent additions. |
-| `/(tabs)/deal-desk` | FUNCTIONAL BUT NEEDS POLISH | Keep for Seller/Store tabs only | Buying/session calculator works from saved session state. It is not exposed to Free/Collector primary tabs. |
+| `/deal-desk` | FUNCTIONAL BUT CONTEXTUAL | Keep outside primary tabs | Buying/session calculator works from saved session state. It is not exposed as a Mobile V1 bottom-tab destination. |
 | `/(tabs)/profile` | PRODUCTION READY | Keep | Identity, membership, settings, legal links, delete account, sign out, and Headquarters handoff exist. |
 | `/plans` | FUNCTIONAL BUT NEEDS DEVICE QA | Keep | RevenueCat purchase/restore flow is backend-authoritative and must be verified on iOS device. |
 | `/settings` | PRODUCTION READY | Keep | Shows production-backed status rows and routes unsupported configuration to iOS Settings or Headquarters instead of local fake toggles. |
