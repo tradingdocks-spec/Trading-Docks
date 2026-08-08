@@ -87,7 +87,8 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
   assert.match(scannerSession, /Save and mark reviewed/);
   assert.doesNotMatch(scannerSession, /Finalize reviewed cards/);
   assert.match(dealDesk, /Review counts and margin reporting require real priced session lines/);
-  assert.match(sell, /Current signals/);
+  assert.match(sell, /Deck Vault/);
+  assert.match(sell, /loadMobileDeckVault/);
   assert.match(profile, /Preferences/);
   assert.match(auth, /Passwords are never stored on this device/);
   assert.match(welcome, /Your TCG collection, wherever you trade/);
@@ -168,7 +169,7 @@ test('release polish pass removes beta copy and elevates primary scanner and inv
   const home = readFileSync(join(root, 'app', '(tabs)', 'index.tsx'), 'utf8');
   const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
   const scanModes = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
-  const signals = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
+  const decks = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
   const profile = readFileSync(join(root, 'app', '(tabs)', 'profile.tsx'), 'utf8');
 
   assert.doesNotMatch(home, /Real saved cards/);
@@ -185,10 +186,9 @@ test('release polish pass removes beta copy and elevates primary scanner and inv
   assert.match(scanModes, /Automatic Scan is the fastest path/);
   assert.match(scanModes, /Start scanning/);
 
-  assert.match(signals, /Collection signals/);
-  assert.match(signals, /Current signals/);
-  assert.match(signals, /buildCollectionIntelligence/);
-  assert.doesNotMatch(signals, /<TDEmptyState/);
+  assert.match(decks, /Deck Vault/);
+  assert.match(decks, /loadMobileDeckVault/);
+  assert.doesNotMatch(decks, /Current signals|Inventory Intelligence/);
 
   assert.match(profile, /paddingTop: Math\.max\(insets\.top \+ 26, 56\)/);
   assert.match(profile, /<TDSectionHeader title="Essentials"/);
@@ -200,7 +200,7 @@ test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', 
   const home = readFileSync(join(root, 'app', '(tabs)', 'index.tsx'), 'utf8');
   const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
   const scanModes = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
-  const signals = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
+  const decks = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
   const profile = readFileSync(join(root, 'app', '(tabs)', 'profile.tsx'), 'utf8');
   const singleScan = readFileSync(join(root, 'app', 'scan', 'single.tsx'), 'utf8');
 
@@ -214,9 +214,9 @@ test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', 
   assert.match(scanModes, /DockAction label="Single Scan"/);
   assert.doesNotMatch(scanModes, /scanModeRows/);
   assert.doesNotMatch(scanModes, /function ScanModeRow/);
-  assert.match(signals, /DockMetric label="Cards loaded"/);
-  assert.match(signals, /DockMetric label="Needs price"/);
-  assert.doesNotMatch(signals, /value="Soon"/);
+  assert.match(decks, /DockMetric label="Decks"/);
+  assert.match(decks, /DockMetric label="Value"/);
+  assert.doesNotMatch(decks, /value="Soon"/);
   assert.match(profile, /DockSurface[\s\S]*Manage Membership/);
   assert.match(singleScan, /DockSurface level="raised" style=\{s\.resultSheet\}/);
   assert.match(singleScan, /DockCardWell lifted/);

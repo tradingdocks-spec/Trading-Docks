@@ -82,14 +82,15 @@ test('visible production route actions point to existing mobile routes', () => {
 
 test('mobile v1 production surfaces avoid unfinished visible controls', () => {
   const home = source('app/(tabs)/index.tsx');
-  const intelligence = source('app/(tabs)/sell.tsx');
+  const decks = source('app/(tabs)/sell.tsx');
   const settings = source('app/settings.tsx');
   const adminLayout = source('app/admin/_layout.tsx');
 
   assert.doesNotMatch(home, /Notifications unavailable/);
-  assert.match(intelligence, /Current signals/);
-  assert.match(intelligence, /buildCollectionIntelligence/);
-  assert.doesNotMatch(intelligence, /value="Soon"|Coming soon|will appear only after/);
+  assert.match(decks, /Deck Vault/);
+  assert.match(decks, /loadMobileDeckVault/);
+  assert.doesNotMatch(decks, /Current signals|Inventory Intelligence/);
+  assert.doesNotMatch(decks, /value="Soon"|Coming soon|will appear only after/);
   assert.doesNotMatch(settings, /Switch|useState\(initialValues\)|foundation preferences/);
   assert.match(settings, /Settings only show production-backed behavior/);
   assert.match(adminLayout, /Command Center is web-only/);
