@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
@@ -127,10 +127,23 @@ test('mobile tab bar remains visible on Scan Modes', () => {
   assert.equal(shouldHideMobileTabBarForRoute('profile'), false);
 });
 
-test('mobile tab layout consumes canonical account-aware route definitions', () => {
+test('mobile tab layout structurally registers exactly five production tabs', () => {
   const layout = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
+  const registeredScreens = [...layout.matchAll(/<Tabs\.Screen\s+name="([^"]+)"/g)].map((match) => match[1]);
 
-  assert.match(layout, /getMobileVisibleTabRoutes\(accountType\)/);
+  assert.deepEqual(registeredScreens, ['index', 'collection', 'scan', 'sell', 'profile']);
+  assert.equal(registeredScreens.length, MOBILE_PRIMARY_TAB_COUNT);
   assert.doesNotMatch(layout, /name="deal-desk"/);
-  assert.doesNotMatch(layout, /const tabRoutes:\s*MobileTabRouteName\[\]\s*=\s*\[/);
+  assert.doesNotMatch(layout, /getMobileVisibleTabRoutes\(accountType\)/);
+  assert.doesNotMatch(layout, /tabRoutes\.map/);
+});
+
+test('Expo Router tabs group contains no Deal Desk route file', () => {
+  const tabFiles = readdirSync(join(root, 'app', '(tabs)')).filter((file) => file.endsWith('.tsx'));
+
+  assert.equal(tabFiles.includes('deal-desk.tsx'), false);
+  assert.deepEqual(
+    tabFiles.sort(),
+    ['_layout.tsx', 'collection.tsx', 'index.tsx', 'profile.tsx', 'scan.tsx', 'sell.tsx'].sort(),
+  );
 });

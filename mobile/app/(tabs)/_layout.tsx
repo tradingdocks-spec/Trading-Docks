@@ -8,7 +8,6 @@ import { color, edge, elevation, radius, surface } from '@/design';
 import {
   getMobileBottomNavVisualModel,
   getMobileTabOptions,
-  getMobileVisibleTabRoutes,
   shouldHideMobileTabBarForRoute,
   type MobileTabRouteName,
 } from '@/services/navigation-contract';
@@ -35,7 +34,6 @@ export default function Layout() {
     };
   };
   const navModel = getMobileBottomNavVisualModel(insets.bottom);
-  const tabRoutes = getMobileVisibleTabRoutes(accountType);
 
   return (
     <Tabs
@@ -109,9 +107,11 @@ export default function Layout() {
         };
       }}
     >
-      {tabRoutes.map((route) => (
-        <Tabs.Screen key={route} name={route} options={optionsFor(route)} />
-      ))}
+      <Tabs.Screen name="index" options={optionsFor('index')} />
+      <Tabs.Screen name="collection" options={optionsFor('collection')} />
+      <Tabs.Screen name="scan" options={optionsFor('scan')} />
+      <Tabs.Screen name="sell" options={optionsFor('sell')} />
+      <Tabs.Screen name="profile" options={optionsFor('profile')} />
     </Tabs>
   );
 }
