@@ -1,47 +1,32 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 
 import { TDBadge, TDButton, TDIconButton, TDListRow, TDNavigationHeader, TDSectionHeader, TDStatusIndicator, TDText } from '@/components/design-system';
 import { color, space } from '@/design';
 import { getMobileAppVersionInfo, getMobileReleaseLinks, isDevelopmentToolEnabled, MOBILE_PUBLIC_ENV_KEYS } from '@/services/mobile-release-config';
 
-type SettingKey = 'biometric' | 'sync' | 'haptics' | 'notifications' | 'diagnostics';
-
 const settingRows: {
-  key: SettingKey;
   title: string;
   description: string;
   iconName: keyof typeof Ionicons.glyphMap;
   section: 'Security' | 'Preferences' | 'Scanner';
+  status: string;
+  tone: 'success' | 'info' | 'warning' | 'neutral';
   devOnly?: boolean;
 }[] = [
-  { key: 'biometric', title: 'Biometric unlock', description: 'Protect a saved session with Face ID or device biometrics.', iconName: 'finger-print-outline', section: 'Security' },
-  { key: 'sync', title: 'Background sync', description: 'Retry saved scanner and session work when a connection returns.', iconName: 'cloud-upload-outline', section: 'Preferences' },
-  { key: 'haptics', title: 'Haptic feedback', description: 'Use subtle tactile confirmation for key actions.', iconName: 'phone-portrait-outline', section: 'Preferences' },
-  { key: 'notifications', title: 'Notifications', description: 'Account, scanner, and session alerts.', iconName: 'notifications-outline', section: 'Preferences' },
-  { key: 'diagnostics', title: 'Scanner diagnostics', description: 'Development-only scanner analysis details.', iconName: 'bug-outline', section: 'Scanner', devOnly: true },
+  { title: 'Biometric unlock', description: 'Available when enabled from the sign-in security flow on this device.', iconName: 'finger-print-outline', section: 'Security', status: 'Session lock', tone: 'info' },
+  { title: 'Offline scanner sync', description: 'Queued scanner and collection changes retry when the authenticated user reconnects.', iconName: 'cloud-upload-outline', section: 'Preferences', status: 'Automatic', tone: 'success' },
+  { title: 'Haptic feedback', description: 'Primary scanner, tab, and confirmation actions use restrained native haptics.', iconName: 'phone-portrait-outline', section: 'Preferences', status: 'Built in', tone: 'success' },
+  { title: 'Notifications', description: 'Push notification preferences are managed from the device settings until mobile notifications are connected.', iconName: 'notifications-outline', section: 'Preferences', status: 'Device', tone: 'neutral' },
+  { title: 'Scanner diagnostics', description: 'Development-only scanner analysis details.', iconName: 'bug-outline', section: 'Scanner', status: 'Dev only', tone: 'warning', devOnly: true },
 ];
 
-const initialValues: Record<SettingKey, boolean> = {
-  biometric: false,
-  sync: true,
-  haptics: true,
-  notifications: false,
-  diagnostics: false,
-};
-
 export default function Settings() {
-  const [values, setValues] = useState(initialValues);
   const diagnosticsEnabled = isDevelopmentToolEnabled(MOBILE_PUBLIC_ENV_KEYS.scannerDiagnostics);
   const links = getMobileReleaseLinks();
   const version = getMobileAppVersionInfo();
-
-  const setValue = (key: SettingKey, value: boolean) => {
-    setValues((current) => ({ ...current, [key]: value }));
-  };
 
   const visibleRows = settingRows.filter((row) => !row.devOnly || diagnosticsEnabled);
 
@@ -69,19 +54,11 @@ export default function Settings() {
               <TDSectionHeader title={section} />
               {rows.map((row) => (
                 <TDListRow
-                  key={row.key}
+                  key={row.title}
                   title={row.title}
                   description={row.description}
                   iconName={row.iconName}
-                  right={(
-                    <Switch
-                      accessibilityLabel={row.title}
-                      accessibilityRole="switch"
-                      value={values[row.key]}
-                      onValueChange={(value) => setValue(row.key, value)}
-                      trackColor={{ false: color.border, true: color.primary }}
-                    />
-                  )}
+                  right={<TDBadge tone={row.tone}>{row.status}</TDBadge>}
                 />
               ))}
             </View>
@@ -104,7 +81,7 @@ export default function Settings() {
 
         <TDButton label="Return to profile" variant="secondary" iconName="person-outline" onPress={() => router.push('/(tabs)/profile' as never)} />
         <TDText variant="caption" tone="muted" style={s.note}>
-          Some controls are foundation preferences until production provider configuration and native release QA are complete.
+          Settings only show production-backed behavior. Configuration that belongs to Headquarters or iOS Settings stays outside mobile V1.
         </TDText>
       </ScrollView>
     </SafeAreaView>
