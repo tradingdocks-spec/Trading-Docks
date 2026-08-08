@@ -15,7 +15,6 @@ import {
   TDNavigationHeader,
   TDSectionHeader,
   TDStatusIndicator,
-  TDText,
 } from '@/components/design-system';
 import { color, space } from '@/design';
 import { useWorkSession } from '@/features/sessions/session-provider';

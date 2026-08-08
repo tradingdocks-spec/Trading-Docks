@@ -87,7 +87,7 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
   assert.match(scannerSession, /Save and mark reviewed/);
   assert.doesNotMatch(scannerSession, /Finalize reviewed cards/);
   assert.match(dealDesk, /Review counts and margin reporting require real priced session lines/);
-  assert.match(sell, /Signals will stay grounded in your cards/);
+  assert.match(sell, /Current signals/);
   assert.match(profile, /Preferences/);
   assert.match(auth, /Passwords are never stored on this device/);
   assert.match(welcome, /Your TCG collection, wherever you trade/);
@@ -186,7 +186,8 @@ test('release polish pass removes beta copy and elevates primary scanner and inv
   assert.match(scanModes, /Start scanning/);
 
   assert.match(signals, /Collection signals/);
-  assert.match(signals, /Signals will stay grounded in your cards/);
+  assert.match(signals, /Current signals/);
+  assert.match(signals, /buildCollectionIntelligence/);
   assert.doesNotMatch(signals, /<TDEmptyState/);
 
   assert.match(profile, /paddingTop: Math\.max\(insets\.top \+ 26, 56\)/);
@@ -213,7 +214,8 @@ test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', 
   assert.match(scanModes, /DockAction label="Single Scan"/);
   assert.doesNotMatch(scanModes, /scanModeRows/);
   assert.doesNotMatch(scanModes, /function ScanModeRow/);
-  assert.match(signals, /DockMetric label="Data source" value="Saved"/);
+  assert.match(signals, /DockMetric label="Cards loaded"/);
+  assert.match(signals, /DockMetric label="Needs price"/);
   assert.doesNotMatch(signals, /value="Soon"/);
   assert.match(profile, /DockSurface[\s\S]*Manage Membership/);
   assert.match(singleScan, /DockSurface level="raised" style=\{s\.resultSheet\}/);

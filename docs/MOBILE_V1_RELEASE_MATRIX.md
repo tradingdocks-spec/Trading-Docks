@@ -30,15 +30,15 @@ Status: Implemented
 | Single Scan | Yes | Yes | Physical required | Result sheet and add flow require physical pass. |
 | Scanner Session / Review List | Yes | Yes | Physical required | Must verify final item appears in Collection after device scan. |
 | Scanner Recovery | Yes | Yes | Passed automated | Offline/replay tests cover user isolation and recovery states. |
-| Intelligence | Yes | Yes | Needs fix | Must use current real collection data only. |
+| Intelligence | Yes | Yes | Passed automated | Uses current loaded collection/session data only. |
 | Deal Desk | Yes | Yes | Passed automated | Seller/Store only in primary tabs. |
 | Profile | Yes | Yes | Passed automated | Headquarters opens web Command Center. |
 | Plans / RevenueCat | Yes | Yes | Physical required | StoreKit device flow and backend reconciliation required. |
-| Settings | Yes | Yes | Needs fix | Remove local-only fake switches. |
+| Settings | Yes | Yes | Passed automated | No local-only fake switches remain. |
 | Account Delete | Yes | Yes | Passed automated | Legal/account deletion path present. |
 | Not Found | Yes | Yes | Passed automated | Returns home. |
 | Modal | Yes | No | Remove from Mobile V1 | Template route should not be surfaced. |
-| Admin native routes | Yes | No | Headquarters-only | Replace mobile admin UI with web/HQ handoff. |
+| Admin native routes | Yes | No | Headquarters-only | Authorized roles see web/HQ handoff instead of native admin UI. |
 | Dev design showcase | Yes | No | Development only | Explicit flag required. |
 | Dev camera QA | Yes | No | Development only | Explicit diagnostics flag required. |
 | Dev scanner benchmark | Yes | No | Development only | Explicit benchmark flag required. |
@@ -60,8 +60,8 @@ Status: Implemented
 | Severity | Area | Status |
 | --- | --- | --- |
 | P0 | Data loss / security / billing / crash | None confirmed by automated audit. Physical scanner and StoreKit QA still required. |
-| P1 | Native admin route exposure | Fix required. |
-| P1 | Settings local-only controls | Fix required. |
-| P1 | Intelligence current-data value | Fix required. |
-| P2 | Home dead notification button | Fix required. |
+| P1 | Native admin route exposure | Fixed with Headquarters handoff. |
+| P1 | Settings local-only controls | Fixed with status-only settings rows. |
+| P1 | Intelligence current-data value | Fixed with current collection/session signals. |
+| P2 | Home dead notification button | Fixed by removal. |
 | P2 | Generic modal route | Fix required. |

@@ -29,16 +29,16 @@ If a user can see it in the release app, it must work. If it does not work on mo
 | `/scan/single` | FUNCTIONAL BUT NEEDS PHYSICAL QA | Keep | Manual capture, result, finish correction, other printings, add, and retake exist. Physical device QA remains required. |
 | `/scanner-session` | FUNCTIONAL BUT NEEDS PHYSICAL QA | Keep | Review list and finalize/save flows exist. Must be verified on device after scanner capture. |
 | `/scanner-recovery` | PRODUCTION READY | Keep | Recovery for queued scanner writes; user-scoped and action-required states exist. |
-| `/(tabs)/sell` | PARTIAL | Fix as Intelligence | Current screen still describes future market/seller metrics. It should become current-data Intelligence for Mobile V1. |
+| `/(tabs)/sell` | PRODUCTION READY | Keep as Intelligence | Uses current loaded collection/session data for valuable cards, duplicates, missing prices, storage gaps, trade markers, wishlist overlap, foils, and recent additions. |
 | `/(tabs)/deal-desk` | FUNCTIONAL BUT NEEDS POLISH | Keep for Seller/Store tabs only | Buying/session calculator works from saved session state. It is not exposed to Free/Collector primary tabs. |
 | `/(tabs)/profile` | PRODUCTION READY | Keep | Identity, membership, settings, legal links, delete account, sign out, and Headquarters handoff exist. |
 | `/plans` | FUNCTIONAL BUT NEEDS DEVICE QA | Keep | RevenueCat purchase/restore flow is backend-authoritative and must be verified on iOS device. |
-| `/settings` | PARTIAL | Fix | Local-only toggles look like preferences but are not persisted or authoritative. Convert unsupported settings into honest status/actions. |
+| `/settings` | PRODUCTION READY | Keep | Shows production-backed status rows and routes unsupported configuration to iOS Settings or Headquarters instead of local fake toggles. |
 | `/account-delete` | PRODUCTION READY | Keep | User-facing deletion request route exists. |
 | `/modal` | REMOVE FROM MOBILE V1 | Remove/handoff | Generic template route should not be visible in a release app. |
 | `/experience` | REMOVE FROM MOBILE V1 | Remove/handoff | Redirect-only legacy route; keep harmless redirect but do not surface. |
 | `/+not-found` | PRODUCTION READY | Keep | Returns users home. |
-| `/admin/*` | WEB/HQ ONLY | Replace with Headquarters handoff | Native Command Center routes are not Mobile V1 scope. Admin users should open protected web Headquarters. |
+| `/admin/*` | WEB/HQ ONLY | Headquarters handoff | Native Command Center routes are not Mobile V1 scope. Authorized platform roles see an intentional protected web Headquarters handoff. |
 | `/dev/design-system` | DEVELOPMENT ONLY | Keep gated | Must remain unavailable unless explicit dev flag is enabled. |
 | `/dev/camera-qa` | DEVELOPMENT ONLY | Keep gated | Must remain unavailable unless scanner diagnostics flag is enabled. |
 | `/dev/scanner-benchmark` | DEVELOPMENT ONLY | Keep gated | Must remain unavailable unless benchmark builder flag is enabled. |
@@ -55,7 +55,7 @@ If a user can see it in the release app, it must work. If it does not work on mo
 | Home | Collection | PRODUCTION READY | Routes to Collection. |
 | Home | Add Card | PARTIAL | Routes to Collection; no standalone manual-add flow. Keep as collection handoff or rename if physical QA finds confusion. |
 | Home | Review / Deal Desk | PRODUCTION READY | Routes by account type to review list or Deal Desk. |
-| Home | Notifications icon | PLACEHOLDER | Remove or replace; currently only haptics/no destination. |
+| Home | Notifications icon | REMOVE FROM MOBILE V1 | Removed from the production Home header until mobile notifications are connected. |
 | Collection | Storage | PRODUCTION READY | Routes to storage manager. |
 | Collection | Trade | PRODUCTION READY | Routes to Trade Binder. |
 | Collection | Wishlist | PRODUCTION READY | Routes to Wishlist. |
@@ -72,17 +72,17 @@ If a user can see it in the release app, it must work. If it does not work on mo
 | Profile | Support / Privacy / Terms | PRODUCTION READY | Opens configured legal/support links. |
 | Profile | Delete Account | PRODUCTION READY | Routes to account deletion. |
 | Profile | Sign out | PRODUCTION READY | Calls Supabase sign out. |
-| Settings | Biometric / sync / haptics / notifications switches | PARTIAL | Local-only switches should not appear as working production preferences. |
+| Settings | Biometric / sync / haptics / notifications rows | PRODUCTION READY | Status-only rows describe current production behavior without unsupported local persistence claims. |
 | Plans | Purchase / Restore | FUNCTIONAL BUT NEEDS DEVICE QA | Backend remains canonical; pending reconciliation copy exists. |
 
 ## P0 / P1 Findings
 
 | Severity | Finding | Decision |
 | --- | --- | --- |
-| P1 | Native `/admin/*` routes expose a mobile admin product that is outside Mobile V1 and partially connected. | Replace active native admin experience with Headquarters handoff. |
-| P1 | Settings exposes local-only switches that imply working persisted preferences. | Replace with status/action rows that do not claim unsupported persistence. |
-| P1 | Intelligence tab still advertises future market/seller metrics rather than immediate current-data insight. | Rebuild from current collection/session data only. |
-| P2 | Home notification icon has no destination. | Remove from production Home header. |
+| P1 | Native `/admin/*` routes exposed a mobile admin product that is outside Mobile V1 and partially connected. | Fixed: active mobile admin path is now a Headquarters handoff. |
+| P1 | Settings exposed local-only switches that implied working persisted preferences. | Fixed: settings are now status/action rows only. |
+| P1 | Intelligence tab advertised future market/seller metrics rather than immediate current-data insight. | Fixed: Intelligence now derives from current loaded collection/session data. |
+| P2 | Home notification icon had no destination. | Fixed: removed from production Home header. |
 | P2 | `/modal` generic template route exists. | Convert to home redirect or intentional unavailable state; do not surface. |
 
 ## Mobile V1 Scope
