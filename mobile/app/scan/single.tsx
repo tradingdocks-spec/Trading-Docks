@@ -44,6 +44,7 @@ import {
   type ScannerCameraPoint,
   type ScannerTorchState,
 } from '@/services/scanner-camera-controls';
+import { createScannerLifecycleGuard, shouldApplyScannerAsyncResult } from '@/services/scanner-camera-lifecycle';
 import {
   createScannerCaptureDiagnostic,
   resolveScannerManualCapturePolicy,
@@ -65,6 +66,7 @@ export default function SingleScanScreen() {
   const [lensOptions, setLensOptions] = useState<ScannerCameraLensOption[]>([]);
   const [deviceSummary, setDeviceSummary] = useState<ScannerCameraDeviceSummary | null>(null);
   const [previewResolution, setPreviewResolution] = useState<{ width: number; height: number } | null>(null);
+  const [cameraActive, setCameraActive] = useState(true);
   const [focusReticle, setFocusReticle] = useState<ScannerCameraPoint | null>(null);
   const [processing, setProcessing] = useState(false);
   const [stage, setStage] = useState<'idle' | 'reading' | 'matching' | 'result' | 'failed'>('idle');
@@ -81,7 +83,15 @@ export default function SingleScanScreen() {
   const [printingSelectorOpen, setPrintingSelectorOpen] = useState(false);
   const focusSettlingUntilRef = useRef(0);
   const activeCaptureIdRef = useRef<string | null>(null);
+  const focusReticleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFrameUiUpdateAtRef = useRef(0);
+  const lifecycleGuardRef = useRef(createScannerLifecycleGuard());
   const previousReadinessStateRef = useRef<ReturnType<typeof resolveSingleScanReadiness>['state'] | null>(null);
+  const scannerLive = useCallback((operationId?: string | null) => shouldApplyScannerAsyncResult(lifecycleGuardRef.current, operationId), []);
+  const logLifecycle = useCallback((event: string, payload: Record<string, unknown> = {}) => {
+    if (!isDevelopmentDiagnostics()) return;
+    console.info('[scanner:lifecycle]', event, payload);
+  }, []);
 
   const guideLayout = useMemo(() => calculateCardGuideLayout({
     containerWidth: width,
@@ -104,19 +114,40 @@ export default function SingleScanScreen() {
     cameraInitialized: cameraReady,
     permissionGranted: permission === 'granted',
     appForegrounded: true,
-    processing,
+    processing: processing || !cameraActive,
   });
   const canCapture = manualCapturePolicy.canCapture;
 
   const requestCamera = useCallback(async () => {
     const request = await requestCameraPermission();
+    if (!scannerLive()) return;
     setPermission(resolveScannerPermissionState({
       cameraAvailable: true,
       permissionGranted: request.granted,
       permissionDenied: !request.granted && !request.canAskAgain,
       requested: true,
     }));
-  }, [requestCameraPermission]);
+  }, [requestCameraPermission, scannerLive]);
+
+  const exitSingleScan = useCallback(() => {
+    logLifecycle('navigation_exit', {
+      pendingOperations: lifecycleGuardRef.current.pendingOperations,
+      stage,
+    });
+    lifecycleGuardRef.current.dispose();
+    activeCaptureIdRef.current = null;
+    focusSettlingUntilRef.current = 0;
+    if (focusReticleTimerRef.current) {
+      clearTimeout(focusReticleTimerRef.current);
+      focusReticleTimerRef.current = null;
+    }
+    setTorchEnabled(false);
+    setCameraActive(false);
+    setProcessing(false);
+    setPrintingSelectorOpen(false);
+    setSettingsOpen(false);
+    requestAnimationFrame(() => router.back());
+  }, [logLifecycle, stage]);
 
   const captureSingle = useCallback(async () => {
     const manualPolicy = resolveScannerManualCapturePolicy({
@@ -125,9 +156,13 @@ export default function SingleScanScreen() {
       appForegrounded: true,
       processing,
     });
-    if (!cameraRef.current || !manualPolicy.canCapture) return;
+    if (!cameraRef.current || !manualPolicy.canCapture || !scannerLive()) return;
     const captureQuality = resolveSingleScanCaptureQuality(quality.vision, { cameraReady, focusSettling: Date.now() < focusSettlingUntilRef.current });
     const captureDiagnostic = createScannerCaptureDiagnostic({ trigger: 'manual', quality: captureQuality });
+    const captureId = createScanId();
+    if (!lifecycleGuardRef.current.beginOperation(captureId)) return;
+    activeCaptureIdRef.current = captureId;
+    logLifecycle('capture_start', { captureId });
     setQuality(captureQuality);
     setLastCaptureDiagnostic(captureDiagnostic);
     setProcessing(true);
@@ -135,10 +170,11 @@ export default function SingleScanScreen() {
     setStage('reading');
     try {
       const context = await loadScannerContext();
-      const captureId = createScanId();
-      activeCaptureIdRef.current = captureId;
+      if (!scannerLive(captureId)) return;
       setLastCaptureId(captureId);
       const photo = await cameraRef.current.capturePhoto();
+      if (!scannerLive(captureId)) return;
+      logLifecycle('capture_end', { captureId, width: photo.width, height: photo.height });
       const scan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
         preview: { width, height },
@@ -147,11 +183,13 @@ export default function SingleScanScreen() {
         online: true,
         cachedCandidates: [],
         sequentialTitleOcr: true,
-        includeCollectorOcr: true,
+        includeCollectorOcr: false,
         deferCleanup: isDevelopmentDiagnostics(),
-        onStage: (nextStage) => setStage(nextStage === 'reading_title' ? 'reading' : 'matching'),
+        onStage: (nextStage) => {
+          if (scannerLive(captureId)) setStage(nextStage === 'reading_title' ? 'reading' : 'matching');
+        },
       });
-      if (activeCaptureIdRef.current !== captureId) return;
+      if (!scannerLive(captureId) || activeCaptureIdRef.current !== captureId) return;
       if (isDevelopmentDiagnostics()) {
         setDiagnosticCaptureUri(photo.uri);
         setCropDiagnostics(scan.cropDiagnostics ?? null);
@@ -171,76 +209,110 @@ export default function SingleScanScreen() {
       }
       void context;
     } catch (error) {
+      if (!scannerLive(captureId)) return;
       setStage('failed');
       const friendly = singleScanUserFacingFailure(error instanceof Error ? error.message : 'Could not scan this card.');
       setMessage(`${friendly.title} ${friendly.message}`);
     } finally {
-      setProcessing(false);
+      lifecycleGuardRef.current.finishOperation(captureId);
+      logLifecycle('capture_finished', { captureId, stillLive: scannerLive() });
+      if (scannerLive()) setProcessing(false);
     }
-  }, [cameraReady, guideLayout, height, permission, processing, quality.vision, width]);
+  }, [cameraReady, guideLayout, height, logLifecycle, permission, processing, quality.vision, scannerLive, width]);
 
   const retake = useCallback(() => {
+    if (!scannerLive()) return;
     activeCaptureIdRef.current = null;
     setResult(null);
     setMessage(null);
     setStage('idle');
     setCorrectedCandidate(null);
     setSelectedFinish('normal');
-  }, []);
+  }, [scannerLive]);
 
   const addToReviewList = useCallback(async () => {
-    if (!result?.ok || !selectedCandidate) return;
-    const context = await loadScannerContext();
-    const rawSession = await appStorage.getItem(continuousScannerSessionKey(context.userId));
-    const currentSession = rawSession ? parseScannerSession(rawSession, context.userId) : null;
-    const session = currentSession ?? createContinuousScannerSession({
-      id: createScanId(),
-      userId: context.userId,
-      name: scannerModeLabel('collection_intake'),
-      mode: 'collection_intake',
-      defaultDestination: 'collection',
-    });
-    const recognition = createRecognitionPipelineReport({
-      detectedGame: 'magic',
-      candidates: [selectedCandidate, ...result.candidates.filter((candidate) => candidate.id !== selectedCandidate.id)],
-      confidence: result.recognition.confidence,
-      recognitionMethod: 'metadata_assisted',
-    });
-    const finish = defaultFinishForPrinting(selectedCandidate, selectedFinish).finish;
-    const market = selectScryfallScannerPrice(selectedCandidate, finish);
-    const nextSession = addRecognitionToSession(session, {
-      stableScanId: lastCaptureId ?? createScanId(),
-      candidate: selectedCandidate,
-      recognition,
-      quantity: 1,
-      condition: 'near_mint',
-      finish,
-      language: selectedCandidate.language,
-      marketPrice: market,
-      priceSource: market === null ? 'unavailable' : 'scryfall',
-      priceTimestamp: selectedCandidate.marketPrice?.fetchedAt ?? null,
-      destination: 'collection',
-      notes: 'Added from Single Scan.',
-    });
-    await appStorage.setItem(continuousScannerSessionKey(context.userId), JSON.stringify(nextSession));
-    setMessage('Added to Review List.');
-    router.push('/scanner-session' as never);
-  }, [lastCaptureId, result, selectedCandidate, selectedFinish]);
+    if (!result?.ok || !selectedCandidate || !scannerLive()) return;
+    const insertId = `insert-${lastCaptureId ?? createScanId()}`;
+    if (!lifecycleGuardRef.current.beginOperation(insertId)) return;
+    try {
+      const context = await loadScannerContext();
+      if (!scannerLive(insertId)) return;
+      const rawSession = await appStorage.getItem(continuousScannerSessionKey(context.userId));
+      if (!scannerLive(insertId)) return;
+      const currentSession = rawSession ? parseScannerSession(rawSession, context.userId) : null;
+      const session = currentSession ?? createContinuousScannerSession({
+        id: createScanId(),
+        userId: context.userId,
+        name: scannerModeLabel('collection_intake'),
+        mode: 'collection_intake',
+        defaultDestination: 'collection',
+      });
+      const recognition = createRecognitionPipelineReport({
+        detectedGame: 'magic',
+        candidates: [selectedCandidate, ...result.candidates.filter((candidate) => candidate.id !== selectedCandidate.id)],
+        confidence: result.recognition.confidence,
+        recognitionMethod: 'metadata_assisted',
+      });
+      const finish = defaultFinishForPrinting(selectedCandidate, selectedFinish).finish;
+      const market = selectScryfallScannerPrice(selectedCandidate, finish);
+      const nextSession = addRecognitionToSession(session, {
+        stableScanId: lastCaptureId ?? createScanId(),
+        candidate: selectedCandidate,
+        recognition,
+        quantity: 1,
+        condition: 'near_mint',
+        finish,
+        language: selectedCandidate.language,
+        marketPrice: market,
+        priceSource: market === null ? 'unavailable' : 'scryfall',
+        priceTimestamp: selectedCandidate.marketPrice?.fetchedAt ?? null,
+        destination: 'collection',
+        notes: 'Added from Single Scan.',
+      });
+      await appStorage.setItem(continuousScannerSessionKey(context.userId), JSON.stringify(nextSession));
+      if (!scannerLive(insertId)) return;
+      setMessage('Added to Review List.');
+      router.push('/scanner-session' as never);
+    } finally {
+      lifecycleGuardRef.current.finishOperation(insertId);
+    }
+  }, [lastCaptureId, result, scannerLive, selectedCandidate, selectedFinish]);
 
   const handleFrame = useCallback((frame: ScannerCameraFrame) => {
+    if (!scannerLive() || stage === 'result' || stage === 'failed' || processing) return;
     setPreviewResolution((current) => current?.width === frame.previewResolution.width && current.height === frame.previewResolution.height
       ? current
       : frame.previewResolution);
+    const now = Date.now();
+    if (now - lastFrameUiUpdateAtRef.current < 125) return;
+    lastFrameUiUpdateAtRef.current = now;
     const nextQuality = qualityAnalyzer.analyzeFrame(frame);
     setQuality(resolveSingleScanCaptureQuality(nextQuality.vision, {
       cameraReady,
       focusSettling: Date.now() < focusSettlingUntilRef.current,
     }));
-  }, [cameraReady, qualityAnalyzer]);
+  }, [cameraReady, processing, qualityAnalyzer, scannerLive, stage]);
 
   useEffect(() => {
     qualityAnalyzer.reset();
   }, [qualityAnalyzer]);
+
+  useEffect(() => {
+    const lifecycleGuard = lifecycleGuardRef.current;
+    logLifecycle('camera_mount');
+    return () => {
+      logLifecycle('camera_unmount', {
+        pendingOperations: lifecycleGuard.pendingOperations,
+      });
+      lifecycleGuard.unmount();
+      activeCaptureIdRef.current = null;
+      focusSettlingUntilRef.current = 0;
+      if (focusReticleTimerRef.current) {
+        clearTimeout(focusReticleTimerRef.current);
+        focusReticleTimerRef.current = null;
+      }
+    };
+  }, [logLifecycle]);
 
   const handlePreviewTap = useCallback(async (event: GestureResponderEvent) => {
     const requestedPoint = { x: event.nativeEvent.locationX, y: event.nativeEvent.locationY };
@@ -250,7 +322,7 @@ export default function SingleScanScreen() {
       processing,
       supportsFocus: Boolean(deviceSummary?.supportsFocus),
     });
-    if (!focusRequest.allowed || !cameraRef.current) return;
+    if (!focusRequest.allowed || !cameraRef.current || !scannerLive()) return;
     const conversion = convertPreviewTapToCameraPoint({
       point: requestedPoint,
       view: { width, height },
@@ -261,9 +333,14 @@ export default function SingleScanScreen() {
     setFocusReticle(requestedPoint);
     focusSettlingUntilRef.current = Date.now() + SINGLE_SCAN_FOCUS_SETTLE_MS;
     setQuality((current) => resolveSingleScanCaptureQuality(current.vision, { cameraReady, focusSettling: true }));
-    setTimeout(() => setFocusReticle(null), scannerFocusReticleDuration(false));
+    if (focusReticleTimerRef.current) clearTimeout(focusReticleTimerRef.current);
+    focusReticleTimerRef.current = setTimeout(() => {
+      if (scannerLive()) setFocusReticle(null);
+    }, scannerFocusReticleDuration(false));
+    logLifecycle('focus_start');
     await cameraRef.current.focusAt(conversion.normalizedPoint);
-  }, [cameraReady, deviceSummary?.supportsFocus, height, permission, previewResolution, processing, width]);
+    if (scannerLive()) logLifecycle('focus_end');
+  }, [cameraReady, deviceSummary?.supportsFocus, height, logLifecycle, permission, previewResolution, processing, scannerLive, width]);
 
   useEffect(() => {
     if (shouldEmitReadyHaptic(previousReadinessStateRef.current, readiness.state) && Platform.OS !== 'web') {
@@ -282,7 +359,7 @@ export default function SingleScanScreen() {
           <TDText variant="title">Single Scan</TDText>
           <TDText variant="small" tone="muted">Camera access is required to capture one card.</TDText>
           <TDButton label="Grant camera access" onPress={requestCamera} />
-          <TDButton label="Back" variant="secondary" onPress={() => router.back()} />
+          <TDButton label="Back" variant="secondary" onPress={exitSingleScan} />
         </TDCard>
       </View>
     );
@@ -293,20 +370,22 @@ export default function SingleScanScreen() {
       <Pressable accessibilityRole="button" accessibilityLabel="Focus camera preview" onPress={handlePreviewTap} style={StyleSheet.absoluteFill}>
         <ScannerCamera
           ref={cameraRef}
-          active
+          active={cameraActive}
           torchEnabled={torchEnabled}
           lensMode={lensMode}
-          appForegrounded
+          appForegrounded={cameraActive}
           focusEnabled
           userId="single-scan"
           onReady={() => {
+            if (!scannerLive()) return;
             setCameraReady(true);
             setPermission('granted');
           }}
           onFrameAnalysis={handleFrame}
-          onLensOptionsChange={setLensOptions}
-          onDeviceDiagnosticsChange={setDeviceSummary}
-          onTorchStateChange={setTorchState}
+          onLensOptionsChange={(options) => { if (scannerLive()) setLensOptions(options); }}
+          onDeviceDiagnosticsChange={(summary) => { if (scannerLive()) setDeviceSummary(summary); }}
+          onTorchStateChange={(state) => { if (scannerLive()) setTorchState(state); }}
+          onPreviewStopped={() => logLifecycle('preview_stopped')}
         />
       </Pressable>
 
@@ -319,9 +398,9 @@ export default function SingleScanScreen() {
       {focusReticle ? <View pointerEvents="none" style={[s.focusReticle, { left: focusReticle.x - 18, top: focusReticle.y - 18 }]} /> : null}
 
       <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
-        <HeaderButton label="Back" icon="chevron-back" onPress={() => router.back()} />
+        <HeaderButton label="Back" icon="chevron-back" onPress={exitSingleScan} />
         <TDText variant="title" numberOfLines={1}>Single Scan</TDText>
-        <HeaderButton label="Settings" icon="settings-outline" onPress={() => setSettingsOpen(true)} />
+        <HeaderButton label="Settings" icon="settings-outline" onPress={() => { if (scannerLive()) setSettingsOpen(true); }} />
       </View>
 
       <View style={s.instruction}>
@@ -336,7 +415,7 @@ export default function SingleScanScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Use ${option.label} camera`}
               accessibilityState={{ selected: lensMode === option.mode }}
-              onPress={() => setLensMode(option.mode)}
+              onPress={() => { if (scannerLive()) setLensMode(option.mode); }}
               style={[s.lensButton, lensMode === option.mode && s.lensButtonActive]}
             >
               <TDText variant="caption" tone={lensMode === option.mode ? 'primary' : 'muted'}>{option.shortLabel}</TDText>
@@ -344,7 +423,7 @@ export default function SingleScanScreen() {
           ))}
         </View>
         <View style={s.controlRow}>
-          <HeaderButton label={torchEnabled ? 'Torch on' : 'Torch'} icon={torchEnabled ? 'flashlight' : 'flashlight-outline'} disabled={torchState?.torchSupported === false} onPress={() => setTorchEnabled((value) => !value)} />
+          <HeaderButton label={torchEnabled ? 'Torch on' : 'Torch'} icon={torchEnabled ? 'flashlight' : 'flashlight-outline'} disabled={torchState?.torchSupported === false} onPress={() => { if (scannerLive()) setTorchEnabled((value) => !value); }} />
           <TDButton label="Capture" loading={processing} disabled={!canCapture} onPress={captureSingle} style={readiness.state === 'ready' ? s.captureReady : undefined} />
         </View>
         <TDText variant="caption" tone="muted" style={s.centerText}>Camera {selectedLensLabel} - {currentQuality.fillRatio === null ? 'align card in guide' : `${Math.round(currentQuality.fillRatio * 100)}% fill`}</TDText>
@@ -354,9 +433,9 @@ export default function SingleScanScreen() {
         <SingleResultSheet
           candidate={selectedCandidate}
           selectedFinish={selectedFinish}
-          onFinishChange={setSelectedFinish}
+          onFinishChange={(finish) => { if (scannerLive()) setSelectedFinish(finish); }}
           onAdd={addToReviewList}
-          onOtherPrintings={() => setPrintingSelectorOpen(true)}
+          onOtherPrintings={() => { if (scannerLive()) setPrintingSelectorOpen(true); }}
           onRetake={retake}
         />
       ) : null}
@@ -364,8 +443,9 @@ export default function SingleScanScreen() {
         visible={printingSelectorOpen}
         currentCandidate={selectedCandidate}
         currentFinish={selectedFinish}
-        onClose={() => setPrintingSelectorOpen(false)}
+        onClose={() => { if (scannerLive()) setPrintingSelectorOpen(false); }}
         onSelect={(candidate, finish, fallbackMessage) => {
+          if (!scannerLive()) return;
           setCorrectedCandidate(candidate);
           setSelectedFinish(finish);
           setPrintingSelectorOpen(false);
@@ -379,7 +459,7 @@ export default function SingleScanScreen() {
           lastCaptureDiagnostic={lastCaptureDiagnostic}
           diagnosticCaptureUri={diagnosticCaptureUri}
           cropDiagnostics={cropDiagnostics}
-          onClose={() => setSettingsOpen(false)}
+          onClose={() => { if (scannerLive()) setSettingsOpen(false); }}
         />
       ) : null}
       {message && !selectedCandidate ? (

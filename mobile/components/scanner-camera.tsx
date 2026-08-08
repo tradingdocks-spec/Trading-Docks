@@ -45,6 +45,8 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
   ref,
 ) {
   const cameraRef = useRef<CameraRef>(null);
+  const mountedRef = useRef(false);
+  const activeRef = useRef(active && appForegrounded);
   const devices = useCameraDevices();
   const lensSelection = useMemo(
     () => resolveScannerCameraLensSelection(devices, rawDeviceId ? 'raw' : lensMode, rawDeviceId),
@@ -86,6 +88,7 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
     onSessionConfigChange?.(summary);
   }, [onSessionConfigChange, qualityProfile]);
   const handleFrameAnalysis = useCallback((nativeFrame: ScannerCameraFrame) => {
+    if (!mountedRef.current || !activeRef.current) return;
     onFrameAnalysis(nativeFrame);
   }, [onFrameAnalysis]);
   const photoTarget = qualityProfile?.photoResolution ?? { width: fallbackPhotoTarget.width, height: fallbackPhotoTarget.height };
@@ -180,8 +183,22 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
     onTorchStateChange?.(torchState);
   }, [onTorchStateChange, torchState]);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      activeRef.current = false;
+      mountedRef.current = false;
+      onPreviewStopped?.();
+    };
+  }, [onPreviewStopped]);
+
+  useEffect(() => {
+    activeRef.current = active && appForegrounded;
+  }, [active, appForegrounded]);
+
   useImperativeHandle(ref, () => ({
     async capturePhoto() {
+      if (!mountedRef.current || !activeRef.current) throw new Error('Camera is not active.');
       const photo = await photoOutput.capturePhoto({
         flashMode: torchState.photoFlashMode,
         enableShutterSound: false,
@@ -190,6 +207,7 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
       }, {});
       try {
         const path = await photo.saveToTemporaryFileAsync();
+        if (!mountedRef.current || !activeRef.current) throw new Error('Camera capture was cancelled.');
         return {
           uri: path.startsWith('file://') ? path : `file://${path}`,
           width: photo.width,
@@ -201,7 +219,7 @@ export const ScannerCamera = forwardRef<ScannerCameraHandle, ScannerCameraProps>
       }
     },
     async focusAt(point) {
-      if (!cameraRef.current || !supportsFocus || !focusEnabled) return;
+      if (!mountedRef.current || !activeRef.current || !cameraRef.current || !supportsFocus || !focusEnabled) return;
       await cameraRef.current.focusTo(point, {
         modes: ['AF', 'AE'],
         autoResetAfter: 2,
