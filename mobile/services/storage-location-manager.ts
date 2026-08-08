@@ -133,6 +133,14 @@ export function buildLocationPath(locationId: string, locations: StorageLocation
   };
 }
 
+export function formatLocationBreadcrumb(path: StorageLocationPath, separator = '›') {
+  return path.nodes.length ? path.nodes.map((node) => node.name).join(` ${separator} `) : locationFallbackLabel(path.locationId);
+}
+
+export function childLocationOptions(parentId: string | null, locations: StorageLocation[]) {
+  return locations.filter((location) => (location.parentId ?? null) === parentId && !location.archivedAt);
+}
+
 export function searchLocationSummaries(locations: LocationSummary[], query: string) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return locations;

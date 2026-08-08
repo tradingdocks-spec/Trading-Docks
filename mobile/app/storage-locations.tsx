@@ -33,6 +33,7 @@ import {
   STORAGE_LOCATION_TYPES,
   cardsInLocation,
   favoriteLocationSummaries,
+  formatLocationBreadcrumb,
   recentLocationSummaries,
   searchLocationSummaries,
   type LocationManagerState,
@@ -52,6 +53,7 @@ export default function StorageLocationsScreen() {
   const [cardQuery, setCardQuery] = useState('');
   const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState<StorageLocationType>('area');
+  const [newParentId, setNewParentId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +97,7 @@ export default function StorageLocationsScreen() {
       setError(result.warning ?? 'Storage move queued for sync.');
     }
     setNewName('');
+    setNewParentId(null);
     setRenameValue('');
     setCardQuery('');
     reload();
@@ -143,13 +146,27 @@ export default function StorageLocationsScreen() {
         <TDCard style={s.createCard}>
           <TDText variant="title">Create location</TDText>
           <TDInput label="Name" value={newName} onChangeText={setNewName} placeholder="Office, Shelf B, Box 14..." />
+          <View style={s.sectionGap}>
+            <TDText variant="caption" tone="muted">Parent location</TDText>
+            <View style={s.typeRow}>
+              <TDChip label="Top level" selected={newParentId === null} onPress={() => setNewParentId(null)} />
+              {state.summaries.slice(0, 8).map((location) => (
+                <TDChip
+                  key={location.id}
+                  label={location.name}
+                  selected={newParentId === location.id}
+                  onPress={() => setNewParentId(location.id)}
+                />
+              ))}
+            </View>
+          </View>
           <TDSegmentedControl
             label="Type"
             options={STORAGE_LOCATION_TYPES.slice(0, 5).map((type) => ({ value: type, label: labelForType(type) }))}
             value={newType}
             onChange={setNewType}
           />
-          <TDButton label="Create location" loading={pending === 'create'} disabled={!newName.trim()} onPress={() => run('create', () => createMobileStorageLocation({ name: newName, type: newType }))} />
+          <TDButton label="Create location" loading={pending === 'create'} disabled={!newName.trim()} onPress={() => run('create', () => createMobileStorageLocation({ name: newName, type: newType, parentId: newParentId }))} />
         </TDCard>
 
         {summaries.length ? (
@@ -158,7 +175,7 @@ export default function StorageLocationsScreen() {
               <TDListRow
                 key={location.id}
                 title={location.name}
-                description={location.path.label}
+                description={formatLocationBreadcrumb(location.path)}
                 eyebrow={labelForType(location.type)}
                 iconName={location.favorite ? 'star' : 'file-tray-stacked-outline'}
                 right={<TDBadge tone={location.favorite ? 'accent' : 'neutral'}>{location.assignedQuantity} cards</TDBadge>}
@@ -177,7 +194,7 @@ export default function StorageLocationsScreen() {
             <View style={s.locationTitleRow}>
               <View style={s.flex}>
                 <TDText variant="title">{selected.name}</TDText>
-                <TDText variant="caption" tone="muted">{selected.path.label}</TDText>
+                <TDText variant="caption" tone="muted">{formatLocationBreadcrumb(selected.path)}</TDText>
               </View>
               <TDBadge tone="info">{labelForType(selected.type)}</TDBadge>
             </View>
@@ -215,7 +232,7 @@ export default function StorageLocationsScreen() {
               <TDListRow
                 key={location.id}
                 title={location.name}
-                description={location.path.label}
+                description={formatLocationBreadcrumb(location.path)}
                 iconName="archive-outline"
                 right={<TDBadge tone="neutral">Archived</TDBadge>}
               />

@@ -102,7 +102,7 @@ test('exact-printing display includes set and collector number', () => {
 });
 
 test('storage-location display includes binder pocket details', () => {
-  assert.equal(displayStorageLocation(cards[0]), 'Commander Binder - Page 4 - Slot B2');
+  assert.equal(displayStorageLocation(cards[0]), 'Commander Binder › Page 4 › Slot B2');
 });
 
 test('trade-binder indicator is resolved from trade status rows', () => {

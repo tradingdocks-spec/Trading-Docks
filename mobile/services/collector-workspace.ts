@@ -520,7 +520,7 @@ export function displayStorageLocation(card: CollectionCard) {
     card.storageLocation.name,
     card.storageLocation.binderPage ? `Page ${card.storageLocation.binderPage}` : '',
     card.storageLocation.binderSlot ? `Slot ${card.storageLocation.binderSlot}` : '',
-  ].filter(Boolean).join(' - ');
+  ].filter(Boolean).join(' › ');
 }
 
 export function priceLabel(card: CollectionCard) {

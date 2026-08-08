@@ -6,8 +6,10 @@ import {
   buildLocationPath,
   buildStorageLocationManagerState,
   cardsInLocation,
+  childLocationOptions,
   createLocationPayload,
   favoriteLocationSummaries,
+  formatLocationBreadcrumb,
   locationAssignmentQueueKey,
   locationFallbackLabel,
   rawItemsForLocation,
@@ -55,6 +57,9 @@ test('creates location payload with canonical type and ownership fields', () => 
 
 test('builds full location path from parent hierarchy', () => {
   assert.equal(buildLocationPath('box-14', state.locations).label, 'Office > Shelf B > Box 14');
+  assert.equal(formatLocationBreadcrumb(buildLocationPath('box-14', state.locations)), 'Office › Shelf B › Box 14');
+  assert.deepEqual(childLocationOptions('shelf-b', state.locations).map((location) => location.id), ['box-14']);
+  assert.ok(childLocationOptions(null, state.locations).some((location) => location.id === 'office'));
 });
 
 test('search finds locations by path and type', () => {
