@@ -237,6 +237,17 @@ export type ScannerAutoCaptureReadiness = {
   effectiveFps: number | null;
 };
 
+export type ScannerAutoCaptureTriggerInput = {
+  autoCaptureEnabled: boolean;
+  nativeDecisionOk: boolean;
+  readinessReady: boolean;
+  visionShouldCapture?: boolean;
+  inFlight: boolean;
+  processing: boolean;
+  permissionGranted: boolean;
+  cameraActive: boolean;
+};
+
 export const SCANNER_CAMERA_LENS_LABELS: Record<ScannerCameraMode, { label: string; shortLabel: string }> = {
   auto: { label: 'Auto', shortLabel: 'Auto' },
   close: { label: 'Close-up', shortLabel: 'Close' },
@@ -500,6 +511,14 @@ export function resolveAutoCaptureReadiness(input: ScannerFrameMetricsInput): Sc
     instruction: readiness.message,
     effectiveFps,
   };
+}
+
+export function shouldTriggerAutomaticCapture(input: ScannerAutoCaptureTriggerInput) {
+  if (!input.autoCaptureEnabled) return false;
+  if (!input.nativeDecisionOk) return false;
+  if (!input.permissionGranted || !input.cameraActive) return false;
+  if (input.inFlight || input.processing) return false;
+  return input.readinessReady || Boolean(input.visionShouldCapture);
 }
 
 export function shouldWarnAboutTorchThrash(transitions: ScannerTorchTransition[], now: number): boolean {

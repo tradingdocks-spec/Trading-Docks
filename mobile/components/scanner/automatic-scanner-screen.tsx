@@ -87,6 +87,7 @@ import {
   scannerFocusReticleDuration,
   shouldIgnoreFrameAfterLensSwitch,
   shouldWarnAboutTorchThrash,
+  shouldTriggerAutomaticCapture,
   type ScannerCameraDeviceSummary,
   type ScannerCameraLensSelection,
   type ScannerCameraLensMode,
@@ -1009,16 +1010,16 @@ export default function AutomaticScannerScreen() {
       signalAvailability: visualSignals,
       analysis: liveFrameAnalysis,
     });
-    if (
-      !autoCaptureEnabled
-      || !decision.ok
-      || !autoCaptureReadiness.ready
-      || autoCaptureInFlightRef.current
-      || scannerProcessing
-      || autoScanner.duplicateProtection.awaitingCardRemoval
-      || permission !== 'granted'
-      || !cameraActive
-    ) return;
+    if (!shouldTriggerAutomaticCapture({
+      autoCaptureEnabled,
+      nativeDecisionOk: decision.ok,
+      readinessReady: autoCaptureReadiness.ready,
+      visionShouldCapture: liveVisionResult?.shouldCapture,
+      inFlight: autoCaptureInFlightRef.current,
+      processing: scannerProcessing,
+      permissionGranted: permission === 'granted',
+      cameraActive,
+    })) return;
     autoCaptureInFlightRef.current = true;
     void captureStillRef.current().finally(() => {
       setTimeout(() => {
@@ -1028,9 +1029,9 @@ export default function AutomaticScannerScreen() {
   }, [
     autoCaptureEnabled,
     autoCaptureReadiness.ready,
-    autoScanner.duplicateProtection.awaitingCardRemoval,
     cameraActive,
     cameraReady,
+    liveVisionResult?.shouldCapture,
     liveFrameAnalysis,
     permission,
     scannerProcessing,

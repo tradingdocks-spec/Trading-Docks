@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  shouldTriggerAutomaticCapture,
+} from '../services/scanner-camera-controls.ts';
+import {
   resolveAutomaticScannerReadiness,
   resolveSingleScanReadiness,
   scannerReadinessMessage,
@@ -126,4 +129,28 @@ test('Ready haptic fires once on transition into Ready', () => {
   assert.equal(shouldEmitReadyHaptic('needs_attention', 'ready'), true);
   assert.equal(shouldEmitReadyHaptic('ready', 'ready'), false);
   assert.equal(shouldEmitReadyHaptic('ready', 'processing'), false);
+});
+
+test('Automatic Scan can fire on the first ready vision frame before removal rearm', () => {
+  assert.equal(shouldTriggerAutomaticCapture({
+    autoCaptureEnabled: true,
+    nativeDecisionOk: true,
+    readinessReady: false,
+    visionShouldCapture: true,
+    inFlight: false,
+    processing: false,
+    permissionGranted: true,
+    cameraActive: true,
+  }), true);
+
+  assert.equal(shouldTriggerAutomaticCapture({
+    autoCaptureEnabled: true,
+    nativeDecisionOk: true,
+    readinessReady: true,
+    visionShouldCapture: true,
+    inFlight: true,
+    processing: false,
+    permissionGranted: true,
+    cameraActive: true,
+  }), false);
 });
