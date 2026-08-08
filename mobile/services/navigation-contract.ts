@@ -25,47 +25,23 @@ const COLLECTOR_TABS: MobileTabDefinition[] = [
   { route: 'index', label: 'Home', icon: 'home', inactiveIcon: 'home-outline' },
   { route: 'collection', label: 'Collection', icon: 'layers', inactiveIcon: 'layers-outline' },
   { route: 'scan', label: 'Scan', icon: 'scan', inactiveIcon: 'scan-outline', prominent: true },
-  { route: 'sell', label: 'Signals', icon: 'pulse', inactiveIcon: 'pulse-outline' },
-  { route: 'profile', label: 'Profile', icon: 'person', inactiveIcon: 'person-outline' },
+  { route: 'sell', label: 'Intelligence', icon: 'pulse', inactiveIcon: 'pulse-outline' },
+  { route: 'profile', label: 'Account', icon: 'person', inactiveIcon: 'person-outline' },
 ];
 
 export const MOBILE_TABS_BY_ACCOUNT: Record<MobileAccountType, MobileTabDefinition[]> = {
   free: COLLECTOR_TABS,
   collector: COLLECTOR_TABS,
-  seller: [
-    { route: 'index', label: 'Home', icon: 'home', inactiveIcon: 'home-outline' },
-    { route: 'collection', label: 'Collection', icon: 'layers', inactiveIcon: 'layers-outline' },
-    {
-      route: 'deal-desk',
-      label: 'Deal Desk',
-      icon: 'swap-horizontal',
-      inactiveIcon: 'swap-horizontal-outline',
-      prominent: true,
-    },
-    { route: 'sell', label: 'Signals', icon: 'pulse', inactiveIcon: 'pulse-outline' },
-    { route: 'profile', label: 'Profile', icon: 'person', inactiveIcon: 'person-outline' },
-  ],
-  store: [
-    { route: 'index', label: 'Home', icon: 'home', inactiveIcon: 'home-outline' },
-    { route: 'collection', label: 'Business', icon: 'business', inactiveIcon: 'business-outline' },
-    {
-      route: 'deal-desk',
-      label: 'Deal Desk',
-      icon: 'swap-horizontal',
-      inactiveIcon: 'swap-horizontal-outline',
-      prominent: true,
-    },
-    { route: 'sell', label: 'Activity', icon: 'pulse', inactiveIcon: 'pulse-outline' },
-    { route: 'profile', label: 'Profile', icon: 'person', inactiveIcon: 'person-outline' },
-  ],
+  seller: COLLECTOR_TABS,
+  store: COLLECTOR_TABS,
 };
 
 export const MOBILE_PRIMARY_TAB_COUNT = 5;
 export const MOBILE_NAV_MIN_TOUCH_TARGET = 48;
 export const MOBILE_NAV_SAFE_AREA_BASE_HEIGHT = 64;
 export const MOBILE_NAV_ICON_SIZE = 22;
-export const MOBILE_NAV_CENTER_WIDTH = 42;
-export const MOBILE_NAV_CENTER_HEIGHT = 34;
+export const MOBILE_NAV_CENTER_WIDTH = 46;
+export const MOBILE_NAV_CENTER_HEIGHT = 38;
 
 export function normalizeMobileAccountType(value: unknown): MobileAccountType {
   return value === 'collector' || value === 'seller' || value === 'store'

@@ -112,6 +112,9 @@ export default function Layout() {
       {tabRoutes.map((route) => (
         <Tabs.Screen key={route} name={route} options={optionsFor(route)} />
       ))}
+      {!tabRoutes.includes('deal-desk') ? (
+        <Tabs.Screen name="deal-desk" options={{ href: null, title: 'Deal Desk' }} />
+      ) : null}
     </Tabs>
   );
 }
@@ -136,9 +139,14 @@ const s = StyleSheet.create({
     bottom: 0,
     backgroundColor: `${surface.dock}F7`,
     borderTopWidth: 1,
-    borderTopColor: edge.subtle,
+    borderTopColor: edge.highlight,
     borderWidth: 0,
     borderRadius: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 18,
     ...elevation.raised,
   },
   tabHidden: {
@@ -154,7 +162,8 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   pressedTab: {
-    opacity: 0.82,
+    opacity: 0.9,
+    transform: [{ translateY: 1 }],
   },
   label: {
     fontSize: 10,
@@ -170,9 +179,15 @@ const s = StyleSheet.create({
     borderColor: edge.highlight,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: color.primaryBright,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.16,
+    shadowRadius: 7,
+    elevation: 6,
   },
   centerActive: {
     backgroundColor: color.primary,
     borderColor: color.primaryBright,
+    transform: [{ translateY: -1 }],
   },
 });
