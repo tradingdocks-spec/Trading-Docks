@@ -24,8 +24,31 @@ export const color = {
   overlay: tdTokens.color.surface.overlay,
 } as const;
 
+export const surface = {
+  canvas: tdTokens.depth.surface.canvas,
+  dock: tdTokens.depth.surface.dock,
+  raised: tdTokens.depth.surface.raised,
+  inset: tdTokens.depth.surface.inset,
+  object: tdTokens.depth.surface.object,
+} as const;
+
+export const edge = {
+  default: tdTokens.depth.edge.default,
+  subtle: tdTokens.depth.edge.subtle,
+  highlight: tdTokens.depth.edge.highlight,
+  active: tdTokens.depth.edge.active,
+  success: tdTokens.depth.edge.success,
+  warning: tdTokens.depth.edge.warning,
+} as const;
+
+export const shadow = {
+  ambient: tdTokens.depth.shadow.ambient,
+  object: tdTokens.depth.shadow.object,
+  inset: tdTokens.depth.shadow.inset,
+} as const;
+
 export const space = { xxs: tdTokens.space.half, xs: tdTokens.space.xs, sm: tdTokens.space.sm, md: tdTokens.space.md, lg: tdTokens.space.lg, xl: tdTokens.space.xl, xxl: tdTokens.space.xxl, hero: tdTokens.space.hero } as const;
-export const radius = { xs: tdTokens.radius.xs, sm: tdTokens.radius.sm, md: tdTokens.radius.md, lg: tdTokens.radius.lg, xl: tdTokens.radius.xxl, modal: 32, pill: tdTokens.radius.pill } as const;
+export const radius = { xs: tdTokens.radius.xs, sm: tdTokens.radius.sm, md: tdTokens.radius.md, lg: tdTokens.radius.lg, xl: tdTokens.radius.xxl, modal: 32, pill: tdTokens.radius.pill, dock: tdTokens.radius.dock, tray: tdTokens.radius.tray, control: tdTokens.radius.control, object: tdTokens.radius.object } as const;
 export const type = {
   display: { fontSize: tdTokens.typography.size.display, lineHeight: tdTokens.typography.lineHeight.display, fontWeight: '900' as const, letterSpacing: tdTokens.typography.letterSpacing.none },
   heading: { fontSize: tdTokens.typography.size.heading, lineHeight: tdTokens.typography.lineHeight.heading, fontWeight: '900' as const, letterSpacing: tdTokens.typography.letterSpacing.none },
@@ -36,6 +59,11 @@ export const type = {
   caption: { fontSize: tdTokens.typography.size.caption, lineHeight: tdTokens.typography.lineHeight.caption, fontWeight: '600' as const },
 } as const;
 export const motion = tdTokens.motion.duration;
+export const motionDuration = {
+  fast: tdTokens.motion.duration.fast,
+  standard: tdTokens.motion.duration.standard,
+  sheet: tdTokens.motion.duration.slow,
+} as const;
 export const breakpoint = tdTokens.breakpoint;
 export const icon = tdTokens.icon;
 export const elevation = {

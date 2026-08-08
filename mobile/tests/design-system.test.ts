@@ -96,13 +96,34 @@ test('mobile design OS exposes the canonical primitive contract set', () => {
     'TDNavigationHeader',
     'TDScannerGuide',
     'TDSessionStrip',
+    'DockSurface',
+    'DockGroup',
+    'DockTray',
+    'DockRail',
+    'DockSegment',
+    'DockAction',
+    'DockMetric',
+    'DockCardWell',
+    'DockSection',
+    'DockHeader',
   ]) {
     assert.equal(TD_MOBILE_COMPONENT_CONTRACTS.includes(primitive as never), true);
   }
 });
 
 test('mobile design OS limits surface spacing and icon scales', () => {
-  assert.deepEqual(TD_MOBILE_SURFACE_LEVELS, ['base', 'elevated', 'modal']);
+  assert.deepEqual(TD_MOBILE_SURFACE_LEVELS, ['canvas', 'dock', 'tray', 'object']);
   assert.deepEqual(TD_MOBILE_SPACING_SCALE, [4, 8, 12, 16, 20, 24, 32, 40, 48]);
   assert.deepEqual(TD_MOBILE_ICON_SIZES, [16, 20, 24, 28]);
+});
+
+test('dimensional Dock tokens expose Trading Docks surface depth', () => {
+  assert.equal(tdTokens.depth.surface.canvas, '#06111f');
+  assert.equal(tdTokens.depth.surface.dock, '#091827');
+  assert.equal(tdTokens.depth.surface.raised, '#112941');
+  assert.equal(tdTokens.depth.surface.inset, '#071321');
+  assert.equal(tdTokens.depth.edge.active, '#66d9ff');
+  assert.equal(tdTokens.radius.dock, 22);
+  assert.equal(tdTokens.radius.tray, 16);
+  assert.equal(tdTokens.motion.duration.slow, 420);
 });

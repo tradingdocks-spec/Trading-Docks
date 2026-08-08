@@ -31,6 +31,11 @@ export const tdTokens = {
       elevated: '#112941',
       floating: '#142f49',
       overlay: 'rgba(2, 8, 16, 0.72)',
+      canvas: '#06111f',
+      dock: '#091827',
+      raised: '#112941',
+      inset: '#071321',
+      object: '#f6faff',
     },
     text: {
       primary: '#f6faff',
@@ -43,6 +48,10 @@ export const tdTokens = {
       strong: '#2d5272',
       focus: '#66d9ff',
       subtle: 'rgba(169, 187, 203, 0.16)',
+      highlight: 'rgba(246, 250, 255, 0.18)',
+      active: '#66d9ff',
+      success: '#31d99a',
+      warning: '#ffc76a',
     },
     action: {
       primary: '#2688ff',
@@ -115,6 +124,37 @@ export const tdTokens = {
     xl: 24,
     xxl: 28,
     pill: 999,
+    dock: 22,
+    tray: 16,
+    control: 14,
+    object: 12,
+  },
+  depth: {
+    surface: {
+      canvas: '#06111f',
+      dock: '#091827',
+      raised: '#112941',
+      inset: '#071321',
+      object: '#f6faff',
+    },
+    edge: {
+      default: '#1c3c59',
+      subtle: 'rgba(169, 187, 203, 0.16)',
+      highlight: 'rgba(246, 250, 255, 0.18)',
+      active: '#66d9ff',
+      success: '#31d99a',
+      warning: '#ffc76a',
+    },
+    shadow: {
+      ambient: '0 18px 48px rgba(0, 0, 0, 0.30)',
+      object: '0 20px 42px rgba(0, 0, 0, 0.36)',
+      inset: 'inset 0 1px 0 rgba(246, 250, 255, 0.08)',
+    },
+    gradient: {
+      dock: ['#0c2033', '#071321'] as const,
+      tray: ['#102941', '#081726'] as const,
+      active: ['rgba(34, 211, 238, 0.22)', 'rgba(38, 136, 255, 0.08)'] as const,
+    },
   },
   elevation: {
     flat: {

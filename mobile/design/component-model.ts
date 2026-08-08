@@ -6,7 +6,7 @@ export type TDMetricTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
 
 export const TD_MOBILE_MIN_TOUCH_TARGET = 44;
 export const TD_MOBILE_COMFORTABLE_TOUCH_TARGET = 48;
-export const TD_MOBILE_SURFACE_LEVELS = ['base', 'elevated', 'modal'] as const;
+export const TD_MOBILE_SURFACE_LEVELS = ['canvas', 'dock', 'tray', 'object'] as const;
 export const TD_MOBILE_SPACING_SCALE = [4, 8, 12, 16, 20, 24, 32, 40, 48] as const;
 export const TD_MOBILE_ICON_SIZES = [16, 20, 24, 28] as const;
 export const TD_MOBILE_COMPONENT_CONTRACTS = [
@@ -31,6 +31,16 @@ export const TD_MOBILE_COMPONENT_CONTRACTS = [
   'TDNavigationHeader',
   'TDScannerGuide',
   'TDSessionStrip',
+  'DockSurface',
+  'DockGroup',
+  'DockTray',
+  'DockRail',
+  'DockSegment',
+  'DockAction',
+  'DockMetric',
+  'DockCardWell',
+  'DockSection',
+  'DockHeader',
 ] as const;
 
 export function tdButtonIsDisabled(disabled?: boolean, loading?: boolean) {

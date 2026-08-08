@@ -29,7 +29,7 @@ import {
   type TDButtonVariant,
   type TDMetricTone,
 } from '@/design/component-model';
-import { color, elevation, icon, radius, space, type } from '@/design';
+import { color, edge, elevation, icon, radius, space, surface, type } from '@/design';
 
 type TDButtonProps = {
   label: string;
@@ -190,6 +190,68 @@ type TDSessionStripProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+type DockSurfaceProps = PropsWithChildren<ViewProps & {
+  level?: 'dock' | 'raised';
+  active?: boolean;
+  tone?: 'neutral' | 'active' | 'success' | 'warning';
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type DockTrayProps = PropsWithChildren<ViewProps & {
+  inset?: boolean;
+  active?: boolean;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type DockRailProps = PropsWithChildren<ViewProps & {
+  compact?: boolean;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type DockSegmentProps = PropsWithChildren<{
+  selected?: boolean;
+  disabled?: boolean;
+  onPress?: () => void;
+  accessibilityLabel: string;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type DockActionProps = PropsWithChildren<{
+  label: string;
+  iconName?: keyof typeof Ionicons.glyphMap;
+  selected?: boolean;
+  prominent?: boolean;
+  disabled?: boolean;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type DockMetricProps = {
+  label: string;
+  value: string;
+  tone?: 'neutral' | 'active' | 'success' | 'warning';
+  style?: StyleProp<ViewStyle>;
+};
+
+type DockCardWellProps = PropsWithChildren<ViewProps & {
+  lifted?: boolean;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type DockSectionProps = PropsWithChildren<ViewProps & {
+  title?: string;
+  action?: ReactNode;
+  style?: StyleProp<ViewStyle>;
+}>;
+
+type DockHeaderProps = {
+  title: string;
+  eyebrow?: string;
+  subtitle?: string;
+  right?: ReactNode;
+  style?: StyleProp<ViewStyle>;
+};
+
 export function TDScreen({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
   const { width } = useWindowDimensions();
   return (
@@ -203,6 +265,120 @@ export function TDScreen({ children, style }: PropsWithChildren<{ style?: StyleP
 
 export function TDText({ children, variant = 'body', tone = 'primary', style, ...textProps }: TDTextProps) {
   return <Text {...textProps} style={[textStyles[variant], toneStyles[tone], style]}>{children}</Text>;
+}
+
+export function DockSurface({ children, level = 'dock', active, tone = 'neutral', style, ...props }: DockSurfaceProps) {
+  return (
+    <View
+      {...props}
+      style={[
+        s.dockSurface,
+        level === 'raised' && s.dockSurfaceRaised,
+        active && s.dockSurfaceActive,
+        dockTone[tone],
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+export const DockGroup = DockSurface;
+
+export function DockTray({ children, inset = true, active, style, ...props }: DockTrayProps) {
+  return (
+    <View {...props} style={[s.dockTray, inset && s.dockTrayInset, active && s.dockTrayActive, style]}>
+      {children}
+    </View>
+  );
+}
+
+export function DockRail({ children, compact, style, ...props }: DockRailProps) {
+  return <View {...props} style={[s.dockRail, compact && s.dockRailCompact, style]}>{children}</View>;
+}
+
+export function DockSegment({ children, selected, disabled, onPress, accessibilityLabel, style }: DockSegmentProps) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onPress={onPress}
+      style={({ pressed }) => [
+        s.dockSegment,
+        selected && s.dockSegmentSelected,
+        focused && s.webFocus,
+        pressed && !disabled && s.pressed,
+        disabled && s.disabled,
+        style,
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+export function DockAction({ label, iconName, selected, prominent, disabled, onPress, style }: DockActionProps) {
+  return (
+    <DockSegment
+      accessibilityLabel={label}
+      selected={selected}
+      disabled={disabled}
+      onPress={() => {
+        if (Platform.OS !== 'web') void Haptics.selectionAsync();
+        onPress?.();
+      }}
+      style={[prominent && s.dockActionProminent, style]}
+    >
+      {iconName ? <Ionicons name={iconName} size={prominent ? icon.lg : icon.md} color={selected || prominent ? color.text : color.primaryBright} /> : null}
+      <TDText variant={prominent ? 'small' : 'caption'} tone={selected || prominent ? 'primary' : 'secondary'} numberOfLines={1}>{label}</TDText>
+    </DockSegment>
+  );
+}
+
+export function DockMetric({ label, value, tone = 'neutral', style }: DockMetricProps) {
+  return (
+    <View style={[s.dockMetric, dockMetricTone[tone], style]}>
+      <TDText variant="caption" tone="muted" numberOfLines={1}>{label}</TDText>
+      <TDText variant="title" numberOfLines={1}>{value}</TDText>
+    </View>
+  );
+}
+
+export function DockCardWell({ children, lifted, style, ...props }: DockCardWellProps) {
+  return <View {...props} style={[s.dockCardWell, lifted && s.dockCardWellLifted, style]}>{children}</View>;
+}
+
+export function DockSection({ title, action, children, style, ...props }: DockSectionProps) {
+  return (
+    <View {...props} style={[s.dockSection, style]}>
+      {title || action ? (
+        <View style={s.dockSectionHeader}>
+          {title ? <TDText variant="title">{title}</TDText> : <View />}
+          {action}
+        </View>
+      ) : null}
+      {children}
+    </View>
+  );
+}
+
+export function DockHeader({ title, eyebrow, subtitle, right, style }: DockHeaderProps) {
+  return (
+    <View style={[s.dockHeader, style]}>
+      <View style={s.dockHeaderCopy}>
+        {eyebrow ? <TDText variant="caption" tone="info" numberOfLines={1}>{eyebrow}</TDText> : null}
+        <TDText variant="title" numberOfLines={2}>{title}</TDText>
+        {subtitle ? <TDText variant="small" tone="secondary" numberOfLines={2}>{subtitle}</TDText> : null}
+      </View>
+      {right}
+    </View>
+  );
 }
 
 export function TDButton({
@@ -682,6 +858,24 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.canvas },
   screenContent: { flex: 1, width: '100%', alignSelf: 'center', padding: space.lg },
   screenContentWide: { maxWidth: 1160, paddingHorizontal: space.xxl },
+  dockSurface: { borderRadius: radius.dock, borderWidth: 1, borderColor: edge.subtle, backgroundColor: surface.dock, padding: space.md, gap: space.md, overflow: 'hidden', ...elevation.raised },
+  dockSurfaceRaised: { backgroundColor: surface.raised, ...elevation.floating },
+  dockSurfaceActive: { borderColor: edge.active },
+  dockTray: { borderRadius: radius.tray, borderWidth: 1, borderColor: edge.subtle, backgroundColor: surface.raised, padding: space.sm, gap: space.sm },
+  dockTrayInset: { backgroundColor: surface.inset, borderColor: edge.default },
+  dockTrayActive: { borderColor: edge.active, backgroundColor: color.primary + '18' },
+  dockRail: { minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: radius.control, borderWidth: 1, borderColor: edge.subtle, backgroundColor: surface.inset, padding: 4 },
+  dockRailCompact: { minHeight: 40 },
+  dockSegment: { flex: 1, minHeight: 38, borderRadius: radius.control, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: space.xs, paddingHorizontal: space.xs },
+  dockSegmentSelected: { backgroundColor: color.primary + '28', borderWidth: 1, borderColor: edge.active },
+  dockActionProminent: { minHeight: 52, backgroundColor: color.primary, borderWidth: 1, borderColor: color.primaryBright },
+  dockMetric: { flex: 1, minWidth: 82, borderRadius: radius.tray, borderWidth: 1, borderColor: edge.subtle, backgroundColor: surface.inset, paddingHorizontal: space.sm, paddingVertical: space.sm, gap: 2 },
+  dockCardWell: { borderRadius: radius.object, borderWidth: 1, borderColor: edge.subtle, backgroundColor: surface.inset, padding: space.xs, overflow: 'hidden' },
+  dockCardWellLifted: { borderColor: edge.highlight, backgroundColor: surface.raised, ...elevation.raised },
+  dockSection: { gap: space.sm },
+  dockSectionHeader: { minHeight: 30, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: space.sm },
+  dockHeader: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
+  dockHeaderCopy: { flex: 1, minWidth: 0, gap: 2 },
   button: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: space.xs },
   buttonText: { fontWeight: '900', fontSize: 14 },
   buttonTextPrimary: { color: color.text },
@@ -870,6 +1064,20 @@ const scannerGuideTone = StyleSheet.create({
   success: { borderColor: color.success },
   warning: { borderColor: color.warning },
   danger: { borderColor: color.danger },
+});
+
+const dockTone = StyleSheet.create({
+  neutral: {},
+  active: { borderColor: edge.active, backgroundColor: color.primary + '14' },
+  success: { borderColor: edge.success, backgroundColor: color.success + '10' },
+  warning: { borderColor: edge.warning, backgroundColor: color.warning + '10' },
+});
+
+const dockMetricTone = StyleSheet.create({
+  neutral: {},
+  active: { borderColor: edge.active },
+  success: { borderColor: edge.success },
+  warning: { borderColor: edge.warning },
 });
 
 const badgeTextTone = StyleSheet.create({
