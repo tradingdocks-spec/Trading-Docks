@@ -1,13 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
-  DockCardWell,
-  DockHeader,
+  CollectibleHero,
+  CollectibleThumbnail,
   DockMetric,
   DockRail,
   DockSurface,
@@ -75,20 +73,20 @@ export default function DecksTab() {
               <TDText variant="small" tone="muted">Build, edit, and show decks from the same Headquarters Deck Vault.</TDText>
             </View>
 
-            <DockSurface level="raised" tone={decks.length ? 'active' : 'neutral'} style={s.hero}>
-              <View style={s.heroLight} />
-              <DockHeader
-                eyebrow="Shared model"
-                title={decks.length ? `${summary.deckCount} saved deck${summary.deckCount === 1 ? '' : 's'}` : 'Deck Vault ready'}
-                subtitle={decks.length ? `${summary.totalCards.toLocaleString()} cards tracked across saved lists.` : 'Create or import decks in Headquarters, then manage them here.'}
-                right={<TDBadge tone={stale ? 'warning' : 'info'}>{stale ? 'Cached' : 'Synced'}</TDBadge>}
-              />
+            <CollectibleHero
+              eyebrow="Shared model"
+              title={decks.length ? `${summary.deckCount} saved deck${summary.deckCount === 1 ? '' : 's'}` : 'Deck Vault ready'}
+              subtitle={decks.length ? `${summary.totalCards.toLocaleString()} cards tracked across saved lists.` : 'Create or import decks in Headquarters, then manage them here.'}
+              tone="decks"
+              style={s.hero}
+            >
+              <TDBadge tone={stale ? 'warning' : 'accent'}>{stale ? 'Cached' : 'Synced'}</TDBadge>
               <View style={s.heroMetrics}>
                 <DockMetric label="Decks" value={loading ? '...' : String(summary.deckCount)} tone="active" />
                 <DockMetric label="Cards" value={loading ? '...' : summary.totalCards.toLocaleString()} />
                 <DockMetric label="Value" value={loading ? '...' : formatDeckValue(summary.knownValue)} tone={summary.knownValue === null ? 'neutral' : 'success'} />
               </View>
-            </DockSurface>
+            </CollectibleHero>
 
             <DockSurface style={s.searchDock}>
               <DockRail compact accessibilityLabel="Deck Vault actions">
@@ -118,16 +116,7 @@ function DeckCard({ deck }: { deck: DeckRecord }) {
       style={({ pressed }) => [s.deckPressable, pressed && s.pressed]}
     >
       <DockSurface level="raised" style={s.deckCard}>
-        <DockCardWell lifted style={s.deckArt}>
-          {commander?.image ? (
-            <Image source={{ uri: commander.image }} style={s.deckImage} contentFit="cover" alt={`${deck.name} cover art`} accessibilityLabel={`${deck.name} cover art`} />
-          ) : (
-            <View style={s.deckArtPlaceholder}>
-              <Ionicons name="albums-outline" size={28} color={color.primaryBright} />
-              <TDText variant="caption" tone="muted">Cover unavailable</TDText>
-            </View>
-          )}
-        </DockCardWell>
+        <CollectibleThumbnail title={deck.name} imageUrl={commander?.image} subtitle="Cover unavailable" size="sm" style={s.deckArt} />
         <View style={s.deckBody}>
           <View style={s.deckTitleRow}>
             <View style={s.flex}>
@@ -178,22 +167,11 @@ const s = StyleSheet.create({
   headerStack: { gap: space.md },
   headerCopy: { gap: space.xs },
   hero: { gap: space.md, overflow: 'hidden', padding: space.md },
-  heroLight: {
-    position: 'absolute',
-    top: -78,
-    right: -44,
-    width: 190,
-    height: 190,
-    borderRadius: 100,
-    backgroundColor: color.accent + '24',
-  },
   heroMetrics: { flexDirection: 'row', gap: space.xs },
   searchDock: { gap: space.sm, padding: space.sm },
   deckPressable: { width: '100%' },
   deckCard: { flexDirection: 'row', gap: space.md, padding: space.md },
-  deckArt: { width: 84, height: 118, borderRadius: radius.object, padding: 0 },
-  deckImage: { width: '100%', height: '100%' },
-  deckArtPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xs, padding: space.xs },
+  deckArt: { width: 84, height: 118, borderRadius: radius.object },
   deckBody: { flex: 1, minWidth: 0, gap: space.sm },
   deckTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.xs },
   deckMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
