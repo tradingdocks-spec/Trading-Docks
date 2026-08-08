@@ -56,7 +56,7 @@ export default function Profile() {
         title="Account"
         subtitle="Membership, security, scanner preferences, and support."
       />
-      <DockSurface level="raised" style={s.identity}>
+      <DockSurface material="collectibleObject" level="raised" style={s.identity}>
         <View style={s.avatar}>
           <TDText variant="title">{(session?.user.email?.[0] ?? 'C').toUpperCase()}</TDText>
         </View>
@@ -84,14 +84,14 @@ export default function Profile() {
       ) : null}
 
       <TDSectionHeader title="Essentials" />
-      <DockSurface style={s.rowDock}>
+      <DockSurface material="insetBay" style={s.rowDock}>
         <TDListRow title="Manage Membership" description={`Current plan: ${currentPlan.name}`} iconName="diamond-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Membership')} />
         {isAdmin ? <TDListRow title="Open Headquarters" description={`${role} access opens the protected web Command Center.`} iconName="shield-checkmark-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => open('Command Center')} /> : null}
         <TDListRow title="Settings" description="Security, notifications, appearance, and scanner preferences." iconName="settings-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Settings')} />
       </DockSurface>
 
       <TDSectionHeader title="Preferences" />
-      <DockSurface style={s.rowDock}>
+      <DockSurface material="insetBay" style={s.rowDock}>
         {baseItems.filter(([title]) => title !== 'Settings').map(([title, value, itemIcon]) => (
           <TDListRow key={title} accessibilityLabel={`Open ${title}`} description={value} iconName={itemIcon as keyof typeof Ionicons.glyphMap} onPress={() => open(title)} right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} title={title} />
         ))}
@@ -99,7 +99,7 @@ export default function Profile() {
       </DockSurface>
 
       <TDSectionHeader title="Support and legal" />
-      <DockSurface style={s.rowDock}>
+      <DockSurface material="insetBay" style={s.rowDock}>
         <TDListRow title="Support" description="Help, account questions, and product feedback." iconName="help-circle-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.support.url)} />
         <TDListRow title="Privacy Policy" description={links.privacy.configuredFromEnv ? 'Configured for this build.' : 'Using documented Trading Docks legal page.'} iconName="shield-checkmark-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.privacy.url)} />
         <TDListRow title="Terms of Service" description={links.terms.configuredFromEnv ? 'Configured for this build.' : 'Using documented Trading Docks legal page.'} iconName="document-text-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => openLink(links.terms.url)} />
@@ -123,8 +123,8 @@ export default function Profile() {
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: color.canvas },
   content: { paddingHorizontal: space.lg, gap: space.md },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 10 },
-  avatar: { width: 53, height: 53, borderRadius: radius.md, backgroundColor: color.primary, alignItems: 'center', justifyContent: 'center' },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 10, minHeight: 118 },
+  avatar: { width: 60, height: 60, borderRadius: radius.object, backgroundColor: color.primary + '66', borderWidth: 1, borderColor: color.primaryBright + '55', alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1, minWidth: 0, gap: 3 },
   identityMeta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space.xs },
   name: { textTransform: 'capitalize' },

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Animated, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -27,6 +27,8 @@ export default function ScanModesScreen() {
   const { accountType } = useAccount();
   const bottomInset = getMobileScrollBottomInset(insets.bottom);
   const [reviewCount, setReviewCount] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [scanLine] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     let mounted = true;
@@ -42,6 +44,28 @@ export default function ScanModesScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) setReduceMotion(enabled);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLine, { toValue: 1, duration: 1800, useNativeDriver: true }),
+        Animated.timing(scanLine, { toValue: 0, duration: 900, useNativeDriver: true }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [reduceMotion, scanLine]);
+
   return (
     <ScrollView style={s.screen} contentContainerStyle={[s.content, { paddingBottom: bottomInset }]}>
       <View style={s.header}>
@@ -50,9 +74,11 @@ export default function ScanModesScreen() {
         <TDText variant="small" tone="muted">Automatic Scan is the fastest path. Single Scan and Review stay close when you need control.</TDText>
       </View>
 
-      <DockSurface style={s.modeList}>
+      <DockSurface material="activeInstrument" level="raised" style={s.modeList}>
         <PrimaryScanMode
           count={reviewCount}
+          scanLine={scanLine}
+          reduceMotion={reduceMotion}
           onStart={() => router.push('/scan/automatic' as never)}
           onSingle={() => router.push('/scan/single' as never)}
           onReview={() => router.push('/scanner-session' as never)}
@@ -84,17 +110,43 @@ async function loadReviewListCount() {
 
 function PrimaryScanMode({
   count,
+  scanLine,
+  reduceMotion,
   onStart,
   onSingle,
   onReview,
 }: {
   count: number;
+  scanLine: Animated.Value;
+  reduceMotion: boolean;
   onStart: () => void;
   onSingle: () => void;
   onReview: () => void;
 }) {
   return (
     <View style={s.primaryCard}>
+      <View style={s.instrument}>
+        <View style={s.aperture}>
+          <View style={s.apertureCorner} />
+          <View style={[s.apertureCorner, s.apertureCornerRight]} />
+          <View style={[s.apertureCorner, s.apertureCornerBottom]} />
+          <View style={[s.apertureCorner, s.apertureCornerBottomRight]} />
+          {!reduceMotion ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                s.scanLine,
+                {
+                  transform: [{
+                    translateY: scanLine.interpolate({ inputRange: [0, 1], outputRange: [-42, 42] }),
+                  }],
+                },
+              ]}
+            />
+          ) : null}
+          <TDText variant="caption" tone="info">Automatic ready</TDText>
+        </View>
+      </View>
       <View style={s.primaryTop}>
         <View style={s.primaryIcon}>
           <Ionicons name="scan-outline" size={26} color={color.text} />
@@ -105,7 +157,7 @@ function PrimaryScanMode({
           style={s.modeText}
         />
       </View>
-      <TDButton label="Start scanning" iconName="scan-outline" onPress={onStart} />
+      <TDButton label="Start scanning" iconName="scan-outline" onPress={onStart} size="lg" />
       <DockRail compact>
         <DockAction label="Single Scan" iconName="radio-button-on-outline" onPress={onSingle} />
         <DockAction label={count > 0 ? `Review ${count}` : 'Review List'} iconName="list-outline" selected={count > 0} onPress={onReview} />
@@ -131,6 +183,23 @@ const s = StyleSheet.create({
   primaryCard: {
     gap: space.md,
   },
+  instrument: { minHeight: 214, justifyContent: 'center' },
+  aperture: {
+    minHeight: 180,
+    borderRadius: radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: color.canvas + 'AA',
+    borderWidth: 1,
+    borderTopColor: color.primaryBright + '48',
+    borderColor: color.primaryBright + '22',
+  },
+  apertureCorner: { position: 'absolute', top: 22, left: 22, width: 42, height: 42, borderTopWidth: 2, borderLeftWidth: 2, borderColor: color.primaryBright, borderTopLeftRadius: radius.md },
+  apertureCornerRight: { left: undefined, right: 22, borderLeftWidth: 0, borderRightWidth: 2, borderTopRightRadius: radius.md },
+  apertureCornerBottom: { top: undefined, bottom: 22, borderTopWidth: 0, borderBottomWidth: 2, borderBottomLeftRadius: radius.md },
+  apertureCornerBottomRight: { top: undefined, left: undefined, right: 22, bottom: 22, borderTopWidth: 0, borderLeftWidth: 0, borderRightWidth: 2, borderBottomWidth: 2, borderBottomRightRadius: radius.md },
+  scanLine: { position: 'absolute', left: 34, right: 34, height: 2, borderRadius: 2, backgroundColor: color.primaryBright + '88' },
   primaryTop: {
     flexDirection: 'row',
     alignItems: 'center',
