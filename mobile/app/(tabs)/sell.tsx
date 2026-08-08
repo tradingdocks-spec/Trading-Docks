@@ -1,58 +1,54 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  DockCardWell,
   DockHeader,
   DockMetric,
   DockRail,
   DockSurface,
+  DockTray,
   TDBadge,
   TDButton,
-  TDListRow,
-  TDNavigationHeader,
-  TDSectionHeader,
+  TDEmptyState,
+  TDSkeleton,
   TDStatusIndicator,
+  TDText,
 } from '@/components/design-system';
-import { color, space } from '@/design';
-import { useWorkSession } from '@/features/sessions/session-provider';
-import { useAccount } from '@/providers/account';
-import { loadCollectorCollectionPage } from '@/services/collector-data';
-import { displayFinish, displayStorageLocation, priceLabel, type CollectionCard } from '@/services/collector-workspace';
+import { color, radius, space } from '@/design';
+import {
+  colorIdentityLabel,
+  formatDeckValue,
+  loadMobileDeckVault,
+  summarizeMobileDeckVault,
+  type DeckRecord,
+} from '@/services/mobile-deck-vault';
+import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 
-type IntelligenceSignal = {
-  id: string;
-  title: string;
-  detail: string;
-  tone: 'success' | 'warning' | 'info' | 'neutral';
-  icon: keyof typeof Ionicons.glyphMap;
-};
-
-export default function Sell() {
+export default function DecksTab() {
   const insets = useSafeAreaInsets();
-  const { accountType } = useAccount();
-  const { activeSession } = useWorkSession();
-  const workspaceLabel = 'Inventory Intelligence';
-  const [cards, setCards] = useState<CollectionCard[]>([]);
+  const [decks, setDecks] = useState<DeckRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [staleReason, setStaleReason] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [unavailableReason, setUnavailableReason] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    void loadCollectorCollectionPage({ limit: 100 })
+    void loadMobileDeckVault()
       .then((result) => {
         if (!mounted) return;
-        setCards(result.cards);
-        setStaleReason(result.stale ? result.unavailableReason ?? 'Showing cached collection data.' : null);
-        setError(null);
+        setDecks(result.decks);
+        setStale(result.stale);
+        setUnavailableReason(result.unavailableReason ?? null);
       })
-      .catch((loadError) => {
+      .catch((error) => {
         if (!mounted) return;
-        setCards([]);
-        setError(loadError instanceof Error ? loadError.message : 'Collection intelligence is unavailable.');
+        setDecks([]);
+        setUnavailableReason(error instanceof Error ? error.message : 'Deck Vault is unavailable.');
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -62,199 +58,148 @@ export default function Sell() {
     };
   }, []);
 
-  const intelligence = useMemo(() => buildCollectionIntelligence(cards), [cards]);
+  const summary = useMemo(() => summarizeMobileDeckVault(decks), [decks]);
 
   return (
-    <ScrollView style={s.page} contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 14, 34), paddingBottom: 112 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-      <TDNavigationHeader
-        eyebrow={workspaceLabel}
-        title={headlineForAccount(accountType)}
-        subtitle={subtitleForAccount(accountType)}
+    <View style={s.screen}>
+      <FlatList
+        data={loading ? [] : decks}
+        keyExtractor={(deck) => deck.id}
+        contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 14, 34), paddingBottom: getMobileScrollBottomInset(insets.bottom) }]}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={s.headerStack}>
+            <View style={s.headerCopy}>
+              <TDText variant="caption" tone="info">Deck Vault</TDText>
+              <TDText variant="display">Decks</TDText>
+              <TDText variant="small" tone="muted">Build, edit, and show decks from the same Headquarters Deck Vault.</TDText>
+            </View>
+
+            <DockSurface level="raised" tone={decks.length ? 'active' : 'neutral'} style={s.hero}>
+              <View style={s.heroLight} />
+              <DockHeader
+                eyebrow="Shared model"
+                title={decks.length ? `${summary.deckCount} saved deck${summary.deckCount === 1 ? '' : 's'}` : 'Deck Vault ready'}
+                subtitle={decks.length ? `${summary.totalCards.toLocaleString()} cards tracked across saved lists.` : 'Create or import decks in Headquarters, then manage them here.'}
+                right={<TDBadge tone={stale ? 'warning' : 'info'}>{stale ? 'Cached' : 'Synced'}</TDBadge>}
+              />
+              <View style={s.heroMetrics}>
+                <DockMetric label="Decks" value={loading ? '...' : String(summary.deckCount)} tone="active" />
+                <DockMetric label="Cards" value={loading ? '...' : summary.totalCards.toLocaleString()} />
+                <DockMetric label="Value" value={loading ? '...' : formatDeckValue(summary.knownValue)} tone={summary.knownValue === null ? 'neutral' : 'success'} />
+              </View>
+            </DockSurface>
+
+            <DockSurface style={s.searchDock}>
+              <DockRail compact accessibilityLabel="Deck Vault actions">
+                <TDButton label="New" size="sm" iconName="add-outline" onPress={() => router.push('/decks/new' as never)} />
+                <TDButton label="Import" size="sm" variant="secondary" iconName="download-outline" onPress={() => router.push('/decks/import' as never)} />
+                <TDButton label="Showcase" size="sm" variant="ghost" iconName="sparkles-outline" disabled={!decks.length} onPress={() => router.push(`/decks/${decks[0]?.id}/showcase` as never)} />
+              </DockRail>
+              {unavailableReason ? <TDStatusIndicator label={unavailableReason} tone="warning" /> : null}
+            </DockSurface>
+          </View>
+        }
+        ListEmptyComponent={loading ? <DeckSkeleton /> : <EmptyDeckVault reason={unavailableReason} />}
+        renderItem={({ item }) => <DeckCard deck={item} />}
       />
-
-      <DockSurface level="raised" style={s.hero}>
-        <View style={s.heroTop}>
-          <DockHeader
-            eyebrow="Today"
-            title={activeSession ? activeSession.name : 'Inventory health'}
-            subtitle={activeSession ? `${activeSession.status} - ${activeSession.itemCount} item${activeSession.itemCount === 1 ? '' : 's'}` : 'Storage gaps, missing prices, duplicates, and trade markers from saved cards.'}
-            style={s.flex}
-          />
-          <TDBadge tone={activeSession ? 'success' : 'neutral'}>{activeSession ? 'Active' : 'Quiet'}</TDBadge>
-        </View>
-        <View style={s.signalGrid}>
-          <DockMetric label="Cards loaded" value={loading ? '...' : String(cards.length)} tone={cards.length ? 'active' : 'neutral'} />
-          <DockMetric label="Needs price" value={loading ? '...' : String(intelligence.missingPriceCount)} tone={intelligence.missingPriceCount ? 'warning' : 'success'} />
-          <DockMetric label="Workspace" value={accountType === 'store' ? 'Store' : accountType === 'seller' ? 'Seller' : 'Collector'} />
-        </View>
-      </DockSurface>
-
-      <TDSectionHeader title="Current signals" />
-      <DockSurface style={s.actionDock}>
-        {error ? (
-          <TDStatusIndicator label="Reconnect to refresh collection intelligence" tone="warning" />
-        ) : staleReason ? (
-          <TDStatusIndicator label={staleReason} tone="warning" />
-        ) : null}
-        {loading ? (
-          <TDStatusIndicator label="Loading collection intelligence" tone="info" />
-        ) : intelligence.signals.length ? (
-          intelligence.signals.map((signal) => (
-            <TDListRow
-              key={signal.id}
-              title={signal.title}
-              description={signal.detail}
-              iconName={signal.icon}
-              right={<TDBadge tone={signal.tone}>{signal.tone === 'warning' ? 'Review' : 'Ready'}</TDBadge>}
-            />
-          ))
-        ) : (
-          <TDListRow
-            title="Add cards to unlock intelligence"
-            description="Scan or add real collection records before Trading Docks summarizes duplicates, foils, wishlist overlap, or review needs."
-            iconName="scan-outline"
-            right={<Ionicons name="chevron-forward" size={20} color={color.textMuted} />}
-            onPress={() => router.push('/(tabs)/scan' as never)}
-          />
-        )}
-      </DockSurface>
-
-      <TDSectionHeader title="Useful actions" />
-      <DockSurface style={s.actionDock}>
-        <TDListRow
-          title="Find a card"
-          description="Search saved cards, storage, binder status, condition, finish, and exact printing."
-          iconName="search-outline"
-          right={<Ionicons name="chevron-forward" size={20} color={color.textMuted} />}
-          onPress={() => router.push('/(tabs)/collection' as never)}
-        />
-        <DockRail compact>
-          <TDButton
-            label="Scan"
-            size="sm"
-            iconName="scan-outline"
-            onPress={() => router.push('/(tabs)/scan' as never)}
-          />
-          <TDButton
-            label={accountType === 'store' ? 'Inventory' : 'Collection'}
-            size="sm"
-            variant="secondary"
-            iconName="layers-outline"
-            onPress={() => router.push('/(tabs)/collection' as never)}
-          />
-        </DockRail>
-      </DockSurface>
-    </ScrollView>
+    </View>
   );
 }
 
-function headlineForAccount(accountType: string) {
-  if (accountType === 'store') return 'Store activity and operations';
-  if (accountType === 'seller') return 'Seller signals and workflow shortcuts';
-  return 'Collection signals';
+function DeckCard({ deck }: { deck: DeckRecord }) {
+  const commander = deck.cards.find((card) => card.board === 'commander') ?? deck.cards[0];
+  const missingCount = deck.cardCount - deck.ownedCount;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${deck.name}. ${deck.format}. ${deck.cardCount} cards.`}
+      onPress={() => router.push(`/decks/${deck.id}` as never)}
+      style={({ pressed }) => [s.deckPressable, pressed && s.pressed]}
+    >
+      <DockSurface level="raised" style={s.deckCard}>
+        <DockCardWell lifted style={s.deckArt}>
+          {commander?.image ? (
+            <Image source={{ uri: commander.image }} style={s.deckImage} contentFit="cover" alt={`${deck.name} cover art`} accessibilityLabel={`${deck.name} cover art`} />
+          ) : (
+            <View style={s.deckArtPlaceholder}>
+              <Ionicons name="albums-outline" size={28} color={color.primaryBright} />
+              <TDText variant="caption" tone="muted">Cover unavailable</TDText>
+            </View>
+          )}
+        </DockCardWell>
+        <View style={s.deckBody}>
+          <View style={s.deckTitleRow}>
+            <View style={s.flex}>
+              <TDText variant="title" numberOfLines={2}>{deck.name}</TDText>
+              <TDText variant="caption" tone="muted" numberOfLines={1}>{deck.commander ?? deck.theme}</TDText>
+            </View>
+            <TDBadge tone={deck.status === 'Complete' ? 'success' : 'accent'}>{deck.status}</TDBadge>
+          </View>
+          <View style={s.deckMeta}>
+            <TDBadge tone="info">{deck.format}</TDBadge>
+            <TDBadge tone="neutral">{colorIdentityLabel(deck.colors)}</TDBadge>
+            <TDBadge tone={missingCount > 0 ? 'warning' : 'success'}>{missingCount > 0 ? `${missingCount} missing` : 'Owned'}</TDBadge>
+          </View>
+          <View style={s.deckStats}>
+            <TDText variant="caption" tone="secondary">{deck.cardCount} cards</TDText>
+            <TDText variant="caption" tone="secondary">{formatDeckValue(deck.marketValue || null)}</TDText>
+            <TDText variant="caption" tone="muted">Updated {deck.updatedAt}</TDText>
+          </View>
+        </View>
+      </DockSurface>
+    </Pressable>
+  );
 }
 
-function subtitleForAccount(accountType: string) {
-  if (accountType === 'store') return 'Current collection signals, storage gaps, and scanner review work.';
-  if (accountType === 'seller') return 'Current inventory signals, trade markers, and scanner review work.';
-  return 'Current collection signals from cards you have actually saved.';
+function DeckSkeleton() {
+  return (
+    <DockSurface style={s.skeleton}>
+      <TDSkeleton lines={4} />
+    </DockSurface>
+  );
 }
 
-function buildCollectionIntelligence(cards: CollectionCard[]): { missingPriceCount: number; signals: IntelligenceSignal[] } {
-  const missingPriceCount = cards.filter((card) => card.marketPrice.amount === null).length;
-  const foils = cards.filter((card) => displayFinish(card.printing.finish).toLowerCase().includes('foil')).length;
-  const tradeMarked = cards.filter((card) => card.tradeBinderStatus !== 'not_for_trade' && card.tradeBinderStatus !== 'unknown').length;
-  const wishlistOverlap = cards.filter((card) => card.wishlistStatus === 'wanted').length;
-  const duplicates = cards.filter((card) => card.quantityOwned > 1).length;
-  const unassigned = cards.filter((card) => !card.storageLocation).length;
-  const valuable = [...cards]
-    .filter((card) => card.marketPrice.amount !== null)
-    .sort((a, b) => (b.marketPrice.amount ?? 0) - (a.marketPrice.amount ?? 0))[0];
-  const newest = [...cards]
-    .sort((a, b) => Date.parse(b.updatedAt ?? '') - Date.parse(a.updatedAt ?? ''))[0];
-  const signals: IntelligenceSignal[] = [];
-
-  if (valuable) {
-    signals.push({
-      id: 'valuable',
-      title: 'Most valuable loaded card',
-      detail: `${valuable.cardName} - ${priceLabel(valuable)} - ${displayStorageLocation(valuable)}`,
-      tone: 'success',
-      icon: 'diamond-outline',
-    });
-  }
-  if (duplicates) {
-    signals.push({
-      id: 'duplicates',
-      title: 'Duplicates ready to review',
-      detail: `${duplicates} loaded printing${duplicates === 1 ? '' : 's'} have quantity above one.`,
-      tone: 'info',
-      icon: 'copy-outline',
-    });
-  }
-  if (missingPriceCount) {
-    signals.push({
-      id: 'missing-prices',
-      title: 'Missing prices',
-      detail: `${missingPriceCount} loaded card${missingPriceCount === 1 ? '' : 's'} need pricing before value is complete.`,
-      tone: 'warning',
-      icon: 'pricetag-outline',
-    });
-  }
-  if (unassigned) {
-    signals.push({
-      id: 'unassigned',
-      title: 'Storage gaps',
-      detail: `${unassigned} loaded card${unassigned === 1 ? '' : 's'} are not assigned to a storage location.`,
-      tone: 'warning',
-      icon: 'file-tray-stacked-outline',
-    });
-  }
-  if (tradeMarked) {
-    signals.push({
-      id: 'trade',
-      title: 'Trade-marked cards',
-      detail: `${tradeMarked} loaded card${tradeMarked === 1 ? '' : 's'} are active in your Trade Binder.`,
-      tone: 'success',
-      icon: 'swap-horizontal-outline',
-    });
-  }
-  if (wishlistOverlap) {
-    signals.push({
-      id: 'wishlist',
-      title: 'Wishlist overlap',
-      detail: `${wishlistOverlap} loaded card${wishlistOverlap === 1 ? '' : 's'} also appear on your wishlist.`,
-      tone: 'info',
-      icon: 'star-outline',
-    });
-  }
-  if (foils) {
-    signals.push({
-      id: 'foils',
-      title: 'Foils in collection',
-      detail: `${foils} loaded card${foils === 1 ? '' : 's'} use foil or etched finishes.`,
-      tone: 'info',
-      icon: 'sparkles-outline',
-    });
-  }
-  if (newest) {
-    signals.push({
-      id: 'recent',
-      title: 'Most recent loaded card',
-      detail: `${newest.cardName} - ${displayStorageLocation(newest)}`,
-      tone: 'neutral',
-      icon: 'time-outline',
-    });
-  }
-  return { missingPriceCount, signals: signals.slice(0, 5) };
+function EmptyDeckVault({ reason }: { reason: string | null }) {
+  return (
+    <DockTray style={s.empty}>
+      <TDEmptyState
+        title={reason ? 'Deck Vault unavailable' : 'No decks yet'}
+        message={reason ?? 'Create or import a deck in Headquarters. Mobile will use that same Deck Vault record.'}
+        action={<TDButton label="Open Headquarters" variant="secondary" iconName="open-outline" onPress={() => router.push('/(tabs)/profile' as never)} />}
+      />
+    </DockTray>
+  );
 }
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: color.canvas },
-  content: { gap: space.md, paddingHorizontal: space.lg },
-  hero: { gap: space.md, padding: space.lg },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm },
-  signalGrid: { flexDirection: 'row', gap: space.xs },
-  actionDock: { padding: space.sm },
+  screen: { flex: 1, backgroundColor: color.canvas },
+  content: { gap: space.md, paddingHorizontal: space.md },
+  headerStack: { gap: space.md },
+  headerCopy: { gap: space.xs },
+  hero: { gap: space.md, overflow: 'hidden', padding: space.md },
+  heroLight: {
+    position: 'absolute',
+    top: -78,
+    right: -44,
+    width: 190,
+    height: 190,
+    borderRadius: 100,
+    backgroundColor: color.accent + '24',
+  },
+  heroMetrics: { flexDirection: 'row', gap: space.xs },
+  searchDock: { gap: space.sm, padding: space.sm },
+  deckPressable: { width: '100%' },
+  deckCard: { flexDirection: 'row', gap: space.md, padding: space.md },
+  deckArt: { width: 84, height: 118, borderRadius: radius.object, padding: 0 },
+  deckImage: { width: '100%', height: '100%' },
+  deckArtPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xs, padding: space.xs },
+  deckBody: { flex: 1, minWidth: 0, gap: space.sm },
+  deckTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.xs },
+  deckMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
+  deckStats: { gap: 2 },
+  skeleton: { minHeight: 170 },
+  empty: { padding: 0 },
   flex: { flex: 1, minWidth: 0 },
+  pressed: { opacity: 0.88, transform: [{ translateY: 1 }, { scale: 0.99 }] },
 });
