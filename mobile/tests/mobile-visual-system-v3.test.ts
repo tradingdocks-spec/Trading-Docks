@@ -27,7 +27,7 @@ test('Collection keeps plan usage compact and elevates storage location chips', 
   const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
 
   assert.match(collection, /healthStrip/);
-  assert.match(collection, /locationChip/);
+  assert.match(collection, /LocationBreadcrumb/);
   assert.match(collection, /Free plan card limit/);
   assert.doesNotMatch(collection, /Current signals/);
 });

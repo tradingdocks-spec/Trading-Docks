@@ -10,7 +10,8 @@ const single = readFileSync(join(process.cwd(), 'app', 'scan', 'single.tsx'), 'u
 
 test('Scan tab opens premium Scan Modes instead of the immersive camera', () => {
   assert.match(scanModes, /Automatic Scan/);
-  assert.match(scanModes, /Hands-free capture, exact-printing review, and rapid add flow/);
+  assert.match(scanModes, /describeScanLockState/);
+  assert.match(scanModes, /Place card\. Hold steady\. Review exact printing\./);
   assert.match(scanModes, /Single Scan/);
   assert.match(scanModes, /Review List/);
   assert.doesNotMatch(scanModes, /ScannerCamera/);

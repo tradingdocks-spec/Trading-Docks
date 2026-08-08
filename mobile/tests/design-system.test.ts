@@ -106,6 +106,12 @@ test('mobile design OS exposes the canonical primitive contract set', () => {
     'DockCardWell',
     'DockSection',
     'DockHeader',
+    'CollectibleCard',
+    'CollectibleThumbnail',
+    'CollectibleStack',
+    'CollectibleWell',
+    'CollectibleHero',
+    'LocationBreadcrumb',
   ]) {
     assert.equal(TD_MOBILE_COMPONENT_CONTRACTS.includes(primitive as never), true);
   }

@@ -183,7 +183,7 @@ test('release polish pass removes beta copy and elevates primary scanner and inv
   assert.doesNotMatch(collection, /<TDSegmentedControl label="Sort"/);
 
   assert.match(scanModes, /PrimaryScanMode/);
-  assert.match(scanModes, /Automatic Scan is the fastest path/);
+  assert.match(scanModes, /Place card\. Hold steady\. Review exact printing\./);
   assert.match(scanModes, /Start scanning/);
 
   assert.match(decks, /Deck Vault/);
@@ -207,7 +207,7 @@ test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', 
   assert.match(shell, /surface\.dock/);
   assert.match(shell, /edge\.highlight/);
   assert.match(home, /DockSurface[\s\S]*Primary workspace actions/);
-  assert.match(home, /DockCardWell/);
+  assert.match(home, /CollectibleCard/);
   assert.match(collection, /DockMetric[\s\S]*Owned/);
   assert.match(collection, /DockCardWell/);
   assert.match(scanModes, /DockSurface[\s\S]*PrimaryScanMode/);
