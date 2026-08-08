@@ -194,6 +194,7 @@ type DockSurfaceProps = PropsWithChildren<ViewProps & {
   level?: 'dock' | 'raised';
   active?: boolean;
   tone?: 'neutral' | 'active' | 'success' | 'warning';
+  material?: TradingDocksMaterialClass;
   style?: StyleProp<ViewStyle>;
 }>;
 
@@ -252,6 +253,17 @@ type DockHeaderProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+export const TRADING_DOCKS_MATERIAL_CLASSES = [
+  'canvas',
+  'structuralDock',
+  'insetBay',
+  'raisedControl',
+  'collectibleObject',
+  'activeInstrument',
+] as const;
+
+export type TradingDocksMaterialClass = typeof TRADING_DOCKS_MATERIAL_CLASSES[number];
+
 export function TDScreen({ children, style }: PropsWithChildren<{ style?: StyleProp<ViewStyle> }>) {
   const { width } = useWindowDimensions();
   return (
@@ -267,13 +279,14 @@ export function TDText({ children, variant = 'body', tone = 'primary', style, ..
   return <Text {...textProps} style={[textStyles[variant], toneStyles[tone], style]}>{children}</Text>;
 }
 
-export function DockSurface({ children, level = 'dock', active, tone = 'neutral', style, ...props }: DockSurfaceProps) {
+export function DockSurface({ children, level = 'dock', active, tone = 'neutral', material = 'structuralDock', style, ...props }: DockSurfaceProps) {
   return (
     <View
       {...props}
       style={[
         s.dockSurface,
         level === 'raised' && s.dockSurfaceRaised,
+        materialStyle[material],
         active && s.dockSurfaceActive,
         dockTone[tone],
         style,
@@ -1064,6 +1077,15 @@ const scannerGuideTone = StyleSheet.create({
   success: { borderColor: color.success },
   warning: { borderColor: color.warning },
   danger: { borderColor: color.danger },
+});
+
+const materialStyle = StyleSheet.create<Record<TradingDocksMaterialClass, ViewStyle>>({
+  canvas: { backgroundColor: color.canvas, borderColor: 'transparent', shadowOpacity: 0, elevation: 0 },
+  structuralDock: { backgroundColor: surface.dock, borderColor: edge.subtle, borderTopColor: edge.highlight },
+  insetBay: { backgroundColor: surface.inset, borderColor: '#00000066', borderTopColor: edge.subtle },
+  raisedControl: { backgroundColor: surface.raised, borderColor: edge.subtle, borderTopColor: edge.highlight, ...elevation.raised },
+  collectibleObject: { backgroundColor: surface.inset, borderColor: edge.subtle, borderTopColor: edge.highlight, ...elevation.raised },
+  activeInstrument: { backgroundColor: color.primary + '16', borderColor: edge.active, borderTopColor: edge.highlight, shadowColor: color.primaryBright, shadowOpacity: 0.18 },
 });
 
 const dockTone = StyleSheet.create({
