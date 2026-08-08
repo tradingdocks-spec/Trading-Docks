@@ -14,8 +14,11 @@ import { finishLabel, supportedVisibleFinishes } from '@/services/exact-printing
 import { supabase } from '@/lib/supabase';
 import {
   buildScannerCollectionConfirmation,
+  applyScannerDestinationPreference,
+  buildScannerDestinationPreference,
   bulkConfirmReviewedCards,
   calculateSessionTotals,
+  cardShowOfferPreview,
   continuousScannerSessionKey,
   defaultSessionReviewFilters,
   editScannerSessionLine,
@@ -25,12 +28,15 @@ import {
   nextReviewLine,
   removeScannerSessionLine,
   reviewedProgressLabel,
+  scannerDestinationLabel,
   sessionFinalizeEligibility,
   sessionGameLabel,
   sessionReviewStatusLabel,
+  updateCardShowOfferRate,
   updateScannerSessionLineFinish,
   updateScannerSessionLinePrinting,
   type ContinuousScannerSession,
+  type ScannerDestinationType,
   type ScannerSessionLine,
   type SessionReviewFilterState,
   type SessionReviewStatusTab,
@@ -135,6 +141,11 @@ export default function ScannerSessionReview() {
                 onBack={() => router.back()}
               />
               <SessionSummary cardCount={totals?.cardsScanned ?? 0} reviewCount={totals?.needsReview ?? 0} offerTotal={totals?.cashOffer ?? null} />
+              <SessionDestinationPanel
+                session={session}
+                onDestinationChange={(destination) => setSession(applyScannerDestinationPreference(session, buildScannerDestinationPreference({ destination })))}
+                onOfferRateChange={(rate) => setSession(updateCardShowOfferRate(session, rate))}
+              />
               {nextLine ? (
                 <Pressable accessibilityRole="button" accessibilityLabel={`Review next card. ${reviewedProgressLabel(session)}`} onPress={() => setSelectedLineId(nextLine.id)} style={s.reviewNext}>
                   <View style={s.reviewNextIcon}><Ionicons name="arrow-forward" size={18} color={color.primaryBright} /></View>
@@ -199,6 +210,64 @@ export default function ScannerSessionReview() {
         }}
       />
     </TDScreen>
+  );
+}
+
+const destinationOptions: { value: ScannerDestinationType; label: string }[] = [
+  { value: 'collection', label: 'Collection' },
+  { value: 'storage_location', label: 'Storage' },
+  { value: 'binder', label: 'Binder' },
+  { value: 'trade_binder', label: 'Trade Binder' },
+];
+
+function SessionDestinationPanel({
+  session,
+  onDestinationChange,
+  onOfferRateChange,
+}: {
+  session: ContinuousScannerSession;
+  onDestinationChange: (destination: ScannerDestinationType) => void;
+  onOfferRateChange: (rate: number) => void;
+}) {
+  const [rateText, setRateText] = useState(String(session.offerConfig.defaultCashPercentage));
+  useEffect(() => setRateText(String(session.offerConfig.defaultCashPercentage)), [session.offerConfig.defaultCashPercentage]);
+  const previewLine = session.lines.find((line) => line.marketPrice !== null) ?? session.lines[0] ?? null;
+  const preview = cardShowOfferPreview({
+    marketPrice: previewLine?.marketPrice ?? null,
+    quantity: previewLine?.quantity ?? 1,
+    offerRate: Number(rateText),
+  });
+  const visibleDestination = destinationOptions.some((option) => option.value === session.defaultDestination)
+    ? session.defaultDestination
+    : 'collection';
+  return (
+    <View style={s.destinationPanel}>
+      <View style={s.destinationHeader}>
+        <View style={s.flex}>
+          <TDText variant="small">Scan into: {scannerDestinationLabel(session.defaultDestination)}</TDText>
+          <TDText variant="caption" tone="muted">New scans inherit this destination until changed.</TDText>
+        </View>
+        <TDBadge tone={session.mode === 'card_show_purchase' ? 'success' : 'info'}>{session.mode === 'card_show_purchase' ? 'Card Show' : 'Session'}</TDBadge>
+      </View>
+      <TDSegmentedControl label="Destination" options={destinationOptions} value={visibleDestination} onChange={onDestinationChange} />
+      <View style={s.cardShowPanel}>
+        <View style={s.flex}>
+          <TDText variant="small">Card Show Mode</TDText>
+          <TDText variant="caption" tone="muted">{preview.marketLabel} · Offer @ {preview.rate}%: {preview.offerLabel}</TDText>
+        </View>
+        <TDInput
+          label="Offer %"
+          value={rateText}
+          keyboardType="numeric"
+          onChangeText={(value) => {
+            setRateText(value);
+            const parsed = Number(value);
+            if (Number.isFinite(parsed)) onOfferRateChange(parsed);
+          }}
+          containerStyle={s.rateInput}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -543,6 +612,10 @@ const s = StyleSheet.create({
   readyNotice: { minHeight: 48, borderRadius: radius.md, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.success + '10' },
   activeFilters: { minHeight: 42, borderRadius: radius.md, paddingHorizontal: space.sm, paddingVertical: space.xs, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.canvasRaised },
   syncNotice: { borderRadius: radius.md, padding: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.info + '10' },
+  destinationPanel: { gap: space.sm, borderRadius: radius.lg, padding: space.sm, backgroundColor: color.canvasRaised },
+  destinationHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  cardShowPanel: { flexDirection: 'row', alignItems: 'center', gap: space.sm, borderRadius: radius.md, padding: space.sm, backgroundColor: color.surface },
+  rateInput: { width: 92 },
   cardRow: { minHeight: 132, flexDirection: 'row', gap: space.sm, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: color.border },
   pressedRow: { opacity: 0.82 },
   cardImage: { width: 58, height: 82, borderRadius: radius.sm, backgroundColor: color.surface },

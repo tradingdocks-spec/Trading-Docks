@@ -7,11 +7,14 @@ import {
   DEFAULT_CONTINUOUS_SCANNER_THRESHOLDS,
   TRADING_CARD_GUIDE_RATIO,
   addRecognitionToSession,
+  applyScannerDestinationPreference,
   bulkConfirmReviewedCards,
+  buildScannerDestinationPreference,
   buildContinuousScannerCsvRows,
   buildScannerCollectionConfirmation,
   calculateCardGuideLayout,
   calculateSessionTotals,
+  cardShowOfferPreview,
   classifyContinuousConfidence,
   continuousScannerSessionKey,
   createContinuousScannerRuntime,
@@ -39,6 +42,7 @@ import {
   sessionReviewMetrics,
   shouldAutoCapture,
   undoMostRecentScan,
+  updateCardShowOfferRate,
   type CardBoundaryObservation,
   type ContinuousScannerSession,
 } from '../services/continuous-offer-scanner.ts';
@@ -282,6 +286,38 @@ test('mixed-game session totals include each detected game', () => {
   assert.equal(totals.gameTotals.magic?.quantity, 2);
   assert.equal(totals.gameTotals.pokemon?.quantity, 1);
   assert.equal(scannerModeUsesOfferWorkspace('card_show_purchase'), true);
+});
+
+test('scan destination preference applies to unsynced session lines without repeated selection', () => {
+  const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
+  const session = addRecognitionToSession(
+    createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Binder intake', mode: 'binder_intake' }),
+    { stableScanId: 'scan-1', candidate, recognition, destination: 'collection' },
+  );
+  const destination = buildScannerDestinationPreference({ destination: 'binder', binderId: 'binder-3', binderPage: 2, binderSlot: 'B2' });
+  const next = applyScannerDestinationPreference(session, destination);
+
+  assert.equal(next.defaultDestination, 'binder');
+  assert.equal(next.lines[0].destination, 'binder');
+  assert.equal(next.lines[0].binderId, 'binder-3');
+  assert.equal(next.lines[0].binderPage, 2);
+  assert.equal(next.lines[0].binderSlot, 'B2');
+});
+
+test('Card Show percentage preview and session override keep missing prices unavailable', () => {
+  const recognition = createRecognitionPipelineReport({ detectedGame: 'magic', candidates: [candidate], confidence, recognitionMethod: 'metadata_assisted' });
+  const session = addRecognitionToSession(
+    createContinuousScannerSession({ id: 'session-1', userId: 'user-1', name: 'Show buy', mode: 'card_show_purchase' }),
+    { stableScanId: 'scan-1', candidate, recognition, marketPrice: 20 },
+  );
+  const updated = updateCardShowOfferRate(session, 65);
+  assert.equal(updated.offerConfig.defaultCashPercentage, 65);
+  assert.equal(updated.lines[0].cashOffer, 13);
+  assert.deepEqual(cardShowOfferPreview({ marketPrice: null, quantity: 1, offerRate: 65 }), {
+    rate: 65,
+    marketLabel: 'Market unavailable',
+    offerLabel: 'Offer unavailable',
+  });
 });
 
 function observation(overrides: Partial<CardBoundaryObservation> & { cornersVisible?: boolean } = {}): CardBoundaryObservation {

@@ -77,6 +77,8 @@ export type ScannerConfirmation = {
   finish: CardFinish;
   language: string | null;
   storageLocationId: string | null;
+  binderPage?: number | null;
+  binderSlot?: string | null;
   tradeStatus: Exclude<TradeBinderStatus, 'unknown'>;
   addToWishlist: boolean;
 };
@@ -182,6 +184,8 @@ export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: st
       language: confirmation.language,
       imageUrl: confirmation.candidate.imageUrl ?? null,
       locationId: confirmation.storageLocationId,
+      binderPage: confirmation.binderPage ?? null,
+      binderSlot: confirmation.binderSlot ?? null,
       scannerAddedAt: new Date().toISOString(),
       scannerRecognitionMode: confirmation.candidate.recognitionMode,
     },
@@ -189,7 +193,7 @@ export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: st
 }
 
 export function scannerQueueKey(confirmation: ScannerConfirmation) {
-  return `${confirmation.userId}:${confirmation.candidate.id}:${confirmation.finish}:${confirmation.condition}:${confirmation.storageLocationId ?? 'unassigned'}`;
+  return `${confirmation.userId}:${confirmation.candidate.id}:${confirmation.finish}:${confirmation.condition}:${confirmation.storageLocationId ?? 'unassigned'}:${confirmation.binderPage ?? 'no-page'}:${confirmation.binderSlot ?? 'no-slot'}`;
 }
 
 export function scannerIdempotencyKey(confirmation: ScannerConfirmation, inventoryItemId: string) {

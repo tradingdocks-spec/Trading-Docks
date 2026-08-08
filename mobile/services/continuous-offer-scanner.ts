@@ -191,6 +191,8 @@ export type ScannerSessionLine = {
   destination: ScannerDestinationType;
   storageLocationId: string | null;
   binderId: string | null;
+  binderPage: number | null;
+  binderSlot: string | null;
   tradeStatus: Exclude<TradeBinderStatus, 'unknown'>;
   reviewStatus: 'suggested' | 'needs_review' | 'confirmed';
   syncState: Extract<ScannerLineStatus, 'local_only' | 'pending_sync' | 'synced' | 'failed'>;
@@ -212,6 +214,15 @@ export type ContinuousScannerSession = {
   paused: boolean;
   lines: ScannerSessionLine[];
   undoneLines: ScannerSessionLine[];
+};
+
+export type ScannerDestinationPreference = {
+  destination: ScannerDestinationType;
+  storageLocationId: string | null;
+  binderId: string | null;
+  binderPage: number | null;
+  binderSlot: string | null;
+  label: string;
 };
 
 export type ScannerSessionTotals = {
@@ -298,6 +309,8 @@ export type ContinuousScannerCsvRow = {
   tradeValue: number | null;
   storageLocation: string | null;
   binder: string | null;
+  binderPage: number | null;
+  binderSlot: string | null;
   confidence: ContinuousConfidenceState;
   reviewStatus: string;
   notes: string;
@@ -588,6 +601,81 @@ export function createContinuousScannerSession(input: {
   };
 }
 
+export function buildScannerDestinationPreference(input: Partial<ScannerDestinationPreference>): ScannerDestinationPreference {
+  const destination = normalizeScannerDestination(input.destination);
+  return {
+    destination,
+    storageLocationId: input.storageLocationId ?? null,
+    binderId: input.binderId ?? null,
+    binderPage: normalizePositiveInteger(input.binderPage),
+    binderSlot: input.binderSlot?.trim() || null,
+    label: input.label?.trim() || scannerDestinationLabel(destination),
+  };
+}
+
+export function applyScannerDestinationPreference(session: ContinuousScannerSession, preference: ScannerDestinationPreference): ContinuousScannerSession {
+  return {
+    ...session,
+    defaultDestination: preference.destination,
+    updatedAt: new Date().toISOString(),
+    lines: session.lines.map((line) => line.syncState === 'synced'
+      ? line
+      : recalculateLine({
+        ...line,
+        destination: preference.destination,
+        storageLocationId: preference.destination === 'storage_location' ? preference.storageLocationId : line.storageLocationId,
+        binderId: preference.destination === 'binder' ? preference.binderId : line.binderId,
+        binderPage: preference.destination === 'binder' ? preference.binderPage : line.binderPage,
+        binderSlot: preference.destination === 'binder' ? preference.binderSlot : line.binderSlot,
+      }, session.offerConfig)),
+  };
+}
+
+export function scannerDestinationLabel(destination: ScannerDestinationType) {
+  const labels: Record<ScannerDestinationType, string> = {
+    collection: 'Collection',
+    storage_location: 'Storage Location',
+    binder: 'Binder',
+    trade_binder: 'Trade Binder',
+    purchase_intake: 'Purchase Intake',
+    trade_evaluation: 'Trade Evaluation',
+    export_only: 'Export Only',
+  };
+  return labels[destination];
+}
+
+export function normalizeScannerDestination(value: unknown): ScannerDestinationType {
+  return value === 'binder' ||
+    value === 'trade_binder' ||
+    value === 'storage_location' ||
+    value === 'purchase_intake' ||
+    value === 'trade_evaluation' ||
+    value === 'export_only'
+    ? value
+    : 'collection';
+}
+
+export function cardShowOfferPreview(input: { marketPrice: number | null; quantity?: number; offerRate: number }) {
+  const rate = clampPercentage(input.offerRate);
+  const quantity = Math.max(1, Math.round(input.quantity ?? 1));
+  return {
+    rate,
+    marketLabel: input.marketPrice === null ? 'Market unavailable' : formatSessionReviewMoney(input.marketPrice * quantity),
+    offerLabel: input.marketPrice === null ? 'Offer unavailable' : formatSessionReviewMoney(calculateOfferAmount(input.marketPrice, quantity, rate, DEFAULT_OFFER_CONFIG)),
+  };
+}
+
+export function updateCardShowOfferRate(session: ContinuousScannerSession, rate: number): ContinuousScannerSession {
+  const nextRate = clampPercentage(rate);
+  const offerConfig = { ...session.offerConfig, defaultCashPercentage: nextRate };
+  return {
+    ...session,
+    offerConfig,
+    updatedAt: new Date().toISOString(),
+    lines: session.lines.map((line) => recalculateLine({ ...line, purchasePercentage: nextRate }, offerConfig)),
+  };
+}
+
 export function addRecognitionToSession(
   session: ContinuousScannerSession,
   input: {
@@ -603,6 +691,8 @@ export function addRecognitionToSession(
     priceTimestamp?: string | null;
     storageLocationId?: string | null;
     binderId?: string | null;
+    binderPage?: number | null;
+    binderSlot?: string | null;
     tradeStatus?: Exclude<TradeBinderStatus, 'unknown'>;
     destination?: ScannerDestinationType;
     notes?: string;
@@ -652,6 +742,8 @@ export function addRecognitionToSession(
     destination: input.destination ?? session.defaultDestination,
     storageLocationId: input.storageLocationId ?? null,
     binderId: input.binderId ?? null,
+    binderPage: normalizePositiveInteger(input.binderPage),
+    binderSlot: input.binderSlot?.trim() || null,
     tradeStatus: input.tradeStatus ?? 'not_for_trade',
     reviewStatus,
     syncState: 'local_only',
@@ -731,7 +823,7 @@ export function batchScannerTimingSummary(input: Partial<BatchScannerTimingSnaps
   };
 }
 
-export function editScannerSessionLine(session: ContinuousScannerSession, lineId: string, patch: Partial<Pick<ScannerSessionLine, 'cardName' | 'setCode' | 'collectorNumber' | 'exactPrintingId' | 'language' | 'confidence' | 'confidenceScore' | 'condition' | 'finish' | 'quantity' | 'purchasePercentage' | 'marketPrice' | 'priceSource' | 'priceTimestamp' | 'destination' | 'storageLocationId' | 'binderId' | 'reviewStatus' | 'syncState' | 'notes' | 'recognition'>>) {
+export function editScannerSessionLine(session: ContinuousScannerSession, lineId: string, patch: Partial<Pick<ScannerSessionLine, 'cardName' | 'setCode' | 'collectorNumber' | 'exactPrintingId' | 'language' | 'confidence' | 'confidenceScore' | 'condition' | 'finish' | 'quantity' | 'purchasePercentage' | 'marketPrice' | 'priceSource' | 'priceTimestamp' | 'destination' | 'storageLocationId' | 'binderId' | 'binderPage' | 'binderSlot' | 'reviewStatus' | 'syncState' | 'notes' | 'recognition'>>) {
   return {
     ...session,
     updatedAt: new Date().toISOString(),
@@ -1024,6 +1116,8 @@ export function buildScannerCollectionConfirmation(line: ScannerSessionLine, use
     finish: normalizeLineFinish(line.finish)[0] ?? 'normal',
     language: line.language,
     storageLocationId: line.storageLocationId,
+    binderPage: line.binderPage,
+    binderSlot: line.binderSlot,
     tradeStatus: line.tradeStatus,
     addToWishlist: false,
   };
@@ -1050,6 +1144,8 @@ export function buildContinuousScannerCsvRows(session: ContinuousScannerSession)
     tradeValue: line.tradeValue,
     storageLocation: line.storageLocationId,
     binder: line.binderId,
+    binderPage: line.binderPage,
+    binderSlot: line.binderSlot,
     confidence: line.confidence,
     reviewStatus: line.reviewStatus,
     notes: line.notes,
@@ -1077,6 +1173,8 @@ export function serializeContinuousScannerCsv(rows: ContinuousScannerCsvRow[]) {
     'trade value',
     'storage location',
     'binder',
+    'binder page',
+    'binder slot',
     'confidence',
     'review status',
     'notes',
@@ -1101,6 +1199,8 @@ export function serializeContinuousScannerCsv(rows: ContinuousScannerCsvRow[]) {
     row.tradeValue,
     row.storageLocation,
     row.binder,
+    row.binderPage,
+    row.binderSlot,
     row.confidence,
     row.reviewStatus,
     row.notes,
@@ -1230,6 +1330,10 @@ function selectLineScryfallPrice(candidate: ScannerCardCandidate, finish: CardFi
 
 function clampPercentage(value: number) {
   return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+}
+
+function normalizePositiveInteger(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.round(value) : null;
 }
 
 function roundOffer(value: number, rule: OfferRoundingRule) {
