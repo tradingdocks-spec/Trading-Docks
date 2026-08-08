@@ -32,12 +32,12 @@ export type SingleScanQualityAnalyzer = {
   reset: () => void;
 };
 
-export const SINGLE_SCAN_MIN_GUIDE_FILL = 0.7;
+export const SINGLE_SCAN_MIN_GUIDE_FILL = 0.62;
 export const SINGLE_SCAN_MAX_GUIDE_FILL = 0.92;
-export const SINGLE_SCAN_MAX_BLUR = 0.55;
-export const SINGLE_SCAN_MAX_MOTION = 0.26;
-export const SINGLE_SCAN_REQUIRED_STABILITY_MS = 450;
-export const SINGLE_SCAN_FOCUS_SETTLE_MS = 450;
+export const SINGLE_SCAN_MAX_BLUR = 0.62;
+export const SINGLE_SCAN_MAX_MOTION = 0.34;
+export const SINGLE_SCAN_REQUIRED_STABILITY_MS = 260;
+export const SINGLE_SCAN_FOCUS_SETTLE_MS = 180;
 
 export function createSingleScanQualityAnalyzer(input: {
   view: { width: number; height: number };
@@ -82,7 +82,7 @@ export function resolveSingleScanCaptureQuality(
   if (vision.detection.fillRatio < SINGLE_SCAN_MIN_GUIDE_FILL) {
     return quality(false, 'Move closer', 'too_small', vision);
   }
-  if (vision.detection.centerOffset.normalized > 0.2) {
+  if (vision.detection.centerOffset.normalized > 0.26) {
     return quality(false, 'Center card', 'off_center', vision);
   }
   if (vision.quality.blur > SINGLE_SCAN_MAX_BLUR) {
