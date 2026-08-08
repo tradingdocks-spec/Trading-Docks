@@ -10,6 +10,7 @@ import {
   DockRail,
   DockSurface,
   TDButton,
+  TDStatusIndicator,
   TDText,
 } from '@/components/design-system';
 import { color, radius, space } from '@/design';
@@ -20,6 +21,7 @@ import {
   type ContinuousScannerSession,
 } from '@/services/continuous-offer-scanner';
 import { getMobileScrollBottomInset } from '@/services/navigation-contract';
+import { describeScanLockState } from '@/services/signature-experience';
 import { appStorage } from '@/services/storage/app-storage';
 
 export default function ScanModesScreen() {
@@ -71,7 +73,7 @@ export default function ScanModesScreen() {
       <View style={s.header}>
         <TDText variant="caption" tone="info">{accountType === 'store' ? 'Store intake' : accountType === 'seller' ? 'Seller intake' : 'Collection intake'}</TDText>
         <TDText variant="display">Scan</TDText>
-        <TDText variant="small" tone="muted">Automatic Scan is the fastest path. Single Scan and Review stay close when you need control.</TDText>
+        <TDText variant="small" tone="muted">Place card. Hold steady. Review exact printing.</TDText>
       </View>
 
       <DockSurface material="activeInstrument" level="raised" style={s.modeList}>
@@ -123,6 +125,7 @@ function PrimaryScanMode({
   onSingle: () => void;
   onReview: () => void;
 }) {
+  const lock = describeScanLockState('ready');
   return (
     <View style={s.primaryCard}>
       <View style={s.instrument}>
@@ -144,7 +147,7 @@ function PrimaryScanMode({
               ]}
             />
           ) : null}
-          <TDText variant="caption" tone="info">Automatic ready</TDText>
+          <TDStatusIndicator tone={lock.tone} label={lock.label} />
         </View>
       </View>
       <View style={s.primaryTop}>
@@ -153,7 +156,7 @@ function PrimaryScanMode({
         </View>
         <DockHeader
           title="Automatic Scan"
-          subtitle="Hands-free capture, exact-printing review, and rapid add flow."
+          subtitle={lock.instruction}
           style={s.modeText}
         />
       </View>
