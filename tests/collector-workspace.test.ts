@@ -13,6 +13,8 @@ import {
   mergeCollectionPages,
   priceLabel,
   resolveCollectionViewState,
+  resolveCardImageUrl,
+  shouldRenderCollectionItems,
   shouldAcceptCollectionResponse,
   sortCollectionCards,
   summarizeCollectionCards,
@@ -203,6 +205,15 @@ test('Collector Workspace end-of-results page has no next cursor', () => {
   assert.equal(pageInfo.hasMore, false);
   assert.equal(pageInfo.nextCursor, null);
   assert.equal(resolveCollectionViewState({ loading: false, totalCount: cards.length, visibleCount: cards.length, hasMore: false }), 'end');
+  assert.equal(shouldRenderCollectionItems('end', cards.length), true);
+});
+
+test('Collection inventory rows remain visible when pagination reaches the end', () => {
+  assert.equal(shouldRenderCollectionItems('ready', 2), true);
+  assert.equal(shouldRenderCollectionItems('loading_more', 2), true);
+  assert.equal(shouldRenderCollectionItems('end', 2), true);
+  assert.equal(shouldRenderCollectionItems('no_results', 0), false);
+  assert.equal(shouldRenderCollectionItems('empty', 0), false);
 });
 
 test('Collector Workspace page merge prevents duplicate cards', () => {
@@ -238,4 +249,23 @@ test('Collector Workspace cursor encodes exact-printing sort position without ch
   assert.equal(displayPrinting(cards[0].printing), 'WOT #25');
   assert.equal(cards[0].condition, 'near_mint');
   assert.equal(cards[0].printing.finish, 'foil');
+});
+
+test('card image fallback uses canonical Scryfall printing identifiers only', () => {
+  assert.equal(
+    resolveCardImageUrl({
+      explicitImageUrl: 'https://cards.example/runed-stalactite.jpg',
+      scryfallId: 'ignored',
+    }),
+    'https://cards.example/runed-stalactite.jpg',
+  );
+  assert.equal(
+    resolveCardImageUrl({ scryfallId: 'abc-123' }),
+    'https://api.scryfall.com/cards/abc-123?format=image&version=normal',
+  );
+  assert.equal(
+    resolveCardImageUrl({ setCode: 'lcc', collectorNumber: '310' }),
+    'https://api.scryfall.com/cards/lcc/310?format=image&version=normal',
+  );
+  assert.equal(resolveCardImageUrl({ setCode: 'lcc' }), null);
 });

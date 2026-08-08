@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -19,6 +21,7 @@ import {
 } from '../services/navigation-contract.ts';
 
 const accountTypes = ['free', 'collector', 'seller', 'store'] as const;
+const root = process.cwd();
 
 test('every mobile account composition has exactly five visible primary tabs', () => {
   for (const accountType of accountTypes) {
@@ -108,4 +111,11 @@ test('mobile tab bar remains visible on Scan Modes', () => {
   assert.equal(shouldHideMobileTabBarForRoute('deal-desk'), false);
   assert.equal(shouldHideMobileTabBarForRoute('sell'), false);
   assert.equal(shouldHideMobileTabBarForRoute('profile'), false);
+});
+
+test('mobile tab layout consumes canonical account-aware route definitions', () => {
+  const layout = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
+
+  assert.match(layout, /getMobileVisibleTabRoutes\(accountType\)/);
+  assert.doesNotMatch(layout, /const tabRoutes:\s*MobileTabRouteName\[\]\s*=\s*\[/);
 });

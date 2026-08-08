@@ -56,7 +56,7 @@ const planPositioning: Record<RevenueCatPurchasePlan, string> = {
 
 export default function Plans() {
   const { session } = useAuth();
-  const { accountType } = useAccount();
+  const { membershipTier, refresh: refreshAccountAccess } = useAccount();
   const links = getMobileReleaseLinks();
   const sessionUserId = session?.user.id ?? null;
   const [selectedTier, setSelectedTier] = useState<RevenueCatPurchasePlan>('collector');
@@ -66,7 +66,7 @@ export default function Plans() {
   const [message, setMessage] = useState<string | null>(null);
   const [providerSnapshot, setProviderSnapshot] = useState<RevenueCatCustomerSnapshot | null>(null);
   const [pendingProviderTier, setPendingProviderTier] = useState<MembershipTier | null>(null);
-  const currentPlan = getMembershipPlan(accountType);
+  const currentPlan = getMembershipPlan(membershipTier);
   const selectedPlan = getMembershipPlan(selectedTier);
   const currentMembership = summarizeRevenueCatCurrentMembership({
     canonicalTier: currentPlan.id,
@@ -174,6 +174,7 @@ export default function Plans() {
     }
     const contract = buildRevenueCatBackendSyncContract(sessionUserId, result.snapshot);
     setProviderSnapshot(result.snapshot);
+    await refreshAccountAccess();
     const syncMessage = revenueCatBackendSyncMessage({
       providerTier: contract.providerTier,
       canonicalTier: currentPlan.id,
@@ -197,6 +198,7 @@ export default function Plans() {
     }
     const contract = buildRevenueCatBackendSyncContract(sessionUserId, result.snapshot);
     setProviderSnapshot(result.snapshot);
+    await refreshAccountAccess();
     const syncMessage = revenueCatBackendSyncMessage({
       providerTier: contract.providerTier,
       canonicalTier: currentPlan.id,
@@ -215,6 +217,7 @@ export default function Plans() {
       action: 'purchase',
     }) : 'Refreshing membership status...');
     await refreshCatalog();
+    await refreshAccountAccess();
     if (pendingProviderTier) {
       setStatus('backend_pending');
       setMessage(revenueCatBackendSyncMessage({

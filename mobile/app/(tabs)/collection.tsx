@@ -33,6 +33,7 @@ import {
   priceLabel,
   resolveCollectionViewState,
   summarizeCollectionCards,
+  shouldRenderCollectionItems,
   shouldAcceptCollectionResponse,
   type CollectionCard,
   type CollectionSort,
@@ -136,10 +137,10 @@ export default function Collection() {
   });
 
   return (
-    <TDScreen style={s.screen}>
+    <TDScreen style={[s.screen, { paddingTop: Math.max(insets.top + 20, 48) }]}>
       <FlatList
         key={displayMode}
-        data={state === 'ready' ? visibleCards : []}
+        data={shouldRenderCollectionItems(state, visibleCards.length) ? visibleCards : []}
         keyExtractor={(item) => item.id}
         numColumns={displayMode === 'grid' ? 2 : 1}
         columnWrapperStyle={displayMode === 'grid' ? s.gridRow : undefined}
@@ -412,7 +413,7 @@ function IconMode({
 }
 
 const s = StyleSheet.create({
-  screen: { paddingTop: 48, paddingBottom: 0 },
+  screen: { paddingBottom: 0 },
   listContent: { gap: space.md },
   headerStack: { gap: space.sm, marginBottom: space.xs },
   searchControls: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm },

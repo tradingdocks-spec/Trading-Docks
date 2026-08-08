@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TDBadge, TDButton, TDCard, TDListRow, TDNavigationHeader, TDSectionHeader, TDStatusIndicator, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { getMobileScrollBottomInset } from '@/services/navigation-contract';
-import { getMobileAppVersionInfo, getMobileReleaseLinks } from '@/services/mobile-release-config';
+import { getMobileAppVersionInfo, getMobileReleaseLinks, MOBILE_CANONICAL_SITE_URL } from '@/services/mobile-release-config';
 import { getMembershipPlan } from '@/services/membership-catalog';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/account';
@@ -37,7 +37,7 @@ export default function Profile() {
   };
 
   const open = (title: string) => {
-    if (title === 'Command Center') router.push('/admin');
+    if (title === 'Command Center') void Linking.openURL(`${MOBILE_CANONICAL_SITE_URL}/dashboard/admin`);
     else if (title === 'Membership') router.push('/plans');
     else if (title === 'Settings' || title === 'Security' || title === 'Appearance' || title === 'Notifications') router.push('/settings');
   };
@@ -83,7 +83,7 @@ export default function Profile() {
 
       <TDSectionHeader title="Essentials" />
       <TDListRow title="Manage Membership" description={`Current plan: ${currentPlan.name}`} iconName="diamond-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Membership')} />
-      {isAdmin ? <TDListRow title="Command Center" description={`${role} access is additive to this workspace.`} iconName="shield-checkmark-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Command Center')} /> : null}
+      {isAdmin ? <TDListRow title="Open Headquarters" description={`${role} access opens the protected web Command Center.`} iconName="shield-checkmark-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => open('Command Center')} /> : null}
       <TDListRow title="Settings" description="Security, notifications, appearance, and scanner preferences." iconName="settings-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => open('Settings')} />
 
       <TDSectionHeader title="Preferences" />

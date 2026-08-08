@@ -217,7 +217,12 @@ export function buildCollectionCards({
         language: stringValue(payload.language) || null,
         finish,
         treatment: stringValue(payload.treatment) || null,
-        imageUrl: stringValue(payload.imageUrl) || null,
+        imageUrl: resolveCardImageUrl({
+          explicitImageUrl: stringValue(payload.imageUrl),
+          scryfallId: stringValue(payload.scryfallId) || item.scryfall_id || null,
+          setCode: stringValue(payload.set) || item.set_code || null,
+          collectorNumber: stringValue(payload.collectorNumber) || item.collector_number || null,
+        }),
       };
 
       return {
@@ -249,6 +254,10 @@ export function buildCollectionCards({
         updatedAt: item.updated_at ?? stringValue(payload.updatedAt) ?? null,
       };
     });
+}
+
+export function shouldRenderCollectionItems(state: CollectionViewState, visibleCount: number) {
+  return visibleCount > 0 && state !== 'loading' && state !== 'empty' && state !== 'no_results';
 }
 
 export function filterCollectionCards(
@@ -505,6 +514,31 @@ export function priceLabel(card: CollectionCard) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(card.marketPrice.amount);
+}
+
+export function resolveCardImageUrl({
+  explicitImageUrl,
+  scryfallId,
+  setCode,
+  collectorNumber,
+}: {
+  explicitImageUrl?: string | null;
+  scryfallId?: string | null;
+  setCode?: string | null;
+  collectorNumber?: string | null;
+}) {
+  const explicit = explicitImageUrl?.trim();
+  if (explicit) return explicit;
+  const cleanScryfallId = scryfallId?.trim();
+  if (cleanScryfallId) {
+    return `https://api.scryfall.com/cards/${encodeURIComponent(cleanScryfallId)}?format=image&version=normal`;
+  }
+  const cleanSetCode = setCode?.trim().toLowerCase();
+  const cleanCollectorNumber = collectorNumber?.trim();
+  if (cleanSetCode && cleanCollectorNumber) {
+    return `https://api.scryfall.com/cards/${encodeURIComponent(cleanSetCode)}/${encodeURIComponent(cleanCollectorNumber)}?format=image&version=normal`;
+  }
+  return null;
 }
 
 export function normalizeCardCondition(value: unknown): CardCondition {

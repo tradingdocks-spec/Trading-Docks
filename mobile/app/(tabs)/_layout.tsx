@@ -8,11 +8,10 @@ import { color, elevation, radius } from '@/design';
 import {
   getMobileBottomNavVisualModel,
   getMobileTabOptions,
+  getMobileVisibleTabRoutes,
   shouldHideMobileTabBarForRoute,
   type MobileTabRouteName,
 } from '@/services/navigation-contract';
-
-const tabRoutes: MobileTabRouteName[] = ['index', 'collection', 'scan', 'deal-desk', 'sell', 'profile'];
 
 export default function Layout() {
   const { accountType, ready } = useAccount();
@@ -36,6 +35,7 @@ export default function Layout() {
     };
   };
   const navModel = getMobileBottomNavVisualModel(insets.bottom);
+  const tabRoutes = getMobileVisibleTabRoutes(accountType);
 
   return (
     <Tabs
