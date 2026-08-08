@@ -1,11 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  CollectibleThumbnail,
+  LocationBreadcrumb,
   TDBadge,
   TDButton,
   TDCard,
@@ -20,7 +20,7 @@ import {
   TDStatusIndicator,
   TDText,
 } from '@/components/design-system';
-import { color, radius, space } from '@/design';
+import { radius, space } from '@/design';
 import { supabase } from '@/lib/supabase';
 import { useAccount } from '@/providers/account';
 import { loadCollectorCardById } from '@/services/collector-data';
@@ -159,16 +159,7 @@ export default function MobileCollectionCardDetail() {
         />
 
         <View style={s.hero}>
-          <View style={s.imageFrame}>
-            {card.printing.imageUrl ? (
-              <Image source={{ uri: card.printing.imageUrl }} style={s.cardImage} contentFit="cover" accessibilityLabel={`${card.cardName} card image`} />
-            ) : (
-              <View style={s.imagePlaceholder}>
-                <Ionicons name="image-outline" size={34} color={color.textMuted} />
-                <TDText variant="small" tone="muted">Image unavailable</TDText>
-              </View>
-            )}
-          </View>
+          <CollectibleThumbnail title={card.cardName} imageUrl={card.printing.imageUrl} size="lg" style={s.imageFrame} />
 
           <View style={s.heroCopy}>
             <View style={s.badgeRow}>
@@ -180,6 +171,7 @@ export default function MobileCollectionCardDetail() {
               <TDMetric label="Value" value={priceLabel(card)} tone={card.marketPrice.amount === null ? 'neutral' : 'info'} compact />
               <TDMetric label="Storage" value={card.storageLocation ? card.storageLocation.name : 'Unassigned'} compact />
             </View>
+            <LocationBreadcrumb path={displayStorageLocation(card)} />
             <TDButton
               label={card.storageLocation ? 'Move location' : 'Assign location'}
               iconName="file-tray-stacked-outline"
@@ -247,7 +239,7 @@ export default function MobileCollectionCardDetail() {
           <TDText variant="title">Organization</TDText>
           <TDListRow
             title={displayStorageLocation(card)}
-            description="Move this card to an existing location or clear the assignment."
+            description={card.storageLocation ? 'Move this card or clear the assignment.' : 'Assign this card to a real location.'}
             iconName="file-tray-stacked-outline"
             right={<TDBadge tone={card.storageLocation ? 'info' : 'neutral'}>{card.storageLocation ? 'Assigned' : 'Open'}</TDBadge>}
             onPress={() => router.push('/storage-locations' as never)}
@@ -366,9 +358,7 @@ const s = StyleSheet.create({
   content: { gap: space.md },
   backButton: { alignSelf: 'flex-start' },
   hero: { gap: space.lg },
-  imageFrame: { width: '100%', maxWidth: 320, aspectRatio: 0.72, alignSelf: 'center', borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised },
-  cardImage: { width: '100%', height: '100%' },
-  imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.sm },
+  imageFrame: { width: '100%', maxWidth: 320, height: undefined, aspectRatio: 0.72, alignSelf: 'center', borderRadius: radius.lg },
   heroCopy: { gap: space.xs },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.xs },
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },

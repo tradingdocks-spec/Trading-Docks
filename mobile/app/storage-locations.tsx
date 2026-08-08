@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  LocationBreadcrumb,
   TDBadge,
   TDButton,
   TDCard,
@@ -175,7 +176,7 @@ export default function StorageLocationsScreen() {
               <TDListRow
                 key={location.id}
                 title={location.name}
-                description={formatLocationBreadcrumb(location.path)}
+                description={labelForType(location.type)}
                 eyebrow={labelForType(location.type)}
                 iconName={location.favorite ? 'star' : 'file-tray-stacked-outline'}
                 right={<TDBadge tone={location.favorite ? 'accent' : 'neutral'}>{location.assignedQuantity} cards</TDBadge>}
@@ -191,10 +192,10 @@ export default function StorageLocationsScreen() {
 
         {selected ? (
           <TDCard style={s.detailCard}>
-            <View style={s.locationTitleRow}>
+              <View style={s.locationTitleRow}>
               <View style={s.flex}>
                 <TDText variant="title">{selected.name}</TDText>
-                <TDText variant="caption" tone="muted">{formatLocationBreadcrumb(selected.path)}</TDText>
+                <LocationBreadcrumb path={formatLocationBreadcrumb(selected.path)} />
               </View>
               <TDBadge tone="info">{labelForType(selected.type)}</TDBadge>
             </View>
@@ -232,7 +233,7 @@ export default function StorageLocationsScreen() {
               <TDListRow
                 key={location.id}
                 title={location.name}
-                description={formatLocationBreadcrumb(location.path)}
+                description={labelForType(location.type)}
                 iconName="archive-outline"
                 right={<TDBadge tone="neutral">Archived</TDBadge>}
               />
