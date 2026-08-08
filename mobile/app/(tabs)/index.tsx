@@ -137,29 +137,35 @@ function HomeHero({
 }) {
   const tone = state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'info';
   return (
-    <DockSurface level="raised" tone={state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'neutral'} style={s.hero}>
-      <DockHeader
-        eyebrow={eyebrow}
-        title={title}
-        right={<TDBadge tone={tone}>{heroStateLabel(state)}</TDBadge>}
-      />
-      {loading ? (
-        <TDSkeleton lines={2} style={s.heroSkeleton} />
-      ) : (
-        <>
-          <TDText variant="display" style={s.heroValue}>{value}</TDText>
-          <TDText variant="small" tone="muted">{supporting}</TDText>
-        </>
-      )}
-    </DockSurface>
+    <View style={s.heroShell}>
+      <View style={s.heroBackplate} />
+      <DockSurface level="raised" tone={state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'neutral'} style={s.hero}>
+        <View style={s.heroLight} />
+        <DockHeader
+          eyebrow={eyebrow}
+          title={title}
+          right={<TDBadge tone={tone}>{heroStateLabel(state)}</TDBadge>}
+        />
+        <View style={s.instrumentFace}>
+          {loading ? (
+            <TDSkeleton lines={2} style={s.heroSkeleton} />
+          ) : (
+            <>
+              <TDText variant="display" style={s.heroValue}>{value}</TDText>
+              <TDText variant="small" tone="muted">{supporting}</TDText>
+            </>
+          )}
+        </View>
+      </DockSurface>
+    </View>
   );
 }
 
 function QuickActions({ actions }: { actions: HomeAction[] }) {
   const primary = actions[0];
-  const secondary = actions.slice(1, 4);
+  const secondary = actions.slice(1);
   return (
-    <DockSurface accessibilityLabel="Primary workspace actions" style={s.quickActions}>
+    <DockSurface accessibilityLabel="Primary workspace actions" level="raised" style={s.quickActions}>
       <DockAction
         label={primary.label}
         iconName={primary.icon as keyof typeof Ionicons.glyphMap}
@@ -167,16 +173,18 @@ function QuickActions({ actions }: { actions: HomeAction[] }) {
         prominent
         style={s.scanAction}
       />
-      <DockRail compact>
-        {secondary.map((action) => (
-          <DockAction
-            key={action.key}
-            label={action.label}
-            iconName={action.icon as keyof typeof Ionicons.glyphMap}
-            onPress={() => go(action)}
-          />
-        ))}
-      </DockRail>
+      <View style={s.actionRail}>
+        <DockRail compact>
+          {secondary.map((action) => (
+            <DockAction
+              key={action.key}
+              label={action.label}
+              iconName={action.icon as keyof typeof Ionicons.glyphMap}
+              onPress={() => go(action)}
+            />
+          ))}
+        </DockRail>
+      </View>
     </DockSurface>
   );
 }
@@ -206,6 +214,7 @@ function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
                   style={s.cardImage}
                   contentFit="cover"
                   transition={150}
+                  alt={`${card.title} card image`}
                   accessibilityLabel={`${card.title} card image`}
                 />
               ) : (
@@ -305,11 +314,51 @@ const s = StyleSheet.create({
   header: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   headerTitle: { flex: 1, minWidth: 0 },
   flex: { flex: 1, minWidth: 0 },
-  hero: { gap: space.md, padding: space.lg, overflow: 'hidden' },
-  heroValue: { marginTop: space.xs },
+  heroShell: { minHeight: 212, justifyContent: 'center' },
+  heroBackplate: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    top: 16,
+    bottom: 0,
+    borderRadius: radius.xl,
+    backgroundColor: color.canvasRaised,
+    opacity: 0.82,
+    transform: [{ translateY: 8 }],
+  },
+  hero: {
+    gap: space.md,
+    padding: space.md,
+    overflow: 'hidden',
+    borderTopColor: color.primaryBright + '38',
+    borderBottomColor: '#00000088',
+  },
+  heroLight: {
+    position: 'absolute',
+    left: -40,
+    right: 40,
+    top: -80,
+    height: 150,
+    borderRadius: 150,
+    backgroundColor: color.primaryBright + '18',
+  },
+  instrumentFace: {
+    minHeight: 110,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderTopColor: color.primaryBright + '28',
+    borderLeftColor: color.border,
+    borderRightColor: color.border,
+    borderBottomColor: '#00000099',
+    padding: space.md,
+    justifyContent: 'center',
+    backgroundColor: color.canvas + 'A8',
+  },
+  heroValue: { marginTop: space.xs, textShadowColor: color.primaryBright + '24', textShadowRadius: 18 },
   heroSkeleton: { marginTop: space.sm },
-  quickActions: { gap: space.sm, padding: space.sm },
-  scanAction: { minHeight: 54 },
+  quickActions: { gap: 0, padding: space.xs, overflow: 'hidden' },
+  scanAction: { minHeight: 60, marginBottom: space.xs },
+  actionRail: { borderTopWidth: 1, borderTopColor: color.border, paddingTop: space.xs },
   recentList: { gap: space.sm, paddingRight: space.md },
   recentCard: { width: 148, gap: 5 },
   cardImageFrame: { height: 198, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },

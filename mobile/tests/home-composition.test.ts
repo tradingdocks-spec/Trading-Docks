@@ -24,8 +24,8 @@ test('Free Home composition focuses scan and collection without fake portfolio v
   assert.equal(home.portfolioState, 'ready');
   assert.equal(home.hero.title, 'Collection value');
   assert.match(home.portfolioMessage, /Value unavailable/);
-  assert.deepEqual(home.actions.map((action) => action.key), ['scan', 'collection', 'add', 'review']);
-  assert.ok(home.actions.length <= 4);
+  assert.deepEqual(home.actions.map((action) => action.key), ['scan', 'collection', 'find', 'binder', 'review']);
+  assert.deepEqual(home.actions.map((action) => action.route), ['/(tabs)/scan', '/(tabs)/collection', '/storage-locations', '/physical-binders', '/scanner-session']);
 });
 
 test('Collector Home composition emphasizes portfolio and storage', () => {
@@ -83,7 +83,7 @@ test('unavailable signal data is explicit', () => {
 
 test('Home composition keeps one primary navigation system', () => {
   const home = buildMobileHomeComposition({ accountType: 'collector', summary, activeSession: null });
-  assert.equal(home.actions.length, 4);
+  assert.equal(home.actions.length, 5);
   assert.equal(home.actions.filter((action) => action.key === 'scan').length, 1);
 });
 
