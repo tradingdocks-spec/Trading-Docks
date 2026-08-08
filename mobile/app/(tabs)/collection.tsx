@@ -43,6 +43,7 @@ import {
 } from '@/services/collector-workspace';
 import { getMobileScrollBottomInset } from '@/services/navigation-contract';
 import { humanizeReleaseError, releaseEmptyState, releaseLoadingState } from '@/services/mobile-release-ux';
+import { buildMobileCollectionIntelligence } from '@/services/mobile-collection-intelligence';
 
 type DisplayMode = 'grid' | 'list';
 
@@ -130,6 +131,7 @@ export default function Collection() {
 
   const visibleCards = cards;
   const summary = useMemo(() => summarizeCollectionCards(cards, accountType), [accountType, cards]);
+  const intelligence = useMemo(() => buildMobileCollectionIntelligence(cards), [cards]);
   const state = resolveCollectionViewState({
     loading,
     loadingMore,
@@ -195,6 +197,23 @@ export default function Collection() {
               <DockMetric label="Unique" value={summary.uniquePrintings.toLocaleString()} />
               <DockMetric label="Storage" value={summary.storageLocationCount.toLocaleString()} />
             </View>
+
+            {cards.length ? (
+              <DockTray style={s.healthStrip}>
+                <View style={s.healthMetric}>
+                  <TDText variant="caption" tone="muted">Missing prices</TDText>
+                  <TDText variant="small" tone={intelligence.missingPriceCount ? 'warning' : 'success'}>{intelligence.missingPriceCount}</TDText>
+                </View>
+                <View style={s.healthMetric}>
+                  <TDText variant="caption" tone="muted">Duplicates</TDText>
+                  <TDText variant="small">{intelligence.duplicateCount}</TDText>
+                </View>
+                <View style={s.healthMetric}>
+                  <TDText variant="caption" tone="muted">Storage gaps</TDText>
+                  <TDText variant="small" tone={intelligence.storageGapCount ? 'warning' : 'success'}>{intelligence.storageGapCount}</TDText>
+                </View>
+              </DockTray>
+            ) : null}
 
             {summary.freeCardLimit ? (
               <DockTray active={summary.freeCardLimitExceeded} style={s.limitCard}>
@@ -320,6 +339,7 @@ function CollectionCardRow({
               contentFit="cover"
               transition={150}
               placeholder={{ blurhash: 'L14ep^_3M{M{_3?b%Mof00xu%MRj' }}
+              alt={`${card.cardName} card image`}
               accessibilityLabel={`${card.cardName} card image`}
             />
           ) : (
@@ -336,7 +356,10 @@ function CollectionCardRow({
           </View>
           <TDText variant="caption" tone="muted">{displayPrinting(card.printing)}</TDText>
           <TDText variant="caption" tone="secondary">{displayCondition(card.condition)} - {displayFinish(card.printing.finish)}</TDText>
-          <TDText variant="caption" tone="muted">{displayStorageLocation(card)}</TDText>
+          <View style={s.locationChip}>
+            <Ionicons name="location-outline" size={14} color={color.warning} />
+            <TDText variant="caption" tone="primary" numberOfLines={2}>{displayStorageLocation(card)}</TDText>
+          </View>
           <View style={s.indicators}>
             <TDBadge tone={card.tradeBinderStatus === 'not_for_trade' ? 'neutral' : 'success'}>
               {card.tradeBinderStatus === 'not_for_trade' ? 'Not for trade' : 'Trade binder'}
@@ -428,6 +451,8 @@ const s = StyleSheet.create({
   sortChip: { minHeight: 34, flex: 1, minWidth: 0, borderRadius: radius.control, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xs },
   sortChipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '24' },
   summaryStrip: { flexDirection: 'row', gap: space.xs },
+  healthStrip: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: space.xs, padding: space.xs },
+  healthMetric: { flex: 1, minWidth: 0, borderRadius: radius.sm, backgroundColor: color.canvas + '88', paddingHorizontal: space.xs, paddingVertical: 6 },
   limitCard: { flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md },
   staleCard: { gap: space.xs, padding: space.md },
   limitIcon: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '12' },
@@ -450,4 +475,5 @@ const s = StyleSheet.create({
   cardTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.xs },
   cardTitle: { flex: 1 },
   indicators: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.xs },
+  locationChip: { alignSelf: 'flex-start', maxWidth: '100%', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.control, backgroundColor: color.warning + '14', paddingHorizontal: space.xs, paddingVertical: 5 },
 });
