@@ -31,7 +31,7 @@ Status: Implemented
 | Scanner Session / Review List | Yes | Yes | Physical required | Must verify final item appears in Collection after device scan. |
 | Scanner Recovery | Yes | Yes | Passed automated | Offline/replay tests cover user isolation and recovery states. |
 | Intelligence | Yes | Yes | Passed automated | Uses current loaded collection/session data only. |
-| Deal Desk | Yes | Yes | Passed automated | Seller/Store only in primary tabs. |
+| Deal Desk `/deal-desk` | Yes | Yes | Passed automated | Contextual secondary route only; not a bottom tab for any account. |
 | Profile | Yes | Yes | Passed automated | Headquarters opens web Command Center. |
 | Plans / RevenueCat | Yes | Yes | Physical required | StoreKit device flow and backend reconciliation required. |
 | Settings | Yes | Yes | Passed automated | No local-only fake switches remain. |
@@ -63,5 +63,6 @@ Status: Implemented
 | P1 | Native admin route exposure | Fixed with Headquarters handoff. |
 | P1 | Settings local-only controls | Fixed with status-only settings rows. |
 | P1 | Intelligence current-data value | Fixed with current collection/session signals. |
+| P1 | Deal Desk appearing as sixth tab | Fixed by removing tab registration and centralizing five-tab tests. |
 | P2 | Home dead notification button | Fixed by removal. |
 | P2 | Generic modal route | Fix required. |

@@ -96,9 +96,10 @@
 
 ### Canonical Route Map
 
-- Mobile Free/Collector: Home `/(tabs)`, Collection `/(tabs)/collection`, Scan `/(tabs)/scan`, Signals `/(tabs)/sell`, Profile `/(tabs)/profile`.
-- Mobile Seller: Home `/(tabs)`, Collection `/(tabs)/collection`, Deal Desk `/(tabs)/deal-desk`, Signals `/(tabs)/sell`, Profile `/(tabs)/profile`.
-- Mobile Store: Home `/(tabs)`, Business `/(tabs)/collection` (Partially Implemented), Deal Desk `/(tabs)/deal-desk`, Activity `/(tabs)/sell` (Partially Implemented), Profile `/(tabs)/profile`.
+- Mobile Free/Collector: Home `/(tabs)`, Collection `/(tabs)/collection`, Scan `/(tabs)/scan`, Intelligence `/(tabs)/sell`, Account `/(tabs)/profile`.
+- Mobile Seller: Home `/(tabs)`, Collection `/(tabs)/collection`, Scan `/(tabs)/scan`, Intelligence `/(tabs)/sell`, Account `/(tabs)/profile`.
+- Mobile Store: Home `/(tabs)`, Collection `/(tabs)/collection`, Scan `/(tabs)/scan`, Intelligence `/(tabs)/sell`, Account `/(tabs)/profile`.
+- Mobile Deal Desk: `/deal-desk` remains a contextual secondary route and is not part of the bottom tab bar.
 - Mobile Admin: Command Center `/admin` remains protected and additive.
 - Web Collector: Dashboard `/dashboard`, Collection `/dashboard/inventory`, Decks `/dashboard/deck-vault`, Trade Binder `/dashboard/collector-portfolio` (Planned dedicated route), Portfolio `/dashboard/collector-portfolio`, Settings `/dashboard/settings`.
 - Web Seller: Dashboard `/dashboard`, Inventory `/dashboard/inventory`, Deal Desk `/dashboard/purchasing`, Buying Sessions `/dashboard/collection-buying`, Exports `/dashboard/tools/csv-converter`, Analytics `/dashboard/analytics`, Settings `/dashboard/settings`.
@@ -118,17 +119,17 @@
 
 ### Mobile Bottom Navigation Rules
 
-- Implemented: The account-aware tab mapping is Free/Collector `Home, Collection, Scan, Signals, Profile`; Seller `Home, Collection, Deal Desk, Signals, Profile`; Store `Home, Business, Deal Desk, Activity, Profile`.
-- Implemented: Scan and Deal Desk are center actions and stay reachable through normal tab routes. Their visual treatment is restrained inside the same equal-width tab cell.
+- Implemented: The account-aware tab mapping is now the same five primary destinations for Free, Collector, Seller, Store, and role-bearing users: `Home, Collection, Scan, Intelligence, Account`.
+- Implemented: Scan remains the center action inside the same equal-width tab footprint. Deal Desk is contextual and no longer consumes primary navigation space.
 - Implemented: Admin access stays outside the primary tab bar and remains additive through protected profile/admin navigation.
 - Implemented: Safe-area height and scroll inset helpers live in `mobile/services/navigation-contract.ts` so screens can keep content clear of the bar.
-- Planned: Dedicated mobile content for Store Business/Activity and deeper Signals workflows remains future product work.
+- Planned: Dedicated mobile content for deeper Inventory Intelligence workflows remains future product work.
 
 ## Mobile Product Polish Architecture
 
 - Implemented: Active mobile Collection, Card Detail, Storage Locations, Trade Binder, Wishlist, Scanner, Scanner Session Review, and Profile screens use the shared TD chip/metric/row primitives where practical.
 - Implemented: This branch adds the mobile design OS documentation set, a current-state audit, design bible, component/accessibility/motion standards, and a staged migration plan before broad route redesign.
-- Implemented: Active Seller/Signals and Deal Desk routes now use TD primitive composition, preserve session routing, and remove unsupported fake business metrics from authenticated surfaces.
+- Implemented: Active Inventory Intelligence and contextual Deal Desk routes now use TD primitive composition, preserve session routing, and remove unsupported fake business metrics from authenticated surfaces.
 - Implemented: The mobile bottom navigation visual model is centralized in `mobile/services/navigation-contract.ts`, including safe-area height, 22 px icon sizing, equal-width cells, and restrained center-action geometry.
 - Implemented: Mobile polish keeps authentication logic, billing, membership, Supabase schemas, scanner recognition providers, and desktop web routes unchanged.
 - Implemented: Mobile screens continue to use the single account-aware bottom tab system and stack destinations for secondary flows.
@@ -136,6 +137,17 @@
 - Partially Implemented: Authentication remains visually custom but keeps TD inputs, TD buttons, error state, loading state, remembered-email, magic-link, Google, and Apple entry points.
 - Partially Implemented: Native responsive and accessibility QA still requires device/simulator review for small iPhone, large iPhone, Android, tablet, larger text, and narrow Expo Web.
 - Planned: Future polish should target onboarding/plans/welcome, deeper Collector surfaces, admin surfaces, and dev-only tools after their product responsibilities are reviewed.
+
+## Mobile Inventory Operating System Update
+
+Status: Partially Implemented
+
+- Implemented: Mobile V1 product responsibility is documented as scan, identify, locate, manage collection records, and view/build/share physical binders. Headquarters remains the home for deep seller/store operations.
+- Implemented: Deal Desk was removed from primary mobile tab registration and retained only as a contextual secondary route.
+- Implemented: Collection search now includes user-scoped storage-location matches in addition to card name, set, and collector number.
+- Implemented: Shared physical-binder contracts now exist for mobile and web so future UI work does not create a mobile-only binder model.
+- Implemented: Automatic Scan's current-frame trigger can fire before same-card removal state blocks rearm, preserving duplicate protection for the next card.
+- Partially Implemented: Physical binder UI, scan destination selection, Card Show percentage mode, Home visual art-piece treatment, and measured scanner latency/FPS remain follow-up work.
 
 ## Identity And Entitlement Architecture
 
@@ -223,7 +235,7 @@
 - Mobile Collection: `/(tabs)/collection`.
 - Mobile Card Detail: `/collection/[cardId]`.
 - Mobile Scanner entry point: `/(tabs)/scan`.
-- Mobile Portfolio/Signals entry point: `/(tabs)/sell` remains Partially Implemented until portfolio navigation receives a dedicated mobile destination.
+- Mobile Inventory Intelligence entry point: `/(tabs)/sell` remains Partially Implemented until deeper inventory-health navigation receives dedicated mobile destinations.
 - Web Collection: `/dashboard/inventory`.
 - Web Card Detail: `/dashboard/inventory/[cardId]`.
 - Web Decks entry point: `/dashboard/deck-vault`.
@@ -270,6 +282,6 @@
 - Implemented: Home composition rules live in `mobile/services/mobile-home.ts` so account-type copy, action routing, active-session visibility, and unavailable-state policy remain separate from presentation.
 - Implemented: The Home information hierarchy is compact header, portfolio/collection pulse, smart action row, Today/Harbor briefing, real active-session resume card when present, and recent-activity empty state.
 - Implemented: Home reads real collection summary data through the existing Collector Workspace loader and summarizes saved cards, known value, storage locations, and missing prices. It does not show mock portfolio values, mock charts, mock movement, or fake activity.
-- Implemented: Free, Collector, Seller, and Store share one adaptable composition. Seller and Store route the trade action to Deal Desk; Free and Collector route it to the existing Signals/Trade surface.
+- Implemented: Free, Collector, Seller, and Store share one adaptable Home composition. Seller and Store route session review to the scanner session list; Deal Desk remains contextual rather than primary navigation.
 - Partially Implemented: Market movement, recent activity feed, notification counts, and operations signals are unavailable states until backed by real data.
 - Planned: Add native screenshots/manual QA coverage for small phone, large phone, iOS safe area, Android safe area, long text, no user data, populated user data, and offline/stale state.

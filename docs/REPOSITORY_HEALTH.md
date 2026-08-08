@@ -23,6 +23,7 @@
 
 - Implemented: Active mobile tabs now use `mobile/services/navigation-contract.ts` for account-aware labels, hidden routes, prominent tab selection, selected state, and fallback account behavior.
 - Implemented: Active mobile tabs now render as one compact bottom navigation bar with exactly five visible tabs per account, consistent Ionicons, safe-area-aware height, and no Explore placeholder route in the active tab group.
+- Implemented: Deal Desk is no longer registered as an Expo tab and is retained only as a contextual `/deal-desk` route.
 - Implemented: Mobile Home now preserves the bottom tab bar as the only primary navigation system; the Home action row is a compact deep-link surface, not a duplicate persistent nav.
 - Implemented: Active web dashboard navigation now uses `src/lib/navigation/contract.ts` and `src/components/dashboard/navigation.ts` for account-aware labels in `TieredDashboardShell` and mobile web bottom nav.
 - Implemented: Admin navigation is additive: normal workspaces remain the default, and Command Center stays protected by route guards.
@@ -74,6 +75,8 @@
 - Implemented: Automatic Scan keeps pricing, confidence, card metadata, condition, finish, and offer math out of the active camera surface while preserving those data paths for Review List.
 - Implemented: Single Scan adds a manual one-card capture flow that writes to the shared user-scoped scanner session contract.
 - Implemented: Scanner Review List finalization now persists collection-destination lines through the canonical scanner confirmation path into `inventory_items` or the user-scoped offline queue instead of only marking the session locally reviewed.
+- Implemented: Automatic Scan's auto-capture gate now accepts the current ready vision frame as a valid trigger before same-card removal state blocks subsequent captures.
+- Implemented: The active web admin user-management surface can now explicitly save manual membership overrides through the existing `admin_membership_overrides` API path even when the resolved plan already displays the selected tier.
 - Planned: Grid Scan remains intentionally disabled until real multi-card recognition and post-processing are benchmarked.
 - Implemented: The active scanner is now batch-first intake: supported matches add directly to Scanner Session Review, likely/ambiguous rows are Needs review, failed reads do not create unknown rows, and per-card Add/pricing/metadata controls are no longer rendered on the camera surface.
 - Implemented: Magic still-capture OCR now normalizes rotated iPhone captures to the live preview orientation, uses primary/expanded/lower/wide/full-card title OCR fallback regions, exposes development-only crop proof, and keeps failed Retake recovery out of the user-paused camera state.
@@ -131,6 +134,7 @@
 ## Performance Opportunities
 
 - Implemented: Collector Workspace search is debounced, mobile rendering uses `FlatList`, and data loaders cap reads with `COLLECTION_PAGE_SIZE`.
+- Implemented: Mobile Collection search now resolves matching `inventory_locations` IDs in a user-scoped query and includes those locations in the inventory search filter.
 - Planned: Add cursor-based pagination and server-side filter endpoints for large collections.
 - Planned: Audit large client components for bundle size and split heavy dashboard workspaces.
 - Planned: Cache safe public card data with explicit provider limits and invalidation rules.
@@ -168,6 +172,7 @@
 - Implemented: Focused mobile product design tests now verify Wave 1 route source contracts for shell navigation, Home, Scanner, Collection, Card Detail, and Storage Locations.
 - Implemented: Focused mobile product design tests now verify Wave 2 route source contracts and guard Welcome/Plans against fake metrics or unsupported employee-seat claims.
 - Implemented: Focused mobile product design tests now verify Wave 3 docs, admin/settings/recovery/showcase hierarchy, scanner diagnostic gating, and no idempotency details in normal recovery UI.
+- Implemented: Focused Mobile V1 tests cover exactly five tabs, no primary Deal Desk tab, storage-aware collection search, shared physical-binder contract parity, first-ready-frame auto-capture, and admin manual override UI behavior.
 - Planned: Route-level entitlement tests beyond the canonical contract.
 - Planned: Billing webhook tests with signature and idempotency cases.
 - Implemented: Focused RevenueCat membership tests cover Supabase UUID identity, logout/account switching, entitlement precedence, package/product mapping, localized pricing usage, restore/purchase UI contracts, Stripe compatibility language, and no client-side entitlement escalation.
