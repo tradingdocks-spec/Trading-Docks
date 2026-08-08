@@ -22,6 +22,8 @@
 - Implemented: Single Scan now lives at `/scan/single` and uses the same captured-still OCR and scanner session contracts for deliberate one-card capture.
 - Planned: Grid Scan remains a future route contract only; no fake multi-card route is shipped.
 - Implemented: The active Scan screen now uses the premium camera-first hierarchy documented in `docs/SCANNER_PRODUCT_EXPERIENCE.md`: compact header, large camera viewport, Torch/Capture controls, compact result tray, compact session strip, and secondary panels for settings, manual search, and diagnostics.
+- Implemented: `mobile/services/rapid-scan-pipeline.ts` defines Rapid Scan and Precision Scan mode contracts, fixed scan-zone ROIs, card-change state, local Magic name matching, confidence routing, result-tray helpers, batch destination inheritance, and benchmark metrics. See `docs/RAPID_SCAN_PIPELINE.md`.
+- Partially Implemented: Automatic Scan now defaults to the Rapid Scan presentation and suppresses still-photo auto-capture in Rapid mode, but native live-frame title OCR is not yet connected, so real card identity still requires Precision still capture or manual search.
 - Implemented: The active Scan screen uses `mobile/services/scanner-camera-quality.ts` for safe-area-aware guide framing, full-quality still capture options, autofocus, shutter feedback, and iOS responsive captured-still orientation when supported by Expo Camera SDK 54.
 - Implemented: Scanner diagnostics are no longer rendered inline in the normal scanner experience; they remain development-only behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTICS=true`.
 - Implemented: Physical still captures append an honest session outcome even when identification is unavailable, then preserve manual exact-printing confirmation as the write gate.
@@ -48,6 +50,7 @@
 - Partially Implemented: `CameraCaptureProvider` still capture exists through `expo-camera`; native continuous frame processing is a development-build integration target.
 - Implemented: `CardBoundaryProvider` contract exists, and `live-card-recognition.ts` provides a luma-frame implementation for bounds/corners/quality observations. Perspective correction is represented in the crop contract but is not yet producing a corrected bitmap.
 - Partially Implemented: `TextRecognitionProvider` contracts support OCR observations for name, type line, collector info, set code, collector number, language, and rarity. iOS captured-still OCR is implemented through Apple Vision; Android/web remain unsupported and live frame OCR is not connected.
+- Planned: Rapid Scan requires a native frame-to-title-ROI OCR provider before continuous video-frame identity can replace still-photo recognition.
 - Partially Implemented: `ArtworkMatchingProvider` contracts support layout and artwork fingerprint observations. No benchmarked artwork-similarity engine is active yet.
 - Partially Implemented: `SetSymbolProvider` returns set-symbol contracts only; no production set-symbol recognizer is active yet.
 - Implemented: `CollectorInfoProvider` parsing helpers normalize targeted OCR text and parse set code, collector number, language, rarity, and confidence when text observations are supplied.

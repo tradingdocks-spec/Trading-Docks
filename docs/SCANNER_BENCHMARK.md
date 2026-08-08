@@ -12,6 +12,7 @@
 - Implemented: Native scanner calibration diagnostics can record preview, guide, capture, duplicate, recognition, and session outcome state for physical-device QA without logging source images.
 - Implemented: `mobile/services/scanner-benchmark-harness.ts` creates sanitized benchmark run summaries from measured scanner performance samples, including first scan latency, warm scan latency, OCR latency, Scryfall lookup latency, total time until session insertion, camera FPS, preview resolution, capture resolution, fallback count, success rate, review rate, and failure rate.
 - Implemented: `mobile/services/scanner-cache-prewarming.ts` provides bounded TTL caches for public catalog lookup terms and prewarming result reporting for OCR, Scryfall lookup cache, camera frame processor, recognition service, and pricing service.
+- Implemented: `mobile/services/rapid-scan-pipeline.ts` adds code-level Rapid Scan metrics for frame sampling rate, card-presence detection, title crop, OCR, local fuzzy match, identity latency, printing refinement latency, new-card detection latency, and effective cards per minute.
 - Implemented: The default still-capture Scryfall lookup path uses a bounded, non-user-data cache keyed by normalized card name, set code, and collector number.
 - Partially Implemented: Magic has a fixture-driven benchmark runner, report serializers, threshold classes, private local fixture manifest validation, development-only fixture builder, and calibration recommendations, but no labeled Magic-only image dataset has been supplied or executed in this repository.
 - Planned: No game-specific visual fixture dataset or mixed-stack image dataset has been run against the scanner in this repository.
@@ -54,6 +55,7 @@
 - Planned: Manual correction rate.
 - Planned: Failure rate.
 - Planned: Live-frame analyzer latency on physical iOS and Android development builds.
+- Planned: Rapid Scan physical benchmarks must report identity latency, review rate, miss rate, same-card suppression, new-card rearm latency, and cards per minute from real card handling.
 - Planned: Auto-capture false-positive and false-negative rates using real fixture footage.
 - Planned: Native guide/crop alignment, camera-ready timing, card-removal rearm, duplicate suppression, and app-resume behavior must be recorded in `docs/NATIVE_SCANNER_QA.md` before hands-free capture is treated as operational.
 

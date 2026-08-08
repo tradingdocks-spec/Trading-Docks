@@ -75,6 +75,15 @@ import {
   type ScannerPerformanceSample,
 } from '@/services/scanner-performance-instrumentation';
 import {
+  SCANNER_SCAN_MODES,
+  createRapidScanRuntime,
+  nextRapidScanRuntime,
+  rapidScanSamplingRate,
+  scannerScanModeLabel,
+  type RapidScanRuntime,
+  type ScannerScanMode,
+} from '@/services/rapid-scan-pipeline';
+import {
   scannerCameraFraming,
 } from '@/services/scanner-camera-quality';
 import {
@@ -167,8 +176,10 @@ export default function AutomaticScannerScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [context, setContext] = useState<ScannerContext | null>(null);
   const [sessionMode, setSessionMode] = useState<ContinuousScannerMode>(INITIAL_SESSION_MODE);
+  const [scanMode, setScanMode] = useState<ScannerScanMode>('rapid_scan');
   const [session, setSession] = useState<ContinuousScannerSession | null>(null);
   const [autoScanner, setAutoScanner] = useState(() => createContinuousScannerRuntime({ scanId: createScanId() }));
+  const [rapidRuntime, setRapidRuntime] = useState<RapidScanRuntime>(() => createRapidScanRuntime(scannerNow()));
   const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
   const [cameraActive, setCameraActive] = useState(false);
   const [userPausedCamera, setUserPausedCamera] = useState(false);
@@ -366,7 +377,7 @@ export default function AutomaticScannerScreen() {
   });
   const guideMotion = scanner2MotionForState(scanner2State, reduceMotion);
   const scannerHeader = scanner2HeaderModel({
-    modeLabel: scannerModeLabel(sessionMode),
+    modeLabel: scannerScanModeLabel(scanMode),
     cardCount: sessionTotals?.cardsScanned ?? 0,
     marketTotal: sessionTotals?.marketValue ?? null,
     offerTotal: sessionTotals?.cashOffer ?? null,
@@ -376,6 +387,12 @@ export default function AutomaticScannerScreen() {
     cardCount: sessionTotals?.cardsScanned ?? 0,
     reviewCount: sessionTotals?.needsReview ?? 0,
   });
+  const rapidRecentResults = useMemo(() => (session?.lines ?? []).slice(-5).reverse().map((line) => ({
+    id: line.id,
+    cardName: line.cardName,
+    needsReview: line.reviewStatus === 'needs_review',
+    syncState: line.syncState,
+  })), [session]);
   const scannerPerformanceReport = useMemo(
     () => buildScannerPerformanceReport(scannerPerformanceSamples),
     [scannerPerformanceSamples],
@@ -424,13 +441,16 @@ export default function AutomaticScannerScreen() {
     ),
     [autoCaptureReadiness.instruction, autoCaptureReadiness.visualState, autoScanner.lastGuidance, liveVisionResult?.guidance, scannerPipeline],
   );
+  const rapidInstruction = scanMode === 'rapid_scan'
+    ? rapidScannerInstruction(rapidRuntime, autoCaptureReadiness.instruction)
+    : autoCaptureReadiness.instruction;
   const scannerInstruction = scanner2State === 'added' || scanner2State === 'remove_card' || scanner2State === 'failed'
     ? batchScannerInstructionForState(
       scanner2State === 'added' ? 'added'
         : scanner2State === 'remove_card' ? 'remove_card'
           : 'failed',
     )
-    : autoCaptureReadiness.instruction;
+    : rapidInstruction;
   const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showModeSelectionSheet || showCameraSelectionSheet || showCameraInspectorSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
@@ -527,7 +547,18 @@ export default function AutomaticScannerScreen() {
       DEFAULT_SCANNER_VISION_CONFIG.thresholds,
       result.observedAt,
     ));
-  }, [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, context, guideLayout, previewDimensions]);
+    if (scanMode === 'rapid_scan') {
+      setRapidRuntime((current) => {
+        const transition = nextRapidScanRuntime(current, {
+          at: result.observedAt,
+          cardPresent: result.detection.cardPresent,
+          fingerprint: result.crop?.fingerprint ?? null,
+          differenceScore: result.observation.motionScore,
+        });
+        return transition.runtime;
+      });
+    }
+  }, [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, context, guideLayout, previewDimensions, scanMode]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -1022,7 +1053,7 @@ export default function AutomaticScannerScreen() {
       analysis: liveFrameAnalysis,
     });
     if (!shouldTriggerAutomaticCapture({
-      autoCaptureEnabled,
+      autoCaptureEnabled: scanMode === 'precision_scan' && autoCaptureEnabled,
       nativeDecisionOk: decision.ok,
       readinessReady: autoCaptureReadiness.ready,
       visionShouldCapture: liveVisionResult?.shouldCapture,
@@ -1045,6 +1076,7 @@ export default function AutomaticScannerScreen() {
     liveVisionResult?.shouldCapture,
     liveFrameAnalysis,
     permission,
+    scanMode,
     scannerProcessing,
     visualSignals,
   ]);
@@ -1472,12 +1504,13 @@ export default function AutomaticScannerScreen() {
         onCameraMounted={handleCameraMounted}
         onCameraUnmounted={handleCameraUnmounted}
         autoCaptureEnabled={autoCaptureEnabled}
+        scanMode={scanMode}
         hideControls={hideMainControls}
       />
 
       <ScannerHud
         header={scannerHeader}
-        sessionName={scannerModeLabel(sessionMode)}
+        sessionName={`${scannerModeLabel(sessionMode)} - ${rapidScannerSamplingLabel(rapidRuntime)}`}
         topInset={insets.top}
         onClose={() => router.back()}
         onSettings={() => setShowSettingsSheet(true)}
@@ -1514,14 +1547,16 @@ export default function AutomaticScannerScreen() {
         {visibleSurface === 'progress' && recognitionStage === 'finding_card' ? null : null}
 
         {failedResultTray && !showAddedOverlay ? <ScannerFailureOverlay tray={failedResultTray} onRetake={retakeScan} onManualSearch={() => setShowManualSearchSheet(true)} /> : null}
+        {scanMode === 'rapid_scan' && rapidRecentResults.length ? <RapidResultTray results={rapidRecentResults} /> : null}
 
         {showSettingsSheet ? (
           <TDCard style={s.sheet}>
             <SheetHeader title="Scanner settings" onClose={() => setShowSettingsSheet(false)} />
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.sheetScroll, { paddingBottom: insets.bottom + 92 }]}>
+              <OptionRow label="Scan Mode" options={SCANNER_SCAN_MODES} value={scanMode} display={scannerScanModeLabel} onSelect={setScanMode} compact />
               <SettingsRow label="Mode" value={scannerModeLabel(sessionMode)} onPress={() => setShowModeSelectionSheet(true)} />
               <SettingsRow label="Camera" value={selectedCameraLensLabel} onPress={() => setShowCameraSelectionSheet(true)} />
-              <ToggleRow label="Auto Capture" enabled={autoCaptureEnabled} onToggle={() => setAutoCaptureEnabled((value) => !value)} />
+              <ToggleRow label="Auto Capture" enabled={scanMode === 'precision_scan' && autoCaptureEnabled} disabled={scanMode !== 'precision_scan'} onToggle={() => setAutoCaptureEnabled((value) => !value)} />
               <OptionRow label="Default condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} compact />
               <TDInput label="Cash Offer" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
               <ToggleRow label="Sound" enabled={soundEnabled} onToggle={() => setSoundEnabled((value) => !value)} />
@@ -1915,6 +1950,7 @@ function ScannerViewport({
   onCameraMounted,
   onCameraUnmounted,
   autoCaptureEnabled,
+  scanMode,
   hideControls,
 }: {
   cameraRef: RefObject<ScannerCameraHandle | null>;
@@ -1954,6 +1990,7 @@ function ScannerViewport({
   onCameraMounted: () => void;
   onCameraUnmounted: () => void;
   autoCaptureEnabled: boolean;
+  scanMode: ScannerScanMode;
   hideControls: boolean;
 }) {
   const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
@@ -2011,6 +2048,7 @@ function ScannerViewport({
         onToggleTorch={onToggleTorch}
         onCapture={onCapture}
         autoCaptureEnabled={autoCaptureEnabled}
+        scanMode={scanMode}
         hidden={hideControls}
       />
     </View>
@@ -2077,6 +2115,7 @@ function ScannerControls({
   onToggleTorch,
   onCapture,
   autoCaptureEnabled,
+  scanMode,
   hidden,
 }: {
   torchEnabled: boolean;
@@ -2086,6 +2125,7 @@ function ScannerControls({
   onToggleTorch: () => void;
   onCapture: () => void;
   autoCaptureEnabled: boolean;
+  scanMode: ScannerScanMode;
   hidden: boolean;
 }) {
   const controls = scanner2MainControls();
@@ -2094,6 +2134,7 @@ function ScannerControls({
     <View style={s.cameraControls}>
       {controls.map((control) => {
         if (control === 'torch') return <IconControl key={control} label={torchSupported ? (torchEnabled ? 'Turn torch off' : 'Turn torch on') : 'Torch unavailable on this camera'} icon={torchEnabled ? 'flash' : 'flash-outline'} disabled={!torchSupported} onPress={onToggleTorch} />;
+        if (control === 'capture' && scanMode === 'rapid_scan') return null;
         if (control === 'capture') return <IconControl key={control} label={autoCaptureEnabled ? 'Capture fallback' : 'Capture card'} icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />;
         return null;
       })}
@@ -2113,6 +2154,25 @@ function ScannerFailureOverlay({ onRetake, onManualSearch }: { tray: NonNullable
         <TDButton label="Retake" variant="secondary" onPress={onRetake} />
         <TDButton label="Search" variant="secondary" onPress={onManualSearch} />
       </View>
+    </View>
+  );
+}
+
+function RapidResultTray({ results }: { results: { id: string; cardName: string; needsReview: boolean; syncState: string }[] }) {
+  return (
+    <View accessible accessibilityLabel="Recent rapid scan results" style={s.rapidResultTray}>
+      {results.map((result) => (
+        <View key={result.id} style={s.rapidResultPill}>
+          <Ionicons
+            name={result.needsReview ? 'alert-circle-outline' : 'checkmark-circle-outline'}
+            size={15}
+            color={result.needsReview ? color.warning : color.success}
+          />
+          <TDText variant="caption" numberOfLines={1} style={s.rapidResultName}>{result.cardName}</TDText>
+          {result.needsReview ? <TDText variant="caption" tone="warning">Review</TDText> : null}
+          {result.syncState !== 'synced' ? <TDText variant="caption" tone="muted">{result.syncState.replaceAll('_', ' ')}</TDText> : null}
+        </View>
+      ))}
     </View>
   );
 }
@@ -2210,7 +2270,7 @@ function ToggleRow({ label, enabled, disabled = false, onToggle }: { label: stri
   );
 }
 
-function OptionRow<T extends string>({ label, options, value, display, onSelect, compact = false }: { label: string; options: T[]; value: T; display: (value: T) => string; onSelect: (value: T) => void; compact?: boolean }) {
+function OptionRow<T extends string>({ label, options, value, display, onSelect, compact = false }: { label: string; options: readonly T[]; value: T; display: (value: T) => string; onSelect: (value: T) => void; compact?: boolean }) {
   return (
     <View style={[s.optionGroup, compact && s.optionGroupCompact]}>
       <TDText variant="label" tone="muted">{label}</TDText>
@@ -2349,6 +2409,18 @@ function performanceFps(value: number | null) {
   return value === null ? 'unavailable' : `${value} fps`;
 }
 
+function rapidScannerInstruction(runtime: RapidScanRuntime, fallback: string) {
+  if (runtime.state === 'empty') return fallback;
+  if (runtime.state === 'card_present' || runtime.state === 'new_card') return 'Hold in the scan zone';
+  if (runtime.state === 'identifying') return 'Reading title zone';
+  if (runtime.state === 'identified' || runtime.state === 'waiting_for_change') return 'Remove card for the next scan';
+  return fallback;
+}
+
+function rapidScannerSamplingLabel(runtime: RapidScanRuntime) {
+  return `${rapidScanSamplingRate(runtime.state)} fps target`;
+}
+
 function priceTraceValue(value: number | null | undefined) {
   return typeof value === 'number' ? `$${value.toFixed(2)}` : 'unavailable';
 }
@@ -2451,6 +2523,9 @@ const s = StyleSheet.create({
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
   cameraScrimTop: { position: 'absolute', top: '23%', left: space.lg, right: space.lg, alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, backgroundColor: color.canvas + '22', zIndex: 20 },
   guideMessage: { textAlign: 'center' },
+  rapidResultTray: { alignSelf: 'stretch', gap: space.xs },
+  rapidResultPill: { minHeight: 34, borderRadius: radius.pill, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surfaceFloating + 'E6', borderWidth: 1, borderColor: color.border },
+  rapidResultName: { flex: 1, minWidth: 0 },
   premiumGuide: { position: 'absolute' },
   guidePulse: { opacity: 0.96 },
   guideBracket: { position: 'absolute', top: 0, left: 0, width: 52, height: 52, borderTopWidth: 4, borderLeftWidth: 4, borderColor: color.info, borderTopLeftRadius: radius.md },

@@ -84,6 +84,8 @@ Do not add new production features until the foundation items below are reviewed
 - Implemented: Extend mobile Collection search to include user-scoped storage-location name matches.
 - Implemented: Establish a shared physical-binder contract for mobile and Headquarters without creating a separate mobile-only binder system.
 - Implemented: Repair the Automatic Scan trigger so the first ready vision frame can invoke capture before same-card removal state blocks duplicate re-scan.
+- Implemented: Establish Rapid Scan and Precision Scan throughput contracts with a Rapid card-change state machine, fixed title/bottom-left ROIs, local Magic name index matching, confidence routing, result-tray helpers, destination inheritance, and benchmark metrics.
+- Partially Implemented: Rapid Scan is now the active Automatic Scan presentation, but true continuous video-frame card identity remains blocked until native frame-title OCR and physical benchmark validation are completed.
 - Partially Implemented: Mobile/web data parity is audited in `docs/MOBILE_WEB_DATA_PARITY.md`; mobile Collection/Trade Binder/Wishlist/Storage use shared Supabase tables, and scanner Review List finalization now writes collection-destination lines through the canonical backend confirmation path.
 - Implemented: Mobile inventory remains the V1 product center with Home art-piece composition, scan destination selection, Card Show percentage mode, physical binder UI/share creation/revocation, hierarchy breadcrumbs, and compact scanner benchmark export.
 - Requires Production Configuration: Physical scanner performance budgets remain follow-up work until measured iOS/Android runs are collected.

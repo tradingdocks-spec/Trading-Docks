@@ -6,7 +6,13 @@ export type BoundedTtlCacheOptions = {
   now?: () => number;
 };
 
-export type ScannerPrewarmTarget = 'ocr_provider' | 'scryfall_lookup_cache' | 'camera_frame_processor' | 'recognition_service' | 'pricing_service';
+export type ScannerPrewarmTarget =
+  | 'ocr_provider'
+  | 'scryfall_lookup_cache'
+  | 'camera_frame_processor'
+  | 'recognition_service'
+  | 'pricing_service'
+  | 'local_name_index';
 
 export type ScannerPrewarmResult = {
   target: ScannerPrewarmTarget;
