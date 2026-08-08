@@ -139,7 +139,7 @@ function HomeHero({
   return (
     <View style={s.heroShell}>
       <View style={s.heroBackplate} />
-      <DockSurface level="raised" tone={state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'neutral'} style={s.hero}>
+      <DockSurface material="activeInstrument" level="raised" tone={state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'neutral'} style={s.hero}>
         <View style={s.heroLight} />
         <DockHeader
           eyebrow={eyebrow}
@@ -165,7 +165,7 @@ function QuickActions({ actions }: { actions: HomeAction[] }) {
   const primary = actions[0];
   const secondary = actions.slice(1);
   return (
-    <DockSurface accessibilityLabel="Primary workspace actions" level="raised" style={s.quickActions}>
+    <DockSurface accessibilityLabel="Primary workspace actions" material="raisedControl" level="raised" style={s.quickActions}>
       <DockAction
         label={primary.label}
         iconName={primary.icon as keyof typeof Ionicons.glyphMap}
@@ -241,7 +241,7 @@ function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
 function EmptyCollectionHero({ loading }: { loading: boolean }) {
   if (loading) return <TDSkeleton lines={3} style={s.emptySkeleton} />;
   return (
-    <DockTray style={s.emptyCard}>
+      <DockTray style={s.emptyCard}>
       <View style={s.emptyIcon}>
         <Ionicons name="scan-outline" size={24} color={color.primaryBright} />
       </View>
@@ -314,7 +314,7 @@ const s = StyleSheet.create({
   header: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   headerTitle: { flex: 1, minWidth: 0 },
   flex: { flex: 1, minWidth: 0 },
-  heroShell: { minHeight: 212, justifyContent: 'center' },
+  heroShell: { minHeight: 224, justifyContent: 'center' },
   heroBackplate: {
     position: 'absolute',
     left: 12,
@@ -323,14 +323,14 @@ const s = StyleSheet.create({
     bottom: 0,
     borderRadius: radius.xl,
     backgroundColor: color.canvasRaised,
-    opacity: 0.82,
+    opacity: 0.74,
     transform: [{ translateY: 8 }],
   },
   hero: {
     gap: space.md,
     padding: space.md,
     overflow: 'hidden',
-    borderTopColor: color.primaryBright + '38',
+    borderTopColor: color.primaryBright + '44',
     borderBottomColor: '#00000088',
   },
   heroLight: {
@@ -340,7 +340,7 @@ const s = StyleSheet.create({
     top: -80,
     height: 150,
     borderRadius: 150,
-    backgroundColor: color.primaryBright + '18',
+    backgroundColor: color.primaryBright + '1C',
   },
   instrumentFace: {
     minHeight: 110,
@@ -352,13 +352,17 @@ const s = StyleSheet.create({
     borderBottomColor: '#00000099',
     padding: space.md,
     justifyContent: 'center',
-    backgroundColor: color.canvas + 'A8',
+    backgroundColor: color.canvas + 'B8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
   },
   heroValue: { marginTop: space.xs, textShadowColor: color.primaryBright + '24', textShadowRadius: 18 },
   heroSkeleton: { marginTop: space.sm },
   quickActions: { gap: 0, padding: space.xs, overflow: 'hidden' },
-  scanAction: { minHeight: 60, marginBottom: space.xs },
-  actionRail: { borderTopWidth: 1, borderTopColor: color.border, paddingTop: space.xs },
+  scanAction: { minHeight: 62, marginBottom: space.xs, borderBottomColor: '#00000088' },
+  actionRail: { borderTopWidth: 1, borderTopColor: color.primaryBright + '18', paddingTop: space.xs },
   recentList: { gap: space.sm, paddingRight: space.md },
   recentCard: { width: 148, gap: 5 },
   cardImageFrame: { height: 198, overflow: 'hidden', borderRadius: radius.sm, backgroundColor: color.surface },

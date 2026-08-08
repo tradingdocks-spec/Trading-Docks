@@ -207,7 +207,7 @@ test('mobile collector navigation uses canonical release labels and selected sta
     'Home',
     'Collection',
     'Scan',
-    'Intelligence',
+    'Decks',
     'Account',
   ]);
   assert.equal(getMobileTabOptions('collector', 'scan').href, undefined);
@@ -219,7 +219,7 @@ test('mobile seller navigation keeps Scan primary and Deal Desk contextual', () 
     'Home',
     'Collection',
     'Scan',
-    'Intelligence',
+    'Decks',
     'Account',
   ]);
   assert.equal(getMobileTabOptions('seller', 'scan').href, undefined);
@@ -231,7 +231,7 @@ test('mobile store navigation keeps the same five primary destinations', () => {
     'Home',
     'Collection',
     'Scan',
-    'Intelligence',
+    'Decks',
     'Account',
   ]);
 });
@@ -264,7 +264,7 @@ test('missing mobile account type falls back to collector-safe free navigation',
     'Home',
     'Collection',
     'Scan',
-    'Intelligence',
+    'Decks',
     'Account',
   ]);
 });

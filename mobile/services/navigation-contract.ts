@@ -24,7 +24,7 @@ const COLLECTOR_TABS: MobileTabDefinition[] = [
   { route: 'index', label: 'Home', icon: 'home', inactiveIcon: 'home-outline' },
   { route: 'collection', label: 'Collection', icon: 'layers', inactiveIcon: 'layers-outline' },
   { route: 'scan', label: 'Scan', icon: 'scan', inactiveIcon: 'scan-outline', prominent: true },
-  { route: 'sell', label: 'Intelligence', icon: 'pulse', inactiveIcon: 'pulse-outline' },
+  { route: 'sell', label: 'Decks', icon: 'albums', inactiveIcon: 'albums-outline' },
   { route: 'profile', label: 'Account', icon: 'person', inactiveIcon: 'person-outline' },
 ];
 

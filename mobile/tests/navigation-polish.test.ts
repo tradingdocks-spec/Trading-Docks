@@ -67,15 +67,23 @@ test('center action remains Scan for every account type and Deal Desk is context
   }
 });
 
-test('Mobile V1 primary tab labels are Home Collection Scan Intelligence Account', () => {
+test('Mobile V3 primary tab labels are Home Collection Scan Decks Account', () => {
   for (const accountType of accountTypes) {
     assert.deepEqual(getMobileTabs(accountType).map((tab) => tab.label), [
       'Home',
       'Collection',
       'Scan',
-      'Intelligence',
+      'Decks',
       'Account',
     ]);
+  }
+});
+
+test('Intelligence is not a standalone primary tab', () => {
+  for (const accountType of accountTypes) {
+    const tabs = getMobileTabs(accountType);
+    assert.equal(tabs.some((tab) => tab.label === 'Intelligence'), false);
+    assert.equal(tabs.some((tab) => tab.icon === 'pulse' || tab.inactiveIcon === 'pulse-outline'), false);
   }
 });
 
