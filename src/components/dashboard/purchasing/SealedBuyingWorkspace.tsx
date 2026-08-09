@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useEffect,
   useMemo,
@@ -12,11 +13,13 @@ import {
   Minus,
   PackageCheck,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   ShieldAlert,
   Trash2,
 } from "lucide-react";
+import { labelStudioHref } from "@/lib/label-studio/routes";
 
 type SealedProduct = {
   productId: number;
@@ -705,6 +708,14 @@ export function SealedBuyingWorkspace() {
               >
                 Purchase and send to intake
               </button>
+              <Link
+                href={labelStudioHref("sealed-inventory", "print-labels")}
+                className={`mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.055] text-[9px] font-semibold text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/[0.09] ${lines.length ? "" : "pointer-events-none opacity-40"}`}
+                aria-disabled={!lines.length}
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Print Labels
+              </Link>
             </section>
 
             <section className="rounded-[24px] border border-white/[0.07] bg-[#06141f] p-5">

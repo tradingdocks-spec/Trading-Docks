@@ -266,6 +266,9 @@ The seed script covers:
 Run these against staging after the proposal is applied.
 
 - Label Studio: route loads for a Seller/Store workspace user with `label.view`.
+- Label Studio: Operations navigation exposes `Operations` -> `Label Studio`; Selling navigation does not own the Label Studio entry.
+- Label Studio: `/dashboard/label-studio` is the only canonical Label Studio route.
+- Label Studio: Inventory, Card Shows, Sealed Inventory, and future POS entry points open contextual flows into `/dashboard/label-studio` instead of separate builders.
 - Label Studio: manager can create or preview a template once persistence is wired.
 - Label Studio: member can view templates but cannot manage template definitions.
 - Bulk print preview: 250-label render job records summary counts without storing full repeated label payloads.

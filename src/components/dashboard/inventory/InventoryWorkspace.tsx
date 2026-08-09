@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -30,6 +31,7 @@ import {
   PackageCheck,
   PackageOpen,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   Settings2,
@@ -65,6 +67,7 @@ import {
   type InventoryFinish,
   type SelectedPrinting,
 } from "./PrintingSelector";
+import { labelStudioHref } from "@/lib/label-studio/routes";
 
 type LocationType =
   | "chaos"
@@ -3176,6 +3179,7 @@ function PutAwayDrawer({
             <div className="flex items-center justify-between"><p className="text-[9px] font-semibold text-amber-100">{selectedIds.length} selected · {currency(selectedValue)}</p><button type="button" onClick={() => setSelectedIds([])} className="text-[8px] font-semibold text-slate-500 hover:text-slate-300">Clear</button></div>
             <div className="mt-3 flex gap-2">
               <label className="relative min-w-0 flex-1"><select value={bulkDestination} onChange={(event) => setBulkDestination(event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-white/[0.08] bg-[#050e15] px-3 pr-8 text-[9px] text-slate-300"><option value="">Choose destination…</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-600" /></label>
+              <Link href={labelStudioHref("inventory", "print-labels", selectedIds)} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.055] px-3.5 text-[9px] font-semibold text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.09]"><Printer className="h-3 w-3" /> Print Labels</Link>
               <button type="button" disabled={!bulkDestination} onClick={fileSelected} className="h-10 rounded-xl bg-amber-300 px-4 text-[9px] font-bold text-[#211505] disabled:opacity-35">File selected</button>
             </div>
             <p className="mt-2 text-[8px] text-slate-600">Binder destinations use the first available pockets and safely stop if capacity is reached.</p>

@@ -223,12 +223,12 @@ Implemented this checkpoint:
 1. Added shared SKU, QR token, sanitized QR view, label template, pricing rule, bulk print, repricing, and POS lookup contracts.
 2. Added a Headquarters Label Studio foundation route at `/dashboard/label-studio`.
 3. Registered Label Studio and POS-related permissions in the platform capability registry.
-4. Documented the required migration proposal before QR, label template, and print job persistence can be production-authoritative.
+4. Wired the staging-applied schema into `/api/label-studio`, `/dashboard/label-studio`, and public `/q/{token}` resolution for browser review.
+5. Confirmed product placement: Label Studio belongs under `Operations` -> `Label Studio` using `label.view`, while Inventory, Card Shows, Sealed Inventory, and future POS remain contextual entry points into `/dashboard/label-studio`.
 
 Recommended next checkpoint:
 
-1. Review and approve the `inventory_identity`, `label_templates`, `label_print_jobs`, and `inventory_price_reviews` migration plan.
-2. Add server QR resolution at `/q/{token}` with public sanitization and authenticated employee action routing.
-3. Add browser print CSS against selected physical label stock.
-4. Connect Inventory bulk selection to Label Studio preview and print.
-5. Add mobile QR scanner mode as a separate scan mode without changing card recognition.
+1. Complete staging browser review for template persistence, template reload, real SKU/QR generation, public QR resolution, QR disabled/revoked behavior, bulk labels, browser printing, print-job persistence, repricing review, and cross-workspace denial.
+2. Validate print CSS on representative label stock and store printer settings.
+3. Approve production rollout only after staging environment and Supabase project targeting are verified.
+4. Add mobile QR scanner mode as a separate scan mode without changing card recognition.

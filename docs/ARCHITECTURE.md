@@ -290,9 +290,11 @@ Status: Partially Implemented
 ## Label Studio And Inventory QR Architecture
 
 - Implemented: Shared SKU, QR, label-template, bulk-render, repricing, and future POS contracts live in `src/lib/label-studio`.
-- Implemented: Headquarters exposes `/dashboard/label-studio` as a foundation preview for workspace label templates and physical label rendering.
+- Implemented: Headquarters exposes `/dashboard/label-studio` as the canonical Operations Label Studio workspace for staging-backed template persistence, inventory label identity resolution, QR labels, barcode labels, repricing review, and browser print-job audit records.
 - Implemented: Label Studio capabilities are registered in the shared platform-access model: `label.view`, `label.manage_templates`, `label.print`, `inventory.reprice`, and `pos.sell`.
 - Implemented: Public QR view helpers strip cost basis, internal database ids, private notes, and customer/store-private fields before returning customer-facing data.
-- Partially Implemented: Current inventory persistence has `inventory_items.sku`, but no workspace-scoped unique SKU constraint, QR token table, token revocation, label template table, or print job table.
-- Planned: Add the reviewed migration described in `docs/INVENTORY_QR_ARCHITECTURE.md` before persisting labels, QR tokens, public QR routes, or POS scan actions.
+- Implemented: Product navigation places Label Studio under `Operations` -> `Label Studio`, gated by `label.view`; it does not live under Selling.
+- Implemented: `/dashboard/label-studio` remains the only canonical Label Studio route. Inventory, Card Shows, Sealed Inventory, and future POS launch contextual print flows into that route instead of owning separate label builders.
+- Partially Implemented: The staging-applied Label Studio migration provides workspace-scoped SKUs, QR identities, token revocation, label templates, print jobs, and repricing review. Production persistence still requires explicit rollout approval and environment verification.
+- Implemented: `/q/{token}` resolves through the sanitized public Supabase function and does not expose inventory ids, workspace ids, cost basis, suppliers, storage locations, or private notes.
 - Planned: Mobile QR scanner mode should be added later as a separate scanner-mode integration that does not alter card recognition architecture.

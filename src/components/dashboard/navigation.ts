@@ -29,6 +29,7 @@ import {
   ScanLine,
   ShieldCheck,
   Store,
+  Tags,
   Trophy,
   Truck,
   Users,
@@ -38,6 +39,7 @@ import {
 
 import { WEB_NAVIGATION_CONTRACT } from "@/lib/navigation/contract";
 import { normalizeAccountTier } from "@/lib/plan-entitlements";
+import { LABEL_STUDIO_ROUTE } from "@/lib/label-studio/routes";
 
 export type NavigationItem = {
   href: string;
@@ -217,6 +219,7 @@ export const OPERATIONS_NAV: NavigationSection = {
     { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
     { href: "/dashboard/tournaments", label: "Tournaments", icon: Trophy },
     { href: "/dashboard/vendors", label: "Vendors", icon: Truck },
+    { href: LABEL_STUDIO_ROUTE, label: "Label Studio", icon: Tags },
     { href: "/dashboard/supplies", label: "Supply Orders", icon: Gem },
     { href: "/dashboard/employees", label: "Employees", icon: Users },
     { href: "/dashboard/payroll", label: "Payroll", icon: CircleDollarSign },
@@ -302,6 +305,7 @@ const ICON_BY_LABEL = {
   Employees: Users,
   Customers: ContactRound,
   Operations: BriefcaseBusiness,
+  "Label Studio": Tags,
   "Command Center": ShieldCheck,
   Users,
   Subscriptions: Gem,
@@ -342,6 +346,13 @@ export function getAccountAwareNavigationGroups(
         })
         .map(itemForContractEntry)
     : [];
+  const operationsItems = [
+    {
+      href: LABEL_STUDIO_ROUTE,
+      label: "Label Studio",
+      icon: Tags,
+    },
+  ];
 
   return [
     {
@@ -349,6 +360,9 @@ export function getAccountAwareNavigationGroups(
       label: tier === "store" ? "Store" : "Workspace",
       items: workspaceItems,
     },
+    ...(operationsItems.length
+      ? [{ id: "operations", label: "Operations", items: operationsItems }]
+      : []),
     ...(adminItems.length
       ? [{ id: "admin", label: "Admin", items: adminItems }]
       : []),

@@ -139,6 +139,11 @@ test("representative route registry maps public auth tier and platform routes", 
   assert.equal(hasRouteAccess(collector, "/dashboard/inventory"), true);
   assert.equal(hasRouteAccess(collector, "/dashboard/orders"), false);
   assert.equal(hasRouteAccess(seller, "/dashboard/orders"), true);
+  const labelStudioRouteRule = routeAccessRuleForPath("/dashboard/label-studio");
+  assert.equal(labelStudioRouteRule?.kind, "capability");
+  assert.equal(labelStudioRouteRule?.kind === "capability" ? labelStudioRouteRule.capability : null, "label.view");
+  assert.equal(hasRouteAccess(collector, "/dashboard/label-studio"), false);
+  assert.equal(hasRouteAccess(seller, "/dashboard/label-studio"), true);
   assert.equal(hasRouteAccess(seller, "/dashboard/employees"), false);
   assert.equal(hasRouteAccess(storeOwner, "/dashboard/employees"), true);
   assert.equal(hasRouteAccess(admin, "/dashboard/admin"), true);
@@ -156,6 +161,24 @@ test("navigation visibility server route access and API decisions agree", () => 
   assert.equal(hasRouteAccess(collectorClient, "/dashboard/orders"), false);
   assert.equal(apiCapabilityDecision(collectorClient, "orders.manage").status, 403);
   assert.equal(requiredMembershipForRoute("/dashboard/orders"), "seller");
+});
+
+test("Label Studio is an Operations navigation item gated by route access", () => {
+  const navigationSource = readFileSync(path.join(repoRoot, "src/components/dashboard/navigation.ts"), "utf8");
+  const sidebarSource = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredSidebar.tsx"), "utf8");
+  const sellerClient = clientAccessFromTier("seller", { workspaceRole: "member" });
+  const collectorClient = clientAccessFromTier("collector");
+  const sellingNavStart = navigationSource.indexOf("export const SELLING_NAV");
+  const operationsNavStart = navigationSource.indexOf("export const OPERATIONS_NAV");
+  const sellingNavBlock = navigationSource.slice(sellingNavStart, operationsNavStart);
+
+  assert.match(navigationSource, /label:\s*"Operations"[\s\S]*label:\s*"Label Studio"/);
+  assert.doesNotMatch(sellingNavBlock, /label:\s*"Label Studio"/);
+  assert.match(sidebarSource, /item\.href === LABEL_STUDIO_ROUTE && !allowed/);
+  assert.equal(hasRouteAccess(sellerClient, "/dashboard/label-studio"), true);
+  assert.equal(hasRouteAccess(collectorClient, "/dashboard/label-studio"), false);
+  const operationsRouteRule = routeAccessRuleForPath("/dashboard/label-studio");
+  assert.equal(operationsRouteRule?.kind === "capability" ? operationsRouteRule.capability : null, "label.view");
 });
 
 test("all dashboard page routes are explicitly classified", () => {

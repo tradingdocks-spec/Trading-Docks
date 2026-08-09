@@ -28,6 +28,7 @@ import {
   type ClientSafePlatformAccess,
 } from "@/lib/platform/client-access";
 import { requiredMembershipLabelForRoute } from "@/lib/platform/route-access";
+import { LABEL_STUDIO_ROUTE } from "@/lib/label-studio/routes";
 
 type SidebarProps = {
   accountType: string;
@@ -223,6 +224,8 @@ function NavigationRow({
       ? pathname === item.href
       : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
+
+  if (item.href === LABEL_STUDIO_ROUTE && !allowed) return null;
 
   return (
     <Link

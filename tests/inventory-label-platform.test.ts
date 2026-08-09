@@ -20,7 +20,12 @@ import {
   validateLabelTemplate,
 } from "../src/lib/label-studio/label-templates.ts";
 import { buildBulkLabelRenderJob, detectRepricingVariance } from "../src/lib/label-studio/label-workflow.ts";
-import { buildPosCartItemContract, classifyPosLookupInput } from "../src/lib/label-studio/pos-identity.ts";
+import {
+  buildPosCartItemContract,
+  classifyPosLookupInput,
+  POS_REPRINT_LABEL_STUDIO_HREF,
+} from "../src/lib/label-studio/pos-identity.ts";
+import { LABEL_STUDIO_ROUTE, labelStudioHref } from "../src/lib/label-studio/routes.ts";
 import { clientAccessFromTier, hasCapability } from "../mobile/services/platform-access.ts";
 import { hasRouteAccess } from "../src/lib/platform/route-access.ts";
 
@@ -218,4 +223,26 @@ test("Label Studio permissions come from shared platform access", () => {
   assert.equal(hasCapability(sellerMember, "label.manage_templates"), false);
   assert.equal(hasCapability(sellerManager, "label.manage_templates"), true);
   assert.equal(hasRouteAccess(sellerMember, "/dashboard/label-studio"), true);
+});
+
+test("Label Studio has one canonical route with contextual entry links", () => {
+  assert.equal(LABEL_STUDIO_ROUTE, "/dashboard/label-studio");
+  assert.equal(labelStudioHref(), "/dashboard/label-studio");
+  assert.equal(
+    labelStudioHref("inventory", "print-labels"),
+    "/dashboard/label-studio?source=inventory&mode=print-labels",
+  );
+  assert.equal(
+    labelStudioHref("card-shows", "show-labels"),
+    "/dashboard/label-studio?source=card-shows&mode=show-labels",
+  );
+  assert.equal(
+    labelStudioHref("sealed-inventory", "print-labels"),
+    "/dashboard/label-studio?source=sealed-inventory&mode=print-labels",
+  );
+  assert.equal(POS_REPRINT_LABEL_STUDIO_HREF, "/dashboard/label-studio?source=pos&mode=reprint-label");
+  assert.equal(
+    labelStudioHref("inventory", "print-labels", ["item-1", "item-1", "../bad", "item-2"]),
+    "/dashboard/label-studio?source=inventory&mode=print-labels&ids=item-1%2Citem-2",
+  );
 });

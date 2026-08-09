@@ -1,4 +1,7 @@
 import { isTradingDocksSku, type QrInventoryAction } from "./inventory-identity.ts";
+import { labelStudioHref } from "./routes.ts";
+
+export const POS_REPRINT_LABEL_STUDIO_HREF = labelStudioHref("pos", "reprint-label");
 
 export type PosLookupInputKind =
   | "trading_docks_qr"

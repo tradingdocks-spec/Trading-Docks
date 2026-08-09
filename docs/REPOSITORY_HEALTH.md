@@ -356,19 +356,19 @@ Implemented improvements:
 
 - Added typed platform contracts for workspace-scoped SKUs, QR tokens, sanitized public views, label templates, bulk print rendering, repricing review, and POS lookup identity.
 - Added `Label Studio` route classification and shared capability names instead of ad hoc plan checks.
-- Added documentation for exact schema additions required before migration review.
+- Wired the staging-applied schema into the web Label Studio API, public QR route, and browser printing flow.
 
 Remaining risks:
 
 - Active inventory is still user-owned, while Store Label Studio workflows require workspace-owned inventory identity.
-- `inventory_items.sku` exists but does not yet have workspace uniqueness or QR token rotation/revocation.
-- The public `/q/{token}` route is documented but not implemented until the schema is reviewed.
+- Production still needs explicit approval before relying on the staging-applied workspace SKU, QR token, template, print-job, and repricing schema.
+- The public `/q/{token}` route is implemented through the sanitized Supabase resolver for staging review; disabled/revoked QR behavior still needs browser QA.
 - Browser printing still needs real label-stock QA for pagination, margins, scaling, and roll/sheet output.
 - Mobile QR mode and future POS mutations require server-side authorization and should not be built as UI-only guards.
 
 Recommended next stabilization task:
 
-1. Approve and stage the Label Studio migration proposal.
+1. Complete staging browser QA for Label Studio persistence, QR resolution, print jobs, repricing review, and cross-workspace denial.
 2. Add QR route-handler integration tests for public, employee, cross-workspace, revoked-token, and missing-token behavior.
 3. Verify Label Studio print CSS on representative 2 x 1, 3 x 2, and 4 x 2 label stock.
-4. Map legacy inventory components that already expose SKU-like fields before enabling bulk print actions.
+4. Map legacy inventory components that already expose SKU-like fields before production bulk print rollout.
