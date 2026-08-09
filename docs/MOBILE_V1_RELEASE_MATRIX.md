@@ -25,9 +25,8 @@ Status: Implemented
 | Storage locations | Yes | Yes | Passed automated | Mobile V1 collection organization surface. |
 | Trade Binder | Yes | Yes | Passed automated | No marketplace workflow exposed. |
 | Wishlist | Yes | Yes | Passed automated | Matching remains local to owned binder/wishlist records. |
-| Scan hub | Yes | Yes | Passed automated | Routes to automatic, single, and review only. |
-| Automatic Scan | Yes | Yes | Physical required | Native camera/OCR path needs final device pass. |
-| Single Scan | Yes | Yes | Physical required | Result sheet and add flow require physical pass. |
+| Scan hub | Yes | Yes | Passed automated | Routes to the unified scanner and Review List only. |
+| Trading Docks Scanner | Yes | Yes | Physical required | Auto Scan OFF and ON share the same native camera/OCR path and need final device pass. |
 | Scanner Session / Review List | Yes | Yes | Physical required | Must verify final item appears in Collection after device scan. |
 | Scanner Recovery | Yes | Yes | Passed automated | Offline/replay tests cover user isolation and recovery states. |
 | Intelligence | Yes | Yes | Passed automated | Uses current loaded collection/session data only. |
@@ -49,8 +48,7 @@ Status: Implemented
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Home | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical |
 | Collection | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical |
-| Automatic Scan | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical |
-| Single Scan | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical |
+| Trading Docks Scanner | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical |
 | Scanner Review | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical |
 | Plans / RevenueCat | Physical | Physical | Physical | Physical | Physical | Physical | Blocked without StoreKit scenario | Physical | Physical | Physical |
 | Profile / Settings | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical | Physical |

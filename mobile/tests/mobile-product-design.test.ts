@@ -153,8 +153,8 @@ test('Wave 1 routes consume mobile design OS primitives for high-traffic surface
   assert.match(home, /QuickActions/);
   assert.match(home, /RecentAddsCarousel/);
   assert.equal(home.includes('TDListRow'), false);
-  assert.match(scanModes, /Automatic Scan/);
-  assert.match(scanModes, /Start scanning/);
+  assert.match(scanModes, /Trading Docks Scanner/);
+  assert.match(scanModes, /Open scanner/);
   assert.match(automaticScanner, /batchScannerReviewChipModel/);
   assert.match(automaticScanner, /TDSessionStrip/);
   assert.match(collection, /TDInput[\s\S]*Search collection/);
@@ -184,7 +184,7 @@ test('release polish pass removes beta copy and elevates primary scanner and inv
 
   assert.match(scanModes, /PrimaryScanMode/);
   assert.match(scanModes, /Place card\. Hold steady\. Review exact printing\./);
-  assert.match(scanModes, /Start scanning/);
+  assert.match(scanModes, /Open scanner/);
 
   assert.match(decks, /Deck Vault/);
   assert.match(decks, /loadMobileDeckVault/);
@@ -211,14 +211,14 @@ test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', 
   assert.match(collection, /DockMetric[\s\S]*Owned/);
   assert.match(collection, /DockCardWell/);
   assert.match(scanModes, /DockSurface[\s\S]*PrimaryScanMode/);
-  assert.match(scanModes, /DockAction label="Single Scan"/);
+  assert.doesNotMatch(scanModes, /DockAction label="Single Scan"/);
   assert.doesNotMatch(scanModes, /scanModeRows/);
   assert.doesNotMatch(scanModes, /function ScanModeRow/);
   assert.match(decks, /DockMetric label="Decks"/);
   assert.match(decks, /DockMetric label="Value"/);
   assert.doesNotMatch(decks, /value="Soon"/);
   assert.match(profile, /DockSurface[\s\S]*Manage Membership/);
-  assert.match(singleScan, /DockSurface level="raised" style=\{s\.resultSheet\}/);
-  assert.match(singleScan, /DockCardWell lifted/);
-  assert.match(singleScan, /Offer/);
+  assert.match(singleScan, /UnifiedScannerScreen/);
+  assert.match(singleScan, /automatic-scanner-screen/);
+  assert.doesNotMatch(singleScan, /SingleResultSheet/);
 });

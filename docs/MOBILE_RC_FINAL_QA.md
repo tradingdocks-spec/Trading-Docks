@@ -47,8 +47,9 @@ This checklist covers release-grade mobile behavior only. It does not change sca
 
 ### Scanner
 
-- Automatic Scan opens and stays responsive.
-- Single Scan manual shutter remains available.
+- Trading Docks Scanner opens and stays responsive.
+- Auto Scan OFF manual shutter remains available.
+- Auto Scan ON uses the same still-capture recognition path and does not repeatedly capture the same stationary card.
 - Tap focus reticle appears and clears.
 - Lens selector changes lenses without stale-frame capture.
 - Torch toggles without repeated state churn.

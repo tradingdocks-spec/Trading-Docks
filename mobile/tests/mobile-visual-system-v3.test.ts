@@ -38,7 +38,7 @@ test('Scan hub uses scanner instrument and Reduce Motion aware animation', () =>
   assert.match(scan, /AccessibilityInfo\.isReduceMotionEnabled/);
   assert.match(scan, /Animated\.loop/);
   assert.match(scan, /aperture/);
-  assert.match(scan, /Start scanning/);
+  assert.match(scan, /Open scanner/);
 });
 
 test('Account uses pass-like collectible material and connected inset groups', () => {

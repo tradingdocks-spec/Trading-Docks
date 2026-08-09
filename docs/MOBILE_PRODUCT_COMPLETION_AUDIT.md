@@ -62,11 +62,10 @@ If a user can see it in the release app, it must work. If it does not work on mo
 | Collection | Trade | PRODUCTION READY | Routes to Trade Binder. |
 | Collection | Wishlist | PRODUCTION READY | Routes to Wishlist. |
 | Collection | Card row | PRODUCTION READY | Routes to owned card detail. |
-| Scan hub | Start scanning | FUNCTIONAL BUT NEEDS DEVICE QA | Routes to Automatic Scan. |
-| Scan hub | Single Scan | FUNCTIONAL BUT NEEDS DEVICE QA | Routes to Single Scan. |
+| Scan hub | Open scanner | FUNCTIONAL BUT NEEDS DEVICE QA | Routes to the unified Trading Docks Scanner. |
+| Scan hub | Single Scan compatibility route | FUNCTIONAL BUT NEEDS DEVICE QA | Renders the unified scanner and does not maintain separate production recognition logic. |
 | Scan hub | Review List | FUNCTIONAL BUT NEEDS DEVICE QA | Routes to scanner session. |
-| Automatic Scan | Camera, torch, capture fallback, manual search, review session | FUNCTIONAL BUT NEEDS DEVICE QA | Keep; dev-only diagnostics must remain hidden. |
-| Single Scan | Add card, Other printings, Retake | FUNCTIONAL BUT NEEDS DEVICE QA | Keep. |
+| Trading Docks Scanner | Camera, Auto Scan ON/OFF, torch, Capture when Auto OFF, manual search, review session | FUNCTIONAL BUT NEEDS DEVICE QA | Keep; dev-only diagnostics must remain hidden. |
 | Intelligence | Deal Desk / Scan / Collection | PRODUCTION READY | Keep after replacing future-metric copy with real current-data signals. |
 | Profile | Membership | PRODUCTION READY | Routes to Plans. |
 | Profile | Open Headquarters | WEB/HQ ONLY | Opens protected web Command Center for platform roles. |
@@ -120,7 +119,7 @@ The following remain Headquarters-only for Mobile V1:
 Physical QA is still required for:
 
 - RevenueCat monthly/yearly purchase, restore, upgrade, downgrade/switch, cancellation, pending, failure, backend reconciliation.
-- Automatic Scan camera, focus, torch, OCR, exact printing, price enrichment, insertion, and remove-card reset.
-- Single Scan capture, result, other printings, finish correction, Add Card, and Retake.
+- Unified scanner camera, focus, torch, OCR, exact printing, price enrichment, insertion, and remove-card reset.
+- Auto Scan OFF manual Capture and Auto Scan ON quality-gated automatic Capture through the same recognition path.
 - Offline/reconnect scanner recovery.
 - 320/375/390/430 width layout checks.

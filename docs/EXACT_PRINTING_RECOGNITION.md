@@ -5,9 +5,9 @@
 - Implemented: Magic scanner crops a named `bottomLeftPrintingRegion` from the normalized card crop.
 - Implemented: Bottom-left OCR evidence is parsed for set code, collector number, language, and The List clues.
 - Implemented: The List consistency is validated against Scryfall candidate metadata. Visual/OCR evidence alone never authorizes a silent printing swap.
-- Implemented: Single Scan and Review List expose compact finish correction for supported Scryfall finishes only.
+- Implemented: The unified scanner Review List exposes compact finish correction for supported Scryfall finishes only.
 - Implemented: Review List exposes `View other printings` and updates the existing session row when a different printing is selected.
-- Partially Implemented: Automatic Scan can mark printing uncertainty as Needs Review while continuing to scan; bottom-left refinement is still metadata/OCR based and not benchmarked as a visual-recognition guarantee.
+- Partially Implemented: The unified scanner can mark printing uncertainty as Needs Review while continuing to scan; bottom-left refinement is still metadata/OCR based and not benchmarked as a visual-recognition guarantee.
 - Planned: Multi-frame foil/etched visual classification remains benchmark-gated.
 
 ## Bottom-Left Region
@@ -38,11 +38,11 @@ Missing price fields remain unavailable. The scanner never substitutes zero or a
 
 Selecting another printing updates the existing row rather than adding a duplicate row. If the previous finish is unsupported, the app selects a valid default and briefly explains the fallback.
 
-## Automatic vs Single Scan
+## Unified Scanner Review
 
-Automatic Scan keeps scanning when exact printing is uncertain. Rows can be `Suggested` or `Needs Review`, and uncertain rows are annotated with `Confirm printing`.
+The scanner treats a reliable card-name match as identity success. If exact printing is uncertain, the row remains reviewable and is annotated with `Confirm printing`.
 
-Single Scan is more deliberate: the result sheet exposes finish correction and `View other printings` before adding to Review List.
+The scanner should show `Couldn't identify` only when card identity fails, not when the identity is known but printing needs review.
 
 ## Remaining Limitations
 

@@ -82,7 +82,6 @@ export default function ScanModesScreen() {
           scanLine={scanLine}
           reduceMotion={reduceMotion}
           onStart={() => router.push('/scan/automatic' as never)}
-          onSingle={() => router.push('/scan/single' as never)}
           onReview={() => router.push('/scanner-session' as never)}
         />
       </DockSurface>
@@ -115,14 +114,12 @@ function PrimaryScanMode({
   scanLine,
   reduceMotion,
   onStart,
-  onSingle,
   onReview,
 }: {
   count: number;
   scanLine: Animated.Value;
   reduceMotion: boolean;
   onStart: () => void;
-  onSingle: () => void;
   onReview: () => void;
 }) {
   const lock = describeScanLockState('ready');
@@ -155,14 +152,13 @@ function PrimaryScanMode({
           <Ionicons name="scan-outline" size={26} color={color.text} />
         </View>
         <DockHeader
-          title="Automatic Scan"
+          title="Trading Docks Scanner"
           subtitle={lock.instruction}
           style={s.modeText}
         />
       </View>
-      <TDButton label="Start scanning" iconName="scan-outline" onPress={onStart} size="lg" />
+      <TDButton label="Open scanner" iconName="scan-outline" onPress={onStart} size="lg" />
       <DockRail compact>
-        <DockAction label="Single Scan" iconName="radio-button-on-outline" onPress={onSingle} />
         <DockAction label={count > 0 ? `Review ${count}` : 'Review List'} iconName="list-outline" selected={count > 0} onPress={onReview} />
       </DockRail>
     </View>

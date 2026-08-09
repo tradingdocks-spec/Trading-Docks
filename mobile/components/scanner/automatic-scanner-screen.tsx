@@ -47,7 +47,6 @@ import {
   type ContinuousScannerSession,
   type BatchScannerNoticeModel,
   type BatchScannerTimingSnapshot,
-  type RecognitionPipelineReport,
 } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
@@ -56,7 +55,6 @@ import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from
 import { loadScannerContext, loadScannerDraft, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
 import {
   createInterruptedScanDraft,
-  resetAfterRapidScan,
   resolveScannerPermissionState,
   scannerPrivacySummary,
   tradeStatusForScanner,
@@ -75,27 +73,6 @@ import {
   serializeScannerPerformanceReport,
   type ScannerPerformanceSample,
 } from '@/services/scanner-performance-instrumentation';
-import {
-  SCANNER_SCAN_MODES,
-  createRapidScanRuntime,
-  markRapidIdentityEmitted,
-  nextRapidScanRuntime,
-  rapidScanSamplingRate,
-  scannerScanModeLabel,
-  type RapidScanRuntime,
-  type ScannerScanMode,
-} from '@/services/rapid-scan-pipeline';
-import {
-  createRapidLiveOcrState,
-  runRapidLiveTitleOcr,
-  stopRapidLiveOcr,
-  type RapidLiveOcrState,
-  type RapidLiveOcrDiagnostics,
-} from '@/services/rapid-scan-live-ocr';
-import {
-  catalogDiagnostics,
-  prewarmMagicNameIndex,
-} from '@/services/magic-card-identity';
 import {
   scannerCameraFraming,
 } from '@/services/scanner-camera-quality';
@@ -183,18 +160,14 @@ export default function AutomaticScannerScreen() {
   const activeSearchIdRef = useRef<string | null>(null);
   const autoCaptureInFlightRef = useRef(false);
   const lastLiveFrameAcceptedAtRef = useRef(0);
-  const lastRapidOcrSampleAtRef = useRef(0);
-  const rapidLiveOcrStateRef = useRef<RapidLiveOcrState>(createRapidLiveOcrState());
   const visionEngineRef = useRef<ReturnType<typeof createScannerVisionEngine> | null>(null);
   const visionEngineKeyRef = useRef<string | null>(null);
   const scryfallSearchCacheRef = useRef(new Map<string, ScannerCardCandidate[]>());
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [context, setContext] = useState<ScannerContext | null>(null);
   const [sessionMode, setSessionMode] = useState<ContinuousScannerMode>(INITIAL_SESSION_MODE);
-  const [scanMode, setScanMode] = useState<ScannerScanMode>('rapid_scan');
   const [session, setSession] = useState<ContinuousScannerSession | null>(null);
   const [autoScanner, setAutoScanner] = useState(() => createContinuousScannerRuntime({ scanId: createScanId() }));
-  const [rapidRuntime, setRapidRuntime] = useState<RapidScanRuntime>(() => createRapidScanRuntime(scannerNow()));
   const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
   const [cameraActive, setCameraActive] = useState(false);
   const [userPausedCamera, setUserPausedCamera] = useState(false);
@@ -271,7 +244,7 @@ export default function AutomaticScannerScreen() {
   const [showModeSelectionSheet, setShowModeSelectionSheet] = useState(false);
   const [showCameraSelectionSheet, setShowCameraSelectionSheet] = useState(false);
   const [showCameraInspectorSheet, setShowCameraInspectorSheet] = useState(false);
-  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(true);
+  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -283,9 +256,6 @@ export default function AutomaticScannerScreen() {
   const [scannerPerformanceJsonSummary, setScannerPerformanceJsonSummary] = useState<string | null>(null);
   const [lastPricingTrace, setLastPricingTrace] = useState<ScannerPricingTrace | null>(null);
   const [liveVisionResult, setLiveVisionResult] = useState<ScannerVisionResult | null>(null);
-  const [rapidLiveOcrMetrics, setRapidLiveOcrMetrics] = useState(() => createRapidLiveOcrState().metrics);
-  const [rapidLiveOcrDiagnostics, setRapidLiveOcrDiagnostics] = useState<RapidLiveOcrDiagnostics | null>(null);
-  const [rapidNameIndex] = useState(() => prewarmMagicNameIndex(scannerNow));
   const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusReticleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraLensSwitchStartedAtRef = useRef<number | null>(null);
@@ -395,7 +365,7 @@ export default function AutomaticScannerScreen() {
   });
   const guideMotion = scanner2MotionForState(scanner2State, reduceMotion);
   const scannerHeader = scanner2HeaderModel({
-    modeLabel: scannerScanModeLabel(scanMode),
+    modeLabel: autoCaptureEnabled ? 'Auto Scan On' : 'Auto Scan Off',
     cardCount: sessionTotals?.cardsScanned ?? 0,
     marketTotal: sessionTotals?.marketValue ?? null,
     offerTotal: sessionTotals?.cashOffer ?? null,
@@ -405,13 +375,6 @@ export default function AutomaticScannerScreen() {
     cardCount: sessionTotals?.cardsScanned ?? 0,
     reviewCount: sessionTotals?.needsReview ?? 0,
   });
-  const rapidRecentResults = useMemo(() => (session?.lines ?? []).slice(-5).reverse().map((line) => ({
-    id: line.id,
-    cardName: line.cardName,
-    needsReview: line.reviewStatus === 'needs_review',
-    syncState: line.syncState,
-  })), [session]);
-  const rapidCatalogDiagnostics = useMemo(() => catalogDiagnostics(rapidNameIndex), [rapidNameIndex]);
   const scannerPerformanceReport = useMemo(
     () => buildScannerPerformanceReport(scannerPerformanceSamples),
     [scannerPerformanceSamples],
@@ -460,16 +423,13 @@ export default function AutomaticScannerScreen() {
     ),
     [autoCaptureReadiness.instruction, autoCaptureReadiness.visualState, autoScanner.lastGuidance, liveVisionResult?.guidance, scannerPipeline],
   );
-  const rapidInstruction = scanMode === 'rapid_scan'
-    ? rapidScannerInstruction(rapidRuntime, autoCaptureReadiness.instruction)
-    : autoCaptureReadiness.instruction;
   const scannerInstruction = scanner2State === 'added' || scanner2State === 'remove_card' || scanner2State === 'failed'
     ? batchScannerInstructionForState(
       scanner2State === 'added' ? 'added'
         : scanner2State === 'remove_card' ? 'remove_card'
           : 'failed',
     )
-    : rapidInstruction;
+    : autoCaptureReadiness.instruction;
   const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showModeSelectionSheet || showCameraSelectionSheet || showCameraInspectorSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
@@ -526,108 +486,6 @@ export default function AutomaticScannerScreen() {
     }, 2400);
   }, []);
 
-  const handleRapidLiveOcrFrame = useCallback((frame: ScannerCameraFrame, vision: ScannerVisionResult, fingerprint: string | null, observedAt: number) => {
-    if (!context || !session || rapidNameIndex.records.length === 0) return;
-    const sampleIntervalMs = 1000 / rapidScanSamplingRate(rapidRuntime.state);
-    if (observedAt - lastRapidOcrSampleAtRef.current < sampleIntervalMs) return;
-    lastRapidOcrSampleAtRef.current = observedAt;
-
-    void runRapidLiveTitleOcr({
-      state: rapidLiveOcrStateRef.current,
-      frame,
-      nameIndex: rapidNameIndex,
-      destination: scannerSettingsDestination(session) === 'binder' ? 'binder' : scannerSettingsDestination(session) === 'storage_location' ? 'storage' : 'collection',
-      createResultId: createScanId,
-      now: scannerNow,
-      vision,
-    }).then(({ state, outcome }) => {
-      if (!mountedRef.current) return;
-      rapidLiveOcrStateRef.current = state;
-      setRapidLiveOcrMetrics(state.metrics);
-      setRapidLiveOcrDiagnostics(state.lastDiagnostics);
-      if (outcome.status === 'fallback_precision') {
-        setError('Try Precision Scan or Manual search.');
-      }
-      if (outcome.status !== 'added') return;
-      const report = rapidLiveRecognitionReport({
-        cardName: outcome.result.cardName,
-        confidenceClass: outcome.result.confidenceClass,
-        confidenceScore: outcome.confidence,
-        reason: outcome.fusion?.diagnostics.decisionReason ?? 'Live title ROI OCR matched the local Rapid Scan name index.',
-      });
-      const lineId = outcome.result.id;
-      setSession((current) => {
-        if (!current || current.lines.some((line) => line.stableScanId === lineId)) return current;
-        return addRecognitionToSession(current, {
-          stableScanId: lineId,
-          candidate: null,
-          identity: { cardName: outcome.result.cardName, oracleId: outcome.result.oracleId },
-          recognition: report,
-          quantity,
-          condition,
-          finish,
-          language,
-          marketPrice: null,
-          priceSource: null,
-          priceTimestamp: null,
-          storageLocationId: current.defaultDestination === 'binder' ? binderLocationId : storageLocationId,
-          binderId: current.defaultDestination === 'binder' ? binderLocationId : null,
-          binderPage: current.defaultDestination === 'binder' ? parseDestinationPage(binderPage) : null,
-          binderSlot: current.defaultDestination === 'binder' ? binderSlot.trim() || null : null,
-          tradeStatus,
-          destination: current.defaultDestination,
-          notes: outcome.fusion
-            ? 'Rapid Scan fused visual fingerprint, geometry, and title OCR locally. Exact printing and price require Review or background refinement.'
-            : 'Rapid Scan live title OCR matched locally. Exact printing and price require Review or background refinement.',
-        });
-      });
-      setSessionInsertionResult('inserted');
-      setRapidRuntime((current) => markRapidIdentityEmitted(current, {
-        at: observedAt,
-        fingerprint,
-        title: outcome.result.cardName,
-      }));
-      setAutoScanner((current) => markScanResult(current, {
-        printingId: null,
-        fingerprint,
-        now: scannerNow(),
-        scanId: lineId,
-      }));
-      showBatchNotice({
-        lineId,
-        title: 'Added to Review',
-        message: `${outcome.result.cardName} matched live. Keep scanning.`,
-        tone: outcome.result.reviewRequired ? 'warning' : 'success',
-        undoLabel: 'Undo',
-        correctLabel: 'Correct',
-      });
-    }).catch((liveOcrError) => {
-      rapidLiveOcrStateRef.current = {
-        ...rapidLiveOcrStateRef.current,
-        inFlight: false,
-      };
-      setRapidLiveOcrMetrics(rapidLiveOcrStateRef.current.metrics);
-      setRapidLiveOcrDiagnostics(rapidLiveOcrStateRef.current.lastDiagnostics);
-      if (diagnosticsEnabled) setError(liveOcrError instanceof Error ? liveOcrError.message : 'Live OCR failed.');
-    });
-  }, [
-    binderLocationId,
-    binderPage,
-    binderSlot,
-    condition,
-    context,
-    diagnosticsEnabled,
-    finish,
-    language,
-    quantity,
-    rapidNameIndex,
-    rapidRuntime.state,
-    session,
-    showBatchNotice,
-    storageLocationId,
-    tradeStatus,
-  ]);
-
   const handleLiveFrame = useCallback((frame: ScannerCameraFrame) => {
     if (!mountedRef.current || !context || frame.userId !== context.userId || !previewDimensions) return;
     if (shouldIgnoreFrameAfterLensSwitch({
@@ -678,19 +536,7 @@ export default function AutomaticScannerScreen() {
       DEFAULT_SCANNER_VISION_CONFIG.thresholds,
       result.observedAt,
     ));
-    if (scanMode === 'rapid_scan') {
-      handleRapidLiveOcrFrame(frame, result, result.crop?.fingerprint ?? null, result.observedAt);
-      setRapidRuntime((current) => {
-        const transition = nextRapidScanRuntime(current, {
-          at: result.observedAt,
-          cardPresent: result.detection.cardPresent,
-          fingerprint: result.crop?.fingerprint ?? null,
-          differenceScore: result.observation.motionScore,
-        });
-        return transition.runtime;
-      });
-    }
-  }, [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, context, guideLayout, handleRapidLiveOcrFrame, previewDimensions, scanMode]);
+  }, [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, context, guideLayout, previewDimensions]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -708,7 +554,7 @@ export default function AutomaticScannerScreen() {
         const rawCameraPreferences = await appStorage.getItem(scannerCameraPreferenceKey(result.userId));
         if (rawCameraPreferences) {
           try {
-            const parsed = JSON.parse(rawCameraPreferences) as { lensMode?: unknown; rawDeviceId?: unknown };
+            const parsed = JSON.parse(rawCameraPreferences) as { lensMode?: unknown; rawDeviceId?: unknown; autoCaptureEnabled?: unknown };
             const mode = normalizeScannerCameraSelectionMode(parsed.lensMode);
             if (mode === 'raw' && typeof parsed.rawDeviceId === 'string') {
               setCameraLensMode('auto');
@@ -716,6 +562,9 @@ export default function AutomaticScannerScreen() {
             } else {
               setCameraLensMode(normalizeScannerCameraLensMode(parsed.lensMode));
               setRawCameraDeviceId(null);
+            }
+            if (typeof parsed.autoCaptureEnabled === 'boolean') {
+              setAutoCaptureEnabled(parsed.autoCaptureEnabled);
             }
           } catch {
             setCameraLensMode('auto');
@@ -752,7 +601,6 @@ export default function AutomaticScannerScreen() {
       if (batchNoticeTimerRef.current) clearTimeout(batchNoticeTimerRef.current);
       if (focusReticleTimerRef.current) clearTimeout(focusReticleTimerRef.current);
       autoCaptureInFlightRef.current = false;
-      rapidLiveOcrStateRef.current = stopRapidLiveOcr(rapidLiveOcrStateRef.current);
       active = false;
     };
   }, []);
@@ -830,8 +678,10 @@ export default function AutomaticScannerScreen() {
 
   useEffect(() => {
     if (!context) return;
-    void appStorage.setItem(scannerCameraPreferenceKey(context.userId), JSON.stringify(rawCameraDeviceId ? { lensMode: 'raw', rawDeviceId: rawCameraDeviceId } : { lensMode: cameraLensMode }));
-  }, [cameraLensMode, context, rawCameraDeviceId]);
+    void appStorage.setItem(scannerCameraPreferenceKey(context.userId), JSON.stringify(rawCameraDeviceId
+      ? { lensMode: 'raw', rawDeviceId: rawCameraDeviceId, autoCaptureEnabled }
+      : { lensMode: cameraLensMode, autoCaptureEnabled }));
+  }, [autoCaptureEnabled, cameraLensMode, context, rawCameraDeviceId]);
 
   useEffect(() => {
     if (torchState?.torchEnabled && !torchState.torchSupported) {
@@ -906,15 +756,14 @@ export default function AutomaticScannerScreen() {
     }
   };
 
-  const cleanupDiagnosticCapture = async () => {
+  const cleanupDiagnosticCapture = useCallback(async () => {
     const uri = diagnosticCaptureUri;
     setDiagnosticCaptureUri(null);
     if (uri) await deleteCapturedStill(uri);
-  };
+  }, [diagnosticCaptureUri]);
 
-  const resetScannerForm = (options: { preserveNotice?: boolean } = {}) => {
-    const reset = resetAfterRapidScan();
-    setQuery(reset.query);
+  const resetScannerForm = useCallback((options: { preserveNotice?: boolean } = {}) => {
+    setQuery('');
     setSelected(null);
     setCandidates([]);
     setMagicRecognition(null);
@@ -922,9 +771,9 @@ export default function AutomaticScannerScreen() {
     setQuantity(1);
     setTradeStatus('not_for_trade');
     if (!options.preserveNotice) setBatchNotice(null);
-  };
+  }, []);
 
-  const addCandidateToBatch = (input: {
+  const addCandidateToBatch = useCallback((input: {
     candidate: ScannerCardCandidate;
     recognition: MagicRecognitionResult | null;
     stableScanId: string;
@@ -1041,7 +890,25 @@ export default function AutomaticScannerScreen() {
     });
     resetScannerForm({ preserveNotice: true });
     return addedLine;
-  };
+  }, [
+    binderLocationId,
+    binderPage,
+    binderSlot,
+    candidates,
+    capturedFrame,
+    condition,
+    diagnosticsEnabled,
+    finish,
+    language,
+    previewDimensions,
+    purchaseRate,
+    quantity,
+    resetScannerForm,
+    session,
+    showBatchNotice,
+    storageLocationId,
+    tradeStatus,
+  ]);
 
   const toggleCameraPause = () => {
     setCameraActive((active) => {
@@ -1070,7 +937,7 @@ export default function AutomaticScannerScreen() {
     setCameraActive(appForegrounded);
   };
 
-  const captureStill = async () => {
+  const captureStill = useCallback(async () => {
     if (shouldBlockScannerCapture({ lifecycle: cameraLifecycle, captureState, recognitionStage })) return;
     setError(null);
     setSuccess(null);
@@ -1108,7 +975,6 @@ export default function AutomaticScannerScreen() {
         guide: guideLayout,
         online: true,
         cachedCandidates: candidates.map(scannerCandidateToRecognitionCandidate),
-        vision: liveVisionResult,
         deferCleanup: diagnosticsEnabled,
         onStage: (stage) => {
           if (mountedRef.current && activeCaptureIdRef.current === captureId) setRecognitionStage(stage);
@@ -1164,7 +1030,25 @@ export default function AutomaticScannerScreen() {
       setSessionInsertionResult('failed');
       setError(captureError instanceof Error ? captureError.message : 'Could not capture the card image.');
     }
-  };
+  }, [
+    addCandidateToBatch,
+    appForegrounded,
+    cameraLifecycle,
+    cameraReady,
+    cameraStageHeight,
+    candidates,
+    captureState,
+    cleanupDiagnosticCapture,
+    diagnosticCaptureUri,
+    diagnosticsEnabled,
+    guideLayout,
+    permission,
+    previewDimensions,
+    previewWidth,
+    query,
+    recognitionStage,
+    userPausedCamera,
+  ]);
   const captureStillRef = useRef(captureStill);
 
   useEffect(() => {
@@ -1178,7 +1062,7 @@ export default function AutomaticScannerScreen() {
       analysis: liveFrameAnalysis,
     });
     if (!shouldTriggerAutomaticCapture({
-      autoCaptureEnabled: scanMode === 'precision_scan' && autoCaptureEnabled,
+      autoCaptureEnabled,
       nativeDecisionOk: decision.ok,
       readinessReady: autoCaptureReadiness.ready,
       visionShouldCapture: liveVisionResult?.shouldCapture,
@@ -1201,7 +1085,6 @@ export default function AutomaticScannerScreen() {
     liveVisionResult?.shouldCapture,
     liveFrameAnalysis,
     permission,
-    scanMode,
     scannerProcessing,
     visualSignals,
   ]);
@@ -1566,29 +1449,7 @@ export default function AutomaticScannerScreen() {
   const exportScannerPerformanceJson = async () => {
     const json = serializeScannerPerformanceReport(scannerPerformanceReport);
     const summary = serializeScannerBenchmarkSummary(scannerPerformanceReport);
-    const rapidLiveSummary = [
-      '',
-      '## Rapid Live OCR',
-      `Catalog loaded: ${rapidCatalogDiagnostics.catalogLoaded ? 'yes' : 'no'}`,
-      `Catalog count: ${rapidCatalogDiagnostics.catalogCardCount}`,
-      `Index ready: ${rapidCatalogDiagnostics.indexReady ? 'yes' : 'no'}`,
-      `Prewarm: ${performanceMs(rapidCatalogDiagnostics.prewarmMs)}`,
-      `Frames sampled: ${rapidLiveOcrMetrics.framesSampled}`,
-      `OCR started: ${rapidLiveOcrMetrics.ocrStarted}`,
-      `OCR completed: ${rapidLiveOcrMetrics.ocrCompleted}`,
-      `Frames skipped: ${rapidLiveOcrMetrics.framesSkipped}`,
-      `Stale results discarded: ${rapidLiveOcrMetrics.staleResultsDiscarded}`,
-      `Last OCR duration: ${performanceMs(rapidLiveOcrMetrics.lastOcrDurationMs)}`,
-      `Last local match: ${performanceMs(rapidLiveOcrMetrics.lastLocalMatchMs)}`,
-      `Last identity latency: ${performanceMs(rapidLiveOcrMetrics.lastIdentityLatencyMs)}`,
-      `Last frame-to-result latency: ${performanceMs(rapidLiveOcrMetrics.lastFrameToResultLatencyMs)}`,
-      `Last OCR raw text: ${rapidLiveOcrDiagnostics?.rawOcrText ?? 'unavailable'}`,
-      `Last OCR normalized text: ${rapidLiveOcrDiagnostics?.normalizedOcrText ?? 'unavailable'}`,
-      `Last match candidate: ${rapidLiveOcrDiagnostics?.localMatchCandidate ?? 'unavailable'}`,
-      `Last match score: ${rapidLiveOcrDiagnostics?.matchScore ?? 'unavailable'}`,
-      `Last failure stage: ${rapidLiveOcrDiagnostics?.failureStage ?? 'none'}`,
-    ].join('\n');
-    const exportText = `${summary}${rapidLiveSummary}\n\n${json}\n\n${JSON.stringify({ rapidLiveOcr: rapidLiveOcrMetrics, rapidLiveOcrDiagnostics, rapidCatalogDiagnostics }, null, 2)}`;
+    const exportText = `${summary}\n\n${json}`;
     setScannerPerformanceJsonSummary(`${scannerPerformanceReport.sampleCount} sample${scannerPerformanceReport.sampleCount === 1 ? '' : 's'} ready (${exportText.length} characters).`);
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -1651,16 +1512,16 @@ export default function AutomaticScannerScreen() {
         onCameraMounted={handleCameraMounted}
         onCameraUnmounted={handleCameraUnmounted}
         autoCaptureEnabled={autoCaptureEnabled}
-        scanMode={scanMode}
         hideControls={hideMainControls}
-        rapidLiveOcrDiagnostics={diagnosticsEnabled ? rapidLiveOcrDiagnostics : null}
       />
 
       <ScannerHud
         header={scannerHeader}
-        sessionName={`${scannerModeLabel(sessionMode)} - ${rapidScannerSamplingLabel(rapidRuntime)}`}
+        sessionName={scannerModeLabel(sessionMode)}
         topInset={insets.top}
+        autoCaptureEnabled={autoCaptureEnabled}
         onClose={() => router.back()}
+        onToggleAutoCapture={() => setAutoCaptureEnabled((value) => !value)}
         onSettings={() => setShowSettingsSheet(true)}
       />
 
@@ -1695,16 +1556,13 @@ export default function AutomaticScannerScreen() {
         {visibleSurface === 'progress' && recognitionStage === 'finding_card' ? null : null}
 
         {failedResultTray && !showAddedOverlay ? <ScannerFailureOverlay tray={failedResultTray} onRetake={retakeScan} onManualSearch={() => setShowManualSearchSheet(true)} /> : null}
-        {scanMode === 'rapid_scan' && rapidRecentResults.length ? <RapidResultTray results={rapidRecentResults} /> : null}
-
         {showSettingsSheet ? (
           <TDCard style={s.sheet}>
             <SheetHeader title="Scanner settings" onClose={() => setShowSettingsSheet(false)} />
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.sheetScroll, { paddingBottom: insets.bottom + 92 }]}>
-              <OptionRow label="Scan Mode" options={SCANNER_SCAN_MODES} value={scanMode} display={scannerScanModeLabel} onSelect={setScanMode} compact />
               <SettingsRow label="Mode" value={scannerModeLabel(sessionMode)} onPress={() => setShowModeSelectionSheet(true)} />
               <SettingsRow label="Camera" value={selectedCameraLensLabel} onPress={() => setShowCameraSelectionSheet(true)} />
-              <ToggleRow label="Auto Capture" enabled={scanMode === 'precision_scan' && autoCaptureEnabled} disabled={scanMode !== 'precision_scan'} onToggle={() => setAutoCaptureEnabled((value) => !value)} />
+              <ToggleRow label="Auto Scan" enabled={autoCaptureEnabled} onToggle={() => setAutoCaptureEnabled((value) => !value)} />
               <OptionRow label="Default condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} compact />
               <TDInput label="Cash Offer" value={purchaseRate} onChangeText={setPurchaseRate} keyboardType="numeric" />
               <ToggleRow label="Sound" enabled={soundEnabled} onToggle={() => setSoundEnabled((value) => !value)} />
@@ -1923,40 +1781,6 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Active transitions" value={String(cameraLifecycleDiagnostics.isActiveTransitions)} />
               <DiagnosticCell label="Frame count" value={String(liveFrameCount)} />
               <DiagnosticCell label="Effective FPS" value={autoCaptureReadiness.effectiveFps === null ? 'unavailable' : `${autoCaptureReadiness.effectiveFps} fps`} />
-              <DiagnosticCell label="Catalog loaded" value={rapidCatalogDiagnostics.catalogLoaded ? 'yes' : 'no'} />
-              <DiagnosticCell label="Catalog count" value={String(rapidCatalogDiagnostics.catalogCardCount)} />
-              <DiagnosticCell label="Index ready" value={rapidCatalogDiagnostics.indexReady ? 'yes' : 'no'} />
-              <DiagnosticCell label="Prewarm" value={performanceMs(rapidCatalogDiagnostics.prewarmMs)} />
-              <DiagnosticCell label="Rapid OCR sampled" value={String(rapidLiveOcrMetrics.framesSampled)} />
-              <DiagnosticCell label="Rapid OCR skipped" value={String(rapidLiveOcrMetrics.framesSkipped)} />
-              <DiagnosticCell label="Rapid OCR stale" value={String(rapidLiveOcrMetrics.staleResultsDiscarded)} />
-              <DiagnosticCell label="Rapid OCR raw" value={rapidLiveOcrDiagnostics?.rawOcrText ?? 'unavailable'} />
-              <DiagnosticCell label="Rapid OCR normalized" value={rapidLiveOcrDiagnostics?.normalizedOcrText ?? 'unavailable'} />
-              <DiagnosticCell label="Rapid OCR confidence" value={rapidLiveOcrDiagnostics?.ocrConfidence === null || rapidLiveOcrDiagnostics?.ocrConfidence === undefined ? 'unavailable' : String(rapidLiveOcrDiagnostics.ocrConfidence)} />
-              <DiagnosticCell label="Rapid candidate" value={rapidLiveOcrDiagnostics?.localMatchCandidate ?? 'unavailable'} />
-              <DiagnosticCell label="Rapid match score" value={rapidLiveOcrDiagnostics?.matchScore === null || rapidLiveOcrDiagnostics?.matchScore === undefined ? 'unavailable' : String(rapidLiveOcrDiagnostics.matchScore)} />
-              <DiagnosticCell label="Rapid band" value={rapidLiveOcrDiagnostics?.confidenceBand ?? 'unavailable'} />
-              <DiagnosticCell label="Rapid route" value={rapidLiveOcrDiagnostics?.route ?? 'unavailable'} />
-              <DiagnosticCell label="Rapid failure" value={rapidLiveOcrDiagnostics?.failureStage ?? 'none'} />
-              <DiagnosticCell label="Fusion decision" value={rapidLiveOcrDiagnostics?.fusion?.finalDecision ?? 'unavailable'} />
-              <DiagnosticCell label="Fusion candidate" value={rapidLiveOcrDiagnostics?.fusion?.fusedCandidate ?? 'unavailable'} />
-              <DiagnosticCell label="Visual candidate" value={rapidLiveOcrDiagnostics?.fusion?.visualCandidate ?? 'unavailable'} />
-              <DiagnosticCell label="Visual similarity" value={rapidLiveOcrDiagnostics?.fusion?.visualSimilarity === null || rapidLiveOcrDiagnostics?.fusion?.visualSimilarity === undefined ? 'unavailable' : rapidLiveOcrDiagnostics.fusion.visualSimilarity.toFixed(2)} />
-              <DiagnosticCell label="Fusion confidence" value={rapidLiveOcrDiagnostics?.fusion ? String(rapidLiveOcrDiagnostics.fusion.fusedConfidence) : 'unavailable'} />
-              <DiagnosticCell label="Printing candidate" value={rapidLiveOcrDiagnostics?.fusion?.printingCandidate ?? 'unavailable'} />
-              <DiagnosticCell label="Fusion reason" value={rapidLiveOcrDiagnostics?.fusion?.decisionReason ?? 'unavailable'} />
-              <DiagnosticCell label="Descriptor ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.descriptorMs ?? null)} />
-              <DiagnosticCell label="Visual lookup ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.visualLookupMs ?? null)} />
-              <DiagnosticCell label="Fusion ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.fusionMs ?? null)} />
-              <DiagnosticCell label="Printing refine ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.printingRefinementMs ?? null)} />
-              <DiagnosticCell label="Visual index records" value={rapidLiveOcrDiagnostics?.fusion ? String(rapidLiveOcrDiagnostics.fusion.visualIndexRecordCount) : 'unavailable'} />
-              <DiagnosticCell label="Visual index version" value={rapidLiveOcrDiagnostics?.fusion?.visualIndexVersion ?? 'unavailable'} />
-              <DiagnosticCell label="Rapid ROI" value={rapidLiveOcrDiagnostics ? roiSummary(rapidLiveOcrDiagnostics.roi) : 'unavailable'} />
-              <DiagnosticCell label="Vision ROI" value={rapidLiveOcrDiagnostics ? roiSummary(rapidLiveOcrDiagnostics.visionRoi) : 'unavailable'} />
-              <DiagnosticCell label="Frame orientation" value={rapidLiveOcrDiagnostics?.frameOrientation ?? 'unavailable'} />
-              <DiagnosticCell label="Rapid OCR ms" value={performanceMs(rapidLiveOcrMetrics.lastOcrDurationMs)} />
-              <DiagnosticCell label="Rapid match ms" value={performanceMs(rapidLiveOcrMetrics.lastLocalMatchMs)} />
-              <DiagnosticCell label="Rapid identity ms" value={performanceMs(rapidLiveOcrMetrics.lastIdentityLatencyMs)} />
               <DiagnosticCell label="Readiness state" value={autoCaptureReadiness.visualState.replaceAll('_', ' ')} />
               <DiagnosticCell label="Readiness reason" value={autoCaptureReadiness.primaryReason.replaceAll('_', ' ')} />
               <DiagnosticCell label="Readiness copy" value={autoCaptureReadiness.instruction} />
@@ -2070,13 +1894,17 @@ function ScannerHud({
   header,
   sessionName,
   topInset,
+  autoCaptureEnabled,
   onClose,
+  onToggleAutoCapture,
   onSettings,
 }: {
   header: ReturnType<typeof scanner2HeaderModel>;
   sessionName: string;
   topInset: number;
+  autoCaptureEnabled: boolean;
   onClose: () => void;
+  onToggleAutoCapture: () => void;
   onSettings: () => void;
 }) {
   return (
@@ -2084,10 +1912,28 @@ function ScannerHud({
       <HeaderIconControl label="Close scanner" icon="close-outline" onPress={onClose} />
       <Pressable accessibilityRole="button" accessibilityLabel="Open scanner settings" onPress={onSettings} style={({ pressed }) => [s.hudTextStack, pressed && s.settingsRowPressed]}>
         <View style={s.hudLine}>
-          <TDText variant="title" numberOfLines={1} style={s.hudMode}>Automatic Scan</TDText>
+          <TDText variant="title" numberOfLines={1} style={s.hudMode}>Scanner</TDText>
           <TDText variant="caption" tone="muted" numberOfLines={1}>{header.line1.cards} scanned</TDText>
         </View>
         <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionName}</TDText>
+      </Pressable>
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityLabel="Auto Scan"
+        accessibilityState={{ checked: autoCaptureEnabled }}
+        onPress={onToggleAutoCapture}
+        style={({ pressed }) => [
+          s.headerAutoToggle,
+          autoCaptureEnabled && s.headerAutoToggleOn,
+          pressed && s.settingsRowPressed,
+        ]}
+      >
+        <TDText variant="caption" style={[s.headerAutoToggleLabel, autoCaptureEnabled && s.headerAutoToggleLabelOn]}>
+          Auto
+        </TDText>
+        <TDText variant="caption" style={[s.headerAutoToggleValue, autoCaptureEnabled && s.headerAutoToggleValueOn]}>
+          {autoCaptureEnabled ? 'On' : 'Off'}
+        </TDText>
       </Pressable>
       <HeaderIconControl label="Open scanner settings" icon="settings-outline" onPress={onSettings} />
     </View>
@@ -2132,9 +1978,7 @@ function ScannerViewport({
   onCameraMounted,
   onCameraUnmounted,
   autoCaptureEnabled,
-  scanMode,
   hideControls,
-  rapidLiveOcrDiagnostics,
 }: {
   cameraRef: RefObject<ScannerCameraHandle | null>;
   permission: ScannerPermissionState;
@@ -2173,9 +2017,7 @@ function ScannerViewport({
   onCameraMounted: () => void;
   onCameraUnmounted: () => void;
   autoCaptureEnabled: boolean;
-  scanMode: ScannerScanMode;
   hideControls: boolean;
-  rapidLiveOcrDiagnostics: RapidLiveOcrDiagnostics | null;
 }) {
   const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
   const showResume = shouldShowScannerResumeAction(cameraLifecycle);
@@ -2210,7 +2052,6 @@ function ScannerViewport({
             onTorchStateChange={onTorchStateChange}
           />
           <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
-          {rapidLiveOcrDiagnostics ? <RapidOcrRoiOverlay diagnostics={rapidLiveOcrDiagnostics} /> : null}
           {focusReticle ? <FocusReticle point={focusReticle} /> : null}
           <CameraMountTracker onMount={onCameraMounted} onUnmount={onCameraUnmounted} />
         </View>
@@ -2233,7 +2074,6 @@ function ScannerViewport({
         onToggleTorch={onToggleTorch}
         onCapture={onCapture}
         autoCaptureEnabled={autoCaptureEnabled}
-        scanMode={scanMode}
         hidden={hideControls}
       />
     </View>
@@ -2257,32 +2097,6 @@ function ScannerGuide({
       <View style={[s.guideBracket, s.guideBracketBottomRight, guideToneStyle(guidePresentation.tone)]} />
       {guideMotion.progress ? <View style={[s.guideProgress, { width: `${Math.round(guidePresentation.progress * 100)}%` }]} /> : null}
       {guideMotion.flash ? <View style={s.captureFlash} /> : null}
-    </View>
-  );
-}
-
-function RapidOcrRoiOverlay({
-  diagnostics,
-}: {
-  diagnostics: RapidLiveOcrDiagnostics;
-}) {
-  const roi = diagnostics.roi;
-  return (
-    <View
-      pointerEvents="none"
-      style={[
-        s.rapidOcrRoiOverlay,
-        {
-          left: `${roi.x * 100}%`,
-          top: `${roi.y * 100}%`,
-          width: `${roi.width * 100}%`,
-          height: `${roi.height * 100}%`,
-        },
-      ]}
-    >
-      <TDText variant="caption" style={s.rapidOcrRoiLabel}>
-        {diagnostics.stage} {Math.round(roi.x * 100)},{Math.round(roi.y * 100)} {Math.round(roi.width * 100)}x{Math.round(roi.height * 100)}
-      </TDText>
     </View>
   );
 }
@@ -2326,7 +2140,6 @@ function ScannerControls({
   onToggleTorch,
   onCapture,
   autoCaptureEnabled,
-  scanMode,
   hidden,
 }: {
   torchEnabled: boolean;
@@ -2336,7 +2149,6 @@ function ScannerControls({
   onToggleTorch: () => void;
   onCapture: () => void;
   autoCaptureEnabled: boolean;
-  scanMode: ScannerScanMode;
   hidden: boolean;
 }) {
   const controls = scanner2MainControls();
@@ -2345,8 +2157,8 @@ function ScannerControls({
     <View style={s.cameraControls}>
       {controls.map((control) => {
         if (control === 'torch') return <IconControl key={control} label={torchSupported ? (torchEnabled ? 'Turn torch off' : 'Turn torch on') : 'Torch unavailable on this camera'} icon={torchEnabled ? 'flash' : 'flash-outline'} disabled={!torchSupported} onPress={onToggleTorch} />;
-        if (control === 'capture' && scanMode === 'rapid_scan') return null;
-        if (control === 'capture') return <IconControl key={control} label={autoCaptureEnabled ? 'Capture fallback' : 'Capture card'} icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />;
+        if (control === 'capture' && autoCaptureEnabled) return null;
+        if (control === 'capture') return <IconControl key={control} label="Capture card" icon="radio-button-on-outline" disabled={!cameraReady || permission !== 'granted'} prominent onPress={onCapture} />;
         return null;
       })}
     </View>
@@ -2365,25 +2177,6 @@ function ScannerFailureOverlay({ onRetake, onManualSearch }: { tray: NonNullable
         <TDButton label="Retake" variant="secondary" onPress={onRetake} />
         <TDButton label="Search" variant="secondary" onPress={onManualSearch} />
       </View>
-    </View>
-  );
-}
-
-function RapidResultTray({ results }: { results: { id: string; cardName: string; needsReview: boolean; syncState: string }[] }) {
-  return (
-    <View accessible accessibilityLabel="Recent rapid scan results" style={s.rapidResultTray}>
-      {results.map((result) => (
-        <View key={result.id} style={s.rapidResultPill}>
-          <Ionicons
-            name={result.needsReview ? 'alert-circle-outline' : 'checkmark-circle-outline'}
-            size={15}
-            color={result.needsReview ? color.warning : color.success}
-          />
-          <TDText variant="caption" numberOfLines={1} style={s.rapidResultName}>{result.cardName}</TDText>
-          {result.needsReview ? <TDText variant="caption" tone="warning">Review</TDText> : null}
-          {result.syncState !== 'synced' ? <TDText variant="caption" tone="muted">{result.syncState.replaceAll('_', ' ')}</TDText> : null}
-        </View>
-      ))}
     </View>
   );
 }
@@ -2620,65 +2413,12 @@ function performanceFps(value: number | null) {
   return value === null ? 'unavailable' : `${value} fps`;
 }
 
-function rapidScannerInstruction(runtime: RapidScanRuntime, fallback: string) {
-  if (runtime.state === 'empty') return fallback;
-  if (runtime.state === 'card_present' || runtime.state === 'new_card') return 'Hold in the scan zone';
-  if (runtime.state === 'identifying') return 'Reading title zone';
-  if (runtime.state === 'identified' || runtime.state === 'waiting_for_change') return 'Remove card for the next scan';
-  return fallback;
-}
-
-function rapidScannerSamplingLabel(runtime: RapidScanRuntime) {
-  return `${rapidScanSamplingRate(runtime.state)} fps target`;
-}
-
-function rapidLiveRecognitionReport(input: {
-  cardName: string;
-  confidenceClass: 'high' | 'medium' | 'low';
-  confidenceScore: number;
-  reason: string;
-}): RecognitionPipelineReport {
-  const confidenceState = input.confidenceClass === 'high'
-    ? 'high_confidence'
-    : input.confidenceClass === 'medium'
-      ? 'likely'
-      : 'ambiguous';
-  return {
-    detectedGame: 'magic',
-    topCandidate: null,
-    topThree: [],
-    overallConfidence: Math.max(0, Math.min(100, Math.round(input.confidenceScore))),
-    confidenceState,
-    signals: [{
-      key: 'name_ocr',
-      label: 'Live title OCR',
-      score: input.confidenceScore / 100,
-      weight: 1,
-      evidence: input.reason,
-    }],
-    missingSignals: ['Exact printing, set code, collector number, image, and price refine after Rapid identity.'],
-    conflictingSignals: [],
-    finish: {
-      finish: 'indeterminate',
-      confidence: 0,
-      evidence: ['Rapid live title OCR does not classify finish.'],
-      frameCount: 0,
-    },
-    recognitionMethod: 'metadata_assisted',
-    requiresManualConfirmation: confidenceState !== 'high_confidence',
-  };
-}
-
 function priceTraceValue(value: number | null | undefined) {
   return typeof value === 'number' ? `$${value.toFixed(2)}` : 'unavailable';
 }
 
 function resolutionSummary(value: { width: number; height: number } | null) {
   return value ? `${value.width} x ${value.height}` : 'unavailable';
-}
-
-function roiSummary(rect: { x: number; y: number; width: number; height: number }) {
-  return `${rect.x.toFixed(3)},${rect.y.toFixed(3)} ${rect.width.toFixed(3)}x${rect.height.toFixed(3)}`;
 }
 
 function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate): RecognitionCandidate {
@@ -2762,6 +2502,12 @@ const s = StyleSheet.create({
   hudMetric: { minWidth: 0, flexShrink: 1 },
   hudActions: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   headerIconControl: { width: 38, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: color.border, backgroundColor: color.surfaceFloating + 'CC' },
+  headerAutoToggle: { minHeight: 38, minWidth: 72, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceFloating + 'CC' },
+  headerAutoToggleOn: { borderColor: color.primaryBright, backgroundColor: color.primary + '2E' },
+  headerAutoToggleLabel: { color: color.textMuted, lineHeight: 13 },
+  headerAutoToggleLabelOn: { color: color.primaryBright },
+  headerAutoToggleValue: { color: color.text, lineHeight: 14 },
+  headerAutoToggleValueOn: { color: color.text },
   hudRow: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: space.xs },
   hudMetricRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   modePill: { flex: 1, minHeight: 36, minWidth: 0, borderRadius: radius.pill, borderWidth: 1, borderColor: color.borderStrong, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surfaceFloating + 'E8' },
@@ -2775,9 +2521,6 @@ const s = StyleSheet.create({
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
   cameraScrimTop: { position: 'absolute', top: '23%', left: space.lg, right: space.lg, alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, backgroundColor: color.canvas + '22', zIndex: 20 },
   guideMessage: { textAlign: 'center' },
-  rapidResultTray: { alignSelf: 'stretch', gap: space.xs },
-  rapidResultPill: { minHeight: 34, borderRadius: radius.pill, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.xs, backgroundColor: color.surfaceFloating + 'E6', borderWidth: 1, borderColor: color.border },
-  rapidResultName: { flex: 1, minWidth: 0 },
   premiumGuide: { position: 'absolute' },
   guidePulse: { opacity: 0.96 },
   guideBracket: { position: 'absolute', top: 0, left: 0, width: 52, height: 52, borderTopWidth: 4, borderLeftWidth: 4, borderColor: color.info, borderTopLeftRadius: radius.md },
@@ -2791,8 +2534,6 @@ const s = StyleSheet.create({
   guideToneDanger: { borderColor: color.danger },
   guideProgress: { position: 'absolute', left: 0, bottom: -10, height: 3, borderRadius: radius.pill, backgroundColor: color.primaryBright },
   captureFlash: { ...StyleSheet.absoluteFillObject, borderRadius: radius.md, backgroundColor: '#FFFFFF22' },
-  rapidOcrRoiOverlay: { position: 'absolute', zIndex: 24, borderWidth: 2, borderColor: color.warning, backgroundColor: color.warning + '14' },
-  rapidOcrRoiLabel: { position: 'absolute', left: 0, top: -22, paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.sm, overflow: 'hidden', color: color.text, backgroundColor: color.canvas + 'CC' },
   focusReticle: { position: 'absolute', zIndex: 25, width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: color.primaryBright, backgroundColor: color.primaryBright + '12' },
   iconControl: { width: 46, height: 46, borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceFloating + 'CC' },
   iconControlPrimary: { width: 58, height: 58, borderRadius: radius.lg, borderColor: color.primaryBright, backgroundColor: color.primaryBright },

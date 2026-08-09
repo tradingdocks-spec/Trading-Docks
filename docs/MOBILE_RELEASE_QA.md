@@ -132,5 +132,5 @@ Verify:
 
 - Install the clean EAS iOS development or TestFlight build and confirm launch, auth restoration, Store account routing to Deal Desk, Profile, Settings, account deletion request, legal/support links, and root error recovery.
 - Confirm `/dev/design-system`, `/dev/camera-qa`, and `/dev/scanner-benchmark` redirect away when development flags are not enabled.
-- Confirm Scanner Automatic and Single Scan still require confirmation/review and do not claim OCR or recognition certainty beyond measured behavior.
+- Confirm the unified scanner requires confirmation/review for uncertain results and does not claim OCR or recognition certainty beyond measured behavior.
 - Confirm paid upgrades are not processed in the native app for the Free-only RC strategy.
