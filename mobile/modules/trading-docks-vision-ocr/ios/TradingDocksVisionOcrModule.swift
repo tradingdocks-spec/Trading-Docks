@@ -53,6 +53,20 @@ public class TradingDocksVisionOcrModule: Module {
       self.analyzeRecognitionImage(request: request, started: started, promise: promise)
     }
 
+    AsyncFunction("detectCardRectangle") { (request: [String: Any], promise: Promise) in
+      let started = Date()
+      if #available(iOS 13.0, *) {
+        self.detectCardRectangle(request: request, started: started, promise: promise)
+      } else {
+        promise.resolve(self.rectangleErrorResult(
+          code: "vision_unavailable",
+          message: "Apple Vision rectangle detection requires iOS 13 or newer.",
+          started: started,
+          warnings: []
+        ))
+      }
+    }
+
     AsyncFunction("generateFeaturePrint") { (request: [String: Any], promise: Promise) in
       let started = Date()
       if #available(iOS 13.0, *) {
@@ -327,6 +341,90 @@ public class TradingDocksVisionOcrModule: Module {
   }
 
   @available(iOS 13.0, *)
+  private func detectCardRectangle(request: [String: Any], started: Date, promise: Promise) {
+    guard let loaded = loadLocalImage(request: request),
+          let cgImage = loaded.image.cgImage else {
+      promise.resolve(rectangleErrorResult(
+        code: "image_load_failed",
+        message: "Apple Vision could not load the local captured image for rectangle detection.",
+        started: started,
+        warnings: []
+      ))
+      return
+    }
+
+    let visionRequest = VNDetectRectanglesRequest()
+    visionRequest.maximumObservations = 1
+    visionRequest.minimumConfidence = normalizedFloat(request["minimumConfidence"], fallback: 0.45)
+    visionRequest.minimumAspectRatio = normalizedFloat(request["minimumAspectRatio"], fallback: 0.62)
+    visionRequest.maximumAspectRatio = normalizedFloat(request["maximumAspectRatio"], fallback: 0.82)
+    visionRequest.minimumSize = normalizedFloat(request["minimumSize"], fallback: 0.24)
+    visionRequest.quadratureTolerance = 25
+
+    let handler = VNImageRequestHandler(cgImage: cgImage, orientation: CGImagePropertyOrientation(loaded.image.imageOrientation), options: [:])
+    do {
+      try handler.perform([visionRequest])
+      guard let observation = visionRequest.results?.first as? VNRectangleObservation else {
+        promise.resolve([
+          "ok": true,
+          "provider": "apple_vision_rectangle",
+          "imageUri": loaded.imageUri,
+          "detected": false,
+          "confidence": 0,
+          "corners": NSNull(),
+          "boundingBox": NSNull(),
+          "aspectRatio": NSNull(),
+          "durationMs": latencyMs(started),
+          "warnings": ["No card-like rectangle was detected."]
+        ])
+        return
+      }
+
+      let topLeft = topLeftOriginPoint(observation.topLeft)
+      let topRight = topLeftOriginPoint(observation.topRight)
+      let bottomRight = topLeftOriginPoint(observation.bottomRight)
+      let bottomLeft = topLeftOriginPoint(observation.bottomLeft)
+      let boundingBox = topLeftOriginRect(observation.boundingBox)
+      let topWidth = hypot(topRight.x - topLeft.x, topRight.y - topLeft.y)
+      let bottomWidth = hypot(bottomRight.x - bottomLeft.x, bottomRight.y - bottomLeft.y)
+      let leftHeight = hypot(bottomLeft.x - topLeft.x, bottomLeft.y - topLeft.y)
+      let rightHeight = hypot(bottomRight.x - topRight.x, bottomRight.y - topRight.y)
+      let averageWidth = max(0.0001, (topWidth + bottomWidth) / 2.0)
+      let averageHeight = max(0.0001, (leftHeight + rightHeight) / 2.0)
+
+      promise.resolve([
+        "ok": true,
+        "provider": "apple_vision_rectangle",
+        "imageUri": loaded.imageUri,
+        "detected": true,
+        "confidence": Double(observation.confidence),
+        "corners": [
+          pointDictionary(topLeft),
+          pointDictionary(topRight),
+          pointDictionary(bottomRight),
+          pointDictionary(bottomLeft)
+        ],
+        "boundingBox": [
+          "x": Double(boundingBox.origin.x),
+          "y": Double(boundingBox.origin.y),
+          "width": Double(boundingBox.width),
+          "height": Double(boundingBox.height)
+        ],
+        "aspectRatio": Double(averageWidth / averageHeight),
+        "durationMs": latencyMs(started),
+        "warnings": []
+      ])
+    } catch {
+      promise.resolve(rectangleErrorResult(
+        code: "vision_failed",
+        message: "Apple Vision rectangle detection failed while processing the captured image.",
+        started: started,
+        warnings: []
+      ))
+    }
+  }
+
+  @available(iOS 13.0, *)
   private func generateFeaturePrint(request: [String: Any], started: Date, promise: Promise) {
     guard let loaded = loadLocalImage(request: request),
           let cgImage = loaded.image.cgImage else {
@@ -455,6 +553,17 @@ public class TradingDocksVisionOcrModule: Module {
     ]
   }
 
+  private func rectangleErrorResult(code: String, message: String, started: Date, warnings: [String]) -> [String: Any] {
+    return [
+      "ok": false,
+      "provider": "apple_vision_rectangle",
+      "code": code,
+      "message": message,
+      "durationMs": latencyMs(started),
+      "warnings": warnings
+    ]
+  }
+
   private func featurePrintDistanceErrorResult(code: String, message: String, started: Date, warnings: [String]) -> [String: Any] {
     return [
       "ok": false,
@@ -553,6 +662,39 @@ public class TradingDocksVisionOcrModule: Module {
       }
     }
     return min(1, max(0, (count > 0 ? total / count : 0) / 80.0))
+  }
+
+  private func topLeftOriginPoint(_ point: CGPoint) -> CGPoint {
+    return CGPoint(x: max(0, min(1, point.x)), y: max(0, min(1, 1.0 - point.y)))
+  }
+
+  private func topLeftOriginRect(_ rect: CGRect) -> CGRect {
+    return CGRect(
+      x: max(0, min(1, rect.origin.x)),
+      y: max(0, min(1, 1.0 - rect.origin.y - rect.height)),
+      width: max(0, min(1, rect.width)),
+      height: max(0, min(1, rect.height))
+    )
+  }
+
+  private func pointDictionary(_ point: CGPoint) -> [String: Double] {
+    return [
+      "x": Double(point.x),
+      "y": Double(point.y)
+    ]
+  }
+
+  private func normalizedFloat(_ value: Any?, fallback: Float) -> Float {
+    if let number = value as? NSNumber {
+      return max(0.0, min(1.0, number.floatValue))
+    }
+    if let value = value as? Float {
+      return max(0.0, min(1.0, value))
+    }
+    if let value = value as? Double {
+      return max(0.0, min(1.0, Float(value)))
+    }
+    return fallback
   }
 }
 

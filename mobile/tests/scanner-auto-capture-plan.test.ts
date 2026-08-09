@@ -13,7 +13,7 @@ test('active Scan route uses native frame signals through the shared camera adap
   assert.match(scan, /ScannerCamera/);
   assert.match(scan, /capturePhoto/);
   assert.match(scan, /NATIVE_FRAME_VISUAL_SIGNALS/);
-  assert.match(scan, /canAutoCaptureNative/);
+  assert.match(scan, /nextAppleVisionAutoCaptureRuntime/);
   assert.doesNotMatch(scan, /takePictureAsync/);
   assert.match(nativeCamera, /useFrameOutput/);
   assert.match(nativeCamera, /react-native-vision-camera/);

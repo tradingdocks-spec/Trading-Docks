@@ -6,6 +6,7 @@
 - Implemented: `/scan/automatic` is the production scanner route.
 - Implemented: `/scan/single` is a compatibility alias that renders the same production scanner.
 - Implemented: Auto Scan OFF and Auto Scan ON use the same still-capture recognition function.
+- Implemented: Auto Scan ON uses an explicit scanner state machine: SEARCHING, FOUND, STABILIZING, READY, CAPTURING, READING, IDENTIFIED, WAITING_FOR_REMOVAL, and REARMED.
 - Implemented: Review List remains at `/scanner-session` for post-scan printing review, pricing review, and finalization.
 - Planned: Grid Scan remains future work and has no fake production route.
 - Planned: pHash, visual descriptors, Apple Vision Feature Print, and fusion remain development-lab evidence only until physical benchmark data proves they improve reliability.
@@ -29,7 +30,7 @@ Implemented visible surface:
 - Auto Scan ON/OFF toggle near the header
 - Settings
 - Full-screen camera
-- Detected-card guide using the TCG-ratio framing model
+- Detected-card guide using the TCG-ratio framing model plus detected-rectangle outline evidence when available
 - One instruction at a time
 - Current destination through the session context
 - Torch
@@ -49,7 +50,7 @@ Diagnostics remain development-only behind `EXPO_PUBLIC_ENABLE_SCANNER_DIAGNOSTI
 ## Capture Behaviors
 
 - Implemented: Auto Scan OFF is the conservative baseline. The user taps Capture, and the scanner invokes the shared `captureStill` path.
-- Implemented: Auto Scan ON evaluates card-present, coverage, sharpness, low motion, focus, brief stability, and duplicate/rearm gates before invoking the same `captureStill` path through `captureStillRef`.
+- Implemented: Auto Scan ON evaluates card-present, rectangle confidence, coverage, sharpness, low motion, lighting, glare, brief stability, and duplicate/rearm gates before invoking the same `captureStill` path through `captureStillRef`.
 - Implemented: Auto Scan preference is stored in user-scoped local camera preferences.
 - Implemented: Auto Scan defaults OFF until physical Golden 50 testing proves reliability.
 - Implemented: After a successful capture, auto capture is locked until the card leaves frame or a confident new-card transition is observed.
@@ -60,12 +61,13 @@ Production golden path:
 
 1. Camera detects enough card evidence to frame the still capture.
 2. Scanner captures a sharp still image.
-3. Still image is normalized and cropped to the visible guide.
-4. Apple Vision Accurate OCR reads multiple title regions.
-5. OCR lines are ranked against the local 36k+ Magic-name catalog.
-6. Card identity is resolved locally when confidence is sufficient.
-7. Scryfall metadata refines exact printing, image, and price when available.
-8. Result is added to the user-scoped Review List.
+3. Apple Vision rectangle detection runs against the captured still.
+4. Still image OCR regions use the detected card rectangle when valid, then fall back to the visible guide crop when rectangle detection is unavailable or weak.
+5. Apple Vision Accurate OCR reads multiple title regions.
+6. OCR lines are ranked against the local 36k+ Magic-name catalog.
+7. Card identity is resolved locally when confidence is sufficient.
+8. Scryfall metadata refines exact printing, image, and price when available.
+9. Result is added to the user-scoped Review List.
 
 Implemented OCR order:
 
@@ -89,7 +91,7 @@ The scanner does not assume OCR line 1 is the title. Network data may enrich pri
 ## Card Outline
 
 - Implemented: The scanner guide reacts to readiness state with cyan, electric blue, emerald, amber, and danger tones.
-- Partially Implemented: Actual detected-card boundary visualization is still guide-based; replacing static guide corners with a true card-boundary outline needs device-validated frame geometry.
+- Implemented: The camera overlay renders a detected-card outline and corners when live frame geometry is available; the static guide remains as the fallback framing model.
 - Planned: The outline should remain calm, avoid constant pulsing, and use red only for true failure states.
 
 ## Golden Physical QA

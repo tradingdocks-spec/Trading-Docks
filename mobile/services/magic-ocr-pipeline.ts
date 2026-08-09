@@ -1,4 +1,4 @@
-import { recognizeText, type NativeOcrObservation, type NativeOcrRegion, type NativeOcrResult } from '../modules/trading-docks-vision-ocr/index.ts';
+import { detectCardRectangle, recognizeText, type NativeCardRectangleResult, type NativeOcrObservation, type NativeOcrRegion, type NativeOcrResult } from '../modules/trading-docks-vision-ocr/index.ts';
 import {
   classifyMagicRecognition,
   MagicCatalogLookupError,
@@ -55,6 +55,8 @@ export type GuideCropMapping = {
   imageOffset: { x: number; y: number };
   regions: NativeOcrRegion[];
   warnings: string[];
+  rectangleDetection: NativeCardRectangleResult | null;
+  normalizationSource: 'apple_vision_rectangle' | 'guide';
 };
 
 export type MagicTitleOcrAttempt = {
@@ -171,14 +173,17 @@ export async function recognizeMagicStillCapture(input: {
   includeCollectorOcr?: boolean;
   vision?: ScannerVisionResult | null;
   visualIndex?: VisualReferenceIndex | null;
+  detectRectangle?: typeof detectCardRectangle;
   onStage?: (stage: 'reading_title' | 'finding_card') => void;
   onLookupDiagnostics?: (diagnostics: MagicStillScanLookupDiagnostics) => void;
 }): Promise<MagicStillScanResult> {
-  const mapping = buildGuideAssistedCropMapping({
+  const guideMapping = buildGuideAssistedCropMapping({
     preview: input.preview,
     image: input.image,
     guide: input.guide,
   });
+  const rectangleDetection = await (input.detectRectangle ?? detectCardRectangle)({ imageUri: input.imageUri });
+  const mapping = buildRectangleAssistedCropMapping(guideMapping, rectangleDetection);
   const cleanup = input.cleanup ?? deleteCapturedStill;
   const cleanupCapture = () => input.deferCleanup
     ? Promise.resolve<CaptureCleanupResult>({ ok: true, deleted: false, reason: 'deferred_for_diagnostics' })
@@ -364,6 +369,51 @@ export function buildGuideAssistedCropMapping(input: GuideCropMappingInput): Gui
   return mapPreviewGuideToCapturedImage(input);
 }
 
+export function buildRectangleAssistedCropMapping(
+  guideMapping: GuideCropMapping,
+  rectangleDetection: NativeCardRectangleResult | null,
+): GuideCropMapping {
+  if (!rectangleDetection?.ok || !rectangleDetection.detected || !rectangleDetection.boundingBox) {
+    return {
+      ...guideMapping,
+      rectangleDetection,
+      normalizationSource: 'guide',
+      warnings: [
+        ...guideMapping.warnings,
+        ...(rectangleDetection?.ok === false ? [`Apple Vision rectangle fallback: ${rectangleDetection.code}.`] : []),
+      ],
+    };
+  }
+  const rectangleCrop = clampRect(rectangleDetection.boundingBox);
+  if (rectangleCrop.width < 0.1 || rectangleCrop.height < 0.1) {
+    return {
+      ...guideMapping,
+      rectangleDetection,
+      normalizationSource: 'guide',
+      warnings: [...guideMapping.warnings, 'Apple Vision rectangle was too small; guide crop was used.'],
+    };
+  }
+  const regions = buildMagicOcrRegions(rectangleCrop);
+  const titleCrop = regions.find((regionEntry) => regionEntry.id === 'title_primary') ?? regions[0];
+  const collectorCrop = regions.find((regionEntry) => regionEntry.id === 'collector_info') ?? regions[0];
+  const bottomLeftPrintingCrop = regions.find((regionEntry) => regionEntry.id === 'bottomLeftPrintingRegion') ?? collectorCrop;
+  return {
+    ...guideMapping,
+    cardCrop: rectangleCrop,
+    cardCropPixels: toPixelRect(rectangleCrop, guideMapping.normalizedImage.width, guideMapping.normalizedImage.height),
+    titleCrop: rectFromRegion(titleCrop),
+    titleCropPixels: toPixelRect(rectFromRegion(titleCrop), guideMapping.normalizedImage.width, guideMapping.normalizedImage.height),
+    collectorCrop: rectFromRegion(collectorCrop),
+    collectorCropPixels: toPixelRect(rectFromRegion(collectorCrop), guideMapping.normalizedImage.width, guideMapping.normalizedImage.height),
+    bottomLeftPrintingCrop: rectFromRegion(bottomLeftPrintingCrop),
+    bottomLeftPrintingCropPixels: toPixelRect(rectFromRegion(bottomLeftPrintingCrop), guideMapping.normalizedImage.width, guideMapping.normalizedImage.height),
+    regions,
+    rectangleDetection,
+    normalizationSource: 'apple_vision_rectangle',
+    warnings: [...guideMapping.warnings, 'Apple Vision rectangle crop selected for OCR normalization.'],
+  };
+}
+
 export function mapPreviewGuideToCapturedImage(input: GuideCropMappingInput): GuideCropMapping {
   const previewWidth = positive(input.preview.width);
   const previewHeight = positive(input.preview.height);
@@ -415,6 +465,8 @@ export function mapPreviewGuideToCapturedImage(input: GuideCropMappingInput): Gu
     imageOffset: { x: offsetX, y: offsetY },
     regions,
     warnings,
+    rectangleDetection: null,
+    normalizationSource: 'guide',
   };
 }
 

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildGuideAssistedCropMapping,
+  buildRectangleAssistedCropMapping,
   buildMagicOcrSignals,
   buildMagicOcrRegions,
   buildOcrAwareMagicSearch,
@@ -333,6 +334,56 @@ test('title-only OCR produces capped candidates when collector data is missing',
   assert.equal(result.candidates.length, 2);
   assert.equal(result.recognition.confidence.overall, 69);
   assert.equal(result.recognition.confidence.requiresConfirmation, true);
+});
+
+test('rectangle-assisted mapping prefers detected Apple Vision card bounds for OCR regions', () => {
+  const guideMapping = buildGuideAssistedCropMapping({
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+  });
+  const mapping = buildRectangleAssistedCropMapping(guideMapping, {
+    ok: true,
+    provider: 'apple_vision_rectangle',
+    imageUri: 'file:///tmp/card.jpg',
+    detected: true,
+    confidence: 0.88,
+    corners: [
+      { x: 0.2, y: 0.1 },
+      { x: 0.8, y: 0.1 },
+      { x: 0.8, y: 0.9 },
+      { x: 0.2, y: 0.9 },
+    ],
+    boundingBox: { x: 0.2, y: 0.1, width: 0.6, height: 0.8 },
+    aspectRatio: 0.75,
+    durationMs: 18,
+    warnings: [],
+  });
+  assert.equal(mapping.normalizationSource, 'apple_vision_rectangle');
+  assert.deepEqual(mapping.cardCrop, { x: 0.2, y: 0.1, width: 0.6, height: 0.8 });
+  assert.ok(mapping.regions.find((region) => region.id === 'title_primary'));
+});
+
+test('rectangle-assisted mapping falls back to the guide when Vision finds no card', () => {
+  const guideMapping = buildGuideAssistedCropMapping({
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+  });
+  const mapping = buildRectangleAssistedCropMapping(guideMapping, {
+    ok: true,
+    provider: 'apple_vision_rectangle',
+    imageUri: 'file:///tmp/card.jpg',
+    detected: false,
+    confidence: 0,
+    corners: null,
+    boundingBox: null,
+    aspectRatio: null,
+    durationMs: 12,
+    warnings: ['No card-like rectangle was detected.'],
+  });
+  assert.equal(mapping.normalizationSource, 'guide');
+  assert.deepEqual(mapping.cardCrop, guideMapping.cardCrop);
 });
 
 test('Single Scan falls back to shared local name identity when Scryfall returns no candidates', async () => {

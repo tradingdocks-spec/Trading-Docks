@@ -88,7 +88,6 @@ import {
   scannerFocusReticleDuration,
   shouldIgnoreFrameAfterLensSwitch,
   shouldWarnAboutTorchThrash,
-  shouldTriggerAutomaticCapture,
   type ScannerCameraDeviceSummary,
   type ScannerCameraLensSelection,
   type ScannerCameraLensMode,
@@ -106,7 +105,6 @@ import {
   NO_NATIVE_VISUAL_SIGNALS,
   applyScannerCalibrationToGuide,
   buildGuideCropMapping,
-  canAutoCaptureNative,
   diagnosticsFromFrameAnalysis,
   isScannerDiagnosticsEnabled,
   nativeScannerCalibrationKey,
@@ -118,6 +116,14 @@ import {
   type ScannerCaptureState,
   type ScannerDiagnosticsSnapshot,
 } from '@/services/native-scanner-calibration';
+import {
+  appleVisionStateInstruction,
+  createAppleVisionAutoCaptureRuntime,
+  markAppleVisionAutoCapturePhase,
+  nextAppleVisionAutoCaptureRuntime,
+  scannerVisionDetectionToAppleRectangle,
+  type AppleVisionCardRectangle,
+} from '@/services/apple-vision-auto-capture';
 import {
   DEFAULT_SCANNER_VISION_CONFIG,
   createScannerVisionEngine,
@@ -159,7 +165,9 @@ export default function AutomaticScannerScreen() {
   const activeCaptureIdRef = useRef<string | null>(null);
   const activeSearchIdRef = useRef<string | null>(null);
   const autoCaptureInFlightRef = useRef(false);
+  const captureStillRef = useRef<() => Promise<void>>(async () => undefined);
   const lastLiveFrameAcceptedAtRef = useRef(0);
+  const autoCaptureRuntimeRef = useRef(createAppleVisionAutoCaptureRuntime());
   const visionEngineRef = useRef<ReturnType<typeof createScannerVisionEngine> | null>(null);
   const visionEngineKeyRef = useRef<string | null>(null);
   const scryfallSearchCacheRef = useRef(new Map<string, ScannerCardCandidate[]>());
@@ -245,6 +253,7 @@ export default function AutomaticScannerScreen() {
   const [showCameraSelectionSheet, setShowCameraSelectionSheet] = useState(false);
   const [showCameraInspectorSheet, setShowCameraInspectorSheet] = useState(false);
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
+  const [autoCaptureRuntime, setAutoCaptureRuntime] = useState(() => createAppleVisionAutoCaptureRuntime());
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -415,6 +424,10 @@ export default function AutomaticScannerScreen() {
     liveVisionResult,
     scannerProcessing,
   ]);
+  const liveDetectedRectangle = useMemo(
+    () => scannerVisionDetectionToAppleRectangle(liveVisionResult?.detection),
+    [liveVisionResult?.detection],
+  );
   const guidePresentation = useMemo(
     () => guidePresentationForPipeline(
       scannerPipeline,
@@ -429,7 +442,7 @@ export default function AutomaticScannerScreen() {
         : scanner2State === 'remove_card' ? 'remove_card'
           : 'failed',
     )
-    : autoCaptureReadiness.instruction;
+    : appleVisionStateInstruction(autoCaptureRuntime.state, autoCaptureReadiness.instruction);
   const sheetOpen = showSettingsSheet || showManualSearchSheet || showDiagnosticsSheet || showModeSelectionSheet || showCameraSelectionSheet || showCameraInspectorSheet;
   const hideMainControls = shouldHideScannerPrimaryControls({
     processing: scannerProcessing,
@@ -530,13 +543,32 @@ export default function AutomaticScannerScreen() {
     }
     const result = visionEngineRef.current.analyzeFrame(frame);
     setLiveVisionResult(result);
+    const autoDecision = nextAppleVisionAutoCaptureRuntime(autoCaptureRuntimeRef.current, {
+      autoEnabled: autoCaptureEnabled,
+      cameraReady,
+      processing: scannerProcessing || autoCaptureInFlightRef.current || permission !== 'granted' || !cameraActive,
+      now: result.observedAt,
+      rectangle: scannerVisionDetectionToAppleRectangle(result.detection),
+      quality: result.quality,
+      fingerprint: result.detection.fingerprint,
+    });
+    autoCaptureRuntimeRef.current = autoDecision.runtime;
+    setAutoCaptureRuntime(autoDecision.runtime);
+    if (autoDecision.shouldCapture) {
+      autoCaptureInFlightRef.current = true;
+      void captureStillRef.current().finally(() => {
+        setTimeout(() => {
+          autoCaptureInFlightRef.current = false;
+        }, 900);
+      });
+    }
     setAutoScanner((current) => nextContinuousScannerRuntime(
       current,
       result.observation,
       DEFAULT_SCANNER_VISION_CONFIG.thresholds,
       result.observedAt,
     ));
-  }, [autoScanner.duplicateProtection.awaitingCardRemoval, cameraReady, context, guideLayout, previewDimensions]);
+  }, [autoCaptureEnabled, autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, context, guideLayout, permission, previewDimensions, scannerProcessing]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -959,6 +991,8 @@ export default function AutomaticScannerScreen() {
       activeCaptureIdRef.current = captureId;
       setLastCaptureId(captureId);
       setCaptureState('capturing');
+      autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'CAPTURING', 'capture_still_started');
+      setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       const cameraCaptureStartedAt = scannerNow();
       const photo = await cameraRef.current.capturePhoto();
       const cameraCaptureMs = scannerNow() - cameraCaptureStartedAt;
@@ -967,6 +1001,8 @@ export default function AutomaticScannerScreen() {
       setCapturedFrame(frameLabel);
       setCaptureState('captured');
       setRecognitionStage('reading_title');
+      autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'READING', 'still_captured_reading');
+      setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       setAutoScanner((current) => markCaptureStarted(current));
       const scan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
@@ -1007,6 +1043,8 @@ export default function AutomaticScannerScreen() {
               fallbackCount: Math.max(0, scan.signals.titleAttempts.length - 1),
             },
           });
+          autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'IDENTIFIED', 'session_line_added');
+          setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
           setRecognitionStage('idle');
         } else {
           setSessionInsertionResult('failed');
@@ -1021,9 +1059,13 @@ export default function AutomaticScannerScreen() {
         setError(`${scan.reason} Manual search is still available.`);
       }
       activeCaptureIdRef.current = null;
+      autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'capture_complete');
+      setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       if (!userPausedCamera && appForegrounded) setCameraActive(true);
     } catch (captureError) {
       activeCaptureIdRef.current = null;
+      autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'capture_failed_waiting_for_removal');
+      setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       if (!userPausedCamera && appForegrounded) setCameraActive(true);
       setCaptureState('failed');
       setRecognitionStage('failed');
@@ -1049,45 +1091,9 @@ export default function AutomaticScannerScreen() {
     recognitionStage,
     userPausedCamera,
   ]);
-  const captureStillRef = useRef(captureStill);
-
   useEffect(() => {
     captureStillRef.current = captureStill;
   }, [captureStill]);
-
-  useEffect(() => {
-    const decision = canAutoCaptureNative({
-      cameraReady,
-      signalAvailability: visualSignals,
-      analysis: liveFrameAnalysis,
-    });
-    if (!shouldTriggerAutomaticCapture({
-      autoCaptureEnabled,
-      nativeDecisionOk: decision.ok,
-      readinessReady: autoCaptureReadiness.ready,
-      visionShouldCapture: liveVisionResult?.shouldCapture,
-      inFlight: autoCaptureInFlightRef.current,
-      processing: scannerProcessing,
-      permissionGranted: permission === 'granted',
-      cameraActive,
-    })) return;
-    autoCaptureInFlightRef.current = true;
-    void captureStillRef.current().finally(() => {
-      setTimeout(() => {
-        autoCaptureInFlightRef.current = false;
-      }, 900);
-    });
-  }, [
-    autoCaptureEnabled,
-    autoCaptureReadiness.ready,
-    cameraActive,
-    cameraReady,
-    liveVisionResult?.shouldCapture,
-    liveFrameAnalysis,
-    permission,
-    scannerProcessing,
-    visualSignals,
-  ]);
 
   const updateCalibration = (patch: Partial<ScannerCalibrationPreferences>) => {
     setScannerCalibration((current) => normalizeScannerCalibrationPreferences({ ...current, ...patch }));
@@ -1491,6 +1497,7 @@ export default function AutomaticScannerScreen() {
         guideLayout={guideLayout}
         guidePresentation={guidePresentation}
         guideMotion={guideMotion}
+        detectedRectangle={liveDetectedRectangle}
         instruction={scannerInstruction}
         platform={Platform.OS}
         latestResultKind={failedResultTray?.kind ?? null}
@@ -1531,6 +1538,8 @@ export default function AutomaticScannerScreen() {
             cardPresent={Boolean(liveVisionResult?.detection.cardPresent)}
             stable={autoCaptureReadiness.primaryReason !== 'motion' && diagnosticsSnapshot.stabilityMs !== null}
             ready={autoCaptureReadiness.ready}
+            autoState={autoCaptureRuntime.state}
+            rectangleConfidence={liveDetectedRectangle?.confidence ?? null}
             captureArmed={autoCaptureEnabled && autoCaptureReadiness.ready}
             captureFired={scannerProcessing || captureState !== 'idle'}
             processing={scannerProcessing}
@@ -1957,6 +1966,7 @@ function ScannerViewport({
   guideLayout,
   guidePresentation,
   guideMotion,
+  detectedRectangle,
   instruction,
   platform,
   latestResultKind,
@@ -1996,6 +2006,7 @@ function ScannerViewport({
   guideLayout: ReturnType<typeof calculateCardGuideLayout>;
   guidePresentation: PremiumScannerGuidePresentation;
   guideMotion: ReturnType<typeof scanner2MotionForState>;
+  detectedRectangle: AppleVisionCardRectangle | null;
   instruction: string;
   platform: string;
   latestResultKind: PremiumResultTrayKind | null;
@@ -2051,6 +2062,7 @@ function ScannerViewport({
             onSessionConfigChange={onSessionConfigChange}
             onTorchStateChange={onTorchStateChange}
           />
+          <DetectedCardOutline rectangle={detectedRectangle} tone={guidePresentation.tone} />
           <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
           {focusReticle ? <FocusReticle point={focusReticle} /> : null}
           <CameraMountTracker onMount={onCameraMounted} onUnmount={onCameraUnmounted} />
@@ -2097,6 +2109,31 @@ function ScannerGuide({
       <View style={[s.guideBracket, s.guideBracketBottomRight, guideToneStyle(guidePresentation.tone)]} />
       {guideMotion.progress ? <View style={[s.guideProgress, { width: `${Math.round(guidePresentation.progress * 100)}%` }]} /> : null}
       {guideMotion.flash ? <View style={s.captureFlash} /> : null}
+    </View>
+  );
+}
+
+function DetectedCardOutline({ rectangle, tone }: { rectangle: AppleVisionCardRectangle | null; tone: PremiumScannerGuidePresentation['tone'] }) {
+  if (!rectangle?.detected || !rectangle.boundingBox) return null;
+  const box = rectangle.boundingBox;
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        s.detectedCardOutline,
+        guideToneStyle(tone),
+        {
+          left: `${Math.round(box.x * 1000) / 10}%`,
+          top: `${Math.round(box.y * 1000) / 10}%`,
+          width: `${Math.round(box.width * 1000) / 10}%`,
+          height: `${Math.round(box.height * 1000) / 10}%`,
+        },
+      ]}
+    >
+      <View style={[s.detectedCardCorner, s.detectedCardCornerTopLeft, guideToneStyle(tone)]} />
+      <View style={[s.detectedCardCorner, s.detectedCardCornerTopRight, guideToneStyle(tone)]} />
+      <View style={[s.detectedCardCorner, s.detectedCardCornerBottomLeft, guideToneStyle(tone)]} />
+      <View style={[s.detectedCardCorner, s.detectedCardCornerBottomRight, guideToneStyle(tone)]} />
     </View>
   );
 }
@@ -2299,6 +2336,8 @@ function AutoScanDiagnosticsOverlay({
   cardPresent,
   stable,
   ready,
+  autoState,
+  rectangleConfidence,
   captureArmed,
   captureFired,
   processing,
@@ -2311,6 +2350,8 @@ function AutoScanDiagnosticsOverlay({
   cardPresent: boolean;
   stable: boolean;
   ready: boolean;
+  autoState: string;
+  rectangleConfidence: number | null;
   captureArmed: boolean;
   captureFired: boolean;
   processing: boolean;
@@ -2341,6 +2382,9 @@ function AutoScanDiagnosticsOverlay({
           </View>
         ))}
       </View>
+      <TDText variant="caption" tone="muted">
+        state {autoState} - rectangle {rectangleConfidence === null ? 'unavailable' : `${Math.round(rectangleConfidence * 100)}%`}
+      </TDText>
       <TDText variant="caption" tone="muted">
         frame {performanceMs(frameDeltaMs)} · capture {performanceMs(timings?.captureMs ?? null)} · OCR {performanceMs(timings?.ocrMs ?? null)}
       </TDText>
@@ -2534,6 +2578,12 @@ const s = StyleSheet.create({
   guideToneDanger: { borderColor: color.danger },
   guideProgress: { position: 'absolute', left: 0, bottom: -10, height: 3, borderRadius: radius.pill, backgroundColor: color.primaryBright },
   captureFlash: { ...StyleSheet.absoluteFillObject, borderRadius: radius.md, backgroundColor: '#FFFFFF22' },
+  detectedCardOutline: { position: 'absolute', zIndex: 18, borderWidth: 2, borderRadius: radius.md, backgroundColor: color.primaryBright + '0F' },
+  detectedCardCorner: { position: 'absolute', width: 22, height: 22, borderColor: color.primaryBright },
+  detectedCardCornerTopLeft: { top: -3, left: -3, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: radius.sm },
+  detectedCardCornerTopRight: { top: -3, right: -3, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: radius.sm },
+  detectedCardCornerBottomLeft: { bottom: -3, left: -3, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: radius.sm },
+  detectedCardCornerBottomRight: { bottom: -3, right: -3, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: radius.sm },
   focusReticle: { position: 'absolute', zIndex: 25, width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: color.primaryBright, backgroundColor: color.primaryBright + '12' },
   iconControl: { width: 46, height: 46, borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceFloating + 'CC' },
   iconControlPrimary: { width: 58, height: 58, borderRadius: radius.lg, borderColor: color.primaryBright, backgroundColor: color.primaryBright },

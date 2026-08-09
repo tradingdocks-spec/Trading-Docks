@@ -23,7 +23,7 @@ test('Auto ON and Auto OFF use the same still-capture recognition path', () => {
   assert.match(scanner, /const captureStill = useCallback\(async \(\) =>/);
   assert.match(scanner, /onCapture=\{captureStill\}/);
   assert.match(scanner, /captureStillRef\.current\(\)/);
-  assert.match(scanner, /shouldTriggerAutomaticCapture\(\{[\s\S]*autoCaptureEnabled/);
+  assert.match(scanner, /nextAppleVisionAutoCaptureRuntime\([\s\S]*autoEnabled: autoCaptureEnabled/);
   assert.match(scanner, /recognizeMagicStillCapture\(\{/);
   assert.match(scanner, /preview: previewDimensions \?\? \{ width: previewWidth, height: cameraStageHeight \}/);
   assert.match(scanner, /deferCleanup: diagnosticsEnabled/);

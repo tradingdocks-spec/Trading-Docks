@@ -18,10 +18,13 @@ test('OCR Expo module Apple config matches Swift and JS runtime names', () => {
   assert.match(swift, /public class TradingDocksVisionOcrModule: Module/);
   assert.match(swift, /Name\("TradingDocksVisionOcr"\)/);
   assert.match(swift, /AsyncFunction\("recognizeFrameTitle"\)/);
+  assert.match(swift, /AsyncFunction\("detectCardRectangle"\)/);
+  assert.match(swift, /VNDetectRectanglesRequest/);
   assert.match(swift, /AsyncFunction\("generateFeaturePrint"\)/);
   assert.match(swift, /VNGenerateImageFeaturePrintRequest/);
   assert.match(js, /requireNativeModule\('TradingDocksVisionOcr'\)/);
   assert.match(js, /recognizeFrameTitle/);
+  assert.match(js, /detectCardRectangle/);
   assert.match(js, /generateFeaturePrint/);
 });
 

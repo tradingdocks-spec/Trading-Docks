@@ -35,6 +35,37 @@ export type NativeImageAnalysisRequest = {
   imageUri: string;
 };
 
+export type NativeCardRectanglePoint = { x: number; y: number };
+export type NativeCardRectangleRequest = {
+  imageUri: string;
+  minimumConfidence?: number;
+  minimumAspectRatio?: number;
+  maximumAspectRatio?: number;
+  minimumSize?: number;
+};
+
+export type NativeCardRectangleResult =
+  | {
+    ok: true;
+    provider: 'apple_vision_rectangle';
+    imageUri: string;
+    detected: boolean;
+    confidence: number;
+    corners: [NativeCardRectanglePoint, NativeCardRectanglePoint, NativeCardRectanglePoint, NativeCardRectanglePoint] | null;
+    boundingBox: { x: number; y: number; width: number; height: number } | null;
+    aspectRatio: number | null;
+    durationMs: number;
+    warnings: string[];
+  }
+  | {
+    ok: false;
+    provider: 'apple_vision_rectangle' | 'unsupported_platform' | 'native_module_unavailable';
+    code: 'unsupported_platform' | 'native_module_unavailable' | 'invalid_request' | 'image_load_failed' | 'vision_unavailable' | 'vision_failed';
+    message: string;
+    durationMs: number;
+    warnings: string[];
+  };
+
 export type NativeImageAnalysisResult =
   | {
     ok: true;
@@ -166,6 +197,7 @@ type NativeModuleShape = {
   recognizeText(request: NativeOcrRequest): Promise<NativeOcrResult>;
   recognizeFrameTitle?: (request: NativeLiveTitleOcrRequest) => Promise<NativeLiveTitleOcrResult>;
   analyzeRecognitionImage?: (request: NativeImageAnalysisRequest) => Promise<NativeImageAnalysisResult>;
+  detectCardRectangle?: (request: NativeCardRectangleRequest) => Promise<NativeCardRectangleResult>;
   generateFeaturePrint?: (request: NativeFeaturePrintRequest) => Promise<NativeFeaturePrintResult>;
   compareFeaturePrints?: (request: NativeFeaturePrintDistanceRequest) => Promise<NativeFeaturePrintDistanceResult>;
   getDiagnostics?: () => Promise<NativeOcrRuntimeDiagnostics>;
@@ -267,6 +299,33 @@ export async function analyzeRecognitionImage(request: NativeImageAnalysisReques
     };
   }
   return resolvedNativeModule.analyzeRecognitionImage(request);
+}
+
+export async function detectCardRectangle(request: NativeCardRectangleRequest, nativeModule?: NativeModuleShape | null, platform = currentPlatform()): Promise<NativeCardRectangleResult> {
+  const validation = validateNativeImageRequest(request, 'rectangle');
+  if (!validation.ok) return validation.result as NativeCardRectangleResult;
+  if (platform !== 'ios') {
+    return {
+      ok: false,
+      provider: 'unsupported_platform',
+      code: 'unsupported_platform',
+      message: 'Trading Docks card rectangle detection is implemented for iOS Apple Vision only.',
+      durationMs: 0,
+      warnings: ['No image was uploaded or retained.'],
+    };
+  }
+  const resolvedNativeModule = nativeModule === undefined ? loadNativeModule(platform) : nativeModule;
+  if (!resolvedNativeModule?.detectCardRectangle) {
+    return {
+      ok: false,
+      provider: 'native_module_unavailable',
+      code: 'native_module_unavailable',
+      message: 'TradingDocksVisionOcr rectangle detection is not available. Install a new EAS development build.',
+      durationMs: 0,
+      warnings: ['No image was uploaded or retained.'],
+    };
+  }
+  return resolvedNativeModule.detectCardRectangle(request);
 }
 
 export async function generateFeaturePrint(request: NativeFeaturePrintRequest, nativeModule?: NativeModuleShape | null, platform = currentPlatform()): Promise<NativeFeaturePrintResult> {
@@ -415,13 +474,13 @@ export function validateNativeLiveTitleOcrRequest(request: NativeLiveTitleOcrReq
   return { ok: true };
 }
 
-export function validateNativeImageRequest(request: NativeImageAnalysisRequest, provider: 'analysis' | 'feature_print'): { ok: true } | { ok: false; result: NativeImageAnalysisResult | NativeFeaturePrintResult } {
+export function validateNativeImageRequest(request: NativeImageAnalysisRequest, provider: 'analysis' | 'feature_print' | 'rectangle'): { ok: true } | { ok: false; result: NativeImageAnalysisResult | NativeFeaturePrintResult | NativeCardRectangleResult } {
   if (!request.imageUri || !request.imageUri.startsWith('file://')) {
     return {
       ok: false,
       result: {
         ok: false,
-        provider: provider === 'analysis' ? 'apple_vision' : 'apple_vision_feature_print',
+        provider: provider === 'analysis' ? 'apple_vision' : provider === 'rectangle' ? 'apple_vision_rectangle' : 'apple_vision_feature_print',
         code: 'invalid_request',
         message: 'Recognition image analysis requires a local file:// image URI.',
         durationMs: 0,

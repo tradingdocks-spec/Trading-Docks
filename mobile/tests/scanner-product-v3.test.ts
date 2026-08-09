@@ -34,7 +34,7 @@ test('unified scanner route reuses the existing native scanner infrastructure', 
   assert.match(automaticRoute, /AutomaticScannerScreen/);
   assert.match(automatic, /ScannerCamera/);
   assert.match(automatic, /recognizeMagicStillCapture/);
-  assert.match(automatic, /canAutoCaptureNative/);
+  assert.match(automatic, /nextAppleVisionAutoCaptureRuntime/);
   assert.match(automatic, /enrichScannerSessionLinePrice/);
 });
 
