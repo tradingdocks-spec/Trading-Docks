@@ -93,7 +93,7 @@
 - Implemented: Scanner camera selection now separates camera mode from zoom, normalizes legacy `macro` to `close`, hides duplicate no-op fixed modes, remounts when the resolved device/profile changes, and exposes development-only Camera QA cycling.
 - Partially Implemented: The actual Auto/Close-up/Standard/Telephoto camera inventory must still be measured on physical iOS/Android devices; no repository-only test can prove the device hardware mapping.
 - Partially Implemented: The premium scanner UI still depends on manual still capture until native frame delivery is validated on devices.
-- Partially Implemented: Rapid Scan has source-tested throughput contracts, live-frame state handling, and iOS native frame-title OCR, but continuous arbitrary-card identity still needs bundled local MTG catalog coverage and physical benchmark evidence before it can replace still-photo Precision capture broadly.
+- Partially Implemented: Rapid Scan has source-tested throughput contracts, live-frame state handling, iOS native frame-title OCR, bundled local Magic title identity, staged title ROIs, bounded retry, and development diagnostics, but physical benchmark evidence and live exact-printing refinement are still required before it can replace still-photo Precision capture broadly.
 - Implemented: The iOS preview/Release build now applies a generated Podfile workaround scoped only to the `VisionCamera` pod, setting Release Swift optimization to `-Onone` and compilation mode to `singlefile` because Xcode 26 / Swift 6.2 can ICE while compiling VisionCamera V5/Nitro Swift sources. Remove this after upstream VisionCamera/Nitro or the EAS Xcode toolchain fixes the Release compiler crash.
 - Planned: `docs/SCANNER_AUTO_CAPTURE_NATIVE_PLAN.md` records the required native frame bridge, measured FPS, auto-capture gate, same-card removal/rearm, privacy, physical QA, and rollback criteria before hands-free capture can be enabled.
 - Partially Implemented: Magic visual recognition still lacks benchmarked accuracy, artwork embedding, set-symbol detection, perspective correction, Android OCR, and finish classification providers. The active UI must continue requiring confirmation.
@@ -152,6 +152,7 @@
 - Implemented: Focused mobile design-system tests now cover selectable control accessibility, minimum touch target constants, and zero negative tracking for mobile display/heading typography.
 - Implemented: Focused mobile navigation/auth contract tests cover protected-route loading, Collector/Seller/Store tab labels, five-tab composition, no Explore placeholder tab, center-action reachability, safe-area sizing, admin route access, normal-user admin denial, fallback account type, and selected tab state.
 - Implemented: Focused native Magic OCR tests cover native-module interface validation, unsupported-platform behavior, guide-to-capture mapping, OCR response mapping, title normalization, collector parsing, candidate ordering, confidence caps, cleanup, and scanner-session insertion preparation.
+- Implemented: Focused Rapid identity tests cover bundled Magic catalog prewarm, Incinerate and representative local matches, conservative OCR fuzzy variants, card-relative-to-full-frame title ROI conversion, Vision bottom-left ROI conversion, staged title ROI fallback, catalog-not-ready retry, bounded Precision fallback, and Single Scan local identity fallback.
 - Implemented: Focused identity/access tests cover owner, admin, support, analyst, normal user, missing role, suspended account, admin with Free membership, Seller without admin role, and authorized/unauthorized web admin route decisions.
 - Planned: Auth redirect and callback tests.
 - Implemented: Focused membership entitlement tests cover prices, annual savings, limits, financial access, Deal Desk access, web workspace access, Store employee entitlement, role separation, billing fallback, and unknown-tier fallback.
@@ -305,6 +306,7 @@ Current release blockers:
 - Physical-device QA remains incomplete for iOS, Android, native camera/OCR, scanner replay, accessibility, larger text, and user switching.
 - Mobile paid subscription architecture is not approved or implemented; paid in-app digital access must be StoreKit/Google Play compliant.
 - Production builds still need explicit validation that development routes and scanner diagnostics are not exposed.
+- Physical-device Rapid Scan QA must confirm the title ROI overlay is aligned on real hardware and that Incinerate emits a session result before scanner throughput claims are made.
 - Store/legal assets are incomplete: privacy URL, terms URL, support URL, delete-account policy, App Privacy, Play Data Safety, screenshots, and review notes.
 
 Recommended next release sprint:

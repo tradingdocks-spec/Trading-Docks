@@ -6,8 +6,10 @@ import {
   createRapidLiveOcrState,
   normalizeLiveOcrRoi,
   rapidTitleRoiForFrame,
+  rapidTitleRoiForStage,
   runRapidLiveTitleOcr,
   stopRapidLiveOcr,
+  visionRoiFromTopLeftRoi,
 } from '../services/rapid-scan-live-ocr.ts';
 import {
   buildRapidMagicNameIndex,
@@ -41,6 +43,25 @@ test('live OCR request uses normalized title ROI without file or base64 input', 
   assert.equal(request.pixels.length, 16);
   assert.equal('imageUri' in request, false);
   assert.deepEqual(request.roi, rapidTitleRoiForFrame(frame));
+  assert.ok(request.roi.x > 0.18);
+  assert.ok(request.roi.y > 0.12);
+});
+
+test('Vision ROI converts React Native top-left origin to bottom-left origin', () => {
+  assert.deepEqual(
+    visionRoiFromTopLeftRoi({ x: 0.2312, y: 0.1542, width: 0.5376, height: 0.0798 }),
+    { x: 0.2312, y: 0.766, width: 0.5376, height: 0.0798 },
+  );
+});
+
+test('Rapid title ROI stages expand within the detected card zone', () => {
+  const tight = rapidTitleRoiForStage('title_primary', frame);
+  const expanded = rapidTitleRoiForStage('title_expanded', frame);
+  const upper = rapidTitleRoiForStage('upper_card', frame);
+  assert.ok(expanded.width > tight.width);
+  assert.ok(upper.height > expanded.height);
+  assert.ok(upper.x >= 0.18);
+  assert.ok(upper.y >= 0.12);
 });
 
 test('ROI normalization clamps expanded regions into frame bounds', () => {
@@ -159,25 +180,79 @@ test('scanner teardown discards live OCR work before mutation', async () => {
   assert.equal(result.outcome.status, 'stale');
 });
 
+test('catalog-not-ready behavior retries without calling native OCR', async () => {
+  const result = await runRapidLiveTitleOcr({
+    state: createRapidLiveOcrState(),
+    frame,
+    nameIndex: buildRapidMagicNameIndex([]),
+    destination: 'collection',
+    createResultId: () => 'rapid-1',
+    nativeProvider: async () => {
+      throw new Error('native OCR should wait for catalog prewarm');
+    },
+  });
+
+  assert.equal(result.outcome.status, 'retry');
+  assert.equal(result.state.lastDiagnostics?.indexReady, false);
+  assert.equal(result.state.lastDiagnostics?.failureStage, 'NO_LOCAL_MATCH');
+});
+
 test('weak live OCR results retry sampled title ROI before precision fallback', async () => {
+  const calls: string[] = [];
   const result = await runRapidLiveTitleOcr({
     state: createRapidLiveOcrState(),
     frame,
     nameIndex: index,
     destination: 'collection',
     createResultId: () => 'rapid-1',
-    nativeProvider: async (request) => ({
-      ok: false,
-      provider: 'apple_vision',
-      frameId: request.frameId,
-      code: 'empty_result',
-      message: 'No title text.',
-      durationMs: 18,
-      warnings: [],
-    }),
+    nativeProvider: async (request) => {
+      calls.push(`${request.roi.x}:${request.roi.y}:${request.roi.width}:${request.roi.height}`);
+      return {
+        ok: false,
+        provider: 'apple_vision',
+        frameId: request.frameId,
+        code: 'empty_result',
+        message: 'No title text.',
+        durationMs: 18,
+        warnings: [],
+      };
+    },
   });
 
-  assert.equal(result.outcome.status, 'retry');
+  assert.equal(result.outcome.status, 'fallback_precision');
+  assert.equal(calls.length, 3);
+  assert.equal(result.state.lastDiagnostics?.failureStage, 'NO_TEXT');
+});
+
+test('expanded live OCR title ROI can recover before upper-card fallback', async () => {
+  let calls = 0;
+  const result = await runRapidLiveTitleOcr({
+    state: createRapidLiveOcrState(),
+    frame,
+    nameIndex: index,
+    destination: 'collection',
+    createResultId: () => 'rapid-expanded',
+    nativeProvider: async (request) => {
+      calls += 1;
+      if (calls === 1) {
+        return { ok: false, provider: 'apple_vision', frameId: request.frameId, code: 'empty_result', message: 'No tight title.', durationMs: 8, warnings: [] };
+      }
+      return {
+        ok: true,
+        provider: 'apple_vision',
+        frameId: request.frameId,
+        text: 'Lightning Bolt',
+        confidence: 88,
+        durationMs: 14,
+        roi: request.roi,
+        warnings: [],
+      };
+    },
+  });
+
+  assert.equal(result.outcome.status, 'added');
+  assert.equal(result.state.lastDiagnostics?.stage, 'title_expanded');
+  assert.equal(result.state.metrics.boundedRetries, 1);
 });
 
 test('native unavailable falls back to Precision rather than appending invented identity', async () => {

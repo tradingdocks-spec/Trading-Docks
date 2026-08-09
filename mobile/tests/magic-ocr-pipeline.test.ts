@@ -320,6 +320,37 @@ test('title-only OCR produces capped candidates when collector data is missing',
   assert.equal(result.recognition.confidence.requiresConfirmation, true);
 });
 
+test('Single Scan falls back to shared local name identity when Scryfall returns no candidates', async () => {
+  const incinerateOcr: NativeOcrResult & { ok: true } = {
+    ...ocr,
+    fullText: 'Incinerate',
+    observations: [{
+      id: 'title:incinerate',
+      requestedRegionId: 'title_primary',
+      regionType: 'name',
+      text: 'Incinerate',
+      rawText: 'Incinerate',
+      confidence: 93,
+      bounds: { x: 0.1, y: 0.1, width: 0.7, height: 0.08 },
+    }],
+  };
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    recognize: async () => incinerateOcr,
+    searchCatalog: async () => [],
+    cleanup: async () => ({ ok: true, deleted: true }),
+  });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.candidates[0].name, 'Incinerate');
+  assert.equal(result.recognition.confidence.requiresConfirmation, true);
+});
+
 test('empty OCR title produces a no-title state with lookup diagnostics', async () => {
   const noTitleOcr: NativeOcrResult & { ok: true } = {
     ...ocr,
@@ -384,7 +415,7 @@ test('cancelled Scryfall lookup produces a structured cancelled state', async ()
 });
 
 
-test('empty Scryfall response produces a no-match state', async () => {
+test('empty Scryfall response falls back to shared local name identity', async () => {
   const result = await recognizeMagicStillCapture({
     imageUri: 'file:///tmp/card.jpg',
     preview: { width: 390, height: 440 },
@@ -395,11 +426,10 @@ test('empty Scryfall response produces a no-match state', async () => {
     searchCatalog: async () => [],
     cleanup: async () => ({ ok: true, deleted: true }),
   });
-  assert.equal(result.ok, false);
-  if (result.ok) return;
-  assert.equal(result.lookupDiagnostics?.lookupErrorCode, 'no_candidate_found');
-  assert.equal(result.lookupDiagnostics?.outcome, 'no_match');
-  assert.match(result.reason, /No matching card/);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.selected?.name, 'Rhystic Study');
+  assert.equal(result.recognition.confidence.requiresConfirmation, true);
 });
 
 test('still capture OCR returns top three and preserves missing pricing for session confirmation', async () => {

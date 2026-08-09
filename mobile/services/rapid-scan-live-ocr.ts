@@ -9,6 +9,7 @@ import {
   RAPID_SCAN_FIXED_ZONE,
   createRapidScanResult,
   matchRapidTitle,
+  normalizeRapidTitle,
   routeRapidIdentity,
   type RapidMagicNameIndex,
   type RapidScanDestination,
@@ -16,6 +17,15 @@ import {
 } from './rapid-scan-pipeline.ts';
 
 export type RapidLiveOcrStatus = 'idle' | 'in_flight' | 'stale' | 'failed';
+export type RapidTitleRoiStage = 'title_primary' | 'title_expanded' | 'upper_card';
+export type RapidLiveOcrFailureStage =
+  | 'NO_CARD'
+  | 'NO_TEXT'
+  | 'LOW_OCR_CONFIDENCE'
+  | 'NO_LOCAL_MATCH'
+  | 'AMBIGUOUS_MATCH'
+  | 'PRINTING_AMBIGUOUS'
+  | 'NETWORK_ENRICHMENT_FAILED';
 
 export type RapidLiveOcrMetrics = {
   framesSampled: number;
@@ -23,10 +33,33 @@ export type RapidLiveOcrMetrics = {
   ocrCompleted: number;
   framesSkipped: number;
   staleResultsDiscarded: number;
+  boundedRetries: number;
   lastOcrDurationMs: number | null;
   lastLocalMatchMs: number | null;
   lastIdentityLatencyMs: number | null;
   lastFrameToResultLatencyMs: number | null;
+};
+
+export type RapidLiveOcrDiagnostics = {
+  frameId: string;
+  stage: RapidTitleRoiStage;
+  rawOcrText: string | null;
+  normalizedOcrText: string | null;
+  ocrConfidence: number | null;
+  localMatchCandidate: string | null;
+  matchScore: number | null;
+  confidenceBand: 'high' | 'medium' | 'low' | null;
+  route: string | null;
+  failureStage: RapidLiveOcrFailureStage | null;
+  roi: NativeLiveTitleOcrRequest['roi'];
+  visionRoi: NativeLiveTitleOcrRequest['roi'];
+  frameOrientation: ScannerCameraFrame['orientation'];
+  ocrDurationMs: number | null;
+  matchDurationMs: number | null;
+  catalogLoaded: boolean;
+  catalogCardCount: number;
+  indexReady: boolean;
+  prewarmMs: number | null;
 };
 
 export type RapidLiveOcrState = {
@@ -35,6 +68,7 @@ export type RapidLiveOcrState = {
   latestAcceptedFrameId: string | null;
   tornDown: boolean;
   metrics: RapidLiveOcrMetrics;
+  lastDiagnostics: RapidLiveOcrDiagnostics | null;
 };
 
 export type RapidLiveOcrOutcome =
@@ -68,6 +102,8 @@ export type RapidLiveOcrOutcome =
 
 export type RapidLiveOcrNativeProvider = (request: NativeLiveTitleOcrRequest) => Promise<NativeLiveTitleOcrResult>;
 
+const RAPID_TITLE_ROI_STAGES: RapidTitleRoiStage[] = ['title_primary', 'title_expanded', 'upper_card'];
+
 export function createRapidLiveOcrState(): RapidLiveOcrState {
   return {
     activeToken: 0,
@@ -80,11 +116,13 @@ export function createRapidLiveOcrState(): RapidLiveOcrState {
       ocrCompleted: 0,
       framesSkipped: 0,
       staleResultsDiscarded: 0,
+      boundedRetries: 0,
       lastOcrDurationMs: null,
       lastLocalMatchMs: null,
       lastIdentityLatencyMs: null,
       lastFrameToResultLatencyMs: null,
     },
+    lastDiagnostics: null,
   };
 }
 
@@ -98,13 +136,23 @@ export function stopRapidLiveOcr(state: RapidLiveOcrState): RapidLiveOcrState {
 }
 
 export function rapidTitleRoiForFrame(frame: Pick<ScannerCameraFrame, 'width' | 'height'>) {
-  const roi = RAPID_SCAN_FIXED_ZONE.titleRoi;
-  return normalizeLiveOcrRoi({
-    x: roi.x,
-    y: roi.y,
-    width: roi.width,
-    height: roi.height,
-  }, frame);
+  return rapidTitleRoiForStage('title_primary', frame);
+}
+
+export function rapidTitleRoiForStage(stage: RapidTitleRoiStage, frame: Pick<ScannerCameraFrame, 'width' | 'height'>) {
+  const card = RAPID_SCAN_FIXED_ZONE.card;
+  const cardRelative = stage === 'title_primary'
+    ? RAPID_SCAN_FIXED_ZONE.titleRoi
+    : stage === 'title_expanded'
+      ? { x: 0.045, y: 0.025, width: 0.9, height: 0.16 }
+      : { x: 0.035, y: 0.02, width: 0.93, height: 0.245 };
+  const roi = {
+    x: card.x + cardRelative.x * card.width,
+    y: card.y + cardRelative.y * card.height,
+    width: cardRelative.width * card.width,
+    height: cardRelative.height * card.height,
+  };
+  return normalizeLiveOcrRoi(roi, frame);
 }
 
 export function normalizeLiveOcrRoi(
@@ -117,6 +165,15 @@ export function normalizeLiveOcrRoi(
   const y = clamp(roi.y, 0, 1 - height);
   if (frame.width <= 0 || frame.height <= 0) return { x, y, width, height };
   return { x, y, width, height };
+}
+
+export function visionRoiFromTopLeftRoi(roi: NativeLiveTitleOcrRequest['roi']): NativeLiveTitleOcrRequest['roi'] {
+  return {
+    x: roi.x,
+    y: 1 - roi.y - roi.height,
+    width: roi.width,
+    height: roi.height,
+  };
 }
 
 export function buildLiveTitleOcrRequest(frame: ScannerCameraFrame, roi = rapidTitleRoiForFrame(frame)): NativeLiveTitleOcrRequest {
@@ -151,10 +208,26 @@ export async function runRapidLiveTitleOcr(input: {
     outcome: { status: 'skipped', frameId: input.frame.id, reason: 'Live OCR is already in flight; dropping intermediate frame.' },
   };
 
+  if (!input.nameIndex.records.length) {
+    const roi = rapidTitleRoiForStage('title_primary', input.frame);
+    return {
+      state: {
+        ...input.state,
+        lastDiagnostics: diagnosticBase(input.frame, 'title_primary', roi, {
+          failureStage: 'NO_LOCAL_MATCH',
+          catalogCardCount: 0,
+          indexReady: false,
+          prewarmMs: input.nameIndex.prewarmMs ?? null,
+        }),
+      },
+      outcome: { status: 'retry', frameId: input.frame.id, reason: 'Preparing scanner name catalog.', nativeDurationMs: null },
+    };
+  }
+
   const token = input.state.activeToken + 1;
   const startedAt = now();
-  const request = buildLiveTitleOcrRequest(input.frame);
-  const validation = validateNativeLiveTitleOcrRequest(request);
+  const initialRequest = buildLiveTitleOcrRequest(input.frame, rapidTitleRoiForStage('title_primary', input.frame));
+  const validation = validateNativeLiveTitleOcrRequest(initialRequest);
   if (!validation.ok) return {
     state: incrementMetric(input.state, 'framesSkipped'),
     outcome: { status: 'fallback_precision', frameId: input.frame.id, reason: validation.result.message, nativeDurationMs: null },
@@ -171,7 +244,16 @@ export async function runRapidLiveTitleOcr(input: {
   let nextState = input.state;
 
   const native = input.nativeProvider ?? recognizeFrameTitle;
-  const nativeResult = await native(request);
+  let nativeResult: NativeLiveTitleOcrResult | null = null;
+  let nativeRequest = initialRequest;
+  let usedStage: RapidTitleRoiStage = 'title_primary';
+  for (const stage of RAPID_TITLE_ROI_STAGES) {
+    usedStage = stage;
+    nativeRequest = buildLiveTitleOcrRequest(input.frame, rapidTitleRoiForStage(stage, input.frame));
+    nativeResult = await native(nativeRequest);
+    if (nativeResult.ok && nativeResult.text.trim() && nativeResult.confidence >= 45) break;
+    if (!nativeResult.ok && nativeResult.code !== 'empty_result') break;
+  }
   const ocrEndedAt = now();
 
   if (nextState.tornDown || token !== nextState.activeToken) {
@@ -194,14 +276,36 @@ export async function runRapidLiveTitleOcr(input: {
     metrics: {
       ...nextState.metrics,
       ocrCompleted: nextState.metrics.ocrCompleted + 1,
-      lastOcrDurationMs: nativeResult.ok ? nativeResult.durationMs : null,
+      boundedRetries: usedStage === 'title_primary' ? nextState.metrics.boundedRetries : nextState.metrics.boundedRetries + 1,
+      lastOcrDurationMs: nativeResult?.ok ? nativeResult.durationMs : null,
     },
   };
 
-  if (!nativeResult.ok) {
+  if (!nativeResult?.ok) {
+    const failure = nativeResult ?? {
+      ok: false,
+      provider: 'apple_vision' as const,
+      frameId: input.frame.id,
+      code: 'empty_result' as const,
+      message: 'No OCR result.',
+      durationMs: 0,
+      warnings: [],
+    };
+    nextState = {
+      ...nextState,
+      lastDiagnostics: diagnosticBase(input.frame, usedStage, nativeRequest.roi, {
+        failureStage: failure.code === 'empty_result' ? 'NO_TEXT' : 'LOW_OCR_CONFIDENCE',
+        ocrDurationMs: failure.durationMs,
+        catalogCardCount: input.nameIndex.records.length,
+        indexReady: true,
+        prewarmMs: input.nameIndex.prewarmMs ?? null,
+      }),
+    };
     return {
       state: nextState,
-      outcome: liveOcrFailureOutcome(input.frame.id, nativeResult),
+      outcome: usedStage === 'upper_card'
+        ? { status: 'fallback_precision', frameId: input.frame.id, reason: failure.message, nativeDurationMs: failure.durationMs }
+        : liveOcrFailureOutcome(input.frame.id, failure),
     };
   }
 
@@ -210,9 +314,37 @@ export async function runRapidLiveTitleOcr(input: {
   const route = routeRapidIdentity(match);
   const localMatchMs = Math.max(0, now() - matchStartedAt);
   const identityLatencyMs = Math.max(0, now() - startedAt);
+  const failureStage = !match.entry
+    ? match.failureCode ?? 'NO_LOCAL_MATCH'
+    : route.action === 'continue_reading'
+      ? 'LOW_OCR_CONFIDENCE'
+      : route.action === 'precision_fallback'
+        ? 'AMBIGUOUS_MATCH'
+        : null;
 
   nextState = {
     ...nextState,
+    lastDiagnostics: {
+      frameId: input.frame.id,
+      stage: usedStage,
+      rawOcrText: nativeResult.text,
+      normalizedOcrText: normalizeRapidTitle(nativeResult.text),
+      ocrConfidence: nativeResult.confidence,
+      localMatchCandidate: match.entry?.name ?? null,
+      matchScore: match.score,
+      confidenceBand: route.confidenceClass,
+      route: route.action,
+      failureStage,
+      roi: nativeRequest.roi,
+      visionRoi: visionRoiFromTopLeftRoi(nativeRequest.roi),
+      frameOrientation: input.frame.orientation,
+      ocrDurationMs: nativeResult.durationMs,
+      matchDurationMs: localMatchMs,
+      catalogLoaded: true,
+      catalogCardCount: input.nameIndex.records.length,
+      indexReady: true,
+      prewarmMs: input.nameIndex.prewarmMs ?? null,
+    },
     metrics: {
       ...nextState.metrics,
       lastLocalMatchMs: localMatchMs,
@@ -225,7 +357,7 @@ export async function runRapidLiveTitleOcr(input: {
     return {
       state: nextState,
       outcome: {
-        status: 'retry',
+        status: usedStage === 'upper_card' ? 'fallback_precision' : 'retry',
         frameId: input.frame.id,
         reason: route.reason,
         nativeDurationMs: nativeResult.durationMs,
@@ -287,6 +419,41 @@ function liveOcrFailureOutcome(frameId: string, result: Extract<NativeLiveTitleO
     frameId,
     reason: result.message,
     nativeDurationMs: result.durationMs,
+  };
+}
+
+function diagnosticBase(
+  frame: ScannerCameraFrame,
+  stage: RapidTitleRoiStage,
+  roi: NativeLiveTitleOcrRequest['roi'],
+  input: {
+    failureStage: RapidLiveOcrFailureStage | null;
+    ocrDurationMs?: number | null;
+    catalogCardCount: number;
+    indexReady: boolean;
+    prewarmMs: number | null;
+  },
+): RapidLiveOcrDiagnostics {
+  return {
+    frameId: frame.id,
+    stage,
+    rawOcrText: null,
+    normalizedOcrText: null,
+    ocrConfidence: null,
+    localMatchCandidate: null,
+    matchScore: null,
+    confidenceBand: null,
+    route: null,
+    failureStage: input.failureStage,
+    roi,
+    visionRoi: visionRoiFromTopLeftRoi(roi),
+    frameOrientation: frame.orientation,
+    ocrDurationMs: input.ocrDurationMs ?? null,
+    matchDurationMs: null,
+    catalogLoaded: input.catalogCardCount > 0,
+    catalogCardCount: input.catalogCardCount,
+    indexReady: input.indexReady,
+    prewarmMs: input.prewarmMs,
   };
 }
 

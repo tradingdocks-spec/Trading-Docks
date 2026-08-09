@@ -14,6 +14,11 @@ import type { ScannerGuideLayout } from './continuous-offer-scanner.ts';
 import { normalizeScannerCandidate, type ScannerCardCandidate } from './scanner-foundation.ts';
 import { parseCollectorInfoText, type CollectorInfoObservation, type RecognitionCandidate } from './scanner-intelligence.ts';
 import { createCachedMagicCatalogSearch } from './scanner-cache-prewarming.ts';
+import {
+  matchMagicCardName,
+  prewarmMagicNameIndex,
+  type MagicNameMatch,
+} from './magic-card-identity.ts';
 
 export type CaptureDimensions = { width: number; height: number };
 export type CropRect = { x: number; y: number; width: number; height: number };
@@ -200,6 +205,8 @@ export async function recognizeMagicStillCapture(input: {
   input.onStage?.('finding_card');
   const started = Date.now();
   let latestLookupDiagnostics: MagicStillScanLookupDiagnostics | null = null;
+  const localNameMatch = matchMagicCardName(prewarmMagicNameIndex(), signals.normalizedTitle);
+  const localCandidates = localNameMatch.entry ? [localNameMatchToRecognitionCandidate(localNameMatch)] : [];
   const onLookupDiagnostics: MagicCatalogDiagnosticsSink = (diagnostics) => {
     latestLookupDiagnostics = createStillLookupDiagnostics(signals, diagnostics);
     input.onLookupDiagnostics?.(latestLookupDiagnostics);
@@ -220,6 +227,7 @@ export async function recognizeMagicStillCapture(input: {
     signals.titleAlternatives,
     onLookupDiagnostics,
     input.searchCatalog ? null : searchScryfallMagicCatalogFuzzy,
+    localCandidates,
   ));
   const lookupLatencyMs = Math.max(0, Date.now() - started);
   const cleanupResult = await cleanupCapture();
@@ -528,8 +536,11 @@ export function parseMagicCollectorOcr(raw: string): CollectorInfoObservation {
 }
 
 export function capTitleOnlyConfidence<T extends MagicRecognitionResult & { ok: true }>(recognition: T, hasSetCode: boolean, hasCollectorNumber: boolean): T {
-  if (hasSetCode && hasCollectorNumber) return recognition;
-  const cap = hasSetCode || hasCollectorNumber ? 78 : 69;
+  const selected = recognition.selected ?? recognition.candidates[0] ?? null;
+  const candidateHasExactPrinting = Boolean(selected?.setCode && selected.collectorNumber);
+  if (hasSetCode && hasCollectorNumber && candidateHasExactPrinting) return recognition;
+  const hasPartialPrintingEvidence = hasSetCode || hasCollectorNumber;
+  const cap = hasPartialPrintingEvidence ? 78 : 69;
   const overall = Math.min(recognition.confidence.overall, cap);
   return {
     ...recognition,
@@ -541,7 +552,7 @@ export function capTitleOnlyConfidence<T extends MagicRecognitionResult & { ok: 
     },
     explanation: [
       ...recognition.explanation,
-      hasSetCode || hasCollectorNumber
+      hasPartialPrintingEvidence
         ? 'Exact-printing confidence is capped until both set code and collector number are observed.'
         : 'Title-only OCR cannot produce high exact-printing confidence.',
     ],
@@ -573,6 +584,7 @@ export function buildOcrAwareMagicSearch(
   alternatives: string[],
   onDiagnostics?: MagicCatalogDiagnosticsSink,
   fuzzySearch: MagicCatalogSearch | null = searchScryfallMagicCatalogFuzzy,
+  localFallbackCandidates: RecognitionCandidate[] = [],
 ): MagicCatalogSearch {
   return async (query) => {
     const exact = await callMagicSearch(primary, query, onDiagnostics);
@@ -581,8 +593,9 @@ export function buildOcrAwareMagicSearch(
       const alternativeExact = await callMagicSearch(primary, { ...query, name: alternative }, onDiagnostics);
       if (alternativeExact.length) return alternativeExact;
     }
-    if (!fuzzySearch) return [];
-    return callMagicSearch(fuzzySearch, query, onDiagnostics);
+    if (!fuzzySearch) return localFallbackCandidates;
+    const fuzzy = await callMagicSearch(fuzzySearch, query, onDiagnostics);
+    return fuzzy.length ? fuzzy : localFallbackCandidates;
   };
 }
 
@@ -613,6 +626,28 @@ function createStillLookupDiagnostics(signals: MagicOcrSignals, diagnostics: Mag
     lookupErrorCode: diagnostics.errorCode,
     lookupLatencyMs: diagnostics.latencyMs,
     topThreeCandidateNames: diagnostics.topThreeCandidateNames,
+  };
+}
+
+function localNameMatchToRecognitionCandidate(match: MagicNameMatch): RecognitionCandidate {
+  const entry = match.entry;
+  if (!entry) throw new Error('Cannot build a local Magic candidate without a matched catalog entry.');
+  return {
+    id: entry.scryfallId ?? entry.oracleId,
+    oracleId: entry.oracleId,
+    name: entry.name,
+    setCode: null,
+    setName: null,
+    collectorNumber: null,
+    finishes: ['normal', 'foil', 'etched'],
+    language: 'en',
+    imageUrl: null,
+    confidence: match.score,
+    recognitionMode: 'assisted_capture',
+    marketPrice: null,
+    legalFinishes: ['normal', 'foil', 'etched'],
+    layout: null,
+    colorIdentity: [],
   };
 }
 

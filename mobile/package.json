@@ -11,6 +11,7 @@
     "lint": "expo lint",
     "test": "node --test --experimental-strip-types tests/*.test.ts",
     "benchmark:magic-scanner": "node --experimental-strip-types scripts/run-magic-scanner-benchmark.ts",
+    "catalog:magic-names": "node scripts/generate-magic-name-catalog.cjs",
     "verify:native-vision-stack": "node scripts/verify-native-vision-stack.js",
     "verify:production-release": "node scripts/verify-production-release.js"
   },

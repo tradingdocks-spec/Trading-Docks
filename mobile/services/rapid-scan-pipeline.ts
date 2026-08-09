@@ -1,3 +1,12 @@
+import {
+  buildMagicNameIndex,
+  matchMagicCardName,
+  normalizeMagicNameForIdentity,
+  type MagicNameIndex,
+  type MagicNameIndexRecord,
+  type MagicNameMatch,
+} from './magic-card-identity.ts';
+
 export const SCANNER_SCAN_MODES = ['rapid_scan', 'precision_scan'] as const;
 
 export type ScannerScanMode = typeof SCANNER_SCAN_MODES[number];
@@ -26,22 +35,11 @@ export type RapidMagicNameIndexEntry = {
   scryfallId?: string | null;
 };
 
-export type RapidMagicNameIndexRecord = RapidMagicNameIndexEntry & {
-  normalizedName: string;
-  searchableParts: string[];
-};
+export type RapidMagicNameIndexRecord = MagicNameIndexRecord;
 
-export type RapidMagicNameIndex = {
-  records: RapidMagicNameIndexRecord[];
-};
+export type RapidMagicNameIndex = MagicNameIndex;
 
-export type RapidTitleMatch = {
-  entry: RapidMagicNameIndexRecord | null;
-  normalizedQuery: string;
-  score: number;
-  exact: boolean;
-  evidence: string[];
-};
+export type RapidTitleMatch = MagicNameMatch;
 
 export type RapidScanRuntime = {
   state: RapidScanCardState;
@@ -233,33 +231,16 @@ export function rapidScanSamplingRate(state: RapidScanCardState) {
 }
 
 export function buildRapidMagicNameIndex(entries: RapidMagicNameIndexEntry[]): RapidMagicNameIndex {
-  const records = entries
-    .filter((entry) => entry.name.trim() && entry.oracleId.trim())
-    .map((entry) => {
-      const normalizedName = normalizeRapidTitle(entry.name);
-      return {
-        ...entry,
-        scryfallId: entry.scryfallId ?? null,
-        normalizedName,
-        searchableParts: splitRapidNameParts(normalizedName),
-      };
-    });
-  return { records };
+  return buildMagicNameIndex(entries.map((entry) => ({
+    name: entry.name,
+    oracleId: entry.oracleId,
+    scryfallId: entry.scryfallId ?? null,
+    aliases: [],
+  })));
 }
 
 export function matchRapidTitle(index: RapidMagicNameIndex, rawTitle: string): RapidTitleMatch {
-  const normalizedQuery = normalizeRapidTitle(rawTitle);
-  if (normalizedQuery.length < 2) {
-    return { entry: null, normalizedQuery, score: 0, exact: false, evidence: ['Title OCR was too short for local matching.'] };
-  }
-  const ranked = index.records
-    .map((record) => scoreRapidTitle(record, normalizedQuery))
-    .sort((a, b) => b.score - a.score);
-  const best = ranked[0];
-  if (!best || best.score < 0.42) {
-    return { entry: null, normalizedQuery, score: best?.score ?? 0, exact: false, evidence: ['No local name index entry cleared the Rapid Scan threshold.'] };
-  }
-  return best;
+  return matchMagicCardName(index, rawTitle);
 }
 
 export function routeRapidIdentity(match: RapidTitleMatch): { confidenceClass: RapidScanConfidenceClass; action: RapidScanRouteAction; reason: string } {
@@ -396,70 +377,7 @@ export function summarizeRapidScanMetrics(samples: RapidScanMetricSample[]) {
 }
 
 export function normalizeRapidTitle(value: string) {
-  return value
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[|]/g, 'l')
-    .replace(/\b0f\b/gi, 'of')
-    .replace(/[^a-z0-9/ ]+/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-}
-
-function splitRapidNameParts(normalizedName: string) {
-  return normalizedName
-    .split('/')
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
-function scoreRapidTitle(record: RapidMagicNameIndexRecord, normalizedQuery: string): RapidTitleMatch {
-  const candidates = [record.normalizedName, ...record.searchableParts];
-  const scores = candidates.map((candidate) => {
-    if (candidate === normalizedQuery) return { score: 1, evidence: 'Exact normalized title match.' };
-    if (candidate.startsWith(normalizedQuery) || normalizedQuery.startsWith(candidate)) return { score: 0.9, evidence: 'Prefix title match.' };
-    if (candidate.includes(normalizedQuery) || normalizedQuery.includes(candidate)) return { score: 0.82, evidence: 'Contained title match.' };
-    const distance = levenshtein(candidate, normalizedQuery);
-    const longest = Math.max(candidate.length, normalizedQuery.length, 1);
-    const editScore = 1 - distance / longest;
-    const tokenScore = tokenOverlap(candidate, normalizedQuery);
-    return { score: Math.max(editScore, tokenScore), evidence: editScore >= tokenScore ? 'Fuzzy edit-distance match.' : 'Token overlap match.' };
-  }).sort((a, b) => b.score - a.score);
-  const best = scores[0] ?? { score: 0, evidence: 'No title match evidence.' };
-  return {
-    entry: record,
-    normalizedQuery,
-    score: Math.round(best.score * 1000) / 1000,
-    exact: best.score === 1,
-    evidence: [best.evidence],
-  };
-}
-
-function tokenOverlap(left: string, right: string) {
-  const leftTokens = new Set(left.split(' ').filter(Boolean));
-  const rightTokens = right.split(' ').filter(Boolean);
-  if (!leftTokens.size || !rightTokens.length) return 0;
-  const matches = rightTokens.filter((token) => leftTokens.has(token)).length;
-  return matches / Math.max(leftTokens.size, rightTokens.length);
-}
-
-function levenshtein(left: string, right: string) {
-  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
-  for (let i = 1; i <= left.length; i += 1) {
-    let prevDiagonal = previous[0];
-    previous[0] = i;
-    for (let j = 1; j <= right.length; j += 1) {
-      const temp = previous[j];
-      previous[j] = Math.min(
-        previous[j] + 1,
-        previous[j - 1] + 1,
-        prevDiagonal + (left[i - 1] === right[j - 1] ? 0 : 1),
-      );
-      prevDiagonal = temp;
-    }
-  }
-  return previous[right.length] ?? 0;
+  return normalizeMagicNameForIdentity(value);
 }
 
 function nullableMs(value: number | null) {

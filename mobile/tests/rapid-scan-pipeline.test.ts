@@ -108,6 +108,8 @@ test('high, medium, and low routing choose safe actions', () => {
     normalizedQuery: 'unblinking ob',
     score: 0.74,
     exact: false,
+    confidenceBand: 'medium',
+    failureCode: null,
     evidence: ['Synthetic medium-confidence title evidence.'],
   });
   const low = routeRapidIdentity(matchRapidTitle(index, 'Totally Unknown Card'));

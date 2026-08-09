@@ -77,7 +77,6 @@ import {
 } from '@/services/scanner-performance-instrumentation';
 import {
   SCANNER_SCAN_MODES,
-  buildRapidMagicNameIndex,
   createRapidScanRuntime,
   markRapidIdentityEmitted,
   nextRapidScanRuntime,
@@ -91,7 +90,12 @@ import {
   runRapidLiveTitleOcr,
   stopRapidLiveOcr,
   type RapidLiveOcrState,
+  type RapidLiveOcrDiagnostics,
 } from '@/services/rapid-scan-live-ocr';
+import {
+  catalogDiagnostics,
+  prewarmMagicNameIndex,
+} from '@/services/magic-card-identity';
 import {
   scannerCameraFraming,
 } from '@/services/scanner-camera-quality';
@@ -280,6 +284,8 @@ export default function AutomaticScannerScreen() {
   const [lastPricingTrace, setLastPricingTrace] = useState<ScannerPricingTrace | null>(null);
   const [liveVisionResult, setLiveVisionResult] = useState<ScannerVisionResult | null>(null);
   const [rapidLiveOcrMetrics, setRapidLiveOcrMetrics] = useState(() => createRapidLiveOcrState().metrics);
+  const [rapidLiveOcrDiagnostics, setRapidLiveOcrDiagnostics] = useState<RapidLiveOcrDiagnostics | null>(null);
+  const [rapidNameIndex] = useState(() => prewarmMagicNameIndex(scannerNow));
   const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusReticleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraLensSwitchStartedAtRef = useRef<number | null>(null);
@@ -405,23 +411,7 @@ export default function AutomaticScannerScreen() {
     needsReview: line.reviewStatus === 'needs_review',
     syncState: line.syncState,
   })), [session]);
-  const rapidNameIndex = useMemo(() => buildRapidMagicNameIndex([
-    ...candidates
-      .filter((candidate) => candidate.oracleId)
-      .map((candidate) => ({
-        name: candidate.name,
-        oracleId: candidate.oracleId ?? candidate.id,
-        scryfallId: candidate.id,
-      })),
-    ...(session?.lines ?? [])
-      .map((line) => line.recognition.topCandidate)
-      .filter((candidate): candidate is NonNullable<RecognitionPipelineReport['topCandidate']> => Boolean(candidate?.oracleId))
-      .map((candidate) => ({
-        name: candidate.name,
-        oracleId: candidate.oracleId ?? candidate.id,
-        scryfallId: candidate.id,
-      })),
-  ]), [candidates, session]);
+  const rapidCatalogDiagnostics = useMemo(() => catalogDiagnostics(rapidNameIndex), [rapidNameIndex]);
   const scannerPerformanceReport = useMemo(
     () => buildScannerPerformanceReport(scannerPerformanceSamples),
     [scannerPerformanceSamples],
@@ -553,6 +543,10 @@ export default function AutomaticScannerScreen() {
       if (!mountedRef.current) return;
       rapidLiveOcrStateRef.current = state;
       setRapidLiveOcrMetrics(state.metrics);
+      setRapidLiveOcrDiagnostics(state.lastDiagnostics);
+      if (outcome.status === 'fallback_precision') {
+        setError('Try Precision Scan or Manual search.');
+      }
       if (outcome.status !== 'added') return;
       const report = rapidLiveRecognitionReport({
         cardName: outcome.result.cardName,
@@ -610,6 +604,7 @@ export default function AutomaticScannerScreen() {
         inFlight: false,
       };
       setRapidLiveOcrMetrics(rapidLiveOcrStateRef.current.metrics);
+      setRapidLiveOcrDiagnostics(rapidLiveOcrStateRef.current.lastDiagnostics);
       if (diagnosticsEnabled) setError(liveOcrError instanceof Error ? liveOcrError.message : 'Live OCR failed.');
     });
   }, [
@@ -1570,6 +1565,10 @@ export default function AutomaticScannerScreen() {
     const rapidLiveSummary = [
       '',
       '## Rapid Live OCR',
+      `Catalog loaded: ${rapidCatalogDiagnostics.catalogLoaded ? 'yes' : 'no'}`,
+      `Catalog count: ${rapidCatalogDiagnostics.catalogCardCount}`,
+      `Index ready: ${rapidCatalogDiagnostics.indexReady ? 'yes' : 'no'}`,
+      `Prewarm: ${performanceMs(rapidCatalogDiagnostics.prewarmMs)}`,
       `Frames sampled: ${rapidLiveOcrMetrics.framesSampled}`,
       `OCR started: ${rapidLiveOcrMetrics.ocrStarted}`,
       `OCR completed: ${rapidLiveOcrMetrics.ocrCompleted}`,
@@ -1579,8 +1578,13 @@ export default function AutomaticScannerScreen() {
       `Last local match: ${performanceMs(rapidLiveOcrMetrics.lastLocalMatchMs)}`,
       `Last identity latency: ${performanceMs(rapidLiveOcrMetrics.lastIdentityLatencyMs)}`,
       `Last frame-to-result latency: ${performanceMs(rapidLiveOcrMetrics.lastFrameToResultLatencyMs)}`,
+      `Last OCR raw text: ${rapidLiveOcrDiagnostics?.rawOcrText ?? 'unavailable'}`,
+      `Last OCR normalized text: ${rapidLiveOcrDiagnostics?.normalizedOcrText ?? 'unavailable'}`,
+      `Last match candidate: ${rapidLiveOcrDiagnostics?.localMatchCandidate ?? 'unavailable'}`,
+      `Last match score: ${rapidLiveOcrDiagnostics?.matchScore ?? 'unavailable'}`,
+      `Last failure stage: ${rapidLiveOcrDiagnostics?.failureStage ?? 'none'}`,
     ].join('\n');
-    const exportText = `${summary}${rapidLiveSummary}\n\n${json}\n\n${JSON.stringify({ rapidLiveOcr: rapidLiveOcrMetrics }, null, 2)}`;
+    const exportText = `${summary}${rapidLiveSummary}\n\n${json}\n\n${JSON.stringify({ rapidLiveOcr: rapidLiveOcrMetrics, rapidLiveOcrDiagnostics, rapidCatalogDiagnostics }, null, 2)}`;
     setScannerPerformanceJsonSummary(`${scannerPerformanceReport.sampleCount} sample${scannerPerformanceReport.sampleCount === 1 ? '' : 's'} ready (${exportText.length} characters).`);
     try {
       if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -1645,6 +1649,7 @@ export default function AutomaticScannerScreen() {
         autoCaptureEnabled={autoCaptureEnabled}
         scanMode={scanMode}
         hideControls={hideMainControls}
+        rapidLiveOcrDiagnostics={diagnosticsEnabled ? rapidLiveOcrDiagnostics : null}
       />
 
       <ScannerHud
@@ -1914,9 +1919,24 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Active transitions" value={String(cameraLifecycleDiagnostics.isActiveTransitions)} />
               <DiagnosticCell label="Frame count" value={String(liveFrameCount)} />
               <DiagnosticCell label="Effective FPS" value={autoCaptureReadiness.effectiveFps === null ? 'unavailable' : `${autoCaptureReadiness.effectiveFps} fps`} />
+              <DiagnosticCell label="Catalog loaded" value={rapidCatalogDiagnostics.catalogLoaded ? 'yes' : 'no'} />
+              <DiagnosticCell label="Catalog count" value={String(rapidCatalogDiagnostics.catalogCardCount)} />
+              <DiagnosticCell label="Index ready" value={rapidCatalogDiagnostics.indexReady ? 'yes' : 'no'} />
+              <DiagnosticCell label="Prewarm" value={performanceMs(rapidCatalogDiagnostics.prewarmMs)} />
               <DiagnosticCell label="Rapid OCR sampled" value={String(rapidLiveOcrMetrics.framesSampled)} />
               <DiagnosticCell label="Rapid OCR skipped" value={String(rapidLiveOcrMetrics.framesSkipped)} />
               <DiagnosticCell label="Rapid OCR stale" value={String(rapidLiveOcrMetrics.staleResultsDiscarded)} />
+              <DiagnosticCell label="Rapid OCR raw" value={rapidLiveOcrDiagnostics?.rawOcrText ?? 'unavailable'} />
+              <DiagnosticCell label="Rapid OCR normalized" value={rapidLiveOcrDiagnostics?.normalizedOcrText ?? 'unavailable'} />
+              <DiagnosticCell label="Rapid OCR confidence" value={rapidLiveOcrDiagnostics?.ocrConfidence === null || rapidLiveOcrDiagnostics?.ocrConfidence === undefined ? 'unavailable' : String(rapidLiveOcrDiagnostics.ocrConfidence)} />
+              <DiagnosticCell label="Rapid candidate" value={rapidLiveOcrDiagnostics?.localMatchCandidate ?? 'unavailable'} />
+              <DiagnosticCell label="Rapid match score" value={rapidLiveOcrDiagnostics?.matchScore === null || rapidLiveOcrDiagnostics?.matchScore === undefined ? 'unavailable' : String(rapidLiveOcrDiagnostics.matchScore)} />
+              <DiagnosticCell label="Rapid band" value={rapidLiveOcrDiagnostics?.confidenceBand ?? 'unavailable'} />
+              <DiagnosticCell label="Rapid route" value={rapidLiveOcrDiagnostics?.route ?? 'unavailable'} />
+              <DiagnosticCell label="Rapid failure" value={rapidLiveOcrDiagnostics?.failureStage ?? 'none'} />
+              <DiagnosticCell label="Rapid ROI" value={rapidLiveOcrDiagnostics ? roiSummary(rapidLiveOcrDiagnostics.roi) : 'unavailable'} />
+              <DiagnosticCell label="Vision ROI" value={rapidLiveOcrDiagnostics ? roiSummary(rapidLiveOcrDiagnostics.visionRoi) : 'unavailable'} />
+              <DiagnosticCell label="Frame orientation" value={rapidLiveOcrDiagnostics?.frameOrientation ?? 'unavailable'} />
               <DiagnosticCell label="Rapid OCR ms" value={performanceMs(rapidLiveOcrMetrics.lastOcrDurationMs)} />
               <DiagnosticCell label="Rapid match ms" value={performanceMs(rapidLiveOcrMetrics.lastLocalMatchMs)} />
               <DiagnosticCell label="Rapid identity ms" value={performanceMs(rapidLiveOcrMetrics.lastIdentityLatencyMs)} />
@@ -2097,6 +2117,7 @@ function ScannerViewport({
   autoCaptureEnabled,
   scanMode,
   hideControls,
+  rapidLiveOcrDiagnostics,
 }: {
   cameraRef: RefObject<ScannerCameraHandle | null>;
   permission: ScannerPermissionState;
@@ -2137,6 +2158,7 @@ function ScannerViewport({
   autoCaptureEnabled: boolean;
   scanMode: ScannerScanMode;
   hideControls: boolean;
+  rapidLiveOcrDiagnostics: RapidLiveOcrDiagnostics | null;
 }) {
   const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
   const showResume = shouldShowScannerResumeAction(cameraLifecycle);
@@ -2171,6 +2193,7 @@ function ScannerViewport({
             onTorchStateChange={onTorchStateChange}
           />
           <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
+          {rapidLiveOcrDiagnostics ? <RapidOcrRoiOverlay diagnostics={rapidLiveOcrDiagnostics} /> : null}
           {focusReticle ? <FocusReticle point={focusReticle} /> : null}
           <CameraMountTracker onMount={onCameraMounted} onUnmount={onCameraUnmounted} />
         </View>
@@ -2217,6 +2240,32 @@ function ScannerGuide({
       <View style={[s.guideBracket, s.guideBracketBottomRight, guideToneStyle(guidePresentation.tone)]} />
       {guideMotion.progress ? <View style={[s.guideProgress, { width: `${Math.round(guidePresentation.progress * 100)}%` }]} /> : null}
       {guideMotion.flash ? <View style={s.captureFlash} /> : null}
+    </View>
+  );
+}
+
+function RapidOcrRoiOverlay({
+  diagnostics,
+}: {
+  diagnostics: RapidLiveOcrDiagnostics;
+}) {
+  const roi = diagnostics.roi;
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        s.rapidOcrRoiOverlay,
+        {
+          left: `${roi.x * 100}%`,
+          top: `${roi.y * 100}%`,
+          width: `${roi.width * 100}%`,
+          height: `${roi.height * 100}%`,
+        },
+      ]}
+    >
+      <TDText variant="caption" style={s.rapidOcrRoiLabel}>
+        {diagnostics.stage} {Math.round(roi.x * 100)},{Math.round(roi.y * 100)} {Math.round(roi.width * 100)}x{Math.round(roi.height * 100)}
+      </TDText>
     </View>
   );
 }
@@ -2611,6 +2660,10 @@ function resolutionSummary(value: { width: number; height: number } | null) {
   return value ? `${value.width} x ${value.height}` : 'unavailable';
 }
 
+function roiSummary(rect: { x: number; y: number; width: number; height: number }) {
+  return `${rect.x.toFixed(3)},${rect.y.toFixed(3)} ${rect.width.toFixed(3)}x${rect.height.toFixed(3)}`;
+}
+
 function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate): RecognitionCandidate {
   return {
     ...candidate,
@@ -2721,6 +2774,8 @@ const s = StyleSheet.create({
   guideToneDanger: { borderColor: color.danger },
   guideProgress: { position: 'absolute', left: 0, bottom: -10, height: 3, borderRadius: radius.pill, backgroundColor: color.primaryBright },
   captureFlash: { ...StyleSheet.absoluteFillObject, borderRadius: radius.md, backgroundColor: '#FFFFFF22' },
+  rapidOcrRoiOverlay: { position: 'absolute', zIndex: 24, borderWidth: 2, borderColor: color.warning, backgroundColor: color.warning + '14' },
+  rapidOcrRoiLabel: { position: 'absolute', left: 0, top: -22, paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.sm, overflow: 'hidden', color: color.text, backgroundColor: color.canvas + 'CC' },
   focusReticle: { position: 'absolute', zIndex: 25, width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: color.primaryBright, backgroundColor: color.primaryBright + '12' },
   iconControl: { width: 46, height: 46, borderRadius: radius.md, borderWidth: 1, borderColor: color.borderStrong, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceFloating + 'CC' },
   iconControlPrimary: { width: 58, height: 58, borderRadius: radius.lg, borderColor: color.primaryBright, backgroundColor: color.primaryBright },
