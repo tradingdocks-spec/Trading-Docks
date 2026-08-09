@@ -17,6 +17,7 @@
 - Implemented: `mobile/services/magic-card-identity.ts` provides the shared local Magic title identity layer for Rapid Scan and Single Scan.
 - Implemented: `mobile/services/generated/magic-card-name-catalog.ts` bundles a Scryfall `oracle_cards` name catalog with 36,489 oracle names for local title identity; refresh it with `npm run catalog:magic-names` from `mobile/`.
 - Implemented: `mobile/services/magic-ocr-pipeline.ts` maps the visible guide to captured-image regions, normalizes captured stills to preview orientation, reads title and collector text locally, tries primary/expanded/lower/wide/full-card title OCR fallback regions, queries Scryfall, falls back to shared local title identity when Scryfall returns no candidates, returns top-three Magic candidates, deletes temporary captures, and caps title-only confidence.
+- Implemented: `mobile/services/scanner-multi-signal-recognition.ts` establishes the shared multi-signal decision model for normalized-card geometry, compact visual fingerprint matching, local title OCR matching, confidence fusion, best-frame selection, and identity-first printing refinement.
 - Implemented: `mobile/services/native-scanner-calibration.ts` defines the native QA diagnostics and calibration contract, including camera-ready gating, guide/crop mapping, unavailable-signal auto-capture blocking, capture outcome labels, card-removal rearm checks, and evidence-only foil diagnostics.
 - Implemented: The active Scan screen does not call `takePictureAsync` until `CameraView.onCameraReady` fires.
 - Implemented: Scanner Product V3 separates the mobile Scan tab into Scan Modes, Automatic Scan, Single Scan, and Review List. See `docs/SCANNER_PRODUCT_V3.md`.
@@ -54,7 +55,7 @@
 - Implemented: `CardBoundaryProvider` contract exists, and `live-card-recognition.ts` provides a luma-frame implementation for bounds/corners/quality observations. Perspective correction is represented in the crop contract but is not yet producing a corrected bitmap.
 - Partially Implemented: `TextRecognitionProvider` contracts support OCR observations for name, type line, collector info, set code, collector number, language, and rarity. iOS captured-still OCR is implemented through Apple Vision; Android/web remain unsupported and live frame OCR is not connected.
 - Partially Implemented: Rapid Scan has an iOS native frame-to-title-ROI OCR provider and bundled Magic name identity. Android live OCR, exact-printing live refinement, and benchmarked throughput remain planned.
-- Partially Implemented: `ArtworkMatchingProvider` contracts support layout and artwork fingerprint observations. No benchmarked artwork-similarity engine is active yet.
+- Partially Implemented: `ArtworkMatchingProvider` contracts support layout and artwork fingerprint observations. A compact luma perceptual-fingerprint prototype exists for local visual identity fusion, but a production Scryfall reference-image index and benchmarked artwork-similarity engine are not active yet.
 - Partially Implemented: `SetSymbolProvider` returns set-symbol contracts only; no production set-symbol recognizer is active yet.
 - Implemented: `CollectorInfoProvider` parsing helpers normalize targeted OCR text and parse set code, collector number, language, rarity, and confidence when text observations are supplied.
 - Partially Implemented: `FinishDetectionProvider` can evaluate multi-frame finish evidence contracts conservatively; production foil classification remains unbenchmarked.
@@ -86,6 +87,7 @@
 - Implemented: Missing signals remain `null` and do not add positive confidence.
 - Implemented: Conflicting low scores are surfaced in `RecognitionConfidence.conflicts`.
 - Implemented: Ambiguous resolution returns the top three candidates where available.
+- Implemented: The multi-signal model treats OCR as one signal rather than the only identity source: strong visual plus weak OCR can identify the card, strong OCR without visual evidence routes to review, visual/OCR conflict routes to review, and unusable geometry rejects the frame before identity fusion.
 - Partially Implemented: The active mobile UI uses manual Scryfall search plus the Magic recognition adapter to show recognized/likely/ambiguous/manual-review states, top alternatives, per-signal confidence, and "Why this match?" details. Visual image recognition is not presented as benchmarked live recognition.
 
 ## Confirmation Rules
@@ -110,13 +112,15 @@
 - Implemented: The scanner does not upload captured images by default.
 - Implemented: Magic recognition sends text metadata queries to Scryfall only; it does not upload captured images, retain captured images by default, or use a paid cloud vision provider.
 - Implemented: Live-frame analysis processes local in-memory frame samples and exports metrics plus a fingerprint; source frames are not logged or exported.
+- Implemented: Multi-signal recognition consumes compact descriptors and OCR text only; it does not retain source frames or upload card images.
 - Planned: Remote image-processing providers require explicit consent, HTTPS-only communication, retention controls, and sanitized telemetry rules.
 
 ## Remaining Work
 
 - Partially Implemented: iOS captured-still OCR is implemented, but benchmark accuracy is not claimed until product-owner fixtures and physical-device QA are complete.
-- Planned: Implement benchmarked artwork providers.
-- Planned: Implement perspective correction and robust region cropping against real images.
+- Partially Implemented: The current visual technique is luma perceptual hash plus Hamming-distance matching. It is chosen as the simplest local-first checkpoint because it uses existing luma frame data and avoids a large ML runtime; compact embeddings remain rejected until a native runtime and benchmark evidence exist.
+- Planned: Generate a production Scryfall reference descriptor index from canonical card images, including storage size, refresh cadence, and lookup-complexity validation.
+- Planned: Implement native perspective correction that outputs a real normalized portrait bitmap instead of only normalized crop contracts.
 - Planned: Implement multi-frame foil analysis with glare/sleeve/lighting limitations.
 - Planned: Add native physical-device QA for iOS and Android camera permission, torch, capture latency, and cache cleanup.
 - Planned: Add saved session export persistence and queued export replay.

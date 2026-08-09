@@ -21,6 +21,7 @@
 - Implemented: Rapid Scan has bounded retry behavior for `NO_CARD`, `NO_TEXT`, `LOW_OCR_CONFIDENCE`, `NO_LOCAL_MATCH`, `AMBIGUOUS_MATCH`, `PRINTING_AMBIGUOUS`, and `NETWORK_ENRICHMENT_FAILED` style failures.
 - Partially Implemented: The active Automatic Scan route displays Rapid Scan as the default throughput mode, hides the still-capture button in Rapid mode, samples live frames into native title ROI OCR, shows recent results as a thin tray, and keeps Precision Scan as the still-capture fallback.
 - Partially Implemented: The native camera already feeds bounded luma video frames into the Vision Engine for boundary, quality, card presence, fingerprint, and rearm state.
+- Partially Implemented: The shared multi-signal recognition model can fuse visual fingerprint evidence with OCR evidence, but Rapid Scan still needs production reference-index generation and UI integration before it can stop relying on live title OCR as the active identity path.
 - Partially Implemented: Live title OCR now exists for iOS development builds and local Magic name identity no longer depends on the current scanner session, but physical-device benchmark evidence is still required before claiming production throughput or accuracy.
 - Planned: Background exact-printing refinement needs live bottom-left OCR and printing candidate updates connected to session lines.
 - Planned: Physical benchmark runs are required before publishing cards-per-minute or accuracy claims.
@@ -33,8 +34,8 @@ Rapid Scan is designed around this critical path:
 2. Vision Engine checks card presence, stability, blur, lighting, glare, and card-change evidence.
 3. Title ROI is selected instead of OCRing the whole frame.
 4. Title OCR output is normalized.
-5. Local fuzzy Magic name index resolves identity without Scryfall.
-6. High confidence appends a confirmed result; medium confidence appends Review; low confidence continues reading or offers Precision fallback.
+5. Visual fingerprint evidence and local fuzzy Magic name evidence are fused.
+6. High confidence appends identity; medium confidence appends Review; low confidence continues reading or offers Precision fallback.
 7. Printing, image, price, and exact metadata refine in the background.
 
 ## Frame Sampling
@@ -61,6 +62,7 @@ Use a 50-card physical benchmark before changing thresholds:
 - Implemented: The previous live-identity blocker was traced to two issues: the live title ROI was treated as full-frame normalized coordinates even though it was card-relative, and the local name index was built from transient session candidates instead of a bundled catalog. Both are repaired in the JavaScript pipeline.
 - Requires Production Configuration: Physical QA must confirm the diagnostic ROI overlay aligns with the real title box on iPhone hardware.
 - Planned: Bottom-left OCR refinement without interrupting preview throughput.
+- Planned: Production Scryfall visual-reference descriptor index and Rapid/Single integration through `scanner-multi-signal-recognition.ts`.
 - Planned: Session-line background printing updates.
 - Planned: Physical CPU, battery, and thermal testing.
 - Planned: Android frame/OCR validation.
