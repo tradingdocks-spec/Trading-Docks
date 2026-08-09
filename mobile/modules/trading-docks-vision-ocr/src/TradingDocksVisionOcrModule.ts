@@ -31,6 +31,77 @@ export type NativeLiveTitleOcrRequest = {
   orientation?: 'portrait' | 'landscape';
 };
 
+export type NativeImageAnalysisRequest = {
+  imageUri: string;
+};
+
+export type NativeImageAnalysisResult =
+  | {
+    ok: true;
+    provider: 'apple_vision';
+    imageUri: string;
+    width: number;
+    height: number;
+    lumaHash: string;
+    sharpness: number;
+    exposure: number;
+    durationMs: number;
+    warnings: string[];
+  }
+  | {
+    ok: false;
+    provider: 'apple_vision' | 'unsupported_platform' | 'native_module_unavailable';
+    code: 'unsupported_platform' | 'native_module_unavailable' | 'invalid_request' | 'image_load_failed' | 'vision_failed';
+    message: string;
+    durationMs: number;
+    warnings: string[];
+  };
+
+export type NativeFeaturePrintRequest = {
+  imageUri: string;
+};
+
+export type NativeFeaturePrintResult =
+  | {
+    ok: true;
+    provider: 'apple_vision_feature_print';
+    imageUri: string;
+    featurePrint: string;
+    descriptorBytes: number;
+    durationMs: number;
+    warnings: string[];
+  }
+  | {
+    ok: false;
+    provider: 'apple_vision_feature_print' | 'unsupported_platform' | 'native_module_unavailable';
+    code: 'unsupported_platform' | 'native_module_unavailable' | 'invalid_request' | 'image_load_failed' | 'vision_unavailable' | 'vision_failed';
+    message: string;
+    durationMs: number;
+    warnings: string[];
+  };
+
+export type NativeFeaturePrintDistanceRequest = {
+  leftFeaturePrint: string;
+  rightFeaturePrint: string;
+};
+
+export type NativeFeaturePrintDistanceResult =
+  | {
+    ok: true;
+    provider: 'apple_vision_feature_print';
+    distance: number;
+    durationMs: number;
+    warnings: string[];
+  }
+  | {
+    ok: false;
+    provider: 'apple_vision_feature_print' | 'unsupported_platform' | 'native_module_unavailable';
+    code: 'unsupported_platform' | 'native_module_unavailable' | 'invalid_request' | 'vision_unavailable' | 'vision_failed';
+    message: string;
+    durationMs: number;
+    warnings: string[];
+  };
+
 export type NativeOcrObservation = OCRObservation & {
   id: string;
   requestedRegionId: string;
@@ -94,6 +165,9 @@ export type NativeLiveTitleOcrResult =
 type NativeModuleShape = {
   recognizeText(request: NativeOcrRequest): Promise<NativeOcrResult>;
   recognizeFrameTitle?: (request: NativeLiveTitleOcrRequest) => Promise<NativeLiveTitleOcrResult>;
+  analyzeRecognitionImage?: (request: NativeImageAnalysisRequest) => Promise<NativeImageAnalysisResult>;
+  generateFeaturePrint?: (request: NativeFeaturePrintRequest) => Promise<NativeFeaturePrintResult>;
+  compareFeaturePrints?: (request: NativeFeaturePrintDistanceRequest) => Promise<NativeFeaturePrintDistanceResult>;
   getDiagnostics?: () => Promise<NativeOcrRuntimeDiagnostics>;
 };
 
@@ -166,6 +240,95 @@ export async function recognizeFrameTitle(request: NativeLiveTitleOcrRequest, na
     languages: request.languages?.length ? request.languages : ['en-US'],
     recognitionLevel: request.recognitionLevel ?? 'fast',
   });
+}
+
+export async function analyzeRecognitionImage(request: NativeImageAnalysisRequest, nativeModule?: NativeModuleShape | null, platform = currentPlatform()): Promise<NativeImageAnalysisResult> {
+  const validation = validateNativeImageRequest(request, 'analysis');
+  if (!validation.ok) return validation.result as NativeImageAnalysisResult;
+  if (platform !== 'ios') {
+    return {
+      ok: false,
+      provider: 'unsupported_platform',
+      code: 'unsupported_platform',
+      message: 'Trading Docks recognition image analysis is implemented for iOS Apple Vision only.',
+      durationMs: 0,
+      warnings: ['No image was uploaded or retained.'],
+    };
+  }
+  const resolvedNativeModule = nativeModule === undefined ? loadNativeModule(platform) : nativeModule;
+  if (!resolvedNativeModule?.analyzeRecognitionImage) {
+    return {
+      ok: false,
+      provider: 'native_module_unavailable',
+      code: 'native_module_unavailable',
+      message: 'TradingDocksVisionOcr image analysis is not available. Install a new EAS development build.',
+      durationMs: 0,
+      warnings: ['No image was uploaded or retained.'],
+    };
+  }
+  return resolvedNativeModule.analyzeRecognitionImage(request);
+}
+
+export async function generateFeaturePrint(request: NativeFeaturePrintRequest, nativeModule?: NativeModuleShape | null, platform = currentPlatform()): Promise<NativeFeaturePrintResult> {
+  const validation = validateNativeImageRequest(request, 'feature_print');
+  if (!validation.ok) return validation.result as NativeFeaturePrintResult;
+  if (platform !== 'ios') {
+    return {
+      ok: false,
+      provider: 'unsupported_platform',
+      code: 'unsupported_platform',
+      message: 'Apple Vision feature prints are available on iOS only in this prototype.',
+      durationMs: 0,
+      warnings: ['No image was uploaded or retained.'],
+    };
+  }
+  const resolvedNativeModule = nativeModule === undefined ? loadNativeModule(platform) : nativeModule;
+  if (!resolvedNativeModule?.generateFeaturePrint) {
+    return {
+      ok: false,
+      provider: 'native_module_unavailable',
+      code: 'native_module_unavailable',
+      message: 'TradingDocksVisionOcr feature prints are not available. Install a new EAS development build.',
+      durationMs: 0,
+      warnings: ['No image was uploaded or retained.'],
+    };
+  }
+  return resolvedNativeModule.generateFeaturePrint(request);
+}
+
+export async function compareFeaturePrints(request: NativeFeaturePrintDistanceRequest, nativeModule?: NativeModuleShape | null, platform = currentPlatform()): Promise<NativeFeaturePrintDistanceResult> {
+  if (!request.leftFeaturePrint || !request.rightFeaturePrint) {
+    return {
+      ok: false,
+      provider: 'apple_vision_feature_print',
+      code: 'invalid_request',
+      message: 'Feature print comparison requires two encoded feature prints.',
+      durationMs: 0,
+      warnings: [],
+    };
+  }
+  if (platform !== 'ios') {
+    return {
+      ok: false,
+      provider: 'unsupported_platform',
+      code: 'unsupported_platform',
+      message: 'Apple Vision feature print comparison is available on iOS only in this prototype.',
+      durationMs: 0,
+      warnings: [],
+    };
+  }
+  const resolvedNativeModule = nativeModule === undefined ? loadNativeModule(platform) : nativeModule;
+  if (!resolvedNativeModule?.compareFeaturePrints) {
+    return {
+      ok: false,
+      provider: 'native_module_unavailable',
+      code: 'native_module_unavailable',
+      message: 'TradingDocksVisionOcr feature print comparison is not available. Install a new EAS development build.',
+      durationMs: 0,
+      warnings: [],
+    };
+  }
+  return resolvedNativeModule.compareFeaturePrints(request);
 }
 
 export function validateNativeOcrRequest(request: NativeOcrRequest): { ok: true } | { ok: false; result: NativeOcrResult } {
@@ -244,6 +407,23 @@ export function validateNativeLiveTitleOcrRequest(request: NativeLiveTitleOcrReq
         frameId: request.frameId || 'unknown-frame',
         code: 'invalid_request',
         message: 'Live title OCR requires normalized ROI and a bounded luma frame.',
+        durationMs: 0,
+        warnings: [],
+      },
+    };
+  }
+  return { ok: true };
+}
+
+export function validateNativeImageRequest(request: NativeImageAnalysisRequest, provider: 'analysis' | 'feature_print'): { ok: true } | { ok: false; result: NativeImageAnalysisResult | NativeFeaturePrintResult } {
+  if (!request.imageUri || !request.imageUri.startsWith('file://')) {
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        provider: provider === 'analysis' ? 'apple_vision' : 'apple_vision_feature_print',
+        code: 'invalid_request',
+        message: 'Recognition image analysis requires a local file:// image URI.',
         durationMs: 0,
         warnings: [],
       },

@@ -4,7 +4,11 @@ import test from 'node:test';
 import {
   recognizeText,
   recognizeFrameTitle,
+  analyzeRecognitionImage,
+  compareFeaturePrints,
+  generateFeaturePrint,
   getVisionOcrRuntimeDiagnostics,
+  validateNativeImageRequest,
   validateNativeLiveTitleOcrRequest,
   validateNativeOcrRequest,
   type NativeLiveTitleOcrRequest,
@@ -126,4 +130,23 @@ test('native live title OCR adapter passes frame request to linked module', asyn
     assert.equal(result.durationMs, 23);
     assert.deepEqual(result.roi, liveRequest.roi);
   }
+});
+
+test('native image analysis and feature-print requests require local file URIs', () => {
+  assert.equal(validateNativeImageRequest({ imageUri: 'file:///tmp/card.jpg' }, 'analysis').ok, true);
+  assert.equal(validateNativeImageRequest({ imageUri: 'https://example.test/card.jpg' }, 'feature_print').ok, false);
+});
+
+test('feature-print prototype returns safe unavailable results without native module', async () => {
+  const analysis = await analyzeRecognitionImage({ imageUri: 'file:///tmp/card.jpg' }, null, 'ios');
+  assert.equal(analysis.ok, false);
+  if (!analysis.ok) assert.equal(analysis.code, 'native_module_unavailable');
+
+  const feature = await generateFeaturePrint({ imageUri: 'file:///tmp/card.jpg' }, null, 'ios');
+  assert.equal(feature.ok, false);
+  if (!feature.ok) assert.equal(feature.code, 'native_module_unavailable');
+
+  const distance = await compareFeaturePrints({ leftFeaturePrint: 'left', rightFeaturePrint: 'right' }, null, 'ios');
+  assert.equal(distance.ok, false);
+  if (!distance.ok) assert.equal(distance.code, 'native_module_unavailable');
 });

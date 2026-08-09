@@ -47,6 +47,40 @@ public class TradingDocksVisionOcrModule: Module {
         ))
       }
     }
+
+    AsyncFunction("analyzeRecognitionImage") { (request: [String: Any], promise: Promise) in
+      let started = Date()
+      self.analyzeRecognitionImage(request: request, started: started, promise: promise)
+    }
+
+    AsyncFunction("generateFeaturePrint") { (request: [String: Any], promise: Promise) in
+      let started = Date()
+      if #available(iOS 13.0, *) {
+        self.generateFeaturePrint(request: request, started: started, promise: promise)
+      } else {
+        promise.resolve(self.imageAnalysisErrorResult(
+          provider: "apple_vision_feature_print",
+          code: "vision_unavailable",
+          message: "Apple Vision feature prints require iOS 13 or newer.",
+          started: started,
+          warnings: []
+        ))
+      }
+    }
+
+    AsyncFunction("compareFeaturePrints") { (request: [String: Any], promise: Promise) in
+      let started = Date()
+      if #available(iOS 13.0, *) {
+        self.compareFeaturePrints(request: request, started: started, promise: promise)
+      } else {
+        promise.resolve(self.featurePrintDistanceErrorResult(
+          code: "vision_unavailable",
+          message: "Apple Vision feature print comparison requires iOS 13 or newer.",
+          started: started,
+          warnings: []
+        ))
+      }
+    }
   }
 
   @available(iOS 13.0, *)
@@ -266,6 +300,116 @@ public class TradingDocksVisionOcrModule: Module {
     }
   }
 
+  private func analyzeRecognitionImage(request: [String: Any], started: Date, promise: Promise) {
+    guard let loaded = loadLocalImage(request: request) else {
+      promise.resolve(imageAnalysisErrorResult(
+        provider: "apple_vision",
+        code: "image_load_failed",
+        message: "Apple Vision could not load the local recognition image.",
+        started: started,
+        warnings: []
+      ))
+      return
+    }
+    let metrics = imageMetrics(image: loaded.image)
+    promise.resolve([
+      "ok": true,
+      "provider": "apple_vision",
+      "imageUri": loaded.imageUri,
+      "width": Int(loaded.image.size.width * loaded.image.scale),
+      "height": Int(loaded.image.size.height * loaded.image.scale),
+      "lumaHash": metrics.lumaHash,
+      "sharpness": metrics.sharpness,
+      "exposure": metrics.exposure,
+      "durationMs": latencyMs(started),
+      "warnings": []
+    ])
+  }
+
+  @available(iOS 13.0, *)
+  private func generateFeaturePrint(request: [String: Any], started: Date, promise: Promise) {
+    guard let loaded = loadLocalImage(request: request),
+          let cgImage = loaded.image.cgImage else {
+      promise.resolve(imageAnalysisErrorResult(
+        provider: "apple_vision_feature_print",
+        code: "image_load_failed",
+        message: "Apple Vision could not load the local image for feature-print generation.",
+        started: started,
+        warnings: []
+      ))
+      return
+    }
+    let featureRequest = VNGenerateImageFeaturePrintRequest()
+    let handler = VNImageRequestHandler(cgImage: cgImage, orientation: CGImagePropertyOrientation(loaded.image.imageOrientation), options: [:])
+    do {
+      try handler.perform([featureRequest])
+      guard let observation = featureRequest.results?.first as? VNFeaturePrintObservation else {
+        promise.resolve(imageAnalysisErrorResult(
+          provider: "apple_vision_feature_print",
+          code: "vision_failed",
+          message: "Apple Vision did not return a feature print.",
+          started: started,
+          warnings: []
+        ))
+        return
+      }
+      let data = try NSKeyedArchiver.archivedData(withRootObject: observation, requiringSecureCoding: true)
+      promise.resolve([
+        "ok": true,
+        "provider": "apple_vision_feature_print",
+        "imageUri": loaded.imageUri,
+        "featurePrint": data.base64EncodedString(),
+        "descriptorBytes": data.count,
+        "durationMs": latencyMs(started),
+        "warnings": []
+      ])
+    } catch {
+      promise.resolve(imageAnalysisErrorResult(
+        provider: "apple_vision_feature_print",
+        code: "vision_failed",
+        message: "Apple Vision failed while generating a feature print.",
+        started: started,
+        warnings: []
+      ))
+    }
+  }
+
+  @available(iOS 13.0, *)
+  private func compareFeaturePrints(request: [String: Any], started: Date, promise: Promise) {
+    guard let left = request["leftFeaturePrint"] as? String,
+          let right = request["rightFeaturePrint"] as? String,
+          let leftData = Data(base64Encoded: left),
+          let rightData = Data(base64Encoded: right),
+          let leftObservation = try? NSKeyedUnarchiver.unarchivedObject(ofClass: VNFeaturePrintObservation.self, from: leftData),
+          let rightObservation = try? NSKeyedUnarchiver.unarchivedObject(ofClass: VNFeaturePrintObservation.self, from: rightData) else {
+      promise.resolve(featurePrintDistanceErrorResult(
+        code: "invalid_request",
+        message: "Feature print comparison requires two valid encoded Apple Vision feature prints.",
+        started: started,
+        warnings: []
+      ))
+      return
+    }
+    do {
+      var distance = Float(0)
+      try leftObservation.computeDistance(&distance, to: rightObservation)
+      promise.resolve([
+        "ok": true,
+        "provider": "apple_vision_feature_print",
+        "distance": Double(distance),
+        "durationMs": latencyMs(started),
+        "warnings": []
+      ])
+    } catch {
+      promise.resolve(featurePrintDistanceErrorResult(
+        code: "vision_failed",
+        message: "Apple Vision failed while comparing feature prints.",
+        started: started,
+        warnings: []
+      ))
+    }
+  }
+
   private func mapRegionType(_ regionType: String) -> String {
     switch regionType {
     case "title":
@@ -300,6 +444,28 @@ public class TradingDocksVisionOcrModule: Module {
     ]
   }
 
+  private func imageAnalysisErrorResult(provider: String, code: String, message: String, started: Date, warnings: [String]) -> [String: Any] {
+    return [
+      "ok": false,
+      "provider": provider,
+      "code": code,
+      "message": message,
+      "durationMs": latencyMs(started),
+      "warnings": warnings
+    ]
+  }
+
+  private func featurePrintDistanceErrorResult(code: String, message: String, started: Date, warnings: [String]) -> [String: Any] {
+    return [
+      "ok": false,
+      "provider": "apple_vision_feature_print",
+      "code": code,
+      "message": message,
+      "durationMs": latencyMs(started),
+      "warnings": warnings
+    ]
+  }
+
   private func latencyMs(_ started: Date) -> Int {
     return max(0, Int(Date().timeIntervalSince(started) * 1000))
   }
@@ -324,6 +490,69 @@ public class TradingDocksVisionOcrModule: Module {
       shouldInterpolate: false,
       intent: .defaultIntent
     )
+  }
+
+  private func loadLocalImage(request: [String: Any]) -> (imageUri: String, image: UIImage)? {
+    guard let imageUri = request["imageUri"] as? String,
+          imageUri.starts(with: "file://"),
+          let imageUrl = URL(string: imageUri),
+          let image = UIImage(contentsOfFile: imageUrl.path) else {
+      return nil
+    }
+    return (imageUri, image)
+  }
+
+  private func imageMetrics(image: UIImage) -> (lumaHash: String, sharpness: Double, exposure: Double) {
+    guard let cgImage = image.cgImage else {
+      return ("0000000000000000", 0, 0)
+    }
+    let width = 8
+    let height = 8
+    var pixels = [UInt8](repeating: 0, count: width * height)
+    guard let colorSpace = CGColorSpace(name: CGColorSpace.linearGray),
+          let context = CGContext(
+            data: &pixels,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+          ) else {
+      return ("0000000000000000", 0, 0)
+    }
+    context.interpolationQuality = .high
+    context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+    let mean = pixels.reduce(0) { $0 + Int($1) } / max(1, pixels.count)
+    var bits = ""
+    for pixel in pixels {
+      bits += Int(pixel) >= mean ? "1" : "0"
+    }
+    let upper = UInt32(String(bits.prefix(32)), radix: 2) ?? 0
+    let lower = UInt32(String(bits.suffix(32)), radix: 2) ?? 0
+    let hash = String(format: "%08x%08x", upper, lower)
+    return (hash, lumaSharpness(pixels: pixels, width: width, height: height), Double(mean) / 255.0)
+  }
+
+  private func lumaSharpness(pixels: [UInt8], width: Int, height: Int) -> Double {
+    if width < 3 || height < 3 {
+      return 0
+    }
+    var total = 0.0
+    var count = 0.0
+    for y in 1..<(height - 1) {
+      for x in 1..<(width - 1) {
+        let center = Double(pixels[y * width + x]) * 4.0
+        let laplacian = abs(center
+          - Double(pixels[y * width + x - 1])
+          - Double(pixels[y * width + x + 1])
+          - Double(pixels[(y - 1) * width + x])
+          - Double(pixels[(y + 1) * width + x]))
+        total += laplacian
+        count += 1
+      }
+    }
+    return min(1, max(0, (count > 0 ? total / count : 0) / 80.0))
   }
 }
 

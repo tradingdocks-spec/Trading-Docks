@@ -8,6 +8,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { TDBadge, TDButton, TDCard, TDEmptyState, TDErrorState, TDInput, TDLoadingState, TDScreen, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { searchScannerPrintings } from '@/services/scanner-data';
+import { buildScannerLabReferenceSet, runScannerRecognitionLab, type ScannerRecognitionLabReport } from '@/services/scanner-recognition-lab';
 import type { ScannerCardCandidate, ScannerPermissionState } from '@/services/scanner-foundation';
 import { resolveScannerPermissionState } from '@/services/scanner-foundation';
 import {
@@ -69,6 +70,8 @@ export default function ScannerBenchmarkBuilder() {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [labRunning, setLabRunning] = useState(false);
+  const [labReport, setLabReport] = useState<ScannerRecognitionLabReport | null>(null);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const summary = useMemo(() => dataset ? summarizeBenchmarkDataset(dataset) : null, [dataset]);
@@ -205,6 +208,32 @@ export default function ScannerBenchmarkBuilder() {
       setStatus(`Benchmark executed. ${result.report.fixtureCount} fixture${result.report.fixtureCount === 1 ? '' : 's'} processed.`);
     } else {
       setStatus(`${result.reason} ${result.command}`);
+    }
+  };
+
+  const runRecognitionLab = async () => {
+    if (!capturedUri || !selectedPrinting) {
+      setError('Capture one physical card and select the expected printing before running the recognition lab.');
+      return;
+    }
+    setLabRunning(true);
+    setError(null);
+    setStatus('Running OCR, pHash, and Apple Vision Feature Print against the same captured image.');
+    try {
+      const references = await buildScannerLabReferenceSet(selectedPrinting, 250);
+      const report = await runScannerRecognitionLab({
+        imageUri: capturedUri,
+        expectedName: selectedPrinting.name,
+        expectedOracleId: selectedPrinting.oracleId ?? null,
+        referenceCandidates: references,
+        includeDebugArtifacts: true,
+      });
+      setLabReport(report);
+      setStatus('Recognition lab complete. Review engine results before changing scanner behavior.');
+    } catch (labError) {
+      setError(labError instanceof Error ? labError.message : 'Recognition lab failed.');
+    } finally {
+      setLabRunning(false);
     }
   };
 
@@ -346,10 +375,47 @@ export default function ScannerBenchmarkBuilder() {
               <TDInput label="Type dataset name to delete" value={deleteConfirm} onChangeText={setDeleteConfirm} />
               <TDButton label="Delete dataset" variant="danger" onPress={deleteDataset} />
             </TDCard>
+
+            <TDCard style={s.section}>
+              <TDText variant="title">Scanner Recognition Lab</TDText>
+              <TDText variant="small" tone="muted">Development-only bake-off. Runs OCR Accurate, current pHash, and Apple Vision Feature Print against the same captured card image. This does not change production scanner behavior.</TDText>
+              <TDButton label="Run recognition lab" loading={labRunning} disabled={!capturedUri || !selectedPrinting} onPress={runRecognitionLab} />
+              {labReport ? <RecognitionLabReportView report={labReport} /> : <TDEmptyState title="No lab run yet" message="Capture one card and select the expected printing, then run the lab." />}
+            </TDCard>
           </>
         )}
       </ScrollView>
     </TDScreen>
+  );
+}
+
+function RecognitionLabReportView({ report }: { report: ScannerRecognitionLabReport }) {
+  const engines = Object.values(report.engines);
+  return (
+    <View style={s.lab}>
+      <View style={s.metricGrid}>
+        <Metric label="Accuracy" value={report.summary.accuracyPct ?? 0} />
+        <Metric label="Miss" value={report.summary.missPct ?? 0} />
+        <Metric label="False +" value={report.summary.falsePositivePct ?? 0} />
+        <Metric label="Median ms" value={report.summary.medianLatencyMs ?? 0} />
+      </View>
+      <TDText variant="caption" tone="muted">
+        {`Input ${report.capturedQuality.resolution ?? 'unknown'} / sharp ${score(report.capturedQuality.sharpness)} / exposure ${score(report.capturedQuality.exposure)}`}
+      </TDText>
+      {engines.map((engine) => (
+        <View key={engine.engine} style={s.labEngine}>
+          <View style={s.rowBetween}>
+            <TDText variant="label">{engine.engine.replaceAll('_', ' ')}</TDText>
+            <TDBadge tone={engine.outcome === 'identity_correct' ? 'success' : engine.outcome === 'identity_wrong' ? 'danger' : 'warning'}>{engine.outcome.replaceAll('_', ' ')}</TDBadge>
+          </View>
+          <TDText variant="small">{engine.top1 ? `${engine.top1.name} (${engine.top1.distance ?? engine.top1.score ?? 'score unavailable'})` : 'No result'}</TDText>
+          <TDText variant="caption" tone="muted">{`${engine.durationMs} ms / ${engine.candidatesConsidered ?? 0} candidates`}</TDText>
+          {engine.rawText ? <TDText variant="caption" tone="muted">{engine.rawText}</TDText> : null}
+          {engine.top5.length ? <TDText variant="caption" tone="muted">{engine.top5.map((candidate) => candidate.name).join(' | ')}</TDText> : null}
+        </View>
+      ))}
+      {report.debugArtifacts ? <TDText variant="caption" tone="muted">Debug artifact export is opt-in for this lab run: normalized crop URI, OCR regions, and engine candidates are available in memory only.</TDText> : null}
+    </View>
   );
 }
 
@@ -398,6 +464,10 @@ function Chip({ label, selected, onPress }: { label: string; selected: boolean; 
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={[s.chip, selected && s.chipSelected]}><TDText variant="caption" tone={selected ? 'primary' : 'muted'}>{label}</TDText></Pressable>;
 }
 
+function score(value: number | null) {
+  return value === null ? 'unavailable' : value.toFixed(2);
+}
+
 const s = StyleSheet.create({
   screen: { paddingTop: 56 },
   content: { gap: space.md, paddingBottom: 128 },
@@ -419,6 +489,8 @@ const s = StyleSheet.create({
   captureImage: { width: '100%', height: 220, borderRadius: radius.md, backgroundColor: color.surface },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   optionGroup: { gap: space.xs },
+  lab: { gap: space.sm },
+  labEngine: { gap: space.xs, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, padding: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
   chip: { minHeight: 40, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
   chipSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '30' },
