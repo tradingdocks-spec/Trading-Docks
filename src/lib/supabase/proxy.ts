@@ -2,10 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { CookieOptions } from "@supabase/ssr";
 import {
-  CANONICAL_HOST,
   persistentAuthCookieOptions,
   REMEMBER_ME_COOKIE,
 } from "@/lib/supabase/auth-cookie-policy";
+import {
+  canonicalizeTradingDocksUrl,
+  shouldRedirectToCanonicalHost,
+} from "@/lib/supabase/canonical-host";
 
 type PendingCookie = {
   name: string;
@@ -67,15 +70,8 @@ export async function updateSession(request: NextRequest) {
   // Authentication has one public origin. Normalize the apex domain and
   // Vercel's technical domain before rendering or starting an auth flow so
   // users never create isolated sessions on multiple hosts.
-  if (
-    process.env.NODE_ENV === "production" &&
-    requestHost &&
-    requestHost !== CANONICAL_HOST
-  ) {
-    const canonicalUrl = request.nextUrl.clone();
-    canonicalUrl.protocol = "https";
-    canonicalUrl.hostname = CANONICAL_HOST;
-    canonicalUrl.port = "";
+  if (shouldRedirectToCanonicalHost(requestHost ?? null)) {
+    const canonicalUrl = canonicalizeTradingDocksUrl(request.nextUrl);
     return NextResponse.redirect(canonicalUrl, 308);
   }
 
