@@ -213,3 +213,22 @@ Recommended next checkpoint:
 3. Resolve workspace-owned inventory and Store employee semantics before team workflows become production critical.
 4. Create a forward-only SQL plan to replace historical email-based owner helpers with `user_roles` helpers.
 5. Align Stripe and RevenueCat provider-state reconciliation behind the same server access lifecycle.
+
+## Label Studio And Inventory QR
+
+Status: Partially Implemented.
+
+Implemented this checkpoint:
+
+1. Added shared SKU, QR token, sanitized QR view, label template, pricing rule, bulk print, repricing, and POS lookup contracts.
+2. Added a Headquarters Label Studio foundation route at `/dashboard/label-studio`.
+3. Registered Label Studio and POS-related permissions in the platform capability registry.
+4. Documented the required migration proposal before QR, label template, and print job persistence can be production-authoritative.
+
+Recommended next checkpoint:
+
+1. Review and approve the `inventory_identity`, `label_templates`, `label_print_jobs`, and `inventory_price_reviews` migration plan.
+2. Add server QR resolution at `/q/{token}` with public sanitization and authenticated employee action routing.
+3. Add browser print CSS against selected physical label stock.
+4. Connect Inventory bulk selection to Label Studio preview and print.
+5. Add mobile QR scanner mode as a separate scan mode without changing card recognition.
