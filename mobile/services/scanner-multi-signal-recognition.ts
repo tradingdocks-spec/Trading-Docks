@@ -1,12 +1,18 @@
 import type { ScannerVisionResult } from './scanner-vision-engine.ts';
 import type { NormalizedCardCrop } from './live-card-recognition.ts';
 import type { RecognitionCandidate, RecognitionConfidence, RecognitionSignalScore } from './scanner-intelligence.ts';
+import type { ScannerCardCandidate } from './scanner-foundation.ts';
 import {
   matchMagicCardName,
   prewarmMagicNameIndex,
   type MagicNameIndex,
   type MagicNameMatch,
 } from './magic-card-identity.ts';
+import {
+  MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE,
+  MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS,
+  MAGIC_VISUAL_DESCRIPTOR_RECORDS,
+} from './generated/magic-visual-descriptor-index.ts';
 
 export type VisualDescriptorAlgorithm = 'luma_phash_8x8_v1';
 export type RecognitionApproach = 'ocr_only' | 'visual_fingerprint_ocr' | 'compact_embedding_ocr';
@@ -123,12 +129,73 @@ export type RecognitionBenchmarkReport = {
   }>;
 };
 
+export type ActiveScannerRecognitionTiming = {
+  geometryMs: number | null;
+  descriptorMs: number | null;
+  visualLookupMs: number | null;
+  ocrMs: number | null;
+  fusionMs: number | null;
+  identityMs: number | null;
+  printingRefinementMs: number | null;
+  rearmMs: number | null;
+};
+
+export type ActiveScannerRecognitionDiagnostics = MultiSignalRecognitionResult['diagnostics'] & {
+  geometryQuality: number;
+  bestFrameScore: number | null;
+  fusedCandidate: string | null;
+  fusedConfidence: number;
+  printingCandidate: string | null;
+  finalDecision: MultiSignalDecisionStatus;
+  timings: ActiveScannerRecognitionTiming;
+  visualIndexRecordCount: number;
+};
+
+export type ScannerMultiSignalIndexMetadata = {
+  provider: string;
+  source: string;
+  generatedAt: string;
+  algorithm: VisualDescriptorAlgorithm;
+  refreshCommand: string;
+  recordCount: number;
+  storageBytes: number;
+  notes: string;
+};
+
 const VISUAL_STRONG_SIMILARITY = 0.88;
 const VISUAL_USABLE_SIMILARITY = 0.74;
 const OCR_HIGH_SCORE = 0.9;
 const OCR_USABLE_SCORE = 0.72;
 const MIN_FRAME_QUALITY = 0.62;
 const HASH_BITS = 64;
+let cachedDefaultMagicVisualIndex: VisualReferenceIndex | null = null;
+
+export function defaultMagicVisualReferenceIndex(): VisualReferenceIndex {
+  if (!cachedDefaultMagicVisualIndex) {
+    cachedDefaultMagicVisualIndex = buildVisualReferenceIndex(MAGIC_VISUAL_DESCRIPTOR_RECORDS.map((record) => ({
+      oracleId: record.o,
+      scryfallId: record.s,
+      name: record.n,
+      setCode: record.c,
+      collectorNumber: record.cn,
+      descriptor: { algorithm: 'luma_phash_8x8_v1', hash: record.h, source: 'reference_image' },
+    })));
+  }
+  return cachedDefaultMagicVisualIndex;
+}
+
+export function defaultMagicVisualReferenceIndexMetadata(): ScannerMultiSignalIndexMetadata {
+  return {
+    provider: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.provider,
+    source: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.source,
+    generatedAt: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.generatedAt,
+    algorithm: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.algorithm,
+    refreshCommand: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.refreshCommand,
+    recordCount: MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS.recordCount,
+    storageBytes: MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS.storageBytes,
+    notes: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.notes,
+  };
+}
 
 export function geometryEvidenceFromVision(result: ScannerVisionResult): CardGeometryEvidence {
   const blockers: string[] = [];
@@ -296,6 +363,87 @@ export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): Mu
       decisionReason,
       blockers: input.geometry.blockers,
     },
+  };
+}
+
+export function recognizeScannerFrameWithFusion(input: {
+  vision: ScannerVisionResult;
+  rawOcrText: string | null;
+  normalizedOcrText: string | null;
+  ocrConfidence: number | null;
+  ocrDurationMs?: number | null;
+  printingCandidates?: readonly RecognitionCandidate[];
+  visualIndex?: VisualReferenceIndex | null;
+  nameIndex?: MagicNameIndex;
+  now?: () => number;
+}): MultiSignalRecognitionResult & { activeDiagnostics: ActiveScannerRecognitionDiagnostics } {
+  const now = input.now ?? (() => Date.now());
+  const identityStartedAt = now();
+  const geometryStartedAt = now();
+  const geometry = geometryEvidenceFromVision(input.vision);
+  const geometryMs = Math.max(0, now() - geometryStartedAt);
+  const descriptorStartedAt = now();
+  const descriptor = descriptorFromNormalizedCrop(geometry.normalizedCrop);
+  const descriptorMs = Math.max(0, now() - descriptorStartedAt);
+  const ocr = createOcrIdentitySignal({
+    rawText: input.rawOcrText,
+    normalizedText: input.normalizedOcrText,
+    confidence: input.ocrConfidence,
+    nameIndex: input.nameIndex,
+  });
+  const visualIndex = input.visualIndex ?? defaultMagicVisualReferenceIndex();
+  const visualLookupStartedAt = now();
+  matchVisualDescriptor(visualIndex, descriptor);
+  const visualLookupMs = Math.max(0, now() - visualLookupStartedAt);
+  const fusionStartedAt = now();
+  const result = recognizeWithMultiSignal({
+    geometry,
+    descriptor,
+    visualIndex,
+    ocr,
+    printingCandidates: input.printingCandidates,
+  });
+  const fusionMs = Math.max(0, now() - fusionStartedAt);
+  const identityMs = Math.max(0, now() - identityStartedAt);
+  return {
+    ...result,
+    activeDiagnostics: {
+      ...result.diagnostics,
+      geometryQuality: geometry.qualityScore,
+      bestFrameScore: frameScore({ frameId: input.vision.frameId, capturedAt: input.vision.observedAt, geometry, descriptor }),
+      fusedCandidate: result.identityName,
+      fusedConfidence: result.confidence.overall,
+      printingCandidate: result.printing.selected?.name ?? result.printing.candidates[0]?.name ?? null,
+      finalDecision: result.status,
+      timings: {
+        geometryMs,
+        descriptorMs,
+        visualLookupMs,
+        ocrMs: input.ocrDurationMs ?? null,
+        fusionMs,
+        identityMs,
+        printingRefinementMs: fusionMs,
+        rearmMs: null,
+      },
+      visualIndexRecordCount: visualIndex.recordCount,
+    },
+  };
+}
+
+export function scannerCandidateFromVisualRecord(record: VisualReferenceRecord, confidence = 0.72): ScannerCardCandidate {
+  return {
+    id: record.scryfallId,
+    oracleId: record.oracleId,
+    name: record.name,
+    setCode: record.setCode,
+    setName: null,
+    collectorNumber: record.collectorNumber,
+    finishes: ['normal', 'foil', 'etched'],
+    language: 'en',
+    imageUrl: null,
+    confidence,
+    recognitionMode: 'assisted_capture',
+    marketPrice: null,
   };
 }
 

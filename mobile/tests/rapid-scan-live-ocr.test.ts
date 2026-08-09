@@ -17,7 +17,12 @@ import {
   markRapidIdentityEmitted,
   createRapidScanRuntime,
 } from '../services/rapid-scan-pipeline.ts';
+import {
+  buildVisualReferenceIndex,
+  type VisualReferenceRecord,
+} from '../services/scanner-multi-signal-recognition.ts';
 import type { ScannerCameraFrame } from '../components/scanner-camera-contract.ts';
+import type { ScannerVisionResult } from '../services/scanner-vision-engine.ts';
 
 const frame: ScannerCameraFrame = {
   id: 'frame-1',
@@ -36,6 +41,15 @@ const index = buildRapidMagicNameIndex([
   { name: 'Sol Ring', oracleId: 'oracle-sol-ring', scryfallId: 'sf-sol-ring' },
   { name: 'Lightning Bolt', oracleId: 'oracle-lightning-bolt', scryfallId: 'sf-bolt' },
 ]);
+
+const goblinVisualRecords: VisualReferenceRecord[] = [{
+  oracleId: 'oracle-goblin-war-strike',
+  scryfallId: 'sf-goblin-war-strike',
+  name: 'Goblin War Strike',
+  setCode: 'SCG',
+  collectorNumber: '96',
+  descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'ff00aa55ff00aa55', source: 'reference_image' },
+}];
 
 test('live OCR request uses normalized title ROI without file or base64 input', () => {
   const request = buildLiveTitleOcrRequest(frame);
@@ -276,6 +290,33 @@ test('native unavailable falls back to Precision rather than appending invented 
   assert.equal(result.outcome.status, 'fallback_precision');
 });
 
+test('Rapid Scan uses multi-signal fusion to recover visual identity when OCR is empty', async () => {
+  const result = await runRapidLiveTitleOcr({
+    state: createRapidLiveOcrState(),
+    frame,
+    nameIndex: index,
+    destination: 'collection',
+    createResultId: () => 'rapid-visual',
+    visualIndex: buildVisualReferenceIndex(goblinVisualRecords),
+    vision: visionResult('ff00aa55ff00aa55'),
+    nativeProvider: async (request) => ({
+      ok: false,
+      provider: 'apple_vision',
+      frameId: request.frameId,
+      code: 'empty_result',
+      message: 'No title text.',
+      durationMs: 19,
+      warnings: [],
+    }),
+  });
+
+  assert.equal(result.outcome.status, 'added');
+  if (result.outcome.status !== 'added') return;
+  assert.equal(result.outcome.result.cardName, 'Goblin War Strike');
+  assert.equal(result.outcome.fusion?.status, 'append_identity');
+  assert.equal(result.state.lastDiagnostics?.fusion?.visualCandidate, 'Goblin War Strike');
+});
+
 test('new-card rearm remains driven by rapid state after live identity', () => {
   const identified = markRapidIdentityEmitted(createRapidScanRuntime(0), {
     at: 1100,
@@ -293,3 +334,72 @@ test('new-card rearm remains driven by rapid state after live identity', () => {
   assert.equal(transition.action, 'rearm_new_card');
   assert.equal(transition.runtime.state, 'new_card');
 });
+
+function visionResult(hash: string): ScannerVisionResult {
+  return {
+    frameId: 'frame-vision',
+    observedAt: 1000,
+    fps: 10,
+    detection: {
+      cardPresent: true,
+      bounds: { x: 0, y: 0, width: 4, height: 4 },
+      corners: [
+        { x: 0, y: 0, visible: true, confidence: 0.9 },
+        { x: 4, y: 0, visible: true, confidence: 0.9 },
+        { x: 4, y: 4, visible: true, confidence: 0.9 },
+        { x: 0, y: 4, visible: true, confidence: 0.9 },
+      ],
+      aspectRatio: 0.72,
+      rotationDegrees: 0,
+      perspectiveScore: 0.02,
+      fillRatio: 0.8,
+      centerOffset: { x: 0, y: 0, normalized: 0 },
+      edgeVisibility: 0.92,
+      confidence: 0.94,
+      fingerprint: hash,
+    },
+    quality: { blur: 0.12, motion: 0.05, lighting: 0.82, glare: 0.08, distance: 0.91, stabilityMs: 800, confidence: 0.9 },
+    observation: {
+      corners: [
+        { x: 0, y: 0, visible: true },
+        { x: 4, y: 0, visible: true },
+        { x: 4, y: 4, visible: true },
+        { x: 0, y: 4, visible: true },
+      ],
+      fullyInsideGuide: true,
+      guideFillRatio: 0.8,
+      perspectiveScore: 0.02,
+      motionScore: 0.05,
+      blurScore: 0.12,
+      glareScore: 0.08,
+      lightingScore: 0.82,
+      stabilityMs: 800,
+      cardPresent: true,
+      orientation: 'portrait',
+      imageFingerprint: hash,
+      observedAt: 1000,
+    },
+    crop: {
+      frameId: 'frame-vision',
+      bounds: { x: 0, y: 0, width: 4, height: 4 },
+      corners: [
+        { x: 0, y: 0, visible: true },
+        { x: 1, y: 0, visible: true },
+        { x: 1, y: 1, visible: true },
+        { x: 0, y: 1, visible: true },
+      ],
+      orientation: 'portrait',
+      perspectiveCorrected: true,
+      fingerprint: hash,
+    },
+    regions: [],
+    guidance: 'Ready',
+    captureState: 'ready',
+    guideTone: 'ready',
+    cornerGlow: true,
+    readyForAutoCapture: true,
+    shouldCapture: true,
+    shouldRearm: false,
+    latencyMs: 2,
+  };
+}

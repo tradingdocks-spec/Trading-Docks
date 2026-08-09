@@ -19,6 +19,12 @@ import {
   prewarmMagicNameIndex,
   type MagicNameMatch,
 } from './magic-card-identity.ts';
+import type { ScannerVisionResult } from './scanner-vision-engine.ts';
+import type { MultiSignalRecognitionResult, VisualReferenceIndex } from './scanner-multi-signal-recognition.ts';
+import {
+  recognizeScannerFrameWithFusion,
+  scannerCandidateFromVisualRecord,
+} from './scanner-multi-signal-recognition.ts';
 
 export type CaptureDimensions = { width: number; height: number };
 export type CropRect = { x: number; y: number; width: number; height: number };
@@ -123,6 +129,7 @@ export type MagicStillScanResult =
     cropDiagnostics: MagicStillScanCropDiagnostics;
     lookupLatencyMs: number;
     lookupDiagnostics: MagicStillScanLookupDiagnostics;
+    multiSignal: MultiSignalRecognitionResult | null;
     cleanup: CaptureCleanupResult;
   }
   | {
@@ -134,6 +141,7 @@ export type MagicStillScanResult =
     cropDiagnostics?: MagicStillScanCropDiagnostics;
     signals?: MagicOcrSignals;
     lookupDiagnostics?: MagicStillScanLookupDiagnostics;
+    multiSignal?: MultiSignalRecognitionResult | null;
     cleanup?: CaptureCleanupResult;
   };
 
@@ -161,6 +169,8 @@ export async function recognizeMagicStillCapture(input: {
   deferCleanup?: boolean;
   sequentialTitleOcr?: boolean;
   includeCollectorOcr?: boolean;
+  vision?: ScannerVisionResult | null;
+  visualIndex?: VisualReferenceIndex | null;
   onStage?: (stage: 'reading_title' | 'finding_card') => void;
   onLookupDiagnostics?: (diagnostics: MagicStillScanLookupDiagnostics) => void;
 }): Promise<MagicStillScanResult> {
@@ -190,16 +200,76 @@ export async function recognizeMagicStillCapture(input: {
   if (!ocr.ok) {
     const cleanupResult = await cleanupCapture();
     const cropDiagnostics = createCropDiagnostics(input.preview, input.guide, mapping, [], null);
-    return { ok: false, code: 'ocr_failed', reason: ocr.message, ocr, mapping, cropDiagnostics, cleanup: cleanupResult };
+    const multiSignal = input.vision ? recognizeScannerFrameWithFusion({
+      vision: input.vision,
+      rawOcrText: null,
+      normalizedOcrText: null,
+      ocrConfidence: null,
+      ocrDurationMs: ocr.latencyMs,
+      visualIndex: input.visualIndex,
+    }) : null;
+    if (multiSignal?.status === 'append_identity' && multiSignal.visual?.record) {
+      const candidate = scannerCandidateFromVisualRecord(multiSignal.visual.record, multiSignal.confidence.overall / 100);
+      const lookupDiagnostics = createStillLookupDiagnostics(emptySignals(), {
+        queryString: null,
+        httpStatus: null,
+        responseItemCount: 1,
+        errorCode: null,
+        latencyMs: 0,
+        topThreeCandidateNames: [candidate.name],
+      });
+      return {
+        ok: true,
+        ocr: { ok: true, provider: 'apple_vision', fullText: '', observations: [], latencyMs: ocr.latencyMs, orientationUsed: 'unavailable', warnings: ['OCR failed; visual fingerprint supplied identity.'] },
+        signals: emptySignals(),
+        recognition: recognitionFromFusion(multiSignal, [candidate]),
+        candidates: [candidate],
+        selected: candidate,
+        confidenceLabel: confidenceLabel(recognitionFromFusion(multiSignal, [candidate])),
+        mapping,
+        cropDiagnostics,
+        lookupLatencyMs: 0,
+        lookupDiagnostics,
+        multiSignal,
+        cleanup: cleanupResult,
+      };
+    }
+    return { ok: false, code: 'ocr_failed', reason: ocr.message, ocr, mapping, cropDiagnostics, multiSignal, cleanup: cleanupResult };
   }
 
   const signals = buildMagicOcrSignals(ocr.observations);
   const cropDiagnostics = createCropDiagnostics(input.preview, input.guide, mapping, signals.titleAttempts, signals.selectedTitleAttemptId);
+  const baseMultiSignal = input.vision ? recognizeScannerFrameWithFusion({
+    vision: input.vision,
+    rawOcrText: signals.rawTitle,
+    normalizedOcrText: signals.normalizedTitle,
+    ocrConfidence: signals.ocrConfidence,
+    ocrDurationMs: ocr.latencyMs,
+    visualIndex: input.visualIndex,
+  }) : null;
   if (!signals.normalizedTitle) {
     const cleanupResult = await cleanupCapture();
     const lookupDiagnostics = createStillLookupDiagnostics(signals, { queryString: null, httpStatus: null, responseItemCount: 0, errorCode: 'no_title_read', latencyMs: 0, topThreeCandidateNames: [] });
     input.onLookupDiagnostics?.(lookupDiagnostics);
-    return { ok: false, code: 'candidate_lookup_failed', reason: 'No title read. Try again or search manually.', ocr, mapping, cropDiagnostics, signals, lookupDiagnostics, cleanup: cleanupResult };
+    if (baseMultiSignal?.status === 'append_identity' && baseMultiSignal.visual?.record) {
+      const candidate = scannerCandidateFromVisualRecord(baseMultiSignal.visual.record, baseMultiSignal.confidence.overall / 100);
+      return {
+        ok: true,
+        ocr,
+        signals,
+        recognition: recognitionFromFusion(baseMultiSignal, [candidate]),
+        candidates: [candidate],
+        selected: candidate,
+        confidenceLabel: confidenceLabel(recognitionFromFusion(baseMultiSignal, [candidate])),
+        mapping,
+        cropDiagnostics,
+        lookupLatencyMs: 0,
+        lookupDiagnostics: { ...lookupDiagnostics, outcome: 'success', responseItemCount: 1, topThreeCandidateNames: [candidate.name] },
+        multiSignal: baseMultiSignal,
+        cleanup: cleanupResult,
+      };
+    }
+    return { ok: false, code: 'candidate_lookup_failed', reason: 'No title read. Try again or search manually.', ocr, mapping, cropDiagnostics, signals, lookupDiagnostics, multiSignal: baseMultiSignal, cleanup: cleanupResult };
   }
 
   input.onStage?.('finding_card');
@@ -240,10 +310,25 @@ export async function recognizeMagicStillCapture(input: {
       latencyMs: lookupLatencyMs,
       topThreeCandidateNames: [],
     });
-    return { ok: false, code: 'candidate_lookup_failed', reason: lookupFailureMessage(recognition), ocr, mapping, cropDiagnostics, signals, lookupDiagnostics, cleanup: cleanupResult };
+    return { ok: false, code: 'candidate_lookup_failed', reason: lookupFailureMessage(recognition), ocr, mapping, cropDiagnostics, signals, lookupDiagnostics, multiSignal: baseMultiSignal, cleanup: cleanupResult };
   }
   const cappedRecognition = capTitleOnlyConfidence(recognition, Boolean(signals.collectorInfo?.setCode), Boolean(signals.collectorInfo?.collectorNumber));
-  const candidates = cappedRecognition.candidates.map(recognitionToScannerCandidate).filter((candidate): candidate is ScannerCardCandidate => Boolean(candidate));
+  const scannerCandidates = cappedRecognition.candidates.map(recognitionToScannerCandidate).filter((candidate): candidate is ScannerCardCandidate => Boolean(candidate));
+  const multiSignal = input.vision ? recognizeScannerFrameWithFusion({
+    vision: input.vision,
+    rawOcrText: signals.rawTitle,
+    normalizedOcrText: signals.normalizedTitle,
+    ocrConfidence: signals.ocrConfidence,
+    ocrDurationMs: ocr.latencyMs,
+    visualIndex: input.visualIndex,
+    printingCandidates: cappedRecognition.candidates,
+  }) : baseMultiSignal;
+  const visualCandidate = multiSignal?.visual?.record && !scannerCandidates.some((candidate) => candidate.id === multiSignal.visual?.record?.scryfallId)
+    ? scannerCandidateFromVisualRecord(multiSignal.visual.record, multiSignal.confidence.overall / 100)
+    : null;
+  const candidates = visualCandidate && multiSignal?.status === 'append_identity'
+    ? [visualCandidate, ...scannerCandidates]
+    : scannerCandidates;
   const lookupDiagnostics = latestLookupDiagnostics ?? createStillLookupDiagnostics(signals, {
     queryString: signals.normalizedTitle,
     httpStatus: null,
@@ -253,20 +338,24 @@ export async function recognizeMagicStillCapture(input: {
     topThreeCandidateNames: candidates.slice(0, 3).map((candidate) => candidate.name),
   });
   if (!candidates.length) {
-    return { ok: false, code: 'candidate_lookup_failed', reason: 'No matching card found. Try again or search manually.', ocr, mapping, cropDiagnostics, signals, lookupDiagnostics, cleanup: cleanupResult };
+    return { ok: false, code: 'candidate_lookup_failed', reason: 'No matching card found. Try again or search manually.', ocr, mapping, cropDiagnostics, signals, lookupDiagnostics, multiSignal, cleanup: cleanupResult };
   }
+  const recognitionForResult = multiSignal?.status === 'append_identity' && visualCandidate
+    ? recognitionFromFusion(multiSignal, candidates)
+    : cappedRecognition;
   return {
     ok: true,
     ocr,
     signals,
-    recognition: cappedRecognition,
+    recognition: recognitionForResult,
     candidates,
     selected: candidates[0] ?? null,
-    confidenceLabel: confidenceLabel(cappedRecognition),
+    confidenceLabel: confidenceLabel(recognitionForResult),
     mapping,
     cropDiagnostics,
     lookupLatencyMs,
     lookupDiagnostics,
+    multiSignal,
     cleanup: cleanupResult,
   };
 }
@@ -726,6 +815,46 @@ function recognitionToScannerCandidate(candidate: RecognitionCandidate) {
     specialPrintingLabels: candidate.specialPrintingLabels,
     scryfallMetadata: candidate.scryfallMetadata,
   });
+}
+
+function recognitionFromFusion(multiSignal: MultiSignalRecognitionResult, candidates: ScannerCardCandidate[]): MagicRecognitionResult & { ok: true } {
+  const recognitionCandidates = candidates.map(scannerCandidateToRecognitionCandidate);
+  return {
+    ok: true,
+    selected: recognitionCandidates[0] ?? null,
+    candidates: recognitionCandidates,
+    source: 'cache',
+    confidence: multiSignal.confidence,
+    explanation: [
+      multiSignal.diagnostics.decisionReason,
+      `Visual candidate: ${multiSignal.diagnostics.visualCandidate ?? 'unavailable'}`,
+      `OCR candidate: ${multiSignal.diagnostics.ocrCandidate ?? 'unavailable'}`,
+    ],
+  };
+}
+
+function scannerCandidateToRecognitionCandidate(candidate: ScannerCardCandidate): RecognitionCandidate {
+  return {
+    ...candidate,
+    legalFinishes: candidate.finishes,
+    layout: null,
+    colorIdentity: [],
+  };
+}
+
+function emptySignals(): MagicOcrSignals {
+  return {
+    rawTitle: null,
+    normalizedTitle: null,
+    titleAlternatives: [],
+    titleAttempts: [],
+    selectedTitleAttemptId: null,
+    rawCollectorText: null,
+    rawBottomLeftPrintingText: null,
+    collectorInfo: null,
+    observations: [],
+    ocrConfidence: null,
+  };
 }
 
 function titleObservationScore(entry: NativeOcrObservation, normalizedText: string | null) {

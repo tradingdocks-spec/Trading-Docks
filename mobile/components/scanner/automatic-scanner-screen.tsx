@@ -526,7 +526,7 @@ export default function AutomaticScannerScreen() {
     }, 2400);
   }, []);
 
-  const handleRapidLiveOcrFrame = useCallback((frame: ScannerCameraFrame, fingerprint: string | null, observedAt: number) => {
+  const handleRapidLiveOcrFrame = useCallback((frame: ScannerCameraFrame, vision: ScannerVisionResult, fingerprint: string | null, observedAt: number) => {
     if (!context || !session || rapidNameIndex.records.length === 0) return;
     const sampleIntervalMs = 1000 / rapidScanSamplingRate(rapidRuntime.state);
     if (observedAt - lastRapidOcrSampleAtRef.current < sampleIntervalMs) return;
@@ -539,6 +539,7 @@ export default function AutomaticScannerScreen() {
       destination: scannerSettingsDestination(session) === 'binder' ? 'binder' : scannerSettingsDestination(session) === 'storage_location' ? 'storage' : 'collection',
       createResultId: createScanId,
       now: scannerNow,
+      vision,
     }).then(({ state, outcome }) => {
       if (!mountedRef.current) return;
       rapidLiveOcrStateRef.current = state;
@@ -552,7 +553,7 @@ export default function AutomaticScannerScreen() {
         cardName: outcome.result.cardName,
         confidenceClass: outcome.result.confidenceClass,
         confidenceScore: outcome.confidence,
-        reason: 'Live title ROI OCR matched the local Rapid Scan name index.',
+        reason: outcome.fusion?.diagnostics.decisionReason ?? 'Live title ROI OCR matched the local Rapid Scan name index.',
       });
       const lineId = outcome.result.id;
       setSession((current) => {
@@ -575,7 +576,9 @@ export default function AutomaticScannerScreen() {
           binderSlot: current.defaultDestination === 'binder' ? binderSlot.trim() || null : null,
           tradeStatus,
           destination: current.defaultDestination,
-          notes: 'Rapid Scan live title OCR matched locally. Exact printing and price require Review or background refinement.',
+          notes: outcome.fusion
+            ? 'Rapid Scan fused visual fingerprint, geometry, and title OCR locally. Exact printing and price require Review or background refinement.'
+            : 'Rapid Scan live title OCR matched locally. Exact printing and price require Review or background refinement.',
         });
       });
       setSessionInsertionResult('inserted');
@@ -676,7 +679,7 @@ export default function AutomaticScannerScreen() {
       result.observedAt,
     ));
     if (scanMode === 'rapid_scan') {
-      handleRapidLiveOcrFrame(frame, result.crop?.fingerprint ?? null, result.observedAt);
+      handleRapidLiveOcrFrame(frame, result, result.crop?.fingerprint ?? null, result.observedAt);
       setRapidRuntime((current) => {
         const transition = nextRapidScanRuntime(current, {
           at: result.observedAt,
@@ -1105,6 +1108,7 @@ export default function AutomaticScannerScreen() {
         guide: guideLayout,
         online: true,
         cachedCandidates: candidates.map(scannerCandidateToRecognitionCandidate),
+        vision: liveVisionResult,
         deferCleanup: diagnosticsEnabled,
         onStage: (stage) => {
           if (mountedRef.current && activeCaptureIdRef.current === captureId) setRecognitionStage(stage);
@@ -1934,6 +1938,18 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Rapid band" value={rapidLiveOcrDiagnostics?.confidenceBand ?? 'unavailable'} />
               <DiagnosticCell label="Rapid route" value={rapidLiveOcrDiagnostics?.route ?? 'unavailable'} />
               <DiagnosticCell label="Rapid failure" value={rapidLiveOcrDiagnostics?.failureStage ?? 'none'} />
+              <DiagnosticCell label="Fusion decision" value={rapidLiveOcrDiagnostics?.fusion?.finalDecision ?? 'unavailable'} />
+              <DiagnosticCell label="Fusion candidate" value={rapidLiveOcrDiagnostics?.fusion?.fusedCandidate ?? 'unavailable'} />
+              <DiagnosticCell label="Visual candidate" value={rapidLiveOcrDiagnostics?.fusion?.visualCandidate ?? 'unavailable'} />
+              <DiagnosticCell label="Visual similarity" value={rapidLiveOcrDiagnostics?.fusion?.visualSimilarity === null || rapidLiveOcrDiagnostics?.fusion?.visualSimilarity === undefined ? 'unavailable' : rapidLiveOcrDiagnostics.fusion.visualSimilarity.toFixed(2)} />
+              <DiagnosticCell label="Fusion confidence" value={rapidLiveOcrDiagnostics?.fusion ? String(rapidLiveOcrDiagnostics.fusion.fusedConfidence) : 'unavailable'} />
+              <DiagnosticCell label="Printing candidate" value={rapidLiveOcrDiagnostics?.fusion?.printingCandidate ?? 'unavailable'} />
+              <DiagnosticCell label="Fusion reason" value={rapidLiveOcrDiagnostics?.fusion?.decisionReason ?? 'unavailable'} />
+              <DiagnosticCell label="Descriptor ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.descriptorMs ?? null)} />
+              <DiagnosticCell label="Visual lookup ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.visualLookupMs ?? null)} />
+              <DiagnosticCell label="Fusion ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.fusionMs ?? null)} />
+              <DiagnosticCell label="Printing refine ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.printingRefinementMs ?? null)} />
+              <DiagnosticCell label="Visual index records" value={rapidLiveOcrDiagnostics?.fusion ? String(rapidLiveOcrDiagnostics.fusion.visualIndexRecordCount) : 'unavailable'} />
               <DiagnosticCell label="Rapid ROI" value={rapidLiveOcrDiagnostics ? roiSummary(rapidLiveOcrDiagnostics.roi) : 'unavailable'} />
               <DiagnosticCell label="Vision ROI" value={rapidLiveOcrDiagnostics ? roiSummary(rapidLiveOcrDiagnostics.visionRoi) : 'unavailable'} />
               <DiagnosticCell label="Frame orientation" value={rapidLiveOcrDiagnostics?.frameOrientation ?? 'unavailable'} />

@@ -19,6 +19,11 @@ import type { MagicRecognitionResult } from '../services/magic-recognition-provi
 import { MagicCatalogLookupError } from '../services/magic-recognition-provider.ts';
 import type { RecognitionCandidate } from '../services/scanner-intelligence.ts';
 import type { NativeOcrResult } from '../modules/trading-docks-vision-ocr/index.ts';
+import {
+  buildVisualReferenceIndex,
+  type VisualReferenceRecord,
+} from '../services/scanner-multi-signal-recognition.ts';
+import type { ScannerVisionResult } from '../services/scanner-vision-engine.ts';
 
 const rhystic: RecognitionCandidate = {
   id: 'sf-rhystic-wot-25',
@@ -53,6 +58,15 @@ const brainstorm: RecognitionCandidate = {
   setCode: 'STA',
   collectorNumber: '13',
 };
+
+const goblinVisualRecords: VisualReferenceRecord[] = [{
+  oracleId: 'oracle-goblin-war-strike',
+  scryfallId: 'sf-goblin-war-strike',
+  name: 'Goblin War Strike',
+  setCode: 'SCG',
+  collectorNumber: '96',
+  descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'ff00aa55ff00aa55', source: 'reference_image' },
+}];
 
 const ocr: NativeOcrResult & { ok: true } = {
   ok: true,
@@ -432,6 +446,30 @@ test('empty Scryfall response falls back to shared local name identity', async (
   assert.equal(result.recognition.confidence.requiresConfirmation, true);
 });
 
+test('Single Scan uses multi-signal fusion for visual-only recovery', async () => {
+  const noTitleOcr: NativeOcrResult & { ok: true } = {
+    ...ocr,
+    observations: [{ ...ocr.observations[0], text: '', rawText: '', confidence: 0 }],
+  };
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: false,
+    recognize: async () => noTitleOcr,
+    cleanup: async () => ({ ok: true, deleted: true }),
+    visualIndex: buildVisualReferenceIndex(goblinVisualRecords),
+    vision: visionResult('ff00aa55ff00aa55'),
+  });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.selected?.name, 'Goblin War Strike');
+  assert.equal(result.multiSignal?.status, 'append_identity');
+  assert.equal(result.lookupDiagnostics.outcome, 'success');
+});
+
 test('still capture OCR returns top three and preserves missing pricing for session confirmation', async () => {
   const stages: string[] = [];
   const result = await recognizeMagicStillCapture({
@@ -491,5 +529,74 @@ function recognitionResult(overall: number): MagicRecognitionResult & { ok: true
       ],
     },
     explanation: ['Name OCR: 96/100 - Rhystic Study'],
+  };
+}
+
+function visionResult(hash: string): ScannerVisionResult {
+  return {
+    frameId: 'single-vision',
+    observedAt: 1000,
+    fps: 10,
+    detection: {
+      cardPresent: true,
+      bounds: { x: 4, y: 4, width: 120, height: 168 },
+      corners: [
+        { x: 4, y: 4, visible: true, confidence: 0.9 },
+        { x: 124, y: 4, visible: true, confidence: 0.9 },
+        { x: 124, y: 172, visible: true, confidence: 0.9 },
+        { x: 4, y: 172, visible: true, confidence: 0.9 },
+      ],
+      aspectRatio: 0.714,
+      rotationDegrees: 0,
+      perspectiveScore: 0.02,
+      fillRatio: 0.8,
+      centerOffset: { x: 0, y: 0, normalized: 0 },
+      edgeVisibility: 0.92,
+      confidence: 0.94,
+      fingerprint: hash,
+    },
+    quality: { blur: 0.12, motion: 0.05, lighting: 0.82, glare: 0.08, distance: 0.91, stabilityMs: 800, confidence: 0.9 },
+    observation: {
+      corners: [
+        { x: 4, y: 4, visible: true },
+        { x: 124, y: 4, visible: true },
+        { x: 124, y: 172, visible: true },
+        { x: 4, y: 172, visible: true },
+      ],
+      fullyInsideGuide: true,
+      guideFillRatio: 0.8,
+      perspectiveScore: 0.02,
+      motionScore: 0.05,
+      blurScore: 0.12,
+      glareScore: 0.08,
+      lightingScore: 0.82,
+      stabilityMs: 800,
+      cardPresent: true,
+      orientation: 'portrait',
+      imageFingerprint: hash,
+      observedAt: 1000,
+    },
+    crop: {
+      frameId: 'single-vision',
+      bounds: { x: 4, y: 4, width: 120, height: 168 },
+      corners: [
+        { x: 0.03, y: 0.02, visible: true },
+        { x: 0.96, y: 0.02, visible: true },
+        { x: 0.96, y: 0.98, visible: true },
+        { x: 0.03, y: 0.98, visible: true },
+      ],
+      orientation: 'portrait',
+      perspectiveCorrected: true,
+      fingerprint: hash,
+    },
+    regions: [],
+    guidance: 'Ready',
+    captureState: 'ready',
+    guideTone: 'ready',
+    cornerGlow: true,
+    readyForAutoCapture: true,
+    shouldCapture: true,
+    shouldRearm: false,
+    latencyMs: 2,
   };
 }

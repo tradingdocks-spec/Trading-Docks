@@ -7,6 +7,8 @@ import {
   benchmarkRecognitionApproaches,
   buildVisualReferenceIndex,
   createOcrIdentitySignal,
+  defaultMagicVisualReferenceIndex,
+  defaultMagicVisualReferenceIndexMetadata,
   descriptorFromNormalizedCrop,
   recognizeWithMultiSignal,
   refinePrintingCandidates,
@@ -85,6 +87,16 @@ test('visual fingerprint plus weak OCR can append card identity without waiting 
   assert.equal(result.confidenceBand, 'high');
   assert.equal(result.printing.selected?.id, goblinPrinting.id);
   assert.equal(result.printing.ambiguous, false);
+});
+
+test('default Magic visual descriptor index loads offline regression records', () => {
+  const index = defaultMagicVisualReferenceIndex();
+  const metadata = defaultMagicVisualReferenceIndexMetadata();
+  assert.equal(index.recordCount, 9);
+  assert.equal(metadata.recordCount, 9);
+  assert.equal(index.records.some((record) => record.name === 'Goblin War Strike'), true);
+  assert.equal(index.records.some((record) => record.name === 'Ulalek, Fused Atrocity'), true);
+  assert.match(metadata.refreshCommand, /catalog:magic-visual-descriptors/);
 });
 
 test('OCR-only strong identity becomes review when visual evidence is unavailable', () => {

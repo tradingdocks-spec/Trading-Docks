@@ -19,9 +19,10 @@
 - Implemented: Development diagnostics expose raw OCR text, normalized OCR text, confidence, candidate, match score/band, ROI, Vision ROI, frame orientation, OCR/match durations, catalog count, catalog readiness, and state transitions when scanner diagnostics are explicitly enabled.
 - Implemented: Rapid Scan now tries tight title, expanded title, and upper-card title ROIs before falling back to Precision Scan; it does not OCR the full frame during Rapid mode.
 - Implemented: Rapid Scan has bounded retry behavior for `NO_CARD`, `NO_TEXT`, `LOW_OCR_CONFIDENCE`, `NO_LOCAL_MATCH`, `AMBIGUOUS_MATCH`, `PRINTING_AMBIGUOUS`, and `NETWORK_ENRICHMENT_FAILED` style failures.
-- Partially Implemented: The active Automatic Scan route displays Rapid Scan as the default throughput mode, hides the still-capture button in Rapid mode, samples live frames into native title ROI OCR, shows recent results as a thin tray, and keeps Precision Scan as the still-capture fallback.
+- Implemented: The active Automatic Scan route displays Rapid Scan as the default throughput mode, hides the still-capture button in Rapid mode, samples live frames into the Vision Engine and native title ROI OCR, shows recent results as a thin tray, and keeps Precision Scan as the still-capture fallback.
 - Partially Implemented: The native camera already feeds bounded luma video frames into the Vision Engine for boundary, quality, card presence, fingerprint, and rearm state.
-- Partially Implemented: The shared multi-signal recognition model can fuse visual fingerprint evidence with OCR evidence, but Rapid Scan still needs production reference-index generation and UI integration before it can stop relying on live title OCR as the active identity path.
+- Implemented: Rapid Scan now calls `scanner-multi-signal-recognition.ts` in the active live frame path and can recover an identity from strong visual fingerprint evidence when title OCR is weak or empty.
+- Partially Implemented: The active descriptor index is a compact local seed for regression coverage and scanner wiring; full production reference-index generation from canonical Scryfall artwork is still planned.
 - Partially Implemented: Live title OCR now exists for iOS development builds and local Magic name identity no longer depends on the current scanner session, but physical-device benchmark evidence is still required before claiming production throughput or accuracy.
 - Planned: Background exact-printing refinement needs live bottom-left OCR and printing candidate updates connected to session lines.
 - Planned: Physical benchmark runs are required before publishing cards-per-minute or accuracy claims.
@@ -32,11 +33,11 @@ Rapid Scan is designed around this critical path:
 
 1. Video frame enters the fixed scan zone.
 2. Vision Engine checks card presence, stability, blur, lighting, glare, and card-change evidence.
-3. Title ROI is selected instead of OCRing the whole frame.
-4. Title OCR output is normalized.
+3. Best recent frame evidence is selected from geometry and quality scoring.
+4. Normalized crop fingerprint lookup and title ROI OCR run through the shared fusion service.
 5. Visual fingerprint evidence and local fuzzy Magic name evidence are fused.
-6. High confidence appends identity; medium confidence appends Review; low confidence continues reading or offers Precision fallback.
-7. Printing, image, price, and exact metadata refine in the background.
+6. High confidence appends identity; medium/conflicting confidence routes to Review or Precision fallback; low confidence continues reading.
+7. Printing candidates are reduced to the resolved identity, while image, price, and exact metadata refine in the background.
 
 ## Frame Sampling
 
@@ -62,7 +63,8 @@ Use a 50-card physical benchmark before changing thresholds:
 - Implemented: The previous live-identity blocker was traced to two issues: the live title ROI was treated as full-frame normalized coordinates even though it was card-relative, and the local name index was built from transient session candidates instead of a bundled catalog. Both are repaired in the JavaScript pipeline.
 - Requires Production Configuration: Physical QA must confirm the diagnostic ROI overlay aligns with the real title box on iPhone hardware.
 - Planned: Bottom-left OCR refinement without interrupting preview throughput.
-- Planned: Production Scryfall visual-reference descriptor index and Rapid/Single integration through `scanner-multi-signal-recognition.ts`.
+- Implemented: Rapid and Single integration through `scanner-multi-signal-recognition.ts`.
+- Planned: Production Scryfall visual-reference descriptor index beyond the current compact seed.
 - Planned: Session-line background printing updates.
 - Planned: Physical CPU, battery, and thermal testing.
 - Planned: Android frame/OCR validation.

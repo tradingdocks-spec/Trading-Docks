@@ -182,6 +182,7 @@ export default function SingleScanScreen() {
         guide: guideLayout,
         online: true,
         cachedCandidates: [],
+        vision: captureQuality.vision,
         sequentialTitleOcr: true,
         includeCollectorOcr: false,
         deferCleanup: isDevelopmentDiagnostics(),
@@ -459,6 +460,7 @@ export default function SingleScanScreen() {
           lastCaptureDiagnostic={lastCaptureDiagnostic}
           diagnosticCaptureUri={diagnosticCaptureUri}
           cropDiagnostics={cropDiagnostics}
+          multiSignal={result?.multiSignal ?? null}
           onClose={() => { if (scannerLive()) setSettingsOpen(false); }}
         />
       ) : null}
@@ -566,6 +568,7 @@ function SingleSettingsSheet({
   lastCaptureDiagnostic,
   diagnosticCaptureUri,
   cropDiagnostics,
+  multiSignal,
   onClose,
 }: {
   lensLabel: string;
@@ -573,6 +576,7 @@ function SingleSettingsSheet({
   lastCaptureDiagnostic: ScannerCaptureDiagnostic | null;
   diagnosticCaptureUri: string | null;
   cropDiagnostics: MagicStillScanCropDiagnostics | null;
+  multiSignal: MagicStillScanResult['multiSignal'] | null;
   onClose: () => void;
 }) {
   return (
@@ -586,6 +590,14 @@ function SingleSettingsSheet({
           label="Last trigger"
           value={`${lastCaptureDiagnostic.trigger}${lastCaptureDiagnostic.forced ? ' forced' : ''} / ${lastCaptureDiagnostic.qualityReason}`}
         />
+      ) : null}
+      {multiSignal ? (
+        <>
+          <SettingSummaryRow label="Fusion decision" value={multiSignal.status} />
+          <SettingSummaryRow label="Fusion candidate" value={multiSignal.identityName ?? 'unavailable'} />
+          <SettingSummaryRow label="Visual candidate" value={multiSignal.diagnostics.visualCandidate ?? 'unavailable'} />
+          <SettingSummaryRow label="OCR candidate" value={multiSignal.diagnostics.ocrCandidate ?? 'unavailable'} />
+        </>
       ) : null}
       {diagnosticCaptureUri && cropDiagnostics ? <SingleCropProof imageUri={diagnosticCaptureUri} diagnostics={cropDiagnostics} /> : null}
       <TDText variant="caption" tone="muted">Automatic tuning stays in Automatic Scan. Single Scan keeps the camera surface focused on one card.</TDText>

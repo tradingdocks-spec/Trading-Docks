@@ -5,6 +5,8 @@ import {
   type NativeLiveTitleOcrResult,
 } from '../modules/trading-docks-vision-ocr/index.ts';
 import type { ScannerCameraFrame } from '../components/scanner-camera-contract.ts';
+import type { ScannerVisionResult } from './scanner-vision-engine.ts';
+import type { VisualReferenceIndex, MultiSignalRecognitionResult } from './scanner-multi-signal-recognition.ts';
 import {
   RAPID_SCAN_FIXED_ZONE,
   createRapidScanResult,
@@ -15,6 +17,9 @@ import {
   type RapidScanDestination,
   type RapidScanResult,
 } from './rapid-scan-pipeline.ts';
+import {
+  recognizeScannerFrameWithFusion,
+} from './scanner-multi-signal-recognition.ts';
 
 export type RapidLiveOcrStatus = 'idle' | 'in_flight' | 'stale' | 'failed';
 export type RapidTitleRoiStage = 'title_primary' | 'title_expanded' | 'upper_card';
@@ -60,6 +65,22 @@ export type RapidLiveOcrDiagnostics = {
   catalogCardCount: number;
   indexReady: boolean;
   prewarmMs: number | null;
+  fusion?: {
+    geometryQuality: number;
+    bestFrameScore: number | null;
+    visualCandidate: string | null;
+    visualSimilarity: number | null;
+    ocrCandidate: string | null;
+    ocrScore: number | null;
+    fusedCandidate: string | null;
+    fusedConfidence: number;
+    printingCandidate: string | null;
+    finalDecision: MultiSignalRecognitionResult['status'];
+    conflict: boolean;
+    decisionReason: string;
+    timings: ReturnType<typeof recognizeScannerFrameWithFusion>['activeDiagnostics']['timings'];
+    visualIndexRecordCount: number;
+  };
 };
 
 export type RapidLiveOcrState = {
@@ -81,6 +102,7 @@ export type RapidLiveOcrOutcome =
     nativeDurationMs: number;
     localMatchMs: number;
     identityLatencyMs: number;
+    fusion: MultiSignalRecognitionResult | null;
   }
   | {
     status: 'retry';
@@ -197,6 +219,8 @@ export async function runRapidLiveTitleOcr(input: {
   createResultId: () => string;
   now?: () => number;
   nativeProvider?: RapidLiveOcrNativeProvider;
+  vision?: ScannerVisionResult | null;
+  visualIndex?: VisualReferenceIndex | null;
 }): Promise<{ state: RapidLiveOcrState; outcome: RapidLiveOcrOutcome }> {
   const now = input.now ?? (() => Date.now());
   if (input.state.tornDown) return {
@@ -291,6 +315,16 @@ export async function runRapidLiveTitleOcr(input: {
       durationMs: 0,
       warnings: [],
     };
+    const fusion = input.vision ? recognizeScannerFrameWithFusion({
+      vision: input.vision,
+      rawOcrText: null,
+      normalizedOcrText: null,
+      ocrConfidence: null,
+      ocrDurationMs: failure.durationMs,
+      visualIndex: input.visualIndex,
+      nameIndex: input.nameIndex,
+      now,
+    }) : null;
     nextState = {
       ...nextState,
       lastDiagnostics: diagnosticBase(input.frame, usedStage, nativeRequest.roi, {
@@ -299,8 +333,24 @@ export async function runRapidLiveTitleOcr(input: {
         catalogCardCount: input.nameIndex.records.length,
         indexReady: true,
         prewarmMs: input.nameIndex.prewarmMs ?? null,
-      }),
+      }, fusion?.activeDiagnostics),
     };
+    if (fusion?.status === 'append_identity' && fusion.identityName && fusion.oracleId) {
+      return {
+        state: nextState,
+        outcome: {
+          status: 'added',
+          frameId: input.frame.id,
+          titleText: fusion.identityName,
+          confidence: fusion.confidence.overall,
+          result: rapidResultFromFusion(fusion, input.destination, input.createResultId(), now()),
+          nativeDurationMs: failure.durationMs,
+          localMatchMs: fusion.activeDiagnostics.timings.visualLookupMs ?? 0,
+          identityLatencyMs: fusion.activeDiagnostics.timings.identityMs ?? 0,
+          fusion,
+        },
+      };
+    }
     return {
       state: nextState,
       outcome: usedStage === 'upper_card'
@@ -314,6 +364,16 @@ export async function runRapidLiveTitleOcr(input: {
   const route = routeRapidIdentity(match);
   const localMatchMs = Math.max(0, now() - matchStartedAt);
   const identityLatencyMs = Math.max(0, now() - startedAt);
+  const fusion = input.vision ? recognizeScannerFrameWithFusion({
+    vision: input.vision,
+    rawOcrText: nativeResult.text,
+    normalizedOcrText: normalizeRapidTitle(nativeResult.text),
+    ocrConfidence: nativeResult.confidence,
+    ocrDurationMs: nativeResult.durationMs,
+    visualIndex: input.visualIndex,
+    nameIndex: input.nameIndex,
+    now,
+  }) : null;
   const failureStage = !match.entry
     ? match.failureCode ?? 'NO_LOCAL_MATCH'
     : route.action === 'continue_reading'
@@ -344,6 +404,7 @@ export async function runRapidLiveTitleOcr(input: {
       catalogCardCount: input.nameIndex.records.length,
       indexReady: true,
       prewarmMs: input.nameIndex.prewarmMs ?? null,
+      fusion: fusion?.activeDiagnostics,
     },
     metrics: {
       ...nextState.metrics,
@@ -352,6 +413,36 @@ export async function runRapidLiveTitleOcr(input: {
       lastFrameToResultLatencyMs: Math.max(0, ocrEndedAt - input.frame.capturedAt),
     },
   };
+
+  if (fusion?.status === 'append_identity' && fusion.identityName && fusion.oracleId) {
+    const result = rapidResultFromFusion(fusion, input.destination, input.createResultId(), now());
+    return {
+      state: nextState,
+      outcome: {
+        status: 'added',
+        frameId: input.frame.id,
+        titleText: nativeResult.text,
+        confidence: fusion.confidence.overall,
+        result,
+        nativeDurationMs: nativeResult.durationMs,
+        localMatchMs: fusion.activeDiagnostics.timings.visualLookupMs ?? localMatchMs,
+        identityLatencyMs: fusion.activeDiagnostics.timings.identityMs ?? identityLatencyMs,
+        fusion,
+      },
+    };
+  }
+
+  if (fusion?.status === 'review') {
+    return {
+      state: nextState,
+      outcome: {
+        status: 'fallback_precision',
+        frameId: input.frame.id,
+        reason: fusion.diagnostics.decisionReason,
+        nativeDurationMs: nativeResult.durationMs,
+      },
+    };
+  }
 
   if (route.action === 'continue_reading') {
     return {
@@ -403,6 +494,7 @@ export async function runRapidLiveTitleOcr(input: {
       nativeDurationMs: nativeResult.durationMs,
       localMatchMs,
       identityLatencyMs,
+      fusion,
     },
   };
 }
@@ -433,6 +525,7 @@ function diagnosticBase(
     indexReady: boolean;
     prewarmMs: number | null;
   },
+  fusion?: ReturnType<typeof recognizeScannerFrameWithFusion>['activeDiagnostics'],
 ): RapidLiveOcrDiagnostics {
   return {
     frameId: frame.id,
@@ -454,6 +547,32 @@ function diagnosticBase(
     catalogCardCount: input.catalogCardCount,
     indexReady: input.indexReady,
     prewarmMs: input.prewarmMs,
+    fusion,
+  };
+}
+
+function rapidResultFromFusion(
+  fusion: MultiSignalRecognitionResult,
+  destination: RapidScanDestination,
+  id: string,
+  createdAt: number,
+): RapidScanResult {
+  return {
+    id,
+    cardName: fusion.identityName ?? 'Unrecognized card',
+    oracleId: fusion.oracleId ?? '',
+    scryfallId: fusion.printing.selected?.id ?? fusion.visual?.record?.scryfallId ?? null,
+    confidenceClass: fusion.confidenceBand,
+    reviewRequired: fusion.status !== 'append_identity' || fusion.printing.ambiguous,
+    destination,
+    exactPrintingId: fusion.printing.selected?.id ?? fusion.visual?.record?.scryfallId ?? null,
+    setCode: fusion.printing.selected?.setCode ?? fusion.visual?.record?.setCode ?? null,
+    collectorNumber: fusion.printing.selected?.collectorNumber ?? fusion.visual?.record?.collectorNumber ?? null,
+    finish: null,
+    language: fusion.printing.selected?.language ?? 'en',
+    pricingState: 'not_started',
+    createdAt,
+    refinementState: fusion.printing.ambiguous ? 'review_required' : 'resolved',
   };
 }
 
