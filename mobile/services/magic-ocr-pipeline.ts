@@ -129,7 +129,7 @@ export type MagicStillScanResult =
     cropDiagnostics: MagicStillScanCropDiagnostics;
     lookupLatencyMs: number;
     lookupDiagnostics: MagicStillScanLookupDiagnostics;
-    multiSignal: MultiSignalRecognitionResult | null;
+    multiSignal: ReturnType<typeof recognizeScannerFrameWithFusion> | null;
     cleanup: CaptureCleanupResult;
   }
   | {
@@ -141,7 +141,7 @@ export type MagicStillScanResult =
     cropDiagnostics?: MagicStillScanCropDiagnostics;
     signals?: MagicOcrSignals;
     lookupDiagnostics?: MagicStillScanLookupDiagnostics;
-    multiSignal?: MultiSignalRecognitionResult | null;
+    multiSignal?: ReturnType<typeof recognizeScannerFrameWithFusion> | null;
     cleanup?: CaptureCleanupResult;
   };
 

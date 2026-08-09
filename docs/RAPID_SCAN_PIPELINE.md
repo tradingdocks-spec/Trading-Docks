@@ -22,7 +22,7 @@
 - Implemented: The active Automatic Scan route displays Rapid Scan as the default throughput mode, hides the still-capture button in Rapid mode, samples live frames into the Vision Engine and native title ROI OCR, shows recent results as a thin tray, and keeps Precision Scan as the still-capture fallback.
 - Partially Implemented: The native camera already feeds bounded luma video frames into the Vision Engine for boundary, quality, card presence, fingerprint, and rearm state.
 - Implemented: Rapid Scan now calls `scanner-multi-signal-recognition.ts` in the active live frame path and can recover an identity from strong visual fingerprint evidence when title OCR is weak or empty.
-- Partially Implemented: The active descriptor index is a compact local seed for regression coverage and scanner wiring; full production reference-index generation from canonical Scryfall artwork is still planned.
+- Implemented: The active descriptor index is generated from canonical Scryfall `default_cards` reference images and currently ships 57,519 compact descriptor records covering 37,553 oracle identities, 57,519 unique artwork candidates, and 111,786 paper printing references. Source card images stay in ignored local cache and are not bundled.
 - Partially Implemented: Live title OCR now exists for iOS development builds and local Magic name identity no longer depends on the current scanner session, but physical-device benchmark evidence is still required before claiming production throughput or accuracy.
 - Planned: Background exact-printing refinement needs live bottom-left OCR and printing candidate updates connected to session lines.
 - Planned: Physical benchmark runs are required before publishing cards-per-minute or accuracy claims.
@@ -64,7 +64,8 @@ Use a 50-card physical benchmark before changing thresholds:
 - Requires Production Configuration: Physical QA must confirm the diagnostic ROI overlay aligns with the real title box on iPhone hardware.
 - Planned: Bottom-left OCR refinement without interrupting preview throughput.
 - Implemented: Rapid and Single integration through `scanner-multi-signal-recognition.ts`.
-- Planned: Production Scryfall visual-reference descriptor index beyond the current compact seed.
+- Implemented: Production-scale Scryfall visual-reference descriptor index beyond the previous compact seed.
+- Planned: Physical benchmark validation of the active Scryfall descriptor index under sleeves, glare, low light, older frames, rotation, and partial crops.
 - Planned: Session-line background printing updates.
 - Planned: Physical CPU, battery, and thermal testing.
 - Planned: Android frame/OCR validation.

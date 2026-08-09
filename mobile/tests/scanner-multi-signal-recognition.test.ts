@@ -10,6 +10,7 @@ import {
   defaultMagicVisualReferenceIndex,
   defaultMagicVisualReferenceIndexMetadata,
   descriptorFromNormalizedCrop,
+  matchVisualDescriptor,
   recognizeWithMultiSignal,
   refinePrintingCandidates,
   selectBestFrameBufferEntry,
@@ -89,14 +90,38 @@ test('visual fingerprint plus weak OCR can append card identity without waiting 
   assert.equal(result.printing.ambiguous, false);
 });
 
-test('default Magic visual descriptor index loads offline regression records', () => {
+test('default Magic visual descriptor index loads production-scale offline regression records', () => {
   const index = defaultMagicVisualReferenceIndex();
   const metadata = defaultMagicVisualReferenceIndexMetadata();
-  assert.equal(index.recordCount, 9);
-  assert.equal(metadata.recordCount, 9);
-  assert.equal(index.records.some((record) => record.name === 'Goblin War Strike'), true);
-  assert.equal(index.records.some((record) => record.name === 'Ulalek, Fused Atrocity'), true);
-  assert.match(metadata.refreshCommand, /catalog:magic-visual-descriptors/);
+  assert.ok(index.recordCount > 10000, `expected production-scale index, got ${index.recordCount}`);
+  assert.equal(metadata.recordCount, index.recordCount);
+  assert.equal(metadata.descriptorVersion, 'luma_phash_8x8_v1');
+  assert.equal(metadata.normalizationVersion, 'scryfall_full_card_luma8_8x8_mean_v1');
+  assert.ok(metadata.oracleIdentityCount > 30000, `expected broad identity coverage, got ${metadata.oracleIdentityCount}`);
+  assert.ok(metadata.printingCount > metadata.recordCount, 'finish-equivalent printings should not all duplicate descriptors');
+  for (const name of [
+    'Incinerate',
+    'Goblin War Strike',
+    'Lightning Bolt',
+    'Sol Ring',
+    'Birds of Paradise',
+    'Rhystic Study',
+    'Runed Stalactite',
+    'Krark-Clan Ironworks',
+    'Ulalek, Fused Atrocity',
+  ]) {
+    assert.equal(index.records.some((record) => record.name === name), true, `${name} should be in the production index`);
+  }
+  assert.match(metadata.refreshCommand, /catalog:magic-visual-index/);
+});
+
+test('visual lookup can narrow candidates with usable OCR identity', () => {
+  const index = buildVisualReferenceIndex(visualRecords);
+  const broad = matchVisualDescriptor(index, { algorithm: 'luma_phash_8x8_v1', hash: 'aa00aa55ff00aa55', source: 'live_normalized_crop' });
+  const narrowed = matchVisualDescriptor(index, { algorithm: 'luma_phash_8x8_v1', hash: 'aa00aa55ff00aa55', source: 'live_normalized_crop' }, { oracleIds: [goblinOracleId] });
+  assert.equal(broad?.candidatesConsidered, 2);
+  assert.equal(narrowed?.candidatesConsidered, 1);
+  assert.equal(narrowed?.record?.name, 'Goblin War Strike');
 });
 
 test('OCR-only strong identity becomes review when visual evidence is unavailable', () => {

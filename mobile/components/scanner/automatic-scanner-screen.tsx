@@ -1950,6 +1950,7 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Fusion ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.fusionMs ?? null)} />
               <DiagnosticCell label="Printing refine ms" value={performanceMs(rapidLiveOcrDiagnostics?.fusion?.timings.printingRefinementMs ?? null)} />
               <DiagnosticCell label="Visual index records" value={rapidLiveOcrDiagnostics?.fusion ? String(rapidLiveOcrDiagnostics.fusion.visualIndexRecordCount) : 'unavailable'} />
+              <DiagnosticCell label="Visual index version" value={rapidLiveOcrDiagnostics?.fusion?.visualIndexVersion ?? 'unavailable'} />
               <DiagnosticCell label="Rapid ROI" value={rapidLiveOcrDiagnostics ? roiSummary(rapidLiveOcrDiagnostics.roi) : 'unavailable'} />
               <DiagnosticCell label="Vision ROI" value={rapidLiveOcrDiagnostics ? roiSummary(rapidLiveOcrDiagnostics.visionRoi) : 'unavailable'} />
               <DiagnosticCell label="Frame orientation" value={rapidLiveOcrDiagnostics?.frameOrientation ?? 'unavailable'} />

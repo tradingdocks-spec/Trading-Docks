@@ -21,6 +21,7 @@ import type { RecognitionCandidate } from '../services/scanner-intelligence.ts';
 import type { NativeOcrResult } from '../modules/trading-docks-vision-ocr/index.ts';
 import {
   buildVisualReferenceIndex,
+  defaultMagicVisualReferenceIndex,
   type VisualReferenceRecord,
 } from '../services/scanner-multi-signal-recognition.ts';
 import type { ScannerVisionResult } from '../services/scanner-vision-engine.ts';
@@ -468,6 +469,30 @@ test('Single Scan uses multi-signal fusion for visual-only recovery', async () =
   assert.equal(result.selected?.name, 'Goblin War Strike');
   assert.equal(result.multiSignal?.status, 'append_identity');
   assert.equal(result.lookupDiagnostics.outcome, 'success');
+});
+
+test('Single Scan uses the production default visual index when no test index is injected', async () => {
+  const productionRecord = defaultMagicVisualReferenceIndex().records.find((record) => record.name === 'Goblin War Strike');
+  assert.ok(productionRecord, 'production index must contain Goblin War Strike');
+  const noTitleOcr: NativeOcrResult & { ok: true } = {
+    ...ocr,
+    observations: [{ ...ocr.observations[0], text: '', rawText: '', confidence: 0 }],
+  };
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: false,
+    recognize: async () => noTitleOcr,
+    cleanup: async () => ({ ok: true, deleted: true }),
+    vision: visionResult(productionRecord.descriptor.hash),
+  });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.selected?.name, 'Goblin War Strike');
+  assert.ok((result.multiSignal?.activeDiagnostics.visualIndexRecordCount ?? 0) > 10000);
 });
 
 test('still capture OCR returns top three and preserves missing pricing for session confirmation', async () => {

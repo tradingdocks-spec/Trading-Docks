@@ -60,6 +60,10 @@ export type VisualMatch = {
   algorithm: VisualDescriptorAlgorithm;
 };
 
+export type VisualRankedMatch = VisualMatch & {
+  record: VisualReferenceRecord;
+};
+
 export type OcrIdentitySignal = {
   rawText: string | null;
   normalizedText: string | null;
@@ -149,16 +153,27 @@ export type ActiveScannerRecognitionDiagnostics = MultiSignalRecognitionResult['
   finalDecision: MultiSignalDecisionStatus;
   timings: ActiveScannerRecognitionTiming;
   visualIndexRecordCount: number;
+  visualIndexVersion: string;
 };
 
 export type ScannerMultiSignalIndexMetadata = {
   provider: string;
   source: string;
+  bulkDataType: string;
+  sourceUpdatedAt: string | null;
   generatedAt: string;
+  schemaVersion: number;
+  descriptorVersion: VisualDescriptorAlgorithm;
+  normalizationVersion: string;
+  imageVersion: string;
   algorithm: VisualDescriptorAlgorithm;
   refreshCommand: string;
   recordCount: number;
   storageBytes: number;
+  oracleIdentityCount: number;
+  uniqueArtworkCount: number;
+  printingCount: number;
+  failedImageCount: number;
   notes: string;
 };
 
@@ -188,11 +203,21 @@ export function defaultMagicVisualReferenceIndexMetadata(): ScannerMultiSignalIn
   return {
     provider: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.provider,
     source: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.source,
+    bulkDataType: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.bulkDataType,
+    sourceUpdatedAt: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.sourceUpdatedAt,
     generatedAt: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.generatedAt,
-    algorithm: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.algorithm,
+    schemaVersion: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.schemaVersion,
+    descriptorVersion: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.descriptorVersion,
+    normalizationVersion: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.normalizationVersion,
+    imageVersion: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.imageVersion,
+    algorithm: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.descriptorVersion,
     refreshCommand: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.refreshCommand,
     recordCount: MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS.recordCount,
     storageBytes: MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS.storageBytes,
+    oracleIdentityCount: MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS.oracleIdentityCount,
+    uniqueArtworkCount: MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS.uniqueArtworkCount,
+    printingCount: MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS.printingCount,
+    failedImageCount: MAGIC_VISUAL_DESCRIPTOR_INDEX_STATS.failedImageCount,
     notes: MAGIC_VISUAL_DESCRIPTOR_INDEX_SOURCE.notes,
   };
 }
@@ -243,11 +268,25 @@ export function buildVisualReferenceIndex(records: readonly VisualReferenceRecor
   };
 }
 
-export function matchVisualDescriptor(index: VisualReferenceIndex | null, descriptor: VisualDescriptor | null): VisualMatch | null {
+export function matchVisualDescriptor(
+  index: VisualReferenceIndex | null,
+  descriptor: VisualDescriptor | null,
+  options: { oracleIds?: readonly string[] } = {},
+): VisualMatch | null {
   if (!index || !descriptor) return null;
   const hash = normalizeHash(descriptor.hash);
   const primaryBucket = index.buckets.get(bucketKey(hash)) ?? [];
-  const candidates = primaryBucket.length ? primaryBucket : index.records;
+  const scopedOracleIds = new Set((options.oracleIds ?? []).filter(Boolean));
+  const scopedBucket = scopedOracleIds.size
+    ? primaryBucket.filter((record) => scopedOracleIds.has(record.oracleId))
+    : primaryBucket;
+  const candidates = scopedBucket.length
+    ? scopedBucket
+    : primaryBucket.length
+      ? primaryBucket
+      : scopedOracleIds.size
+        ? index.records.filter((record) => scopedOracleIds.has(record.oracleId))
+        : index.records;
   let best: { record: VisualReferenceRecord; distance: number } | null = null;
   for (const record of candidates) {
     const distance = hammingDistance(hash, record.descriptor.hash);
@@ -260,6 +299,41 @@ export function matchVisualDescriptor(index: VisualReferenceIndex | null, descri
     candidatesConsidered: candidates.length,
     algorithm: index.algorithm,
   };
+}
+
+export function matchVisualDescriptorTopK(
+  index: VisualReferenceIndex | null,
+  descriptor: VisualDescriptor | null,
+  limit = 5,
+  options: { oracleIds?: readonly string[] } = {},
+): VisualRankedMatch[] {
+  if (!index || !descriptor || limit <= 0) return [];
+  const hash = normalizeHash(descriptor.hash);
+  const primaryBucket = index.buckets.get(bucketKey(hash)) ?? [];
+  const scopedOracleIds = new Set((options.oracleIds ?? []).filter(Boolean));
+  const scopedBucket = scopedOracleIds.size
+    ? primaryBucket.filter((record) => scopedOracleIds.has(record.oracleId))
+    : primaryBucket;
+  const candidates = scopedBucket.length
+    ? scopedBucket
+    : primaryBucket.length
+      ? primaryBucket
+      : scopedOracleIds.size
+        ? index.records.filter((record) => scopedOracleIds.has(record.oracleId))
+        : index.records;
+  return candidates
+    .map((record) => {
+      const distance = hammingDistance(hash, record.descriptor.hash);
+      return {
+        record,
+        distance,
+        similarity: clamp01(1 - distance / HASH_BITS),
+        candidatesConsidered: candidates.length,
+        algorithm: index.algorithm,
+      };
+    })
+    .sort((left, right) => (left.distance ?? HASH_BITS) - (right.distance ?? HASH_BITS))
+    .slice(0, limit);
 }
 
 export function createOcrIdentitySignal(input: {
@@ -288,7 +362,8 @@ export function createOcrIdentitySignal(input: {
 }
 
 export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): MultiSignalRecognitionResult {
-  const visual = matchVisualDescriptor(input.visualIndex, input.descriptor);
+  const ocrScopedOracleIds = ocrOracleScope(input.ocr);
+  const visual = matchVisualDescriptor(input.visualIndex, input.descriptor, { oracleIds: ocrScopedOracleIds });
   const visualName = visual?.record?.name ?? null;
   const visualOracleId = visual?.record?.oracleId ?? null;
   const ocrName = input.ocr.match.entry?.name ?? null;
@@ -392,8 +467,9 @@ export function recognizeScannerFrameWithFusion(input: {
     nameIndex: input.nameIndex,
   });
   const visualIndex = input.visualIndex ?? defaultMagicVisualReferenceIndex();
+  const metadata = defaultMagicVisualReferenceIndexMetadata();
   const visualLookupStartedAt = now();
-  matchVisualDescriptor(visualIndex, descriptor);
+  matchVisualDescriptor(visualIndex, descriptor, { oracleIds: ocrOracleScope(ocr) });
   const visualLookupMs = Math.max(0, now() - visualLookupStartedAt);
   const fusionStartedAt = now();
   const result = recognizeWithMultiSignal({
@@ -426,6 +502,7 @@ export function recognizeScannerFrameWithFusion(input: {
         rearmMs: null,
       },
       visualIndexRecordCount: visualIndex.recordCount,
+      visualIndexVersion: metadata.descriptorVersion,
     },
   };
 }
@@ -526,6 +603,12 @@ function fusedConfidence(input: {
   };
 }
 
+function ocrOracleScope(ocr: OcrIdentitySignal) {
+  if (!ocr.match.entry) return [];
+  if (ocr.match.score >= OCR_USABLE_SCORE) return [ocr.match.entry.oracleId];
+  return [];
+}
+
 function signal(key: RecognitionSignalScore['key'], label: string, score: number | null, weight: number, evidence: string): RecognitionSignalScore {
   return { key, label, score, weight, evidence };
 }
@@ -588,7 +671,7 @@ function normalizeHash(value: string) {
 }
 
 function bucketKey(hash: string) {
-  return normalizeHash(hash).slice(0, 2);
+  return normalizeHash(hash).slice(0, 4);
 }
 
 function ratio(count: number, total: number) {

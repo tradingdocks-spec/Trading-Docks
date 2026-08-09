@@ -80,6 +80,7 @@ export type RapidLiveOcrDiagnostics = {
     decisionReason: string;
     timings: ReturnType<typeof recognizeScannerFrameWithFusion>['activeDiagnostics']['timings'];
     visualIndexRecordCount: number;
+    visualIndexVersion: string;
   };
 };
 

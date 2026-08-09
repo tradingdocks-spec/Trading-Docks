@@ -19,6 +19,7 @@ import {
 } from '../services/rapid-scan-pipeline.ts';
 import {
   buildVisualReferenceIndex,
+  defaultMagicVisualReferenceIndex,
   type VisualReferenceRecord,
 } from '../services/scanner-multi-signal-recognition.ts';
 import type { ScannerCameraFrame } from '../components/scanner-camera-contract.ts';
@@ -315,6 +316,33 @@ test('Rapid Scan uses multi-signal fusion to recover visual identity when OCR is
   assert.equal(result.outcome.result.cardName, 'Goblin War Strike');
   assert.equal(result.outcome.fusion?.status, 'append_identity');
   assert.equal(result.state.lastDiagnostics?.fusion?.visualCandidate, 'Goblin War Strike');
+});
+
+test('Rapid Scan uses the production default visual index when no test index is injected', async () => {
+  const productionRecord = defaultMagicVisualReferenceIndex().records.find((record) => record.name === 'Goblin War Strike');
+  assert.ok(productionRecord, 'production index must contain Goblin War Strike');
+  const result = await runRapidLiveTitleOcr({
+    state: createRapidLiveOcrState(),
+    frame,
+    nameIndex: index,
+    destination: 'collection',
+    createResultId: () => 'rapid-production-index',
+    vision: visionResult(productionRecord.descriptor.hash),
+    nativeProvider: async (request) => ({
+      ok: false,
+      provider: 'apple_vision',
+      frameId: request.frameId,
+      code: 'empty_result',
+      message: 'No title text.',
+      durationMs: 19,
+      warnings: [],
+    }),
+  });
+
+  assert.equal(result.outcome.status, 'added');
+  if (result.outcome.status !== 'added') return;
+  assert.equal(result.outcome.result.cardName, 'Goblin War Strike');
+  assert.ok((result.state.lastDiagnostics?.fusion?.visualIndexRecordCount ?? 0) > 10000);
 });
 
 test('new-card rearm remains driven by rapid state after live identity', () => {

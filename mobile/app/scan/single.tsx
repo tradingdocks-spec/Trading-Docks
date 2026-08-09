@@ -597,6 +597,8 @@ function SingleSettingsSheet({
           <SettingSummaryRow label="Fusion candidate" value={multiSignal.identityName ?? 'unavailable'} />
           <SettingSummaryRow label="Visual candidate" value={multiSignal.diagnostics.visualCandidate ?? 'unavailable'} />
           <SettingSummaryRow label="OCR candidate" value={multiSignal.diagnostics.ocrCandidate ?? 'unavailable'} />
+          <SettingSummaryRow label="Visual index count" value={String(multiSignal.activeDiagnostics.visualIndexRecordCount)} />
+          <SettingSummaryRow label="Visual index version" value={multiSignal.activeDiagnostics.visualIndexVersion} />
         </>
       ) : null}
       {diagnosticCaptureUri && cropDiagnostics ? <SingleCropProof imageUri={diagnosticCaptureUri} diagnostics={cropDiagnostics} /> : null}
