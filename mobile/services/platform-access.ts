@@ -35,6 +35,11 @@ export type PlatformCapability =
   | 'binder.manage'
   | 'wishlist.manage'
   | 'inventory.manage'
+  | 'label.view'
+  | 'label.manage_templates'
+  | 'label.print'
+  | 'inventory.reprice'
+  | 'pos.sell'
   | 'buying.manage'
   | 'orders.manage'
   | 'marketplaces.manage'
@@ -135,6 +140,11 @@ export const CAPABILITY_REGISTRY: Record<PlatformCapability, CapabilityRequireme
   'binder.manage': { capability: 'binder.manage', label: 'Manage Trade Binder', minimumTier: 'collector', entitlement: 'trade-binder' },
   'wishlist.manage': { capability: 'wishlist.manage', label: 'Manage Wishlist', minimumTier: 'collector', entitlement: 'wishlist' },
   'inventory.manage': { capability: 'inventory.manage', label: 'Manage inventory', minimumTier: 'seller' },
+  'label.view': { capability: 'label.view', label: 'View Label Studio', minimumTier: 'seller' },
+  'label.manage_templates': { capability: 'label.manage_templates', label: 'Manage label templates', minimumTier: 'seller', minimumWorkspaceRole: 'manager' },
+  'label.print': { capability: 'label.print', label: 'Print inventory labels', minimumTier: 'seller', minimumWorkspaceRole: 'member' },
+  'inventory.reprice': { capability: 'inventory.reprice', label: 'Review inventory repricing', minimumTier: 'seller', minimumWorkspaceRole: 'manager' },
+  'pos.sell': { capability: 'pos.sell', label: 'Sell through POS', minimumTier: 'seller', minimumWorkspaceRole: 'member' },
   'buying.manage': { capability: 'buying.manage', label: 'Manage buying workflows', minimumTier: 'seller', entitlement: 'deal-desk' },
   'orders.manage': { capability: 'orders.manage', label: 'Manage orders', minimumTier: 'seller' },
   'marketplaces.manage': { capability: 'marketplaces.manage', label: 'Manage marketplaces', minimumTier: 'seller' },
