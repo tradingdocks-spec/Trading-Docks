@@ -286,3 +286,13 @@ Status: Partially Implemented
 - Implemented: Free, Collector, Seller, and Store share one adaptable Home composition. Seller and Store route session review to the scanner session list; Deal Desk remains contextual rather than primary navigation.
 - Partially Implemented: Market movement, recent activity feed, notification counts, and operations signals are unavailable states until backed by real data.
 - Planned: Add native screenshots/manual QA coverage for small phone, large phone, iOS safe area, Android safe area, long text, no user data, populated user data, and offline/stale state.
+
+## Label Studio And Inventory QR Architecture
+
+- Implemented: Shared SKU, QR, label-template, bulk-render, repricing, and future POS contracts live in `src/lib/label-studio`.
+- Implemented: Headquarters exposes `/dashboard/label-studio` as a foundation preview for workspace label templates and physical label rendering.
+- Implemented: Label Studio capabilities are registered in the shared platform-access model: `label.view`, `label.manage_templates`, `label.print`, `inventory.reprice`, and `pos.sell`.
+- Implemented: Public QR view helpers strip cost basis, internal database ids, private notes, and customer/store-private fields before returning customer-facing data.
+- Partially Implemented: Current inventory persistence has `inventory_items.sku`, but no workspace-scoped unique SKU constraint, QR token table, token revocation, label template table, or print job table.
+- Planned: Add the reviewed migration described in `docs/INVENTORY_QR_ARCHITECTURE.md` before persisting labels, QR tokens, public QR routes, or POS scan actions.
+- Planned: Mobile QR scanner mode should be added later as a separate scanner-mode integration that does not alter card recognition architecture.

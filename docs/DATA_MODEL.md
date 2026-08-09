@@ -141,3 +141,12 @@
 - Partially Implemented: Scanner-created item ids are app-generated text ids to match the current `inventory_items.id` schema.
 - Planned: Add database-side scanner/import idempotency if rapid scan and offline replay need stronger duplicate prevention than the current queue de-dupe key.
 - Planned: Add durable server-side purchase/trade session tables only after product-owner review; no schema migration is applied in the continuous scanner sprint.
+
+## Inventory Labels And QR Identity
+
+- Implemented: `inventory_items.sku` exists in `supabase/migrations/202607280004_inventory_persistence.sql` and is written by `src/lib/inventory-persistence.ts` when legacy inventory records include a SKU.
+- Implemented: Application contracts define `InventorySku`, `QrToken`, `LabelTemplate`, `PricingRule`, and `PosCartItemContract`.
+- Partially Implemented: Existing inventory remains user-owned through `inventory_items.user_id`; the requested Label Studio architecture requires workspace-scoped inventory identity before shared Store workflows are production-authoritative.
+- Planned: Required migration proposal only: add `inventory_identity`, `label_templates`, `label_print_jobs`, and `inventory_price_reviews` with workspace RLS, unique `(workspace_id, sku)`, unique QR token, token revocation, and template/print-job audit metadata.
+- Planned: Public QR routes must resolve through server-side sanitized views and never expose cost basis, internal ids, private customer data, or workspace-private notes.
+- Planned: Sealed labels need durable sealed product identity before sealed inventory QR labels can be considered complete.
