@@ -347,3 +347,28 @@ Recommended next stabilization task:
 3. Retire or quarantine legacy access helper modules after import ownership is confirmed.
 4. Draft the `user_roles` SQL helper migration and staging verification plan.
 5. Audit all admin APIs for platform role scope, support/analyst permissions, and override logging.
+
+## Label Studio And Inventory QR Health
+
+Status: Partially Implemented.
+
+Implemented improvements:
+
+- Added typed platform contracts for workspace-scoped SKUs, QR tokens, sanitized public views, label templates, bulk print rendering, repricing review, and POS lookup identity.
+- Added `Label Studio` route classification and shared capability names instead of ad hoc plan checks.
+- Added documentation for exact schema additions required before migration review.
+
+Remaining risks:
+
+- Active inventory is still user-owned, while Store Label Studio workflows require workspace-owned inventory identity.
+- `inventory_items.sku` exists but does not yet have workspace uniqueness or QR token rotation/revocation.
+- The public `/q/{token}` route is documented but not implemented until the schema is reviewed.
+- Browser printing still needs real label-stock QA for pagination, margins, scaling, and roll/sheet output.
+- Mobile QR mode and future POS mutations require server-side authorization and should not be built as UI-only guards.
+
+Recommended next stabilization task:
+
+1. Approve and stage the Label Studio migration proposal.
+2. Add QR route-handler integration tests for public, employee, cross-workspace, revoked-token, and missing-token behavior.
+3. Verify Label Studio print CSS on representative 2 x 1, 3 x 2, and 4 x 2 label stock.
+4. Map legacy inventory components that already expose SKU-like fields before enabling bulk print actions.
