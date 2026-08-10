@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireApiCapability } from "@/lib/platform/server-access";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getScryfallMtgSetIdentities } from "@/lib/mtg/set-identity";
 import { resolveTcgplayerVariant } from "@/lib/tcgplayer-catalog";
 import type { SupabaseCatalogResolverClient } from "@/lib/tcgplayer-catalog";
 
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
 
   const client = createAdminClient() as unknown as SupabaseCatalogResolverClient;
   const rows = body.rows.map(cleanRow);
+  const setIdentities = await getScryfallMtgSetIdentities();
   const results = [];
 
   for (const row of rows) {
@@ -50,10 +52,12 @@ export async function POST(request: Request) {
     try {
       const result = await resolveTcgplayerVariant(client, {
         productName: row.name,
-        setName,
+        setName: row.setName,
+        setCode: row.set,
         collectorNumber: row.collectorNumber,
         condition: row.condition,
         finish: row.finish,
+        setIdentities,
       });
 
       if (result.status === "matched") {
@@ -73,11 +77,14 @@ export async function POST(request: Request) {
           lowPrice: money(result.row.tcg_low_price_with_shipping ?? result.row.tcg_low_price),
           marketplacePrice: money(result.row.tcg_marketplace_price),
           photoUrl: result.row.photo_url ?? "",
+          diagnostics: result.diagnostics,
         });
       } else {
         results.push({
           status: result.status,
           reason: result.reason,
+          reasonCode: result.reasonCode,
+          diagnostics: result.diagnostics,
           candidates: result.status === "ambiguous"
             ? result.candidates.map((candidate) => ({
               tcgplayerId: String(candidate.tcgplayer_id),

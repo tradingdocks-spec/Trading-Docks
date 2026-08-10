@@ -36,6 +36,11 @@ import {
 } from "@/lib/csv-conversion/templates";
 
 type CsvRow = Record<string, string>;
+type EnrichedRow = Partial<CanonicalRow> & {
+  tcgplayerResolveReason?: string;
+  tcgplayerResolveReasonCode?: string;
+  tcgplayerTranslatedSetName?: string;
+};
 type LocationRecord = {
   id: string;
   name: string;
@@ -66,7 +71,7 @@ export function CsvConversionEngine() {
   );
   const [detectedTemplate, setDetectedTemplate] = useState("Unknown / Generic");
   const [outputTemplateId, setOutputTemplateId] = useState("trading-docks");
-  const [enrichedRows, setEnrichedRows] = useState<Record<number, Partial<CanonicalRow>>>({});
+  const [enrichedRows, setEnrichedRows] = useState<Record<number, EnrichedRow>>({});
   const [destination, setDestination] = useState<"download" | "inventory">("download");
   const [locationName, setLocationName] = useState("Bulk Box 001");
   const [marketplace, setMarketplace] = useState("Unlisted");
@@ -258,7 +263,7 @@ export function CsvConversionEngine() {
         }>;
       };
       if (!response.ok || !payload.results) throw new Error(payload.error ?? "TCGCSV lookup failed.");
-      const next: Record<number, Partial<CanonicalRow>> = {};
+      const next: Record<number, EnrichedRow> = {};
       let matched = 0;
       payload.results.forEach((result, index) => {
         if (!result.matched) return;
@@ -293,10 +298,11 @@ export function CsvConversionEngine() {
     setWorking(true);
     setNotice("Resolving exact condition and foil-specific TCGplayer IDs from the Trading Docks catalog...");
     try {
-      const next: Record<number, Partial<CanonicalRow>> = { ...enrichedRows };
+      const next: Record<number, EnrichedRow> = { ...enrichedRows };
       let matched = 0;
       let ambiguous = 0;
       let unresolved = 0;
+      const unresolvedReasons = new Map<string, number>();
 
       for (let offset = 0; offset < converted.length; offset += 500) {
         const chunk = converted.slice(offset, offset + 500);
@@ -319,6 +325,11 @@ export function CsvConversionEngine() {
           results?: Array<{
             status: "matched" | "ambiguous" | "unresolved";
             reason?: string;
+            reasonCode?: string;
+            diagnostics?: {
+              sourceSet?: string | null;
+              translatedSetName?: string | null;
+            };
             tcgplayerId?: string;
             productLine?: string;
             setName?: string;
@@ -357,11 +368,30 @@ export function CsvConversionEngine() {
               directLowPrice: result.directLowPrice || converted[rowIndex]?.directLowPrice || "",
               lowPrice: result.lowPrice || converted[rowIndex]?.lowPrice || "",
               imageUrl: result.photoUrl || converted[rowIndex]?.imageUrl || "",
+              tcgplayerResolveReason: "",
+              tcgplayerResolveReasonCode: "",
+              tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
             };
           } else if (result.status === "ambiguous") {
             ambiguous += 1;
+            const reasonCode = result.reasonCode ?? "AMBIGUOUS_PRINTING";
+            unresolvedReasons.set(reasonCode, (unresolvedReasons.get(reasonCode) ?? 0) + 1);
+            next[rowIndex] = {
+              ...(next[rowIndex] ?? {}),
+              tcgplayerResolveReason: result.reason ?? "Multiple TCGplayer variants matched.",
+              tcgplayerResolveReasonCode: reasonCode,
+              tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
+            };
           } else {
             unresolved += 1;
+            const reasonCode = result.reasonCode ?? "PRINTING_NOT_FOUND";
+            unresolvedReasons.set(reasonCode, (unresolvedReasons.get(reasonCode) ?? 0) + 1);
+            next[rowIndex] = {
+              ...(next[rowIndex] ?? {}),
+              tcgplayerResolveReason: result.reason ?? "No exact TCGplayer SKU matched.",
+              tcgplayerResolveReasonCode: reasonCode,
+              tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
+            };
           }
         });
       }
@@ -369,7 +399,7 @@ export function CsvConversionEngine() {
       setEnrichedRows(next);
       setOutputTemplateId("tcgplayer");
       setNotice(
-        `${matched.toLocaleString()} exact TCGplayer IDs resolved. ${ambiguous.toLocaleString()} ambiguous and ${unresolved.toLocaleString()} unresolved rows still need condition, foil, set, or collector-number review.`,
+        `${matched.toLocaleString()} exact TCGplayer IDs resolved. ${ambiguous.toLocaleString()} ambiguous and ${unresolved.toLocaleString()} unresolved. ${formatReasonSummary(unresolvedReasons)}`,
       );
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Exact TCGplayer IDs could not be resolved.");
@@ -541,7 +571,7 @@ export function CsvConversionEngine() {
                 <div><strong className="text-xs text-white">TCGplayer ID reference export</strong><p className="mt-1 text-[10px] leading-4 text-slate-500">{tcgplayerReferenceRows.length ? `${tcgplayerReferenceName} · ${tcgplayerReferenceRows.length.toLocaleString()} verified SKU rows loaded` : "Upload a TCGplayer Pricing Custom Export containing every card and variant in this conversion."}</p></div>
                 <button type="button" onClick={() => tcgplayerReferenceRef.current?.click()} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-bold text-cyan-100"><Upload className="h-4 w-4" />{tcgplayerReferenceRows.length ? "Replace reference" : "Upload reference export"}</button>
               </div>
-              <div className={`rounded-xl border p-3 text-[10px] leading-5 ${missingTcgplayerSkuCount ? "border-amber-300/10 bg-amber-300/[.025] text-amber-100/60" : "border-emerald-300/10 bg-emerald-300/[.025] text-emerald-100/60"}`}>{missingTcgplayerSkuCount ? <><strong className="text-amber-200">{(validRows.length - missingTcgplayerSkuCount).toLocaleString()} of {validRows.length.toLocaleString()} rows have verified TCGplayer IDs.</strong> The final download stays locked until the Trading Docks catalog or optional reference export contains one exact SKU match for every card, printing, condition, and finish.{validRows.length ? <span className="mt-1 block">Unresolved: {validRows.filter((row) => !row.tcgplayerId.trim()).slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)})`).join("; ")}</span> : null}</> : <><strong className="text-emerald-200">All {validRows.length.toLocaleString()} TCGplayer IDs are verified.</strong> The final file uses the exact 16-column TCGplayer inventory header.</>}</div>
+              <div className={`rounded-xl border p-3 text-[10px] leading-5 ${missingTcgplayerSkuCount ? "border-amber-300/10 bg-amber-300/[.025] text-amber-100/60" : "border-emerald-300/10 bg-emerald-300/[.025] text-emerald-100/60"}`}>{missingTcgplayerSkuCount ? <><strong className="text-amber-200">{(validRows.length - missingTcgplayerSkuCount).toLocaleString()} of {validRows.length.toLocaleString()} rows have verified TCGplayer IDs.</strong> The final download stays locked until the Trading Docks catalog or optional reference export contains one exact SKU match for every card, printing, condition, and finish.{validRows.length ? <span className="mt-1 block">Unresolved: {validRows.filter((row) => !row.tcgplayerId.trim()).slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)})${row.tcgplayerResolveReasonCode ? ` — ${row.tcgplayerResolveReasonCode}` : ""}${row.tcgplayerTranslatedSetName ? ` · Set translated: ${row.tcgplayerTranslatedSetName}` : ""}`).join("; ")}</span> : null}</> : <><strong className="text-emerald-200">All {validRows.length.toLocaleString()} TCGplayer IDs are verified.</strong> The final file uses the exact 16-column TCGplayer inventory header.</>}</div>
               {missingTcgplayerSkuCount ? <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void resolveExactTcgplayerIds()} disabled={!validRows.length || working} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-semibold text-cyan-100 disabled:opacity-40"><WandSparkles className="h-4 w-4" />Resolve IDs from catalog</button><button type="button" onClick={downloadManaBoxBridge} disabled={!validRows.length} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[.08] px-4 text-[10px] font-semibold text-slate-300 disabled:opacity-40"><Download className="h-4 w-4" />Download ManaBox bridge instead</button></div> : null}
               <button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />How ID verification works<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-white/[.07] bg-black/10 p-3 text-[10px] leading-5 text-slate-500">Trading Docks resolves the exact TCGplayer inventory SKU from the uploaded canonical catalog by matching product name, set name, collector number, condition, and foil or nonfoil. TCGCSV can still fill product details and prices, but it does not replace the condition-specific TCGplayer ID and Trading Docks will not guess between duplicate variants.</div> : null}
             </> : null}
@@ -562,6 +592,13 @@ function SectionTitle({ step, title, detail }: { step: string; title: string; de
 }
 function Stat({ label, value }: { label: string; value: number }) {
   return <span className="inline-flex items-center gap-2 rounded-lg border border-white/[.07] bg-black/10 px-2.5 py-1.5 text-slate-500"><Check className="h-3 w-3 text-cyan-300" />{label}: <strong className="text-slate-200">{value.toLocaleString()}</strong></span>;
+}
+function formatReasonSummary(reasons: Map<string, number>) {
+  if (!reasons.size) return "No unresolved reason codes reported.";
+  return [...reasons.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([reason, count]) => `${reason}: ${count.toLocaleString()}`)
+    .join(" · ");
 }
 function parseCsv(text: string) {
   const rows: string[][] = [];

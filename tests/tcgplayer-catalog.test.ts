@@ -739,6 +739,112 @@ test("catalog resolver returns exact TCGplayer IDs and refuses ambiguous or miss
   assert.equal(missing.status, "unresolved");
 });
 
+test("catalog resolver translates Scryfall set codes before exact TCGplayer matching", async () => {
+  const rows: TcgplayerMagicCatalogRecord[] = [
+    mappedRecord(4057536, "Modern Horizons", "Bazaar Trademage", "41", "Lightly Played Foil"),
+    mappedRecord(700056, "Starter Commander Decks", "Laboratory Drudge", "56", "Lightly Played"),
+    mappedRecord(700007, "Starter Commander Decks", "Archon of Redemption", "7", "Lightly Played Foil"),
+    mappedRecord(123303, "Phyrexia: All Will Be One", "Unctus, Grand Metatect", "303", "Lightly Played Foil"),
+  ];
+  const client = new FakeResolverClient(rows);
+
+  const bazaar = await resolveTcgplayerVariant(client, {
+    productName: "Bazaar Trademage",
+    setCode: "mh1",
+    collectorNumber: "41",
+    condition: "Lightly Played",
+    finish: "foil",
+  });
+  assert.equal(bazaar.status, "matched");
+  assert.equal(bazaar.status === "matched" ? bazaar.tcgplayerId : null, 4057536);
+  assert.equal(bazaar.status === "matched" ? bazaar.diagnostics.translatedSetName : null, "Modern Horizons");
+
+  const starter = await resolveTcgplayerVariant(client, {
+    productName: "Archon of Redemption",
+    setCode: "scd",
+    collectorNumber: "7",
+    condition: "Lightly Played",
+    finish: "foil",
+  });
+  assert.equal(starter.status, "matched");
+  assert.equal(starter.status === "matched" ? starter.tcgplayerId : null, 700007);
+
+  const one = await resolveTcgplayerVariant(client, {
+    productName: "Unctus, Grand Metatect",
+    setCode: "one",
+    collectorNumber: "303",
+    condition: "Lightly Played",
+    finish: "foil",
+  });
+  assert.equal(one.status, "matched");
+  assert.equal(one.status === "matched" ? one.diagnostics.translatedSetName : null, "Phyrexia: All Will Be One");
+});
+
+test("catalog resolver reports unavailable finish and collector-number mismatches without guessing", async () => {
+  const rows: TcgplayerMagicCatalogRecord[] = [
+    mappedRecord(700056, "Starter Commander Decks", "Laboratory Drudge", "56", "Lightly Played"),
+    mappedRecord(111075, "Phyrexia: All Will Be One", "Unctus, Grand Metatect", "75", "Lightly Played Foil"),
+  ];
+  const client = new FakeResolverClient(rows);
+
+  const finishUnavailable = await resolveTcgplayerVariant(client, {
+    productName: "Laboratory Drudge",
+    setCode: "scd",
+    collectorNumber: "56",
+    condition: "Lightly Played",
+    finish: "foil",
+  });
+  assert.equal(finishUnavailable.status, "unresolved");
+  assert.equal(finishUnavailable.status === "unresolved" ? finishUnavailable.reasonCode : null, "FINISH_NOT_AVAILABLE");
+
+  const collectorMismatch = await resolveTcgplayerVariant(client, {
+    productName: "Unctus, Grand Metatect",
+    setCode: "one",
+    collectorNumber: "303",
+    condition: "Lightly Played",
+    finish: "foil",
+  });
+  assert.equal(collectorMismatch.status, "unresolved");
+  assert.equal(collectorMismatch.status === "unresolved" ? collectorMismatch.reasonCode : null, "COLLECTOR_NUMBER_MISMATCH");
+});
+
+test("catalog resolver reports unknown sets missing products and ambiguous printings", async () => {
+  const rows: TcgplayerMagicCatalogRecord[] = [
+    mappedRecord(1, "Modern Horizons", "Duplicate Card", "1", "Near Mint"),
+    mappedRecord(2, "Modern Horizons", "Duplicate Card", "2", "Near Mint"),
+  ];
+  const client = new FakeResolverClient(rows);
+
+  const unknownSet = await resolveTcgplayerVariant(client, {
+    productName: "Duplicate Card",
+    setCode: "zzz",
+    collectorNumber: "1",
+    condition: "Near Mint",
+    finish: "normal",
+  });
+  assert.equal(unknownSet.status, "unresolved");
+  assert.equal(unknownSet.status === "unresolved" ? unknownSet.reasonCode : null, "UNKNOWN_SET_CODE");
+
+  const missingProduct = await resolveTcgplayerVariant(client, {
+    productName: "Missing Card",
+    setCode: "mh1",
+    collectorNumber: "1",
+    condition: "Near Mint",
+    finish: "normal",
+  });
+  assert.equal(missingProduct.status, "unresolved");
+  assert.equal(missingProduct.status === "unresolved" ? missingProduct.reasonCode : null, "SET_MAPPED_NO_PRODUCT");
+
+  const ambiguous = await resolveTcgplayerVariant(client, {
+    productName: "Duplicate Card",
+    setCode: "mh1",
+    condition: "Near Mint",
+    finish: "normal",
+  });
+  assert.equal(ambiguous.status, "ambiguous");
+  assert.equal(ambiguous.status === "ambiguous" ? ambiguous.reasonCode : null, "AMBIGUOUS_PRINTING");
+});
+
 test("only trusted Owner/Admin platform users may mutate the canonical TCGplayer catalog", () => {
   const route = readFileSync(path.join(repoRoot, "src/app/api/admin/tcgplayer-catalog/route.ts"), "utf8");
   assert.match(route, /requireServerPlatformRole\("admin"\)/);
