@@ -110,6 +110,15 @@ test('trade-binder indicator is resolved from trade status rows', () => {
   assert.equal(summarizeCollectionCards(cards, 'collector').tradeBinderCount, 1);
 });
 
+test('collection summary reports stored and unassigned card quantities', () => {
+  const summary = summarizeCollectionCards(cards, 'collector');
+
+  assert.equal(summary.storedCards, 1);
+  assert.equal(summary.unassignedCards, 1);
+  assert.equal(summary.storedQuantity, 2);
+  assert.equal(summary.unassignedQuantity, 501);
+});
+
 test('wishlist indicator is resolved from wishlist rows', () => {
   assert.equal(cards[1].wishlistStatus, 'wanted');
   assert.equal(summarizeCollectionCards(cards, 'collector').wishlistCount, 1);

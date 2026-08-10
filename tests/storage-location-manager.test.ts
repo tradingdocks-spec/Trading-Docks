@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { buildCollectionCards } from '../mobile/services/collector-workspace.ts';
 import {
@@ -23,6 +26,7 @@ import {
 
 const userId = 'user-1';
 const otherUserId = 'user-2';
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const rawLocations = [
   { id: 'office', name: 'Office', location_type: 'area', data: { type: 'area', favorite: true, recentUsedAt: '2026-08-05T10:00:00Z' } },
   { id: 'shelf-b', name: 'Shelf B', location_type: 'shelf', data: { type: 'shelf', parentId: 'office', recentUsedAt: '2026-08-05T12:00:00Z' } },
@@ -126,4 +130,42 @@ test('offline assignment dedupe key is user and card scoped', () => {
     locationAssignmentQueueKey({ userId, inventoryItemId: 'card-1', fromLocationId: null, toLocationId: 'office' }),
     locationAssignmentQueueKey({ userId: otherUserId, inventoryItemId: 'card-1', fromLocationId: null, toLocationId: 'office' }),
   );
+});
+
+test('Collection exposes Storage as a first-class workflow entry', () => {
+  const source = readFileSync(path.join(repoRoot, 'src/components/dashboard/collector-workspace/CollectorWorkspace.tsx'), 'utf8');
+
+  assert.match(source, /type CollectionSection = "cards" \| "storage" \| "trade-binder" \| "wishlist"/);
+  assert.match(source, /aria-label="Collection navigation"/);
+  assert.match(source, /SectionTab label="Storage"/);
+  assert.match(source, /setActiveSection\("storage"\)/);
+  assert.match(source, /label="Stored"/);
+  assert.match(source, /label="Unassigned"/);
+});
+
+test('Collection storage cells are actionable and reuse the storage mutation path', () => {
+  const source = readFileSync(path.join(repoRoot, 'src/components/dashboard/collector-workspace/CollectorWorkspace.tsx'), 'utf8');
+
+  assert.match(source, /function StorageCell/);
+  assert.match(source, /Assign storage/);
+  assert.match(source, /Remove assignment/);
+  assert.match(source, /Change location/);
+  assert.match(source, /assignWebStorageLocation/);
+  assert.match(source, /loadWebStorageLocationManager/);
+  assert.doesNotMatch(source, /localStorage/);
+});
+
+test('Storage manager is a Collection organizer with smart Unassigned and compact creation', () => {
+  const source = readFileSync(path.join(repoRoot, 'src/components/dashboard/collector-workspace/StorageLocationManager.tsx'), 'utf8');
+
+  assert.match(source, /Collection Storage/);
+  assert.match(source, /UNASSIGNED_LOCATION_ID/);
+  assert.match(source, /Cards with no physical location/);
+  assert.match(source, /New location/);
+  assert.match(source, /Parent location/);
+  assert.match(source, /Move to\.\.\./);
+  assert.match(source, /Location details/);
+  assert.match(source, /renameWebStorageLocation/);
+  assert.match(source, /archiveWebStorageLocation/);
+  assert.match(source, /assignWebStorageLocation/);
 });

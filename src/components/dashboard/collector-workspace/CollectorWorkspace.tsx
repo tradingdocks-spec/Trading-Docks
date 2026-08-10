@@ -10,8 +10,8 @@ import {
   ImageIcon,
   Layers3,
   List,
+  MapPin,
   Search,
-  Star,
   Tag,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -29,6 +29,10 @@ import {
 } from "@/components/design-system/td-primitives";
 import { cn } from "@/lib/utils";
 import { loadWebCollectorCollectionPage } from "@/lib/collector-workspace-client-data";
+import {
+  assignWebStorageLocation,
+  loadWebStorageLocationManager,
+} from "@/lib/storage-location-client-data";
 import {
   collectionRequestKey,
   displayCondition,
@@ -48,6 +52,8 @@ import { StorageLocationManager } from "./StorageLocationManager";
 import { TradeBinderWishlistWorkspace } from "./TradeBinderWishlistWorkspace";
 
 type DisplayMode = "grid" | "list";
+type CollectionSection = "cards" | "storage" | "trade-binder" | "wishlist";
+type StorageManagerState = Awaited<ReturnType<typeof loadWebStorageLocationManager>>;
 
 const SORT_OPTIONS: Array<{ value: CollectionSort; label: string }> = [
   { value: "recently_updated", label: "Recently updated" },
@@ -78,6 +84,11 @@ export function CollectorWorkspace({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("list");
   const [tradeOnly, setTradeOnly] = useState(false);
   const [wishlistOnly, setWishlistOnly] = useState(false);
+  const [activeSection, setActiveSection] = useState<CollectionSection>("cards");
+  const [storageState, setStorageState] = useState<StorageManagerState | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [storagePendingCardId, setStoragePendingCardId] = useState<string | null>(null);
+  const [openStorageCardId, setOpenStorageCardId] = useState<string | null>(null);
   const activeRequestKey = useRef("");
 
   useEffect(() => {
@@ -129,9 +140,21 @@ export function CollectorWorkspace({
   }, [loadPage]);
 
   const retry = useCallback(() => loadPage(null, true), [loadPage]);
+  const reloadStorageState = useCallback(() => {
+    void loadWebStorageLocationManager()
+      .then((result) => {
+        setStorageState(result);
+        setStorageError(null);
+      })
+      .catch((loadError) => setStorageError(loadError instanceof Error ? loadError.message : "Storage locations are unavailable."));
+  }, []);
   const loadMore = useCallback(() => {
     if (!loading && !loadingMore && hasMore && nextCursor) loadPage(nextCursor, false);
   }, [hasMore, loadPage, loading, loadingMore, nextCursor]);
+
+  useEffect(() => {
+    reloadStorageState();
+  }, [reloadStorageState]);
 
   useEffect(() => {
     return () => {
@@ -153,6 +176,26 @@ export function CollectorWorkspace({
     hasMore,
   });
   const canUseSellerActions = accountType === "seller" || accountType === "store";
+  const handleStorageAssignment = useCallback(async (card: CollectionCard, toLocationId: string | null) => {
+    if (!storageState) return;
+    setStoragePendingCardId(card.id);
+    setStorageError(null);
+    try {
+      await assignWebStorageLocation({
+        userId: storageState.userId,
+        inventoryItemId: card.id,
+        fromLocationId: card.storageLocation?.id ?? null,
+        toLocationId,
+      });
+      setOpenStorageCardId(null);
+      retry();
+      reloadStorageState();
+    } catch (assignError) {
+      setStorageError(assignError instanceof Error ? assignError.message : "Storage assignment failed.");
+    } finally {
+      setStoragePendingCardId(null);
+    }
+  }, [reloadStorageState, retry, storageState]);
 
   return (
     <TDScreen className="space-y-5">
@@ -173,6 +216,10 @@ export function CollectorWorkspace({
             <Layers3 className="h-4 w-4" />
             Portfolio
           </Link>
+          <button type="button" onClick={() => setActiveSection("storage")} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] px-4 text-sm font-black text-[var(--td-text-primary)] outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
+            <MapPin className="h-4 w-4" />
+            Storage
+          </button>
           <Link href="/dashboard/card-photo-scanner" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-transparent px-4 text-sm font-black text-[var(--td-text-secondary)] outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
             <Search className="h-4 w-4" />
             Scanner
@@ -183,8 +230,8 @@ export function CollectorWorkspace({
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5" aria-label="Collection summary">
         <SummaryMetric icon={<Boxes className="h-4 w-4" />} label="Owned cards" value={summary.totalOwnedCards.toLocaleString()} />
         <SummaryMetric icon={<Grid3X3 className="h-4 w-4" />} label="Unique printings" value={summary.uniquePrintings.toLocaleString()} />
-        <SummaryMetric icon={<Tag className="h-4 w-4" />} label="Trade binder" value={summary.tradeBinderCount.toLocaleString()} />
-        <SummaryMetric icon={<Star className="h-4 w-4" />} label="Wishlist" value={summary.wishlistCount.toLocaleString()} />
+        <SummaryMetric icon={<MapPin className="h-4 w-4" />} label="Stored" value={summary.storedQuantity.toLocaleString()} />
+        <SummaryMetric icon={<Tag className="h-4 w-4" />} label="Unassigned" value={summary.unassignedQuantity.toLocaleString()} muted={summary.unassignedQuantity > 0} />
         <SummaryMetric
           icon={<ArrowUpDown className="h-4 w-4" />}
           label="Known value"
@@ -206,6 +253,22 @@ export function CollectorWorkspace({
           <TDBadge tone={summary.freeCardLimitExceeded ? "danger" : "info"}>{accountType}</TDBadge>
         </TDCard>
       ) : null}
+
+      <nav className="flex flex-wrap gap-2" aria-label="Collection navigation">
+        <SectionTab label="All Cards" selected={activeSection === "cards"} onClick={() => setActiveSection("cards")} />
+        <SectionTab label="Storage" selected={activeSection === "storage"} onClick={() => setActiveSection("storage")} />
+        <SectionTab label="Trade Binder" selected={activeSection === "trade-binder"} onClick={() => setActiveSection("trade-binder")} />
+        <SectionTab label="Wishlist" selected={activeSection === "wishlist"} onClick={() => setActiveSection("wishlist")} />
+      </nav>
+
+      {storageError ? <TDErrorState title="Storage update failed" message={storageError} /> : null}
+
+      {activeSection === "storage" ? (
+        <StorageLocationManager />
+      ) : activeSection === "trade-binder" || activeSection === "wishlist" ? (
+        <TradeBinderWishlistWorkspace />
+      ) : (
+      <>
 
       <section className="grid gap-3 xl:grid-cols-[minmax(280px,1fr)_auto]" aria-label="Collection controls">
         <TDInput
@@ -268,7 +331,16 @@ export function CollectorWorkspace({
                       <TDText variant="caption" tone="muted">{displayCondition(card.condition)} - {displayFinish(card.printing.finish)}</TDText>
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--td-text-secondary)]">{displayPrinting(card.printing)}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--td-text-secondary)]">{displayStorageLocation(card)}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--td-text-secondary)]">
+                      <StorageCell
+                        card={card}
+                        storageState={storageState}
+                        open={openStorageCardId === card.id}
+                        pending={storagePendingCardId === card.id}
+                        onToggle={() => setOpenStorageCardId((current) => current === card.id ? null : card.id)}
+                        onAssign={(locationId) => void handleStorageAssignment(card, locationId)}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <StatusBadges card={card} />
                     </td>
@@ -294,10 +366,6 @@ export function CollectorWorkspace({
         </div>
       ) : null}
 
-      <StorageLocationManager />
-
-      <TradeBinderWishlistWorkspace />
-
       {canUseSellerActions ? (
         <TDCard variant="outlined" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -310,7 +378,93 @@ export function CollectorWorkspace({
           </Link>
         </TDCard>
       ) : null}
+      </>
+      )}
     </TDScreen>
+  );
+}
+
+function SectionTab({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={cn(
+        "min-h-11 rounded-full border px-4 text-sm font-black outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]",
+        selected
+          ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100"
+          : "border-[var(--td-border-default)] bg-[var(--td-background-secondary)] text-[var(--td-text-secondary)] hover:text-[var(--td-text-primary)]",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+function StorageCell({
+  card,
+  storageState,
+  open,
+  pending,
+  onToggle,
+  onAssign,
+}: {
+  card: CollectionCard;
+  storageState: StorageManagerState | null;
+  open: boolean;
+  pending: boolean;
+  onToggle: () => void;
+  onAssign: (locationId: string | null) => void;
+}) {
+  const assigned = Boolean(card.storageLocation);
+  const locations = storageState?.summaries ?? [];
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className={cn(
+          "inline-flex min-h-10 max-w-[260px] items-center gap-2 rounded-[var(--td-radius-sm)] border px-3 text-left text-xs font-black outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]",
+          assigned
+            ? "border-cyan-300/25 bg-cyan-300/10 text-cyan-100 hover:border-cyan-200/50"
+            : "border-amber-300/25 bg-amber-300/10 text-amber-100 hover:border-amber-200/50",
+        )}
+      >
+        <MapPin className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{assigned ? displayStorageLocation(card) : "Assign storage"}</span>
+      </button>
+
+      {open ? (
+        <div className="absolute left-0 top-11 z-30 w-[320px] max-w-[80vw] rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-background-primary)] p-3 shadow-2xl">
+          <TDText variant="label" tone="info">Storage location</TDText>
+          <TDText variant="title" className="mt-1">{assigned ? card.storageLocation?.name : "Unassigned"}</TDText>
+          {assigned ? <TDText variant="caption" tone="muted">{displayStorageLocation(card)}</TDText> : <TDText variant="caption" tone="muted">Assign this card to an existing physical location.</TDText>}
+
+          <div className="mt-3 max-h-52 space-y-1 overflow-y-auto pr-1">
+            {locations.length ? locations.map((location) => (
+              <button
+                key={location.id}
+                type="button"
+                disabled={pending || location.id === card.storageLocation?.id}
+                onClick={() => onAssign(location.id)}
+                className="flex w-full items-center justify-between gap-3 rounded-[var(--td-radius-sm)] border border-transparent px-2 py-2 text-left text-xs font-bold text-[var(--td-text-secondary)] outline-none transition hover:border-[var(--td-border-focus)] hover:text-[var(--td-text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <span className="truncate">{location.path.label}</span>
+                <span className="shrink-0 text-[10px] text-[var(--td-text-muted)]">{location.assignedQuantity}</span>
+              </button>
+            )) : <TDText variant="caption" tone="muted">No storage locations yet. Open Storage to create one.</TDText>}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {assigned ? <TDButton label="Remove assignment" variant="ghost" size="sm" loading={pending} onClick={() => onAssign(null)} /> : null}
+            <TDButton label="Change location" variant="secondary" size="sm" onClick={onToggle} />
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

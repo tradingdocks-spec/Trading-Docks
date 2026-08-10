@@ -96,6 +96,10 @@ export type CollectionSummary = {
   totalOwnedCards: number;
   uniquePrintings: number;
   storageLocationCount: number;
+  storedCards: number;
+  unassignedCards: number;
+  storedQuantity: number;
+  unassignedQuantity: number;
   tradeBinderCount: number;
   wishlistCount: number;
   knownMarketValue: number | null;
@@ -455,6 +459,8 @@ export function summarizeCollectionCards(
     ? cards.reduce((sum, card) => sum + (card.marketPrice.amount ?? 0) * card.quantityOwned, 0)
     : null;
   const storageIds = new Set(cards.map((card) => card.storageLocation?.id).filter(Boolean));
+  const stored = cards.filter((card) => Boolean(card.storageLocation));
+  const unassigned = cards.filter((card) => !card.storageLocation);
   const wishlistCount = cards.filter((card) => card.wishlistStatus === 'wanted').length;
   const tradeBinderCount = cards.filter((card) =>
     card.tradeBinderStatus === 'available' ||
@@ -467,6 +473,10 @@ export function summarizeCollectionCards(
     totalOwnedCards,
     uniquePrintings: cards.length,
     storageLocationCount: storageIds.size,
+    storedCards: stored.length,
+    unassignedCards: unassigned.length,
+    storedQuantity: stored.reduce((sum, card) => sum + card.quantityOwned, 0),
+    unassignedQuantity: unassigned.reduce((sum, card) => sum + card.quantityOwned, 0),
     tradeBinderCount,
     wishlistCount,
     knownMarketValue,
