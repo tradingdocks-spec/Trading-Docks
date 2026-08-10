@@ -3,27 +3,19 @@ import {
   hasTrustedFullPlatformAccess,
   type PlatformAccessContext,
 } from "../../../mobile/services/platform-access.ts";
+import {
+  normalizeChannelId,
+  summarizeCanonicalOrders,
+  type CanonicalChannelId,
+  type CanonicalChannelMetric,
+  type CanonicalOrder,
+} from "../orders/order-metrics.ts";
 
 export type BusinessDateRange = "today" | "week" | "month";
 
-export type BusinessChannelId =
-  | "tcgplayer"
-  | "ebay"
-  | "shopify"
-  | "manual"
-  | "pos"
-  | "mana-pool"
-  | "other";
+export type BusinessChannelId = CanonicalChannelId;
 
-export type BusinessChannelSummary = {
-  id: BusinessChannelId;
-  label: string;
-  connected: boolean;
-  grossSales: number;
-  orderCount: number;
-  itemCount: number;
-  averageOrderValue: number | null;
-};
+export type BusinessChannelSummary = CanonicalChannelMetric;
 
 export type BusinessNextAction = {
   id: string;
@@ -80,22 +72,7 @@ export type DashboardSupabaseClient = {
   };
 };
 
-type MarketplaceOrderRow = {
-  id?: string | null;
-  marketplace_id?: string | null;
-  source_type?: string | null;
-  total?: number | string | null;
-  net_profit?: number | string | null;
-  normalized_status?: string | null;
-  fulfillment_stage?: string | null;
-  ordered_at?: string | null;
-};
-
-type MarketplaceOrderItemRow = {
-  marketplace_order_id?: string | null;
-  quantity?: number | string | null;
-  match_status?: string | null;
-};
+type MarketplaceOrderRow = CanonicalOrder;
 
 type MarketplaceConnectionRow = {
   marketplace_id?: string | null;
@@ -114,7 +91,6 @@ type BusinessSummaryInput = {
   now?: Date;
   orders: MarketplaceOrderRow[];
   previousOrders?: MarketplaceOrderRow[];
-  orderItems?: MarketplaceOrderItemRow[];
   connections?: MarketplaceConnectionRow[];
   syncRuns?: MarketplaceSyncRunRow[];
   customerCount?: number | null;
@@ -123,15 +99,6 @@ type BusinessSummaryInput = {
   supplyAlertCount?: number | null;
   repricingReviewCount?: number | null;
 };
-
-const CHANNELS: Array<{ id: BusinessChannelId; label: string; aliases: string[] }> = [
-  { id: "tcgplayer", label: "TCGplayer", aliases: ["tcgplayer", "tcg-player"] },
-  { id: "ebay", label: "eBay", aliases: ["ebay"] },
-  { id: "shopify", label: "Shopify", aliases: ["shopify"] },
-  { id: "manual", label: "Manual / Direct", aliases: ["manual", "direct", "email"] },
-  { id: "pos", label: "POS", aliases: ["pos"] },
-  { id: "mana-pool", label: "Mana Pool", aliases: ["mana-pool", "manapool"] },
-];
 
 export function canViewBusinessCommandCenter(access: PlatformAccessContext) {
   return hasTrustedFullPlatformAccess(access) || hasCapability(access, "orders.manage");
@@ -156,7 +123,7 @@ export async function loadBusinessCommandCenter({
     return null;
   }
 
-  const window = dateWindow(range, now);
+  const window = getBusinessDateWindow(range, now);
   const previous = previousDateWindow(window);
   const storeAccess = canViewStoreOperations(access);
 
@@ -173,7 +140,7 @@ export async function loadBusinessCommandCenter({
   ] = await Promise.all([
     supabase
       .from<MarketplaceOrderRow>("marketplace_orders")
-      .select("id,marketplace_id,source_type,total,net_profit,normalized_status,fulfillment_stage,ordered_at")
+      .select("id,marketplace_id,source_type,order_status,payment_status,fulfillment_status,total,refund_amount,net_profit,normalized_status,fulfillment_stage,ordered_at,created_at,marketplace_order_items(marketplace_order_id,quantity,match_status)")
       .eq("user_id", access.userId)
       .gte("ordered_at", window.start.toISOString())
       .lt("ordered_at", window.end.toISOString())
@@ -181,7 +148,7 @@ export async function loadBusinessCommandCenter({
       .limit(1000),
     supabase
       .from<MarketplaceOrderRow>("marketplace_orders")
-      .select("id,marketplace_id,source_type,total,net_profit,normalized_status,fulfillment_stage,ordered_at")
+      .select("id,marketplace_id,source_type,order_status,payment_status,fulfillment_status,total,refund_amount,net_profit,normalized_status,fulfillment_stage,ordered_at,created_at,marketplace_order_items(marketplace_order_id,quantity,match_status)")
       .eq("user_id", access.userId)
       .gte("ordered_at", previous.start.toISOString())
       .lt("ordered_at", previous.end.toISOString())
@@ -230,23 +197,12 @@ export async function loadBusinessCommandCenter({
       : Promise.resolve({ data: null, count: null }),
   ]);
 
-  const orders = ordersResult.data ?? [];
-  const orderIds = orders.map((order) => order.id).filter((id): id is string => Boolean(id));
-  const itemResult = orderIds.length
-    ? await supabase
-        .from<MarketplaceOrderItemRow>("marketplace_order_items")
-        .select("marketplace_order_id,quantity,match_status")
-        .eq("user_id", access.userId)
-        .in("marketplace_order_id", orderIds)
-    : { data: [] };
-
   return buildBusinessCommandCenterSummary({
     access,
     range,
     now,
-    orders,
+    orders: ordersResult.data ?? [],
     previousOrders: previousOrdersResult.data ?? [],
-    orderItems: itemResult.data ?? [],
     connections: connectionsResult.data ?? [],
     syncRuns: syncRunsResult.data ?? [],
     customerCount: customersResult.count ?? null,
@@ -263,7 +219,6 @@ export function buildBusinessCommandCenterSummary({
   now = new Date(),
   orders,
   previousOrders = [],
-  orderItems = [],
   connections = [],
   syncRuns = [],
   customerCount = null,
@@ -274,34 +229,16 @@ export function buildBusinessCommandCenterSummary({
 }: BusinessSummaryInput): BusinessCommandCenterSummary {
   const hasSellerAccess = canViewBusinessCommandCenter(access);
   const hasStoreAccess = canViewStoreOperations(access);
-  const connectedIds = new Set(
+  const connectedIds = [
     connections
       .filter((connection) => normalizeStatus(connection.status) === "ready")
-      .map((connection) => channelIdFor(connection.marketplace_id))
+      .map((connection) => normalizeChannelId(connection.marketplace_id))
       .filter((id): id is BusinessChannelId => Boolean(id)),
-  );
-  const itemCountsByOrder = orderItems.reduce((map, item) => {
-    const orderId = typeof item.marketplace_order_id === "string" ? item.marketplace_order_id : null;
-    if (!orderId) return map;
-    map.set(orderId, (map.get(orderId) ?? 0) + Math.max(0, numeric(item.quantity)));
-    return map;
-  }, new Map<string, number>());
-  const grossSales = sumMoney(orders.map((order) => order.total));
-  const previousGrossSales = sumMoney(previousOrders.map((order) => order.total));
-  const realizedProfitValues = orders.map((order) => numericOrNull(order.net_profit));
-  const realizedProfit = realizedProfitValues.some((value) => value !== null)
-    ? realizedProfitValues.reduce<number>((total, value) => total + (value ?? 0), 0)
-    : null;
-  const orderCount = orders.length;
-  const itemsSold = orders.reduce((count, order) => count + (order.id ? itemCountsByOrder.get(order.id) ?? 0 : 0), 0);
-  const openFulfillmentCount = orders.filter(isOpenOrder).length;
-  const listingIssues = orderItems.filter((item) => {
-    const status = normalizeStatus(item.match_status);
-    return !status || status === "unmatched" || status === "conflict";
-  }).length;
+  ][0];
+  const orderMetrics = summarizeCanonicalOrders(orders, connectedIds);
+  const previousOrderMetrics = summarizeCanonicalOrders(previousOrders, connectedIds);
   const syncIssues = syncRuns.filter((run) => normalizeStatus(run.status) === "failed").length;
-  const channelBreakdown = buildChannelBreakdown(orders, itemCountsByOrder, connectedIds);
-  const connectedChannelCount = channelBreakdown.filter((channel) => channel.connected).length;
+  const connectedChannelCount = orderMetrics.channels.filter((channel) => channel.connected).length;
 
   return {
     range,
@@ -311,16 +248,16 @@ export function buildBusinessCommandCenterSummary({
     hasSellerAccess,
     hasStoreAccess,
     hasFullPlatformAccess: hasTrustedFullPlatformAccess(access),
-    grossSales,
-    previousGrossSales,
-    salesChangePercent: percentageChange(previousGrossSales, grossSales),
-    orderCount,
-    previousOrderCount: previousOrders.length,
-    itemsSold,
-    averageOrderValue: orderCount ? grossSales / orderCount : null,
-    realizedProfit,
-    openFulfillmentCount,
-    listingIssues,
+    grossSales: orderMetrics.grossSales,
+    previousGrossSales: previousOrderMetrics.grossSales,
+    salesChangePercent: percentageChange(previousOrderMetrics.grossSales, orderMetrics.grossSales),
+    orderCount: orderMetrics.orderCount,
+    previousOrderCount: previousOrderMetrics.orderCount,
+    itemsSold: orderMetrics.unitsSold,
+    averageOrderValue: orderMetrics.averageOrderValue,
+    realizedProfit: orderMetrics.realizedProfit,
+    openFulfillmentCount: orderMetrics.openFulfillmentCount,
+    listingIssues: orderMetrics.listingIssues,
     syncIssues,
     repricingReviewCount: repricingReviewCount ?? 0,
     customerCount,
@@ -328,11 +265,11 @@ export function buildBusinessCommandCenterSummary({
     vendorCount: hasStoreAccess ? vendorCount : null,
     supplyAlertCount: hasStoreAccess ? supplyAlertCount : null,
     connectedChannelCount,
-    channelBreakdown,
+    channelBreakdown: orderMetrics.channels,
     nextActions: buildNextActions({
       connectedChannelCount,
-      openFulfillmentCount,
-      listingIssues,
+      openFulfillmentCount: orderMetrics.openFulfillmentCount,
+      listingIssues: orderMetrics.listingIssues,
       syncIssues,
       repricingReviewCount: repricingReviewCount ?? 0,
       hasStoreAccess,
@@ -342,51 +279,6 @@ export function buildBusinessCommandCenterSummary({
     }),
     generatedAt: now.toISOString(),
   };
-}
-
-function buildChannelBreakdown(
-  orders: MarketplaceOrderRow[],
-  itemCountsByOrder: Map<string, number>,
-  connectedIds: Set<BusinessChannelId>,
-) {
-  const summaries = new Map<BusinessChannelId, BusinessChannelSummary>();
-  for (const channel of CHANNELS) {
-    summaries.set(channel.id, {
-      id: channel.id,
-      label: channel.label,
-      connected: connectedIds.has(channel.id),
-      grossSales: 0,
-      orderCount: 0,
-      itemCount: 0,
-      averageOrderValue: null,
-    });
-  }
-
-  for (const order of orders) {
-    const id = channelIdFor(order.marketplace_id) ?? channelIdFor(order.source_type) ?? "other";
-    if (!summaries.has(id)) {
-      summaries.set(id, {
-        id,
-        label: "Other",
-        connected: connectedIds.has(id),
-        grossSales: 0,
-        orderCount: 0,
-        itemCount: 0,
-        averageOrderValue: null,
-      });
-    }
-    const summary = summaries.get(id);
-    if (!summary) continue;
-    summary.grossSales += numeric(order.total);
-    summary.orderCount += 1;
-    summary.itemCount += order.id ? itemCountsByOrder.get(order.id) ?? 0 : 0;
-    summary.connected = summary.connected || connectedIds.has(id) || summary.orderCount > 0;
-  }
-
-  return [...summaries.values()].map((summary) => ({
-    ...summary,
-    averageOrderValue: summary.orderCount ? summary.grossSales / summary.orderCount : null,
-  }));
 }
 
 function buildNextActions(input: {
@@ -477,8 +369,9 @@ function buildNextActions(input: {
   return actions.slice(0, 5);
 }
 
-function dateWindow(range: BusinessDateRange, now: Date) {
+export function getBusinessDateWindow(range: BusinessDateRange, now: Date) {
   const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
   const start = new Date(now);
   if (range === "today") {
     start.setHours(0, 0, 0, 0);
@@ -486,7 +379,9 @@ function dateWindow(range: BusinessDateRange, now: Date) {
     start.setDate(1);
     start.setHours(0, 0, 0, 0);
   } else {
-    start.setDate(start.getDate() - 6);
+    const day = start.getDay();
+    const daysSinceMonday = (day + 6) % 7;
+    start.setDate(start.getDate() - daysSinceMonday);
     start.setHours(0, 0, 0, 0);
   }
   return { start, end };
@@ -508,48 +403,10 @@ function rangeLabel(range: BusinessDateRange, now: Date) {
   return "This week";
 }
 
-function channelIdFor(value: unknown): BusinessChannelId | null {
-  const normalized = normalizeStatus(value);
-  if (!normalized) return null;
-  for (const channel of CHANNELS) {
-    if (channel.aliases.includes(normalized)) return channel.id;
-  }
-  if (normalized === "api" || normalized === "csv" || normalized === "email") return "manual";
-  return "other";
-}
-
-function isOpenOrder(order: MarketplaceOrderRow) {
-  const status = normalizeStatus(order.normalized_status);
-  const fulfillment = normalizeStatus(order.fulfillment_stage);
-  return status === "new" ||
-    status === "processing" ||
-    fulfillment === "needs_review" ||
-    fulfillment === "picking" ||
-    fulfillment === "packing";
-}
-
 function normalizeStatus(value: unknown) {
   return typeof value === "string" && value.trim()
     ? value.trim().toLowerCase().replace(/_/g, "-")
     : "";
-}
-
-function numeric(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
-function numericOrNull(value: unknown) {
-  if (value === null || value === undefined || value === "") return null;
-  return numeric(value);
-}
-
-function sumMoney(values: unknown[]): number {
-  return values.reduce<number>((total, value) => total + numeric(value), 0);
 }
 
 function percentageChange(previous: number, current: number) {

@@ -8,6 +8,7 @@ import {
   buildBusinessCommandCenterSummary,
   canViewBusinessCommandCenter,
   canViewStoreOperations,
+  getBusinessDateWindow,
 } from "../src/lib/dashboard/business-command-center.ts";
 import {
   clientAccessFromTier,
@@ -71,14 +72,24 @@ test("seller summary uses real user-scoped order and item rows", () => {
     access: access({ tier: "seller" }),
     now: new Date("2026-08-10T16:00:00.000Z"),
     orders: [
-      { id: "order-1", marketplace_id: "tcgplayer", total: 100, net_profit: 42, normalized_status: "new" },
-      { id: "order-2", marketplace_id: "ebay", total: "50.50", net_profit: "10.25", normalized_status: "shipped" },
+      {
+        id: "order-1",
+        marketplace_id: "TCGPlayer",
+        total: 100,
+        net_profit: 42,
+        normalized_status: "new",
+        marketplace_order_items: [{ marketplace_order_id: "order-1", quantity: 2, match_status: "matched" }],
+      },
+      {
+        id: "order-2",
+        marketplace_id: "eBay",
+        total: "50.50",
+        net_profit: "10.25",
+        normalized_status: "shipped",
+        marketplace_order_items: [{ marketplace_order_id: "order-2", quantity: "3", match_status: "unmatched" }],
+      },
     ],
     previousOrders: [{ id: "prior-1", marketplace_id: "tcgplayer", total: 75 }],
-    orderItems: [
-      { marketplace_order_id: "order-1", quantity: 2, match_status: "matched" },
-      { marketplace_order_id: "order-2", quantity: "3", match_status: "unmatched" },
-    ],
     connections: [{ marketplace_id: "tcgplayer", status: "ready" }],
     syncRuns: [{ marketplace_id: "tcgplayer", status: "failed" }],
   });
@@ -93,6 +104,47 @@ test("seller summary uses real user-scoped order and item rows", () => {
   assert.equal(summary.syncIssues, 1);
   assert.equal(summary.channelBreakdown.find((channel) => channel.id === "tcgplayer")?.grossSales, 100);
   assert.equal(summary.channelBreakdown.find((channel) => channel.id === "ebay")?.grossSales, 50.5);
+});
+
+test("current-week date window includes the full Aug 10 2026 order day", () => {
+  const window = getBusinessDateWindow("week", new Date("2026-08-10T16:00:00.000Z"));
+
+  assert.equal(window.start.getDay(), 1);
+  assert.equal(window.start.getHours(), 0);
+  assert.equal(window.start.getMinutes(), 0);
+  assert.equal(window.end.getHours(), 23);
+  assert.equal(window.end.getMinutes(), 59);
+  assert.equal(window.end.getSeconds(), 59);
+  assert.equal(new Date("2026-08-10T23:30:00") >= window.start, true);
+  assert.equal(new Date("2026-08-10T23:30:00") < window.end, true);
+});
+
+test("imported orders count toward gross sales even when item matching is incomplete", () => {
+  const summary = buildBusinessCommandCenterSummary({
+    access: access({ tier: "seller" }),
+    orders: [
+      { id: "order-without-lines", marketplace_id: "tcg_player", total: 120, normalized_status: "new", marketplace_order_items: [] },
+      {
+        id: "order-unmatched",
+        marketplace_id: "tcgplayer",
+        total: 80,
+        normalized_status: "new",
+        marketplace_order_items: [{ marketplace_order_id: "order-unmatched", quantity: 4, match_status: "unmatched" }],
+      },
+    ],
+    connections: [{ marketplace_id: "TCGPlayer", status: "ready" }],
+  });
+
+  const tcgplayer = summary.channelBreakdown.find((channel) => channel.id === "tcgplayer");
+
+  assert.equal(summary.grossSales, 200);
+  assert.equal(summary.orderCount, 2);
+  assert.equal(summary.itemsSold, 4);
+  assert.equal(summary.listingIssues, 1);
+  assert.equal(summary.averageOrderValue, 100);
+  assert.equal(tcgplayer?.connected, true);
+  assert.equal(tcgplayer?.orderCount, 2);
+  assert.equal(tcgplayer?.grossSales, 200);
 });
 
 test("disconnected marketplaces are distinct from connected channels with zero activity", () => {
@@ -149,6 +201,8 @@ test("dashboard page wires business HQ through shared business summary authority
   assert.doesNotMatch(page, /effectivePlan === "seller" \|\| effectivePlan === "store"/);
   assert.match(component, /Connect marketplace/);
   assert.match(component, /Connected, zero orders/);
+  assert.match(service, /marketplace_order_items\(marketplace_order_id,quantity,match_status\)/);
+  assert.match(service, /end\.setHours\(23, 59, 59, 999\)/);
   assert.match(service, /\.eq\("user_id", access\.userId\)/);
   assert.match(service, /\.eq\("workspace_id", access\.workspaceId\)/);
 });

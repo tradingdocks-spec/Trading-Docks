@@ -9,6 +9,11 @@ import {
 } from "lucide-react";
 
 import { WorkspaceFrame } from "@/components/dashboard/common/WorkspaceFrame";
+import {
+  channelLabel,
+  normalizeOrderStatus,
+  summarizeCanonicalOrders,
+} from "@/lib/orders/order-metrics";
 
 export type OrderItemRecord = {
   id: string; title: string; quantity: number; unit_price: number | null; image_url?: string | null;
@@ -32,14 +37,7 @@ const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD
 const compactMoney = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 function normalized(order: OrderRecord): Exclude<Status, "all"> {
-  if (order.normalized_status && statuses.includes(order.normalized_status as Status)) return order.normalized_status as Exclude<Status, "all">;
-  const raw = `${order.order_status ?? ""} ${order.fulfillment_status ?? ""} ${order.payment_status ?? ""}`.toLowerCase();
-  if (raw.includes("refund")) return "refunded";
-  if (raw.includes("cancel")) return "cancelled";
-  if (raw.includes("deliver")) return "delivered";
-  if (raw.includes("ship") || raw.includes("fulfill")) return "shipped";
-  if (raw.includes("process") || raw.includes("paid")) return "processing";
-  return "new";
+  return normalizeOrderStatus(order);
 }
 
 export function UniversalOrdersCenter({
@@ -74,14 +72,15 @@ export function UniversalOrdersCenter({
     return (!needle || text.includes(needle)) && (status === "all" || normalized(order) === status) && (channel === "all" || order.marketplace_id.toLowerCase() === channel);
   }), [orders, query, status, channel]);
 
-  const summary = useMemo(() => orders.reduce((sum, order) => {
-    const state = normalized(order);
-    if (state !== "cancelled") sum.revenue += Number(order.total ?? 0) - Number(order.refund_amount ?? 0);
-    sum.profit += Number(order.net_profit ?? 0);
-    sum.units += (order.marketplace_order_items ?? []).reduce((count, item) => count + Number(item.quantity || 0), 0);
-    if ((order.marketplace_order_items ?? []).some((item) => !item.match_status || item.match_status === "unmatched")) sum.attention += 1;
-    return sum;
-  }, { revenue: 0, profit: 0, units: 0, attention: 0 }), [orders]);
+  const summary = useMemo(() => {
+    const metrics = summarizeCanonicalOrders(orders, connectedChannels);
+    return {
+      revenue: metrics.grossSales,
+      profit: metrics.realizedProfit ?? 0,
+      units: metrics.unitsSold,
+      attention: metrics.listingIssues,
+    };
+  }, [orders, connectedChannels]);
 
   function exportCsv() {
     const rows = [["Order", "Channel", "Date", "Status", "Buyer", "Items", "Total", "Fees", "Shipping cost", "COGS", "Profit", "Tracking"]];
@@ -164,15 +163,6 @@ function StatusBadge({ status }: { status: Exclude<Status, "all"> }) { const sty
 function Breakdown({ label, value, negative, strong }: { label: string; value?: number | null; negative?: boolean; strong?: boolean }) { const amount = Number(value ?? 0); return <div className={`flex items-center justify-between gap-3 ${strong ? "text-sm font-semibold" : "mt-2.5 text-[9px]"}`}><span className={strong ? "text-white" : "text-slate-500"}>{label}</span><span className={strong && amount > 0 ? "text-emerald-300" : "text-slate-300"}>{negative && amount ? "−" : ""}{money.format(amount)}</span></div>; }
 function EmptyState({ hasOrders }: { hasOrders: boolean }) { return <div className="flex min-h-[340px] flex-col items-center justify-center px-5 py-12 text-center"><div className="grid h-14 w-14 place-items-center rounded-2xl border border-cyan-300/[0.12] bg-cyan-300/[0.045]"><ShoppingBag className="h-6 w-6 text-cyan-300" /></div><h2 className="mt-4 text-base font-semibold text-white">{hasOrders ? "No orders match this view" : "Your order operations start here"}</h2><p className="mt-2 max-w-md text-[11px] leading-5 text-slate-500">{hasOrders ? "Clear a filter or search for another order." : "Connect a marketplace or import a CSV. Orders will appear with fulfillment, item matching, costs, and realized profit in one workspace."}</p>{!hasOrders ? <div className="mt-5 flex flex-wrap justify-center gap-2"><Link href="/dashboard/marketplaces" className="inline-flex h-9 items-center gap-2 rounded-xl bg-cyan-300 px-3.5 text-[13px] font-bold text-[#00131c]"><Link2 className="h-3.5 w-3.5" /> Connect marketplace</Link><Link href="/dashboard/marketplaces" className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] px-3.5 text-[13px] font-semibold text-slate-300"><FileUp className="h-3.5 w-3.5" /> Import CSV</Link></div> : null}<div className="mt-7 flex flex-wrap justify-center gap-4 text-xs text-slate-500"><span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-emerald-300" /> No demo orders</span><span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-emerald-300" /> Duplicate-safe</span><span className="flex items-center gap-1.5"><Check className="h-3 w-3 text-emerald-300" /> Account-specific</span></div></div>; }
 function channelName(value: string) {
-  const key = value.toLowerCase();
-  if (key === "ebay") return "eBay";
-  if (key === "tcgplayer") return "TCGplayer";
-  if (key === "shopify") return "Shopify";
-  if (key === "mana-pool" || key === "manapool") return "Mana Pool";
-  if (key === "pos") return "In-store";
-  return value
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return channelLabel(value);
 }
 function formatDate(value?: string | null) { if(!value) return "Date unavailable"; const date=new Date(value); return Number.isNaN(date.getTime()) ? "Date unavailable" : new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}).format(date); }
