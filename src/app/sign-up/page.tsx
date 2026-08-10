@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -20,6 +21,12 @@ import {
 
 import { signUp } from "@/app/actions/auth";
 import { PasswordField } from "@/components/auth/PasswordField";
+
+export const metadata: Metadata = {
+  title: "Create Your Workspace",
+  description:
+    "Create a Trading Docks workspace for collection, inventory, pricing, and selling operations.",
+};
 
 type SignUpPageProps = {
   searchParams: Promise<{

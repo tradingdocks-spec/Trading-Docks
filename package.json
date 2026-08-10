@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm audit --omit=dev --audit-level=high"
+    "check": "npm run lint && npm run typecheck && npm test && npm audit --omit=dev --audit-level=high",
+    "validate": "npm run check && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

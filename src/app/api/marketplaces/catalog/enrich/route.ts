@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enrichMagicListingTitle } from "@/lib/marketplaces/catalog-enrichment";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -9,9 +9,9 @@ export const maxDuration = 60;
 type Snapshot = { inventoryItem?: { product?: { title?: string; imageUrls?: string[] } }; enrichment?: unknown };
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to enrich marketplace listings." }, { status: 401 });
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const user = capability.user!;
   const body = await request.json().catch(() => ({})) as { marketplaceId?: string; limit?: number; refresh?: boolean };
   const marketplaceId = (body.marketplaceId ?? "ebay").toLowerCase();
   if (!/^[a-z0-9_-]{2,30}$/.test(marketplaceId)) return NextResponse.json({ error: "Invalid marketplace." }, { status: 400 });

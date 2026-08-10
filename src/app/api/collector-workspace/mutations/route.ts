@@ -27,13 +27,13 @@ export async function POST(request: Request) {
   if (itemResult.error) return NextResponse.json({ error: itemResult.error.message }, { status: 500 });
   if (!itemResult.data) return NextResponse.json({ error: "Collection record not found." }, { status: 404 });
 
-  const [{ data: quantityRows, error: quantityError }, access] = await Promise.all([
-    supabase.from("inventory_items").select("quantity").eq("user_id", user.id).limit(1000),
+  const [quantityResult, access] = await Promise.all([
+    totalOwnedCardQuantity(supabase, user.id),
     resolveServerAccess(supabase, user),
   ]);
-  if (quantityError) return NextResponse.json({ error: quantityError.message }, { status: 500 });
+  if (!quantityResult.ok) return NextResponse.json({ error: quantityResult.error }, { status: 500 });
 
-  const currentTotalQuantity = (quantityRows ?? []).reduce((sum, row) => sum + Number(row.quantity ?? 0), 0);
+  const currentTotalQuantity = quantityResult.total;
   const currentCardQuantity = Number(itemResult.data.quantity ?? 0);
   const validation = validateCollectorMutation(mutation, {
     membershipTier: access.membershipTier,
@@ -187,4 +187,27 @@ function matchingWishlistQuery(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+async function totalOwnedCardQuantity(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+) {
+  const pageSize = 1000;
+  let from = 0;
+  let total = 0;
+
+  for (;;) {
+    const { data, error } = await supabase
+      .from("inventory_items")
+      .select("quantity")
+      .eq("user_id", userId)
+      .range(from, from + pageSize - 1);
+
+    if (error) return { ok: false as const, error: error.message };
+    const rows = data ?? [];
+    total += rows.reduce((sum, row) => sum + Number(row.quantity ?? 0), 0);
+    if (rows.length < pageSize) return { ok: true as const, total };
+    from += pageSize;
+  }
 }

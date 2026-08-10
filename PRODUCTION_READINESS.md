@@ -11,11 +11,13 @@ This release establishes a repeatable security and stability baseline. It does n
 - Root contract tests pass with `node --test --experimental-strip-types tests/*.test.ts`.
 - Mobile TypeScript, Expo lint, and the full mobile test suite pass.
 - Expo Web export completes for the active mobile application.
-- Public pricing calls to action use `/sign-up` and consume the canonical membership catalog.
+- Public pricing and landing calls to action use `/sign-up` and consume the canonical membership catalog.
+- Public web metadata now defines a production canonical base, social share defaults, and noindex rules for sign-in and password utility routes.
 - Mobile local account fallback no longer treats cached account type as paid membership authority.
 - Mobile auth errors preserve the exact Supabase provider message in the visible error body while keeping internal configuration errors nontechnical.
 - Server workspace access now resolves only a valid active workspace or a single unambiguous workspace membership.
-- Scanner and Collector mobile mutation flows page through inventory quantity totals instead of trusting the first 1,000 rows.
+- Scanner, Collector mobile mutation flows, and the web Collector mutation API page through inventory quantity totals instead of trusting the first 1,000 rows.
+- Active marketplace import, enrichment, reconciliation, authorization, and OAuth callback routes now use the canonical `marketplaces.manage` capability guard.
 - Core Supabase migrations enable row-level security for account, inventory, deck, workspace, marketplace, billing, trial, and feedback data.
 - Deck, inventory, CSV, TCGCSV, and tool API families require an authenticated session at the proxy boundary.
 - API requests declaring a body larger than 5 MiB are rejected.
@@ -46,12 +48,12 @@ This release establishes a repeatable security and stability baseline. It does n
 
 | Subsystem | Status | Notes |
 | --- | --- | --- |
-| Public website | Partially Verified | Build passes and pricing CTAs/catalog are corrected. Browser E2E, SEO/social metadata, and visual QA remain required. |
+| Public website | Partially Verified | Build passes; pricing CTAs/catalog, landing CTAs, and public metadata are corrected. Browser E2E and visual QA remain required. |
 | Web app shell and dashboard routes | Partially Verified | Route registry tests pass and `/dashboard/label-studio` builds. Server access avoids ambiguous workspace assignment; remaining workspace-specific routes still need browser QA. |
 | Authentication | Partially Verified | Mobile auth contract tests pass and Supabase errors are visible. Staging Supabase email/redirect configuration must be verified manually. |
 | Membership and billing | Partially Verified | Canonical catalog tests pass and RevenueCat/Stripe contracts are covered. Provider webhook staging/live delivery still needs environment QA. |
 | Supabase data model and RLS | Partially Verified | Migration filenames and include dependencies are fixed, platform role authority is in the root chain, and a fresh-bootstrap verification script exists. A real clean Supabase replay still must be run in staging. |
-| Collector mutations | Needs Review | Application tests pass and mobile quantity totals no longer cap at the first page. DB-level Free-limit enforcement remains migration-proposal work until approved and applied. |
+| Collector mutations | Needs Review | Application tests pass and mobile/web quantity totals no longer cap at the first page. DB-level Free-limit enforcement remains migration-proposal work until approved and applied. |
 | Label Studio | Partially Verified | Route/API/public QR build and contract tests pass. New staging project must be bootstrapped and browser-tested. |
 | Mobile app | Partially Verified | TypeScript, lint, tests, and Expo Web export pass. Physical-device scanner/auth/RevenueCat QA remains required. |
 | Scanner native stack | Partially Verified | Automated mobile tests pass. Native device validation remains required for camera/OCR behavior. |
@@ -62,6 +64,8 @@ This release establishes a repeatable security and stability baseline. It does n
 - Run and record a real clean Supabase staging replay with the root migration chain and verification scripts.
 - Apply or replace the Collector mutation security proposal so Free card limits are transactional at the database layer.
 - Move active Card Shows purchase-order draft state out of browser-only storage if it is intended to be account-durable.
+- Verify public binder-share creation checks ownership against inventory/binder records before launch.
+- Add marketplace credential key-version metadata before attempting operational key rotation.
 - Add browser E2E coverage for public signup, sign-in, dashboard routing, Label Studio, billing, and account isolation.
 - Add production monitoring and alerting with secret/PII scrubbing.
 

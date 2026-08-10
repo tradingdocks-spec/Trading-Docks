@@ -242,6 +242,31 @@ test("all API route handlers are classified in the API access registry", () => {
   }
 });
 
+test("active marketplace server routes use the canonical marketplaces capability guard", () => {
+  const guardedApiRoutes = [
+    "src/app/api/marketplaces/catalog/enrich/route.ts",
+    "src/app/api/marketplaces/ebay/import/route.ts",
+    "src/app/api/marketplaces/ebay/reconciliation/route.ts",
+    "src/app/api/marketplaces/manapool/import/route.ts",
+  ];
+
+  for (const route of guardedApiRoutes) {
+    const source = readFileSync(path.join(repoRoot, route), "utf8");
+    assert.match(source, /requireApiCapability\("marketplaces\.manage"\)/, route);
+  }
+
+  const redirectRoutes = [
+    "src/app/api/marketplaces/ebay/authorize/route.ts",
+    "src/app/api/marketplaces/[marketplace]/callback/route.ts",
+  ];
+
+  for (const route of redirectRoutes) {
+    const source = readFileSync(path.join(repoRoot, route), "utf8");
+    assert.match(source, /hasCapability\(access, "marketplaces\.manage"\)/, route);
+    assert.match(source, /marketplace_access/, route);
+  }
+});
+
 test("workspace role boundaries are distinct from store membership", () => {
   const storeViewer = access({ tier: "store", workspaceRole: "viewer" });
   const storeMember = access({ tier: "store", workspaceRole: "member" });

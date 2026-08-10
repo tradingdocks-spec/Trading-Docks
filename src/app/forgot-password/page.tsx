@@ -1,6 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requestPasswordReset } from "@/app/actions/auth";
+
+export const metadata: Metadata = {
+  title: "Reset Password",
+  description: "Request a secure Trading Docks password reset link.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type Props = {
   searchParams: Promise<{ error?: string; success?: string }>;

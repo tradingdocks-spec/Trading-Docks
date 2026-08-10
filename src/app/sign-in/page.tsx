@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -21,6 +22,15 @@ import {
 import { login, loginWithGoogle } from "@/app/actions/auth";
 import { RememberedEmailField } from "@/components/auth/RememberedEmailField";
 import { PasswordField } from "@/components/auth/PasswordField";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+  description: "Sign in to your Trading Docks workspace.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type SignInPageProps = {
   searchParams: Promise<{
