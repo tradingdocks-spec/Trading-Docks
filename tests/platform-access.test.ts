@@ -64,6 +64,45 @@ function navigationLabelsFor(accessContext: PlatformAccessContext) {
     .map((item) => item.label);
 }
 
+test("admin control center follows the canonical administration information architecture", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/admin/AdminControlCenterWithPreview.tsx"),
+    "utf8",
+  );
+
+  const labels = [
+    "Overview",
+    "Users",
+    "Trials & Promotions",
+    "Plans & Limits",
+    "Plan Preview",
+    "Feature Access",
+    "Categories",
+    "Customer Support",
+    "Billing & Credits",
+    "Announcements",
+    "System Health",
+    "Data & Backups",
+    "Catalog Management",
+    "TCGplayer Catalog",
+    "Product Analytics",
+    "Feedback & Beta",
+    "Integrations",
+    "Security",
+    "Audit Log",
+  ];
+
+  let cursor = -1;
+  for (const label of labels) {
+    const next = source.indexOf(`label: "${label}"`);
+    assert.ok(next > cursor, `${label} should appear in the canonical admin order`);
+    cursor = next;
+  }
+
+  assert.match(source, /href:\s*"\/dashboard\/admin\/catalog\/tcgplayer"/);
+  assert.match(source, /tab === "catalog"/);
+});
+
 test("capability registry uses action names and canonical tier boundaries", () => {
   const capabilities = Object.keys(CAPABILITY_REGISTRY) as PlatformCapability[];
 

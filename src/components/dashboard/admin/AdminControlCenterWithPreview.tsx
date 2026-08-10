@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
@@ -11,6 +12,7 @@ import {
   CloudCog,
   Ban,
   DatabaseBackup,
+  DatabaseZap,
   EllipsisVertical,
   Eye,
   Headphones,
@@ -54,6 +56,7 @@ type AdminTab =
   | "communications"
   | "health"
   | "data"
+  | "catalog"
   | "analytics"
   | "feedback"
   | "integrations"
@@ -88,24 +91,30 @@ type AdminAccount = {
   banned_until: string | null;
 };
 
-const tabs: { id: AdminTab; label: string; icon: typeof Activity }[] = [
-  { id: "overview", label: "Overview", icon: Activity },
-  { id: "users", label: "Users", icon: Users },
-  { id: "trials", label: "Trials & Promotions", icon: TicketCheck },
-  { id: "plans", label: "Plans & Limits", icon: BadgeDollarSign },
-  { id: "plan-preview", label: "Plan Preview", icon: Eye },
-  { id: "features", label: "Feature Access", icon: SlidersHorizontal },
-  { id: "categories", label: "Categories", icon: LayoutGrid },
-  { id: "support", label: "Customer Support", icon: Headphones },
-  { id: "billing", label: "Billing & Credits", icon: ReceiptText },
-  { id: "communications", label: "Announcements", icon: Megaphone },
-  { id: "health", label: "System Health", icon: HeartPulse },
-  { id: "data", label: "Data & Backups", icon: DatabaseBackup },
-  { id: "analytics", label: "Product Analytics", icon: BarChart3 },
-  { id: "feedback", label: "Feedback & Beta", icon: Lightbulb },
-  { id: "integrations", label: "Integrations", icon: PlugZap },
-  { id: "security", label: "Security", icon: ShieldCheck },
-  { id: "audit", label: "Audit Log", icon: Eye },
+type AdminNavItem =
+  | { kind: "tab"; id: AdminTab; label: string; icon: typeof Activity }
+  | { kind: "link"; label: string; icon: typeof Activity; href: string; child?: boolean };
+
+const tabs: AdminNavItem[] = [
+  { kind: "tab", id: "overview", label: "Overview", icon: Activity },
+  { kind: "tab", id: "users", label: "Users", icon: Users },
+  { kind: "tab", id: "trials", label: "Trials & Promotions", icon: TicketCheck },
+  { kind: "tab", id: "plans", label: "Plans & Limits", icon: BadgeDollarSign },
+  { kind: "tab", id: "plan-preview", label: "Plan Preview", icon: Eye },
+  { kind: "tab", id: "features", label: "Feature Access", icon: SlidersHorizontal },
+  { kind: "tab", id: "categories", label: "Categories", icon: LayoutGrid },
+  { kind: "tab", id: "support", label: "Customer Support", icon: Headphones },
+  { kind: "tab", id: "billing", label: "Billing & Credits", icon: ReceiptText },
+  { kind: "tab", id: "communications", label: "Announcements", icon: Megaphone },
+  { kind: "tab", id: "health", label: "System Health", icon: HeartPulse },
+  { kind: "tab", id: "data", label: "Data & Backups", icon: DatabaseBackup },
+  { kind: "tab", id: "catalog", label: "Catalog Management", icon: DatabaseZap },
+  { kind: "link", href: "/dashboard/admin/catalog/tcgplayer", label: "TCGplayer Catalog", icon: DatabaseZap, child: true },
+  { kind: "tab", id: "analytics", label: "Product Analytics", icon: BarChart3 },
+  { kind: "tab", id: "feedback", label: "Feedback & Beta", icon: Lightbulb },
+  { kind: "tab", id: "integrations", label: "Integrations", icon: PlugZap },
+  { kind: "tab", id: "security", label: "Security", icon: ShieldCheck },
+  { kind: "tab", id: "audit", label: "Audit Log", icon: Eye },
 ];
 
 const fallbackFeatures: Feature[] = [
@@ -353,7 +362,30 @@ function AdminWorkspace({ adminIdentityLabel, initialFeatures }: { adminIdentity
           <nav className="grid grid-cols-2 gap-1 sm:grid-cols-4 lg:grid-cols-1">
             {tabs.map((item) => {
               const Icon = item.icon;
-              return <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`flex min-h-10 items-center gap-2 rounded-xl px-3 text-left text-[11px] font-semibold transition ${tab === item.id ? "border border-cyan-300/[0.15] bg-cyan-300/[0.065] text-cyan-100" : "border border-transparent text-slate-500 hover:bg-white/[0.025] hover:text-slate-300"}`}><Icon className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{item.label}</span>{tab === item.id ? <ChevronRight className="ml-auto hidden h-3 w-3 lg:block" /> : null}</button>;
+              if (item.kind === "link") {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex min-h-9 items-center gap-2 rounded-xl border border-transparent px-3 text-left text-[11px] font-semibold text-slate-500 transition hover:bg-white/[0.025] hover:text-slate-300 ${item.child ? "ml-4 border-l-white/[0.08] pl-4" : ""}`}
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setTab(item.id)}
+                  className={`flex min-h-10 items-center gap-2 rounded-xl px-3 text-left text-[11px] font-semibold transition ${tab === item.id ? "border border-cyan-300/[0.15] bg-cyan-300/[0.065] text-cyan-100" : "border border-transparent text-slate-500 hover:bg-white/[0.025] hover:text-slate-300"}`}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                  {tab === item.id ? <ChevronRight className="ml-auto hidden h-3 w-3 lg:block" /> : null}
+                </button>
+              );
             })}
           </nav>
         </aside>
@@ -367,7 +399,7 @@ function AdminWorkspace({ adminIdentityLabel, initialFeatures }: { adminIdentity
           {tab === "feedback" ? <AdminFeedbackQueue /> : null}
           {tab === "integrations" ? <AdminIntegrations /> : null}
           {["support", "billing", "communications", "health", "data", "analytics"].includes(tab) ? <OperationsSection tab={tab as OperationsTab} /> : null}
-          {["plans", "categories", "security", "audit"].includes(tab) ? <SectionPlaceholder tab={tab as CorePlaceholderTab} features={features} adminIdentityLabel={adminIdentityLabel} /> : null}
+          {["plans", "categories", "catalog", "security", "audit"].includes(tab) ? <SectionPlaceholder tab={tab as CorePlaceholderTab} features={features} adminIdentityLabel={adminIdentityLabel} /> : null}
         </main>
       </div>
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[150] rounded-xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs font-medium text-cyan-100 shadow-2xl">{notice}</div> : null}
@@ -747,20 +779,82 @@ function FeatureAccess({ features, query, setQuery, savingId, updateFeature }: {
   </section>;
 }
 
-type CorePlaceholderTab = "users" | "plans" | "categories" | "security" | "audit";
+type CorePlaceholderTab = "users" | "plans" | "categories" | "catalog" | "security" | "audit";
 
 function SectionPlaceholder({ tab, features, adminIdentityLabel }: { tab: CorePlaceholderTab; features: Feature[]; adminIdentityLabel: string }) {
   const sectionContent = {
     users: ["User Access", "Search accounts, review subscription levels, and apply individual feature overrides.", Users],
     plans: ["Plans & Limits", "Set plan pricing, feature bundles, and usage limits from one central ruleset.", BadgeDollarSign],
     categories: ["Categories & Navigation", "Choose whether website categories are visible, hidden, or presented as coming soon.", LayoutGrid],
+    catalog: ["Catalog Management", "Manage canonical platform reference catalogs used for pricing, matching, exports, and marketplace workflows.", DatabaseZap],
     security: ["Security", `Authenticator protection is active for ${adminIdentityLabel}. Sensitive actions require a fresh verified session.`, ShieldCheck],
     audit: ["Audit Log", "Review plan, permission, category, and security changes with their exact time and actor.", Eye],
   } satisfies Record<CorePlaceholderTab, [string, string, typeof Activity]>;
   const content = sectionContent[tab];
   const Icon = content[2] as typeof Activity;
-  const cards = tab === "plans" ? ["Free", "Collector", "Seller", "Store"] : tab === "categories" ? [...new Set(features.map((feature) => feature.category))] : tab === "security" ? ["Authenticator MFA", "Role protection", "Session assurance", "Recovery planning"] : tab === "users" ? [adminIdentityLabel] : ["No changes recorded"];
-  return <section className="rounded-[24px] border border-white/[0.07] bg-[#06121b] p-5 sm:p-6"><div className="flex items-start gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.055] text-cyan-200"><Icon className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Admin controls</p><h2 className="mt-1 text-xl font-semibold text-white">{content[0] as string}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{content[1] as string}</p></div></div><div className="mt-7 grid gap-3 sm:grid-cols-2">{cards.map((card) => <div key={card} className="flex min-h-20 items-center justify-between rounded-2xl border border-white/[0.06] bg-black/10 p-4"><div><p className="text-xs font-semibold capitalize text-slate-200">{card}</p><p className="mt-1 text-[10px] text-slate-600">{tab === "security" ? "Protected" : "Configured"}</p></div>{tab === "security" ? <Check className="h-4 w-4 text-emerald-300" /> : tab === "users" ? <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.05] px-2 py-1 text-[9px] font-bold uppercase text-amber-200">Owner</span> : <ChevronRight className="h-4 w-4 text-slate-700" />}</div>)}</div>{tab === "security" ? <div className="mt-5 flex gap-3 rounded-2xl border border-amber-300/[0.1] bg-amber-300/[0.025] p-4"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300/70" /><p className="text-[11px] leading-5 text-amber-100/50">Save the recovery codes shown by your authentication provider somewhere offline. Trading Docks never displays or stores your authenticator code.</p></div> : null}</section>;
+  const cards = tab === "plans"
+    ? ["Free", "Collector", "Seller", "Store"]
+    : tab === "categories"
+      ? [...new Set(features.map((feature) => feature.category))]
+      : tab === "catalog"
+        ? ["TCGplayer Catalog"]
+        : tab === "security"
+          ? ["Authenticator MFA", "Role protection", "Session assurance", "Recovery planning"]
+          : tab === "users"
+            ? [adminIdentityLabel]
+            : ["No changes recorded"];
+
+  return (
+    <section className="rounded-[24px] border border-white/[0.07] bg-[#06121b] p-5 sm:p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.055] text-cyan-200">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Admin controls</p>
+          <h2 className="mt-1 text-xl font-semibold text-white">{content[0] as string}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{content[1] as string}</p>
+        </div>
+      </div>
+
+      <div className="mt-7 grid gap-3 sm:grid-cols-2">
+        {cards.map((card) => tab === "catalog" ? (
+          <Link
+            key={card}
+            href="/dashboard/admin/catalog/tcgplayer"
+            className="flex min-h-20 items-center justify-between rounded-2xl border border-cyan-300/[0.12] bg-cyan-300/[0.035] p-4 transition hover:bg-cyan-300/[0.06]"
+          >
+            <div>
+              <p className="text-xs font-semibold text-cyan-100">{card}</p>
+              <p className="mt-1 text-[10px] text-cyan-100/50">Canonical Magic pricing and matching reference</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-cyan-300" />
+          </Link>
+        ) : (
+          <div key={card} className="flex min-h-20 items-center justify-between rounded-2xl border border-white/[0.06] bg-black/10 p-4">
+            <div>
+              <p className="text-xs font-semibold capitalize text-slate-200">{card}</p>
+              <p className="mt-1 text-[10px] text-slate-600">{tab === "security" ? "Protected" : "Configured"}</p>
+            </div>
+            {tab === "security" ? (
+              <Check className="h-4 w-4 text-emerald-300" />
+            ) : tab === "users" ? (
+              <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.05] px-2 py-1 text-[9px] font-bold uppercase text-amber-200">Owner</span>
+            ) : (
+              <ChevronRight className="h-4 w-4 text-slate-700" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {tab === "security" ? (
+        <div className="mt-5 flex gap-3 rounded-2xl border border-amber-300/[0.1] bg-amber-300/[0.025] p-4">
+          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300/70" />
+          <p className="text-[11px] leading-5 text-amber-100/50">Save the recovery codes shown by your authentication provider somewhere offline. Trading Docks never displays or stores your authenticator code.</p>
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 function Stat({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: typeof Activity }) {
