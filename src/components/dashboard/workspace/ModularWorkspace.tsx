@@ -7,20 +7,25 @@ import {
   Boxes,
   CalendarDays,
   Check,
-  ChevronDown,
   CircleDollarSign,
   GripVertical,
   LayoutDashboard,
   ListChecks,
   PackageCheck,
+  PackageOpen,
   PanelsTopLeft,
   Save,
   Settings2,
   ShoppingBag,
   ArrowUpRight,
+  ArrowRight,
+  BarChart3,
+  FileUp,
+  LockKeyhole,
   ScanLine,
   Sparkles,
   Store,
+  Target,
   TrendingUp,
   Users,
   X,
@@ -53,6 +58,120 @@ const DEFINITIONS = {
   "ai": { title: "AI Recommendations", icon: Sparkles, plan: "business" as Plan },
   "supplies": { title: "Supply Alerts", icon: PackageCheck, plan: "starter" as Plan },
 } as const;
+
+const WIDGET_COPY: Record<keyof typeof DEFINITIONS, {
+  eyebrow: string;
+  description: string;
+  emptyTitle: string;
+  emptyDetail: string;
+  actionLabel: string;
+  actionHref: string;
+  preview?: string;
+}> = {
+  "inventory-value": {
+    eyebrow: "Collection capital",
+    description: "Estimated value across tracked singles, sealed products, and assigned locations.",
+    emptyTitle: "Start with real inventory value",
+    emptyDetail: "Add or import cards and Trading Docks will turn ownership records into a useful portfolio baseline.",
+    actionLabel: "Add inventory",
+    actionHref: "/dashboard/inventory?create=card",
+  },
+  "inventory-count": {
+    eyebrow: "Owned records",
+    description: "Unique tracked printings and physical inventory rows across your workspace.",
+    emptyTitle: "No cards tracked yet",
+    emptyDetail: "Create your first inventory record with exact printing, condition, finish, and location.",
+    actionLabel: "Open collection",
+    actionHref: "/dashboard/inventory",
+  },
+  "collection-growth": {
+    eyebrow: "Growth curve",
+    description: "A portfolio-quality view of how your collection value changes over time.",
+    emptyTitle: "Growth appears after activity",
+    emptyDetail: "Imports, scans, purchases, and repricing events will create the timeline here.",
+    actionLabel: "Import cards",
+    actionHref: "/dashboard/inventory",
+  },
+  "business-calendar": {
+    eyebrow: "Operating rhythm",
+    description: "Tasks, card shows, buying sessions, repricing, and team events in one schedule.",
+    emptyTitle: "No operating events yet",
+    emptyDetail: "Plan card shows, buying sessions, and internal tasks so work does not live in memory.",
+    actionLabel: "Open calendar",
+    actionHref: "/dashboard/calendar",
+  },
+  "revenue": {
+    eyebrow: "Sales pulse",
+    description: "Marketplace and direct-order revenue once channels begin syncing.",
+    emptyTitle: "No sales recorded yet",
+    emptyDetail: "Connect a marketplace or import orders to turn your dashboard into a live revenue surface.",
+    actionLabel: "Connect channel",
+    actionHref: "/dashboard/marketplaces",
+    preview: "Channel revenue, fees, and realized profit consolidate here.",
+  },
+  "orders": {
+    eyebrow: "Fulfillment",
+    description: "Open orders, fulfillment work, and items that need attention.",
+    emptyTitle: "No orders yet",
+    emptyDetail: "Once a channel is connected, orders will appear with status, item matching, and profit context.",
+    actionLabel: "Open orders",
+    actionHref: "/dashboard/orders",
+    preview: "Ready for marketplace import and fulfillment operations.",
+  },
+  "marketplaces": {
+    eyebrow: "Channel health",
+    description: "Connected marketplace status, sync freshness, and unresolved channel issues.",
+    emptyTitle: "No marketplaces connected",
+    emptyDetail: "Connect eBay, Mana Pool, or imports to monitor channel confidence from one place.",
+    actionLabel: "Manage channels",
+    actionHref: "/dashboard/marketplaces",
+    preview: "Sync status, stale listings, and import health will surface here.",
+  },
+  "listing-queue": {
+    eyebrow: "Sell-through",
+    description: "Cards ready for listing, repricing, or operational review.",
+    emptyTitle: "No listings queued",
+    emptyDetail: "Inventory with pricing gaps or marketplace readiness will flow into this queue.",
+    actionLabel: "Review inventory",
+    actionHref: "/dashboard/inventory",
+    preview: "Compact queue for listing readiness and pricing gaps.",
+  },
+  "automation": {
+    eyebrow: "Automation",
+    description: "Repricing, imports, syncs, and background work that needs review.",
+    emptyTitle: "No automation activity",
+    emptyDetail: "Automations will appear after you connect channels or enable repeatable workflows.",
+    actionLabel: "Open automation",
+    actionHref: "/dashboard/automation",
+    preview: "Failed syncs, repricing jobs, and review queues show here.",
+  },
+  "team": {
+    eyebrow: "Team operations",
+    description: "Employee activity, assignment load, and operational accountability.",
+    emptyTitle: "No employees added",
+    emptyDetail: "Store workspaces can add employees and use roles for shared operations.",
+    actionLabel: "Manage employees",
+    actionHref: "/dashboard/employees",
+    preview: "Role activity and handoff visibility for larger workspaces.",
+  },
+  "ai": {
+    eyebrow: "Intelligence",
+    description: "Recommendations based on inventory, marketplace, and buying-session signals.",
+    emptyTitle: "Recommendations need signal",
+    emptyDetail: "Add inventory and channel activity to unlock suggestions that are specific to your operation.",
+    actionLabel: "Open recommendations",
+    actionHref: "/dashboard/buying-recommendations",
+    preview: "Opportunity detection and next actions without manual digging.",
+  },
+  "supplies": {
+    eyebrow: "Readiness",
+    description: "Shipping, sleeves, labels, supplies, and operational materials.",
+    emptyTitle: "No supplies tracked",
+    emptyDetail: "Track label rolls, shipping materials, sleeves, and store supplies before they become blockers.",
+    actionLabel: "Track supplies",
+    actionHref: "/dashboard/supplies",
+  },
+};
 
 const DEFAULT_LAYOUTS: Record<LayoutId, Widget[]> = {
   home: [
@@ -196,61 +315,41 @@ export function ModularWorkspace({
 
   return (
     <WorkspaceFrame>
-      <section className="mb-3.5 sm:hidden">
-        <div className="relative overflow-hidden rounded-[22px] border border-cyan-300/[0.14] bg-[linear-gradient(145deg,rgba(9,31,44,.98),rgba(4,15,24,.98))] p-4 shadow-[0_20px_60px_rgba(0,0,0,.34),0_0_44px_rgba(34,211,238,.035)]">
-          <div className="pointer-events-none absolute -right-16 -top-20 h-44 w-44 rounded-full bg-cyan-300/[0.09] blur-[52px]" />
-          <div className="relative flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300/80">Command center</p>
-              <h1 className="mt-1.5 text-[25px] font-semibold leading-[1.08] tracking-[-0.045em] text-white">Your business, in motion.</h1>
-              <p className="mt-2 text-xs leading-5 text-slate-400">The essentials are one tap away.</p>
-            </div>
-            <span className="mt-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2.5 py-1.5 text-[9px] font-semibold text-emerald-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,.8)]" /> Live
-            </span>
-          </div>
-          <div className="relative mt-3.5 grid grid-cols-2 gap-2.5">
-            <Link href="/dashboard/inventory?create=card" className="flex min-h-[50px] items-center justify-between rounded-[14px] bg-gradient-to-b from-cyan-300 to-cyan-500 px-3.5 text-xs font-bold text-[#021018] shadow-[0_12px_28px_rgba(6,182,212,.18)]">
-              <span className="flex items-center gap-2"><ScanLine className="h-4 w-4" /> Add inventory</span>
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-            <Link href="/dashboard/orders" className="flex min-h-[50px] items-center justify-between rounded-[14px] border border-white/[0.08] bg-white/[0.035] px-3.5 text-xs font-semibold text-white">
-              <span className="flex items-center gap-2"><PackageCheck className="h-4 w-4 text-cyan-300" /> Orders</span>
-              <ArrowUpRight className="h-3.5 w-3.5 text-slate-500" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <header className={`${styles.glassPanel} rounded-[20px] p-3.5 sm:rounded-[28px] sm:p-6`}>
-        <div className="flex flex-col gap-4 sm:gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.13] bg-cyan-400/[0.04] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.17em] text-cyan-200">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
-              {ACCOUNT_LABEL[accountType] ?? "Personal"} workspace
+      <header className="relative overflow-hidden rounded-[24px] border border-white/[0.075] bg-[linear-gradient(145deg,rgba(7,20,31,.94),rgba(3,10,17,.98))] p-4 shadow-[0_24px_90px_rgba(0,0,0,.28)] sm:rounded-[30px] sm:p-5">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.14] bg-cyan-400/[0.045] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-200">
+                <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+                Command center
+              </span>
+              <span className="rounded-full border border-white/[0.075] bg-white/[0.025] px-3 py-1.5 text-[10px] font-semibold capitalize text-slate-400">
+                {ACCOUNT_LABEL[accountType] ?? "Trading Docks"} plan
+              </span>
             </div>
 
-            <h1 className="mt-3 hidden text-[2rem] font-semibold leading-[1.08] tracking-[-0.045em] text-white sm:mt-4 sm:block sm:text-4xl">
-              Your Trading Docks workspace.
-            </h1>
-
-            <p className="mt-2 hidden max-w-3xl text-sm leading-6 text-slate-500 sm:mt-3 sm:block sm:leading-7">
-              Personalized for your {ACCOUNT_LABEL[accountType]?.toLowerCase() ?? "account"} setup
-              {inventoryModules.length > 0
-                ? ` with ${inventoryModules.length} inventory modules enabled.`
-                : "."}
-            </p>
+            <div className="mt-3 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:gap-3">
+              <h1 className="text-[1.65rem] font-semibold leading-[1.03] tracking-[-0.05em] text-white sm:text-[2.1rem]">
+                Trading Docks HQ
+              </h1>
+              <p className="pb-1 text-xs font-medium text-slate-500 sm:text-sm">
+                {inventoryModules.length > 0
+                  ? `${inventoryModules.length} inventory modules enabled`
+                  : "Ready for your first inventory signal"}
+              </p>
+            </div>
           </div>
 
-          <div className="hidden grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <button
               type="button"
               onClick={() => setEditing((value) => !value)}
               className={[
-                "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border px-2 text-[11px] font-semibold transition sm:gap-2 sm:px-4 sm:text-xs",
+                "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border px-2 text-[11px] font-semibold transition sm:gap-2 sm:px-4 sm:text-xs",
                 editing
                   ? "border-cyan-300/[0.18] bg-cyan-400/[0.08] text-cyan-100"
-                  : "border-white/[0.075] bg-white/[0.025] text-slate-400",
+                  : "border-white/[0.075] bg-white/[0.025] text-slate-400 hover:border-cyan-300/[0.14] hover:text-white",
               ].join(" ")}
             >
               <PanelsTopLeft className="h-4 w-4" />
@@ -260,7 +359,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-white/[0.075] bg-white/[0.025] px-2 text-[11px] font-semibold text-slate-400 sm:gap-2 sm:px-4 sm:text-xs"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-white/[0.075] bg-white/[0.025] px-2 text-[11px] font-semibold text-slate-400 transition hover:border-cyan-300/[0.14] hover:text-white sm:gap-2 sm:px-4 sm:text-xs"
             >
               <Settings2 className="h-4 w-4" />
               Customize
@@ -269,7 +368,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={save}
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-2 text-[11px] font-semibold text-[#001018] sm:gap-2 sm:px-4 sm:text-xs"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-2 text-[11px] font-bold text-[#001018] shadow-[0_14px_34px_rgba(8,145,178,.18)] transition hover:from-cyan-200 hover:to-sky-400 sm:gap-2 sm:px-4 sm:text-xs"
             >
               {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
               {saved ? "Saved" : "Save layout"}
@@ -277,7 +376,7 @@ export function ModularWorkspace({
           </div>
         </div>
 
-        <div className="mt-3.5 flex flex-col gap-2.5 border-t border-white/[0.06] pt-3.5 sm:mt-6 sm:gap-3 sm:pt-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative mt-4 flex flex-col gap-3 border-t border-white/[0.06] pt-4 lg:flex-row lg:items-center lg:justify-between">
           <select
             value={layoutId}
             onChange={(event) => setLayoutId(event.target.value as LayoutId)}
@@ -299,10 +398,10 @@ export function ModularWorkspace({
                 type="button"
                 onClick={() => setLayoutId(id)}
                 className={[
-                  "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
+                  "inline-flex h-9 items-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition",
                   layoutId === id
                     ? "border-cyan-300/[0.17] bg-cyan-400/[0.07] text-white"
-                    : "border-transparent text-slate-600 hover:bg-white/[0.02] hover:text-slate-300",
+                    : "border-transparent text-slate-500 hover:bg-white/[0.025] hover:text-slate-300",
                 ].join(" ")}
               >
                 {id === "home" ? <LayoutDashboard className="h-3.5 w-3.5" /> : null}
@@ -312,7 +411,7 @@ export function ModularWorkspace({
           </div>
 
           <div className="flex items-center gap-3 px-0.5 text-[10px] font-medium text-slate-500">
-            <span>{widgets.length} modules</span>
+            <span>{widgets.length} visible modules</span>
             <span className="capitalize">
               {accountType === "store" || accountType === "business" ? "Store plan" : `${ACCOUNT_LABEL[accountType] ?? "Free"} plan`}
             </span>
@@ -320,7 +419,16 @@ export function ModularWorkspace({
         </div>
       </header>
 
-      <div className="mt-3.5 grid grid-cols-2 gap-2.5 sm:mt-5 sm:grid-cols-1 sm:gap-4 md:grid-cols-12">
+      <CommandCenterOverview accountType={accountType} plan={plan} isPersonal={isPersonal} />
+
+      {editing ? (
+        <div className="mt-4 rounded-[20px] border border-cyan-300/[0.13] bg-cyan-400/[0.035] px-4 py-3 text-xs leading-5 text-cyan-100/75 shadow-[0_18px_60px_rgba(8,145,178,.08)]">
+          <span className="font-semibold text-cyan-100">Layout builder active.</span>{" "}
+          Drag modules by the handle, resize them, or remove modules from this view. Save when the command center feels right.
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:grid-cols-1 sm:gap-4 md:grid-cols-12 xl:gap-5">
         {widgets.map((widget) => {
           const definition = DEFINITIONS[widget.id as keyof typeof DEFINITIONS];
           if (!definition) return null;
@@ -373,6 +481,132 @@ export function ModularWorkspace({
   );
 }
 
+function CommandCenterOverview({
+  accountType,
+  plan,
+  isPersonal,
+}: {
+  accountType: string;
+  plan: Plan;
+  isPersonal: boolean;
+}) {
+  const planLabel = ACCOUNT_LABEL[accountType] ?? (plan === "business" ? "Store" : "Free");
+  const primaryAction = isPersonal
+    ? { label: "Add first card", href: "/dashboard/inventory?create=card", icon: ScanLine }
+    : { label: "Connect marketplace", href: "/dashboard/marketplaces", icon: Store };
+  const PrimaryIcon = primaryAction.icon;
+  const nextActions = isPersonal
+    ? [
+        { label: "Import cards", href: "/dashboard/inventory", detail: "Build the ownership baseline", icon: FileUp },
+        { label: "Create a deck", href: "/dashboard/deck-vault", detail: "Organize play-ready cards", icon: PackageOpen },
+        { label: "Track portfolio", href: "/dashboard/collector-portfolio", detail: "Share binders and wishlists", icon: Target },
+      ]
+    : [
+        { label: "Review orders", href: "/dashboard/orders", detail: "Keep fulfillment moving", icon: ShoppingBag },
+        { label: "Open Label Studio", href: "/dashboard/label-studio", detail: "Print SKU and QR labels", icon: PackageCheck },
+        { label: "Check analytics", href: "/dashboard/analytics", detail: "Find pricing gaps", icon: BarChart3 },
+      ];
+
+  return (
+    <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)] xl:gap-5">
+      <div className="relative overflow-hidden rounded-[28px] border border-cyan-300/[0.12] bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,.12),transparent_34%),linear-gradient(145deg,rgba(8,27,40,.94),rgba(3,12,20,.98))] p-5 shadow-[0_28px_90px_rgba(0,0,0,.32)] sm:p-6">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-cyan-300/[0.08] blur-[70px]" />
+        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-end">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200/80">
+              State of workspace
+            </p>
+            <h2 className="mt-3 max-w-2xl text-[2rem] font-semibold leading-[1.02] tracking-[-0.055em] text-white sm:text-[2.7rem]">
+              Your operating picture starts with owned inventory.
+            </h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
+              Trading Docks turns exact printings, storage, scans, orders, and market signals into one command surface for collectors and sellers.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              <Link
+                href={primaryAction.href}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-[#001018] shadow-[0_16px_40px_rgba(34,211,238,.2)] transition hover:bg-cyan-200"
+              >
+                <PrimaryIcon className="h-4 w-4" />
+                {primaryAction.label}
+              </Link>
+              <Link
+                href="/dashboard/plans"
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/[0.18] hover:text-white"
+              >
+                Compare workspace power
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2">
+            <CommandMetric label="Tracked value" value="$0" detail="No priced inventory yet" />
+            <CommandMetric label="Cards tracked" value="0" detail={`${planLabel} workspace`} />
+            <CommandMetric label="Open actions" value="3" detail="Suggested setup steps" />
+            <CommandMetric label="Signals" value="0" detail="Awaiting activity" />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-[28px] border border-white/[0.075] bg-white/[0.025] p-4 shadow-[0_20px_70px_rgba(0,0,0,.24)] sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Next best actions</p>
+            <h2 className="mt-1 text-base font-semibold tracking-[-0.025em] text-white">Build the signal chain</h2>
+          </div>
+          <span className="rounded-full border border-emerald-300/[0.14] bg-emerald-300/[0.055] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-200">
+            Live
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-2.5">
+          {nextActions.map((action, index) => {
+            const Icon = action.icon;
+            return (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="group flex min-h-16 items-center gap-3 rounded-2xl border border-white/[0.055] bg-black/[0.12] px-3.5 py-3 transition hover:border-cyan-300/[0.16] hover:bg-cyan-400/[0.025]"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.045] text-cyan-300">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                    <span className="text-[10px] text-slate-600">0{index + 1}</span>
+                    {action.label}
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-500">{action.detail}</span>
+                </span>
+                <ArrowUpRight className="h-4 w-4 text-slate-600 transition group-hover:text-cyan-300" />
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CommandMetric({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/[0.07] bg-black/[0.16] p-3.5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.045em] text-white">{value}</p>
+      <p className="mt-1 text-[10px] leading-4 text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
 function DashboardWidget({
   widget,
   definition,
@@ -391,6 +625,7 @@ function DashboardWidget({
   onResize: (size: Size) => void;
 }) {
   const Icon = definition.icon;
+  const copy = WIDGET_COPY[widget.id as keyof typeof DEFINITIONS] ?? WIDGET_COPY["inventory-value"];
   const span =
     widget.size === "small"
       ? "col-span-1 md:col-span-3"
@@ -410,37 +645,50 @@ function DashboardWidget({
     <article
       draggable={editing && !locked}
       onDragStart={onDragStart}
-      className={`${styles.glassPanel} ${span} ${styles.metricCard} ${mobileDensity} rounded-[20px] sm:min-h-[180px] sm:rounded-[24px] sm:p-5`}
+      className={[
+        styles.glassPanel,
+        styles.metricCard,
+        span,
+        mobileDensity,
+        "group rounded-[22px] sm:min-h-[180px] sm:rounded-[26px] sm:p-5",
+        locked ? "bg-amber-300/[0.018]" : "",
+        editing ? "ring-1 ring-cyan-300/[0.14]" : "",
+      ].join(" ")}
     >
-      <header className="relative flex items-center gap-3 sm:items-start">
+      <header className="relative flex items-start gap-3">
         {editing ? (
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-700"
+            aria-label={`Drag ${definition.title}`}
+            className="flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.045] text-cyan-200"
           >
             <GripVertical className="h-4 w-4" />
           </button>
         ) : null}
 
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300 sm:h-10 sm:w-10">
-          <Icon className="h-4.5 w-4.5" />
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300 shadow-[0_12px_30px_rgba(34,211,238,.08)]">
+          <Icon className="h-4 w-4" />
         </span>
 
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[13px] font-semibold tracking-[-0.015em] text-white sm:text-sm">
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
+            {copy.eyebrow}
+          </p>
+          <h2 className="mt-1 truncate text-[14px] font-semibold tracking-[-0.018em] text-white sm:text-base">
             {definition.title}
           </h2>
-          <p className="mt-0.5 text-[9px] font-medium capitalize text-slate-500 sm:mt-1 sm:text-slate-600">
-            {definition.plan} module
+          <p className="mt-1 text-[11px] leading-4 text-slate-500">
+            {copy.description}
           </p>
         </div>
 
         {editing ? (
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1.5">
             <select
               value={widget.size}
               onChange={(event) => onResize(event.target.value as Size)}
-              className="h-8 rounded-lg border border-white/[0.06] bg-[#07141e] px-2 text-[9px] capitalize text-slate-500"
+              aria-label={`Resize ${definition.title}`}
+              className="h-9 rounded-xl border border-white/[0.075] bg-[#07141e] px-2 text-[10px] capitalize text-slate-300 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35"
             >
               <option value="small">Small</option>
               <option value="medium">Medium</option>
@@ -449,7 +697,8 @@ function DashboardWidget({
             <button
               type="button"
               onClick={onRemove}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-600"
+              aria-label={`Remove ${definition.title}`}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.075] bg-white/[0.025] text-slate-500 transition hover:border-red-300/[0.18] hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/35"
             >
               <X className="h-4 w-4" />
             </button>
@@ -459,51 +708,99 @@ function DashboardWidget({
 
       <div className="relative mt-3.5 sm:mt-5">
         {locked ? (
-          <div className="rounded-xl border border-dashed border-amber-300/[0.12] bg-amber-300/[0.02] px-4 py-8 text-center">
-            <p className="text-xs font-semibold text-amber-200/70">
-              Available on {definition.plan}
-            </p>
-          </div>
+          <LockedModule definition={definition} copy={copy} />
         ) : (
-          <WidgetContent id={widget.id} />
+          <WidgetContent id={widget.id} copy={copy} />
         )}
       </div>
     </article>
   );
 }
 
-function WidgetContent({ id }: { id: string }) {
-  if (id === "inventory-value") return <Metric value="$0" detail="No inventory added yet" />;
-  if (id === "inventory-count") return <Metric value="0" detail="No items tracked yet" />;
-  if (id === "revenue") return <Metric value="$0" detail="No sales recorded yet" />;
-  if (id === "orders") return <List rows={[]} emptyLabel="No orders yet" />;
-  if (id === "marketplaces") return <List rows={[]} emptyLabel="No marketplaces connected" />;
-  if (id === "listing-queue") return <List rows={[]} emptyLabel="No listings queued" />;
-  if (id === "automation") return <List rows={[]} emptyLabel="No automation activity" />;
-  if (id === "team") return <List rows={[]} emptyLabel="No employees added" />;
-  if (id === "supplies") return <List rows={[]} emptyLabel="No supplies tracked" />;
-  if (id === "business-calendar") return <MiniCalendar />;
-  if (id === "collection-growth") return <CollectionGrowth />;
-  if (id === "ai") return <AIRecommendations />;
-  return <Metric value="0" detail="No account activity yet" />;
-}
-
-function Metric({ value, detail }: { value: string; detail: string }) {
+function LockedModule({
+  definition,
+  copy,
+}: {
+  definition: (typeof DEFINITIONS)[keyof typeof DEFINITIONS];
+  copy: (typeof WIDGET_COPY)[keyof typeof WIDGET_COPY];
+}) {
   return (
-    <div>
-      <p className="text-[28px] font-semibold tracking-[-0.045em] text-white sm:text-3xl">{value}</p>
-      <p className="mt-2.5 text-[10px] leading-4 text-slate-500 sm:mt-3 sm:text-slate-600">{detail}</p>
+    <div className="rounded-2xl border border-amber-300/[0.1] bg-[linear-gradient(145deg,rgba(251,191,36,.045),rgba(0,0,0,.08))] p-4">
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-300/[0.12] bg-amber-300/[0.055] text-amber-200">
+          <LockKeyhole className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-amber-100">
+            Unlock {definition.title}
+          </p>
+          <p className="mt-1.5 text-[11px] leading-5 text-amber-100/55">
+            {copy.preview ?? copy.description}
+          </p>
+        </div>
+      </div>
+      <Link
+        href="/dashboard/plans"
+        className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl bg-amber-300 px-3.5 text-[11px] font-bold text-[#1b1300] transition hover:bg-amber-200"
+      >
+        View {definition.plan} access
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
     </div>
   );
 }
 
-function List({ rows, emptyLabel = "Nothing here yet" }: { rows: string[]; emptyLabel?: string }) {
-  if (rows.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-white/[0.08] bg-black/[0.08] px-3.5 py-5 text-center text-[10px] leading-4 text-slate-500 sm:py-6 sm:text-slate-600">
-        {emptyLabel}
+function WidgetContent({
+  id,
+  copy,
+}: {
+  id: string;
+  copy: (typeof WIDGET_COPY)[keyof typeof WIDGET_COPY];
+}) {
+  if (id === "inventory-value") return <Metric value="$0" detail="No priced inventory yet" copy={copy} />;
+  if (id === "inventory-count") return <Metric value="0" detail="No exact printings tracked" copy={copy} />;
+  if (id === "revenue") return <Metric value="$0" detail="No synced sales yet" copy={copy} />;
+  if (id === "orders") return <List rows={[]} copy={copy} />;
+  if (id === "marketplaces") return <List rows={[]} copy={copy} />;
+  if (id === "listing-queue") return <List rows={[]} copy={copy} />;
+  if (id === "automation") return <List rows={[]} copy={copy} />;
+  if (id === "team") return <List rows={[]} copy={copy} />;
+  if (id === "supplies") return <List rows={[]} copy={copy} />;
+  if (id === "business-calendar") return <MiniCalendar />;
+  if (id === "collection-growth") return <CollectionGrowth />;
+  if (id === "ai") return <AIRecommendations />;
+  return <Metric value="0" detail="No account activity yet" copy={copy} />;
+}
+
+function Metric({
+  value,
+  detail,
+  copy,
+}: {
+  value: string;
+  detail: string;
+  copy: (typeof WIDGET_COPY)[keyof typeof WIDGET_COPY];
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-[2rem] font-semibold tracking-[-0.055em] text-white sm:text-[2.25rem]">{value}</p>
+        <p className="mt-2 text-xs leading-5 text-slate-500">{detail}</p>
       </div>
-    );
+      <PremiumEmptyState copy={copy} compact />
+    </div>
+  );
+}
+
+function List({
+  rows,
+  copy,
+}: {
+  rows: string[];
+  copy: (typeof WIDGET_COPY)[keyof typeof WIDGET_COPY];
+}) {
+  if (rows.length === 0) {
+    return <PremiumEmptyState copy={copy} />;
   }
   return (
     <div className="space-y-2.5">
@@ -516,6 +813,38 @@ function List({ rows, emptyLabel = "Nothing here yet" }: { rows: string[]; empty
           {row}
         </div>
       ))}
+    </div>
+  );
+}
+
+function PremiumEmptyState({
+  copy,
+  compact = false,
+}: {
+  copy: (typeof WIDGET_COPY)[keyof typeof WIDGET_COPY];
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={[
+        "rounded-2xl border border-white/[0.065] bg-black/[0.12] text-left",
+        compact ? "p-3.5" : "p-4 sm:p-5",
+      ].join(" ")}
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.55)]" />
+        <div>
+          <p className="text-xs font-semibold text-slate-200">{copy.emptyTitle}</p>
+          <p className="mt-1.5 text-[11px] leading-5 text-slate-500">{copy.emptyDetail}</p>
+          <Link
+            href={copy.actionHref}
+            className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-cyan-300 transition hover:text-cyan-200"
+          >
+            {copy.actionLabel}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
@@ -953,7 +1282,7 @@ function MiniCalendar() {
 }
 
 function AIRecommendations() {
-  return <List rows={[]} emptyLabel="Recommendations will appear as account activity is added" />;
+  return <PremiumEmptyState copy={WIDGET_COPY.ai} />;
 }
 
 function CustomizeDrawer({
@@ -980,27 +1309,39 @@ function CustomizeDrawer({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
 
-      <aside className="absolute inset-y-0 right-0 w-full max-w-[420px] border-l border-white/[0.075] bg-[#030c13]/98 p-5 shadow-[-28px_0_90px_rgba(0,0,0,0.45)]">
-        <div className="flex items-center justify-between">
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[440px] flex-col border-l border-white/[0.075] bg-[#030c13]/98 shadow-[-28px_0_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-5">
           <div>
-            <p className="text-sm font-semibold text-white">Customize Dashboard</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Dashboard builder</p>
+            <p className="mt-1 text-base font-semibold tracking-[-0.025em] text-white">Customize your command center</p>
             <p className="mt-1 text-[10px] text-slate-600">
-              Add modules for your {plan} workspace.
+              Add modules for your {plan} workspace, then drag the active view into shape.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500"
+            aria-label="Close customize dashboard"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="mt-6 space-y-2 overflow-y-auto">
+        <div className="overflow-y-auto p-5">
+          <div className="mb-5 rounded-2xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-4">
+            <p className="text-xs font-semibold text-cyan-100">Active modules: {widgets.length}</p>
+            <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
+              Locked previews stay visible only as compact upgrade rails. Removing a module changes layout only, not access.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
           {Object.entries(DEFINITIONS).map(([id, definition]) => {
             const Icon = definition.icon;
             const enabled = active.has(id);
+            const copy = WIDGET_COPY[id as keyof typeof DEFINITIONS];
 
             return (
               <button
@@ -1008,10 +1349,10 @@ function CustomizeDrawer({
                 type="button"
                 onClick={() => onToggle(id)}
                 className={[
-                  "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left",
+                  "group flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35",
                   enabled
-                    ? "border-cyan-300/[0.16] bg-cyan-400/[0.045]"
-                    : "border-white/[0.055] bg-white/[0.018]",
+                    ? "border-cyan-300/[0.18] bg-cyan-400/[0.055]"
+                    : "border-white/[0.055] bg-white/[0.018] hover:border-cyan-300/[0.12] hover:bg-white/[0.028]",
                 ].join(" ")}
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.04] text-cyan-300">
@@ -1022,40 +1363,25 @@ function CustomizeDrawer({
                   <span className="block text-[11px] font-semibold text-slate-200">
                     {definition.title}
                   </span>
-                  <span className="mt-1 block text-[8px] capitalize text-slate-600">
-                    {definition.plan} module
+                  <span className="mt-1 block text-[9px] leading-4 text-slate-600">
+                    {copy.eyebrow} - {definition.plan} access
                   </span>
                 </span>
 
-                {enabled ? <Check className="h-4 w-4 text-cyan-300" /> : null}
+                <span className={[
+                  "flex h-7 w-7 items-center justify-center rounded-lg border",
+                  enabled
+                    ? "border-cyan-300/[0.18] bg-cyan-400/[0.08] text-cyan-300"
+                    : "border-white/[0.06] bg-white/[0.02] text-slate-700 group-hover:text-slate-400",
+                ].join(" ")}>
+                  {enabled ? <Check className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
+                </span>
               </button>
             );
           })}
+          </div>
         </div>
       </aside>
     </div>
-  );
-}
-
-function PlanSelector({
-  plan,
-  onChange,
-}: {
-  plan: Plan;
-  onChange: (plan: Plan) => void;
-}) {
-  return (
-    <label className="relative">
-      <select
-        value={plan}
-        onChange={(event) => onChange(event.target.value as Plan)}
-        className="h-11 appearance-none rounded-xl border border-white/[0.075] bg-white/[0.025] pl-4 pr-9 text-xs font-semibold capitalize text-slate-400"
-      >
-        <option value="starter">Starter plan</option>
-        <option value="pro">Pro plan</option>
-        <option value="business">Business plan</option>
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-700" />
-    </label>
   );
 }

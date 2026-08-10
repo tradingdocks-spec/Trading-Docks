@@ -71,6 +71,23 @@ test("dashboard scaffolds use production empty-state copy", () => {
   }
 });
 
+test("modular dashboard presents a premium command-center hierarchy", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/workspace/ModularWorkspace.tsx"),
+    "utf8",
+  );
+
+  assert.match(source, /Trading Docks HQ/);
+  assert.match(source, /State of workspace/);
+  assert.match(source, /Next best actions/);
+  assert.match(source, /Dashboard builder/);
+  assert.match(source, /Start with real inventory value/);
+  assert.match(source, /Unlock \{definition\.title\}/);
+  assert.doesNotMatch(source, /Your Trading Docks workspace/);
+  assert.doesNotMatch(source, /starter module|pro module|business module/i);
+  assert.doesNotMatch(source, /Available on \{definition\.plan\}/);
+});
+
 function listSourceFiles(target: string): string[] {
   const stat = statSync(target);
   if (stat.isFile()) return target.endsWith(".tsx") || target.endsWith(".ts") ? [target] : [];
