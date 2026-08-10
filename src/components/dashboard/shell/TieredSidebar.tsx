@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -27,6 +28,16 @@ import {
   clientAccessFromTier,
   type ClientSafePlatformAccess,
 } from "@/lib/platform/client-access";
+import {
+  activeSidebarSectionId,
+  defaultSidebarOpenSections,
+  normalizeSidebarOpenSections,
+  openSidebarSectionsForPath,
+  parseSidebarOpenSections,
+  serializeSidebarOpenSections,
+  SIDEBAR_SECTION_STORAGE_KEY,
+  toggleSidebarSection,
+} from "@/lib/navigation/sidebar-sections";
 import { requiredMembershipLabelForRoute } from "@/lib/platform/route-access";
 import { LABEL_STUDIO_ROUTE } from "@/lib/label-studio/routes";
 
@@ -42,6 +53,13 @@ type SidebarProps = {
   onToggle: () => void;
 };
 
+function openSectionIdsForCurrentGroups(
+  groups: ReturnType<typeof getAccountAwareNavigationGroups>,
+  openSectionIds: readonly string[],
+) {
+  return normalizeSidebarOpenSections(groups, openSectionIds);
+}
+
 export function TieredSidebar({
   accountType,
   userName,
@@ -54,10 +72,66 @@ export function TieredSidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const plan = normalizeAccountTier(accountType);
-  const accessForNavigation = clientAccess ?? clientAccessFromTier(plan, {
-    platformRole: isOwner ? "admin" : "user",
-  });
-  const groups = getAccountAwareNavigationGroups(plan, isOwner, accessForNavigation);
+  const fallbackAccess = useMemo(
+    () => clientAccessFromTier(plan, {
+      platformRole: isOwner ? "admin" : "user",
+    }),
+    [isOwner, plan],
+  );
+  const accessForNavigation = clientAccess ?? fallbackAccess;
+  const groups = useMemo(
+    () => getAccountAwareNavigationGroups(plan, isOwner, accessForNavigation),
+    [accessForNavigation, isOwner, plan],
+  );
+  const groupSignature = groups.map((group) => group.id).join("|");
+  const activeSectionId = useMemo(
+    () => activeSidebarSectionId(groups, pathname),
+    [groups, pathname],
+  );
+  const [openSectionIds, setOpenSectionIds] = useState<string[]>(() =>
+    defaultSidebarOpenSections(groups, pathname),
+  );
+  const previousPathnameRef = useRef(pathname);
+  const [sidebarPreferenceLoaded, setSidebarPreferenceLoaded] = useState(false);
+
+  useEffect(() => {
+    previousPathnameRef.current = pathname;
+    if (typeof window === "undefined") return;
+    const savedSectionPreference = window.localStorage.getItem(SIDEBAR_SECTION_STORAGE_KEY);
+    setOpenSectionIds(openSidebarSectionsForPath(
+      groups,
+      savedSectionPreference === null
+        ? defaultSidebarOpenSections(groups, pathname)
+        : parseSidebarOpenSections(savedSectionPreference, groups),
+      pathname,
+    ));
+    setSidebarPreferenceLoaded(true);
+  }, [groupSignature, groups, pathname]);
+
+  useEffect(() => {
+    const previousPathname = previousPathnameRef.current;
+    previousPathnameRef.current = pathname;
+    setOpenSectionIds((current) => {
+      const normalized = openSectionIdsForCurrentGroups(groups, current);
+      return previousPathname === pathname
+        ? normalized
+        : openSidebarSectionsForPath(groups, normalized, pathname);
+    });
+  }, [groupSignature, groups, pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !sidebarPreferenceLoaded) return;
+    window.localStorage.setItem(
+      SIDEBAR_SECTION_STORAGE_KEY,
+      serializeSidebarOpenSections(openSectionIds),
+    );
+  }, [openSectionIds, sidebarPreferenceLoaded]);
+
+  function toggleSection(sectionId: string) {
+    setOpenSectionIds((current) =>
+      toggleSidebarSection(groups, current, sectionId),
+    );
+  }
 
   return (
     <>
@@ -95,9 +169,12 @@ export function TieredSidebar({
                 label={group.label}
                 items={group.items}
                 collapsed={collapsed}
+                open={collapsed || openSectionIds.includes(group.id)}
+                activeSection={activeSectionId === group.id}
                 pathname={pathname}
                 clientAccess={accessForNavigation}
                 onNavigate={onCloseMobile}
+                onToggle={() => toggleSection(group.id)}
               />
             </div>
           ))}
@@ -175,33 +252,89 @@ function NavigationGroup({
   label,
   items,
   collapsed,
+  open,
+  activeSection,
   pathname,
   clientAccess,
   onNavigate,
+  onToggle,
 }: {
   label?: string;
   items: ReadonlyArray<NavigationItem>;
   collapsed: boolean;
+  open: boolean;
+  activeSection: boolean;
   pathname: string;
   clientAccess: ClientSafePlatformAccess;
   onNavigate: () => void;
+  onToggle: () => void;
 }) {
   return (
     <div>
-      {label && !collapsed ? <SectionLabel>{label}</SectionLabel> : null}
-      <div className="space-y-0.5">
-        {items.map((item) => (
-          <NavigationRow
-            key={`${item.href}-${item.label}`}
-            item={item}
-            collapsed={collapsed}
-            pathname={pathname}
-            clientAccess={clientAccess}
-            onNavigate={onNavigate}
-          />
-        ))}
+      {label && !collapsed ? (
+        <SectionHeader
+          label={label}
+          open={open}
+          active={activeSection}
+          onToggle={onToggle}
+        />
+      ) : null}
+      <div
+        className={[
+          "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-80",
+        ].join(" ")}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="space-y-0.5">
+            {items.map((item) => (
+              <NavigationRow
+                key={`${item.href}-${item.label}`}
+                item={item}
+                collapsed={collapsed}
+                pathname={pathname}
+                clientAccess={clientAccess}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+function SectionHeader({
+  label,
+  open,
+  active,
+  onToggle,
+}: {
+  label: string;
+  open: boolean;
+  active: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className={[
+        "mb-1.5 flex h-8 w-full items-center justify-between rounded-lg px-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] outline-none transition focus-visible:ring-2 focus-visible:ring-blue-300/45",
+        active
+          ? "bg-blue-400/[0.055] text-cyan-100"
+          : "text-slate-600 hover:bg-white/[0.035] hover:text-slate-300",
+      ].join(" ")}
+    >
+      <span className="truncate">{label}</span>
+      <ChevronDown
+        className={[
+          "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
+          open ? "rotate-0" : "-rotate-90",
+        ].join(" ")}
+      />
+    </button>
   );
 }
 
@@ -426,16 +559,8 @@ function FooterAction({
   );
 }
 
-function SectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.17em] text-slate-700">
-      {children}
-    </p>
-  );
-}
-
 function Divider() {
   return (
-    <div className="mx-auto my-3 h-px w-8 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
+    <div className="mx-auto my-2 h-px w-8 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
   );
 }
