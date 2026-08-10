@@ -34,6 +34,15 @@ import {
 import styles from "../styles.module.css";
 import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import { saveDashboardLayouts } from "@/app/actions/workspace";
+import {
+  availableDashboardLayouts,
+  canUseDashboardWidget,
+} from "@/lib/dashboard-entitlements";
+import type { AccountTier } from "@/lib/plan-entitlements";
+import {
+  hasTrustedFullPlatformAccess,
+  type ClientSafePlatformAccess,
+} from "../../../../mobile/services/platform-access.ts";
 
 type Plan = "starter" | "pro" | "business";
 type Size = "small" | "medium" | "large";
@@ -231,12 +240,6 @@ const COLLECTOR_LAYOUTS: Record<LayoutId, Widget[]> = {
   automation: [],
 };
 
-const PLAN_RANK: Record<Plan, number> = {
-  starter: 0,
-  pro: 1,
-  business: 2,
-};
-
 const LAYOUTS: Array<[LayoutId, string]> = [
   ["home", "Home"],
   ["business", "Business"],
@@ -262,18 +265,57 @@ const ACCOUNT_LABEL: Record<string, string> = {
   "large-seller": "Large-volume Seller",
 };
 
+function normalizeDashboardAccountTier(accountType: string): AccountTier {
+  return accountType === "collector" ||
+    accountType === "seller" ||
+    accountType === "store"
+    ? accountType
+    : "free";
+}
+
+function dashboardAccessDisplay(
+  accountType: string,
+  access?: ClientSafePlatformAccess,
+) {
+  if (access && hasTrustedFullPlatformAccess(access)) {
+    const title = access.platformRole === "owner" ? "Platform Owner" : "Platform Admin";
+    return {
+      badge: title,
+      summary: "Full platform access",
+      metricLabel: title,
+    };
+  }
+
+  const label =
+    accountType === "store" || accountType === "business"
+      ? "Store"
+      : ACCOUNT_LABEL[accountType] ?? "Free";
+
+  return {
+    badge: `${label} plan`,
+    summary: `${label} plan`,
+    metricLabel: `${label} workspace`,
+  };
+}
+
 export function ModularWorkspace({
   accountType,
+  access,
   inventoryModules,
   initialLayouts,
 }: {
   accountType: string;
+  access?: ClientSafePlatformAccess;
   inventoryModules: string[];
   initialLayouts?: unknown;
 }) {
   const plan = ACCOUNT_PLAN[accountType] ?? "starter";
-  const isPersonal = accountType === "free" || accountType === "collector";
+  const accountTier = normalizeDashboardAccountTier(accountType);
+  const hasFullPlatformAccess = Boolean(access && hasTrustedFullPlatformAccess(access));
+  const display = dashboardAccessDisplay(accountType, access);
+  const isPersonal = !hasFullPlatformAccess && (accountType === "free" || accountType === "collector");
   const baseLayouts = isPersonal ? COLLECTOR_LAYOUTS : DEFAULT_LAYOUTS;
+  const availableLayouts = availableDashboardLayouts(accountTier, access);
   const [layoutId, setLayoutId] = useState<LayoutId>("home");
   const [layouts, setLayouts] = useState<Record<LayoutId, Widget[]>>(() => {
     if (isPersonal) return COLLECTOR_LAYOUTS;
@@ -325,7 +367,7 @@ export function ModularWorkspace({
                 Command center
               </span>
               <span className="rounded-full border border-white/[0.075] bg-white/[0.025] px-3 py-1.5 text-[10px] font-semibold capitalize text-slate-400">
-                {ACCOUNT_LABEL[accountType] ?? "Trading Docks"} plan
+                {display.badge}
               </span>
             </div>
 
@@ -384,14 +426,14 @@ export function ModularWorkspace({
             className="h-11 w-full rounded-xl border border-white/[0.09] bg-[#071722] px-3 text-sm font-semibold text-white outline-none sm:hidden"
           >
             {LAYOUTS.filter(
-              ([id]) => !isPersonal || ["home", "inventory", "analytics"].includes(id),
+              ([id]) => availableLayouts.has(id),
             ).map(([id, label]) => (
               <option key={id} value={id}>{label} dashboard</option>
             ))}
           </select>
           <div className="hidden flex-wrap gap-2 sm:flex">
             {LAYOUTS.filter(
-              ([id]) => !isPersonal || ["home", "inventory", "analytics"].includes(id),
+              ([id]) => availableLayouts.has(id),
             ).map(([id, label]) => (
               <button
                 key={id}
@@ -413,13 +455,13 @@ export function ModularWorkspace({
           <div className="flex items-center gap-3 px-0.5 text-[10px] font-medium text-slate-500">
             <span>{widgets.length} visible modules</span>
             <span className="capitalize">
-              {accountType === "store" || accountType === "business" ? "Store plan" : `${ACCOUNT_LABEL[accountType] ?? "Free"} plan`}
+              {display.summary}
             </span>
           </div>
         </div>
       </header>
 
-      <CommandCenterOverview accountType={accountType} plan={plan} isPersonal={isPersonal} />
+      <CommandCenterOverview isPersonal={isPersonal} accessLabel={display.metricLabel} />
 
       {editing ? (
         <div className="mt-4 rounded-[20px] border border-cyan-300/[0.13] bg-cyan-400/[0.035] px-4 py-3 text-xs leading-5 text-cyan-100/75 shadow-[0_18px_60px_rgba(8,145,178,.08)]">
@@ -432,7 +474,7 @@ export function ModularWorkspace({
         {widgets.map((widget) => {
           const definition = DEFINITIONS[widget.id as keyof typeof DEFINITIONS];
           if (!definition) return null;
-          const locked = PLAN_RANK[plan] < PLAN_RANK[definition.plan];
+          const locked = !canUseDashboardWidget(accountTier, widget.id, access);
 
           return (
             <div
@@ -482,15 +524,12 @@ export function ModularWorkspace({
 }
 
 function CommandCenterOverview({
-  accountType,
-  plan,
   isPersonal,
+  accessLabel,
 }: {
-  accountType: string;
-  plan: Plan;
   isPersonal: boolean;
+  accessLabel: string;
 }) {
-  const planLabel = ACCOUNT_LABEL[accountType] ?? (plan === "business" ? "Store" : "Free");
   const primaryAction = isPersonal
     ? { label: "Add first card", href: "/dashboard/inventory?create=card", icon: ScanLine }
     : { label: "Connect marketplace", href: "/dashboard/marketplaces", icon: Store };
@@ -542,7 +581,7 @@ function CommandCenterOverview({
 
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2">
             <CommandMetric label="Tracked value" value="$0" detail="No priced inventory yet" />
-            <CommandMetric label="Cards tracked" value="0" detail={`${planLabel} workspace`} />
+            <CommandMetric label="Cards tracked" value="0" detail={accessLabel} />
             <CommandMetric label="Open actions" value="3" detail="Suggested setup steps" />
             <CommandMetric label="Signals" value="0" detail="Awaiting activity" />
           </div>

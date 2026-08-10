@@ -1,5 +1,6 @@
 import {
   hasPlatformRole,
+  hasTrustedFullPlatformAccess,
   hasTrustedOwnerAccess,
   normalizeAccountType,
   normalizeBillingStatus,
@@ -16,6 +17,7 @@ import {
 
 export {
   hasPlatformRole,
+  hasTrustedFullPlatformAccess,
   hasTrustedOwnerAccess,
   normalizeAccountType,
   normalizeBillingStatus,
@@ -78,7 +80,7 @@ export function resolveAccess(input: AccessResolutionInput): ResolvedAccess {
     isAdmin,
     isSuspended: access.suspended,
     canAccessCommandCenter: isAdmin && !access.suspended,
-    hasFullPlatformAccess: hasTrustedOwnerAccess(access),
+    hasFullPlatformAccess: hasTrustedFullPlatformAccess(access),
     warnings: access.warnings,
   };
 }

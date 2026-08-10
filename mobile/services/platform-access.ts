@@ -205,6 +205,13 @@ export function hasTrustedOwnerAccess(access: Pick<PlatformAccessContext, 'platf
     access.platformRoleAuthority === 'trusted';
 }
 
+export function hasTrustedFullPlatformAccess(access: Pick<PlatformAccessContext, 'platformRole' | 'platformRoleAuthority' | 'authenticated' | 'suspended'> | Pick<ClientSafePlatformAccess, 'platformRole' | 'platformRoleAuthority' | 'authenticated' | 'suspended'>) {
+  return access.authenticated &&
+    !access.suspended &&
+    access.platformRoleAuthority === 'trusted' &&
+    (access.platformRole === 'owner' || access.platformRole === 'admin');
+}
+
 export function hasWorkspaceRole(role: WorkspaceRole | null, minimum: WorkspaceRole) {
   return Boolean(role) && WORKSPACE_ROLE_RANK[role as WorkspaceRole] >= WORKSPACE_ROLE_RANK[minimum];
 }
@@ -244,7 +251,7 @@ export function resolvePlatformAccessContext(input: PlatformAccessInput = {}): P
 
   const entitlements = suspended
     ? []
-    : hasTrustedOwnerAccess({
+    : hasTrustedFullPlatformAccess({
         authenticated,
         platformRole,
         platformRoleAuthority,
@@ -281,7 +288,7 @@ export function hasCapability(access: PlatformAccessContext | ClientSafePlatform
   if (!requirement) return false;
   if (requirement.requiresAuth !== false && !access.authenticated) return false;
   if (access.suspended) return false;
-  if (hasTrustedOwnerAccess(access)) return true;
+  if (hasTrustedFullPlatformAccess(access)) return true;
 
   if (requirement.platformRoles?.length) {
     return access.platformRoleAuthority === 'trusted' &&

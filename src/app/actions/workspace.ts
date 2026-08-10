@@ -1,11 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeResponsiveDashboardLayoutsForPlan } from "@/lib/dashboard-entitlements";
 import { getEffectivePlan } from "@/lib/effective-plan";
+import { isPreviewPlan, PLAN_PREVIEW_COOKIE } from "@/lib/admin-plan-preview";
+import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
+import {
+  clientAccessFromTier,
+  toClientSafeAccess,
+} from "../../../mobile/services/platform-access.ts";
 
 const ACCOUNT_TYPES = ["collector", "seller", "store", "large-seller"] as const;
 const INVENTORY_MODULES = [
@@ -121,9 +128,17 @@ export async function saveDashboardLayouts(layouts: unknown) {
       ? existing.preferences
       : {};
   const effectivePlan = await getEffectivePlan();
+  const access = await resolvePlatformAccessForUser(supabase, user);
+  const previewPlan = access.platformRole === "owner"
+    ? (await cookies()).get(PLAN_PREVIEW_COOKIE)?.value
+    : undefined;
+  const clientAccess = isPreviewPlan(previewPlan)
+    ? clientAccessFromTier(previewPlan)
+    : toClientSafeAccess(access);
   const safeLayouts = sanitizeResponsiveDashboardLayoutsForPlan(
     layouts,
     effectivePlan,
+    clientAccess,
   );
 
   const { error } = await supabase

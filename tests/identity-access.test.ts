@@ -35,6 +35,7 @@ test("admin role resolves command-center access", () => {
   assert.equal(resolved.platformRole, "admin");
   assert.equal(resolved.canAccessCommandCenter, true);
   assert.equal(resolved.membershipTier, "free");
+  assert.equal(resolved.hasFullPlatformAccess, true);
 });
 
 test("support role resolves limited platform authority", () => {
@@ -76,11 +77,12 @@ test("suspended account loses entitlement and admin route access", () => {
   assert.equal(resolved.hasFullPlatformAccess, false);
 });
 
-test("admin with Free membership keeps admin route without paid entitlements", () => {
+test("trusted admin with Free membership receives full platform access without changing membership", () => {
   const resolved = access({ platformRole: "admin", membershipOverride: "free" });
 
   assert.equal(resolved.membershipTier, "free");
-  assert.equal(resolved.entitlementKeys.includes("purchasing"), false);
+  assert.equal(resolved.entitlementKeys.includes("purchasing"), true);
+  assert.equal(resolved.entitlementKeys.includes("employee-accounts"), true);
   assert.equal(resolved.entitlementKeys.includes("admin.command-center"), true);
 });
 

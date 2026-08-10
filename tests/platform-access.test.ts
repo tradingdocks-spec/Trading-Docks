@@ -24,6 +24,10 @@ import {
 import { apiAccessRuleForPath, apiCapabilityDecision } from "../src/lib/platform/api-access.ts";
 import { getAccountAwareNavigationGroups } from "../src/components/dashboard/navigation.ts";
 import { resolveWorkspaceAccessFromRows } from "../src/lib/platform/workspace-resolution.ts";
+import {
+  availableDashboardLayouts,
+  canUseDashboardWidget,
+} from "../src/lib/dashboard-entitlements.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -134,6 +138,27 @@ test("trusted platform Owner receives full effective access without changing bil
   }
 });
 
+test("trusted platform Admin receives full effective access without changing billing tier", () => {
+  for (const tier of ["free", "collector", "seller", "store"] as const) {
+    const admin = access({
+      tier,
+      platformRole: "admin",
+      platformRoleAuthority: "trusted",
+      workspaceRole: null,
+    });
+
+    assert.equal(admin.platformRole, "admin");
+    assert.equal(admin.platformRoleAuthority, "trusted");
+    assert.equal(admin.membershipTier, tier);
+    for (const capability of Object.keys(CAPABILITY_REGISTRY) as PlatformCapability[]) {
+      assert.equal(hasCapability(admin, capability), true, `${tier} Admin should receive ${capability}`);
+    }
+    assert.equal(hasRouteAccess(admin, "/dashboard/orders"), true);
+    assert.equal(hasRouteAccess(admin, "/dashboard/employees"), true);
+    assert.equal(apiCapabilityDecision(admin, "marketplaces.manage").status, 200);
+  }
+});
+
 test("client-created access objects cannot self-escalate to Owner access", () => {
   const manipulated = clientAccessFromTier("free", {
     platformRole: "owner",
@@ -179,13 +204,51 @@ test("workspace role ordering is normalized and capability scoped", () => {
   assert.equal(hasCapability(storeManager, "billing.manage"), false);
 });
 
-test("platform admin remains additive and does not corrupt normal membership identity", () => {
+test("trusted platform admin receives full access and does not corrupt normal membership identity", () => {
   const admin = access({ tier: "free", platformRole: "admin", platformRoleAuthority: "trusted", accountType: "collector" });
 
   assert.equal(admin.membershipTier, "free");
   assert.equal(admin.accountType, "collector");
   assert.equal(hasCapability(admin, "platform.admin"), true);
-  assert.equal(hasCapability(admin, "orders.manage"), false);
+  assert.equal(hasCapability(admin, "orders.manage"), true);
+  assert.equal(hasCapability(admin, "employees.manage"), true);
+});
+
+test("dashboard module filtering uses effective entitlements instead of raw billing tier", () => {
+  const free = access({ tier: "free" });
+  const collector = access({ tier: "collector" });
+  const seller = access({ tier: "seller" });
+  const store = access({ tier: "store", workspaceRole: "owner" });
+  const ownerFree = access({
+    tier: "free",
+    platformRole: "owner",
+    platformRoleAuthority: "trusted",
+    workspaceRole: null,
+  });
+  const adminFree = access({
+    tier: "free",
+    platformRole: "admin",
+    platformRoleAuthority: "trusted",
+    workspaceRole: null,
+  });
+  const manipulated = clientAccessFromTier("free", {
+    platformRole: "owner",
+    entitlements: ["deal-desk", "employee-accounts"],
+    workspaceRole: "owner",
+  });
+
+  assert.equal(canUseDashboardWidget("free", "revenue", free), false);
+  assert.equal(canUseDashboardWidget("collector", "collection-growth", collector), true);
+  assert.equal(canUseDashboardWidget("collector", "orders", collector), false);
+  assert.equal(canUseDashboardWidget("seller", "orders", seller), true);
+  assert.equal(canUseDashboardWidget("seller", "team", seller), false);
+  assert.equal(canUseDashboardWidget("store", "team", store), true);
+  assert.equal(canUseDashboardWidget("free", "revenue", ownerFree), true);
+  assert.equal(canUseDashboardWidget("free", "team", ownerFree), true);
+  assert.equal(canUseDashboardWidget("free", "ai", adminFree), true);
+  assert.equal(canUseDashboardWidget("free", "revenue", manipulated), false);
+  assert.equal(availableDashboardLayouts("free", ownerFree).has("business"), true);
+  assert.equal(availableDashboardLayouts("free", manipulated).has("business"), false);
 });
 
 test("representative route registry maps public auth tier and platform routes", () => {

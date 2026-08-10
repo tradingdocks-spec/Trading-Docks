@@ -1,12 +1,18 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 import {
   SellerMissionControl,
   type MissionControlSnapshot,
 } from "@/components/dashboard/mission-control/SellerMissionControl";
 import { ModularWorkspace } from "@/components/dashboard/workspace/ModularWorkspace";
-import { getEffectivePlan } from "@/lib/effective-plan";
+import { isPreviewPlan, PLAN_PREVIEW_COOKIE } from "@/lib/admin-plan-preview";
+import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
 import { createClient } from "@/lib/supabase/server";
+import {
+  clientAccessFromTier,
+  toClientSafeAccess,
+} from "../../../mobile/services/platform-access.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +36,16 @@ export default async function DashboardPage() {
     !Array.isArray(data.preferences)
       ? data.preferences
       : {};
-  const effectivePlan = await getEffectivePlan();
+  const access = await resolvePlatformAccessForUser(supabase, user);
+  const previewPlan = access.platformRole === "owner"
+    ? (await cookies()).get(PLAN_PREVIEW_COOKIE)?.value
+    : undefined;
+  const effectivePlan = isPreviewPlan(previewPlan)
+    ? previewPlan
+    : access.membershipTier;
+  const clientAccess = isPreviewPlan(previewPlan)
+    ? clientAccessFromTier(previewPlan)
+    : toClientSafeAccess(access);
 
   if (preferences.onboarding_completed !== true) {
     redirect("/onboarding");
@@ -191,6 +206,7 @@ export default async function DashboardPage() {
   return (
     <ModularWorkspace
       accountType={effectivePlan}
+      access={clientAccess}
       inventoryModules={
         Array.isArray(preferences.inventory_modules)
           ? preferences.inventory_modules.filter(

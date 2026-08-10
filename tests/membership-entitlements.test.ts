@@ -71,7 +71,7 @@ test("trusted Owner receives full effective entitlements without changing billin
   assert.equal(access.entitlementKeys.includes("admin.command-center"), true);
 });
 
-test("non-owner platform roles do not imply paid membership entitlements", () => {
+test("trusted Admin receives full effective entitlements without changing billing membership", () => {
   const access = resolveAccess({
     userId: "admin-1",
     platformRole: "admin",
@@ -82,7 +82,8 @@ test("non-owner platform roles do not imply paid membership entitlements", () =>
   });
 
   assert.equal(access.membershipTier, "free");
-  assert.equal(access.entitlementKeys.includes("deal-desk"), false);
+  assert.equal(access.entitlementKeys.includes("deal-desk"), true);
+  assert.equal(access.entitlementKeys.includes("employee-accounts"), true);
   assert.equal(access.entitlementKeys.includes("admin.command-center"), true);
 });
 
