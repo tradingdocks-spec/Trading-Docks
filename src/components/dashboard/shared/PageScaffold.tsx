@@ -106,7 +106,7 @@ export function PageScaffold({
             </p>
             <h2 className="mt-2 text-lg font-semibold text-white">Recent performance</h2>
             <p className="mt-1 text-xs text-slate-600">
-              A polished placeholder for this module’s charts, tables, and live data.
+              Charts, tables, and live data will populate as this workspace records activity.
             </p>
 
             <div className="relative mt-6 h-[260px] overflow-hidden rounded-2xl border border-white/[0.05] bg-[#02090f] p-5">

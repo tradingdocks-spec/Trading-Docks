@@ -2,7 +2,10 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { logAuthDiagnostic, logAuthWarning } from '@/services/auth-diagnostics';
 import { authPreferences } from '@/services/auth-preferences';
+import { resolveRestoredSessionState } from '@/services/auth-session-core';
+import { configureRevenueCatForUser, logOutRevenueCatUser } from '@/services/revenuecat';
 
 type AuthState = {
   session: Session | null;
@@ -52,26 +55,58 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let mounted = true;
-    if (!supabase) { setLoading(false); return; }
+    const client = supabase;
+    if (!client) {
+      logAuthWarning('supabase_not_configured');
+      setLoading(false);
+      return;
+    }
 
     const initialize = async () => {
-      const { data } = await supabase.auth.getSession();
-      const discard = Boolean(data.session) && await authPreferences.shouldDiscardRestoredSession();
-      if (discard) await supabase.auth.signOut({ scope: 'local' });
-      const prefs = await authPreferences.load();
-      if (mounted) {
-        const restored = discard ? null : data.session;
-        setSession(restored);
-        setBiometricLocked(Boolean(restored) && Platform.OS !== 'web' && prefs.biometricEnabled);
-        setLoading(false);
+      try {
+        const { data, error } = await client.auth.getSession();
+        if (error) logAuthWarning('session_restore_error', { message: error.message });
+        const discard = Boolean(data.session) && await authPreferences.shouldDiscardRestoredSession();
+        if (discard) await client.auth.signOut({ scope: 'local' });
+        const prefs = await authPreferences.load();
+        const restored = resolveRestoredSessionState({
+          session: data.session,
+          discard,
+          preferences: prefs,
+          platform: Platform.OS,
+        });
+        if (mounted) {
+          setSession(restored.session);
+          setBiometricLocked(restored.biometricLocked);
+          if (restored.session?.user.id) void configureRevenueCatForUser(restored.session.user.id);
+          else void logOutRevenueCatUser();
+          logAuthDiagnostic('session_restore_complete', {
+            restored: Boolean(restored.session),
+            biometricLocked: restored.biometricLocked,
+            platform: Platform.OS,
+          });
+        }
+      } catch (error) {
+        if (mounted) {
+          setSession(null);
+          setBiometricLocked(false);
+          logAuthWarning('session_restore_failed', {
+            message: error instanceof Error ? error.message : 'Unknown session restore error',
+          });
+        }
+      } finally {
+        if (mounted) setLoading(false);
       }
     };
     initialize();
 
-    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+    const { data } = client.auth.onAuthStateChange((event, next) => {
       if (!mounted) return;
       setSession(next);
+      if (next?.user.id) void configureRevenueCatForUser(next.user.id);
+      else void logOutRevenueCatUser();
       if (event === 'SIGNED_OUT') setBiometricLocked(false);
+      logAuthDiagnostic('auth_state_changed', { event, hasSession: Boolean(next) });
     });
     return () => { mounted = false; data.subscription.unsubscribe(); };
   }, []);

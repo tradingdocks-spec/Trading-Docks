@@ -1,0 +1,362 @@
+import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+import {
+  CAPABILITY_REGISTRY,
+  clientAccessFromTier,
+  hasCapability,
+  normalizeAccountType,
+  normalizeMembershipTier,
+  normalizeWorkspaceRole,
+  resolvePlatformAccessContext,
+  type PlatformAccessContext,
+  type PlatformCapability,
+  type WorkspaceRole,
+} from "../mobile/services/platform-access.ts";
+import {
+  hasRouteAccess,
+  requiredMembershipForRoute,
+  routeAccessRuleForPath,
+} from "../src/lib/platform/route-access.ts";
+import { apiAccessRuleForPath, apiCapabilityDecision } from "../src/lib/platform/api-access.ts";
+import { resolveWorkspaceAccessFromRows } from "../src/lib/platform/workspace-resolution.ts";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+function access(input: Partial<PlatformAccessContext> & { tier?: string } = {}) {
+  return resolvePlatformAccessContext({
+    userId: input.authenticated === false ? null : "user-1",
+    authenticated: input.authenticated ?? true,
+    platformRole: input.platformRole ?? "user",
+    accountType: input.accountType ?? input.tier ?? "collector",
+    effectiveMembershipTier: input.membershipTier ?? input.tier ?? "free",
+    billingStatus: input.billingStatus ?? "active",
+    workspaceRole: input.workspaceRole ?? null,
+    suspended: input.suspended ?? false,
+  });
+}
+
+test("capability registry uses action names and canonical tier boundaries", () => {
+  const capabilities = Object.keys(CAPABILITY_REGISTRY) as PlatformCapability[];
+
+  assert.equal(capabilities.includes("collection.read"), true);
+  assert.equal(capabilities.includes("orders.manage"), true);
+  assert.equal(capabilities.includes("platform.admin"), true);
+  assert.equal(capabilities.some((capability) => capability.startsWith("/dashboard")), false);
+  assert.equal(CAPABILITY_REGISTRY["collection.read"].minimumTier, "free");
+  assert.equal(CAPABILITY_REGISTRY["binder.manage"].minimumTier, "collector");
+  assert.equal(CAPABILITY_REGISTRY["orders.manage"].minimumTier, "seller");
+  assert.equal(CAPABILITY_REGISTRY["employees.manage"].minimumTier, "store");
+});
+
+test("canonical tier normalization keeps business as a compatibility alias only", () => {
+  assert.equal(normalizeMembershipTier("business"), "store");
+  assert.equal(normalizeAccountType("business"), "store");
+  assert.equal(normalizeMembershipTier("store"), "store");
+  assert.equal(normalizeAccountType("store"), "store");
+});
+
+test("unauthenticated users fail protected capabilities", () => {
+  const guest = access({ authenticated: false });
+
+  assert.equal(hasCapability(guest, "collection.read"), false);
+  assert.deepEqual(apiCapabilityDecision(guest, "collection.read"), {
+    allowed: false,
+    status: 401,
+    error: "Authentication required.",
+  });
+});
+
+test("Free Collector Seller and Store capabilities follow the audited matrix", () => {
+  const free = access({ tier: "free" });
+  const collector = access({ tier: "collector" });
+  const seller = access({ tier: "seller" });
+  const store = access({ tier: "store", workspaceRole: "owner" });
+
+  assert.equal(hasCapability(free, "collection.read"), true);
+  assert.equal(hasCapability(free, "crm.manage"), false);
+  assert.equal(hasCapability(free, "employees.manage"), false);
+
+  assert.equal(hasCapability(collector, "binder.manage"), true);
+  assert.equal(hasCapability(collector, "wishlist.manage"), true);
+  assert.equal(hasCapability(collector, "orders.manage"), false);
+
+  assert.equal(hasCapability(seller, "inventory.manage"), true);
+  assert.equal(hasCapability(seller, "orders.manage"), true);
+  assert.equal(hasCapability(seller, "employees.manage"), false);
+
+  assert.equal(hasCapability(store, "employees.manage"), true);
+  assert.equal(hasCapability(store, "workspace.members.manage"), true);
+});
+
+test("workspace roles do not grant platform admin or paid membership by themselves", () => {
+  const manager = access({ tier: "free", workspaceRole: "manager" });
+  const owner = access({ tier: "free", workspaceRole: "owner" });
+
+  assert.equal(manager.membershipTier, "free");
+  assert.equal(hasCapability(manager, "platform.admin"), false);
+  assert.equal(hasCapability(manager, "employees.manage"), false);
+  assert.equal(owner.membershipTier, "free");
+  assert.equal(hasCapability(owner, "billing.manage"), true);
+  assert.equal(hasCapability(owner, "orders.manage"), false);
+});
+
+test("workspace role ordering is normalized and capability scoped", () => {
+  const roles: WorkspaceRole[] = ["viewer", "member", "manager", "admin", "owner"];
+  for (const role of roles) assert.equal(normalizeWorkspaceRole(role), role);
+  assert.equal(normalizeWorkspaceRole("employee"), null);
+
+  const storeMember = access({ tier: "store", workspaceRole: "member" });
+  const storeManager = access({ tier: "store", workspaceRole: "manager" });
+
+  assert.equal(hasCapability(storeMember, "supplies.manage"), true);
+  assert.equal(hasCapability(storeMember, "employees.manage"), false);
+  assert.equal(hasCapability(storeManager, "employees.manage"), true);
+  assert.equal(hasCapability(storeManager, "billing.manage"), false);
+});
+
+test("platform admin remains additive and does not corrupt normal membership identity", () => {
+  const admin = access({ tier: "free", platformRole: "admin", accountType: "collector" });
+
+  assert.equal(admin.membershipTier, "free");
+  assert.equal(admin.accountType, "collector");
+  assert.equal(hasCapability(admin, "platform.admin"), true);
+  assert.equal(hasCapability(admin, "orders.manage"), false);
+});
+
+test("representative route registry maps public auth tier and platform routes", () => {
+  const guest = access({ authenticated: false });
+  const collector = access({ tier: "collector" });
+  const seller = access({ tier: "seller" });
+  const storeOwner = access({ tier: "store", workspaceRole: "owner" });
+  const admin = access({ tier: "free", platformRole: "admin" });
+
+  assert.equal(routeAccessRuleForPath("/")?.kind, "public");
+  assert.equal(hasRouteAccess(guest, "/"), true);
+  assert.equal(hasRouteAccess(guest, "/dashboard"), false);
+  assert.equal(hasRouteAccess(collector, "/dashboard/inventory"), true);
+  assert.equal(hasRouteAccess(collector, "/dashboard/orders"), false);
+  assert.equal(hasRouteAccess(seller, "/dashboard/orders"), true);
+  const labelStudioRouteRule = routeAccessRuleForPath("/dashboard/label-studio");
+  assert.equal(labelStudioRouteRule?.kind, "capability");
+  assert.equal(labelStudioRouteRule?.kind === "capability" ? labelStudioRouteRule.capability : null, "label.view");
+  assert.equal(hasRouteAccess(collector, "/dashboard/label-studio"), false);
+  assert.equal(hasRouteAccess(seller, "/dashboard/label-studio"), true);
+  assert.equal(hasRouteAccess(seller, "/dashboard/employees"), false);
+  assert.equal(hasRouteAccess(storeOwner, "/dashboard/employees"), true);
+  assert.equal(hasRouteAccess(admin, "/dashboard/admin"), true);
+  assert.equal(hasRouteAccess(collector, "/dev/design-system", "production"), false);
+  assert.equal(hasRouteAccess(collector, "/dev/design-system", "development"), true);
+  assert.equal(hasRouteAccess(storeOwner, "/dashboard/unclassified-future-tool"), false);
+});
+
+test("navigation visibility server route access and API decisions agree", () => {
+  const sellerClient = clientAccessFromTier("seller", { workspaceRole: "manager" });
+  const collectorClient = clientAccessFromTier("collector");
+
+  assert.equal(hasRouteAccess(sellerClient, "/dashboard/orders"), true);
+  assert.equal(apiCapabilityDecision(sellerClient, "orders.manage").status, 200);
+  assert.equal(hasRouteAccess(collectorClient, "/dashboard/orders"), false);
+  assert.equal(apiCapabilityDecision(collectorClient, "orders.manage").status, 403);
+  assert.equal(requiredMembershipForRoute("/dashboard/orders"), "seller");
+});
+
+test("Label Studio is an Operations navigation item gated by route access", () => {
+  const navigationSource = readFileSync(path.join(repoRoot, "src/components/dashboard/navigation.ts"), "utf8");
+  const sidebarSource = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredSidebar.tsx"), "utf8");
+  const sellerClient = clientAccessFromTier("seller", { workspaceRole: "member" });
+  const collectorClient = clientAccessFromTier("collector");
+  const sellingNavStart = navigationSource.indexOf("export const SELLING_NAV");
+  const operationsNavStart = navigationSource.indexOf("export const OPERATIONS_NAV");
+  const sellingNavBlock = navigationSource.slice(sellingNavStart, operationsNavStart);
+
+  assert.match(navigationSource, /label:\s*"Operations"[\s\S]*label:\s*"Label Studio"/);
+  assert.doesNotMatch(sellingNavBlock, /label:\s*"Label Studio"/);
+  assert.match(sidebarSource, /item\.href === LABEL_STUDIO_ROUTE && !allowed/);
+  assert.equal(hasRouteAccess(sellerClient, "/dashboard/label-studio"), true);
+  assert.equal(hasRouteAccess(collectorClient, "/dashboard/label-studio"), false);
+  const operationsRouteRule = routeAccessRuleForPath("/dashboard/label-studio");
+  assert.equal(operationsRouteRule?.kind === "capability" ? operationsRouteRule.capability : null, "label.view");
+});
+
+test("server workspace access resolves only valid active or unambiguous memberships", () => {
+  assert.deepEqual(
+    resolveWorkspaceAccessFromRows(null, [{ workspace_id: "workspace-a", role: "owner" }]),
+    { workspaceId: "workspace-a", workspaceRole: "owner" },
+  );
+
+  assert.deepEqual(
+    resolveWorkspaceAccessFromRows("workspace-b", [
+      { workspace_id: "workspace-a", role: "member" },
+      { workspace_id: "workspace-b", role: "manager" },
+    ]),
+    { workspaceId: "workspace-b", workspaceRole: "manager" },
+  );
+
+  assert.deepEqual(
+    resolveWorkspaceAccessFromRows(null, [
+      { workspace_id: "workspace-a", role: "owner" },
+      { workspace_id: "workspace-b", role: "member" },
+    ]),
+    { workspaceId: null, workspaceRole: null },
+  );
+
+  assert.deepEqual(
+    resolveWorkspaceAccessFromRows("workspace-z", [
+      { workspace_id: "workspace-a", role: "owner" },
+      { workspace_id: "workspace-b", role: "member" },
+    ]),
+    { workspaceId: null, workspaceRole: null },
+  );
+});
+
+test("all dashboard page routes are explicitly classified", () => {
+  const dashboardPages = listFiles([path.join(repoRoot, "src/app/dashboard")])
+    .filter((file) => file.endsWith("page.tsx"))
+    .map(dashboardPathFromPage)
+    .sort();
+
+  assert.ok(dashboardPages.length > 20, "expected active dashboard routes");
+  for (const route of dashboardPages) {
+    const rule = routeAccessRuleForPath(route);
+    assert.ok(rule, `${route} is missing a route access rule`);
+    assert.notEqual(rule.id, "dashboard-fallback", `${route} is using the fail-closed fallback`);
+    assert.notEqual(rule.kind, "blocked", `${route} is blocked instead of explicitly classified`);
+  }
+});
+
+test("all API route handlers are classified in the API access registry", () => {
+  const apiRoutes = listFiles([path.join(repoRoot, "src/app/api")])
+    .filter((file) => file.endsWith("route.ts"))
+    .map(apiPathFromRoute)
+    .sort();
+
+  assert.ok(apiRoutes.length > 40, "expected active API routes");
+  for (const route of apiRoutes) {
+    const rule = apiAccessRuleForPath(route);
+    assert.ok(rule, `${route} is missing an API access rule`);
+    assert.notEqual(rule.id, "api-fallback", `${route} is using the server-only fallback`);
+  }
+});
+
+test("active marketplace server routes use the canonical marketplaces capability guard", () => {
+  const guardedApiRoutes = [
+    "src/app/api/marketplaces/catalog/enrich/route.ts",
+    "src/app/api/marketplaces/ebay/import/route.ts",
+    "src/app/api/marketplaces/ebay/reconciliation/route.ts",
+    "src/app/api/marketplaces/manapool/import/route.ts",
+  ];
+
+  for (const route of guardedApiRoutes) {
+    const source = readFileSync(path.join(repoRoot, route), "utf8");
+    assert.match(source, /requireApiCapability\("marketplaces\.manage"\)/, route);
+  }
+
+  const redirectRoutes = [
+    "src/app/api/marketplaces/ebay/authorize/route.ts",
+    "src/app/api/marketplaces/[marketplace]/callback/route.ts",
+  ];
+
+  for (const route of redirectRoutes) {
+    const source = readFileSync(path.join(repoRoot, route), "utf8");
+    assert.match(source, /hasCapability\(access, "marketplaces\.manage"\)/, route);
+    assert.match(source, /marketplace_access/, route);
+  }
+});
+
+test("workspace role boundaries are distinct from store membership", () => {
+  const storeViewer = access({ tier: "store", workspaceRole: "viewer" });
+  const storeMember = access({ tier: "store", workspaceRole: "member" });
+  const storeManager = access({ tier: "store", workspaceRole: "manager" });
+  const storeAdmin = access({ tier: "store", workspaceRole: "admin" });
+  const storeOwner = access({ tier: "store", workspaceRole: "owner" });
+
+  assert.equal(hasRouteAccess(storeViewer, "/dashboard/employees"), false);
+  assert.equal(hasRouteAccess(storeMember, "/dashboard/supplies"), true);
+  assert.equal(hasRouteAccess(storeManager, "/dashboard/vendors"), true);
+  assert.equal(hasRouteAccess(storeAdmin, "/dashboard/payroll"), true);
+  assert.equal(hasCapability(storeOwner, "billing.manage"), true);
+  assert.equal(hasCapability(storeManager, "billing.manage"), false);
+});
+
+test("legacy guardrails do not introduce new active business branching or email owner checks", () => {
+  const mobileAuthorityFiles = [
+    path.join(repoRoot, "mobile/services/access-model.ts"),
+    path.join(repoRoot, "mobile/services/platform-access.ts"),
+    path.join(repoRoot, "mobile/services/membership-catalog.ts"),
+    path.join(repoRoot, "mobile/services/revenuecat.ts"),
+  ];
+  const authorityFiles = listFiles([
+    path.join(repoRoot, "src/lib/platform"),
+    path.join(repoRoot, "src/lib/identity"),
+    path.join(repoRoot, "src/app/dashboard/admin"),
+    path.join(repoRoot, "src/app/api/admin"),
+  ]).filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"));
+  const activeFiles = [...authorityFiles, ...mobileAuthorityFiles];
+
+  const capabilityDefinitions = activeFiles.filter((file) =>
+    /export\s+const\s+CAPABILITY_REGISTRY/.test(readFileSync(file, "utf8")),
+  );
+  assert.deepEqual(capabilityDefinitions.map((file) => path.relative(repoRoot, file).replace(/\\/g, "/")), [
+    "mobile/services/platform-access.ts",
+  ]);
+
+  for (const file of activeFiles) {
+    const relative = path.relative(repoRoot, file).replace(/\\/g, "/");
+    const source = readFileSync(file, "utf8");
+    if (relative === "mobile/services/membership-catalog.ts") continue;
+    assert.equal(
+      /(accountType|membershipTier|billingPlan|plan)\s*(?:={2,3}|!==?)\s*['"]business['"]/.test(source),
+      false,
+      `${relative} contains active business tier branching`,
+    );
+  }
+
+  for (const file of authorityFiles) {
+    const relative = path.relative(repoRoot, file).replace(/\\/g, "/");
+    const source = readFileSync(file, "utf8");
+    assert.equal(/tradingdocks@gmail\.com/.test(source), false, `${relative} contains email-based admin authority`);
+  }
+
+  const apiFiles = listFiles([path.join(repoRoot, "src/app/api")]).filter((file) => file.endsWith(".ts"));
+  for (const file of apiFiles) {
+    const relative = path.relative(repoRoot, file).replace(/\\/g, "/");
+    const source = readFileSync(file, "utf8");
+    assert.equal(/hasPlanAccess|getEffectivePlan/.test(source), false, `${relative} contains legacy plan access checks`);
+  }
+});
+
+function dashboardPathFromPage(file: string) {
+  const relative = path.relative(path.join(repoRoot, "src/app/dashboard"), file).replace(/\\/g, "/");
+  const route = relative.replace(/\/page\.tsx$/, "").replace(/^page\.tsx$/, "");
+  return route ? `/dashboard/${route}` : "/dashboard";
+}
+
+function apiPathFromRoute(file: string) {
+  const relative = path.relative(path.join(repoRoot, "src/app/api"), file).replace(/\\/g, "/");
+  const route = relative.replace(/\/route\.ts$/, "").replace(/^route\.ts$/, "");
+  return route ? `/api/${route}` : "/api";
+}
+
+function listFiles(roots: string[]) {
+  const files: string[] = [];
+  for (const root of roots) walk(root, files);
+  return files;
+}
+
+function walk(current: string, files: string[]) {
+  const stat = statSync(current);
+  if (stat.isFile()) {
+    files.push(current);
+    return;
+  }
+  for (const entry of readdirSync(current)) {
+    const child = path.join(current, entry);
+    const childStat = statSync(child);
+    if (childStat.isDirectory()) walk(child, files);
+    else files.push(child);
+  }
+}

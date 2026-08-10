@@ -58,8 +58,8 @@ export function AnalyticsCommandCenter({ plan, inventory }: Props) {
   const [metric, setMetric] = useState<ChartMetric>("Revenue");
   const [channel, setChannel] = useState("All channels");
   const hasInventory = inventory.skus > 0;
-  const sellerView = plan === "seller" || plan === "business";
-  const planLabel = plan === "business" ? "Store" : plan[0].toUpperCase() + plan.slice(1);
+  const sellerView = plan === "seller" || plan === "store";
+  const planLabel = plan === "store" ? "Store" : plan[0].toUpperCase() + plan.slice(1);
   const readinessSteps = hasInventory ? 1 : 0;
 
   const metrics = useMemo(

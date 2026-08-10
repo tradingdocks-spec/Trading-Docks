@@ -1,11 +1,7 @@
-import { redirect } from "next/navigation";
-
 import { CsvConversionEngine } from "@/components/dashboard/tools/CsvConversionEngine";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { hasPlanAccess } from "@/lib/tier-access";
+import { requireServerCapability } from "@/lib/platform/server-access";
 
 export default async function CsvConverterPage() {
-  const plan = await getEffectivePlan();
-  if (!hasPlanAccess(plan, "csv-tools")) redirect("/dashboard/plans");
+  await requireServerCapability("csv.export", "/dashboard/plans");
   return <CsvConversionEngine />;
 }

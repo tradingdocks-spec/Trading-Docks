@@ -6,7 +6,7 @@ const plans = [
   { id: "free", name: "Free", description: "Entry-level dashboard with paid Inventory access locked." },
   { id: "collector", name: "Collector", description: "Personal collection storage, search, filing, and put-away tools." },
   { id: "seller", name: "Seller", description: "Marketplace listings, pricing queues, and seller operations." },
-  { id: "business", name: "Store", description: "Complete store command center and advanced reporting." },
+  { id: "store", name: "Store", description: "Complete store command center and advanced reporting." },
 ] as const;
 
 export function PlanPreview() {

@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCategories, getGroups, getPrices, getProducts } from "@/lib/tcgcsv/client";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { createClient } from "@/lib/supabase/server";
-import { hasPlanAccess } from "@/lib/tier-access";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,12 +14,8 @@ type InputRow = {
 };
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
-  if (!hasPlanAccess(await getEffectivePlan(), "csv-tools")) {
-    return NextResponse.json({ error: "Seller or Store access is required." }, { status: 403 });
-  }
+  const capability = await requireApiCapability("csv.export");
+  if (!capability.ok) return capability.response;
   const body = await request.json().catch(() => null) as { rows?: unknown } | null;
   if (!body || !Array.isArray(body.rows) || body.rows.length > 500) {
     return NextResponse.json({ error: "Send between 1 and 500 rows per request." }, { status: 400 });

@@ -5,7 +5,7 @@ import {
 } from "node:crypto";
 import { NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -300,14 +300,10 @@ async function fetchAllOrders(
 }
 
 export async function POST() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Sign in required." }, { status: 401 });
-  }
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const { supabase } = capability;
+  const user = capability.user!;
 
   const { data: credential, error: credentialError } = await supabase
     .from("marketplace_credentials")

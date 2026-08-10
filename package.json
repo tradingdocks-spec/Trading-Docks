@@ -7,18 +7,22 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm audit --omit=dev --audit-level=high"
+    "check": "npm run lint && npm run typecheck && npm test && npm audit --omit=dev --audit-level=high",
+    "validate": "npm run check && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
+    "@types/qrcode": "^1.5.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.26.0",
     "motion": "^12.42.2",
     "next": "^16.2.12",
     "next-themes": "^0.4.6",
+    "qrcode": "^1.5.4",
     "radix-ui": "^1.6.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -33,6 +37,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "shadcn": "^4.16.1",
     "tailwindcss": "^4",
     "typescript": "^5"

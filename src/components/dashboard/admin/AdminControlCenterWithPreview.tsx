@@ -69,11 +69,12 @@ type Feature = {
   minimum_plan: string | null;
   usage_limit: number | null;
 };
-type AdminPlan = "free" | "collector" | "seller" | "business";
+type AdminPlan = "free" | "collector" | "seller" | "store";
 type AdminAccount = {
   id: string;
   email: string;
   full_name: string | null;
+  role?: string | null;
   membership_level: AdminPlan;
   membership_override?: AdminPlan | null;
   card_units: number;
@@ -112,11 +113,11 @@ const fallbackFeatures: Feature[] = [
   { id: "deck-vault", name: "Deck Vault", category: "Collection", description: "Deck building, importing, and analysis. Free includes 10 decks; Collector includes 50.", visibility: "enabled", minimum_plan: "free", usage_limit: 10 },
   { id: "collection-buying", name: "Collection Buying", category: "Purchasing", description: "Appraise and purchase collections.", visibility: "enabled", minimum_plan: "seller", usage_limit: null },
   { id: "marketplaces", name: "Marketplaces", category: "Sales", description: "Listings and marketplace workflows.", visibility: "coming_soon", minimum_plan: "seller", usage_limit: null },
-  { id: "finances", name: "Finances", category: "Business", description: "Expenses, payouts, and reporting.", visibility: "enabled", minimum_plan: "business", usage_limit: null },
-  { id: "employees", name: "Employees", category: "Business", description: "Team access and payroll tools.", visibility: "enabled", minimum_plan: "business", usage_limit: 5 },
+  { id: "finances", name: "Finances", category: "Business", description: "Expenses, payouts, and reporting.", visibility: "enabled", minimum_plan: "store", usage_limit: null },
+  { id: "employees", name: "Employees", category: "Business", description: "Team access and payroll tools.", visibility: "enabled", minimum_plan: "store", usage_limit: null },
 ];
 
-export function AdminControlCenter({ ownerEmail }: { ownerEmail: string }) {
+export function AdminControlCenter({ adminIdentityLabel }: { adminIdentityLabel: string }) {
   const supabase = useMemo(() => createClient(), []);
   const [checking, setChecking] = useState(true);
   const [verified, setVerified] = useState(false);
@@ -177,7 +178,7 @@ export function AdminControlCenter({ ownerEmail }: { ownerEmail: string }) {
   if (!verified) {
     return (
       <AdminSecurityGate
-        ownerEmail={ownerEmail}
+        adminIdentityLabel={adminIdentityLabel}
         factors={factors}
         enrollment={enrollment}
         code={code}
@@ -190,13 +191,13 @@ export function AdminControlCenter({ ownerEmail }: { ownerEmail: string }) {
     );
   }
 
-  return <AdminWorkspace ownerEmail={ownerEmail} initialFeatures={fallbackFeatures} />;
+  return <AdminWorkspace adminIdentityLabel={adminIdentityLabel} initialFeatures={fallbackFeatures} />;
 }
 
 function AdminSecurityGate({
-  ownerEmail, factors, enrollment, code, error, working, onCode, onEnroll, onVerify,
+  adminIdentityLabel, factors, enrollment, code, error, working, onCode, onEnroll, onVerify,
 }: {
-  ownerEmail: string;
+  adminIdentityLabel: string;
   factors: Factor[];
   enrollment: { id: string; qr: string; secret: string } | null;
   code: string;
@@ -219,7 +220,7 @@ function AdminSecurityGate({
           <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-300/70">Owner verification</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-white">Admin Control Center</h1>
           <p className="mt-3 text-sm leading-6 text-slate-400">
-            Protected access for <span className="font-medium text-slate-200">{ownerEmail}</span>. Verify with your authenticator before viewing or changing account access.
+            Protected access for <span className="font-medium text-slate-200">{adminIdentityLabel}</span>. Verify with your authenticator before viewing or changing account access.
           </p>
         </div>
 
@@ -271,7 +272,7 @@ function AdminSecurityGate({
   );
 }
 
-function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; initialFeatures: Feature[] }) {
+function AdminWorkspace({ adminIdentityLabel, initialFeatures }: { adminIdentityLabel: string; initialFeatures: Feature[] }) {
   const supabase = useMemo(() => createClient(), []);
   const [tab, setTab] = useState<AdminTab>("overview");
   const [features, setFeatures] = useState(initialFeatures);
@@ -340,7 +341,7 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
           </div>
           <div className="flex items-center gap-3 rounded-2xl border border-emerald-300/[0.13] bg-emerald-300/[0.04] px-4 py-3">
             <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-40" /><span className="relative h-2.5 w-2.5 rounded-full bg-emerald-300" /></span>
-            <div><p className="text-[11px] font-semibold text-emerald-100">Authenticator verified</p><p className="text-[9px] text-emerald-200/45">{ownerEmail}</p></div>
+            <div><p className="text-[11px] font-semibold text-emerald-100">Authenticator verified</p><p className="text-[9px] text-emerald-200/45">{adminIdentityLabel}</p></div>
           </div>
         </div>
       </header>
@@ -357,15 +358,15 @@ function AdminWorkspace({ ownerEmail, initialFeatures }: { ownerEmail: string; i
         </aside>
 
         <main className="min-w-0">
-          {tab === "overview" ? <Overview features={features} ownerEmail={ownerEmail} accounts={accounts} onNavigate={setTab} /> : null}
-          {tab === "users" ? <UserDirectory accounts={accounts} loading={accountsLoading} error={accountsError} ownerEmail={ownerEmail} onRefresh={loadAccounts} /> : null}
+          {tab === "overview" ? <Overview features={features} adminIdentityLabel={adminIdentityLabel} accounts={accounts} onNavigate={setTab} /> : null}
+          {tab === "users" ? <UserDirectory accounts={accounts} loading={accountsLoading} error={accountsError} onRefresh={loadAccounts} /> : null}
           {tab === "plan-preview" ? <PlanPreview /> : null}
           {tab === "features" ? <FeatureAccess features={filtered} query={query} setQuery={setQuery} savingId={savingId} updateFeature={updateFeature} /> : null}
           {tab === "trials" ? <TrialsManager /> : null}
           {tab === "feedback" ? <AdminFeedbackQueue /> : null}
           {tab === "integrations" ? <AdminIntegrations /> : null}
           {["support", "billing", "communications", "health", "data", "analytics"].includes(tab) ? <OperationsSection tab={tab as OperationsTab} /> : null}
-          {["plans", "categories", "security", "audit"].includes(tab) ? <SectionPlaceholder tab={tab as CorePlaceholderTab} features={features} ownerEmail={ownerEmail} /> : null}
+          {["plans", "categories", "security", "audit"].includes(tab) ? <SectionPlaceholder tab={tab as CorePlaceholderTab} features={features} adminIdentityLabel={adminIdentityLabel} /> : null}
         </main>
       </div>
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[150] rounded-xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs font-medium text-cyan-100 shadow-2xl">{notice}</div> : null}
@@ -505,7 +506,7 @@ function AdminIntegrations() {
   );
 }
 
-function Overview({ features, ownerEmail, accounts, onNavigate }: { features: Feature[]; ownerEmail: string; accounts: AdminAccount[]; onNavigate: (tab: AdminTab) => void }) {
+function Overview({ features, adminIdentityLabel, accounts, onNavigate }: { features: Feature[]; adminIdentityLabel: string; accounts: AdminAccount[]; onNavigate: (tab: AdminTab) => void }) {
   const enabled = features.filter((feature) => feature.visibility === "enabled").length;
   const totalCards = accounts.reduce((total, account) => total + Number(account.card_units || 0), 0);
   const adminTools: { tab: AdminTab; title: string; description: string; icon: typeof Activity; tone: string }[] = [
@@ -568,7 +569,7 @@ function Overview({ features, ownerEmail, accounts, onNavigate }: { features: Fe
     </section>
     <section className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
       <div className="rounded-[24px] border border-white/[0.07] bg-[#06121b] p-5"><h3 className="text-sm font-semibold text-white">Recent admin activity</h3><div className="mt-5 flex min-h-36 items-center justify-center rounded-2xl border border-dashed border-white/[0.08] bg-black/10 text-center"><div><Activity className="mx-auto h-5 w-5 text-slate-700" /><p className="mt-2 text-xs text-slate-500">No administrative changes yet</p><p className="mt-1 text-[10px] text-slate-700">Changes will appear here automatically.</p></div></div></div>
-      <div className="rounded-[24px] border border-amber-300/[0.11] bg-amber-300/[0.025] p-5"><div className="flex items-center gap-2 text-amber-200"><ShieldCheck className="h-4 w-4" /><h3 className="text-sm font-semibold">Permanent Owner</h3></div><p className="mt-3 text-xs leading-5 text-amber-100/55">{ownerEmail} retains complete access regardless of subscription tier and cannot be demoted through ordinary account controls.</p></div>
+      <div className="rounded-[24px] border border-amber-300/[0.11] bg-amber-300/[0.025] p-5"><div className="flex items-center gap-2 text-amber-200"><ShieldCheck className="h-4 w-4" /><h3 className="text-sm font-semibold">Role-based authority</h3></div><p className="mt-3 text-xs leading-5 text-amber-100/55">{adminIdentityLabel} is authorized by the `user_roles` table. Admin authority stays separate from subscription tier and billing status.</p></div>
     </section>
   </div>;
 }
@@ -577,13 +578,11 @@ function UserDirectory({
   accounts,
   loading,
   error,
-  ownerEmail,
   onRefresh,
 }: {
   accounts: AdminAccount[];
   loading: boolean;
   error: string;
-  ownerEmail: string;
   onRefresh: () => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
@@ -605,6 +604,7 @@ function UserDirectory({
   const paidAccounts = accounts.filter(
     (account) => account.membership_level !== "free",
   ).length;
+  const currentManualPlan = selected?.membership_override ?? null;
 
   function openAccount(account: AdminAccount) {
     setSelected(account);
@@ -632,6 +632,7 @@ function UserDirectory({
         setSelected((current) => current ? {
           ...current,
           membership_level: payload.action === "plan" ? plan : current.membership_level,
+          membership_override: payload.action === "plan" ? plan : current.membership_override,
           suspended: payload.action === "suspend" ? true : payload.action === "restore" ? false : current.suspended,
         } : current);
       }
@@ -642,7 +643,7 @@ function UserDirectory({
     }
   }
 
-  const isOwner = selected?.email.trim().toLowerCase() === ownerEmail.trim().toLowerCase();
+  const isOwner = selected?.role === "owner";
 
   return (
     <>
@@ -662,7 +663,7 @@ function UserDirectory({
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <Stat label="Total accounts" value={accounts.length.toLocaleString("en-US")} detail="Registered users" icon={Users} />
             <Stat label="Cards uploaded" value={totalCards.toLocaleString("en-US")} detail="Total inventory quantity" icon={DatabaseBackup} />
-            <Stat label="Paid members" value={paidAccounts.toLocaleString("en-US")} detail="Collector through Business" icon={BadgeDollarSign} />
+            <Stat label="Paid members" value={paidAccounts.toLocaleString("en-US")} detail="Collector through Store" icon={BadgeDollarSign} />
           </div>
         </div>
 
@@ -678,12 +679,12 @@ function UserDirectory({
               </thead>
               <tbody className="divide-y divide-white/[0.05]">
                 {filteredAccounts.map((account) => {
-                  const permanentOwner = account.email.trim().toLowerCase() === ownerEmail.trim().toLowerCase();
+                  const permanentOwner = account.role === "owner";
                   return (
                     <tr key={account.id} onClick={() => openAccount(account)} className="cursor-pointer text-xs transition hover:bg-cyan-300/[0.025]">
                       <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/10 bg-cyan-300/[0.035] text-cyan-200"><UserRoundCog className="h-4 w-4" /></div><div><p className="font-semibold text-slate-200">{account.full_name || account.email.split("@")[0]}</p><p className="mt-1 text-[10px] text-slate-600">{account.email}</p></div></div></td>
                       <td className="px-5 py-4"><PlanBadge plan={account.membership_level} />{account.membership_override ? <p className="mt-1 text-[8px] uppercase tracking-[0.12em] text-amber-300/60">Admin override</p> : null}</td>
-                      <td className="px-5 py-4">{permanentOwner ? <StatusBadge label="Permanent owner" tone="amber" /> : account.suspended ? <StatusBadge label="Suspended" tone="rose" /> : account.email_confirmed ? <StatusBadge label="Active" tone="emerald" /> : <StatusBadge label="Unconfirmed" tone="slate" />}</td>
+                      <td className="px-5 py-4">{permanentOwner ? <StatusBadge label="Owner role" tone="amber" /> : account.suspended ? <StatusBadge label="Suspended" tone="rose" /> : account.email_confirmed ? <StatusBadge label="Active" tone="emerald" /> : <StatusBadge label="Unconfirmed" tone="slate" />}</td>
                       <td className="px-5 py-4 text-right font-semibold tabular-nums text-white">{Number(account.card_units || 0).toLocaleString("en-US")}</td>
                       <td className="px-5 py-4 text-[10px] text-slate-500">{new Date(account.created_at).toLocaleDateString("en-US")}</td>
                       <td className="px-5 py-4 text-[10px] text-slate-500">{account.last_sign_in_at ? new Date(account.last_sign_in_at).toLocaleDateString("en-US") : "Never"}</td>
@@ -703,11 +704,11 @@ function UserDirectory({
           <aside className="h-full w-full max-w-[480px] overflow-y-auto border-l border-cyan-300/[0.12] bg-[#04101a] shadow-[-35px_0_100px_rgba(0,0,0,.5)]">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.07] bg-[#04101a]/95 px-5 py-4 backdrop-blur-xl"><div><p className="text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Customer 360</p><h3 className="mt-1 text-lg font-semibold text-white">Manage account</h3></div><button type="button" onClick={() => setSelected(null)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 hover:text-white"><X className="h-4 w-4" /></button></div>
             <div className="space-y-5 p-5">
-              <section className="rounded-[22px] border border-white/[0.07] bg-[#071722] p-5"><div className="flex items-start gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.05] text-cyan-200"><UserRoundCog className="h-5 w-5" /></div><div className="min-w-0"><h4 className="truncate text-base font-semibold text-white">{selected.full_name || selected.email.split("@")[0]}</h4><p className="mt-1 truncate text-xs text-slate-500">{selected.email}</p><div className="mt-3 flex flex-wrap gap-2"><PlanBadge plan={selected.membership_level} />{isOwner ? <StatusBadge label="Permanent owner" tone="amber" /> : selected.suspended ? <StatusBadge label="Suspended" tone="rose" /> : <StatusBadge label="Active" tone="emerald" />}</div></div></div></section>
+              <section className="rounded-[22px] border border-white/[0.07] bg-[#071722] p-5"><div className="flex items-start gap-4"><div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.05] text-cyan-200"><UserRoundCog className="h-5 w-5" /></div><div className="min-w-0"><h4 className="truncate text-base font-semibold text-white">{selected.full_name || selected.email.split("@")[0]}</h4><p className="mt-1 truncate text-xs text-slate-500">{selected.email}</p><div className="mt-3 flex flex-wrap gap-2"><PlanBadge plan={selected.membership_level} />{isOwner ? <StatusBadge label="Owner role" tone="amber" /> : selected.suspended ? <StatusBadge label="Suspended" tone="rose" /> : <StatusBadge label="Active" tone="emerald" />}</div></div></div></section>
 
               <section className="grid grid-cols-2 gap-3">{[["Cards uploaded", Number(selected.card_units || 0).toLocaleString("en-US")],["Inventory rows", Number(selected.unique_inventory_rows || 0).toLocaleString("en-US")],["Joined", new Date(selected.created_at).toLocaleDateString("en-US")],["Last sign-in", selected.last_sign_in_at ? new Date(selected.last_sign_in_at).toLocaleDateString("en-US") : "Never"]].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/[0.06] bg-black/10 p-4"><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-600">{label}</p><p className="mt-2 text-sm font-semibold text-white">{value}</p></div>)}</section>
 
-              <section className="rounded-[22px] border border-white/[0.07] bg-[#06121b] p-5"><div className="flex items-center gap-2"><BadgeDollarSign className="h-4 w-4 text-cyan-300" /><h4 className="text-sm font-semibold text-white">Plan access</h4></div><p className="mt-2 text-[11px] leading-5 text-slate-500">An admin override changes workspace permissions without modifying Stripe billing.</p><select value={plan} onChange={(event) => setPlan(event.target.value as AdminPlan)} disabled={isOwner || working} className="mt-4 h-11 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-xs text-white outline-none focus:border-cyan-300/30"><option value="free">Free</option><option value="collector">Collector</option><option value="seller">Seller</option><option value="business">Store / Business</option></select><button type="button" disabled={isOwner || working || plan === selected.membership_level} onClick={() => void runAction({ action: "plan", plan })} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeDollarSign className="h-4 w-4" />}Save plan</button>{isOwner ? <p className="mt-3 text-[10px] text-amber-200/60">The permanent owner always retains Store access.</p> : null}</section>
+              <section className="rounded-[22px] border border-white/[0.07] bg-[#06121b] p-5"><div className="flex items-center gap-2"><BadgeDollarSign className="h-4 w-4 text-cyan-300" /><h4 className="text-sm font-semibold text-white">Plan access</h4></div><p className="mt-2 text-[11px] leading-5 text-slate-500">An admin override changes workspace permissions without modifying Stripe billing.</p><select value={plan} onChange={(event) => setPlan(event.target.value as AdminPlan)} disabled={isOwner || working} className="mt-4 h-11 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-xs text-white outline-none focus:border-cyan-300/30"><option value="free">Free</option><option value="collector">Collector</option><option value="seller">Seller</option><option value="store">Store</option></select><button type="button" disabled={isOwner || working || currentManualPlan === plan} onClick={() => void runAction({ action: "plan", plan })} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeDollarSign className="h-4 w-4" />}Save plan</button>{isOwner ? <p className="mt-3 text-[10px] text-amber-200/60">Owner role changes must be handled through role administration, not membership controls.</p> : null}</section>
 
               {!isOwner ? <section className="rounded-[22px] border border-amber-300/[0.10] bg-amber-300/[0.025] p-5"><div className="flex items-center gap-2 text-amber-200"><Ban className="h-4 w-4" /><h4 className="text-sm font-semibold">Account access</h4></div><p className="mt-2 text-[11px] leading-5 text-amber-100/50">Suspension blocks sign-in but preserves the account and its data. Restore access at any time.</p><button type="button" disabled={working} onClick={() => void runAction({ action: selected.suspended ? "restore" : "suspend" })} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-300/15 text-xs font-bold text-amber-100 hover:bg-amber-300/[0.05] disabled:opacity-40">{selected.suspended ? <UserCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}{selected.suspended ? "Restore account access" : "Suspend account"}</button></section> : null}
 
@@ -723,8 +724,8 @@ function UserDirectory({
 }
 
 function PlanBadge({ plan }: { plan: AdminPlan }) {
-  const classes = plan === "business" ? "border-amber-300/20 bg-amber-300/[0.06] text-amber-200" : plan === "seller" ? "border-cyan-300/20 bg-cyan-300/[0.06] text-cyan-200" : plan === "collector" ? "border-violet-300/20 bg-violet-300/[0.06] text-violet-200" : "border-white/[0.08] bg-white/[0.025] text-slate-500";
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${classes}`}>{plan === "business" ? "Store" : plan}</span>;
+  const classes = plan === "store" ? "border-amber-300/20 bg-amber-300/[0.06] text-amber-200" : plan === "seller" ? "border-cyan-300/20 bg-cyan-300/[0.06] text-cyan-200" : plan === "collector" ? "border-violet-300/20 bg-violet-300/[0.06] text-violet-200" : "border-white/[0.08] bg-white/[0.025] text-slate-500";
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${classes}`}>{plan === "store" ? "Store" : plan}</span>;
 }
 
 function StatusBadge({ label, tone }: { label: string; tone: "emerald" | "amber" | "rose" | "slate" }) {
@@ -738,7 +739,7 @@ function FeatureAccess({ features, query, setQuery, savingId, updateFeature }: {
     <div className="divide-y divide-white/[0.055]">
       {features.map((feature) => <div key={feature.id} className="grid gap-4 p-5 transition hover:bg-white/[0.012] xl:grid-cols-[minmax(220px,1fr)_170px_165px] xl:items-center">
         <div><div className="flex items-center gap-2"><h3 className="text-sm font-semibold text-slate-100">{feature.name}</h3><span className="rounded-full border border-white/[0.07] bg-white/[0.025] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-slate-600">{feature.category}</span>{savingId === feature.id ? <Loader2 className="h-3 w-3 animate-spin text-cyan-300" /> : null}</div><p className="mt-1 text-[11px] leading-5 text-slate-600">{feature.description}</p></div>
-        <label><span className="mb-1.5 block text-[8px] font-bold uppercase tracking-[0.16em] text-slate-700">Minimum plan</span><select value={feature.minimum_plan ?? "free"} onChange={(event) => void updateFeature(feature.id, { minimum_plan: event.target.value })} className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#091823] px-2 text-[11px] text-slate-300 outline-none"><option value="free">Free</option><option value="collector">Collector</option><option value="seller">Seller</option><option value="business">Business</option></select></label>
+        <label><span className="mb-1.5 block text-[8px] font-bold uppercase tracking-[0.16em] text-slate-700">Minimum plan</span><select value={feature.minimum_plan ?? "free"} onChange={(event) => void updateFeature(feature.id, { minimum_plan: event.target.value })} className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#091823] px-2 text-[11px] text-slate-300 outline-none"><option value="free">Free</option><option value="collector">Collector</option><option value="seller">Seller</option><option value="store">Store</option></select></label>
         <label><span className="mb-1.5 block text-[8px] font-bold uppercase tracking-[0.16em] text-slate-700">Visibility</span><select value={feature.visibility} onChange={(event) => void updateFeature(feature.id, { visibility: event.target.value as Feature["visibility"] })} className={`h-9 w-full rounded-lg border px-2 text-[11px] outline-none ${feature.visibility === "enabled" ? "border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-200" : feature.visibility === "coming_soon" ? "border-amber-300/15 bg-amber-300/[0.04] text-amber-200" : "border-white/[0.08] bg-white/[0.02] text-slate-500"}`}><option value="enabled">Visible & enabled</option><option value="coming_soon">Coming soon</option><option value="hidden">Hidden</option></select></label>
       </div>)}
     </div>
@@ -747,17 +748,17 @@ function FeatureAccess({ features, query, setQuery, savingId, updateFeature }: {
 
 type CorePlaceholderTab = "users" | "plans" | "categories" | "security" | "audit";
 
-function SectionPlaceholder({ tab, features, ownerEmail }: { tab: CorePlaceholderTab; features: Feature[]; ownerEmail: string }) {
+function SectionPlaceholder({ tab, features, adminIdentityLabel }: { tab: CorePlaceholderTab; features: Feature[]; adminIdentityLabel: string }) {
   const sectionContent = {
     users: ["User Access", "Search accounts, review subscription levels, and apply individual feature overrides.", Users],
     plans: ["Plans & Limits", "Set plan pricing, feature bundles, and usage limits from one central ruleset.", BadgeDollarSign],
     categories: ["Categories & Navigation", "Choose whether website categories are visible, hidden, or presented as coming soon.", LayoutGrid],
-    security: ["Security", `Authenticator protection is active for ${ownerEmail}. Sensitive actions require a fresh verified session.`, ShieldCheck],
+    security: ["Security", `Authenticator protection is active for ${adminIdentityLabel}. Sensitive actions require a fresh verified session.`, ShieldCheck],
     audit: ["Audit Log", "Review plan, permission, category, and security changes with their exact time and actor.", Eye],
   } satisfies Record<CorePlaceholderTab, [string, string, typeof Activity]>;
   const content = sectionContent[tab];
   const Icon = content[2] as typeof Activity;
-  const cards = tab === "plans" ? ["Free", "Collector", "Seller", "Business"] : tab === "categories" ? [...new Set(features.map((feature) => feature.category))] : tab === "security" ? ["Authenticator MFA", "Owner protection", "Session assurance", "Recovery planning"] : tab === "users" ? [ownerEmail] : ["No changes recorded"];
+  const cards = tab === "plans" ? ["Free", "Collector", "Seller", "Store"] : tab === "categories" ? [...new Set(features.map((feature) => feature.category))] : tab === "security" ? ["Authenticator MFA", "Role protection", "Session assurance", "Recovery planning"] : tab === "users" ? [adminIdentityLabel] : ["No changes recorded"];
   return <section className="rounded-[24px] border border-white/[0.07] bg-[#06121b] p-5 sm:p-6"><div className="flex items-start gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.055] text-cyan-200"><Icon className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Admin controls</p><h2 className="mt-1 text-xl font-semibold text-white">{content[0] as string}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{content[1] as string}</p></div></div><div className="mt-7 grid gap-3 sm:grid-cols-2">{cards.map((card) => <div key={card} className="flex min-h-20 items-center justify-between rounded-2xl border border-white/[0.06] bg-black/10 p-4"><div><p className="text-xs font-semibold capitalize text-slate-200">{card}</p><p className="mt-1 text-[10px] text-slate-600">{tab === "security" ? "Protected" : "Configured"}</p></div>{tab === "security" ? <Check className="h-4 w-4 text-emerald-300" /> : tab === "users" ? <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.05] px-2 py-1 text-[9px] font-bold uppercase text-amber-200">Owner</span> : <ChevronRight className="h-4 w-4 text-slate-700" />}</div>)}</div>{tab === "security" ? <div className="mt-5 flex gap-3 rounded-2xl border border-amber-300/[0.1] bg-amber-300/[0.025] p-4"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300/70" /><p className="text-[11px] leading-5 text-amber-100/50">Save the recovery codes shown by your authentication provider somewhere offline. Trading Docks never displays or stores your authenticator code.</p></div> : null}</section>;
 }
 

@@ -36,7 +36,7 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  if (effectivePlan === "seller" || effectivePlan === "business") {
+  if (effectivePlan === "seller" || effectivePlan === "store") {
     const settings =
       preferences.settings &&
       typeof preferences.settings === "object" &&

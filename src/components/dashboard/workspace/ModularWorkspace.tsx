@@ -314,7 +314,7 @@ export function ModularWorkspace({
           <div className="flex items-center gap-3 px-0.5 text-[10px] font-medium text-slate-500">
             <span>{widgets.length} modules</span>
             <span className="capitalize">
-              {accountType === "business" ? "Store plan" : `${ACCOUNT_LABEL[accountType] ?? "Free"} plan`}
+              {accountType === "store" || accountType === "business" ? "Store plan" : `${ACCOUNT_LABEL[accountType] ?? "Free"} plan`}
             </span>
           </div>
         </div>

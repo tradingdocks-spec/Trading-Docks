@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   BadgeDollarSign,
@@ -15,6 +16,7 @@ import {
   MapPin,
   PackageSearch,
   Plus,
+  Printer,
   ReceiptText,
   Search,
   Settings2,
@@ -29,6 +31,7 @@ import {
 } from "lucide-react";
 import { CARD_SHOW_GAMES, type CardShowGameId } from "@/lib/card-show-games";
 import { loadAccountDocument, saveAccountDocument } from "@/lib/account-documents";
+import { labelStudioHref } from "@/lib/label-studio/routes";
 import {
   persistInventorySnapshotDiff,
   type InventoryPersistenceRecord,
@@ -710,7 +713,7 @@ function PriceCell({ label, value, accent = false, offer = false }: { label: str
 function InventoryPanel({ event, inventory, value, sold }: { event?: EventRecord; inventory: InventoryRecord[]; value: number; sold: number }) {
   if (!event) return <EmptyState icon={Boxes} title="No show selected" description="Create a card show before assigning inventory." />;
   if (!inventory.length) return <EmptyState icon={Boxes} title="No show inventory yet" description="Transfer or scan inventory when you are ready. Nothing is preloaded." />;
-  return <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Temporary inventory location</p><h2 className="mt-2 text-xl font-semibold text-white">{event?.name} · {event?.booth}</h2><p className="mt-1 text-xs text-slate-500">Stock assigned here is reserved from online availability.</p></div><div className="flex gap-2"><button className="h-10 rounded-xl border border-white/[0.08] px-4 text-xs font-semibold text-slate-300">Transfer inventory</button><button className="h-10 rounded-xl bg-cyan-400 px-4 text-xs font-bold text-[#001018]">Scan item</button></div></div><div className="mt-6 grid gap-3 sm:grid-cols-3"><Info icon={Boxes} label="Assigned value" value={money(value)} /><Info icon={ShoppingCart} label="Units sold" value={`${sold} units`} /><Info icon={Store} label="Location status" value="Reserved for show" /></div><div className="mt-6 overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-white/[0.07] text-[9px] font-bold uppercase tracking-[0.14em] text-slate-700"><th className="pb-3">Inventory group</th><th className="pb-3">Category</th><th className="pb-3 text-right">Taken</th><th className="pb-3 text-right">Sold</th><th className="pb-3 text-right">Remaining</th><th className="pb-3 text-right">Assigned value</th></tr></thead><tbody>{inventory.map((item) => <tr key={item.name} className="border-b border-white/[0.045] text-xs"><td className="py-4 font-semibold text-slate-200">{item.name}</td><td className="py-4 text-slate-500">{item.category}</td><td className="py-4 text-right text-slate-400">{item.taken}</td><td className="py-4 text-right text-emerald-300">{item.sold}</td><td className="py-4 text-right text-slate-400">{item.taken - item.sold}</td><td className="py-4 text-right font-semibold text-white">{money(item.value)}</td></tr>)}</tbody></table></div></section>;
+  return <section className="rounded-[24px] border border-white/[0.065] bg-[#06131d] p-5 sm:p-6"><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Temporary inventory location</p><h2 className="mt-2 text-xl font-semibold text-white">{event?.name} · {event?.booth}</h2><p className="mt-1 text-xs text-slate-500">Stock assigned here is reserved from online availability.</p></div><div className="flex flex-wrap gap-2"><Link href={labelStudioHref("card-shows", "show-labels")} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.07] px-4 text-xs font-semibold text-cyan-100 transition hover:border-cyan-300/40 hover:bg-cyan-400/[0.12]"><Printer className="h-4 w-4" /> Print Show Labels</Link><button className="h-10 rounded-xl border border-white/[0.08] px-4 text-xs font-semibold text-slate-300">Transfer inventory</button><button className="h-10 rounded-xl bg-cyan-400 px-4 text-xs font-bold text-[#001018]">Scan item</button></div></div><div className="mt-6 grid gap-3 sm:grid-cols-3"><Info icon={Boxes} label="Assigned value" value={money(value)} /><Info icon={ShoppingCart} label="Units sold" value={`${sold} units`} /><Info icon={Store} label="Location status" value="Reserved for show" /></div><div className="mt-6 overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-white/[0.07] text-[9px] font-bold uppercase tracking-[0.14em] text-slate-700"><th className="pb-3">Inventory group</th><th className="pb-3">Category</th><th className="pb-3 text-right">Taken</th><th className="pb-3 text-right">Sold</th><th className="pb-3 text-right">Remaining</th><th className="pb-3 text-right">Assigned value</th></tr></thead><tbody>{inventory.map((item) => <tr key={item.name} className="border-b border-white/[0.045] text-xs"><td className="py-4 font-semibold text-slate-200">{item.name}</td><td className="py-4 text-slate-500">{item.category}</td><td className="py-4 text-right text-slate-400">{item.taken}</td><td className="py-4 text-right text-emerald-300">{item.sold}</td><td className="py-4 text-right text-slate-400">{item.taken - item.sold}</td><td className="py-4 text-right font-semibold text-white">{money(item.value)}</td></tr>)}</tbody></table></div></section>;
 }
 
 function SalesPanel({ sales, total, item, amount, setItem, setAmount, onRecord }: { sales: SaleRecord[]; total: number; item: string; amount: string; setItem: (v: string) => void; setAmount: (v: string) => void; onRecord: () => void }) {

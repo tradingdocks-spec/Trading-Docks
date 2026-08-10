@@ -1,9 +1,190 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAccount } from '@/providers/account';
-import { color, elevation, radius } from '@/design';
-const icons: Record<string,string>={index:'home',collection:'albums',scan:'scan','deal-desk':'calculator',sell:'pulse',profile:'person'};
-export default function Layout(){const {accountType}=useAccount();const business=accountType==='seller'||accountType==='store';return <Tabs screenOptions={({route})=>({headerShown:false,tabBarShowLabel:true,tabBarActiveTintColor:color.primaryBright,tabBarInactiveTintColor:color.textMuted,tabBarStyle:s.tab,tabBarLabelStyle:s.label,tabBarIcon:({color:iconColor,size,focused})=>{const base=icons[route.name]??'ellipse';return route.name===(business?'deal-desk':'scan')?<View style={[s.center,focused&&s.centerActive]}><Ionicons name={base as any} color="#fff" size={25}/></View>:<Ionicons name={(focused?base:`${base}-outline`) as any} color={iconColor} size={size}/>},tabBarButton:(props)=><Pressable {...props as any} onPress={(event)=>{Haptics.selectionAsync();props.onPress?.(event as any)}}/>})}><Tabs.Screen name="index" options={{title:'Home'}}/><Tabs.Screen name="collection" options={{title:business?'Inventory':'Collection'}}/><Tabs.Screen name="scan" options={{title:'Scan',href:business?null:undefined}}/><Tabs.Screen name="deal-desk" options={{title:'Deal Desk',href:business?undefined:null}}/><Tabs.Screen name="sell" options={{title:'Signals'}}/><Tabs.Screen name="profile" options={{title:'Profile'}}/></Tabs>}
-const s=StyleSheet.create({tab:{position:'absolute',left:14,right:14,bottom:Platform.OS==='ios'?18:10,height:Platform.OS==='ios'?76:68,paddingTop:8,paddingBottom:Platform.OS==='ios'?10:7,backgroundColor:'#0A1A2AF5',borderTopWidth:0,borderWidth:1,borderColor:color.border,borderRadius:26,...elevation.floating},label:{fontSize:10,fontWeight:'800'},center:{width:54,height:54,borderRadius:radius.lg,backgroundColor:color.primary,alignItems:'center',justifyContent:'center',marginTop:-22,borderWidth:4,borderColor:color.canvas,...elevation.floating},centerActive:{backgroundColor:color.primaryBright}});
+import { color, edge, elevation, radius, semanticColor, surface } from '@/design';
+import {
+  getMobileBottomNavVisualModel,
+  getMobileTabOptions,
+  shouldHideMobileTabBarForRoute,
+  type MobileTabRouteName,
+} from '@/services/navigation-contract';
+
+export default function Layout() {
+  const { accountType, ready } = useAccount();
+  const insets = useSafeAreaInsets();
+
+  if (!ready) {
+    return (
+      <View style={s.loading}>
+        <ActivityIndicator color={color.primaryBright} />
+        <Text style={s.loadingText}>Preparing workspace navigation...</Text>
+      </View>
+    );
+  }
+
+  const optionsFor = (route: MobileTabRouteName) => {
+    const options = getMobileTabOptions(accountType, route);
+    return {
+      title: options.title,
+      href: options.href,
+      tabBarAccessibilityLabel: options.accessibilityLabel,
+    };
+  };
+  const navModel = getMobileBottomNavVisualModel(insets.bottom);
+
+  return (
+    <Tabs
+      screenOptions={({ route }) => {
+        const options = getMobileTabOptions(accountType, route.name as MobileTabRouteName);
+        const hideTabBar = shouldHideMobileTabBarForRoute(route.name as MobileTabRouteName);
+        return {
+          headerShown: false,
+          tabBarShowLabel: true,
+          tabBarActiveTintColor: semanticColor.activeNavigation,
+          tabBarInactiveTintColor: color.textMuted,
+          tabBarStyle: [
+            s.tab,
+            hideTabBar && s.tabHidden,
+            {
+              height: navModel.height,
+              paddingBottom: navModel.paddingBottom,
+              paddingTop: navModel.paddingTop,
+            },
+          ],
+          tabBarItemStyle: s.item,
+          tabBarLabelStyle: s.label,
+          tabBarIcon: ({ color: iconColor, focused }) => {
+            return options.prominent ? (
+              <View
+                style={[
+                  s.center,
+                  {
+                    width: navModel.centerAction.width,
+                    height: navModel.centerAction.height,
+                  },
+                  focused && s.centerActive,
+                ]}
+              >
+                <Ionicons
+                  name={(focused ? options.icon : options.inactiveIcon) as any}
+                  color={focused ? color.text : iconColor}
+                  size={navModel.iconSize}
+                />
+              </View>
+            ) : (
+              <Ionicons
+                name={(focused ? options.icon : options.inactiveIcon) as any}
+                color={iconColor}
+                size={navModel.iconSize}
+              />
+            );
+          },
+          tabBarButton: (props) => (
+            <Pressable
+              {...props as any}
+              accessibilityRole="tab"
+              accessibilityLabel={options.accessibilityLabel}
+              accessibilityState={{
+                ...props.accessibilityState,
+                selected: Boolean(props.accessibilityState?.selected),
+              }}
+              onPress={(event) => {
+                if (Platform.OS !== 'web') {
+                  Haptics.selectionAsync();
+                }
+                props.onPress?.(event as any);
+              }}
+              style={({ pressed }) => [
+                props.style as any,
+                s.tabPressArea,
+                pressed && s.pressedTab,
+              ]}
+            />
+          ),
+        };
+      }}
+    >
+      <Tabs.Screen name="index" options={optionsFor('index')} />
+      <Tabs.Screen name="collection" options={optionsFor('collection')} />
+      <Tabs.Screen name="scan" options={optionsFor('scan')} />
+      <Tabs.Screen name="sell" options={optionsFor('sell')} />
+      <Tabs.Screen name="profile" options={optionsFor('profile')} />
+    </Tabs>
+  );
+}
+
+const s = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: color.canvas,
+  },
+  loadingText: {
+    color: color.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  tab: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: `${surface.dock}FA`,
+    borderTopWidth: 1,
+    borderTopColor: edge.highlight,
+    borderWidth: 0,
+    borderRadius: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
+    elevation: 18,
+    ...elevation.raised,
+  },
+  tabHidden: {
+    display: 'none',
+  },
+  item: {
+    minHeight: 48,
+    paddingTop: 2,
+  },
+  tabPressArea: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressedTab: {
+    opacity: 0.9,
+    transform: [{ translateY: 1 }],
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 12,
+    marginTop: 1,
+    maxWidth: 76,
+  },
+  center: {
+    borderRadius: radius.control,
+    backgroundColor: `${semanticColor.scanner}18`,
+    borderWidth: 1,
+    borderColor: semanticColor.scanner + '44',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: semanticColor.scanner,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.16,
+    shadowRadius: 7,
+    elevation: 6,
+  },
+  centerActive: {
+    backgroundColor: semanticColor.primaryAction,
+    borderColor: semanticColor.activeNavigation,
+    transform: [{ translateY: -1 }],
+  },
+});

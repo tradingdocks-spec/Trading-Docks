@@ -114,8 +114,8 @@ export const REVENUECAT_PRODUCT_MAPPINGS: Record<string, RevenueCatPlanMapping> 
 };
 
 const KNOWN_EVENT_TYPES = new Set<RevenueCatEventType>([
-  "INITIAL_PURCHASE",
   "TEST",
+  "INITIAL_PURCHASE",
   "RENEWAL",
   "PRODUCT_CHANGE",
   "CANCELLATION",

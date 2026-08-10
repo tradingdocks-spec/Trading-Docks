@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { hasPlanAccess } from "@/lib/tier-access";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 type SeedCard = {
   id: string;
@@ -152,19 +151,9 @@ const SEEDS: SeedCard[] = [
 
 export const revalidate = 300;
 
-async function requireFeatureAccess() {
-  if (!hasPlanAccess(await getEffectivePlan(), "purchasing")) {
-    return NextResponse.json(
-      { error: "Purchasing requires a higher Trading Docks plan." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
-
 export async function GET() {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
+  const capability = await requireApiCapability("buying.manage");
+  if (!capability.ok) return capability.response;
   const cards = await Promise.all(
     SEEDS.map(async (seed, index) => {
       const response = await fetch(

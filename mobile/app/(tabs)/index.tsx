@@ -1,9 +1,356 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { GlassCard, Logo, Pill, QuickAction, SectionTitle } from '@/components/primitives';
-import { brand as B } from '@/constants/brand';
-import { useAccount } from '@/providers/account';
-import { useWorkSession } from '@/features/sessions/session-provider';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-export default function Home(){const {accountType}=useAccount();const {activeSession}=useWorkSession();const business=accountType==='seller'||accountType==='store';return <ScrollView style={s.page} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}><View style={s.header}><Logo compact/><View><Text style={s.hello}>Good afternoon</Text><Text style={s.name}>{business?accountType==='store'?'Store workspace':'Seller workspace':accountType==='collector'?'Collector workspace':'Free workspace'}</Text></View><View style={s.icon}><Ionicons name="notifications-outline" size={21} color={B.text}/><View style={s.notice}/></View></View><GlassCard style={s.hero}><View style={s.heroTop}><View><Text style={s.eyebrow}>COLLECTION VALUE</Text><Text style={s.value}>$24,860.40</Text><Text style={s.gain}>+$684.20 · 2.8% this month</Text></View><Pill text="LIVE" tone="green"/></View><View style={s.chart}>{[27,38,33,47,44,61,56,72,68,84,78,98].map((h,i)=><View key={i} style={[s.bar,{height:h}]}/>)}</View><View style={s.heroFoot}><Text style={s.muted}>1,284 cards tracked</Text><Text style={s.link}>Open portfolio →</Text></View></GlassCard>{activeSession?<Pressable onPress={()=>router.push(business?'/(tabs)/deal-desk' as any:'/(tabs)/scan' as any)}><GlassCard style={s.session}><View style={s.sessionPulse}/><View style={{flex:1}}><Text style={s.sessionLabel}>ACTIVE SESSION</Text><Text style={s.signalTitle}>{activeSession.name}</Text><Text style={s.muted}>Tap to resume · saved offline</Text></View><Ionicons name="arrow-forward" size={20} color={B.cyan}/></GlassCard></Pressable>:null}<SectionTitle title="Quick actions"/><View style={s.grid}><QuickAction icon="scan" label="Scan cards" subtitle="Add cards in seconds"/><QuickAction icon="add-circle-outline" label="Add manually" subtitle="Choose exact printing"/><QuickAction icon="calculator-outline" label={business?"Deal Desk":"Trade value"} subtitle={business?"Price a purchase":"Balance a trade"}/><QuickAction icon="eye-outline" label="Watchlist" subtitle="Follow key cards"/></View><SectionTitle title="Your daily signal" action="See all"/><GlassCard><View style={s.signalTop}><View style={s.spark}><Ionicons name="sparkles" size={22} color={B.cyan}/></View><View style={{flex:1}}><Text style={s.signalTitle}>3 cards moved more than 8%</Text><Text style={s.muted}>Your collection has meaningful movement today.</Text></View><Ionicons name="chevron-forward" color={B.muted} size={20}/></View><View style={s.divider}/><View style={s.metricRow}><View><Text style={s.metric}>+$41.80</Text><Text style={s.muted}>Largest gain</Text></View><View><Text style={s.metric}>12</Text><Text style={s.muted}>Need review</Text></View><View><Text style={s.metric}>4</Text><Text style={s.muted}>Watch alerts</Text></View></View></GlassCard><SectionTitle title="Continue where you left off"/><GlassCard style={s.continueCard}><View style={s.fakeCard}><Ionicons name="layers" size={27} color={B.cyan}/></View><View style={{flex:1}}><Text style={s.signalTitle}>Commander collection</Text><Text style={s.muted}>18 cards added this week · 82% priced</Text></View><Pill text="CONTINUE"/></GlassCard></ScrollView>}
-const s=StyleSheet.create({page:{flex:1,backgroundColor:B.bg},content:{padding:20,paddingTop:58,paddingBottom:120,gap:18},header:{flexDirection:'row',alignItems:'center',gap:12},hello:{color:B.muted,fontSize:11},name:{color:B.text,fontSize:18,fontWeight:'900'},icon:{marginLeft:'auto',width:43,height:43,borderRadius:14,borderWidth:1,borderColor:B.line,backgroundColor:B.surface,alignItems:'center',justifyContent:'center'},notice:{position:'absolute',width:7,height:7,borderRadius:5,backgroundColor:B.cyan,top:9,right:9},hero:{padding:20},heroTop:{flexDirection:'row',justifyContent:'space-between'},eyebrow:{color:B.muted,fontSize:10,fontWeight:'900',letterSpacing:1.3},value:{color:B.text,fontSize:34,fontWeight:'900',letterSpacing:-1.1,marginTop:8},gain:{color:B.green,fontSize:11,fontWeight:'800',marginTop:6},chart:{height:104,flexDirection:'row',alignItems:'flex-end',gap:5,marginTop:19},bar:{flex:1,borderRadius:5,backgroundColor:B.blue,opacity:.85},heroFoot:{flexDirection:'row',justifyContent:'space-between',marginTop:15},muted:{color:B.muted,fontSize:11,lineHeight:17},link:{color:B.cyan,fontWeight:'900',fontSize:11},grid:{flexDirection:'row',flexWrap:'wrap',gap:11},signalTop:{flexDirection:'row',alignItems:'center',gap:12},spark:{width:48,height:48,borderRadius:15,backgroundColor:B.blue+'20',alignItems:'center',justifyContent:'center'},signalTitle:{color:B.text,fontWeight:'900',fontSize:14,marginBottom:4},divider:{height:1,backgroundColor:B.line,marginVertical:17},metricRow:{flexDirection:'row',justifyContent:'space-between'},metric:{color:B.text,fontWeight:'900',fontSize:17,marginBottom:3},session:{flexDirection:'row',alignItems:'center',gap:12,backgroundColor:B.surface2},sessionPulse:{width:10,height:10,borderRadius:5,backgroundColor:B.green,shadowColor:B.green,shadowOpacity:.8,shadowRadius:8},sessionLabel:{color:B.green,fontSize:9,fontWeight:'900',letterSpacing:1.2,marginBottom:4},continueCard:{flexDirection:'row',alignItems:'center',gap:12},fakeCard:{width:52,height:68,borderRadius:13,backgroundColor:B.surface2,borderWidth:1,borderColor:B.line,alignItems:'center',justifyContent:'center'}});
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import {
+  CollectibleCard,
+  DockAction,
+  DockHeader,
+  DockRail,
+  DockSection,
+  DockSurface,
+  DockTray,
+  TDBadge,
+  TDSkeleton,
+  TDText,
+} from '@/components/design-system';
+import { color, radius, space } from '@/design';
+import { useWorkSession } from '@/features/sessions/session-provider';
+import { useAccount } from '@/providers/account';
+import { loadCollectorCollectionPage } from '@/services/collector-data';
+import { summarizeCollectionCards, type CollectionCard, type CollectionSummary } from '@/services/collector-workspace';
+import { buildMobileHomeComposition, type HomeAction, type HomeRecentCard } from '@/services/mobile-home';
+import { getMobileScrollBottomInset } from '@/services/navigation-contract';
+
+export default function Home() {
+  const insets = useSafeAreaInsets();
+  const { accountType } = useAccount();
+  const { activeSession } = useWorkSession();
+  const [summary, setSummary] = useState<CollectionSummary | null>(null);
+  const [recentCards, setRecentCards] = useState<CollectionCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unavailableReason, setUnavailableReason] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void loadCollectorCollectionPage()
+      .then((result) => {
+        if (!active) return;
+        setRecentCards(result.cards);
+        setSummary(summarizeCollectionCards(result.cards, accountType));
+        setStale(result.stale);
+        setUnavailableReason(result.unavailableReason ?? null);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setRecentCards([]);
+        setSummary(null);
+        setUnavailableReason(error instanceof Error ? error.message : 'Collection summary is unavailable.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [accountType]);
+
+  const composition = useMemo(
+    () => buildMobileHomeComposition({
+      accountType,
+      summary,
+      collectionUnavailable: Boolean(unavailableReason && !summary),
+      stale,
+      activeSession,
+      recentCards,
+    }),
+    [accountType, activeSession, stale, summary, unavailableReason, recentCards],
+  );
+
+  return (
+    <View style={s.page}>
+      <ScrollView
+        contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 14, 34), paddingBottom: getMobileScrollBottomInset(insets.bottom) }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <HomeHeader workspaceLabel={composition.workspaceLabel} />
+
+        <HomeHero
+          loading={loading}
+          eyebrow={composition.hero.eyebrow}
+          title={composition.hero.title}
+          value={composition.hero.value}
+          supporting={unavailableReason ?? composition.hero.supporting}
+          state={composition.hero.state}
+        />
+
+        <QuickActions actions={composition.actions} />
+
+        {composition.recentAdds.length ? (
+          <RecentAddsCarousel cards={composition.recentAdds} />
+        ) : (
+          <EmptyCollectionHero loading={loading} />
+        )}
+
+        <ActionableInsight
+          title={composition.insight.title}
+          message={composition.insight.message}
+          tone={composition.insight.tone}
+          activeSessionVisible={composition.activeSessionVisible}
+          activeSessionRoute={composition.activeSessionRoute}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
+function HomeHeader({ workspaceLabel }: { workspaceLabel: string }) {
+  return (
+    <View style={s.header}>
+      <View style={s.headerTitle}>
+        <TDText variant="caption" tone="muted">Trading Docks</TDText>
+        <TDText variant="title">{workspaceLabel}</TDText>
+      </View>
+    </View>
+  );
+}
+
+function HomeHero({
+  loading,
+  eyebrow,
+  title,
+  value,
+  supporting,
+  state,
+}: {
+  loading: boolean;
+  eyebrow: string;
+  title: string;
+  value: string;
+  supporting: string;
+  state: 'ready' | 'empty' | 'unavailable' | 'stale';
+}) {
+  const tone = state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'info';
+  return (
+    <View style={s.heroShell}>
+      <View style={s.heroBackplate} />
+      <DockSurface material="activeInstrument" level="raised" tone={state === 'ready' ? 'success' : state === 'stale' ? 'warning' : 'neutral'} style={s.hero}>
+        <View style={s.heroLight} />
+        <DockHeader
+          eyebrow={eyebrow}
+          title={title}
+          right={<TDBadge tone={tone}>{heroStateLabel(state)}</TDBadge>}
+        />
+        <View style={s.instrumentFace}>
+          {loading ? (
+            <TDSkeleton lines={2} style={s.heroSkeleton} />
+          ) : (
+            <>
+              <TDText variant="display" style={s.heroValue}>{value}</TDText>
+              <TDText variant="small" tone="muted">{supporting}</TDText>
+            </>
+          )}
+        </View>
+      </DockSurface>
+    </View>
+  );
+}
+
+function QuickActions({ actions }: { actions: HomeAction[] }) {
+  const primary = actions[0];
+  const secondary = actions.slice(1);
+  return (
+    <DockSurface accessibilityLabel="Primary workspace actions" material="raisedControl" level="raised" style={s.quickActions}>
+      <DockAction
+        label={primary.label}
+        iconName={primary.icon as keyof typeof Ionicons.glyphMap}
+        onPress={() => go(primary)}
+        prominent
+        style={s.scanAction}
+      />
+      <View style={s.actionRail}>
+        <DockRail compact>
+          {secondary.map((action) => (
+            <DockAction
+              key={action.key}
+              label={action.label}
+              iconName={action.icon as keyof typeof Ionicons.glyphMap}
+              onPress={() => go(action)}
+            />
+          ))}
+        </DockRail>
+      </View>
+    </DockSurface>
+  );
+}
+
+function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
+  return (
+    <DockSection
+      title="Recent Adds"
+      action={<TDText variant="caption" tone="muted">Latest inventory</TDText>}
+    >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.recentList}>
+        {cards.map((card) => (
+          <CollectibleCard
+            key={card.id}
+            title={card.title}
+            subtitle={card.subtitle}
+            metadata={card.metadata}
+            imageUrl={card.imageUrl}
+            quantityLabel={card.quantityLabel}
+            onPress={() => {
+              tap();
+              router.push(`/collection/${card.id}` as never);
+            }}
+            style={s.recentCard}
+          >
+            <TDText variant="caption" tone={card.price === 'Price unavailable' ? 'muted' : 'primary'} numberOfLines={1}>{card.price}</TDText>
+          </CollectibleCard>
+        ))}
+      </ScrollView>
+    </DockSection>
+  );
+}
+
+function EmptyCollectionHero({ loading }: { loading: boolean }) {
+  if (loading) return <TDSkeleton lines={3} style={s.emptySkeleton} />;
+  return (
+      <DockTray style={s.emptyCard}>
+      <View style={s.emptyIcon}>
+        <Ionicons name="scan-outline" size={24} color={color.primaryBright} />
+      </View>
+      <View style={s.flex}>
+        <TDText variant="title">Start your collection</TDText>
+        <TDText variant="small" tone="muted">Scan, review, then organize the first real card.</TDText>
+      </View>
+    </DockTray>
+  );
+}
+
+function ActionableInsight({
+  title,
+  message,
+  tone,
+  activeSessionVisible,
+  activeSessionRoute,
+}: {
+  title: string;
+  message: string;
+  tone: 'info' | 'warning' | 'success';
+  activeSessionVisible: boolean;
+  activeSessionRoute: '/(tabs)/scan' | '/deal-desk';
+}) {
+  return (
+    <DockTray style={s.insight}>
+      <View style={[s.insightIcon, tone === 'warning' && s.insightWarning, tone === 'success' && s.insightSuccess]}>
+        <Ionicons name={tone === 'warning' ? 'alert-circle-outline' : tone === 'success' ? 'checkmark-circle-outline' : 'sparkles-outline'} size={20} color={tone === 'warning' ? color.warning : tone === 'success' ? color.success : color.primaryBright} />
+      </View>
+      <View style={s.flex}>
+        <TDText variant="small">{title}</TDText>
+        <TDText variant="caption" tone="muted">{message}</TDText>
+      </View>
+      {activeSessionVisible ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Resume active session"
+          onPress={() => {
+            tap();
+            router.push(activeSessionRoute);
+          }}
+          style={({ pressed }) => [s.resumeButton, pressed && s.pressed]}
+        >
+          <Ionicons name="arrow-forward" size={18} color={color.primaryBright} />
+        </Pressable>
+      ) : null}
+    </DockTray>
+  );
+}
+
+function go(action: HomeAction) {
+  tap();
+  router.push(action.route);
+}
+
+function tap() {
+  if (Platform.OS !== 'web') void Haptics.selectionAsync();
+}
+
+function heroStateLabel(state: 'ready' | 'empty' | 'unavailable' | 'stale') {
+  if (state === 'ready') return 'Synced';
+  if (state === 'empty') return 'Start';
+  if (state === 'stale') return 'Cached';
+  return 'Offline';
+}
+
+const s = StyleSheet.create({
+  page: { flex: 1, backgroundColor: color.canvas },
+  content: { paddingHorizontal: space.md, gap: space.lg },
+  header: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
+  headerTitle: { flex: 1, minWidth: 0 },
+  flex: { flex: 1, minWidth: 0 },
+  heroShell: { minHeight: 224, justifyContent: 'center' },
+  heroBackplate: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    top: 16,
+    bottom: 0,
+    borderRadius: radius.xl,
+    backgroundColor: color.canvasRaised,
+    opacity: 0.74,
+    transform: [{ translateY: 8 }],
+  },
+  hero: {
+    gap: space.md,
+    padding: space.md,
+    overflow: 'hidden',
+    borderTopColor: color.primaryBright + '44',
+    borderBottomColor: '#00000088',
+  },
+  heroLight: {
+    position: 'absolute',
+    left: -40,
+    right: 40,
+    top: -80,
+    height: 150,
+    borderRadius: 150,
+    backgroundColor: color.primaryBright + '1C',
+  },
+  instrumentFace: {
+    minHeight: 110,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderTopColor: color.primaryBright + '28',
+    borderLeftColor: color.border,
+    borderRightColor: color.border,
+    borderBottomColor: '#00000099',
+    padding: space.md,
+    justifyContent: 'center',
+    backgroundColor: color.canvas + 'B8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.24,
+    shadowRadius: 8,
+  },
+  heroValue: { marginTop: space.xs, textShadowColor: color.primaryBright + '24', textShadowRadius: 18 },
+  heroSkeleton: { marginTop: space.sm },
+  quickActions: { gap: 0, padding: space.xs, overflow: 'hidden' },
+  scanAction: { minHeight: 62, marginBottom: space.xs, borderBottomColor: '#00000088' },
+  actionRail: { borderTopWidth: 1, borderTopColor: color.primaryBright + '18', paddingTop: space.xs },
+  recentList: { gap: space.sm, paddingRight: space.md },
+  recentCard: { width: 148 },
+  emptySkeleton: { minHeight: 118 },
+  emptyCard: { minHeight: 104, flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
+  emptyIcon: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.primary + '18' },
+  insight: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
+  insightIcon: { width: 38, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.primary + '16' },
+  insightWarning: { backgroundColor: color.warning + '18' },
+  insightSuccess: { backgroundColor: color.success + '18' },
+  resumeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
+  pressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },
+});

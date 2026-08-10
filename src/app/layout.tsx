@@ -5,13 +5,40 @@ import { RouteEntrance } from "@/components/navigation/PolishedNavigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.tradingdocks.com"),
+  applicationName: "Trading Docks",
   title: {
-    default: "Trading Docks",
+    default: "Trading Docks | Card Inventory, Pricing, and Operations OS",
     template: "%s | Trading Docks",
   },
   description:
-    "Manage inventory, marketplace listings, pricing, and sales from one connected card-selling workspace.",
+    "Manage collections, inventory, pricing, labels, marketplace operations, and card-selling workflows from one connected Trading Docks workspace.",
+  alternates: {
+    canonical: "/",
+  },
+  keywords: [
+    "Trading Docks",
+    "card inventory software",
+    "TCG inventory",
+    "sports card inventory",
+    "card store software",
+    "card seller workspace",
+  ],
   manifest: "/site.webmanifest",
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Trading Docks",
+    title: "Trading Docks | Card Inventory, Pricing, and Operations OS",
+    description:
+      "Manage collections, inventory, pricing, labels, marketplace operations, and card-selling workflows from one connected Trading Docks workspace.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Trading Docks | Card Inventory, Pricing, and Operations OS",
+    description:
+      "Manage collections, inventory, pricing, labels, marketplace operations, and card-selling workflows from one connected Trading Docks workspace.",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },

@@ -1,37 +1,17 @@
 import { NextResponse } from "next/server";
 import { processWorkspaceBacklog } from "@/lib/email/process-inbound";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { hasPlanAccess } from "@/lib/tier-access";
-
-async function requireFeatureAccess() {
-  if (!hasPlanAccess(await getEffectivePlan(), "orders")) {
-    return NextResponse.json(
-      { error: "Orders requires a higher Trading Docks plan." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function workspaceId(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: preferences } = await supabase.from("user_preferences").select("active_workspace_id").eq("user_id", userId).maybeSingle();
-  if (preferences?.active_workspace_id) return preferences.active_workspace_id as string;
-  const { data: membership } = await supabase.from("workspace_members").select("workspace_id").eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
-  return (membership?.workspace_id as string | undefined) ?? null;
-}
-
 export async function POST() {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  const id = await workspaceId(supabase, user.id);
+  const capability = await requireApiCapability("orders.manage");
+  if (!capability.ok) return capability.response;
+  const { supabase } = capability;
+  const user = capability.user!;
+  const id = capability.access.workspaceId;
   if (!id) return NextResponse.json({ error: "No active workspace." }, { status: 409 });
   try {
     const admin = createAdminClient();

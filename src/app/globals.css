@@ -3,6 +3,34 @@
 :root {
   --background: #03080c;
   --foreground: #f8fafc;
+  --td-background-primary: #06111f;
+  --td-background-secondary: #091827;
+  --td-surface-default: #0d2033;
+  --td-surface-elevated: #112941;
+  --td-surface-floating: #142f49;
+  --td-text-primary: #f6faff;
+  --td-text-secondary: #a9bbcb;
+  --td-text-muted: #71899f;
+  --td-border-default: #1c3c59;
+  --td-border-strong: #2d5272;
+  --td-border-subtle: rgba(169, 187, 203, 0.16);
+  --td-border-focus: #66d9ff;
+  --td-action-primary: #2688ff;
+  --td-action-primary-hover: #4aa3ff;
+  --td-action-primary-pressed: #176ed6;
+  --td-success: #31d99a;
+  --td-warning: #ffc76a;
+  --td-danger: #ff6f87;
+  --td-information: #22d3ee;
+  --td-accent: #8b5cf6;
+  --td-radius-xs: 8px;
+  --td-radius-sm: 12px;
+  --td-radius-md: 16px;
+  --td-radius-lg: 20px;
+  --td-radius-xl: 24px;
+  --td-elevation-raised: 0 12px 30px rgba(0, 0, 0, 0.22);
+  --td-elevation-floating: 0 24px 56px rgba(0, 0, 0, 0.34);
+  --td-elevation-overlay: 0 40px 110px rgba(0, 0, 0, 0.58);
 }
 
 * {

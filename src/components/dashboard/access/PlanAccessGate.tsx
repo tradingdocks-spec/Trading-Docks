@@ -6,28 +6,35 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import {
-  featureForPath,
-  hasPlanAccess,
-  FEATURE_LABEL,
-  minimumPlanName,
   normalizeAccountTier,
 } from "@/lib/tier-access";
+import {
+  canShowRoute,
+  clientAccessFromTier,
+  type ClientSafePlatformAccess,
+} from "@/lib/platform/client-access";
+import {
+  requiredMembershipLabelForRoute,
+  routeAccessLabel,
+} from "@/lib/platform/route-access";
 
 export function PlanAccessGate({
   accountType,
+  clientAccess,
   children,
 }: {
   accountType: string;
+  clientAccess?: ClientSafePlatformAccess;
   children: ReactNode;
 }) {
   const pathname = usePathname();
   const plan = normalizeAccountTier(accountType);
-  const feature = featureForPath(pathname);
+  const access = clientAccess ?? clientAccessFromTier(plan);
 
-  if (hasPlanAccess(plan, feature)) return children;
+  if (canShowRoute(access, pathname, process.env.NODE_ENV)) return children;
 
-  const requiredPlan = minimumPlanName(feature);
-  const featureName = FEATURE_LABEL[feature];
+  const requiredPlan = requiredMembershipLabelForRoute(pathname) ?? "Required";
+  const featureName = routeAccessLabel(pathname);
 
   return (
     <div className="flex min-h-[calc(100vh-72px)] items-center justify-center px-5 py-10">
@@ -39,7 +46,7 @@ export function PlanAccessGate({
           {requiredPlan} plan or higher
         </p>
         <h1 className="mt-4 text-2xl font-semibold tracking-[-0.03em] text-white">
-          {featureName} is not included on your {plan === "business" ? "Store" : plan.charAt(0).toUpperCase() + plan.slice(1)} plan
+          {featureName} is not included on your {plan === "store" ? "Store" : plan.charAt(0).toUpperCase() + plan.slice(1)} plan
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500">
           Upgrade to unlock this workspace and the additional tools included with the {requiredPlan} plan.

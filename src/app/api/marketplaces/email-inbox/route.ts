@@ -1,50 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { hasPlanAccess } from "@/lib/tier-access";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
-
-async function requireFeatureAccess() {
-  if (!hasPlanAccess(await getEffectivePlan(), "marketplaces")) {
-    return NextResponse.json(
-      { error: "Marketplaces requires a higher Trading Docks plan." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const INBOUND_DOMAIN = "inbound.tradingdocks.com";
-
-async function activeWorkspaceId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-) {
-  const { data: preferences } = await supabase
-    .from("user_preferences")
-    .select("active_workspace_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (preferences?.active_workspace_id) {
-    return preferences.active_workspace_id as string;
-  }
-
-  const { data: membership } = await supabase
-    .from("workspace_members")
-    .select("workspace_id")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  return (membership?.workspace_id as string | undefined) ?? null;
-}
 
 function publicMailbox(mailbox: {
   address_token: string;
@@ -155,18 +118,11 @@ async function getOrCreatePermanentMailbox(workspaceId: string, userId: string) 
 }
 
 export async function GET() {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const user = capability.user!;
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const workspaceId = await activeWorkspaceId(supabase, user.id);
+  const workspaceId = capability.access.workspaceId;
   if (!workspaceId) {
     return NextResponse.json({ error: "No active workspace" }, { status: 409 });
   }
@@ -192,16 +148,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const user = capability.user!;
 
   const body = (await request.json().catch(() => null)) as {
     provider?: string;
@@ -219,7 +168,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const workspaceId = await activeWorkspaceId(supabase, user.id);
+  const workspaceId = capability.access.workspaceId;
   if (!workspaceId) {
     return NextResponse.json({ error: "No active workspace" }, { status: 409 });
   }
@@ -257,16 +206,9 @@ export async function POST(request: Request) {
  * It succeeds only after an administrator explicitly submits ROTATE.
  */
 export async function DELETE(request: Request) {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const user = capability.user!;
 
   const body = (await request.json().catch(() => null)) as {
     confirmation?: string;
@@ -282,7 +224,7 @@ export async function DELETE(request: Request) {
     );
   }
 
-  const workspaceId = await activeWorkspaceId(supabase, user.id);
+  const workspaceId = capability.access.workspaceId;
   if (!workspaceId) {
     return NextResponse.json({ error: "No active workspace" }, { status: 409 });
   }

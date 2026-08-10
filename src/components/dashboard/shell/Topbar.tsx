@@ -79,9 +79,9 @@ export function Topbar({
       { label: "Create deck", href: "/dashboard/deck-vault?create=deck", icon: LibraryBig, minimum: "free" as AccountTier },
       { label: "Create binder or box", href: "/dashboard/inventory?create=location", icon: FolderPlus, minimum: "collector" as AccountTier },
       { label: "Create marketplace listing", href: "/dashboard/marketplaces?create=listing", icon: ShoppingBag, minimum: "seller" as AccountTier },
-      { label: "Record store expense", href: "/dashboard/finances?create=expense", icon: CreditCard, minimum: "business" as AccountTier },
+      { label: "Record store expense", href: "/dashboard/finances?create=expense", icon: CreditCard, minimum: "store" as AccountTier },
     ];
-    const rank: Record<AccountTier, number> = { free: 0, collector: 1, seller: 2, business: 3 };
+    const rank: Record<AccountTier, number> = { free: 0, collector: 1, seller: 2, store: 3 };
     return items.filter((item) => rank[plan] >= rank[item.minimum]);
   }, [plan]);
 
@@ -178,7 +178,7 @@ export function Topbar({
                     <Check className="h-4 w-4 text-blue-300" />
                   </div>
                   <p className="mt-1 text-[10px] text-slate-500">
-                    {PLAN_ENTITLEMENTS[plan].inventoryLimit.toLocaleString()} cards
+                    {PLAN_ENTITLEMENTS[plan].inventoryLimit == null ? "Unlimited cards" : `${PLAN_ENTITLEMENTS[plan].inventoryLimit.toLocaleString()} cards`}
                     {PLAN_ENTITLEMENTS[plan].deckLimit ? ` · ${PLAN_ENTITLEMENTS[plan].deckLimit} decks` : " · Unlimited decks"}
                   </p>
                 </div>

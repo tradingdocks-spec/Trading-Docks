@@ -1,0 +1,8 @@
+{
+  "platforms": ["apple"],
+  "apple": {
+    "podspecPath": "ios/TradingDocksVisionOcr.podspec",
+    "swiftModuleName": "TradingDocksVisionOcr",
+    "modules": ["TradingDocksVisionOcrModule"]
+  }
+}

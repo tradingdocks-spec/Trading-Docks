@@ -145,7 +145,7 @@ export default async function SharedBinderPage({
                 )}
                 {card.page || card.slot ? (
                   <span className="absolute left-3 top-3 rounded-lg border border-white/[0.12] bg-black/75 px-2 py-1 text-[9px] font-bold text-cyan-200 backdrop-blur">
-                    P{card.page ?? "—"} · {card.slot ?? "—"}
+                    P{card.page ?? "-"} / {card.slot ?? "-"}
                   </span>
                 ) : null}
               </div>
@@ -156,7 +156,7 @@ export default async function SharedBinderPage({
                 <p className="mt-1 truncate text-[10px] text-slate-600">
                   {[card.set, card.condition, card.finish]
                     .filter(Boolean)
-                    .join(" · ") || "Collector card"}
+                    .join(" / ") || "Collector card"}
                 </p>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-emerald-300">
@@ -183,7 +183,7 @@ export default async function SharedBinderPage({
                   : "Build and share your own binder free."}
               </h2>
               <p className="mt-2 max-w-2xl text-[11px] leading-6 text-slate-500">
-                Browsing this link does not provide access to the collector’s
+                Browsing this link does not provide access to the collector's
                 dashboard, inventory, account, or other private binders.
               </p>
             </div>

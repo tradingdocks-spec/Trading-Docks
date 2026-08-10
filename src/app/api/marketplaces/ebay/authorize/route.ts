@@ -3,8 +3,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { decryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
+import { hasCapability } from "@/lib/platform/client-access";
+import { resolveCurrentPlatformAccess } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 
@@ -28,12 +29,15 @@ export async function GET(request: Request) {
       return NextResponse.redirect(destination);
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user, access } = await resolveCurrentPlatformAccess();
     if (!user) {
       const signIn = new URL("/sign-in", request.url);
       signIn.searchParams.set("next", "/dashboard/marketplaces?connector=ebay");
       return NextResponse.redirect(signIn);
+    }
+    if (!hasCapability(access, "marketplaces.manage")) {
+      destination.searchParams.set("error", "marketplace_access");
+      return NextResponse.redirect(destination);
     }
 
     const admin = createAdminClient();

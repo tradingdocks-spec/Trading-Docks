@@ -22,17 +22,17 @@ export const DASHBOARD_WIDGET_MINIMUM_PLAN = {
   marketplaces: "seller",
   "listing-queue": "seller",
   automation: "seller",
-  "business-calendar": "business",
-  team: "business",
-  ai: "business",
-  supplies: "business",
+  "business-calendar": "store",
+  team: "store",
+  ai: "store",
+  supplies: "store",
 } as const satisfies Record<string, AccountTier>;
 
 const PLAN_RANK: Record<AccountTier, number> = {
   free: 0,
   collector: 1,
   seller: 2,
-  business: 3,
+  store: 3,
 };
 
 const PERSONAL_LAYOUTS = new Set<DashboardLayoutId>([

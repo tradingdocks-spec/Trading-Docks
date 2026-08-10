@@ -27,13 +27,19 @@ import {
   ShoppingBag,
   ScanSearch,
   ScanLine,
+  ShieldCheck,
   Store,
+  Tags,
   Trophy,
   Truck,
   Users,
   ContactRound,
   WalletCards,
 } from "lucide-react";
+
+import { WEB_NAVIGATION_CONTRACT } from "@/lib/navigation/contract";
+import { normalizeAccountTier } from "@/lib/plan-entitlements";
+import { LABEL_STUDIO_ROUTE } from "@/lib/label-studio/routes";
 
 export type NavigationItem = {
   href: string;
@@ -213,6 +219,7 @@ export const OPERATIONS_NAV: NavigationSection = {
     { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
     { href: "/dashboard/tournaments", label: "Tournaments", icon: Trophy },
     { href: "/dashboard/vendors", label: "Vendors", icon: Truck },
+    { href: LABEL_STUDIO_ROUTE, label: "Label Studio", icon: Tags },
     { href: "/dashboard/supplies", label: "Supply Orders", icon: Gem },
     { href: "/dashboard/employees", label: "Employees", icon: Users },
     { href: "/dashboard/payroll", label: "Payroll", icon: CircleDollarSign },
@@ -282,3 +289,82 @@ export const SECONDARY_NAV: NavigationItem[] = [
     icon: Settings,
   },
 ];
+
+const ICON_BY_LABEL = {
+  Dashboard: LayoutDashboard,
+  Collection: Boxes,
+  Decks: LibraryBig,
+  "Trade Binder": WalletCards,
+  Portfolio: Palette,
+  Settings,
+  Inventory: Boxes,
+  "Deal Desk": PackageSearch,
+  "Buying Sessions": WalletCards,
+  Exports: FileSpreadsheet,
+  Analytics: BarChart3,
+  Employees: Users,
+  Customers: ContactRound,
+  Operations: BriefcaseBusiness,
+  "Label Studio": Tags,
+  "Command Center": ShieldCheck,
+  Users,
+  Subscriptions: Gem,
+  Sessions: CalendarRange,
+  "System Health": BarChart3,
+  "Audit Log": History,
+  Plans: Gem,
+  "Feature Flags": Bot,
+} satisfies Record<string, React.ComponentType<{ className?: string }>>;
+
+export type AccountAwareNavigationGroup = {
+  id: string;
+  label?: string;
+  items: NavigationItem[];
+};
+
+function itemForContractEntry(entry: { label: string; href: string }): NavigationItem {
+  return {
+    href: entry.href,
+    label: entry.label,
+    icon: ICON_BY_LABEL[entry.label as keyof typeof ICON_BY_LABEL] ?? LayoutDashboard,
+  };
+}
+
+export function getAccountAwareNavigationGroups(
+  accountType: unknown,
+  isOwner: boolean,
+): AccountAwareNavigationGroup[] {
+  const tier = normalizeAccountTier(accountType);
+  const workspaceItems = WEB_NAVIGATION_CONTRACT[tier]
+    .filter((item) => item.status !== "planned")
+    .map(itemForContractEntry);
+  const adminItems = isOwner
+    ? WEB_NAVIGATION_CONTRACT.admin
+        .filter((item, index, list) => {
+          const firstForHref = list.findIndex((candidate) => candidate.href === item.href);
+          return item.status !== "planned" && firstForHref === index;
+        })
+        .map(itemForContractEntry)
+    : [];
+  const operationsItems = [
+    {
+      href: LABEL_STUDIO_ROUTE,
+      label: "Label Studio",
+      icon: Tags,
+    },
+  ];
+
+  return [
+    {
+      id: "workspace",
+      label: tier === "store" ? "Store" : "Workspace",
+      items: workspaceItems,
+    },
+    ...(operationsItems.length
+      ? [{ id: "operations", label: "Operations", items: operationsItems }]
+      : []),
+    ...(adminItems.length
+      ? [{ id: "admin", label: "Admin", items: adminItems }]
+      : []),
+  ];
+}

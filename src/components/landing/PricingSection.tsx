@@ -5,26 +5,23 @@ import {
   ArrowRight,
   BadgeCheck,
   BarChart3,
-  Boxes,
   Building2,
   Check,
   ChevronRight,
-  Crown,
   Database,
   Layers3,
-  LineChart,
   PackageSearch,
   ShieldCheck,
   Sparkles,
-  Store,
-  Users,
   WandSparkles,
 } from "lucide-react";
+
+import { MEMBERSHIP_PLANS, type MembershipTier } from "@/lib/membership-catalog";
 
 import styles from "./LandingMotion.module.css";
 
 type PlanCard = {
-  id: "free" | "collector" | "seller" | "store";
+  id: MembershipTier;
   name: string;
   eyebrow: string;
   price: string;
@@ -41,93 +38,88 @@ type PlanCard = {
   badge?: string;
 };
 
-const plans: PlanCard[] = [
-  {
-    id: "free",
-    name: "Free",
+const PLAN_ICONS: Record<MembershipTier, React.ComponentType<{ className?: string }>> = {
+  free: Layers3,
+  collector: BarChart3,
+  seller: PackageSearch,
+  store: Building2,
+};
+
+const PLAN_COPY: Record<
+  MembershipTier,
+  Pick<PlanCard, "eyebrow" | "description" | "cta" | "featured" | "badge">
+> = {
+  free: {
     eyebrow: "Start organizing",
-    price: "$0",
-    cadence: "forever",
     description:
       "Build a clean foundation for a personal collection with essential inventory and deck tools.",
-    inventory: "500",
-    decks: "10",
-    seats: "1",
-    features: [
-      "Personal dashboard",
-      "Inventory organization",
-      "Deck Vault",
-      "Settings and support",
-    ],
-    icon: Layers3,
-    href: "/signup?plan=free",
     cta: "Start free",
   },
-  {
-    id: "collector",
-    name: "Collector",
+  collector: {
     eyebrow: "For serious collectors",
-    price: "$12",
-    cadence: "per month",
     description:
-      "Track a growing collection with richer limits, value history, analytics, and flexible CSV workflows.",
-    inventory: "10,000",
-    decks: "50",
-    seats: "1",
-    features: [
-      "Collection analytics",
-      "Value and growth history",
-      "CSV Conversion Engine",
-      "CSV import and export",
-    ],
-    icon: BarChart3,
-    href: "/signup?plan=collector",
+      "Track a growing collection with value history, storage, trade binder, wishlist, and market signals.",
     cta: "Choose Collector",
   },
-  {
-    id: "seller",
-    name: "Seller",
+  seller: {
     eyebrow: "Run an online card business",
-    price: "$39",
-    cadence: "per month",
     description:
-      "Manage purchasing, customers, marketplaces, orders, and automation from one seller workspace.",
-    inventory: "50,000",
-    decks: "Unlimited",
-    seats: "1",
-    features: [
-      "Purchasing Intelligence",
-      "Customer CRM and loyalty",
-      "Marketplaces and orders",
-      "Card Shows and automation",
-    ],
-    icon: PackageSearch,
-    href: "/signup?plan=seller",
+      "Manage buying, Deal Desk workflows, exports, sealed evaluation, and the full web workspace.",
     cta: "Start selling",
     featured: true,
     badge: "Most popular",
   },
-  {
-    id: "store",
-    name: "Store",
+  store: {
     eyebrow: "Operate a full storefront",
-    price: "$99",
-    cadence: "per month",
     description:
-      "Run daily store operations with business intelligence, team controls, vendors, tournaments, and payroll.",
-    inventory: "250,000",
-    decks: "Unlimited",
-    seats: "5 included",
-    features: [
-      "Business Intelligence",
-      "Tasks, calendar, and tournaments",
-      "Vendors and supply orders",
-      "Employees, payroll, and finances",
-    ],
-    icon: Building2,
-    href: "/signup?plan=store",
+      "Coordinate shared buying, approvals, sessions, customer summaries, inventory, and store operations.",
     cta: "Choose Store",
   },
+};
+
+function formatPrice(price: number) {
+  return price === 0 ? "$0" : `$${price.toFixed(2)}`;
+}
+
+function formatLimit(limit: number | null) {
+  return limit == null ? "Unlimited" : limit.toLocaleString();
+}
+
+function formatEmployeeLimit(
+  limit: (typeof MEMBERSHIP_PLANS)[MembershipTier]["limits"]["employeeAccounts"],
+) {
+  if (limit.kind === "not_included") return "Not included";
+  if (limit.kind === "pending_configuration") return "Configurable";
+  return "Configurable";
+}
+
+function planCard(tier: MembershipTier): PlanCard {
+  const plan = MEMBERSHIP_PLANS[tier];
+  const copy = PLAN_COPY[tier];
+  return {
+    id: tier,
+    name: plan.name,
+    eyebrow: copy.eyebrow,
+    price: formatPrice(plan.monthlyPrice),
+    cadence: plan.monthlyPrice === 0 ? "forever" : "per month",
+    description: copy.description,
+    inventory: formatLimit(plan.limits.cardLimit),
+    decks: formatLimit(plan.limits.deckLimit),
+    seats: formatEmployeeLimit(plan.limits.employeeAccounts),
+    features: plan.features.slice(0, 4),
+    icon: PLAN_ICONS[tier],
+    href: `/sign-up?plan=${tier}`,
+    cta: copy.cta,
+    featured: copy.featured,
+    badge: copy.badge,
+  };
+}
+
+const plans: PlanCard[] = [
+  planCard("free"),
+  planCard("collector"),
+  planCard("seller"),
+  planCard("store"),
 ];
 
 const trustPoints = [

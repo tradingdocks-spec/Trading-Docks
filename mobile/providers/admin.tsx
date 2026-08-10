@@ -2,6 +2,7 @@ import { createContext, PropsWithChildren, useCallback, useContext, useEffect, u
 import type { AdminRole } from '@/constants/admin';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/auth';
+import { normalizePlatformRole } from '@/services/access-model';
 
 type AdminState = {
   role: AdminRole | null;
@@ -32,7 +33,8 @@ export function AdminProvider({ children }: PropsWithChildren) {
       setRole(null);
       setError(queryError.code === '42P01' ? 'Admin database migration has not been installed.' : queryError.message);
     } else {
-      setRole((data?.role as AdminRole | undefined) ?? null);
+      const normalized = normalizePlatformRole(data?.role);
+      setRole(normalized === 'user' ? null : normalized);
       setError(null);
     }
     setLoading(false);

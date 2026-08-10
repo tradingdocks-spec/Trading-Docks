@@ -1,9 +1,97 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { Surface } from '@/components/foundation';
-import { color, radius, space, type } from '@/design';
-import { useState } from 'react';
-const rows=[['Biometric unlock','Use Face ID or device biometrics','finger-print-outline'],['Background sync','Sync saved sessions when a connection returns','cloud-upload-outline'],['Haptic feedback','Tactile confirmation for important actions','phone-portrait-outline']];
-export default function Settings(){const [values,setValues]=useState([false,true,true]);return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content}><Pressable onPress={()=>router.back()} style={s.back}><Ionicons name="chevron-back" size={22} color={color.text}/></Pressable><Text style={s.eyebrow}>PREFERENCES</Text><Text style={s.title}>Settings</Text><Text style={s.sub}>Control security, offline behavior, and interaction feedback.</Text><Surface style={s.group}>{rows.map((r,i)=><View key={r[0]} style={[s.row,i<rows.length-1&&s.divider]}><View style={s.icon}><Ionicons name={r[2] as any} size={20} color={color.primaryBright}/></View><View style={{flex:1}}><Text style={s.rowTitle}>{r[0]}</Text><Text style={s.rowSub}>{r[1]}</Text></View><Switch value={values[i]} onValueChange={v=>setValues(cur=>cur.map((x,j)=>j===i?v:x))} trackColor={{false:color.border,true:color.primary}}/></View>)}</Surface><Text style={s.note}>Biometric unlock and background synchronization are foundation controls. Provider-level activation is completed when production credentials and native builds are configured.</Text></ScrollView></SafeAreaView>}
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:color.canvas},content:{padding:space.lg,paddingBottom:space.xxl},back:{width:44,height:44,borderRadius:radius.md,backgroundColor:color.surface,borderWidth:1,borderColor:color.border,alignItems:'center',justifyContent:'center'},eyebrow:{...type.label,color:color.primaryBright,marginTop:space.xl},title:{...type.display,color:color.text,marginTop:space.xs},sub:{...type.body,color:color.textSecondary,marginTop:space.sm},group:{marginTop:space.lg,paddingVertical:space.xs},row:{flexDirection:'row',alignItems:'center',gap:space.sm,paddingVertical:space.md},divider:{borderBottomWidth:1,borderBottomColor:color.border},icon:{width:42,height:42,borderRadius:radius.md,backgroundColor:color.primary+'20',alignItems:'center',justifyContent:'center'},rowTitle:{color:color.text,fontSize:14,fontWeight:'900'},rowSub:{...type.caption,color:color.textMuted,marginTop:3},note:{...type.caption,color:color.textMuted,marginTop:space.md,lineHeight:18}});
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+
+import { TDBadge, TDButton, TDIconButton, TDListRow, TDNavigationHeader, TDSectionHeader, TDStatusIndicator, TDText } from '@/components/design-system';
+import { color, space } from '@/design';
+import { getMobileAppVersionInfo, getMobileReleaseLinks, isDevelopmentToolEnabled, MOBILE_PUBLIC_ENV_KEYS } from '@/services/mobile-release-config';
+
+const settingRows: {
+  title: string;
+  description: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  section: 'Security' | 'Preferences' | 'Scanner';
+  status: string;
+  tone: 'success' | 'info' | 'warning' | 'neutral';
+  devOnly?: boolean;
+}[] = [
+  { title: 'Biometric unlock', description: 'Available when enabled from the sign-in security flow on this device.', iconName: 'finger-print-outline', section: 'Security', status: 'Session lock', tone: 'info' },
+  { title: 'Offline scanner sync', description: 'Queued scanner and collection changes retry when the authenticated user reconnects.', iconName: 'cloud-upload-outline', section: 'Preferences', status: 'Automatic', tone: 'success' },
+  { title: 'Haptic feedback', description: 'Primary scanner, tab, and confirmation actions use restrained native haptics.', iconName: 'phone-portrait-outline', section: 'Preferences', status: 'Built in', tone: 'success' },
+  { title: 'Notifications', description: 'Push notification preferences are managed from the device settings until mobile notifications are connected.', iconName: 'notifications-outline', section: 'Preferences', status: 'Device', tone: 'neutral' },
+  { title: 'Scanner diagnostics', description: 'Development-only scanner analysis details.', iconName: 'bug-outline', section: 'Scanner', status: 'Dev only', tone: 'warning', devOnly: true },
+];
+
+export default function Settings() {
+  const diagnosticsEnabled = isDevelopmentToolEnabled(MOBILE_PUBLIC_ENV_KEYS.scannerDiagnostics);
+  const links = getMobileReleaseLinks();
+  const version = getMobileAppVersionInfo();
+
+  const visibleRows = settingRows.filter((row) => !row.devOnly || diagnosticsEnabled);
+
+  return (
+    <SafeAreaView style={s.safe}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <TDNavigationHeader
+          eyebrow="Settings"
+          title="Preferences and security"
+          subtitle="Keep device behavior clear, recoverable, and honest."
+          leftAction={<TDIconButton label="Back" iconName="chevron-back" onPress={() => router.back()} />}
+          rightAction={<TDBadge tone={diagnosticsEnabled ? 'warning' : 'neutral'}>{diagnosticsEnabled ? 'Dev diagnostics' : 'Standard'}</TDBadge>}
+        />
+
+        <View style={s.hero}>
+          <TDStatusIndicator label="Membership visible from Profile and Plans" tone="info" />
+          <TDStatusIndicator label="Scanner diagnostics hidden unless explicitly enabled" tone={diagnosticsEnabled ? 'warning' : 'success'} />
+        </View>
+
+        {(['Security', 'Preferences', 'Scanner'] as const).map((section) => {
+          const rows = visibleRows.filter((row) => row.section === section);
+          if (!rows.length) return null;
+          return (
+            <View key={section} style={s.section}>
+              <TDSectionHeader title={section} />
+              {rows.map((row) => (
+                <TDListRow
+                  key={row.title}
+                  title={row.title}
+                  description={row.description}
+                  iconName={row.iconName}
+                  right={<TDBadge tone={row.tone}>{row.status}</TDBadge>}
+                />
+              ))}
+            </View>
+          );
+        })}
+
+        <View style={s.section}>
+          <TDSectionHeader title="Support and privacy" />
+          <TDListRow title="Privacy" description="Camera captures are not retained by default." iconName="shield-checkmark-outline" right={<TDBadge tone="success">Protected</TDBadge>} />
+          <TDListRow title="Support" description="Help, account questions, and product feedback." iconName="help-circle-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => void Linking.openURL(links.support.url)} />
+          <TDListRow title="Privacy Policy" description={links.privacy.url} iconName="shield-checkmark-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => void Linking.openURL(links.privacy.url)} />
+          <TDListRow title="Terms of Service" description={links.terms.url} iconName="document-text-outline" right={<Ionicons name="open-outline" size={19} color={color.textMuted} />} onPress={() => void Linking.openURL(links.terms.url)} />
+          <TDListRow title="Delete Account" description="Request account deletion and review consequences." iconName="trash-outline" right={<Ionicons name="chevron-forward" size={19} color={color.textMuted} />} onPress={() => router.push('/account-delete' as never)} />
+        </View>
+
+        <View style={s.section}>
+          <TDSectionHeader title="About" />
+          <TDListRow title="Trading Docks" description={`Version ${version.version} - Build ${version.build}`} iconName="information-circle-outline" right={<TDBadge tone="neutral">{version.name}</TDBadge>} />
+        </View>
+
+        <TDButton label="Return to profile" variant="secondary" iconName="person-outline" onPress={() => router.push('/(tabs)/profile' as never)} />
+        <TDText variant="caption" tone="muted" style={s.note}>
+          Settings only show production-backed behavior. Configuration that belongs to Headquarters or iOS Settings stays outside mobile V1.
+        </TDText>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: color.canvas },
+  content: { gap: space.lg, padding: space.lg, paddingTop: space.xl, paddingBottom: space.xxl },
+  hero: { gap: space.xs },
+  section: { gap: space.xs },
+  note: { textAlign: 'center' },
+});

@@ -1,4 +1,15 @@
+import type { Metadata } from "next";
+
 import { updatePassword } from "@/app/actions/auth";
+
+export const metadata: Metadata = {
+  title: "Update Password",
+  description: "Choose a new password for your Trading Docks account.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type Props = {
   searchParams: Promise<{ error?: string }>;

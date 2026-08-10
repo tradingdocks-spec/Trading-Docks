@@ -2,8 +2,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { decryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
+import { hasCapability } from "@/lib/platform/client-access";
+import { resolveCurrentPlatformAccess } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 
@@ -19,14 +20,17 @@ export async function GET(
     return NextResponse.redirect(destination);
   }
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, access } = await resolveCurrentPlatformAccess();
   const callback = new URL(request.url);
   const cookieStore = await cookies();
   const expectedState = cookieStore.get("td_ebay_oauth_state")?.value;
   cookieStore.delete("td_ebay_oauth_state");
   if (!user || !expectedState || callback.searchParams.get("state") !== expectedState) {
     destination.searchParams.set("error", "invalid_state");
+    return NextResponse.redirect(destination);
+  }
+  if (!hasCapability(access, "marketplaces.manage")) {
+    destination.searchParams.set("error", "marketplace_access");
     return NextResponse.redirect(destination);
   }
   const code = callback.searchParams.get("code");

@@ -3,26 +3,32 @@ import { redirect } from "next/navigation";
 
 import { LegacyAccountDataCleanup } from "@/components/dashboard/account/LegacyAccountDataCleanup";
 import { TieredDashboardShell } from "@/components/dashboard/shell/TieredDashboardShell";
-import { resolveCurrentPlatformAccess } from "@/lib/platform/server-access";
+import { resolveServerAccess } from "@/lib/identity/server-access";
+import { toClientSafeAccess } from "@/lib/platform/client-access";
+import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
+import { createClient } from "@/lib/supabase/server";
 import { getEffectivePlan } from "@/lib/effective-plan";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const platform = await resolveCurrentPlatformAccess();
-  if (!platform.user) redirect("/sign-in?next=/dashboard");
-  const isOwner = platform.access.canAccessCommandCenter;
-  const { data } = await platform.supabase
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/sign-in?next=/dashboard");
+
+  const { data } = await supabase
     .from("user_preferences")
     .select("preferences")
-    .eq("user_id", platform.user.id)
+    .eq("user_id", user.id)
     .maybeSingle();
   const preferences =
     data?.preferences && typeof data.preferences === "object" && !Array.isArray(data.preferences)
-      ? (data.preferences as Record<string, unknown>)
+      ? data.preferences
       : {};
+  const access = await resolveServerAccess(supabase, user);
+  const platformAccess = await resolvePlatformAccessForUser(supabase, user);
   const effectivePlan = await getEffectivePlan();
 
   return (
-    <LegacyAccountDataCleanup userId={platform.user.id}>
+    <LegacyAccountDataCleanup userId={user.id}>
       <TieredDashboardShell
         accountType={effectivePlan}
         inventoryModules={
@@ -33,11 +39,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             : []
         }
         userName={
-          typeof platform.user.user_metadata?.full_name === "string"
-            ? platform.user.user_metadata.full_name
-            : platform.user.email?.split("@")[0] ?? "Collector"
+          typeof user.user_metadata?.full_name === "string"
+            ? user.user_metadata.full_name
+            : user.email?.split("@")[0] ?? "Collector"
         }
-        isOwner={isOwner}
+        isOwner={access.isAdmin}
+        clientAccess={toClientSafeAccess(platformAccess)}
       >
         {children}
       </TieredDashboardShell>

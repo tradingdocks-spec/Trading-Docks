@@ -1,193 +1,418 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { brand as B } from '@/constants/brand';
-import { annualSavings, BillingCycle, formatPlanPrice, getPlan, PLAN_DEFINITIONS } from '@/constants/plans';
-import { AccountType, useAccount } from '@/providers/account';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 
-const accentMap = { blue: B.blue, cyan: B.cyan, green: B.green, amber: B.amber } as const;
+import {
+  TDBadge,
+  TDButton,
+  TDCard,
+  TDIconButton,
+  TDLoadingState,
+  TDNavigationHeader,
+  TDSegmentedControl,
+  TDStatusIndicator,
+  TDText,
+} from '@/components/design-system';
+import { color, radius, space } from '@/design';
+import { getMobileReleaseLinks, MOBILE_CANONICAL_SITE_URL } from '@/services/mobile-release-config';
+import { getMembershipPlan, type MembershipTier } from '@/services/membership-catalog';
+import {
+  buildRevenueCatBackendSyncContract,
+  configureRevenueCatForUser,
+  getRevenueCatPublicConfig,
+  loadRevenueCatCatalog,
+  purchaseRevenueCatPackage,
+  restoreRevenueCatPurchases,
+  revenueCatBackendSyncMessage,
+  revenueCatCtaLabel,
+  revenueCatPurchaseIntent,
+  revenueCatUserMessage,
+  summarizeRevenueCatCurrentMembership,
+  summarizeRevenueCatSelection,
+  type RevenueCatCatalogPlan,
+  type RevenueCatCustomerSnapshot,
+  type RevenueCatPurchaseCycle,
+  type RevenueCatPurchasePlan,
+  type RevenueCatStatus,
+} from '@/services/revenuecat';
+import { useAccount } from '@/providers/account';
+import { useAuth } from '@/providers/auth';
+
+const paidPlans: RevenueCatPurchasePlan[] = ['collector', 'seller', 'store'];
+
+const planIcons: Record<RevenueCatPurchasePlan, keyof typeof Ionicons.glyphMap> = {
+  collector: 'diamond-outline',
+  seller: 'storefront-outline',
+  store: 'business-outline',
+};
+
+const planPositioning: Record<RevenueCatPurchasePlan, string> = {
+  collector: 'Collection management and advanced collector tools',
+  seller: 'Inventory, buying, selling, and seller operations',
+  store: 'Full store operations and business management',
+};
 
 export default function Plans() {
-  const { accountType, setAccountType } = useAccount();
-  const [cycle, setCycle] = useState<BillingCycle>('yearly');
-  const [expanded, setExpanded] = useState<AccountType | null>(accountType);
-  const selectedPlan = useMemo(() => getPlan(accountType), [accountType]);
+  const { session } = useAuth();
+  const { membershipTier, refresh: refreshAccountAccess } = useAccount();
+  const links = getMobileReleaseLinks();
+  const sessionUserId = session?.user.id ?? null;
+  const [selectedTier, setSelectedTier] = useState<RevenueCatPurchasePlan>('collector');
+  const [cycle, setCycle] = useState<RevenueCatPurchaseCycle>('yearly');
+  const [catalog, setCatalog] = useState<RevenueCatCatalogPlan[]>([]);
+  const [status, setStatus] = useState<RevenueCatStatus>('loading');
+  const [message, setMessage] = useState<string | null>(null);
+  const [providerSnapshot, setProviderSnapshot] = useState<RevenueCatCustomerSnapshot | null>(null);
+  const [pendingProviderTier, setPendingProviderTier] = useState<MembershipTier | null>(null);
+  const currentPlan = getMembershipPlan(membershipTier);
+  const selectedPlan = getMembershipPlan(selectedTier);
+  const currentMembership = summarizeRevenueCatCurrentMembership({
+    canonicalTier: currentPlan.id,
+    providerSnapshot,
+  });
+  const selected = summarizeRevenueCatSelection({ catalog, tier: selectedTier, cycle });
+  const configured = getRevenueCatPublicConfig().configured;
+  const nativePurchasesAvailable = Platform.OS === 'ios' || Platform.OS === 'android';
+  const intent = revenueCatPurchaseIntent({
+    currentTier: currentPlan.id,
+    selectedTier,
+    billingSource: currentMembership.billingSource,
+  });
+  const ctaLabel = revenueCatCtaLabel({
+    currentTier: currentPlan.id,
+    selectedTier,
+    billingSource: currentMembership.billingSource,
+    status,
+  });
+  const purchaseDisabled = !sessionUserId
+    || status === 'loading'
+    || status === 'purchasing'
+    || status === 'restoring'
+    || status === 'syncing_backend'
+    || (intent === 'current' && currentMembership.billingSource !== 'web')
+    || (status !== 'backend_pending' && intent !== 'manage' && !selected.package);
 
-  const choosePlan = async (type: AccountType) => {
-    await setAccountType(type);
-    setExpanded(type);
-  };
-
-  const continueWithPlan = () => {
-    if (selectedPlan.type === 'free') {
-      router.push('/auth');
+  const refreshCatalog = useCallback(async () => {
+    if (!sessionUserId) {
+      setStatus('not_configured');
+      setMessage('Sign in to load mobile subscription options.');
+      setCatalog([]);
+      setProviderSnapshot(null);
       return;
     }
-    Alert.alert(
-      `${selectedPlan.name} selected`,
-      `${cycle === 'yearly' ? formatPlanPrice(selectedPlan, 'yearly') + ' per year' : formatPlanPrice(selectedPlan, 'monthly') + ' per month'} will be connected to Apple App Store and Google Play billing through RevenueCat.`,
-      [
-        { text: 'Not now', style: 'cancel' },
-        { text: 'Create account', onPress: () => router.push('/auth') },
-      ],
-    );
+    if (!configured || !nativePurchasesAvailable) {
+      setStatus(configured ? 'unavailable' : 'not_configured');
+      setMessage(configured ? 'Mobile subscriptions are available in native iOS and Android builds.' : 'Mobile subscriptions are not configured for this build.');
+      setCatalog([]);
+      setProviderSnapshot(null);
+      return;
+    }
+    setStatus('loading');
+    setMessage(null);
+    const identity = await configureRevenueCatForUser(sessionUserId);
+    if (!identity.ok) {
+      setStatus(identity.status === 'not_configured' ? 'not_configured' : identity.status === 'unavailable' ? 'unavailable' : 'failed');
+      setMessage(revenueCatUserMessage(identity, 'restore'));
+      return;
+    }
+    setProviderSnapshot(identity.snapshot);
+    try {
+      setCatalog(await loadRevenueCatCatalog());
+      setStatus('ready');
+    } catch {
+      setStatus('failed');
+      setMessage('Store products could not be loaded. Check your connection and try again.');
+    }
+  }, [configured, nativePurchasesAvailable, sessionUserId]);
+
+  useEffect(() => {
+    void refreshCatalog();
+  }, [refreshCatalog]);
+
+  useEffect(() => {
+    if (!pendingProviderTier || pendingProviderTier === 'free') return;
+    const syncMessage = revenueCatBackendSyncMessage({
+      providerTier: pendingProviderTier,
+      canonicalTier: currentPlan.id,
+      action: 'purchase',
+    });
+    if (syncMessage === 'Membership updated') {
+      setStatus('synced');
+      setMessage(syncMessage);
+      setPendingProviderTier(null);
+    }
+  }, [currentPlan.id, pendingProviderTier]);
+
+  const cycleOptions = useMemo(() => [
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' },
+  ], []);
+
+  const purchase = async () => {
+    if (!sessionUserId) return;
+    if (intent === 'manage') {
+      await openUrl(providerSnapshot?.managementUrl ?? `${MOBILE_CANONICAL_SITE_URL}/dashboard/settings`);
+      return;
+    }
+    if (intent === 'current') {
+      await openUrl(`${MOBILE_CANONICAL_SITE_URL}/dashboard/settings`);
+      return;
+    }
+    if (!selected.package) return;
+    setStatus('purchasing');
+    setMessage(null);
+    const result = await purchaseRevenueCatPackage(selected.package.identifier);
+    const visibleMessage = revenueCatUserMessage(result, 'purchase');
+    if (!result.ok) {
+      setStatus('ready');
+      setMessage(visibleMessage);
+      return;
+    }
+    const contract = buildRevenueCatBackendSyncContract(sessionUserId, result.snapshot);
+    setProviderSnapshot(result.snapshot);
+    await refreshAccountAccess();
+    const syncMessage = revenueCatBackendSyncMessage({
+      providerTier: contract.providerTier,
+      canonicalTier: currentPlan.id,
+      action: 'purchase',
+    });
+    setPendingProviderTier(contract.providerTier === 'free' ? null : contract.providerTier);
+    setStatus(syncMessage === 'Membership updated' ? 'synced' : 'backend_pending');
+    setMessage(syncMessage);
   };
+
+  const restore = async () => {
+    if (!sessionUserId) return;
+    setStatus('restoring');
+    setMessage(null);
+    const result = await restoreRevenueCatPurchases();
+    const visibleMessage = revenueCatUserMessage(result, 'restore');
+    if (!result.ok) {
+      setStatus('ready');
+      setMessage(visibleMessage);
+      return;
+    }
+    const contract = buildRevenueCatBackendSyncContract(sessionUserId, result.snapshot);
+    setProviderSnapshot(result.snapshot);
+    await refreshAccountAccess();
+    const syncMessage = revenueCatBackendSyncMessage({
+      providerTier: contract.providerTier,
+      canonicalTier: currentPlan.id,
+      action: 'restore',
+    });
+    setPendingProviderTier(contract.providerTier === 'free' ? null : contract.providerTier);
+    setStatus(syncMessage === 'Membership updated' ? 'synced' : 'backend_pending');
+    setMessage(syncMessage);
+  };
+
+  const refreshAfterPending = async () => {
+    setStatus('syncing_backend');
+    setMessage(pendingProviderTier ? revenueCatBackendSyncMessage({
+      providerTier: pendingProviderTier,
+      canonicalTier: currentPlan.id,
+      action: 'purchase',
+    }) : 'Refreshing membership status...');
+    await refreshCatalog();
+    await refreshAccountAccess();
+    if (pendingProviderTier) {
+      setStatus('backend_pending');
+      setMessage(revenueCatBackendSyncMessage({
+        providerTier: pendingProviderTier,
+        canonicalTier: currentPlan.id,
+        action: 'purchase',
+      }));
+    }
+  };
+
+  const statusTone = status === 'failed' || status === 'not_configured' || status === 'unavailable'
+    ? 'warning'
+    : status === 'synced'
+      ? 'success'
+      : 'info';
 
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-        <Pressable onPress={() => router.back()} style={s.back}>
-          <Ionicons name="chevron-back" size={22} color={B.text} />
-        </Pressable>
+        <TDNavigationHeader
+          eyebrow="Membership"
+          title="Plans"
+          subtitle="Choose the membership that fits your Trading Docks workflow."
+          leftAction={<TDIconButton label="Back" iconName="chevron-back" onPress={() => router.back()} />}
+          rightAction={<TDBadge tone={currentPlan.id === 'free' ? 'neutral' : 'success'}>{currentPlan.name}</TDBadge>}
+        />
 
-        <Text style={s.kicker}>YOUR MEMBERSHIP</Text>
-        <Text style={s.title}>Choose the workspace built for your next stage.</Text>
-        <Text style={s.sub}>Every plan uses the same polished Trading Docks experience. The tools adapt to the way you collect, sell, or run a store.</Text>
-
-        <View style={s.toggleWrap}>
-          <Pressable onPress={() => setCycle('monthly')} style={[s.toggle, cycle === 'monthly' && s.toggleActive]}>
-            <Text style={[s.toggleText, cycle === 'monthly' && s.toggleTextActive]}>Monthly</Text>
-          </Pressable>
-          <Pressable onPress={() => setCycle('yearly')} style={[s.toggle, cycle === 'yearly' && s.toggleActive]}>
-            <Text style={[s.toggleText, cycle === 'yearly' && s.toggleTextActive]}>Yearly</Text>
-            <Text style={s.savePill}>2 MONTHS FREE</Text>
-          </Pressable>
-        </View>
-
-        <View style={s.planStack}>
-          {PLAN_DEFINITIONS.map((plan) => {
-            const selected = accountType === plan.type;
-            const open = expanded === plan.type;
-            const accent = accentMap[plan.accent];
-            const savings = annualSavings(plan);
-            return (
-              <Pressable
-                key={plan.type}
-                onPress={() => choosePlan(plan.type)}
-                style={({ pressed }) => [s.planCard, selected && { borderColor: accent }, pressed && s.pressed]}
-              >
-                <View style={s.planHeader}>
-                  <View style={{ flex: 1 }}>
-                    <View style={s.nameRow}>
-                      <Text style={s.planName}>{plan.name}</Text>
-                      {plan.badge ? <Text style={[s.planBadge, { backgroundColor: accent }]}>{plan.badge}</Text> : null}
-                    </View>
-                    <Text style={s.audience}>{plan.audience}</Text>
-                  </View>
-                  <View style={[s.selector, selected && { borderColor: accent, backgroundColor: accent }]}>
-                    {selected ? <Ionicons name="checkmark" size={15} color={B.bg} /> : null}
-                  </View>
-                </View>
-
-                <View style={s.priceLine}>
-                  <Text style={s.price}>{formatPlanPrice(plan, cycle)}</Text>
-                  <Text style={s.period}>{plan.type === 'free' ? 'forever' : cycle === 'monthly' ? '/ month' : '/ year'}</Text>
-                </View>
-
-                {plan.type !== 'free' && cycle === 'yearly' ? (
-                  <Text style={[s.savings, { color: accent }]}>Save ${savings.toFixed(2)} every year</Text>
-                ) : plan.type === 'free' ? (
-                  <Text style={s.savings}>No credit card required</Text>
-                ) : (
-                  <Text style={s.savings}>Cancel or change plans anytime</Text>
-                )}
-
-                <View style={s.headlineFeatures}>
-                  {plan.headlineFeatures.map((feature) => (
-                    <View key={feature} style={s.featureRow}>
-                      <Ionicons name="checkmark-circle" size={18} color={B.green} />
-                      <Text style={s.featureText}>{feature}</Text>
-                    </View>
-                  ))}
-                </View>
-
-                <Pressable onPress={() => setExpanded(open ? null : plan.type)} style={s.expandButton}>
-                  <Text style={s.expandText}>{open ? 'Hide full plan details' : 'See everything included'}</Text>
-                  <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={17} color={B.cyan} />
-                </Pressable>
-
-                {open ? (
-                  <View style={s.expandedBox}>
-                    {plan.allFeatures.map((feature) => (
-                      <View key={feature} style={s.detailRow}>
-                        <Ionicons name="checkmark" size={16} color={accent} />
-                        <Text style={s.detailText}>{feature}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={s.summaryCard}>
-          <View style={s.summaryTop}>
-            <View>
-              <Text style={s.summaryLabel}>SELECTED PLAN</Text>
-              <Text style={s.summaryName}>{selectedPlan.name}</Text>
+        <TDCard variant="floating" style={s.currentCard} accessibilityLabel={`Current plan ${currentPlan.name}. Billing source ${currentMembership.billingSourceLabel}.`}>
+          <View style={s.currentTopRow}>
+            <View style={s.flex}>
+              <TDText variant="caption" tone="muted">Current Plan</TDText>
+              <TDText variant="heading">{currentPlan.name}</TDText>
             </View>
-            <View style={s.summaryPriceWrap}>
-              <Text style={s.summaryPrice}>{formatPlanPrice(selectedPlan, cycle)}</Text>
-              <Text style={s.summaryPeriod}>{selectedPlan.type === 'free' ? 'forever' : cycle === 'monthly' ? 'monthly' : 'yearly'}</Text>
-            </View>
+            <TDBadge tone={currentPlan.id === 'free' ? 'neutral' : 'success'}>{currentMembership.statusLabel}</TDBadge>
           </View>
-          <Pressable onPress={continueWithPlan} style={s.primary}>
-            <Text style={s.primaryText}>{selectedPlan.type === 'free' ? 'Start Free' : `Continue with ${selectedPlan.name}`}</Text>
-            <Ionicons name="arrow-forward" size={19} color="#fff" />
-          </Pressable>
-          <Text style={s.secureText}>
-            {selectedPlan.type === 'free' ? 'No payment method required.' : 'Secure purchase through Apple App Store or Google Play. Access stays synchronized with your web account.'}
-          </Text>
+          <View style={s.currentFacts}>
+            <Fact label="Billing source" value={currentMembership.billingSourceLabel} />
+            {currentMembership.billingSource === 'web' ? <Fact label="Mobile action" value="Manage on web" /> : null}
+          </View>
+          {currentMembership.billingSource === 'web' ? (
+            <TDButton label="Manage on web" variant="ghost" iconName="open-outline" onPress={() => void openUrl(`${MOBILE_CANONICAL_SITE_URL}/dashboard/settings`)} />
+          ) : null}
+          {message ? <TDStatusIndicator label={message} tone={statusTone} /> : null}
+        </TDCard>
+
+        <View style={s.selectorBlock}>
+          <TDText variant="label" tone="muted">Tier</TDText>
+          <View style={s.tierSelector} accessibilityRole="tablist">
+            {paidPlans.map((tier) => {
+              const plan = getMembershipPlan(tier);
+              const isSelected = selectedTier === tier;
+              return (
+                <Pressable
+                  key={tier}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isSelected, disabled: status === 'purchasing' || status === 'restoring' }}
+                  accessibilityLabel={`${plan.name}. ${planPositioning[tier]}`}
+                  disabled={status === 'purchasing' || status === 'restoring'}
+                  onPress={() => setSelectedTier(tier)}
+                  style={({ pressed }) => [s.tierOption, isSelected && s.tierOptionSelected, pressed && s.pressed]}
+                >
+                  <Ionicons name={planIcons[tier]} size={18} color={isSelected ? color.primaryBright : color.textMuted} />
+                  <TDText variant="small" tone={isSelected ? 'primary' : 'secondary'} numberOfLines={1}>{plan.name}</TDText>
+                  <TDText variant="caption" tone="muted" numberOfLines={2} style={s.tierCopy}>{planPositioning[tier]}</TDText>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
+
+        <TDSegmentedControl
+          label="Billing"
+          options={cycleOptions}
+          value={cycle}
+          onChange={(value) => setCycle(value as RevenueCatPurchaseCycle)}
+          disabled={status === 'purchasing' || status === 'restoring'}
+        />
+
+        <TDCard style={s.valueCard}>
+          <View style={s.valueHeader}>
+            <View style={s.flex}>
+              <TDText variant="title">{selectedPlan.name}</TDText>
+              <TDText variant="small" tone="muted">{planPositioning[selectedTier]}</TDText>
+            </View>
+            {selected.savingsLabel && cycle === 'yearly' ? <TDBadge tone="success">{selected.savingsLabel}</TDBadge> : null}
+          </View>
+
+          <View style={s.pricePanel} accessibilityRole="text" accessibilityLabel={`${selected.priceLabel}, ${selected.periodLabel}`}>
+            <TDText variant="heading">{selected.priceLabel}</TDText>
+            <TDText variant="caption" tone="muted">{selected.periodLabel}</TDText>
+          </View>
+
+          <View style={s.featureList}>
+            {selectedPlan.headlineFeatures.slice(0, 3).map((feature) => (
+              <View key={feature} style={s.featureRow}>
+                <Ionicons name="checkmark-circle-outline" size={16} color={color.success} />
+                <TDText variant="caption" tone="secondary" style={s.featureText}>{feature}</TDText>
+              </View>
+            ))}
+          </View>
+
+          {selected.missingReason === 'package_missing' && status === 'ready' ? (
+            <TDStatusIndicator label="This subscription is not available from the store right now." tone="warning" />
+          ) : null}
+          {selected.missingReason === 'localized_price_missing' && status === 'ready' ? (
+            <TDStatusIndicator label="StoreKit did not return a localized price for this subscription." tone="warning" />
+          ) : null}
+        </TDCard>
+
+        {status === 'loading' ? <TDLoadingState title="Loading StoreKit prices" message="Checking the current mobile offering." /> : null}
+
+        <View style={s.actions}>
+          <TDButton
+            label={ctaLabel}
+            loading={status === 'purchasing' || status === 'syncing_backend'}
+            disabled={purchaseDisabled}
+            iconName={intent === 'manage' || intent === 'current' ? 'open-outline' : 'card-outline'}
+            onPress={status === 'backend_pending' ? refreshAfterPending : purchase}
+            accessibilityLabel={`${ctaLabel} for ${selectedPlan.name}`}
+          />
+          <TDButton
+            label="Restore Purchases"
+            variant="ghost"
+            loading={status === 'restoring'}
+            disabled={!session || status === 'purchasing' || status === 'restoring' || status === 'syncing_backend'}
+            iconName="refresh-outline"
+            onPress={restore}
+          />
+        </View>
+
+        <TDCard variant="outlined" style={s.legalCard}>
+          <TDText variant="caption" tone="muted" style={s.finePrint}>
+            Trading Docks backend membership remains the authority for app access. Stripe subscriptions continue to sync through that canonical backend state. Apple purchases must be reconciled before protected access updates.
+          </TDText>
+          <TDText variant="caption" tone="muted" style={s.finePrint}>
+            Subscription renews automatically unless cancelled. StoreKit manages upgrades, downgrades, renewals, and cancellation. Store employee capacity remains configurable.
+          </TDText>
+          <View style={s.legalLinks}>
+            <LegalLink label="Terms" url={links.terms.url} />
+            <LegalLink label="Privacy" url={links.privacy.url} />
+          </View>
+        </TDCard>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={s.fact}>
+      <TDText variant="caption" tone="muted">{label}</TDText>
+      <TDText variant="small">{value}</TDText>
+    </View>
+  );
+}
+
+function LegalLink({ label, url }: { label: string; url: string }) {
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      onPress={() => void openUrl(url)}
+      style={({ pressed }) => [s.legalLink, pressed && s.pressed]}
+    >
+      <TDText variant="caption" tone="info">{label}</TDText>
+      <Ionicons name="open-outline" size={13} color={color.info} />
+    </Pressable>
+  );
+}
+
+async function openUrl(url: string) {
+  await Linking.openURL(url);
+}
+
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: B.bg },
-  content: { padding: 22, paddingTop: 24, paddingBottom: 48 },
-  back: { width: 44, height: 44, borderRadius: 15, backgroundColor: B.surface, borderWidth: 1, borderColor: B.line, alignItems: 'center', justifyContent: 'center' },
-  kicker: { color: B.cyan, fontSize: 10, fontWeight: '900', letterSpacing: 1.9, marginTop: 28 },
-  title: { color: B.text, fontSize: 36, lineHeight: 40, fontWeight: '900', letterSpacing: -1.35, marginTop: 12 },
-  sub: { color: B.muted, fontSize: 14, lineHeight: 21, marginTop: 12 },
-  toggleWrap: { flexDirection: 'row', padding: 5, borderRadius: 18, backgroundColor: B.surface, borderWidth: 1, borderColor: B.line, marginTop: 24 },
-  toggle: { flex: 1, minHeight: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
-  toggleActive: { backgroundColor: B.surface2 },
-  toggleText: { color: B.muted, fontWeight: '900', fontSize: 13 },
-  toggleTextActive: { color: B.text },
-  savePill: { color: B.bg, backgroundColor: B.green, fontSize: 7, fontWeight: '900', letterSpacing: 0.6, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 999 },
-  planStack: { gap: 13, marginTop: 17 },
-  planCard: { backgroundColor: B.surface, borderRadius: 25, padding: 18, borderWidth: 1, borderColor: B.line },
-  pressed: { transform: [{ scale: 0.989 }], opacity: 0.95 },
-  planHeader: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  planName: { color: B.text, fontSize: 21, fontWeight: '900' },
-  planBadge: { color: B.bg, fontSize: 8, fontWeight: '900', letterSpacing: 0.8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
-  audience: { color: B.muted, fontSize: 12, lineHeight: 17, marginTop: 4 },
-  selector: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: B.line, alignItems: 'center', justifyContent: 'center' },
-  priceLine: { flexDirection: 'row', alignItems: 'flex-end', gap: 7, marginTop: 18 },
-  price: { color: B.text, fontSize: 34, fontWeight: '900', letterSpacing: -1 },
-  period: { color: B.muted, fontSize: 12, fontWeight: '700', marginBottom: 5 },
-  savings: { color: B.muted, fontSize: 11, fontWeight: '800', marginTop: 3 },
-  headlineFeatures: { gap: 9, marginTop: 17 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  featureText: { color: B.text, fontSize: 12, fontWeight: '700' },
-  expandButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, marginTop: 4 },
-  expandText: { color: B.cyan, fontSize: 11, fontWeight: '900' },
-  expandedBox: { backgroundColor: B.surface2, borderRadius: 18, padding: 14, marginTop: 13, gap: 10 },
-  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
-  detailText: { color: B.text, fontSize: 11, lineHeight: 16, flex: 1 },
-  summaryCard: { backgroundColor: B.surface2, borderRadius: 28, padding: 19, borderWidth: 1, borderColor: B.line, marginTop: 18 },
-  summaryTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  summaryLabel: { color: B.cyan, fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
-  summaryName: { color: B.text, fontSize: 20, fontWeight: '900', marginTop: 4 },
-  summaryPriceWrap: { alignItems: 'flex-end' },
-  summaryPrice: { color: B.text, fontSize: 22, fontWeight: '900' },
-  summaryPeriod: { color: B.muted, fontSize: 10, marginTop: 2 },
-  primary: { height: 58, borderRadius: 18, backgroundColor: B.blue, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 18 },
-  primaryText: { color: '#fff', fontWeight: '900', fontSize: 15 },
-  secureText: { color: B.muted, fontSize: 9, lineHeight: 14, textAlign: 'center', marginTop: 11, paddingHorizontal: 5 },
+  safe: { flex: 1, backgroundColor: color.canvas },
+  content: { gap: space.lg, padding: space.lg, paddingTop: space.xl, paddingBottom: space.xxl },
+  currentCard: { gap: space.md },
+  currentTopRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  currentFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  fact: { flexGrow: 1, minWidth: 128, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.canvasRaised, padding: space.sm, gap: 2 },
+  flex: { flex: 1, minWidth: 0 },
+  selectorBlock: { gap: space.xs },
+  tierSelector: { flexDirection: 'row', gap: space.xs },
+  tierOption: { flex: 1, minHeight: 104, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, backgroundColor: color.surface, alignItems: 'center', justifyContent: 'center', gap: 4, padding: space.sm },
+  tierOptionSelected: { borderColor: color.primaryBright, backgroundColor: color.primary + '20' },
+  tierCopy: { textAlign: 'center' },
+  pressed: { opacity: 0.82 },
+  valueCard: { gap: space.md },
+  valueHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  pricePanel: { minHeight: 76, borderRadius: radius.md, borderWidth: 1, borderColor: color.primaryBright + '44', backgroundColor: color.primary + '16', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  featureList: { gap: space.xs },
+  featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs },
+  featureText: { flex: 1, minWidth: 0 },
+  actions: { gap: space.sm },
+  legalCard: { gap: space.sm },
+  finePrint: { textAlign: 'center' },
+  legalLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.lg },
+  legalLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: space.sm },
 });

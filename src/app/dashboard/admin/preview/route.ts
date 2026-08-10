@@ -4,11 +4,17 @@ import {
   isPreviewPlan,
   PLAN_PREVIEW_COOKIE,
 } from "@/lib/admin-plan-preview";
-import { requireRouteAccess } from "@/lib/platform/server-access";
+import { resolveServerAccess } from "@/lib/identity/server-access";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
-  const result = await requireRouteAccess("/dashboard/admin/preview");
-  if (!result.access.canAccessCommandCenter) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const access = await resolveServerAccess(supabase, user);
+  if (access.platformRole !== "owner") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

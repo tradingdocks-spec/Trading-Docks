@@ -22,10 +22,6 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown webhook processing error.";
 }
 
-function canonicalBillingPlanId(tier: string) {
-  return tier === "store" ? "business" : tier;
-}
-
 async function assertUserExists(supabase: ReturnType<typeof createAdminClient>, userId: string) {
   const { data, error } = await supabase.auth.admin.getUserById(userId);
   if (error || !data.user) {
@@ -253,7 +249,7 @@ export async function POST(request: Request) {
       await saveCanonicalMembership({
         supabase,
         userId: event.appUserId,
-        tier: canonicalBillingPlanId(effective.tier),
+        tier: effective.tier,
         status: effective.status,
         periodEnd: effective.periodEnd,
       });

@@ -1,29 +1,24 @@
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { StyleSheet } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { TDButton, TDCard, TDScreen, TDText } from '@/components/design-system';
+import { space } from '@/design';
 
 export default function ModalScreen() {
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
-      </Link>
-    </ThemedView>
+    <TDScreen style={styles.screen}>
+      <TDCard variant="floating" style={styles.card}>
+        <TDText variant="title">Workspace notice</TDText>
+        <TDText variant="small" tone="muted">
+          This view is not available from the current workspace.
+        </TDText>
+        <TDButton label="Return Home" iconName="home-outline" onPress={() => router.replace('/(tabs)')} />
+      </TDCard>
+    </TDScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
+  screen: { justifyContent: 'center' },
+  card: { gap: space.md },
 });

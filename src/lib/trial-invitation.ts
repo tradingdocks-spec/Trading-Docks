@@ -8,7 +8,7 @@ type TrialInvitation = {
 const PLAN_NAMES: Record<string, string> = {
   collector: "Collector",
   seller: "Seller",
-  business: "Business",
+  store: "Store",
 };
 
 function escapeHtml(value: string) {

@@ -1,7 +1,12 @@
-import type { AccountTier } from "@/lib/plan-entitlements";
+import {
+  MEMBERSHIP_PLANS,
+  MEMBERSHIP_PROVIDER_MAPPINGS,
+  type BillingCycle as CatalogBillingCycle,
+  type MembershipTier,
+} from "@/lib/membership-catalog";
 
-export type PaidPlan = Exclude<AccountTier, "free">;
-export type BillingCycle = "monthly" | "annual";
+export type PaidPlan = Exclude<MembershipTier, "free">;
+export type BillingCycle = CatalogBillingCycle;
 
 type PriceDefinition = {
   env: string;
@@ -9,50 +14,39 @@ type PriceDefinition = {
   amount: number;
 };
 
-export const STRIPE_PRICES: Record<
-  PaidPlan,
-  Record<BillingCycle, PriceDefinition>
-> = {
-  collector: {
-    monthly: {
-      env: "STRIPE_COLLECTOR_MONTHLY_PRICE_ID",
-      fallback: "price_1TxvrLIU3P0Zz45XersDWqSc",
-      amount: 4.99,
-    },
-    annual: {
-      env: "STRIPE_COLLECTOR_ANNUAL_PRICE_ID",
-      fallback: "price_1TxvvVIU3P0Zz45X6AQU2MyW",
-      amount: 44.99,
-    },
-  },
-  seller: {
-    monthly: {
-      env: "STRIPE_SELLER_MONTHLY_PRICE_ID",
-      fallback: "price_1TxvujIU3P0Zz45XrSAiuGgS",
-      amount: 19.99,
-    },
-    annual: {
-      env: "STRIPE_SELLER_ANNUAL_PRICE_ID",
-      fallback: "price_1TxvukIU3P0Zz45XDORx6qeH",
-      amount: 179.99,
-    },
-  },
-  business: {
-    monthly: {
-      env: "STRIPE_STORE_MONTHLY_PRICE_ID",
-      fallback: "price_1TxvwWIU3P0Zz45Xn93kdlLP",
-      amount: 49.99,
-    },
-    annual: {
-      env: "STRIPE_STORE_ANNUAL_PRICE_ID",
-      fallback: "price_1TxvwoIU3P0Zz45XaUB4cFCt",
-      amount: 449.99,
-    },
-  },
-};
+export const STRIPE_PRICES = Object.fromEntries(
+  (["collector", "seller", "store"] as const).map((plan) => [
+    plan,
+    Object.fromEntries(
+      (["monthly", "annual"] as const).map((billing) => {
+        const mapping = MEMBERSHIP_PROVIDER_MAPPINGS.find(
+          (entry: (typeof MEMBERSHIP_PROVIDER_MAPPINGS)[number]) =>
+            entry.provider === "stripe" &&
+            entry.tier === plan &&
+            entry.billingCycle === billing,
+        );
+        if (!mapping?.envVar || !mapping.fallbackPriceId) {
+          throw new Error(`Missing Stripe mapping for ${plan}:${billing}.`);
+        }
+
+        return [
+          billing,
+          {
+            env: mapping.envVar,
+            fallback: mapping.fallbackPriceId,
+            amount:
+              billing === "monthly"
+                ? MEMBERSHIP_PLANS[plan].monthlyPrice
+                : MEMBERSHIP_PLANS[plan].annualPrice,
+          },
+        ];
+      }),
+    ),
+  ]),
+) as Record<PaidPlan, Record<BillingCycle, PriceDefinition>>;
 
 export function isPaidPlan(value: unknown): value is PaidPlan {
-  return value === "collector" || value === "seller" || value === "business";
+  return value === "collector" || value === "seller" || value === "store";
 }
 
 export function isBillingCycle(value: unknown): value is BillingCycle {

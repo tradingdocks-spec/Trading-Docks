@@ -19,7 +19,7 @@ import { PLAN_ENTITLEMENTS } from "@/lib/plan-entitlements";
 type BillingCycle = "monthly" | "annual";
 
 type Plan = {
-  id: "free" | "collector" | "seller" | "business";
+  id: "free" | "collector" | "seller" | "store";
   name: string;
   audience: string;
   monthlyPrice: number;
@@ -43,12 +43,12 @@ const plans: Plan[] = [
       "A simple starting point for discovering the platform and following your favorite cards.",
     features: [
       "Personal dashboard",
-      "Up to 10 saved decks",
-      "25-card watchlist",
-      "Basic market lookups",
-      "Community and tournament discovery",
+      "Up to 500 cards",
+      "Up to 5 decks",
+      "Card scanner",
+      "Basic collection tools",
     ],
-    limitations: ["No Inventory workspace", "No marketplace tools"],
+    limitations: ["No unlimited collection", "No seller tools"],
   },
   {
     id: "collector",
@@ -61,15 +61,15 @@ const plans: Plan[] = [
       "Catalog, organize, and understand a growing personal card collection without seller complexity.",
     features: [
       "Everything in Free",
-      "Up to 10,000 inventory units",
-      "Up to 50 saved decks",
+      "Unlimited cards and decks",
       "Storage locations and capacity",
       "Put-away and movement history",
       "Collection value tracking",
-      "Collection analytics and value history",
-      "CSV import and export",
+      "Collection value and price history",
+      "Financial insights",
+      "Trade binder, wishlist, and market signals",
     ],
-    limitations: ["No sales-channel allocations", "Single user"],
+    limitations: ["No Deal Desk", "No full web seller workspace"],
   },
   {
     id: "seller",
@@ -82,59 +82,52 @@ const plans: Plan[] = [
       "Turn inventory into listings with the daily pricing, intake, and marketplace tools sellers need.",
     features: [
       "Everything in Collector",
-      "Unlimited saved decks",
-      "Up to 50,000 inventory units",
-      "Purchasing Intelligence and collection intake",
-      "TCGplayer, eBay, Mana Pool, and store tags",
-      "Quantity-aware listing allocations",
-      "Pricing and listing action queues",
-      "Listing exceptions and oversell warnings",
-      "Sales-channel summaries",
-      "Customer CRM and loyalty records",
-      "Orders, Card Shows, and seller automation",
+      "Deal Desk",
+      "Buying profiles and buying sessions",
+      "Trade calculator",
+      "Card-show tools",
+      "Sealed evaluator",
+      "CSV/email export",
+      "Full web workspace access",
     ],
-    limitations: ["Single user", "Advanced business reporting not included"],
+    limitations: ["No employee accounts", "No shared store workflows"],
   },
   {
-    id: "business",
+    id: "store",
     name: "Store",
     audience: "Operate a team and storefront",
-    monthlyPrice: PLAN_ENTITLEMENTS.business.monthlyPrice,
-    annualMonthlyPrice: PLAN_ENTITLEMENTS.business.annualMonthlyPrice,
-    annualPrice: PLAN_ENTITLEMENTS.business.annualPrice,
+    monthlyPrice: PLAN_ENTITLEMENTS.store.monthlyPrice,
+    annualMonthlyPrice: PLAN_ENTITLEMENTS.store.annualMonthlyPrice,
+    annualPrice: PLAN_ENTITLEMENTS.store.annualPrice,
     description:
       "The complete Trading Docks command center for stores managing inventory, staff, and performance.",
     badge: "Full platform",
     features: [
       "Everything in Seller",
-      "Up to 250,000 inventory units",
-      "5 team seats included",
-      "Employee roles and controls",
-      "Cost basis and profitability",
-      "Inventory aging and saved views",
-      "Advanced location and exception reporting",
-      "Business reports and operational dashboards",
-      "Tasks, calendar, tournaments, vendors, and supply orders",
-      "Employees, payroll, finance, and organization controls",
-      "Priority support",
+      "Employee accounts",
+      "Shared buying profiles",
+      "Approval limits",
+      "Shared sessions",
+      "Customer-facing trade summaries",
+      "Shared inventory access",
+      "Store operations tools",
     ],
-    limitations: ["Additional team seats billed separately"],
+    limitations: ["Employee capacity pending product configuration"],
   },
 ];
 
 const comparisonRows = [
-  { label: "Deck Vault decks", values: ["10", "50", "Unlimited", "Unlimited"] },
-  { label: "Inventory units", values: ["500", "10,000", "50,000", "250,000"] },
+  { label: "Deck Vault decks", values: ["5", "Unlimited", "Unlimited", "Unlimited"] },
+  { label: "Cards", values: ["500", "Unlimited", "Unlimited", "Unlimited"] },
   { label: "Collection analytics", values: [false, true, true, true] },
-  { label: "CSV conversion tools", values: [false, true, true, true] },
+  { label: "Trade binder and wishlist", values: [false, true, true, true] },
   { label: "Purchasing workflows", values: [false, false, true, true] },
-  { label: "Customer CRM", values: [false, false, true, true] },
-  { label: "Marketplace connections", values: [false, false, true, true] },
-  { label: "Orders and fulfillment", values: [false, false, true, true] },
-  { label: "Card Shows and automation", values: [false, false, true, true] },
+  { label: "Deal Desk", values: [false, false, true, true] },
+  { label: "Full web workspace", values: [false, false, true, true] },
+  { label: "CSV/email export", values: [false, false, true, true] },
   { label: "Business Intelligence", values: [false, false, false, true] },
   { label: "Store operations", values: [false, false, false, true] },
-  { label: "Team members", values: ["1", "1", "1", "5 included"] },
+  { label: "Employee accounts", values: ["No", "No", "No", "Capacity pending"] },
 ]
 
 function formatPrice(value: number) {
@@ -144,7 +137,7 @@ function formatPrice(value: number) {
 function planAction(plan: Plan, currentPlan: string) {
   if (plan.id === currentPlan) return "Current plan";
   if (plan.id === "free") return "Use Free";
-  return plan.id === "business" ? "Choose Store" : `Choose ${plan.name}`;
+  return plan.id === "store" ? "Choose Store" : `Choose ${plan.name}`;
 }
 
 export function PlanComparison({ currentPlan }: { currentPlan: string }) {
@@ -216,7 +209,7 @@ export function PlanComparison({ currentPlan }: { currentPlan: string }) {
                   {plan.id === "free" && <Sparkles className="h-5 w-5" />}
                   {plan.id === "collector" && <Crown className="h-5 w-5" />}
                   {plan.id === "seller" && <ShieldCheck className="h-5 w-5" />}
-                  {plan.id === "business" && <Store className="h-5 w-5" />}
+                  {plan.id === "store" && <Store className="h-5 w-5" />}
                 </div>
                 <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.17em] text-slate-500">
                   {plan.audience}

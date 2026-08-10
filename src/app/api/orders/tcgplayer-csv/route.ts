@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { getEffectivePlan } from "@/lib/effective-plan";
-import { hasPlanAccess } from "@/lib/tier-access";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 function rows(csv: string) {
   const out: string[][] = []; let row: string[] = []; let cell = ""; let quoted = false;
@@ -10,21 +8,10 @@ function rows(csv: string) {
 }
 const key = (v:string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-async function requireFeatureAccess() {
-  if (!hasPlanAccess(await getEffectivePlan(), "orders")) {
-    return NextResponse.json(
-      { error: "Orders requires a higher Trading Docks plan." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
-
 export async function POST(request: Request) {
-  const accessDenied = await requireFeatureAccess();
-  if (accessDenied) return accessDenied;
-  const supabase = await createClient(); const { data:{user} } = await supabase.auth.getUser();
-  if(!user) return NextResponse.json({error:"Authentication required."},{status:401});
+  const capability = await requireApiCapability("orders.manage");
+  if (!capability.ok) return capability.response;
+  const supabase = capability.supabase; const user = capability.user!;
   const body=await request.json().catch(()=>null) as {csv?:string}|null; const parsed=rows(String(body?.csv??""));
   if(parsed.length<2) return NextResponse.json({error:"The CSV does not contain order rows."},{status:400});
   const headers=parsed[0].map(key); const pick=(r:string[],names:string[])=>{const i=headers.findIndex(h=>names.includes(h));return i>=0?r[i]?.trim()??"":"";};

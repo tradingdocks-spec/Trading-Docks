@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Sign in to view eBay data." }, { status: 401 });
+  const capability = await requireApiCapability("marketplaces.manage");
+  if (!capability.ok) return capability.response;
+  const user = capability.user!;
 
   const admin = createAdminClient();
   const [connection, listings, orders, runs] = await Promise.all([

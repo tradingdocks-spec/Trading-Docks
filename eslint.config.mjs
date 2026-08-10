@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import reactPlugin from "eslint-plugin-react";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -14,12 +15,19 @@ const eslintConfig = defineConfig([
      */
     plugins: {
       react: reactPlugin,
+      "react-hooks": reactHooksPlugin,
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       "prefer-const": "warn",
       "react/no-unescaped-entities": "warn",
       "react-hooks/set-state-in-effect": "warn",
+    },
+  },
+  {
+    files: ["mobile/**/*.js", "mobile/**/*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
   // Override default ignores of eslint-config-next.
@@ -37,6 +45,16 @@ const eslintConfig = defineConfig([
     "feedback-package/**",
     "feedback-visibility-v65/**",
     "plan_preview_nav_release/**",
+    // Confirmed historical Expo snapshots and generated dependency artifacts.
+    "mobile_backup/**",
+    "mobile-sdk54-clean-backup/**",
+    "mobile-sdk57-backup/**",
+    "node_modules-install-failed/**",
+    // Generated output that is not product source.
+    "dist/**",
+    "coverage/**",
+    "mobile/dist/**",
+    "mobile/.expo/**",
   ]),
 ]);
 
