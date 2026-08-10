@@ -3,9 +3,10 @@ import { NextResponse } from "next/server";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  advanceTcgplayerMagicStorageImport,
   importTcgplayerMagicCatalogCsv,
-  importTcgplayerMagicCatalogFromStorage,
   resolveTcgplayerMagicStorageParts,
+  startTcgplayerMagicStorageImport,
   TCGPLAYER_MAGIC_STORAGE_BUCKET,
   TCGPLAYER_MAGIC_STORAGE_PARTS,
   TCGPLAYER_MAGIC_STORAGE_PREFIX,
@@ -78,11 +79,11 @@ export async function POST(request: Request) {
         retryFailed?: boolean;
       };
       const action = payload.action ?? "storage-import";
-      if (action !== "storage-list" && action !== "storage-import") {
+      if (!["storage-list", "storage-start", "storage-advance", "storage-import"].includes(action)) {
         return NextResponse.json({ error: "Unsupported catalog action." }, { status: 400 });
       }
 
-      const adminClient = createAdminClient() as unknown as Parameters<typeof importTcgplayerMagicCatalogFromStorage>[0];
+      const adminClient = createAdminClient() as unknown as Parameters<typeof advanceTcgplayerMagicStorageImport>[0];
       if (action === "storage-list") {
         const paths = await resolveTcgplayerMagicStorageParts(adminClient, {
           bucket: payload.bucket,
@@ -98,13 +99,15 @@ export async function POST(request: Request) {
         });
       }
 
-      const result = await importTcgplayerMagicCatalogFromStorage(adminClient, {
+      const importOptions = {
         actorId: actor.user.id,
         bucket: payload.bucket,
         prefix: payload.prefix,
         paths: payload.paths,
-        retryFailed: payload.retryFailed,
-      });
+      };
+      const result = action === "storage-start"
+        ? await startTcgplayerMagicStorageImport(adminClient, importOptions)
+        : await advanceTcgplayerMagicStorageImport(adminClient, importOptions);
 
       return NextResponse.json({
         ok: true,

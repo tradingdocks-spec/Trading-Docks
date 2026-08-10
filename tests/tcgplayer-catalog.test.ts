@@ -5,12 +5,13 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  advanceTcgplayerMagicStorageImport,
   importTcgplayerMagicCatalogCsv,
-  importTcgplayerMagicCatalogFromStorage,
   mapTcgplayerMagicCsvRow,
   normalizeCollectorNumber,
   normalizeConditionFinish,
   resolveTcgplayerVariant,
+  startTcgplayerMagicStorageImport,
   validateTcgplayerMagicHeaders,
   type TcgplayerMagicCatalogRecord,
   type TcgplayerMagicCsvHeader,
@@ -166,11 +167,18 @@ test("storage multipart catalog import processes parts in order as one logical i
     ]),
   });
 
-  const result = await importTcgplayerMagicCatalogFromStorage(client, {
+  const started = await startTcgplayerMagicStorageImport(client, {
+    bucket: "catalog-imports",
+    prefix: "tcgplayer/magic/2026-08-10/",
+  });
+  assert.equal(started.status, "processing");
+  assert.equal(client.downloadedPaths.length, 0);
+
+  const result = await runStorageImportToCompletion(client, {
     bucket: "catalog-imports",
     prefix: "tcgplayer/magic/2026-08-10/",
     batchSize: 1,
-    importedAt: "2026-08-10T00:00:00.000Z",
+    byteLimit: 1024,
   });
 
   assert.equal(result.status, "completed");
@@ -189,6 +197,57 @@ test("storage multipart catalog import processes parts in order as one logical i
   assert.equal(client.imports.filter((row) => row.filename === "storage://catalog-imports/tcgplayer/magic/2026-08-10/").length, 1);
 });
 
+test("storage catalog import persists checkpoints and resumes after refresh or interrupted batch", async () => {
+  const client = new FakeStorageCatalogClient({
+    "tcgplayer/magic/2026-08-10/part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+      ["101", "Magic", "Set A", "Card AA", "Card AA", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+    "tcgplayer/magic/2026-08-10/part-002.csv": csv([
+      ["200", "Magic", "Set B", "Card B", "Card B", "2", "Rare", "Near Mint", "2.23", "", "", "1.99", "1", "", "", ""],
+    ]),
+  });
+
+  const first = await advanceTcgplayerMagicStorageImport(client, {
+    bucket: "catalog-imports",
+    paths: [
+      "tcgplayer/magic/2026-08-10/part-001.csv",
+      "tcgplayer/magic/2026-08-10/part-002.csv",
+    ],
+    batchSize: 1,
+    byteLimit: 1024,
+    downloadRange: client.downloadRange,
+  });
+  assert.equal(first.status, "processing");
+  assert.equal(first.summary.processedRows, 1);
+  assert.ok(first.parts[0].byteOffset > 0);
+
+  const recovered = await startTcgplayerMagicStorageImport(client, {
+    bucket: "catalog-imports",
+    paths: [
+      "tcgplayer/magic/2026-08-10/part-001.csv",
+      "tcgplayer/magic/2026-08-10/part-002.csv",
+    ],
+  });
+  assert.equal(recovered.summary.processedRows, 1);
+  assert.equal(recovered.parts[0].byteOffset, first.parts[0].byteOffset);
+
+  const result = await runStorageImportToCompletion(client, {
+    bucket: "catalog-imports",
+    paths: [
+      "tcgplayer/magic/2026-08-10/part-001.csv",
+      "tcgplayer/magic/2026-08-10/part-002.csv",
+    ],
+    batchSize: 1,
+    byteLimit: 1024,
+  });
+  assert.equal(result.status, "completed");
+  assert.equal(result.summary.processedRows, 3);
+  assert.equal(result.parts[0].status, "completed");
+  assert.equal(result.parts[1].status, "completed");
+  assert.equal(new Set(client.upserts.flat().map((row) => row.tcgplayer_id)).size, 3);
+});
+
 test("completed storage catalog import is not processed twice", async () => {
   const client = new FakeStorageCatalogClient({
     "tcgplayer/magic/2026-08-10/part-001.csv": csv([
@@ -196,22 +255,45 @@ test("completed storage catalog import is not processed twice", async () => {
     ]),
   });
 
-  await importTcgplayerMagicCatalogFromStorage(client, {
+  await runStorageImportToCompletion(client, {
     bucket: "catalog-imports",
     paths: ["tcgplayer/magic/2026-08-10/part-001.csv"],
     batchSize: 1,
+    byteLimit: 1024,
   });
   client.downloadedPaths = [];
 
-  const second = await importTcgplayerMagicCatalogFromStorage(client, {
+  const second = await advanceTcgplayerMagicStorageImport(client, {
     bucket: "catalog-imports",
     paths: ["tcgplayer/magic/2026-08-10/part-001.csv"],
     batchSize: 1,
+    byteLimit: 1024,
+    downloadRange: client.downloadRange,
   });
 
   assert.equal(second.skippedCompletedImport, true);
   assert.deepEqual(client.downloadedPaths, []);
   assert.equal(client.upserts.length, 1);
+});
+
+test("duplicate active storage import protection reuses the existing processing job", async () => {
+  const client = new FakeStorageCatalogClient({
+    "tcgplayer/magic/2026-08-10/part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+  });
+
+  const first = await startTcgplayerMagicStorageImport(client, {
+    bucket: "catalog-imports",
+    paths: ["tcgplayer/magic/2026-08-10/part-001.csv"],
+  });
+  const second = await startTcgplayerMagicStorageImport(client, {
+    bucket: "catalog-imports",
+    paths: ["tcgplayer/magic/2026-08-10/part-001.csv"],
+  });
+
+  assert.equal(first.importRunId, second.importRunId);
+  assert.equal(client.imports.length, 1);
 });
 
 test("catalog resolver returns exact TCGplayer IDs and refuses ambiguous or missing matches", async () => {
@@ -337,6 +419,30 @@ function csvEscape(value: string) {
   return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, "\"\"")}"` : value;
 }
 
+async function runStorageImportToCompletion(
+  client: FakeStorageCatalogClient,
+  options: {
+    bucket: string;
+    prefix?: string;
+    paths?: string[];
+    batchSize: number;
+    byteLimit: number;
+  },
+) {
+  let result = await advanceTcgplayerMagicStorageImport(client, {
+    ...options,
+    downloadRange: client.downloadRange,
+  });
+  for (let index = 0; index < 20 && result.status !== "completed"; index += 1) {
+    result = await advanceTcgplayerMagicStorageImport(client, {
+      ...options,
+      downloadRange: client.downloadRange,
+    });
+  }
+  assert.equal(result.status, "completed");
+  return result;
+}
+
 class FakeCatalogClient {
   upserts: TcgplayerMagicCatalogRecord[][] = [];
   imports: Record<string, unknown>[] = [];
@@ -363,6 +469,9 @@ class FakeCatalogClient {
       },
       upsert(rows: TcgplayerMagicCatalogRecord[]) {
         upserts.push(rows);
+        for (const row of rows) {
+          if (!existingIds.includes(row.tcgplayer_id)) existingIds.push(row.tcgplayer_id);
+        }
         return Promise.resolve({ data: null, error: null });
       },
       insert(row: Record<string, unknown>) {
@@ -386,6 +495,7 @@ class FakeCatalogClient {
 class FakeStorageCatalogClient extends FakeCatalogClient {
   files: Record<string, string>;
   downloadedPaths: string[] = [];
+  encoder = new TextEncoder();
 
   constructor(files: Record<string, string>) {
     super([]);
@@ -451,15 +561,21 @@ class FakeStorageCatalogClient extends FakeCatalogClient {
           .map((path) => ({ name: path.slice(prefix.length) }));
         return Promise.resolve({ data, error: null });
       },
-      download: (path: string) => {
-        this.downloadedPaths.push(path);
-        const file = this.files[path];
-        return Promise.resolve({
-          data: file ? new Blob([file], { type: "text/csv" }) : null,
-          error: file ? null : { message: "missing" },
-        });
-      },
     }),
+  };
+
+  downloadRange = async (_bucket: string, path: string, startByte: number, byteLength: number) => {
+    this.downloadedPaths.push(path);
+    const file = this.files[path];
+    if (!file) throw new Error("missing");
+    const bytes = this.encoder.encode(file);
+    const endExclusive = Math.min(bytes.length, startByte + byteLength);
+    return {
+      bytes: bytes.slice(startByte, endExclusive),
+      start: startByte,
+      end: endExclusive - 1,
+      totalBytes: bytes.length,
+    };
   };
 }
 

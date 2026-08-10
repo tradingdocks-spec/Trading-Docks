@@ -1,8 +1,15 @@
 import {
+  TCGPLAYER_MAGIC_CSV_HEADERS,
+  mapTcgplayerMagicCsvRow,
+  validateTcgplayerMagicHeaders,
+  type TcgplayerMagicCatalogRecord,
+  type TcgplayerMagicCsvHeader,
+} from "./csv.ts";
+import {
   createTcgplayerCatalogImportRun,
-  processTcgplayerMagicCatalogCsv,
   updateTcgplayerCatalogImportRun,
   type SupabaseCatalogClient,
+  type TcgplayerCatalogImportError,
   type TcgplayerCatalogImportSummary,
 } from "./importer.ts";
 
@@ -14,9 +21,16 @@ export const TCGPLAYER_MAGIC_STORAGE_PARTS = [
   "tcgplayer/magic/2026-08-10/part-003.csv",
 ] as const;
 
+export const TCGPLAYER_STORAGE_IMPORT_BATCH_ROWS = 10_000;
+export const TCGPLAYER_STORAGE_IMPORT_BATCH_BYTES = 4 * 1024 * 1024;
+
 export type TcgplayerCatalogStoragePart = {
   path: string;
   status: "pending" | "processing" | "completed" | "failed";
+  byteOffset: number;
+  totalBytes: number | null;
+  headerValidated: boolean;
+  headers: string[] | null;
   totalRows: number;
   processedRows: number;
   insertedRows: number;
@@ -36,6 +50,22 @@ export type TcgplayerCatalogStorageImportResult = {
   summary: TcgplayerCatalogImportSummary;
   status: "processing" | "completed" | "failed";
   skippedCompletedImport: boolean;
+  currentPartIndex: number;
+  currentPartPath: string | null;
+  batch: {
+    attempted: boolean;
+    completedRows: number;
+    completedBytes: number;
+    partCompleted: boolean;
+    importCompleted: boolean;
+  };
+};
+
+export type TcgplayerStorageDownloadRange = {
+  bytes: Uint8Array;
+  start: number;
+  end: number;
+  totalBytes: number;
 };
 
 type SupabaseStorageCatalogClient = SupabaseCatalogClient & {
@@ -43,10 +73,6 @@ type SupabaseStorageCatalogClient = SupabaseCatalogClient & {
     from: (bucket: string) => {
       list: (prefix: string) => PromiseLike<{
         data: Array<{ name: string; id?: string | null }> | null;
-        error: { message?: string } | null;
-      }>;
-      download: (path: string) => PromiseLike<{
-        data: Blob | null;
         error: { message?: string } | null;
       }>;
     };
@@ -70,8 +96,21 @@ type StorageImportMetadata = {
   bucket: string;
   prefix: string | null;
   parts: TcgplayerCatalogStoragePart[];
-  errors: TcgplayerCatalogImportSummary["errors"];
+  errors: TcgplayerCatalogImportError[];
 };
+
+type StorageImportOptions = {
+  actorId?: string | null;
+  bucket?: string;
+  prefix?: string | null;
+  paths?: string[];
+  importedAt?: string;
+  batchSize?: number;
+  byteLimit?: number;
+  downloadRange?: (bucket: string, path: string, startByte: number, byteLength: number) => Promise<TcgplayerStorageDownloadRange>;
+};
+
+const MAX_REPORTED_ERRORS = 50;
 
 export async function resolveTcgplayerMagicStorageParts(
   client: SupabaseStorageCatalogClient,
@@ -102,17 +141,9 @@ export async function resolveTcgplayerMagicStorageParts(
   return paths;
 }
 
-export async function importTcgplayerMagicCatalogFromStorage(
+export async function startTcgplayerMagicStorageImport(
   client: SupabaseStorageCatalogClient,
-  options: {
-    actorId?: string | null;
-    bucket?: string;
-    prefix?: string | null;
-    paths?: string[];
-    importedAt?: string;
-    batchSize?: number;
-    retryFailed?: boolean;
-  } = {},
+  options: StorageImportOptions = {},
 ): Promise<TcgplayerCatalogStorageImportResult> {
   const bucket = options.bucket ?? TCGPLAYER_MAGIC_STORAGE_BUCKET;
   const prefix = options.prefix === undefined ? TCGPLAYER_MAGIC_STORAGE_PREFIX : normalizeOptionalPrefix(options.prefix);
@@ -121,91 +152,364 @@ export async function importTcgplayerMagicCatalogFromStorage(
   const existing = await findLatestStorageImportRun(client, logicalImportKey);
 
   if (existing?.status === "completed") {
-    return {
-      importRunId: existing.id,
-      logicalImportKey,
-      bucket,
-      prefix,
-      parts: metadataFromImportRun(existing, bucket, prefix, paths).parts,
-      summary: summaryFromImportRun(existing),
-      status: "completed",
-      skippedCompletedImport: true,
-    };
+    return resultFromImportRun(existing, bucket, prefix, paths, true);
   }
-
   if (existing?.status === "processing") {
-    throw new Error("A TCGplayer storage catalog import is already processing.");
+    return resultFromImportRun(existing, bucket, prefix, paths, false);
   }
 
-  const importRunId = existing?.id ?? await createTcgplayerCatalogImportRun(client, {
+  const metadata = storageMetadata(bucket, prefix, paths.map((path) => emptyPart(path)), []);
+  const importRunId = await createTcgplayerCatalogImportRun(client, {
     actor_id: options.actorId ?? null,
     filename: logicalImportKey,
     status: "processing",
-    error_summary: storageMetadata(bucket, prefix, paths.map((path) => emptyPart(path)), []),
+    error_summary: metadata,
   });
-  const metadata = existing ? metadataFromImportRun(existing, bucket, prefix, paths) : storageMetadata(bucket, prefix, paths.map((path) => emptyPart(path)), []);
-  const summary = aggregateCompletedParts(metadata.parts);
 
-  await persistStorageImport(client, importRunId, summary, {
-    ...metadata,
-    parts: metadata.parts.map((part) => part.status === "failed" ? { ...part, status: "pending" as const, error: undefined } : part),
-  }, "processing");
+  const row: ImportRunRow = {
+    id: importRunId,
+    status: "processing",
+    filename: logicalImportKey,
+    total_rows: 0,
+    processed_rows: 0,
+    inserted_rows: 0,
+    updated_rows: 0,
+    rejected_rows: 0,
+    error_summary: metadata,
+  };
+  return resultFromImportRun(row, bucket, prefix, paths, false);
+}
 
-  for (const path of paths) {
-    let partIndex = metadata.parts.findIndex((part) => part.path === path);
-    if (partIndex < 0) {
-      metadata.parts.push(emptyPart(path));
-      partIndex = metadata.parts.length - 1;
-    }
-    const currentPart = metadata.parts[partIndex];
-    if (currentPart.status === "completed") continue;
+export async function advanceTcgplayerMagicStorageImport(
+  client: SupabaseStorageCatalogClient,
+  options: StorageImportOptions = {},
+): Promise<TcgplayerCatalogStorageImportResult> {
+  const bucket = options.bucket ?? TCGPLAYER_MAGIC_STORAGE_BUCKET;
+  const prefix = options.prefix === undefined ? TCGPLAYER_MAGIC_STORAGE_PREFIX : normalizeOptionalPrefix(options.prefix);
+  const paths = await resolveTcgplayerMagicStorageParts(client, { bucket, prefix, paths: options.paths });
+  const logicalImportKey = storageImportKey(bucket, prefix, paths);
+  const existing = await findLatestStorageImportRun(client, logicalImportKey);
+  const active = existing ?? await createStartedRun(client, options, bucket, prefix, paths, logicalImportKey);
 
-    metadata.parts[partIndex] = { ...currentPart, status: "processing", error: undefined, startedAt: new Date().toISOString() };
-    await persistStorageImport(client, importRunId, summary, metadata, "processing");
-
-    const before = cloneSummary(summary);
-    try {
-      const { data, error } = await client.storage.from(bucket).download(path);
-      if (error) throw new Error(error.message ?? `Could not download ${path}.`);
-      if (!data) throw new Error(`Storage object ${path} did not return a readable CSV.`);
-
-      await processTcgplayerMagicCatalogCsv(client, data.stream(), summary, {
-        importedAt: options.importedAt,
-        batchSize: options.batchSize,
-      });
-
-      metadata.parts[partIndex] = {
-        path,
-        status: "completed",
-        ...summaryDelta(before, summary),
-        startedAt: metadata.parts[partIndex]?.startedAt,
-        completedAt: new Date().toISOString(),
-      };
-      await persistStorageImport(client, importRunId, summary, metadata, "processing");
-    } catch (error) {
-      metadata.parts[partIndex] = {
-        ...metadata.parts[partIndex],
-        status: "failed",
-        ...summaryDelta(before, summary),
-        error: error instanceof Error ? error.message : `Could not import ${path}.`,
-        completedAt: new Date().toISOString(),
-      };
-      await persistStorageImport(client, importRunId, summary, metadata, "failed");
-      throw error;
-    }
+  if (active.status === "completed") {
+    return resultFromImportRun(active, bucket, prefix, paths, true);
   }
 
-  await persistStorageImport(client, importRunId, summary, metadata, "completed");
+  const metadata = metadataFromImportRun(active, bucket, prefix, paths);
+  const summary = summaryFromImportRun(active, metadata);
+  const partIndex = metadata.parts.findIndex((part) => part.status !== "completed");
+  if (partIndex < 0) {
+    await persistStorageImport(client, active.id, summary, metadata, "completed");
+    return resultFromImportRun({ ...active, status: "completed", error_summary: metadata }, bucket, prefix, paths, false);
+  }
+
+  const part = metadata.parts[partIndex];
+  const beforeSummary = cloneSummary(summary);
+  const beforePart = { ...part };
+
+  try {
+    const range = await (options.downloadRange ?? downloadSupabaseStorageRange)(
+      bucket,
+      part.path,
+      part.byteOffset,
+      options.byteLimit ?? TCGPLAYER_STORAGE_IMPORT_BATCH_BYTES,
+    );
+    const parsed = parseCatalogRowsFromByteRange(range.bytes, {
+      absoluteStartByte: range.start,
+      totalBytes: range.totalBytes,
+      headers: part.headers,
+      validateHeader: !part.headerValidated,
+      maxRows: options.batchSize ?? TCGPLAYER_STORAGE_IMPORT_BATCH_ROWS,
+    });
+
+    part.status = parsed.partCompleted ? "completed" : "processing";
+    part.byteOffset = parsed.nextByteOffset;
+    part.totalBytes = range.totalBytes;
+    part.headerValidated = true;
+    part.headers = parsed.headers;
+    part.startedAt = part.startedAt ?? new Date().toISOString();
+    part.completedAt = parsed.partCompleted ? new Date().toISOString() : undefined;
+    part.error = undefined;
+
+    await upsertCatalogRecords(client, parsed.records, summary);
+    applyRejectedRows(summary, parsed.rejected);
+
+    const delta = summaryDelta(beforeSummary, summary);
+    part.totalRows = beforePart.totalRows + delta.totalRows;
+    part.processedRows = beforePart.processedRows + delta.processedRows;
+    part.insertedRows = beforePart.insertedRows + delta.insertedRows;
+    part.updatedRows = beforePart.updatedRows + delta.updatedRows;
+    part.rejectedRows = beforePart.rejectedRows + delta.rejectedRows;
+
+    const completed = metadata.parts.every((candidate) => candidate.status === "completed");
+    await persistStorageImport(client, active.id, summary, metadata, completed ? "completed" : "processing");
+
+    return {
+      importRunId: active.id,
+      logicalImportKey,
+      bucket,
+      prefix,
+      parts: metadata.parts,
+      summary,
+      status: completed ? "completed" : "processing",
+      skippedCompletedImport: false,
+      currentPartIndex: partIndex,
+      currentPartPath: part.path,
+      batch: {
+        attempted: true,
+        completedRows: parsed.records.length + parsed.rejected.length,
+        completedBytes: parsed.nextByteOffset - range.start,
+        partCompleted: parsed.partCompleted,
+        importCompleted: completed,
+      },
+    };
+  } catch (error) {
+    part.status = "failed";
+    part.error = error instanceof Error ? error.message : "Could not advance TCGplayer storage import.";
+    part.completedAt = new Date().toISOString();
+    await persistStorageImport(client, active.id, summary, metadata, "failed");
+    throw error;
+  }
+}
+
+export const importTcgplayerMagicCatalogFromStorage = advanceTcgplayerMagicStorageImport;
+
+function parseCatalogRowsFromByteRange(
+  bytes: Uint8Array,
+  options: {
+    absoluteStartByte: number;
+    totalBytes: number;
+    headers: string[] | null;
+    validateHeader: boolean;
+    maxRows: number;
+  },
+) {
+  const rows = parseCsvRowsFromBytes(bytes, options.absoluteStartByte, options.totalBytes);
+  let headers = options.headers;
+  let rowStartIndex = 0;
+  if (options.validateHeader) {
+    const headerRow = rows[0];
+    if (!headerRow) throw new Error("The CSV is empty or the byte range is too small to validate the header.");
+    headers = headerRow.row.map((header) => header.trim());
+    const validation = validateTcgplayerMagicHeaders(headers);
+    if (!validation.ok) {
+      throw new Error(`Missing required TCGplayer CSV headers: ${validation.missing.join(", ")}`);
+    }
+    rowStartIndex = 1;
+  }
+  if (!headers) throw new Error("Cannot resume TCGplayer CSV import before the file header is validated.");
+
+  const records: TcgplayerMagicCatalogRecord[] = [];
+  const rejected: TcgplayerCatalogImportError[] = [];
+  let nextByteOffset = options.absoluteStartByte;
+  let exhaustedRows = true;
+
+  for (let index = rowStartIndex; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (!row.row.some((cell) => cell.trim())) {
+      nextByteOffset = row.endByteOffset;
+      continue;
+    }
+    if (records.length + rejected.length >= options.maxRows) {
+      exhaustedRows = false;
+      break;
+    }
+
+    const record = Object.fromEntries(
+      TCGPLAYER_MAGIC_CSV_HEADERS.map((header) => [
+        header,
+        row.row[headers.indexOf(header)]?.trim() ?? "",
+      ]),
+    ) as Record<TcgplayerMagicCsvHeader, string>;
+    const mapped = mapTcgplayerMagicCsvRow(record, { rowNumber: 1 + records.length + rejected.length });
+    if (mapped.ok) records.push(mapped.record);
+    else rejected.push(mapped);
+    nextByteOffset = row.endByteOffset;
+  }
+
+  const partCompleted = nextByteOffset >= options.totalBytes && exhaustedRows;
+  if (nextByteOffset === options.absoluteStartByte && bytes.length > 0) {
+    throw new Error("The CSV row exceeds the safe byte range. Increase the catalog import byte batch size.");
+  }
 
   return {
-    importRunId,
-    logicalImportKey,
+    headers,
+    records,
+    rejected,
+    nextByteOffset,
+    partCompleted,
+  };
+}
+
+function parseCsvRowsFromBytes(bytes: Uint8Array, absoluteStartByte: number, totalBytes: number) {
+  const decoder = new TextDecoder();
+  const rows: Array<{ row: string[]; endByteOffset: number }> = [];
+  let row: string[] = [];
+  let cell: number[] = [];
+  let quoted = false;
+
+  function pushCell() {
+    row.push(decoder.decode(new Uint8Array(cell)));
+    cell = [];
+  }
+
+  function pushRow(endByteIndex: number) {
+    rows.push({
+      row,
+      endByteOffset: absoluteStartByte + endByteIndex + 1,
+    });
+    row = [];
+  }
+
+  for (let index = 0; index < bytes.length; index += 1) {
+    const byte = bytes[index];
+    if (byte === 34 && quoted && bytes[index + 1] === 34) {
+      cell.push(34);
+      index += 1;
+      continue;
+    }
+    if (byte === 34) {
+      quoted = !quoted;
+      continue;
+    }
+    if (byte === 44 && !quoted) {
+      pushCell();
+      continue;
+    }
+    if ((byte === 10 || byte === 13) && !quoted) {
+      pushCell();
+      if (byte === 13 && bytes[index + 1] === 10) index += 1;
+      pushRow(index);
+      continue;
+    }
+    cell.push(byte);
+  }
+
+  if (absoluteStartByte + bytes.length >= totalBytes && (cell.length > 0 || row.length > 0)) {
+    pushCell();
+    rows.push({
+      row,
+      endByteOffset: totalBytes,
+    });
+  }
+
+  return rows;
+}
+
+async function upsertCatalogRecords(
+  client: SupabaseCatalogClient,
+  rows: TcgplayerMagicCatalogRecord[],
+  summary: TcgplayerCatalogImportSummary,
+) {
+  if (rows.length === 0) return;
+  const existing = await existingTcgplayerIds(client, rows.map((row) => row.tcgplayer_id));
+  const { error } = await client
+    .from("tcgplayer_magic_catalog")
+    .upsert(rows, { onConflict: "tcgplayer_id" });
+  if (error) throw new Error(error.message ?? "Could not upsert TCGplayer catalog rows.");
+
+  for (const row of rows) {
+    if (existing.has(row.tcgplayer_id)) summary.updatedRows += 1;
+    else summary.insertedRows += 1;
+  }
+  summary.processedRows += rows.length;
+  summary.totalRows += rows.length;
+}
+
+async function existingTcgplayerIds(client: SupabaseCatalogClient, ids: number[]) {
+  const { data, error } = await client
+    .from("tcgplayer_magic_catalog")
+    .select("tcgplayer_id")
+    .in("tcgplayer_id", ids);
+  if (error) throw new Error(error.message ?? "Could not check existing TCGplayer catalog IDs.");
+  return new Set((data ?? []).map((row) => Number(row.tcgplayer_id)));
+}
+
+function applyRejectedRows(summary: TcgplayerCatalogImportSummary, rejected: TcgplayerCatalogImportError[]) {
+  summary.rejectedRows += rejected.length;
+  summary.totalRows += rejected.length;
+  for (const error of rejected) {
+    if (summary.errors.length < MAX_REPORTED_ERRORS) summary.errors.push(error);
+  }
+}
+
+async function downloadSupabaseStorageRange(
+  bucket: string,
+  path: string,
+  startByte: number,
+  byteLength: number,
+): Promise<TcgplayerStorageDownloadRange> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRoleKey) throw new Error("Supabase service-role credentials are not configured.");
+
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const response = await fetch(`${url}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`, {
+    headers: {
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+      range: `bytes=${startByte}-${startByte + byteLength - 1}`,
+    },
+  });
+  if (!response.ok) throw new Error(`Could not download ${path}: HTTP ${response.status}`);
+  if (response.status === 200 && startByte > 0) {
+    throw new Error("Supabase Storage did not honor the range request for a resumed catalog import.");
+  }
+
+  const contentRange = response.headers.get("content-range");
+  const totalBytes = contentRange?.match(/\/(\d+)$/)?.[1]
+    ? Number(contentRange.match(/\/(\d+)$/)?.[1])
+    : startByte + Number(response.headers.get("content-length") ?? 0);
+  const body = new Uint8Array(await response.arrayBuffer());
+  return {
+    bytes: body,
+    start: startByte,
+    end: startByte + body.length - 1,
+    totalBytes,
+  };
+}
+
+async function createStartedRun(
+  client: SupabaseStorageCatalogClient,
+  options: StorageImportOptions,
+  bucket: string,
+  prefix: string | null,
+  paths: string[],
+  logicalImportKey: string,
+) {
+  await startTcgplayerMagicStorageImport(client, options);
+  const row = await findLatestStorageImportRun(client, logicalImportKey);
+  if (!row) throw new Error("Could not create TCGplayer storage catalog import.");
+  return row;
+}
+
+function resultFromImportRun(
+  row: ImportRunRow,
+  bucket: string,
+  prefix: string | null,
+  paths: string[],
+  skippedCompletedImport: boolean,
+): TcgplayerCatalogStorageImportResult {
+  const metadata = metadataFromImportRun(row, bucket, prefix, paths);
+  const currentPartIndex = metadata.parts.findIndex((part) => part.status !== "completed");
+  return {
+    importRunId: row.id,
+    logicalImportKey: storageImportKey(bucket, prefix, paths),
     bucket,
     prefix,
     parts: metadata.parts,
-    summary,
-    status: "completed",
-    skippedCompletedImport: false,
+    summary: summaryFromImportRun(row, metadata),
+    status: row.status === "completed" ? "completed" : row.status === "failed" ? "failed" : "processing",
+    skippedCompletedImport,
+    currentPartIndex,
+    currentPartPath: currentPartIndex >= 0 ? metadata.parts[currentPartIndex]?.path ?? null : null,
+    batch: {
+      attempted: false,
+      completedRows: 0,
+      completedBytes: 0,
+      partCompleted: false,
+      importCompleted: row.status === "completed",
+    },
   };
 }
 
@@ -234,6 +538,10 @@ function emptyPart(path: string): TcgplayerCatalogStoragePart {
   return {
     path,
     status: "pending",
+    byteOffset: 0,
+    totalBytes: null,
+    headerValidated: false,
+    headers: null,
     totalRows: 0,
     processedRows: 0,
     insertedRows: 0,
@@ -246,7 +554,7 @@ function storageMetadata(
   bucket: string,
   prefix: string | null,
   parts: TcgplayerCatalogStoragePart[],
-  errors: TcgplayerCatalogImportSummary["errors"],
+  errors: TcgplayerCatalogImportError[],
 ): StorageImportMetadata {
   return {
     kind: "tcgplayer-storage-multipart",
@@ -257,12 +565,7 @@ function storageMetadata(
   };
 }
 
-function metadataFromImportRun(
-  row: ImportRunRow,
-  bucket: string,
-  prefix: string | null,
-  paths: string[],
-) {
+function metadataFromImportRun(row: ImportRunRow, bucket: string, prefix: string | null, paths: string[]) {
   if (
     row.error_summary &&
     typeof row.error_summary === "object" &&
@@ -277,28 +580,15 @@ function metadataFromImportRun(
   return storageMetadata(bucket, prefix, paths.map((path) => emptyPart(path)), []);
 }
 
-function summaryFromImportRun(row: ImportRunRow): TcgplayerCatalogImportSummary {
+function summaryFromImportRun(row: ImportRunRow, metadata: StorageImportMetadata): TcgplayerCatalogImportSummary {
   return {
     totalRows: Number(row.total_rows ?? 0),
     processedRows: Number(row.processed_rows ?? 0),
     insertedRows: Number(row.inserted_rows ?? 0),
     updatedRows: Number(row.updated_rows ?? 0),
     rejectedRows: Number(row.rejected_rows ?? 0),
-    errors: Array.isArray(row.error_summary) ? row.error_summary as TcgplayerCatalogImportSummary["errors"] : [],
+    errors: metadata.errors ?? [],
   };
-}
-
-function aggregateCompletedParts(parts: TcgplayerCatalogStoragePart[]): TcgplayerCatalogImportSummary {
-  return parts
-    .filter((part) => part.status === "completed")
-    .reduce<TcgplayerCatalogImportSummary>((summary, part) => ({
-      totalRows: summary.totalRows + part.totalRows,
-      processedRows: summary.processedRows + part.processedRows,
-      insertedRows: summary.insertedRows + part.insertedRows,
-      updatedRows: summary.updatedRows + part.updatedRows,
-      rejectedRows: summary.rejectedRows + part.rejectedRows,
-      errors: summary.errors,
-    }), { totalRows: 0, processedRows: 0, insertedRows: 0, updatedRows: 0, rejectedRows: 0, errors: [] });
 }
 
 function cloneSummary(summary: TcgplayerCatalogImportSummary): TcgplayerCatalogImportSummary {

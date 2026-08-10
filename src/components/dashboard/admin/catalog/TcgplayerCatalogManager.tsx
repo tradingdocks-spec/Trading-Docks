@@ -35,24 +35,37 @@ type ImportSummary = {
   errors: Array<{ row: number; error: string }>;
 };
 
+type StorageImportPart = {
+  path: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  byteOffset?: number;
+  totalBytes?: number | null;
+  totalRows: number;
+  processedRows: number;
+  insertedRows: number;
+  updatedRows: number;
+  rejectedRows: number;
+  error?: string;
+};
+
 type ImportResponse = {
   ok?: boolean;
-  action?: "validate" | "import" | "storage-list" | "storage-import";
+  action?: "validate" | "import" | "storage-list" | "storage-start" | "storage-advance" | "storage-import";
   summary?: ImportSummary;
   result?: {
     status: "processing" | "completed" | "failed";
     skippedCompletedImport: boolean;
-    parts: Array<{
-      path: string;
-      status: "pending" | "processing" | "completed" | "failed";
-      totalRows: number;
-      processedRows: number;
-      insertedRows: number;
-      updatedRows: number;
-      rejectedRows: number;
-      error?: string;
-    }>;
+    parts: StorageImportPart[];
     summary: ImportSummary;
+    currentPartIndex: number;
+    currentPartPath: string | null;
+    batch: {
+      attempted: boolean;
+      completedRows: number;
+      completedBytes: number;
+      partCompleted: boolean;
+      importCompleted: boolean;
+    };
   };
   paths?: string[];
   error?: string;
@@ -61,7 +74,7 @@ type ImportResponse = {
 export function TcgplayerCatalogManager() {
   const [status, setStatus] = useState<CatalogStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [working, setWorking] = useState<"validate" | "import" | "storage-list" | "storage-import" | null>(null);
+  const [working, setWorking] = useState<"validate" | "import" | "storage-list" | "storage-start" | "storage-advance" | "storage-import" | null>(null);
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [storageBucket, setStorageBucket] = useState("catalog-imports");
@@ -71,6 +84,7 @@ export function TcgplayerCatalogManager() {
     "tcgplayer/magic/2026-08-10/part-002.csv",
     "tcgplayer/magic/2026-08-10/part-003.csv",
   ]);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     void refreshStatus();
@@ -79,8 +93,13 @@ export function TcgplayerCatalogManager() {
   const progress = useMemo(() => {
     const summary = result?.summary;
     if (!summary?.totalRows) return 0;
-    return Math.round(((summary.processedRows + summary.rejectedRows) / summary.totalRows) * 100);
+    const denominator = result?.result ? 799149 : summary.totalRows;
+    return Math.min(100, Math.round(((summary.processedRows + summary.rejectedRows) / denominator) * 1000) / 10);
   }, [result]);
+
+  const activeStorageImport = result?.result?.status === "processing" || result?.result?.status === "failed";
+  const currentPart = result?.result?.currentPartPath?.split("/").pop() ?? null;
+  const currentPartPosition = result?.result ? Math.max(0, result.result.currentPartIndex) + 1 : 0;
 
   async function refreshStatus() {
     const response = await fetch("/api/admin/tcgplayer-catalog");
@@ -94,6 +113,55 @@ export function TcgplayerCatalogManager() {
       setStorageBucket(payload.defaultStorageImport.bucket);
       setStoragePrefix(payload.defaultStorageImport.prefix);
       setStoragePaths(payload.defaultStorageImport.paths);
+    }
+    const lastImport = payload.lastImport;
+    if (
+      !result &&
+      lastImport?.status === "processing" &&
+      lastImport.error_summary &&
+      typeof lastImport.error_summary === "object" &&
+      "kind" in lastImport.error_summary &&
+      (lastImport.error_summary as { kind?: unknown }).kind === "tcgplayer-storage-multipart"
+    ) {
+      const metadata = lastImport.error_summary as {
+        parts?: StorageImportPart[];
+      };
+      const parts = metadata.parts ?? [];
+      const currentPartIndex = parts.findIndex((part) => part.status !== "completed");
+      setResult({
+        ok: true,
+        action: "storage-start",
+        summary: {
+          totalRows: Number(lastImport.total_rows ?? 0),
+          processedRows: Number(lastImport.processed_rows ?? 0),
+          insertedRows: Number(lastImport.inserted_rows ?? 0),
+          updatedRows: Number(lastImport.updated_rows ?? 0),
+          rejectedRows: Number(lastImport.rejected_rows ?? 0),
+          errors: [],
+        },
+        result: {
+          status: "processing",
+          skippedCompletedImport: false,
+          parts,
+          summary: {
+            totalRows: Number(lastImport.total_rows ?? 0),
+            processedRows: Number(lastImport.processed_rows ?? 0),
+            insertedRows: Number(lastImport.inserted_rows ?? 0),
+            updatedRows: Number(lastImport.updated_rows ?? 0),
+            rejectedRows: Number(lastImport.rejected_rows ?? 0),
+            errors: [],
+          },
+          currentPartIndex,
+          currentPartPath: currentPartIndex >= 0 ? parts[currentPartIndex]?.path ?? null : null,
+          batch: {
+            attempted: false,
+            completedRows: 0,
+            completedBytes: 0,
+            partCompleted: false,
+            importCompleted: false,
+          },
+        },
+      });
     }
   }
 
@@ -126,10 +194,10 @@ export function TcgplayerCatalogManager() {
     }
   }
 
-  async function runStorage(action: "storage-list" | "storage-import") {
+  async function runStorage(action: "storage-list" | "storage-start" | "storage-advance" | "storage-import") {
     setWorking(action);
     setError(null);
-    setResult(null);
+    if (action === "storage-list" || action === "storage-start") setResult(null);
 
     try {
       const response = await fetch("/api/admin/tcgplayer-catalog", {
@@ -140,7 +208,6 @@ export function TcgplayerCatalogManager() {
           bucket: storageBucket,
           prefix: storagePrefix,
           paths: storagePaths,
-          retryFailed: true,
         }),
       });
       const payload = await response.json() as ImportResponse;
@@ -154,6 +221,13 @@ export function TcgplayerCatalogManager() {
       setWorking(null);
     }
   }
+
+  useEffect(() => {
+    if (paused || working !== null || !result?.result || result.result.status !== "processing") return;
+    if (result.result.batch.importCompleted) return;
+    const timer = window.setTimeout(() => void runStorage("storage-advance"), 350);
+    return () => window.clearTimeout(timer);
+  }, [paused, result, working]);
 
   return (
     <main className="min-h-screen bg-[#02070d] px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
@@ -256,13 +330,50 @@ export function TcgplayerCatalogManager() {
                 <button
                   type="button"
                   disabled={working !== null}
-                  onClick={() => void runStorage("storage-import")}
+                  onClick={() => {
+                    setPaused(false);
+                    void runStorage("storage-start");
+                  }}
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-[#001018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  {working === "storage-import" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                  {working === "storage-start" || working === "storage-advance" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
                   Import all parts
                 </button>
               </div>
+
+              {activeStorageImport ? (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaused(true)}
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-white/[0.08] bg-black/15 px-4 text-xs font-semibold text-slate-300"
+                  >
+                    Pause
+                  </button>
+                  <button
+                    type="button"
+                    disabled={working !== null}
+                    onClick={() => {
+                      setPaused(false);
+                      void runStorage("storage-advance");
+                    }}
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-cyan-300/[0.16] bg-cyan-400/[0.055] px-4 text-xs font-semibold text-cyan-100 disabled:opacity-45"
+                  >
+                    Resume
+                  </button>
+                  <button
+                    type="button"
+                    disabled={working !== null}
+                    onClick={() => {
+                      setPaused(false);
+                      void runStorage("storage-advance");
+                    }}
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-amber-300/[0.16] bg-amber-300/[0.055] px-4 text-xs font-semibold text-amber-100 disabled:opacity-45"
+                  >
+                    Retry failed batch
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <label className="mt-5 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.12] bg-black/[0.14] p-6 text-center transition hover:border-cyan-300/[0.18] hover:bg-cyan-400/[0.025]">
@@ -334,6 +445,19 @@ export function TcgplayerCatalogManager() {
               <StatusLine label="Updated" value={formatNumber(result?.summary?.updatedRows ?? status?.lastImport?.updated_rows ?? 0)} />
               <StatusLine label="Rejected" value={formatNumber(result?.summary?.rejectedRows ?? status?.lastImport?.rejected_rows ?? 0)} />
             </div>
+
+            {result?.result ? (
+              <div className="mt-4 rounded-2xl border border-cyan-300/[0.12] bg-cyan-300/[0.035] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/55">TCGplayer Magic Catalog</p>
+                <p className="mt-2 text-sm font-semibold text-cyan-50">
+                  {result.result.status === "completed" ? "Import complete" : `Processing part ${currentPartPosition} of ${result.result.parts.length}`}
+                </p>
+                <p className="mt-1 text-xs text-cyan-100/60">
+                  {formatNumber(result.result.summary.processedRows + result.result.summary.rejectedRows)} / {formatNumber(799149)} rows · {progress}%
+                </p>
+                <p className="mt-2 text-[11px] text-cyan-100/45">Current file: {currentPart ?? "All parts complete"}</p>
+              </div>
+            ) : null}
 
             {result?.result?.parts?.length ? (
               <div className="mt-5 space-y-2">
