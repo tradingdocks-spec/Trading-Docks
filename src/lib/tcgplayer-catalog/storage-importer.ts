@@ -76,6 +76,53 @@ export type TcgplayerStorageDownloadRange = {
   totalBytes: number;
 };
 
+export type TcgplayerCatalogImportStage =
+  | "payload-parse"
+  | "authorization"
+  | "verify-parts"
+  | "job-lookup"
+  | "job-create"
+  | "range-fetch"
+  | "csv-parse"
+  | "normalization"
+  | "upsert"
+  | "checkpoint-write"
+  | "job-update";
+
+export type TcgplayerCatalogImportStageContext = {
+  action?: string;
+  stage: TcgplayerCatalogImportStage;
+  bucket?: string;
+  objectPath?: string;
+  partIndex?: number;
+  byteOffset?: number;
+  rowLimit?: number;
+  byteLimit?: number;
+  rangeHeader?: string;
+  status?: number;
+  statusText?: string;
+  responseBody?: string;
+};
+
+export class TcgplayerCatalogImportStageError extends Error {
+  context: TcgplayerCatalogImportStageContext;
+  originalError: unknown;
+  statusCode: number;
+
+  constructor(
+    message: string,
+    context: TcgplayerCatalogImportStageContext,
+    originalError: unknown,
+    statusCode = 500,
+  ) {
+    super(message.trim() || "Catalog import batch failed");
+    this.name = "TcgplayerCatalogImportStageError";
+    this.context = context;
+    this.originalError = originalError;
+    this.statusCode = statusCode;
+  }
+}
+
 type SupabaseStorageCatalogClient = SupabaseCatalogClient & {
   storage: {
     from: (bucket: string) => {
@@ -179,9 +226,13 @@ export async function startTcgplayerMagicStorageImport(
 ): Promise<TcgplayerCatalogStorageImportResult> {
   const bucket = options.bucket ?? TCGPLAYER_MAGIC_STORAGE_BUCKET;
   const prefix = options.prefix === undefined ? TCGPLAYER_MAGIC_STORAGE_PREFIX : normalizeOptionalPrefix(options.prefix);
-  const paths = await resolveTcgplayerMagicStorageParts(client, { bucket, prefix, paths: options.paths });
+  const paths = await runImportStage("verify-parts", { action: "storage-start", bucket }, () =>
+    resolveTcgplayerMagicStorageParts(client, { bucket, prefix, paths: options.paths }),
+  );
   const logicalImportKey = storageImportKey(bucket, prefix, paths);
-  const existingRow = await findLatestStorageImportRun(client, logicalImportKey);
+  const existingRow = await runImportStage("job-lookup", { action: "storage-start", bucket }, () =>
+    findLatestStorageImportRun(client, logicalImportKey),
+  );
   const existing = existingRow && isInvalidCompletedStorageRun(existingRow, bucket, prefix, paths) ? null : existingRow;
 
   if (existing?.status === "completed" && !isInvalidCompletedStorageRun(existing, bucket, prefix, paths)) {
@@ -192,12 +243,14 @@ export async function startTcgplayerMagicStorageImport(
   }
 
   const metadata = storageMetadata(bucket, prefix, paths.map((path) => emptyPart(path)), []);
-  const importRunId = await createTcgplayerCatalogImportRun(client, {
-    actor_id: options.actorId ?? null,
-    filename: logicalImportKey,
-    status: "processing",
-    error_summary: metadata,
-  });
+  const importRunId = await runImportStage("job-create", { action: "storage-start", bucket }, () =>
+    createTcgplayerCatalogImportRun(client, {
+      actor_id: options.actorId ?? null,
+      filename: logicalImportKey,
+      status: "processing",
+      error_summary: metadata,
+    }),
+  );
 
   const row: ImportRunRow = {
     id: importRunId,
@@ -219,11 +272,17 @@ export async function advanceTcgplayerMagicStorageImport(
 ): Promise<TcgplayerCatalogStorageImportResult> {
   const bucket = options.bucket ?? TCGPLAYER_MAGIC_STORAGE_BUCKET;
   const prefix = options.prefix === undefined ? TCGPLAYER_MAGIC_STORAGE_PREFIX : normalizeOptionalPrefix(options.prefix);
-  const paths = await resolveTcgplayerMagicStorageParts(client, { bucket, prefix, paths: options.paths });
+  const paths = await runImportStage("verify-parts", { action: "storage-advance", bucket }, () =>
+    resolveTcgplayerMagicStorageParts(client, { bucket, prefix, paths: options.paths }),
+  );
   const logicalImportKey = storageImportKey(bucket, prefix, paths);
-  const existingRow = await findLatestStorageImportRun(client, logicalImportKey);
+  const existingRow = await runImportStage("job-lookup", { action: "storage-advance", bucket }, () =>
+    findLatestStorageImportRun(client, logicalImportKey),
+  );
   const existing = existingRow && isInvalidCompletedStorageRun(existingRow, bucket, prefix, paths) ? null : existingRow;
-  const active = existing ?? await createStartedRun(client, options, bucket, prefix, paths, logicalImportKey);
+  const active = existing ?? await runImportStage("job-create", { action: "storage-advance", bucket }, () =>
+    createStartedRun(client, options, bucket, prefix, paths, logicalImportKey),
+  );
 
   if (active.status === "completed" && !isInvalidCompletedStorageRun(active, bucket, prefix, paths)) {
     return resultFromImportRun(active, bucket, prefix, paths, true);
@@ -234,31 +293,51 @@ export async function advanceTcgplayerMagicStorageImport(
   const partIndex = metadata.parts.findIndex((part) => part.status !== "completed");
   if (partIndex < 0) {
     if (!storageImportCanComplete(summary, metadata.parts)) {
-      await persistStorageImport(client, active.id, summary, metadata, "failed");
+      await runImportStage("job-update", { action: "storage-advance", bucket }, () =>
+        persistStorageImport(client, active.id, summary, metadata, "failed"),
+      );
       throw new Error("TCGplayer storage import cannot complete with zero processed rows or incomplete parts.");
     }
-    await persistStorageImport(client, active.id, summary, metadata, "completed");
+    await runImportStage("job-update", { action: "storage-advance", bucket }, () =>
+      persistStorageImport(client, active.id, summary, metadata, "completed"),
+    );
     return resultFromImportRun({ ...active, status: "completed", error_summary: metadata }, bucket, prefix, paths, false);
   }
 
   const part = metadata.parts[partIndex];
   const beforeSummary = cloneSummary(summary);
   const beforePart = { ...part };
+  const stageContext = {
+    action: "storage-advance",
+    bucket,
+    objectPath: part.path,
+    partIndex,
+    byteOffset: part.byteOffset,
+    rowLimit: options.batchSize ?? TCGPLAYER_STORAGE_IMPORT_BATCH_ROWS,
+    byteLimit: options.byteLimit ?? TCGPLAYER_STORAGE_IMPORT_BATCH_BYTES,
+  };
 
   try {
-    const range = await (options.downloadRange ?? downloadSupabaseStorageRange)(
-      bucket,
-      part.path,
-      part.byteOffset,
-      options.byteLimit ?? TCGPLAYER_STORAGE_IMPORT_BATCH_BYTES,
+    console.info("TCG catalog advance started", stageContext);
+    const range = await runImportStage("range-fetch", stageContext, () =>
+      (options.downloadRange ?? downloadSupabaseStorageRange)(
+        bucket,
+        part.path,
+        part.byteOffset,
+        options.byteLimit ?? TCGPLAYER_STORAGE_IMPORT_BATCH_BYTES,
+      ),
     );
-    const parsed = parseCatalogRowsFromByteRange(range.bytes, {
-      absoluteStartByte: range.start,
-      totalBytes: range.totalBytes,
-      headers: part.headers,
-      validateHeader: !part.headerValidated,
-      maxRows: options.batchSize ?? TCGPLAYER_STORAGE_IMPORT_BATCH_ROWS,
-    });
+    console.info("Storage range fetch succeeded", { ...stageContext, bytes: range.bytes.length, totalBytes: range.totalBytes });
+    const parsed = runImportStageSync("csv-parse", stageContext, () =>
+      parseCatalogRowsFromByteRange(range.bytes, {
+        absoluteStartByte: range.start,
+        totalBytes: range.totalBytes,
+        headers: part.headers,
+        validateHeader: !part.headerValidated,
+        maxRows: options.batchSize ?? TCGPLAYER_STORAGE_IMPORT_BATCH_ROWS,
+      }),
+    );
+    console.info("CSV chunk parsed", { ...stageContext, records: parsed.records.length, rejected: parsed.rejected.length });
 
     part.status = parsed.partCompleted ? "completed" : "processing";
     part.byteOffset = parsed.nextByteOffset;
@@ -269,7 +348,8 @@ export async function advanceTcgplayerMagicStorageImport(
     part.completedAt = parsed.partCompleted ? new Date().toISOString() : undefined;
     part.error = undefined;
 
-    await upsertCatalogRecords(client, parsed.records, summary);
+    await runImportStage("upsert", stageContext, () => upsertCatalogRecords(client, parsed.records, summary));
+    console.info("Catalog upsert succeeded", { ...stageContext, records: parsed.records.length });
     applyRejectedRows(summary, parsed.rejected);
 
     const delta = summaryDelta(beforeSummary, summary);
@@ -280,7 +360,10 @@ export async function advanceTcgplayerMagicStorageImport(
     part.rejectedRows = beforePart.rejectedRows + delta.rejectedRows;
 
     const completed = storageImportCanComplete(summary, metadata.parts);
-    await persistStorageImport(client, active.id, summary, metadata, completed ? "completed" : "processing");
+    await runImportStage("checkpoint-write", stageContext, () =>
+      persistStorageImport(client, active.id, summary, metadata, completed ? "completed" : "processing"),
+    );
+    console.info("Checkpoint persisted", { ...stageContext, status: completed ? "completed" : "processing" });
 
     return {
       importRunId: active.id,
@@ -303,10 +386,17 @@ export async function advanceTcgplayerMagicStorageImport(
     };
   } catch (error) {
     part.status = "failed";
-    part.error = error instanceof Error ? error.message : "Could not advance TCGplayer storage import.";
+    const stageError = error instanceof TcgplayerCatalogImportStageError
+      ? error
+      : new TcgplayerCatalogImportStageError(
+        errorMessage(error, "Could not advance TCGplayer storage import."),
+        { ...stageContext, stage: "job-update" },
+        error,
+      );
+    part.error = stageError.message;
     part.completedAt = new Date().toISOString();
-    await persistStorageImport(client, active.id, summary, metadata, "failed");
-    throw error;
+    await runImportStage("job-update", stageContext, () => persistStorageImport(client, active.id, summary, metadata, "failed"));
+    throw stageError;
   }
 }
 
@@ -499,8 +589,21 @@ export async function downloadSupabaseStorageRange(
   });
   if (!response.ok) {
     const body = await safeResponseText(response);
-    throw new Error(
+    throw new TcgplayerCatalogImportStageError(
       `Could not download ${path}: HTTP ${response.status}. Supabase Storage: ${body || response.statusText || "No response body."}`,
+      {
+        stage: "range-fetch",
+        bucket,
+        objectPath: path,
+        byteOffset: startByte,
+        byteLimit: byteLength,
+        rangeHeader,
+        status: response.status,
+        statusText: response.statusText,
+        responseBody: body,
+      },
+      { status: response.status, statusText: response.statusText, responseBody: body },
+      response.status === 404 ? 404 : 502,
     );
   }
   if (response.status === 200 && startByte > 0) {
@@ -755,6 +858,106 @@ async function verifyStoragePath(
     contentType: entry?.metadata?.mimetype ?? entry?.metadata?.contentType ?? null,
     error: entry ? undefined : "Storage object not found.",
   };
+}
+
+async function runImportStage<T>(
+  stage: TcgplayerCatalogImportStage,
+  context: Omit<TcgplayerCatalogImportStageContext, "stage">,
+  fn: () => Promise<T> | PromiseLike<T>,
+): Promise<T> {
+  const stageContext = { ...context, stage };
+  console.info(`TCG catalog ${stage} started`, stageContext);
+  try {
+    const result = await fn();
+    console.info(`TCG catalog ${stage} succeeded`, stageContext);
+    return result;
+  } catch (error) {
+    console.error("TCG catalog stage failed", { ...stageContext, error: errorForLog(error) });
+    if (error instanceof TcgplayerCatalogImportStageError) throw error;
+    throw new TcgplayerCatalogImportStageError(
+      errorMessage(error, "Catalog import batch failed"),
+      stageContext,
+      error,
+      statusCodeForStage(stage),
+    );
+  }
+}
+
+function runImportStageSync<T>(
+  stage: TcgplayerCatalogImportStage,
+  context: Omit<TcgplayerCatalogImportStageContext, "stage">,
+  fn: () => T,
+): T {
+  const stageContext = { ...context, stage };
+  console.info(`TCG catalog ${stage} started`, stageContext);
+  try {
+    const result = fn();
+    console.info(`TCG catalog ${stage} succeeded`, stageContext);
+    return result;
+  } catch (error) {
+    console.error("TCG catalog stage failed", { ...stageContext, error: errorForLog(error) });
+    if (error instanceof TcgplayerCatalogImportStageError) throw error;
+    throw new TcgplayerCatalogImportStageError(
+      errorMessage(error, "Catalog import batch failed"),
+      stageContext,
+      error,
+      statusCodeForStage(stage),
+    );
+  }
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    for (const key of ["message", "error", "details", "hint"]) {
+      const value = record[key];
+      if (typeof value === "string" && value.trim()) return value;
+    }
+    try {
+      const serialized = JSON.stringify(error);
+      if (serialized && serialized !== "{}") return serialized;
+    } catch {
+      // Fall through to fallback.
+    }
+  }
+  return fallback;
+}
+
+function errorForLog(error: unknown) {
+  if (error instanceof TcgplayerCatalogImportStageError) {
+    return {
+      name: error.name,
+      message: error.message || "Unknown error",
+      context: error.context,
+    };
+  }
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message || "Unknown error",
+    };
+  }
+  if (typeof error === "string") return { message: error || "Unknown error" };
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    return {
+      message: errorMessage(error, "Unknown error"),
+      code: record.code,
+      details: record.details,
+      hint: record.hint,
+      status: record.status,
+      statusCode: record.statusCode,
+    };
+  }
+  return { message: String(error ?? "Unknown error") };
+}
+
+function statusCodeForStage(stage: TcgplayerCatalogImportStage) {
+  if (stage === "verify-parts") return 404;
+  if (stage === "range-fetch") return 502;
+  return 500;
 }
 
 async function safeResponseText(response: Response) {

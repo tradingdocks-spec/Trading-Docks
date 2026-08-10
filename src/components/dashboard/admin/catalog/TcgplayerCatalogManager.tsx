@@ -79,6 +79,10 @@ type ImportResponse = {
   parts?: StorageVerificationPart[];
   allVerified?: boolean;
   error?: string;
+  message?: string;
+  stage?: string;
+  part?: string;
+  byteOffset?: number;
 };
 
 export function TcgplayerCatalogManager() {
@@ -205,7 +209,7 @@ export function TcgplayerCatalogManager() {
       });
       const payload = await response.json() as ImportResponse;
       setResult(payload);
-      if (!response.ok) setError(payload.error ?? "TCGplayer catalog import failed.");
+      if (!response.ok) setError(importErrorMessage(payload, "TCGplayer catalog import failed."));
       else await refreshStatus();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "TCGplayer catalog import failed.");
@@ -234,7 +238,7 @@ export function TcgplayerCatalogManager() {
       setResult(payload);
       if (payload.paths) setStoragePaths(payload.paths);
       if (action === "storage-verify") setStorageVerified(response.ok && Boolean(payload.allVerified));
-      if (!response.ok) setError(payload.error ?? "TCGplayer storage catalog import failed.");
+      if (!response.ok) setError(importErrorMessage(payload, "TCGplayer storage catalog import failed."));
       else if (action === "storage-verify" && !payload.allVerified) setError("One or more TCGplayer catalog storage objects could not be verified.");
       else if (action === "storage-verify") return;
       else await refreshStatus();
@@ -574,4 +578,14 @@ function formatBytes(value: number) {
 
 function titleCase(value: string) {
   return value.slice(0, 1).toUpperCase() + value.slice(1);
+}
+
+function importErrorMessage(payload: ImportResponse, fallback: string) {
+  const message = payload.message || payload.error || fallback;
+  const context = [
+    payload.stage ? `Stage: ${payload.stage}` : "",
+    payload.part ? `Part: ${payload.part}` : "",
+    payload.byteOffset != null ? `Byte offset: ${payload.byteOffset}` : "",
+  ].filter(Boolean).join(" · ");
+  return context ? `${message} (${context})` : message;
 }

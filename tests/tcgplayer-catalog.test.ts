@@ -14,11 +14,13 @@ import {
   resolveTcgplayerMagicStorageParts,
   resolveTcgplayerVariant,
   startTcgplayerMagicStorageImport,
+  TcgplayerCatalogImportStageError,
   validateTcgplayerMagicHeaders,
   verifyTcgplayerMagicStorageParts,
   type TcgplayerMagicCatalogRecord,
   type TcgplayerMagicCsvHeader,
 } from "../src/lib/tcgplayer-catalog/index.ts";
+import { serializeError } from "../src/lib/tcgplayer-catalog/error-serialization.ts";
 import {
   hasCapability,
   resolvePlatformAccessContext,
@@ -352,6 +354,52 @@ test("storage range errors surface Supabase response details", async () => {
   }
 });
 
+test("catalog error serializer never returns an empty message", () => {
+  assert.equal(serializeError(new Error("")).message, "Unknown error");
+  assert.equal(serializeError("").message, "Unknown error");
+  assert.equal(serializeError("storage unavailable").message, "storage unavailable");
+
+  const supabase = serializeError({
+    message: "",
+    code: "23505",
+    details: "duplicate key",
+    hint: "use upsert",
+    status: 409,
+  });
+  assert.equal(supabase.message, JSON.stringify({
+    message: "",
+    code: "23505",
+    details: "duplicate key",
+    hint: "use upsert",
+    status: 409,
+  }));
+  assert.equal(supabase.code, "23505");
+  assert.equal(supabase.details, "duplicate key");
+  assert.equal(supabase.hint, "use upsert");
+
+  const plain = serializeError({ error: "", reason: "bad range" });
+  assert.equal(plain.message, JSON.stringify({ error: "", reason: "bad range" }));
+});
+
+test("stage errors serialize original cause and context", () => {
+  const error = new TcgplayerCatalogImportStageError(
+    "",
+    {
+      stage: "range-fetch",
+      bucket: "catalog-imports",
+      objectPath: "part-001.csv",
+      byteOffset: 0,
+    },
+    { message: "", code: "StorageApiError" },
+    502,
+  );
+
+  const serialized = serializeError(error);
+  assert.equal(serialized.message, "Catalog import batch failed");
+  assert.equal(serialized.statusCode, 502);
+  assert.equal(serialized.cause?.message, JSON.stringify({ message: "", code: "StorageApiError" }));
+});
+
 test("storage catalog import persists checkpoints and resumes after refresh or interrupted batch", async () => {
   const client = new FakeStorageCatalogClient({
     "tcgplayer/magic/2026-08-10/part-001.csv": csv([
@@ -429,6 +477,41 @@ test("completed storage catalog import is not processed twice", async () => {
   assert.equal(second.skippedCompletedImport, true);
   assert.deepEqual(client.downloadedPaths, []);
   assert.equal(client.upserts.length, 1);
+});
+
+test("first batch failure marks storage import job failed with stage context", async () => {
+  const client = new FakeStorageCatalogClient({
+    "part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+  });
+
+  await assert.rejects(
+    () => advanceTcgplayerMagicStorageImport(client, {
+      bucket: "catalog-imports",
+      paths: ["part-001.csv"],
+      batchSize: 1,
+      byteLimit: 1024,
+      downloadRange: async () => {
+        throw new Error("");
+      },
+    }),
+    (error: unknown) => {
+      assert.equal(error instanceof TcgplayerCatalogImportStageError, true);
+      const stageError = error as TcgplayerCatalogImportStageError;
+      assert.equal(stageError.context.stage, "range-fetch");
+      assert.equal(stageError.context.objectPath, "part-001.csv");
+      assert.equal(stageError.context.byteOffset, 0);
+      assert.notEqual(stageError.message, "");
+      return true;
+    },
+  );
+
+  const latest = client.imports.at(-1);
+  assert.equal(latest?.status, "failed");
+  const metadata = latest?.error_summary as { parts?: Array<{ status?: string; error?: string }> };
+  assert.equal(metadata.parts?.[0]?.status, "failed");
+  assert.notEqual(metadata.parts?.[0]?.error, "");
 });
 
 test("stale zero-row completed storage import can restart", async () => {
@@ -592,6 +675,16 @@ test("admin catalog UI requires storage verification before importing all parts"
   assert.match(source, /Verified storage objects/);
   assert.match(source, /useState\(""\)/);
   assert.doesNotMatch(source, /Processing" value=\{working \? "Active" : result \? "Complete" : "Idle"\}/);
+});
+
+test("admin catalog API failure responses include actionable stage context", () => {
+  const source = readFileSync(path.join(repoRoot, "src/app/api/admin/tcgplayer-catalog/route.ts"), "utf8");
+  assert.match(source, /catalogErrorResponse/);
+  assert.match(source, /stage: stageError\?\.context\.stage/);
+  assert.match(source, /part: stageError\?\.context\.objectPath/);
+  assert.match(source, /byteOffset: stageError\?\.context\.byteOffset/);
+  assert.match(source, /Catalog import batch failed/);
+  assert.doesNotMatch(source, /error:\s*databaseError/);
 });
 
 function rowObject(values: string[]) {
