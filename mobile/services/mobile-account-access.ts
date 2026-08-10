@@ -1,16 +1,20 @@
 import {
   normalizeAccountType,
+  hasTrustedOwnerAccess,
   resolvePlatformAccessContext,
   type AccountType,
   type BillingStatus,
   type MembershipTier,
   type PlatformAccessContext,
+  type PlatformRole,
 } from './platform-access.ts';
 
 export type MobileAccountAccessSnapshot = {
   accountType: AccountType;
   membershipTier: MembershipTier;
   billingStatus: BillingStatus;
+  platformRole: PlatformRole;
+  hasFullPlatformAccess: boolean;
   source: 'server' | 'local_fallback' | 'signed_out';
   warnings: string[];
 };
@@ -47,6 +51,8 @@ export async function loadMobileAccountAccessSnapshot({
       accountType: normalizeAccountType(localAccountType),
       membershipTier: 'free',
       billingStatus: 'free',
+      platformRole: 'user',
+      hasFullPlatformAccess: false,
       source: 'signed_out',
       warnings: [],
     };
@@ -101,6 +107,7 @@ export function resolveMobileAccountAccessSnapshot({
     userId,
     authenticated: true,
     platformRole: stringValue(rows.role?.role),
+    platformRoleAuthority: 'trusted',
     accountType: stringValue(preferences.account_type) ?? localAccountType,
     membershipOverride: stringValue(rows.override?.plan_id),
     billingPlan: stringValue(rows.subscription?.plan_id),
@@ -120,6 +127,8 @@ export function resolveMobileAccountAccessSnapshot({
     accountType: membershipBackedAccountType,
     membershipTier: access.membershipTier,
     billingStatus: access.billingStatus,
+    platformRole: access.platformRole,
+    hasFullPlatformAccess: hasTrustedOwnerAccess(access),
     source: queryErrors.length ? 'local_fallback' : 'server',
     warnings: [...access.warnings, ...queryErrors],
   };
@@ -152,6 +161,8 @@ function localFallback(localAccountType: AccountType, warnings: string[]): Mobil
     accountType,
     membershipTier: 'free',
     billingStatus: warnings.includes('supabase_not_configured') ? 'free' : 'unknown',
+    platformRole: 'user',
+    hasFullPlatformAccess: false,
     source: 'local_fallback',
     warnings: [...warnings, 'membership_requires_server_confirmation'],
   };

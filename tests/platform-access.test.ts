@@ -92,6 +92,46 @@ test("Free Collector Seller and Store capabilities follow the audited matrix", (
   assert.equal(hasCapability(store, "workspace.members.manage"), true);
 });
 
+test("trusted platform Owner receives full effective access without changing billing tier", () => {
+  for (const tier of ["free", "collector", "seller", "store"] as const) {
+    const owner = access({
+      tier,
+      platformRole: "owner",
+      platformRoleAuthority: "trusted",
+      workspaceRole: null,
+    });
+
+    assert.equal(owner.platformRole, "owner");
+    assert.equal(owner.platformRoleAuthority, "trusted");
+    assert.equal(owner.membershipTier, tier);
+    for (const capability of Object.keys(CAPABILITY_REGISTRY) as PlatformCapability[]) {
+      assert.equal(hasCapability(owner, capability), true, `${tier} Owner should receive ${capability}`);
+    }
+    assert.equal(hasRouteAccess(owner, "/dashboard/orders"), true);
+    assert.equal(hasRouteAccess(owner, "/dashboard/employees"), true);
+    assert.equal(apiCapabilityDecision(owner, "marketplaces.manage").status, 200);
+  }
+});
+
+test("client-created access objects cannot self-escalate to Owner access", () => {
+  const manipulated = clientAccessFromTier("free", {
+    platformRole: "owner",
+    entitlements: [
+      "deal-desk",
+      "employee-accounts",
+      "admin.command-center",
+    ],
+    workspaceRole: "owner",
+  });
+
+  assert.equal(manipulated.platformRole, "user");
+  assert.equal(manipulated.platformRoleAuthority, "client");
+  assert.equal(hasCapability(manipulated, "platform.admin"), false);
+  assert.equal(hasCapability(manipulated, "orders.manage"), false);
+  assert.equal(hasCapability(manipulated, "employees.manage"), false);
+  assert.equal(hasRouteAccess(manipulated, "/dashboard/admin"), false);
+});
+
 test("workspace roles do not grant platform admin or paid membership by themselves", () => {
   const manager = access({ tier: "free", workspaceRole: "manager" });
   const owner = access({ tier: "free", workspaceRole: "owner" });
@@ -119,7 +159,7 @@ test("workspace role ordering is normalized and capability scoped", () => {
 });
 
 test("platform admin remains additive and does not corrupt normal membership identity", () => {
-  const admin = access({ tier: "free", platformRole: "admin", accountType: "collector" });
+  const admin = access({ tier: "free", platformRole: "admin", platformRoleAuthority: "trusted", accountType: "collector" });
 
   assert.equal(admin.membershipTier, "free");
   assert.equal(admin.accountType, "collector");
@@ -132,7 +172,7 @@ test("representative route registry maps public auth tier and platform routes", 
   const collector = access({ tier: "collector" });
   const seller = access({ tier: "seller" });
   const storeOwner = access({ tier: "store", workspaceRole: "owner" });
-  const admin = access({ tier: "free", platformRole: "admin" });
+  const admin = access({ tier: "free", platformRole: "admin", platformRoleAuthority: "trusted" });
 
   assert.equal(routeAccessRuleForPath("/")?.kind, "public");
   assert.equal(hasRouteAccess(guest, "/"), true);

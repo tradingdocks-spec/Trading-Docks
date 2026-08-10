@@ -446,6 +446,7 @@ function encodeSupabaseListValue(value: string) {
 export function summarizeCollectionCards(
   cards: CollectionCard[],
   tier: unknown,
+  options: { ignoreFreeLimit?: boolean } = {},
 ): CollectionSummary {
   const plan = MEMBERSHIP_PLANS[normalizeMembershipTier(tier)];
   const totalOwnedCards = cards.reduce((sum, card) => sum + card.quantityOwned, 0);
@@ -470,13 +471,13 @@ export function summarizeCollectionCards(
     wishlistCount,
     knownMarketValue,
     missingPriceCount: cards.length - pricedCards.length,
-    freeCardLimit: plan.id === 'free' ? plan.limits.cardLimit : null,
+    freeCardLimit: plan.id === 'free' && !options.ignoreFreeLimit ? plan.limits.cardLimit : null,
     freeCardLimitRemaining:
-      plan.id === 'free' && plan.limits.cardLimit !== null
+      plan.id === 'free' && !options.ignoreFreeLimit && plan.limits.cardLimit !== null
         ? Math.max(0, plan.limits.cardLimit - totalOwnedCards)
         : null,
     freeCardLimitExceeded:
-      plan.id === 'free' && plan.limits.cardLimit !== null
+      plan.id === 'free' && !options.ignoreFreeLimit && plan.limits.cardLimit !== null
         ? totalOwnedCards > plan.limits.cardLimit
         : false,
   };

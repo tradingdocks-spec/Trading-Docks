@@ -1,5 +1,6 @@
 import {
   hasPlatformRole,
+  hasTrustedOwnerAccess,
   normalizeAccountType,
   normalizeBillingStatus,
   normalizeMembershipTier,
@@ -10,10 +11,12 @@ import {
   type EntitlementKey,
   type MembershipTier,
   type PlatformRole,
+  type PlatformRoleAuthority,
 } from './platform-access.ts';
 
 export {
   hasPlatformRole,
+  hasTrustedOwnerAccess,
   normalizeAccountType,
   normalizeBillingStatus,
   normalizeMembershipTier,
@@ -25,11 +28,13 @@ export type {
   EntitlementKey,
   MembershipTier,
   PlatformRole,
+  PlatformRoleAuthority,
 };
 
 export type ResolvedAccess = {
   userId: string | null;
   platformRole: PlatformRole;
+  platformRoleAuthority: PlatformRoleAuthority;
   accountType: AccountType;
   membershipTier: MembershipTier;
   billingStatus: BillingStatus;
@@ -37,12 +42,14 @@ export type ResolvedAccess = {
   isAdmin: boolean;
   isSuspended: boolean;
   canAccessCommandCenter: boolean;
+  hasFullPlatformAccess: boolean;
   warnings: string[];
 };
 
 export type AccessResolutionInput = {
   userId?: string | null;
   platformRole?: string | null;
+  platformRoleAuthority?: PlatformRoleAuthority;
   accountType?: string | null;
   effectiveMembershipTier?: string | null;
   membershipOverride?: string | null;
@@ -63,6 +70,7 @@ export function resolveAccess(input: AccessResolutionInput): ResolvedAccess {
   return {
     userId: access.userId,
     platformRole: access.platformRole,
+    platformRoleAuthority: access.platformRoleAuthority,
     accountType: access.accountType,
     membershipTier: access.membershipTier,
     billingStatus: access.billingStatus,
@@ -70,6 +78,7 @@ export function resolveAccess(input: AccessResolutionInput): ResolvedAccess {
     isAdmin,
     isSuspended: access.suspended,
     canAccessCommandCenter: isAdmin && !access.suspended,
+    hasFullPlatformAccess: hasTrustedOwnerAccess(access),
     warnings: access.warnings,
   };
 }

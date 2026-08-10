@@ -24,6 +24,7 @@ export {
 };
 
 export type PlatformRole = 'owner' | 'admin' | 'support' | 'analyst' | 'user';
+export type PlatformRoleAuthority = 'trusted' | 'client';
 export type WorkspaceRole = 'owner' | 'admin' | 'manager' | 'member' | 'viewer';
 
 export type PlatformCapability =
@@ -64,6 +65,7 @@ export type PlatformAccessContext = {
   userId: string | null;
   authenticated: boolean;
   platformRole: PlatformRole;
+  platformRoleAuthority: PlatformRoleAuthority;
   accountType: AccountType;
   membershipTier: MembershipTier;
   billingStatus: BillingStatus;
@@ -79,6 +81,7 @@ export type PlatformAccessInput = {
   userId?: string | null;
   authenticated?: boolean;
   platformRole?: string | null;
+  platformRoleAuthority?: PlatformRoleAuthority;
   accountType?: string | null;
   effectiveMembershipTier?: string | null;
   membershipOverride?: string | null;
@@ -107,6 +110,7 @@ export type ClientSafePlatformAccess = Pick<
   PlatformAccessContext,
   | 'authenticated'
   | 'platformRole'
+  | 'platformRoleAuthority'
   | 'accountType'
   | 'membershipTier'
   | 'billingStatus'
@@ -194,6 +198,13 @@ export function hasPlatformRole(role: PlatformRole, minimum: Exclude<PlatformRol
   return PLATFORM_ROLE_RANK[role] >= PLATFORM_ROLE_RANK[minimum];
 }
 
+export function hasTrustedOwnerAccess(access: Pick<PlatformAccessContext, 'platformRole' | 'platformRoleAuthority' | 'authenticated' | 'suspended'> | Pick<ClientSafePlatformAccess, 'platformRole' | 'platformRoleAuthority' | 'authenticated' | 'suspended'>) {
+  return access.authenticated &&
+    !access.suspended &&
+    access.platformRole === 'owner' &&
+    access.platformRoleAuthority === 'trusted';
+}
+
 export function hasWorkspaceRole(role: WorkspaceRole | null, minimum: WorkspaceRole) {
   return Boolean(role) && WORKSPACE_ROLE_RANK[role as WorkspaceRole] >= WORKSPACE_ROLE_RANK[minimum];
 }
@@ -203,6 +214,7 @@ export function resolvePlatformAccessContext(input: PlatformAccessInput = {}): P
   const userId = input.userId ?? null;
   const authenticated = input.authenticated ?? Boolean(userId);
   const platformRole = normalizePlatformRole(input.platformRole);
+  const platformRoleAuthority = input.platformRoleAuthority ?? (input.platformRole ? 'trusted' : 'client');
   const accountType = normalizeAccountType(input.accountType);
   const billingStatus = normalizeBillingStatus(input.billingStatus ?? (input.billingPlan ? 'active' : 'free'));
   const now = input.now ?? new Date();
@@ -230,13 +242,28 @@ export function resolvePlatformAccessContext(input: PlatformAccessInput = {}): P
   if (billingStatus === 'past_due' && !paidBillingIsCurrent) warnings.push('stale_billing');
   if (suspended) warnings.push('suspended_account');
 
-  const entitlements = suspended ? [] : getEntitlementsForTier(membershipTier);
+  const entitlements = suspended
+    ? []
+    : hasTrustedOwnerAccess({
+        authenticated,
+        platformRole,
+        platformRoleAuthority,
+        suspended,
+      })
+      ? uniqueEntitlements([
+          ...getEntitlementsForTier('free'),
+          ...getEntitlementsForTier('collector'),
+          ...getEntitlementsForTier('seller'),
+          ...getEntitlementsForTier('store'),
+        ])
+      : getEntitlementsForTier(membershipTier);
   if (platformRole !== 'user' && !suspended) entitlements.push('admin.command-center');
 
   return {
     userId,
     authenticated,
     platformRole,
+    platformRoleAuthority,
     accountType,
     membershipTier,
     billingStatus,
@@ -254,9 +281,11 @@ export function hasCapability(access: PlatformAccessContext | ClientSafePlatform
   if (!requirement) return false;
   if (requirement.requiresAuth !== false && !access.authenticated) return false;
   if (access.suspended) return false;
+  if (hasTrustedOwnerAccess(access)) return true;
 
   if (requirement.platformRoles?.length) {
-    return requirement.platformRoles.includes(access.platformRole as Exclude<PlatformRole, 'user'>);
+    return access.platformRoleAuthority === 'trusted' &&
+      requirement.platformRoles.includes(access.platformRole as Exclude<PlatformRole, 'user'>);
   }
 
   if (requirement.minimumTier && MEMBERSHIP_TIER_RANK[access.membershipTier] < MEMBERSHIP_TIER_RANK[requirement.minimumTier]) {
@@ -274,6 +303,7 @@ export function toClientSafeAccess(access: PlatformAccessContext): ClientSafePla
   return {
     authenticated: access.authenticated,
     platformRole: access.platformRole,
+    platformRoleAuthority: access.platformRoleAuthority,
     accountType: access.accountType,
     membershipTier: access.membershipTier,
     billingStatus: access.billingStatus,
@@ -287,7 +317,8 @@ export function clientAccessFromTier(tier: unknown, options: Partial<ClientSafeP
   const membershipTier = normalizeMembershipTier(tier);
   return {
     authenticated: options.authenticated ?? true,
-    platformRole: options.platformRole ?? 'user',
+    platformRole: 'user',
+    platformRoleAuthority: 'client',
     accountType: options.accountType ?? normalizeAccountType(tier),
     membershipTier,
     billingStatus: options.billingStatus ?? (membershipTier === 'free' ? 'free' : 'active'),
@@ -295,4 +326,8 @@ export function clientAccessFromTier(tier: unknown, options: Partial<ClientSafeP
     workspaceRole: options.workspaceRole ?? (membershipTier === 'store' ? 'owner' : null),
     suspended: options.suspended ?? false,
   };
+}
+
+function uniqueEntitlements(entitlements: EntitlementKey[]) {
+  return [...new Set(entitlements)];
 }

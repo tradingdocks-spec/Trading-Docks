@@ -17,12 +17,16 @@ function access(input: AccessResolutionInput = {}) {
 }
 
 test("owner role resolves admin authority without upgrading membership", () => {
-  const resolved = access({ platformRole: "owner" });
+  const resolved = access({ platformRole: "owner", platformRoleAuthority: "trusted" });
 
   assert.equal(resolved.platformRole, "owner");
+  assert.equal(resolved.platformRoleAuthority, "trusted");
   assert.equal(resolved.isAdmin, true);
   assert.equal(resolved.membershipTier, "free");
   assert.equal(resolved.canAccessCommandCenter, true);
+  assert.equal(resolved.hasFullPlatformAccess, true);
+  assert.equal(resolved.entitlementKeys.includes("deal-desk"), true);
+  assert.equal(resolved.entitlementKeys.includes("employee-accounts"), true);
 });
 
 test("admin role resolves command-center access", () => {
@@ -64,11 +68,12 @@ test("missing role falls back to normal user", () => {
 });
 
 test("suspended account loses entitlement and admin route access", () => {
-  const resolved = access({ platformRole: "owner", suspended: true });
+  const resolved = access({ platformRole: "owner", platformRoleAuthority: "trusted", suspended: true });
 
   assert.equal(resolved.isSuspended, true);
   assert.equal(resolved.entitlementKeys.length, 0);
   assert.equal(resolved.canAccessCommandCenter, false);
+  assert.equal(resolved.hasFullPlatformAccess, false);
 });
 
 test("admin with Free membership keeps admin route without paid entitlements", () => {

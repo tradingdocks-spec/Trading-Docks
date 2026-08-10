@@ -60,9 +60,11 @@ const SORT_OPTIONS: Array<{ value: CollectionSort; label: string }> = [
 export function CollectorWorkspace({
   accountType,
   inventoryLimit,
+  hasFullPlatformAccess = false,
 }: {
   accountType: AccountTier;
   inventoryLimit: number | null;
+  hasFullPlatformAccess?: boolean;
 }) {
   const [cards, setCards] = useState<CollectionCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +140,10 @@ export function CollectorWorkspace({
   }, []);
 
   const visibleCards = cards;
-  const summary = useMemo(() => summarizeCollectionCards(cards, accountType), [accountType, cards]);
+  const summary = useMemo(
+    () => summarizeCollectionCards(cards, accountType, { ignoreFreeLimit: hasFullPlatformAccess }),
+    [accountType, cards, hasFullPlatformAccess],
+  );
   const viewState = resolveCollectionViewState({
     loading,
     loadingMore,

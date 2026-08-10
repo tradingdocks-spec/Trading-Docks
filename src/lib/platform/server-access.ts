@@ -93,6 +93,7 @@ export async function resolvePlatformAccessForUser(
     userId: user.id,
     authenticated: true,
     platformRole: roleResult.error ? null : stringValue(roleResult.data?.role),
+    platformRoleAuthority: "trusted",
     accountType: stringValue(preferences.account_type),
     membershipOverride: overridePlan,
     billingPlan: subscriptionResult.error ? null : stringValue(subscriptionResult.data?.plan_id),

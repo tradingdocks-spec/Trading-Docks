@@ -6,7 +6,7 @@ import {
   type MobileAccessClient,
   type MobileAccountAccessSnapshot,
 } from '@/services/mobile-account-access';
-import type { BillingStatus, MembershipTier } from '@/services/platform-access';
+import type { BillingStatus, MembershipTier, PlatformRole } from '@/services/platform-access';
 import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export type AccountType = 'free' | 'collector' | 'seller' | 'store';
@@ -14,6 +14,8 @@ type AccountState = {
   accountType: AccountType;
   membershipTier: MembershipTier;
   billingStatus: BillingStatus;
+  platformRole: PlatformRole;
+  hasFullPlatformAccess: boolean;
   ready: boolean;
   source: MobileAccountAccessSnapshot['source'];
   error: string | null;
@@ -24,6 +26,8 @@ const AccountContext = createContext<AccountState>({
   accountType: 'free',
   membershipTier: 'free',
   billingStatus: 'free',
+  platformRole: 'user',
+  hasFullPlatformAccess: false,
   ready: false,
   source: 'signed_out',
   error: null,
@@ -37,6 +41,8 @@ export function AccountProvider({ children }: PropsWithChildren) {
   const [accountType, setType] = useState<AccountType>('free');
   const [membershipTier, setMembershipTier] = useState<MembershipTier>('free');
   const [billingStatus, setBillingStatus] = useState<BillingStatus>('free');
+  const [platformRole, setPlatformRole] = useState<PlatformRole>('user');
+  const [hasFullPlatformAccess, setHasFullPlatformAccess] = useState(false);
   const [source, setSource] = useState<MobileAccountAccessSnapshot['source']>('signed_out');
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -53,6 +59,8 @@ export function AccountProvider({ children }: PropsWithChildren) {
     setType(snapshot.accountType);
     setMembershipTier(snapshot.membershipTier);
     setBillingStatus(snapshot.billingStatus);
+    setPlatformRole(snapshot.platformRole);
+    setHasFullPlatformAccess(snapshot.hasFullPlatformAccess);
     setSource(snapshot.source);
     setError(snapshot.warnings.length ? snapshot.warnings.join(', ') : null);
     if (snapshot.source === 'server') {
@@ -72,6 +80,8 @@ export function AccountProvider({ children }: PropsWithChildren) {
     setType(type);
     setMembershipTier(type);
     setBillingStatus(type === 'free' ? 'free' : 'unknown');
+    setPlatformRole('user');
+    setHasFullPlatformAccess(false);
     setSource('local_fallback');
     await appStorage.setItem(KEY, type);
   };
@@ -81,13 +91,15 @@ export function AccountProvider({ children }: PropsWithChildren) {
       accountType,
       membershipTier,
       billingStatus,
+      platformRole,
+      hasFullPlatformAccess,
       ready,
       source,
       error,
       refresh,
       setAccountType,
     }),
-    [accountType, billingStatus, error, membershipTier, ready, refresh, source],
+    [accountType, billingStatus, error, hasFullPlatformAccess, membershipTier, platformRole, ready, refresh, source],
   );
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }

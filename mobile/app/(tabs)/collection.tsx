@@ -58,7 +58,7 @@ const SORT_OPTIONS: { value: CollectionSort; label: string }[] = [
 
 export default function Collection() {
   const insets = useSafeAreaInsets();
-  const { accountType } = useAccount();
+  const { accountType, hasFullPlatformAccess } = useAccount();
   const [cards, setCards] = useState<CollectionCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -131,7 +131,10 @@ export default function Collection() {
   }, []);
 
   const visibleCards = cards;
-  const summary = useMemo(() => summarizeCollectionCards(cards, accountType), [accountType, cards]);
+  const summary = useMemo(
+    () => summarizeCollectionCards(cards, accountType, { ignoreFreeLimit: hasFullPlatformAccess }),
+    [accountType, cards, hasFullPlatformAccess],
+  );
   const intelligence = useMemo(() => buildMobileCollectionIntelligence(cards), [cards]);
   const state = resolveCollectionViewState({
     loading,

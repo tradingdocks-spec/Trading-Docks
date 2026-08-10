@@ -55,9 +55,27 @@ test("Store includes employee entitlement without a hard-coded seat count", () =
   });
 });
 
-test("platform role does not imply paid membership entitlements", () => {
+test("trusted Owner receives full effective entitlements without changing billing membership", () => {
   const access = resolveAccess({
+    userId: "owner-1",
     platformRole: "owner",
+    platformRoleAuthority: "trusted",
+    accountType: "store",
+    billingPlan: "free",
+    billingStatus: "free",
+  });
+
+  assert.equal(access.membershipTier, "free");
+  assert.equal(access.entitlementKeys.includes("deal-desk"), true);
+  assert.equal(access.entitlementKeys.includes("employee-accounts"), true);
+  assert.equal(access.entitlementKeys.includes("admin.command-center"), true);
+});
+
+test("non-owner platform roles do not imply paid membership entitlements", () => {
+  const access = resolveAccess({
+    userId: "admin-1",
+    platformRole: "admin",
+    platformRoleAuthority: "trusted",
     accountType: "store",
     billingPlan: "free",
     billingStatus: "free",

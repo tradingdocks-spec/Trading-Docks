@@ -35,6 +35,25 @@ test('admin role alone does not grant paid mobile membership or workspace tabs',
 
   assert.equal(snapshot.membershipTier, 'free');
   assert.equal(snapshot.accountType, 'collector');
+  assert.equal(snapshot.platformRole, 'admin');
+  assert.equal(snapshot.hasFullPlatformAccess, false);
+});
+
+test('trusted owner keeps Free billing membership but receives full mobile platform access', () => {
+  const snapshot = resolveMobileAccountAccessSnapshot({
+    userId: 'owner-123',
+    localAccountType: 'free',
+    rows: {
+      role: { role: 'owner' },
+      preferences: { preferences: { account_type: 'collector' } },
+      subscription: { plan_id: 'free', status: 'free' },
+    },
+  });
+
+  assert.equal(snapshot.membershipTier, 'free');
+  assert.equal(snapshot.accountType, 'collector');
+  assert.equal(snapshot.platformRole, 'owner');
+  assert.equal(snapshot.hasFullPlatformAccess, true);
 });
 
 test('paid billing fallback ignores canceled or suspended provider state', () => {
