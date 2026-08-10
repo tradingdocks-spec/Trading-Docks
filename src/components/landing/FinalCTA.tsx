@@ -40,7 +40,7 @@ export function FinalCTA() {
 
           <TransitionLink
             href="/sign-up?plan=free"
-            className="primary-button group relative inline-flex h-13 w-full items-center justify-center gap-3 overflow-hidden rounded-2xl px-7 text-sm font-semibold text-[#00131a]"
+            className="primary-button group relative inline-flex h-[52px] w-full items-center justify-center gap-3 overflow-hidden rounded-2xl px-7 text-sm font-semibold text-[#00131a]"
           >
             <span className="relative z-10">Create your free workspace</span>
             <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-[3px]" />
