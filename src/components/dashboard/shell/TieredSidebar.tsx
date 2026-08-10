@@ -54,7 +54,10 @@ export function TieredSidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const plan = normalizeAccountTier(accountType);
-  const groups = getAccountAwareNavigationGroups(plan, isOwner);
+  const accessForNavigation = clientAccess ?? clientAccessFromTier(plan, {
+    platformRole: isOwner ? "admin" : "user",
+  });
+  const groups = getAccountAwareNavigationGroups(plan, isOwner, accessForNavigation);
 
   return (
     <>
@@ -93,9 +96,7 @@ export function TieredSidebar({
                 items={group.items}
                 collapsed={collapsed}
                 pathname={pathname}
-                clientAccess={clientAccess ?? clientAccessFromTier(plan, {
-                  platformRole: isOwner ? "admin" : "user",
-                })}
+                clientAccess={accessForNavigation}
                 onNavigate={onCloseMobile}
               />
             </div>

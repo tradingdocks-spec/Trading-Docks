@@ -37,9 +37,14 @@ import {
   WalletCards,
 } from "lucide-react";
 
-import { WEB_NAVIGATION_CONTRACT } from "@/lib/navigation/contract";
-import { normalizeAccountTier } from "@/lib/plan-entitlements";
-import { LABEL_STUDIO_ROUTE } from "@/lib/label-studio/routes";
+import {
+  hasCapability,
+  hasTrustedOwnerAccess,
+  normalizeAccountType,
+  type ClientSafePlatformAccess,
+  type AccountType,
+} from "../../../mobile/services/platform-access.ts";
+import { LABEL_STUDIO_ROUTE } from "../../lib/label-studio/routes.ts";
 
 export type NavigationItem = {
   href: string;
@@ -322,49 +327,99 @@ export type AccountAwareNavigationGroup = {
   items: NavigationItem[];
 };
 
-function itemForContractEntry(entry: { label: string; href: string }): NavigationItem {
-  return {
-    href: entry.href,
-    label: entry.label,
-    icon: ICON_BY_LABEL[entry.label as keyof typeof ICON_BY_LABEL] ?? LayoutDashboard,
-  };
+const TIER_RANK: Record<AccountType, number> = {
+  free: 0,
+  collector: 1,
+  seller: 2,
+  store: 3,
+};
+
+const COLLECTOR_WORKSPACE_NAV: NavigationItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/inventory", label: "Collection", icon: Boxes },
+  { href: "/dashboard/deck-vault", label: "Deck Vault", icon: LibraryBig },
+  { href: "/dashboard/collector-portfolio", label: "Portfolio", icon: Palette },
+];
+
+const ADMIN_NAV: NavigationItem[] = [
+  { href: "/dashboard/admin", label: "Command Center", icon: ShieldCheck },
+];
+
+function isAtLeast(tier: AccountType, minimum: AccountType) {
+  return TIER_RANK[tier] >= TIER_RANK[minimum];
+}
+
+function uniqueItems(items: NavigationItem[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.href;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isAccessibleOrOwner(
+  item: NavigationItem,
+  clientAccess?: ClientSafePlatformAccess,
+) {
+  if (!clientAccess) return true;
+  if (hasTrustedOwnerAccess(clientAccess)) return true;
+  if (item.href === LABEL_STUDIO_ROUTE) return hasCapability(clientAccess, "label.view");
+  return true;
+}
+
+function group(
+  id: string,
+  label: string,
+  items: NavigationItem[],
+  clientAccess?: ClientSafePlatformAccess,
+): AccountAwareNavigationGroup | null {
+  const visibleItems = uniqueItems(items).filter((item) => isAccessibleOrOwner(item, clientAccess));
+  return visibleItems.length ? { id, label, items: visibleItems } : null;
 }
 
 export function getAccountAwareNavigationGroups(
   accountType: unknown,
   isOwner: boolean,
+  clientAccess?: ClientSafePlatformAccess,
 ): AccountAwareNavigationGroup[] {
-  const tier = normalizeAccountTier(accountType);
-  const workspaceItems = WEB_NAVIGATION_CONTRACT[tier]
-    .filter((item) => item.status !== "planned")
-    .map(itemForContractEntry);
-  const adminItems = isOwner
-    ? WEB_NAVIGATION_CONTRACT.admin
-        .filter((item, index, list) => {
-          const firstForHref = list.findIndex((candidate) => candidate.href === item.href);
-          return item.status !== "planned" && firstForHref === index;
-        })
-        .map(itemForContractEntry)
-    : [];
-  const operationsItems = [
-    {
-      href: LABEL_STUDIO_ROUTE,
-      label: "Label Studio",
-      icon: Tags,
-    },
+  const tier = normalizeAccountType(accountType);
+  const receivesFullSurface = Boolean(clientAccess && hasTrustedOwnerAccess(clientAccess));
+  const effectiveTier = receivesFullSurface ? "store" : tier;
+  const canAccessAdmin = clientAccess
+    ? hasCapability(clientAccess, "platform.admin")
+    : isOwner;
+  const groups: Array<AccountAwareNavigationGroup | null> = [
+    group("collector", "Collector", COLLECTOR_WORKSPACE_NAV, clientAccess),
   ];
 
-  return [
-    {
-      id: "workspace",
-      label: tier === "store" ? "Store" : "Workspace",
-      items: workspaceItems,
-    },
-    ...(operationsItems.length
-      ? [{ id: "operations", label: "Operations", items: operationsItems }]
-      : []),
-    ...(adminItems.length
-      ? [{ id: "admin", label: "Admin", items: adminItems }]
-      : []),
-  ];
+  if (isAtLeast(effectiveTier, "seller")) {
+    groups.push(
+      group("purchasing", PURCHASING_NAV.label, PURCHASING_NAV.children, clientAccess),
+      group("selling", SELLING_NAV.label, SELLING_NAV.children, clientAccess),
+      group("insights", INSIGHTS_NAV.label, INSIGHTS_NAV.children, clientAccess),
+      group(
+        "operations",
+        OPERATIONS_NAV.label,
+        isAtLeast(effectiveTier, "store")
+          ? OPERATIONS_NAV.children
+          : OPERATIONS_NAV.children.filter((item) => item.href === LABEL_STUDIO_ROUTE),
+        clientAccess,
+      ),
+      group("tools", "Tools", TOOLS_NAV, clientAccess),
+    );
+  }
+
+  if (isAtLeast(effectiveTier, "store")) {
+    groups.push(
+      group("crm", "CRM", CRM_NAV, clientAccess),
+      group("business", "Business Hub", BUSINESS_NAV, clientAccess),
+    );
+  }
+
+  groups.push(group("settings", "Account", SECONDARY_NAV, clientAccess));
+  if (canAccessAdmin) groups.push(group("admin", "Admin", ADMIN_NAV, clientAccess));
+
+  return groups.filter((entry): entry is AccountAwareNavigationGroup => Boolean(entry));
 }

@@ -22,6 +22,7 @@ import {
   routeAccessRuleForPath,
 } from "../src/lib/platform/route-access.ts";
 import { apiAccessRuleForPath, apiCapabilityDecision } from "../src/lib/platform/api-access.ts";
+import { getAccountAwareNavigationGroups } from "../src/components/dashboard/navigation.ts";
 import { resolveWorkspaceAccessFromRows } from "../src/lib/platform/workspace-resolution.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -37,6 +38,26 @@ function access(input: Partial<PlatformAccessContext> & { tier?: string } = {}) 
     workspaceRole: input.workspaceRole ?? null,
     suspended: input.suspended ?? false,
   });
+}
+
+function navigationHrefsFor(accessContext: PlatformAccessContext) {
+  return getAccountAwareNavigationGroups(
+    accessContext.membershipTier,
+    accessContext.platformRole !== "user",
+    accessContext,
+  )
+    .flatMap((group) => group.items)
+    .map((item) => item.href);
+}
+
+function navigationLabelsFor(accessContext: PlatformAccessContext) {
+  return getAccountAwareNavigationGroups(
+    accessContext.membershipTier,
+    accessContext.platformRole !== "user",
+    accessContext,
+  )
+    .flatMap((group) => group.items)
+    .map((item) => item.label);
 }
 
 test("capability registry uses action names and canonical tier boundaries", () => {
@@ -220,6 +241,85 @@ test("Label Studio is an Operations navigation item gated by route access", () =
   assert.equal(hasRouteAccess(collectorClient, "/dashboard/label-studio"), false);
   const operationsRouteRule = routeAccessRuleForPath("/dashboard/label-studio");
   assert.equal(operationsRouteRule?.kind === "capability" ? operationsRouteRule.capability : null, "label.view");
+});
+
+test("dashboard navigation preserves the full account-aware feature surface", () => {
+  const free = access({ tier: "free" });
+  const collector = access({ tier: "collector" });
+  const seller = access({ tier: "seller" });
+  const store = access({ tier: "store", workspaceRole: "owner" });
+  const owner = access({
+    tier: "free",
+    platformRole: "owner",
+    platformRoleAuthority: "trusted",
+    workspaceRole: null,
+  });
+
+  const freeHrefs = navigationHrefsFor(free);
+  assert.ok(freeHrefs.includes("/dashboard/inventory"));
+  assert.ok(freeHrefs.includes("/dashboard/deck-vault"));
+  assert.equal(freeHrefs.includes("/dashboard/orders"), false);
+
+  const collectorHrefs = navigationHrefsFor(collector);
+  assert.ok(collectorHrefs.includes("/dashboard/collector-portfolio"));
+  assert.equal(collectorHrefs.includes("/dashboard/orders"), false);
+
+  const sellerHrefs = navigationHrefsFor(seller);
+  for (const href of [
+    "/dashboard/collection-buying",
+    "/dashboard/sealed-buying",
+    "/dashboard/bulk-buying",
+    "/dashboard/purchase-history",
+    "/dashboard/buying-rules",
+    "/dashboard/buying-recommendations",
+    "/dashboard/buylist-intelligence",
+    "/dashboard/buylist-connections",
+    "/dashboard/card-shows",
+    "/dashboard/marketplaces",
+    "/dashboard/sell-optimizer",
+    "/dashboard/orders",
+    "/dashboard/analytics",
+    "/dashboard/automation",
+    "/dashboard/tools/csv-converter",
+    "/dashboard/label-studio",
+  ]) {
+    assert.ok(sellerHrefs.includes(href), `Seller navigation missing ${href}`);
+  }
+  assert.equal(sellerHrefs.includes("/dashboard/employees"), false);
+
+  const storeHrefs = navigationHrefsFor(store);
+  for (const href of [
+    "/dashboard/collection-buying",
+    "/dashboard/orders",
+    "/dashboard/customers",
+    "/dashboard/calendar",
+    "/dashboard/employees",
+    "/dashboard/payroll",
+    "/dashboard/tasks",
+    "/dashboard/vendors",
+    "/dashboard/supplies",
+    "/dashboard/reports",
+  ]) {
+    assert.ok(storeHrefs.includes(href), `Store navigation missing ${href}`);
+  }
+
+  const ownerHrefs = navigationHrefsFor(owner);
+  const ownerLabels = navigationLabelsFor(owner);
+  for (const href of [
+    "/dashboard/collection-buying",
+    "/dashboard/sealed-buying",
+    "/dashboard/bulk-buying",
+    "/dashboard/buylist-intelligence",
+    "/dashboard/marketplaces",
+    "/dashboard/orders",
+    "/dashboard/employees",
+    "/dashboard/payroll",
+    "/dashboard/label-studio",
+    "/dashboard/admin",
+  ]) {
+    assert.ok(ownerHrefs.includes(href), `Owner navigation missing ${href}`);
+  }
+  assert.ok(ownerLabels.includes("Command Center"));
 });
 
 test("server workspace access resolves only valid active or unambiguous memberships", () => {
