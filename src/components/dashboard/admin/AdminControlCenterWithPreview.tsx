@@ -82,6 +82,7 @@ type AdminAccount = {
   created_at: string;
   last_sign_in_at: string | null;
   usage_updated_at: string | null;
+  usage_source?: "inventory_items" | "account_card_usage" | "none";
   email_confirmed: boolean;
   suspended: boolean;
   banned_until: string | null;

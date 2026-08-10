@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import {
+  buildInventoryUsageByUser,
+  resolveAccountUsage,
+  type InventoryUsageRow,
+} from "@/lib/admin/account-usage";
 import { resolveAccess } from "@/lib/identity/access-model";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -7,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const runtime = "nodejs";
 
 const VALID_PLANS = new Set(["free", "collector", "seller", "store"]);
+const INVENTORY_USAGE_PAGE_SIZE = 1000;
 
 type AuthDirectoryUser = {
   id: string;
@@ -35,18 +41,41 @@ function protectOwnerRole(role: unknown) {
   }
 }
 
+async function loadInventoryUsageByUser(admin: ReturnType<typeof createAdminClient>) {
+  const rows: InventoryUsageRow[] = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await admin
+      .from("inventory_items")
+      .select("user_id,id,quantity,updated_at")
+      .order("user_id", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + INVENTORY_USAGE_PAGE_SIZE - 1);
+
+    if (error) throw error;
+    const page = (data ?? []) as InventoryUsageRow[];
+    rows.push(...page);
+    if (page.length < INVENTORY_USAGE_PAGE_SIZE) break;
+    from += INVENTORY_USAGE_PAGE_SIZE;
+  }
+
+  return buildInventoryUsageByUser(rows);
+}
+
 export async function GET() {
   const actor = await requireServerPlatformRole("support");
   if (!actor) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
   try {
     const admin = createAdminClient();
-    const [authResult, profiles, roles, subscriptions, overrides, usage] = await Promise.all([
+    const [authResult, profiles, roles, subscriptions, overrides, usage, inventoryUsageById] = await Promise.all([
       admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
       admin.from("profiles").select("id,full_name"),
       admin.from("user_roles").select("user_id,role"),
       admin.from("billing_subscriptions").select("user_id,plan_id,status,current_period_end"),
       admin.from("admin_membership_overrides").select("user_id,plan_id"),
       admin.from("account_card_usage").select("user_id,card_units,unique_inventory_rows,updated_at"),
+      loadInventoryUsageByUser(admin),
     ]);
     if (authResult.error) throw authResult.error;
     if (profiles.error) throw profiles.error;
@@ -65,6 +94,11 @@ export async function GET() {
       const profile = profilesById.get(authUser.id);
       const subscription = subscriptionsById.get(authUser.id);
       const usageRow = usageById.get(authUser.id);
+      const accountUsage = resolveAccountUsage({
+        userId: authUser.id,
+        inventoryUsage: inventoryUsageById,
+        cachedUsage: usageRow,
+      });
       const bannedUntil = authUser.banned_until ?? null;
       const access = resolveAccess({
         userId: authUser.id,
@@ -88,11 +122,12 @@ export async function GET() {
         role: access.platformRole,
         membership_level: access.membershipTier,
         membership_override: overridesById.get(authUser.id) ?? null,
-        card_units: Number(usageRow?.card_units ?? 0),
-        unique_inventory_rows: Number(usageRow?.unique_inventory_rows ?? 0),
+        card_units: accountUsage.cardUnits,
+        unique_inventory_rows: accountUsage.uniqueInventoryRows,
         created_at: authUser.created_at,
         last_sign_in_at: authUser.last_sign_in_at ?? null,
-        usage_updated_at: usageRow?.updated_at ?? null,
+        usage_updated_at: accountUsage.updatedAt,
+        usage_source: accountUsage.source,
         email_confirmed: Boolean(authUser.email_confirmed_at),
         suspended: Boolean(bannedUntil && new Date(bannedUntil).getTime() > Date.now()),
         banned_until: bannedUntil,
