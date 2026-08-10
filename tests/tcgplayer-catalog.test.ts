@@ -381,6 +381,21 @@ test("only trusted Owner/Admin platform users may mutate the canonical TCGplayer
   assert.equal(hasCapability(admin, "platform.admin"), true);
 });
 
+test("CSV converter resolves exact TCGplayer IDs from the canonical catalog", () => {
+  const route = readFileSync(path.join(repoRoot, "src/app/api/tools/csv/tcgplayer-resolve/route.ts"), "utf8");
+  assert.match(route, /requireApiCapability\("csv.export"\)/);
+  assert.match(route, /resolveTcgplayerVariant/);
+  assert.match(route, /condition/);
+  assert.match(route, /finish/);
+  assert.doesNotMatch(route, /localStorage|email|tradingdocks@gmail\.com/i);
+
+  const converter = readFileSync(path.join(repoRoot, "src/components/dashboard/tools/CsvConversionEngine.tsx"), "utf8");
+  assert.match(converter, /Resolve exact TCGplayer IDs/);
+  assert.match(converter, /\/api\/tools\/csv\/tcgplayer-resolve/);
+  assert.match(converter, /condition-specific TCGplayer ID/);
+  assert.match(converter, /Trading Docks resolves the exact TCGplayer inventory SKU/);
+});
+
 function rowObject(values: string[]) {
   return Object.fromEntries(CSV_HEADER.split(",").map((header, index) => [header, values[index] ?? ""])) as Record<TcgplayerMagicCsvHeader, string>;
 }

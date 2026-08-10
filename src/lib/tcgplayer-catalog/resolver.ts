@@ -37,7 +37,7 @@ export type ResolveTcgplayerVariantResult =
   | { status: "ambiguous"; candidates: TcgplayerCatalogVariant[]; reason: string }
   | { status: "unresolved"; reason: string };
 
-type SupabaseCatalogResolverClient = {
+export type SupabaseCatalogResolverClient = {
   from: (table: string) => {
     select: (columns: string) => {
       eq: (column: string, value: string) => ResolverQuery;

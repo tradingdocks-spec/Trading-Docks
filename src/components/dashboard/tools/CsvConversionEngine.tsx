@@ -187,7 +187,7 @@ export function CsvConversionEngine() {
       validRows.some((row) => !row.tcgplayerId.trim())
     ) {
       setNotice(
-        "A direct TCGplayer export requires condition/printing-specific TCGplayer IDs. Download the ManaBox bridge file first, import it into ManaBox, then upload the TCGplayer export from ManaBox here. TCGCSV product IDs cannot safely replace TCGplayer SKU IDs.",
+        "A direct TCGplayer export requires exact condition and foil-specific TCGplayer IDs. Use Resolve exact TCGplayer IDs before downloading.",
       );
       return;
     }
@@ -283,6 +283,96 @@ export function CsvConversionEngine() {
       );
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "TCGplayer products could not be matched.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function resolveExactTcgplayerIds() {
+    if (!validRows.length) return setNotice("Load and map rows before resolving TCGplayer IDs.");
+    setWorking(true);
+    setNotice("Resolving exact condition and foil-specific TCGplayer IDs from the Trading Docks catalog...");
+    try {
+      const next: Record<number, Partial<CanonicalRow>> = { ...enrichedRows };
+      let matched = 0;
+      let ambiguous = 0;
+      let unresolved = 0;
+
+      for (let offset = 0; offset < converted.length; offset += 500) {
+        const chunk = converted.slice(offset, offset + 500);
+        const response = await fetch("/api/tools/csv/tcgplayer-resolve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rows: chunk.map((row) => ({
+              name: row.name,
+              set: row.set,
+              setName: row.setName,
+              collectorNumber: row.collectorNumber,
+              condition: row.condition,
+              finish: row.finish,
+            })),
+          }),
+        });
+        const payload = await response.json() as {
+          error?: string;
+          results?: Array<{
+            status: "matched" | "ambiguous" | "unresolved";
+            reason?: string;
+            tcgplayerId?: string;
+            productLine?: string;
+            setName?: string;
+            productName?: string;
+            title?: string;
+            collectorNumber?: string;
+            rarity?: string;
+            condition?: string;
+            finish?: string;
+            marketPrice?: string;
+            directLowPrice?: string;
+            lowPrice?: string;
+            marketplacePrice?: string;
+            photoUrl?: string;
+          }>;
+        };
+        if (!response.ok || !payload.results) throw new Error(payload.error ?? "TCGplayer catalog resolution failed.");
+
+        payload.results.forEach((result, index) => {
+          const rowIndex = offset + index;
+          if (result.status === "matched") {
+            const finish = result.finish === "Foil" ? "Foil" : "Nonfoil";
+            matched += 1;
+            next[rowIndex] = {
+              ...(next[rowIndex] ?? {}),
+              tcgplayerId: result.tcgplayerId ?? "",
+              productLine: result.productLine ?? "Magic",
+              setName: result.setName ?? converted[rowIndex]?.setName ?? "",
+              name: result.productName ?? converted[rowIndex]?.name ?? "",
+              title: result.title ?? converted[rowIndex]?.title ?? "",
+              collectorNumber: result.collectorNumber ?? converted[rowIndex]?.collectorNumber ?? "",
+              rarity: result.rarity ?? converted[rowIndex]?.rarity ?? "",
+              condition: finish === "Foil" && result.condition ? `${result.condition} Foil` : result.condition ?? converted[rowIndex]?.condition ?? "",
+              finish,
+              marketPrice: result.marketplacePrice || result.marketPrice || converted[rowIndex]?.marketPrice || "",
+              directLowPrice: result.directLowPrice || converted[rowIndex]?.directLowPrice || "",
+              lowPrice: result.lowPrice || converted[rowIndex]?.lowPrice || "",
+              imageUrl: result.photoUrl || converted[rowIndex]?.imageUrl || "",
+            };
+          } else if (result.status === "ambiguous") {
+            ambiguous += 1;
+          } else {
+            unresolved += 1;
+          }
+        });
+      }
+
+      setEnrichedRows(next);
+      setOutputTemplateId("tcgplayer");
+      setNotice(
+        `${matched.toLocaleString()} exact TCGplayer IDs resolved. ${ambiguous.toLocaleString()} ambiguous and ${unresolved.toLocaleString()} unresolved rows still need condition, foil, set, or collector-number review.`,
+      );
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Exact TCGplayer IDs could not be resolved.");
     } finally {
       setWorking(false);
     }
@@ -440,18 +530,20 @@ export function CsvConversionEngine() {
           {destination === "download" ? <div className="mt-4 space-y-3 rounded-2xl border border-white/[.07] bg-black/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Convert to</span><select value={outputTemplateId} onChange={(event) => setOutputTemplateId(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300">{CSV_TEMPLATES.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
-              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Match products &amp; prices</button> : null}
+              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void resolveExactTcgplayerIds()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Resolve exact TCGplayer IDs</button> : null}
+              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:opacity-40"><WandSparkles className="h-4 w-4" />Match product details</button> : null}
               {outputTemplateId !== "tcgplayer" || !missingTcgplayerSkuCount ? <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download CSV</button> : null}
             </div>
             {outputTemplateId === "tcgplayer" ? <>
               <input ref={tcgplayerReferenceRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleTcgplayerReference(file); }} />
+              <p className="rounded-xl border border-cyan-300/10 bg-cyan-300/[.025] px-3 py-2 text-[10px] leading-5 text-cyan-100/70">Trading Docks resolves exact condition and foil-specific TCGplayer IDs from the imported catalog. The reference export below is only a fallback comparison file.</p>
               <div className="grid gap-3 rounded-2xl border border-white/[.07] bg-[#050e15] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div><strong className="text-xs text-white">TCGplayer ID reference export</strong><p className="mt-1 text-[10px] leading-4 text-slate-500">{tcgplayerReferenceRows.length ? `${tcgplayerReferenceName} · ${tcgplayerReferenceRows.length.toLocaleString()} verified SKU rows loaded` : "Upload a TCGplayer Pricing Custom Export containing every card and variant in this conversion."}</p></div>
                 <button type="button" onClick={() => tcgplayerReferenceRef.current?.click()} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-bold text-cyan-100"><Upload className="h-4 w-4" />{tcgplayerReferenceRows.length ? "Replace reference" : "Upload reference export"}</button>
               </div>
-              <div className={`rounded-xl border p-3 text-[10px] leading-5 ${missingTcgplayerSkuCount ? "border-amber-300/10 bg-amber-300/[.025] text-amber-100/60" : "border-emerald-300/10 bg-emerald-300/[.025] text-emerald-100/60"}`}>{missingTcgplayerSkuCount ? <><strong className="text-amber-200">{(validRows.length - missingTcgplayerSkuCount).toLocaleString()} of {validRows.length.toLocaleString()} rows have verified TCGplayer IDs.</strong> The final download stays locked until the reference export contains one exact SKU match for every card, printing, condition, and finish.{tcgplayerReferenceRows.length ? <span className="mt-1 block">Unresolved: {validRows.filter((row) => !row.tcgplayerId.trim()).slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)})`).join("; ")}</span> : null}</> : <><strong className="text-emerald-200">All {validRows.length.toLocaleString()} TCGplayer IDs are verified.</strong> The final file uses the exact 16-column header from your TCGplayer reference export.</>}</div>
-              {missingTcgplayerSkuCount ? <div className="flex flex-wrap gap-2"><button type="button" onClick={downloadManaBoxBridge} disabled={!validRows.length} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[.08] px-4 text-[10px] font-semibold text-slate-300 disabled:opacity-40"><Download className="h-4 w-4" />Download ManaBox bridge instead</button></div> : null}
-              <button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />How ID verification works<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-white/[.07] bg-black/10 p-3 text-[10px] leading-5 text-slate-500">TCGCSV supplies product details and pricing. Your TCGplayer Pricing export supplies the inventory SKU. Trading Docks requires one unambiguous match on product name, set name, collector number, and the combined condition/foil value. It does not substitute a product ID or guess between duplicate variants.</div> : null}
+              <div className={`rounded-xl border p-3 text-[10px] leading-5 ${missingTcgplayerSkuCount ? "border-amber-300/10 bg-amber-300/[.025] text-amber-100/60" : "border-emerald-300/10 bg-emerald-300/[.025] text-emerald-100/60"}`}>{missingTcgplayerSkuCount ? <><strong className="text-amber-200">{(validRows.length - missingTcgplayerSkuCount).toLocaleString()} of {validRows.length.toLocaleString()} rows have verified TCGplayer IDs.</strong> The final download stays locked until the Trading Docks catalog or optional reference export contains one exact SKU match for every card, printing, condition, and finish.{validRows.length ? <span className="mt-1 block">Unresolved: {validRows.filter((row) => !row.tcgplayerId.trim()).slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)})`).join("; ")}</span> : null}</> : <><strong className="text-emerald-200">All {validRows.length.toLocaleString()} TCGplayer IDs are verified.</strong> The final file uses the exact 16-column TCGplayer inventory header.</>}</div>
+              {missingTcgplayerSkuCount ? <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void resolveExactTcgplayerIds()} disabled={!validRows.length || working} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-semibold text-cyan-100 disabled:opacity-40"><WandSparkles className="h-4 w-4" />Resolve IDs from catalog</button><button type="button" onClick={downloadManaBoxBridge} disabled={!validRows.length} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[.08] px-4 text-[10px] font-semibold text-slate-300 disabled:opacity-40"><Download className="h-4 w-4" />Download ManaBox bridge instead</button></div> : null}
+              <button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />How ID verification works<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-white/[.07] bg-black/10 p-3 text-[10px] leading-5 text-slate-500">Trading Docks resolves the exact TCGplayer inventory SKU from the uploaded canonical catalog by matching product name, set name, collector number, condition, and foil or nonfoil. TCGCSV can still fill product details and prices, but it does not replace the condition-specific TCGplayer ID and Trading Docks will not guess between duplicate variants.</div> : null}
             </> : null}
           </div> : <div className="mt-4 grid gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <label><span className="text-[9px] font-semibold text-slate-500">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><input value={locationName} onChange={(event) => setLocationName(event.target.value)} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none" /></div></label>
