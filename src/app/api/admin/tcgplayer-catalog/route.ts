@@ -10,6 +10,7 @@ import {
   TCGPLAYER_MAGIC_STORAGE_BUCKET,
   TCGPLAYER_MAGIC_STORAGE_PARTS,
   TCGPLAYER_MAGIC_STORAGE_PREFIX,
+  verifyTcgplayerMagicStorageParts,
   type SupabaseCatalogClient,
 } from "@/lib/tcgplayer-catalog";
 
@@ -79,11 +80,27 @@ export async function POST(request: Request) {
         retryFailed?: boolean;
       };
       const action = payload.action ?? "storage-import";
-      if (!["storage-list", "storage-start", "storage-advance", "storage-import"].includes(action)) {
+      if (!["storage-list", "storage-verify", "storage-start", "storage-advance", "storage-import"].includes(action)) {
         return NextResponse.json({ error: "Unsupported catalog action." }, { status: 400 });
       }
 
       const adminClient = createAdminClient() as unknown as Parameters<typeof advanceTcgplayerMagicStorageImport>[0];
+      if (action === "storage-verify") {
+        const parts = await verifyTcgplayerMagicStorageParts(adminClient, {
+          bucket: payload.bucket,
+          prefix: payload.prefix,
+          paths: payload.paths,
+        });
+        return NextResponse.json({
+          ok: true,
+          action,
+          bucket: payload.bucket ?? TCGPLAYER_MAGIC_STORAGE_BUCKET,
+          prefix: payload.prefix ?? TCGPLAYER_MAGIC_STORAGE_PREFIX,
+          parts,
+          allVerified: parts.length > 0 && parts.every((part) => part.exists),
+        });
+      }
+
       if (action === "storage-list") {
         const paths = await resolveTcgplayerMagicStorageParts(adminClient, {
           bucket: payload.bucket,

@@ -6,13 +6,16 @@ import { fileURLToPath } from "node:url";
 
 import {
   advanceTcgplayerMagicStorageImport,
+  downloadSupabaseStorageRange,
   importTcgplayerMagicCatalogCsv,
   mapTcgplayerMagicCsvRow,
   normalizeCollectorNumber,
   normalizeConditionFinish,
+  resolveTcgplayerMagicStorageParts,
   resolveTcgplayerVariant,
   startTcgplayerMagicStorageImport,
   validateTcgplayerMagicHeaders,
+  verifyTcgplayerMagicStorageParts,
   type TcgplayerMagicCatalogRecord,
   type TcgplayerMagicCsvHeader,
 } from "../src/lib/tcgplayer-catalog/index.ts";
@@ -197,6 +200,108 @@ test("storage multipart catalog import processes parts in order as one logical i
   assert.equal(client.imports.filter((row) => row.filename === "storage://catalog-imports/tcgplayer/magic/2026-08-10/").length, 1);
 });
 
+test("storage prefix plus filenames resolves object paths exactly once", async () => {
+  const client = new FakeStorageCatalogClient({
+    "tcgplayer/magic/2026-08-10/part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+  });
+
+  const filenamePaths = await resolveTcgplayerMagicStorageParts(client, {
+    bucket: "catalog-imports",
+    prefix: "tcgplayer/magic/2026-08-10/",
+    paths: ["part-001.csv"],
+  });
+  assert.deepEqual(filenamePaths, ["tcgplayer/magic/2026-08-10/part-001.csv"]);
+
+  const fullPaths = await resolveTcgplayerMagicStorageParts(client, {
+    bucket: "catalog-imports",
+    prefix: "tcgplayer/magic/2026-08-10/",
+    paths: ["tcgplayer/magic/2026-08-10/part-001.csv"],
+  });
+  assert.deepEqual(fullPaths, ["tcgplayer/magic/2026-08-10/part-001.csv"]);
+});
+
+test("storage verification reports existence size and content type before import", async () => {
+  const client = new FakeStorageCatalogClient({
+    "tcgplayer/magic/2026-08-10/part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+  });
+
+  const parts = await verifyTcgplayerMagicStorageParts(client, {
+    bucket: "catalog-imports",
+    prefix: "tcgplayer/magic/2026-08-10/",
+    paths: ["part-001.csv", "part-404.csv"],
+  });
+
+  assert.equal(parts[0].path, "tcgplayer/magic/2026-08-10/part-001.csv");
+  assert.equal(parts[0].exists, true);
+  assert.ok((parts[0].size ?? 0) > 0);
+  assert.equal(parts[0].contentType, "text/csv");
+  assert.equal(parts[1].exists, false);
+});
+
+test("private storage range requests use the authenticated Supabase object endpoint", async () => {
+  const previousUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const previousKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const previousFetch = globalThis.fetch;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+
+  let requestedUrl = "";
+  let requestedRange = "";
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    requestedUrl = String(input);
+    requestedRange = new Headers(init?.headers).get("range") ?? "";
+    return Promise.resolve(new Response("abc", {
+      status: 206,
+      headers: {
+        "content-range": "bytes 0-2/9",
+        "content-length": "3",
+      },
+    }));
+  }) as typeof fetch;
+
+  try {
+    const result = await downloadSupabaseStorageRange(
+      "catalog-imports",
+      "tcgplayer/magic/2026-08-10/part-001.csv",
+      0,
+      3,
+    );
+
+    assert.equal(requestedUrl, "https://example.supabase.co/storage/v1/object/authenticated/catalog-imports/tcgplayer/magic/2026-08-10/part-001.csv");
+    assert.equal(requestedRange, "bytes=0-2");
+    assert.equal(result.totalBytes, 9);
+    assert.equal(new TextDecoder().decode(result.bytes), "abc");
+  } finally {
+    globalThis.fetch = previousFetch;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = previousUrl;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = previousKey;
+  }
+});
+
+test("storage range errors surface Supabase response details", async () => {
+  const previousUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const previousKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const previousFetch = globalThis.fetch;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+  globalThis.fetch = (() => Promise.resolve(new Response('{"error":"Invalid range"}', { status: 400 }))) as typeof fetch;
+
+  try {
+    await assert.rejects(
+      () => downloadSupabaseStorageRange("catalog-imports", "part-001.csv", 0, 3),
+      /HTTP 400.*Invalid range/,
+    );
+  } finally {
+    globalThis.fetch = previousFetch;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = previousUrl;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = previousKey;
+  }
+});
+
 test("storage catalog import persists checkpoints and resumes after refresh or interrupted batch", async () => {
   const client = new FakeStorageCatalogClient({
     "tcgplayer/magic/2026-08-10/part-001.csv": csv([
@@ -274,6 +379,39 @@ test("completed storage catalog import is not processed twice", async () => {
   assert.equal(second.skippedCompletedImport, true);
   assert.deepEqual(client.downloadedPaths, []);
   assert.equal(client.upserts.length, 1);
+});
+
+test("stale zero-row completed storage import can restart", async () => {
+  const client = new FakeStorageCatalogClient({
+    "tcgplayer/magic/2026-08-10/part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+  });
+  client.imports.push({
+    id: "stale",
+    filename: "storage://catalog-imports/tcgplayer/magic/2026-08-10/",
+    status: "completed",
+    total_rows: 0,
+    processed_rows: 0,
+    inserted_rows: 0,
+    updated_rows: 0,
+    rejected_rows: 0,
+    error_summary: {
+      kind: "tcgplayer-storage-multipart",
+      bucket: "catalog-imports",
+      prefix: "tcgplayer/magic/2026-08-10/",
+      parts: [],
+      errors: [],
+    },
+  });
+
+  const restarted = await startTcgplayerMagicStorageImport(client, {
+    bucket: "catalog-imports",
+    prefix: "tcgplayer/magic/2026-08-10/",
+  });
+
+  assert.equal(restarted.status, "processing");
+  assert.notEqual(restarted.importRunId, "stale");
 });
 
 test("duplicate active storage import protection reuses the existing processing job", async () => {
@@ -394,6 +532,15 @@ test("CSV converter resolves exact TCGplayer IDs from the canonical catalog", ()
   assert.match(converter, /\/api\/tools\/csv\/tcgplayer-resolve/);
   assert.match(converter, /condition-specific TCGplayer ID/);
   assert.match(converter, /Trading Docks resolves the exact TCGplayer inventory SKU/);
+});
+
+test("admin catalog UI requires storage verification before importing all parts", () => {
+  const source = readFileSync(path.join(repoRoot, "src/components/dashboard/admin/catalog/TcgplayerCatalogManager.tsx"), "utf8");
+  assert.match(source, /storage-verify/);
+  assert.match(source, /storageVerified/);
+  assert.match(source, /disabled=\{working !== null \|\| !storageVerified\}/);
+  assert.match(source, /Verified storage objects/);
+  assert.doesNotMatch(source, /Processing" value=\{working \? "Active" : result \? "Complete" : "Idle"\}/);
 });
 
 function rowObject(values: string[]) {
@@ -573,7 +720,13 @@ class FakeStorageCatalogClient extends FakeCatalogClient {
       list: (prefix: string) => {
         const data = Object.keys(this.files)
           .filter((path) => path.startsWith(prefix))
-          .map((path) => ({ name: path.slice(prefix.length) }));
+          .map((path) => ({
+            name: path.slice(prefix.length),
+            metadata: {
+              size: this.encoder.encode(this.files[path]).length,
+              mimetype: "text/csv",
+            },
+          }));
         return Promise.resolve({ data, error: null });
       },
     }),

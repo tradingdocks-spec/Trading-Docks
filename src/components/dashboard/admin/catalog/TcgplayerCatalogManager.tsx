@@ -48,9 +48,17 @@ type StorageImportPart = {
   error?: string;
 };
 
+type StorageVerificationPart = {
+  path: string;
+  exists: boolean;
+  size: number | null;
+  contentType: string | null;
+  error?: string;
+};
+
 type ImportResponse = {
   ok?: boolean;
-  action?: "validate" | "import" | "storage-list" | "storage-start" | "storage-advance" | "storage-import";
+  action?: "validate" | "import" | "storage-list" | "storage-verify" | "storage-start" | "storage-advance" | "storage-import";
   summary?: ImportSummary;
   result?: {
     status: "processing" | "completed" | "failed";
@@ -68,22 +76,25 @@ type ImportResponse = {
     };
   };
   paths?: string[];
+  parts?: StorageVerificationPart[];
+  allVerified?: boolean;
   error?: string;
 };
 
 export function TcgplayerCatalogManager() {
   const [status, setStatus] = useState<CatalogStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [working, setWorking] = useState<"validate" | "import" | "storage-list" | "storage-start" | "storage-advance" | "storage-import" | null>(null);
+  const [working, setWorking] = useState<"validate" | "import" | "storage-list" | "storage-verify" | "storage-start" | "storage-advance" | "storage-import" | null>(null);
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [storageBucket, setStorageBucket] = useState("catalog-imports");
   const [storagePrefix, setStoragePrefix] = useState("tcgplayer/magic/2026-08-10/");
   const [storagePaths, setStoragePaths] = useState([
-    "tcgplayer/magic/2026-08-10/part-001.csv",
-    "tcgplayer/magic/2026-08-10/part-002.csv",
-    "tcgplayer/magic/2026-08-10/part-003.csv",
+    "part-001.csv",
+    "part-002.csv",
+    "part-003.csv",
   ]);
+  const [storageVerified, setStorageVerified] = useState(false);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
@@ -100,6 +111,14 @@ export function TcgplayerCatalogManager() {
   const activeStorageImport = result?.result?.status === "processing" || result?.result?.status === "failed";
   const currentPart = result?.result?.currentPartPath?.split("/").pop() ?? null;
   const currentPartPosition = result?.result ? Math.max(0, result.result.currentPartIndex) + 1 : 0;
+  const displayedStatus = useMemo(() => {
+    if (working) return working === "storage-verify" ? "Verifying" : "Active";
+    if (result?.result?.status) return result.result.status === "completed" ? "Complete" : titleCase(result.result.status);
+    if (result?.action === "storage-verify") return result.allVerified ? "Ready" : "Failed";
+    const last = status?.lastImport;
+    if (last?.status === "completed" && Number(last.total_rows ?? 0) === 0) return "Stale zero-row job";
+    return last?.status ? titleCase(last.status) : "Idle";
+  }, [result, status?.lastImport, working]);
 
   async function refreshStatus() {
     const response = await fetch("/api/admin/tcgplayer-catalog");
@@ -113,6 +132,7 @@ export function TcgplayerCatalogManager() {
       setStorageBucket(payload.defaultStorageImport.bucket);
       setStoragePrefix(payload.defaultStorageImport.prefix);
       setStoragePaths(payload.defaultStorageImport.paths);
+      setStorageVerified(false);
     }
     const lastImport = payload.lastImport;
     if (
@@ -194,7 +214,7 @@ export function TcgplayerCatalogManager() {
     }
   }
 
-  async function runStorage(action: "storage-list" | "storage-start" | "storage-advance" | "storage-import") {
+  async function runStorage(action: "storage-list" | "storage-verify" | "storage-start" | "storage-advance" | "storage-import") {
     setWorking(action);
     setError(null);
     if (action === "storage-list" || action === "storage-start") setResult(null);
@@ -213,7 +233,10 @@ export function TcgplayerCatalogManager() {
       const payload = await response.json() as ImportResponse;
       setResult(payload);
       if (payload.paths) setStoragePaths(payload.paths);
+      if (action === "storage-verify") setStorageVerified(response.ok && Boolean(payload.allVerified));
       if (!response.ok) setError(payload.error ?? "TCGplayer storage catalog import failed.");
+      else if (action === "storage-verify" && !payload.allVerified) setError("One or more TCGplayer catalog storage objects could not be verified.");
+      else if (action === "storage-verify") return;
       else await refreshStatus();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "TCGplayer storage catalog import failed.");
@@ -293,7 +316,10 @@ export function TcgplayerCatalogManager() {
                   <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">Bucket</span>
                   <input
                     value={storageBucket}
-                    onChange={(event) => setStorageBucket(event.target.value)}
+                    onChange={(event) => {
+                      setStorageBucket(event.target.value);
+                      setStorageVerified(false);
+                    }}
                     className="mt-1 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30"
                   />
                 </label>
@@ -301,7 +327,10 @@ export function TcgplayerCatalogManager() {
                   <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">Folder prefix</span>
                   <input
                     value={storagePrefix}
-                    onChange={(event) => setStoragePrefix(event.target.value)}
+                    onChange={(event) => {
+                      setStoragePrefix(event.target.value);
+                      setStorageVerified(false);
+                    }}
                     className="mt-1 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30"
                   />
                 </label>
@@ -311,7 +340,10 @@ export function TcgplayerCatalogManager() {
                 <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">CSV objects, processed in order</span>
                 <textarea
                   value={storagePaths.join("\n")}
-                  onChange={(event) => setStoragePaths(event.target.value.split(/\r?\n/).map((path) => path.trim()).filter(Boolean))}
+                  onChange={(event) => {
+                    setStoragePaths(event.target.value.split(/\r?\n/).map((path) => path.trim()).filter(Boolean));
+                    setStorageVerified(false);
+                  }}
                   rows={4}
                   className="mt-1 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2 text-xs leading-5 text-white outline-none focus:border-cyan-300/30"
                 />
@@ -321,15 +353,15 @@ export function TcgplayerCatalogManager() {
                 <button
                   type="button"
                   disabled={working !== null}
-                  onClick={() => void runStorage("storage-list")}
+                  onClick={() => void runStorage("storage-verify")}
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-black/15 px-4 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  {working === "storage-list" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  {working === "storage-verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   Verify storage parts
                 </button>
                 <button
                   type="button"
-                  disabled={working !== null}
+                  disabled={working !== null || !storageVerified}
                   onClick={() => {
                     setPaused(false);
                     void runStorage("storage-start");
@@ -438,7 +470,7 @@ export function TcgplayerCatalogManager() {
             </div>
 
             <div className="mt-5 space-y-2 text-xs">
-              <StatusLine label="Processing" value={working ? "Active" : result ? "Complete" : "Idle"} />
+              <StatusLine label="Processing" value={displayedStatus} />
               <StatusLine label="Total rows" value={formatNumber(result?.summary?.totalRows ?? status?.lastImport?.total_rows ?? 0)} />
               <StatusLine label="Processed" value={formatNumber(result?.summary?.processedRows ?? status?.lastImport?.processed_rows ?? 0)} />
               <StatusLine label="Inserted" value={formatNumber(result?.summary?.insertedRows ?? status?.lastImport?.inserted_rows ?? 0)} />
@@ -456,6 +488,24 @@ export function TcgplayerCatalogManager() {
                   {formatNumber(result.result.summary.processedRows + result.result.summary.rejectedRows)} / {formatNumber(799149)} rows · {progress}%
                 </p>
                 <p className="mt-2 text-[11px] text-cyan-100/45">Current file: {currentPart ?? "All parts complete"}</p>
+              </div>
+            ) : null}
+
+            {result?.parts?.length ? (
+              <div className="mt-5 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Verified storage objects</p>
+                {result.parts.map((part) => (
+                  <div key={part.path} className="rounded-xl border border-white/[0.055] bg-black/[0.1] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="truncate text-[11px] font-semibold text-slate-300">{part.path}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${part.exists ? "border-emerald-300/15 text-emerald-200" : "border-rose-300/15 text-rose-200"}`}>{part.exists ? "Exists" : "Missing"}</span>
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-600">
+                      Size: {part.size == null ? "Unknown" : formatBytes(part.size)} · Type: {part.contentType ?? "Unknown"}
+                    </p>
+                    {part.error ? <p className="mt-2 text-[10px] leading-4 text-rose-200">{part.error}</p> : null}
+                  </div>
+                ))}
               </div>
             ) : null}
 
@@ -514,4 +564,14 @@ function StatusLine({ label, value }: { label: string; value: string }) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
+}
+
+function formatBytes(value: number) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${Math.round((value / 1024) * 10) / 10} KB`;
+  return `${Math.round((value / (1024 * 1024)) * 10) / 10} MB`;
+}
+
+function titleCase(value: string) {
+  return value.slice(0, 1).toUpperCase() + value.slice(1);
 }

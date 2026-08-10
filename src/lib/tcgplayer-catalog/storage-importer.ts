@@ -16,9 +16,9 @@ import {
 export const TCGPLAYER_MAGIC_STORAGE_BUCKET = "catalog-imports";
 export const TCGPLAYER_MAGIC_STORAGE_PREFIX = "tcgplayer/magic/2026-08-10/";
 export const TCGPLAYER_MAGIC_STORAGE_PARTS = [
-  "tcgplayer/magic/2026-08-10/part-001.csv",
-  "tcgplayer/magic/2026-08-10/part-002.csv",
-  "tcgplayer/magic/2026-08-10/part-003.csv",
+  "part-001.csv",
+  "part-002.csv",
+  "part-003.csv",
 ] as const;
 
 export const TCGPLAYER_STORAGE_IMPORT_BATCH_ROWS = 10_000;
@@ -39,6 +39,14 @@ export type TcgplayerCatalogStoragePart = {
   error?: string;
   startedAt?: string;
   completedAt?: string;
+};
+
+export type TcgplayerStoragePartVerification = {
+  path: string;
+  exists: boolean;
+  size: number | null;
+  contentType: string | null;
+  error?: string;
 };
 
 export type TcgplayerCatalogStorageImportResult = {
@@ -72,7 +80,15 @@ type SupabaseStorageCatalogClient = SupabaseCatalogClient & {
   storage: {
     from: (bucket: string) => {
       list: (prefix: string) => PromiseLike<{
-        data: Array<{ name: string; id?: string | null }> | null;
+        data: Array<{
+          name: string;
+          id?: string | null;
+          metadata?: {
+            size?: number | string | null;
+            mimetype?: string | null;
+            contentType?: string | null;
+          } | null;
+        }> | null;
         error: { message?: string } | null;
       }>;
     };
@@ -121,24 +137,40 @@ export async function resolveTcgplayerMagicStorageParts(
   } = {},
 ) {
   const bucket = options.bucket ?? TCGPLAYER_MAGIC_STORAGE_BUCKET;
-  const explicitPaths = normalizeStoragePaths(options.paths ?? []);
+  const prefix = normalizeOptionalPrefix(options.prefix ?? TCGPLAYER_MAGIC_STORAGE_PREFIX);
+  const explicitPaths = normalizeStoragePaths(options.paths ?? [], prefix);
   if (explicitPaths.length > 0) return explicitPaths;
 
-  const prefix = normalizeStoragePrefix(options.prefix ?? TCGPLAYER_MAGIC_STORAGE_PREFIX);
-  const { data, error } = await client.storage.from(bucket).list(prefix);
+  const listPrefix = prefix ?? "";
+  const { data, error } = await client.storage.from(bucket).list(listPrefix);
   if (error) throw new Error(error.message ?? "Could not list TCGplayer catalog storage folder.");
 
   const paths = (data ?? [])
     .map((entry) => entry.name)
     .filter((name) => name.toLowerCase().endsWith(".csv"))
     .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
-    .map((name) => `${prefix}${name}`);
+    .map((name) => `${listPrefix}${name}`);
 
   if (paths.length === 0) {
-    throw new Error(`No CSV parts found in ${bucket}/${prefix}.`);
+    throw new Error(`No CSV parts found in ${bucket}/${listPrefix}.`);
   }
 
   return paths;
+}
+
+export async function verifyTcgplayerMagicStorageParts(
+  client: SupabaseStorageCatalogClient,
+  options: {
+    bucket?: string;
+    prefix?: string | null;
+    paths?: string[];
+  } = {},
+): Promise<TcgplayerStoragePartVerification[]> {
+  const bucket = options.bucket ?? TCGPLAYER_MAGIC_STORAGE_BUCKET;
+  const prefix = normalizeOptionalPrefix(options.prefix ?? TCGPLAYER_MAGIC_STORAGE_PREFIX);
+  const paths = normalizeStoragePaths(options.paths ?? [...TCGPLAYER_MAGIC_STORAGE_PARTS], prefix);
+
+  return Promise.all(paths.map(async (path) => verifyStoragePath(client, bucket, path)));
 }
 
 export async function startTcgplayerMagicStorageImport(
@@ -149,9 +181,10 @@ export async function startTcgplayerMagicStorageImport(
   const prefix = options.prefix === undefined ? TCGPLAYER_MAGIC_STORAGE_PREFIX : normalizeOptionalPrefix(options.prefix);
   const paths = await resolveTcgplayerMagicStorageParts(client, { bucket, prefix, paths: options.paths });
   const logicalImportKey = storageImportKey(bucket, prefix, paths);
-  const existing = await findLatestStorageImportRun(client, logicalImportKey);
+  const existingRow = await findLatestStorageImportRun(client, logicalImportKey);
+  const existing = existingRow && isInvalidCompletedStorageRun(existingRow, bucket, prefix, paths) ? null : existingRow;
 
-  if (existing?.status === "completed") {
+  if (existing?.status === "completed" && !isInvalidCompletedStorageRun(existing, bucket, prefix, paths)) {
     return resultFromImportRun(existing, bucket, prefix, paths, true);
   }
   if (existing?.status === "processing") {
@@ -188,10 +221,11 @@ export async function advanceTcgplayerMagicStorageImport(
   const prefix = options.prefix === undefined ? TCGPLAYER_MAGIC_STORAGE_PREFIX : normalizeOptionalPrefix(options.prefix);
   const paths = await resolveTcgplayerMagicStorageParts(client, { bucket, prefix, paths: options.paths });
   const logicalImportKey = storageImportKey(bucket, prefix, paths);
-  const existing = await findLatestStorageImportRun(client, logicalImportKey);
+  const existingRow = await findLatestStorageImportRun(client, logicalImportKey);
+  const existing = existingRow && isInvalidCompletedStorageRun(existingRow, bucket, prefix, paths) ? null : existingRow;
   const active = existing ?? await createStartedRun(client, options, bucket, prefix, paths, logicalImportKey);
 
-  if (active.status === "completed") {
+  if (active.status === "completed" && !isInvalidCompletedStorageRun(active, bucket, prefix, paths)) {
     return resultFromImportRun(active, bucket, prefix, paths, true);
   }
 
@@ -199,6 +233,10 @@ export async function advanceTcgplayerMagicStorageImport(
   const summary = summaryFromImportRun(active, metadata);
   const partIndex = metadata.parts.findIndex((part) => part.status !== "completed");
   if (partIndex < 0) {
+    if (!storageImportCanComplete(summary, metadata.parts)) {
+      await persistStorageImport(client, active.id, summary, metadata, "failed");
+      throw new Error("TCGplayer storage import cannot complete with zero processed rows or incomplete parts.");
+    }
     await persistStorageImport(client, active.id, summary, metadata, "completed");
     return resultFromImportRun({ ...active, status: "completed", error_summary: metadata }, bucket, prefix, paths, false);
   }
@@ -241,7 +279,7 @@ export async function advanceTcgplayerMagicStorageImport(
     part.updatedRows = beforePart.updatedRows + delta.updatedRows;
     part.rejectedRows = beforePart.rejectedRows + delta.rejectedRows;
 
-    const completed = metadata.parts.every((candidate) => candidate.status === "completed");
+    const completed = storageImportCanComplete(summary, metadata.parts);
     await persistStorageImport(client, active.id, summary, metadata, completed ? "completed" : "processing");
 
     return {
@@ -433,7 +471,7 @@ function applyRejectedRows(summary: TcgplayerCatalogImportSummary, rejected: Tcg
   }
 }
 
-async function downloadSupabaseStorageRange(
+export async function downloadSupabaseStorageRange(
   bucket: string,
   path: string,
   startByte: number,
@@ -442,16 +480,29 @@ async function downloadSupabaseStorageRange(
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error("Supabase service-role credentials are not configured.");
+  if (!Number.isSafeInteger(startByte) || startByte < 0) {
+    throw new Error(`Invalid storage range start byte: ${startByte}.`);
+  }
+  if (!Number.isSafeInteger(byteLength) || byteLength <= 0) {
+    throw new Error(`Invalid storage range length: ${byteLength}.`);
+  }
 
   const encodedPath = path.split("/").map(encodeURIComponent).join("/");
-  const response = await fetch(`${url}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`, {
+  const rangeHeader = `bytes=${startByte}-${startByte + byteLength - 1}`;
+  const requestUrl = `${url}/storage/v1/object/authenticated/${encodeURIComponent(bucket)}/${encodedPath}`;
+  const response = await fetch(requestUrl, {
     headers: {
       apikey: serviceRoleKey,
       authorization: `Bearer ${serviceRoleKey}`,
-      range: `bytes=${startByte}-${startByte + byteLength - 1}`,
+      range: rangeHeader,
     },
   });
-  if (!response.ok) throw new Error(`Could not download ${path}: HTTP ${response.status}`);
+  if (!response.ok) {
+    const body = await safeResponseText(response);
+    throw new Error(
+      `Could not download ${path}: HTTP ${response.status}. Supabase Storage: ${body || response.statusText || "No response body."}`,
+    );
+  }
   if (response.status === 200 && startByte > 0) {
     throw new Error("Supabase Storage did not honor the range request for a resumed catalog import.");
   }
@@ -527,10 +578,16 @@ function normalizeOptionalPrefix(prefix: string | null) {
   return normalizeStoragePrefix(prefix);
 }
 
-function normalizeStoragePaths(paths: string[]) {
+function normalizeStoragePaths(paths: string[], prefix: string | null = null) {
   return paths
     .map((path) => path.trim().replace(/^\/+/, ""))
     .filter(Boolean)
+    .map((path) => {
+      if (!prefix) return path;
+      if (path.startsWith(prefix)) return path;
+      if (path.includes("/")) return path;
+      return `${prefix}${path}`;
+    })
     .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
 }
 
@@ -578,6 +635,24 @@ function metadataFromImportRun(row: ImportRunRow, bucket: string, prefix: string
   }
 
   return storageMetadata(bucket, prefix, paths.map((path) => emptyPart(path)), []);
+}
+
+function storageImportCanComplete(
+  summary: TcgplayerCatalogImportSummary,
+  parts: TcgplayerCatalogStoragePart[],
+) {
+  return parts.length > 0 &&
+    parts.every((part) => part.status === "completed") &&
+    !parts.some((part) => part.status === "failed") &&
+    summary.totalRows > 0 &&
+    summary.processedRows + summary.rejectedRows > 0;
+}
+
+function isInvalidCompletedStorageRun(row: ImportRunRow, bucket: string, prefix: string | null, paths: string[]) {
+  if (row.status !== "completed") return false;
+  const metadata = metadataFromImportRun(row, bucket, prefix, paths);
+  const summary = summaryFromImportRun(row, metadata);
+  return !storageImportCanComplete(summary, metadata.parts);
 }
 
 function summaryFromImportRun(row: ImportRunRow, metadata: StorageImportMetadata): TcgplayerCatalogImportSummary {
@@ -651,4 +726,41 @@ async function findLatestStorageImportRun(
   const { data, error } = await query;
   if (error) throw new Error(error.message ?? "Could not inspect existing TCGplayer catalog import.");
   return data?.[0] ?? null;
+}
+
+async function verifyStoragePath(
+  client: SupabaseStorageCatalogClient,
+  bucket: string,
+  path: string,
+): Promise<TcgplayerStoragePartVerification> {
+  const slashIndex = path.lastIndexOf("/");
+  const prefix = slashIndex >= 0 ? path.slice(0, slashIndex + 1) : "";
+  const name = slashIndex >= 0 ? path.slice(slashIndex + 1) : path;
+  const { data, error } = await client.storage.from(bucket).list(prefix);
+  if (error) {
+    return {
+      path,
+      exists: false,
+      size: null,
+      contentType: null,
+      error: `Supabase Storage: ${error.message ?? "Could not list storage folder."}`,
+    };
+  }
+
+  const entry = (data ?? []).find((item) => item.name === name);
+  return {
+    path,
+    exists: Boolean(entry),
+    size: entry?.metadata?.size == null ? null : Number(entry.metadata.size),
+    contentType: entry?.metadata?.mimetype ?? entry?.metadata?.contentType ?? null,
+    error: entry ? undefined : "Storage object not found.",
+  };
+}
+
+async function safeResponseText(response: Response) {
+  try {
+    return (await response.text()).trim().slice(0, 1000);
+  } catch {
+    return "";
+  }
 }
