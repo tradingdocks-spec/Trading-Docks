@@ -4,6 +4,11 @@ import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   importTcgplayerMagicCatalogCsv,
+  importTcgplayerMagicCatalogFromStorage,
+  resolveTcgplayerMagicStorageParts,
+  TCGPLAYER_MAGIC_STORAGE_BUCKET,
+  TCGPLAYER_MAGIC_STORAGE_PARTS,
+  TCGPLAYER_MAGIC_STORAGE_PREFIX,
   type SupabaseCatalogClient,
 } from "@/lib/tcgplayer-catalog";
 
@@ -45,6 +50,11 @@ export async function GET() {
       uniqueProducts: Number(stats?.unique_products ?? 0),
       sets: Number(stats?.sets ?? 0),
       lastImport: stats?.last_import ?? null,
+      defaultStorageImport: {
+        bucket: TCGPLAYER_MAGIC_STORAGE_BUCKET,
+        prefix: TCGPLAYER_MAGIC_STORAGE_PREFIX,
+        paths: TCGPLAYER_MAGIC_STORAGE_PARTS,
+      },
     });
   } catch (error) {
     return NextResponse.json({
@@ -58,6 +68,52 @@ export async function POST(request: Request) {
   if (!actor) return NextResponse.json({ error: "Administrator access required." }, { status: 403 });
 
   try {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const payload = await request.json() as {
+        action?: string;
+        bucket?: string;
+        prefix?: string | null;
+        paths?: string[];
+        retryFailed?: boolean;
+      };
+      const action = payload.action ?? "storage-import";
+      if (action !== "storage-list" && action !== "storage-import") {
+        return NextResponse.json({ error: "Unsupported catalog action." }, { status: 400 });
+      }
+
+      const adminClient = createAdminClient() as unknown as Parameters<typeof importTcgplayerMagicCatalogFromStorage>[0];
+      if (action === "storage-list") {
+        const paths = await resolveTcgplayerMagicStorageParts(adminClient, {
+          bucket: payload.bucket,
+          prefix: payload.prefix,
+          paths: payload.paths,
+        });
+        return NextResponse.json({
+          ok: true,
+          action,
+          bucket: payload.bucket ?? TCGPLAYER_MAGIC_STORAGE_BUCKET,
+          prefix: payload.prefix ?? TCGPLAYER_MAGIC_STORAGE_PREFIX,
+          paths,
+        });
+      }
+
+      const result = await importTcgplayerMagicCatalogFromStorage(adminClient, {
+        actorId: actor.user.id,
+        bucket: payload.bucket,
+        prefix: payload.prefix,
+        paths: payload.paths,
+        retryFailed: payload.retryFailed,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        action,
+        result,
+        summary: result.summary,
+      });
+    }
+
     const form = await request.formData();
     const action = String(form.get("action") ?? "validate");
     const file = form.get("file");

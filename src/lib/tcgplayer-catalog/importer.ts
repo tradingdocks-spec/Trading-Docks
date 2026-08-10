@@ -70,7 +70,6 @@ export async function importTcgplayerMagicCatalogCsv(
   };
   const importedAt = options.importedAt ?? new Date().toISOString();
   const batchSize = options.batchSize ?? TCGPLAYER_CATALOG_IMPORT_BATCH_SIZE;
-  let batch: TcgplayerMagicCatalogRecord[] = [];
   let importRunId: string | null = null;
 
   if (!options.validateOnly) {
@@ -82,28 +81,11 @@ export async function importTcgplayerMagicCatalogCsv(
   }
 
   try {
-    let rowNumber = 1;
-    for await (const row of parseTcgplayerMagicCsv(source)) {
-      rowNumber += 1;
-      summary.totalRows += 1;
-      const mapped = mapTcgplayerMagicCsvRow(row, { rowNumber, importedAt });
-      if (!mapped.ok) {
-        summary.rejectedRows += 1;
-        pushError(summary, mapped);
-        continue;
-      }
-
-      summary.processedRows += 1;
-      batch.push(mapped.record);
-      if (batch.length >= batchSize) {
-        await flushBatch(client, batch, summary, Boolean(options.validateOnly));
-        batch = [];
-      }
-    }
-
-    if (batch.length > 0) {
-      await flushBatch(client, batch, summary, Boolean(options.validateOnly));
-    }
+    await processTcgplayerMagicCatalogCsv(client, source, summary, {
+      importedAt,
+      batchSize,
+      validateOnly: Boolean(options.validateOnly),
+    });
 
     if (importRunId) await finishImportRun(client, importRunId, summary, "completed");
     return summary;
@@ -116,6 +98,45 @@ export async function importTcgplayerMagicCatalogCsv(
       await finishImportRun(client, importRunId, summary, "failed");
     }
     throw error;
+  }
+}
+
+export async function processTcgplayerMagicCatalogCsv(
+  client: SupabaseCatalogClient,
+  source: string | ReadableStream<Uint8Array>,
+  summary: TcgplayerCatalogImportSummary,
+  options: {
+    validateOnly?: boolean;
+    importedAt?: string;
+    batchSize?: number;
+    rowOffset?: number;
+  } = {},
+) {
+  const importedAt = options.importedAt ?? new Date().toISOString();
+  const batchSize = options.batchSize ?? TCGPLAYER_CATALOG_IMPORT_BATCH_SIZE;
+  let batch: TcgplayerMagicCatalogRecord[] = [];
+  let rowNumber = options.rowOffset ?? 1;
+
+  for await (const row of parseTcgplayerMagicCsv(source)) {
+    rowNumber += 1;
+    summary.totalRows += 1;
+    const mapped = mapTcgplayerMagicCsvRow(row, { rowNumber, importedAt });
+    if (!mapped.ok) {
+      summary.rejectedRows += 1;
+      pushError(summary, mapped);
+      continue;
+    }
+
+    summary.processedRows += 1;
+    batch.push(mapped.record);
+    if (batch.length >= batchSize) {
+      await flushBatch(client, batch, summary, Boolean(options.validateOnly));
+      batch = [];
+    }
+  }
+
+  if (batch.length > 0) {
+    await flushBatch(client, batch, summary, Boolean(options.validateOnly));
   }
 }
 
@@ -152,7 +173,7 @@ async function existingTcgplayerIds(
   return new Set((data ?? []).map((row) => Number(row.tcgplayer_id)));
 }
 
-async function createImportRun(
+export async function createTcgplayerCatalogImportRun(
   client: SupabaseCatalogClient,
   row: Record<string, unknown>,
 ) {
@@ -165,26 +186,36 @@ async function createImportRun(
   return id;
 }
 
+const createImportRun = createTcgplayerCatalogImportRun;
+
+export async function updateTcgplayerCatalogImportRun(
+  client: SupabaseCatalogClient,
+  id: string,
+  row: Record<string, unknown>,
+) {
+  const { error } = await client
+    .from("tcgplayer_magic_catalog_imports")
+    .update(row)
+    .eq("id", id);
+  if (error) throw new Error(error.message ?? "Could not update TCGplayer catalog import run.");
+}
+
 async function finishImportRun(
   client: SupabaseCatalogClient,
   id: string,
   summary: TcgplayerCatalogImportSummary,
   status: "completed" | "failed",
 ) {
-  const { error } = await client
-    .from("tcgplayer_magic_catalog_imports")
-    .update({
-      status,
-      total_rows: summary.totalRows,
-      processed_rows: summary.processedRows,
-      inserted_rows: summary.insertedRows,
-      updated_rows: summary.updatedRows,
-      rejected_rows: summary.rejectedRows,
-      error_summary: summary.errors,
-      completed_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message ?? "Could not finish TCGplayer catalog import run.");
+  await updateTcgplayerCatalogImportRun(client, id, {
+    status,
+    total_rows: summary.totalRows,
+    processed_rows: summary.processedRows,
+    inserted_rows: summary.insertedRows,
+    updated_rows: summary.updatedRows,
+    rejected_rows: summary.rejectedRows,
+    error_summary: summary.errors,
+    completed_at: new Date().toISOString(),
+  });
 }
 
 function pushError(

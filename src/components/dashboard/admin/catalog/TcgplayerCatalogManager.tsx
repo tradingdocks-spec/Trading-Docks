@@ -17,7 +17,13 @@ type CatalogStatus = {
     filename?: string | null;
     completed_at?: string | null;
     started_at?: string | null;
+    error_summary?: unknown;
   } | null;
+  defaultStorageImport?: {
+    bucket: string;
+    prefix: string;
+    paths: string[];
+  };
 };
 
 type ImportSummary = {
@@ -31,17 +37,40 @@ type ImportSummary = {
 
 type ImportResponse = {
   ok?: boolean;
-  action?: "validate" | "import";
+  action?: "validate" | "import" | "storage-list" | "storage-import";
   summary?: ImportSummary;
+  result?: {
+    status: "processing" | "completed" | "failed";
+    skippedCompletedImport: boolean;
+    parts: Array<{
+      path: string;
+      status: "pending" | "processing" | "completed" | "failed";
+      totalRows: number;
+      processedRows: number;
+      insertedRows: number;
+      updatedRows: number;
+      rejectedRows: number;
+      error?: string;
+    }>;
+    summary: ImportSummary;
+  };
+  paths?: string[];
   error?: string;
 };
 
 export function TcgplayerCatalogManager() {
   const [status, setStatus] = useState<CatalogStatus | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [working, setWorking] = useState<"validate" | "import" | null>(null);
+  const [working, setWorking] = useState<"validate" | "import" | "storage-list" | "storage-import" | null>(null);
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [storageBucket, setStorageBucket] = useState("catalog-imports");
+  const [storagePrefix, setStoragePrefix] = useState("tcgplayer/magic/2026-08-10/");
+  const [storagePaths, setStoragePaths] = useState([
+    "tcgplayer/magic/2026-08-10/part-001.csv",
+    "tcgplayer/magic/2026-08-10/part-002.csv",
+    "tcgplayer/magic/2026-08-10/part-003.csv",
+  ]);
 
   useEffect(() => {
     void refreshStatus();
@@ -61,6 +90,11 @@ export function TcgplayerCatalogManager() {
       return;
     }
     setStatus(payload);
+    if (payload.defaultStorageImport) {
+      setStorageBucket(payload.defaultStorageImport.bucket);
+      setStoragePrefix(payload.defaultStorageImport.prefix);
+      setStoragePaths(payload.defaultStorageImport.paths);
+    }
   }
 
   async function run(action: "validate" | "import") {
@@ -87,6 +121,35 @@ export function TcgplayerCatalogManager() {
       else await refreshStatus();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "TCGplayer catalog import failed.");
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function runStorage(action: "storage-list" | "storage-import") {
+    setWorking(action);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/admin/tcgplayer-catalog", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action,
+          bucket: storageBucket,
+          prefix: storagePrefix,
+          paths: storagePaths,
+          retryFailed: true,
+        }),
+      });
+      const payload = await response.json() as ImportResponse;
+      setResult(payload);
+      if (payload.paths) setStoragePaths(payload.paths);
+      if (!response.ok) setError(payload.error ?? "TCGplayer storage catalog import failed.");
+      else await refreshStatus();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "TCGplayer storage catalog import failed.");
     } finally {
       setWorking(null);
     }
@@ -135,6 +198,70 @@ export function TcgplayerCatalogManager() {
               <div>
                 <h2 className="text-base font-semibold text-white">Upload canonical CSV</h2>
                 <p className="mt-1 text-xs text-slate-500">Validate first, then import/update the catalog by TCGplayer ID.</p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-cyan-300/[0.12] bg-cyan-300/[0.035] p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-cyan-50">Supabase Storage import</h3>
+                  <p className="mt-1 text-xs leading-5 text-cyan-100/55">
+                    Treats the three uploaded CSV parts as one logical catalog import. Files stay in Supabase Storage and are streamed server-side.
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full border border-cyan-200/15 bg-black/15 px-2.5 py-1 text-[10px] font-bold text-cyan-100">
+                  {formatNumber(799149)} expected rows
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+                <label className="block">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">Bucket</span>
+                  <input
+                    value={storageBucket}
+                    onChange={(event) => setStorageBucket(event.target.value)}
+                    className="mt-1 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">Folder prefix</span>
+                  <input
+                    value={storagePrefix}
+                    onChange={(event) => setStoragePrefix(event.target.value)}
+                    className="mt-1 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30"
+                  />
+                </label>
+              </div>
+
+              <label className="mt-3 block">
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">CSV objects, processed in order</span>
+                <textarea
+                  value={storagePaths.join("\n")}
+                  onChange={(event) => setStoragePaths(event.target.value.split(/\r?\n/).map((path) => path.trim()).filter(Boolean))}
+                  rows={4}
+                  className="mt-1 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2 text-xs leading-5 text-white outline-none focus:border-cyan-300/30"
+                />
+              </label>
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  disabled={working !== null}
+                  onClick={() => void runStorage("storage-list")}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-black/15 px-4 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {working === "storage-list" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  Verify storage parts
+                </button>
+                <button
+                  type="button"
+                  disabled={working !== null}
+                  onClick={() => void runStorage("storage-import")}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-[#001018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {working === "storage-import" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                  Import all parts
+                </button>
               </div>
             </div>
 
@@ -189,7 +316,7 @@ export function TcgplayerCatalogManager() {
           <aside className="rounded-[24px] border border-white/[0.08] bg-[#06111b] p-5">
             <h2 className="text-base font-semibold text-white">Import status</h2>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Re-uploading a full export refreshes existing rows instead of creating duplicates.
+              Full exports refresh existing rows by TCGplayer ID instead of creating duplicates. Missing rows are not deleted automatically.
             </p>
 
             <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/[0.06]">
@@ -207,6 +334,24 @@ export function TcgplayerCatalogManager() {
               <StatusLine label="Updated" value={formatNumber(result?.summary?.updatedRows ?? status?.lastImport?.updated_rows ?? 0)} />
               <StatusLine label="Rejected" value={formatNumber(result?.summary?.rejectedRows ?? status?.lastImport?.rejected_rows ?? 0)} />
             </div>
+
+            {result?.result?.parts?.length ? (
+              <div className="mt-5 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Storage parts</p>
+                {result.result.parts.map((part) => (
+                  <div key={part.path} className="rounded-xl border border-white/[0.055] bg-black/[0.1] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="truncate text-[11px] font-semibold text-slate-300">{part.path.split("/").pop()}</span>
+                      <span className="rounded-full border border-white/[0.08] px-2 py-0.5 text-[9px] font-bold uppercase text-slate-400">{part.status}</span>
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-600">
+                      {formatNumber(part.processedRows)} processed / {formatNumber(part.rejectedRows)} rejected
+                    </p>
+                    {part.error ? <p className="mt-2 text-[10px] leading-4 text-rose-200">{part.error}</p> : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
 
             {result?.summary?.errors?.length ? (
               <div className="mt-5 rounded-2xl border border-amber-300/[0.14] bg-amber-300/[0.045] p-3">

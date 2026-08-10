@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   importTcgplayerMagicCatalogCsv,
+  importTcgplayerMagicCatalogFromStorage,
   mapTcgplayerMagicCsvRow,
   normalizeCollectorNumber,
   normalizeConditionFinish,
@@ -150,6 +151,67 @@ test("catalog import is chunked idempotent and counts inserts updates and reject
   assert.equal(summary.rejectedRows, 1);
   assert.equal(client.upserts.length, 1);
   assert.equal(client.upserts[0].length, 2);
+});
+
+test("storage multipart catalog import processes parts in order as one logical import", async () => {
+  const client = new FakeStorageCatalogClient({
+    "tcgplayer/magic/2026-08-10/part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+    "tcgplayer/magic/2026-08-10/part-002.csv": csv([
+      ["200", "Magic", "Set B", "Card B", "Card B", "2", "Rare", "Near Mint", "2.23", "", "", "1.99", "1", "", "", ""],
+    ]),
+    "tcgplayer/magic/2026-08-10/part-003.csv": csv([
+      ["bad", "Magic", "Set C", "Card C", "Card C", "3", "Rare", "Near Mint", "", "", "", "", "", "", "", ""],
+    ]),
+  });
+
+  const result = await importTcgplayerMagicCatalogFromStorage(client, {
+    bucket: "catalog-imports",
+    prefix: "tcgplayer/magic/2026-08-10/",
+    batchSize: 1,
+    importedAt: "2026-08-10T00:00:00.000Z",
+  });
+
+  assert.equal(result.status, "completed");
+  assert.equal(result.skippedCompletedImport, false);
+  assert.deepEqual(client.downloadedPaths, [
+    "tcgplayer/magic/2026-08-10/part-001.csv",
+    "tcgplayer/magic/2026-08-10/part-002.csv",
+    "tcgplayer/magic/2026-08-10/part-003.csv",
+  ]);
+  assert.equal(result.summary.totalRows, 3);
+  assert.equal(result.summary.processedRows, 2);
+  assert.equal(result.summary.insertedRows, 2);
+  assert.equal(result.summary.updatedRows, 0);
+  assert.equal(result.summary.rejectedRows, 1);
+  assert.equal(result.parts.filter((part) => part.status === "completed").length, 3);
+  assert.equal(client.imports.filter((row) => row.filename === "storage://catalog-imports/tcgplayer/magic/2026-08-10/").length, 1);
+});
+
+test("completed storage catalog import is not processed twice", async () => {
+  const client = new FakeStorageCatalogClient({
+    "tcgplayer/magic/2026-08-10/part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+  });
+
+  await importTcgplayerMagicCatalogFromStorage(client, {
+    bucket: "catalog-imports",
+    paths: ["tcgplayer/magic/2026-08-10/part-001.csv"],
+    batchSize: 1,
+  });
+  client.downloadedPaths = [];
+
+  const second = await importTcgplayerMagicCatalogFromStorage(client, {
+    bucket: "catalog-imports",
+    paths: ["tcgplayer/magic/2026-08-10/part-001.csv"],
+    batchSize: 1,
+  });
+
+  assert.equal(second.skippedCompletedImport, true);
+  assert.deepEqual(client.downloadedPaths, []);
+  assert.equal(client.upserts.length, 1);
 });
 
 test("catalog resolver returns exact TCGplayer IDs and refuses ambiguous or missing matches", async () => {
@@ -319,6 +381,86 @@ class FakeCatalogClient {
       },
     };
   }
+}
+
+class FakeStorageCatalogClient extends FakeCatalogClient {
+  files: Record<string, string>;
+  downloadedPaths: string[] = [];
+
+  constructor(files: Record<string, string>) {
+    super([]);
+    this.files = files;
+  }
+
+  override from(table: string) {
+    if (table !== "tcgplayer_magic_catalog_imports") return super.from(table);
+
+    const imports = this.imports;
+    return {
+      select() {
+        const query = {
+          filters: new Map<string, string>(),
+          eq(column: string, value: string) {
+            query.filters.set(column, value);
+            return query;
+          },
+          order() {
+            return query;
+          },
+          limit(count: number) {
+            const data = imports
+              .filter((row) => [...query.filters].every(([column, value]) => row[column] === value))
+              .slice(-count)
+              .reverse();
+            return Promise.resolve({ data, error: null });
+          },
+        };
+        return query;
+      },
+      insert(row: Record<string, unknown>) {
+        imports.push({
+          total_rows: 0,
+          processed_rows: 0,
+          inserted_rows: 0,
+          updated_rows: 0,
+          rejected_rows: 0,
+          error_summary: [],
+          ...row,
+        });
+        return Promise.resolve({ data: null, error: null });
+      },
+      update(row: Record<string, unknown>) {
+        return {
+          eq(column: string, value: string) {
+            assert.equal(column, "id");
+            const index = imports.findIndex((existing) => existing.id === value);
+            assert.notEqual(index, -1);
+            imports[index] = { ...imports[index], ...row };
+            return Promise.resolve({ data: null, error: null });
+          },
+        };
+      },
+    };
+  }
+
+  storage = {
+    from: (_bucket: string) => ({
+      list: (prefix: string) => {
+        const data = Object.keys(this.files)
+          .filter((path) => path.startsWith(prefix))
+          .map((path) => ({ name: path.slice(prefix.length) }));
+        return Promise.resolve({ data, error: null });
+      },
+      download: (path: string) => {
+        this.downloadedPaths.push(path);
+        const file = this.files[path];
+        return Promise.resolve({
+          data: file ? new Blob([file], { type: "text/csv" }) : null,
+          error: file ? null : { message: "missing" },
+        });
+      },
+    }),
+  };
 }
 
 class FakeResolverClient {
