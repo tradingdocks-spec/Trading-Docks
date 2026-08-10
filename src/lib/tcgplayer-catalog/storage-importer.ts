@@ -14,7 +14,7 @@ import {
 } from "./importer.ts";
 
 export const TCGPLAYER_MAGIC_STORAGE_BUCKET = "catalog-imports";
-export const TCGPLAYER_MAGIC_STORAGE_PREFIX = "tcgplayer/magic/2026-08-10/";
+export const TCGPLAYER_MAGIC_STORAGE_PREFIX = "";
 export const TCGPLAYER_MAGIC_STORAGE_PARTS = [
   "part-001.csv",
   "part-002.csv",

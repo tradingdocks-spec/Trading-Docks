@@ -88,7 +88,7 @@ export function TcgplayerCatalogManager() {
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [storageBucket, setStorageBucket] = useState("catalog-imports");
-  const [storagePrefix, setStoragePrefix] = useState("tcgplayer/magic/2026-08-10/");
+  const [storagePrefix, setStoragePrefix] = useState("");
   const [storagePaths, setStoragePaths] = useState([
     "part-001.csv",
     "part-002.csv",

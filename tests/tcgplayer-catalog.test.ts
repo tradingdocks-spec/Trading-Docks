@@ -222,6 +222,56 @@ test("storage prefix plus filenames resolves object paths exactly once", async (
   assert.deepEqual(fullPaths, ["tcgplayer/magic/2026-08-10/part-001.csv"]);
 });
 
+test("blank storage prefix resolves root-level catalog objects", async () => {
+  const client = new FakeStorageCatalogClient({
+    "part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+    "part-002.csv": csv([
+      ["200", "Magic", "Set B", "Card B", "Card B", "2", "Rare", "Near Mint", "2.23", "", "", "1.99", "1", "", "", ""],
+    ]),
+  });
+
+  const paths = await resolveTcgplayerMagicStorageParts(client, {
+    bucket: "catalog-imports",
+    prefix: "",
+    paths: ["part-001.csv", "part-002.csv"],
+  });
+  assert.deepEqual(paths, ["part-001.csv", "part-002.csv"]);
+
+  const verified = await verifyTcgplayerMagicStorageParts(client, {
+    bucket: "catalog-imports",
+    prefix: "",
+    paths,
+  });
+  assert.deepEqual(verified.map((part) => part.path), ["part-001.csv", "part-002.csv"]);
+  assert.equal(verified.every((part) => part.exists), true);
+});
+
+test("default storage multipart import uses root-level catalog part names", async () => {
+  const client = new FakeStorageCatalogClient({
+    "part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+    "part-002.csv": csv([
+      ["200", "Magic", "Set B", "Card B", "Card B", "2", "Rare", "Near Mint", "2.23", "", "", "1.99", "1", "", "", ""],
+    ]),
+    "part-003.csv": csv([
+      ["300", "Magic", "Set C", "Card C", "Card C", "3", "Rare", "Near Mint", "3.23", "", "", "2.99", "1", "", "", ""],
+    ]),
+  });
+
+  const result = await runStorageImportToCompletion(client, {
+    bucket: "catalog-imports",
+    batchSize: 1,
+    byteLimit: 1024,
+  });
+
+  assert.deepEqual(client.downloadedPaths, ["part-001.csv", "part-002.csv", "part-003.csv"]);
+  assert.equal(result.status, "completed");
+  assert.equal(result.logicalImportKey, "storage://catalog-imports/part-001.csv|part-002.csv|part-003.csv");
+});
+
 test("storage verification reports existence size and content type before import", async () => {
   const client = new FakeStorageCatalogClient({
     "tcgplayer/magic/2026-08-10/part-001.csv": csv([
@@ -540,6 +590,7 @@ test("admin catalog UI requires storage verification before importing all parts"
   assert.match(source, /storageVerified/);
   assert.match(source, /disabled=\{working !== null \|\| !storageVerified\}/);
   assert.match(source, /Verified storage objects/);
+  assert.match(source, /useState\(""\)/);
   assert.doesNotMatch(source, /Processing" value=\{working \? "Active" : result \? "Complete" : "Idle"\}/);
 });
 
