@@ -34,8 +34,10 @@ begin
       ('function public.is_admin(public.admin_role)'),
       ('function public.is_platform_owner()'),
       ('function public.collector_effective_membership_tier(uuid)'),
+      ('function public.collector_inventory_acting_user()'),
       ('function public.enforce_collector_inventory_mutation()'),
       ('function public.collector_mutate_inventory_item(jsonb)'),
+      ('function public.collector_service_mutate_inventory_item(uuid,jsonb)'),
       ('function public.generate_trading_docks_sku()'),
       ('function public.generate_inventory_qr_token()'),
       ('function public.resolve_public_inventory_qr(text)')
@@ -99,6 +101,30 @@ begin
       and not tgisinternal
   ) then
     raise exception 'Collector inventory update enforcement trigger is missing.';
+  end if;
+
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name in ('marketplace_credentials', 'platform_marketplace_integrations')
+      and column_name = 'encryption_key_version'
+    group by column_name
+    having count(*) = 2
+  ) then
+    raise exception 'Marketplace credential key-version metadata is missing.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    join pg_roles r on has_function_privilege(r.oid, p.oid, 'EXECUTE')
+    where n.nspname = 'public'
+      and p.proname = 'collector_service_mutate_inventory_item'
+      and r.rolname = 'service_role'
+  ) then
+    raise exception 'Service-role Collector mutation RPC grant is missing.';
   end if;
 
   if not exists (

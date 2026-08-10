@@ -1,6 +1,6 @@
-import { createCipheriv, createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 
+import { encryptMarketplaceCredentials } from "@/lib/marketplaces/credentials";
 import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
@@ -16,17 +16,9 @@ const ALLOWED_MARKETPLACES = new Set([
   "woocommerce",
 ]);
 
-function encryptionKey() {
-  const secret = process.env.MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY;
-  if (!secret || secret.length < 32) {
-    throw new Error("Marketplace credential encryption is not configured.");
-  }
-  return createHash("sha256").update(secret).digest();
-}
-
 function maskedLabel(value: string) {
-  if (value.length <= 4) return "••••";
-  return `••••${value.slice(-4)}`;
+  if (value.length <= 4) return "****";
+  return `****${value.slice(-4)}`;
 }
 
 export async function POST(request: Request) {
@@ -66,12 +58,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
-    const encrypted = Buffer.concat([
-      cipher.update(JSON.stringify(credentials), "utf8"),
-      cipher.final(),
-    ]);
+    const encrypted = encryptMarketplaceCredentials(credentials);
     const labels = Object.fromEntries(
       Object.entries(credentials).map(([key, value]) => [key, maskedLabel(value)]),
     );
@@ -79,9 +66,7 @@ export async function POST(request: Request) {
       {
         user_id: user.id,
         marketplace_id: body.marketplaceId,
-        encrypted_payload: encrypted.toString("base64"),
-        iv: iv.toString("base64"),
-        auth_tag: cipher.getAuthTag().toString("base64"),
+        ...encrypted,
         credential_labels: labels,
         updated_at: new Date().toISOString(),
       },

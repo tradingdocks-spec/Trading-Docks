@@ -52,8 +52,8 @@ This release establishes a repeatable security and stability baseline. It does n
 | Web app shell and dashboard routes | Partially Verified | Route registry tests pass and `/dashboard/label-studio` builds. Server access avoids ambiguous workspace assignment; remaining workspace-specific routes still need browser QA. |
 | Authentication | Partially Verified | Mobile auth contract tests pass and Supabase errors are visible. Staging Supabase email/redirect configuration must be verified manually. |
 | Membership and billing | Partially Verified | Canonical catalog tests pass and RevenueCat/Stripe contracts are covered. Provider webhook staging/live delivery still needs environment QA. |
-| Supabase data model and RLS | Partially Verified | Migration filenames and include dependencies are fixed, platform role authority is in the root chain, and a fresh-bootstrap verification script exists. A real clean Supabase replay still must be run in staging. |
-| Collector mutations | Needs Review | Application tests pass and mobile/web quantity totals no longer cap at the first page. DB-level Free-limit enforcement remains migration-proposal work until approved and applied. |
+| Supabase data model and RLS | PARTIALLY VERIFIED | Migration filenames and include dependencies are fixed, platform role authority is in the root chain, and fresh-bootstrap verification now checks credential metadata and service Collector RPC grants. A real clean Supabase replay still must be run in staging. |
+| Collector mutations | PARTIALLY VERIFIED | Application tests pass, mobile/web quantity totals no longer cap at the first page, and `202608100002_security_authority.sql` promotes DB-level Free-limit enforcement to an authoritative forward migration. It is not production-authoritative until applied and verified in Supabase. |
 | Label Studio | Partially Verified | Route/API/public QR build and contract tests pass. New staging project must be bootstrapped and browser-tested. |
 | Mobile app | Partially Verified | TypeScript, lint, tests, and Expo Web export pass. Physical-device scanner/auth/RevenueCat QA remains required. |
 | Scanner native stack | Partially Verified | Automated mobile tests pass. Native device validation remains required for camera/OCR behavior. |
@@ -62,14 +62,22 @@ This release establishes a repeatable security and stability baseline. It does n
 ## Known high-risk backlog
 
 - Run and record a real clean Supabase staging replay with the root migration chain and verification scripts.
-- Apply or replace the Collector mutation security proposal so Free card limits are transactional at the database layer.
 - Move active Card Shows purchase-order draft state out of browser-only storage if it is intended to be account-durable.
-- Verify public binder-share creation checks ownership against inventory/binder records before launch.
-- Add marketplace credential key-version metadata before attempting operational key rotation.
 - Add browser E2E coverage for public signup, sign-in, dashboard routing, Label Studio, billing, and account isolation.
 - Add production monitoring and alerting with secret/PII scrubbing.
 
 ## Database / Supabase Readiness
+
+### Slice 3 Status Fields
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| SUPABASE CLEAN REPLAY | BLOCKED | Supabase CLI and `psql` are not installed locally, so clean replay was not actually demonstrated. Repository static checks pass and `verify_fresh_bootstrap_contract.sql` is updated for staging verification. |
+| DB-LEVEL MEMBERSHIP ENFORCEMENT | PARTIALLY VERIFIED | `202608100002_security_authority.sql` makes Collector Free-plan quantity enforcement authoritative in the migration chain through trigger/RPC/advisory-lock guards. It still requires staging application and SQL verification before production. |
+| RLS | PARTIALLY VERIFIED | Static tests and verification SQL cover representative user/workspace-owned tables. Real cross-user SELECT/INSERT/UPDATE/DELETE attempts still require a disposable Supabase replay. |
+| BINDER SHARE SECURITY | PARTIALLY VERIFIED | Legacy binder-share creation now derives snapshots from authenticated owned `inventory_items`; revocation is scoped by `owner_id`; public rendering rejects invalid, inactive, revoked, and expired shares. Runtime isolation still needs staging/browser tests. |
+| WORKSPACE OWNERSHIP | PARTIALLY VERIFIED | Marketplace routes use canonical capability guards and server workspace resolution avoids ambiguous fallback. A full mutating endpoint audit is not yet complete. |
+| CREDENTIAL ROTATION READINESS | PARTIALLY VERIFIED | Marketplace credential rows now include algorithm and key-version metadata with backwards-compatible decrypt. Actual key rotation remains a manual production procedure and was not performed. |
 
 ### Verified
 
@@ -77,7 +85,8 @@ This release establishes a repeatable security and stability baseline. It does n
 - Root migrations are self-contained; no migration file uses psql `\i` or `\ir` includes.
 - The canonical platform role authority is now present in `supabase/migrations` rather than only under `mobile/supabase/migrations`.
 - Storage configuration for `feedback-attachments` is represented in migrations as a private bucket with MIME and file-size restrictions.
-- Collector mutation enforcement is represented database-side through triggers and an RPC with stable error codes, advisory locking, and Free-plan quantity checks.
+- Collector mutation enforcement is represented database-side through triggers and RPCs with stable error codes, advisory locking, and Free-plan quantity checks.
+- Marketplace credential encryption metadata is represented in the root migration chain for both user-owned and platform marketplace credentials.
 - Static tests cover migration version uniqueness, include-free migrations, platform role replayability, Collector DB enforcement SQL, and the fresh-bootstrap verification contract.
 
 ### Fixed
@@ -86,12 +95,13 @@ This release establishes a repeatable security and stability baseline. It does n
 - Renamed the duplicate `202608020001_universal_cloud_persistence.sql` migration to `202608020003_universal_cloud_persistence.sql`.
 - Inlined the order fulfillment and universal cloud persistence SQL that previously depended on root manual SQL snippets.
 - Added `202608100001_platform_role_authority_replayability.sql` to make `user_roles` and admin RPCs reproducible from the root chain.
+- Added `202608100002_security_authority.sql` to promote Collector inventory enforcement to an authoritative forward migration and add marketplace credential key-version metadata.
 - Added `supabase/verification/verify_fresh_bootstrap_contract.sql` for post-replay staging verification.
 
 ### Still Blocked
 
 - Supabase CLI is not installed in this local environment, so a real clean `supabase db reset` replay was not possible here.
-- The Collector mutation security migration is still labeled proposal-only and must be validated in a disposable Supabase project before production rollout.
+- The Collector mutation authority migration must be validated in a disposable Supabase project before production rollout.
 - Historical production may already have manually applied SQL with older filenames; production migration-history reconciliation is required before using CLI-linked production migrations.
 - Some important integrity constraints, such as validating existing `inventory_items.location_id` values against `inventory_locations`, require data backfill/audit before safe production enforcement.
 
@@ -109,6 +119,7 @@ This release establishes a repeatable security and stability baseline. It does n
 - Web/Preview: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 - Mobile/Expo: `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
 - Billing/webhooks as applicable: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `REVENUECAT_WEBHOOK_AUTHORIZATION`.
+- Marketplace credentials: `MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY`; optional `MARKETPLACE_CREDENTIAL_KEY_VERSION` for future key-rotation bookkeeping.
 
 ### Required Supabase Configuration
 

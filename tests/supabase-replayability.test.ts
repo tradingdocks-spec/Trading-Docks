@@ -59,6 +59,10 @@ test("Collector mutation enforcement is represented as database-side trigger and
     path.join(migrationsDir, "202608050001_collector_mutation_security_proposal.sql"),
     "utf8",
   );
+  const authority = readFileSync(
+    path.join(migrationsDir, "202608100002_security_authority.sql"),
+    "utf8",
+  );
   const verification = readFileSync(
     path.join(repoRoot, "supabase/verification/verify_collector_mutation_security.sql"),
     "utf8",
@@ -71,6 +75,10 @@ test("Collector mutation enforcement is represented as database-side trigger and
   assert.match(migration, /create or replace function public\.collector_mutate_inventory_item\(operation jsonb\)/);
   assert.match(migration, /TD_COLLECTOR_FREE_LIMIT_EXCEEDED/);
   assert.match(migration, /TD_COLLECTOR_UNAUTHORIZED/);
+  assert.match(authority, /Authoritatively enforces owned inventory mutations/);
+  assert.match(authority, /collector_inventory_acting_user/);
+  assert.match(authority, /collector_service_mutate_inventory_item/);
+  assert.match(authority, /grant execute on function public\.collector_service_mutate_inventory_item\(uuid, jsonb\) to service_role/);
   assert.match(verification, /Free user below and reaching limit/);
   assert.match(verification, /Quantity decrease then crossing-limit increase/);
   assert.match(verification, /Simultaneous inserts are protected by per-user advisory locks/);
@@ -90,6 +98,8 @@ test("fresh bootstrap verification covers core app tables RLS storage and enforc
     "public.marketplace_orders",
     "public.workspace_documents",
     "public.collector_mutate_inventory_item(jsonb)",
+    "public.collector_service_mutate_inventory_item(uuid,jsonb)",
+    "encryption_key_version",
     "feedback-attachments",
     "relrowsecurity",
     "enforce_collector_inventory_mutation_insert",
