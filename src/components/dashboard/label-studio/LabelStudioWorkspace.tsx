@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import {
   Archive,
@@ -24,6 +24,13 @@ import {
   type LabelCategory,
 } from "@/lib/label-studio/label-templates";
 import type { LabelStudioItem, LabelStudioPriceReviewRow } from "@/lib/label-studio/persistence";
+import {
+  clearInventorySelection,
+  selectAllInventoryItems,
+  summarizeInventorySelection,
+  toggleInventorySelection,
+  uniqueSelection,
+} from "@/lib/label-studio/selection";
 
 type LabelStudioPayload = {
   workspaceId: string;
@@ -55,6 +62,7 @@ export function LabelStudioWorkspace() {
   const [saving, setSaving] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [status, setStatus] = useState<Status>({ tone: "idle", message: "Loading staging Label Studio." });
+  const initializedSelectionKey = useRef<string | null>(null);
 
   const searchParams = typeof window !== "undefined" ? window.location.search : "";
 
@@ -68,16 +76,30 @@ export function LabelStudioWorkspace() {
     if (!nextTemplate) return;
     setSelectedTemplateId(nextTemplate.id);
     setDraft(structuredClone(nextTemplate));
-    setSelectedIds((current) => current.length ? current : payload.items.map((item) => item.id));
   }, [payload, selectedTemplateId]);
 
+  useEffect(() => {
+    if (!payload) return;
+    const selectionKey = `${payload.workspaceId}:${payload.source}:${payload.mode}:${payload.items.map((item) => item.id).join(",")}`;
+    if (initializedSelectionKey.current === selectionKey) return;
+    initializedSelectionKey.current = selectionKey;
+    setSelectedIds(selectAllInventoryItems(payload.items));
+  }, [payload]);
+
   const selectedItems = useMemo(
-    () => (payload?.items ?? []).filter((item) => selectedIds.includes(item.id)),
+    () => {
+      const selected = new Set(selectedIds);
+      return (payload?.items ?? []).filter((item) => selected.has(item.id));
+    },
     [payload?.items, selectedIds],
   );
   const renderItems = useMemo(
-    () => selectedItems.length ? selectedItems : payload?.items ?? [],
-    [payload?.items, selectedItems],
+    () => selectedItems,
+    [selectedItems],
+  );
+  const selectionSummary = useMemo(
+    () => summarizeInventorySelection(payload?.items ?? [], selectedIds),
+    [payload?.items, selectedIds],
   );
   const labels = useMemo(
     () => draft ? renderItems.map((item) => renderLabel(draft, item)) : [],
@@ -151,6 +173,10 @@ export function LabelStudioWorkspace() {
 
   async function printLabels() {
     if (!draft || !payload?.capabilities.canPrint) return;
+    if (!renderItems.length) {
+      setStatus({ tone: "error", message: "Select inventory before printing labels." });
+      return;
+    }
     if (renderItems.some((item) => !item.identity)) {
       await resolveIdentities();
       setTimeout(() => void printLabels(), 250);
@@ -163,7 +189,7 @@ export function LabelStudioWorkspace() {
       templateName: draft.name,
       source: payload.source,
       mode: payload.mode,
-      selectedIds,
+      selectedIds: uniqueSelection(selectedIds),
       labelCount: labels.length,
       pageCount: pages.length,
     });
@@ -198,9 +224,9 @@ export function LabelStudioWorkspace() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 text-slate-100">
       <style>{printCss(draft)}</style>
-      <header className="rounded-[2rem] border border-cyan-400/20 bg-slate-950 px-6 py-6 text-white shadow-2xl shadow-cyan-950/20">
+      <header className="rounded-[2rem] border border-cyan-300/[0.13] bg-[#06121b] px-6 py-6 text-white shadow-[0_24px_80px_rgba(0,0,0,.28)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">Operations</p>
@@ -210,7 +236,7 @@ export function LabelStudioWorkspace() {
               bulk printing, repricing review, and future POS reprints.
             </p>
           </div>
-          <div className="rounded-2xl border border-amber-300/25 bg-amber-300/[0.08] px-4 py-3 text-xs text-amber-100">
+          <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.07] px-4 py-3 text-xs text-amber-100">
             Staging safety: {payload?.environment.supabaseHost ?? "host unavailable"}
           </div>
         </div>
@@ -218,17 +244,17 @@ export function LabelStudioWorkspace() {
 
       <StatusBanner status={status} loading={loading} />
 
-      <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr_0.92fr]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(260px,0.82fr)_minmax(360px,1.18fr)_minmax(300px,0.92fr)]">
         <aside className="space-y-4">
           <Panel title="Templates" icon={Tags}>
             <div className="space-y-2">
               {(payload?.templates ?? []).map((template) => (
                 <button
-                  className={`w-full rounded-2xl border p-4 text-left transition ${selectedTemplateId === template.id ? "border-cyan-300 bg-cyan-50" : "border-slate-200 bg-white hover:border-cyan-200"}`}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${selectedTemplateId === template.id ? "border-cyan-300/45 bg-cyan-300/[0.10] text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,.06)]" : "border-white/[0.08] bg-white/[0.025] text-slate-200 hover:border-cyan-300/25 hover:bg-white/[0.04]"}`}
                   key={template.id}
                   onClick={() => setSelectedTemplateId(template.id)}
                 >
-                  <p className="font-semibold text-slate-950">{template.name}</p>
+                  <p className="font-semibold">{template.name}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {template.category.replace(/_/g, " ")} / {template.width} x {template.height} {template.unit}
                   </p>
@@ -236,7 +262,7 @@ export function LabelStudioWorkspace() {
               ))}
             </div>
             <button
-              className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-700"
+              className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.055] px-3 text-xs font-semibold text-cyan-100 transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.09]"
               onClick={() => {
                 const workspaceId = payload?.workspaceId ?? "workspace";
                 const template = createDefaultLabelTemplate({
@@ -258,16 +284,16 @@ export function LabelStudioWorkspace() {
             {draft ? (
               <div className="space-y-3">
                 <Field label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
-                <label className="block text-xs font-semibold text-slate-600">
+                <label className="block text-xs font-semibold text-slate-400">
                   Category
-                  <select className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as LabelCategory })}>
+                  <select className="mt-1 h-10 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-sm text-white outline-none transition focus:border-cyan-300/40 disabled:opacity-45" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as LabelCategory })}>
                     {LABEL_CATEGORIES.map((category) => <option key={category} value={category}>{category.replace(/_/g, " ")}</option>)}
                   </select>
                 </label>
-                <label className="block text-xs font-semibold text-slate-600">
+                <label className="block text-xs font-semibold text-slate-400">
                   Size
                   <select
-                    className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm"
+                    className="mt-1 h-10 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-sm text-white outline-none transition focus:border-cyan-300/40 disabled:opacity-45"
                     value={draft.sizePresetId}
                     onChange={(event) => {
                       const preset = labelSizePreset(event.target.value as LabelTemplate["sizePresetId"]);
@@ -297,10 +323,10 @@ export function LabelStudioWorkspace() {
                     onChange={(minimumPrice) => setDraft({ ...draft, pricingRule: { ...(draft.pricingRule ?? { mode: "market_percentage" }), minimumPrice } })}
                   />
                 </div>
-                <button disabled={!payload?.capabilities.canManageTemplates || saving} onClick={saveTemplate} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 text-xs font-bold text-white disabled:opacity-40">
+                <button disabled={!payload?.capabilities.canManageTemplates || saving} onClick={saveTemplate} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 shadow-[0_10px_28px_rgba(34,211,238,.16)] transition hover:bg-cyan-200 disabled:opacity-40">
                   <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save template"}
                 </button>
-                <button disabled={!payload?.capabilities.canManageTemplates || draft.id.startsWith("local-")} onClick={archiveTemplate} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-rose-200 text-xs font-semibold text-rose-700 disabled:opacity-40">
+                <button disabled={!payload?.capabilities.canManageTemplates || draft.id.startsWith("local-")} onClick={archiveTemplate} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-rose-300/20 bg-rose-400/[0.035] text-xs font-semibold text-rose-200 transition hover:bg-rose-400/[0.07] disabled:opacity-40">
                   <Archive className="h-4 w-4" /> Archive template
                 </button>
               </div>
@@ -310,7 +336,7 @@ export function LabelStudioWorkspace() {
 
         <main className="space-y-4">
           <Panel title="Live physical preview" icon={QrCode}>
-            <div className="rounded-[1.75rem] bg-slate-100 p-4">
+            <div className="rounded-[1.75rem] border border-white/[0.07] bg-[#030b12] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
               {draft && renderItems[0] ? <PhysicalLabelPreview template={draft} item={renderItems[0]} /> : <Empty message="Select inventory to preview a real label." />}
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -324,7 +350,12 @@ export function LabelStudioWorkspace() {
             {pages.map((page) => (
               <div className="label-print-page" key={page.pageNumber}>
                 {page.labels.map((label, index) => (
-                  <PrintedLabel key={`${page.pageNumber}-${index}`} label={label} item={renderItems[index]} template={draft} />
+                  <PrintedLabel
+                    key={`${page.pageNumber}-${index}`}
+                    label={label}
+                    item={renderItems[(page.pageNumber - 1) * labelsPerPage(draft) + index]}
+                    template={draft}
+                  />
                 ))}
               </div>
             ))}
@@ -334,14 +365,14 @@ export function LabelStudioWorkspace() {
             {payload?.priceReviews.length ? (
               <div className="space-y-2">
                 {payload.priceReviews.map((review) => (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4" key={review.id}>
-                    <p className="text-xs font-semibold text-slate-950">Inventory item {review.inventory_item_id}</p>
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4" key={review.id}>
+                    <p className="text-xs font-semibold text-slate-100">Inventory item {review.inventory_item_id}</p>
                     <p className="mt-1 text-xs text-slate-500">
                       Current {money(review.current_asking_price)} / Market {money(review.market_price)} / Proposed {money(review.proposed_asking_price)}
                     </p>
                     <div className="mt-3 flex gap-2">
                       <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "approve")} className="h-9 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white disabled:opacity-40">Approve/update</button>
-                      <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "dismiss")} className="h-9 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600 disabled:opacity-40">Dismiss</button>
+                      <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "dismiss")} className="h-9 rounded-xl border border-white/[0.09] px-3 text-xs font-semibold text-slate-300 disabled:opacity-40">Dismiss</button>
                     </div>
                   </div>
                 ))}
@@ -352,30 +383,62 @@ export function LabelStudioWorkspace() {
 
         <aside className="space-y-4">
           <Panel title="Selected inventory" icon={Layers3}>
-            <div className="max-h-[520px] space-y-2 overflow-auto pr-1">
+            <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#030b12]">
+              <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-[#07131d]/95 p-3 backdrop-blur">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-200">{selectionSummary.selectedCount} selected</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">{selectionSummary.totalCount} visible inventory records</p>
+                  </div>
+                  <span className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${selectionSummary.allSelected ? "border-cyan-300/25 bg-cyan-300/[0.08] text-cyan-100" : selectionSummary.partiallySelected ? "border-amber-300/20 bg-amber-300/[0.07] text-amber-100" : "border-white/[0.08] bg-white/[0.025] text-slate-400"}`}>
+                    {selectionSummary.allSelected ? "All" : selectionSummary.partiallySelected ? "Partial" : "None"}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={!payload?.items.length || selectionSummary.allSelected}
+                    onClick={() => setSelectedIds(selectAllInventoryItems(payload?.items ?? []))}
+                    className="h-9 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.055] px-3 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/[0.09] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectionSummary.selectedCount}
+                    onClick={() => setSelectedIds(clearInventorySelection())}
+                    className="h-9 rounded-xl border border-white/[0.09] bg-white/[0.025] px-3 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              </div>
+              <div className="max-h-[480px] space-y-2 overflow-auto p-2">
               {(payload?.items ?? []).map((item) => (
-                <label className="flex cursor-pointer gap-3 rounded-2xl border border-slate-200 bg-white p-3" key={item.id}>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${selectedIds.includes(item.id) ? "border-cyan-300/30 bg-cyan-300/[0.075]" : "border-white/[0.07] bg-white/[0.025] hover:border-cyan-300/20 hover:bg-white/[0.04]"}`} key={item.id}>
                   <input
+                    className="mt-1 h-4 w-4 accent-cyan-300"
                     type="checkbox"
                     checked={selectedIds.includes(item.id)}
-                    onChange={(event) => setSelectedIds((current) => event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id))}
+                    onChange={(event) => setSelectedIds((current) => toggleInventorySelection(current, item.id, event.target.checked))}
                   />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-950">{item.sealed?.product_name || item.card?.name || "Inventory item"}</span>
+                    <span className="block truncate text-sm font-semibold text-slate-100">{item.sealed?.product_name || item.card?.name || "Inventory item"}</span>
                     <span className="mt-1 block text-xs text-slate-500">{item.inventory?.sku || "No SKU yet"} / {item.identity ? "QR ready" : "Needs identity"}</span>
                   </span>
                 </label>
               ))}
+              </div>
             </div>
             {!payload?.items.length ? <Empty message="No workspace inventory found for this Label Studio context." /> : null}
           </Panel>
 
           <Panel title="Print controls" icon={Printer}>
             <div className="space-y-3 text-sm">
-              <button disabled={!payload?.capabilities.canPrint || !renderItems.length} onClick={resolveIdentities} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 text-xs font-bold text-cyan-800 disabled:opacity-40">
+              <button disabled={!payload?.capabilities.canPrint || !renderItems.length} onClick={resolveIdentities} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.07] text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/[0.11] disabled:opacity-40">
                 <QrCode className="h-4 w-4" /> Resolve real SKU + QR
               </button>
-              <button disabled={!payload?.capabilities.canPrint || printing || !labels.length} onClick={printLabels} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 text-xs font-bold text-slate-950 disabled:opacity-40">
+              <button disabled={!payload?.capabilities.canPrint || printing || !labels.length} onClick={printLabels} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 shadow-[0_14px_34px_rgba(34,211,238,.18)] transition hover:bg-cyan-200 disabled:opacity-40">
                 <Printer className="h-4 w-4" /> {printing ? "Recording..." : "Print labels"}
               </button>
               <p className="text-xs leading-5 text-slate-500">
@@ -394,9 +457,9 @@ function PhysicalLabelPreview({ template, item }: { template: LabelTemplate; ite
   return (
     <div className="mx-auto max-w-full overflow-auto">
       <div
-        className="relative mx-auto bg-white shadow-xl"
+        className="relative mx-auto bg-white text-slate-950 shadow-[0_18px_50px_rgba(0,0,0,.45)]"
         style={{
-          width: `${Math.min(template.width * 180, 620)}px`,
+          width: `min(${Math.min(template.width * 180, 620)}px, 100%)`,
           aspectRatio: `${template.width} / ${template.height}`,
         }}
       >
@@ -466,10 +529,10 @@ function PrintedLabel({ label, item, template }: { label: ReturnType<typeof rend
 
 function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Tags; children: React.ReactNode }) {
   return (
-    <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-[1.5rem] border border-white/[0.075] bg-[#07131d] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.035),0_18px_55px_rgba(0,0,0,.22)]">
       <div className="mb-4 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-cyan-600" />
-        <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-700">{title}</h2>
+        <Icon className="h-4 w-4 text-cyan-200" />
+        <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-300">{title}</h2>
       </div>
       {children}
     </section>
@@ -478,7 +541,7 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Ta
 
 function StatusBanner({ status, loading }: { status: Status; loading: boolean }) {
   return (
-    <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${status.tone === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-cyan-200 bg-cyan-50 text-cyan-900"}`}>
+    <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${status.tone === "error" ? "border-rose-300/25 bg-rose-400/[0.07] text-rose-100" : "border-cyan-300/20 bg-cyan-300/[0.07] text-cyan-100"}`}>
       {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
       {status.message}
     </div>
@@ -487,42 +550,42 @@ function StatusBanner({ status, loading }: { status: Status; loading: boolean })
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
-    <label className="block text-xs font-semibold text-slate-600">
+    <label className="block text-xs font-semibold text-slate-400">
       {label}
-      <input className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" value={value} onChange={(event) => onChange(event.target.value)} />
+      <input className="mt-1 h-10 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/40 disabled:opacity-45" value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
-    <label className="block text-xs font-semibold text-slate-600">
+    <label className="block text-xs font-semibold text-slate-400">
       {label}
-      <input className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" type="number" min="0" step="0.01" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <input className="mt-1 h-10 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-sm text-white outline-none transition focus:border-cyan-300/40 disabled:opacity-45" type="number" min="0" step="0.01" value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
-    <label className="flex h-10 items-center justify-between rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600">
+    <label className="flex h-10 items-center justify-between rounded-xl border border-white/[0.09] bg-white/[0.025] px-3 text-xs font-semibold text-slate-300">
       {label}
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <input className="h-4 w-4 accent-cyan-300" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-white/[0.075] bg-white/[0.025] p-4">
       <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
     </div>
   );
 }
 
 function Empty({ message }: { message: string }) {
-  return <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">{message}</p>;
+  return <p className="rounded-2xl border border-dashed border-white/[0.10] bg-white/[0.025] p-4 text-sm text-slate-500">{message}</p>;
 }
 
 function labelsPerPage(template: LabelTemplate | null) {
