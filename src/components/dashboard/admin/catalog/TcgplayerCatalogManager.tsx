@@ -80,6 +80,9 @@ type ImportResponse = {
   allVerified?: boolean;
   error?: string;
   message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
   stage?: string;
   part?: string;
   byteOffset?: number;
@@ -584,8 +587,11 @@ function importErrorMessage(payload: ImportResponse, fallback: string) {
   const message = payload.message || payload.error || fallback;
   const context = [
     payload.stage ? `Stage: ${payload.stage}` : "",
+    payload.code ? `Code: ${payload.code}` : "",
     payload.part ? `Part: ${payload.part}` : "",
     payload.byteOffset != null ? `Byte offset: ${payload.byteOffset}` : "",
+    payload.details ? `Details: ${payload.details}` : "",
+    payload.hint ? `Hint: ${payload.hint}` : "",
   ].filter(Boolean).join(" · ");
   return context ? `${message} (${context})` : message;
 }

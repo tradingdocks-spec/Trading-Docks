@@ -14,6 +14,7 @@ import {
   resolveTcgplayerMagicStorageParts,
   resolveTcgplayerVariant,
   startTcgplayerMagicStorageImport,
+  TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS,
   TcgplayerCatalogImportStageError,
   validateTcgplayerMagicHeaders,
   verifyTcgplayerMagicStorageParts,
@@ -109,6 +110,61 @@ test("catalog rows map condition-specific variants and null prices", () => {
   assert.equal(mapped.record.tcg_market_price, null);
   assert.equal(mapped.record.tcg_low_price, 0.13);
   assert.equal(mapped.record.normalized_collector_number, "82");
+});
+
+test("blank and currency numeric catalog fields normalize to database-safe values", () => {
+  const mapped = mapTcgplayerMagicCsvRow(rowObject([
+    "7,654,321",
+    "Magic",
+    "Test Set",
+    "Test Card",
+    "Test Card",
+    "42a",
+    "Mythic",
+    "Near Mint",
+    "$1,234.56",
+    "",
+    " ",
+    "$0.09",
+    "",
+    "1,200",
+    "",
+    "",
+  ]), { rowNumber: 2 });
+
+  assert.equal(mapped.ok, true);
+  if (!mapped.ok) return;
+  assert.equal(Number.isSafeInteger(mapped.record.tcgplayer_id), true);
+  assert.equal(mapped.record.tcgplayer_id, 7654321);
+  assert.equal(mapped.record.tcg_market_price, 1234.56);
+  assert.equal(mapped.record.tcg_direct_low, null);
+  assert.equal(mapped.record.tcg_low_price_with_shipping, null);
+  assert.equal(mapped.record.tcg_low_price, 0.09);
+  assert.equal(mapped.record.total_quantity, null);
+  assert.equal(mapped.record.add_to_quantity, 1200);
+  assert.equal(mapped.record.tcg_marketplace_price, null);
+});
+
+test("catalog payload column names match the tcgplayer_magic_catalog schema", () => {
+  const migration = readFileSync(path.join(repoRoot, "supabase/migrations/202608100003_tcgplayer_magic_catalog.sql"), "utf8");
+  const mapped = mapTcgplayerMagicCsvRow(rowObject([
+    "12345", "Magic", "Set", "Card", "Card", "1", "Rare", "Near Mint", "", "", "", "", "", "", "", "",
+  ]), { rowNumber: 2 });
+
+  assert.equal(mapped.ok, true);
+  if (!mapped.ok) return;
+  const createTable = migration.match(/create table if not exists public\.tcgplayer_magic_catalog \(([\s\S]*?)\n\);/)?.[1] ?? "";
+  const columns = new Set(
+    createTable
+      .split("\n")
+      .map((line) => line.trim().match(/^([a-z_][a-z0-9_]*)\s/)?.[1])
+      .filter(Boolean),
+  );
+  for (const key of Object.keys(mapped.record)) {
+    assert.equal(columns.has(key), true, `${key} must exist on tcgplayer_magic_catalog`);
+  }
+  assert.match(migration, /tcgplayer_id bigint not null/);
+  assert.match(migration, /constraint tcgplayer_magic_catalog_tcgplayer_id_key unique \(tcgplayer_id\)/);
 });
 
 test("malformed catalog rows are rejected without stopping the whole import", () => {
@@ -514,6 +570,88 @@ test("first batch failure marks storage import job failed with stage context", a
   assert.notEqual(metadata.parts?.[0]?.error, "");
 });
 
+test("large storage batches are split into safe database upsert chunks", async () => {
+  const rowCount = TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS * 2 + 5;
+  const client = new FakeStorageCatalogClient({
+    "part-001.csv": csv(
+      Array.from({ length: rowCount }, (_, index) => [
+        String(100000 + index),
+        "Magic",
+        "Chunk Set",
+        `Chunk Card ${index}`,
+        `Chunk Card ${index}`,
+        String(index + 1),
+        "Rare",
+        "Near Mint",
+        "1.23",
+        "",
+        "",
+        "0.99",
+        "1",
+        "",
+        "",
+        "",
+      ]),
+    ),
+  });
+
+  const result = await advanceTcgplayerMagicStorageImport(client, {
+    bucket: "catalog-imports",
+    paths: ["part-001.csv"],
+    batchSize: rowCount,
+    byteLimit: 1024 * 1024,
+    downloadRange: client.downloadRange,
+  });
+
+  assert.equal(result.status, "completed");
+  assert.deepEqual(client.upserts.map((chunk) => chunk.length), [
+    TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS,
+    TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS,
+    5,
+  ]);
+  assert.deepEqual(client.existingLookups.map((chunk) => chunk.length), [
+    TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS,
+    TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS,
+    5,
+  ]);
+  assert.deepEqual([...new Set(client.upsertConflicts)], ["tcgplayer_id"]);
+});
+
+test("Supabase upsert errors preserve code message details and hint", async () => {
+  const client = new FailingUpsertStorageCatalogClient({
+    "part-001.csv": csv([
+      ["100", "Magic", "Set A", "Card A", "Card A", "1", "Rare", "Near Mint", "1.23", "", "", "0.99", "1", "", "", ""],
+    ]),
+  }, {
+    message: "Could not find the 'collector_number' column of 'tcgplayer_magic_catalog' in the schema cache",
+    code: "PGRST204",
+    details: "Searched for the column public.tcgplayer_magic_catalog.collector_number.",
+    hint: "Check the deployed database schema.",
+  });
+
+  await assert.rejects(
+    () => advanceTcgplayerMagicStorageImport(client, {
+      bucket: "catalog-imports",
+      paths: ["part-001.csv"],
+      batchSize: 1,
+      byteLimit: 1024,
+      downloadRange: client.downloadRange,
+    }),
+    (error: unknown) => {
+      assert.equal(error instanceof TcgplayerCatalogImportStageError, true);
+      const serialized = serializeError(error);
+      assert.equal(serialized.message, "Could not find the 'collector_number' column of 'tcgplayer_magic_catalog' in the schema cache");
+      assert.equal(serialized.cause?.code, "PGRST204");
+      assert.equal(serialized.cause?.details, "Searched for the column public.tcgplayer_magic_catalog.collector_number.");
+      assert.equal(serialized.cause?.hint, "Check the deployed database schema.");
+      return true;
+    },
+  );
+
+  const latest = client.imports.at(-1);
+  assert.equal(latest?.status, "failed");
+});
+
 test("stale zero-row completed storage import can restart", async () => {
   const client = new FakeStorageCatalogClient({
     "tcgplayer/magic/2026-08-10/part-001.csv": csv([
@@ -751,6 +889,8 @@ async function runStorageImportToCompletion(
 
 class FakeCatalogClient {
   upserts: TcgplayerMagicCatalogRecord[][] = [];
+  upsertConflicts: string[] = [];
+  existingLookups: number[][] = [];
   imports: Record<string, unknown>[] = [];
   existingIds: number[];
 
@@ -760,12 +900,15 @@ class FakeCatalogClient {
 
   from(table: string) {
     const existingIds = this.existingIds;
+    const existingLookups = this.existingLookups;
     const upserts = this.upserts;
+    const upsertConflicts = this.upsertConflicts;
     const imports = this.imports;
     return {
       select() {
         return {
           in(_column: string, values: number[]) {
+            existingLookups.push(values);
             const data = values
               .filter((value) => existingIds.includes(value))
               .map((tcgplayer_id) => ({ tcgplayer_id }));
@@ -773,8 +916,9 @@ class FakeCatalogClient {
           },
         };
       },
-      upsert(rows: TcgplayerMagicCatalogRecord[]) {
+      upsert(rows: TcgplayerMagicCatalogRecord[], options?: { onConflict: string }) {
         upserts.push(rows);
+        upsertConflicts.push(options?.onConflict ?? "");
         for (const row of rows) {
           if (!existingIds.includes(row.tcgplayer_id)) existingIds.push(row.tcgplayer_id);
         }
@@ -889,6 +1033,29 @@ class FakeStorageCatalogClient extends FakeCatalogClient {
       totalBytes: bytes.length,
     };
   };
+}
+
+class FailingUpsertStorageCatalogClient extends FakeStorageCatalogClient {
+  upsertError: { message: string; code: string; details: string; hint: string };
+
+  constructor(files: Record<string, string>, upsertError: { message: string; code: string; details: string; hint: string }) {
+    super(files);
+    this.upsertError = upsertError;
+  }
+
+  override from(table: string) {
+    if (table !== "tcgplayer_magic_catalog") return super.from(table);
+
+    const base = super.from(table);
+    return {
+      ...base,
+      upsert: (rows: TcgplayerMagicCatalogRecord[], options?: { onConflict: string }) => {
+        this.upserts.push(rows);
+        this.upsertConflicts.push(options?.onConflict ?? "");
+        return Promise.resolve({ data: null, error: this.upsertError });
+      },
+    };
+  }
 }
 
 class FakeResolverClient {

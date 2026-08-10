@@ -33,16 +33,18 @@ type CatalogStatsClient = {
 
 function catalogErrorResponse(error: unknown, fallback: string, defaultStatus = 500) {
   const serialized = serializeError(error);
+  const cause = serialized.cause;
+  const errorDetails = cause ?? serialized;
   const stageError = error instanceof TcgplayerCatalogImportStageError ? error : null;
-  const responseStatus = safeStatusCode(stageError?.statusCode ?? serialized.statusCode ?? serialized.status ?? defaultStatus);
+  const responseStatus = safeStatusCode(stageError?.statusCode ?? errorDetails.statusCode ?? errorDetails.status ?? defaultStatus);
   const body = {
     error: fallback,
     stage: stageError?.context.stage,
-    message: serialized.message || fallback,
-    code: serialized.code,
-    details: serialized.details,
-    hint: serialized.hint,
-    status: serialized.status,
+    message: errorDetails.message || serialized.message || fallback,
+    code: errorDetails.code,
+    details: errorDetails.details,
+    hint: errorDetails.hint,
+    status: errorDetails.status,
     statusCode: responseStatus,
     part: stageError?.context.objectPath,
     objectPath: stageError?.context.objectPath,

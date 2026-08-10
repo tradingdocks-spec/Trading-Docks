@@ -23,6 +23,7 @@ export const TCGPLAYER_MAGIC_STORAGE_PARTS = [
 
 export const TCGPLAYER_STORAGE_IMPORT_BATCH_ROWS = 10_000;
 export const TCGPLAYER_STORAGE_IMPORT_BATCH_BYTES = 4 * 1024 * 1024;
+export const TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS = 1000;
 
 export type TcgplayerCatalogStoragePart = {
   path: string;
@@ -531,10 +532,20 @@ async function upsertCatalogRecords(
 ) {
   if (rows.length === 0) return;
   const existing = await existingTcgplayerIds(client, rows.map((row) => row.tcgplayer_id));
-  const { error } = await client
-    .from("tcgplayer_magic_catalog")
-    .upsert(rows, { onConflict: "tcgplayer_id" });
-  if (error) throw new Error(error.message ?? "Could not upsert TCGplayer catalog rows.");
+  console.info("TCG catalog upsert sample", {
+    targetTable: "tcgplayer_magic_catalog",
+    conflictKey: "tcgplayer_id",
+    batchSize: rows.length,
+    dbChunkSize: TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS,
+    firstRow: safeCatalogRowSample(rows[0]),
+  });
+
+  for (const chunk of chunks(rows, TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS)) {
+    const { error } = await client
+      .from("tcgplayer_magic_catalog")
+      .upsert(chunk, { onConflict: "tcgplayer_id" });
+    if (error) throw error;
+  }
 
   for (const row of rows) {
     if (existing.has(row.tcgplayer_id)) summary.updatedRows += 1;
@@ -545,12 +556,16 @@ async function upsertCatalogRecords(
 }
 
 async function existingTcgplayerIds(client: SupabaseCatalogClient, ids: number[]) {
-  const { data, error } = await client
-    .from("tcgplayer_magic_catalog")
-    .select("tcgplayer_id")
-    .in("tcgplayer_id", ids);
-  if (error) throw new Error(error.message ?? "Could not check existing TCGplayer catalog IDs.");
-  return new Set((data ?? []).map((row) => Number(row.tcgplayer_id)));
+  const existing = new Set<number>();
+  for (const chunk of chunks(ids, TCGPLAYER_CATALOG_DB_UPSERT_CHUNK_ROWS)) {
+    const { data, error } = await client
+      .from("tcgplayer_magic_catalog")
+      .select("tcgplayer_id")
+      .in("tcgplayer_id", chunk);
+    if (error) throw error;
+    for (const row of data ?? []) existing.add(Number(row.tcgplayer_id));
+  }
+  return existing;
 }
 
 function applyRejectedRows(summary: TcgplayerCatalogImportSummary, rejected: TcgplayerCatalogImportError[]) {
@@ -958,6 +973,45 @@ function statusCodeForStage(stage: TcgplayerCatalogImportStage) {
   if (stage === "verify-parts") return 404;
   if (stage === "range-fetch") return 502;
   return 500;
+}
+
+function chunks<T>(values: T[], size: number) {
+  const output: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    output.push(values.slice(index, index + size));
+  }
+  return output;
+}
+
+function safeCatalogRowSample(row: TcgplayerMagicCatalogRecord | undefined) {
+  if (!row) return null;
+  return {
+    keys: Object.keys(row),
+    tcgplayer_id: row.tcgplayer_id,
+    product_line: row.product_line,
+    set_name: row.set_name,
+    product_name: row.product_name,
+    title: row.title,
+    collector_number: row.collector_number,
+    rarity: row.rarity,
+    raw_condition: row.raw_condition,
+    condition: row.condition,
+    finish: row.finish,
+    normalized_set_name: row.normalized_set_name,
+    normalized_product_name: row.normalized_product_name,
+    normalized_collector_number: row.normalized_collector_number,
+    normalized_condition: row.normalized_condition,
+    normalized_finish: row.normalized_finish,
+    tcg_market_price: row.tcg_market_price,
+    tcg_direct_low: row.tcg_direct_low,
+    tcg_low_price_with_shipping: row.tcg_low_price_with_shipping,
+    tcg_low_price: row.tcg_low_price,
+    total_quantity: row.total_quantity,
+    add_to_quantity: row.add_to_quantity,
+    tcg_marketplace_price: row.tcg_marketplace_price,
+    photo_url: row.photo_url ? "[present]" : null,
+    source_imported_at: row.source_imported_at,
+  };
 }
 
 async function safeResponseText(response: Response) {
