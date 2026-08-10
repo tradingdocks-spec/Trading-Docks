@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveMobileAccountAccessSnapshot } from '../services/mobile-account-access.ts';
+import {
+  loadMobileAccountAccessSnapshot,
+  resolveMobileAccountAccessSnapshot,
+} from '../services/mobile-account-access.ts';
 
 test('mobile account access uses backend subscription tier after RevenueCat or Stripe reconciliation', () => {
   const snapshot = resolveMobileAccountAccessSnapshot({
@@ -69,4 +72,18 @@ test('query errors keep membership local-fallback visible without inventing paid
   assert.equal(snapshot.membershipTier, 'free');
   assert.equal(snapshot.accountType, 'collector');
   assert.match(snapshot.warnings.join(','), /billing_subscriptions lookup failed/);
+});
+
+test('unavailable Supabase client keeps local account type but does not grant paid membership', async () => {
+  const snapshot = await loadMobileAccountAccessSnapshot({
+    client: null,
+    userId: 'user-123',
+    localAccountType: 'store',
+  });
+
+  assert.equal(snapshot.source, 'local_fallback');
+  assert.equal(snapshot.accountType, 'store');
+  assert.equal(snapshot.membershipTier, 'free');
+  assert.equal(snapshot.billingStatus, 'free');
+  assert.match(snapshot.warnings.join(','), /membership_requires_server_confirmation/);
 });

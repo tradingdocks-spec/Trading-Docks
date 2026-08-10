@@ -128,7 +128,6 @@ export default function Plans() {
   }, [configured, nativePurchasesAvailable, sessionUserId]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshCatalog();
   }, [refreshCatalog]);
 
@@ -140,7 +139,6 @@ export default function Plans() {
       action: 'purchase',
     });
     if (syncMessage === 'Membership updated') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus('synced');
       setMessage(syncMessage);
       setPendingProviderTier(null);

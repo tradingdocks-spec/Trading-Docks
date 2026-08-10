@@ -22,6 +22,7 @@ import {
   routeAccessRuleForPath,
 } from "../src/lib/platform/route-access.ts";
 import { apiAccessRuleForPath, apiCapabilityDecision } from "../src/lib/platform/api-access.ts";
+import { resolveWorkspaceAccessFromRows } from "../src/lib/platform/workspace-resolution.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -179,6 +180,37 @@ test("Label Studio is an Operations navigation item gated by route access", () =
   assert.equal(hasRouteAccess(collectorClient, "/dashboard/label-studio"), false);
   const operationsRouteRule = routeAccessRuleForPath("/dashboard/label-studio");
   assert.equal(operationsRouteRule?.kind === "capability" ? operationsRouteRule.capability : null, "label.view");
+});
+
+test("server workspace access resolves only valid active or unambiguous memberships", () => {
+  assert.deepEqual(
+    resolveWorkspaceAccessFromRows(null, [{ workspace_id: "workspace-a", role: "owner" }]),
+    { workspaceId: "workspace-a", workspaceRole: "owner" },
+  );
+
+  assert.deepEqual(
+    resolveWorkspaceAccessFromRows("workspace-b", [
+      { workspace_id: "workspace-a", role: "member" },
+      { workspace_id: "workspace-b", role: "manager" },
+    ]),
+    { workspaceId: "workspace-b", workspaceRole: "manager" },
+  );
+
+  assert.deepEqual(
+    resolveWorkspaceAccessFromRows(null, [
+      { workspace_id: "workspace-a", role: "owner" },
+      { workspace_id: "workspace-b", role: "member" },
+    ]),
+    { workspaceId: null, workspaceRole: null },
+  );
+
+  assert.deepEqual(
+    resolveWorkspaceAccessFromRows("workspace-z", [
+      { workspace_id: "workspace-a", role: "owner" },
+      { workspace_id: "workspace-b", role: "member" },
+    ]),
+    { workspaceId: null, workspaceRole: null },
+  );
 });
 
 test("all dashboard page routes are explicitly classified", () => {

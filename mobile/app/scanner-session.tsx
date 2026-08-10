@@ -322,8 +322,8 @@ function SessionCardRow({ line, onPress }: { line: ScannerSessionLine; onPress: 
           <TDText variant="title" numberOfLines={2} style={s.cardName}>{line.cardName}</TDText>
           <Ionicons name="chevron-forward" size={18} color={color.textMuted} />
         </View>
-        <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionGameLabel(line.game)} • {line.setCode ?? 'Set unavailable'} #{line.collectorNumber ?? '?'}</TDText>
-        <TDText variant="caption" tone="muted" numberOfLines={1}>{displayCondition(line.condition)} • {displayFinish(String(line.finish) as never)}</TDText>
+        <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionGameLabel(line.game)} / {line.setCode ?? 'Set unavailable'} #{line.collectorNumber ?? '?'}</TDText>
+        <TDText variant="caption" tone="muted" numberOfLines={1}>{displayCondition(line.condition)} / {displayFinish(String(line.finish) as never)}</TDText>
         <View style={s.cardValues}>
           <ValuePair label="Market" value={formatReviewLineMoney(line.marketPrice, line.priceSource)} />
           <ValuePair label="Offer" value={formatSessionReviewMoney(line.cashOffer)} />

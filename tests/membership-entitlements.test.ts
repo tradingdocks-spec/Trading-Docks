@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -90,4 +91,14 @@ test("suspended or canceled billing falls back to Free entitlements", () => {
 test("unknown membership tier falls back to Free while legacy business normalizes to Store", () => {
   assert.equal(normalizeMembershipTier("enterprise"), "free");
   assert.equal(normalizeMembershipTier("business"), "store");
+});
+
+test("public pricing uses canonical membership catalog and signup routes", () => {
+  const source = readFileSync("src/components/landing/PricingSection.tsx", "utf8");
+
+  assert.match(source, /MEMBERSHIP_PLANS/);
+  assert.match(source, /`\/sign-up\?plan=\$\{tier\}`/);
+  assert.doesNotMatch(source, /\/signup\?plan=/);
+  assert.doesNotMatch(source, /price:\s*"\$(12|39|99)"/);
+  assert.doesNotMatch(source, /decks:\s*"10"/);
 });

@@ -6,7 +6,7 @@ import {
   validateCollectorMutation,
   type CollectorMutation,
 } from '@/services/collector-mutations';
-import { COLLECTION_PAGE_SIZE } from '@/services/collector-workspace';
+import { loadInventoryQuantityTotal } from '@/services/inventory-quantity-total';
 import {
   enqueueOfflineOperation,
   getOfflineQueue,
@@ -248,14 +248,17 @@ async function currentUserId() {
 
 async function loadMutationQuantityContext(userId: string, inventoryItemId: string) {
   if (!supabase) throw new Error('Supabase collection storage is not configured.');
-  const { data: items, error } = await supabase
-    .from('inventory_items')
-    .select('id, quantity')
-    .eq('user_id', userId)
-    .limit(COLLECTION_PAGE_SIZE);
-  if (error) throw new Error(error.message);
-  const currentTotalQuantity = (items ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
-  const currentCardQuantity = Number((items ?? []).find((item) => item.id === inventoryItemId)?.quantity ?? 0);
+  const [currentTotalQuantity, cardResult] = await Promise.all([
+    loadInventoryQuantityTotal(supabase, userId),
+    supabase
+      .from('inventory_items')
+      .select('quantity')
+      .eq('user_id', userId)
+      .eq('id', inventoryItemId)
+      .maybeSingle(),
+  ]);
+  if (cardResult.error) throw new Error(cardResult.error.message);
+  const currentCardQuantity = Number(cardResult.data?.quantity ?? 0);
   return { currentTotalQuantity, currentCardQuantity };
 }
 

@@ -424,7 +424,7 @@ function Hero() {
   );
 }
 
-function ScanWorkspace(props: {
+type ScanWorkspaceProps = {
   preview: string | null;
   file: File | null;
   quality: Quality | null;
@@ -437,7 +437,21 @@ function ScanWorkspace(props: {
   setDragging: (value: boolean) => void;
   chooseFile: (file: File | null) => void;
   analyze: () => void;
-}) {
+};
+
+function ScanWorkspace({
+  preview,
+  quality,
+  manualName,
+  dragging,
+  loading,
+  error,
+  inputRef,
+  setManualName,
+  setDragging,
+  chooseFile,
+  analyze,
+}: ScanWorkspaceProps) {
   return (
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,.8fr)]">
       <div className="rounded-[28px] border border-white/[.075] bg-[#07121f] p-5 shadow-[0_24px_80px_rgba(0,0,0,.25)] sm:p-6">
@@ -458,29 +472,29 @@ function ScanWorkspace(props: {
 
         <button
           type="button"
-          onClick={() => props.inputRef.current?.click()}
+          onClick={() => inputRef.current?.click()}
           onDragEnter={(event) => {
             event.preventDefault();
-            props.setDragging(true);
+            setDragging(true);
           }}
           onDragOver={(event) => event.preventDefault()}
-          onDragLeave={() => props.setDragging(false)}
+          onDragLeave={() => setDragging(false)}
           onDrop={(event) => {
             event.preventDefault();
-            props.setDragging(false);
-            props.chooseFile(event.dataTransfer.files[0] ?? null);
+            setDragging(false);
+            chooseFile(event.dataTransfer.files[0] ?? null);
           }}
           className={`relative mt-5 flex min-h-[510px] w-full overflow-hidden rounded-[24px] border transition ${
-            props.dragging
+            dragging
               ? "border-cyan-300/55 bg-blue-400/[.08]"
               : "border-dashed border-blue-300/[.18] bg-[#030c17] hover:border-blue-300/38 hover:bg-blue-400/[.025]"
           }`}
         >
-          {props.preview ? (
+          {preview ? (
             <div className="relative flex w-full items-center justify-center p-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={props.preview}
+                src={preview}
                 alt="Uploaded card"
                 className="max-h-[455px] max-w-full rounded-2xl object-contain shadow-[0_24px_70px_rgba(0,0,0,.52)]"
               />
@@ -509,12 +523,12 @@ function ScanWorkspace(props: {
         </button>
 
         <input
-          ref={props.inputRef}
+          ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
           className="hidden"
           onChange={(event) =>
-            props.chooseFile(event.target.files?.[0] ?? null)
+            chooseFile(event.target.files?.[0] ?? null)
           }
         />
       </div>
@@ -537,9 +551,9 @@ function ScanWorkspace(props: {
             <div className="relative mt-2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
               <input
-                value={props.manualName}
+                value={manualName}
                 onChange={(event) =>
-                  props.setManualName(event.target.value)
+                  setManualName(event.target.value)
                 }
                 placeholder="Example: Rhystic Study"
                 className="h-12 w-full rounded-xl border border-white/[.08] bg-[#030c17] pl-10 pr-3 text-sm text-white outline-none placeholder:text-slate-700"
@@ -549,27 +563,27 @@ function ScanWorkspace(props: {
 
           <button
             type="button"
-            onClick={props.analyze}
-            disabled={props.loading}
+            onClick={analyze}
+            disabled={loading}
             className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-300 px-4 text-[11px] font-semibold text-[#020914] shadow-[0_14px_36px_rgba(37,99,235,.22)] disabled:opacity-50"
           >
-            {props.loading ? (
+            {loading ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
             ) : (
               <Sparkles className="h-4 w-4" />
             )}
-            {props.loading ? "Analyzing card" : "Analyze card"}
+            {loading ? "Analyzing card" : "Analyze card"}
           </button>
 
-          {props.error ? (
+          {error ? (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-300/15 bg-rose-400/[.04] p-3 text-[10px] leading-5 text-rose-200">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              {props.error}
+              {error}
             </div>
           ) : null}
         </div>
 
-        <QualityPanel quality={props.quality} />
+        <QualityPanel quality={quality} />
 
         <div className="rounded-[28px] border border-white/[.075] bg-[#07121f] p-5 sm:p-6">
           <SectionKicker icon={ShieldCheck} label="Accuracy standard" />

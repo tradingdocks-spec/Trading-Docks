@@ -6,6 +6,7 @@ import {
   type ScannerAddPayload,
   type ScannerConfirmation,
 } from './scanner-foundation.ts';
+import { loadInventoryQuantityTotal } from './inventory-quantity-total.ts';
 import type { OfflineOperation } from './storage/offline-core.ts';
 
 export type ScannerReplayTrigger = 'network_reconnect' | 'app_resume' | 'session_restore' | 'manual_retry';
@@ -292,9 +293,7 @@ async function currentUserId() {
 async function loadCurrentTotalQuantity(userId: string) {
   const { supabase } = await import('../lib/supabase.ts');
   if (!supabase) throw new Error('Supabase scanner replay is not configured.');
-  const { data, error } = await supabase.from('inventory_items').select('quantity').eq('user_id', userId).limit(1000);
-  if (error) throw new Error(error.message);
-  return (data ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+  return loadInventoryQuantityTotal(supabase, userId);
 }
 
 async function inventoryItemExists(userId: string, inventoryItemId: string) {

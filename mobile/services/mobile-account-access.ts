@@ -150,10 +150,10 @@ function localFallback(localAccountType: AccountType, warnings: string[]): Mobil
   const accountType = normalizeAccountType(localAccountType);
   return {
     accountType,
-    membershipTier: accountType,
-    billingStatus: accountType === 'free' ? 'free' : 'unknown',
+    membershipTier: 'free',
+    billingStatus: warnings.includes('supabase_not_configured') ? 'free' : 'unknown',
     source: 'local_fallback',
-    warnings,
+    warnings: [...warnings, 'membership_requires_server_confirmation'],
   };
 }
 

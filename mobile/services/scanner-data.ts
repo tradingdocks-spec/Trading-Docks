@@ -3,6 +3,7 @@ import { runMobileTradeWishlistMutation } from '@/services/trade-binder-wishlist
 import { buildStorageLocation, type StorageLocation } from '@/services/storage-location-manager';
 import { appStorage } from '@/services/storage/app-storage';
 import { enqueueOfflineOperation } from '@/services/storage/offline';
+import { loadInventoryQuantityTotal } from '@/services/inventory-quantity-total';
 import {
   SCANNER_COLLECTION_QUEUE_TYPE,
   buildScannerAddPayload,
@@ -78,15 +79,14 @@ export async function loadScannerContext(): Promise<{ userId: string; locations:
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error('Sign in again to scan cards.');
   const userId = auth.user.id;
-  const [{ data: locations }, { data: items, error: itemError }] = await Promise.all([
+  const [{ data: locations }, currentTotalQuantity] = await Promise.all([
     supabase.from('inventory_locations').select('id, name, location_type, data').eq('user_id', userId).order('name', { ascending: true }).limit(500),
-    supabase.from('inventory_items').select('quantity').eq('user_id', userId).limit(1000),
+    loadInventoryQuantityTotal(supabase, userId),
   ]);
-  if (itemError) throw new Error(`Collection totals are unavailable: ${itemError.message}`);
   return {
     userId,
     locations: ((locations ?? []) as { id: string; name?: string | null; location_type?: string | null; data?: Record<string, unknown> | null }[]).map((location) => buildStorageLocation(userId, location)),
-    currentTotalQuantity: (items ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0),
+    currentTotalQuantity,
   };
 }
 

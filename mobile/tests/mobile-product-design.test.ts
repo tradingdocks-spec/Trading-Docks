@@ -91,6 +91,7 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
   assert.match(sell, /loadMobileDeckVault/);
   assert.match(profile, /Preferences/);
   assert.match(auth, /Passwords are never stored on this device/);
+  assert.match(auth, /Supabase: \$\{providerMessage\}/);
   assert.match(welcome, /Your TCG collection, wherever you trade/);
   assert.match(onboarding, /You can review paid plans later/);
   assert.match(plans, /Trading Docks backend membership remains the authority/);

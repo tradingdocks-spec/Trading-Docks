@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hasCapability } from "../../../mobile/services/platform-access.ts";
 import { apiCapabilityDecision } from "./api-access";
 import { hasRouteAccess, routeAccessRuleForPath } from "./route-access";
+import { resolveWorkspaceAccessFromRows } from "./workspace-resolution";
 
 type AuthUser = {
   id: string;
@@ -21,21 +22,24 @@ type AccessSupabaseClient = {
     getUser: () => PromiseLike<{ data: { user: AuthUser | null } }>;
   };
   from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        order?: (column: string, options?: { ascending?: boolean }) => {
-          limit: (count: number) => {
-            maybeSingle: () => PromiseLike<AccessQueryResult>;
-          };
-        };
-        maybeSingle: () => PromiseLike<AccessQueryResult>;
-      };
-    };
+    select: (columns: string) => AccessFilterQuery;
   };
+};
+
+type AccessFilterQuery = PromiseLike<AccessListQueryResult> & {
+  eq: (column: string, value: string) => AccessFilterQuery;
+  order: (column: string, options?: { ascending?: boolean }) => AccessFilterQuery;
+  limit: (count: number) => PromiseLike<AccessListQueryResult>;
+  maybeSingle: () => PromiseLike<AccessQueryResult>;
 };
 
 type AccessQueryResult = {
   data: Record<string, unknown> | null;
+  error: { message?: string; code?: string } | null;
+};
+
+type AccessListQueryResult = {
+  data: Record<string, unknown>[] | null;
   error: { message?: string; code?: string } | null;
 };
 
@@ -67,21 +71,23 @@ export async function resolvePlatformAccessForUser(
   if (!user) return resolvePlatformAccessContext({ authenticated: false });
   const client = supabase as AccessSupabaseClient;
 
-  const [roleResult, preferencesResult, subscriptionResult, overrideResult, workspaceResult] = await Promise.all([
+  const [roleResult, preferencesResult, subscriptionResult, overrideResult, membershipsResult] = await Promise.all([
     client.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
     client.from("user_preferences").select("preferences,active_workspace_id").eq("user_id", user.id).maybeSingle(),
     client.from("billing_subscriptions").select("plan_id,status,current_period_end").eq("user_id", user.id).maybeSingle(),
     client.from("admin_membership_overrides").select("plan_id").eq("user_id", user.id).maybeSingle(),
-    client.from("workspace_members").select("workspace_id,role").eq("user_id", user.id).maybeSingle(),
+    client.from("workspace_members").select("workspace_id,role").eq("user_id", user.id),
   ]);
 
   const preferences = objectRecord(preferencesResult.data?.preferences);
   const suspendedUntil = user.banned_until ? new Date(user.banned_until).getTime() : 0;
   const overridePlan = overrideResult.error ? null : stringValue(overrideResult.data?.plan_id);
-  const activeWorkspaceId =
+  const explicitWorkspaceId =
     stringValue(preferencesResult.data?.active_workspace_id) ??
-    stringValue(preferences.active_workspace_id) ??
-    stringValue(workspaceResult.data?.workspace_id);
+    stringValue(preferences.active_workspace_id);
+  const workspaceAccess = membershipsResult.error
+    ? { workspaceId: null, workspaceRole: null }
+    : resolveWorkspaceAccessFromRows(explicitWorkspaceId, membershipsResult.data ?? []);
 
   return resolvePlatformAccessContext({
     userId: user.id,
@@ -92,8 +98,8 @@ export async function resolvePlatformAccessForUser(
     billingPlan: subscriptionResult.error ? null : stringValue(subscriptionResult.data?.plan_id),
     billingStatus: subscriptionResult.error ? null : stringValue(subscriptionResult.data?.status),
     billingPeriodEnd: subscriptionResult.error ? null : stringValue(subscriptionResult.data?.current_period_end),
-    workspaceId: activeWorkspaceId,
-    workspaceRole: workspaceResult.error ? null : stringValue(workspaceResult.data?.role),
+    workspaceId: workspaceAccess.workspaceId,
+    workspaceRole: workspaceAccess.workspaceRole,
     providerState: providerStateFromRows(subscriptionResult.error, subscriptionResult.data, overridePlan),
     suspended: Boolean(suspendedUntil && suspendedUntil > Date.now()),
   });

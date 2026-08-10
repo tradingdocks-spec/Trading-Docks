@@ -88,13 +88,13 @@ export function Header() {
           <div className="mx-auto mt-4 grid max-w-md grid-cols-2 gap-3">
             <TransitionLink
               href="/sign-in"
-              className="inline-flex h-13 items-center justify-center rounded-2xl border border-white/[0.09] bg-white/[0.025] text-sm font-semibold text-white"
+              className="inline-flex h-[52px] items-center justify-center rounded-2xl border border-white/[0.09] bg-white/[0.025] text-sm font-semibold text-white"
             >
               Log in
             </TransitionLink>
             <TransitionLink
               href="/sign-up"
-              className="inline-flex h-13 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-300 text-sm font-semibold text-[#001018]"
+              className="inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-300 text-sm font-semibold text-[#001018]"
             >
               Get started
               <ArrowRight className="h-4 w-4" />

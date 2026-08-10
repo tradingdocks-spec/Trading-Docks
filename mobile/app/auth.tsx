@@ -334,21 +334,23 @@ const s = StyleSheet.create({
 });
 
 function authErrorMessage(raw: string) {
-  const message = raw.toLowerCase();
+  const providerMessage = raw.trim();
+  const message = providerMessage.toLowerCase();
   if (message.includes('configuration') || message.includes('environment')) {
     return 'Trading Docks is not ready to sign in on this build. Please try again later.';
   }
+  const withProviderDetail = (friendly: string) => `${friendly}\nSupabase: ${providerMessage}`;
   if (message.includes('invalid login') || message.includes('invalid credentials')) {
-    return 'Check your email and password, then try again.';
+    return withProviderDetail('Check your email and password, then try again.');
   }
   if (message.includes('rate') || message.includes('too many')) {
-    return 'Too many attempts. Wait a moment, then try again.';
+    return withProviderDetail('Too many attempts. Wait a moment, then try again.');
   }
   if (message.includes('network') || message.includes('fetch')) {
-    return 'Check your connection, then try again.';
+    return withProviderDetail('Check your connection, then try again.');
   }
   if (message.includes('email')) {
-    return 'Check your email address and try again.';
+    return withProviderDetail('Check your email address and try again.');
   }
-  return 'Please try again. If the problem continues, contact support.';
+  return withProviderDetail('Please try again. If the problem continues, contact support.');
 }

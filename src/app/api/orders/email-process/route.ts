@@ -1,25 +1,17 @@
 import { NextResponse } from "next/server";
 import { processWorkspaceBacklog } from "@/lib/email/process-inbound";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { requireApiCapability } from "@/lib/platform/server-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function workspaceId(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: preferences } = await supabase.from("user_preferences").select("active_workspace_id").eq("user_id", userId).maybeSingle();
-  if (preferences?.active_workspace_id) return preferences.active_workspace_id as string;
-  const { data: membership } = await supabase.from("workspace_members").select("workspace_id").eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
-  return (membership?.workspace_id as string | undefined) ?? null;
-}
 
 export async function POST() {
   const capability = await requireApiCapability("orders.manage");
   if (!capability.ok) return capability.response;
   const { supabase } = capability;
   const user = capability.user!;
-  const id = await workspaceId(supabase, user.id);
+  const id = capability.access.workspaceId;
   if (!id) return NextResponse.json({ error: "No active workspace." }, { status: 409 });
   try {
     const admin = createAdminClient();
