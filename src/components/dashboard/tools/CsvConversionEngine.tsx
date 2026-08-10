@@ -59,6 +59,19 @@ const IMPORTANT_FIELDS: CanonicalKey[] = [
   "finish",
   "quantity",
 ];
+const TCGPLAYER_REASON_LABELS: Record<string, string> = {
+  AMBIGUOUS_PRINTING: "Multiple printings matched",
+  COLLECTOR_NUMBER_MISMATCH: "Collector number did not match",
+  CONDITION_NOT_FOUND: "Condition was not found",
+  FINISH_NOT_AVAILABLE: "Finish is unavailable",
+  FINISH_NOT_FOUND: "Finish was not found",
+  PRINTING_NOT_FOUND: "Printing was not found",
+  SET_NOT_FOUND: "Set could not be identified",
+  SET_MAPPED_NO_PRODUCT: "Set matched, card was not found",
+  SKU_NOT_FOUND: "Exact TCGplayer SKU was not found",
+  UNKNOWN_SET_CODE: "Set could not be identified",
+};
+
 export function CsvConversionEngine() {
   const fileRef = useRef<HTMLInputElement>(null);
   const tcgplayerReferenceRef = useRef<HTMLInputElement>(null);
@@ -119,6 +132,18 @@ export function CsvConversionEngine() {
     0,
   );
   const missingTcgplayerSkuCount = validRows.filter((row) => !row.tcgplayerId.trim()).length;
+  const matchedTcgplayerSkuCount = Math.max(0, validRows.length - missingTcgplayerSkuCount);
+  const tcgplayerMode = destination === "download" && outputTemplateId === "tcgplayer";
+  const hasAttemptedTcgplayerMatch =
+    tcgplayerMode &&
+    validRows.some(
+      (row) =>
+        row.tcgplayerId.trim() ||
+        row.tcgplayerResolveReasonCode ||
+        row.tcgplayerResolveReason,
+    );
+  const allTcgplayerMatched = tcgplayerMode && validRows.length > 0 && missingTcgplayerSkuCount === 0;
+  const unresolvedTcgplayerRows = validRows.filter((row) => !row.tcgplayerId.trim());
 
   function loadCsv(text: string, name = "pasted-data.csv") {
     const matrix = parseCsv(text);
@@ -192,7 +217,7 @@ export function CsvConversionEngine() {
       validRows.some((row) => !row.tcgplayerId.trim())
     ) {
       setNotice(
-        "A direct TCGplayer export requires exact condition and foil-specific TCGplayer IDs. Use Resolve exact TCGplayer IDs before downloading.",
+        "A direct TCGplayer export requires exact condition and foil-specific TCGplayer IDs. Use Match to TCGplayer before downloading.",
       );
       return;
     }
@@ -294,9 +319,9 @@ export function CsvConversionEngine() {
   }
 
   async function resolveExactTcgplayerIds() {
-    if (!validRows.length) return setNotice("Load and map rows before resolving TCGplayer IDs.");
+    if (!validRows.length) return setNotice("Load and map rows before matching to TCGplayer.");
     setWorking(true);
-    setNotice("Resolving exact condition and foil-specific TCGplayer IDs from the Trading Docks catalog...");
+    setNotice("Matching your cards to exact TCGplayer printings...");
     try {
       const next: Record<number, EnrichedRow> = { ...enrichedRows };
       let matched = 0;
@@ -399,10 +424,10 @@ export function CsvConversionEngine() {
       setEnrichedRows(next);
       setOutputTemplateId("tcgplayer");
       setNotice(
-        `${matched.toLocaleString()} exact TCGplayer IDs resolved. ${ambiguous.toLocaleString()} ambiguous and ${unresolved.toLocaleString()} unresolved. ${formatReasonSummary(unresolvedReasons)}`,
+        `${matched.toLocaleString()} cards matched to TCGplayer. ${ambiguous.toLocaleString()} ambiguous and ${unresolved.toLocaleString()} unresolved. ${formatReasonSummary(unresolvedReasons)}`,
       );
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Exact TCGplayer IDs could not be resolved.");
+      setNotice(error instanceof Error ? error.message : "Cards could not be matched to TCGplayer.");
     } finally {
       setWorking(false);
     }
@@ -545,35 +570,50 @@ export function CsvConversionEngine() {
 
           <div className="mt-3 overflow-x-auto rounded-2xl border border-white/[.07]">
             <table className="w-full min-w-[700px] text-left text-[10px]">
-              <thead className="bg-white/[.025] text-slate-500"><tr>{["Name", "Set", "No.", "Condition", "Finish", "Qty"].map((value) => <th key={value} className="px-3 py-2.5 font-semibold">{value}</th>)}</tr></thead>
-              <tbody>{converted.slice(0, showAllRows ? converted.length : 5).map((row, index) => <tr key={`${row.name}-${index}`} className="border-t border-white/[.055] text-slate-300"><td className="max-w-60 truncate px-3 py-2.5 font-medium text-white">{row.name || <span className="text-amber-300">Missing name</span>}</td><td className="px-3 py-2.5">{row.set || row.setName}</td><td className="px-3 py-2.5">{row.collectorNumber}</td><td className="px-3 py-2.5">{row.condition}</td><td className="px-3 py-2.5">{row.finish}</td><td className="px-3 py-2.5">{row.quantity || "1"}</td></tr>)}</tbody>
+              <thead className="bg-white/[.025] text-slate-500"><tr>{["Card", "Set", "#", "Condition", "Finish", "Qty", ...(tcgplayerMode && hasAttemptedTcgplayerMatch ? ["TCGplayer Match"] : [])].map((value) => <th key={value} className="px-3 py-2.5 font-semibold">{value}</th>)}</tr></thead>
+              <tbody>{converted.slice(0, showAllRows ? converted.length : 5).map((row, index) => <tr key={`${row.name}-${index}`} className="border-t border-white/[.055] text-slate-300"><td className="max-w-60 truncate px-3 py-2.5 font-medium text-white">{row.name || <span className="text-amber-300">Missing name</span>}</td><td className="px-3 py-2.5">{row.set || row.setName}</td><td className="px-3 py-2.5">{row.collectorNumber}</td><td className="px-3 py-2.5">{row.condition}</td><td className="px-3 py-2.5">{row.finish}</td><td className="px-3 py-2.5">{row.quantity || "1"}</td>{tcgplayerMode && hasAttemptedTcgplayerMatch ? <td className="px-3 py-2.5">{row.tcgplayerId.trim() ? <span className="rounded-full bg-emerald-300/10 px-2 py-1 text-[9px] font-semibold text-emerald-200">Matched</span> : <span className="rounded-full bg-amber-300/10 px-2 py-1 text-[9px] font-semibold text-amber-200">{tcgplayerReasonLabel(row)}</span>}</td> : null}</tr>)}</tbody>
             </table>
           </div>
           {converted.length > 5 ? <button type="button" onClick={() => setShowAllRows((value) => !value)} className="mt-3 inline-flex items-center gap-2 text-[10px] font-semibold text-cyan-200"><Eye className="h-3.5 w-3.5" />{showAllRows ? "Show fewer cards" : `Review all ${converted.length.toLocaleString()} cards`}</button> : null}
 
           <button type="button" onClick={() => setShowAdvanced((value) => !value)} className="mt-4 flex w-full items-center justify-between rounded-2xl border border-white/[.07] bg-black/10 px-4 py-3 text-left">
-            <span className="flex items-center gap-3"><SlidersHorizontal className="h-4 w-4 text-cyan-300" /><span><strong className="block text-xs text-white">Advanced field mapping</strong><span className="mt-0.5 block text-[9px] text-slate-600">{mappedImportantFields} of {IMPORTANT_FIELDS.length} important fields mapped · Open only if something looks wrong</span></span></span>
+            <span className="flex items-center gap-3"><SlidersHorizontal className="h-4 w-4 text-cyan-300" /><span><strong className="block text-xs text-white">Advanced options</strong><span className="mt-0.5 block text-[9px] text-slate-600">{mappedImportantFields} of {IMPORTANT_FIELDS.length} important fields mapped · Field mapping, fallback exports, and diagnostics</span></span></span>
             <ChevronDown className={`h-4 w-4 text-slate-500 transition ${showAdvanced ? "rotate-180" : ""}`} />
           </button>
-          {showAdvanced ? <div className="mt-3 grid gap-3 rounded-2xl border border-cyan-300/10 bg-cyan-300/[.02] p-4 sm:grid-cols-2 lg:grid-cols-3">{CANONICAL_FIELDS.map((field) => <label key={field.key}><span className="text-[9px] font-semibold text-slate-400">{field.label}{field.required ? " *" : ""}</span><select value={mapping[field.key]} onChange={(event) => setMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-[10px] text-slate-300 outline-none"><option value="">Not mapped</option>{headers.map((header) => <option key={header} value={header}>{header}</option>)}</select></label>)}</div> : null}
+          {showAdvanced ? <div className="mt-3 space-y-4 rounded-2xl border border-cyan-300/10 bg-cyan-300/[.02] p-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{CANONICAL_FIELDS.map((field) => <label key={field.key}><span className="text-[9px] font-semibold text-slate-400">{field.label}{field.required ? " *" : ""}</span><select value={mapping[field.key]} onChange={(event) => setMapping((current) => ({ ...current, [field.key]: event.target.value }))} className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-[10px] text-slate-300 outline-none"><option value="">Not mapped</option>{headers.map((header) => <option key={header} value={header}>{header}</option>)}</select></label>)}</div>
+            {tcgplayerMode ? <div className="space-y-3 border-t border-white/[.06] pt-4">
+              <input ref={tcgplayerReferenceRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleTcgplayerReference(file); }} />
+              <div className="grid gap-3 rounded-2xl border border-white/[.07] bg-[#050e15] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div><strong className="text-xs text-white">TCGplayer reference export</strong><p className="mt-1 text-[10px] leading-4 text-slate-500">{tcgplayerReferenceRows.length ? `${tcgplayerReferenceName} · ${tcgplayerReferenceRows.length.toLocaleString()} verified SKU rows loaded` : "Optional fallback file for power users. The normal match uses the Trading Docks catalog first."}</p></div>
+                <button type="button" onClick={() => tcgplayerReferenceRef.current?.click()} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-bold text-cyan-100"><Upload className="h-4 w-4" />{tcgplayerReferenceRows.length ? "Replace reference" : "Upload reference export"}</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-semibold text-cyan-100 disabled:opacity-40"><WandSparkles className="h-4 w-4" />Match product details</button>
+                <button type="button" onClick={downloadManaBoxBridge} disabled={!validRows.length} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[.08] px-4 text-[10px] font-semibold text-slate-300 disabled:opacity-40"><Download className="h-4 w-4" />Download ManaBox bridge</button>
+              </div>
+              <button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />How TCGplayer matching works<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-white/[.07] bg-black/10 p-3 text-[10px] leading-5 text-slate-500">Trading Docks resolves the exact TCGplayer inventory SKU from the uploaded canonical catalog by matching product name, set name, collector number, condition, and foil or nonfoil. TCGCSV can still fill product details and prices, but it does not replace the condition-specific TCGplayer ID and Trading Docks will not guess between duplicate variants.</div> : null}
+            </div> : null}
+          </div> : null}
 
           {destination === "download" ? <div className="mt-4 space-y-3 rounded-2xl border border-white/[.07] bg-black/10 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Convert to</span><select value={outputTemplateId} onChange={(event) => setOutputTemplateId(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300">{CSV_TEMPLATES.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
-              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void resolveExactTcgplayerIds()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Resolve exact TCGplayer IDs</button> : null}
-              {outputTemplateId === "tcgplayer" ? <button type="button" onClick={() => void enrichForTcgplayer()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-5 text-xs font-bold text-cyan-100 disabled:opacity-40"><WandSparkles className="h-4 w-4" />Match product details</button> : null}
-              {outputTemplateId !== "tcgplayer" || !missingTcgplayerSkuCount ? <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download CSV</button> : null}
+              {tcgplayerMode ? null : <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download CSV</button>}
             </div>
-            {outputTemplateId === "tcgplayer" ? <>
-              <input ref={tcgplayerReferenceRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleTcgplayerReference(file); }} />
-              <p className="rounded-xl border border-cyan-300/10 bg-cyan-300/[.025] px-3 py-2 text-[10px] leading-5 text-cyan-100/70">Trading Docks resolves exact condition and foil-specific TCGplayer IDs from the imported catalog. The reference export below is only a fallback comparison file.</p>
-              <div className="grid gap-3 rounded-2xl border border-white/[.07] bg-[#050e15] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                <div><strong className="text-xs text-white">TCGplayer ID reference export</strong><p className="mt-1 text-[10px] leading-4 text-slate-500">{tcgplayerReferenceRows.length ? `${tcgplayerReferenceName} · ${tcgplayerReferenceRows.length.toLocaleString()} verified SKU rows loaded` : "Upload a TCGplayer Pricing Custom Export containing every card and variant in this conversion."}</p></div>
-                <button type="button" onClick={() => tcgplayerReferenceRef.current?.click()} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-bold text-cyan-100"><Upload className="h-4 w-4" />{tcgplayerReferenceRows.length ? "Replace reference" : "Upload reference export"}</button>
+            {tcgplayerMode ? <>
+              <div className={`rounded-2xl border p-4 ${allTcgplayerMatched ? "border-emerald-300/15 bg-emerald-300/[.035]" : hasAttemptedTcgplayerMatch ? "border-amber-300/15 bg-amber-300/[.035]" : "border-cyan-300/15 bg-cyan-300/[.035]"}`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[.2em] text-cyan-200/70">Step 2</p>
+                    <h3 className="mt-1 text-sm font-semibold text-white">{allTcgplayerMatched ? `All ${validRows.length.toLocaleString()} cards matched` : hasAttemptedTcgplayerMatch ? `${missingTcgplayerSkuCount.toLocaleString()} cards need review` : "Match to TCGplayer"}</h3>
+                    <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-400">{allTcgplayerMatched ? "Your cards have been matched to the correct TCGplayer printing, condition, and finish." : hasAttemptedTcgplayerMatch ? "Review the unmatched rows below, adjust set, number, condition, or finish, then match again." : "Use the Trading Docks catalog to attach exact TCGplayer IDs before downloading."}</p>
+                  </div>
+                  {allTcgplayerMatched ? <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download TCGplayer CSV</button> : <button type="button" onClick={() => void resolveExactTcgplayerIds()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Match to TCGplayer</button>}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-[9px]"><Stat label="Matched" value={matchedTcgplayerSkuCount} /><Stat label="Need review" value={missingTcgplayerSkuCount} /></div>
               </div>
-              <div className={`rounded-xl border p-3 text-[10px] leading-5 ${missingTcgplayerSkuCount ? "border-amber-300/10 bg-amber-300/[.025] text-amber-100/60" : "border-emerald-300/10 bg-emerald-300/[.025] text-emerald-100/60"}`}>{missingTcgplayerSkuCount ? <><strong className="text-amber-200">{(validRows.length - missingTcgplayerSkuCount).toLocaleString()} of {validRows.length.toLocaleString()} rows have verified TCGplayer IDs.</strong> The final download stays locked until the Trading Docks catalog or optional reference export contains one exact SKU match for every card, printing, condition, and finish.{validRows.length ? <span className="mt-1 block">Unresolved: {validRows.filter((row) => !row.tcgplayerId.trim()).slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)})${row.tcgplayerResolveReasonCode ? ` — ${row.tcgplayerResolveReasonCode}` : ""}${row.tcgplayerTranslatedSetName ? ` · Set translated: ${row.tcgplayerTranslatedSetName}` : ""}`).join("; ")}</span> : null}</> : <><strong className="text-emerald-200">All {validRows.length.toLocaleString()} TCGplayer IDs are verified.</strong> The final file uses the exact 16-column TCGplayer inventory header.</>}</div>
-              {missingTcgplayerSkuCount ? <div className="flex flex-wrap gap-2"><button type="button" onClick={() => void resolveExactTcgplayerIds()} disabled={!validRows.length || working} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[.06] px-4 text-[10px] font-semibold text-cyan-100 disabled:opacity-40"><WandSparkles className="h-4 w-4" />Resolve IDs from catalog</button><button type="button" onClick={downloadManaBoxBridge} disabled={!validRows.length} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[.08] px-4 text-[10px] font-semibold text-slate-300 disabled:opacity-40"><Download className="h-4 w-4" />Download ManaBox bridge instead</button></div> : null}
-              <button type="button" onClick={() => setShowBridgeHelp((value) => !value)} className="inline-flex items-center gap-2 text-[10px] font-semibold text-amber-200/75"><CircleHelp className="h-3.5 w-3.5" />How ID verification works<ChevronDown className={`h-3.5 w-3.5 transition ${showBridgeHelp ? "rotate-180" : ""}`} /></button>{showBridgeHelp ? <div className="rounded-xl border border-white/[.07] bg-black/10 p-3 text-[10px] leading-5 text-slate-500">Trading Docks resolves the exact TCGplayer inventory SKU from the uploaded canonical catalog by matching product name, set name, collector number, condition, and foil or nonfoil. TCGCSV can still fill product details and prices, but it does not replace the condition-specific TCGplayer ID and Trading Docks will not guess between duplicate variants.</div> : null}
+              {hasAttemptedTcgplayerMatch && missingTcgplayerSkuCount ? <div className="rounded-xl border border-amber-300/10 bg-amber-300/[.025] p-3 text-[10px] leading-5 text-amber-100/65"><strong className="text-amber-200">Review unmatched cards.</strong><span className="mt-1 block">{unresolvedTcgplayerRows.slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)}) — ${tcgplayerReasonLabel(row)}${row.tcgplayerTranslatedSetName ? ` · Set translated: ${row.tcgplayerTranslatedSetName}` : ""}`).join("; ")}</span></div> : null}
             </> : null}
           </div> : <div className="mt-4 grid gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <label><span className="text-[9px] font-semibold text-slate-500">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><input value={locationName} onChange={(event) => setLocationName(event.target.value)} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none" /></div></label>
@@ -599,6 +639,11 @@ function formatReasonSummary(reasons: Map<string, number>) {
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([reason, count]) => `${reason}: ${count.toLocaleString()}`)
     .join(" · ");
+}
+function tcgplayerReasonLabel(row: Pick<EnrichedRow, "tcgplayerResolveReason" | "tcgplayerResolveReasonCode">) {
+  const code = row.tcgplayerResolveReasonCode?.trim();
+  if (code && TCGPLAYER_REASON_LABELS[code]) return TCGPLAYER_REASON_LABELS[code];
+  return row.tcgplayerResolveReason?.trim() || "Needs review";
 }
 function parseCsv(text: string) {
   const rows: string[][] = [];

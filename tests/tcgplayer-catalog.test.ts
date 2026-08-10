@@ -905,10 +905,32 @@ test("CSV converter resolves exact TCGplayer IDs from the canonical catalog", ()
   assert.doesNotMatch(route, /localStorage|email|tradingdocks@gmail\.com/i);
 
   const converter = readFileSync(path.join(repoRoot, "src/components/dashboard/tools/CsvConversionEngine.tsx"), "utf8");
-  assert.match(converter, /Resolve exact TCGplayer IDs/);
+  assert.match(converter, /Match to TCGplayer/);
   assert.match(converter, /\/api\/tools\/csv\/tcgplayer-resolve/);
   assert.match(converter, /condition-specific TCGplayer ID/);
   assert.match(converter, /Trading Docks resolves the exact TCGplayer inventory SKU/);
+  assert.doesNotMatch(converter, /Resolve exact TCGplayer IDs/);
+});
+
+test("CSV converter presents a clean TCGplayer match and download workflow", () => {
+  const converter = readFileSync(path.join(repoRoot, "src/components/dashboard/tools/CsvConversionEngine.tsx"), "utf8");
+
+  assert.match(converter, /Review and finish/);
+  assert.match(converter, /Match to TCGplayer/);
+  assert.match(converter, /Download TCGplayer CSV/);
+  assert.match(converter, /All \$\{validRows\.length\.toLocaleString\(\)\} cards matched/);
+  assert.match(converter, /Your cards have been matched to the correct TCGplayer printing, condition, and finish/);
+  assert.match(converter, /Advanced options/);
+  assert.match(converter, /TCGplayer reference export/);
+  assert.match(converter, /Match product details/);
+  assert.match(converter, /How TCGplayer matching works/);
+  assert.match(converter, /TCGPLAYER_REASON_LABELS/);
+  assert.match(converter, /Set could not be identified/);
+  assert.match(converter, /hasAttemptedTcgplayerMatch && missingTcgplayerSkuCount/);
+  assert.match(converter, /\["Card", "Set", "#", "Condition", "Finish", "Qty"/);
+  assert.doesNotMatch(converter, /TCGplayer ID reference export/);
+  assert.doesNotMatch(converter, /How ID verification works/);
+  assert.doesNotMatch(converter, /Download ManaBox bridge instead/);
 });
 
 test("admin catalog UI requires storage verification before importing all parts", () => {
