@@ -343,6 +343,7 @@ const COLLECTOR_WORKSPACE_NAV: NavigationItem[] = [
 
 const ADMIN_NAV: NavigationItem[] = [
   { href: "/dashboard/admin", label: "Command Center", icon: ShieldCheck },
+  { href: "/dashboard/admin/catalog/tcgplayer", label: "TCGplayer Catalog", icon: DatabaseZap },
 ];
 
 function isAtLeast(tier: AccountType, minimum: AccountType) {
