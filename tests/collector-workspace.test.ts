@@ -124,6 +124,19 @@ test('wishlist indicator is resolved from wishlist rows', () => {
   assert.equal(summarizeCollectionCards(cards, 'collector').wishlistCount, 1);
 });
 
+test('wishlist-only targets are excluded from owned collection count and value', () => {
+  const wishlistOnlyCards = buildCollectionCards({
+    items: [],
+    wishlist: [{ card_name: 'Black Lotus', set_code: 'lea', target_finish: 'normal' }],
+  });
+  const summary = summarizeCollectionCards(wishlistOnlyCards, 'collector');
+
+  assert.equal(summary.totalOwnedCards, 0);
+  assert.equal(summary.uniquePrintings, 0);
+  assert.equal(summary.knownMarketValue, null);
+  assert.equal(summary.wishlistCount, 0);
+});
+
 test('Free card-limit behavior reports remaining and exceeded states', () => {
   const summary = summarizeCollectionCards(cards, 'free');
   assert.equal(summary.freeCardLimit, 500);

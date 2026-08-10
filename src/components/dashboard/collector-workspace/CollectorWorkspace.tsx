@@ -3,16 +3,20 @@
 import Link from "next/link";
 import {
   ArrowUpDown,
+  Activity,
   BookOpen,
   Boxes,
   Download,
   Grid3X3,
+  Heart,
   ImageIcon,
   Layers3,
+  LibraryBig,
   List,
   MapPin,
   Search,
   Tag,
+  TrendingUp,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -45,6 +49,7 @@ import {
   summarizeCollectionCards,
   shouldAcceptCollectionResponse,
   type CollectionCard,
+  type CollectionSummary,
   type CollectionSort,
 } from "@/lib/collector-workspace";
 import type { AccountTier } from "@/lib/plan-entitlements";
@@ -52,7 +57,7 @@ import { StorageLocationManager } from "./StorageLocationManager";
 import { TradeBinderWishlistWorkspace } from "./TradeBinderWishlistWorkspace";
 
 type DisplayMode = "grid" | "list";
-type CollectionSection = "cards" | "storage" | "trade-binder" | "wishlist";
+type CollectionSection = "overview" | "cards" | "binders" | "portfolio" | "storage" | "trade" | "wishlist";
 type StorageManagerState = Awaited<ReturnType<typeof loadWebStorageLocationManager>>;
 
 const SORT_OPTIONS: Array<{ value: CollectionSort; label: string }> = [
@@ -84,7 +89,7 @@ export function CollectorWorkspace({
   const [displayMode, setDisplayMode] = useState<DisplayMode>("list");
   const [tradeOnly, setTradeOnly] = useState(false);
   const [wishlistOnly, setWishlistOnly] = useState(false);
-  const [activeSection, setActiveSection] = useState<CollectionSection>("cards");
+  const [activeSection, setActiveSection] = useState<CollectionSection>("overview");
   const [storageState, setStorageState] = useState<StorageManagerState | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [storagePendingCardId, setStoragePendingCardId] = useState<string | null>(null);
@@ -176,6 +181,9 @@ export function CollectorWorkspace({
     hasMore,
   });
   const canUseSellerActions = accountType === "seller" || accountType === "store";
+  const binderLocations = useMemo(() => (storageState?.summaries ?? []).filter((location) => location.type === "binder"), [storageState]);
+  const featuredBinder = binderLocations.find((location) => location.favorite) ?? binderLocations[0] ?? null;
+  const recentlyAddedCards = visibleCards.slice(0, 4);
   const handleStorageAssignment = useCallback(async (card: CollectionCard, toLocationId: string | null) => {
     if (!storageState) return;
     setStoragePendingCardId(card.id);
@@ -255,17 +263,35 @@ export function CollectorWorkspace({
       ) : null}
 
       <nav className="flex flex-wrap gap-2" aria-label="Collection navigation">
-        <SectionTab label="All Cards" selected={activeSection === "cards"} onClick={() => setActiveSection("cards")} />
+        <SectionTab label="Overview" selected={activeSection === "overview"} onClick={() => setActiveSection("overview")} />
+        <SectionTab label="Cards" selected={activeSection === "cards"} onClick={() => setActiveSection("cards")} />
+        <SectionTab label="Binders" selected={activeSection === "binders"} onClick={() => setActiveSection("binders")} />
+        <SectionTab label="Portfolio" selected={activeSection === "portfolio"} onClick={() => setActiveSection("portfolio")} />
         <SectionTab label="Storage" selected={activeSection === "storage"} onClick={() => setActiveSection("storage")} />
-        <SectionTab label="Trade Binder" selected={activeSection === "trade-binder"} onClick={() => setActiveSection("trade-binder")} />
+        <SectionTab label="Trade" selected={activeSection === "trade"} onClick={() => setActiveSection("trade")} />
         <SectionTab label="Wishlist" selected={activeSection === "wishlist"} onClick={() => setActiveSection("wishlist")} />
       </nav>
 
       {storageError ? <TDErrorState title="Storage update failed" message={storageError} /> : null}
 
-      {activeSection === "storage" ? (
+      {activeSection === "overview" ? (
+        <CollectionOverview
+          summary={summary}
+          binderCount={binderLocations.length}
+          featuredBinder={featuredBinder}
+          recentlyAddedCards={recentlyAddedCards}
+          onOpenCards={() => setActiveSection("cards")}
+          onOpenStorage={() => setActiveSection("storage")}
+          onOpenTrade={() => setActiveSection("trade")}
+          onOpenWishlist={() => setActiveSection("wishlist")}
+        />
+      ) : activeSection === "binders" ? (
+        <CollectionBindersView binders={binderLocations} onOpenStorage={() => setActiveSection("storage")} />
+      ) : activeSection === "portfolio" ? (
+        <CollectionPortfolioView summary={summary} cards={visibleCards} />
+      ) : activeSection === "storage" ? (
         <StorageLocationManager />
-      ) : activeSection === "trade-binder" || activeSection === "wishlist" ? (
+      ) : activeSection === "trade" || activeSection === "wishlist" ? (
         <TradeBinderWishlistWorkspace />
       ) : (
       <>
@@ -400,6 +426,230 @@ function SectionTab({ label, selected, onClick }: { label: string; selected: boo
       {label}
     </button>
   );
+}
+
+function CollectionOverview({
+  summary,
+  binderCount,
+  featuredBinder,
+  recentlyAddedCards,
+  onOpenCards,
+  onOpenStorage,
+  onOpenTrade,
+  onOpenWishlist,
+}: {
+  summary: CollectionSummary;
+  binderCount: number;
+  featuredBinder: StorageManagerState["summaries"][number] | null;
+  recentlyAddedCards: CollectionCard[];
+  onOpenCards: () => void;
+  onOpenStorage: () => void;
+  onOpenTrade: () => void;
+  onOpenWishlist: () => void;
+}) {
+  return (
+    <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,.65fr)]" aria-label="Collection Overview">
+      <TDCard className="space-y-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <TDText variant="label" tone="info">Collection Overview</TDText>
+            <TDText as="h2" variant="heading" className="mt-2">Everything you own, organized from one place.</TDText>
+            <TDText variant="small" tone="muted" className="mt-2">Collection is the ownership home. Binders, storage, trade state, and portfolio analytics all reference these saved cards.</TDText>
+          </div>
+          <TDBadge tone="info">{summary.uniquePrintings.toLocaleString()} unique printings</TDBadge>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <MiniOverviewMetric icon={<TrendingUp className="h-4 w-4" />} label="Collection value" value={summary.knownMarketValue === null ? "Unavailable" : currency(summary.knownMarketValue)} />
+          <MiniOverviewMetric icon={<Boxes className="h-4 w-4" />} label="Owned cards" value={summary.totalOwnedCards.toLocaleString()} />
+          <MiniOverviewMetric icon={<LibraryBig className="h-4 w-4" />} label="Binders" value={binderCount.toLocaleString()} />
+          <MiniOverviewMetric icon={<ArrowUpDown className="h-4 w-4" />} label="Trade cards" value={summary.tradeBinderCount.toLocaleString()} />
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-4">
+          <QuickAction label="Cards" detail="Review exact printings" icon={<Grid3X3 className="h-4 w-4" />} onClick={onOpenCards} />
+          <QuickAction label="Storage" detail={`${summary.unassignedQuantity.toLocaleString()} unassigned`} icon={<MapPin className="h-4 w-4" />} onClick={onOpenStorage} />
+          <QuickAction label="Trade" detail={`${summary.tradeBinderCount.toLocaleString()} trade-ready`} icon={<ArrowUpDown className="h-4 w-4" />} onClick={onOpenTrade} />
+          <QuickAction label="Wishlist" detail={`${summary.wishlistCount.toLocaleString()} wanted`} icon={<Heart className="h-4 w-4" />} onClick={onOpenWishlist} />
+        </div>
+      </TDCard>
+
+      <div className="space-y-4">
+        <TDCard className="space-y-3">
+          <TDText variant="label" tone="muted">Featured binder</TDText>
+          {featuredBinder ? (
+            <div>
+              <TDText variant="title">{featuredBinder.name}</TDText>
+              <TDText variant="caption" tone="muted">{featuredBinder.path.label}</TDText>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <TDBadge tone="info">{featuredBinder.assignedQuantity} cards</TDBadge>
+                <TDBadge tone={featuredBinder.favorite ? "accent" : "neutral"}>{featuredBinder.favorite ? "Favorite" : "Binder"}</TDBadge>
+              </div>
+            </div>
+          ) : (
+            <TDEmptyState title="No binders yet" message="Create a binder storage location, then place cards from Storage." />
+          )}
+        </TDCard>
+
+        <TDCard className="space-y-3">
+          <TDText variant="label" tone="muted">Recently added</TDText>
+          {recentlyAddedCards.length ? recentlyAddedCards.map((card) => (
+            <div key={card.id} className="flex items-center justify-between gap-3 rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] p-3">
+              <div className="min-w-0">
+                <TDText variant="small" className="truncate">{card.cardName}</TDText>
+                <TDText variant="caption" tone="muted">{displayPrinting(card.printing)}</TDText>
+              </div>
+              <TDBadge tone="info">x{card.quantityOwned}</TDBadge>
+            </div>
+          )) : <TDEmptyState title="No recent cards" message="Cards appear here after Collection loads saved inventory." />}
+        </TDCard>
+      </div>
+    </section>
+  );
+}
+
+function CollectionBindersView({ binders, onOpenStorage }: { binders: StorageManagerState["summaries"]; onOpenStorage: () => void }) {
+  const [filter, setFilter] = useState<"all" | "collection" | "trade" | "showcase">("all");
+  const visible = binders.filter((binder) => {
+    const purpose = binderPurpose(binder);
+    return filter === "all" || purpose === filter;
+  });
+
+  return (
+    <TDCard className="space-y-5" aria-labelledby="collection-binders-title">
+      <header className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <TDText id="collection-binders-title" as="h2" variant="title">Collection Binders</TDText>
+          <TDText variant="small" tone="muted">Binders are curated presentations of owned cards. They reference Collection inventory and do not create duplicate ownership records.</TDText>
+        </div>
+        <TDButton label="Manage binder storage" variant="secondary" icon={<MapPin className="h-4 w-4" />} onClick={onOpenStorage} />
+      </header>
+
+      <div className="flex flex-wrap gap-2">
+        {(["all", "collection", "trade", "showcase"] as const).map((value) => <SectionTab key={value} label={value === "all" ? "All" : titleCase(value)} selected={filter === value} onClick={() => setFilter(value)} />)}
+      </div>
+
+      {visible.length ? (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {visible.map((binder) => (
+            <TDCard key={binder.id} variant="outlined" className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <TDText variant="title">{binder.name}</TDText>
+                  <TDText variant="caption" tone="muted">{binder.path.label}</TDText>
+                </div>
+                <TDBadge tone="info">{titleCase(binderPurpose(binder))}</TDBadge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <TDBadge tone="neutral">{binder.assignedQuantity} cards</TDBadge>
+                <TDBadge tone={binder.favorite ? "accent" : "neutral"}>{binder.favorite ? "Favorite" : "Private"}</TDBadge>
+              </div>
+              <TDText variant="small" tone="muted">Visibility and public sharing remain handled by the existing portfolio binder compatibility routes.</TDText>
+            </TDCard>
+          ))}
+        </div>
+      ) : (
+        <TDEmptyState title="No binders for this filter" message="Create or tag binder locations from Storage to organize cards for collection, trade, or showcase use." />
+      )}
+    </TDCard>
+  );
+}
+
+function CollectionPortfolioView({ summary, cards }: { summary: CollectionSummary; cards: CollectionCard[] }) {
+  const pricedCards = cards.filter((card) => card.marketPrice.amount !== null);
+  const gainers = [...pricedCards].sort((a, b) => (b.marketPrice.amount ?? 0) - (a.marketPrice.amount ?? 0)).slice(0, 5);
+  const allocation = allocationBySet(cards).slice(0, 6);
+
+  return (
+    <TDCard className="space-y-5" aria-labelledby="collection-portfolio-title">
+      <header className="flex flex-col gap-2">
+        <TDText id="collection-portfolio-title" as="h2" variant="title">Collection Portfolio</TDText>
+        <TDText variant="small" tone="muted">Financial analytics for owned cards only. Wishlist targets and external wants are excluded from value and owned counts.</TDText>
+      </header>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Portfolio metrics">
+        <MiniOverviewMetric icon={<TrendingUp className="h-4 w-4" />} label="Current value" value={summary.knownMarketValue === null ? "Unavailable" : currency(summary.knownMarketValue)} />
+        <MiniOverviewMetric icon={<Activity className="h-4 w-4" />} label="Value change" value="Requires price history" muted />
+        <MiniOverviewMetric icon={<Tag className="h-4 w-4" />} label="Cost basis" value="Requires purchase data" muted />
+        <MiniOverviewMetric icon={<ArrowUpDown className="h-4 w-4" />} label="Unrealized gain/loss" value="Requires cost basis" muted />
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <TDCard variant="outlined" className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <TDText variant="title">Value over time</TDText>
+            <div className="flex flex-wrap gap-1">{["7D", "30D", "90D", "1Y", "ALL"].map((range) => <TDBadge key={range} tone="neutral">{range}</TDBadge>)}</div>
+          </div>
+          <div className="flex h-44 items-center justify-center rounded-[var(--td-radius-lg)] border border-dashed border-[var(--td-border-default)]">
+            <TDText variant="small" tone="muted">Price-history chart appears when historical collection snapshots are available.</TDText>
+          </div>
+        </TDCard>
+
+        <TDCard variant="outlined" className="space-y-3">
+          <TDText variant="title">Top value cards</TDText>
+          {gainers.length ? gainers.map((card) => (
+            <div key={card.id} className="flex items-center justify-between gap-3 border-b border-[var(--td-border-default)] pb-2 last:border-b-0 last:pb-0">
+              <div className="min-w-0">
+                <TDText variant="small" className="truncate">{card.cardName}</TDText>
+                <TDText variant="caption" tone="muted">{displayPrinting(card.printing)}</TDText>
+              </div>
+              <TDText variant="small">{priceLabel(card)}</TDText>
+            </div>
+          )) : <TDEmptyState title="No priced cards" message="Portfolio value appears when owned cards have market prices." />}
+        </TDCard>
+      </div>
+
+      <TDCard variant="outlined" className="space-y-3">
+        <TDText variant="title">Allocation by set</TDText>
+        {allocation.length ? allocation.map((item) => (
+          <div key={item.label} className="grid grid-cols-[1fr_auto] items-center gap-3">
+            <TDText variant="small">{item.label}</TDText>
+            <TDBadge tone="neutral">{item.quantity} cards</TDBadge>
+          </div>
+        )) : <TDText variant="small" tone="muted">No allocation data yet.</TDText>}
+      </TDCard>
+    </TDCard>
+  );
+}
+
+function MiniOverviewMetric({ icon, label, value, muted = false }: { icon: ReactNode; label: string; value: string; muted?: boolean }) {
+  return (
+    <div className="rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] p-4">
+      <div className="flex items-center gap-2 text-[var(--td-text-muted)]">{icon}<TDText variant="caption" tone="muted">{label}</TDText></div>
+      <TDText variant="title" tone={muted ? "muted" : "primary"} className="mt-2">{value}</TDText>
+    </div>
+  );
+}
+
+function QuickAction({ label, detail, icon, onClick }: { label: string; detail: string; icon: ReactNode; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] p-4 text-left outline-none transition hover:border-[var(--td-border-focus)] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
+      <div className="flex items-center gap-2 text-cyan-200">{icon}<span className="text-sm font-black">{label}</span></div>
+      <TDText variant="caption" tone="muted" className="mt-2">{detail}</TDText>
+    </button>
+  );
+}
+
+function binderPurpose(location: StorageManagerState["summaries"][number]): "collection" | "trade" | "showcase" {
+  const text = `${location.name} ${location.path.label}`.toLowerCase();
+  if (text.includes("trade")) return "trade";
+  if (location.favorite || text.includes("showcase") || text.includes("favorite")) return "showcase";
+  return "collection";
+}
+
+function allocationBySet(cards: CollectionCard[]) {
+  const counts = new Map<string, number>();
+  for (const card of cards) {
+    const label = card.printing.setCode?.toUpperCase() ?? "Unknown set";
+    counts.set(label, (counts.get(label) ?? 0) + card.quantityOwned);
+  }
+  return [...counts.entries()]
+    .map(([label, quantity]) => ({ label, quantity }))
+    .sort((a, b) => b.quantity - a.quantity || a.label.localeCompare(b.label));
+}
+
+function titleCase(value: string) {
+  return value.slice(0, 1).toUpperCase() + value.slice(1);
 }
 
 function StorageCell({

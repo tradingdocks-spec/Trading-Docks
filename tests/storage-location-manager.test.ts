@@ -135,12 +135,52 @@ test('offline assignment dedupe key is user and card scoped', () => {
 test('Collection exposes Storage as a first-class workflow entry', () => {
   const source = readFileSync(path.join(repoRoot, 'src/components/dashboard/collector-workspace/CollectorWorkspace.tsx'), 'utf8');
 
-  assert.match(source, /type CollectionSection = "cards" \| "storage" \| "trade-binder" \| "wishlist"/);
+  assert.match(source, /type CollectionSection = "overview" \| "cards" \| "binders" \| "portfolio" \| "storage" \| "trade" \| "wishlist"/);
   assert.match(source, /aria-label="Collection navigation"/);
+  assert.match(source, /SectionTab label="Overview"/);
+  assert.match(source, /SectionTab label="Cards"/);
+  assert.match(source, /SectionTab label="Binders"/);
+  assert.match(source, /SectionTab label="Portfolio"/);
   assert.match(source, /SectionTab label="Storage"/);
+  assert.match(source, /SectionTab label="Trade"/);
+  assert.match(source, /SectionTab label="Wishlist"/);
   assert.match(source, /setActiveSection\("storage"\)/);
   assert.match(source, /label="Stored"/);
   assert.match(source, /label="Unassigned"/);
+});
+
+test('Collection overview portfolio binders trade and wishlist are one internal Collection experience', () => {
+  const source = readFileSync(path.join(repoRoot, 'src/components/dashboard/collector-workspace/CollectorWorkspace.tsx'), 'utf8');
+
+  assert.match(source, /function CollectionOverview/);
+  assert.match(source, /Everything you own, organized from one place/);
+  assert.match(source, /function CollectionBindersView/);
+  assert.match(source, /Binders are curated presentations of owned cards/);
+  assert.match(source, /function CollectionPortfolioView/);
+  assert.match(source, /Financial analytics for owned cards only/);
+  assert.match(source, /Wishlist targets and external wants are excluded from value and owned counts/);
+  assert.match(source, /activeSection === "trade" \|\| activeSection === "wishlist"/);
+});
+
+test('Binder presentation remains collection-backed without duplicate ownership state', () => {
+  const source = readFileSync(path.join(repoRoot, 'src/components/dashboard/collector-workspace/CollectorWorkspace.tsx'), 'utf8');
+  const physicalBinder = readFileSync(path.join(repoRoot, 'mobile/services/physical-binder.ts'), 'utf8');
+
+  assert.match(source, /binderLocations/);
+  assert.match(source, /storageState\?\.summaries/);
+  assert.match(source, /binderPurpose/);
+  assert.match(physicalBinder, /inventoryItemId/);
+  assert.doesNotMatch(source, /insert\(\{.*inventory_items/s);
+});
+
+test('Legacy Portfolio and shared binder routes remain available for compatibility', () => {
+  const portfolioPage = readFileSync(path.join(repoRoot, 'src/app/dashboard/collector-portfolio/page.tsx'), 'utf8');
+  const publicBinderPage = readFileSync(path.join(repoRoot, 'src/app/share/binder/[token]/page.tsx'), 'utf8');
+
+  assert.match(portfolioPage, /CollectorPortfolioWorkspace/);
+  assert.match(portfolioPage, /loadCollectorPortfolioForCurrentUser/);
+  assert.match(publicBinderPage, /binder/);
+  assert.match(publicBinderPage, /token/);
 });
 
 test('Collection storage cells are actionable and reuse the storage mutation path', () => {
