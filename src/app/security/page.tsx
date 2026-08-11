@@ -20,7 +20,7 @@ export default function SecurityPage() {
         {
           title: "Payments",
           paragraphs: [
-            "Subscription checkout and payment details are handled by Stripe. Trading Docks does not directly store full payment-card numbers.",
+            "Subscription checkout, subscription management, and payment details are handled through RevenueCat and its payment processors. Trading Docks does not directly store full payment-card numbers.",
           ],
         },
         {

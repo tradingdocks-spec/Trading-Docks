@@ -85,12 +85,13 @@ export type MembershipPlan = {
 };
 
 export type ProviderPlanMapping = {
-  provider: 'stripe' | 'revenuecat';
+  provider: 'revenuecat';
   tier: Exclude<MembershipTier, 'free'>;
   billingCycle: BillingCycle;
-  envVar?: string;
-  fallbackPriceId?: string;
-  status: 'configured-in-code' | 'planned';
+  packageIdentifier: string;
+  productId: string;
+  entitlementIdentifier: 'Collector' | 'Seller' | 'Store';
+  status: 'configured-in-code';
 };
 
 const FREE_ENTITLEMENTS: EntitlementKey[] = [
@@ -245,18 +246,12 @@ export const MEMBERSHIP_PLANS: Record<MembershipTier, MembershipPlan> = {
 };
 
 export const MEMBERSHIP_PROVIDER_MAPPINGS: ProviderPlanMapping[] = [
-  { provider: 'stripe', tier: 'collector', billingCycle: 'monthly', envVar: 'STRIPE_COLLECTOR_MONTHLY_PRICE_ID', fallbackPriceId: 'price_1TxvrLIU3P0Zz45XersDWqSc', status: 'configured-in-code' },
-  { provider: 'stripe', tier: 'collector', billingCycle: 'annual', envVar: 'STRIPE_COLLECTOR_ANNUAL_PRICE_ID', fallbackPriceId: 'price_1TxvvVIU3P0Zz45X6AQU2MyW', status: 'configured-in-code' },
-  { provider: 'stripe', tier: 'seller', billingCycle: 'monthly', envVar: 'STRIPE_SELLER_MONTHLY_PRICE_ID', fallbackPriceId: 'price_1TxvujIU3P0Zz45XrSAiuGgS', status: 'configured-in-code' },
-  { provider: 'stripe', tier: 'seller', billingCycle: 'annual', envVar: 'STRIPE_SELLER_ANNUAL_PRICE_ID', fallbackPriceId: 'price_1TxvukIU3P0Zz45XDORx6qeH', status: 'configured-in-code' },
-  { provider: 'stripe', tier: 'store', billingCycle: 'monthly', envVar: 'STRIPE_STORE_MONTHLY_PRICE_ID', fallbackPriceId: 'price_1TxvwWIU3P0Zz45Xn93kdlLP', status: 'configured-in-code' },
-  { provider: 'stripe', tier: 'store', billingCycle: 'annual', envVar: 'STRIPE_STORE_ANNUAL_PRICE_ID', fallbackPriceId: 'price_1TxvwoIU3P0Zz45XaUB4cFCt', status: 'configured-in-code' },
-  { provider: 'revenuecat', tier: 'collector', billingCycle: 'monthly', status: 'planned' },
-  { provider: 'revenuecat', tier: 'collector', billingCycle: 'annual', status: 'planned' },
-  { provider: 'revenuecat', tier: 'seller', billingCycle: 'monthly', status: 'planned' },
-  { provider: 'revenuecat', tier: 'seller', billingCycle: 'annual', status: 'planned' },
-  { provider: 'revenuecat', tier: 'store', billingCycle: 'monthly', status: 'planned' },
-  { provider: 'revenuecat', tier: 'store', billingCycle: 'annual', status: 'planned' },
+  { provider: 'revenuecat', tier: 'collector', billingCycle: 'monthly', packageIdentifier: 'collector_monthly', productId: 'tradingdocks.collector.monthly', entitlementIdentifier: 'Collector', status: 'configured-in-code' },
+  { provider: 'revenuecat', tier: 'collector', billingCycle: 'annual', packageIdentifier: 'collector_yearly', productId: 'tradingdocks.collector.yearly', entitlementIdentifier: 'Collector', status: 'configured-in-code' },
+  { provider: 'revenuecat', tier: 'seller', billingCycle: 'monthly', packageIdentifier: 'seller_monthly', productId: 'tradingdocks.seller.monthly', entitlementIdentifier: 'Seller', status: 'configured-in-code' },
+  { provider: 'revenuecat', tier: 'seller', billingCycle: 'annual', packageIdentifier: 'seller_yearly', productId: 'tradingdocks.seller.yearly', entitlementIdentifier: 'Seller', status: 'configured-in-code' },
+  { provider: 'revenuecat', tier: 'store', billingCycle: 'monthly', packageIdentifier: 'store_monthly', productId: 'tradingdocks.store.monthly', entitlementIdentifier: 'Store', status: 'configured-in-code' },
+  { provider: 'revenuecat', tier: 'store', billingCycle: 'annual', packageIdentifier: 'store_yearly', productId: 'tradingdocks.store.yearly', entitlementIdentifier: 'Store', status: 'configured-in-code' },
 ];
 
 export function normalizeAccountType(value: unknown): AccountType {

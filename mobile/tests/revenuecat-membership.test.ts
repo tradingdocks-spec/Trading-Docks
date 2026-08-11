@@ -92,11 +92,11 @@ test('RevenueCat provider state cannot escalate canonical access client-side', (
   assert.doesNotMatch(plans, /setAccountType\(.*snapshot|setAccountType\(.*providerTier/);
 });
 
-test('Stripe and Apple subscriber compatibility is documented in the mobile UI', () => {
+test('RevenueCat backend reconciliation is documented in the mobile UI', () => {
   const plans = readFileSync(join(root, 'app', 'plans.tsx'), 'utf8');
 
-  assert.match(plans, /Stripe subscriptions continue to sync/);
-  assert.match(plans, /Apple purchases must be reconciled/);
+  assert.match(plans, /RevenueCat purchases must be reconciled/);
+  assert.doesNotMatch(plans, /Stripe subscriptions continue to sync/);
 });
 
 test('Profile membership row opens Plans without duplicating purchase UI', () => {

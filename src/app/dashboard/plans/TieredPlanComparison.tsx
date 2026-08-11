@@ -14,7 +14,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { CheckoutButton } from "@/components/billing/CheckoutButton";
+import { RevenueCatWebPurchaseButton } from "@/components/billing/RevenueCatWebPurchaseButton";
 import {
   PLAN_ENTITLEMENTS,
   type AccountTier,
@@ -205,6 +205,9 @@ export function TieredPlanComparison({
             const price =
               billing === "annual" ? plan.annualMonthlyPrice : plan.monthlyPrice;
             const isCurrent = !publicView && plan.id === currentPlan;
+            const revenueCatPlan = plan.id === "collector" || plan.id === "seller" || plan.id === "store"
+              ? plan.id
+              : null;
             return (
               <article
                 key={plan.id}
@@ -264,14 +267,14 @@ export function TieredPlanComparison({
                       : planAction(plan, currentPlan)}
                     {!isCurrent && <ArrowRight className="h-4 w-4" />}
                   </Link>
-                ) : (
-                  <CheckoutButton
-                    plan={plan.id}
+                ) : revenueCatPlan ? (
+                  <RevenueCatWebPurchaseButton
+                    plan={revenueCatPlan}
                     billing={billing}
                     label={planAction(plan, currentPlan)}
                     featured={false}
                   />
-                )}
+                ) : null}
                 <div className="mt-7 border-t border-white/[0.07] pt-6">
                   <p className="text-xs font-semibold text-slate-200">What&apos;s included</p>
                   <ul className="mt-4 space-y-3">

@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 
 import { createClient } from "@/lib/supabase/server";
-import { isBillingCycle, isPaidPlan } from "@/lib/stripe/plans";
+import {
+  isRevenueCatWebBillingCycle,
+  isRevenueCatWebPurchasePlan,
+} from "@/lib/revenuecat/web-billing";
 import {
   persistentAuthCookieOptions,
   REMEMBER_ME_COOKIE,
@@ -145,10 +148,10 @@ export async function signUp(formData: FormData) {
   const termsAccepted = formData.get("terms") === "on";
   const requestedPlanValue = getString(formData, "plan");
   const requestedBillingValue = getString(formData, "billing");
-  const requestedPlan = isPaidPlan(requestedPlanValue)
+  const requestedPlan = isRevenueCatWebPurchasePlan(requestedPlanValue)
     ? requestedPlanValue
     : null;
-  const requestedBilling = isBillingCycle(requestedBillingValue)
+  const requestedBilling = isRevenueCatWebBillingCycle(requestedBillingValue)
     ? requestedBillingValue
     : null;
   const selectionQuery =

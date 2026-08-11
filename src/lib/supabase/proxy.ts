@@ -30,7 +30,6 @@ const PUBLIC_API_PREFIXES = [
 ];
 
 const API_AUTH_EXEMPT_PREFIXES = [
-  "/api/billing/webhook",
   "/api/webhooks/",
   "/api/marketplaces/",
 ];

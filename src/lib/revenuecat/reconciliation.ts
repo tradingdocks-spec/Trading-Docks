@@ -317,6 +317,7 @@ export function resolveEffectiveMembership({
   }
 
   const valid = providerEntitlements
+    .filter((entry) => entry.provider !== "stripe")
     .filter((entry) => providerEntitlementIsValid(entry, now))
     .map((entry) => ({
       ...entry,

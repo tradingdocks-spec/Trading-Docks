@@ -114,6 +114,10 @@ export function resolveMobileAccountAccessSnapshot({
     stringValue(rows.preferences?.active_workspace_id) ??
     stringValue(preferences.active_workspace_id) ??
     stringValue(rows.workspace?.workspace_id);
+  const provider = providerState(rows.subscription, rows.providerSubscriptions, rows.override);
+  const billingPlan = provider === 'stripe' ? null : stringValue(rows.subscription?.plan_id);
+  const billingStatus = provider === 'stripe' ? null : stringValue(rows.subscription?.status);
+  const billingPeriodEnd = provider === 'stripe' ? null : stringValue(rows.subscription?.current_period_end);
 
   const access = resolvePlatformAccessContext({
     userId,
@@ -122,12 +126,12 @@ export function resolveMobileAccountAccessSnapshot({
     platformRoleAuthority: 'trusted',
     accountType: stringValue(preferences.account_type) ?? localAccountType,
     membershipOverride: stringValue(rows.override?.plan_id),
-    billingPlan: stringValue(rows.subscription?.plan_id),
-    billingStatus: stringValue(rows.subscription?.status),
-    billingPeriodEnd: stringValue(rows.subscription?.current_period_end),
+    billingPlan,
+    billingStatus,
+    billingPeriodEnd,
     workspaceId: activeWorkspaceId,
     workspaceRole: stringValue(rows.workspace?.role),
-    providerState: providerState(rows.subscription, rows.providerSubscriptions, rows.override),
+    providerState: provider,
     now,
   });
 

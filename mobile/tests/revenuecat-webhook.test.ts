@@ -135,20 +135,19 @@ test('missing app_user_id, invalid user id, or missing product prevents provider
   assert.equal(providerStateFromRevenueCatEvent(missingProduct, NOW), null);
 });
 
-test('Apple expiration does not downgrade an active Stripe Seller entitlement', () => {
+test('legacy Stripe metadata no longer grants commercial membership', () => {
   const resolution = resolveEffectiveMembership({
     now: NOW,
     providerEntitlements: [
-      { provider: 'apple', planId: 'collector', status: 'canceled', currentPeriodEnd: PAST },
       { provider: 'stripe', planId: 'seller', status: 'active', currentPeriodEnd: FUTURE },
     ],
   });
 
-  assert.equal(resolution.tier, 'seller');
-  assert.equal(resolution.source, 'stripe');
+  assert.equal(resolution.tier, 'free');
+  assert.equal(resolution.source, 'free');
 });
 
-test('Stripe expiration does not downgrade an active Apple Store entitlement', () => {
+test('legacy Stripe metadata does not downgrade an active Apple Store entitlement', () => {
   const resolution = resolveEffectiveMembership({
     now: NOW,
     providerEntitlements: [
@@ -179,7 +178,7 @@ test('no valid provider resolves to Free', () => {
     now: NOW,
     providerEntitlements: [
       { provider: 'apple', planId: 'collector', status: 'canceled', currentPeriodEnd: PAST },
-      { provider: 'stripe', planId: 'seller', status: 'incomplete', currentPeriodEnd: FUTURE },
+      { provider: 'stripe', planId: 'seller', status: 'active', currentPeriodEnd: FUTURE },
     ],
   });
 

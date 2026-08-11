@@ -3,15 +3,16 @@
 import { useState } from "react";
 import { ArrowRight, LoaderCircle } from "lucide-react";
 
-import type { BillingCycle, PaidPlan } from "@/lib/stripe/plans";
+import type { BillingCycle } from "@/lib/membership-catalog";
+import type { RevenueCatWebPurchasePlan } from "@/lib/revenuecat/web-billing";
 
-export function CheckoutButton({
+export function RevenueCatWebPurchaseButton({
   plan,
   billing,
   label,
   featured = false,
 }: {
-  plan: PaidPlan;
+  plan: RevenueCatWebPurchasePlan;
   billing: BillingCycle;
   label: string;
   featured?: boolean;
@@ -23,16 +24,18 @@ export function CheckoutButton({
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("/api/billing/checkout", {
+      const response = await fetch("/api/billing/revenuecat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan, billing }),
       });
       const result = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !result.url) throw new Error(result.error || "Checkout could not start.");
+      if (!response.ok || !result.url) {
+        throw new Error(result.error || "RevenueCat checkout could not start.");
+      }
       window.location.assign(result.url);
     } catch (checkoutError) {
-      setError(checkoutError instanceof Error ? checkoutError.message : "Checkout could not start.");
+      setError(checkoutError instanceof Error ? checkoutError.message : "RevenueCat checkout could not start.");
       setLoading(false);
     }
   }
@@ -50,9 +53,9 @@ export function CheckoutButton({
         }`}
       >
         {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-        {loading ? "Opening secure checkout…" : label}
+        {loading ? "Opening RevenueCat checkout..." : label}
       </button>
-      {error && <p className="mt-2 text-center text-xs text-rose-300">{error}</p>}
+      {error ? <p className="mt-2 text-center text-xs text-rose-300">{error}</p> : null}
     </div>
   );
 }

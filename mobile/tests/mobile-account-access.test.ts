@@ -6,7 +6,7 @@ import {
   resolveMobileAccountAccessSnapshot,
 } from '../services/mobile-account-access.ts';
 
-test('mobile account access uses backend subscription tier after RevenueCat or Stripe reconciliation', () => {
+test('mobile account access uses backend subscription tier after RevenueCat reconciliation', () => {
   const snapshot = resolveMobileAccountAccessSnapshot({
     userId: 'user-123',
     localAccountType: 'free',
@@ -22,6 +22,25 @@ test('mobile account access uses backend subscription tier after RevenueCat or S
   assert.equal(snapshot.accountType, 'store');
   assert.equal(snapshot.billingStatus, 'active');
   assert.equal(snapshot.providerState, 'revenuecat');
+});
+
+test('legacy Stripe-only subscription metadata does not grant paid mobile membership', () => {
+  const snapshot = resolveMobileAccountAccessSnapshot({
+    userId: 'user-123',
+    localAccountType: 'seller',
+    rows: {
+      subscription: {
+        plan_id: 'seller',
+        status: 'active',
+        stripe_customer_id: 'cus_123',
+        stripe_subscription_id: 'sub_123',
+      },
+    },
+  });
+
+  assert.equal(snapshot.membershipTier, 'free');
+  assert.equal(snapshot.accountType, 'seller');
+  assert.equal(snapshot.providerState, 'stripe');
 });
 
 test('admin role alone does not grant paid mobile membership or workspace tabs', () => {

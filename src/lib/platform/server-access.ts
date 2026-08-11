@@ -105,6 +105,15 @@ export async function resolvePlatformAccessForUser(
   const workspaceAccess = membershipsResult.error
     ? { workspaceId: null, workspaceRole: null }
     : resolveWorkspaceAccessFromRows(explicitWorkspaceId, membershipsResult.data ?? []);
+  const providerState = providerStateFromRows(
+    subscriptionResult.error,
+    subscriptionResult.data,
+    providerSubscriptionsResult.error ? null : providerSubscriptionsResult.data,
+    overridePlan,
+  );
+  const billingPlan = providerState === "stripe" ? null : stringValue(subscriptionResult.data?.plan_id);
+  const billingStatus = providerState === "stripe" ? null : stringValue(subscriptionResult.data?.status);
+  const billingPeriodEnd = providerState === "stripe" ? null : stringValue(subscriptionResult.data?.current_period_end);
 
   return resolvePlatformAccessContext({
     userId: user.id,
@@ -113,17 +122,12 @@ export async function resolvePlatformAccessForUser(
     platformRoleAuthority: "trusted",
     accountType: stringValue(preferences.account_type),
     membershipOverride: overridePlan,
-    billingPlan: subscriptionResult.error ? null : stringValue(subscriptionResult.data?.plan_id),
-    billingStatus: subscriptionResult.error ? null : stringValue(subscriptionResult.data?.status),
-    billingPeriodEnd: subscriptionResult.error ? null : stringValue(subscriptionResult.data?.current_period_end),
+    billingPlan: subscriptionResult.error ? null : billingPlan,
+    billingStatus: subscriptionResult.error ? null : billingStatus,
+    billingPeriodEnd: subscriptionResult.error ? null : billingPeriodEnd,
     workspaceId: workspaceAccess.workspaceId,
     workspaceRole: workspaceAccess.workspaceRole,
-    providerState: providerStateFromRows(
-      subscriptionResult.error,
-      subscriptionResult.data,
-      providerSubscriptionsResult.error ? null : providerSubscriptionsResult.data,
-      overridePlan,
-    ),
+    providerState,
     suspended: Boolean(suspendedUntil && suspendedUntil > Date.now()),
   });
 }

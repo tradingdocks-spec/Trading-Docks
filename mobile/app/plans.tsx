@@ -348,7 +348,7 @@ export default function Plans() {
 
         <TDCard variant="outlined" style={s.legalCard}>
           <TDText variant="caption" tone="muted" style={s.finePrint}>
-            Trading Docks backend membership remains the authority for app access. Stripe subscriptions continue to sync through that canonical backend state. Apple purchases must be reconciled before protected access updates.
+            Trading Docks backend membership remains the authority for app access. RevenueCat purchases must be reconciled before protected access updates.
           </TDText>
           <TDText variant="caption" tone="muted" style={s.finePrint}>
             Subscription renews automatically unless cancelled. StoreKit manages upgrades, downgrades, renewals, and cancellation. Store employee capacity remains configurable.

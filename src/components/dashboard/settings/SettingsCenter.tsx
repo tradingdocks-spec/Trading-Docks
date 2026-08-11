@@ -31,7 +31,7 @@ import type { LucideIcon } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
 import { saveSettings } from "@/app/actions/settings";
-import { PortalButton } from "@/components/billing/PortalButton";
+import { RevenueCatBillingManagementButton } from "@/components/billing/RevenueCatBillingManagementButton";
 import type { AccountTier } from "@/lib/plan-entitlements";
 
 type SettingsData = Record<string, string | boolean | number>;
@@ -363,10 +363,10 @@ function BillingSettings({ planName, subscription }: { planName: string; subscri
       <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div><div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Current membership</div><h3 className="mt-2 text-3xl font-semibold text-white">{planName}</h3><p className="mt-2 text-sm text-slate-400">{subscription ? `${subscription.status} · ${subscription.billingCycle} billing${subscription.renewalDate ? ` · ${subscription.cancelAtPeriodEnd ? "Ends" : "Renews"} ${subscription.renewalDate}` : ""}` : "No paid subscription is connected."}</p></div>
-        {subscription ? <PortalButton /> : <a href="/dashboard/plans" className="inline-flex h-11 items-center justify-center rounded-xl bg-cyan-300 px-5 text-sm font-semibold text-[#001018]">Compare plans</a>}
+        {subscription ? <RevenueCatBillingManagementButton /> : <a href="/dashboard/plans" className="inline-flex h-11 items-center justify-center rounded-xl bg-cyan-300 px-5 text-sm font-semibold text-[#001018]">Compare plans</a>}
       </div>
     </div>
-    <Panel title="Billing controls" description="Securely managed through Stripe.">
+    <Panel title="Billing controls" description="Securely managed through RevenueCat.">
       <div className="grid gap-3 sm:grid-cols-3">{["Payment methods", "Invoices & receipts", "Change or cancel plan"].map((item) => <div key={item} className="rounded-xl border border-white/[0.06] bg-black/10 p-4 text-xs font-medium text-slate-300">{item}</div>)}</div>
     </Panel>
   </div>;

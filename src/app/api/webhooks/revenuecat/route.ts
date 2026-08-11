@@ -117,12 +117,7 @@ async function providerEntitlementsForUser(
   supabase: ReturnType<typeof createAdminClient>,
   userId: string,
 ) {
-  const [stripeResult, revenueCatResult, overrideResult] = await Promise.all([
-    supabase
-      .from("billing_subscriptions")
-      .select("plan_id,status,current_period_end,updated_at")
-      .eq("user_id", userId)
-      .maybeSingle(),
+  const [revenueCatResult, overrideResult] = await Promise.all([
     supabase
       .from("billing_provider_subscriptions")
       .select("provider,plan_id,status,current_period_end,updated_at")
@@ -134,21 +129,10 @@ async function providerEntitlementsForUser(
       .maybeSingle(),
   ]);
 
-  if (stripeResult.error) throw stripeResult.error;
   if (revenueCatResult.error) throw revenueCatResult.error;
   if (overrideResult.error) throw overrideResult.error;
 
   const entitlements: ProviderSubscriptionEntitlement[] = [];
-  if (stripeResult.data) {
-    entitlements.push({
-      provider: "stripe",
-      planId: stripeResult.data.plan_id,
-      status: stripeResult.data.status,
-      currentPeriodEnd: stripeResult.data.current_period_end,
-      updatedAt: stripeResult.data.updated_at,
-    });
-  }
-
   for (const row of revenueCatResult.data ?? []) {
     entitlements.push({
       provider: row.provider,

@@ -47,7 +47,8 @@ test("business remains only a legacy alias for store", () => {
 
 test("provider mappings reference only canonical membership tiers", () => {
   for (const mapping of MEMBERSHIP_PROVIDER_MAPPINGS) {
-    assert.equal(canonicalTiers.includes(mapping.tier), true, `${mapping.provider} ${mapping.providerPriceId}`);
+    assert.equal(canonicalTiers.includes(mapping.tier), true, `${mapping.provider} ${mapping.productId}`);
+    assert.equal(mapping.provider, "revenuecat");
     assert.notEqual(mapping.tier, "business");
   }
 });
@@ -110,7 +111,7 @@ test("server billing resolution keeps manual override explicit and provider prec
         { provider: "apple", planId: "collector", status: "canceled", currentPeriodEnd: "2026-07-01T00:00:00.000Z" },
       ],
     }),
-    { tier: "seller", status: "active", source: "stripe", periodEnd: "2026-09-01T00:00:00.000Z" },
+    { tier: "free", status: "free", source: "free", periodEnd: null },
   );
 
   assert.deepEqual(
@@ -132,9 +133,11 @@ test("web and mobile access loaders read provider subscriptions instead of assum
   assert.match(serverAccess, /billing_provider_subscriptions/);
   assert.match(serverAccess, /stripe_subscription_id/);
   assert.match(serverAccess, /providerStates\.has\("revenuecat"\)/);
+  assert.match(serverAccess, /providerState === "stripe" \? null/);
   assert.doesNotMatch(serverAccess, /return "stripe" as const;\s*\n}/);
 
   assert.match(mobileAccess, /billing_provider_subscriptions/);
   assert.match(mobileAccess, /stripe_subscription_id/);
+  assert.match(mobileAccess, /provider === 'stripe' \? null/);
   assert.doesNotMatch(mobileAccess, /plan_id,status,current_period_end,provider/);
 });

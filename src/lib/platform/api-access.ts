@@ -22,13 +22,12 @@ export type ApiAccessRule = {
 };
 
 export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
-  { id: "billing-webhook", pattern: /^\/api\/billing\/webhook\/?$/, kind: "webhook", label: "Stripe billing webhook" },
   { id: "revenuecat-webhook", pattern: /^\/api\/webhooks\/revenuecat\/?$/, kind: "webhook", label: "RevenueCat webhook" },
   { id: "cloudflare-email-webhook", pattern: /^\/api\/webhooks\/cloudflare-email\/?$/, kind: "webhook", label: "Cloudflare email webhook" },
   { id: "public-card-images", pattern: /^\/api\/(landing-card-image|scryfall-image|scryfall-card-image|tcg-image|tcgcsv\/image|card-shows\/image)(\/|$)/, kind: "public", label: "Public card image proxy" },
   { id: "public-market-data", pattern: /^\/api\/(market-cards|multi-game-market|deck-vault\/game-changers)(\/|$)/, kind: "public", label: "Public market data" },
   { id: "admin", pattern: /^\/api\/admin(\/|$)/, kind: "admin-only", capability: "platform.admin", label: "Admin APIs" },
-  { id: "billing", pattern: /^\/api\/billing\/(checkout|portal)(\/|$)/, kind: "authenticated", label: "Billing portal and checkout" },
+  { id: "billing", pattern: /^\/api\/billing\/revenuecat(\/|$)/, kind: "authenticated", label: "RevenueCat billing checkout and management" },
   { id: "collector-workspace", pattern: /^\/api\/collector-workspace(\/|$)/, kind: "capability", capability: "collection.write", label: "Collector Workspace mutations" },
   { id: "label-studio", pattern: /^\/api\/label-studio(\/|$)/, kind: "capability", capability: "label.view", label: "Label Studio APIs" },
   { id: "collector-portfolio", pattern: /^\/api\/collector-portfolio(\/|$)/, kind: "capability", capability: "binder.manage", label: "Collector portfolio APIs" },

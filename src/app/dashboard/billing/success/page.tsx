@@ -8,7 +8,7 @@ export default function BillingSuccessPage() {
         <CheckCircle2 className="mx-auto h-12 w-12 text-cyan-300" />
         <h1 className="mt-5 text-3xl font-semibold">Subscription confirmed</h1>
         <p className="mt-3 text-sm leading-6 text-slate-400">
-          Stripe received your payment. Your Trading Docks access updates automatically as the secure billing confirmation arrives.
+          RevenueCat received your purchase. Your Trading Docks access updates automatically as the secure entitlement confirmation arrives.
         </p>
         <Link
           href="/dashboard"
