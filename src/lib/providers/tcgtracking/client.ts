@@ -25,6 +25,7 @@ export const TCGTRACKING_BASE_URL =
   "https://openapi.tcgtracking.com/v1";
 export const TCGTRACKING_DEFAULT_TIMEOUT_MS = 8000;
 export const TCGTRACKING_DEFAULT_RETRIES = 1;
+export const TCGTRACKING_MAGIC_CATEGORY_ID = "1";
 
 export class TcgTrackingProviderError extends Error {
   status?: number;
@@ -87,7 +88,7 @@ export class TcgTrackingClient {
   }
 
   async sets(category: string): Promise<TcgTrackingSet[]> {
-    const payload = await this.getJson(`/${encodePath(category)}/sets`);
+    const payload = await this.getJson(`/${categoryPath(category)}/sets`);
     return asArray(payload)
       .map((entry) => normalizeSet(entry, category))
       .filter((set): set is TcgTrackingSet => Boolean(set));
@@ -95,14 +96,14 @@ export class TcgTrackingClient {
 
   async set(category: string, set: string): Promise<TcgTrackingSet | null> {
     const payload = await this.getJson(
-      `/${encodePath(category)}/sets/${encodePath(set)}`,
+      `/${categoryPath(category)}/sets/${encodePath(set)}`,
     );
     return normalizeSet(payload, category);
   }
 
   async cards(category: string, set: string): Promise<TcgTrackingProduct[]> {
     const payload = await this.getJson(
-      `/${encodePath(category)}/sets/${encodePath(set)}/cards`,
+      `/${categoryPath(category)}/sets/${encodePath(set)}/cards`,
     );
     return asArray(payload)
       .map((entry) => normalizeProduct(entry, category))
@@ -116,7 +117,7 @@ export class TcgTrackingClient {
     set: string,
   ): Promise<TcgTrackingSealedProduct[]> {
     const payload = await this.getJson(
-      `/${encodePath(category)}/sets/${encodePath(set)}/sealed`,
+      `/${categoryPath(category)}/sets/${encodePath(set)}/sealed`,
     );
     return asArray(payload)
       .map((entry) => normalizeSealedProduct(entry, category))
@@ -130,9 +131,9 @@ export class TcgTrackingClient {
     set: string,
   ): Promise<TcgTrackingPriceSnapshot[]> {
     const payload = await this.getJson(
-      `/${encodePath(category)}/sets/${encodePath(set)}/pricing`,
+      `/${categoryPath(category)}/sets/${encodePath(set)}/pricing`,
     );
-    return asArray(payload)
+    return flattenPricingPayload(payload)
       .map(normalizePriceSnapshot)
       .filter((snapshot): snapshot is TcgTrackingPriceSnapshot =>
         Boolean(snapshot),
@@ -141,9 +142,9 @@ export class TcgTrackingClient {
 
   async skus(category: string, set: string): Promise<TcgTrackingSku[]> {
     const payload = await this.getJson(
-      `/${encodePath(category)}/sets/${encodePath(set)}/skus`,
+      `/${categoryPath(category)}/sets/${encodePath(set)}/skus`,
     );
-    return asArray(payload)
+    return flattenSkuPayload(payload)
       .map(normalizeSku)
       .filter((sku): sku is TcgTrackingSku => Boolean(sku));
   }
@@ -161,7 +162,7 @@ export class TcgTrackingClient {
   ): Promise<TcgTrackingProduct[]> {
     const params = new URLSearchParams({ q: query });
     const payload = await this.getJson(
-      `/${encodePath(category)}/search?${params.toString()}`,
+      `/${categoryPath(category)}/search?${params.toString()}`,
     );
     return asArray(payload)
       .map((entry) => normalizeProduct(entry, category))
@@ -328,6 +329,18 @@ function encodePath(value: string) {
   return encodeURIComponent(value.trim());
 }
 
+function categoryPath(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized === "magic" ||
+    normalized === "mtg" ||
+    normalized === "magic: the gathering"
+  ) {
+    return TCGTRACKING_MAGIC_CATEGORY_ID;
+  }
+  return encodePath(value);
+}
+
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
@@ -336,4 +349,69 @@ function textValue(value: unknown) {
   return typeof value === "string" && value.trim()
     ? value.trim()
     : undefined;
+}
+
+function flattenSkuPayload(payload: unknown) {
+  const array = asArray(payload);
+  if (array.length) return array;
+
+  const object = asObject(payload);
+  const products = asObject(object?.products);
+  if (!products) return [];
+
+  const rows: unknown[] = [];
+  for (const [productId, skuMapValue] of Object.entries(products)) {
+    const skuMap = asObject(skuMapValue);
+    if (!skuMap) continue;
+    for (const [skuId, skuValue] of Object.entries(skuMap)) {
+      const sku = asObject(skuValue);
+      if (!sku) continue;
+      rows.push({
+        product_id: productId,
+        tcgplayer_product_id: Number(productId),
+        sku_id: skuId,
+        tcgplayer_sku_id: Number(skuId),
+        updated_at: textValue(object?.updated),
+        ...sku,
+      });
+    }
+  }
+  return rows;
+}
+
+function flattenPricingPayload(payload: unknown) {
+  const array = asArray(payload);
+  if (array.length) return array;
+
+  const object = asObject(payload);
+  const prices = asObject(object?.prices);
+  if (!prices) return [];
+
+  const rows: unknown[] = [];
+  for (const [productId, priceValue] of Object.entries(prices)) {
+    const price = asObject(priceValue);
+    const tcg = asObject(price?.tcg);
+    if (!tcg) continue;
+    const manapool = asObject(price?.manapool);
+    for (const [finish, finishValue] of Object.entries(tcg)) {
+      const finishPrice = asObject(finishValue);
+      if (!finishPrice) continue;
+      const normalizedFinish = finish.toLowerCase();
+      rows.push({
+        product_id: productId,
+        tcgplayer_product_id: Number(productId),
+        sku_id: `${productId}:${finish}`,
+        variant: finish,
+        market_price: finishPrice.market,
+        low_price: finishPrice.low,
+        high_price: finishPrice.high,
+        listing_count: price?.mp_qty,
+        manapool_low: normalizedFinish === "foil"
+          ? manapool?.foil
+          : manapool?.normal,
+        updated_at: textValue(object?.updated),
+      });
+    }
+  }
+  return rows;
 }

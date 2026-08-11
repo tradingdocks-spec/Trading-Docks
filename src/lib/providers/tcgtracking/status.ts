@@ -7,20 +7,25 @@ import {
 import type { TcgTrackingProviderHealth } from "./types.ts";
 
 export async function loadTcgTrackingProviderHealth(
-  client: Pick<TcgTrackingClient, "meta"> = createTcgTrackingClient(),
+  client: Pick<TcgTrackingClient, "categories" | "meta"> = createTcgTrackingClient(),
 ): Promise<TcgTrackingProviderHealth> {
   const startedAt = Date.now();
+  const lastCheckedAt = new Date().toISOString();
+  const cachePolicy = tcgTrackingCachePolicy();
   try {
     const meta = await client.meta();
+    const categories = await client.categories();
     return {
       provider: "tcgtracking",
       status: "available",
       baseUrl: meta.baseUrl,
       metaVersion: meta.version,
+      categoryCount: categories.length,
+      lastCheckedAt,
       latencyMs: Date.now() - startedAt,
       cachePolicy: {
-        staticDataTtlDays: tcgTrackingCachePolicy().staticDataTtlDays,
-        pricingTtlHours: tcgTrackingCachePolicy().pricingTtlHours,
+        staticDataTtlDays: cachePolicy.staticDataTtlDays,
+        pricingTtlHours: cachePolicy.pricingTtlHours,
       },
       localSchema: "proposal-only",
     };
@@ -30,10 +35,11 @@ export async function loadTcgTrackingProviderHealth(
       status: "unavailable",
       baseUrl:
         process.env.TCGTRACKING_API_BASE_URL ?? TCGTRACKING_BASE_URL,
+      lastCheckedAt,
       latencyMs: null,
       cachePolicy: {
-        staticDataTtlDays: tcgTrackingCachePolicy().staticDataTtlDays,
-        pricingTtlHours: tcgTrackingCachePolicy().pricingTtlHours,
+        staticDataTtlDays: cachePolicy.staticDataTtlDays,
+        pricingTtlHours: cachePolicy.pricingTtlHours,
       },
       localSchema: "proposal-only",
       error:

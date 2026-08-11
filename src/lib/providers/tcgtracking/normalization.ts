@@ -17,7 +17,7 @@ export function asObject(value: unknown): Record<string, unknown> | null {
 export function asArray(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
   const object = asObject(value);
-  for (const key of ["data", "results", "items", "products", "cards", "skus", "candidates"]) {
+  for (const key of ["data", "results", "items", "categories", "sets", "products", "cards", "skus", "pricing", "candidates"]) {
     const candidate = object?.[key];
     if (Array.isArray(candidate)) return candidate;
   }
@@ -159,7 +159,9 @@ export function normalizeProduct(
     tcgplayerProductId: integerField(source, [
       "tcgplayer_product_id",
       "tcgplayerProductId",
+      "tcg_player_id",
       "tcgplayer_id",
+      "id",
     ]),
     name,
     cleanName: stringField(source, ["clean_name", "cleanName"]),
@@ -202,24 +204,27 @@ export function normalizeSku(value: unknown): TcgTrackingSku | null {
       "tcgplayerProductId",
       "tcgplayer_id",
     ]),
-    condition: stringField(source, ["condition", "condition_name", "conditionName"]),
-    conditionCode: stringField(source, ["condition_code", "conditionCode"]),
-    variant: stringField(source, ["variant", "finish", "printing"]),
+    condition: stringField(source, ["condition", "condition_name", "conditionName", "cnd"]),
+    conditionCode: stringField(source, ["condition_code", "conditionCode", "cnd"]),
+    variant: stringField(source, ["variant", "finish", "printing", "var"]),
     variantAbbreviation: stringField(source, [
       "variant_abbreviation",
       "variantAbbreviation",
+      "var_a",
     ]),
-    variantId: stringField(source, ["variant_id", "variantId"]),
-    language: stringField(source, ["language", "lang"]),
-    marketPrice: numberField(source, ["market_price", "marketPrice", "tcg_market"]),
-    lowPrice: numberField(source, ["low_price", "lowPrice", "tcg_low"]),
-    highPrice: numberField(source, ["high_price", "highPrice", "tcg_high"]),
+    variantId: stringField(source, ["variant_id", "variantId", "vid"]),
+    language: stringField(source, ["language", "lang", "lng"]),
+    marketPrice: numberField(source, ["market_price", "marketPrice", "tcg_market", "mkt"]),
+    lowPrice: numberField(source, ["low_price", "lowPrice", "tcg_low", "low"]),
+    highPrice: numberField(source, ["high_price", "highPrice", "tcg_high", "hi"]),
     activeListings: integerField(source, [
       "listing_count",
       "activeListings",
       "active_listings",
+      "cnt",
+      "mp_qty",
     ]),
-    manapoolLow: numberField(source, ["manapool_low", "manapoolLow"]),
+    manapoolLow: numberField(source, ["manapool_low", "manapoolLow", "mp"]),
     lastSyncedAt: stringField(source, ["last_synced_at", "updated_at", "updatedAt"]),
     raw: value,
   };
@@ -259,9 +264,9 @@ export function normalizePriceSnapshot(value: unknown): TcgTrackingPriceSnapshot
     providerSkuId: sku?.providerSkuId ?? stringField(source, ["sku_id", "skuId"]),
     tcgplayerProductId: sku?.tcgplayerProductId,
     tcgplayerSkuId: sku?.tcgplayerSkuId,
-    tcgMarket: sku?.marketPrice ?? numberField(source, ["tcg_market"]) ?? null,
-    tcgLow: sku?.lowPrice ?? numberField(source, ["tcg_low"]) ?? null,
-    tcgHigh: sku?.highPrice ?? numberField(source, ["tcg_high"]) ?? null,
+    tcgMarket: sku?.marketPrice ?? numberField(source, ["tcg_market", "market"]) ?? null,
+    tcgLow: sku?.lowPrice ?? numberField(source, ["tcg_low", "low"]) ?? null,
+    tcgHigh: sku?.highPrice ?? numberField(source, ["tcg_high", "hi", "high"]) ?? null,
     activeListings: sku?.activeListings ?? null,
     manapoolLow: sku?.manapoolLow ?? null,
     updatedAt,

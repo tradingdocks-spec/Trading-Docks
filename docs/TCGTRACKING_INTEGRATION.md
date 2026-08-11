@@ -280,3 +280,96 @@ Status: Requires Production Configuration
 - API rate expectations should be confirmed with the provider before bulk sync.
 - Scanner quality must be benchmarked before becoming production recognition authority.
 - Provider image URLs should be monitored for hotlinking, CDN expiry, and cache behavior.
+
+## Live Provider Validation
+
+Status: Partially Implemented
+
+Validation date: 2026-08-11.
+
+Live endpoint findings:
+
+- API reachable: Yes.
+- Metadata version: `1.1`.
+- Category count: 62.
+- Health check latency observed from the local workstation: 98-2,579 ms across sampled runs.
+- Catalog resources use numeric category IDs. Magic is category `1`; `/v1/1/sets` is valid while `/v1/magic/sets` is not.
+- Categories are returned in a `{ categories: [...] }` wrapper.
+- Sets are returned in a `{ sets: [...] }` wrapper.
+- SKU data is returned as a compressed `products.{productId}.{skuId}` map.
+- Pricing data is returned as a compressed `prices.{productId}.tcg.{finish}` map.
+
+Provider contract changes made from live validation:
+
+- Magic aliases `magic`, `mtg`, and `Magic: The Gathering` map to category `1`.
+- Category, set, SKU, and pricing wrappers are normalized.
+- Compact SKU field names are supported: `cnd`, `var`, `var_a`, `vid`, `lng`, `mkt`, `low`, `hi`, `cnt`, and `mp`.
+- Compact price maps are flattened into Trading Docks market snapshots.
+- Top-level product `id` is treated as the TCGplayer Product ID for Magic product identity.
+
+Products tested:
+
+| Case | Product | Set | TCGplayer Product ID | Collector | Scryfall ID | MTGJSON UUID | Cardmarket | CardTrader | Provider SKUs | Pricing coverage |
+| --- | --- | --- | ---: | --- | --- | --- | ---: | ---: | ---: | --- |
+| Normal | Arcane Signet | Commander Legends | 226694 | 297 | `ee40458c-7f3a-4fa6-976f-be1f7a336fdc` | `811f0a64-cff0-5a50-817d-b9f26b22b409` | 510735 | 149682 | 90 | Normal and Foil |
+| Older frame | Rhystic Study | Prophecy | 7357 | 45 | `3394cefd-a3c6-4917-8f46-234e441ecfb6` | `7691887a-48cf-523b-bd19-c94a756392a2` | 3939 | 29733 | 80 | Normal and Foil |
+| Older frame | All Is Dust | Rise of the Eldrazi | 34695 | 1 | `62dba377-7446-4517-a504-ee04568fd6cf` | `ceeeaa92-ff8e-5943-8842-3bb7efa6b673` | 22367 | 18892 | 90 | Normal and Foil |
+| Older frame | Lightning Greaves | Mirrodin | 11512 | 199 | `61a28870-cf78-4323-9d82-cee764067764` | `25429a6d-fd7a-5235-a230-f4748b04589d` | 199 | 26029 | 90 | Normal and Foil |
+| Borderless | Arcane Signet (Borderless) | Commander Masters | 503407 | 653 | `1836b8a6-c616-4793-933b-b38296d70e72` | `306bac0e-10b2-5db3-9e4b-a36dea8336ac` | 721753 | 252915 | 70 | Normal and Foil |
+| Foil-only special | Rhystic Study (Anime Borderless) (Confetti Foil) | Wilds of Eldraine: Enchanting Tales | 509567 | 91 | `8f7f8d7a-e5ad-4c03-8ab3-e9af9c2927b7` | `b2dac0e6-c42a-5f17-9e09-7d3f1380551f` | 728563 | 257413 | 10 | Foil |
+
+SKU and pricing reconciliation:
+
+- Provider SKU records include condition, finish, language, market price, low price, high price, active listing count, and Manapool low where present.
+- Provider pricing maps cleanly into `TradingDocksMarketSnapshot`.
+- TCGTracking uses compact condition codes (`NM`, `LP`, `MP`, `HP`, `DMG`) while Trading Docks local catalog stores display conditions (`Near Mint`, `Lightly Played`, etc.). Any future cache/write path must normalize aliases before comparing condition agreement.
+- The pricing endpoint provides per-finish market/low and Manapool low, but not always per-finish high price. The SKU endpoint includes high price at the condition/SKU level.
+- Local `tcgplayer_magic_catalog` comparison could not be completed in this shell because `SUPABASE_SERVICE_ROLE_KEY` is not configured. The read-only validation harness performs that comparison when server credentials are present.
+
+Image reliability:
+
+| Product | Image status | Content type | Observed HEAD latency |
+| --- | ---: | --- | ---: |
+| Arcane Signet, Commander Legends | 200 | `image/jpeg` | 66 ms |
+| Rhystic Study, Prophecy | 200 | `image/jpeg` | 47 ms |
+| All Is Dust, Rise of the Eldrazi | 200 | `image/jpeg` | 56 ms |
+| Lightning Greaves, Mirrodin | 200 | `image/jpeg` | 53 ms |
+| Arcane Signet (Borderless), Commander Masters | 200 | `image/jpeg` | 60 ms |
+| Rhystic Study Confetti Foil, Wilds of Eldraine: Enchanting Tales | 200 | `image/jpeg` | 46 ms |
+
+Result: 6 of 6 tested image URLs were reachable and exact-printing aligned with the tested provider product IDs. Keep TCGTracking images as a fallback after existing Trading Docks exact cached images and exact product identity images. Do not change production image priority yet.
+
+Scanner benchmark:
+
+- No real image fixtures are committed in the repository.
+- `scripts/tcgtracking/scan-benchmark.ts` provides a private-fixture runner for TCGTracking `POST /scan`.
+- The runner requires `--allow-upload` because image fixtures are sent to the provider.
+- The runner exports sanitized results only: fixture id, expected labels, candidates, latency, top-1/top-N flags, and unresolved status. It does not export local image paths or image contents.
+- No live scanner accuracy numbers are claimed until product-owner-supplied private fixtures are run.
+
+Local commands:
+
+```bash
+node --experimental-strip-types scripts/tcgtracking/live-validation.ts --output C:\private\tcgtracking-live-validation.json
+node --experimental-strip-types scripts/tcgtracking/scan-benchmark.ts --manifest C:\private\tcgtracking-scan-fixtures.json --allow-upload --output C:\private\tcgtracking-scan-report.json
+```
+
+Schema recommendation:
+
+- Do not apply the broad cache proposal yet.
+- Existing `tcgplayer_magic_catalog` should remain the local exact-SKU authority.
+- `tcgtracking_products` may duplicate existing catalog data if added wholesale. Prefer a smaller mapping table first.
+- Minimum useful future schema:
+  - `tcgtracking_product_mappings`: provider product id, TCGplayer Product ID, Scryfall ID, MTGJSON UUID, Cardmarket ID, CardTrader ID, set id, collector number, image URL, and confidence/audit metadata.
+  - `tcgtracking_price_snapshots`: provider product id, TCGplayer SKU ID where available, condition, finish, language, market/low/high/listing/Manapool values, and captured timestamp.
+  - `tcgtracking_sync_runs`: bounded sync checkpoints, provider latency, counts, freshness, and errors.
+- Recommended indexes:
+  - `(tcgplayer_product_id)`.
+  - `(scryfall_id)`.
+  - `(mtgjson_uuid)`.
+  - `(provider_product_id, condition, finish, language, captured_at desc)`.
+  - `(captured_at desc)`.
+- Recommended sync frequency:
+  - Product identity mappings: weekly or on-demand after new catalog imports.
+  - SKU pricing snapshots: daily, with manual admin refresh for high-value cards.
+  - Scanner candidates: live/on-demand only, benchmark gated.

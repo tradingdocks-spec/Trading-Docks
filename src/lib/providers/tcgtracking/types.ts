@@ -164,6 +164,8 @@ export type TcgTrackingProviderHealth = {
   status: "available" | "unavailable";
   baseUrl: string;
   metaVersion?: string;
+  categoryCount?: number;
+  lastCheckedAt: string;
   latencyMs: number | null;
   cachePolicy: {
     staticDataTtlDays: number;

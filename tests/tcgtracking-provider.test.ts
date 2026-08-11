@@ -26,18 +26,18 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 test("TCGTracking client parses meta categories products SKUs pricing and sealed payloads", async () => {
   const fetcher = async (url: string) => {
     if (url.endsWith("/meta")) return json({ version: "v1", generated_at: "2026-08-11T00:00:00Z" });
-    if (url.endsWith("/categories")) return json({ data: [{ id: "magic", name: "Magic" }] });
-    if (url.endsWith("/magic/sets")) return json({ results: [{ id: "mid", name: "Innistrad: Midnight Hunt", abbr: "MID" }] });
-    if (url.endsWith("/magic/sets/mid/cards")) return json({ cards: [providerProduct()] });
-    if (url.endsWith("/magic/sets/mid/skus")) return json({ skus: [providerSku()] });
-    if (url.endsWith("/magic/sets/mid/pricing")) return json({ data: [providerSku()] });
-    if (url.endsWith("/magic/sets/mid/sealed")) return json({ products: [{ ...providerProduct(), product_type: "Bundle" }] });
+    if (url.endsWith("/categories")) return json({ categories: [{ id: 1, name: "Magic: The Gathering" }] });
+    if (url.endsWith("/1/sets")) return json({ sets: [{ id: 123, name: "Innistrad: Midnight Hunt", abbreviation: "MID" }] });
+    if (url.endsWith("/1/sets/mid/cards")) return json({ cards: [providerProduct()] });
+    if (url.endsWith("/1/sets/mid/skus")) return json({ skus: [providerSku()] });
+    if (url.endsWith("/1/sets/mid/pricing")) return json({ pricing: [providerSku()] });
+    if (url.endsWith("/1/sets/mid/sealed")) return json({ products: [{ ...providerProduct(), product_type: "Bundle" }] });
     return json({}, { status: 404 });
   };
 
   const client = new TcgTrackingClient({ fetch: fetcher as typeof fetch, retries: 0 });
   assert.equal((await client.meta()).version, "v1");
-  assert.equal((await client.categories())[0]?.id, "magic");
+  assert.equal((await client.categories())[0]?.id, "1");
   assert.equal((await client.sets("magic"))[0]?.abbreviation, "MID");
   assert.equal((await client.cards("magic", "mid"))[0]?.tcgplayerProductId, 456789);
   assert.equal((await client.skus("magic", "mid"))[0]?.tcgplayerSkuId, 987654);
@@ -56,6 +56,68 @@ test("TCGTracking normalization rejects malformed payloads and unsafe image URLs
     "magic",
   );
   assert.equal(product?.imageUrl, undefined);
+});
+
+test("TCGTracking client flattens compact live SKU and pricing maps", async () => {
+  const fetcher = async (url: string) => {
+    if (url.endsWith("/1/sets/2708/skus")) {
+      return json({
+        set_id: 2708,
+        updated: "2026-08-11T13:35:40-04:00",
+        products: {
+          "226694": {
+            "4537779": {
+              cnd: "NM",
+              var: "Foil",
+              var_a: "F",
+              vid: 2,
+              lng: "EN",
+              mkt: 1.72,
+              low: 0.91,
+              hi: 3.5,
+              cnt: 25,
+              mp: 1.44,
+            },
+          },
+        },
+      });
+    }
+    if (url.endsWith("/1/sets/2708/pricing")) {
+      return json({
+        updated: "2026-08-11T13:35:39-04:00",
+        prices: {
+          "226694": {
+            tcg: {
+              Normal: { low: 0.38, market: 0.7 },
+              Foil: { low: 0.91, market: 1.72 },
+            },
+            manapool: { normal: 0.65, foil: 1.44 },
+            mp_qty: 81,
+          },
+        },
+      });
+    }
+    return json({}, { status: 404 });
+  };
+
+  const client = new TcgTrackingClient({ fetch: fetcher as typeof fetch, retries: 0 });
+  const [sku] = await client.skus("Magic: The Gathering", "2708");
+  assert.equal(sku?.providerProductId, "226694");
+  assert.equal(sku?.tcgplayerProductId, 226694);
+  assert.equal(sku?.providerSkuId, "4537779");
+  assert.equal(sku?.tcgplayerSkuId, 4537779);
+  assert.equal(sku?.condition, "NM");
+  assert.equal(sku?.variant, "Foil");
+  assert.equal(sku?.marketPrice, 1.72);
+  assert.equal(sku?.manapoolLow, 1.44);
+
+  const pricing = await client.pricing("mtg", "2708");
+  assert.equal(pricing.length, 2);
+  const foil = pricing.find((snapshot) => snapshot.providerSkuId === "226694:Foil");
+  assert.equal(foil?.tcgMarket, 1.72);
+  assert.equal(foil?.tcgLow, 0.91);
+  assert.equal(foil?.manapoolLow, 1.44);
+  assert.equal(foil?.activeListings, 81);
 });
 
 test("TCGTracking identity reconciliation preserves local catalog authority and reports conflicts", () => {
@@ -194,12 +256,22 @@ test("TCGTracking admin diagnostics are Owner/Admin gated and documented", () =>
     path.join(repoRoot, "docs/TCGTRACKING_INTEGRATION.md"),
     "utf8",
   );
+  const benchmarkScript = readFileSync(
+    path.join(repoRoot, "scripts/tcgtracking/scan-benchmark.ts"),
+    "utf8",
+  );
 
   assert.match(route, /requireServerPlatformRole\("admin"\)/);
   assert.match(operations, /TCGTracking provider/);
   assert.match(operations, /Provider diagnostics/);
+  assert.match(operations, /Categories/);
+  assert.match(operations, /Last check/);
   assert.match(docs, /Trading Docks remains the canonical application\/data authority/);
   assert.match(docs, /tcgplayer_magic_catalog remains the local exact-SKU authority/);
+  assert.match(docs, /LIVE PROVIDER VALIDATION|Live Provider Validation/);
+  assert.match(docs, /--allow-upload/);
+  assert.match(benchmarkScript, /imagePathsExported: false/);
+  assert.match(benchmarkScript, /requires.*--allow-upload|--allow-upload/);
 });
 
 function providerProduct() {

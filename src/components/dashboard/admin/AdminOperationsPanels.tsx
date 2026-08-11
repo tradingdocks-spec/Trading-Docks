@@ -33,6 +33,8 @@ type ProviderHealth = {
   status: "available" | "unavailable";
   baseUrl: string;
   metaVersion?: string;
+  categoryCount?: number;
+  lastCheckedAt?: string;
   latencyMs: number | null;
   cachePolicy: {
     staticDataTtlDays: number;
@@ -222,8 +224,10 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             <ProviderMetric label="Base URL" value={providerHealth?.baseUrl ?? "Checking"} />
             <ProviderMetric label="Latency" value={providerHealth?.latencyMs == null ? "Unavailable" : `${providerHealth.latencyMs} ms`} />
+            <ProviderMetric label="Categories" value={providerHealth?.categoryCount == null ? "Checking" : String(providerHealth.categoryCount)} />
             <ProviderMetric label="Static cache" value={`${providerHealth?.cachePolicy.staticDataTtlDays ?? 7}+ days`} />
             <ProviderMetric label="Pricing freshness" value={`${providerHealth?.cachePolicy.pricingTtlHours ?? 24} hours`} />
+            <ProviderMetric label="Last check" value={providerHealth?.lastCheckedAt ? new Date(providerHealth.lastCheckedAt).toLocaleString() : "Checking"} />
           </div>
           <p className="mt-3 text-[11px] leading-5 text-slate-600">Local cache schema: {providerHealth?.localSchema ?? "proposal-only"}. Provider data may enrich products and pricing, but it does not create user inventory rows.</p>
           {providerError ? <p role="status" className="mt-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.045] px-3 py-2 text-[11px] text-amber-100/70">{providerError}</p> : null}
