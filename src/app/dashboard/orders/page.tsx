@@ -1,4 +1,9 @@
 import { UniversalOrdersCenter, type OrderRecord } from "@/components/dashboard/orders/UniversalOrdersCenter";
+import {
+  loadCanonicalOrders,
+  type CanonicalOrderSupabaseClient,
+} from "@/lib/orders/order-repository";
+import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function OrdersPage() {
@@ -11,17 +16,20 @@ export default async function OrdersPage() {
   let connectedChannels: string[] = [];
 
   if (user) {
+    const access = await resolvePlatformAccessForUser(supabase, user);
     const [
-      { data: orderData },
+      orderResult,
       { data: connectionData },
       { data: credentialData },
     ] = await Promise.all([
-      supabase
-        .from("marketplace_orders")
-        .select("*, marketplace_order_items(*)")
-        .eq("user_id", user.id)
-        .order("ordered_at", { ascending: false })
-        .limit(500),
+      loadCanonicalOrders({
+        supabase: supabase as unknown as CanonicalOrderSupabaseClient,
+        userId: user.id,
+        workspaceId: access.workspaceId,
+        range: null,
+        surface: "orders-center",
+        limit: 500,
+      }),
       supabase
         .from("marketplace_connections")
         .select("marketplace_id,status")
@@ -33,7 +41,7 @@ export default async function OrdersPage() {
         .eq("user_id", user.id),
     ]);
 
-    orders = (orderData ?? []) as unknown as OrderRecord[];
+    orders = orderResult.orders as unknown as OrderRecord[];
 
     const readyConnectionIds = (connectionData ?? [])
       .map((connection) => connection.marketplace_id?.toLowerCase())

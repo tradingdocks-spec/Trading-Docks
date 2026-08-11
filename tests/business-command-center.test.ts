@@ -11,6 +11,10 @@ import {
   getBusinessDateWindow,
 } from "../src/lib/dashboard/business-command-center.ts";
 import {
+  filterOrdersByCanonicalDateRange,
+  summarizeCanonicalOrders,
+} from "../src/lib/orders/order-metrics.ts";
+import {
   clientAccessFromTier,
   resolvePlatformAccessContext,
   type PlatformAccessContext,
@@ -119,6 +123,17 @@ test("current-week date window includes the full Aug 10 2026 order day", () => {
   assert.equal(new Date("2026-08-10T23:30:00") < window.end, true);
 });
 
+test("canonical date filtering includes orders with null ordered_at and created_at fallback", () => {
+  const window = getBusinessDateWindow("week", new Date("2026-08-10T16:00:00.000Z"));
+  const orders = filterOrdersByCanonicalDateRange([
+    { id: "created-fallback", marketplace_id: "tcgplayer", ordered_at: null, created_at: "2026-08-10T18:00:00.000Z", total: 90 },
+    { id: "outside", marketplace_id: "tcgplayer", ordered_at: null, created_at: "2026-08-03T18:00:00.000Z", total: 60 },
+  ], window);
+
+  assert.deepEqual(orders.map((order) => order.id), ["created-fallback"]);
+  assert.equal(summarizeCanonicalOrders(orders).grossSales, 90);
+});
+
 test("imported orders count toward gross sales even when item matching is incomplete", () => {
   const summary = buildBusinessCommandCenterSummary({
     access: access({ tier: "seller" }),
@@ -190,19 +205,27 @@ test("store users receive expanded operating metrics while sellers do not", () =
 
 test("dashboard page wires business HQ through shared business summary authority", () => {
   const page = readFileSync(path.join(repoRoot, "src/app/dashboard/page.tsx"), "utf8");
+  const ordersPage = readFileSync(path.join(repoRoot, "src/app/dashboard/orders/page.tsx"), "utf8");
   const component = readFileSync(
     path.join(repoRoot, "src/components/dashboard/business-command-center/BusinessCommandCenter.tsx"),
     "utf8",
   );
   const service = readFileSync(path.join(repoRoot, "src/lib/dashboard/business-command-center.ts"), "utf8");
+  const repository = readFileSync(path.join(repoRoot, "src/lib/orders/order-repository.ts"), "utf8");
 
   assert.match(page, /canViewBusinessCommandCenter\(access\)/);
   assert.match(page, /loadBusinessCommandCenter\(\{/);
+  assert.match(page, /resolvePlatformAccessForUser\(supabase, user\)/);
+  assert.match(ordersPage, /resolvePlatformAccessForUser\(supabase, user\)/);
+  assert.match(ordersPage, /loadCanonicalOrders\(\{/);
+  assert.match(service, /loadCanonicalOrders\(\{/);
   assert.doesNotMatch(page, /effectivePlan === "seller" \|\| effectivePlan === "store"/);
   assert.match(component, /Connect marketplace/);
   assert.match(component, /Connected, zero orders/);
-  assert.match(service, /marketplace_order_items\(marketplace_order_id,quantity,match_status\)/);
   assert.match(service, /end\.setHours\(23, 59, 59, 999\)/);
-  assert.match(service, /\.eq\("user_id", access\.userId\)/);
+  assert.match(repository, /CANONICAL_ORDER_SELECT[\s\S]*marketplace_order_items\(\*\)/);
+  assert.match(repository, /\.eq\("user_id", userId\)/);
+  assert.match(repository, /rowsUsingCreatedAtFallback/);
+  assert.match(repository, /sampleOrder/);
   assert.match(service, /\.eq\("workspace_id", access\.workspaceId\)/);
 });

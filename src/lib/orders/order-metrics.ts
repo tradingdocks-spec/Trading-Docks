@@ -148,6 +148,23 @@ export function summarizeCanonicalOrders(
   };
 }
 
+export function canonicalOrderTimestamp(order: CanonicalOrder) {
+  const orderedAt = parseDate(order.ordered_at);
+  if (orderedAt) return orderedAt;
+  return parseDate(order.created_at);
+}
+
+export function filterOrdersByCanonicalDateRange(
+  orders: CanonicalOrder[],
+  range: { start: Date; end: Date } | null,
+) {
+  if (!range) return orders;
+  return orders.filter((order) => {
+    const timestamp = canonicalOrderTimestamp(order);
+    return Boolean(timestamp && timestamp >= range.start && timestamp < range.end);
+  });
+}
+
 export function normalizeOrderStatus(order: CanonicalOrder) {
   const normalized = normalizeText(order.normalized_status);
   if (
@@ -213,4 +230,10 @@ function numeric(value: unknown) {
 function numericOrNull(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
   return numeric(value);
+}
+
+function parseDate(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }

@@ -10,6 +10,10 @@ import {
   type CanonicalChannelMetric,
   type CanonicalOrder,
 } from "../orders/order-metrics.ts";
+import {
+  loadCanonicalOrders,
+  type CanonicalOrderSupabaseClient,
+} from "../orders/order-repository.ts";
 
 export type BusinessDateRange = "today" | "week" | "month";
 
@@ -66,7 +70,7 @@ type QueryBuilder<T> = QueryResult<T> & {
   in: (column: string, values: string[]) => QueryBuilder<T>;
 };
 
-export type DashboardSupabaseClient = {
+export type DashboardSupabaseClient = CanonicalOrderSupabaseClient & {
   from: <T = Record<string, unknown>>(table: string) => {
     select: (columns: string, options?: { count?: "exact"; head?: boolean }) => QueryBuilder<T>;
   };
@@ -138,21 +142,20 @@ export async function loadBusinessCommandCenter({
     supplyResult,
     repricingResult,
   ] = await Promise.all([
-    supabase
-      .from<MarketplaceOrderRow>("marketplace_orders")
-      .select("id,marketplace_id,source_type,order_status,payment_status,fulfillment_status,total,refund_amount,net_profit,normalized_status,fulfillment_stage,ordered_at,created_at,marketplace_order_items(marketplace_order_id,quantity,match_status)")
-      .eq("user_id", access.userId)
-      .gte("ordered_at", window.start.toISOString())
-      .lt("ordered_at", window.end.toISOString())
-      .order("ordered_at", { ascending: false })
-      .limit(1000),
-    supabase
-      .from<MarketplaceOrderRow>("marketplace_orders")
-      .select("id,marketplace_id,source_type,order_status,payment_status,fulfillment_status,total,refund_amount,net_profit,normalized_status,fulfillment_stage,ordered_at,created_at,marketplace_order_items(marketplace_order_id,quantity,match_status)")
-      .eq("user_id", access.userId)
-      .gte("ordered_at", previous.start.toISOString())
-      .lt("ordered_at", previous.end.toISOString())
-      .limit(1000),
+    loadCanonicalOrders({
+      supabase,
+      userId: access.userId,
+      workspaceId: access.workspaceId,
+      range: window,
+      surface: "business-command-center",
+    }),
+    loadCanonicalOrders({
+      supabase,
+      userId: access.userId,
+      workspaceId: access.workspaceId,
+      range: previous,
+      surface: "business-command-center",
+    }),
     supabase
       .from<MarketplaceConnectionRow>("marketplace_connections")
       .select("marketplace_id,status")
@@ -201,8 +204,8 @@ export async function loadBusinessCommandCenter({
     access,
     range,
     now,
-    orders: ordersResult.data ?? [],
-    previousOrders: previousOrdersResult.data ?? [],
+    orders: ordersResult.orders,
+    previousOrders: previousOrdersResult.orders,
     connections: connectionsResult.data ?? [],
     syncRuns: syncRunsResult.data ?? [],
     customerCount: customersResult.count ?? null,
