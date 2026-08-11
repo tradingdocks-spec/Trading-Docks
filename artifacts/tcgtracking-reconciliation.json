@@ -1,0 +1,7051 @@
+{
+  "generatedAt": "2026-08-11T22:55:06.716Z",
+  "requestedSampleSize": 51,
+  "sampledProductCount": 50,
+  "providerHealth": {
+    "reachable": true,
+    "metaVersion": "1.1",
+    "categoryCount": 62,
+    "latencyMs": 4415
+  },
+  "localCatalogAvailable": false,
+  "localCatalogStatus": "not_run_missing_NEXT_PUBLIC_SUPABASE_URL_or_SUPABASE_SERVICE_ROLE_KEY",
+  "reconciliationSummary": {
+    "productsComparedToLocalCatalog": 0,
+    "localSkuCount": 0,
+    "providerSkuCount": 0,
+    "exactMatches": 0,
+    "exactMatchRate": null,
+    "missingLocalSkus": 0,
+    "missingProviderSkus": 0,
+    "conflictCount": 0,
+    "conflictsByType": {}
+  },
+  "pricingDeltaSummary": {
+    "matchedSkuCount": 0,
+    "medianMarketDelta": null,
+    "medianLowDelta": null,
+    "maxMarketDelta": null,
+    "maxLowDelta": null,
+    "percentMarketWithinOnePercent": null,
+    "percentMarketWithinFivePercent": null,
+    "localNullPriceCount": 0
+  },
+  "imageReliability": {
+    "tested": 50,
+    "successRate": 0.98,
+    "medianLatencyMs": 41,
+    "p95LatencyMs": 62,
+    "failures": 1,
+    "exactPrintingMismatches": 0
+  },
+  "scannerBenchmark": {
+    "status": "not_run_no_private_fixture_manifest",
+    "reason": "No product-owner-supplied private image manifest was available in the repository or shell.",
+    "harness": "scripts/tcgtracking/scan-benchmark.ts"
+  },
+  "currentScannerComparison": {
+    "status": "not_run",
+    "reason": "The current mobile scanner requires native/private image fixtures; no committed image fixtures were used."
+  },
+  "products": [
+    {
+      "labels": [
+        "commander",
+        "normal"
+      ],
+      "setId": "2708",
+      "setName": "Commander Legends",
+      "product": {
+        "tcgplayerProductId": 226694,
+        "providerProductId": "226694",
+        "name": "Arcane Signet",
+        "collectorNumber": "297",
+        "scryfallId": "ee40458c-7f3a-4fa6-976f-be1f7a336fdc",
+        "mtgjsonUuid": "811f0a64-cff0-5a50-817d-b9f26b22b409",
+        "cardmarketId": "510735",
+        "cardtraderId": "149682",
+        "imageUrl": "https://cdn.tcgtracking.com/product/226694_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 4641126,
+          "tcgplayerProductId": 226694,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.59,
+          "lowPrice": 0.25,
+          "highPrice": 0.99,
+          "activeListings": 25,
+          "manapoolLow": 0.4
+        },
+        {
+          "tcgplayerSkuId": 4641127,
+          "tcgplayerProductId": 226694,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.55,
+          "lowPrice": 0.44,
+          "highPrice": 0.88,
+          "activeListings": 25,
+          "manapoolLow": 0.51
+        },
+        {
+          "tcgplayerSkuId": 4641128,
+          "tcgplayerProductId": 226694,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.61,
+          "lowPrice": 0.45,
+          "highPrice": 1,
+          "activeListings": 12,
+          "manapoolLow": 0.82
+        },
+        {
+          "tcgplayerSkuId": 4641129,
+          "tcgplayerProductId": 226694,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.34,
+          "lowPrice": 0.33,
+          "highPrice": 0.35,
+          "activeListings": 3,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4641130,
+          "tcgplayerProductId": 226694,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.5,
+          "lowPrice": 0.5,
+          "highPrice": 0.5,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4641131,
+          "tcgplayerProductId": 226694,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 2.35,
+          "lowPrice": 0.99,
+          "highPrice": 4.99,
+          "activeListings": 25,
+          "manapoolLow": 1.86
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 2.35,
+          "tcgLow": 0.99,
+          "tcgHigh": null,
+          "activeListings": 164,
+          "manapoolLow": 1.65,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 57.87,
+          "crossMarketSpread": -0.66,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.59,
+          "tcgLow": 0.25,
+          "tcgHigh": null,
+          "activeListings": 164,
+          "manapoolLow": 0.4,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 57.63,
+          "crossMarketSpread": -0.15,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/226694_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 13952,
+        "latencyMs": 51
+      },
+      "latencyMs": 52
+    },
+    {
+      "labels": [
+        "commander",
+        "normal"
+      ],
+      "setId": "2708",
+      "setName": "Commander Legends",
+      "product": {
+        "tcgplayerProductId": 227075,
+        "providerProductId": "227075",
+        "name": "Sol Ring",
+        "collectorNumber": "472",
+        "scryfallId": "58b26011-e103-45c4-a253-900f4e6b2eeb",
+        "mtgjsonUuid": "4b9e45eb-f62b-5728-820c-48a3e6623682",
+        "cardmarketId": "513790",
+        "cardtraderId": "151271",
+        "imageUrl": "https://cdn.tcgtracking.com/product/227075_200w.jpg",
+        "finishes": [
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 50,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 4660059,
+          "tcgplayerProductId": 227075,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.68,
+          "lowPrice": 1.25,
+          "highPrice": 2.97,
+          "activeListings": 25,
+          "manapoolLow": 1.47
+        },
+        {
+          "tcgplayerSkuId": 4660060,
+          "tcgplayerProductId": 227075,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.62,
+          "lowPrice": 1.25,
+          "highPrice": 2.25,
+          "activeListings": 25,
+          "manapoolLow": 1.45
+        },
+        {
+          "tcgplayerSkuId": 4660061,
+          "tcgplayerProductId": 227075,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.5,
+          "lowPrice": 1,
+          "highPrice": 1.76,
+          "activeListings": 10,
+          "manapoolLow": 1.79
+        },
+        {
+          "tcgplayerSkuId": 4660062,
+          "tcgplayerProductId": 227075,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.55,
+          "lowPrice": 1.55,
+          "highPrice": 1.55,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4660063,
+          "tcgplayerProductId": 227075,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.36,
+          "lowPrice": 1.3,
+          "highPrice": 1.43,
+          "activeListings": 2,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4660064,
+          "tcgplayerProductId": 227075,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "CS",
+          "manapoolLow": 0
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 1.68,
+          "tcgLow": 1.25,
+          "tcgHigh": null,
+          "activeListings": 72,
+          "manapoolLow": 1.45,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 25.6,
+          "crossMarketSpread": -0.2,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/227075_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 11888,
+        "latencyMs": 38
+      },
+      "latencyMs": 39
+    },
+    {
+      "labels": [
+        "commander",
+        "normal"
+      ],
+      "setId": "2708",
+      "setName": "Commander Legends",
+      "product": {
+        "tcgplayerProductId": 221353,
+        "providerProductId": "221353",
+        "name": "The Prismatic Piper",
+        "collectorNumber": "1",
+        "scryfallId": "a69e6d8f-f742-4508-a83a-38ae84be228c",
+        "mtgjsonUuid": "9944c9b8-0847-5dc1-a55d-1032bb464da6",
+        "cardmarketId": "491989",
+        "cardtraderId": "145765",
+        "imageUrl": "https://cdn.tcgtracking.com/product/221353_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 4535740,
+          "tcgplayerProductId": 221353,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.11,
+          "lowPrice": 0.01,
+          "highPrice": 0.4,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 4535741,
+          "tcgplayerProductId": 221353,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.13,
+          "lowPrice": 0.01,
+          "highPrice": 0.5,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 4535742,
+          "tcgplayerProductId": 221353,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.23,
+          "lowPrice": 0.03,
+          "highPrice": 0.4,
+          "activeListings": 3,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 4535743,
+          "tcgplayerProductId": 221353,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 4535744,
+          "tcgplayerProductId": 221353,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4535745,
+          "tcgplayerProductId": 221353,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.27,
+          "lowPrice": 0.06,
+          "highPrice": 0.4,
+          "activeListings": 17,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.27,
+          "tcgLow": 0.06,
+          "tcgHigh": null,
+          "activeListings": 2424,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 77.78,
+          "crossMarketSpread": -0.09,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.11,
+          "tcgLow": 0.01,
+          "tcgHigh": null,
+          "activeListings": 2424,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 90.91,
+          "crossMarketSpread": -0.14,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/221353_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 17084,
+        "latencyMs": 41
+      },
+      "latencyMs": 42
+    },
+    {
+      "labels": [
+        "commander",
+        "normal"
+      ],
+      "setId": "2708",
+      "setName": "Commander Legends",
+      "product": {
+        "tcgplayerProductId": 227181,
+        "providerProductId": "227181",
+        "name": "Frenzied Saddlebrute",
+        "collectorNumber": "180",
+        "scryfallId": "d518fffb-542f-4752-be05-d0dbcf4dd6c2",
+        "mtgjsonUuid": "27ee3059-6271-5008-89fc-d2d6b46d12e3",
+        "cardmarketId": "514050",
+        "cardtraderId": "150117",
+        "imageUrl": "https://cdn.tcgtracking.com/product/227181_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 4667000,
+          "tcgplayerProductId": 227181,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.33,
+          "lowPrice": 0.1,
+          "highPrice": 0.52,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 4667001,
+          "tcgplayerProductId": 227181,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.16,
+          "lowPrice": 0.1,
+          "highPrice": 0.27,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 4667002,
+          "tcgplayerProductId": 227181,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.13,
+          "lowPrice": 0.13,
+          "highPrice": 0.13,
+          "activeListings": 1,
+          "manapoolLow": 0.34
+        },
+        {
+          "tcgplayerSkuId": 4667003,
+          "tcgplayerProductId": 227181,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4667004,
+          "tcgplayerProductId": 227181,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4667005,
+          "tcgplayerProductId": 227181,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.34,
+          "lowPrice": 0.2,
+          "highPrice": 0.49,
+          "activeListings": 10,
+          "manapoolLow": 0.33
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.34,
+          "tcgLow": 0.2,
+          "tcgHigh": null,
+          "activeListings": 560,
+          "manapoolLow": 0.32,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 41.18,
+          "crossMarketSpread": -0.12,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.33,
+          "tcgLow": 0.1,
+          "tcgHigh": null,
+          "activeListings": 560,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 69.7,
+          "crossMarketSpread": -0.05,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/227181_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 15784,
+        "latencyMs": 43
+      },
+      "latencyMs": 44
+    },
+    {
+      "labels": [
+        "commander",
+        "normal"
+      ],
+      "setId": "2708",
+      "setName": "Commander Legends",
+      "product": {
+        "tcgplayerProductId": 221360,
+        "providerProductId": "221360",
+        "name": "Undergrowth Stadium",
+        "collectorNumber": "359",
+        "scryfallId": "df64c9cf-17de-44f3-831d-ba09661f2308",
+        "mtgjsonUuid": "f8aa961e-8cf6-5446-b900-a576455f4290",
+        "cardmarketId": "492064",
+        "cardtraderId": "145749",
+        "imageUrl": "https://cdn.tcgtracking.com/product/221360_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 4536370,
+          "tcgplayerProductId": 221360,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 6.08,
+          "lowPrice": 4,
+          "highPrice": 7.5,
+          "activeListings": 25,
+          "manapoolLow": 6.08
+        },
+        {
+          "tcgplayerSkuId": 4536371,
+          "tcgplayerProductId": 221360,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 6.79,
+          "lowPrice": 5,
+          "highPrice": 12.99,
+          "activeListings": 25,
+          "manapoolLow": 6.57
+        },
+        {
+          "tcgplayerSkuId": 4536372,
+          "tcgplayerProductId": 221360,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 8.76,
+          "lowPrice": 5.91,
+          "highPrice": 18.98,
+          "activeListings": 22,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4536373,
+          "tcgplayerProductId": 221360,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 9.4,
+          "lowPrice": 4.96,
+          "highPrice": 19.99,
+          "activeListings": 4,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4536374,
+          "tcgplayerProductId": 221360,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 6.68,
+          "lowPrice": 6.68,
+          "highPrice": 6.68,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4536375,
+          "tcgplayerProductId": 221360,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 8.68,
+          "lowPrice": 6.5,
+          "highPrice": 10.23,
+          "activeListings": 25,
+          "manapoolLow": 8.75
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 8.68,
+          "tcgLow": 6.5,
+          "tcgHigh": null,
+          "activeListings": 145,
+          "manapoolLow": 7.22,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 25.12,
+          "crossMarketSpread": -0.72,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 6.08,
+          "tcgLow": 4,
+          "tcgHigh": null,
+          "activeListings": 145,
+          "manapoolLow": 6.08,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 34.21,
+          "crossMarketSpread": -2.08,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/221360_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 15568,
+        "latencyMs": 46
+      },
+      "latencyMs": 47
+    },
+    {
+      "labels": [
+        "commander",
+        "normal"
+      ],
+      "setId": "2708",
+      "setName": "Commander Legends",
+      "product": {
+        "tcgplayerProductId": 226838,
+        "providerProductId": "226838",
+        "name": "Thrasios, Triton Hero (Foil Etched)",
+        "collectorNumber": "538",
+        "scryfallId": "845bf543-0367-4d2c-81ba-e424bfbfb7de",
+        "mtgjsonUuid": "0ef6dc05-1c1d-5348-bd67-5d98f185b323",
+        "cardmarketId": "510965",
+        "cardtraderId": "149783",
+        "imageUrl": "https://cdn.tcgtracking.com/product/226838_200w.jpg",
+        "finishes": [
+          "etched"
+        ]
+      },
+      "providerSkuCount": 45,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Foil"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": false
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 4645251,
+          "tcgplayerProductId": 226838,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 20.87,
+          "lowPrice": 15,
+          "highPrice": 25.86,
+          "activeListings": 25,
+          "manapoolLow": 21.44
+        },
+        {
+          "tcgplayerSkuId": 4645252,
+          "tcgplayerProductId": 226838,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 21.41,
+          "lowPrice": 18.99,
+          "highPrice": 24.99,
+          "activeListings": 25
+        },
+        {
+          "tcgplayerSkuId": 4645253,
+          "tcgplayerProductId": 226838,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 17.81,
+          "lowPrice": 16.18,
+          "highPrice": 19.57,
+          "activeListings": 7
+        },
+        {
+          "tcgplayerSkuId": 4645254,
+          "tcgplayerProductId": 226838,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 18.18,
+          "lowPrice": 18,
+          "highPrice": 18.36,
+          "activeListings": 2
+        },
+        {
+          "tcgplayerSkuId": 4645255,
+          "tcgplayerProductId": 226838,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 14.77,
+          "lowPrice": 14.77,
+          "highPrice": 14.77,
+          "activeListings": 1
+        },
+        {
+          "tcgplayerSkuId": 4645256,
+          "tcgplayerProductId": 226838,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "CS"
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 20.87,
+          "tcgLow": 15,
+          "tcgHigh": null,
+          "activeListings": null,
+          "manapoolLow": null,
+          "updatedAt": "2026-08-11T13:35:39-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 28.13,
+          "crossMarketSpread": null,
+          "liquidity": "unknown"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/226838_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 13346,
+        "latencyMs": 42
+      },
+      "latencyMs": 42
+    },
+    {
+      "setName": "Commander Legends",
+      "labels": [
+        "commander",
+        "normal"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 781,
+      "skuCountInSet": 50673,
+      "pricingRowsInSet": 1259,
+      "latencyMs": 539
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "94",
+      "setName": "Prophecy",
+      "product": {
+        "tcgplayerProductId": 7357,
+        "providerProductId": "7357",
+        "name": "Rhystic Study",
+        "collectorNumber": "45",
+        "scryfallId": "3394cefd-a3c6-4917-8f46-234e441ecfb6",
+        "mtgjsonUuid": "7691887a-48cf-523b-bd19-c94a756392a2",
+        "cardmarketId": "3939",
+        "cardtraderId": "29733",
+        "imageUrl": "https://cdn.tcgtracking.com/product/7357_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 20823,
+          "tcgplayerProductId": 7357,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 66.75,
+          "lowPrice": 47.99,
+          "highPrice": 77.93,
+          "activeListings": 25,
+          "manapoolLow": 59.38
+        },
+        {
+          "tcgplayerSkuId": 44627,
+          "tcgplayerProductId": 7357,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 389.99,
+          "lowPrice": 389.99,
+          "highPrice": 389.99,
+          "activeListings": 1,
+          "manapoolLow": 494.99
+        },
+        {
+          "tcgplayerSkuId": 322830,
+          "tcgplayerProductId": 7357,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 42.56,
+          "lowPrice": 30,
+          "highPrice": 48.98,
+          "activeListings": 25,
+          "manapoolLow": 48.99
+        },
+        {
+          "tcgplayerSkuId": 338588,
+          "tcgplayerProductId": 7357,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 51.3,
+          "lowPrice": 45,
+          "highPrice": 56.58,
+          "activeListings": 25,
+          "manapoolLow": 53.44
+        },
+        {
+          "tcgplayerSkuId": 354346,
+          "tcgplayerProductId": 7357,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 46.35,
+          "lowPrice": 43.87,
+          "highPrice": 50.68,
+          "activeListings": 25,
+          "manapoolLow": 50.16
+        },
+        {
+          "tcgplayerSkuId": 370104,
+          "tcgplayerProductId": 7357,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 57.7,
+          "lowPrice": 53.5,
+          "highPrice": 63.81,
+          "activeListings": 25,
+          "manapoolLow": 57.3
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 389.99,
+          "tcgLow": 389.99,
+          "tcgHigh": null,
+          "activeListings": 139,
+          "manapoolLow": 317.63,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": 72.36,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 66.75,
+          "tcgLow": 47.99,
+          "tcgHigh": null,
+          "activeListings": 139,
+          "manapoolLow": 48.99,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 28.1,
+          "crossMarketSpread": -1,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/7357_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 21575,
+        "latencyMs": 34
+      },
+      "latencyMs": 34
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "94",
+      "setName": "Prophecy",
+      "product": {
+        "tcgplayerProductId": 7264,
+        "providerProductId": "7264",
+        "name": "Abolish",
+        "collectorNumber": "1",
+        "scryfallId": "3c81ae90-5abd-4c79-b14a-d5f3a1daff38",
+        "mtgjsonUuid": "01b64921-dba7-5ddc-aa4a-4dd9e670345d",
+        "cardmarketId": "3895",
+        "cardtraderId": "29777",
+        "imageUrl": "https://cdn.tcgtracking.com/product/7264_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 20730,
+          "tcgplayerProductId": 7264,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.62,
+          "lowPrice": 0.4,
+          "highPrice": 1.79,
+          "activeListings": 25,
+          "manapoolLow": 0.24
+        },
+        {
+          "tcgplayerSkuId": 44534,
+          "tcgplayerProductId": 7264,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 18.4,
+          "lowPrice": 16.81,
+          "highPrice": 20,
+          "activeListings": 2,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 322737,
+          "tcgplayerProductId": 7264,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.19,
+          "lowPrice": 0.05,
+          "highPrice": 0.4,
+          "activeListings": 20,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 338495,
+          "tcgplayerProductId": 7264,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.57,
+          "lowPrice": 0.15,
+          "highPrice": 0.99,
+          "activeListings": 25,
+          "manapoolLow": 0.38
+        },
+        {
+          "tcgplayerSkuId": 354253,
+          "tcgplayerProductId": 7264,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.37,
+          "lowPrice": 0.25,
+          "highPrice": 0.5,
+          "activeListings": 14,
+          "manapoolLow": 0.58
+        },
+        {
+          "tcgplayerSkuId": 370011,
+          "tcgplayerProductId": 7264,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.53,
+          "lowPrice": 0.25,
+          "highPrice": 1.1,
+          "activeListings": 25,
+          "manapoolLow": 0.19
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 18.4,
+          "tcgLow": 16.81,
+          "tcgHigh": null,
+          "activeListings": 91,
+          "manapoolLow": 43.79,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 8.64,
+          "crossMarketSpread": -26.98,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.62,
+          "tcgLow": 0.4,
+          "tcgHigh": null,
+          "activeListings": 91,
+          "manapoolLow": 0.19,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 35.48,
+          "crossMarketSpread": 0.21,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/7264_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 18808,
+        "latencyMs": 50
+      },
+      "latencyMs": 51
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "94",
+      "setName": "Prophecy",
+      "product": {
+        "tcgplayerProductId": 7313,
+        "providerProductId": "7313",
+        "name": "Hazy Homunculus",
+        "collectorNumber": "36",
+        "scryfallId": "f87489f2-82b7-4be6-80ae-3d5955d5ed92",
+        "mtgjsonUuid": "43f9b3db-d2c6-562b-a6cd-9ffc6502ca18",
+        "cardmarketId": "3930",
+        "cardtraderId": "29742",
+        "imageUrl": "https://cdn.tcgtracking.com/product/7313_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 20779,
+          "tcgplayerProductId": 7313,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.13,
+          "lowPrice": 0.07,
+          "highPrice": 0.3,
+          "activeListings": 13,
+          "manapoolLow": 0.24
+        },
+        {
+          "tcgplayerSkuId": 44583,
+          "tcgplayerProductId": 7313,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.75,
+          "lowPrice": 0.75,
+          "highPrice": 0.75,
+          "activeListings": 1,
+          "manapoolLow": 0.75
+        },
+        {
+          "tcgplayerSkuId": 322786,
+          "tcgplayerProductId": 7313,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 338544,
+          "tcgplayerProductId": 7313,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.17,
+          "lowPrice": 0.05,
+          "highPrice": 0.4,
+          "activeListings": 9,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 354302,
+          "tcgplayerProductId": 7313,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.04,
+          "lowPrice": 0.04,
+          "highPrice": 0.04,
+          "activeListings": 1,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 370060,
+          "tcgplayerProductId": 7313,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.16,
+          "lowPrice": 0.02,
+          "highPrice": 0.4,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.75,
+          "tcgLow": 0.75,
+          "tcgHigh": null,
+          "activeListings": 478,
+          "manapoolLow": 0.42,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": 0.33,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.13,
+          "tcgLow": 0.07,
+          "tcgHigh": null,
+          "activeListings": 478,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 46.15,
+          "crossMarketSpread": -0.08,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/7313_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 20484,
+        "latencyMs": 34
+      },
+      "latencyMs": 34
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "94",
+      "setName": "Prophecy",
+      "product": {
+        "tcgplayerProductId": 7342,
+        "providerProductId": "7342",
+        "name": "Pit Raptor",
+        "collectorNumber": "72",
+        "scryfallId": "e37cd150-1064-43b7-919b-8922d8a18f21",
+        "mtgjsonUuid": "a35b2dfd-8825-56c9-9e6b-c1d7a0437a01",
+        "cardmarketId": "3966",
+        "cardtraderId": "29706",
+        "imageUrl": "https://cdn.tcgtracking.com/product/7342_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 20808,
+          "tcgplayerProductId": 7342,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.2,
+          "lowPrice": 0.07,
+          "highPrice": 0.4,
+          "activeListings": 10,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 44612,
+          "tcgplayerProductId": 7342,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 1.55,
+          "lowPrice": 1.55,
+          "highPrice": 1.55,
+          "activeListings": 1,
+          "manapoolLow": 1
+        },
+        {
+          "tcgplayerSkuId": 322815,
+          "tcgplayerProductId": 7342,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 338573,
+          "tcgplayerProductId": 7342,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.24,
+          "lowPrice": 0.03,
+          "highPrice": 0.5,
+          "activeListings": 3,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 354331,
+          "tcgplayerProductId": 7342,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.03,
+          "lowPrice": 0.03,
+          "highPrice": 0.03,
+          "activeListings": 1,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 370089,
+          "tcgplayerProductId": 7342,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.13,
+          "lowPrice": 0.08,
+          "highPrice": 0.2,
+          "activeListings": 3,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 1.55,
+          "tcgLow": 1.55,
+          "tcgHigh": null,
+          "activeListings": 236,
+          "manapoolLow": 0.99,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": 0.56,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.2,
+          "tcgLow": 0.07,
+          "tcgHigh": null,
+          "activeListings": 236,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 65,
+          "crossMarketSpread": -0.08,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/7342_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 19099,
+        "latencyMs": 44
+      },
+      "latencyMs": 44
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "94",
+      "setName": "Prophecy",
+      "product": {
+        "tcgplayerProductId": 7406,
+        "providerProductId": "7406",
+        "name": "Zerapa Minotaur",
+        "collectorNumber": "108",
+        "scryfallId": "55a8e1ce-e394-48d6-938a-aa76c0273abe",
+        "mtgjsonUuid": "f861a59a-d0ff-5712-a38b-02cc88827df4",
+        "cardmarketId": "4002",
+        "cardtraderId": "29670",
+        "imageUrl": "https://cdn.tcgtracking.com/product/7406_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 20872,
+          "tcgplayerProductId": 7406,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.05,
+          "lowPrice": 0.01,
+          "highPrice": 0.1,
+          "activeListings": 11,
+          "manapoolLow": 0.25
+        },
+        {
+          "tcgplayerSkuId": 44676,
+          "tcgplayerProductId": 7406,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "manapoolLow": 0.75
+        },
+        {
+          "tcgplayerSkuId": 322879,
+          "tcgplayerProductId": 7406,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.04,
+          "lowPrice": 0.04,
+          "highPrice": 0.04,
+          "activeListings": 2,
+          "manapoolLow": 0.25
+        },
+        {
+          "tcgplayerSkuId": 338637,
+          "tcgplayerProductId": 7406,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.08,
+          "lowPrice": 0.05,
+          "highPrice": 0.11,
+          "activeListings": 2,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 354395,
+          "tcgplayerProductId": 7406,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.03,
+          "lowPrice": 0.03,
+          "highPrice": 0.03,
+          "activeListings": 1,
+          "manapoolLow": 0.18
+        },
+        {
+          "tcgplayerSkuId": 370153,
+          "tcgplayerProductId": 7406,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.19,
+          "lowPrice": 0.01,
+          "highPrice": 0.4,
+          "activeListings": 5,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.33,
+          "tcgLow": 0.24,
+          "tcgHigh": null,
+          "activeListings": 521,
+          "manapoolLow": 0.31,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 27.27,
+          "crossMarketSpread": -0.07,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.05,
+          "tcgLow": 0.01,
+          "tcgHigh": null,
+          "activeListings": 521,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:36:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 80,
+          "crossMarketSpread": -0.14,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/7406_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 17989,
+        "latencyMs": 39
+      },
+      "latencyMs": 40
+    },
+    {
+      "setName": "Prophecy",
+      "labels": [
+        "older-frame"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 143,
+      "skuCountInSet": 11447,
+      "pricingRowsInSet": 293,
+      "latencyMs": 301
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "98",
+      "setName": "Rise of the Eldrazi",
+      "product": {
+        "tcgplayerProductId": 34695,
+        "providerProductId": "34695",
+        "name": "All Is Dust",
+        "collectorNumber": "1",
+        "scryfallId": "62dba377-7446-4517-a504-ee04568fd6cf",
+        "mtgjsonUuid": "ceeeaa92-ff8e-5943-8842-3bb7efa6b673",
+        "cardmarketId": "22367",
+        "cardtraderId": "18892",
+        "imageUrl": "https://cdn.tcgtracking.com/product/34695_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 385402,
+          "tcgplayerProductId": 34695,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 6.89,
+          "lowPrice": 4.5,
+          "highPrice": 12.55,
+          "activeListings": 25,
+          "manapoolLow": 7.96
+        },
+        {
+          "tcgplayerSkuId": 385898,
+          "tcgplayerProductId": 34695,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 59.99,
+          "lowPrice": 59.99,
+          "highPrice": 59.99,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 386214,
+          "tcgplayerProductId": 34695,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.24,
+          "lowPrice": 3.75,
+          "highPrice": 4.91,
+          "activeListings": 8,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 386462,
+          "tcgplayerProductId": 34695,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.4,
+          "lowPrice": 4,
+          "highPrice": 6.74,
+          "activeListings": 25,
+          "manapoolLow": 5.49
+        },
+        {
+          "tcgplayerSkuId": 386710,
+          "tcgplayerProductId": 34695,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.74,
+          "lowPrice": 3.62,
+          "highPrice": 6.88,
+          "activeListings": 14,
+          "manapoolLow": 4.91
+        },
+        {
+          "tcgplayerSkuId": 386958,
+          "tcgplayerProductId": 34695,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 6.34,
+          "lowPrice": 4.41,
+          "highPrice": 8.44,
+          "activeListings": 25,
+          "manapoolLow": 5.5
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 59.99,
+          "tcgLow": 59.99,
+          "tcgHigh": null,
+          "activeListings": 34,
+          "manapoolLow": 28.4,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": 31.59,
+          "liquidity": "medium"
+        },
+        {
+          "tcgMarket": 6.89,
+          "tcgLow": 4.5,
+          "tcgHigh": null,
+          "activeListings": 34,
+          "manapoolLow": 4.91,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 34.69,
+          "crossMarketSpread": -0.41,
+          "liquidity": "medium"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/34695_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 20069,
+        "latencyMs": 44
+      },
+      "latencyMs": 45
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "98",
+      "setName": "Rise of the Eldrazi",
+      "product": {
+        "tcgplayerProductId": 34757,
+        "providerProductId": "34757",
+        "name": "Drake Umbra",
+        "collectorNumber": "63",
+        "scryfallId": "3e1f7334-658d-44da-a81c-26b258e44c26",
+        "mtgjsonUuid": "468cc1ae-4264-571e-ade8-ca359f459ccd",
+        "cardmarketId": "22457",
+        "cardtraderId": "18830",
+        "imageUrl": "https://cdn.tcgtracking.com/product/34757_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 385343,
+          "tcgplayerProductId": 34757,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.21,
+          "lowPrice": 0.12,
+          "highPrice": 0.39,
+          "activeListings": 25,
+          "manapoolLow": 0.2
+        },
+        {
+          "tcgplayerSkuId": 385839,
+          "tcgplayerProductId": 34757,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 1.84,
+          "lowPrice": 1.8,
+          "highPrice": 1.88,
+          "activeListings": 3,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 386276,
+          "tcgplayerProductId": 34757,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.37,
+          "lowPrice": 0.37,
+          "highPrice": 0.37,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 386524,
+          "tcgplayerProductId": 34757,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.22,
+          "lowPrice": 0.05,
+          "highPrice": 0.5,
+          "activeListings": 25,
+          "manapoolLow": 0.17
+        },
+        {
+          "tcgplayerSkuId": 386772,
+          "tcgplayerProductId": 34757,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.35,
+          "lowPrice": 0.25,
+          "highPrice": 0.45,
+          "activeListings": 2,
+          "manapoolLow": 0.29
+        },
+        {
+          "tcgplayerSkuId": 387020,
+          "tcgplayerProductId": 34757,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.25,
+          "lowPrice": 0.19,
+          "highPrice": 0.49,
+          "activeListings": 25,
+          "manapoolLow": 0.19
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 1.84,
+          "tcgLow": 1.8,
+          "tcgHigh": null,
+          "activeListings": 349,
+          "manapoolLow": 1.62,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 2.17,
+          "crossMarketSpread": 0.18,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.21,
+          "tcgLow": 0.12,
+          "tcgHigh": null,
+          "activeListings": 349,
+          "manapoolLow": 0.17,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 42.86,
+          "crossMarketSpread": -0.05,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/34757_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 21395,
+        "latencyMs": 50
+      },
+      "latencyMs": 51
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "98",
+      "setName": "Rise of the Eldrazi",
+      "product": {
+        "tcgplayerProductId": 34819,
+        "providerProductId": "34819",
+        "name": "Repay in Kind",
+        "collectorNumber": "125",
+        "scryfallId": "90d1db4c-1e79-410a-92ab-c9d58c5e58a6",
+        "mtgjsonUuid": "85066470-fc57-5bf4-8855-abd41df42110",
+        "cardmarketId": "22567",
+        "cardtraderId": "18768",
+        "imageUrl": "https://cdn.tcgtracking.com/product/34819_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 385224,
+          "tcgplayerProductId": 34819,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.15,
+          "lowPrice": 3,
+          "highPrice": 7.57,
+          "activeListings": 25,
+          "manapoolLow": 4.04
+        },
+        {
+          "tcgplayerSkuId": 385720,
+          "tcgplayerProductId": 34819,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 15.63,
+          "lowPrice": 15.42,
+          "highPrice": 15.83,
+          "activeListings": 3,
+          "manapoolLow": 13.37
+        },
+        {
+          "tcgplayerSkuId": 386338,
+          "tcgplayerProductId": 34819,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 2.65,
+          "lowPrice": 1.72,
+          "highPrice": 3.51,
+          "activeListings": 7,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 386586,
+          "tcgplayerProductId": 34819,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.03,
+          "lowPrice": 2.23,
+          "highPrice": 4.4,
+          "activeListings": 25,
+          "manapoolLow": 3
+        },
+        {
+          "tcgplayerSkuId": 386834,
+          "tcgplayerProductId": 34819,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.19,
+          "lowPrice": 1.41,
+          "highPrice": 4.61,
+          "activeListings": 22,
+          "manapoolLow": 2.9
+        },
+        {
+          "tcgplayerSkuId": 387082,
+          "tcgplayerProductId": 34819,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.23,
+          "lowPrice": 3.48,
+          "highPrice": 5.02,
+          "activeListings": 25,
+          "manapoolLow": 3.62
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 15.63,
+          "tcgLow": 15.42,
+          "tcgHigh": null,
+          "activeListings": 133,
+          "manapoolLow": 11.23,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 1.34,
+          "crossMarketSpread": 4.19,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 4.15,
+          "tcgLow": 3,
+          "tcgHigh": null,
+          "activeListings": 133,
+          "manapoolLow": 2.9,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 27.71,
+          "crossMarketSpread": 0.1,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/34819_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 19093,
+        "latencyMs": 44
+      },
+      "latencyMs": 45
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "98",
+      "setName": "Rise of the Eldrazi",
+      "product": {
+        "tcgplayerProductId": 34881,
+        "providerProductId": "34881",
+        "name": "Haze Frog",
+        "collectorNumber": "187",
+        "scryfallId": "72d8e000-5b4c-4340-ab85-7522107ab589",
+        "mtgjsonUuid": "40bbb7e0-ac56-50a3-9fb6-ec2f4ab7cfcb",
+        "cardmarketId": "22579",
+        "cardtraderId": "18706",
+        "imageUrl": "https://cdn.tcgtracking.com/product/34881_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 385378,
+          "tcgplayerProductId": 34881,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.39,
+          "lowPrice": 0.28,
+          "highPrice": 0.69,
+          "activeListings": 25,
+          "manapoolLow": 0.32
+        },
+        {
+          "tcgplayerSkuId": 385874,
+          "tcgplayerProductId": 34881,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 13.64,
+          "lowPrice": 12.99,
+          "highPrice": 14.28,
+          "activeListings": 2,
+          "manapoolLow": 12.99
+        },
+        {
+          "tcgplayerSkuId": 386400,
+          "tcgplayerProductId": 34881,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.29,
+          "lowPrice": 0.26,
+          "highPrice": 0.31,
+          "activeListings": 3,
+          "manapoolLow": 0.37
+        },
+        {
+          "tcgplayerSkuId": 386648,
+          "tcgplayerProductId": 34881,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.28,
+          "lowPrice": 0.15,
+          "highPrice": 0.35,
+          "activeListings": 25,
+          "manapoolLow": 0.35
+        },
+        {
+          "tcgplayerSkuId": 386896,
+          "tcgplayerProductId": 34881,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.3,
+          "lowPrice": 0.25,
+          "highPrice": 0.35,
+          "activeListings": 14,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 387144,
+          "tcgplayerProductId": 34881,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.35,
+          "lowPrice": 0.2,
+          "highPrice": 0.5,
+          "activeListings": 25,
+          "manapoolLow": 0.26
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 13.64,
+          "tcgLow": 12.99,
+          "tcgHigh": null,
+          "activeListings": 663,
+          "manapoolLow": 3.75,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 4.77,
+          "crossMarketSpread": 9.24,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.39,
+          "tcgLow": 0.28,
+          "tcgHigh": null,
+          "activeListings": 663,
+          "manapoolLow": 0.26,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 28.21,
+          "crossMarketSpread": 0.02,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/34881_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 22144,
+        "latencyMs": 51
+      },
+      "latencyMs": 53
+    },
+    {
+      "labels": [
+        "older-frame"
+      ],
+      "setId": "98",
+      "setName": "Rise of the Eldrazi",
+      "product": {
+        "tcgplayerProductId": 34818,
+        "providerProductId": "34818",
+        "name": "Pestilence Demon",
+        "collectorNumber": "124",
+        "scryfallId": "a6931673-20e0-410e-bc2a-d14efa2b488a",
+        "mtgjsonUuid": "1ed83589-59d7-525a-9564-e8cddafb5aa7",
+        "cardmarketId": "22434",
+        "cardtraderId": "18769",
+        "imageUrl": "https://cdn.tcgtracking.com/product/34818_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 385387,
+          "tcgplayerProductId": 34818,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.68,
+          "lowPrice": 0.4,
+          "highPrice": 2.08,
+          "activeListings": 25,
+          "manapoolLow": 0.53
+        },
+        {
+          "tcgplayerSkuId": 385883,
+          "tcgplayerProductId": 34818,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 8.5,
+          "lowPrice": 8.5,
+          "highPrice": 8.5,
+          "activeListings": 3,
+          "manapoolLow": 9.94
+        },
+        {
+          "tcgplayerSkuId": 386337,
+          "tcgplayerProductId": 34818,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.5,
+          "lowPrice": 0.38,
+          "highPrice": 0.73,
+          "activeListings": 3,
+          "manapoolLow": 0.67
+        },
+        {
+          "tcgplayerSkuId": 386585,
+          "tcgplayerProductId": 34818,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.55,
+          "lowPrice": 0.38,
+          "highPrice": 1.05,
+          "activeListings": 25,
+          "manapoolLow": 0.48
+        },
+        {
+          "tcgplayerSkuId": 386833,
+          "tcgplayerProductId": 34818,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.65,
+          "lowPrice": 0.49,
+          "highPrice": 0.9,
+          "activeListings": 5,
+          "manapoolLow": 0.48
+        },
+        {
+          "tcgplayerSkuId": 387081,
+          "tcgplayerProductId": 34818,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.52,
+          "lowPrice": 0.3,
+          "highPrice": 0.86,
+          "activeListings": 25,
+          "manapoolLow": 0.43
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 8.5,
+          "tcgLow": 8.5,
+          "tcgHigh": null,
+          "activeListings": 154,
+          "manapoolLow": 8.03,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": 0.47,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.68,
+          "tcgLow": 0.4,
+          "tcgHigh": null,
+          "activeListings": 154,
+          "manapoolLow": 0.43,
+          "updatedAt": "2026-08-11T13:35:59-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 41.18,
+          "crossMarketSpread": -0.03,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/34818_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 19455,
+        "latencyMs": 51
+      },
+      "latencyMs": 51
+    },
+    {
+      "setName": "Rise of the Eldrazi",
+      "labels": [
+        "older-frame"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 255,
+      "skuCountInSet": 22646,
+      "pricingRowsInSet": 512,
+      "latencyMs": 403
+    },
+    {
+      "labels": [
+        "older-frame",
+        "artifact"
+      ],
+      "setId": "75",
+      "setName": "Mirrodin",
+      "product": {
+        "tcgplayerProductId": 11512,
+        "providerProductId": "11512",
+        "name": "Lightning Greaves",
+        "collectorNumber": "199",
+        "scryfallId": "61a28870-cf78-4323-9d82-cee764067764",
+        "mtgjsonUuid": "25429a6d-fd7a-5235-a230-f4748b04589d",
+        "cardmarketId": "199",
+        "cardtraderId": "26029",
+        "imageUrl": "https://cdn.tcgtracking.com/product/11512_200w.jpg",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 9263,
+          "tcgplayerProductId": 11512,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 6.91,
+          "lowPrice": 4.4,
+          "highPrice": 10,
+          "activeListings": 25,
+          "manapoolLow": 6.59
+        },
+        {
+          "tcgplayerSkuId": 9265,
+          "tcgplayerProductId": 11512,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 41.91,
+          "lowPrice": 33.65,
+          "highPrice": 49,
+          "activeListings": 4,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 325881,
+          "tcgplayerProductId": 11512,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.95,
+          "lowPrice": 3.01,
+          "highPrice": 4.99,
+          "activeListings": 22,
+          "manapoolLow": 6.79
+        },
+        {
+          "tcgplayerSkuId": 341639,
+          "tcgplayerProductId": 11512,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.77,
+          "lowPrice": 3.5,
+          "highPrice": 7.47,
+          "activeListings": 25,
+          "manapoolLow": 4.65
+        },
+        {
+          "tcgplayerSkuId": 357397,
+          "tcgplayerProductId": 11512,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.28,
+          "lowPrice": 3,
+          "highPrice": 5.62,
+          "activeListings": 25,
+          "manapoolLow": 4.78
+        },
+        {
+          "tcgplayerSkuId": 373155,
+          "tcgplayerProductId": 11512,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.56,
+          "lowPrice": 3.5,
+          "highPrice": 7.6,
+          "activeListings": 25,
+          "manapoolLow": 4.99
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 41.91,
+          "tcgLow": 33.65,
+          "tcgHigh": null,
+          "activeListings": 167,
+          "manapoolLow": 29.4,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 19.71,
+          "crossMarketSpread": 4.25,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 6.91,
+          "tcgLow": 4.4,
+          "tcgHigh": null,
+          "activeListings": 167,
+          "manapoolLow": 4.65,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 36.32,
+          "crossMarketSpread": -0.25,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/11512_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 24527,
+        "latencyMs": 56
+      },
+      "latencyMs": 56
+    },
+    {
+      "labels": [
+        "older-frame",
+        "artifact"
+      ],
+      "setId": "75",
+      "setName": "Mirrodin",
+      "product": {
+        "tcgplayerProductId": 11325,
+        "providerProductId": "11325",
+        "name": "Altar's Light",
+        "collectorNumber": "1",
+        "scryfallId": "dd037f62-7cef-4737-b575-942c5959f1ea",
+        "mtgjsonUuid": "ca851196-6344-5b10-82a0-ef1cba6a921a",
+        "cardmarketId": "1",
+        "cardtraderId": "26227",
+        "imageUrl": "https://cdn.tcgtracking.com/product/11325_200w.jpg",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7767,
+          "tcgplayerProductId": 11325,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.13,
+          "lowPrice": 0.06,
+          "highPrice": 0.35,
+          "activeListings": 16,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7769,
+          "tcgplayerProductId": 11325,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.42,
+          "lowPrice": 0.42,
+          "highPrice": 0.42,
+          "activeListings": 1,
+          "manapoolLow": 0.68
+        },
+        {
+          "tcgplayerSkuId": 325694,
+          "tcgplayerProductId": 11325,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0.25
+        },
+        {
+          "tcgplayerSkuId": 341452,
+          "tcgplayerProductId": 11325,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.17,
+          "lowPrice": 0.04,
+          "highPrice": 0.4,
+          "activeListings": 13,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 357210,
+          "tcgplayerProductId": 11325,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.1,
+          "lowPrice": 0.1,
+          "highPrice": 0.1,
+          "activeListings": 1,
+          "manapoolLow": 0.3
+        },
+        {
+          "tcgplayerSkuId": 372968,
+          "tcgplayerProductId": 11325,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.16,
+          "lowPrice": 0.04,
+          "highPrice": 0.4,
+          "activeListings": 19,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.42,
+          "tcgLow": 0.42,
+          "tcgHigh": null,
+          "activeListings": 423,
+          "manapoolLow": 0.35,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": 0.07,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.13,
+          "tcgLow": 0.06,
+          "tcgHigh": null,
+          "activeListings": 423,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 53.85,
+          "crossMarketSpread": -0.09,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/11325_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 18069,
+        "latencyMs": 43
+      },
+      "latencyMs": 44
+    },
+    {
+      "labels": [
+        "older-frame",
+        "artifact"
+      ],
+      "setId": "75",
+      "setName": "Mirrodin",
+      "product": {
+        "tcgplayerProductId": 11398,
+        "providerProductId": "11398",
+        "name": "Slith Bloodletter",
+        "collectorNumber": "77",
+        "scryfallId": "22a04ccb-cb57-4548-81db-e1b77b09f5da",
+        "mtgjsonUuid": "81ec8466-d1d7-5a95-a519-6c5e567a062e",
+        "cardmarketId": "77",
+        "cardtraderId": "26151",
+        "imageUrl": "https://cdn.tcgtracking.com/product/11398_200w.jpg",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8351,
+          "tcgplayerProductId": 11398,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.11,
+          "lowPrice": 0.06,
+          "highPrice": 0.3,
+          "activeListings": 12,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 8353,
+          "tcgplayerProductId": 11398,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.45,
+          "lowPrice": 0.45,
+          "highPrice": 0.45,
+          "activeListings": 1,
+          "manapoolLow": 0.47
+        },
+        {
+          "tcgplayerSkuId": 325767,
+          "tcgplayerProductId": 11398,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 341525,
+          "tcgplayerProductId": 11398,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.19,
+          "lowPrice": 0.05,
+          "highPrice": 0.4,
+          "activeListings": 7,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 357283,
+          "tcgplayerProductId": 11398,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.1,
+          "lowPrice": 0.1,
+          "highPrice": 0.1,
+          "activeListings": 1,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 373041,
+          "tcgplayerProductId": 11398,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.13,
+          "lowPrice": 0.03,
+          "highPrice": 0.3,
+          "activeListings": 11,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.45,
+          "tcgLow": 0.45,
+          "tcgHigh": null,
+          "activeListings": 317,
+          "manapoolLow": 0.25,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": 0.2,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.11,
+          "tcgLow": 0.06,
+          "tcgHigh": null,
+          "activeListings": 317,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 45.45,
+          "crossMarketSpread": -0.09,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/11398_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 20160,
+        "latencyMs": 55
+      },
+      "latencyMs": 56
+    },
+    {
+      "labels": [
+        "older-frame",
+        "artifact"
+      ],
+      "setId": "75",
+      "setName": "Mirrodin",
+      "product": {
+        "tcgplayerProductId": 11469,
+        "providerProductId": "11469",
+        "name": "Clockwork Condor",
+        "collectorNumber": "154",
+        "scryfallId": "02a7e1a6-347e-47bc-8a14-e584a45941e1",
+        "mtgjsonUuid": "610cde51-3a05-5dbb-a674-1fe8bbffff5b",
+        "cardmarketId": "154",
+        "cardtraderId": "26074",
+        "imageUrl": "https://cdn.tcgtracking.com/product/11469_200w.jpg",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8919,
+          "tcgplayerProductId": 11469,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.07,
+          "lowPrice": 0.01,
+          "highPrice": 0.2,
+          "activeListings": 11,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 8921,
+          "tcgplayerProductId": 11469,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.18,
+          "lowPrice": 0.18,
+          "highPrice": 0.18,
+          "activeListings": 1,
+          "manapoolLow": 0.36
+        },
+        {
+          "tcgplayerSkuId": 325838,
+          "tcgplayerProductId": 11469,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 341596,
+          "tcgplayerProductId": 11469,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.04,
+          "lowPrice": 0.02,
+          "highPrice": 0.07,
+          "activeListings": 4,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 357354,
+          "tcgplayerProductId": 11469,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.07,
+          "lowPrice": 0.01,
+          "highPrice": 0.1,
+          "activeListings": 3,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 373112,
+          "tcgplayerProductId": 11469,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.05,
+          "lowPrice": 0.01,
+          "highPrice": 0.25,
+          "activeListings": 14,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.18,
+          "tcgLow": 0.18,
+          "tcgHigh": null,
+          "activeListings": 771,
+          "manapoolLow": 0.21,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": -0.03,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.07,
+          "tcgLow": 0.01,
+          "tcgHigh": null,
+          "activeListings": 771,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 85.71,
+          "crossMarketSpread": -0.14,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/11469_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 21709,
+        "latencyMs": 45
+      },
+      "latencyMs": 45
+    },
+    {
+      "labels": [
+        "older-frame",
+        "artifact"
+      ],
+      "setId": "75",
+      "setName": "Mirrodin",
+      "product": {
+        "tcgplayerProductId": 11541,
+        "providerProductId": "11541",
+        "name": "Proteus Staff",
+        "collectorNumber": "230",
+        "scryfallId": "55e5c69c-43d0-4f5b-8720-40074eb122bb",
+        "mtgjsonUuid": "3c79fb75-2aa5-5233-aa8c-96a594d474e6",
+        "cardmarketId": "230",
+        "cardtraderId": "25998",
+        "imageUrl": "https://cdn.tcgtracking.com/product/11541_200w.jpg",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ]
+      },
+      "providerSkuCount": 90,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 9495,
+          "tcgplayerProductId": 11541,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.56,
+          "lowPrice": 2.66,
+          "highPrice": 5.99,
+          "activeListings": 25,
+          "manapoolLow": 3.4
+        },
+        {
+          "tcgplayerSkuId": 9497,
+          "tcgplayerProductId": 11541,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 32.16,
+          "lowPrice": 32.16,
+          "highPrice": 32.16,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 325910,
+          "tcgplayerProductId": 11541,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.77,
+          "lowPrice": 1.45,
+          "highPrice": 2.23,
+          "activeListings": 9,
+          "manapoolLow": 2.64
+        },
+        {
+          "tcgplayerSkuId": 341668,
+          "tcgplayerProductId": 11541,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 2.13,
+          "lowPrice": 1.83,
+          "highPrice": 2.91,
+          "activeListings": 25,
+          "manapoolLow": 1.73
+        },
+        {
+          "tcgplayerSkuId": 357426,
+          "tcgplayerProductId": 11541,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.7,
+          "lowPrice": 0.8,
+          "highPrice": 2.4,
+          "activeListings": 15,
+          "manapoolLow": 1.67
+        },
+        {
+          "tcgplayerSkuId": 373184,
+          "tcgplayerProductId": 11541,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.77,
+          "lowPrice": 2.15,
+          "highPrice": 5.39,
+          "activeListings": 25,
+          "manapoolLow": 1.72
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 32.16,
+          "tcgLow": 32.16,
+          "tcgHigh": null,
+          "activeListings": 96,
+          "manapoolLow": 14.84,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 0,
+          "crossMarketSpread": 17.32,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 3.56,
+          "tcgLow": 2.66,
+          "tcgHigh": null,
+          "activeListings": 96,
+          "manapoolLow": 1.67,
+          "updatedAt": "2026-08-11T13:36:07-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 25.28,
+          "crossMarketSpread": 0.99,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/11541_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 21372,
+        "latencyMs": 52
+      },
+      "latencyMs": 53
+    },
+    {
+      "setName": "Mirrodin",
+      "labels": [
+        "older-frame",
+        "artifact"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 306,
+      "skuCountInSet": 27550,
+      "pricingRowsInSet": 620,
+      "latencyMs": 442
+    },
+    {
+      "labels": [
+        "commander",
+        "borderless"
+      ],
+      "setId": "23020",
+      "setName": "Commander Masters",
+      "product": {
+        "tcgplayerProductId": 503407,
+        "providerProductId": "503407",
+        "name": "Arcane Signet (Borderless)",
+        "collectorNumber": "653",
+        "scryfallId": "1836b8a6-c616-4793-933b-b38296d70e72",
+        "mtgjsonUuid": "306bac0e-10b2-5db3-9e4b-a36dea8336ac",
+        "cardmarketId": "721753",
+        "cardtraderId": "252915",
+        "imageUrl": "https://cdn.tcgtracking.com/product/503407_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 70,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7248882,
+          "tcgplayerProductId": 503407,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 6.16,
+          "lowPrice": 4.48,
+          "highPrice": 7.41,
+          "activeListings": 25,
+          "manapoolLow": 4.99
+        },
+        {
+          "tcgplayerSkuId": 7248883,
+          "tcgplayerProductId": 503407,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.44,
+          "lowPrice": 3.11,
+          "highPrice": 9.79,
+          "activeListings": 25,
+          "manapoolLow": 4.99
+        },
+        {
+          "tcgplayerSkuId": 7248884,
+          "tcgplayerProductId": 503407,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.66,
+          "lowPrice": 4.5,
+          "highPrice": 6.6,
+          "activeListings": 9,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7248885,
+          "tcgplayerProductId": 503407,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.62,
+          "lowPrice": 4.62,
+          "highPrice": 4.62,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7248886,
+          "tcgplayerProductId": 503407,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.92,
+          "lowPrice": 3.38,
+          "highPrice": 4.46,
+          "activeListings": 2,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7248887,
+          "tcgplayerProductId": 503407,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 14.55,
+          "lowPrice": 12,
+          "highPrice": 19.38,
+          "activeListings": 25,
+          "manapoolLow": 11.35
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 14.55,
+          "tcgLow": 12,
+          "tcgHigh": null,
+          "activeListings": 155,
+          "manapoolLow": 11.35,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 17.53,
+          "crossMarketSpread": 0.65,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 6.16,
+          "tcgLow": 4.48,
+          "tcgHigh": null,
+          "activeListings": 155,
+          "manapoolLow": 4.99,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 27.27,
+          "crossMarketSpread": -0.51,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/503407_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 21453,
+        "latencyMs": 45
+      },
+      "latencyMs": 46
+    },
+    {
+      "labels": [
+        "commander",
+        "borderless"
+      ],
+      "setId": "23020",
+      "setName": "Commander Masters",
+      "product": {
+        "tcgplayerProductId": 484938,
+        "providerProductId": "484938",
+        "name": "Jeweled Lotus",
+        "collectorNumber": "396",
+        "scryfallId": "d7183700-6941-4a3d-a581-4f33bea795e9",
+        "mtgjsonUuid": "6745f76e-60bb-5d27-9f55-85522c1846c2",
+        "cardmarketId": "721716",
+        "cardtraderId": "238303",
+        "imageUrl": "https://cdn.tcgtracking.com/product/484938_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 70,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7010707,
+          "tcgplayerProductId": 484938,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 43.01,
+          "lowPrice": 38.49,
+          "highPrice": 48.68,
+          "activeListings": 25,
+          "manapoolLow": 39
+        },
+        {
+          "tcgplayerSkuId": 7010708,
+          "tcgplayerProductId": 484938,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 45.98,
+          "lowPrice": 36.73,
+          "highPrice": 51.99,
+          "activeListings": 25,
+          "manapoolLow": 37.34
+        },
+        {
+          "tcgplayerSkuId": 7010709,
+          "tcgplayerProductId": 484938,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 39.8,
+          "lowPrice": 37.71,
+          "highPrice": 42.25,
+          "activeListings": 6,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7010710,
+          "tcgplayerProductId": 484938,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 32.7,
+          "lowPrice": 32.7,
+          "highPrice": 32.7,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7010711,
+          "tcgplayerProductId": 484938,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 31.58,
+          "lowPrice": 31.26,
+          "highPrice": 31.89,
+          "activeListings": 2,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7010712,
+          "tcgplayerProductId": 484938,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 84.14,
+          "lowPrice": 75,
+          "highPrice": 130.99,
+          "activeListings": 16,
+          "manapoolLow": 64.02
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 84.14,
+          "tcgLow": 75,
+          "tcgHigh": null,
+          "activeListings": 63,
+          "manapoolLow": 64.02,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 10.86,
+          "crossMarketSpread": 10.98,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 43.01,
+          "tcgLow": 38.49,
+          "tcgHigh": null,
+          "activeListings": 63,
+          "manapoolLow": 37.34,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 10.51,
+          "crossMarketSpread": 1.15,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/484938_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 22794,
+        "latencyMs": 31
+      },
+      "latencyMs": 32
+    },
+    {
+      "labels": [
+        "commander",
+        "borderless"
+      ],
+      "setId": "23020",
+      "setName": "Commander Masters",
+      "product": {
+        "tcgplayerProductId": 503412,
+        "providerProductId": "503412",
+        "name": "The Prismatic Piper",
+        "collectorNumber": "1",
+        "scryfallId": "c78c2713-39e7-4a6e-a132-027099a89665",
+        "mtgjsonUuid": "1c8d3f82-7b94-5fc0-80d5-60a8d6363bfc",
+        "cardmarketId": "721739",
+        "cardtraderId": "252820",
+        "imageUrl": "https://cdn.tcgtracking.com/product/503412_200w.jpg",
+        "finishes": [
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 70,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7249062,
+          "tcgplayerProductId": 503412,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.19,
+          "lowPrice": 0.01,
+          "highPrice": 0.49,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7249063,
+          "tcgplayerProductId": 503412,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.2,
+          "lowPrice": 0.06,
+          "highPrice": 0.35,
+          "activeListings": 5,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7249064,
+          "tcgplayerProductId": 503412,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7249065,
+          "tcgplayerProductId": 503412,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7249066,
+          "tcgplayerProductId": 503412,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7249067,
+          "tcgplayerProductId": 503412,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN"
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": null,
+          "tcgLow": 175398.99,
+          "tcgHigh": null,
+          "activeListings": 575,
+          "manapoolLow": null,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": null,
+          "crossMarketSpread": null,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.19,
+          "tcgLow": 0.01,
+          "tcgHigh": null,
+          "activeListings": 575,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 94.74,
+          "crossMarketSpread": -0.14,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/503412_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 26080,
+        "latencyMs": 34
+      },
+      "latencyMs": 35
+    },
+    {
+      "labels": [
+        "commander",
+        "borderless"
+      ],
+      "setId": "23020",
+      "setName": "Commander Masters",
+      "product": {
+        "tcgplayerProductId": 504583,
+        "providerProductId": "504583",
+        "name": "Vandalblast",
+        "collectorNumber": "267",
+        "scryfallId": "e8afc402-ddc4-4819-bc2a-584a43b9b60e",
+        "mtgjsonUuid": "d90a94c2-0059-5cda-a3e6-388a7a6aa13c",
+        "cardmarketId": "722540",
+        "cardtraderId": "253825",
+        "imageUrl": "https://cdn.tcgtracking.com/product/504583_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 70,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7265876,
+          "tcgplayerProductId": 504583,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 2.55,
+          "lowPrice": 1.36,
+          "highPrice": 4,
+          "activeListings": 25,
+          "manapoolLow": 1.44
+        },
+        {
+          "tcgplayerSkuId": 7265877,
+          "tcgplayerProductId": 504583,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 2.54,
+          "lowPrice": 1.24,
+          "highPrice": 4.59,
+          "activeListings": 25,
+          "manapoolLow": 1.39
+        },
+        {
+          "tcgplayerSkuId": 7265878,
+          "tcgplayerProductId": 504583,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 2.26,
+          "lowPrice": 1.66,
+          "highPrice": 2.74,
+          "activeListings": 9,
+          "manapoolLow": 2.03
+        },
+        {
+          "tcgplayerSkuId": 7265879,
+          "tcgplayerProductId": 504583,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 2.47,
+          "lowPrice": 2.47,
+          "highPrice": 2.47,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7265880,
+          "tcgplayerProductId": 504583,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.26,
+          "lowPrice": 1.26,
+          "highPrice": 1.26,
+          "activeListings": 1,
+          "manapoolLow": 2.19
+        },
+        {
+          "tcgplayerSkuId": 7265881,
+          "tcgplayerProductId": 504583,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 3.49,
+          "lowPrice": 2.39,
+          "highPrice": 5.79,
+          "activeListings": 25,
+          "manapoolLow": 2.73
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 3.49,
+          "tcgLow": 2.39,
+          "tcgHigh": null,
+          "activeListings": 241,
+          "manapoolLow": 2.73,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 31.52,
+          "crossMarketSpread": -0.34,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 2.55,
+          "tcgLow": 1.36,
+          "tcgHigh": null,
+          "activeListings": 241,
+          "manapoolLow": 1.39,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 46.67,
+          "crossMarketSpread": -0.03,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/504583_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 23574,
+        "latencyMs": 54
+      },
+      "latencyMs": 55
+    },
+    {
+      "labels": [
+        "commander",
+        "borderless"
+      ],
+      "setId": "23020",
+      "setName": "Commander Masters",
+      "product": {
+        "tcgplayerProductId": 504656,
+        "providerProductId": "504656",
+        "name": "Divergent Transformations (Foil Etched)",
+        "collectorNumber": "534",
+        "scryfallId": "8e86b6e0-782c-49ce-8c99-133eb9192572",
+        "mtgjsonUuid": "530e2aff-f50e-5feb-99b6-6cfb0341bd85",
+        "cardmarketId": "723205",
+        "cardtraderId": "253212",
+        "imageUrl": "https://cdn.tcgtracking.com/product/504656_200w.jpg",
+        "finishes": [
+          "etched"
+        ]
+      },
+      "providerSkuCount": 25,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Foil"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": false
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7267546,
+          "tcgplayerProductId": 504656,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 1.7,
+          "lowPrice": 0.97,
+          "highPrice": 4.29,
+          "activeListings": 25,
+          "manapoolLow": 1.69
+        },
+        {
+          "tcgplayerSkuId": 7267547,
+          "tcgplayerProductId": 504656,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.85,
+          "lowPrice": 0.66,
+          "highPrice": 1.15,
+          "activeListings": 9
+        },
+        {
+          "tcgplayerSkuId": 7267548,
+          "tcgplayerProductId": 504656,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.99,
+          "lowPrice": 0.99,
+          "highPrice": 0.99,
+          "activeListings": 1
+        },
+        {
+          "tcgplayerSkuId": 7267549,
+          "tcgplayerProductId": 504656,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "EN"
+        },
+        {
+          "tcgplayerSkuId": 7267550,
+          "tcgplayerProductId": 504656,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "EN"
+        },
+        {
+          "tcgplayerSkuId": 7267551,
+          "tcgplayerProductId": 504656,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "CS"
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 1.7,
+          "tcgLow": 0.97,
+          "tcgHigh": null,
+          "activeListings": null,
+          "manapoolLow": null,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 42.94,
+          "crossMarketSpread": null,
+          "liquidity": "unknown"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/504656_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 22585,
+        "latencyMs": 33
+      },
+      "latencyMs": 35
+    },
+    {
+      "labels": [
+        "commander",
+        "borderless"
+      ],
+      "setId": "23020",
+      "setName": "Commander Masters",
+      "product": {
+        "tcgplayerProductId": 506664,
+        "providerProductId": "506664",
+        "name": "All Is Dust",
+        "collectorNumber": "800",
+        "scryfallId": "4210c54e-89fd-4971-ab6a-ca8f4e7fe97a",
+        "mtgjsonUuid": "2c10bec7-d836-55c3-b43e-7d5808960f2d",
+        "cardmarketId": "723127",
+        "cardtraderId": "254866",
+        "imageUrl": "https://cdn.tcgtracking.com/product/506664_200w.jpg",
+        "finishes": [
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 20,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7292614,
+          "tcgplayerProductId": 506664,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.52,
+          "lowPrice": 3.44,
+          "highPrice": 7.25,
+          "activeListings": 25,
+          "manapoolLow": 5.2
+        },
+        {
+          "tcgplayerSkuId": 7292615,
+          "tcgplayerProductId": 506664,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.6,
+          "lowPrice": 3.3,
+          "highPrice": 6.12,
+          "activeListings": 25,
+          "manapoolLow": 4.99
+        },
+        {
+          "tcgplayerSkuId": 7292616,
+          "tcgplayerProductId": 506664,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.63,
+          "lowPrice": 3.01,
+          "highPrice": 4.73,
+          "activeListings": 8,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7292617,
+          "tcgplayerProductId": 506664,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 2,
+          "lowPrice": 2,
+          "highPrice": 2,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7292618,
+          "tcgplayerProductId": 506664,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3,
+          "lowPrice": 3,
+          "highPrice": 3,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7292619,
+          "tcgplayerProductId": 506664,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "FR",
+          "manapoolLow": 0
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 5.52,
+          "tcgLow": 3.44,
+          "tcgHigh": null,
+          "activeListings": 22,
+          "manapoolLow": 4.99,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 37.68,
+          "crossMarketSpread": -1.55,
+          "liquidity": "medium"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/506664_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 22515,
+        "latencyMs": 32
+      },
+      "latencyMs": 34
+    },
+    {
+      "setName": "Commander Masters",
+      "labels": [
+        "commander",
+        "borderless"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 1370,
+      "skuCountInSet": 59326,
+      "pricingRowsInSet": 1988,
+      "latencyMs": 565
+    },
+    {
+      "labels": [
+        "showcase",
+        "foil"
+      ],
+      "setId": "23273",
+      "setName": "Wilds of Eldraine: Enchanting Tales",
+      "product": {
+        "tcgplayerProductId": 509567,
+        "providerProductId": "509567",
+        "name": "Rhystic Study (Anime Borderless) (Confetti Foil)",
+        "collectorNumber": "91",
+        "scryfallId": "8f7f8d7a-e5ad-4c03-8ab3-e9af9c2927b7",
+        "mtgjsonUuid": "b2dac0e6-c42a-5f17-9e09-7d3f1380551f",
+        "cardmarketId": "728563",
+        "cardtraderId": "257413",
+        "imageUrl": "https://cdn.tcgtracking.com/product/509567_200w.jpg",
+        "finishes": [
+          "foil"
+        ]
+      },
+      "providerSkuCount": 10,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Foil"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7333980,
+          "tcgplayerProductId": 509567,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 1185.33,
+          "lowPrice": 864.21,
+          "highPrice": 1999.69,
+          "activeListings": 14,
+          "manapoolLow": 1773.73
+        },
+        {
+          "tcgplayerSkuId": 7333981,
+          "tcgplayerProductId": 509567,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 1686.07,
+          "lowPrice": 1686.07,
+          "highPrice": 1686.07,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7333982,
+          "tcgplayerProductId": 509567,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 572.94,
+          "lowPrice": 572.94,
+          "highPrice": 572.94,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7333983,
+          "tcgplayerProductId": 509567,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7333984,
+          "tcgplayerProductId": 509567,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 700,
+          "lowPrice": 700,
+          "highPrice": 700,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7333985,
+          "tcgplayerProductId": 509567,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "JP",
+          "manapoolLow": 0
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 1185.33,
+          "tcgLow": 864.21,
+          "tcgHigh": null,
+          "activeListings": 4,
+          "manapoolLow": 1773.73,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 27.09,
+          "crossMarketSpread": -909.52,
+          "liquidity": "low"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/509567_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 25140,
+        "latencyMs": 35
+      },
+      "latencyMs": 36
+    },
+    {
+      "labels": [
+        "showcase",
+        "foil"
+      ],
+      "setId": "23273",
+      "setName": "Wilds of Eldraine: Enchanting Tales",
+      "product": {
+        "tcgplayerProductId": 513356,
+        "providerProductId": "513356",
+        "name": "Blind Obedience",
+        "collectorNumber": "1",
+        "scryfallId": "1cb0ea8e-0707-46a8-9dc6-77c17244fd7b",
+        "mtgjsonUuid": "61134d7d-077c-5d06-bc49-22f3f9e48dda",
+        "cardmarketId": "730279",
+        "cardtraderId": "258223",
+        "imageUrl": "https://cdn.tcgtracking.com/product/513356_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7384829,
+          "tcgplayerProductId": 513356,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.09,
+          "lowPrice": 3,
+          "highPrice": 6.25,
+          "activeListings": 25,
+          "manapoolLow": 4.42
+        },
+        {
+          "tcgplayerSkuId": 7384830,
+          "tcgplayerProductId": 513356,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.12,
+          "lowPrice": 3.71,
+          "highPrice": 6.17,
+          "activeListings": 25,
+          "manapoolLow": 4.49
+        },
+        {
+          "tcgplayerSkuId": 7384831,
+          "tcgplayerProductId": 513356,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.78,
+          "lowPrice": 2.99,
+          "highPrice": 4.99,
+          "activeListings": 16,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7384832,
+          "tcgplayerProductId": 513356,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.64,
+          "lowPrice": 3.64,
+          "highPrice": 3.64,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7384833,
+          "tcgplayerProductId": 513356,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.69,
+          "lowPrice": 3.69,
+          "highPrice": 3.69,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7384834,
+          "tcgplayerProductId": 513356,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 7.15,
+          "lowPrice": 4.9,
+          "highPrice": 11.1,
+          "activeListings": 25,
+          "manapoolLow": 6.71
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 7.15,
+          "tcgLow": 4.9,
+          "tcgHigh": null,
+          "activeListings": 105,
+          "manapoolLow": 6.71,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 31.47,
+          "crossMarketSpread": -1.81,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 5.09,
+          "tcgLow": 3,
+          "tcgHigh": null,
+          "activeListings": 105,
+          "manapoolLow": 4.42,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 41.06,
+          "crossMarketSpread": -1.42,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/513356_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 25866,
+        "latencyMs": 31
+      },
+      "latencyMs": 31
+    },
+    {
+      "labels": [
+        "showcase",
+        "foil"
+      ],
+      "setId": "23273",
+      "setName": "Wilds of Eldraine: Enchanting Tales",
+      "product": {
+        "tcgplayerProductId": 512410,
+        "providerProductId": "512410",
+        "name": "Spreading Seas",
+        "collectorNumber": "26",
+        "scryfallId": "9ad6dfe9-90b6-4582-af77-1355c950a50d",
+        "mtgjsonUuid": "fc05620d-ecb4-5001-b1cc-cd934fdeb31e",
+        "cardmarketId": "728395",
+        "cardtraderId": "257455",
+        "imageUrl": "https://cdn.tcgtracking.com/product/512410_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7361872,
+          "tcgplayerProductId": 512410,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.23,
+          "lowPrice": 0.08,
+          "highPrice": 0.4,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7361873,
+          "tcgplayerProductId": 512410,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.15,
+          "lowPrice": 0.04,
+          "highPrice": 0.35,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7361874,
+          "tcgplayerProductId": 512410,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.28,
+          "lowPrice": 0.05,
+          "highPrice": 0.4,
+          "activeListings": 3,
+          "manapoolLow": 0.25
+        },
+        {
+          "tcgplayerSkuId": 7361875,
+          "tcgplayerProductId": 512410,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7361876,
+          "tcgplayerProductId": 512410,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0.25
+        },
+        {
+          "tcgplayerSkuId": 7361877,
+          "tcgplayerProductId": 512410,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.33,
+          "lowPrice": 0.08,
+          "highPrice": 0.41,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.33,
+          "tcgLow": 0.08,
+          "tcgHigh": null,
+          "activeListings": 2155,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 75.76,
+          "crossMarketSpread": -0.07,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.23,
+          "tcgLow": 0.08,
+          "tcgHigh": null,
+          "activeListings": 2155,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 65.22,
+          "crossMarketSpread": -0.07,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/512410_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 23844,
+        "latencyMs": 32
+      },
+      "latencyMs": 32
+    },
+    {
+      "labels": [
+        "showcase",
+        "foil"
+      ],
+      "setId": "23273",
+      "setName": "Wilds of Eldraine: Enchanting Tales",
+      "product": {
+        "tcgplayerProductId": 509529,
+        "providerProductId": "509529",
+        "name": "Doubling Season",
+        "collectorNumber": "52",
+        "scryfallId": "c7d7db76-0a0c-444f-96f1-559838450549",
+        "mtgjsonUuid": "ec5569bd-e8c9-5f73-93a3-b9cb17e8d995",
+        "cardmarketId": "728406",
+        "cardtraderId": "257476",
+        "imageUrl": "https://cdn.tcgtracking.com/product/509529_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7333561,
+          "tcgplayerProductId": 509529,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 39.96,
+          "lowPrice": 31.99,
+          "highPrice": 50.25,
+          "activeListings": 25,
+          "manapoolLow": 36
+        },
+        {
+          "tcgplayerSkuId": 7333562,
+          "tcgplayerProductId": 509529,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 39.57,
+          "lowPrice": 33.38,
+          "highPrice": 49.99,
+          "activeListings": 25,
+          "manapoolLow": 38.5
+        },
+        {
+          "tcgplayerSkuId": 7333563,
+          "tcgplayerProductId": 509529,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 33.92,
+          "lowPrice": 32.53,
+          "highPrice": 35.8,
+          "activeListings": 5,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7333564,
+          "tcgplayerProductId": 509529,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 30,
+          "lowPrice": 30,
+          "highPrice": 30,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7333565,
+          "tcgplayerProductId": 509529,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 24.72,
+          "lowPrice": 24.45,
+          "highPrice": 25,
+          "activeListings": 2,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7333566,
+          "tcgplayerProductId": 509529,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 45.62,
+          "lowPrice": 37.99,
+          "highPrice": 51.99,
+          "activeListings": 25,
+          "manapoolLow": 47.07
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 45.62,
+          "tcgLow": 37.99,
+          "tcgHigh": null,
+          "activeListings": 49,
+          "manapoolLow": 47.07,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 16.73,
+          "crossMarketSpread": -9.08,
+          "liquidity": "medium"
+        },
+        {
+          "tcgMarket": 39.96,
+          "tcgLow": 31.99,
+          "tcgHigh": null,
+          "activeListings": 49,
+          "manapoolLow": 36,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 19.94,
+          "crossMarketSpread": -4.01,
+          "liquidity": "medium"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/509529_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 23562,
+        "latencyMs": 34
+      },
+      "latencyMs": 34
+    },
+    {
+      "labels": [
+        "showcase",
+        "foil"
+      ],
+      "setId": "23273",
+      "setName": "Wilds of Eldraine: Enchanting Tales",
+      "product": {
+        "tcgplayerProductId": 512558,
+        "providerProductId": "512558",
+        "name": "Repercussion (Anime Borderless)",
+        "collectorNumber": "78",
+        "scryfallId": "e6f6b6ed-6554-4bff-a231-fb1c3d6ba715",
+        "mtgjsonUuid": "bba7be24-7e94-5457-b80f-9422e6a3b309",
+        "cardmarketId": "728530",
+        "cardtraderId": "257426",
+        "imageUrl": "https://cdn.tcgtracking.com/product/512558_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 20,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7366474,
+          "tcgplayerProductId": 512558,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 10.72,
+          "lowPrice": 7.99,
+          "highPrice": 16.46,
+          "activeListings": 25,
+          "manapoolLow": 8.99
+        },
+        {
+          "tcgplayerSkuId": 7366475,
+          "tcgplayerProductId": 512558,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 8.97,
+          "lowPrice": 7.24,
+          "highPrice": 11.99,
+          "activeListings": 25,
+          "manapoolLow": 11.4
+        },
+        {
+          "tcgplayerSkuId": 7366476,
+          "tcgplayerProductId": 512558,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 37.9,
+          "lowPrice": 37.9,
+          "highPrice": 37.9,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7366477,
+          "tcgplayerProductId": 512558,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 6.88,
+          "lowPrice": 6.88,
+          "highPrice": 6.88,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7366478,
+          "tcgplayerProductId": 512558,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3,
+          "lowPrice": 3,
+          "highPrice": 3,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7366479,
+          "tcgplayerProductId": 512558,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 11.49,
+          "lowPrice": 7.05,
+          "highPrice": 19.78,
+          "activeListings": 25,
+          "manapoolLow": 10.81
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 11.49,
+          "tcgLow": 7.05,
+          "tcgHigh": null,
+          "activeListings": 20,
+          "manapoolLow": 10.81,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 38.64,
+          "crossMarketSpread": -3.76,
+          "liquidity": "medium"
+        },
+        {
+          "tcgMarket": 10.72,
+          "tcgLow": 7.99,
+          "tcgHigh": null,
+          "activeListings": 20,
+          "manapoolLow": 8.99,
+          "updatedAt": "2026-08-11T13:35:25-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 25.47,
+          "crossMarketSpread": -1,
+          "liquidity": "medium"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/512558_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 23880,
+        "latencyMs": 36
+      },
+      "latencyMs": 36
+    },
+    {
+      "setName": "Wilds of Eldraine: Enchanting Tales",
+      "labels": [
+        "showcase",
+        "foil"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 103,
+      "skuCountInSet": 5620,
+      "pricingRowsInSet": 186,
+      "latencyMs": 272
+    },
+    {
+      "labels": [
+        "promo",
+        "alternate-treatment"
+      ],
+      "setId": "2576",
+      "setName": "Secret Lair Drop Series",
+      "product": {
+        "tcgplayerProductId": 205243,
+        "providerProductId": "205243",
+        "name": "Snow-Covered Plains (1)",
+        "collectorNumber": "1",
+        "scryfallId": "3066cc8b-7a5a-4822-a202-dd560a4fda85",
+        "mtgjsonUuid": "a78f0947-fc4e-5831-89af-d7ff3e5a1e3c",
+        "cardmarketId": "426466",
+        "cardtraderId": "62416",
+        "imageUrl": "https://cdn.tcgtracking.com/product/205243_200w.jpg",
+        "finishes": [
+          "foil"
+        ]
+      },
+      "providerSkuCount": 5,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Foil"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 4279321,
+          "tcgplayerProductId": 205243,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 7.62,
+          "lowPrice": 6.56,
+          "highPrice": 8.74,
+          "activeListings": 25,
+          "manapoolLow": 6.67
+        },
+        {
+          "tcgplayerSkuId": 4279322,
+          "tcgplayerProductId": 205243,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 6.17,
+          "lowPrice": 3.75,
+          "highPrice": 8.83,
+          "activeListings": 24,
+          "manapoolLow": 9.79
+        },
+        {
+          "tcgplayerSkuId": 4279323,
+          "tcgplayerProductId": 205243,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 4.99,
+          "lowPrice": 4.99,
+          "highPrice": 4.99,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4279324,
+          "tcgplayerProductId": 205243,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 4279325,
+          "tcgplayerProductId": 205243,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "EN",
+          "manapoolLow": 0
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 7.62,
+          "tcgLow": 6.56,
+          "tcgHigh": null,
+          "activeListings": 11,
+          "manapoolLow": 6.67,
+          "updatedAt": "2026-08-11T13:35:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 13.91,
+          "crossMarketSpread": -0.11,
+          "liquidity": "low"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/205243_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 19565,
+        "latencyMs": 37
+      },
+      "latencyMs": 38
+    },
+    {
+      "labels": [
+        "promo",
+        "alternate-treatment"
+      ],
+      "setId": "2576",
+      "setName": "Secret Lair Drop Series",
+      "product": {
+        "tcgplayerProductId": 530759,
+        "providerProductId": "530759",
+        "name": "Elvish Visionary (Extended Art)",
+        "collectorNumber": "763",
+        "scryfallId": "7ef03e37-e5eb-4f46-885a-4c27044262da",
+        "mtgjsonUuid": "c9393ecb-c883-54e5-a09a-6ae90b2c613b",
+        "cardmarketId": "755820",
+        "cardtraderId": "272030",
+        "imageUrl": "https://cdn.tcgtracking.com/product/530759_200w.jpg",
+        "finishes": [
+          "foil"
+        ]
+      },
+      "providerSkuCount": 5,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Foil"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7598735,
+          "tcgplayerProductId": 530759,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.92,
+          "lowPrice": 0.71,
+          "highPrice": 1.5,
+          "activeListings": 25,
+          "manapoolLow": 0.7
+        },
+        {
+          "tcgplayerSkuId": 7598736,
+          "tcgplayerProductId": 530759,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.86,
+          "lowPrice": 0.5,
+          "highPrice": 1.69,
+          "activeListings": 25,
+          "manapoolLow": 0.67
+        },
+        {
+          "tcgplayerSkuId": 7598737,
+          "tcgplayerProductId": 530759,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.63,
+          "lowPrice": 0.5,
+          "highPrice": 0.78,
+          "activeListings": 3,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7598738,
+          "tcgplayerProductId": 530759,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7598739,
+          "tcgplayerProductId": 530759,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "EN",
+          "manapoolLow": 0
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.92,
+          "tcgLow": 0.71,
+          "tcgHigh": null,
+          "activeListings": 51,
+          "manapoolLow": 0.67,
+          "updatedAt": "2026-08-11T13:35:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 22.83,
+          "crossMarketSpread": 0.04,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/530759_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 20160,
+        "latencyMs": 31
+      },
+      "latencyMs": 31
+    },
+    {
+      "labels": [
+        "promo",
+        "alternate-treatment"
+      ],
+      "setId": "2576",
+      "setName": "Secret Lair Drop Series",
+      "product": {
+        "tcgplayerProductId": 537705,
+        "providerProductId": "537705",
+        "name": "Simian Spirit Guide (Rainbow Foil)",
+        "collectorNumber": "1548",
+        "scryfallId": "d5ac2428-87a3-4aea-8c91-a02c0b401469",
+        "mtgjsonUuid": "dd65373d-0f4e-591d-86a0-29e9c56fa24a",
+        "imageUrl": "https://cdn.tcgtracking.com/product/537705_200w.jpg",
+        "finishes": [
+          "foil"
+        ]
+      },
+      "providerSkuCount": 5,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Foil"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7745553,
+          "tcgplayerProductId": 537705,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 85.61,
+          "lowPrice": 73.64,
+          "highPrice": 104.97,
+          "activeListings": 25,
+          "manapoolLow": 78
+        },
+        {
+          "tcgplayerSkuId": 7745554,
+          "tcgplayerProductId": 537705,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 68.83,
+          "lowPrice": 55,
+          "highPrice": 87.49,
+          "activeListings": 23,
+          "manapoolLow": 130.94
+        },
+        {
+          "tcgplayerSkuId": 7745555,
+          "tcgplayerProductId": 537705,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 63.97,
+          "lowPrice": 63.97,
+          "highPrice": 63.97,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7745556,
+          "tcgplayerProductId": 537705,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 38.36,
+          "lowPrice": 38.36,
+          "highPrice": 38.36,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7745557,
+          "tcgplayerProductId": 537705,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 28.18,
+          "lowPrice": 28.18,
+          "highPrice": 28.18,
+          "activeListings": 1,
+          "manapoolLow": 0
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 85.61,
+          "tcgLow": 73.64,
+          "tcgHigh": null,
+          "activeListings": 10,
+          "manapoolLow": 78,
+          "updatedAt": "2026-08-11T13:35:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 13.98,
+          "crossMarketSpread": -4.36,
+          "liquidity": "low"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/537705_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 22461,
+        "latencyMs": 38
+      },
+      "latencyMs": 38
+    },
+    {
+      "labels": [
+        "promo",
+        "alternate-treatment"
+      ],
+      "setId": "2576",
+      "setName": "Secret Lair Drop Series",
+      "product": {
+        "tcgplayerProductId": 629941,
+        "providerProductId": "629941",
+        "name": "Uncivil Unrest (Rainbow Foil)",
+        "collectorNumber": "2008",
+        "scryfallId": "343c3e40-d551-4e2c-bb94-315b58151a33",
+        "imageUrl": "https://cdn.tcgtracking.com/product/629941_200w.jpg",
+        "finishes": []
+      },
+      "providerSkuCount": 5,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Foil"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": false
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8686614,
+          "tcgplayerProductId": 629941,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 20.63,
+          "lowPrice": 18.72,
+          "highPrice": 33.99,
+          "activeListings": 25,
+          "manapoolLow": 20.49
+        },
+        {
+          "tcgplayerSkuId": 8686615,
+          "tcgplayerProductId": 629941,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 19.1,
+          "lowPrice": 18.48,
+          "highPrice": 20.27,
+          "activeListings": 12,
+          "manapoolLow": 26.1
+        },
+        {
+          "tcgplayerSkuId": 8686616,
+          "tcgplayerProductId": 629941,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "EN"
+        },
+        {
+          "tcgplayerSkuId": 8686617,
+          "tcgplayerProductId": 629941,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "EN"
+        },
+        {
+          "tcgplayerSkuId": 8686618,
+          "tcgplayerProductId": 629941,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "EN"
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 20.63,
+          "tcgLow": 18.72,
+          "tcgHigh": null,
+          "activeListings": null,
+          "manapoolLow": null,
+          "updatedAt": "2026-08-11T13:35:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 9.26,
+          "crossMarketSpread": null,
+          "liquidity": "unknown"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/629941_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 18412,
+        "latencyMs": 35
+      },
+      "latencyMs": 36
+    },
+    {
+      "labels": [
+        "promo",
+        "alternate-treatment"
+      ],
+      "setId": "2576",
+      "setName": "Secret Lair Drop Series",
+      "product": {
+        "tcgplayerProductId": 710206,
+        "providerProductId": "710206",
+        "name": "Miku, Song of the People - Trostani, Selesnya's Voice (Display Commander) - Thick Stock",
+        "imageUrl": "https://cdn.tcgtracking.com/product/710206_200w.jpg",
+        "finishes": []
+      },
+      "providerSkuCount": 5,
+      "pricingCoverage": {
+        "rows": 0,
+        "finishes": [],
+        "hasMarket": false,
+        "hasLow": false,
+        "hasManapool": false
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 9450188,
+          "tcgplayerProductId": 710206,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN"
+        },
+        {
+          "tcgplayerSkuId": 9450189,
+          "tcgplayerProductId": 710206,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "EN"
+        },
+        {
+          "tcgplayerSkuId": 9450190,
+          "tcgplayerProductId": 710206,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "EN"
+        },
+        {
+          "tcgplayerSkuId": 9450191,
+          "tcgplayerProductId": 710206,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "EN"
+        },
+        {
+          "tcgplayerSkuId": 9450192,
+          "tcgplayerProductId": 710206,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "EN"
+        }
+      ],
+      "sampleMarketSnapshots": [],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/710206_200w.jpg",
+        "ok": false,
+        "status": 404,
+        "contentType": "text/plain;charset=UTF-8",
+        "contentLength": null,
+        "latencyMs": 60
+      },
+      "latencyMs": 61
+    },
+    {
+      "labels": [
+        "promo",
+        "alternate-treatment"
+      ],
+      "setId": "2576",
+      "setName": "Secret Lair Drop Series",
+      "product": {
+        "tcgplayerProductId": 450559,
+        "providerProductId": "450559",
+        "name": "Doomsday (Borderless) (Foil Etched)",
+        "collectorNumber": "1115",
+        "scryfallId": "60cb8aec-21cf-49c1-8407-e45afe377f4f",
+        "mtgjsonUuid": "3c56729d-64d8-566c-9ad2-b21389594924",
+        "cardmarketId": "680713",
+        "cardtraderId": "230949",
+        "imageUrl": "https://cdn.tcgtracking.com/product/450559_200w.jpg",
+        "finishes": [
+          "etched",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 10,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Foil"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": false
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 6660160,
+          "tcgplayerProductId": 450559,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "JP",
+          "marketPrice": 11.24,
+          "lowPrice": 7.75,
+          "highPrice": 15.99,
+          "activeListings": 25,
+          "manapoolLow": 32.25
+        },
+        {
+          "tcgplayerSkuId": 6660161,
+          "tcgplayerProductId": 450559,
+          "condition": "LP",
+          "finish": "Foil",
+          "language": "JP",
+          "marketPrice": 10.61,
+          "lowPrice": 10.61,
+          "highPrice": 10.61,
+          "activeListings": 1,
+          "manapoolLow": 37.68
+        },
+        {
+          "tcgplayerSkuId": 6660162,
+          "tcgplayerProductId": 450559,
+          "condition": "MP",
+          "finish": "Foil",
+          "language": "JP",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 6660163,
+          "tcgplayerProductId": 450559,
+          "condition": "HP",
+          "finish": "Foil",
+          "language": "JP",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 6660164,
+          "tcgplayerProductId": 450559,
+          "condition": "DMG",
+          "finish": "Foil",
+          "language": "JP",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 6660722,
+          "tcgplayerProductId": 450559,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 33.48,
+          "lowPrice": 28.77,
+          "highPrice": 43.99,
+          "activeListings": 25,
+          "manapoolLow": 33.5
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 33.48,
+          "tcgLow": 28.77,
+          "tcgHigh": null,
+          "activeListings": null,
+          "manapoolLow": null,
+          "updatedAt": "2026-08-11T13:35:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 14.07,
+          "crossMarketSpread": null,
+          "liquidity": "unknown"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/450559_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": null,
+        "latencyMs": 249
+      },
+      "latencyMs": 250
+    },
+    {
+      "labels": [
+        "promo",
+        "alternate-treatment"
+      ],
+      "setId": "2576",
+      "setName": "Secret Lair Drop Series",
+      "product": {
+        "tcgplayerProductId": 632123,
+        "providerProductId": "632123",
+        "name": "Vivi's Thunder Magic - Lightning Bolt",
+        "collectorNumber": "1871",
+        "scryfallId": "5a763474-5ce9-48cc-aaf8-8ca363df4430",
+        "mtgjsonUuid": "ced5be96-f250-5734-b2f8-2d374569c606",
+        "imageUrl": "https://cdn.tcgtracking.com/product/632123_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 10,
+      "pricingCoverage": {
+        "rows": 1,
+        "finishes": [
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8719766,
+          "tcgplayerProductId": 632123,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.53,
+          "lowPrice": 4.4,
+          "highPrice": 7.59,
+          "activeListings": 25,
+          "manapoolLow": 4.94
+        },
+        {
+          "tcgplayerSkuId": 8719767,
+          "tcgplayerProductId": 632123,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.92,
+          "lowPrice": 2.65,
+          "highPrice": 6.99,
+          "activeListings": 25,
+          "manapoolLow": 4.76
+        },
+        {
+          "tcgplayerSkuId": 8719768,
+          "tcgplayerProductId": 632123,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4,
+          "lowPrice": 4,
+          "highPrice": 4,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8719769,
+          "tcgplayerProductId": 632123,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8719770,
+          "tcgplayerProductId": 632123,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8719771,
+          "tcgplayerProductId": 632123,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "JP",
+          "marketPrice": 2.15,
+          "lowPrice": 1.55,
+          "highPrice": 7.99,
+          "activeListings": 25,
+          "manapoolLow": 0
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 5.53,
+          "tcgLow": 4.4,
+          "tcgHigh": null,
+          "activeListings": 56,
+          "manapoolLow": 4.76,
+          "updatedAt": "2026-08-11T13:35:10-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 20.43,
+          "crossMarketSpread": -0.36,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/632123_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": null,
+        "latencyMs": 83
+      },
+      "latencyMs": 84
+    },
+    {
+      "setName": "Secret Lair Drop Series",
+      "labels": [
+        "promo",
+        "alternate-treatment"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 3219,
+      "skuCountInSet": 22541,
+      "pricingRowsInSet": 5112,
+      "latencyMs": 825
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "23444",
+      "setName": "Modern Horizons 3",
+      "product": {
+        "tcgplayerProductId": 550846,
+        "providerProductId": "550846",
+        "name": "Breaker of Creation",
+        "collectorNumber": "1",
+        "scryfallId": "72449552-aa2c-4ae3-846f-df523c5e6078",
+        "mtgjsonUuid": "02791d8b-58da-5d60-939d-c78899a1db53",
+        "cardmarketId": "771076",
+        "cardtraderId": "288578",
+        "imageUrl": "https://cdn.tcgtracking.com/product/550846_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7915771,
+          "tcgplayerProductId": 550846,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.33,
+          "lowPrice": 0.14,
+          "highPrice": 0.5,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7915772,
+          "tcgplayerProductId": 550846,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.3,
+          "lowPrice": 0.12,
+          "highPrice": 0.49,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7915773,
+          "tcgplayerProductId": 550846,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.29,
+          "lowPrice": 0.15,
+          "highPrice": 0.5,
+          "activeListings": 4,
+          "manapoolLow": 0.25
+        },
+        {
+          "tcgplayerSkuId": 7915774,
+          "tcgplayerProductId": 550846,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7915775,
+          "tcgplayerProductId": 550846,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.25,
+          "lowPrice": 0.25,
+          "highPrice": 0.25,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7915776,
+          "tcgplayerProductId": 550846,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.37,
+          "lowPrice": 0.21,
+          "highPrice": 0.49,
+          "activeListings": 25,
+          "manapoolLow": 0.21
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.37,
+          "tcgLow": 0.21,
+          "tcgHigh": null,
+          "activeListings": 1712,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 43.24,
+          "crossMarketSpread": 0.06,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.33,
+          "tcgLow": 0.14,
+          "tcgHigh": null,
+          "activeListings": 1712,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 57.58,
+          "crossMarketSpread": -0.01,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/550846_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 15104,
+        "latencyMs": 62
+      },
+      "latencyMs": 63
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "23444",
+      "setName": "Modern Horizons 3",
+      "product": {
+        "tcgplayerProductId": 552715,
+        "providerProductId": "552715",
+        "name": "Reckless Pyrosurfer",
+        "collectorNumber": "133",
+        "scryfallId": "2d1bb8ac-7125-4537-b2da-e23a8c28df79",
+        "mtgjsonUuid": "c81a249e-e167-5820-ae3c-d2a3c9cb0312",
+        "cardmarketId": "771799",
+        "cardtraderId": "288852",
+        "imageUrl": "https://cdn.tcgtracking.com/product/552715_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7942094,
+          "tcgplayerProductId": 552715,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.26,
+          "lowPrice": 0.01,
+          "highPrice": 0.95,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7942095,
+          "tcgplayerProductId": 552715,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.11,
+          "lowPrice": 0.04,
+          "highPrice": 0.25,
+          "activeListings": 21,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7942096,
+          "tcgplayerProductId": 552715,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.02,
+          "lowPrice": 0.02,
+          "highPrice": 0.02,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7942097,
+          "tcgplayerProductId": 552715,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0.4
+        },
+        {
+          "tcgplayerSkuId": 7942098,
+          "tcgplayerProductId": 552715,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7942099,
+          "tcgplayerProductId": 552715,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.32,
+          "lowPrice": 0.04,
+          "highPrice": 0.5,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.32,
+          "tcgLow": 0.04,
+          "tcgHigh": null,
+          "activeListings": 2275,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 87.5,
+          "crossMarketSpread": -0.11,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.26,
+          "tcgLow": 0.01,
+          "tcgHigh": null,
+          "activeListings": 2275,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 96.15,
+          "crossMarketSpread": -0.14,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/552715_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 17540,
+        "latencyMs": 34
+      },
+      "latencyMs": 34
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "23444",
+      "setName": "Modern Horizons 3",
+      "product": {
+        "tcgplayerProductId": 548578,
+        "providerProductId": "548578",
+        "name": "Orim's Chant",
+        "collectorNumber": "265",
+        "scryfallId": "ee241079-1e5a-4224-b9cb-4fd3e0da687c",
+        "mtgjsonUuid": "83894c8c-77c0-5974-aada-c02649216e88",
+        "cardmarketId": "768066",
+        "cardtraderId": "286787",
+        "imageUrl": "https://cdn.tcgtracking.com/product/548578_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7900247,
+          "tcgplayerProductId": 548578,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.94,
+          "lowPrice": 3.95,
+          "highPrice": 6.66,
+          "activeListings": 25,
+          "manapoolLow": 3.98
+        },
+        {
+          "tcgplayerSkuId": 7900248,
+          "tcgplayerProductId": 548578,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 5.52,
+          "lowPrice": 3.99,
+          "highPrice": 7.05,
+          "activeListings": 25,
+          "manapoolLow": 3.64
+        },
+        {
+          "tcgplayerSkuId": 7900249,
+          "tcgplayerProductId": 548578,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 4.56,
+          "lowPrice": 3.15,
+          "highPrice": 6.76,
+          "activeListings": 19,
+          "manapoolLow": 5.94
+        },
+        {
+          "tcgplayerSkuId": 7900250,
+          "tcgplayerProductId": 548578,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.82,
+          "lowPrice": 3,
+          "highPrice": 5,
+          "activeListings": 4,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7900251,
+          "tcgplayerProductId": 548578,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 3.13,
+          "lowPrice": 3.13,
+          "highPrice": 3.13,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7900252,
+          "tcgplayerProductId": 548578,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 7.82,
+          "lowPrice": 4.49,
+          "highPrice": 9.69,
+          "activeListings": 25,
+          "manapoolLow": 7.07
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 7.82,
+          "tcgLow": 4.49,
+          "tcgHigh": null,
+          "activeListings": 113,
+          "manapoolLow": 4.99,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 42.58,
+          "crossMarketSpread": -0.5,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 4.94,
+          "tcgLow": 3.95,
+          "tcgHigh": null,
+          "activeListings": 113,
+          "manapoolLow": 3.64,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 20.04,
+          "crossMarketSpread": 0.31,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/548578_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 12658,
+        "latencyMs": 41
+      },
+      "latencyMs": 42
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "23444",
+      "setName": "Modern Horizons 3",
+      "product": {
+        "tcgplayerProductId": 552887,
+        "providerProductId": "552887",
+        "name": "Ocelot Pride (Retro Frame)",
+        "collectorNumber": "394",
+        "scryfallId": "859d2ff4-8b8c-410b-8636-7e6a539fd291",
+        "mtgjsonUuid": "8867cfa0-bc32-5d41-b28d-1be12c194c54",
+        "cardmarketId": "772321",
+        "cardtraderId": "289398",
+        "imageUrl": "https://cdn.tcgtracking.com/product/552887_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7950795,
+          "tcgplayerProductId": 552887,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 50.88,
+          "lowPrice": 42,
+          "highPrice": 60.82,
+          "activeListings": 25,
+          "manapoolLow": 45.38
+        },
+        {
+          "tcgplayerSkuId": 7950796,
+          "tcgplayerProductId": 552887,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 44.03,
+          "lowPrice": 38.28,
+          "highPrice": 52.38,
+          "activeListings": 25,
+          "manapoolLow": 43.25
+        },
+        {
+          "tcgplayerSkuId": 7950797,
+          "tcgplayerProductId": 552887,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 42.8,
+          "lowPrice": 40.62,
+          "highPrice": 44.99,
+          "activeListings": 2,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7950798,
+          "tcgplayerProductId": 552887,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7950799,
+          "tcgplayerProductId": 552887,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7950800,
+          "tcgplayerProductId": 552887,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 78.51,
+          "lowPrice": 67,
+          "highPrice": 96.69,
+          "activeListings": 25,
+          "manapoolLow": 81.5
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 78.51,
+          "tcgLow": 67,
+          "tcgHigh": null,
+          "activeListings": 28,
+          "manapoolLow": 81.5,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 14.66,
+          "crossMarketSpread": -14.5,
+          "liquidity": "medium"
+        },
+        {
+          "tcgMarket": 50.88,
+          "tcgLow": 42,
+          "tcgHigh": null,
+          "activeListings": 28,
+          "manapoolLow": 43.25,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 17.45,
+          "crossMarketSpread": -1.25,
+          "liquidity": "medium"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/552887_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 15871,
+        "latencyMs": 34
+      },
+      "latencyMs": 36
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "23444",
+      "setName": "Modern Horizons 3",
+      "product": {
+        "tcgplayerProductId": 552632,
+        "providerProductId": "552632",
+        "name": "Barbarian Ring",
+        "collectorNumber": "299",
+        "scryfallId": "c184406c-b22c-4b9b-9d3a-3e7b17efd8a0",
+        "mtgjsonUuid": "b854fc5a-6cfd-55d5-8bfd-4ca0632a5b42",
+        "cardmarketId": "771517",
+        "cardtraderId": "288795",
+        "imageUrl": "https://cdn.tcgtracking.com/product/552632_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 80,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 7938500,
+          "tcgplayerProductId": 552632,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.28,
+          "lowPrice": 0.05,
+          "highPrice": 0.4,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7938501,
+          "tcgplayerProductId": 552632,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.2,
+          "lowPrice": 0.07,
+          "highPrice": 0.99,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 7938502,
+          "tcgplayerProductId": 552632,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.41,
+          "lowPrice": 0.4,
+          "highPrice": 0.48,
+          "activeListings": 7,
+          "manapoolLow": 0.5
+        },
+        {
+          "tcgplayerSkuId": 7938503,
+          "tcgplayerProductId": 552632,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7938504,
+          "tcgplayerProductId": 552632,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 7938505,
+          "tcgplayerProductId": 552632,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.35,
+          "lowPrice": 0.15,
+          "highPrice": 0.49,
+          "activeListings": 25,
+          "manapoolLow": 0.18
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.35,
+          "tcgLow": 0.15,
+          "tcgHigh": null,
+          "activeListings": 2279,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 57.14,
+          "crossMarketSpread": 0,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.28,
+          "tcgLow": 0.05,
+          "tcgHigh": null,
+          "activeListings": 2279,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:20-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 82.14,
+          "crossMarketSpread": -0.1,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/552632_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 14168,
+        "latencyMs": 35
+      },
+      "latencyMs": 35
+    },
+    {
+      "setName": "Modern Horizons 3",
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 665,
+      "skuCountInSet": 41841,
+      "pricingRowsInSet": 1148,
+      "latencyMs": 446
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "24219",
+      "setName": "FINAL FANTASY",
+      "product": {
+        "tcgplayerProductId": 630917,
+        "providerProductId": "630917",
+        "name": "Summon: Bahamut",
+        "collectorNumber": "1",
+        "scryfallId": "95318d85-4a08-47ac-a43d-ea83c0bea81c",
+        "mtgjsonUuid": "213f2ebb-965d-5c79-bb24-20edc242fb7d",
+        "cardmarketId": "824123",
+        "cardtraderId": "332076",
+        "imageUrl": "https://cdn.tcgtracking.com/product/630917_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 60,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8694295,
+          "tcgplayerProductId": 630917,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 20.93,
+          "lowPrice": 18.3,
+          "highPrice": 23.56,
+          "activeListings": 25,
+          "manapoolLow": 18.99
+        },
+        {
+          "tcgplayerSkuId": 8694296,
+          "tcgplayerProductId": 630917,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 20.7,
+          "lowPrice": 17.8,
+          "highPrice": 24.99,
+          "activeListings": 25,
+          "manapoolLow": 20.11
+        },
+        {
+          "tcgplayerSkuId": 8694297,
+          "tcgplayerProductId": 630917,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 17.21,
+          "lowPrice": 15.18,
+          "highPrice": 19.49,
+          "activeListings": 20,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8694298,
+          "tcgplayerProductId": 630917,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 9,
+          "lowPrice": 9,
+          "highPrice": 9,
+          "activeListings": 1,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8694299,
+          "tcgplayerProductId": 630917,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 13.74,
+          "lowPrice": 11.2,
+          "highPrice": 15,
+          "activeListings": 4,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8694300,
+          "tcgplayerProductId": 630917,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 26.01,
+          "lowPrice": 22.2,
+          "highPrice": 49.69,
+          "activeListings": 25,
+          "manapoolLow": 25.7
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 26.01,
+          "tcgLow": 22.2,
+          "tcgHigh": null,
+          "activeListings": 102,
+          "manapoolLow": 22.17,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 14.65,
+          "crossMarketSpread": 0.03,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 20.93,
+          "tcgLow": 18.3,
+          "tcgHigh": null,
+          "activeListings": 102,
+          "manapoolLow": 18.99,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 12.57,
+          "crossMarketSpread": -0.69,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/630917_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 18816,
+        "latencyMs": 37
+      },
+      "latencyMs": 38
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "24219",
+      "setName": "FINAL FANTASY",
+      "product": {
+        "tcgplayerProductId": 633066,
+        "providerProductId": "633066",
+        "name": "Queen Brahne",
+        "collectorNumber": "149",
+        "scryfallId": "c38c98bb-74c9-460f-9997-ea5c5f922347",
+        "mtgjsonUuid": "98ba991e-3c0b-56f4-982d-365559d2b5f4",
+        "cardmarketId": "826314",
+        "cardtraderId": "333697",
+        "imageUrl": "https://cdn.tcgtracking.com/product/633066_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 60,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8728985,
+          "tcgplayerProductId": 633066,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.24,
+          "lowPrice": 0.03,
+          "highPrice": 0.49,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 8728986,
+          "tcgplayerProductId": 633066,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.19,
+          "lowPrice": 0.04,
+          "highPrice": 0.99,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 8728987,
+          "tcgplayerProductId": 633066,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.12,
+          "lowPrice": 0.12,
+          "highPrice": 0.12,
+          "activeListings": 2,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8728988,
+          "tcgplayerProductId": 633066,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8728989,
+          "tcgplayerProductId": 633066,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8728990,
+          "tcgplayerProductId": 633066,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.31,
+          "lowPrice": 0.1,
+          "highPrice": 0.5,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.31,
+          "tcgLow": 0.1,
+          "tcgHigh": null,
+          "activeListings": 1593,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 67.74,
+          "crossMarketSpread": -0.05,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.24,
+          "tcgLow": 0.03,
+          "tcgHigh": null,
+          "activeListings": 1593,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 87.5,
+          "crossMarketSpread": -0.12,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/633066_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 19701,
+        "latencyMs": 53
+      },
+      "latencyMs": 53
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "24219",
+      "setName": "FINAL FANTASY",
+      "product": {
+        "tcgplayerProductId": 630885,
+        "providerProductId": "630885",
+        "name": "Island (0298)",
+        "collectorNumber": "298",
+        "scryfallId": "eeecf096-87dd-4dcb-953f-700445bf3f3a",
+        "mtgjsonUuid": "6fe4c114-886e-5c57-88d4-663731941dcd",
+        "cardmarketId": "824177",
+        "cardtraderId": "332270",
+        "imageUrl": "https://cdn.tcgtracking.com/product/630885_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 60,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8692925,
+          "tcgplayerProductId": 630885,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.24,
+          "lowPrice": 0.06,
+          "highPrice": 0.5,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 8692926,
+          "tcgplayerProductId": 630885,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.26,
+          "lowPrice": 0.08,
+          "highPrice": 0.55,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 8692927,
+          "tcgplayerProductId": 630885,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.41,
+          "lowPrice": 0.41,
+          "highPrice": 0.41,
+          "activeListings": 2,
+          "manapoolLow": 0.69
+        },
+        {
+          "tcgplayerSkuId": 8692928,
+          "tcgplayerProductId": 630885,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0.26
+        },
+        {
+          "tcgplayerSkuId": 8692929,
+          "tcgplayerProductId": 630885,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.12,
+          "lowPrice": 0.1,
+          "highPrice": 0.15,
+          "activeListings": 2,
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8692930,
+          "tcgplayerProductId": 630885,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.39,
+          "lowPrice": 0.1,
+          "highPrice": 0.75,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.39,
+          "tcgLow": 0.1,
+          "tcgHigh": null,
+          "activeListings": 2797,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 74.36,
+          "crossMarketSpread": -0.05,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.24,
+          "tcgLow": 0.06,
+          "tcgHigh": null,
+          "activeListings": 2797,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 75,
+          "crossMarketSpread": -0.09,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/630885_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 18077,
+        "latencyMs": 37
+      },
+      "latencyMs": 37
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "24219",
+      "setName": "FINAL FANTASY",
+      "product": {
+        "tcgplayerProductId": 630978,
+        "providerProductId": "630978",
+        "name": "Fang, Fearless l'Cie (Extended Art)",
+        "collectorNumber": "446",
+        "scryfallId": "b82f08c2-3944-437d-9af6-f1e9088e02bb",
+        "mtgjsonUuid": "5af57b16-2554-552f-98f5-ad8ed0a51beb",
+        "cardmarketId": "824315",
+        "cardtraderId": "332114",
+        "imageUrl": "https://cdn.tcgtracking.com/product/630978_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 40,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8697370,
+          "tcgplayerProductId": 630978,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1.41,
+          "lowPrice": 0.9,
+          "highPrice": 2.33,
+          "activeListings": 25,
+          "manapoolLow": 0.83
+        },
+        {
+          "tcgplayerSkuId": 8697371,
+          "tcgplayerProductId": 630978,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.79,
+          "lowPrice": 0.3,
+          "highPrice": 1.51,
+          "activeListings": 25,
+          "manapoolLow": 0.98
+        },
+        {
+          "tcgplayerSkuId": 8697372,
+          "tcgplayerProductId": 630978,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0.98
+        },
+        {
+          "tcgplayerSkuId": 8697373,
+          "tcgplayerProductId": 630978,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8697374,
+          "tcgplayerProductId": 630978,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.79,
+          "lowPrice": 0.79,
+          "highPrice": 0.79,
+          "activeListings": 1,
+          "manapoolLow": 0.91
+        },
+        {
+          "tcgplayerSkuId": 8697375,
+          "tcgplayerProductId": 630978,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 15.34,
+          "lowPrice": 7.79,
+          "highPrice": 23.15,
+          "activeListings": 25,
+          "manapoolLow": 19.9
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 15.34,
+          "tcgLow": 7.79,
+          "tcgHigh": null,
+          "activeListings": 62,
+          "manapoolLow": 7.7,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 49.22,
+          "crossMarketSpread": 0.09,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 1.41,
+          "tcgLow": 0.9,
+          "tcgHigh": null,
+          "activeListings": 62,
+          "manapoolLow": 0.83,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 36.17,
+          "crossMarketSpread": 0.07,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/630978_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 21446,
+        "latencyMs": 51
+      },
+      "latencyMs": 52
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "24219",
+      "setName": "FINAL FANTASY",
+      "product": {
+        "tcgplayerProductId": 634002,
+        "providerProductId": "634002",
+        "name": "Black Waltz No. 3",
+        "collectorNumber": "214",
+        "scryfallId": "fe86e41b-b0f6-4aa1-8827-c095c721f304",
+        "mtgjsonUuid": "9e623375-cd1d-5a9a-aa95-eaccda1021f9",
+        "cardmarketId": "826995",
+        "cardtraderId": "334283",
+        "imageUrl": "https://cdn.tcgtracking.com/product/634002_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 60,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8741570,
+          "tcgplayerProductId": 634002,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.3,
+          "lowPrice": 0.04,
+          "highPrice": 0.4,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 8741571,
+          "tcgplayerProductId": 634002,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.17,
+          "lowPrice": 0.05,
+          "highPrice": 0.39,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        },
+        {
+          "tcgplayerSkuId": 8741572,
+          "tcgplayerProductId": 634002,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.37,
+          "lowPrice": 0.2,
+          "highPrice": 0.55,
+          "activeListings": 8,
+          "manapoolLow": 0.25
+        },
+        {
+          "tcgplayerSkuId": 8741573,
+          "tcgplayerProductId": 634002,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8741574,
+          "tcgplayerProductId": 634002,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8741575,
+          "tcgplayerProductId": 634002,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 0.43,
+          "lowPrice": 0.18,
+          "highPrice": 1.16,
+          "activeListings": 25,
+          "manapoolLow": 0.15
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 0.43,
+          "tcgLow": 0.18,
+          "tcgHigh": null,
+          "activeListings": 1134,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 58.14,
+          "crossMarketSpread": 0.03,
+          "liquidity": "high"
+        },
+        {
+          "tcgMarket": 0.3,
+          "tcgLow": 0.04,
+          "tcgHigh": null,
+          "activeListings": 1134,
+          "manapoolLow": 0.15,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 86.67,
+          "crossMarketSpread": -0.11,
+          "liquidity": "high"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/634002_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 18871,
+        "latencyMs": 37
+      },
+      "latencyMs": 38
+    },
+    {
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "setId": "24219",
+      "setName": "FINAL FANTASY",
+      "product": {
+        "tcgplayerProductId": 634183,
+        "providerProductId": "634183",
+        "name": "G'raha Tia (Extended Art)",
+        "collectorNumber": "429",
+        "scryfallId": "d285d6fa-b618-4558-b1e6-d148e0927cb5",
+        "mtgjsonUuid": "09f0656a-4789-5837-acfc-27667def43c7",
+        "cardmarketId": "827813",
+        "cardtraderId": "335216",
+        "imageUrl": "https://cdn.tcgtracking.com/product/634183_200w.jpg",
+        "finishes": [
+          "foil",
+          "nonfoil"
+        ]
+      },
+      "providerSkuCount": 40,
+      "pricingCoverage": {
+        "rows": 2,
+        "finishes": [
+          "Foil",
+          "Normal"
+        ],
+        "hasMarket": true,
+        "hasLow": true,
+        "hasManapool": true
+      },
+      "sampleSkus": [
+        {
+          "tcgplayerSkuId": 8745506,
+          "tcgplayerProductId": 634183,
+          "condition": "NM",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 1,
+          "lowPrice": 0.38,
+          "highPrice": 1.66,
+          "activeListings": 25,
+          "manapoolLow": 0.63
+        },
+        {
+          "tcgplayerSkuId": 8745507,
+          "tcgplayerProductId": 634183,
+          "condition": "LP",
+          "finish": "Normal",
+          "language": "EN",
+          "marketPrice": 0.47,
+          "lowPrice": 0.25,
+          "highPrice": 0.97,
+          "activeListings": 25,
+          "manapoolLow": 0.5
+        },
+        {
+          "tcgplayerSkuId": 8745508,
+          "tcgplayerProductId": 634183,
+          "condition": "MP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8745509,
+          "tcgplayerProductId": 634183,
+          "condition": "HP",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8745510,
+          "tcgplayerProductId": 634183,
+          "condition": "DMG",
+          "finish": "Normal",
+          "language": "EN",
+          "manapoolLow": 0
+        },
+        {
+          "tcgplayerSkuId": 8745511,
+          "tcgplayerProductId": 634183,
+          "condition": "NM",
+          "finish": "Foil",
+          "language": "EN",
+          "marketPrice": 18.74,
+          "lowPrice": 7.18,
+          "highPrice": 31.71,
+          "activeListings": 25,
+          "manapoolLow": 44
+        }
+      ],
+      "sampleMarketSnapshots": [
+        {
+          "tcgMarket": 18.74,
+          "tcgLow": 7.18,
+          "tcgHigh": null,
+          "activeListings": 39,
+          "manapoolLow": 38.32,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 61.69,
+          "crossMarketSpread": -31.14,
+          "liquidity": "medium"
+        },
+        {
+          "tcgMarket": 1,
+          "tcgLow": 0.38,
+          "tcgHigh": null,
+          "activeListings": 39,
+          "manapoolLow": 0.5,
+          "updatedAt": "2026-08-11T13:35:16-04:00",
+          "freshness": "fresh",
+          "spreadPercent": 62,
+          "crossMarketSpread": -0.12,
+          "liquidity": "medium"
+        }
+      ],
+      "localCatalog": {
+        "status": "not_run_missing_supabase_credentials",
+        "rowCount": 0
+      },
+      "reconciliation": null,
+      "image": {
+        "url": "https://cdn.tcgtracking.com/product/634183_200w.jpg",
+        "ok": true,
+        "status": 200,
+        "contentType": "image/jpeg",
+        "contentLength": 19183,
+        "latencyMs": 37
+      },
+      "latencyMs": 38
+    },
+    {
+      "setName": "FINAL FANTASY",
+      "labels": [
+        "recent-set",
+        "showcase"
+      ],
+      "status": "set_processed",
+      "cardCountInSet": 644,
+      "skuCountInSet": 33312,
+      "pricingRowsInSet": 1241,
+      "latencyMs": 463
+    }
+  ],
+  "schemaRecommendation": {
+    "applyMigrationNow": false,
+    "minimumUsefulSchema": [
+      "tcgtracking_product_mappings",
+      "tcgtracking_price_snapshots",
+      "tcgtracking_sync_runs"
+    ],
+    "avoidForNow": [
+      "A full tcgtracking_products mirror that duplicates tcgplayer_magic_catalog before evidence proves it is necessary."
+    ]
+  }
+}

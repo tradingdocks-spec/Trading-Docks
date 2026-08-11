@@ -373,3 +373,85 @@ Schema recommendation:
   - Product identity mappings: weekly or on-demand after new catalog imports.
   - SKU pricing snapshots: daily, with manual admin refresh for high-value cards.
   - Scanner candidates: live/on-demand only, benchmark gated.
+
+## Phase 3 Expanded Evidence
+
+Status: Partially Implemented
+
+Validation date: 2026-08-11.
+
+Machine-readable artifact:
+
+- `artifacts/tcgtracking-reconciliation.json`
+
+Live provider sample:
+
+- Requested sample size: 51.
+- Products sampled: 50.
+- Sets covered: Commander Legends, Prophecy, Rise of the Eldrazi, Mirrodin, Commander Masters, Wilds of Eldraine: Enchanting Tales, Secret Lair Drop Series, Modern Horizons 3, and FINAL FANTASY.
+- Evidence buckets covered: Commander, older-frame, artifact, borderless, showcase, foil, promo, alternate-treatment, and recent-set products.
+- Provider category count: 62.
+
+Local catalog reconciliation:
+
+- Status: Requires Production Configuration.
+- The harness joins against `tcgplayer_magic_catalog` when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are available in the shell.
+- This run did not have those variables configured, so no Supabase-backed local catalog rows were read and no exact local SKU match rate is claimed.
+- The reconciliation code still validates exact SKU matching, condition/finish matching, conflict classification, and pricing delta calculations through unit coverage.
+
+SKU and pricing checks:
+
+- Provider SKUs include condition, finish, language, TCGplayer SKU ID, market price, low price, high price, active listing count, and Manapool low where available.
+- The Trading Docks reconciliation model normalizes compact TCGTracking condition codes such as `NM`, `LP`, `MP`, `HP`, and `DMG` before comparing against local catalog conditions.
+- Pricing deltas are reported as both absolute dollar deltas and relative percentage deltas. The 1% and 5% summary metrics are percent-based, not cent-based.
+- Because the local Supabase join was unavailable in this shell, pricing delta summary values in the artifact are intentionally `null`.
+
+Image reliability:
+
+- Images tested: 50.
+- Successful image responses: 49 of 50.
+- Success rate: 98%.
+- Median HEAD latency: 41 ms.
+- 95th percentile HEAD latency: 62 ms.
+- Exact-printing mismatches detected by this harness: 0.
+- Keep TCGTracking images as a fallback source only; do not change the current Deck Vault or Collection image priority yet.
+
+Scanner benchmark:
+
+- Status: Requires Product-Owner Fixtures.
+- No private image manifest was present in the repository or shell, so no scanner accuracy numbers are claimed.
+- `scripts/tcgtracking/scan-benchmark.ts` now supports local-only private fixture manifests using relative filenames under a private fixture directory.
+- The benchmark runner requires `--allow-upload`, because it sends private test images to TCGTracking.
+- Reports intentionally export fixture identifiers, expected labels, candidates, latency, top-1/top-3 results, unresolved status, and incorrect-printing status. They do not export local image paths or image contents.
+
+Private scanner fixture manifest example:
+
+```json
+{
+  "fixtureSetId": "magic-private-benchmark-2026-08",
+  "fixtures": [
+    {
+      "filename": "normal/arcane-signet.jpg",
+      "expectedName": "Arcane Signet",
+      "expectedSet": "Commander Legends",
+      "expectedCollectorNumber": "297",
+      "expectedProductId": 226694,
+      "treatment": "normal"
+    }
+  ]
+}
+```
+
+Local commands:
+
+```bash
+node --experimental-strip-types scripts/tcgtracking/live-validation.ts --sample-size 51 --output artifacts/tcgtracking-reconciliation.json
+node --experimental-strip-types scripts/tcgtracking/scan-benchmark.ts --manifest .local-fixtures/tcgtracking-scan/manifest.json --allow-upload --output C:\private\tcgtracking-scan-report.json
+```
+
+Phase 4 readiness:
+
+- Not ready to switch scanner, pricing, or catalog authority.
+- Ready to run the Supabase-backed reconciliation in an environment with service-role read access to `tcgplayer_magic_catalog`.
+- Ready to run the scanner benchmark when product-owner-supplied private images exist locally.
+- Keep the future schema narrow: mappings, price snapshots, and sync runs are enough until evidence proves a full product mirror is necessary.

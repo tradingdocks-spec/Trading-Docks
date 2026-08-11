@@ -9,6 +9,7 @@ mobile/.cache/
 mobile/fixtures/private-scanner/
 mobile/fixtures/magic-scanner-private/
 mobile/benchmark-output/
+.local-fixtures/
 .env*
 *.log
 .DS_Store

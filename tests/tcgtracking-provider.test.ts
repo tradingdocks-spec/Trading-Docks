@@ -9,14 +9,19 @@ import {
   chooseExactProductImage,
   liquidityLabel,
   marketSnapshotFromTcgTracking,
+  normalizeTcgTrackingScanManifest,
   normalizePriceSnapshot,
   normalizeProduct,
   normalizeScanCandidate,
   normalizeSealedProduct,
   normalizeSku,
+  reconcileTcgTrackingProduct,
   reconcileTcgTrackingWithLocalCatalog,
   scannerAdapterResult,
   spreadPercent,
+  summarizeImageReliability,
+  summarizePricingDeltas,
+  summarizeTcgTrackingScanBenchmark,
   TCGTRACKING_CACHE_TABLE_PROPOSAL,
   tcgTrackingCachePolicy,
 } from "../src/lib/providers/tcgtracking/index.ts";
@@ -243,6 +248,183 @@ test("TCGTracking image priority prefers existing Trading Docks image before pro
   );
 });
 
+test("TCGTracking local reconciliation matches exact SKUs and classifies identity conflicts", () => {
+  const product = normalizeProduct(providerProduct(), "magic");
+  const exactSku = normalizeSku(providerSku());
+  const foilSku = normalizeSku({
+    ...providerSku(),
+    sku_id: "provider-sku-987655",
+    tcgplayer_sku_id: 987655,
+    variant: "Foil",
+    market_price: 7.5,
+    low_price: 6.4,
+  });
+  assert.ok(product);
+  assert.ok(exactSku);
+  assert.ok(foilSku);
+
+  const reconciliation = reconcileTcgTrackingProduct({
+    providerProduct: product,
+    providerSkus: [exactSku, foilSku],
+    priceSnapshots: [],
+    localRows: [
+      {
+        tcgplayer_id: 987654,
+        set_name: "Innistrad: Midnight Hunt",
+        product_name: "Unblinking Observer",
+        collector_number: "82",
+        condition: "Near Mint",
+        finish: "Normal",
+        tcg_market_price: 5.4,
+        tcg_low_price: 4.9,
+      },
+      {
+        tcgplayer_id: 111111,
+        set_name: "Innistrad: Midnight Hunt",
+        product_name: "Unblinking Observer",
+        collector_number: "82",
+        condition: "Near Mint",
+        finish: "Foil",
+        tcg_market_price: 7.42,
+        tcg_low_price: 6.38,
+      },
+    ],
+  });
+
+  assert.equal(reconciliation.exactMatches, 1);
+  assert.equal(reconciliation.missingLocalSkus, 0);
+  assert.equal(reconciliation.missingProviderSkus, 1);
+  assert.equal(reconciliation.skuMatches[0]?.matchType, "tcgplayer_sku_id");
+  assert.equal(reconciliation.skuMatches[1]?.matchType, "condition_finish");
+  assert.equal(
+    reconciliation.conflicts.some((conflict) =>
+      conflict.type === "identity" &&
+      conflict.field === "tcgplayerSkuId"
+    ),
+    true,
+  );
+});
+
+test("TCGTracking reconciliation reports pricing deltas as relative percentages", () => {
+  const product = normalizeProduct(providerProduct(), "magic");
+  const sku = normalizeSku({
+    ...providerSku(),
+    market_price: 10.5,
+    low_price: 8.25,
+  });
+  assert.ok(product);
+  assert.ok(sku);
+
+  const reconciliation = reconcileTcgTrackingProduct({
+    providerProduct: product,
+    providerSkus: [sku],
+    priceSnapshots: [],
+    localRows: [
+      {
+        tcgplayer_id: 987654,
+        set_name: "Innistrad: Midnight Hunt",
+        product_name: "Unblinking Observer",
+        collector_number: "82",
+        condition: "Near Mint",
+        finish: "Normal",
+        tcg_market_price: 10,
+        tcg_low_price: 8,
+      },
+    ],
+  });
+
+  assert.equal(reconciliation.skuMatches[0]?.pricingDelta.market, 0.5);
+  assert.equal(reconciliation.skuMatches[0]?.pricingDelta.marketPercent, 5);
+  assert.equal(reconciliation.skuMatches[0]?.pricingDelta.lowPercent, 3.13);
+
+  const summary = summarizePricingDeltas([reconciliation]);
+  assert.equal(summary.medianMarketDelta, 0.5);
+  assert.equal(summary.percentMarketWithinOnePercent, 0);
+  assert.equal(summary.percentMarketWithinFivePercent, 100);
+});
+
+test("TCGTracking image validation summarizes reliability without source images", () => {
+  const summary = summarizeImageReliability([
+    {
+      url: "https://cdn.tcgtracking.test/card-a.jpg",
+      ok: true,
+      status: 200,
+      contentType: "image/jpeg",
+      contentLength: 1234,
+      latencyMs: 42,
+    },
+    {
+      url: "https://cdn.tcgtracking.test/card-b.jpg",
+      ok: false,
+      status: 404,
+      contentType: "text/html",
+      contentLength: 0,
+      latencyMs: 120,
+      exactPrintingMismatch: true,
+    },
+  ]);
+
+  assert.equal(summary.tested, 2);
+  assert.equal(summary.successRate, 0.5);
+  assert.equal(summary.failures, 1);
+  assert.equal(summary.exactPrintingMismatches, 1);
+});
+
+test("TCGTracking private scan manifests reject unsafe paths and export no image paths", () => {
+  const manifest = normalizeTcgTrackingScanManifest(
+    {
+      fixtureSetId: "local-magic-fixtures",
+      fixtures: [
+        {
+          filename: "normal/arcane-signet.jpg",
+          expectedName: "Arcane Signet",
+          expectedSet: "Commander Legends",
+          expectedProductId: 226694,
+          treatment: "normal",
+        },
+      ],
+    },
+    {
+      manifestPath: path.join(repoRoot, ".local-fixtures/tcgtracking-scan/manifest.json"),
+    },
+  );
+
+  assert.equal(manifest.fixtures[0]?.expectedTcgplayerProductId, 226694);
+  assert.equal(manifest.fixtures[0]?.imagePath.includes(".local-fixtures"), true);
+
+  assert.throws(
+    () => normalizeTcgTrackingScanManifest(
+      {
+        fixtures: [
+          {
+            filename: "../leak.jpg",
+            expectedName: "Arcane Signet",
+          },
+        ],
+      },
+      {
+        manifestPath: path.join(repoRoot, ".local-fixtures/tcgtracking-scan/manifest.json"),
+      },
+    ),
+    /escapes the private fixture directory/,
+  );
+
+  const summary = summarizeTcgTrackingScanBenchmark([
+    {
+      fixtureId: "arcane-signet",
+      expectedName: "Arcane Signet",
+      status: "matched",
+      latencyMs: 510,
+      top1Match: true,
+      top3Match: true,
+      unresolved: false,
+      incorrectPrinting: false,
+    },
+  ]);
+  assert.equal(summary.imagePathsExported, false);
+  assert.equal(JSON.stringify(summary).includes("arcane-signet.jpg"), false);
+});
+
 test("TCGTracking admin diagnostics are Owner/Admin gated and documented", () => {
   const route = readFileSync(
     path.join(repoRoot, "src/app/api/admin/tcgtracking/status/route.ts"),
@@ -270,7 +452,7 @@ test("TCGTracking admin diagnostics are Owner/Admin gated and documented", () =>
   assert.match(docs, /tcgplayer_magic_catalog remains the local exact-SKU authority/);
   assert.match(docs, /LIVE PROVIDER VALIDATION|Live Provider Validation/);
   assert.match(docs, /--allow-upload/);
-  assert.match(benchmarkScript, /imagePathsExported: false/);
+  assert.match(benchmarkScript, /summarizeTcgTrackingScanBenchmark/);
   assert.match(benchmarkScript, /requires.*--allow-upload|--allow-upload/);
 });
 
