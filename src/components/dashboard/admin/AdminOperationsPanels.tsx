@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   BarChart3,
@@ -27,6 +27,20 @@ export type OperationsTab =
   | "data"
   | "analytics"
   | "feedback";
+
+type ProviderHealth = {
+  provider: "tcgtracking";
+  status: "available" | "unavailable";
+  baseUrl: string;
+  metaVersion?: string;
+  latencyMs: number | null;
+  cachePolicy: {
+    staticDataTtlDays: number;
+    pricingTtlHours: number;
+  };
+  localSchema: "proposal-only";
+  error?: string;
+};
 
 const sections = {
   support: {
@@ -59,7 +73,7 @@ const sections = {
     description: "See database, storage, background-job, email, and marketplace integration status without leaving the admin panel.",
     icon: HeartPulse,
     stats: [["Platform", "Healthy"], ["Failed jobs", "0"], ["Integrations", "Ready"], ["Alerts", "0"]],
-    cards: ["Database & storage", "Background jobs", "Email delivery", "Marketplace connections"],
+    cards: ["Database & storage", "Background jobs", "Email delivery", "Marketplace connections", "TCGTracking provider"],
   },
   data: {
     eyebrow: "Data management",
@@ -99,10 +113,49 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
   const Icon = section.icon;
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
+  const [providerHealth, setProviderHealth] =
+    useState<ProviderHealth | null>(null);
+  const [providerError, setProviderError] = useState("");
   const visibleCards = useMemo(
     () => section.cards.filter((card) => card.toLowerCase().includes(query.toLowerCase())),
     [query, section.cards],
   );
+
+  useEffect(() => {
+    if (tab !== "health") return;
+    let active = true;
+
+    async function loadProviderHealth() {
+      try {
+        const response = await fetch("/api/admin/tcgtracking/status", {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as ProviderHealth & {
+          error?: string;
+        };
+        if (!active) return;
+        if (response.ok) {
+          setProviderHealth(payload);
+          setProviderError("");
+        } else {
+          setProviderHealth(payload.provider ? payload : null);
+          setProviderError(payload.error ?? "TCGTracking status unavailable.");
+        }
+      } catch (error) {
+        if (!active) return;
+        setProviderError(
+          error instanceof Error
+            ? error.message
+            : "TCGTracking status unavailable.",
+        );
+      }
+    }
+
+    void loadProviderHealth();
+    return () => {
+      active = false;
+    };
+  }, [tab]);
 
   function acknowledge(action: string) {
     setNotice(`${action} is ready to connect when its service is configured.`);
@@ -149,11 +202,48 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
         </div>
       </section>
 
+      {tab === "health" ? (
+        <section className="rounded-[24px] border border-cyan-300/[0.1] bg-[#06121b] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Provider diagnostics</p>
+              <h3 className="mt-1 text-base font-semibold text-white">TCGTracking</h3>
+              <p className="mt-1.5 max-w-2xl text-xs leading-5 text-slate-500">Product identity, SKU pricing, sealed-product, scanner, and cross-market enrichment provider. Trading Docks remains the catalog and inventory authority.</p>
+            </div>
+            <span className={[
+              "rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+              providerHealth?.status === "available"
+                ? "border-emerald-300/15 bg-emerald-300/[0.045] text-emerald-200"
+                : "border-slate-500/15 bg-slate-400/[0.04] text-slate-400",
+            ].join(" ")}>
+              {providerHealth?.status ?? "Checking"}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <ProviderMetric label="Base URL" value={providerHealth?.baseUrl ?? "Checking"} />
+            <ProviderMetric label="Latency" value={providerHealth?.latencyMs == null ? "Unavailable" : `${providerHealth.latencyMs} ms`} />
+            <ProviderMetric label="Static cache" value={`${providerHealth?.cachePolicy.staticDataTtlDays ?? 7}+ days`} />
+            <ProviderMetric label="Pricing freshness" value={`${providerHealth?.cachePolicy.pricingTtlHours ?? 24} hours`} />
+          </div>
+          <p className="mt-3 text-[11px] leading-5 text-slate-600">Local cache schema: {providerHealth?.localSchema ?? "proposal-only"}. Provider data may enrich products and pricing, but it does not create user inventory rows.</p>
+          {providerError ? <p role="status" className="mt-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.045] px-3 py-2 text-[11px] text-amber-100/70">{providerError}</p> : null}
+        </section>
+      ) : null}
+
       <div className="flex gap-3 rounded-2xl border border-amber-300/[0.1] bg-amber-300/[0.025] p-4">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300/70" />
         <p className="text-[11px] leading-5 text-amber-100/50">Actions that send email, process payments, or create remote backups remain disabled until their protected service is connected. The panel will not pretend those external actions succeeded.</p>
       </div>
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[160] rounded-xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs text-cyan-100 shadow-2xl">{notice}</div> : null}
+    </div>
+  );
+}
+
+function ProviderMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-black/10 p-4">
+      <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600">{label}</p>
+      <p className="mt-2 truncate text-xs font-semibold text-slate-200">{value}</p>
     </div>
   );
 }
