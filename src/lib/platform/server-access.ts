@@ -56,12 +56,28 @@ function stringValue(value: unknown) {
 function providerStateFromRows(
   subscriptionError: unknown,
   subscriptionData: Record<string, unknown> | null,
+  providerRows: Record<string, unknown>[] | null,
   overridePlan: string | null,
 ) {
   if (overridePlan) return "manual" as const;
   if (subscriptionError) return "unknown" as const;
+  const providerStates = new Set<"stripe" | "revenuecat">();
+  for (const row of providerRows ?? []) {
+    const provider = stringValue(row.provider);
+    if (provider === "apple" || provider === "google") providerStates.add("revenuecat");
+    if (provider === "stripe") providerStates.add("stripe");
+  }
+  if (
+    stringValue(subscriptionData?.stripe_subscription_id) ||
+    stringValue(subscriptionData?.stripe_customer_id)
+  ) {
+    providerStates.add("stripe");
+  }
+  if (providerStates.size > 1) return "mixed" as const;
+  if (providerStates.has("revenuecat")) return "revenuecat" as const;
+  if (providerStates.has("stripe")) return "stripe" as const;
   if (!subscriptionData?.plan_id) return "none" as const;
-  return "stripe" as const;
+  return "unknown" as const;
 }
 
 export async function resolvePlatformAccessForUser(
@@ -71,10 +87,11 @@ export async function resolvePlatformAccessForUser(
   if (!user) return resolvePlatformAccessContext({ authenticated: false });
   const client = supabase as AccessSupabaseClient;
 
-  const [roleResult, preferencesResult, subscriptionResult, overrideResult, membershipsResult] = await Promise.all([
+  const [roleResult, preferencesResult, subscriptionResult, providerSubscriptionsResult, overrideResult, membershipsResult] = await Promise.all([
     client.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
     client.from("user_preferences").select("preferences,active_workspace_id").eq("user_id", user.id).maybeSingle(),
-    client.from("billing_subscriptions").select("plan_id,status,current_period_end").eq("user_id", user.id).maybeSingle(),
+    client.from("billing_subscriptions").select("plan_id,status,current_period_end,stripe_customer_id,stripe_subscription_id").eq("user_id", user.id).maybeSingle(),
+    client.from("billing_provider_subscriptions").select("provider,status,current_period_end,updated_at").eq("user_id", user.id),
     client.from("admin_membership_overrides").select("plan_id").eq("user_id", user.id).maybeSingle(),
     client.from("workspace_members").select("workspace_id,role").eq("user_id", user.id),
   ]);
@@ -101,7 +118,12 @@ export async function resolvePlatformAccessForUser(
     billingPeriodEnd: subscriptionResult.error ? null : stringValue(subscriptionResult.data?.current_period_end),
     workspaceId: workspaceAccess.workspaceId,
     workspaceRole: workspaceAccess.workspaceRole,
-    providerState: providerStateFromRows(subscriptionResult.error, subscriptionResult.data, overridePlan),
+    providerState: providerStateFromRows(
+      subscriptionResult.error,
+      subscriptionResult.data,
+      providerSubscriptionsResult.error ? null : providerSubscriptionsResult.data,
+      overridePlan,
+    ),
     suspended: Boolean(suspendedUntil && suspendedUntil > Date.now()),
   });
 }

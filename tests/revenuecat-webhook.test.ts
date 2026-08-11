@@ -5,6 +5,7 @@ import {
   normalizeRevenueCatWebhook,
   planMappingForRevenueCatProduct,
   providerStateFromRevenueCatEvent,
+  resolveCommercialEntitlement,
   resolveEffectiveMembership,
   verifyRevenueCatAuthorization,
 } from "../src/lib/revenuecat/reconciliation.ts";
@@ -62,6 +63,29 @@ test("RevenueCat product mapping covers Collector, Seller, and Store", () => {
   assert.equal(planMappingForRevenueCatProduct("tradingdocks.store.monthly")?.tier, "store");
   assert.equal(planMappingForRevenueCatProduct("tradingdocks.store.yearly")?.billingCycle, "annual");
   assert.equal(planMappingForRevenueCatProduct("unknown.product"), null);
+});
+
+test("RevenueCat commercial entitlement resolver maps active entitlements to canonical tiers", () => {
+  assert.deepEqual(resolveCommercialEntitlement({ revenueCatEntitlements: [] }), {
+    tier: "free",
+    source: "free",
+    activeEntitlements: [],
+  });
+  assert.deepEqual(resolveCommercialEntitlement({ revenueCatEntitlements: ["Collector"] }), {
+    tier: "collector",
+    source: "revenuecat",
+    activeEntitlements: ["Collector"],
+  });
+  assert.deepEqual(resolveCommercialEntitlement({ revenueCatEntitlements: ["Collector", "Seller", "Store"] }), {
+    tier: "store",
+    source: "revenuecat",
+    activeEntitlements: ["Collector", "Seller", "Store"],
+  });
+  assert.deepEqual(resolveCommercialEntitlement({ revenueCatEntitlements: ["collector", "unknown"] }), {
+    tier: "free",
+    source: "free",
+    activeEntitlements: [],
+  });
 });
 
 test("purchase, renewal, product change, cancellation, expiration, and billing issue are classified", () => {

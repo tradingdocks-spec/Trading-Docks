@@ -19,6 +19,7 @@ export type RevenueCatEventType =
 
 export type RevenueCatProvider = "apple" | "google";
 export type SubscriptionProvider = RevenueCatProvider | "stripe" | "manual";
+export type RevenueCatEntitlementIdentifier = "Collector" | "Seller" | "Store";
 
 export type RevenueCatPlanMapping = {
   productId: string;
@@ -55,6 +56,12 @@ export type EffectiveMembershipResolution = {
   status: BillingStatus;
   source: SubscriptionProvider | "free";
   periodEnd: string | null;
+};
+
+export type CommercialEntitlementResolution = {
+  tier: MembershipTier;
+  source: "revenuecat" | "free";
+  activeEntitlements: RevenueCatEntitlementIdentifier[];
 };
 
 export type RevenueCatProviderState = {
@@ -111,6 +118,12 @@ export const REVENUECAT_PRODUCT_MAPPINGS: Record<string, RevenueCatPlanMapping> 
     billingCycle: "annual",
     provider: "apple",
   },
+};
+
+const REVENUECAT_ENTITLEMENT_TO_TIER: Record<RevenueCatEntitlementIdentifier, Exclude<MembershipTier, "free">> = {
+  Collector: "collector",
+  Seller: "seller",
+  Store: "store",
 };
 
 const KNOWN_EVENT_TYPES = new Set<RevenueCatEventType>([
@@ -204,6 +217,37 @@ export function normalizeRevenueCatWebhook(payload: unknown): NormalizedRevenueC
 
 export function planMappingForRevenueCatProduct(productId: string | null | undefined) {
   return productId ? REVENUECAT_PRODUCT_MAPPINGS[productId] ?? null : null;
+}
+
+export function normalizeRevenueCatEntitlementIdentifier(
+  value: unknown,
+): RevenueCatEntitlementIdentifier | null {
+  return value === "Collector" || value === "Seller" || value === "Store" ? value : null;
+}
+
+export function resolveCommercialEntitlement({
+  revenueCatEntitlements,
+}: {
+  revenueCatEntitlements: Iterable<unknown>;
+}): CommercialEntitlementResolution {
+  const activeEntitlements: RevenueCatEntitlementIdentifier[] = [];
+  let tier: MembershipTier = "free";
+
+  for (const entitlement of revenueCatEntitlements) {
+    const normalized = normalizeRevenueCatEntitlementIdentifier(entitlement);
+    if (!normalized) continue;
+    activeEntitlements.push(normalized);
+    const candidate = REVENUECAT_ENTITLEMENT_TO_TIER[normalized];
+    if (MEMBERSHIP_TIER_ORDER[candidate] > MEMBERSHIP_TIER_ORDER[tier]) {
+      tier = candidate;
+    }
+  }
+
+  return {
+    tier,
+    source: tier === "free" ? "free" : "revenuecat",
+    activeEntitlements: [...new Set(activeEntitlements)],
+  };
 }
 
 export function providerStateFromRevenueCatEvent(

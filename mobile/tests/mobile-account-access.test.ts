@@ -12,7 +12,8 @@ test('mobile account access uses backend subscription tier after RevenueCat or S
     localAccountType: 'free',
     rows: {
       preferences: { preferences: { account_type: 'collector' } },
-      subscription: { plan_id: 'store', status: 'active', provider: 'revenuecat' },
+      subscription: { plan_id: 'store', status: 'active' },
+      providerSubscriptions: [{ provider: 'apple', status: 'active' }],
     },
   });
 
@@ -20,6 +21,7 @@ test('mobile account access uses backend subscription tier after RevenueCat or S
   assert.equal(snapshot.membershipTier, 'store');
   assert.equal(snapshot.accountType, 'store');
   assert.equal(snapshot.billingStatus, 'active');
+  assert.equal(snapshot.providerState, 'revenuecat');
 });
 
 test('admin role alone does not grant paid mobile membership or workspace tabs', () => {
@@ -37,6 +39,7 @@ test('admin role alone does not grant paid mobile membership or workspace tabs',
   assert.equal(snapshot.accountType, 'collector');
   assert.equal(snapshot.platformRole, 'admin');
   assert.equal(snapshot.hasFullPlatformAccess, false);
+  assert.equal(snapshot.providerState, 'unknown');
 });
 
 test('trusted owner keeps Free billing membership but receives full mobile platform access', () => {
@@ -54,6 +57,7 @@ test('trusted owner keeps Free billing membership but receives full mobile platf
   assert.equal(snapshot.accountType, 'collector');
   assert.equal(snapshot.platformRole, 'owner');
   assert.equal(snapshot.hasFullPlatformAccess, true);
+  assert.equal(snapshot.providerState, 'unknown');
 });
 
 test('paid billing fallback ignores canceled or suspended provider state', () => {
@@ -69,7 +73,12 @@ test('paid billing fallback ignores canceled or suspended provider state', () =>
     userId: 'user-123',
     localAccountType: 'store',
     rows: {
-      subscription: { plan_id: 'store', status: 'suspended', provider: 'stripe' },
+      subscription: {
+        plan_id: 'store',
+        status: 'suspended',
+        stripe_customer_id: 'cus_123',
+        stripe_subscription_id: 'sub_123',
+      },
     },
   });
 
@@ -77,6 +86,34 @@ test('paid billing fallback ignores canceled or suspended provider state', () =>
   assert.equal(canceled.accountType, 'seller');
   assert.equal(suspended.membershipTier, 'free');
   assert.equal(suspended.accountType, 'store');
+  assert.equal(suspended.providerState, 'stripe');
+});
+
+test('mobile provider state reads provider subscriptions without requiring a billing_subscriptions provider column', () => {
+  const revenueCat = resolveMobileAccountAccessSnapshot({
+    userId: 'user-123',
+    localAccountType: 'free',
+    rows: {
+      subscription: { plan_id: 'seller', status: 'active' },
+      providerSubscriptions: [{ provider: 'google', status: 'active' }],
+    },
+  });
+  const mixed = resolveMobileAccountAccessSnapshot({
+    userId: 'user-123',
+    localAccountType: 'free',
+    rows: {
+      subscription: {
+        plan_id: 'store',
+        status: 'active',
+        stripe_customer_id: 'cus_123',
+        stripe_subscription_id: 'sub_123',
+      },
+      providerSubscriptions: [{ provider: 'apple', status: 'active' }],
+    },
+  });
+
+  assert.equal(revenueCat.providerState, 'revenuecat');
+  assert.equal(mixed.providerState, 'mixed');
 });
 
 test('query errors keep membership local-fallback visible without inventing paid access', () => {

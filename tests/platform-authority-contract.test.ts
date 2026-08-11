@@ -124,3 +124,17 @@ test("server billing resolution keeps manual override explicit and provider prec
     { tier: "store", status: "active", source: "apple", periodEnd: "2026-08-20T00:00:00.000Z" },
   );
 });
+
+test("web and mobile access loaders read provider subscriptions instead of assuming Stripe", () => {
+  const serverAccess = readFileSync(path.join(repoRoot, "src/lib/platform/server-access.ts"), "utf8");
+  const mobileAccess = readFileSync(path.join(repoRoot, "mobile/services/mobile-account-access.ts"), "utf8");
+
+  assert.match(serverAccess, /billing_provider_subscriptions/);
+  assert.match(serverAccess, /stripe_subscription_id/);
+  assert.match(serverAccess, /providerStates\.has\("revenuecat"\)/);
+  assert.doesNotMatch(serverAccess, /return "stripe" as const;\s*\n}/);
+
+  assert.match(mobileAccess, /billing_provider_subscriptions/);
+  assert.match(mobileAccess, /stripe_subscription_id/);
+  assert.doesNotMatch(mobileAccess, /plan_id,status,current_period_end,provider/);
+});
