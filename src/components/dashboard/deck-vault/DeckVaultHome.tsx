@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowRight,
   BarChart3,
@@ -18,7 +19,9 @@ import {
 } from "lucide-react";
 
 import { ManaPips } from "./ManaPips";
-import type { DeckRecord } from "@/lib/deck-vault/types";
+import { evaluateCommanderBracket } from "@/lib/deck-vault/brackets";
+import { isCommanderDeckFormat } from "@/lib/deck-vault/formats";
+import type { DeckCard as DeckCardRecord, DeckRecord } from "@/lib/deck-vault/types";
 import { loadDeckVault, saveDeckRecord } from "@/lib/deck-vault/persistence";
 
 const FORMATS = [
@@ -338,34 +341,40 @@ function DeckCard({ deck, onRename }: { deck: DeckRecord; onRename: () => void }
   const commanderCard = deck.cards.find((card) => card.board === "commander" || card.name === deck.commander);
   const image = commanderCard?.artCrop ?? commanderCard?.image;
   const missingCount = Math.max(deck.cardCount - Math.round((deck.cardCount * deck.ownedCount) / 100), 0);
+  const isCommander = isCommanderDeckFormat(deck.format);
+  const commanderBracket = isCommander && deck.cards.length ? evaluateCommanderBracket(deck.cards) : null;
 
   return (
     <article className="group relative overflow-hidden rounded-[24px] bg-[#081721] shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_18px_52px_rgba(0,0,0,.24)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#091b27]">
-      <div className="relative h-32 overflow-hidden bg-[#030b12]">
-        {image ? (
-          <Image src={image} alt="" fill sizes="(min-width: 1280px) 28vw, (min-width: 768px) 42vw, 100vw" className="object-cover opacity-72 transition duration-500 group-hover:scale-[1.03]" />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(56,189,248,.12),rgba(15,23,42,.18))]">
-            <ManaPips colors={colors} size="lg" />
+      <DeckCardHoverPreview card={commanderCard}>
+        {({ previewProps }) => (
+          <div className="relative h-32 overflow-hidden bg-[#030b12]" {...previewProps}>
+            {image ? (
+              <Image src={image} alt="" fill sizes="(min-width: 1280px) 28vw, (min-width: 768px) 42vw, 100vw" className="object-cover opacity-72 transition duration-500 group-hover:scale-[1.03]" />
+            ) : (
+              <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,rgba(56,189,248,.12),rgba(15,23,42,.18))]">
+                <ManaPips colors={colors} size="lg" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#081721] via-[#081721]/35 to-transparent" />
+            <div className="absolute left-4 top-4 flex items-center gap-2">
+              <ManaPips colors={colors} />
+              <span className="rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-200 backdrop-blur">
+                {deck.format}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onRename}
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl bg-black/45 text-slate-300 backdrop-blur transition hover:bg-sky-300/15 hover:text-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300/50"
+              aria-label={`Rename ${deck.name}`}
+              title="Rename deck"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#081721] via-[#081721]/35 to-transparent" />
-        <div className="absolute left-4 top-4 flex items-center gap-2">
-          <ManaPips colors={colors} />
-          <span className="rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-200 backdrop-blur">
-            {deck.format}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onRename}
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl bg-black/45 text-slate-300 backdrop-blur transition hover:bg-sky-300/15 hover:text-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300/50"
-          aria-label={`Rename ${deck.name}`}
-          title="Rename deck"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-      </div>
+      </DeckCardHoverPreview>
 
       <div className="p-4">
         <div className="min-h-[82px]">
@@ -387,6 +396,44 @@ function DeckCard({ deck, onRename }: { deck: DeckRecord; onRename: () => void }
           <Metric label="Status" value={deck.status} />
         </div>
 
+        {isCommander ? (
+          commanderBracket ? (
+            <div className="mt-3 rounded-2xl bg-violet-300/[0.055] p-3 ring-1 ring-violet-300/[0.11]">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-violet-200/80">
+                  Commander bracket
+                </p>
+                <span className="rounded-full bg-violet-200 px-2 py-0.5 text-[10px] font-bold text-[#170923]">
+                  Bracket {commanderBracket.bracket}
+                </span>
+              </div>
+              <p className="mt-1 text-[12px] font-semibold text-white">
+                {commanderBracket.name}
+              </p>
+              {commanderBracket.reasons.length ? (
+                <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-violet-100/62">
+                  {commanderBracket.reasons[0]}
+                </p>
+              ) : null}
+              <Link
+                href={`/dashboard/deck-vault/decks/${deck.id}?view=analytics`}
+                className="mt-2 inline-flex text-[11px] font-semibold text-violet-200 transition hover:text-violet-100"
+              >
+                View bracket analysis
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-2xl bg-violet-300/[0.035] p-3 ring-1 ring-violet-300/[0.08]">
+              <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-violet-200/70">
+                Commander bracket pending
+              </p>
+              <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                Add resolved deck cards to generate the bracket assessment.
+              </p>
+            </div>
+          )
+        ) : null}
+
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Link
             href={`/dashboard/deck-vault/decks/${deck.id}`}
@@ -405,6 +452,94 @@ function DeckCard({ deck, onRename }: { deck: DeckRecord; onRename: () => void }
       </div>
     </article>
   );
+}
+
+function DeckCardHoverPreview({
+  card,
+  children,
+}: {
+  card?: DeckCardRecord;
+  children: (props: {
+    previewProps: {
+      onMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
+      onMouseLeave: () => void;
+      onFocus: (event: React.FocusEvent<HTMLElement>) => void;
+      onBlur: () => void;
+    };
+  }) => React.ReactNode;
+}) {
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const imageSource = card ? previewImageForCard(card) : "";
+
+  useEffect(() => setMounted(true), []);
+
+  function openPreview(target: HTMLElement) {
+    if (!imageSource) return;
+    setAnchor(target.getBoundingClientRect());
+  }
+
+  const previewProps = {
+    onMouseEnter: (event: React.MouseEvent<HTMLElement>) => openPreview(event.currentTarget),
+    onMouseLeave: () => setAnchor(null),
+    onFocus: (event: React.FocusEvent<HTMLElement>) => openPreview(event.currentTarget),
+    onBlur: () => setAnchor(null),
+  };
+
+  const position = (() => {
+    if (!mounted || !anchor || typeof window === "undefined") return null;
+    const width = Math.min(260, window.innerWidth - 24);
+    const height = 410;
+    const gap = 14;
+    const roomRight = window.innerWidth - anchor.right;
+    const left =
+      roomRight >= width + gap
+        ? anchor.right + gap
+        : Math.max(12, anchor.left - width - gap);
+    const preferredTop = anchor.top + anchor.height / 2 - height / 2;
+    const top = Math.min(Math.max(12, preferredTop), Math.max(12, window.innerHeight - height - 12));
+
+    return { left, top, width };
+  })();
+
+  return (
+    <>
+      {children({ previewProps })}
+      {mounted && card && imageSource && position
+        ? createPortal(
+            <div
+              role="tooltip"
+              aria-label={`Card preview for ${card.name}`}
+              className="pointer-events-none fixed z-[500] overflow-hidden rounded-[22px] border border-cyan-300/[0.16] bg-[#04101a]/98 p-3 shadow-[0_28px_90px_rgba(0,0,0,0.72),0_0_28px_rgba(34,211,238,0.09)] backdrop-blur-xl"
+              style={{ left: position.left, top: position.top, width: position.width }}
+            >
+              <img
+                src={imageSource}
+                alt={card.name}
+                className="aspect-[0.715] w-full rounded-2xl object-cover"
+              />
+              <p className="mt-3 line-clamp-2 text-[14px] font-semibold leading-5 text-white">
+                {card.name}
+              </p>
+              <div className="mt-2 flex items-center justify-between gap-3 text-[11px]">
+                <span className="text-slate-500">MV {card.manaValue}</span>
+                <span className="font-semibold text-emerald-200">
+                  {formatCurrency(card.price)}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-[10px] text-slate-600">
+                {[card.setCode?.toUpperCase(), card.collectorNumber].filter(Boolean).join(" #") || card.typeLine}
+              </p>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+function previewImageForCard(card: DeckCardRecord) {
+  return card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`;
 }
 
 function AiDeckReviewPanel({ hasDecks, firstDeck }: { hasDecks: boolean; firstDeck?: DeckRecord }) {

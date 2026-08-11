@@ -14,6 +14,14 @@ const deckImportCenter = readFileSync(
   path.join(repoRoot, "src/components/dashboard/deck-vault/DeckImportCenter.tsx"),
   "utf8",
 );
+const deckDetailWorkspace = readFileSync(
+  path.join(repoRoot, "src/components/dashboard/deck-vault/DeckDetailWorkspace.tsx"),
+  "utf8",
+);
+const deckFormats = readFileSync(
+  path.join(repoRoot, "src/lib/deck-vault/formats.ts"),
+  "utf8",
+);
 const deckPage = readFileSync(
   path.join(repoRoot, "src/app/dashboard/deck-vault/page.tsx"),
   "utf8",
@@ -95,4 +103,43 @@ test("responsive Deck Vault layout uses bounded grids and avoids fixed overflow-
   assert.match(deckVaultHome, /min-w-0/);
   assert.match(deckVaultHome, /flex flex-wrap gap-2\.5/);
   assert.doesNotMatch(deckVaultHome, /(?<!max-)w-\[[1-9]\d{3,}px\]/);
+});
+
+test("Color Demand rows use full-width row structure with right-aligned percentages", () => {
+  assert.match(deckDetailWorkspace, /aria-label="Color demand by cards"/);
+  assert.match(deckDetailWorkspace, /group flex w-full min-w-0 items-start gap-3/);
+  assert.match(deckDetailWorkspace, /grid min-w-0 grid-cols-\[minmax\(0,1fr\)_auto\]/);
+  assert.match(deckDetailWorkspace, /text-right text-\[13px\] font-semibold tabular-nums/);
+  assert.match(deckDetailWorkspace, /mt-3 h-2 overflow-hidden rounded-full/);
+  assert.doesNotMatch(deckDetailWorkspace, /min-w-\[48px\] shrink-0 rounded-lg border/);
+});
+
+test("Deck Vault home restores card hover preview using existing deck card identity", () => {
+  assert.match(deckVaultHome, /function DeckCardHoverPreview/);
+  assert.match(deckVaultHome, /createPortal/);
+  assert.match(deckVaultHome, /role="tooltip"/);
+  assert.match(deckVaultHome, /aria-label=\{`Card preview for \$\{card\.name\}`\}/);
+  assert.match(deckVaultHome, /previewImageForCard\(card\)/);
+  assert.match(deckVaultHome, /card\.image \|\| `\/api\/deck-vault\/card-image\?name=/);
+  assert.match(deckVaultHome, /card\.setCode\?\.toUpperCase\(\)/);
+  assert.match(deckVaultHome, /card\.collectorNumber/);
+});
+
+test("Commander bracket assessment uses shared evaluator and omits non-Commander formats", () => {
+  assert.match(deckVaultHome, /evaluateCommanderBracket\(deck\.cards\)/);
+  assert.match(deckVaultHome, /isCommanderDeckFormat\(deck\.format\)/);
+  assert.match(deckVaultHome, /Commander bracket/);
+  assert.match(deckVaultHome, /View bracket analysis/);
+  assert.match(deckVaultHome, /\{isCommander \? \(/);
+  assert.match(deckFormats, /commander \/ edh/);
+  assert.match(deckFormats, /commander\/edh/);
+  assert.match(deckFormats, /format === "EDH" \|\| format === "Pauper EDH"/);
+});
+
+test("missing Commander bracket data fails gracefully without affecting routes", () => {
+  assert.match(deckVaultHome, /Commander bracket pending/);
+  assert.match(deckVaultHome, /deck\.cards\.length \? evaluateCommanderBracket/);
+  assert.match(deckVaultHome, /Open deck/);
+  assert.match(deckVaultHome, /Analyze/);
+  assert.match(deckVaultHome, /\/dashboard\/deck-vault\/decks\/\$\{deck\.id\}/);
 });

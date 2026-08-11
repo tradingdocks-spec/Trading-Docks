@@ -6596,7 +6596,7 @@ function ColorDemandPie({
         </div>
       </div>
 
-      <div className="space-y-3" role="img" aria-label="Color demand by cards">
+      <div className="space-y-2.5" role="img" aria-label="Color demand by cards">
           {cardCounts.map((entry) => {
             const percentage =
               (entry.count / total) * 100;
@@ -6616,11 +6616,11 @@ function ColorDemandPie({
                   setActiveColor(null)
                 }
                 className={[
-                  "group grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition duration-300",
+                  "group flex w-full min-w-0 items-start gap-3 rounded-2xl px-4 py-3.5 text-left transition duration-300",
                   activeColor ===
                   entry.color
-                    ? "border-white/[0.12] bg-white/[0.035] shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
-                    : "border-white/[0.055] bg-white/[0.015]",
+                    ? "bg-white/[0.045] shadow-[0_12px_30px_rgba(0,0,0,0.18)] ring-1 ring-white/[0.10]"
+                    : "bg-white/[0.018] ring-1 ring-white/[0.045]",
                 ].join(" ")}
               >
                 <ManaSymbols
@@ -6628,16 +6628,21 @@ function ColorDemandPie({
                   size="sm"
                 />
 
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-[13px] font-semibold text-white">
-                      {manaName(entry.color)}
-                    </p>
-                    <p className="text-[11px] font-medium text-slate-400">
-                      {entry.count} {entry.count === 1 ? "card" : "cards"}
+                <div className="min-w-0 flex-1">
+                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-x-4 gap-y-1">
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-white">
+                        {manaName(entry.color)}
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+                        {entry.count} {entry.count === 1 ? "card" : "cards"}
+                      </p>
+                    </div>
+                    <p className="text-right text-[13px] font-semibold tabular-nums text-slate-100">
+                      {percentage.toFixed(0)}%
                     </p>
                   </div>
-                  <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/[0.055]">
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.055]">
                     <div
                       className="h-full rounded-full transition-all duration-500 group-hover:brightness-110"
                       style={{
@@ -6648,10 +6653,6 @@ function ColorDemandPie({
                     />
                   </div>
                 </div>
-
-                <span className="min-w-[48px] shrink-0 rounded-lg border border-white/[0.065] bg-black/[0.12] px-2 py-1.5 text-center text-[13px] font-semibold text-slate-100">
-                  {percentage.toFixed(0)}%
-                </span>
               </button>
             );
           })}

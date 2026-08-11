@@ -24,6 +24,7 @@ import {
 
 import type { DeckCard, DeckFormat, DeckRecord, ManaColor, ScryfallCardResult } from "@/lib/deck-vault/types";
 import { loadDeckVault, saveDeckRecord } from "@/lib/deck-vault/persistence";
+import { DECK_FORMATS, normalizeDeckFormat } from "@/lib/deck-vault/formats";
 
 type ImportMode = "paste" | "url" | "file";
 type Board = "commander" | "main" | "sideboard" | "maybeboard";
@@ -43,18 +44,7 @@ type ResolvedPayload = {
   marketValue: number;
 };
 
-const formats: DeckFormat[] = [
-  "EDH",
-  "Pauper EDH",
-  "Standard",
-  "Modern",
-  "Pioneer",
-  "Legacy",
-  "Vintage",
-  "Alchemy",
-  "Premodern",
-  "Pauper",
-];
+const formats: DeckFormat[] = DECK_FORMATS;
 
 export function DeckImportCenter({
   plan,
@@ -779,11 +769,7 @@ function detectSource(value: string, fileName = "") {
 }
 
 function normalizeFormat(value?: string): DeckFormat {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (normalized === "commander" || normalized === "edh") return "EDH";
-  if (normalized === "pauper commander" || normalized === "pauper edh" || normalized === "pedh") return "Pauper EDH";
-  const found = formats.find((item) => item.toLowerCase() === normalized);
-  return found ?? "EDH";
+  return normalizeDeckFormat(String(value ?? ""));
 }
 
 function ModeButton({ icon: Icon, label, detail, active, onClick }: { icon: React.ComponentType<{ className?: string }>; label: string; detail: string; active: boolean; onClick: () => void }) {
