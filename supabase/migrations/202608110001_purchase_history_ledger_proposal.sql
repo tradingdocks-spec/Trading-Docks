@@ -65,6 +65,9 @@ create table if not exists public.purchase_ledger_lines (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists purchase_ledger_lines_id_purchase_idx
+  on public.purchase_ledger_lines(id, purchase_id);
+
 create table if not exists public.purchase_inventory_links (
   id uuid primary key default gen_random_uuid(),
   purchase_id uuid not null references public.purchase_ledger(id) on delete cascade,
@@ -74,7 +77,13 @@ create table if not exists public.purchase_inventory_links (
   quantity integer not null default 0 check (quantity >= 0),
   cost_basis numeric(14,2) check (cost_basis is null or cost_basis >= 0),
   created_at timestamptz not null default now(),
-  unique (purchase_id, purchase_line_id, inventory_user_id, inventory_item_id)
+  unique (purchase_id, purchase_line_id, inventory_user_id, inventory_item_id),
+  foreign key (purchase_line_id, purchase_id)
+    references public.purchase_ledger_lines(id, purchase_id)
+    on delete cascade,
+  foreign key (inventory_user_id, inventory_item_id)
+    references public.inventory_items(user_id, id)
+    on delete cascade
 );
 
 create index if not exists purchase_ledger_workspace_date_idx
@@ -85,6 +94,17 @@ create index if not exists purchase_ledger_workspace_status_idx
   on public.purchase_ledger(workspace_id, status, purchased_at desc);
 create index if not exists purchase_ledger_source_idx
   on public.purchase_ledger(workspace_id, source_type, purchased_at desc);
+create index if not exists purchase_ledger_customer_idx
+  on public.purchase_ledger(workspace_id, seller_customer_id, purchased_at desc)
+  where seller_customer_id is not null;
+create index if not exists purchase_ledger_vendor_idx
+  on public.purchase_ledger(workspace_id, vendor_id, purchased_at desc)
+  where vendor_id is not null;
+create index if not exists purchase_ledger_payment_idx
+  on public.purchase_ledger(workspace_id, payment_method, purchased_at desc);
+create index if not exists purchase_ledger_seller_name_idx
+  on public.purchase_ledger(workspace_id, lower(seller_name), purchased_at desc)
+  where seller_name <> '';
 create index if not exists purchase_ledger_lines_purchase_idx
   on public.purchase_ledger_lines(purchase_id);
 create index if not exists purchase_inventory_links_purchase_idx
@@ -224,6 +244,22 @@ create policy "Managers can write purchase inventory links"
   )
   with check (
     exists (
+      select 1
+      from public.purchase_ledger p
+      join public.inventory_items ii
+        on ii.user_id = purchase_inventory_links.inventory_user_id
+       and ii.id = purchase_inventory_links.inventory_item_id
+      where p.id = purchase_inventory_links.purchase_id
+        and (
+          ii.workspace_id = p.workspace_id
+          or (
+            ii.workspace_id is null
+            and p.user_id = ii.user_id
+            and p.user_id = auth.uid()
+          )
+        )
+    )
+    and exists (
       select 1
       from public.inventory_items ii
       where ii.user_id = purchase_inventory_links.inventory_user_id
