@@ -66,6 +66,7 @@ import {
   deleteDeckRecord,
   saveDeckRecord,
 } from "@/lib/deck-vault/persistence";
+import { isCommanderDeckFormat } from "@/lib/deck-vault/formats";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 import { DeckPlaytest } from "@/components/deck-vault/DeckPlaytest";
 
@@ -334,8 +335,7 @@ export function DeckDetailWorkspace({
     () => evaluateCommanderBracket(cards),
     [cards],
   );
-  const isCommander =
-    format === "EDH" || format === "Pauper EDH";
+  const isCommander = isCommanderDeckFormat(format);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1641,6 +1641,8 @@ function CardsWorkspace({
     useState<string | null>(
       mainDeckCards[0]?.id ?? null,
     );
+  const [hoveredCardId, setHoveredCardId] =
+    useState<string | null>(null);
   const [selectedIds, setSelectedIds] =
     useState<string[]>([]);
   const [typeFilter, setTypeFilter] =
@@ -1691,8 +1693,7 @@ function CardsWorkspace({
   );
   const uniqueCardCount = mainDeckCards.length;
   const singletonFormat =
-    format === "EDH" ||
-    format === "Pauper EDH";
+    isCommanderDeckFormat(format);
   const copyLimit = singletonFormat ? 1 : 4;
 
   const typeOptions = [
@@ -1779,9 +1780,37 @@ function CardsWorkspace({
   const selectedCard =
     mainDeckCards.find(
       (card) => card.id === selectedCardId,
-    ) ??
+    ) ?? null;
+  const hoveredCard =
+    mainDeckCards.find(
+      (card) => card.id === hoveredCardId,
+    ) ?? null;
+  const inspectorCard =
+    hoveredCard ??
+    selectedCard ??
     filteredCards[0] ??
     mainDeckCards[0];
+  const inspectorLocked =
+    Boolean(
+      inspectorCard &&
+        selectedCard?.id === inspectorCard.id &&
+        (!hoveredCard || hoveredCard.id === selectedCard.id),
+    );
+
+  function previewCard(id: string) {
+    setHoveredCardId(id);
+  }
+
+  function clearCardPreview(id?: string) {
+    setHoveredCardId((current) =>
+      id && current !== id ? current : null,
+    );
+  }
+
+  function selectCard(id: string) {
+    setSelectedCardId(id);
+    setHoveredCardId(null);
+  }
 
   const roleGroups = useMemo(() => {
     const roles = [
@@ -2495,13 +2524,21 @@ function CardsWorkspace({
                           selectedCard?.id ===
                           card.id
                         }
+                        previewing={
+                          hoveredCard?.id ===
+                          card.id
+                        }
                         onCheck={() =>
                           toggleSelected(card.id)
                         }
                         onSelect={() =>
-                          setSelectedCardId(
-                            card.id,
-                          )
+                          selectCard(card.id)
+                        }
+                        onPreview={() =>
+                          previewCard(card.id)
+                        }
+                        onPreviewEnd={() =>
+                          clearCardPreview(card.id)
                         }
                       />
                     ))}
@@ -2514,8 +2551,11 @@ function CardsWorkspace({
           {view === "condensed" ? (
             <DeckCondensedView
               cards={filteredCards}
-              onSelect={setSelectedCardId}
-              onHover={setSelectedCardId}
+              selectedCardId={selectedCardId}
+              previewCardId={hoveredCardId}
+              onSelect={selectCard}
+              onPreview={previewCard}
+              onPreviewEnd={clearCardPreview}
               onTrash={trashCardFromDeck}
             />
           ) : null}
@@ -2527,7 +2567,7 @@ function CardsWorkspace({
                   <div
                     key={card.id}
                     onClick={() =>
-                      setSelectedCardId(card.id)
+                      selectCard(card.id)
                     }
                     className="cursor-pointer"
                   >
@@ -2546,14 +2586,14 @@ function CardsWorkspace({
           {view === "columns" ? (
             <DeckColumnsView
               cards={filteredCards}
-              onSelect={setSelectedCardId}
+              onSelect={selectCard}
             />
           ) : null}
 
           {view === "stacks" ? (
             <DeckStacksView
               cards={filteredCards}
-              onSelect={setSelectedCardId}
+              onSelect={selectCard}
             />
           ) : null}
 
@@ -2588,9 +2628,7 @@ function CardsWorkspace({
                         key={card.id}
                         card={card}
                         onSelect={() =>
-                          setSelectedCardId(
-                            card.id,
-                          )
+                          selectCard(card.id)
                         }
                       />
                     ))}
@@ -2627,61 +2665,64 @@ function CardsWorkspace({
 
         <aside className="xl:sticky xl:top-[190px] xl:self-start">
           <section className="overflow-hidden rounded-[24px] border border-cyan-300/[0.1] bg-[#06131f]">
-            {selectedCard ? (
+            {inspectorCard ? (
               <>
-                <div className="relative aspect-[1.55] overflow-hidden">
-                  <img
-                    src={
-                      selectedCard.artCrop ||
-                      selectedCard.image
-                    }
-                    alt=""
-                    className="h-full w-full object-cover opacity-75"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#06131f] via-[#06131f]/25 to-transparent" />
+                <div className="border-b border-white/[0.055] px-5 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-300">
+                      Live Inspector
+                    </p>
+                    <span className={[
+                      "rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em]",
+                      inspectorLocked
+                        ? "bg-cyan-300 text-[#00121c]"
+                        : "border border-white/[0.08] bg-white/[0.025] text-slate-400",
+                    ].join(" ")}>
+                      {inspectorLocked ? "Selected" : "Previewing"}
+                    </span>
+                  </div>
                 </div>
-                <div className="-mt-8 relative p-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-300">
-                    Live Inspector
-                  </p>
+                <div className="p-5">
+                  <InspectorCardImage card={inspectorCard} />
                   <h3 className="mt-2 text-[18px] font-semibold leading-6 text-white">
-                    {selectedCard.name}
+                    {inspectorCard.name}
                   </h3>
                   <p className="mt-2 text-[12px] leading-5 text-slate-500">
-                    {selectedCard.typeLine}
+                    {inspectorCard.typeLine}
                   </p>
 
                   <div className="mt-5 grid grid-cols-2 gap-3">
                     <InspectorMetric
                       label="Quantity"
-                      value={`${selectedCard.quantity}`}
+                      value={`${inspectorCard.quantity}`}
                     />
                     <InspectorMetric
                       label="Mana Value"
-                      value={`${selectedCard.manaValue}`}
+                      value={`${inspectorCard.manaValue}`}
                     />
                     <InspectorMetric
                       label="Price"
-                      value={`$${selectedCard.price.toFixed(2)}`}
+                      value={`$${inspectorCard.price.toFixed(2)}`}
                     />
                     <InspectorMetric
                       label="Owned"
                       value={`${Math.min(
-                        selectedCard.quantity,
-                        selectedCard.ownedQuantity ??
-                          (selectedCard.owned
-                            ? selectedCard.quantity
+                        inspectorCard.quantity,
+                        inspectorCard.ownedQuantity ??
+                          (inspectorCard.owned
+                            ? inspectorCard.quantity
                             : 0),
-                      )} / ${selectedCard.quantity}`}
+                      )} / ${inspectorCard.quantity}`}
                     />
                   </div>
 
-                  <OwnershipLocations card={selectedCard} />
+                  <OwnershipLocations card={inspectorCard} />
 
+                  {inspectorLocked ? (
                   <div className="mt-5 space-y-2">
                     {isCommander ? <InspectorAction
                       href={edhrecCardUrl(
-                        selectedCard.name,
+                        inspectorCard.name,
                       )}
                       tone="cyan"
                     >
@@ -2690,7 +2731,7 @@ function CardsWorkspace({
                     <InspectorAction
                       tone="violet"
                       onClick={() =>
-                        setReplacementCard(selectedCard)
+                        setReplacementCard(inspectorCard)
                       }
                     >
                       Find Replacement
@@ -2698,7 +2739,7 @@ function CardsWorkspace({
                     <InspectorAction
                       tone="rose"
                       onClick={() =>
-                        trashCardFromDeck(selectedCard)
+                        trashCardFromDeck(inspectorCard)
                       }
                     >
                       <span className="inline-flex items-center gap-2">
@@ -2707,6 +2748,11 @@ function CardsWorkspace({
                       </span>
                     </InspectorAction>
                   </div>
+                  ) : (
+                    <div className="mt-5 rounded-xl border border-white/[0.065] bg-white/[0.018] px-3 py-3 text-[11px] leading-5 text-slate-500">
+                      Click this card in Deck Canvas to lock it for editing, replacement, or removal.
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -2862,13 +2908,19 @@ function groupedDeckCards(cards: DeckCard[]) {
 
 function DeckCondensedView({
   cards,
+  selectedCardId,
+  previewCardId,
   onSelect,
-  onHover,
+  onPreview,
+  onPreviewEnd,
   onTrash,
 }: {
   cards: DeckCard[];
+  selectedCardId: string | null;
+  previewCardId: string | null;
   onSelect: (id: string) => void;
-  onHover: (id: string) => void;
+  onPreview: (id: string) => void;
+  onPreviewEnd: (id?: string) => void;
   onTrash: (card: DeckCard) => void;
 }) {
 const groups = groupedDeckCards(cards);
@@ -2919,13 +2971,27 @@ const groups = groupedDeckCards(cards);
               key={card.id}
               type="button"
               onClick={() => onSelect(card.id)}
-              onMouseEnter={() => onHover(card.id)}
-              onFocus={() => onHover(card.id)}
-              className="group relative flex min-h-9 w-full items-center gap-2.5 overflow-hidden px-3.5 py-2 text-left transition duration-150 hover:bg-cyan-200/[0.065] focus-visible:bg-cyan-200/[0.065] focus-visible:outline-none"
+              onMouseEnter={() => onPreview(card.id)}
+              onMouseLeave={() => onPreviewEnd(card.id)}
+              onFocus={() => onPreview(card.id)}
+              onBlur={() => onPreviewEnd(card.id)}
+              className={[
+                "group relative flex min-h-9 w-full items-center gap-2.5 overflow-hidden px-3.5 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50",
+                selectedCardId === card.id
+                  ? "bg-cyan-200/[0.085] text-white"
+                  : previewCardId === card.id
+                    ? "bg-cyan-200/[0.055]"
+                    : "hover:bg-cyan-200/[0.045] focus-visible:bg-cyan-200/[0.055]",
+              ].join(" ")}
             >
               <span
                 aria-hidden="true"
-                className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full opacity-75 transition group-hover:opacity-100"
+                className={[
+                  "absolute inset-y-1.5 left-0 w-[3px] rounded-r-full transition group-hover:opacity-100",
+                  selectedCardId === card.id || previewCardId === card.id
+                    ? "opacity-100"
+                    : "opacity-60",
+                ].join(" ")}
                 style={{ background: identityAccent(card.colors) }}
               />
               <span className="inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.045] px-1.5 text-[10px] font-extrabold tabular-nums text-slate-200">
@@ -4260,23 +4326,25 @@ function DeckTableRow({
   card,
   checked,
   selected,
+  previewing,
   onCheck,
   onSelect,
+  onPreview,
+  onPreviewEnd,
 }: {
   card: DeckCard;
   checked: boolean;
   selected: boolean;
+  previewing: boolean;
   onCheck: () => void;
   onSelect: () => void;
+  onPreview: () => void;
+  onPreviewEnd: () => void;
 }) {
   const [imageFailed, setImageFailed] =
     useState(false);
 
-  const imageSource =
-    card.image ||
-    `/api/deck-vault/card-image?name=${encodeURIComponent(
-      card.name,
-    )}`;
+  const imageSource = deckCardImageSource(card);
 
   useEffect(() => {
     setImageFailed(false);
@@ -4285,12 +4353,14 @@ function DeckTableRow({
   return (
     <tr
       onClick={onSelect}
-      onMouseEnter={onSelect}
-      onFocus={onSelect}
+      onMouseEnter={onPreview}
+      onMouseLeave={onPreviewEnd}
       className={[
         "cursor-pointer border-b border-white/[0.045] transition odd:bg-white/[0.006] last:border-b-0",
         selected
           ? "bg-cyan-400/[0.07] shadow-[inset_3px_0_0_rgba(103,232,249,.85),0_8px_18px_rgba(0,0,0,.08)]"
+          : previewing
+            ? "bg-cyan-300/[0.04] shadow-[inset_3px_0_0_rgba(103,232,249,.44)]"
           : "hover:bg-cyan-300/[0.025]",
       ].join(" ")}
     >
@@ -4319,9 +4389,10 @@ function DeckTableRow({
             event.stopPropagation();
             onSelect();
           }}
-          onMouseEnter={onSelect}
-          onFocus={onSelect}
-          className="group/name flex min-w-0 items-center gap-3 text-left"
+          onMouseEnter={onPreview}
+          onFocus={onPreview}
+          onBlur={onPreviewEnd}
+          className="group/name flex min-w-0 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50"
         >
           <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-white/[0.08] bg-slate-950 shadow-[0_7px_18px_rgba(0,0,0,.3)]">
             {!imageFailed ? (
@@ -4409,6 +4480,54 @@ function inventoryLocationLabel(match: InventoryMatch) {
   return details.join(" · ");
 }
 
+function deckCardImageSource(card: DeckCard) {
+  return card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`;
+}
+
+function InspectorCardImage({ card }: { card: DeckCard }) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const imageSource = deckCardImageSource(card);
+
+  useEffect(() => {
+    setLoaded(false);
+    setFailed(false);
+  }, [imageSource]);
+
+  return (
+    <div className="relative mx-auto mb-4 aspect-[0.715] w-full max-w-[255px] overflow-hidden rounded-[22px] border border-white/[0.095] bg-[#030b12] shadow-[0_22px_70px_rgba(0,0,0,0.42),0_0_28px_rgba(34,211,238,0.08)]">
+      {!loaded && !failed ? (
+        <div className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,rgba(255,255,255,.025),rgba(103,232,249,.08),rgba(255,255,255,.025))]" />
+      ) : null}
+      {!failed ? (
+        <img
+          key={imageSource}
+          src={imageSource}
+          alt={card.name}
+          loading="eager"
+          decoding="async"
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+          className={[
+            "h-full w-full object-contain transition duration-200",
+            loaded ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+        />
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+          <ImageIcon className="h-7 w-7 text-slate-700" />
+          <p className="mt-3 text-[12px] font-semibold text-slate-400">
+            Card image unavailable
+          </p>
+          <p className="mt-1 text-[10px] leading-4 text-slate-600">
+            {card.name}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OwnershipLocations({ card }: { card: DeckCard }) {
   const matches = card.inventoryMatches ?? [];
   const ownedQuantity = card.ownedQuantity ?? 0;
@@ -4460,11 +4579,7 @@ function RoleCardPreview({
   onSelect: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const imageSource =
-    card.image ||
-    `/api/deck-vault/card-image?name=${encodeURIComponent(
-      card.name,
-    )}`;
+  const imageSource = deckCardImageSource(card);
 
   return (
     <div className="relative">

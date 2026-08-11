@@ -143,3 +143,49 @@ test("missing Commander bracket data fails gracefully without affecting routes",
   assert.match(deckVaultHome, /Analyze/);
   assert.match(deckVaultHome, /\/dashboard\/deck-vault\/decks\/\$\{deck\.id\}/);
 });
+
+test("Deck Detail live inspector separates hover preview from locked selection", () => {
+  assert.match(deckDetailWorkspace, /const \[hoveredCardId, setHoveredCardId\]/);
+  assert.match(deckDetailWorkspace, /const inspectorCard =\s*hoveredCard \?\?\s*selectedCard \?\?/);
+  assert.match(deckDetailWorkspace, /function previewCard\(id: string\)/);
+  assert.match(deckDetailWorkspace, /function clearCardPreview\(id\?: string\)/);
+  assert.match(deckDetailWorkspace, /function selectCard\(id: string\)/);
+  assert.match(deckDetailWorkspace, /onMouseEnter=\{onPreview\}/);
+  assert.match(deckDetailWorkspace, /onMouseLeave=\{onPreviewEnd\}/);
+  assert.doesNotMatch(deckDetailWorkspace, /onMouseEnter=\{onSelect\}/);
+});
+
+test("Deck Detail inspector uses existing exact card image path with loading and fallback states", () => {
+  assert.match(deckDetailWorkspace, /function deckCardImageSource\(card: DeckCard\)/);
+  assert.match(deckDetailWorkspace, /return card\.image \|\| `\/api\/deck-vault\/card-image\?name=/);
+  assert.match(deckDetailWorkspace, /function InspectorCardImage/);
+  assert.match(deckDetailWorkspace, /aspect-\[0\.715\]/);
+  assert.match(deckDetailWorkspace, /object-contain/);
+  assert.match(deckDetailWorkspace, /animate-pulse/);
+  assert.match(deckDetailWorkspace, /Card image unavailable/);
+});
+
+test("Deck Detail hover preview does not expose mutation actions until click selection locks the card", () => {
+  assert.match(deckDetailWorkspace, /const inspectorLocked =/);
+  assert.match(deckDetailWorkspace, /\{inspectorLocked \? \(/);
+  assert.match(deckDetailWorkspace, /Click this card in Deck Canvas to lock it for editing/);
+  assert.match(deckDetailWorkspace, /setReplacementCard\(inspectorCard\)/);
+  assert.match(deckDetailWorkspace, /trashCardFromDeck\(inspectorCard\)/);
+  assert.match(deckDetailWorkspace, /Remove one copy from deck/);
+});
+
+test("Deck Detail keeps Commander-only actions format gated through shared helper", () => {
+  assert.match(deckDetailWorkspace, /import \{ isCommanderDeckFormat \}/);
+  assert.match(deckDetailWorkspace, /const isCommander = isCommanderDeckFormat\(format\)/);
+  assert.match(deckDetailWorkspace, /\{isCommander \? <InspectorAction/);
+  assert.match(deckDetailWorkspace, /Analyze on EDHREC/);
+  assert.match(deckFormats, /format === "EDH" \|\| format === "Pauper EDH"/);
+});
+
+test("Deck Detail touch and keyboard paths select cards without relying on hover", () => {
+  assert.match(deckDetailWorkspace, /onClick=\{onSelect\}/);
+  assert.match(deckDetailWorkspace, /onFocus=\{onPreview\}/);
+  assert.match(deckDetailWorkspace, /focus-visible:ring-2 focus-visible:ring-cyan-300\/50/);
+  assert.match(deckDetailWorkspace, /onSelect=\{selectCard\}/);
+  assert.match(deckDetailWorkspace, /onPreview=\{previewCard\}/);
+});
