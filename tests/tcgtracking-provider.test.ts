@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   TcgTrackingClient,
+  TcgTrackingProviderError,
   classifyTcgTrackingCatalogReadiness,
   chooseExactProductImage,
   liquidityLabel,
@@ -19,6 +20,7 @@ import {
   normalizeSku,
   reconcileTcgTrackingProduct,
   reconcileTcgTrackingWithLocalCatalog,
+  runTcgTrackingCatalogReconciliation,
   scannerAdapterResult,
   skuPriceSnapshotRow,
   spreadPercent,
@@ -47,6 +49,7 @@ test("TCGTracking client parses meta categories products SKUs pricing and sealed
     if (url.endsWith("/1/sets/mid/skus")) return json({ skus: [providerSku()] });
     if (url.endsWith("/1/sets/mid/pricing")) return json({ pricing: [providerSku()] });
     if (url.endsWith("/1/sets/mid/sealed")) return json({ products: [{ ...providerProduct(), product_type: "Bundle" }] });
+    if (url.endsWith("/products/456789")) return json({ success: true, product: providerProduct() });
     return json({}, { status: 404 });
   };
 
@@ -58,6 +61,7 @@ test("TCGTracking client parses meta categories products SKUs pricing and sealed
   assert.equal((await client.skus("magic", "mid"))[0]?.tcgplayerSkuId, 987654);
   assert.equal((await client.pricing("magic", "mid"))[0]?.tcgMarket, 5.41);
   assert.equal((await client.sealed("magic", "mid"))[0]?.productType, "Bundle");
+  assert.equal((await client.product("456789"))?.tcgplayerProductId, 456789);
 });
 
 test("TCGTracking normalization rejects malformed payloads and unsafe image URLs", () => {
@@ -133,6 +137,54 @@ test("TCGTracking client flattens compact live SKU and pricing maps", async () =
   assert.equal(foil?.tcgLow, 0.91);
   assert.equal(foil?.manapoolLow, 1.44);
   assert.equal(foil?.activeListings, 81);
+});
+
+test("TCGTracking client surfaces HTML provider responses as structured non-JSON errors", async () => {
+  const client = new TcgTrackingClient({
+    retries: 0,
+    fetch: (async () =>
+      new Response("<!DOCTYPE html><h1>Oops! Something Went Wrong</h1>", {
+        status: 404,
+        headers: { "content-type": "text/html" },
+      })) as typeof fetch,
+  });
+
+  await assert.rejects(
+    () => client.cards("1", "MID"),
+    (error) => {
+      assert.equal(error instanceof TcgTrackingProviderError, true);
+      const providerError = error as TcgTrackingProviderError;
+      assert.equal(providerError.status, 404);
+      assert.equal(providerError.contentType, "text/html");
+      assert.match(providerError.url ?? "", /\/v1\/1\/sets\/MID\/cards$/);
+      assert.match(providerError.bodyPreview ?? "", /Oops! Something Went Wrong/);
+      assert.match(providerError.message, /HTTP 404/);
+      return true;
+    },
+  );
+});
+
+test("TCGTracking provider auth remains optional when no API key is configured", async () => {
+  const original = process.env.TCGTRACKING_API_KEY;
+  delete process.env.TCGTRACKING_API_KEY;
+  try {
+    const client = new TcgTrackingClient({
+      retries: 0,
+      fetch: (async (_url, init) => {
+        const headers = new Headers(init?.headers);
+        assert.equal(headers.has("authorization"), false);
+        return json({ categories: [{ id: 1, name: "Magic: The Gathering" }] });
+      }) as typeof fetch,
+    });
+
+    assert.equal((await client.categories())[0]?.id, "1");
+  } finally {
+    if (original == null) {
+      delete process.env.TCGTRACKING_API_KEY;
+    } else {
+      process.env.TCGTRACKING_API_KEY = original;
+    }
+  }
 });
 
 test("TCGTracking identity reconciliation preserves local catalog authority and reports conflicts", () => {
@@ -502,6 +554,108 @@ test("TCGTracking catalog reconciliation decision gate follows production thresh
   }), "red");
 });
 
+test("TCGTracking catalog reconciliation reports transport failure as FAILED not RED", async () => {
+  const failed = await runTcgTrackingCatalogReconciliation(
+    catalogReadClient([]),
+    {
+      sampleSize: 150,
+      client: {
+        sets: async () => [
+          {
+            id: "2708",
+            categoryId: "1",
+            name: "Commander Legends",
+            abbreviation: "CMR",
+          },
+        ],
+        cards: async () => {
+          throw new TcgTrackingProviderError(
+            "TCGTracking returned HTTP 404.",
+            "/1/sets/MID/cards",
+            404,
+            {
+              url: "https://openapi.tcgtracking.com/v1/1/sets/MID/cards",
+              method: "GET",
+              contentType: "text/html",
+              bodyPreview: "<!DOCTYPE html><h1>Oops! Something Went Wrong</h1>",
+            },
+          );
+        },
+        skus: async () => [],
+        pricing: async () => [],
+      },
+    },
+  );
+
+  assert.equal(failed.status, "provider_failed");
+  assert.equal(failed.readiness, "FAILED");
+  assert.equal(failed.recommendation, null);
+  assert.equal(failed.productsTested, 0);
+  assert.equal(failed.providerSkusTested, 0);
+  assert.equal(failed.failure?.stage, "tcgtracking-products");
+  assert.equal(failed.failure?.status, 404);
+  assert.equal(failed.failure?.contentType, "text/html");
+  assert.doesNotMatch(failed.failure?.bodyPreview ?? "", /<h1>/);
+});
+
+test("TCGTracking catalog reconciliation enriches sampled products with parent set metadata", async () => {
+  const product = normalizeProduct({
+    ...providerProduct(),
+    set_name: undefined,
+    set_abbr: undefined,
+  }, "magic");
+  const sku = normalizeSku(providerSku());
+  assert.ok(product);
+  assert.ok(sku);
+
+  const completed = await runTcgTrackingCatalogReconciliation(
+    catalogReadClient([
+      {
+        tcgplayer_id: 987654,
+        set_name: "Innistrad: Midnight Hunt",
+        product_name: "Unblinking Observer",
+        collector_number: "82",
+        condition: "Near Mint",
+        finish: "Normal",
+        tcg_market_price: 5.41,
+        tcg_low_price: 4.89,
+      },
+    ]),
+    {
+      sampleSize: 1,
+      client: {
+        sets: async () => [
+          {
+            id: "mid",
+            categoryId: "1",
+            name: "Innistrad: Midnight Hunt",
+            abbreviation: "MID",
+          },
+        ],
+        cards: async () => [product],
+        skus: async () => [sku],
+        pricing: async () => [],
+      },
+    },
+  );
+
+  assert.equal(completed.status, "completed");
+  assert.equal(completed.exactSkuMatches, 1);
+  assert.equal(completed.localSkuRowsFound, 1);
+});
+
+test("TCGTracking catalog reconciliation uses numeric Magic category and provider set IDs", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/lib/providers/tcgtracking/catalog-reconciliation.ts"),
+    "utf8",
+  );
+
+  assert.match(source, /TCGTRACKING_MAGIC_CATEGORY_ID/);
+  assert.match(source, /const setId = set\.id/);
+  assert.doesNotMatch(source, /const setId = set\.abbreviation/);
+  assert.doesNotMatch(source, /\/magic\//);
+});
+
 test("TCGTracking image validation summarizes reliability without source images", () => {
   const summary = summarizeImageReliability([
     {
@@ -608,6 +762,8 @@ test("TCGTracking admin sync is platform-admin only and scanner fixture roots st
   assert.doesNotMatch(syncRoute, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(operations, /Validate Magic provider/);
   assert.match(operations, /Run catalog reconciliation/);
+  assert.match(operations, /Failure details/);
+  assert.match(operations, /safeText/);
   assert.match(operations, /Sync Magic mappings/);
   assert.match(operations, /Refresh Magic pricing/);
   assert.match(gitignore, /^\.local-fixtures\/$/m);
@@ -707,4 +863,23 @@ function json(body: unknown, init: ResponseInit = {}) {
       headers: { "content-type": "application/json" },
     }),
   );
+}
+
+function catalogReadClient(rows: unknown[]) {
+  return {
+    from(table: string) {
+      assert.equal(table, "tcgplayer_magic_catalog");
+      return {
+        select() {
+          return {
+            in(column: string, values: number[]) {
+              assert.equal(column, "tcgplayer_id");
+              assert.ok(Array.isArray(values));
+              return Promise.resolve({ data: rows, error: null });
+            },
+          };
+        },
+      };
+    },
+  };
 }

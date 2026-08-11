@@ -43,8 +43,58 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === "reconcile_sample" || action === "run_catalog_reconciliation") {
+    let adminClient: ReturnType<typeof createAdminClient>;
+    try {
+      adminClient = createAdminClient();
+    } catch {
+      return NextResponse.json({
+        action,
+        status: "catalog_read_failed",
+        message: "Supabase server configuration unavailable.",
+        catalogReconciliation: {
+          status: "catalog_read_failed",
+          readiness: "FAILED",
+          generatedAt: new Date().toISOString(),
+          sampleSize: 150,
+          categoryId: "1",
+          productsTested: 0,
+          providerSkusTested: 0,
+          localSkuRowsFound: 0,
+          exactSkuMatches: 0,
+          missingLocalSkus: 0,
+          missingProviderSkus: 0,
+          exactSkuMatchRate: null,
+          recommendation: null,
+          conflictBreakdown: { identity: 0, condition: 0, finish: 0, language: 0, pricing: 0 },
+          pricingDeltaSummary: {
+            matchedSkuCount: 0,
+            medianMarketDelta: null,
+            medianLowDelta: null,
+            maxMarketDelta: null,
+            maxLowDelta: null,
+            percentMarketWithinOnePercent: null,
+            percentMarketWithinFivePercent: null,
+            percentLowWithinOnePercent: null,
+            percentLowWithinFivePercent: null,
+            localNullPriceCount: 0,
+            providerNullPriceCount: 0,
+          },
+          manapoolCoverage: {
+            exactMatchesWithManapoolLow: 0,
+            providerSkusWithManapoolLow: 0,
+          },
+          conflicts: [],
+          error: "Supabase server configuration unavailable.",
+          failure: {
+            stage: "local-catalog-read",
+            message: "Supabase server configuration unavailable.",
+          },
+        },
+      }, { status: 500 });
+    }
+
     const catalogReconciliation = await runTcgTrackingCatalogReconciliation(
-      createAdminClient() as unknown as Parameters<typeof runTcgTrackingCatalogReconciliation>[0],
+      adminClient as unknown as Parameters<typeof runTcgTrackingCatalogReconciliation>[0],
       {
         sampleSize: 150,
         conflictLimit: 25,
@@ -59,7 +109,7 @@ export async function POST(request: NextRequest) {
       action,
       status: catalogReconciliation.status,
       message: catalogReconciliation.status === "completed"
-        ? `Catalog reconciliation ${catalogReconciliation.recommendation.toUpperCase()}: ${catalogReconciliation.exactSkuMatchRate ?? 0}% exact SKU match across ${catalogReconciliation.productsTested} products.`
+        ? `Catalog reconciliation ${catalogReconciliation.readiness}: ${catalogReconciliation.exactSkuMatchRate ?? 0}% exact SKU match across ${catalogReconciliation.productsTested} products.`
         : catalogReconciliation.error ?? "TCGTracking catalog reconciliation failed.",
       catalogReconciliation,
     }, { status });

@@ -560,6 +560,14 @@ Decision gate:
 
 The TCGTracking enrichment cache migration should not be applied automatically. Apply it only after the production admin reconciliation returns GREEN or a product-owner-approved YELLOW.
 
+Production reconciliation repair:
+
+- Failed transport/provider requests are now classified as FAILED, not RED. RED is reserved for a completed reconciliation that proves unacceptable catalog mapping quality.
+- Provider responses are checked for `application/json` before parsing. HTML 404/error pages are logged and surfaced as sanitized failure details with stage, HTTP status, content type, endpoint, URL, and a short body preview.
+- The live Magic provider routes require numeric category and set identifiers, for example `/v1/1/sets/2708/cards`. Reconciliation must not call display-code routes such as `/v1/1/sets/MID/cards`, which return HTML errors.
+- `TCGTRACKING_API_KEY` remains optional. If the provider later requires authentication, the existing centralized provider client can send it without changing reconciliation callers.
+- Local catalog access failures are distinct from zero local catalog rows. Missing Supabase server config returns FAILED at the local-catalog-read stage.
+
 ### Admin Sync Surface
 
 Status: Partially Implemented

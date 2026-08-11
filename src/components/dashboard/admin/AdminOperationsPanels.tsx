@@ -61,6 +61,7 @@ type ProviderHealth = {
 
 type CatalogReconciliation = {
   status: "completed" | "provider_failed" | "catalog_read_failed";
+  readiness: "FAILED" | "GREEN" | "YELLOW" | "RED";
   sampleSize: number;
   productsTested: number;
   providerSkusTested: number;
@@ -69,7 +70,7 @@ type CatalogReconciliation = {
   missingLocalSkus: number;
   missingProviderSkus: number;
   exactSkuMatchRate: number | null;
-  recommendation: "green" | "yellow" | "red";
+  recommendation: "green" | "yellow" | "red" | null;
   conflictBreakdown: Record<"identity" | "condition" | "finish" | "language" | "pricing", number>;
   pricingDeltaSummary: {
     medianMarketDelta: number | null;
@@ -92,6 +93,16 @@ type CatalogReconciliation = {
     provider: unknown;
   }>;
   error?: string;
+  failure?: {
+    stage: string;
+    method?: string;
+    url?: string;
+    endpoint?: string;
+    status?: number;
+    contentType?: string | null;
+    bodyPreview?: string;
+    message: string;
+  };
 };
 
 const sections = {
@@ -340,9 +351,9 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
 }
 
 function CatalogReconciliationSummary({ report }: { report: CatalogReconciliation }) {
-  const tone = report.recommendation === "green"
+  const tone = report.readiness === "GREEN"
     ? "border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-100"
-    : report.recommendation === "yellow"
+    : report.readiness === "YELLOW"
       ? "border-amber-300/15 bg-amber-300/[0.04] text-amber-100"
       : "border-red-300/15 bg-red-300/[0.04] text-red-100";
   return (
@@ -351,11 +362,13 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Catalog reconciliation</p>
           <p className="mt-1 text-sm font-semibold text-white">
-            {report.exactSkuMatchRate == null ? "No exact SKU rate yet" : `${report.exactSkuMatchRate}% exact SKU match`}
+            {report.status === "completed"
+              ? `${report.exactSkuMatchRate ?? 0}% exact SKU match`
+              : "Catalog reconciliation failed"}
           </p>
         </div>
         <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${tone}`}>
-          {report.recommendation}
+          {report.readiness}
         </span>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
@@ -372,6 +385,22 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
         <ProviderMetric label="Market within 5%" value={percentValue(report.pricingDeltaSummary.percentMarketWithinFivePercent)} />
         <ProviderMetric label="Low within 5%" value={percentValue(report.pricingDeltaSummary.percentLowWithinFivePercent)} />
       </div>
+      {report.failure ? (
+        <details className="mt-4 rounded-xl border border-red-300/10 bg-red-300/[0.025] p-3">
+          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.14em] text-red-100/75">
+            Failure details
+          </summary>
+          <div className="mt-3 grid gap-2 text-[11px] text-slate-400 sm:grid-cols-2">
+            <ProviderMetric label="Stage" value={report.failure.stage} />
+            <ProviderMetric label="HTTP" value={report.failure.status ? String(report.failure.status) : "n/a"} />
+            <ProviderMetric label="Content type" value={report.failure.contentType ?? "n/a"} />
+            <ProviderMetric label="Endpoint" value={report.failure.endpoint ?? "n/a"} />
+          </div>
+          <p className="mt-3 break-words text-[11px] leading-5 text-slate-500">{safeText(report.failure.message)}</p>
+          {report.failure.url ? <p className="mt-2 break-all text-[10px] text-slate-600">{report.failure.url}</p> : null}
+          {report.failure.bodyPreview ? <p className="mt-2 break-words text-[10px] text-slate-600">{safeText(report.failure.bodyPreview)}</p> : null}
+        </details>
+      ) : null}
       {report.conflicts.length ? (
         <div className="mt-4 overflow-hidden rounded-xl border border-white/[0.06]">
           <div className="grid grid-cols-[90px_90px_1fr_1fr] gap-2 border-b border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">
@@ -390,7 +419,7 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
           ))}
         </div>
       ) : null}
-      {report.error ? <p className="mt-3 text-[11px] text-red-100/70">{report.error}</p> : null}
+      {report.error ? <p className="mt-3 text-[11px] text-red-100/70">{safeText(report.error)}</p> : null}
     </div>
   );
 }
@@ -439,4 +468,8 @@ function displayValue(value: unknown) {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   return "object";
+}
+
+function safeText(value: string) {
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }

@@ -1,6 +1,7 @@
 import {
   createTcgTrackingClient,
   TCGTRACKING_MAGIC_CATEGORY_ID,
+  TcgTrackingProviderError,
   type TcgTrackingClient,
 } from "./client.ts";
 import {
@@ -50,6 +51,7 @@ export type TcgTrackingCatalogConflict = {
 
 export type TcgTrackingCatalogReconciliationReport = {
   status: "completed" | "provider_failed" | "catalog_read_failed";
+  readiness: "FAILED" | "GREEN" | "YELLOW" | "RED";
   generatedAt: string;
   sampleSize: number;
   categoryId: string;
@@ -60,7 +62,7 @@ export type TcgTrackingCatalogReconciliationReport = {
   missingLocalSkus: number;
   missingProviderSkus: number;
   exactSkuMatchRate: number | null;
-  recommendation: TcgTrackingCatalogReconciliationRecommendation;
+  recommendation: TcgTrackingCatalogReconciliationRecommendation | null;
   conflictBreakdown: Record<TcgTrackingCatalogConflict["type"], number>;
   pricingDeltaSummary: TcgTrackingPricingDeltaSummary;
   manapoolCoverage: {
@@ -69,6 +71,16 @@ export type TcgTrackingCatalogReconciliationReport = {
   };
   conflicts: TcgTrackingCatalogConflict[];
   error?: string;
+  failure?: {
+    stage: string;
+    method?: string;
+    url?: string;
+    endpoint?: string;
+    status?: number;
+    contentType?: string | null;
+    bodyPreview?: string;
+    message: string;
+  };
 };
 
 export async function runTcgTrackingCatalogReconciliation(
@@ -106,16 +118,16 @@ export async function runTcgTrackingCatalogReconciliation(
       conflictLimit,
     });
   } catch (error) {
-    const message = error instanceof Error
-      ? error.message
-      : "TCGTracking catalog reconciliation failed.";
+    const failure = serializeCatalogReconciliationFailure(error);
+    console.warn("TCGTracking catalog reconciliation failed", failure);
     return emptyFailureReport({
-      status: message.includes("catalog") || message.includes("tcgplayer_magic_catalog")
+      status: failure.stage === "local-catalog-read"
         ? "catalog_read_failed"
         : "provider_failed",
       generatedAt,
       sampleSize,
-      error: message,
+      error: failure.message,
+      failure,
     });
   }
 }
@@ -165,6 +177,7 @@ export function summarizeCatalogReconciliation(input: {
 
   return {
     status: "completed",
+    readiness: recommendation.toUpperCase() as TcgTrackingCatalogReconciliationReport["readiness"],
     generatedAt: input.generatedAt,
     sampleSize: input.sampleSize,
     categoryId: input.categoryId,
@@ -225,7 +238,13 @@ async function loadProviderSample(
 
   for (const set of sampledSets) {
     if (products.length >= sampleSize) break;
-    const setId = set.abbreviation ?? set.id;
+    const setId = set.id;
+    console.info("TCGTracking catalog reconciliation fetching set", {
+      stage: "tcgtracking-set-sample",
+      categoryId: TCGTRACKING_MAGIC_CATEGORY_ID,
+      setId,
+      setCode: set.abbreviation,
+    });
     const [cards, skus, pricing] = await Promise.all([
       client.cards(TCGTRACKING_MAGIC_CATEGORY_ID, setId),
       client.skus(TCGTRACKING_MAGIC_CATEGORY_ID, setId),
@@ -236,7 +255,12 @@ async function loadProviderSample(
     for (const product of cards) {
       if (products.length >= sampleSize) break;
       products.push({
-        product,
+        product: {
+          ...product,
+          setId: product.setId ?? set.id,
+          setName: product.setName ?? set.name,
+          setCode: product.setCode ?? set.abbreviation,
+        },
         skus: skusByProduct.get(product.tcgplayerProductId ?? Number(product.providerProductId)) ?? [],
         pricing: pricingByProduct.get(product.tcgplayerProductId ?? Number(product.providerProductId)) ?? [],
       });
@@ -258,10 +282,16 @@ async function loadLocalCatalogRows(
     )
     .in("tcgplayer_id", skuIds);
   if (result.error) {
-    throw new Error(
+    const error = new Error(
       `tcgplayer_magic_catalog read failed: ${result.error.message ?? "unknown error"}`,
     );
+    error.name = "TcgTrackingCatalogReadError";
+    throw error;
   }
+  console.info("TCGTracking local catalog rows available", {
+    stage: "local-catalog-read",
+    rowCount: result.data?.length ?? 0,
+  });
   return result.data ?? [];
 }
 
@@ -351,9 +381,11 @@ function emptyFailureReport(input: {
   generatedAt: string;
   sampleSize: number;
   error: string;
+  failure: TcgTrackingCatalogReconciliationReport["failure"];
 }): TcgTrackingCatalogReconciliationReport {
   return {
     status: input.status,
+    readiness: "FAILED",
     generatedAt: input.generatedAt,
     sampleSize: input.sampleSize,
     categoryId: TCGTRACKING_MAGIC_CATEGORY_ID,
@@ -364,7 +396,7 @@ function emptyFailureReport(input: {
     missingLocalSkus: 0,
     missingProviderSkus: 0,
     exactSkuMatchRate: null,
-    recommendation: "red",
+    recommendation: null,
     conflictBreakdown: { identity: 0, condition: 0, finish: 0, language: 0, pricing: 0 },
     pricingDeltaSummary: {
       matchedSkuCount: 0,
@@ -385,5 +417,48 @@ function emptyFailureReport(input: {
     },
     conflicts: [],
     error: input.error,
+    failure: input.failure,
   };
+}
+
+function serializeCatalogReconciliationFailure(
+  error: unknown,
+): NonNullable<TcgTrackingCatalogReconciliationReport["failure"]> {
+  if (error instanceof TcgTrackingProviderError) {
+    return {
+      stage: stageForProviderEndpoint(error.endpoint),
+      method: error.method,
+      url: error.url,
+      endpoint: error.endpoint,
+      status: error.status,
+      contentType: error.contentType,
+      bodyPreview: sanitizeBodyPreview(error.bodyPreview),
+      message: error.message || "TCGTracking provider request failed.",
+    };
+  }
+  if (error instanceof Error) {
+    return {
+      stage: error.name === "TcgTrackingCatalogReadError"
+        ? "local-catalog-read"
+        : "catalog-reconciliation",
+      message: error.message || "Catalog reconciliation failed.",
+    };
+  }
+  return {
+    stage: "catalog-reconciliation",
+    message: String(error ?? "Catalog reconciliation failed."),
+  };
+}
+
+function stageForProviderEndpoint(endpoint: string) {
+  if (/\/sets\/?$/i.test(endpoint)) return "tcgtracking-sets";
+  if (/\/cards(?:\?|$)/i.test(endpoint)) return "tcgtracking-products";
+  if (/\/skus(?:\?|$)/i.test(endpoint)) return "tcgtracking-skus";
+  if (/\/pricing(?:\?|$)/i.test(endpoint)) return "tcgtracking-pricing";
+  return "tcgtracking-request";
+}
+
+function sanitizeBodyPreview(value: string | undefined) {
+  if (!value) return undefined;
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 220);
 }

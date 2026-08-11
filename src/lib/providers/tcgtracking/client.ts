@@ -30,16 +30,30 @@ export const TCGTRACKING_MAGIC_CATEGORY_ID = "1";
 export class TcgTrackingProviderError extends Error {
   status?: number;
   endpoint: string;
+  url?: string;
+  method?: string;
+  contentType?: string | null;
+  bodyPreview?: string;
 
   constructor(
     message: string,
     endpoint: string,
     status?: number,
+    details: {
+      url?: string;
+      method?: string;
+      contentType?: string | null;
+      bodyPreview?: string;
+    } = {},
   ) {
     super(message);
     this.name = "TcgTrackingProviderError";
     this.status = status;
     this.endpoint = endpoint;
+    this.url = details.url;
+    this.method = details.method;
+    this.contentType = details.contentType;
+    this.bodyPreview = details.bodyPreview;
   }
 }
 
@@ -153,7 +167,8 @@ export class TcgTrackingClient {
     const payload = await this.getJson(
       `/products/${encodePath(productId)}`,
     );
-    return normalizeProduct(payload, "unknown");
+    const object = asObject(payload);
+    return normalizeProduct(object?.product ?? payload, "unknown");
   }
 
   async search(
@@ -247,15 +262,72 @@ export class TcgTrackingClient {
     for (let attempt = 0; attempt <= this.retries; attempt += 1) {
       try {
         const response = await this.fetchWithTimeout(endpoint, init);
+        const contentType = response.headers.get("content-type");
+        const context = {
+          stage: "tcgtracking-request",
+          method: init.method ?? "GET",
+          endpoint,
+          url: this.url(endpoint),
+          status: response.status,
+          contentType,
+        };
+        console.info("TCGTracking request completed", context);
         if (!response.ok) {
           const body = await response.text().catch(() => "");
+          const bodyPreview = previewBody(body);
+          console.warn("TCGTracking request failed", {
+            ...context,
+            bodyPreview,
+          });
           throw new TcgTrackingProviderError(
-            body || `TCGTracking returned HTTP ${response.status}.`,
+            bodyPreview
+              ? `TCGTracking returned HTTP ${response.status}.`
+              : `TCGTracking returned HTTP ${response.status} with no response body.`,
             endpoint,
             response.status,
+            {
+              url: this.url(endpoint),
+              method: init.method ?? "GET",
+              contentType,
+              bodyPreview,
+            },
           );
         }
-        return response.json();
+        if (!isJsonContentType(contentType)) {
+          const body = await response.text().catch(() => "");
+          const bodyPreview = previewBody(body);
+          console.warn("TCGTracking non-JSON response", {
+            ...context,
+            bodyPreview,
+          });
+          throw new TcgTrackingProviderError(
+            "TCGTracking returned a non-JSON response.",
+            endpoint,
+            response.status,
+            {
+              url: this.url(endpoint),
+              method: init.method ?? "GET",
+              contentType,
+              bodyPreview,
+            },
+          );
+        }
+        try {
+          return await response.json();
+        } catch (error) {
+          throw new TcgTrackingProviderError(
+            error instanceof Error
+              ? `TCGTracking returned invalid JSON: ${error.message}`
+              : "TCGTracking returned invalid JSON.",
+            endpoint,
+            response.status,
+            {
+              url: this.url(endpoint),
+              method: init.method ?? "GET",
+              contentType,
+            },
+          );
+        }
       } catch (error) {
         lastError = error;
         if (attempt >= this.retries) break;
@@ -349,6 +421,17 @@ function textValue(value: unknown) {
   return typeof value === "string" && value.trim()
     ? value.trim()
     : undefined;
+}
+
+function isJsonContentType(contentType: string | null) {
+  return contentType?.toLowerCase().includes("application/json") ?? false;
+}
+
+function previewBody(value: string) {
+  return value
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 220);
 }
 
 function flattenSkuPayload(payload: unknown) {
