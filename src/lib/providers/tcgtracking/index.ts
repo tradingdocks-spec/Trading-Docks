@@ -1,5 +1,6 @@
 export * from "./cache.ts";
 export * from "./benchmark.ts";
+export * from "./catalog-reconciliation.ts";
 export * from "./client.ts";
 export * from "./identity.ts";
 export * from "./normalization.ts";

@@ -36,6 +36,12 @@ export type TcgTrackingSkuMatch = {
     lowPercent: number | null;
     manapoolLow: number | null;
   };
+  pricePresence: {
+    localMarket: boolean;
+    providerMarket: boolean;
+    localLow: boolean;
+    providerLow: boolean;
+  };
 };
 
 export type TcgTrackingProductReconciliation = {
@@ -65,7 +71,10 @@ export type TcgTrackingPricingDeltaSummary = {
   maxLowDelta: number | null;
   percentMarketWithinOnePercent: number | null;
   percentMarketWithinFivePercent: number | null;
+  percentLowWithinOnePercent: number | null;
+  percentLowWithinFivePercent: number | null;
   localNullPriceCount: number;
+  providerNullPriceCount: number;
 };
 
 export type ImageProbeResult = {
@@ -156,6 +165,8 @@ export function reconcileTcgTrackingProduct(input: {
       price.tcgplayerProductId === sku.tcgplayerProductId &&
       normalizeFinish(price.providerSkuId?.split(":").at(-1)) === finish,
     );
+    const providerMarket = sku.marketPrice ?? snapshot?.tcgMarket;
+    const providerLow = sku.lowPrice ?? snapshot?.tcgLow;
 
     return {
       providerSkuId: sku.tcgplayerSkuId,
@@ -170,11 +181,17 @@ export function reconcileTcgTrackingProduct(input: {
           ? "condition_finish"
           : "missing_local",
       pricingDelta: {
-        market: numericDelta(matchByVariant?.tcg_market_price, sku.marketPrice ?? snapshot?.tcgMarket),
-        marketPercent: percentDelta(matchByVariant?.tcg_market_price, sku.marketPrice ?? snapshot?.tcgMarket),
-        low: numericDelta(matchByVariant?.tcg_low_price, sku.lowPrice ?? snapshot?.tcgLow),
-        lowPercent: percentDelta(matchByVariant?.tcg_low_price, sku.lowPrice ?? snapshot?.tcgLow),
+        market: numericDelta(matchByVariant?.tcg_market_price, providerMarket),
+        marketPercent: percentDelta(matchByVariant?.tcg_market_price, providerMarket),
+        low: numericDelta(matchByVariant?.tcg_low_price, providerLow),
+        lowPercent: percentDelta(matchByVariant?.tcg_low_price, providerLow),
         manapoolLow: snapshot?.manapoolLow ?? sku.manapoolLow ?? null,
+      },
+      pricePresence: {
+        localMarket: isFiniteNumber(matchByVariant?.tcg_market_price),
+        providerMarket: isFiniteNumber(providerMarket),
+        localLow: isFiniteNumber(matchByVariant?.tcg_low_price),
+        providerLow: isFiniteNumber(providerLow),
       },
     } satisfies TcgTrackingSkuMatch;
   });
@@ -213,6 +230,9 @@ export function summarizePricingDeltas(
   const lowDeltas = matched
     .map((match) => match.pricingDelta.low)
     .filter((value): value is number => typeof value === "number");
+  const lowPercentDeltas = matched
+    .map((match) => match.pricingDelta.lowPercent)
+    .filter((value): value is number => typeof value === "number");
 
   return {
     matchedSkuCount: matched.length,
@@ -222,7 +242,14 @@ export function summarizePricingDeltas(
     maxLowDelta: maxAbs(lowDeltas),
     percentMarketWithinOnePercent: percentWithin(marketPercentDeltas, 1),
     percentMarketWithinFivePercent: percentWithin(marketPercentDeltas, 5),
-    localNullPriceCount: matched.filter((match) => match.pricingDelta.market == null).length,
+    percentLowWithinOnePercent: percentWithin(lowPercentDeltas, 1),
+    percentLowWithinFivePercent: percentWithin(lowPercentDeltas, 5),
+    localNullPriceCount: matched.filter((match) =>
+      !match.pricePresence.localMarket && !match.pricePresence.localLow
+    ).length,
+    providerNullPriceCount: matched.filter((match) =>
+      !match.pricePresence.providerMarket && !match.pricePresence.providerLow
+    ).length,
   };
 }
 
@@ -306,6 +333,10 @@ function percentDelta(local: unknown, provider: unknown) {
   const right = typeof provider === "number" && Number.isFinite(provider) ? provider : null;
   if (left == null || right == null || left === 0) return null;
   return Math.round(((right - left) / left) * 10_000) / 100;
+}
+
+function isFiniteNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function median(values: number[]) {

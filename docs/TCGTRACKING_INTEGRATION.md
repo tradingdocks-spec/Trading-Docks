@@ -532,13 +532,33 @@ Admin endpoint:
 Supported actions:
 
 - `validate_magic`
-- `reconcile_sample`
+- `run_catalog_reconciliation`
 - `sync_magic_mappings`
 - `refresh_magic_pricing`
 
 The sync service advances a bounded amount of work per request, persists progress in `tcgtracking_sync_runs`, and resumes from the checkpoint. The first production surface is admin-triggered from System & Integration Health. No cron is wired in this phase.
 
 If the proposal migration has not been applied, sync returns `schema_required` instead of attempting writes.
+
+Catalog reconciliation is read-only and does not require the enrichment cache migration. It runs from the trusted admin API with the server Supabase service-role client, samples up to 150 Magic products by default, fetches provider SKUs/pricing, and compares exact TCGplayer SKU IDs against `tcgplayer_magic_catalog.tcgplayer_id`. It reports:
+
+- products tested
+- provider SKUs tested
+- local SKU rows found
+- exact SKU matches
+- missing local/provider SKU counts
+- identity, condition, finish, language, and pricing conflicts
+- median market/low price deltas
+- percent of exact matches within 1% and 5%
+- provider/local null-price counts
+
+Decision gate:
+
+- GREEN: at least 98% exact SKU reconciliation and no systemic identity, condition, or finish conflict.
+- YELLOW: 95-98% reconciliation, or small explainable gaps without identity conflicts.
+- RED: below 95% reconciliation or systemic Product/SKU/condition/finish mismatch.
+
+The TCGTracking enrichment cache migration should not be applied automatically. Apply it only after the production admin reconciliation returns GREEN or a product-owner-approved YELLOW.
 
 ### Admin Sync Surface
 
@@ -547,9 +567,11 @@ Status: Partially Implemented
 The existing Owner/Admin System & Integration Health panel now includes TCGTracking actions and sync freshness fields:
 
 - Validate Magic provider.
-- Reconcile sample.
+- Run catalog reconciliation.
 - Sync Magic mappings.
 - Refresh Magic pricing.
+- Exact SKU match rate and GREEN/YELLOW/RED readiness recommendation.
+- Bounded conflict list with product ID, SKU ID, field, local value, and provider value.
 - Last mapping sync status and processed count.
 - Last pricing sync status and processed count.
 

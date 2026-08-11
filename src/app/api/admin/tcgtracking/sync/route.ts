@@ -4,6 +4,7 @@ import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import {
   advanceTcgTrackingMagicSync,
   loadTcgTrackingProviderHealth,
+  runTcgTrackingCatalogReconciliation,
   type TcgTrackingSyncType,
 } from "@/lib/providers/tcgtracking";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 type SyncAction =
   | "validate_magic"
   | "reconcile_sample"
+  | "run_catalog_reconciliation"
   | "sync_magic_mappings"
   | "refresh_magic_pricing";
 
@@ -40,15 +42,27 @@ export async function POST(request: NextRequest) {
     }, { status: health.status === "available" ? 200 : 502 });
   }
 
-  if (action === "reconcile_sample") {
+  if (action === "reconcile_sample" || action === "run_catalog_reconciliation") {
+    const catalogReconciliation = await runTcgTrackingCatalogReconciliation(
+      createAdminClient() as unknown as Parameters<typeof runTcgTrackingCatalogReconciliation>[0],
+      {
+        sampleSize: 150,
+        conflictLimit: 25,
+      },
+    );
+    const status = catalogReconciliation.status === "completed"
+      ? 200
+      : catalogReconciliation.status === "catalog_read_failed"
+        ? 500
+        : 502;
     return NextResponse.json({
       action,
-      status: "manual_command_required",
-      message:
-        "Run scripts/tcgtracking/live-validation.ts from an environment with NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to create the exact local catalog reconciliation report.",
-      command:
-        "node --experimental-strip-types scripts/tcgtracking/live-validation.ts --sample-size 51 --output artifacts/tcgtracking-reconciliation.json",
-    }, { status: 202 });
+      status: catalogReconciliation.status,
+      message: catalogReconciliation.status === "completed"
+        ? `Catalog reconciliation ${catalogReconciliation.recommendation.toUpperCase()}: ${catalogReconciliation.exactSkuMatchRate ?? 0}% exact SKU match across ${catalogReconciliation.productsTested} products.`
+        : catalogReconciliation.error ?? "TCGTracking catalog reconciliation failed.",
+      catalogReconciliation,
+    }, { status });
   }
 
   const syncType = syncTypeForAction(action);

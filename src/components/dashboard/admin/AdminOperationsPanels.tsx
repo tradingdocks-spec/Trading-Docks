@@ -59,6 +59,41 @@ type ProviderHealth = {
   error?: string;
 };
 
+type CatalogReconciliation = {
+  status: "completed" | "provider_failed" | "catalog_read_failed";
+  sampleSize: number;
+  productsTested: number;
+  providerSkusTested: number;
+  localSkuRowsFound: number;
+  exactSkuMatches: number;
+  missingLocalSkus: number;
+  missingProviderSkus: number;
+  exactSkuMatchRate: number | null;
+  recommendation: "green" | "yellow" | "red";
+  conflictBreakdown: Record<"identity" | "condition" | "finish" | "language" | "pricing", number>;
+  pricingDeltaSummary: {
+    medianMarketDelta: number | null;
+    medianLowDelta: number | null;
+    maxMarketDelta: number | null;
+    maxLowDelta: number | null;
+    percentMarketWithinOnePercent: number | null;
+    percentMarketWithinFivePercent: number | null;
+    percentLowWithinOnePercent: number | null;
+    percentLowWithinFivePercent: number | null;
+    localNullPriceCount: number;
+    providerNullPriceCount: number;
+  };
+  conflicts: Array<{
+    productId: number | null;
+    skuId?: number;
+    field: string;
+    type: string;
+    local: unknown;
+    provider: unknown;
+  }>;
+  error?: string;
+};
+
 const sections = {
   support: {
     eyebrow: "Customer operations",
@@ -135,6 +170,8 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
   const [providerError, setProviderError] = useState("");
   const [providerAction, setProviderAction] = useState("");
   const [providerBusy, setProviderBusy] = useState("");
+  const [catalogReconciliation, setCatalogReconciliation] =
+    useState<CatalogReconciliation | null>(null);
   const visibleCards = useMemo(
     () => section.cards.filter((card) => card.toLowerCase().includes(query.toLowerCase())),
     [query, section.cards],
@@ -194,8 +231,10 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
         status?: string;
         message?: string;
         providerHealth?: ProviderHealth;
+        catalogReconciliation?: CatalogReconciliation;
       };
       if (payload.providerHealth) setProviderHealth(payload.providerHealth);
+      if (payload.catalogReconciliation) setCatalogReconciliation(payload.catalogReconciliation);
       setProviderAction(payload.message ?? `TCGTracking ${payload.status ?? "action"} finished.`);
       if (!response.ok) {
         setProviderError(payload.message ?? "TCGTracking action failed.");
@@ -278,10 +317,13 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <ProviderActionButton label="Validate Magic provider" busy={providerBusy === "validate_magic"} onClick={() => void runProviderAction("validate_magic")} />
-            <ProviderActionButton label="Reconcile sample" busy={providerBusy === "reconcile_sample"} onClick={() => void runProviderAction("reconcile_sample")} />
+            <ProviderActionButton label="Run catalog reconciliation" busy={providerBusy === "run_catalog_reconciliation"} onClick={() => void runProviderAction("run_catalog_reconciliation")} />
             <ProviderActionButton label="Sync Magic mappings" busy={providerBusy === "sync_magic_mappings"} onClick={() => void runProviderAction("sync_magic_mappings")} />
             <ProviderActionButton label="Refresh Magic pricing" busy={providerBusy === "refresh_magic_pricing"} onClick={() => void runProviderAction("refresh_magic_pricing")} />
           </div>
+          {catalogReconciliation ? (
+            <CatalogReconciliationSummary report={catalogReconciliation} />
+          ) : null}
           <p className="mt-3 text-[11px] leading-5 text-slate-600">Local cache schema: {providerHealth?.localSchema ?? "proposal-only"}. Provider data may enrich products and pricing, but it does not create user inventory rows.</p>
           {providerAction ? <p role="status" className="mt-3 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.045] px-3 py-2 text-[11px] text-cyan-100/70">{providerAction}</p> : null}
           {providerError ? <p role="status" className="mt-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.045] px-3 py-2 text-[11px] text-amber-100/70">{providerError}</p> : null}
@@ -293,6 +335,62 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
         <p className="text-[11px] leading-5 text-amber-100/50">Actions that send email, process payments, or create remote backups remain disabled until their protected service is connected. The panel will not pretend those external actions succeeded.</p>
       </div>
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[160] rounded-xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs text-cyan-100 shadow-2xl">{notice}</div> : null}
+    </div>
+  );
+}
+
+function CatalogReconciliationSummary({ report }: { report: CatalogReconciliation }) {
+  const tone = report.recommendation === "green"
+    ? "border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-100"
+    : report.recommendation === "yellow"
+      ? "border-amber-300/15 bg-amber-300/[0.04] text-amber-100"
+      : "border-red-300/15 bg-red-300/[0.04] text-red-100";
+  return (
+    <div className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Catalog reconciliation</p>
+          <p className="mt-1 text-sm font-semibold text-white">
+            {report.exactSkuMatchRate == null ? "No exact SKU rate yet" : `${report.exactSkuMatchRate}% exact SKU match`}
+          </p>
+        </div>
+        <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${tone}`}>
+          {report.recommendation}
+        </span>
+      </div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+        <ProviderMetric label="Products" value={String(report.productsTested)} />
+        <ProviderMetric label="Provider SKUs" value={String(report.providerSkusTested)} />
+        <ProviderMetric label="Local rows" value={String(report.localSkuRowsFound)} />
+        <ProviderMetric label="Exact matches" value={String(report.exactSkuMatches)} />
+        <ProviderMetric label="Missing local" value={String(report.missingLocalSkus)} />
+        <ProviderMetric label="Conflicts" value={String(Object.values(report.conflictBreakdown).reduce((sum, value) => sum + value, 0))} />
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <ProviderMetric label="Market median delta" value={moneyValue(report.pricingDeltaSummary.medianMarketDelta)} />
+        <ProviderMetric label="Low median delta" value={moneyValue(report.pricingDeltaSummary.medianLowDelta)} />
+        <ProviderMetric label="Market within 5%" value={percentValue(report.pricingDeltaSummary.percentMarketWithinFivePercent)} />
+        <ProviderMetric label="Low within 5%" value={percentValue(report.pricingDeltaSummary.percentLowWithinFivePercent)} />
+      </div>
+      {report.conflicts.length ? (
+        <div className="mt-4 overflow-hidden rounded-xl border border-white/[0.06]">
+          <div className="grid grid-cols-[90px_90px_1fr_1fr] gap-2 border-b border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">
+            <span>Product</span>
+            <span>Field</span>
+            <span>Local</span>
+            <span>Provider</span>
+          </div>
+          {report.conflicts.slice(0, 8).map((conflict, index) => (
+            <div key={`${conflict.productId}-${conflict.skuId}-${conflict.field}-${index}`} className="grid grid-cols-[90px_90px_1fr_1fr] gap-2 px-3 py-2 text-[11px] text-slate-400">
+              <span>{conflict.productId ?? "Unknown"}</span>
+              <span>{conflict.field}</span>
+              <span className="truncate">{displayValue(conflict.local)}</span>
+              <span className="truncate">{displayValue(conflict.provider)}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {report.error ? <p className="mt-3 text-[11px] text-red-100/70">{report.error}</p> : null}
     </div>
   );
 }
@@ -326,4 +424,19 @@ function ProviderActionButton({
       {label}
     </button>
   );
+}
+
+function moneyValue(value: number | null) {
+  return value == null ? "n/a" : `$${value.toFixed(2)}`;
+}
+
+function percentValue(value: number | null) {
+  return value == null ? "n/a" : `${value}%`;
+}
+
+function displayValue(value: unknown) {
+  if (value == null || value === "") return "n/a";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return "object";
 }

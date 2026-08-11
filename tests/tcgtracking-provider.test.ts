@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   TcgTrackingClient,
+  classifyTcgTrackingCatalogReadiness,
   chooseExactProductImage,
   liquidityLabel,
   mappingRowFromTcgTrackingProduct,
@@ -21,9 +22,12 @@ import {
   scannerAdapterResult,
   skuPriceSnapshotRow,
   spreadPercent,
+  summarizeCatalogReconciliation,
   summarizeImageReliability,
   summarizePricingDeltas,
   summarizeTcgTrackingScanBenchmark,
+  TCGTRACKING_CATALOG_RECONCILIATION_DEFAULT_SAMPLE_SIZE,
+  TCGTRACKING_CATALOG_RECONCILIATION_MAX_SAMPLE_SIZE,
   TCGTRACKING_CACHE_TABLE_PROPOSAL,
   tcgTrackingCachePolicy,
 } from "../src/lib/providers/tcgtracking/index.ts";
@@ -412,6 +416,90 @@ test("TCGTracking reconciliation reports pricing deltas as relative percentages"
   assert.equal(summary.medianMarketDelta, 0.5);
   assert.equal(summary.percentMarketWithinOnePercent, 0);
   assert.equal(summary.percentMarketWithinFivePercent, 100);
+  assert.equal(summary.percentLowWithinFivePercent, 100);
+  assert.equal(summary.localNullPriceCount, 0);
+  assert.equal(summary.providerNullPriceCount, 0);
+});
+
+test("TCGTracking catalog reconciliation summarizes exact match readiness and bounded conflicts", () => {
+  const product = normalizeProduct(providerProduct(), "magic");
+  const exactSku = normalizeSku(providerSku());
+  const missingSku = normalizeSku({
+    ...providerSku(),
+    sku_id: "provider-sku-987655",
+    tcgplayer_sku_id: 987655,
+    variant: "Foil",
+    market_price: "",
+    low_price: "",
+  });
+  assert.ok(product);
+  assert.ok(exactSku);
+  assert.ok(missingSku);
+
+  const reconciliation = reconcileTcgTrackingProduct({
+    providerProduct: product,
+    providerSkus: [exactSku, missingSku],
+    priceSnapshots: [],
+    localRows: [
+      {
+        tcgplayer_id: 987654,
+        set_name: "Innistrad: Midnight Hunt",
+        product_name: "Unblinking Observer",
+        collector_number: "82",
+        condition: "Near Mint",
+        finish: "Normal",
+        tcg_market_price: 5.41,
+        tcg_low_price: 4.89,
+      },
+    ],
+  });
+
+  const report = summarizeCatalogReconciliation({
+    generatedAt: "2026-08-11T00:00:00.000Z",
+    sampleSize: 150,
+    categoryId: "1",
+    reconciliations: [reconciliation],
+    localRows: [
+      {
+        tcgplayer_id: 987654,
+        set_name: "Innistrad: Midnight Hunt",
+        product_name: "Unblinking Observer",
+        collector_number: "82",
+        condition: "Near Mint",
+        finish: "Normal",
+        tcg_market_price: 5.41,
+        tcg_low_price: 4.89,
+      },
+    ],
+    conflictLimit: 1,
+  });
+
+  assert.equal(report.productsTested, 1);
+  assert.equal(report.providerSkusTested, 2);
+  assert.equal(report.localSkuRowsFound, 1);
+  assert.equal(report.exactSkuMatches, 1);
+  assert.equal(report.missingLocalSkus, 1);
+  assert.equal(report.exactSkuMatchRate, 50);
+  assert.equal(report.recommendation, "red");
+  assert.equal(report.pricingDeltaSummary.providerNullPriceCount, 0);
+  assert.equal(TCGTRACKING_CATALOG_RECONCILIATION_DEFAULT_SAMPLE_SIZE, 150);
+  assert.equal(TCGTRACKING_CATALOG_RECONCILIATION_MAX_SAMPLE_SIZE, 250);
+});
+
+test("TCGTracking catalog reconciliation decision gate follows production thresholds", () => {
+  const clean = { identity: 0, condition: 0, finish: 0, language: 1, pricing: 0 };
+  assert.equal(classifyTcgTrackingCatalogReadiness({
+    exactSkuMatchRate: 98,
+    conflictBreakdown: clean,
+  }), "green");
+  assert.equal(classifyTcgTrackingCatalogReadiness({
+    exactSkuMatchRate: 96,
+    conflictBreakdown: clean,
+  }), "yellow");
+  assert.equal(classifyTcgTrackingCatalogReadiness({
+    exactSkuMatchRate: 99,
+    conflictBreakdown: { ...clean, condition: 1 },
+  }), "red");
 });
 
 test("TCGTracking image validation summarizes reliability without source images", () => {
@@ -512,10 +600,14 @@ test("TCGTracking admin sync is platform-admin only and scanner fixture roots st
   );
 
   assert.match(syncRoute, /requireServerPlatformRole\("admin"\)/);
+  assert.match(syncRoute, /runTcgTrackingCatalogReconciliation/);
+  assert.match(syncRoute, /run_catalog_reconciliation/);
   assert.match(syncRoute, /sync_magic_mappings/);
   assert.match(syncRoute, /refresh_magic_pricing/);
-  assert.match(syncRoute, /manual_command_required/);
+  assert.doesNotMatch(syncRoute, /manual_command_required/);
+  assert.doesNotMatch(syncRoute, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(operations, /Validate Magic provider/);
+  assert.match(operations, /Run catalog reconciliation/);
   assert.match(operations, /Sync Magic mappings/);
   assert.match(operations, /Refresh Magic pricing/);
   assert.match(gitignore, /^\.local-fixtures\/$/m);
@@ -552,6 +644,21 @@ test("TCGTracking admin diagnostics are Owner/Admin gated and documented", () =>
   assert.match(docs, /--allow-upload/);
   assert.match(benchmarkScript, /summarizeTcgTrackingScanBenchmark/);
   assert.match(benchmarkScript, /requires.*--allow-upload|--allow-upload/);
+});
+
+test("TCGTracking production catalog reconciliation remains read-only against local catalog", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/lib/providers/tcgtracking/catalog-reconciliation.ts"),
+    "utf8",
+  );
+
+  assert.match(source, /from\("tcgplayer_magic_catalog"\)/);
+  assert.match(source, /\.select\(/);
+  assert.match(source, /\.in\("tcgplayer_id"/);
+  assert.doesNotMatch(source, /\.insert\(/);
+  assert.doesNotMatch(source, /\.upsert\(/);
+  assert.doesNotMatch(source, /\.update\(/);
+  assert.doesNotMatch(source, /\.delete\(/);
 });
 
 function providerProduct() {
