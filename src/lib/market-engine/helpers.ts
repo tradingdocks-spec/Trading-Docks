@@ -16,12 +16,14 @@ export function normalizeCard(input: {
   marketPrice: number;
   inventoryOwned: number;
   index: number;
+  change24h?: number;
+  change7d?: number;
   source?: string;
   sourceUrl?: string;
   dataQuality?: "live" | "reference" | "fallback";
 }): MarketCard {
-  const change24h = deterministicChange(input.id, input.index, 1);
-  const change7d = deterministicChange(input.id, input.index, 7);
+  const change24h = input.change24h ?? deterministicChange(input.id, input.index, 1);
+  const change7d = input.change7d ?? deterministicChange(input.id, input.index, 7);
   const volumeScore = deterministicScore(input.id, input.index, 58, 99);
   const opportunityScore = deterministicScore(
     `${input.id}-opportunity`,

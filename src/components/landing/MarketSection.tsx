@@ -196,7 +196,7 @@ export function MarketSection() {
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.16] bg-cyan-300/[0.05] px-3.5 py-2 text-xs font-semibold text-cyan-200">
               <Sparkles className="h-4 w-4" />
-              Live multi-game market intelligence
+              Snapshot market intelligence
             </div>
 
             <h2 className="mt-6 text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl">
@@ -380,7 +380,7 @@ export function MarketSection() {
               </div>
 
               <p className="text-xs text-slate-700">
-                Auto-refreshes every 5 minutes
+                Snapshot refreshes every 5 minutes
               </p>
             </div>
 

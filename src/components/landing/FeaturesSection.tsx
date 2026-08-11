@@ -28,7 +28,7 @@ const capabilities = [
     title: "Collection analytics",
     description: "Track value, growth, and collection history with richer CSV workflows.",
     plan: "Collector",
-    metric: "+8.4%",
+    metric: "+2.6%",
     metricLabel: "portfolio growth",
     preview: ["Value history", "Market movement", "CSV enrichment"],
     icon: BarChart3,
@@ -37,7 +37,7 @@ const capabilities = [
     title: "Purchasing and CRM",
     description: "Evaluate acquisitions, manage customers, loyalty, store credit, and buying rules.",
     plan: "Seller",
-    metric: "31%",
+    metric: "18%",
     metricLabel: "margin opportunity",
     preview: ["Photo scan", "Buying rules", "Customer credit"],
     icon: Users,
@@ -46,7 +46,7 @@ const capabilities = [
     title: "Marketplaces and orders",
     description: "Connect sales channels, import orders, and manage fulfillment in one workspace.",
     plan: "Seller",
-    metric: "148",
+    metric: "19",
     metricLabel: "orders synchronized",
     preview: ["Channel sync", "Order review", "Inventory reconciliation"],
     icon: Network,
@@ -55,7 +55,7 @@ const capabilities = [
     title: "Card Shows and automation",
     description: "Support seller events, repetitive workflows, and operational review queues.",
     plan: "Seller",
-    metric: "42",
+    metric: "86",
     metricLabel: "players checked in",
     preview: ["Show inventory", "Live sales", "Automated tasks"],
     icon: ShoppingCart,
@@ -188,7 +188,7 @@ export function FeaturesSection() {
             </div>
 
             <div className="relative mt-4 flex items-center justify-between rounded-2xl border border-emerald-300/[0.11] bg-emerald-300/[0.035] px-4 py-3">
-              <span className="text-xs text-emerald-100/70">Live workspace simulation</span>
+              <span className="text-xs text-emerald-100/70">Sample workspace behavior</span>
               <span className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
                 <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.8)]" />
                 Healthy

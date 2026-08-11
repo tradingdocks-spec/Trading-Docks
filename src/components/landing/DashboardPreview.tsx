@@ -15,11 +15,15 @@ import {
 
 import { useCountUp } from "@/hooks/useCountUp";
 import { useRotateActivity } from "@/hooks/useRotateActivity";
+import { HERO_DEMO_WORKSPACE } from "./landing-data";
 import styles from "./SignatureHero.module.css";
 
-const BARS = [34, 48, 41, 60, 52, 72, 64, 81, 74, 92, 86, 100];
+const BARS = HERO_DEMO_WORKSPACE.chartShape;
 
 export function DashboardPreview() {
+  const demo = HERO_DEMO_WORKSPACE;
+  const statuses = demo.floatingStatuses;
+
   return (
     <div className="relative mx-auto w-full max-w-[760px] overflow-hidden rounded-[24px] sm:overflow-visible sm:rounded-none lg:-translate-y-4">
       <div className={`${styles.previewAmbient} pointer-events-none absolute inset-x-[-7%] top-[3%] h-[95%] rounded-full bg-blue-500/[0.15] blur-[145px]`} />
@@ -27,23 +31,23 @@ export function DashboardPreview() {
 
       <FloatingStatus
         className="-left-8 top-[20%] hidden xl:flex"
-        title="Inventory synced"
-        value="+248 items"
-        detail="Updated moments ago"
+        title={statuses.inventory.label}
+        value={statuses.inventory.value}
+        detail={statuses.inventory.detail}
       />
 
       <FloatingStatus
         className="-bottom-7 right-[7%] hidden xl:flex"
-        title="Listings updated"
-        value="+126 today"
-        detail="22,640 active listings"
+        title={statuses.listings.label}
+        value={statuses.listings.value}
+        detail={statuses.listings.detail}
       />
 
       <FloatingStatus
         className="-right-6 top-[48%] hidden 2xl:flex"
-        title="Price movement"
-        value="+6.4%"
-        detail="Across watched cards"
+        title={statuses.market.label}
+        value={statuses.market.value}
+        detail={statuses.market.detail}
       />
 
       <div className="relative overflow-visible rounded-[22px] sm:rounded-[30px] border border-blue-200/[0.24] bg-[#071622] shadow-[0_56px_150px_rgba(0,0,0,0.62),0_0_110px_rgba(37,99,235,0.11)]">
@@ -57,7 +61,7 @@ export function DashboardPreview() {
 
             <div className="flex items-center gap-2 rounded-full border border-emerald-300/[0.16] bg-emerald-300/[0.055] px-3 py-1.5 text-[11px] font-semibold text-emerald-100/85">
               <span className={`${styles.statusPulse} h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.85)]`} />
-              Live product preview
+              {demo.statusLabel}
             </div>
           </div>
 
@@ -66,17 +70,17 @@ export function DashboardPreview() {
               <div>
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h3 className="text-sm font-bold sm:text-lg tracking-[-0.03em] text-white">
-                    Business overview
+                    {demo.plan} overview
                   </h3>
 
                   <span className="rounded-full border border-emerald-300/[0.15] bg-emerald-300/[0.055] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-200">
-                    Sample data
+                    {demo.disclosure}
                   </span>
                 </div>
 
                 <div className="mt-2 hidden flex-wrap items-center gap-2 text-[10px] min-[430px]:flex sm:mt-3 text-slate-400">
                   <span className="mr-1 font-medium text-slate-500">Connected:</span>
-                  {["TCGplayer", "eBay", "Mana Pool"].map((label) => (
+                  {demo.connectedSystems.map((label) => (
                     <span
                       key={label}
                       className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] px-2.5 py-1.5 font-medium text-slate-300"
@@ -101,10 +105,10 @@ export function DashboardPreview() {
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 sm:grid-cols-4">
-              <Metric icon={CircleDollarSign} label="Collection value" value={284860} prefix="$" trend="+8.4%" />
-              <Metric icon={Boxes} label="Inventory" value={49821} trend="+248" />
-              <Metric icon={PackageCheck} label="Listings" value={22640} trend="+6.2%" />
-              <Metric icon={TrendingUp} label="Monthly profit" value={6842} prefix="$" trend="+12.4%" />
+              <Metric icon={CircleDollarSign} label={demo.metricLabels[0]} value={demo.metricValues[0]} trend={demo.metricDetails[0]} />
+              <Metric icon={Boxes} label={demo.metricLabels[1]} value={demo.metricValues[1]} trend={demo.metricDetails[1]} />
+              <Metric icon={PackageCheck} label={demo.metricLabels[2]} value={demo.metricValues[2]} trend={demo.metricDetails[2]} />
+              <Metric icon={TrendingUp} label={demo.metricLabels[3]} value={demo.metricValues[3]} trend={demo.metricDetails[3]} />
             </div>
 
             <div className="mt-3 grid gap-2 sm:mt-4 sm:gap-3 lg:grid-cols-[1.5fr_0.76fr]">
@@ -130,16 +134,21 @@ function Metric({
   icon: Icon,
   label,
   value,
-  prefix = "",
   trend,
 }: {
   icon: typeof Boxes;
   label: string;
-  value: number;
-  prefix?: string;
+  value: string;
   trend: string;
 }) {
-  const animatedValue = useCountUp(value);
+  const numericValue = Number(value.replace(/[^0-9.-]+/g, ""));
+  const hasDecimalPrecision = /\d+\.\d+/.test(value);
+  const precisionScale = hasDecimalPrecision ? 10 : 1;
+  const animatedRawValue = useCountUp(
+    Number.isFinite(numericValue) ? Math.abs(numericValue) * precisionScale : 0,
+  );
+  const animatedValue = animatedRawValue / precisionScale;
+  const formattedValue = formatDemoValue(value, animatedValue);
 
   return (
     <div className="group rounded-xl border border-blue-200/[0.11] bg-[#0a1d2a] p-3 sm:rounded-2xl sm:p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.025)] transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/[0.22] hover:bg-[#0c2232]">
@@ -154,15 +163,26 @@ function Metric({
       </div>
 
       <div className="mt-3 flex items-end justify-between gap-2">
-        <p className="whitespace-nowrap text-[16px] sm:text-[18px] font-extrabold leading-none tracking-[-0.035em] text-white [font-variant-numeric:tabular-nums]">
-          {prefix}
-          {animatedValue.toLocaleString()}
+        <p className="whitespace-nowrap text-[16px] sm:text-[18px] font-extrabold leading-none text-white [font-variant-numeric:tabular-nums]">
+          {formattedValue}
         </p>
 
-        <span className="whitespace-nowrap text-[10px] font-bold text-emerald-300">{trend}</span>
+        <span className="max-w-[100px] text-right text-[9px] font-semibold leading-4 text-slate-500">{trend}</span>
       </div>
     </div>
   );
+}
+
+function formatDemoValue(template: string, value: number) {
+  const hasDecimalPrecision = /\d+\.\d+/.test(template);
+  const formatted = value.toLocaleString(undefined, {
+    maximumFractionDigits: hasDecimalPrecision ? 1 : 0,
+    minimumFractionDigits: hasDecimalPrecision ? 1 : 0,
+  });
+  if (template.startsWith("$")) return `$${formatted}`;
+  if (template.startsWith("+")) return `+${formatted}%`;
+  if (template.startsWith("-")) return `-${formatted}%`;
+  return formatted;
 }
 
 function PortfolioChart() {
@@ -170,8 +190,8 @@ function PortfolioChart() {
     <div className="overflow-hidden rounded-2xl border border-blue-200/[0.1] bg-[#06131d] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[12px] font-bold text-white">Portfolio growth</p>
-          <p className="mt-1 text-[10px] font-medium text-slate-500">Inventory value over time</p>
+          <p className="text-[12px] font-bold text-white">Operating trend</p>
+          <p className="mt-1 text-[10px] font-medium text-slate-500">Seller inventory value over 12 months</p>
         </div>
 
         <button type="button" className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium text-slate-400 transition hover:bg-white/[0.035] hover:text-white">
@@ -228,14 +248,14 @@ function LiveActivity() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[12px] font-bold text-white">Recent updates</p>
-          <p className="mt-1 text-[10px] font-medium text-slate-500">Live workspace activity</p>
+          <p className="mt-1 text-[10px] font-medium text-slate-500">Sample seller activity</p>
         </div>
 
         <Activity className="h-4 w-4 text-cyan-300" />
       </div>
 
       <div className="mt-4 space-y-2.5">
-        {activities.map(([label, value]) => (
+        {activities.map(({ label, value, detail }) => (
           <div
             key={`${label}-${value}`}
             className="rounded-xl border border-white/[0.065] bg-[#06131d] px-3 py-3 transition hover:border-blue-200/[0.15] hover:bg-[#081a27]"
@@ -245,7 +265,7 @@ function LiveActivity() {
               <p className="shrink-0 text-[10px] font-bold text-emerald-300">{value}</p>
             </div>
 
-            <p className="mt-1.5 text-[9px] font-medium text-slate-600">Updated moments ago</p>
+            <p className="mt-1.5 text-[9px] font-medium text-slate-600">{detail}</p>
           </div>
         ))}
       </div>

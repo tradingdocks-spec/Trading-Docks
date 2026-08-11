@@ -88,6 +88,26 @@ test("modular dashboard presents a premium command-center hierarchy", () => {
   assert.doesNotMatch(source, /Available on \{definition\.plan\}/);
 });
 
+test("landing page preview data uses realistic sample states instead of template placeholders", () => {
+  const landingData = readFileSync(path.join(repoRoot, "src/components/landing/landing-data.ts"), "utf8");
+  const dashboardPreview = readFileSync(path.join(repoRoot, "src/components/landing/DashboardPreview.tsx"), "utf8");
+  const experiencePreview = readFileSync(path.join(repoRoot, "src/components/landing/ExperienceSection.tsx"), "utf8");
+  const marketFallbacks = readFileSync(path.join(repoRoot, "src/lib/market-engine/fallbacks.ts"), "utf8");
+
+  assert.match(landingData, /LANDING_DEMO_WORKSPACES/);
+  assert.match(landingData, /Example seller account/);
+  assert.match(landingData, /Sample store data/);
+  assert.match(landingData, /Demo workspace/);
+  assert.match(dashboardPreview, /HERO_DEMO_WORKSPACE/);
+  assert.match(experiencePreview, /LANDING_DEMO_WORKSPACES/);
+  assert.match(marketFallbacks, /Sample market snapshot/);
+
+  for (const source of [landingData, dashboardPreview, experiencePreview, marketFallbacks]) {
+    assert.doesNotMatch(source, /Updated moments ago|Live product simulation|Across watched cards|Live workspace simulation/);
+    assert.doesNotMatch(source, /284,860|22,640|84,216|128,420/);
+  }
+});
+
 function listSourceFiles(target: string): string[] {
   const stat = statSync(target);
   if (stat.isFile()) return target.endsWith(".tsx") || target.endsWith(".ts") ? [target] : [];

@@ -15,81 +15,25 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { LANDING_DEMO_WORKSPACES } from "./landing-data";
 import styles from "./LandingMotion.module.css";
 
 const personas = {
   collector: {
-    label: "I’m a collector",
-    plan: "Collector",
-    tagline: "Understand the value and shape of your collection.",
-    metricLabels: ["Collection value", "Inventory", "Saved decks", "30-day growth"],
-    metricValues: ["$48,260", "3,842", "27", "+4.8%"],
-    syncedValues: ["$48,444", "3,968", "28", "+5.2%"],
-    nav: ["Dashboard", "Inventory", "Deck Vault", "Analytics", "CSV Engine"],
-    activity: [
-      ["Binder value updated", "+$184"],
-      ["Collection imported", "126 cards"],
-      ["Deck price refreshed", "$428.19"],
-    ],
-    syncedActivity: [
-      ["Collection sync complete", "126 cards"],
-      ["Market values refreshed", "+$184"],
-      ["Deck Vault indexed", "28 decks"],
-    ],
     accent: "from-cyan-300 to-blue-500",
     icon: BarChart3,
   },
   seller: {
-    label: "I sell online",
-    plan: "Seller",
-    tagline: "Turn purchasing, listings, and orders into one workflow.",
-    metricLabels: ["Inventory value", "Active listings", "Open orders", "Monthly profit"],
-    metricValues: ["$284,860", "22,640", "84", "$6,842"],
-    syncedValues: ["$286,104", "22,766", "91", "$7,091"],
-    nav: ["Purchasing", "Customer CRM", "Marketplaces", "Orders", "Automation"],
-    activity: [
-      ["Mana Pool synced", "148 orders"],
-      ["TCGplayer listing sold", "$42.18"],
-      ["Buylist opportunity", "+31% margin"],
-    ],
-    syncedActivity: [
-      ["Mana Pool sync complete", "148 orders"],
-      ["Inventory reconciled", "126 listings"],
-      ["Profit forecast updated", "+$249"],
-    ],
     accent: "from-blue-400 to-cyan-300",
     icon: PackageSearch,
   },
   store: {
-    label: "I own a store",
-    plan: "Store",
-    tagline: "Operate staff, vendors, events, and finances from one system.",
-    metricLabels: ["Store revenue", "Inventory units", "Team members", "Open tasks"],
-    metricValues: ["$128,420", "84,216", "5", "18"],
-    syncedValues: ["$129,108", "84,342", "5", "14"],
-    nav: ["Business Intelligence", "Tasks", "Tournaments", "Vendors", "Employees"],
-    activity: [
-      ["Tournament check-in", "42 players"],
-      ["Supply order received", "8 cartons"],
-      ["Payroll approved", "5 employees"],
-    ],
-    syncedActivity: [
-      ["Store systems synchronized", "8 sources"],
-      ["Open tasks recalculated", "14 remaining"],
-      ["Revenue dashboard refreshed", "+$688"],
-    ],
     accent: "from-cyan-300 via-blue-400 to-indigo-500",
     icon: Building2,
   },
 } as const;
 
 type PersonaKey = keyof typeof personas;
-
-const chartShapes: Record<PersonaKey, number[]> = {
-  collector: [26, 34, 31, 43, 47, 55, 52, 64, 67, 74, 79, 88],
-  seller: [32, 45, 39, 56, 49, 69, 61, 77, 71, 88, 82, 96],
-  store: [41, 39, 51, 58, 54, 66, 71, 69, 82, 86, 91, 100],
-};
 
 const personaOrder: PersonaKey[] = ["collector", "seller", "store"];
 
@@ -101,6 +45,7 @@ export function ExperienceSection() {
   const [autoRotate, setAutoRotate] = useState(true);
   const intervalRef = useRef<number | null>(null);
   const persona = personas[active];
+  const demo = LANDING_DEMO_WORKSPACES[active];
   const Icon = persona.icon;
 
   useEffect(() => {
@@ -124,9 +69,9 @@ export function ExperienceSection() {
 
   const statusText = useMemo(() => {
     if (syncing) return "Synchronizing connected systems";
-    if (synced) return "Workspace updated just now";
-    return "Live product simulation";
-  }, [syncing, synced]);
+    if (synced) return `${demo.plan} snapshot refreshed`;
+    return demo.statusLabel;
+  }, [demo.plan, demo.statusLabel, syncing, synced]);
 
   function choosePersona(key: PersonaKey) {
     setAutoRotate(false);
@@ -144,8 +89,8 @@ export function ExperienceSection() {
     }, 1450);
   }
 
-  const currentValues = synced ? persona.syncedValues : persona.metricValues;
-  const currentActivity = synced ? persona.syncedActivity : persona.activity;
+  const currentValues = synced ? demo.syncedValues : demo.metricValues;
+  const currentActivity = synced ? demo.syncedActivity : demo.activity;
 
   return (
     <section
@@ -196,8 +141,8 @@ export function ExperienceSection() {
                     <ItemIcon className="h-4 w-4" />
                   </span>
                   <span>
-                    <span className="block text-sm font-semibold">{item.label}</span>
-                    <span className="mt-0.5 block text-[11px] text-slate-600">{item.plan} workspace</span>
+                    <span className="block text-sm font-semibold">{LANDING_DEMO_WORKSPACES[key].selectorLabel}</span>
+                    <span className="mt-0.5 block text-[11px] text-slate-600">{LANDING_DEMO_WORKSPACES[key].plan} workspace</span>
                   </span>
                   {selected && autoRotate ? (
                     <span className="absolute inset-x-0 bottom-0 h-[2px] bg-white/[0.06]">
@@ -220,13 +165,13 @@ export function ExperienceSection() {
                 <Icon className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-sm font-semibold text-white">{persona.plan} workspace</p>
+                <p className="text-sm font-semibold text-white">{demo.plan} workspace</p>
                 <p className="mt-0.5 text-xs text-slate-600">Recommended for you</p>
               </div>
             </div>
 
             <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mt-5 lg:block lg:space-y-1 lg:overflow-visible">
-              {persona.nav.map((item, index) => (
+              {demo.nav.map((item, index) => (
                 <button
                   key={item}
                   type="button"
@@ -246,8 +191,8 @@ export function ExperienceSection() {
 
             <div className="mt-4 hidden rounded-2xl border lg:mt-6 lg:block border-white/[0.06] bg-white/[0.018] p-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-700">Recommended plan</p>
-              <p className="mt-2 text-lg font-semibold text-white">{persona.plan}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-600">{persona.tagline}</p>
+              <p className="mt-2 text-lg font-semibold text-white">{demo.plan}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{demo.tagline}</p>
             </div>
           </aside>
 
@@ -262,7 +207,7 @@ export function ExperienceSection() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-cyan-300">Interactive product preview</p>
                 <h3 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white">
-                  {persona.nav[activeNav]}
+                  {demo.nav[activeNav]}
                 </h3>
               </div>
               <div className="flex items-center gap-2">
@@ -282,7 +227,7 @@ export function ExperienceSection() {
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {persona.metricLabels.map((label, index) => {
+              {demo.metricLabels.map((label, index) => {
                 const MetricIcon = [CircleDollarSign, Boxes, PackageCheck, ShoppingBag][index];
                 return (
                   <div
@@ -295,8 +240,8 @@ export function ExperienceSection() {
                       <MetricIcon className="h-4 w-4 text-blue-300/70" />
                     </div>
                     <p className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-white">{currentValues[index]}</p>
-                    <p className="mt-1 text-xs text-emerald-300">
-                      {synced ? "Updated just now" : index % 2 === 0 ? "+8.4% this month" : "Updated moments ago"}
+                    <p className="mt-1 text-xs text-slate-500">
+                      {synced ? demo.syncedDetails[index] : demo.metricDetails[index]}
                     </p>
                   </div>
                 );
@@ -308,7 +253,7 @@ export function ExperienceSection() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold text-white">Workspace momentum</p>
-                    <p className="mt-1 text-xs text-slate-600">Live simulation for your selected account type</p>
+                    <p className="mt-1 text-xs text-slate-600">{demo.disclosure} for the selected account type</p>
                   </div>
                   <span className="rounded-full border border-emerald-300/[0.12] bg-emerald-300/[0.04] px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
                     {syncing ? "Syncing" : "Healthy"}
@@ -316,7 +261,7 @@ export function ExperienceSection() {
                 </div>
 
                 <div className="mt-4 flex h-[150px] sm:mt-5 sm:h-[190px] items-end gap-2 rounded-xl border border-white/[0.045] bg-black/[0.12] px-4 pb-4 pt-8">
-                  {chartShapes[active].map((height, index) => (
+                  {demo.chartShape.map((height, index) => (
                     <span
                       key={`${active}-${index}`}
                       className="block flex-1 rounded-t-md bg-gradient-to-t from-cyan-300/80 via-blue-400/85 to-indigo-500/85 shadow-[0_0_18px_rgba(59,130,246,.08)] transition-[height] duration-700"
@@ -332,7 +277,7 @@ export function ExperienceSection() {
                   <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.9)]" />
                 </div>
                 <div className="mt-4 space-y-2.5">
-                  {currentActivity.map(([title, value], index) => (
+                  {currentActivity.map(({ label: title, value }, index) => (
                     <div
                       key={`${active}-${title}-${synced}`}
                       className={`${styles.activitySlide} rounded-xl border border-white/[0.055] bg-black/[0.11] p-3`}
@@ -340,9 +285,9 @@ export function ExperienceSection() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs font-semibold text-slate-300">{title}</p>
-                        <span className="text-xs font-semibold text-emerald-300">{value}</span>
+                        <span className={value.startsWith("-") ? "text-xs font-semibold text-rose-300" : "text-xs font-semibold text-emerald-300"}>{value}</span>
                       </div>
-                      <p className="mt-1 text-[11px] text-slate-700">{synced ? "just now" : `${index + 1} minute${index ? "s" : ""} ago`}</p>
+                      <p className="mt-1 text-[11px] text-slate-700">{activityDetail(active, index, synced)}</p>
                     </div>
                   ))}
                 </div>
@@ -357,4 +302,10 @@ export function ExperienceSection() {
       </div>
     </section>
   );
+}
+
+function activityDetail(active: PersonaKey, index: number, synced: boolean) {
+  const demo = LANDING_DEMO_WORKSPACES[active];
+  const activity = synced ? demo.syncedActivity[index] : demo.activity[index];
+  return activity?.detail ?? demo.statusLabel;
 }

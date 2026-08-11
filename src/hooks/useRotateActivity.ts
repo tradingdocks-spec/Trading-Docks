@@ -2,14 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { HERO_DEMO_WORKSPACE } from "@/components/landing/landing-data";
+
 export function useRotateActivity() {
   const activities = useMemo(
     () => [
-      ["Inventory imported", "+248"],
-      ["Marketplace sale", "$45.72"],
-      ["Price movement", "+6.4%"],
-      ["Listing published", "Live"],
-      ["Order fulfilled", "#10291"],
+      ...HERO_DEMO_WORKSPACE.activity,
+      ...HERO_DEMO_WORKSPACE.syncedActivity,
     ],
     [],
   );
