@@ -4480,34 +4480,202 @@ function inventoryLocationLabel(match: InventoryMatch) {
   return details.join(" · ");
 }
 
+type DeckCardImageCandidate = {
+  source: "direct" | "fallback-api";
+  src: string;
+};
+
+type InspectorImageStatus =
+  | "loading"
+  | "loaded"
+  | "failed";
+
+const INSPECTOR_IMAGE_TIMEOUT_MS = 4500;
+const deckInspectorImageCache = new Map<string, DeckCardImageCandidate>();
+
+function deckCardImageIdentity(card: DeckCard) {
+  return [
+    card.id,
+    card.name,
+    card.setCode ?? "",
+    card.collectorNumber ?? "",
+    card.image ?? "",
+  ].join("|");
+}
+
+function deckCardImageFallbackSource(card: DeckCard) {
+  const params = new URLSearchParams({
+    name: card.name,
+  });
+
+  if (card.setCode) {
+    params.set("set", card.setCode);
+    params.set("setCode", card.setCode);
+  }
+
+  if (card.collectorNumber) {
+    params.set("collectorNumber", card.collectorNumber);
+  }
+
+  return `/api/deck-vault/card-image?${params.toString()}`;
+}
+
+function deckCardImageCandidates(card: DeckCard): DeckCardImageCandidate[] {
+  const candidates: DeckCardImageCandidate[] = [];
+  const directImage = card.image?.trim();
+
+  if (directImage) {
+    candidates.push({
+      source: "direct",
+      src: directImage,
+    });
+  }
+
+  candidates.push({
+    source: "fallback-api",
+    src: deckCardImageFallbackSource(card),
+  });
+
+  return candidates;
+}
+
 function deckCardImageSource(card: DeckCard) {
-  return card.image || `/api/deck-vault/card-image?name=${encodeURIComponent(card.name)}`;
+  return deckCardImageCandidates(card)[0]?.src ?? "";
 }
 
 function InspectorCardImage({ card }: { card: DeckCard }) {
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const imageSource = deckCardImageSource(card);
+  const identityKey = deckCardImageIdentity(card);
+  const candidates = useMemo(
+    () => deckCardImageCandidates(card),
+    [
+      card.collectorNumber,
+      card.id,
+      card.image,
+      card.name,
+      card.setCode,
+    ],
+  );
+  const cachedCandidate = deckInspectorImageCache.get(identityKey);
+  const initialCandidateIndex = Math.max(
+    0,
+    candidates.findIndex(
+      (candidate) => candidate.src === cachedCandidate?.src,
+    ),
+  );
+  const [candidateIndex, setCandidateIndex] =
+    useState(initialCandidateIndex);
+  const [imageStatus, setImageStatus] =
+    useState<InspectorImageStatus>(
+      cachedCandidate ? "loaded" : "loading",
+    );
+  const activeImageRequestRef = useRef("");
+  const imageCandidate = candidates[candidateIndex] ?? candidates[0];
+  const imageSource = imageCandidate?.src ?? "";
 
   useEffect(() => {
-    setLoaded(false);
-    setFailed(false);
-  }, [imageSource]);
+    const nextCachedCandidate =
+      deckInspectorImageCache.get(identityKey);
+    const nextCandidateIndex = Math.max(
+      0,
+      candidates.findIndex(
+        (candidate) => candidate.src === nextCachedCandidate?.src,
+      ),
+    );
+
+    setCandidateIndex(nextCandidateIndex);
+    setImageStatus(nextCachedCandidate ? "loaded" : "loading");
+  }, [candidates, identityKey]);
+
+  useEffect(() => {
+    if (!imageSource || imageStatus === "loaded") {
+      return;
+    }
+
+    const requestKey = `${identityKey}:${candidateIndex}:${imageSource}`;
+    activeImageRequestRef.current = requestKey;
+
+    const timeoutId = window.setTimeout(() => {
+      if (activeImageRequestRef.current !== requestKey) {
+        return;
+      }
+
+      setCandidateIndex((currentIndex) => {
+        if (currentIndex < candidates.length - 1) {
+          return currentIndex + 1;
+        }
+
+        setImageStatus("failed");
+        return currentIndex;
+      });
+    }, INSPECTOR_IMAGE_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    candidateIndex,
+    candidates.length,
+    identityKey,
+    imageSource,
+    imageStatus,
+  ]);
+
+  function currentImageRequestKey(src: string) {
+    return `${identityKey}:${candidateIndex}:${src}`;
+  }
+
+  function markImageLoaded(src: string) {
+    if (!imageCandidate) {
+      return;
+    }
+
+    if (
+      activeImageRequestRef.current &&
+      activeImageRequestRef.current !== currentImageRequestKey(src)
+    ) {
+      return;
+    }
+
+    deckInspectorImageCache.set(identityKey, imageCandidate);
+    setImageStatus("loaded");
+  }
+
+  function markImageFailed(src: string) {
+    if (
+      activeImageRequestRef.current &&
+      activeImageRequestRef.current !== currentImageRequestKey(src)
+    ) {
+      return;
+    }
+
+    setCandidateIndex((currentIndex) => {
+      if (currentIndex < candidates.length - 1) {
+        setImageStatus("loading");
+        return currentIndex + 1;
+      }
+
+      setImageStatus("failed");
+      return currentIndex;
+    });
+  }
+
+  const failed = imageStatus === "failed";
+  const loaded = imageStatus === "loaded";
+  const showDiagnostics =
+    process.env.NODE_ENV !== "production";
 
   return (
     <div className="relative mx-auto mb-4 aspect-[0.715] w-full max-w-[255px] overflow-hidden rounded-[22px] border border-white/[0.095] bg-[#030b12] shadow-[0_22px_70px_rgba(0,0,0,0.42),0_0_28px_rgba(34,211,238,0.08)]">
       {!loaded && !failed ? (
         <div className="absolute inset-0 animate-pulse bg-[linear-gradient(110deg,rgba(255,255,255,.025),rgba(103,232,249,.08),rgba(255,255,255,.025))]" />
       ) : null}
-      {!failed ? (
+      {!failed && imageSource ? (
         <img
           key={imageSource}
           src={imageSource}
           alt={card.name}
           loading="eager"
           decoding="async"
-          onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
+          onLoad={() => markImageLoaded(imageSource)}
+          onError={() => markImageFailed(imageSource)}
           className={[
             "h-full w-full object-contain transition duration-200",
             loaded ? "opacity-100" : "opacity-0",
@@ -4524,6 +4692,11 @@ function InspectorCardImage({ card }: { card: DeckCard }) {
           </p>
         </div>
       )}
+      {showDiagnostics ? (
+        <p className="absolute bottom-2 left-2 rounded-full bg-black/65 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-cyan-100/70">
+          {imageCandidate?.source ?? "none"} · {imageStatus}
+        </p>
+      ) : null}
     </div>
   );
 }

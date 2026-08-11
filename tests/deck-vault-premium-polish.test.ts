@@ -26,6 +26,10 @@ const deckPage = readFileSync(
   path.join(repoRoot, "src/app/dashboard/deck-vault/page.tsx"),
   "utf8",
 );
+const deckCardImageRoute = readFileSync(
+  path.join(repoRoot, "src/app/api/deck-vault/card-image/route.ts"),
+  "utf8",
+);
 
 test("Deck Vault keeps Import deck as the primary hero CTA and Create deck available", () => {
   assert.match(deckVaultHome, /Build deeper\. Analyze smarter\. Know every deck\./);
@@ -156,13 +160,31 @@ test("Deck Detail live inspector separates hover preview from locked selection",
 });
 
 test("Deck Detail inspector uses existing exact card image path with loading and fallback states", () => {
-  assert.match(deckDetailWorkspace, /function deckCardImageSource\(card: DeckCard\)/);
-  assert.match(deckDetailWorkspace, /return card\.image \|\| `\/api\/deck-vault\/card-image\?name=/);
+  assert.match(deckDetailWorkspace, /function deckCardImageCandidates\(card: DeckCard\)/);
+  assert.match(deckDetailWorkspace, /source: "direct"/);
+  assert.match(deckDetailWorkspace, /source: "fallback-api"/);
+  assert.match(deckDetailWorkspace, /function deckCardImageFallbackSource\(card: DeckCard\)/);
+  assert.match(deckDetailWorkspace, /params\.set\("setCode", card\.setCode\)/);
+  assert.match(deckDetailWorkspace, /params\.set\("collectorNumber", card\.collectorNumber\)/);
   assert.match(deckDetailWorkspace, /function InspectorCardImage/);
+  assert.match(deckDetailWorkspace, /deckInspectorImageCache/);
+  assert.match(deckDetailWorkspace, /INSPECTOR_IMAGE_TIMEOUT_MS/);
+  assert.match(deckDetailWorkspace, /activeImageRequestRef/);
   assert.match(deckDetailWorkspace, /aspect-\[0\.715\]/);
   assert.match(deckDetailWorkspace, /object-contain/);
   assert.match(deckDetailWorkspace, /animate-pulse/);
   assert.match(deckDetailWorkspace, /Card image unavailable/);
+});
+
+test("Deck Detail card image fallback route supports exact printing lookup and bounded failures", () => {
+  assert.match(deckCardImageRoute, /request\.nextUrl\.searchParams\.get\("set"\)/);
+  assert.match(deckCardImageRoute, /request\.nextUrl\.searchParams\.get\("setCode"\)/);
+  assert.match(deckCardImageRoute, /request\.nextUrl\.searchParams\s*\n\s*\.get\("collectorNumber"\)/);
+  assert.match(deckCardImageRoute, /https:\/\/api\.scryfall\.com\/cards\/\$\{encodeURIComponent/);
+  assert.match(deckCardImageRoute, /cards\/named\?/);
+  assert.match(deckCardImageRoute, /SCRYFALL_TIMEOUT_MS/);
+  assert.match(deckCardImageRoute, /Card image lookup timed out/);
+  assert.match(deckCardImageRoute, /Card image fetch timed out/);
 });
 
 test("Deck Detail hover preview does not expose mutation actions until click selection locks the card", () => {

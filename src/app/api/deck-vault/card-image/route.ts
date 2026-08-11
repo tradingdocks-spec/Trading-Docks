@@ -5,9 +5,60 @@ import {
 
 export const revalidate = 86400;
 
+const SCRYFALL_TIMEOUT_MS = 5000;
+
+type ScryfallCardImagePayload = {
+  image_uris?: {
+    normal?: string;
+    large?: string;
+    png?: string;
+  };
+  card_faces?: Array<{
+    image_uris?: {
+      normal?: string;
+      large?: string;
+      png?: string;
+    };
+  }>;
+};
+
+type NextFetchInit = RequestInit & {
+  next?: {
+    revalidate?: number;
+  };
+};
+
+async function fetchWithTimeout(
+  input: string,
+  init: NextFetchInit,
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    SCRYFALL_TIMEOUT_MS,
+  );
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function GET(request: NextRequest) {
   const name =
     request.nextUrl.searchParams.get("name")?.trim() ?? "";
+  const setCode =
+    request.nextUrl.searchParams.get("set")?.trim() ??
+    request.nextUrl.searchParams.get("setCode")?.trim() ??
+    "";
+  const collectorNumber =
+    request.nextUrl.searchParams
+      .get("collectorNumber")
+      ?.trim() ?? "";
 
   if (!name) {
     return new NextResponse("Missing card name.", {
@@ -15,13 +66,19 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const params = new URLSearchParams({
-    exact: name,
-  });
+  const cardLookupUrl =
+    setCode && collectorNumber
+      ? `https://api.scryfall.com/cards/${encodeURIComponent(
+          setCode.toLowerCase(),
+        )}/${encodeURIComponent(collectorNumber)}`
+      : `https://api.scryfall.com/cards/named?${new URLSearchParams({
+          exact: name,
+        }).toString()}`;
 
-  const cardResponse = await fetch(
-    `https://api.scryfall.com/cards/named?${params.toString()}`,
-    {
+  let cardResponse: Response;
+
+  try {
+    cardResponse = await fetchWithTimeout(cardLookupUrl, {
       headers: {
         Accept: "application/json",
         "User-Agent": "TradingDocks-DeckVault/2.1",
@@ -29,8 +86,12 @@ export async function GET(request: NextRequest) {
       next: {
         revalidate: 86400,
       },
-    },
-  );
+    });
+  } catch {
+    return new NextResponse("Card image lookup timed out.", {
+      status: 504,
+    });
+  }
 
   if (!cardResponse.ok) {
     return new NextResponse("Card image unavailable.", {
@@ -38,11 +99,9 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const card = await cardResponse.json();
+  const card = (await cardResponse.json()) as ScryfallCardImagePayload;
   const face =
-    card.card_faces?.find(
-      (entry: any) => entry.image_uris,
-    ) ?? card;
+    card.card_faces?.find((entry) => entry.image_uris) ?? card;
 
   const imageUrl =
     face.image_uris?.normal ??
@@ -56,15 +115,23 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const imageResponse = await fetch(imageUrl, {
-    headers: {
-      Accept: "image/avif,image/webp,image/*,*/*;q=0.8",
-      "User-Agent": "TradingDocks-DeckVault/2.1",
-    },
-    next: {
-      revalidate: 86400,
-    },
-  });
+  let imageResponse: Response;
+
+  try {
+    imageResponse = await fetchWithTimeout(imageUrl, {
+      headers: {
+        Accept: "image/avif,image/webp,image/*,*/*;q=0.8",
+        "User-Agent": "TradingDocks-DeckVault/2.1",
+      },
+      next: {
+        revalidate: 86400,
+      },
+    });
+  } catch {
+    return new NextResponse("Card image fetch timed out.", {
+      status: 504,
+    });
+  }
 
   if (!imageResponse.ok || !imageResponse.body) {
     return new NextResponse("Card image unavailable.", {
