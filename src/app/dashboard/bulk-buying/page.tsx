@@ -1,5 +1,5 @@
-import { SimplePurchasingPage } from "@/components/dashboard/purchasing/SimplePurchasingPage";
+import { BulkBuyingCalculator } from "@/components/dashboard/purchasing/BulkBuyingCalculator";
 
 export default function BulkBuyingPage() {
-  return <SimplePurchasingPage type="bulk" />;
+  return <BulkBuyingCalculator />;
 }
