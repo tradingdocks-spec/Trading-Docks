@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { ArrowUpRight, CircleDot } from "lucide-react";
 
 type PageScaffoldProps = {
@@ -11,7 +12,10 @@ type PageScaffoldProps = {
     value: string;
     detail: string;
   }>;
-  actions?: string[];
+  actions?: Array<{
+    label: string;
+    href: string;
+  }>;
 };
 
 export function PageScaffold({
@@ -20,7 +24,7 @@ export function PageScaffold({
   description,
   icon: Icon,
   stats,
-  actions = ["Open workspace", "View activity"],
+  actions = [],
 }: PageScaffoldProps) {
   return (
     <div className="relative min-h-full overflow-hidden">
@@ -50,16 +54,17 @@ export function PageScaffold({
                   <CircleDot className="h-3 w-3 text-emerald-300" />
                   Live workspace
                 </span>
-                <span>Updated moments ago</span>
+                <span>Awaiting first workspace event</span>
                 <span>Supabase connected</span>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              {actions.map((action, index) => (
-                <button
-                  key={action}
-                  type="button"
+            {actions.length ? (
+              <div className="flex flex-wrap gap-3">
+                {actions.map((action, index) => (
+                  <Link
+                    key={action.href}
+                    href={action.href}
                   className={[
                     "group inline-flex h-11 items-center gap-2 rounded-xl px-4 text-xs font-semibold transition hover:-translate-y-0.5",
                     index === 0
@@ -67,11 +72,12 @@ export function PageScaffold({
                       : "border border-white/[0.08] bg-white/[0.025] text-slate-300 hover:border-cyan-300/[0.16] hover:bg-cyan-400/[0.03]",
                   ].join(" ")}
                 >
-                  {action}
-                  <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </button>
-              ))}
-            </div>
+                    {action.label}
+                    <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  </Link>
+                ))}
+              </div>
+            ) : null}
           </div>
         </section>
 

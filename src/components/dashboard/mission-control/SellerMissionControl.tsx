@@ -400,7 +400,7 @@ function ReadinessPanel({ snapshot }: { snapshot: MissionControlSnapshot }) {
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300/80">Seller readiness</p>
           <h2 className="mt-2 text-xl font-semibold text-white">{snapshot.readinessComplete}/{snapshot.readinessTotal} core steps complete</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">Your foundation is ready. Keep improving the workflows that reduce manual work.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Keep tightening the workflows that reduce manual work and move orders faster.</p>
         </div>
         <BadgeCheck className="h-5 w-5 text-cyan-300" />
       </div>

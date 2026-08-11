@@ -28,8 +28,8 @@ const configs = {
       "Search receipts, customers, cash and store-credit payouts, intake status, employee activity, and lifetime purchase totals.",
     icon: History,
     cards: [
-      ["Today", "0 purchases · $0"],
-      ["This Week", "0 purchases · $0"],
+      ["Today", "0 purchases - $0"],
+      ["This Week", "0 purchases - $0"],
       ["Pending Intake", "0 purchases"],
       ["Customer Records", "0 profiles"],
     ],
@@ -41,7 +41,7 @@ const configs = {
       "Configure value tiers, condition adjustments, high-demand bonuses, overstock reductions, sealed risk, and store-credit incentives.",
     icon: Percent,
     cards: [
-      ["Singles $0–$5", "55% base offer"],
+      ["Singles $0-$5", "55% base offer"],
       ["Singles $100+", "80% base offer"],
       ["Reserved List", "+8% demand bonus"],
       ["Overstock", "Up to -15%"],
@@ -106,11 +106,11 @@ export function SimplePurchasingPage({
 
         <section className="mt-5 rounded-[24px] border border-dashed border-white/[0.08] bg-[#06141f] px-6 py-20 text-center">
           <p className="text-sm font-semibold text-slate-400">
-            Workspace foundation is ready
+            No purchasing records yet
           </p>
           <p className="mx-auto mt-2 max-w-xl text-[9px] leading-5 text-slate-700">
-            This route is now part of the Purchasing department and ready for
-            Supabase records, employee permissions, saved rules, and live data.
+            Start from Purchasing to record intake sessions, rules, recommendations,
+            and purchase history as real workspace data.
           </p>
           <Link
             href="/dashboard/purchasing"
