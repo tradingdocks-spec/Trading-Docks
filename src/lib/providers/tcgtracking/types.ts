@@ -172,5 +172,19 @@ export type TcgTrackingProviderHealth = {
     pricingTtlHours: number;
   };
   localSchema: "proposal-only";
+  sync?: {
+    mapping?: {
+      status: string;
+      processed: number;
+      updatedAt?: string;
+      completedAt?: string | null;
+    } | null;
+    pricing?: {
+      status: string;
+      processed: number;
+      updatedAt?: string;
+      completedAt?: string | null;
+    } | null;
+  };
   error?: string;
 };

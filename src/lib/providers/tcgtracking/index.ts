@@ -7,4 +7,5 @@ export * from "./pricing.ts";
 export * from "./reconciliation.ts";
 export * from "./scanner.ts";
 export * from "./status.ts";
+export * from "./sync.ts";
 export * from "./types.ts";

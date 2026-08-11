@@ -3,6 +3,8 @@ import {
   NextResponse,
 } from "next/server";
 
+import { tcgTrackingProductImageUrl } from "@/lib/card-image-authority";
+
 export const revalidate = 86400;
 
 const SCRYFALL_TIMEOUT_MS = 5000;
@@ -59,11 +61,21 @@ export async function GET(request: NextRequest) {
     request.nextUrl.searchParams
       .get("collectorNumber")
       ?.trim() ?? "";
+  const tcgplayerProductId =
+    request.nextUrl.searchParams
+      .get("tcgplayerProductId")
+      ?.trim() ?? "";
 
   if (!name) {
     return new NextResponse("Missing card name.", {
       status: 400,
     });
+  }
+
+  const tcgTrackingImageUrl = tcgTrackingProductImageUrl(tcgplayerProductId);
+  if (tcgTrackingImageUrl) {
+    const tcgTrackingImage = await fetchImage(tcgTrackingImageUrl);
+    if (tcgTrackingImage.response) return tcgTrackingImage.response;
   }
 
   const cardLookupUrl =
@@ -115,6 +127,22 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  const image = await fetchImage(imageUrl);
+  if (image.timedOut) {
+    return new NextResponse("Card image fetch timed out.", {
+      status: 504,
+    });
+  }
+  if (!image.response) {
+    return new NextResponse("Card image unavailable.", {
+      status: image.status || 502,
+    });
+  }
+
+  return image.response;
+}
+
+async function fetchImage(imageUrl: string) {
   let imageResponse: Response;
 
   try {
@@ -128,18 +156,18 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch {
-    return new NextResponse("Card image fetch timed out.", {
-      status: 504,
-    });
+    return { timedOut: true, status: 504, response: null };
   }
 
   if (!imageResponse.ok || !imageResponse.body) {
-    return new NextResponse("Card image unavailable.", {
+    return {
+      timedOut: false,
       status: imageResponse.status || 502,
-    });
+      response: null,
+    };
   }
 
-  return new NextResponse(imageResponse.body, {
+  return { timedOut: false, status: imageResponse.status, response: new NextResponse(imageResponse.body, {
     headers: {
       "Content-Type":
         imageResponse.headers.get("content-type") ??
@@ -148,5 +176,5 @@ export async function GET(request: NextRequest) {
         "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
       "X-Content-Type-Options": "nosniff",
     },
-  });
+  }) };
 }

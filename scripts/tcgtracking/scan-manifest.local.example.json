@@ -1,0 +1,23 @@
+{
+  "fixtureSetId": "magic-private-benchmark-2026-08",
+  "fixtures": [
+    {
+      "filename": "normal/arcane-signet.jpg",
+      "expectedName": "Arcane Signet",
+      "expectedSet": "Commander Legends",
+      "expectedCollectorNumber": "297",
+      "expectedProductId": 226694,
+      "treatment": "normal",
+      "notes": "Private local photo. Do not commit the image."
+    },
+    {
+      "filename": "foil/example-foil.jpg",
+      "expectedName": "Example Foil Card",
+      "expectedSet": "Example Set",
+      "expectedCollectorNumber": "1",
+      "expectedProductId": 0,
+      "treatment": "foil",
+      "notes": "Replace with a real product-owner-supplied fixture before running."
+    }
+  ]
+}

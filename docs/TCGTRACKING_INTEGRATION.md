@@ -455,3 +455,159 @@ Phase 4 readiness:
 - Ready to run the Supabase-backed reconciliation in an environment with service-role read access to `tcgplayer_magic_catalog`.
 - Ready to run the scanner benchmark when product-owner-supplied private images exist locally.
 - Keep the future schema narrow: mappings, price snapshots, and sync runs are enough until evidence proves a full product mirror is necessary.
+
+## Phase 4 Production-Safe Enrichment
+
+Status: Partially Implemented
+
+Validation date: 2026-08-11.
+
+Phase 4 keeps TCGTracking as an enrichment provider. It does not replace:
+
+- `tcgplayer_magic_catalog` as the exact Magic SKU authority.
+- current scanner recognition authority.
+- current pricing authority.
+- user inventory authority.
+
+### Local Catalog Reconciliation Command
+
+Status: Requires Production Configuration
+
+Run the bounded reconciliation from a trusted server environment that has:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- optional `TCGTRACKING_API_BASE_URL`
+- optional `TCGTRACKING_API_KEY`
+
+Command:
+
+```bash
+node --experimental-strip-types scripts/tcgtracking/live-validation.ts --sample-size 51 --output artifacts/tcgtracking-reconciliation.json
+```
+
+The report includes products tested, provider SKU rows tested, local SKU rows found, exact SKU matches, missing local SKUs, missing provider SKUs, condition/finish/language conflicts, and pricing deltas. The script never overwrites catalog rows.
+
+### Proposed Smallest Schema
+
+Status: Planned
+
+Migration proposal:
+
+- `supabase/migrations/202608110002_tcgtracking_enrichment_cache_proposal.sql`
+
+Proposed SQL objects:
+
+- `public.tcgtracking_product_mappings`
+- `public.tcgtracking_price_snapshots`
+- `public.tcgtracking_sync_runs`
+- `public.set_tcgtracking_updated_at()`
+- update triggers for mappings and sync runs
+- indexes for TCGplayer Product ID, Scryfall ID, SKU ID, variant lookup, `observed_at`, freshness, and sync status
+
+Schema safety review:
+
+- Additive only.
+- No `DROP TABLE`.
+- No changes to `tcgplayer_magic_catalog`.
+- No changes to `inventory_items` or user inventory ownership.
+- Provider cache tables are global reference data, not tenant inventory.
+- RLS is enabled and direct `anon`/`authenticated` table access is revoked.
+- Server/service-role code remains the mutation authority.
+- Pricing precision is `numeric(12,2)`.
+- Price history is append-only in `tcgtracking_price_snapshots`; retention should be defined before high-frequency sync.
+
+### Sync Architecture
+
+Status: Partially Implemented
+
+Server-side sync service:
+
+- `src/lib/providers/tcgtracking/sync.ts`
+
+Admin endpoint:
+
+- `POST /api/admin/tcgtracking/sync`
+
+Supported actions:
+
+- `validate_magic`
+- `reconcile_sample`
+- `sync_magic_mappings`
+- `refresh_magic_pricing`
+
+The sync service advances a bounded amount of work per request, persists progress in `tcgtracking_sync_runs`, and resumes from the checkpoint. The first production surface is admin-triggered from System & Integration Health. No cron is wired in this phase.
+
+If the proposal migration has not been applied, sync returns `schema_required` instead of attempting writes.
+
+### Admin Sync Surface
+
+Status: Partially Implemented
+
+The existing Owner/Admin System & Integration Health panel now includes TCGTracking actions and sync freshness fields:
+
+- Validate Magic provider.
+- Reconcile sample.
+- Sync Magic mappings.
+- Refresh Magic pricing.
+- Last mapping sync status and processed count.
+- Last pricing sync status and processed count.
+
+The panel remains gated through platform Owner/Admin authority. Normal users do not receive provider diagnostics or mutation actions.
+
+### Image Integration
+
+Status: Partially Implemented
+
+Shared image authority:
+
+- `src/lib/card-image-authority.ts`
+
+Current exact-image priority:
+
+1. Trading Docks/local exact image.
+2. Already known exact card image.
+3. TCGTracking exact Product ID image.
+4. Scryfall exact-printing fallback.
+5. Unavailable state.
+
+The Deck Vault image fallback route accepts an exact `tcgplayerProductId` and tries the TCGTracking product image before falling back to existing Scryfall exact-printing lookup. TCGTracking is not the only source.
+
+### Inspector Market Enrichment
+
+Status: Partially Implemented
+
+Transparent market helpers are implemented through `marketSnapshotFromTcgTracking`, `spreadPercent`, `crossMarketSpread`, and `liquidityLabel`.
+
+Liquidity thresholds:
+
+- High: 50+ active listings.
+- Medium: 12-49 active listings.
+- Low: fewer than 12 active listings.
+- Unknown: listing count missing.
+
+The card inspector should display cached TCGTracking market data only when exact SKU identity exists and the price snapshot is fresh. Stale or missing values must not be presented as current.
+
+### Scanner Benchmark Fixtures
+
+Status: Partially Implemented
+
+Local private fixture root:
+
+- `.local-fixtures/tcgtracking-scan/`
+
+Template manifest:
+
+- `scripts/tcgtracking/scan-manifest.local.example.json`
+
+Working local manifest path:
+
+- `.local-fixtures/tcgtracking-scan/scan-manifest.local.json`
+
+Run:
+
+```bash
+node --experimental-strip-types scripts/tcgtracking/scan-benchmark.ts --manifest .local-fixtures/tcgtracking-scan/scan-manifest.local.json --allow-upload --output C:\private\tcgtracking-scan-report.json
+```
+
+The fixture directory is gitignored. No copyrighted card images should be committed.

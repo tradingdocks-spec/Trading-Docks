@@ -8,6 +8,7 @@ import {
   TcgTrackingClient,
   chooseExactProductImage,
   liquidityLabel,
+  mappingRowFromTcgTrackingProduct,
   marketSnapshotFromTcgTracking,
   normalizeTcgTrackingScanManifest,
   normalizePriceSnapshot,
@@ -18,6 +19,7 @@ import {
   reconcileTcgTrackingProduct,
   reconcileTcgTrackingWithLocalCatalog,
   scannerAdapterResult,
+  skuPriceSnapshotRow,
   spreadPercent,
   summarizeImageReliability,
   summarizePricingDeltas,
@@ -25,6 +27,10 @@ import {
   TCGTRACKING_CACHE_TABLE_PROPOSAL,
   tcgTrackingCachePolicy,
 } from "../src/lib/providers/tcgtracking/index.ts";
+import {
+  resolveExactProductImageUrl,
+  tcgTrackingProductImageUrl,
+} from "../src/lib/card-image-authority.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -234,7 +240,8 @@ test("TCGTracking cache proposal is non-authoritative and reuses existing catalo
   assert.equal(tcgTrackingCachePolicy().staticDataTtlDays, 7);
   assert.equal(tcgTrackingCachePolicy().pricingTtlHours, 24);
   assert.equal(TCGTRACKING_CACHE_TABLE_PROPOSAL.every((table) => table.authoritative === false), true);
-  assert.equal(TCGTRACKING_CACHE_TABLE_PROPOSAL.some((table) => table.table === "tcgtracking_products"), true);
+  assert.equal(TCGTRACKING_CACHE_TABLE_PROPOSAL.some((table) => table.table === "tcgtracking_product_mappings"), true);
+  assert.equal(TCGTRACKING_CACHE_TABLE_PROPOSAL.some((table) => table.table === "tcgtracking_products"), false);
 });
 
 test("TCGTracking image priority prefers existing Trading Docks image before provider fallback", () => {
@@ -246,6 +253,70 @@ test("TCGTracking image priority prefers existing Trading Docks image before pro
     }),
     "https://images.tradingdocks.test/card.jpg",
   );
+  assert.equal(tcgTrackingProductImageUrl(226694), "https://cdn.tcgtracking.com/product/226694_200w.jpg");
+  assert.equal(
+    resolveExactProductImageUrl({
+      knownExactImageUrl: "https://cards.scryfall.io/exact.jpg",
+      tcgplayerProductId: 226694,
+    }),
+    "https://cards.scryfall.io/exact.jpg",
+  );
+  assert.equal(
+    resolveExactProductImageUrl({
+      tcgplayerProductId: 226694,
+      scryfallFallbackUrl: "https://cards.scryfall.io/fallback.jpg",
+    }),
+    "https://cdn.tcgtracking.com/product/226694_200w.jpg",
+  );
+});
+
+test("TCGTracking proposal migration is additive global cache and keeps catalog canonical", () => {
+  const migration = readFileSync(
+    path.join(repoRoot, "supabase/migrations/202608110002_tcgtracking_enrichment_cache_proposal.sql"),
+    "utf8",
+  );
+
+  assert.match(migration, /create table if not exists public\.tcgtracking_product_mappings/);
+  assert.match(migration, /create table if not exists public\.tcgtracking_price_snapshots/);
+  assert.match(migration, /create table if not exists public\.tcgtracking_sync_runs/);
+  assert.match(migration, /unique \(category_id, tcgplayer_product_id\)/);
+  assert.match(migration, /tcgtracking_price_snapshots_product_observed_idx/);
+  assert.match(migration, /revoke all on table public\.tcgtracking_product_mappings from anon, authenticated/);
+  assert.doesNotMatch(migration, /\bdrop table\b/i);
+  assert.doesNotMatch(migration, /\balter table public\.tcgplayer_magic_catalog\b/i);
+  assert.doesNotMatch(migration, /\binventory_items\b/);
+});
+
+test("TCGTracking mapping and price snapshot models preserve exact SKU identity", () => {
+  const product = normalizeProduct(providerProduct(), "magic");
+  const sku = normalizeSku(providerSku());
+  assert.ok(product);
+  assert.ok(sku);
+
+  const mapping = mappingRowFromTcgTrackingProduct(product, "2026-08-11T00:00:00.000Z");
+  assert.equal(mapping?.tcgplayer_product_id, 456789);
+  assert.equal(mapping?.scryfall_id, "00000000-0000-4000-8000-000000000082");
+  assert.equal(mapping?.image_url, "https://cdn.tcgtracking.test/magic/mid/82.jpg");
+
+  const snapshot = skuPriceSnapshotRow({
+    tcgplayerProductId: sku.tcgplayerProductId,
+    tcgplayerSkuId: sku.tcgplayerSkuId,
+    condition: sku.condition,
+    finish: sku.variant,
+    language: sku.language,
+    tcgMarket: sku.marketPrice,
+    tcgLow: sku.lowPrice,
+    tcgHigh: sku.highPrice,
+    activeListings: sku.activeListings,
+    manapoolLow: sku.manapoolLow,
+    observedAt: "2026-08-11T00:00:00.000Z",
+  });
+  assert.equal(snapshot?.tcgplayer_product_id, 456789);
+  assert.equal(snapshot?.tcgplayer_sku_id, 987654);
+  assert.equal(snapshot?.condition, "Near Mint");
+  assert.equal(snapshot?.finish, "Normal");
+  assert.equal(snapshot?.language, "English");
+  assert.equal(snapshot?.tcg_market, 5.41);
 });
 
 test("TCGTracking local reconciliation matches exact SKUs and classifies identity conflicts", () => {
@@ -423,6 +494,33 @@ test("TCGTracking private scan manifests reject unsafe paths and export no image
   ]);
   assert.equal(summary.imagePathsExported, false);
   assert.equal(JSON.stringify(summary).includes("arcane-signet.jpg"), false);
+});
+
+test("TCGTracking admin sync is platform-admin only and scanner fixture roots stay ignored", () => {
+  const syncRoute = readFileSync(
+    path.join(repoRoot, "src/app/api/admin/tcgtracking/sync/route.ts"),
+    "utf8",
+  );
+  const operations = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/admin/AdminOperationsPanels.tsx"),
+    "utf8",
+  );
+  const gitignore = readFileSync(path.join(repoRoot, ".gitignore"), "utf8");
+  const exampleManifest = readFileSync(
+    path.join(repoRoot, "scripts/tcgtracking/scan-manifest.local.example.json"),
+    "utf8",
+  );
+
+  assert.match(syncRoute, /requireServerPlatformRole\("admin"\)/);
+  assert.match(syncRoute, /sync_magic_mappings/);
+  assert.match(syncRoute, /refresh_magic_pricing/);
+  assert.match(syncRoute, /manual_command_required/);
+  assert.match(operations, /Validate Magic provider/);
+  assert.match(operations, /Sync Magic mappings/);
+  assert.match(operations, /Refresh Magic pricing/);
+  assert.match(gitignore, /^\.local-fixtures\/$/m);
+  assert.match(exampleManifest, /scan-manifest\.local|private/i);
+  assert.doesNotMatch(exampleManifest, /C:\\\\|\/Users\//);
 });
 
 test("TCGTracking admin diagnostics are Owner/Admin gated and documented", () => {

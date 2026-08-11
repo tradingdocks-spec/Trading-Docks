@@ -13,18 +13,11 @@ export type TcgTrackingCacheTableProposal = {
 
 export const TCGTRACKING_CACHE_TABLE_PROPOSAL: TcgTrackingCacheTableProposal[] = [
   {
-    table: "tcgtracking_products",
-    purpose: "Static product, set, image, and cross-market identity enrichment.",
+    table: "tcgtracking_product_mappings",
+    purpose: "Static cross-provider identity enrichment mapped to existing TCGplayer product identity.",
     ttl: `${TCGTRACKING_STATIC_CACHE_DAYS}+ days`,
     authoritative: false,
-    keys: ["category_id", "provider_product_id", "tcgplayer_product_id"],
-  },
-  {
-    table: "tcgtracking_skus",
-    purpose: "SKU-level condition, finish/variant, language, and listing identity.",
-    ttl: `${TCGTRACKING_PRICING_CACHE_HOURS} hours for price fields; 7+ days for identity fields`,
-    authoritative: false,
-    keys: ["provider_sku_id", "tcgplayer_sku_id", "tcgplayer_product_id"],
+    keys: ["category_id", "tcgplayer_product_id", "scryfall_id"],
   },
   {
     table: "tcgtracking_price_snapshots",

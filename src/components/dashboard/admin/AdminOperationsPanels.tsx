@@ -15,6 +15,7 @@ import {
   Mail,
   Megaphone,
   ReceiptText,
+  RefreshCw,
   Search,
   ShieldAlert,
 } from "lucide-react";
@@ -41,6 +42,20 @@ type ProviderHealth = {
     pricingTtlHours: number;
   };
   localSchema: "proposal-only";
+  sync?: {
+    mapping?: {
+      status: string;
+      processed: number;
+      updatedAt?: string;
+      completedAt?: string | null;
+    } | null;
+    pricing?: {
+      status: string;
+      processed: number;
+      updatedAt?: string;
+      completedAt?: string | null;
+    } | null;
+  };
   error?: string;
 };
 
@@ -118,6 +133,8 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
   const [providerHealth, setProviderHealth] =
     useState<ProviderHealth | null>(null);
   const [providerError, setProviderError] = useState("");
+  const [providerAction, setProviderAction] = useState("");
+  const [providerBusy, setProviderBusy] = useState("");
   const visibleCards = useMemo(
     () => section.cards.filter((card) => card.toLowerCase().includes(query.toLowerCase())),
     [query, section.cards],
@@ -162,6 +179,34 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
   function acknowledge(action: string) {
     setNotice(`${action} is ready to connect when its service is configured.`);
     window.setTimeout(() => setNotice(""), 2600);
+  }
+
+  async function runProviderAction(action: string) {
+    setProviderBusy(action);
+    setProviderAction("");
+    try {
+      const response = await fetch("/api/admin/tcgtracking/sync", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const payload = await response.json() as {
+        status?: string;
+        message?: string;
+        providerHealth?: ProviderHealth;
+      };
+      if (payload.providerHealth) setProviderHealth(payload.providerHealth);
+      setProviderAction(payload.message ?? `TCGTracking ${payload.status ?? "action"} finished.`);
+      if (!response.ok) {
+        setProviderError(payload.message ?? "TCGTracking action failed.");
+      } else {
+        setProviderError("");
+      }
+    } catch (error) {
+      setProviderError(error instanceof Error ? error.message : "TCGTracking action failed.");
+    } finally {
+      setProviderBusy("");
+    }
   }
 
   return (
@@ -228,8 +273,17 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
             <ProviderMetric label="Static cache" value={`${providerHealth?.cachePolicy.staticDataTtlDays ?? 7}+ days`} />
             <ProviderMetric label="Pricing freshness" value={`${providerHealth?.cachePolicy.pricingTtlHours ?? 24} hours`} />
             <ProviderMetric label="Last check" value={providerHealth?.lastCheckedAt ? new Date(providerHealth.lastCheckedAt).toLocaleString() : "Checking"} />
+            <ProviderMetric label="Mapping sync" value={providerHealth?.sync?.mapping ? `${providerHealth.sync.mapping.status} · ${providerHealth.sync.mapping.processed}` : "Schema pending"} />
+            <ProviderMetric label="Pricing sync" value={providerHealth?.sync?.pricing ? `${providerHealth.sync.pricing.status} · ${providerHealth.sync.pricing.processed}` : "Schema pending"} />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <ProviderActionButton label="Validate Magic provider" busy={providerBusy === "validate_magic"} onClick={() => void runProviderAction("validate_magic")} />
+            <ProviderActionButton label="Reconcile sample" busy={providerBusy === "reconcile_sample"} onClick={() => void runProviderAction("reconcile_sample")} />
+            <ProviderActionButton label="Sync Magic mappings" busy={providerBusy === "sync_magic_mappings"} onClick={() => void runProviderAction("sync_magic_mappings")} />
+            <ProviderActionButton label="Refresh Magic pricing" busy={providerBusy === "refresh_magic_pricing"} onClick={() => void runProviderAction("refresh_magic_pricing")} />
           </div>
           <p className="mt-3 text-[11px] leading-5 text-slate-600">Local cache schema: {providerHealth?.localSchema ?? "proposal-only"}. Provider data may enrich products and pricing, but it does not create user inventory rows.</p>
+          {providerAction ? <p role="status" className="mt-3 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.045] px-3 py-2 text-[11px] text-cyan-100/70">{providerAction}</p> : null}
           {providerError ? <p role="status" className="mt-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.045] px-3 py-2 text-[11px] text-amber-100/70">{providerError}</p> : null}
         </section>
       ) : null}
@@ -249,5 +303,27 @@ function ProviderMetric({ label, value }: { label: string; value: string }) {
       <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600">{label}</p>
       <p className="mt-2 truncate text-xs font-semibold text-slate-200">{value}</p>
     </div>
+  );
+}
+
+function ProviderActionButton({
+  label,
+  busy,
+  onClick,
+}: {
+  label: string;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-300 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.045] hover:text-cyan-100 disabled:cursor-wait disabled:opacity-60"
+    >
+      <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
+      {label}
+    </button>
   );
 }
