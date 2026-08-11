@@ -123,6 +123,25 @@ test("current-week date window includes the full Aug 10 2026 order day", () => {
   assert.equal(new Date("2026-08-10T23:30:00") < window.end, true);
 });
 
+test("business date range controls support today 7D 30D and this month windows", () => {
+  const now = new Date("2026-08-11T16:00:00.000Z");
+  const today = getBusinessDateWindow("today", now);
+  const sevenDays = getBusinessDateWindow("7d", now);
+  const thirtyDays = getBusinessDateWindow("30d", now);
+  const month = getBusinessDateWindow("month", now);
+
+  assert.equal(today.start.getMonth(), 7);
+  assert.equal(today.start.getDate(), 11);
+  assert.equal(sevenDays.start.getMonth(), 7);
+  assert.equal(sevenDays.start.getDate(), 5);
+  assert.equal(thirtyDays.start.getMonth(), 6);
+  assert.equal(thirtyDays.start.getDate(), 13);
+  assert.equal(month.start.getMonth(), 7);
+  assert.equal(month.start.getDate(), 1);
+  assert.equal(today.end.getHours(), 23);
+  assert.equal(sevenDays.end.getHours(), 23);
+});
+
 test("canonical date filtering includes orders with null ordered_at and created_at fallback", () => {
   const window = getBusinessDateWindow("week", new Date("2026-08-10T16:00:00.000Z"));
   const orders = filterOrdersByCanonicalDateRange([
@@ -220,8 +239,11 @@ test("dashboard page wires business HQ through shared business summary authority
   assert.match(ordersPage, /loadCanonicalOrders\(\{/);
   assert.match(service, /loadCanonicalOrders\(\{/);
   assert.doesNotMatch(page, /effectivePlan === "seller" \|\| effectivePlan === "store"/);
-  assert.match(component, /Connect marketplace/);
-  assert.match(component, /Connected, zero orders/);
+  assert.match(component, /Marketplace matrix/);
+  assert.match(component, /Connect another channel/);
+  assert.match(component, /Needs attention/);
+  assert.match(component, /Setup and growth/);
+  assert.match(component, /RANGE_OPTIONS/);
   assert.match(service, /end\.setHours\(23, 59, 59, 999\)/);
   assert.match(repository, /CANONICAL_ORDER_SELECT[\s\S]*marketplace_order_items\(\*\)/);
   assert.match(repository, /\.eq\("user_id", userId\)/);

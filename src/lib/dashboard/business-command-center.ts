@@ -15,7 +15,7 @@ import {
   type CanonicalOrderSupabaseClient,
 } from "../orders/order-repository.ts";
 
-export type BusinessDateRange = "today" | "week" | "month";
+export type BusinessDateRange = "today" | "week" | "7d" | "30d" | "month";
 
 export type BusinessChannelId = CanonicalChannelId;
 
@@ -378,6 +378,12 @@ export function getBusinessDateWindow(range: BusinessDateRange, now: Date) {
   const start = new Date(now);
   if (range === "today") {
     start.setHours(0, 0, 0, 0);
+  } else if (range === "7d") {
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+  } else if (range === "30d") {
+    start.setDate(start.getDate() - 29);
+    start.setHours(0, 0, 0, 0);
   } else if (range === "month") {
     start.setDate(1);
     start.setHours(0, 0, 0, 0);
@@ -400,6 +406,8 @@ function previousDateWindow(window: { start: Date; end: Date }) {
 
 function rangeLabel(range: BusinessDateRange, now: Date) {
   if (range === "today") return "Today";
+  if (range === "7d") return "Last 7 days";
+  if (range === "30d") return "Last 30 days";
   if (range === "month") {
     return now.toLocaleString("en-US", { month: "long" });
   }

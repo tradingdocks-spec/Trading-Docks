@@ -7,6 +7,7 @@ import { isPreviewPlan, PLAN_PREVIEW_COOKIE } from "@/lib/admin-plan-preview";
 import {
   canViewBusinessCommandCenter,
   loadBusinessCommandCenter,
+  type BusinessDateRange,
   type DashboardSupabaseClient,
 } from "@/lib/dashboard/business-command-center";
 import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
@@ -18,7 +19,18 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+function businessRange(value: unknown): BusinessDateRange {
+  return value === "today" || value === "7d" || value === "30d" || value === "month" || value === "week"
+    ? value
+    : "7d";
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
+  const { range } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -58,7 +70,7 @@ export default async function DashboardPage() {
     const businessSummary = await loadBusinessCommandCenter({
       supabase: dashboardSupabase,
       access,
-      range: "week",
+      range: businessRange(range),
     });
 
     if (businessSummary) {
