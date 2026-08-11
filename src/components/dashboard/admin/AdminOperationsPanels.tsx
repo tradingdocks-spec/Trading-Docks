@@ -42,6 +42,7 @@ type ProviderHealth = {
     pricingTtlHours: number;
   };
   localSchema: "proposal-only";
+  localCatalog?: LocalCatalogStatus;
   sync?: {
     mapping?: {
       status: string;
@@ -57,6 +58,24 @@ type ProviderHealth = {
     } | null;
   };
   error?: string;
+};
+
+type LocalCatalogStatus = {
+  status: "available" | "failed";
+  table: "tcgplayer_magic_catalog";
+  schema: "ready" | "failed";
+  rows?: number | null;
+  sampleRowAvailable: boolean;
+  smokeQuery: string;
+  requestedColumns: string;
+  error?: {
+    message: string;
+    code?: string;
+    details?: string;
+    hint?: string;
+    status?: number;
+    statusCode?: number;
+  };
 };
 
 type CatalogReconciliation = {
@@ -99,10 +118,17 @@ type CatalogReconciliation = {
     url?: string;
     endpoint?: string;
     status?: number;
+    statusCode?: number;
     contentType?: string | null;
     bodyPreview?: string;
+    table?: string;
+    requestedColumns?: string;
+    code?: string;
+    details?: string;
+    hint?: string;
     message: string;
   };
+  localCatalog?: LocalCatalogStatus;
 };
 
 const sections = {
@@ -326,6 +352,7 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
             <ProviderMetric label="Mapping sync" value={providerHealth?.sync?.mapping ? `${providerHealth.sync.mapping.status} · ${providerHealth.sync.mapping.processed}` : "Schema pending"} />
             <ProviderMetric label="Pricing sync" value={providerHealth?.sync?.pricing ? `${providerHealth.sync.pricing.status} · ${providerHealth.sync.pricing.processed}` : "Schema pending"} />
           </div>
+          <LocalCatalogSummary status={providerHealth?.localCatalog ?? catalogReconciliation?.localCatalog ?? null} />
           <div className="mt-4 flex flex-wrap gap-2">
             <ProviderActionButton label="Validate Magic provider" busy={providerBusy === "validate_magic"} onClick={() => void runProviderAction("validate_magic")} />
             <ProviderActionButton label="Run catalog reconciliation" busy={providerBusy === "run_catalog_reconciliation"} onClick={() => void runProviderAction("run_catalog_reconciliation")} />
@@ -395,9 +422,14 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
             <ProviderMetric label="HTTP" value={report.failure.status ? String(report.failure.status) : "n/a"} />
             <ProviderMetric label="Content type" value={report.failure.contentType ?? "n/a"} />
             <ProviderMetric label="Endpoint" value={report.failure.endpoint ?? "n/a"} />
+            <ProviderMetric label="Table" value={report.failure.table ?? "n/a"} />
+            <ProviderMetric label="Code" value={report.failure.code ?? "n/a"} />
           </div>
           <p className="mt-3 break-words text-[11px] leading-5 text-slate-500">{safeText(report.failure.message)}</p>
           {report.failure.url ? <p className="mt-2 break-all text-[10px] text-slate-600">{report.failure.url}</p> : null}
+          {report.failure.requestedColumns ? <p className="mt-2 break-words text-[10px] text-slate-600">Columns: {safeText(report.failure.requestedColumns)}</p> : null}
+          {report.failure.details ? <p className="mt-2 break-words text-[10px] text-slate-600">{safeText(report.failure.details)}</p> : null}
+          {report.failure.hint ? <p className="mt-2 break-words text-[10px] text-slate-600">{safeText(report.failure.hint)}</p> : null}
           {report.failure.bodyPreview ? <p className="mt-2 break-words text-[10px] text-slate-600">{safeText(report.failure.bodyPreview)}</p> : null}
         </details>
       ) : null}
@@ -420,6 +452,45 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
         </div>
       ) : null}
       {report.error ? <p className="mt-3 text-[11px] text-red-100/70">{safeText(report.error)}</p> : null}
+    </div>
+  );
+}
+
+function LocalCatalogSummary({ status }: { status: LocalCatalogStatus | null }) {
+  const available = status?.status === "available";
+  return (
+    <div className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Local catalog</p>
+          <p className="mt-1 text-sm font-semibold text-white">tcgplayer_magic_catalog</p>
+        </div>
+        <span className={[
+          "rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+          available
+            ? "border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-100"
+            : "border-red-300/15 bg-red-300/[0.04] text-red-100",
+        ].join(" ")}>
+          {status?.status ?? "checking"}
+        </span>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <ProviderMetric label="Rows" value={status?.rows == null ? "Unknown" : status.rows.toLocaleString("en-US")} />
+        <ProviderMetric label="Schema" value={status?.schema ?? "Checking"} />
+        <ProviderMetric label="Smoke query" value={status?.sampleRowAvailable ? "Sample row found" : status ? "No sample row" : "Checking"} />
+      </div>
+      {status?.error ? (
+        <details className="mt-3 rounded-xl border border-red-300/10 bg-red-300/[0.025] p-3">
+          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.14em] text-red-100/75">Catalog read failure</summary>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <ProviderMetric label="Code" value={status.error.code ?? "n/a"} />
+            <ProviderMetric label="HTTP" value={status.error.status ? String(status.error.status) : status.error.statusCode ? String(status.error.statusCode) : "n/a"} />
+          </div>
+          <p className="mt-3 text-[11px] leading-5 text-slate-500">{safeText(status.error.message)}</p>
+          {status.error.details ? <p className="mt-2 text-[10px] text-slate-600">{safeText(status.error.details)}</p> : null}
+          {status.error.hint ? <p className="mt-2 text-[10px] text-slate-600">{safeText(status.error.hint)}</p> : null}
+        </details>
+      ) : null}
     </div>
   );
 }

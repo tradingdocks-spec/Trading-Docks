@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { requireServerPlatformRole } from "@/lib/identity/server-guards";
 import {
   latestSyncByType,
+  loadTcgTrackingLocalCatalogStatus,
+  serializeSupabaseError,
   loadTcgTrackingProviderHealth,
   type TcgTrackingSyncRunRow,
 } from "@/lib/providers/tcgtracking";
@@ -22,7 +24,8 @@ export async function GET() {
 
   const health = await loadTcgTrackingProviderHealth();
   const sync = await loadSyncSummary();
-  return NextResponse.json({ ...health, sync }, {
+  const localCatalog = await loadLocalCatalogSummary();
+  return NextResponse.json({ ...health, sync, localCatalog }, {
     status: health.status === "available" ? 200 : 502,
   });
 }
@@ -44,6 +47,31 @@ async function loadSyncSummary() {
     };
   } catch {
     return undefined;
+  }
+}
+
+async function loadLocalCatalogSummary() {
+  try {
+    const admin = createAdminClient();
+    const stats = await admin.rpc("tcgplayer_magic_catalog_stats");
+    const totalRecords = stats.error
+      ? null
+      : Number((Array.isArray(stats.data) ? stats.data[0] : stats.data)?.total_records ?? 0);
+    return await loadTcgTrackingLocalCatalogStatus(
+      admin as unknown as Parameters<typeof loadTcgTrackingLocalCatalogStatus>[0],
+      Number.isFinite(totalRecords) ? totalRecords : null,
+    );
+  } catch (error) {
+    return {
+      status: "failed" as const,
+      table: "tcgplayer_magic_catalog" as const,
+      schema: "failed" as const,
+      rows: null,
+      sampleRowAvailable: false,
+      smokeQuery: "tcgplayer_id limit 1",
+      requestedColumns: "tcgplayer_id",
+      error: serializeSupabaseError(error),
+    };
   }
 }
 

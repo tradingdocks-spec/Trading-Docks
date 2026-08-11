@@ -21,16 +21,43 @@ import type {
 export const TCGTRACKING_CATALOG_RECONCILIATION_DEFAULT_SAMPLE_SIZE = 150;
 export const TCGTRACKING_CATALOG_RECONCILIATION_MAX_SAMPLE_SIZE = 250;
 export const TCGTRACKING_CATALOG_RECONCILIATION_DEFAULT_CONFLICT_LIMIT = 25;
+export const TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS =
+  "tcgplayer_id,set_name,product_name,collector_number,condition,finish,tcg_market_price,tcg_low_price,photo_url";
+export const TCGTRACKING_LOCAL_CATALOG_SMOKE_COLUMNS = "tcgplayer_id";
+export const TCGTRACKING_LOCAL_CATALOG_SKU_QUERY_CHUNK_SIZE = 500;
 
-type TcgTrackingCatalogSelectQuery = PromiseLike<{
-  data: TcgTrackingLocalCatalogRow[] | null;
-  error: { message?: string; code?: string; details?: string; hint?: string } | null;
+export type TcgTrackingSupabaseErrorDetails = {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+  status?: number;
+  statusCode?: number;
+  raw?: unknown;
+};
+
+export type TcgTrackingLocalCatalogStatus = {
+  status: "available" | "failed";
+  table: "tcgplayer_magic_catalog";
+  schema: "ready" | "failed";
+  smokeQuery: "tcgplayer_id limit 1";
+  sampleRowAvailable: boolean;
+  requestedColumns: string;
+  rows?: number | null;
+  error?: TcgTrackingSupabaseErrorDetails;
+};
+
+type TcgTrackingCatalogQueryResult<TData> = PromiseLike<{
+  data: TData | null;
+  error: unknown;
 }>;
 
 export type TcgTrackingCatalogReadClient = {
   from: (table: "tcgplayer_magic_catalog") => {
     select: (columns: string) => {
-      in: (column: "tcgplayer_id", values: number[]) => TcgTrackingCatalogSelectQuery;
+      in: (column: "tcgplayer_id", values: number[]) =>
+        TcgTrackingCatalogQueryResult<TcgTrackingLocalCatalogRow[]>;
+      limit: (count: number) => TcgTrackingCatalogQueryResult<Array<{ tcgplayer_id: number }>>;
     };
   };
 };
@@ -77,10 +104,17 @@ export type TcgTrackingCatalogReconciliationReport = {
     url?: string;
     endpoint?: string;
     status?: number;
+    statusCode?: number;
     contentType?: string | null;
     bodyPreview?: string;
+    table?: string;
+    requestedColumns?: string;
+    code?: string;
+    details?: string;
+    hint?: string;
     message: string;
   };
+  localCatalog: TcgTrackingLocalCatalogStatus;
 };
 
 export async function runTcgTrackingCatalogReconciliation(
@@ -95,8 +129,16 @@ export async function runTcgTrackingCatalogReconciliation(
   const conflictLimit = boundedConflictLimit(input.conflictLimit);
   const client = input.client ?? createTcgTrackingClient();
   const generatedAt = new Date().toISOString();
+  let localCatalog = unavailableLocalCatalogStatus("Not checked.");
 
   try {
+    localCatalog = await loadTcgTrackingLocalCatalogStatus(database);
+    if (localCatalog.status === "failed") {
+      throw new TcgTrackingCatalogReadError(localCatalog.error, {
+        requestedColumns: TCGTRACKING_LOCAL_CATALOG_SMOKE_COLUMNS,
+        queryStage: "local-catalog-smoke",
+      });
+    }
     const providerSample = await loadProviderSample(client, sampleSize);
     const skuIds = uniqueProviderSkuIds(providerSample.products);
     const localRows = await loadLocalCatalogRows(database, skuIds);
@@ -116,6 +158,7 @@ export async function runTcgTrackingCatalogReconciliation(
       reconciliations,
       localRows,
       conflictLimit,
+      localCatalog,
     });
   } catch (error) {
     const failure = serializeCatalogReconciliationFailure(error);
@@ -128,6 +171,9 @@ export async function runTcgTrackingCatalogReconciliation(
       sampleSize,
       error: failure.message,
       failure,
+      localCatalog: failure.stage === "local-catalog-read"
+        ? failedLocalCatalogStatus(failure)
+        : localCatalog,
     });
   }
 }
@@ -139,6 +185,7 @@ export function summarizeCatalogReconciliation(input: {
   reconciliations: TcgTrackingProductReconciliation[];
   localRows: TcgTrackingLocalCatalogRow[];
   conflictLimit?: number;
+  localCatalog?: TcgTrackingLocalCatalogStatus;
 }): TcgTrackingCatalogReconciliationReport {
   const providerSkusTested = input.reconciliations.reduce(
     (sum, product) => sum + product.providerSkuCount,
@@ -197,6 +244,15 @@ export function summarizeCatalogReconciliation(input: {
     recommendation,
     conflictBreakdown,
     pricingDeltaSummary: summarizePricingDeltas(input.reconciliations),
+    localCatalog: input.localCatalog ?? {
+      status: "available",
+      table: "tcgplayer_magic_catalog",
+      schema: "ready",
+      smokeQuery: "tcgplayer_id limit 1",
+      sampleRowAvailable: input.localRows.length > 0,
+      requestedColumns: TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS,
+      rows: null,
+    },
     manapoolCoverage: {
       exactMatchesWithManapoolLow: skuMatches.filter((match) =>
         match.matchType === "tcgplayer_sku_id" &&
@@ -275,24 +331,61 @@ async function loadLocalCatalogRows(
   skuIds: number[],
 ) {
   if (!skuIds.length) return [];
-  const result = await database
-    .from("tcgplayer_magic_catalog")
-    .select(
-      "tcgplayer_id,set_name,product_name,collector_number,condition,finish,tcg_market_price,tcg_low_price,photo_url",
-    )
-    .in("tcgplayer_id", skuIds);
-  if (result.error) {
-    const error = new Error(
-      `tcgplayer_magic_catalog read failed: ${result.error.message ?? "unknown error"}`,
-    );
-    error.name = "TcgTrackingCatalogReadError";
-    throw error;
+  const rows: TcgTrackingLocalCatalogRow[] = [];
+  for (const chunk of chunkValues(skuIds, TCGTRACKING_LOCAL_CATALOG_SKU_QUERY_CHUNK_SIZE)) {
+    const result = await database
+      .from("tcgplayer_magic_catalog")
+      .select(TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS)
+      .in("tcgplayer_id", chunk);
+    if (result.error) {
+      throw new TcgTrackingCatalogReadError(
+        serializeSupabaseError(result.error),
+        {
+          requestedColumns: TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS,
+          queryStage: "local-catalog-sku-query",
+        },
+      );
+    }
+    rows.push(...(result.data ?? []));
   }
   console.info("TCGTracking local catalog rows available", {
     stage: "local-catalog-read",
-    rowCount: result.data?.length ?? 0,
+    rowCount: rows.length,
+    requestedSkuCount: skuIds.length,
+    chunkSize: TCGTRACKING_LOCAL_CATALOG_SKU_QUERY_CHUNK_SIZE,
   });
-  return result.data ?? [];
+  return rows;
+}
+
+export async function loadTcgTrackingLocalCatalogStatus(
+  database: TcgTrackingCatalogReadClient,
+  rowCount?: number | null,
+): Promise<TcgTrackingLocalCatalogStatus> {
+  const result = await database
+    .from("tcgplayer_magic_catalog")
+    .select(TCGTRACKING_LOCAL_CATALOG_SMOKE_COLUMNS)
+    .limit(1);
+  if (result.error) {
+    return {
+      status: "failed",
+      table: "tcgplayer_magic_catalog",
+      schema: "failed",
+      smokeQuery: "tcgplayer_id limit 1",
+      sampleRowAvailable: false,
+      requestedColumns: TCGTRACKING_LOCAL_CATALOG_SMOKE_COLUMNS,
+      rows: rowCount ?? null,
+      error: serializeSupabaseError(result.error),
+    };
+  }
+  return {
+    status: "available",
+    table: "tcgplayer_magic_catalog",
+    schema: "ready",
+    smokeQuery: "tcgplayer_id limit 1",
+    sampleRowAvailable: Boolean(result.data?.length),
+    requestedColumns: TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS,
+    rows: rowCount ?? null,
+  };
 }
 
 function chooseSampleSets(sets: TcgTrackingSet[]) {
@@ -382,6 +475,7 @@ function emptyFailureReport(input: {
   sampleSize: number;
   error: string;
   failure: TcgTrackingCatalogReconciliationReport["failure"];
+  localCatalog: TcgTrackingLocalCatalogStatus;
 }): TcgTrackingCatalogReconciliationReport {
   return {
     status: input.status,
@@ -418,6 +512,7 @@ function emptyFailureReport(input: {
     conflicts: [],
     error: input.error,
     failure: input.failure,
+    localCatalog: input.localCatalog,
   };
 }
 
@@ -437,6 +532,19 @@ function serializeCatalogReconciliationFailure(
     };
   }
   if (error instanceof Error) {
+    if (error instanceof TcgTrackingCatalogReadError) {
+      return {
+        stage: "local-catalog-read",
+        table: "tcgplayer_magic_catalog",
+        requestedColumns: error.context.requestedColumns,
+        status: error.supabaseError?.status,
+        statusCode: error.supabaseError?.statusCode,
+        code: error.supabaseError?.code,
+        details: error.supabaseError?.details,
+        hint: error.supabaseError?.hint,
+        message: error.message,
+      };
+    }
     return {
       stage: error.name === "TcgTrackingCatalogReadError"
         ? "local-catalog-read"
@@ -461,4 +569,120 @@ function stageForProviderEndpoint(endpoint: string) {
 function sanitizeBodyPreview(value: string | undefined) {
   if (!value) return undefined;
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 220);
+}
+
+export function serializeSupabaseError(error: unknown): TcgTrackingSupabaseErrorDetails {
+  if (error instanceof Error) {
+    return {
+      message: error.message || "Supabase catalog read failed.",
+      raw: safeRawError(error),
+    };
+  }
+  if (typeof error === "string") {
+    return { message: error.trim() || "Supabase catalog read failed." };
+  }
+  if (error && typeof error === "object") {
+    const source = error as Record<string, unknown>;
+    const message = textValue(source.message) ??
+      textValue(source.error) ??
+      textValue(source.details) ??
+      jsonFallback(source) ??
+      "Supabase catalog read failed.";
+    return {
+      message,
+      code: textValue(source.code),
+      details: textValue(source.details),
+      hint: textValue(source.hint),
+      status: numberValue(source.status),
+      statusCode: numberValue(source.statusCode),
+      raw: safeRawError(source),
+    };
+  }
+  return { message: String(error ?? "Supabase catalog read failed.") };
+}
+
+class TcgTrackingCatalogReadError extends Error {
+  supabaseError?: TcgTrackingSupabaseErrorDetails;
+  context: {
+    requestedColumns: string;
+    queryStage: string;
+  };
+
+  constructor(
+    supabaseError: TcgTrackingSupabaseErrorDetails | undefined,
+    context: { requestedColumns: string; queryStage: string },
+  ) {
+    super(`tcgplayer_magic_catalog read failed: ${supabaseError?.message ?? "Supabase catalog read failed."}`);
+    this.name = "TcgTrackingCatalogReadError";
+    this.supabaseError = supabaseError;
+    this.context = context;
+  }
+}
+
+function unavailableLocalCatalogStatus(message: string): TcgTrackingLocalCatalogStatus {
+  return {
+    status: "failed",
+    table: "tcgplayer_magic_catalog",
+    schema: "failed",
+    smokeQuery: "tcgplayer_id limit 1",
+    sampleRowAvailable: false,
+    requestedColumns: TCGTRACKING_LOCAL_CATALOG_SMOKE_COLUMNS,
+    rows: null,
+    error: { message },
+  };
+}
+
+function failedLocalCatalogStatus(
+  failure: NonNullable<TcgTrackingCatalogReconciliationReport["failure"]>,
+): TcgTrackingLocalCatalogStatus {
+  return {
+    status: "failed",
+    table: "tcgplayer_magic_catalog",
+    schema: "failed",
+    smokeQuery: "tcgplayer_id limit 1",
+    sampleRowAvailable: false,
+    requestedColumns: failure.requestedColumns ?? TCGTRACKING_LOCAL_CATALOG_SMOKE_COLUMNS,
+    rows: null,
+    error: {
+      message: failure.message,
+      code: failure.code,
+      details: failure.details,
+      hint: failure.hint,
+      status: failure.status,
+      statusCode: failure.statusCode,
+    },
+  };
+}
+
+function chunkValues<TValue>(values: TValue[], size: number) {
+  const chunks: TValue[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    chunks.push(values.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function textValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function jsonFallback(value: unknown) {
+  try {
+    const serialized = JSON.stringify(value);
+    return serialized && serialized !== "{}" ? serialized : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function safeRawError(error: object) {
+  try {
+    return JSON.parse(JSON.stringify(error)) as unknown;
+  } catch {
+    return undefined;
+  }
 }

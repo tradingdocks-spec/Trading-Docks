@@ -85,8 +85,22 @@ export async function POST(request: NextRequest) {
           },
           conflicts: [],
           error: "Supabase server configuration unavailable.",
+          localCatalog: {
+            status: "failed",
+            table: "tcgplayer_magic_catalog",
+            schema: "failed",
+            rows: null,
+            sampleRowAvailable: false,
+            smokeQuery: "tcgplayer_id limit 1",
+            requestedColumns: "tcgplayer_id",
+            error: {
+              message: "Supabase server configuration unavailable.",
+            },
+          },
           failure: {
             stage: "local-catalog-read",
+            table: "tcgplayer_magic_catalog",
+            requestedColumns: "tcgplayer_id",
             message: "Supabase server configuration unavailable.",
           },
         },

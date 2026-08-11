@@ -567,6 +567,9 @@ Production reconciliation repair:
 - The live Magic provider routes require numeric category and set identifiers, for example `/v1/1/sets/2708/cards`. Reconciliation must not call display-code routes such as `/v1/1/sets/MID/cards`, which return HTML errors.
 - `TCGTRACKING_API_KEY` remains optional. If the provider later requires authentication, the existing centralized provider client can send it without changing reconciliation callers.
 - Local catalog access failures are distinct from zero local catalog rows. Missing Supabase server config returns FAILED at the local-catalog-read stage.
+- Local catalog diagnostics now run a minimal trusted-server smoke query against `tcgplayer_magic_catalog` before provider reconciliation. The admin response surfaces Supabase/PostgREST `code`, `message`, `details`, `hint`, HTTP status, table, and selected columns instead of collapsing catalog-read failures into an empty message.
+- The selected local catalog columns are `tcgplayer_id`, `set_name`, `product_name`, `collector_number`, `condition`, `finish`, `tcg_market_price`, `tcg_low_price`, and `photo_url`. These columns exist in `202608100003_tcgplayer_magic_catalog.sql`; no enrichment-cache migration is required for this read-only reconciliation.
+- `tcgplayer_magic_catalog.tcgplayer_id` is the source CSV row identifier used for exact condition/finish SKU reconciliation. It is intentionally compared to TCGTracking SKU IDs, not to parent TCGplayer Product IDs. Local SKU reads are chunked in bounded batches so reconciliation does not issue one oversized `.in()` query.
 
 ### Admin Sync Surface
 
@@ -578,6 +581,7 @@ The existing Owner/Admin System & Integration Health panel now includes TCGTrack
 - Run catalog reconciliation.
 - Sync Magic mappings.
 - Refresh Magic pricing.
+- Local catalog smoke status, row count when available, schema status, and catalog-read error details.
 - Exact SKU match rate and GREEN/YELLOW/RED readiness recommendation.
 - Bounded conflict list with product ID, SKU ID, field, local value, and provider value.
 - Last mapping sync status and processed count.

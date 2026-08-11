@@ -20,8 +20,10 @@ import {
   normalizeSku,
   reconcileTcgTrackingProduct,
   reconcileTcgTrackingWithLocalCatalog,
+  loadTcgTrackingLocalCatalogStatus,
   runTcgTrackingCatalogReconciliation,
   scannerAdapterResult,
+  serializeSupabaseError,
   skuPriceSnapshotRow,
   spreadPercent,
   summarizeCatalogReconciliation,
@@ -31,6 +33,8 @@ import {
   TCGTRACKING_CATALOG_RECONCILIATION_DEFAULT_SAMPLE_SIZE,
   TCGTRACKING_CATALOG_RECONCILIATION_MAX_SAMPLE_SIZE,
   TCGTRACKING_CACHE_TABLE_PROPOSAL,
+  TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS,
+  TCGTRACKING_LOCAL_CATALOG_SKU_QUERY_CHUNK_SIZE,
   tcgTrackingCachePolicy,
 } from "../src/lib/providers/tcgtracking/index.ts";
 import {
@@ -598,6 +602,140 @@ test("TCGTracking catalog reconciliation reports transport failure as FAILED not
   assert.doesNotMatch(failed.failure?.bodyPreview ?? "", /<h1>/);
 });
 
+test("TCGTracking Supabase catalog errors preserve actionable PostgREST details", async () => {
+  const serialized = serializeSupabaseError({
+    message: "",
+    code: "PGRST204",
+    details: "Could not find the 'collector_number' column in the schema cache.",
+    hint: "Check selected columns.",
+    status: 400,
+  });
+
+  assert.equal(serialized.message, "Could not find the 'collector_number' column in the schema cache.");
+  assert.equal(serialized.code, "PGRST204");
+  assert.equal(serialized.details, "Could not find the 'collector_number' column in the schema cache.");
+  assert.equal(serialized.hint, "Check selected columns.");
+  assert.equal(serialized.status, 400);
+  assert.notEqual(serialized.message, "");
+
+  assert.equal(serializeSupabaseError(new Error("")).message, "Supabase catalog read failed.");
+  assert.equal(serializeSupabaseError("").message, "Supabase catalog read failed.");
+  assert.match(serializeSupabaseError({ reason: "opaque object" }).message, /opaque object/);
+});
+
+test("TCGTracking local catalog smoke query validates minimal trusted server reads", async () => {
+  const queries: CatalogQueryRecord[] = [];
+  const status = await loadTcgTrackingLocalCatalogStatus(
+    catalogReadClient([{ tcgplayer_id: 987654 }], { queries }),
+    799149,
+  );
+
+  assert.equal(status.status, "available");
+  assert.equal(status.schema, "ready");
+  assert.equal(status.rows, 799149);
+  assert.equal(status.sampleRowAvailable, true);
+  assert.equal(status.smokeQuery, "tcgplayer_id limit 1");
+  assert.equal(status.requestedColumns, TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS);
+  assert.deepEqual(queries, [
+    { kind: "select", columns: "tcgplayer_id" },
+    { kind: "limit", count: 1 },
+  ]);
+});
+
+test("TCGTracking local catalog smoke failure keeps reconciliation FAILED with DB details", async () => {
+  const failed = await runTcgTrackingCatalogReconciliation(
+    catalogReadClient([], {
+      smokeError: {
+        message: "",
+        code: "PGRST204",
+        details: "Could not find the 'tcgplayer_id' column in the schema cache.",
+        hint: "Reload schema cache.",
+        status: 400,
+      },
+    }),
+    { sampleSize: 1 },
+  );
+
+  assert.equal(failed.status, "catalog_read_failed");
+  assert.equal(failed.readiness, "FAILED");
+  assert.equal(failed.recommendation, null);
+  assert.equal(failed.failure?.stage, "local-catalog-read");
+  assert.equal(failed.failure?.table, "tcgplayer_magic_catalog");
+  assert.equal(failed.failure?.requestedColumns, "tcgplayer_id");
+  assert.equal(failed.failure?.code, "PGRST204");
+  assert.match(failed.failure?.details ?? "", /tcgplayer_id/);
+  assert.match(failed.failure?.hint ?? "", /Reload schema cache/);
+  assert.equal(failed.localCatalog.status, "failed");
+  assert.notEqual(failed.error, "");
+});
+
+test("TCGTracking local SKU reconciliation chunks catalog reads and keeps exact SKU identity", async () => {
+  const skuCount = TCGTRACKING_LOCAL_CATALOG_SKU_QUERY_CHUNK_SIZE * 2 + 1;
+  const providerSkus = Array.from({ length: skuCount }, (_entry, index) =>
+    normalizeSku({
+      ...providerSku(),
+      sku_id: `provider-sku-${900000 + index}`,
+      tcgplayer_sku_id: 900000 + index,
+    }),
+  ).filter((sku): sku is NonNullable<typeof sku> => Boolean(sku));
+  const localRows = providerSkus.map((sku) => ({
+    tcgplayer_id: sku.tcgplayerSkuId,
+    set_name: "Innistrad: Midnight Hunt",
+    product_name: "Unblinking Observer",
+    collector_number: "82",
+    condition: "Near Mint",
+    finish: "Normal",
+    tcg_market_price: 5.41,
+    tcg_low_price: 4.89,
+  }));
+  const queries: CatalogQueryRecord[] = [];
+
+  const completed = await runTcgTrackingCatalogReconciliation(
+    catalogReadClient(localRows, { queries }),
+    {
+      sampleSize: 1,
+      client: {
+        sets: async () => [
+          {
+            id: "2708",
+            categoryId: "1",
+            name: "Innistrad: Midnight Hunt",
+            abbreviation: "MID",
+          },
+        ],
+        cards: async () => [normalizeProduct(providerProduct(), "magic")!],
+        skus: async () => providerSkus,
+        pricing: async () => [],
+      },
+    },
+  );
+
+  const chunkSizes = queries
+    .filter((query): query is Extract<CatalogQueryRecord, { kind: "in" }> => query.kind === "in")
+    .map((query) => query.valueCount);
+  assert.deepEqual(chunkSizes, [500, 500, 1]);
+  assert.equal(completed.status, "completed");
+  assert.equal(completed.localSkuRowsFound, skuCount);
+  assert.equal(completed.exactSkuMatches, skuCount);
+  assert.equal(completed.conflictBreakdown.identity, 0);
+});
+
+test("TCGTracking local catalog schema contract matches selected read columns", () => {
+  const migration = readFileSync(
+    path.join(repoRoot, "supabase/migrations/202608100003_tcgplayer_magic_catalog.sql"),
+    "utf8",
+  );
+  const selectedColumns = TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS.split(",");
+
+  for (const column of selectedColumns) {
+    assert.match(migration, new RegExp(`\\b${column}\\b`));
+  }
+  assert.match(migration, /tcgplayer_id bigint not null/i);
+  assert.match(migration, /unique \(tcgplayer_id\)/i);
+  assert.doesNotMatch(TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS, /tcgplayer_product_id/);
+  assert.doesNotMatch(TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS, /tcgplayer_sku_id/);
+});
+
 test("TCGTracking catalog reconciliation enriches sampled products with parent set metadata", async () => {
   const product = normalizeProduct({
     ...providerProduct(),
@@ -755,6 +893,8 @@ test("TCGTracking admin sync is platform-admin only and scanner fixture roots st
 
   assert.match(syncRoute, /requireServerPlatformRole\("admin"\)/);
   assert.match(syncRoute, /runTcgTrackingCatalogReconciliation/);
+  assert.match(syncRoute, /Supabase server configuration unavailable/);
+  assert.match(syncRoute, /localCatalog/);
   assert.match(syncRoute, /run_catalog_reconciliation/);
   assert.match(syncRoute, /sync_magic_mappings/);
   assert.match(syncRoute, /refresh_magic_pricing/);
@@ -792,6 +932,10 @@ test("TCGTracking admin diagnostics are Owner/Admin gated and documented", () =>
   assert.match(route, /requireServerPlatformRole\("admin"\)/);
   assert.match(operations, /TCGTracking provider/);
   assert.match(operations, /Provider diagnostics/);
+  assert.match(operations, /Local catalog/);
+  assert.match(operations, /Catalog read failure/);
+  assert.match(route, /loadTcgTrackingLocalCatalogStatus/);
+  assert.match(route, /tcgplayer_magic_catalog_stats/);
   assert.match(operations, /Categories/);
   assert.match(operations, /Last check/);
   assert.match(docs, /Trading Docks remains the canonical application\/data authority/);
@@ -865,17 +1009,49 @@ function json(body: unknown, init: ResponseInit = {}) {
   );
 }
 
-function catalogReadClient(rows: unknown[]) {
+type CatalogQueryRecord =
+  | { kind: "select"; columns: string }
+  | { kind: "limit"; count: number }
+  | { kind: "in"; column: string; valueCount: number };
+
+function catalogReadClient(
+  rows: unknown[],
+  options: {
+    queries?: CatalogQueryRecord[];
+    smokeError?: unknown;
+    skuError?: unknown;
+  } = {},
+) {
   return {
     from(table: string) {
       assert.equal(table, "tcgplayer_magic_catalog");
       return {
-        select() {
+        select(columns: string) {
+          options.queries?.push({ kind: "select", columns });
           return {
+            limit(count: number) {
+              options.queries?.push({ kind: "limit", count });
+              if (options.smokeError) {
+                return Promise.resolve({ data: null, error: options.smokeError });
+              }
+              const sample = rows[0] as { tcgplayer_id?: unknown } | undefined;
+              const tcgplayerId = Number(sample?.tcgplayer_id ?? 987654);
+              return Promise.resolve({
+                data: rows.length ? [{ tcgplayer_id: tcgplayerId }] : [],
+                error: null,
+              });
+            },
             in(column: string, values: number[]) {
               assert.equal(column, "tcgplayer_id");
               assert.ok(Array.isArray(values));
-              return Promise.resolve({ data: rows, error: null });
+              options.queries?.push({ kind: "in", column, valueCount: values.length });
+              if (options.skuError) {
+                return Promise.resolve({ data: null, error: options.skuError });
+              }
+              return Promise.resolve({
+                data: rows.filter((row) => values.includes(Number((row as { tcgplayer_id?: unknown }).tcgplayer_id))),
+                error: null,
+              });
             },
           };
         },

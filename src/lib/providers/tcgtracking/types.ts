@@ -172,6 +172,23 @@ export type TcgTrackingProviderHealth = {
     pricingTtlHours: number;
   };
   localSchema: "proposal-only";
+  localCatalog?: {
+    status: "available" | "failed";
+    table: "tcgplayer_magic_catalog";
+    schema: "ready" | "failed";
+    rows?: number | null;
+    sampleRowAvailable: boolean;
+    smokeQuery: string;
+    requestedColumns: string;
+    error?: {
+      message: string;
+      code?: string;
+      details?: string;
+      hint?: string;
+      status?: number;
+      statusCode?: number;
+    };
+  };
   sync?: {
     mapping?: {
       status: string;
