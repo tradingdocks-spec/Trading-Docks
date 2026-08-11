@@ -103,6 +103,7 @@
 - Partially Implemented: Inventory remains Magic-compatible in the active write path. Multi-game persistence needs a migration proposal and catalog provider review before production use.
 - Partially Implemented: Mobile/web parity still has gaps for active workspace authority, Store/team shared inventory, mobile Deck Vault, and seller/store operational data. Current status is documented in `docs/MOBILE_WEB_DATA_PARITY.md`.
 - Partially Implemented: Collection price display depends on positive saved inventory value fields and shows unavailable when those fields are missing or defaulted to zero.
+- Partially Implemented: Purchase History has been upgraded from a placeholder into the canonical acquisition-ledger surface, but only Bulk Buying currently writes through the new API and the Supabase schema remains a proposal until reviewed and applied.
 - Requires Production Configuration: Supabase billing, trial, override, and feature-access schema constraints still need a reviewed migration from legacy `business` to canonical `store`.
 - Implemented: Mobile production identifiers now use `com.tradingdocks.app` for iOS and Android.
 - Implemented: Mobile production-release verification now checks identifiers, app version/build metadata, EAS profile presence, forbidden public secrets, development flags, and required production Supabase public env when run with `NODE_ENV=production`.
@@ -127,6 +128,7 @@
 - Implemented: Add a centralized mobile RevenueCat service that keeps Supabase UUID as `appUserID`, maps `Collector`/`Seller`/`Store` entitlements into canonical tiers, and keeps provider purchase state separate from backend authorization.
 - Implemented: Shared identity/access types now separate platform role, account type, membership tier, billing status, and entitlements.
 - Planned: Generate a canonical Supabase schema snapshot from a clean migration replay.
+- Partially Implemented: The acquisition ledger now provides a single Purchase History contract across inbound buying workflows; remaining work is to connect the other finalized intake surfaces after staging schema verification.
 - Partially Implemented: `docs/REPOSITORY_CLEANUP_PLAN.md` now inventories historical backups, generated output, duplicate dashboard systems, duplicate navigation, duplicate design-system layers, unused candidates, and cleanup phases.
 - Planned: Move historical release notes/backups out of active source after product-owner review.
 - Planned: Continue incremental design-system migration rather than sweeping every screen into the new primitives at once.

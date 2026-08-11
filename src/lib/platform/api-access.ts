@@ -34,7 +34,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "inventory", pattern: /^\/api\/inventory(\/|$)/, kind: "capability", capability: "collection.read", label: "Inventory APIs" },
   { id: "deck-vault", pattern: /^\/api\/deck-vault(\/|$)/, kind: "capability", capability: "deck.manage", label: "Deck Vault APIs" },
   { id: "csv", pattern: /^\/api\/(csv-converter|tools\/csv)(\/|$)/, kind: "capability", capability: "csv.export", label: "CSV APIs" },
-  { id: "buying", pattern: /^\/api\/(buylist|market-intelligence|purchasing|precon-intelligence|tcgcsv\/sealed)(\/|$)/, kind: "capability", capability: "buying.manage", label: "Buying APIs" },
+  { id: "buying", pattern: /^\/api\/(buylist|market-intelligence|purchasing|purchase-history|precon-intelligence|tcgcsv\/sealed)(\/|$)/, kind: "capability", capability: "buying.manage", label: "Buying APIs" },
   { id: "card-shows", pattern: /^\/api\/card-shows(\/|$)/, kind: "capability", capability: "buying.manage", label: "Card Show APIs" },
   { id: "marketplaces", pattern: /^\/api\/marketplaces(\/|$)/, kind: "capability", capability: "marketplaces.manage", label: "Marketplace APIs" },
   { id: "orders", pattern: /^\/api\/orders(\/|$)/, kind: "capability", capability: "orders.manage", label: "Order APIs" },

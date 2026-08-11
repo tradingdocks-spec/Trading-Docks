@@ -16,6 +16,13 @@ import {
   type BulkAdjustment,
   type BulkRateBasis,
 } from "@/lib/bulk-buying-calculator";
+import {
+  createBulkPurchaseInput,
+  PAYMENT_METHOD_LABELS,
+  PURCHASE_STATUS_LABELS,
+  type PurchasePaymentMethod,
+  type PurchaseStatus,
+} from "@/lib/purchase-history/ledger";
 
 type CalculatorRow = {
   id: string;
@@ -60,6 +67,14 @@ export function BulkBuyingCalculator() {
     value: "",
     label: "",
   });
+  const [sellerName, setSellerName] = useState("");
+  const [paymentMethod, setPaymentMethod] =
+    useState<PurchasePaymentMethod>("unknown");
+  const [purchaseStatus, setPurchaseStatus] =
+    useState<PurchaseStatus>("pending");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   const summary = useMemo(
     () => summarizeBulkOffer(rows, adjustment),
@@ -95,6 +110,55 @@ export function BulkBuyingCalculator() {
   function resetCalculator() {
     setRows([createBlankRow()]);
     setAdjustment({ mode: "amount", value: "", label: "" });
+    setSellerName("");
+    setPaymentMethod("unknown");
+    setPurchaseStatus("pending");
+    setNotes("");
+    setSaveMessage("");
+  }
+
+  async function savePurchase() {
+    const purchase = createBulkPurchaseInput({
+      rows,
+      adjustment,
+      sellerName,
+      paymentMethod,
+      status: purchaseStatus,
+      notes,
+    });
+
+    if (!purchase.lines.length || purchase.totalCost <= 0) {
+      setSaveMessage("Add at least one priced bulk category before saving.");
+      return;
+    }
+
+    setSaving(true);
+    setSaveMessage("Saving purchase record...");
+    try {
+      const response = await fetch("/api/purchase-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create-purchase",
+          purchase,
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          payload.message ?? payload.error ?? "Purchase could not be saved.",
+        );
+      }
+      setSaveMessage("Purchase saved to Purchase History. Inventory was not changed.");
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error
+          ? error.message
+          : "Purchase could not be saved.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -386,9 +450,82 @@ export function BulkBuyingCalculator() {
                   strong
                 />
               </div>
+              <div className="mt-5 space-y-3">
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Seller / source
+                  </span>
+                  <input
+                    value={sellerName}
+                    onChange={(event) => setSellerName(event.target.value)}
+                    placeholder="Customer, vendor, booth, or walk-in"
+                    className="h-10 w-full rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 text-xs text-white outline-none transition placeholder:text-slate-700 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-300/20"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block space-y-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Payment
+                    </span>
+                    <select
+                      value={paymentMethod}
+                      onChange={(event) =>
+                        setPaymentMethod(event.target.value as PurchasePaymentMethod)
+                      }
+                      className="h-10 w-full rounded-xl border border-white/[0.09] bg-[#071823] px-3 text-xs text-white outline-none transition focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-300/20"
+                    >
+                      {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block space-y-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      Status
+                    </span>
+                    <select
+                      value={purchaseStatus}
+                      onChange={(event) =>
+                        setPurchaseStatus(event.target.value as PurchaseStatus)
+                      }
+                      className="h-10 w-full rounded-xl border border-white/[0.09] bg-[#071823] px-3 text-xs text-white outline-none transition focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-300/20"
+                    >
+                      {Object.entries(PURCHASE_STATUS_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Notes
+                  </span>
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    rows={3}
+                    placeholder="Optional intake, condition, payout, or storage notes"
+                    className="w-full resize-none rounded-xl border border-white/[0.09] bg-white/[0.035] px-3 py-2.5 text-xs text-white outline-none transition placeholder:text-slate-700 focus:border-cyan-300/50 focus:ring-2 focus:ring-cyan-300/20"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={savePurchase}
+                  disabled={saving || summary.finalOffer <= 0}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <ReceiptText className="h-4 w-4" />
+                  {saving ? "Saving..." : "Save to Purchase History"}
+                </button>
+                {saveMessage ? (
+                  <p className="rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-xs leading-5 text-slate-400">
+                    {saveMessage}
+                  </p>
+                ) : null}
+              </div>
               <p className="mt-4 text-xs leading-5 text-slate-500">
-                This calculator is local to the current worksheet. It does not
-                save a purchase record or change inventory.
+                Saving creates an acquisition ledger entry only. It does not
+                create or duplicate inventory ownership records.
               </p>
             </section>
           </aside>

@@ -19,7 +19,7 @@
 | Deck vault | Partially Implemented | `decks`, `deck_cards`, `deck_snapshots`, `deck_vault_decks`, `deck_vault_cards`, `deck_vault_tokens` |
 | TCG market data | Partially Implemented | `tcg_categories`, `tcg_groups`, `tcg_products`, `tcg_current_prices`, `tcg_price_history` |
 | Marketplace | Requires Production Configuration | `marketplace_connections`, `marketplace_credentials`, `marketplace_sync_runs`, `marketplace_orders`, `marketplace_order_items` |
-| Buying/buylist | Partially Implemented | `bulk_purchases`, `bulk_purchase_sales`, `buylist_offers`, `buylist_feed_connections` |
+| Buying/buylist | Partially Implemented | `bulk_purchases`, `bulk_purchase_sales`, `purchase_ledger`, `purchase_ledger_lines`, `purchase_inventory_links`, `buylist_offers`, `buylist_feed_connections` |
 | Store operations | Partially Implemented | `workspace_employees`, `tournaments`, `tournament_players`, `tournament_rounds`, CRM tables |
 | Feedback | Partially Implemented | `feedback_items`, `feedback_attachments`, admin feedback functions |
 | Inbound email | Requires Production Configuration | `inbound_email_addresses`, `inbound_emails`, legacy mailbox/message tables |
@@ -58,6 +58,7 @@
 - Partially Implemented: Deck vault has multiple table families and migrations, suggesting an incomplete consolidation.
 - Partially Implemented: Inbound email has multiple table naming patterns.
 - Partially Implemented: Marketplace sync run table is created/altered in multiple migrations.
+- Partially Implemented: Purchase History now has a canonical acquisition-ledger proposal and application contracts, but production persistence requires applying and verifying `supabase/migrations/202608110001_purchase_history_ledger_proposal.sql`.
 - Partially Implemented: Collector Workspace currently relies on inventory JSON payload fields for image URL, finish, treatment, binder page, binder slot, and unit market value. Missing fields are displayed as unavailable rather than inferred.
 - Planned: Add pagination cursors or server-side collection query endpoints before very large collections depend on the browser.
 - Requires Production Configuration: `supabase/verification/verify_account_data_isolation.sql` should be run against staging before launch.
@@ -141,6 +142,17 @@
 - Partially Implemented: Scanner-created item ids are app-generated text ids to match the current `inventory_items.id` schema.
 - Planned: Add database-side scanner/import idempotency if rapid scan and offline replay need stronger duplicate prevention than the current queue de-dupe key.
 - Planned: Add durable server-side purchase/trade session tables only after product-owner review; no schema migration is applied in the continuous scanner sprint.
+
+## Purchase History Acquisition Ledger
+
+- Partially Implemented: Purchase History is now modeled as the canonical inbound acquisition ledger for Bulk Buying, Collection Buying, Sealed Buying, Buylist intake, Vendor purchases, Card Show buys, Trade-ins/store credit, and Manual purchases.
+- Partially Implemented: `src/lib/purchase-history/ledger.ts` defines shared source, status, payment, record, line, filter, metric, and Bulk Buying conversion contracts.
+- Partially Implemented: `/dashboard/purchase-history` reads the canonical ledger when the schema exists and clearly reports when the proposal has not been applied in the current Supabase project.
+- Partially Implemented: `/api/purchase-history` can create acquisition ledger records for permitted Seller/Store/Owner users through the existing `buying.manage` capability.
+- Planned: Apply and verify `purchase_ledger`, `purchase_ledger_lines`, and `purchase_inventory_links` in staging before using the ledger as production persistence.
+- Implemented: Purchase History does not create canonical inventory ownership rows. `inventory_items` remains the inventory authority.
+- Implemented: `purchase_inventory_links` is only an optional cost-basis bridge from ledger lines to existing inventory rows.
+- Planned: Wire Collection Buying, Sealed Buying, Vendor purchases, Card Show buys, Buylist intake, and trade-in finalization into the same API after the migration is approved.
 
 ## Inventory Labels And QR Identity
 
