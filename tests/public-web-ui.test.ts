@@ -108,6 +108,30 @@ test("landing page preview data uses realistic sample states instead of template
   }
 });
 
+test("create account page keeps signup primary and low-friction", () => {
+  const signUp = readFileSync(path.join(repoRoot, "src/app/sign-up/page.tsx"), "utf8");
+  const authActions = readFileSync(path.join(repoRoot, "src/app/actions/auth.ts"), "utf8");
+  const submitButton = readFileSync(path.join(repoRoot, "src/components/auth/SignUpSubmitButton.tsx"), "utf8");
+  const passwordField = readFileSync(path.join(repoRoot, "src/components/auth/PasswordField.tsx"), "utf8");
+
+  assert.match(signUp, /Create your Trading Docks account/);
+  assert.match(signUp, /Your workspace takes less than a minute to set up\./);
+  assert.match(signUp, /Collect, sell, and grow/);
+  assert.match(signUp, /from one workspace\./);
+  assert.match(signUp, /No credit card required/);
+  assert.match(signUp, /href="\/terms"/);
+  assert.match(signUp, /href="\/privacy"/);
+  assert.match(signUp, /Already have an account\?/);
+  assert.match(signUp, /showMinLengthRequirement/);
+  assert.match(passwordField, /8\+ characters/);
+  assert.match(authActions, /password\.length < 8/);
+  assert.match(submitButton, /useFormStatus/);
+  assert.match(submitButton, /form\.checkValidity\(\)/);
+  assert.match(submitButton, /disabled=\{pending \|\| !isValid\}/);
+  assert.doesNotMatch(signUp, /Continue with Google|Continue with Apple/);
+  assert.doesNotMatch(signUp, /className="[^"]*h-10[^"]*w-full[^"]*"[\s\S]{0,120}>\s*Sign in\s*<\/Link>/);
+});
+
 function listSourceFiles(target: string): string[] {
   const stat = statSync(target);
   if (stat.isFile()) return target.endsWith(".tsx") || target.endsWith(".ts") ? [target] : [];

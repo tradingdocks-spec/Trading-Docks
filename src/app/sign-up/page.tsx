@@ -4,23 +4,22 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
-  Boxes,
   Check,
   CircleCheck,
   Database,
-  Gem,
   Layers3,
   LockKeyhole,
   Mail,
-  Search,
   ShieldCheck,
-  Sparkles,
   UserRound,
-  Zap,
+  Store,
+  TrendingUp,
+  Upload,
 } from "lucide-react";
 
 import { signUp } from "@/app/actions/auth";
 import { PasswordField } from "@/components/auth/PasswordField";
+import { SignUpSubmitButton } from "@/components/auth/SignUpSubmitButton";
 
 export const metadata: Metadata = {
   title: "Create Your Workspace",
@@ -45,32 +44,24 @@ type FeatureCardProps = {
   description: string;
 };
 
-type FloatingModuleProps = {
-  className: string;
-  eyebrow: string;
-  title: string;
-  detail: string;
-  icon: ReactNode;
-};
-
 function FeatureCard({
   icon,
   title,
   description,
 }: FeatureCardProps) {
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] px-3.5 py-3 transition duration-500 hover:-translate-y-1 hover:border-blue-300/30 hover:bg-blue-400/[0.055] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_34px_rgba(0,0,0,0.18),0_0_24px_rgba(59,130,246,0.04)]">
+    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.032] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-blue-300/25 hover:bg-blue-400/[0.05]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(103,232,249,0.08),transparent_30%)] opacity-0 transition duration-500 group-hover:opacity-100" />
 
-      <div className="relative flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-blue-400/20 bg-blue-400/10 text-blue-300 transition duration-500 group-hover:-translate-y-0.5 group-hover:border-blue-300/40 group-hover:bg-blue-400/15 group-hover:text-blue-200">
+      <div className="relative flex gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-400/10 text-blue-300 transition duration-300 group-hover:border-blue-300/35 group-hover:bg-blue-400/15 group-hover:text-blue-200">
           {icon}
         </div>
 
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-white">{title}</h3>
+          <h3 className="text-sm font-semibold tracking-[-0.01em] text-white">{title}</h3>
 
-          <p className="mt-1 truncate text-[10px] text-slate-500">
+          <p className="mt-1.5 text-xs leading-5 text-slate-500">
             {description}
           </p>
         </div>
@@ -79,63 +70,78 @@ function FeatureCard({
   );
 }
 
-function LiveActivityTicker() {
-  const updates = [
-    "Workspace profile ready",
-    "Storage locations connected",
-    "Sorting tools prepared",
-    "Marketplace modules available",
-    "Account security verified",
+function SetupPreview() {
+  const steps = [
+    {
+      icon: <UserRound className="h-4 w-4" />,
+      title: "Create account",
+      detail: "Start free with email and password.",
+      active: true,
+    },
+    {
+      icon: <Layers3 className="h-4 w-4" />,
+      title: "Choose workspace",
+      detail: "Collector, Seller, or Store.",
+      active: false,
+    },
+    {
+      icon: <Database className="h-4 w-4" />,
+      title: "Add your cards",
+      detail: "Import, scan, or organize manually.",
+      active: false,
+    },
   ];
 
   return (
-    <div className="mt-3 flex h-5 items-center overflow-visible">
-      <span className="relative mr-2 flex h-2.5 w-2.5 shrink-0 items-center justify-center">
-        <span className="status-halo absolute h-3.5 w-3.5 rounded-full bg-emerald-400/20 blur-[5px]" />
-        <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-300" />
-      </span>
+    <div className="relative mt-6 overflow-hidden rounded-[22px] border border-blue-300/16 bg-white/[0.035] p-1 shadow-[0_24px_75px_rgba(0,0,0,0.42),0_0_34px_rgba(59,130,246,0.055)] backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-[18px] border border-white/[0.07] bg-[#071017]/95 p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-blue-300/70">
+              Workspace setup
+            </p>
 
-      <div className="relative h-4 flex-1 overflow-hidden">
-        {updates.map((update, index) => (
-          <span
-            key={update}
-            className="live-activity-item absolute inset-0 flex items-center text-[9px] font-medium tracking-[0.02em] text-slate-400"
-            style={{ animationDelay: `${index * 3}s` }}
-          >
-            {update}
+            <h2 className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-white">
+              Ready in minutes
+            </h2>
+          </div>
+
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/12 bg-emerald-300/[0.045] px-2.5 py-1 text-[9px] font-semibold text-emerald-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+            No credit card
           </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FloatingModule({
-  className,
-  eyebrow,
-  title,
-  detail,
-  icon,
-}: FloatingModuleProps) {
-  return (
-    <div
-      className={`absolute z-30 hidden min-w-[145px] rounded-xl border border-blue-300/20 bg-[#09141c]/90 p-2.5 shadow-[0_18px_45px_rgba(0,0,0,0.45),0_0_28px_rgba(59,130,246,0.08)] backdrop-blur-xl xl:block ${className}`}
-    >
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-400/10 text-blue-300">
-          {icon}
         </div>
 
-        <div className="min-w-0">
-          <p className="text-[6px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            {eyebrow}
-          </p>
+        <div className="mt-5 space-y-3">
+          {steps.map((step, index) => (
+            <div key={step.title} className="relative flex items-center gap-3">
+              {index < steps.length - 1 ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-5 top-10 h-5 w-px bg-white/10"
+                />
+              ) : null}
 
-          <p className="mt-0.5 text-[10px] font-semibold text-white">
-            {title}
-          </p>
+              <div
+                className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
+                  step.active
+                    ? "border-blue-300/35 bg-blue-400/14 text-blue-200"
+                    : "border-white/10 bg-white/[0.035] text-slate-500"
+                }`}
+              >
+                {step.icon}
+              </div>
 
-          <p className="mt-0.5 text-[7px] text-slate-500">{detail}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">{step.title}</p>
+                <p className="mt-0.5 text-xs text-slate-500">{step.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+          <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-blue-500 to-cyan-300 shadow-[0_0_14px_rgba(59,130,246,0.32)]" />
         </div>
       </div>
     </div>
@@ -490,7 +496,7 @@ export default async function SignUpPage({
         className="pointer-events-none absolute left-[53%] top-1/2 hidden h-[70%] w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-blue-300/10 to-transparent lg:block"
       />
 
-      <div className="desktop-scale relative mx-auto grid min-h-screen w-full max-w-[1360px] grid-cols-1 px-5 py-7 sm:px-8 lg:h-screen lg:min-h-0 lg:grid-cols-[1.12fr_0.88fr] lg:items-center lg:gap-12 lg:px-8 lg:py-4 xl:gap-16">
+      <div className="desktop-scale relative mx-auto grid min-h-screen w-full max-w-[1360px] grid-cols-1 px-5 py-7 sm:px-8 lg:h-screen lg:min-h-0 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:gap-12 lg:px-8 lg:py-4 xl:gap-16">
         {/* Left marketing section */}
         <section className="hidden h-full min-h-0 items-center lg:flex">
           <div className="w-full max-w-[640px]">
@@ -535,171 +541,39 @@ export default async function SignUpPage({
               </div>
             </div>
 
-            <h1 className="mt-4 max-w-[630px] text-[clamp(2.45rem,3.8vw,3.8rem)] font-semibold leading-[0.96] tracking-[-0.058em] text-white">
-              Build your collectibles business
+            <h1 className="mt-6 max-w-[630px] text-[clamp(2.55rem,3.8vw,3.85rem)] font-semibold leading-[0.96] tracking-[-0.058em] text-white">
+              Collect, sell, and grow
               <span className="mt-3 block bg-gradient-to-r from-cyan-200 via-blue-400 to-blue-600 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(59,130,246,0.05)]">
-                from one place.
+                from one workspace.
               </span>
             </h1>
 
-            <p className="mt-3 max-w-[610px] text-xs leading-5 text-slate-400 xl:text-sm">
-              Create one connected home for singles, sealed products, graded
-              cards, binders, bulk inventory, marketplace listings, sorting
-              tools, pricing, sales, and business operations.
+            <p className="mt-4 max-w-[560px] text-sm leading-6 text-slate-400">
+              Organize your collection, track value, manage inventory, and
+              unlock selling tools when you&apos;re ready.
             </p>
 
-            <LiveActivityTicker />
-
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-7 grid gap-3">
               <FeatureCard
-                icon={<Layers3 className="h-3.5 w-3.5" />}
-                title="Set and Chaos Sort"
-                description="Organize high-volume inventory faster."
+                icon={<Upload className="h-4 w-4" />}
+                title="Import your collection"
+                description="Bring cards and inventory into one organized workspace."
               />
 
               <FeatureCard
-                icon={<Search className="h-3.5 w-3.5" />}
-                title="Find anything quickly"
-                description="Search by card, set, binder, box, or location."
+                icon={<TrendingUp className="h-4 w-4" />}
+                title="Track value automatically"
+                description="Follow collection and inventory value as the market moves."
               />
 
               <FeatureCard
-                icon={<Gem className="h-3.5 w-3.5" />}
-                title="Every inventory type"
-                description="Singles, slabs, sealed, supplies, and bulk."
-              />
-
-              <FeatureCard
-                icon={<Boxes className="h-3.5 w-3.5" />}
-                title="Built to scale"
-                description="For collectors, growing sellers, and stores."
+                icon={<Store className="h-4 w-4" />}
+                title="Sell when you&apos;re ready"
+                description="Unlock marketplace, purchasing, CRM, and store tools as you grow."
               />
             </div>
 
-            <div className="relative mt-4">
-              <div
-                aria-hidden="true"
-                className="ambient-glow pointer-events-none absolute -inset-24 rounded-[72px] bg-blue-500/[0.09] blur-[125px]"
-              />
-
-              <FloatingModule
-                className="-left-10 top-9 module-float-one"
-                eyebrow="Account setup"
-                title="Collection profile"
-                detail="Personalized workspace"
-                icon={<UserRound className="h-3.5 w-3.5" />}
-              />
-
-              <FloatingModule
-                className="-right-8 top-14 module-float-two"
-                eyebrow="Inventory setup"
-                title="Storage locations"
-                detail="Binders, boxes, and shelves"
-                icon={<Database className="h-3.5 w-3.5" />}
-              />
-
-              <FloatingModule
-                className="-bottom-4 left-20 module-float-three"
-                eyebrow="Ready to organize"
-                title="Chaos Sort"
-                detail="Fast inventory intake"
-                icon={<Sparkles className="h-3.5 w-3.5" />}
-              />
-
-              <div className="panel-float relative scale-[1.055] overflow-hidden rounded-[20px] border border-blue-300/20 bg-white/[0.04] p-1 shadow-[0_24px_75px_rgba(0,0,0,0.5),0_0_45px_rgba(59,130,246,0.09)] backdrop-blur-xl">
-                <div className="panel-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.018] to-transparent blur-[10px]" />
-
-                <div className="relative overflow-hidden rounded-[16px] border border-white/[0.08] bg-[#071017]/95 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-[7px] font-medium uppercase tracking-[0.16em] text-slate-500">
-                          Workspace setup
-                        </p>
-
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/10 bg-emerald-300/[0.035] px-2 py-0.5 text-[6px] font-semibold text-emerald-300">
-                          <span className="h-1 w-1 rounded-full bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.8)]" />
-                          Ready
-                          <span className="relative inline-block h-2.5 min-w-[46px] overflow-hidden align-middle">
-                            <span className="sync-time sync-time-one absolute inset-0">Just now</span>
-                            <span className="sync-time sync-time-two absolute inset-0">1 minute ago</span>
-                            <span className="sync-time sync-time-three absolute inset-0">2 minutes ago</span>
-                          </span>
-                        </span>
-                      </div>
-
-                      <p className="mt-0.5 text-sm font-semibold text-white">
-                        Your Trading Docks account
-                      </p>
-                    </div>
-
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-400/20 bg-blue-400/10 text-blue-300">
-                      <Zap className="h-3.5 w-3.5" />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    <div className="rounded-xl border border-blue-400/25 bg-blue-400/[0.06] p-3">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-400/10 text-blue-300">
-                        <UserRound className="h-3.5 w-3.5" />
-                      </div>
-
-                      <p className="mt-3 text-[10px] font-semibold text-white">
-                        Create account
-                      </p>
-
-                      <p className="mt-1 text-[8px] leading-3 text-slate-500">
-                        Add your basic account information.
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04] text-slate-400">
-                        <Layers3 className="h-3.5 w-3.5" />
-                      </div>
-
-                      <p className="mt-3 text-[10px] font-semibold text-white">
-                        Choose tools
-                      </p>
-
-                      <p className="mt-1 text-[8px] leading-3 text-slate-500">
-                        Select inventory and business modules.
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04] text-slate-400">
-                        <CircleCheck className="h-3.5 w-3.5" />
-                      </div>
-
-                      <p className="mt-3 text-[10px] font-semibold text-white">
-                        Start organizing
-                      </p>
-
-                      <p className="mt-1 text-[8px] leading-3 text-slate-500">
-                        Import or build your first inventory.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[8px] font-medium uppercase tracking-[0.14em] text-slate-500">
-                        Account setup progress
-                      </p>
-
-                      <span className="text-[8px] font-semibold text-blue-300">
-                        Step 1 of 3
-                      </span>
-                    </div>
-
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
-                      <div className="progress-glow h-full w-1/3 rounded-full bg-gradient-to-r from-blue-600 to-cyan-300 shadow-[0_0_14px_rgba(59,130,246,0.45)]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SetupPreview />
 
             <div className="mt-3 flex items-center gap-3 text-[8px] text-slate-600">
               <span>© 2026 Trading Docks</span>
@@ -710,7 +584,7 @@ export default async function SignUpPage({
         </section>
 
         {/* Sign-up section */}
-        <section className="flex w-full items-center justify-center lg:h-full lg:min-h-0 lg:-translate-x-5">
+        <section className="flex w-full items-center justify-center lg:h-full lg:min-h-0">
           <div className="w-full max-w-[420px]">
             <Link
               href="/"
@@ -747,7 +621,7 @@ export default async function SignUpPage({
                 className="ambient-glow pointer-events-none absolute -inset-9 rounded-[50px] bg-blue-500/[0.11] blur-[65px]"
               />
 
-              <div className="relative overflow-hidden rounded-[26px] border border-blue-300/20 bg-white/[0.04] p-1 shadow-[0_30px_90px_rgba(0,0,0,0.55),0_0_50px_rgba(59,130,246,0.09)] backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-[26px] border border-blue-300/16 bg-white/[0.045] p-1 shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_38px_rgba(59,130,246,0.06)] backdrop-blur-2xl">
                 <div className="panel-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.015] to-transparent blur-[10px]" />
 
                 <div className="relative overflow-hidden rounded-[21px] border border-white/[0.08] bg-[#071017]/95 px-6 py-5">
@@ -769,12 +643,11 @@ export default async function SignUpPage({
                     </div>
 
                     <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">
-                      Create your account
+                      Create your Trading Docks account
                     </h2>
 
                     <p className="mt-1.5 text-xs leading-5 text-slate-400">
-                      Start building your connected collection, inventory, and
-                      business workspace.
+                      Your workspace takes less than a minute to set up.
                     </p>
 
                     {error ? (
@@ -820,7 +693,7 @@ export default async function SignUpPage({
                               autoComplete="name"
                               required
                               placeholder="Your name"
-                              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-blue-400/50 focus:bg-blue-400/[0.035] focus:ring-4 focus:ring-blue-400/10"
+                              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-sm text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-blue-400/50 focus:bg-blue-400/[0.035] focus:ring-4 focus:ring-blue-400/10"
                             />
                           </div>
                         </div>
@@ -844,7 +717,7 @@ export default async function SignUpPage({
                               defaultValue={email ?? ""}
                               required
                               placeholder="you@example.com"
-                              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-blue-400/50 focus:bg-blue-400/[0.035] focus:ring-4 focus:ring-blue-400/10"
+                              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-sm text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-blue-400/50 focus:bg-blue-400/[0.035] focus:ring-4 focus:ring-blue-400/10"
                             />
                           </div>
                         </div>
@@ -863,8 +736,10 @@ export default async function SignUpPage({
                             <div className="[&_input]:pl-10">
                               <PasswordField
                                 autoComplete="new-password"
+                                describedBy="password-requirements"
                                 minLength={8}
-                                placeholder="At least 8 characters"
+                                placeholder="Password"
+                                showMinLengthRequirement
                               />
                             </div>
                           </div>
@@ -887,18 +762,18 @@ export default async function SignUpPage({
                                 name="confirmPassword"
                                 autoComplete="new-password"
                                 minLength={8}
-                                placeholder="Enter your password again"
+                                placeholder="Confirm"
                               />
                             </div>
                           </div>
                         </div>
 
-                        <label className="flex items-start gap-2.5 text-[10px] leading-4 text-slate-400">
+                        <label className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3 text-xs leading-5 text-slate-400">
                           <input
                             name="terms"
                             type="checkbox"
                             required
-                            className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-white/20 bg-white/[0.035] accent-blue-400"
+                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/[0.035] accent-blue-400"
                           />
 
                           <span>
@@ -920,13 +795,11 @@ export default async function SignUpPage({
                           </span>
                         </label>
 
-                        <button
-                          type="submit"
-                          className="premium-cta group flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-cyan-300 via-blue-400 to-blue-600 px-4 text-xs font-semibold text-slate-950 shadow-[0_14px_32px_rgba(37,99,235,0.26),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_40px_rgba(37,99,235,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] focus:outline-none focus:ring-4 focus:ring-blue-400/20"
-                        >
-                          Create account
-                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                        </button>
+                        <SignUpSubmitButton />
+
+                        <p className="text-center text-[10px] font-medium text-slate-500">
+                          No credit card required
+                        </p>
                       </form>
                     ) : (
                       <Link
@@ -938,24 +811,18 @@ export default async function SignUpPage({
                       </Link>
                     )}
 
-                    <div className="my-4 flex items-center gap-3">
-                      <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
+                    <div className="my-4 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+                      <span>Already have an account?</span>
 
-                      <span className="text-[9px] text-slate-500">
-                        Already have an account?
-                      </span>
-
-                      <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" />
+                      <Link
+                        href="/sign-in"
+                        className="font-semibold text-blue-300 transition hover:text-blue-200 focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+                      >
+                        Sign in
+                      </Link>
                     </div>
 
-                    <Link
-                      href="/sign-in"
-                      className="flex h-10 w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:border-blue-400/30 hover:bg-blue-400/[0.07]"
-                    >
-                      Sign in
-                    </Link>
-
-                    <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-slate-400">
+                    <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-500">
                       <Check className="h-3 w-3 text-blue-400" />
                       Account security powered by Supabase
                     </div>
