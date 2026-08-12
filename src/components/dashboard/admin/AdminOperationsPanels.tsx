@@ -85,19 +85,28 @@ type CatalogReconciliation = {
   productsTested: number;
   providerSkusTested: number;
   localSkuRowsFound: number;
+  localCatalogCoverageRate?: number | null;
+  providerSkuCoverageRate?: number | null;
   exactSkuMatches: number;
   missingLocalSkus: number;
   missingProviderSkus: number;
+  providerOnlySkus?: number;
+  providerOnlyLanguageVariants?: Record<string, number>;
+  trueConflictCount?: number;
   exactSkuMatchRate: number | null;
   recommendation: "green" | "yellow" | "red" | null;
   conflictBreakdown: Record<"identity" | "condition" | "finish" | "language" | "pricing", number>;
   pricingDeltaSummary: {
     medianMarketDelta: number | null;
     medianLowDelta: number | null;
+    medianAbsoluteMarketDelta?: number | null;
+    medianAbsoluteLowDelta?: number | null;
     maxMarketDelta: number | null;
     maxLowDelta: number | null;
+    percentMarketWithinOneCent?: number | null;
     percentMarketWithinOnePercent: number | null;
     percentMarketWithinFivePercent: number | null;
+    percentLowWithinOneCent?: number | null;
     percentLowWithinOnePercent: number | null;
     percentLowWithinFivePercent: number | null;
     localNullPriceCount: number;
@@ -383,6 +392,17 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
     : report.readiness === "YELLOW"
       ? "border-amber-300/15 bg-amber-300/[0.04] text-amber-100"
       : "border-red-300/15 bg-red-300/[0.04] text-red-100";
+  const localCoverage = report.localCatalogCoverageRate ?? report.exactSkuMatchRate;
+  const providerCoverage = report.providerSkuCoverageRate ?? report.exactSkuMatchRate;
+  const providerOnlySkus = report.providerOnlySkus ?? report.missingLocalSkus;
+  const trueConflictCount = report.trueConflictCount ?? (
+    report.conflictBreakdown.identity +
+    report.conflictBreakdown.condition +
+    report.conflictBreakdown.finish
+  );
+  const languageBreakdown = Object.entries(report.providerOnlyLanguageVariants ?? {})
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 5);
   return (
     <div className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -390,9 +410,14 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Catalog reconciliation</p>
           <p className="mt-1 text-sm font-semibold text-white">
             {report.status === "completed"
-              ? `${report.exactSkuMatchRate ?? 0}% exact SKU match`
+              ? `${localCoverage ?? 0}% local catalog coverage`
               : "Catalog reconciliation failed"}
           </p>
+          {report.status === "completed" ? (
+            <p className="mt-1 text-[11px] leading-5 text-slate-500">
+              {report.exactSkuMatches.toLocaleString("en-US")} / {report.localSkuRowsFound.toLocaleString("en-US")} sampled local SKUs matched by exact TCGTracking SKU ID.
+            </p>
+          ) : null}
         </div>
         <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${tone}`}>
           {report.readiness}
@@ -403,15 +428,29 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
         <ProviderMetric label="Provider SKUs" value={String(report.providerSkusTested)} />
         <ProviderMetric label="Local rows" value={String(report.localSkuRowsFound)} />
         <ProviderMetric label="Exact matches" value={String(report.exactSkuMatches)} />
-        <ProviderMetric label="Missing local" value={String(report.missingLocalSkus)} />
-        <ProviderMetric label="Conflicts" value={String(Object.values(report.conflictBreakdown).reduce((sum, value) => sum + value, 0))} />
+        <ProviderMetric label="Provider-only SKUs" value={String(providerOnlySkus)} />
+        <ProviderMetric label="Provider coverage" value={percentValue(providerCoverage)} />
+        <ProviderMetric label="True conflicts" value={String(trueConflictCount)} />
       </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <ProviderMetric label="Market median delta" value={moneyValue(report.pricingDeltaSummary.medianMarketDelta)} />
         <ProviderMetric label="Low median delta" value={moneyValue(report.pricingDeltaSummary.medianLowDelta)} />
-        <ProviderMetric label="Market within 5%" value={percentValue(report.pricingDeltaSummary.percentMarketWithinFivePercent)} />
-        <ProviderMetric label="Low within 5%" value={percentValue(report.pricingDeltaSummary.percentLowWithinFivePercent)} />
+        <ProviderMetric label="Market within $0.01" value={percentValue(report.pricingDeltaSummary.percentMarketWithinOneCent ?? null)} />
+        <ProviderMetric label="Low within $0.01" value={percentValue(report.pricingDeltaSummary.percentLowWithinOneCent ?? null)} />
       </div>
+      {languageBreakdown.length ? (
+        <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.025] p-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Additional provider language variants</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {languageBreakdown.map(([language, count]) => (
+              <span key={language} className="rounded-full border border-white/[0.07] bg-black/10 px-3 py-1 text-[11px] text-slate-300">
+                {language}: {count.toLocaleString("en-US")}
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] leading-5 text-slate-500">Provider SKU coverage is a secondary enrichment metric because TCGTracking includes languages and variants not present in the current TCGplayer Pricing Custom Export.</p>
+        </div>
+      ) : null}
       {report.failure ? (
         <details className="mt-4 rounded-xl border border-red-300/10 bg-red-300/[0.025] p-3">
           <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.14em] text-red-100/75">

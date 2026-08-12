@@ -546,17 +546,21 @@ Catalog reconciliation is read-only and does not require the enrichment cache mi
 - provider SKUs tested
 - local SKU rows found
 - exact SKU matches
-- missing local/provider SKU counts
-- identity, condition, finish, language, and pricing conflicts
+- local catalog coverage
+- provider SKU coverage
+- provider-only enrichment SKU counts
+- provider-only language variant breakdown
+- missing provider SKU counts
+- true identity, condition, and finish conflicts
 - median market/low price deltas
 - percent of exact matches within 1% and 5%
 - provider/local null-price counts
 
 Decision gate:
 
-- GREEN: at least 98% exact SKU reconciliation and no systemic identity, condition, or finish conflict.
-- YELLOW: 95-98% reconciliation, or small explainable gaps without identity conflicts.
-- RED: below 95% reconciliation or systemic Product/SKU/condition/finish mismatch.
+- GREEN: at least 98% sampled local catalog coverage and no systemic identity, condition, or finish conflict.
+- YELLOW: 95-98% sampled local catalog coverage, or small explainable identity gaps.
+- RED: below 95% sampled local catalog coverage or systemic SKU/product/condition/finish disagreement.
 
 The TCGTracking enrichment cache migration should not be applied automatically. Apply it only after the production admin reconciliation returns GREEN or a product-owner-approved YELLOW.
 
@@ -570,6 +574,9 @@ Production reconciliation repair:
 - Local catalog diagnostics now run a minimal trusted-server smoke query against `tcgplayer_magic_catalog` before provider reconciliation. The admin response surfaces Supabase/PostgREST `code`, `message`, `details`, `hint`, HTTP status, table, and selected columns instead of collapsing catalog-read failures into an empty message.
 - The selected local catalog columns are `tcgplayer_id`, `set_name`, `product_name`, `collector_number`, `condition`, `finish`, `tcg_market_price`, `tcg_low_price`, and `photo_url`. These columns exist in `202608100003_tcgplayer_magic_catalog.sql`; no enrichment-cache migration is required for this read-only reconciliation.
 - `tcgplayer_magic_catalog.tcgplayer_id` is the source CSV row identifier used for exact condition/finish SKU reconciliation. It is intentionally compared to TCGTracking SKU IDs, not to parent TCGplayer Product IDs. Local SKU reads are chunked in bounded batches so reconciliation does not issue one oversized `.in()` query.
+- Production reconciliation semantics now separate compatibility from enrichment. Local catalog coverage is `exact local rows matched / eligible local rows tested`; provider SKU coverage is `provider SKUs represented locally / provider SKUs returned`. Provider-only language or variant SKUs are enrichment opportunities, not automatic conflicts.
+- The TCGplayer Pricing Custom Export imported into Trading Docks does not include a language column. A provider SKU whose language is French, German, Japanese, or another non-default language is classified as a provider-only language variant unless it directly matches a local SKU ID. Unknown local language is not treated as contradictory language.
+- Pricing deltas are calculated only for exact equivalent SKU IDs where `tcgplayer_magic_catalog.tcgplayer_id = TCGTracking skuId`. Provider-only SKUs do not participate in median delta or within-threshold pricing percentages.
 
 ### Admin Sync Surface
 
@@ -583,6 +590,8 @@ The existing Owner/Admin System & Integration Health panel now includes TCGTrack
 - Refresh Magic pricing.
 - Local catalog smoke status, row count when available, schema status, and catalog-read error details.
 - Exact SKU match rate and GREEN/YELLOW/RED readiness recommendation.
+- Local catalog coverage is the primary readiness metric.
+- Provider SKU coverage is shown as secondary enrichment context.
 - Bounded conflict list with product ID, SKU ID, field, local value, and provider value.
 - Last mapping sync status and processed count.
 - Last pricing sync status and processed count.

@@ -28,7 +28,13 @@ export type TcgTrackingSkuMatch = {
   condition: string | null;
   finish: string | null;
   language: string | null;
-  matchType: "tcgplayer_sku_id" | "condition_finish" | "missing_local";
+  matchType: "tcgplayer_sku_id" | "condition_finish" | "provider_only_sku";
+  classification:
+    | "EXACT_MATCH"
+    | "PROVIDER_ONLY_SKU"
+    | "PROVIDER_ONLY_LANGUAGE_VARIANT"
+    | "PROVIDER_ONLY_FINISH_VARIANT"
+    | "PROVIDER_ONLY_VARIANT";
   pricingDelta: {
     market: number | null;
     marketPercent: number | null;
@@ -54,6 +60,8 @@ export type TcgTrackingProductReconciliation = {
   exactMatches: number;
   missingLocalSkus: number;
   missingProviderSkus: number;
+  providerOnlySkus: number;
+  providerOnlyLanguageVariants: Record<string, number>;
   conflicts: Array<{
     type: "identity" | "condition" | "finish" | "language" | "pricing";
     field: string;
@@ -67,10 +75,14 @@ export type TcgTrackingPricingDeltaSummary = {
   matchedSkuCount: number;
   medianMarketDelta: number | null;
   medianLowDelta: number | null;
+  medianAbsoluteMarketDelta: number | null;
+  medianAbsoluteLowDelta: number | null;
   maxMarketDelta: number | null;
   maxLowDelta: number | null;
+  percentMarketWithinOneCent: number | null;
   percentMarketWithinOnePercent: number | null;
   percentMarketWithinFivePercent: number | null;
+  percentLowWithinOneCent: number | null;
   percentLowWithinOnePercent: number | null;
   percentLowWithinFivePercent: number | null;
   localNullPriceCount: number;
@@ -119,13 +131,27 @@ export function reconcileTcgTrackingProduct(input: {
     const matchBySku = relevantLocalRows.find(
       (row) => row.tcgplayer_id === sku.tcgplayerSkuId,
     );
-    const matchByVariant = matchBySku ?? relevantLocalRows.find((row) =>
-      normalizeCondition(row.condition) === normalizeCondition(sku.condition) &&
-      normalizeFinish(row.finish) === normalizeFinish(sku.variant),
-    );
-    if (matchByVariant) matchedLocalIds.add(matchByVariant.tcgplayer_id);
+    const condition = normalizeCondition(sku.condition);
+    const finish = normalizeFinish(sku.variant);
+    const language = normalizeLanguage(sku.language);
+    const matchByVariant = matchBySku
+      ? matchBySku
+      : isDefaultLanguage(language)
+        ? relevantLocalRows.find((row) =>
+          !matchedLocalIds.has(row.tcgplayer_id) &&
+          normalizeCondition(row.condition) === condition &&
+          normalizeFinish(row.finish) === finish
+        )
+        : undefined;
+    const classification = classifySkuMatch({
+      matchBySku: Boolean(matchBySku),
+      matchByVariant: Boolean(matchByVariant),
+      language,
+      finish,
+    });
+    if (matchBySku) matchedLocalIds.add(matchBySku.tcgplayer_id);
 
-    if (matchByVariant && matchBySku == null) {
+    if (matchByVariant && matchBySku == null && isDefaultLanguage(language)) {
       conflicts.push({
         type: "identity",
         field: "tcgplayerSkuId",
@@ -134,30 +160,20 @@ export function reconcileTcgTrackingProduct(input: {
       });
     }
 
-    const condition = normalizeCondition(sku.condition);
-    const finish = normalizeFinish(sku.variant);
-    if (matchByVariant && condition !== normalizeCondition(matchByVariant.condition)) {
+    if (matchBySku && condition !== normalizeCondition(matchBySku.condition)) {
       conflicts.push({
         type: "condition",
         field: "condition",
         provider: sku.condition,
-        local: matchByVariant.condition,
+        local: matchBySku.condition,
       });
     }
-    if (matchByVariant && finish !== normalizeFinish(matchByVariant.finish)) {
+    if (matchBySku && finish !== normalizeFinish(matchBySku.finish)) {
       conflicts.push({
         type: "finish",
         field: "finish",
         provider: sku.variant,
-        local: matchByVariant.finish,
-      });
-    }
-    if (sku.language && sku.language.toUpperCase() !== "EN") {
-      conflicts.push({
-        type: "language",
-        field: "language",
-        provider: sku.language,
-        local: "not stored",
+        local: matchBySku.finish,
       });
     }
 
@@ -167,30 +183,32 @@ export function reconcileTcgTrackingProduct(input: {
     );
     const providerMarket = sku.marketPrice ?? snapshot?.tcgMarket;
     const providerLow = sku.lowPrice ?? snapshot?.tcgLow;
+    const pricingRow = matchBySku;
 
     return {
       providerSkuId: sku.tcgplayerSkuId,
       providerProductId: sku.tcgplayerProductId ?? providerProductId ?? undefined,
-      localTcgplayerId: matchByVariant?.tcgplayer_id,
+      localTcgplayerId: matchBySku?.tcgplayer_id,
       condition,
       finish,
       language: sku.language ?? null,
+      classification,
       matchType: matchBySku
         ? "tcgplayer_sku_id"
         : matchByVariant
           ? "condition_finish"
-          : "missing_local",
+          : "provider_only_sku",
       pricingDelta: {
-        market: numericDelta(matchByVariant?.tcg_market_price, providerMarket),
-        marketPercent: percentDelta(matchByVariant?.tcg_market_price, providerMarket),
-        low: numericDelta(matchByVariant?.tcg_low_price, providerLow),
-        lowPercent: percentDelta(matchByVariant?.tcg_low_price, providerLow),
+        market: numericDelta(pricingRow?.tcg_market_price, providerMarket),
+        marketPercent: percentDelta(pricingRow?.tcg_market_price, providerMarket),
+        low: numericDelta(pricingRow?.tcg_low_price, providerLow),
+        lowPercent: percentDelta(pricingRow?.tcg_low_price, providerLow),
         manapoolLow: snapshot?.manapoolLow ?? sku.manapoolLow ?? null,
       },
       pricePresence: {
-        localMarket: isFiniteNumber(matchByVariant?.tcg_market_price),
+        localMarket: isFiniteNumber(pricingRow?.tcg_market_price),
         providerMarket: isFiniteNumber(providerMarket),
-        localLow: isFiniteNumber(matchByVariant?.tcg_low_price),
+        localLow: isFiniteNumber(pricingRow?.tcg_low_price),
         providerLow: isFiniteNumber(providerLow),
       },
     } satisfies TcgTrackingSkuMatch;
@@ -208,8 +226,10 @@ export function reconcileTcgTrackingProduct(input: {
     localSkuCount: relevantLocalRows.length,
     providerSkuCount: providerSkus.length,
     exactMatches: skuMatches.filter((match) => match.matchType === "tcgplayer_sku_id").length,
-    missingLocalSkus: skuMatches.filter((match) => match.matchType === "missing_local").length,
+    missingLocalSkus: 0,
     missingProviderSkus,
+    providerOnlySkus: skuMatches.filter((match) => match.classification !== "EXACT_MATCH").length,
+    providerOnlyLanguageVariants: countProviderOnlyLanguages(skuMatches),
     conflicts,
     skuMatches,
   };
@@ -219,7 +239,7 @@ export function summarizePricingDeltas(
   products: TcgTrackingProductReconciliation[],
 ): TcgTrackingPricingDeltaSummary {
   const matched = products.flatMap((product) =>
-    product.skuMatches.filter((match) => match.localTcgplayerId != null),
+    product.skuMatches.filter((match) => match.matchType === "tcgplayer_sku_id"),
   );
   const marketDeltas = matched
     .map((match) => match.pricingDelta.market)
@@ -238,10 +258,14 @@ export function summarizePricingDeltas(
     matchedSkuCount: matched.length,
     medianMarketDelta: median(marketDeltas),
     medianLowDelta: median(lowDeltas),
+    medianAbsoluteMarketDelta: median(marketDeltas.map(Math.abs)),
+    medianAbsoluteLowDelta: median(lowDeltas.map(Math.abs)),
     maxMarketDelta: maxAbs(marketDeltas),
     maxLowDelta: maxAbs(lowDeltas),
+    percentMarketWithinOneCent: percentWithin(marketDeltas, 0.01),
     percentMarketWithinOnePercent: percentWithin(marketPercentDeltas, 1),
     percentMarketWithinFivePercent: percentWithin(marketPercentDeltas, 5),
+    percentLowWithinOneCent: percentWithin(lowDeltas, 0.01),
     percentLowWithinOnePercent: percentWithin(lowPercentDeltas, 1),
     percentLowWithinFivePercent: percentWithin(lowPercentDeltas, 5),
     localNullPriceCount: matched.filter((match) =>
@@ -302,6 +326,72 @@ export function normalizeFinish(value: unknown) {
     unopened: "Unopened",
   };
   return aliases[normalized] ?? (normalized ? String(value).trim() : null);
+}
+
+function normalizeLanguage(value: unknown) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  const upper = normalized.toUpperCase();
+  const aliases: Record<string, string> = {
+    EN: "English",
+    ENG: "English",
+    ENGLISH: "English",
+    FR: "French",
+    FRE: "French",
+    FRENCH: "French",
+    DE: "German",
+    DEU: "German",
+    GER: "German",
+    GERMAN: "German",
+    JP: "Japanese",
+    JA: "Japanese",
+    JPN: "Japanese",
+    JAPANESE: "Japanese",
+    ES: "Spanish",
+    SPA: "Spanish",
+    SPANISH: "Spanish",
+    IT: "Italian",
+    ITA: "Italian",
+    ITALIAN: "Italian",
+    PT: "Portuguese",
+    POR: "Portuguese",
+    PORTUGUESE: "Portuguese",
+    ZH: "Chinese",
+    CHINESE: "Chinese",
+    KO: "Korean",
+    KOR: "Korean",
+    KOREAN: "Korean",
+    RU: "Russian",
+    RUS: "Russian",
+    RUSSIAN: "Russian",
+  };
+  return aliases[upper] ?? normalized;
+}
+
+function isDefaultLanguage(language: string | null) {
+  return language == null || language === "English";
+}
+
+function classifySkuMatch(input: {
+  matchBySku: boolean;
+  matchByVariant: boolean;
+  language: string | null;
+  finish: string | null;
+}): TcgTrackingSkuMatch["classification"] {
+  if (input.matchBySku) return "EXACT_MATCH";
+  if (!isDefaultLanguage(input.language)) return "PROVIDER_ONLY_LANGUAGE_VARIANT";
+  if (input.finish && input.finish !== "Normal") return "PROVIDER_ONLY_FINISH_VARIANT";
+  if (input.matchByVariant) return "PROVIDER_ONLY_VARIANT";
+  return "PROVIDER_ONLY_SKU";
+}
+
+function countProviderOnlyLanguages(matches: TcgTrackingSkuMatch[]) {
+  return matches.reduce<Record<string, number>>((counts, match) => {
+    if (match.classification !== "PROVIDER_ONLY_LANGUAGE_VARIANT") return counts;
+    const label = normalizeLanguage(match.language) ?? "Unknown";
+    counts[label] = (counts[label] ?? 0) + 1;
+    return counts;
+  }, {});
 }
 
 function identityMatches(

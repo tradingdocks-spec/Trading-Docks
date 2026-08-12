@@ -534,12 +534,123 @@ test("TCGTracking catalog reconciliation summarizes exact match readiness and bo
   assert.equal(report.providerSkusTested, 2);
   assert.equal(report.localSkuRowsFound, 1);
   assert.equal(report.exactSkuMatches, 1);
-  assert.equal(report.missingLocalSkus, 1);
-  assert.equal(report.exactSkuMatchRate, 50);
-  assert.equal(report.recommendation, "red");
+  assert.equal(report.missingLocalSkus, 0);
+  assert.equal(report.providerOnlySkus, 1);
+  assert.equal(report.localCatalogCoverageRate, 100);
+  assert.equal(report.providerSkuCoverageRate, 50);
+  assert.equal(report.exactSkuMatchRate, 100);
+  assert.equal(report.recommendation, "green");
   assert.equal(report.pricingDeltaSummary.providerNullPriceCount, 0);
   assert.equal(TCGTRACKING_CATALOG_RECONCILIATION_DEFAULT_SAMPLE_SIZE, 150);
   assert.equal(TCGTRACKING_CATALOG_RECONCILIATION_MAX_SAMPLE_SIZE, 250);
+});
+
+test("TCGTracking readiness uses local catalog coverage instead of provider SKU denominator", () => {
+  const exactMatches = 1495;
+  const providerSkus = 8945;
+  const products = Array.from({ length: exactMatches }, (_entry, index) => {
+    const id = 1_000_000 + index;
+    return reconcileTcgTrackingProduct({
+      providerProduct: normalizeProduct({
+        ...providerProduct(),
+        product_id: `provider-${index}`,
+        tcgplayer_product_id: 500_000 + index,
+        name: `Sample Card ${index}`,
+        collector_number: String(index + 1),
+      }, "magic")!,
+      providerSkus: [
+        normalizeSku({
+          ...providerSku(),
+          sku_id: `provider-sku-${id}`,
+          product_id: `provider-${index}`,
+          tcgplayer_sku_id: id,
+          tcgplayer_product_id: 500_000 + index,
+          market_price: 1.24,
+          low_price: 0.92,
+        })!,
+      ],
+      priceSnapshots: [],
+      localRows: [
+        {
+          tcgplayer_id: id,
+          set_name: "Innistrad: Midnight Hunt",
+          product_name: `Sample Card ${index}`,
+          collector_number: String(index + 1),
+          condition: "Near Mint",
+          finish: "Normal",
+          tcg_market_price: 1.23,
+          tcg_low_price: 0.99,
+        },
+      ],
+    });
+  });
+  products[0] = {
+    ...products[0]!,
+    providerSkuCount: providerSkus - exactMatches + 1,
+    providerOnlySkus: providerSkus - exactMatches,
+    providerOnlyLanguageVariants: {
+      French: 2400,
+      German: 1800,
+      Japanese: 1400,
+      Spanish: 1000,
+    },
+    skuMatches: [
+      ...products[0]!.skuMatches,
+      ...Array.from({ length: providerSkus - exactMatches }, (_entry, index) => ({
+        providerSkuId: 2_000_000 + index,
+        providerProductId: products[0]!.providerProductId ?? undefined,
+        condition: "Near Mint",
+        finish: "Normal",
+        language: index % 2 === 0 ? "FR" : "DE",
+        matchType: "provider_only_sku" as const,
+        classification: "PROVIDER_ONLY_LANGUAGE_VARIANT" as const,
+        pricingDelta: {
+          market: null,
+          marketPercent: null,
+          low: null,
+          lowPercent: null,
+          manapoolLow: null,
+        },
+        pricePresence: {
+          localMarket: false,
+          providerMarket: true,
+          localLow: false,
+          providerLow: true,
+        },
+      })),
+    ],
+  };
+
+  const report = summarizeCatalogReconciliation({
+    generatedAt: "2026-08-11T00:00:00.000Z",
+    sampleSize: 150,
+    categoryId: "1",
+    reconciliations: products,
+    localRows: products.map((product) => ({
+      tcgplayer_id: product.exactMatches ? product.skuMatches[0]!.localTcgplayerId! : 0,
+      set_name: "Innistrad: Midnight Hunt",
+      product_name: product.productName,
+      collector_number: product.collectorNumber,
+      condition: "Near Mint",
+      finish: "Normal",
+      tcg_market_price: 1.23,
+      tcg_low_price: 0.99,
+    })),
+  });
+
+  assert.equal(report.localCatalogCoverageRate, 100);
+  assert.equal(report.exactSkuMatches, 1495);
+  assert.equal(report.missingLocalSkus, 0);
+  assert.equal(report.providerOnlySkus, 7450);
+  assert.equal(report.providerSkuCoverageRate, 16.71);
+  assert.equal(report.trueConflictCount, 0);
+  assert.equal(report.recommendation, "green");
+  assert.equal(report.readiness, "GREEN");
+  assert.equal(report.conflictBreakdown.language, 0);
+  assert.equal(report.providerOnlyLanguageVariants.French, 2400);
+  assert.equal(report.pricingDeltaSummary.matchedSkuCount, 1495);
+  assert.equal(report.pricingDeltaSummary.medianMarketDelta, 0.01);
+  assert.equal(report.pricingDeltaSummary.medianLowDelta, -0.07);
 });
 
 test("TCGTracking catalog reconciliation decision gate follows production thresholds", () => {

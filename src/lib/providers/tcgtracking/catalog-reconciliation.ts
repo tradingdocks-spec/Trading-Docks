@@ -85,9 +85,14 @@ export type TcgTrackingCatalogReconciliationReport = {
   productsTested: number;
   providerSkusTested: number;
   localSkuRowsFound: number;
+  localCatalogCoverageRate: number | null;
+  providerSkuCoverageRate: number | null;
   exactSkuMatches: number;
   missingLocalSkus: number;
   missingProviderSkus: number;
+  providerOnlySkus: number;
+  providerOnlyLanguageVariants: Record<string, number>;
+  trueConflictCount: number;
   exactSkuMatchRate: number | null;
   recommendation: TcgTrackingCatalogReconciliationRecommendation | null;
   conflictBreakdown: Record<TcgTrackingCatalogConflict["type"], number>;
@@ -213,14 +218,24 @@ export function summarizeCatalogReconciliation(input: {
     })),
   );
   const conflictBreakdown = countConflicts(conflicts);
-  const exactSkuMatchRate = providerSkusTested
+  const localCatalogCoverageRate = input.localRows.length
+    ? roundPercent(exactSkuMatches / input.localRows.length)
+    : null;
+  const providerSkuCoverageRate = providerSkusTested
     ? roundPercent(exactSkuMatches / providerSkusTested)
     : null;
+  const exactSkuMatchRate = localCatalogCoverageRate;
+  const trueConflictCount =
+    conflictBreakdown.identity +
+    conflictBreakdown.condition +
+    conflictBreakdown.finish;
   const recommendation = classifyTcgTrackingCatalogReadiness({
-    exactSkuMatchRate,
+    localCatalogCoverageRate,
     conflictBreakdown,
+    trueConflictCount,
   });
   const skuMatches = input.reconciliations.flatMap((product) => product.skuMatches);
+  const providerOnlyLanguageVariants = mergeProviderOnlyLanguages(input.reconciliations);
 
   return {
     status: "completed",
@@ -231,6 +246,8 @@ export function summarizeCatalogReconciliation(input: {
     productsTested: input.reconciliations.length,
     providerSkusTested,
     localSkuRowsFound: input.localRows.length,
+    localCatalogCoverageRate,
+    providerSkuCoverageRate,
     exactSkuMatches,
     missingLocalSkus: input.reconciliations.reduce(
       (sum, product) => sum + product.missingLocalSkus,
@@ -240,6 +257,12 @@ export function summarizeCatalogReconciliation(input: {
       (sum, product) => sum + product.missingProviderSkus,
       0,
     ),
+    providerOnlySkus: input.reconciliations.reduce(
+      (sum, product) => sum + product.providerOnlySkus,
+      0,
+    ),
+    providerOnlyLanguageVariants,
+    trueConflictCount,
     exactSkuMatchRate,
     recommendation,
     conflictBreakdown,
@@ -267,15 +290,22 @@ export function summarizeCatalogReconciliation(input: {
 }
 
 export function classifyTcgTrackingCatalogReadiness(input: {
-  exactSkuMatchRate: number | null;
+  localCatalogCoverageRate?: number | null;
+  exactSkuMatchRate?: number | null;
   conflictBreakdown: Record<TcgTrackingCatalogConflict["type"], number>;
+  trueConflictCount?: number;
 }): TcgTrackingCatalogReconciliationRecommendation {
-  const rate = input.exactSkuMatchRate ?? 0;
+  const rate = input.localCatalogCoverageRate ?? input.exactSkuMatchRate ?? 0;
   const systemicConflicts =
     input.conflictBreakdown.identity > 0 ||
     input.conflictBreakdown.condition > 0 ||
     input.conflictBreakdown.finish > 0;
-  if (rate >= 98 && !systemicConflicts) return "green";
+  const trueConflictCount = input.trueConflictCount ?? (
+    input.conflictBreakdown.identity +
+    input.conflictBreakdown.condition +
+    input.conflictBreakdown.finish
+  );
+  if (rate >= 98 && !systemicConflicts && trueConflictCount === 0) return "green";
   if (rate >= 95 && !systemicConflicts) return "yellow";
   return "red";
 }
@@ -448,6 +478,15 @@ function countConflicts(conflicts: TcgTrackingCatalogConflict[]) {
   );
 }
 
+function mergeProviderOnlyLanguages(products: TcgTrackingProductReconciliation[]) {
+  return products.reduce<Record<string, number>>((counts, product) => {
+    for (const [language, count] of Object.entries(product.providerOnlyLanguageVariants)) {
+      counts[language] = (counts[language] ?? 0) + count;
+    }
+    return counts;
+  }, {});
+}
+
 function boundedSampleSize(value: unknown) {
   const parsed = typeof value === "number" && Number.isFinite(value)
     ? Math.trunc(value)
@@ -486,9 +525,14 @@ function emptyFailureReport(input: {
     productsTested: 0,
     providerSkusTested: 0,
     localSkuRowsFound: 0,
+    localCatalogCoverageRate: null,
+    providerSkuCoverageRate: null,
     exactSkuMatches: 0,
     missingLocalSkus: 0,
     missingProviderSkus: 0,
+    providerOnlySkus: 0,
+    providerOnlyLanguageVariants: {},
+    trueConflictCount: 0,
     exactSkuMatchRate: null,
     recommendation: null,
     conflictBreakdown: { identity: 0, condition: 0, finish: 0, language: 0, pricing: 0 },
@@ -496,10 +540,14 @@ function emptyFailureReport(input: {
       matchedSkuCount: 0,
       medianMarketDelta: null,
       medianLowDelta: null,
+      medianAbsoluteMarketDelta: null,
+      medianAbsoluteLowDelta: null,
       maxMarketDelta: null,
       maxLowDelta: null,
+      percentMarketWithinOneCent: null,
       percentMarketWithinOnePercent: null,
       percentMarketWithinFivePercent: null,
+      percentLowWithinOneCent: null,
       percentLowWithinOnePercent: null,
       percentLowWithinFivePercent: null,
       localNullPriceCount: 0,
