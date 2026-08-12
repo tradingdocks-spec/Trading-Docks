@@ -14,24 +14,39 @@ alter table public.inventory_items
   add column if not exists variant text,
   add column if not exists language text;
 
-alter table public.inventory_items
-  drop constraint if exists inventory_items_product_type_check,
-  add constraint inventory_items_product_type_check
-    check (product_type in ('card', 'sealed'));
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'inventory_items_product_type_check'
+      and conrelid = 'public.inventory_items'::regclass
+  ) then
+    alter table public.inventory_items
+      add constraint inventory_items_product_type_check
+      check (product_type in ('card', 'sealed'));
+  end if;
 
-alter table public.inventory_items
-  drop constraint if exists inventory_items_game_id_check,
-  add constraint inventory_items_game_id_check
-    check (
-      game_id is null or
-      game_id in (
-        'magic',
-        'pokemon',
-        'yu-gi-oh',
-        'flesh-and-blood',
-        'digimon'
-      )
-    );
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'inventory_items_game_id_check'
+      and conrelid = 'public.inventory_items'::regclass
+  ) then
+    alter table public.inventory_items
+      add constraint inventory_items_game_id_check
+      check (
+        game_id is null or
+        game_id in (
+          'magic',
+          'pokemon',
+          'yu-gi-oh',
+          'flesh-and-blood',
+          'digimon'
+        )
+      );
+  end if;
+end $$;
 
 -- Existing active inventory is Magic-first. Backfill only rows with Magic-shaped
 -- identifiers so unknown/manual rows are not silently misclassified.

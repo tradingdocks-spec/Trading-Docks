@@ -1,11 +1,30 @@
 import { normalizeScannerCandidate, type ScannerCardCandidate } from './scanner-foundation.ts';
 
 export const TCGTRACKING_MAGIC_GAME_ID = 1;
+export const TCGTRACKING_POKEMON_GAME_ID = 3;
 export const TCGTRACKING_SCAN_MAX_IMAGE_BYTES = 100_000;
 export const TCGTRACKING_SCAN_DEFAULT_LIMIT = 5;
 export const TCGTRACKING_SCAN_TIMEOUT_MS = 5200;
 
 export type TcgTrackingScanConfidenceBand = 'high' | 'medium' | 'low';
+export type TcgTrackingScanGame = 'magic' | 'pokemon';
+
+export const TCGTRACKING_SCAN_GAMES: Array<{
+  id: TcgTrackingScanGame;
+  label: string;
+  gameId: number;
+}> = [
+  { id: 'magic', label: 'Magic', gameId: TCGTRACKING_MAGIC_GAME_ID },
+  { id: 'pokemon', label: 'Pokemon', gameId: TCGTRACKING_POKEMON_GAME_ID },
+];
+
+export function tcgTrackingScanGameId(game: TcgTrackingScanGame) {
+  return TCGTRACKING_SCAN_GAMES.find((entry) => entry.id === game)?.gameId ?? TCGTRACKING_MAGIC_GAME_ID;
+}
+
+export function tcgTrackingScanGameLabel(game: TcgTrackingScanGame) {
+  return TCGTRACKING_SCAN_GAMES.find((entry) => entry.id === game)?.label ?? 'Magic';
+}
 
 export type TcgTrackingMobileScanCandidate = {
   source: 'tcgtracking';

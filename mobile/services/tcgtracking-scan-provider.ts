@@ -7,23 +7,33 @@ import type { PixelRect } from '@/services/magic-ocr-pipeline';
 import type { ScannerCardCandidate } from '@/services/scanner-foundation';
 import {
   TCGTRACKING_MAGIC_GAME_ID,
+  TCGTRACKING_POKEMON_GAME_ID,
+  TCGTRACKING_SCAN_GAMES,
   TCGTRACKING_SCAN_DEFAULT_LIMIT,
   TCGTRACKING_SCAN_MAX_IMAGE_BYTES,
   TCGTRACKING_SCAN_TIMEOUT_MS,
   classifyTcgTrackingScanConfidence,
   decodedImageBytes,
   tcgTrackingCandidateToScannerCandidate,
+  tcgTrackingScanGameId,
+  tcgTrackingScanGameLabel,
+  type TcgTrackingScanGame,
   type TcgTrackingMobileScanCandidate,
   type TcgTrackingScanConfidenceBand,
 } from '@/services/tcgtracking-scan-contract';
 export {
   TCGTRACKING_MAGIC_GAME_ID,
+  TCGTRACKING_POKEMON_GAME_ID,
+  TCGTRACKING_SCAN_GAMES,
   TCGTRACKING_SCAN_DEFAULT_LIMIT,
   TCGTRACKING_SCAN_MAX_IMAGE_BYTES,
   TCGTRACKING_SCAN_TIMEOUT_MS,
   classifyTcgTrackingScanConfidence,
   decodedImageBytes,
   tcgTrackingCandidateToScannerCandidate,
+  tcgTrackingScanGameId,
+  tcgTrackingScanGameLabel,
+  type TcgTrackingScanGame,
 };
 
 export type TcgTrackingPreparedScanImage = {

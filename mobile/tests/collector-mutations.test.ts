@@ -18,6 +18,9 @@ const baseCard: CollectionCard = {
   id: 'card-1',
   cardName: 'Sol Ring',
   game: 'Magic: The Gathering',
+  gameId: 'magic',
+  gameLabel: 'Magic: The Gathering',
+  productType: 'card',
   printing: {
     scryfallId: 'sf-1',
     setCode: 'ltc',

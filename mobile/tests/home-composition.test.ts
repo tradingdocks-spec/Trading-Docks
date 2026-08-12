@@ -8,6 +8,23 @@ import { getMobileScrollBottomInset } from '../services/navigation-contract.ts';
 const summary: CollectionSummary = {
   totalOwnedCards: 42,
   uniquePrintings: 30,
+  games: [
+    {
+      gameId: 'magic',
+      label: 'Magic: The Gathering',
+      quantity: 42,
+      uniquePrintings: 30,
+      knownMarketValue: null,
+    },
+  ],
+  productTypes: [
+    {
+      productType: 'card',
+      quantity: 42,
+      uniquePrintings: 30,
+      knownMarketValue: null,
+    },
+  ],
   storageLocationCount: 3,
   storedCards: 24,
   unassignedCards: 6,
@@ -136,6 +153,9 @@ function collectionCard({
     id,
     cardName,
     game: 'Magic: The Gathering',
+    gameId: 'magic',
+    gameLabel: 'Magic: The Gathering',
+    productType: 'card',
     printing: {
       scryfallId: id,
       setCode: 'tdo',

@@ -3,10 +3,14 @@ import test from 'node:test';
 
 import {
   TCGTRACKING_MAGIC_GAME_ID,
+  TCGTRACKING_POKEMON_GAME_ID,
+  TCGTRACKING_SCAN_GAMES,
   TCGTRACKING_SCAN_MAX_IMAGE_BYTES,
   classifyTcgTrackingScanConfidence,
   decodedImageBytes,
   tcgTrackingCandidateToScannerCandidate,
+  tcgTrackingScanGameId,
+  tcgTrackingScanGameLabel,
 } from '../services/tcgtracking-scan-contract.ts';
 import { buildScannerAddPayload, type ScannerConfirmation } from '../services/scanner-foundation.ts';
 
@@ -17,6 +21,21 @@ test('TCGTracking mobile scan contract uses numeric Magic game id and 100KB imag
   assert.equal(classifyTcgTrackingScanConfidence(0.93), 'high');
   assert.equal(classifyTcgTrackingScanConfidence(0.8), 'medium');
   assert.equal(classifyTcgTrackingScanConfidence(0.5), 'low');
+});
+
+test('TCGTracking mobile scanner exposes explicit Magic and Pokemon game selection', () => {
+  assert.equal(TCGTRACKING_MAGIC_GAME_ID, 1);
+  assert.equal(TCGTRACKING_POKEMON_GAME_ID, 3);
+  assert.deepEqual(
+    TCGTRACKING_SCAN_GAMES.map((game) => [game.id, game.gameId, game.label]),
+    [
+      ['magic', 1, 'Magic'],
+      ['pokemon', 3, 'Pokemon'],
+    ],
+  );
+  assert.equal(tcgTrackingScanGameId('magic'), 1);
+  assert.equal(tcgTrackingScanGameId('pokemon'), 3);
+  assert.equal(tcgTrackingScanGameLabel('pokemon'), 'Pokemon');
 });
 
 test('TCGTracking candidate conversion preserves product identity without inventing condition or finish', () => {

@@ -68,6 +68,10 @@ import { runScannerParallelEnrichment } from '@/services/scanner-parallel-enrich
 import {
   prepareTcgTrackingScanImage,
   scanPreparedImageWithTcgTracking,
+  TCGTRACKING_SCAN_GAMES,
+  tcgTrackingScanGameId,
+  tcgTrackingScanGameLabel,
+  type TcgTrackingScanGame,
 } from '@/services/tcgtracking-scan-provider';
 import {
   appendScannerPerformanceSample,
@@ -239,6 +243,7 @@ export default function AutomaticScannerScreen() {
   const [condition, setCondition] = useState(CARD_CONDITION_OPTIONS[0]);
   const [finish, setFinish] = useState<'normal' | 'foil' | 'etched'>('normal');
   const [language, setLanguage] = useState('en');
+  const [scanGame, setScanGame] = useState<TcgTrackingScanGame>('magic');
   const [storageLocationId, setStorageLocationId] = useState<string | null>(null);
   const [binderLocationId, setBinderLocationId] = useState<string | null>(null);
   const [binderPage, setBinderPage] = useState('1');
@@ -378,7 +383,7 @@ export default function AutomaticScannerScreen() {
   });
   const guideMotion = scanner2MotionForState(scanner2State, reduceMotion);
   const scannerHeader = scanner2HeaderModel({
-    modeLabel: autoCaptureEnabled ? 'Auto Scan On' : 'Auto Scan Off',
+    modeLabel: `${autoCaptureEnabled ? 'Auto Scan On' : 'Auto Scan Off'} - ${tcgTrackingScanGameLabel(scanGame)}`,
     cardCount: sessionTotals?.cardsScanned ?? 0,
     marketTotal: sessionTotals?.marketValue ?? null,
     offerTotal: sessionTotals?.cashOffer ?? null,
@@ -821,7 +826,7 @@ export default function AutomaticScannerScreen() {
     if (!session) return null;
     const startedAt = scannerNow();
     const recognitionReport = createRecognitionPipelineReport({
-      detectedGame: 'magic',
+      detectedGame: scanGame,
       candidates: [input.candidate, ...candidates.filter((candidate) => candidate.id !== input.candidate.id)],
       confidence: input.recognition?.ok ? input.recognition.confidence : {
         overall: Math.round(input.candidate.confidence * 100),
@@ -940,6 +945,7 @@ export default function AutomaticScannerScreen() {
     purchaseRate,
     quantity,
     resetScannerForm,
+    scanGame,
     session,
     showBatchNotice,
     storageLocationId,
@@ -1008,6 +1014,47 @@ export default function AutomaticScannerScreen() {
       autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'READING', 'still_captured_reading');
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       setAutoScanner((current) => markCaptureStarted(current));
+      if (scanGame === 'pokemon') {
+        const preparedImage = await prepareTcgTrackingScanImage({
+          imageUri: photo.uri,
+          cropPixels: null,
+        });
+        const pokemonScan = await scanPreparedImageWithTcgTracking({
+          preparedImage,
+          gameId: tcgTrackingScanGameId(scanGame),
+          limit: 5,
+        });
+        if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
+        if (diagnosticsEnabled) setDiagnosticCaptureUri(photo.uri);
+        setCaptureState('ready');
+        setRecognitionStage(pokemonScan.ok ? 'review_ready' : 'failed');
+        if (!pokemonScan.ok) {
+          setError(`${pokemonScan.reason} Manual search is still available.`);
+          return;
+        }
+        setCandidates(pokemonScan.candidates);
+        const batchCandidate = pokemonScan.candidates[0] ?? null;
+        setSelected(batchCandidate);
+        setQuery(batchCandidate?.name ?? query);
+        if (batchCandidate) {
+          addCandidateToBatch({
+            candidate: batchCandidate,
+            recognition: null,
+            stableScanId: captureId,
+            source: 'assisted_capture',
+            fingerprint: frameLabel,
+            captureResolution: { width: photo.width, height: photo.height },
+            timing: {
+              captureMs: cameraCaptureMs,
+              ocrMs: null,
+              scryfallMs: null,
+              totalMs: scannerNow() - captureStartedAt,
+              fallbackCount: 0,
+            },
+          });
+        }
+        return;
+      }
       const scan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
         preview: previewDimensions ?? { width: previewWidth, height: cameraStageHeight },
@@ -1023,7 +1070,7 @@ export default function AutomaticScannerScreen() {
           });
           return scanPreparedImageWithTcgTracking({
             preparedImage,
-            gameId: 1,
+            gameId: tcgTrackingScanGameId(scanGame),
             limit: 5,
           });
         },
@@ -1104,6 +1151,7 @@ export default function AutomaticScannerScreen() {
     previewWidth,
     query,
     recognitionStage,
+    scanGame,
     userPausedCamera,
   ]);
   useEffect(() => {
@@ -1585,6 +1633,7 @@ export default function AutomaticScannerScreen() {
             <SheetHeader title="Scanner settings" onClose={() => setShowSettingsSheet(false)} />
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.sheetScroll, { paddingBottom: insets.bottom + 92 }]}>
               <SettingsRow label="Mode" value={scannerModeLabel(sessionMode)} onPress={() => setShowModeSelectionSheet(true)} />
+              <OptionRow<TcgTrackingScanGame> label="Scan Game" options={TCGTRACKING_SCAN_GAMES.map((game) => game.id)} value={scanGame} display={tcgTrackingScanGameLabel} onSelect={setScanGame} compact />
               <SettingsRow label="Camera" value={selectedCameraLensLabel} onPress={() => setShowCameraSelectionSheet(true)} />
               <ToggleRow label="Auto Scan" enabled={autoCaptureEnabled} onToggle={() => setAutoCaptureEnabled((value) => !value)} />
               <OptionRow label="Default condition" options={CARD_CONDITION_OPTIONS} value={condition} display={displayCondition} onSelect={setCondition} compact />
@@ -2401,10 +2450,10 @@ function AutoScanDiagnosticsOverlay({
         state {autoState} - rectangle {rectangleConfidence === null ? 'unavailable' : `${Math.round(rectangleConfidence * 100)}%`}
       </TDText>
       <TDText variant="caption" tone="muted">
-        frame {performanceMs(frameDeltaMs)} · capture {performanceMs(timings?.captureMs ?? null)} · OCR {performanceMs(timings?.ocrMs ?? null)}
+        frame {performanceMs(frameDeltaMs)} - capture {performanceMs(timings?.captureMs ?? null)} - OCR {performanceMs(timings?.ocrMs ?? null)}
       </TDText>
       <TDText variant="caption" tone="muted">
-        lookup {performanceMs(timings?.scryfallMs ?? null)} · result {performanceMs(timings?.totalMs ?? null)} · rearm {awaitingRemoval ? 'waiting' : 'ready'}
+        lookup {performanceMs(timings?.scryfallMs ?? null)} - result {performanceMs(timings?.totalMs ?? null)} - rearm {awaitingRemoval ? 'waiting' : 'ready'}
       </TDText>
     </View>
   );

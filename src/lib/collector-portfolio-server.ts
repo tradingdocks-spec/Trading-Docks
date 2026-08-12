@@ -1,9 +1,11 @@
 import type {
   CollectorProfile,
+  PortfolioGameTotal,
   PortfolioBinder,
   PortfolioBinderView,
   PortfolioInventoryItem,
   PortfolioInventoryLocation,
+  PortfolioProductTypeTotal,
 } from "@/lib/collector-portfolio";
 import { slugifyPortfolioValue } from "@/lib/collector-portfolio";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -36,6 +38,9 @@ function itemFrom(value: unknown): PortfolioInventoryItem | null {
   return {
     id: value.id,
     name: value.name,
+    gameId: normalizePortfolioGameId(value.gameId ?? value.game_id ?? value.game),
+    game: portfolioGameLabel(value.gameId ?? value.game_id ?? value.game),
+    productType: normalizePortfolioProductType(value.productType ?? value.product_type ?? value.itemKind ?? value.item_kind),
     quantity: typeof value.quantity === "number" ? value.quantity : 1,
     locationId: value.locationId,
     value: typeof value.value === "number" ? value.value : 0,
@@ -161,8 +166,72 @@ async function loadCollectorPortfolioForAuthenticatedUser(supabase: PortfolioSup
       cards: items.reduce((sum, item) => sum + item.quantity, 0),
       uniqueCards: items.length,
       value: items.reduce((sum, item) => sum + item.value, 0),
+      games: summarizePortfolioGames(items),
+      productTypes: summarizePortfolioProductTypes(items),
       binders: binderViews.length,
       tradeCards: (tradeResult.data ?? []).filter((entry: { status?: string }) => entry.status === "available").length,
     },
   };
+}
+
+function summarizePortfolioGames(items: PortfolioInventoryItem[]): PortfolioGameTotal[] {
+  const byGame = new Map<string, PortfolioGameTotal>();
+  for (const item of items) {
+    const gameId = item.gameId ?? "magic";
+    const current = byGame.get(gameId) ?? {
+      gameId,
+      label: item.game ?? portfolioGameLabel(gameId),
+      quantity: 0,
+      uniqueItems: 0,
+      value: 0,
+    };
+    current.quantity += item.quantity;
+    current.uniqueItems += 1;
+    current.value += item.value;
+    byGame.set(gameId, current);
+  }
+  return [...byGame.values()];
+}
+
+function summarizePortfolioProductTypes(items: PortfolioInventoryItem[]): PortfolioProductTypeTotal[] {
+  const byType = new Map<"card" | "sealed", PortfolioProductTypeTotal>();
+  for (const item of items) {
+    const productType = item.productType ?? "card";
+    const current = byType.get(productType) ?? {
+      productType,
+      quantity: 0,
+      uniqueItems: 0,
+      value: 0,
+    };
+    current.quantity += item.quantity;
+    current.uniqueItems += 1;
+    current.value += item.value;
+    byType.set(productType, current);
+  }
+  return [...byType.values()];
+}
+
+function normalizePortfolioGameId(value: unknown) {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "pokemon" || normalized === "ptcg" || normalized === "pkm" || normalized === "3") return "pokemon";
+  if (!normalized || normalized === "magic" || normalized === "mtg" || normalized === "magic: the gathering" || normalized === "1") return "magic";
+  return normalized.replace(/[^a-z0-9-]+/g, "-") || "magic";
+}
+
+function portfolioGameLabel(value: unknown) {
+  const gameId = normalizePortfolioGameId(value);
+  if (gameId === "pokemon") return "Pokemon";
+  if (gameId === "magic") return "Magic: The Gathering";
+  return gameId
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ") || "Unknown game";
+}
+
+function normalizePortfolioProductType(value: unknown): "card" | "sealed" {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return normalized === "sealed" || normalized === "sealed_product" || normalized === "unopened"
+    ? "sealed"
+    : "card";
 }

@@ -10,6 +10,7 @@ import {
   decodeCollectionCursor,
   displayPrinting,
   displayStorageLocation,
+  displayVariant,
   filterCollectionCards,
   mergeCollectionPages,
   priceLabel,
@@ -300,4 +301,166 @@ test('card image fallback uses canonical Scryfall printing identifiers only', ()
     'https://api.scryfall.com/cards/lcc/310?format=image&version=normal',
   );
   assert.equal(resolveCardImageUrl({ setCode: 'lcc' }), null);
+});
+
+test('legacy Magic rows remain Magic without explicit game columns', () => {
+  assert.equal(cards[0].gameId, 'magic');
+  assert.equal(cards[0].gameLabel, 'Magic: The Gathering');
+  assert.equal(cards[0].productType, 'card');
+  assert.equal(displayVariant(cards[0]), 'Foil');
+});
+
+test('Collection supports Pokemon singles through the existing inventory adapter', () => {
+  const mixed = buildCollectionCards({
+    items: [
+      {
+        id: 'magic-bolt',
+        card_name: 'Shared Name',
+        set_code: 'sld',
+        collector_number: '123',
+        quantity: 1,
+        data: { condition: 'Near Mint', finish: 'Normal', language: 'English' },
+      },
+      {
+        id: 'pokemon-shared-name',
+        card_name: 'Shared Name',
+        game_id: 'pokemon',
+        product_type: 'card',
+        provider_category_id: '3',
+        provider_product_id: '696680',
+        provider_sku_id: 'pokemon-sku-1',
+        tcgplayer_product_id: 696680,
+        tcgplayer_sku_id: 123456789,
+        variant: 'Holofoil',
+        language: 'English',
+        quantity: 2,
+        inventory_value: 6,
+        data: {
+          setName: 'ME: 30th Celebration',
+          set: '30C',
+          collectorNumber: '036/128',
+          condition: 'Near Mint',
+          imageUrl: 'https://images.example.test/pokemon/pikachu.jpg',
+        },
+      },
+    ],
+  });
+
+  const pokemon = mixed.find((card) => card.id === 'pokemon-shared-name');
+  assert.equal(pokemon?.gameId, 'pokemon');
+  assert.equal(pokemon?.gameLabel, 'Pokemon');
+  assert.equal(pokemon?.productType, 'card');
+  assert.equal(pokemon?.printing.setCode, '30C');
+  assert.equal(pokemon?.printing.collectorNumber, '036/128');
+  assert.equal(pokemon?.printing.variant, 'Holofoil');
+  assert.equal(pokemon?.printing.language, 'English');
+  assert.equal(pokemon?.printing.finish, 'foil');
+  assert.equal(pokemon?.marketPrice.amount, 3);
+  assert.equal(filterCollectionCards(mixed, { gameId: 'pokemon' }).length, 1);
+  assert.equal(filterCollectionCards(mixed, { gameId: 'magic' }).length, 1);
+  assert.equal(filterCollectionCards(mixed, { variant: 'Holofoil' })[0]?.id, 'pokemon-shared-name');
+});
+
+test('Collection handles Pokemon sealed products without card-condition controls becoming identity', () => {
+  const sealed = buildCollectionCards({
+    items: [
+      {
+        id: 'pokemon-sealed-blister',
+        card_name: '30th Celebration 2-Pack Blister',
+        game_id: 'pokemon',
+        product_type: 'sealed',
+        provider_category_id: '3',
+        provider_product_id: '704148',
+        tcgplayer_product_id: 704148,
+        quantity: 3,
+        inventory_value: 36,
+        data: {
+          gameLabel: 'Pokemon',
+          setName: 'ME: 30th Celebration',
+          productType: 'sealed',
+          sealedType: 'Blister',
+          imageUrl: 'https://images.example.test/pokemon/blister.jpg',
+        },
+      },
+    ],
+  });
+
+  assert.equal(sealed[0].gameId, 'pokemon');
+  assert.equal(sealed[0].productType, 'sealed');
+  assert.equal(sealed[0].cardName, '30th Celebration 2-Pack Blister');
+  assert.equal(sealed[0].printing.finish, 'unknown');
+  assert.equal(sealed[0].marketPrice.amount, 12);
+  assert.equal(filterCollectionCards(sealed, { productType: 'sealed' }).length, 1);
+  assert.equal(filterCollectionCards(sealed, { productType: 'card' }).length, 0);
+});
+
+test('Collection summary groups games and singles versus sealed products', () => {
+  const mixed = buildCollectionCards({
+    items: [
+      { id: 'magic-card', card_name: 'Sol Ring', quantity: 1, inventory_value: 2, data: { set: 'ltc', collectorNumber: '301' } },
+      {
+        id: 'pokemon-card',
+        card_name: 'Victini',
+        game_id: 'pokemon',
+        product_type: 'card',
+        quantity: 2,
+        inventory_value: 4,
+        data: { set: '30C', collectorNumber: '013/128', variant: 'Holofoil' },
+      },
+      {
+        id: 'pokemon-sealed',
+        card_name: 'Battle Deck Umbreon',
+        game_id: 'pokemon',
+        product_type: 'sealed',
+        quantity: 1,
+        inventory_value: 18,
+        data: { sealedType: 'Battle Deck' },
+      },
+    ],
+  });
+  const summary = summarizeCollectionCards(mixed, 'collector');
+
+  assert.deepEqual(
+    summary.games.map((entry) => [entry.gameId, entry.quantity, entry.uniquePrintings, entry.knownMarketValue]),
+    [
+      ['magic', 1, 1, 2],
+      ['pokemon', 3, 2, 22],
+    ],
+  );
+  assert.deepEqual(
+    summary.productTypes.map((entry) => [entry.productType, entry.quantity, entry.uniquePrintings, entry.knownMarketValue]),
+    [
+      ['card', 3, 2, 6],
+      ['sealed', 1, 1, 18],
+    ],
+  );
+});
+
+test('persisted Pokemon collection records render without provider calls', () => {
+  const originalFetch = globalThis.fetch;
+  let fetchCalls = 0;
+  globalThis.fetch = (() => {
+    fetchCalls += 1;
+    throw new Error('Provider calls are not allowed during persisted render.');
+  }) as typeof fetch;
+  try {
+    const [card] = buildCollectionCards({
+      items: [
+        {
+          id: 'pokemon-offline',
+          card_name: 'Greninja ex',
+          game_id: 'pokemon',
+          product_type: 'card',
+          quantity: 1,
+          data: { imageUrl: 'https://images.example.test/greninja.jpg', variant: 'Normal' },
+        },
+      ],
+    });
+
+    assert.equal(card.gameId, 'pokemon');
+    assert.equal(card.printing.imageUrl, 'https://images.example.test/greninja.jpg');
+    assert.equal(fetchCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

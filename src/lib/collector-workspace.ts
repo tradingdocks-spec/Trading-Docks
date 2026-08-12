@@ -10,6 +10,7 @@ export {
   displayFinish,
   displayPrinting,
   displayStorageLocation,
+  displayVariant,
   encodeCollectionCursor,
   filterCollectionCards,
   mergeCollectionPages,

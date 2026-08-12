@@ -90,6 +90,31 @@ export type GameAwareSearchResult = {
   product: CatalogProduct;
 };
 
+export type ProductInspectorModel = {
+  game: GameIdentity;
+  productType: ProductType;
+  name: string;
+  setName?: string;
+  setCode?: string;
+  productNumber?: string;
+  imageUrl?: string;
+  providerProductId?: string;
+  providerSkuId?: string;
+  tcgplayerProductId?: number;
+  tcgplayerSkuId?: number;
+  condition?: string;
+  variant?: string;
+  language?: string;
+  marketPrice: GameAwareMarketSnapshot;
+  magic?: {
+    scryfallId?: string;
+    mtgjsonUuid?: string;
+    manaValue?: unknown;
+    colors?: unknown;
+    manapoolLow: number | null;
+  };
+};
+
 export type MagicCatalogRowLike = {
   tcgplayer_id?: number | string | null;
   product_line?: string | null;
@@ -364,12 +389,64 @@ export function gameAwareSearchResult(product: CatalogProduct): GameAwareSearchR
   return {
     game: product.game,
     productType: product.productType,
-    label: product.name,
+    label: `${gameSearchBadge(product.game)} ${product.name}`,
     subtitle: [product.game.displayName, setLabel || product.set?.name]
       .filter(Boolean)
-      .join(" · "),
+      .join(" - "),
     product,
   };
+}
+
+export function variantVocabularyForGame(
+  game: GameIdentity | SupportedGameId | string,
+) {
+  const resolvedGame = typeof game === "object" ? game : getSupportedGame(game);
+  if (resolvedGame?.id === "pokemon") {
+    return ["Normal", "Holofoil", "Reverse Holofoil"];
+  }
+  if (resolvedGame?.id === "magic") {
+    return ["Normal", "Foil", "Etched"];
+  }
+  return ["Standard"];
+}
+
+export function productInspectorFromSku(sku: CatalogSku): ProductInspectorModel {
+  const product = sku.product;
+  const inspector: ProductInspectorModel = {
+    game: sku.game,
+    productType: product.productType,
+    name: product.name,
+    setName: product.set?.name,
+    setCode: product.set?.code,
+    productNumber: product.collectorNumber,
+    imageUrl: product.imageUrl,
+    providerProductId: product.providerProductId,
+    providerSkuId: sku.providerSkuId,
+    tcgplayerProductId: product.tcgplayerProductId,
+    tcgplayerSkuId: sku.tcgplayerSkuId,
+    condition: sku.condition,
+    variant: sku.variant,
+    language: sku.language,
+    marketPrice: sku.marketPrice,
+  };
+
+  if (isGameCapabilitySupported(product.game, "scryfall")) {
+    inspector.magic = {
+      scryfallId: product.externalIds.scryfallId,
+      mtgjsonUuid: product.externalIds.mtgjsonUuid,
+      manaValue: product.gameSpecific.manaValue,
+      colors: product.gameSpecific.colors,
+      manapoolLow: sku.marketPrice.manapoolLow,
+    };
+  }
+
+  return inspector;
+}
+
+function gameSearchBadge(game: GameIdentity) {
+  if (game.id === "magic") return "[MTG]";
+  if (game.id === "pokemon") return "[PKM]";
+  return `[${game.id.toUpperCase()}]`;
 }
 
 function gameFromCategory(categoryId: string) {

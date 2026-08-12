@@ -15,6 +15,7 @@ import {
   isGameCapabilitySupported,
   magicCatalogRowToGenericProduct,
   marketSnapshotForGame,
+  productInspectorFromSku,
   productFromTcgTrackingProduct,
   runMultiTcgProviderProof,
   sealedProductFromTcgTracking,
@@ -23,6 +24,7 @@ import {
   TCGTRACKING_MAGIC_GAME_ID,
   TCGTRACKING_POKEMON_CATEGORY_ID,
   TCGTRACKING_POKEMON_GAME_ID,
+  variantVocabularyForGame,
 } from "../src/lib/multi-tcg/index.ts";
 import {
   normalizeTcgTrackingScanProviderRequest,
@@ -131,6 +133,11 @@ test("SKU identity preserves per-game condition variant and language without Mag
   assert.equal(sku.marketPrice.crossMarketSpread, null);
 });
 
+test("variant vocabularies are game-specific and use generic variant language", () => {
+  assert.deepEqual(variantVocabularyForGame("magic"), ["Normal", "Foil", "Etched"]);
+  assert.deepEqual(variantVocabularyForGame("pokemon"), ["Normal", "Holofoil", "Reverse Holofoil"]);
+});
+
 test("Magic catalog rows adapt through the generic interface without replacing the table", () => {
   const adapted = magicCatalogRowToGenericProduct({
     tcgplayer_id: 123456,
@@ -193,6 +200,22 @@ test("inventory identity keys include game product type SKU variant and language
     inventoryIdentityKey(magicIdentity),
     inventoryIdentityKey(pokemonIdentity),
   );
+
+  const english = inventoryGameIdentityFromRow({
+    game_id: "pokemon",
+    product_type: "card",
+    provider_product_id: "pokemon-1",
+    provider_sku_id: "pokemon-sku-1",
+    data: { condition: "Near Mint", variant: "Holofoil", language: "English" },
+  });
+  const japanese = inventoryGameIdentityFromRow({
+    game_id: "pokemon",
+    product_type: "card",
+    provider_product_id: "pokemon-1",
+    provider_sku_id: "pokemon-sku-1",
+    data: { condition: "Near Mint", variant: "Holofoil", language: "Japanese" },
+  });
+  assert.notEqual(inventoryIdentityKey(english), inventoryIdentityKey(japanese));
 });
 
 test("global search labels identify the game without calling Magic-only providers for Pokemon", () => {
@@ -209,8 +232,73 @@ test("global search labels identify the game without calling Magic-only provider
   });
   const result = gameAwareSearchResult(product);
   assert.equal(result.game.id, "pokemon");
+  assert.equal(result.label, "[PKM] Charizard ex");
   assert.match(result.subtitle ?? "", /Pokemon/);
   assert.doesNotMatch(result.subtitle ?? "", /Scryfall/);
+});
+
+test("Product Inspector keeps generic identity shared and Magic extensions isolated", () => {
+  const magicProduct = productFromTcgTrackingProduct({
+    providerProductId: "123",
+    categoryId: "1",
+    name: "Arcane Signet",
+    setName: "Commander Legends",
+    setCode: "CMR",
+    collectorNumber: "312",
+    scryfallId: "scryfall-arcane",
+    mtgjsonUuid: "mtgjson-arcane",
+    manaValue: 2,
+    colors: [],
+    finishes: ["Normal", "Foil"],
+    raw: {},
+  });
+  const magicSku = skuFromTcgTrackingSku(
+    {
+      providerSkuId: "magic-sku",
+      providerProductId: "123",
+      condition: "Near Mint",
+      variant: "Foil",
+      language: "English",
+      marketPrice: 1.25,
+      manapoolLow: 1,
+      raw: {},
+    },
+    magicProduct,
+  );
+  const pokemonProduct = productFromTcgTrackingProduct({
+    providerProductId: "553927",
+    categoryId: "3",
+    name: "Pikachu ex",
+    setName: "Surging Sparks",
+    setCode: "SV08",
+    collectorNumber: "057/191",
+    colors: [],
+    finishes: ["Holofoil"],
+    raw: {},
+  });
+  const pokemonSku = skuFromTcgTrackingSku(
+    {
+      providerSkuId: "pokemon-sku",
+      providerProductId: "553927",
+      condition: "Near Mint",
+      variant: "Holofoil",
+      language: "English",
+      marketPrice: 8.32,
+      raw: {},
+    },
+    pokemonProduct,
+  );
+
+  const magicInspector = productInspectorFromSku(magicSku);
+  const pokemonInspector = productInspectorFromSku(pokemonSku);
+
+  assert.equal(magicInspector.game.id, "magic");
+  assert.equal(magicInspector.magic?.scryfallId, "scryfall-arcane");
+  assert.equal(magicInspector.magic?.manapoolLow, 1);
+  assert.equal(pokemonInspector.game.id, "pokemon");
+  assert.equal(pokemonInspector.productNumber, "057/191");
+  assert.equal(pokemonInspector.variant, "Holofoil");
+  assert.equal(pokemonInspector.magic, undefined);
 });
 
 test("scanner request accepts Magic and Pokemon game contexts and rejects unsupported ids", () => {
@@ -327,5 +415,7 @@ test("multi-TCG schema proposals are category-aware and do not replace Magic aut
   assert.match(inventoryMigration, /add column if not exists product_type text/);
   assert.match(inventoryMigration, /add column if not exists tcgplayer_sku_id bigint/);
   assert.doesNotMatch(inventoryMigration, /drop table/i);
+  assert.doesNotMatch(inventoryMigration, /drop column/i);
+  assert.doesNotMatch(inventoryMigration, /drop constraint/i);
   assert.doesNotMatch(inventoryMigration, /tcgplayer_magic_catalog/);
 });

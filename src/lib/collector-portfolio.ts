@@ -50,6 +50,9 @@ export type PortfolioInventoryLocation = {
 export type PortfolioInventoryItem = {
   id: string;
   name: string;
+  gameId?: string;
+  game?: string;
+  productType?: "card" | "sealed";
   quantity: number;
   locationId: string;
   value: number;
@@ -60,6 +63,21 @@ export type PortfolioInventoryItem = {
   finish?: string;
   binderPage?: number;
   binderSlot?: string;
+};
+
+export type PortfolioGameTotal = {
+  gameId: string;
+  label: string;
+  quantity: number;
+  uniqueItems: number;
+  value: number;
+};
+
+export type PortfolioProductTypeTotal = {
+  productType: "card" | "sealed";
+  quantity: number;
+  uniqueItems: number;
+  value: number;
 };
 
 export type PortfolioBinderView = PortfolioBinder & {

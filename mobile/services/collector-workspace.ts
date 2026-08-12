@@ -39,6 +39,7 @@ export type CardPrinting = {
   collectorNumber?: string | null;
   language?: string | null;
   finish: CardFinish;
+  variant?: string | null;
   treatment?: string | null;
   imageUrl?: string | null;
 };
@@ -64,6 +65,9 @@ export type CollectionCard = {
   id: string;
   cardName: string;
   game?: string | null;
+  gameId: string;
+  gameLabel: string;
+  productType: 'card' | 'sealed';
   printing: CardPrinting;
   condition: CardCondition;
   quantityOwned: number;
@@ -76,8 +80,11 @@ export type CollectionCard = {
 
 export type CollectionFilter = {
   query?: string;
+  gameId?: string | 'all';
+  productType?: 'card' | 'sealed' | 'all';
   condition?: CardCondition | 'all';
   finish?: CardFinish | 'all';
+  variant?: string | 'all';
   setCode?: string | 'all';
   storageLocationId?: string | 'all';
   tradeBinderStatus?: TradeBinderStatus | 'all' | 'tradeable';
@@ -95,6 +102,19 @@ export type CollectionSort =
 export type CollectionSummary = {
   totalOwnedCards: number;
   uniquePrintings: number;
+  games: Array<{
+    gameId: string;
+    label: string;
+    quantity: number;
+    uniquePrintings: number;
+    knownMarketValue: number | null;
+  }>;
+  productTypes: Array<{
+    productType: 'card' | 'sealed';
+    quantity: number;
+    uniquePrintings: number;
+    knownMarketValue: number | null;
+  }>;
   storageLocationCount: number;
   storedCards: number;
   unassignedCards: number;
@@ -143,6 +163,15 @@ export type RawInventoryItem = {
   card_name?: string | null;
   sku?: string | null;
   location_id?: string | null;
+  game_id?: string | null;
+  product_type?: string | null;
+  provider_category_id?: string | null;
+  provider_product_id?: string | null;
+  provider_sku_id?: string | null;
+  tcgplayer_product_id?: number | null;
+  tcgplayer_sku_id?: number | null;
+  variant?: string | null;
+  language?: string | null;
   scryfall_id?: string | null;
   set_code?: string | null;
   collector_number?: string | null;
@@ -210,20 +239,26 @@ export function buildCollectionCards({
       const unitMarketValue =
         positiveNumber(payload.unitMarketValue) ??
         (inventoryValue !== null && inventoryValue > 0 && quantityOwned > 0 ? inventoryValue / quantityOwned : null);
-      const cardName = stringValue(payload.name) || item.card_name || 'Unnamed card';
+      const productType = normalizeProductType(item.product_type ?? payload.productType ?? payload.product_type);
+      const cardName = stringValue(payload.name) || item.card_name || (productType === 'sealed' ? 'Unnamed sealed product' : 'Unnamed card');
+      const gameId = normalizeCollectionGameId(item.game_id ?? payload.gameId ?? payload.game_id ?? payload.game);
+      const gameLabel = collectionGameLabel(gameId, payload.gameLabel ?? payload.game ?? item.provider_category_id);
       const condition = normalizeCardCondition(payload.condition);
-      const finish = normalizeCardFinish(payload.finish ?? payload.treatment);
+      const variant = stringValue(item.variant) || stringValue(payload.variant) || stringValue(payload.finish) || stringValue(payload.treatment) || null;
+      const finish = normalizeCardFinish(variant);
+      const language = stringValue(item.language) || stringValue(payload.language) || null;
       const printing: CardPrinting = {
         scryfallId: stringValue(payload.scryfallId) || item.scryfall_id || null,
         setCode: stringValue(payload.set) || item.set_code || null,
         setName: stringValue(payload.setName) || null,
         collectorNumber: stringValue(payload.collectorNumber) || item.collector_number || null,
-        language: stringValue(payload.language) || null,
+        language,
         finish,
+        variant,
         treatment: stringValue(payload.treatment) || null,
         imageUrl: resolveCardImageUrl({
           explicitImageUrl: stringValue(payload.imageUrl),
-          scryfallId: stringValue(payload.scryfallId) || item.scryfall_id || null,
+          scryfallId: gameId === 'magic' ? stringValue(payload.scryfallId) || item.scryfall_id || null : null,
           setCode: stringValue(payload.set) || item.set_code || null,
           collectorNumber: stringValue(payload.collectorNumber) || item.collector_number || null,
         }),
@@ -232,7 +267,10 @@ export function buildCollectionCards({
       return {
         id: item.id,
         cardName,
-        game: stringValue(payload.game) || 'Magic: The Gathering',
+        game: gameLabel,
+        gameId,
+        gameLabel,
+        productType,
         printing,
         condition,
         quantityOwned,
@@ -282,8 +320,11 @@ export function filterCollectionCards(
         .join(' '),
     );
     if (query && !searchHaystack.includes(query)) return false;
+    if (filter.gameId && filter.gameId !== 'all' && card.gameId !== filter.gameId) return false;
+    if (filter.productType && filter.productType !== 'all' && card.productType !== filter.productType) return false;
     if (filter.condition && filter.condition !== 'all' && card.condition !== filter.condition) return false;
     if (filter.finish && filter.finish !== 'all' && card.printing.finish !== filter.finish) return false;
+    if (filter.variant && filter.variant !== 'all' && normalizeSearchText(card.printing.variant ?? '') !== normalizeSearchText(filter.variant)) return false;
     if (filter.setCode && filter.setCode !== 'all' && card.printing.setCode?.toLowerCase() !== filter.setCode.toLowerCase()) return false;
     if (
       filter.storageLocationId &&
@@ -368,8 +409,11 @@ export function collectionRequestKey({
   return JSON.stringify({
     filter: {
       query: normalizeSearchText(filter.query ?? ''),
+      gameId: filter.gameId ?? 'all',
+      productType: filter.productType ?? 'all',
       condition: filter.condition ?? 'all',
       finish: filter.finish ?? 'all',
+      variant: normalizeSearchText(filter.variant && filter.variant !== 'all' ? filter.variant : ''),
       setCode: normalizeSearchText(filter.setCode && filter.setCode !== 'all' ? filter.setCode : ''),
       storageLocationId: filter.storageLocationId ?? 'all',
       tradeBinderStatus: filter.tradeBinderStatus ?? 'all',
@@ -468,10 +512,23 @@ export function summarizeCollectionCards(
     card.tradeBinderStatus === 'pending' ||
     card.tradeBinderStatus === 'for_sale',
   ).length;
+  const games = summarizeBy(cards, (card) => card.gameId, (card) => card.gameLabel);
+  const productTypes = summarizeBy(
+    cards,
+    (card) => card.productType,
+    (card) => card.productType === 'sealed' ? 'Sealed' : 'Cards',
+  ).map((entry) => ({
+    productType: entry.gameId as 'card' | 'sealed',
+    quantity: entry.quantity,
+    uniquePrintings: entry.uniquePrintings,
+    knownMarketValue: entry.knownMarketValue,
+  }));
 
   return {
     totalOwnedCards,
     uniquePrintings: cards.length,
+    games,
+    productTypes,
     storageLocationCount: storageIds.size,
     storedCards: stored.length,
     unassignedCards: unassigned.length,
@@ -523,6 +580,10 @@ export function displayFinish(finish: CardFinish) {
     unknown: 'Finish unavailable',
   };
   return labels[finish];
+}
+
+export function displayVariant(card: CollectionCard) {
+  return card.printing.variant || displayFinish(card.printing.finish);
 }
 
 export function displayStorageLocation(card: CollectionCard) {
@@ -653,6 +714,81 @@ function resolveWishlistStatus(
 
 function normalizeSearchText(value: string) {
   return value.trim().toLowerCase();
+}
+
+function normalizeCollectionGameId(value: unknown) {
+  const normalized = normalizeSearchText(String(value ?? ''));
+  if (normalized === 'pokemon' || normalized === 'ptcg' || normalized === 'pkm' || normalized === '3') return 'pokemon';
+  if (
+    normalized === 'magic' ||
+    normalized === 'mtg' ||
+    normalized === 'magic: the gathering' ||
+    normalized === '1' ||
+    normalized === ''
+  ) {
+    return 'magic';
+  }
+  return normalized.replace(/[^a-z0-9-]+/g, '-') || 'magic';
+}
+
+function collectionGameLabel(gameId: string, value: unknown) {
+  const explicit = stringValue(value);
+  if (explicit && explicit !== '1' && explicit !== '3') return explicit;
+  if (gameId === 'pokemon') return 'Pokemon';
+  if (gameId === 'magic') return 'Magic: The Gathering';
+  return gameId
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(' ') || 'Unknown game';
+}
+
+function normalizeProductType(value: unknown): 'card' | 'sealed' {
+  const normalized = normalizeSearchText(String(value ?? ''));
+  return normalized === 'sealed' ||
+    normalized === 'sealed_product' ||
+    normalized === 'sealed-product' ||
+    normalized === 'unopened'
+    ? 'sealed'
+    : 'card';
+}
+
+function summarizeBy(
+  cards: CollectionCard[],
+  keyForCard: (card: CollectionCard) => string,
+  labelForCard: (card: CollectionCard) => string,
+) {
+  const byKey = new Map<string, {
+    gameId: string;
+    label: string;
+    quantity: number;
+    uniquePrintings: number;
+    knownMarketValue: number | null;
+    missingPriceCount: number;
+  }>();
+  for (const card of cards) {
+    const key = keyForCard(card);
+    const current = byKey.get(key) ?? {
+      gameId: key,
+      label: labelForCard(card),
+      quantity: 0,
+      uniquePrintings: 0,
+      knownMarketValue: null,
+      missingPriceCount: 0,
+    };
+    current.quantity += card.quantityOwned;
+    current.uniquePrintings += 1;
+    if (card.marketPrice.amount === null) {
+      current.missingPriceCount += 1;
+    } else {
+      current.knownMarketValue = (current.knownMarketValue ?? 0) + card.marketPrice.amount * card.quantityOwned;
+    }
+    byKey.set(key, current);
+  }
+  return [...byKey.values()].map(({ missingPriceCount: _missingPriceCount, ...summary }) => ({
+    ...summary,
+    knownMarketValue: summary.knownMarketValue,
+  }));
 }
 
 function isCollectionSort(value: string): value is CollectionSort {
