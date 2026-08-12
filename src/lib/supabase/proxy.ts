@@ -32,6 +32,7 @@ const PUBLIC_API_PREFIXES = [
 const API_AUTH_EXEMPT_PREFIXES = [
   "/api/webhooks/",
   "/api/marketplaces/",
+  "/api/scanner/",
 ];
 
 function apiRequiresAuthentication(pathname: string) {

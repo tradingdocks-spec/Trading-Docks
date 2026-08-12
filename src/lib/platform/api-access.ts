@@ -28,6 +28,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "public-market-data", pattern: /^\/api\/(market-cards|multi-game-market|deck-vault\/game-changers)(\/|$)/, kind: "public", label: "Public market data" },
   { id: "admin", pattern: /^\/api\/admin(\/|$)/, kind: "admin-only", capability: "platform.admin", label: "Admin APIs" },
   { id: "billing", pattern: /^\/api\/billing\/revenuecat(\/|$)/, kind: "authenticated", label: "RevenueCat billing checkout and management" },
+  { id: "scanner", pattern: /^\/api\/scanner(\/|$)/, kind: "authenticated", label: "Mobile scanner provider APIs" },
   { id: "collector-workspace", pattern: /^\/api\/collector-workspace(\/|$)/, kind: "capability", capability: "collection.write", label: "Collector Workspace mutations" },
   { id: "label-studio", pattern: /^\/api\/label-studio(\/|$)/, kind: "capability", capability: "label.view", label: "Label Studio APIs" },
   { id: "collector-portfolio", pattern: /^\/api\/collector-portfolio(\/|$)/, kind: "capability", capability: "binder.manage", label: "Collector portfolio APIs" },

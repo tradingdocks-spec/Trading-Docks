@@ -50,6 +50,30 @@ export function skuIdentityFromTcgTracking(
   };
 }
 
+export function selectTcgTrackingSkuForConfirmation(input: {
+  skus: TcgTrackingSku[];
+  tcgplayerProductId?: number | null;
+  providerProductId?: string | null;
+  condition: string;
+  finish: string;
+  language?: string | null;
+}): TradingDocksSkuIdentity | null {
+  const requestedCondition = normalizeSkuText(input.condition);
+  const requestedFinish = normalizeFinish(input.finish);
+  const requestedLanguage = normalizeLanguage(input.language);
+  const sku = input.skus.find((candidate) => {
+    const productMatches =
+      (input.tcgplayerProductId != null && candidate.tcgplayerProductId === input.tcgplayerProductId) ||
+      (input.providerProductId != null && candidate.providerProductId === input.providerProductId);
+    if (!productMatches) return false;
+    if (normalizeSkuText(candidate.condition) !== requestedCondition) return false;
+    if (normalizeFinish(candidate.variant) !== requestedFinish) return false;
+    const candidateLanguage = normalizeLanguage(candidate.language);
+    return !requestedLanguage || !candidateLanguage || candidateLanguage === requestedLanguage;
+  });
+  return sku ? skuIdentityFromTcgTracking(sku) : null;
+}
+
 export function reconcileTcgTrackingWithLocalCatalog(input: {
   local?: LocalTcgplayerCatalogIdentity | null;
   product?: TcgTrackingProduct | null;
@@ -135,4 +159,27 @@ function compareField(
   if (local == null || provider == null) return;
   if (String(local) === String(provider)) return;
   conflicts.push({ field, local, provider });
+}
+
+function normalizeSkuText(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function normalizeFinish(value: string | null | undefined) {
+  const normalized = normalizeSkuText(value);
+  if (normalized === "normal" || normalized === "nonfoil" || normalized === "non foil") return "normal";
+  if (normalized === "etched foil" || normalized === "etched") return "etched";
+  if (normalized === "foil") return "foil";
+  return normalized;
+}
+
+function normalizeLanguage(value: string | null | undefined) {
+  const normalized = normalizeSkuText(value);
+  if (!normalized) return null;
+  if (normalized === "en" || normalized === "eng") return "english";
+  return normalized;
 }

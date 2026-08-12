@@ -23,9 +23,12 @@ import type {
 
 export const TCGTRACKING_BASE_URL =
   "https://openapi.tcgtracking.com/v1";
+export const TCGTRACKING_SCAN_BASE_URL =
+  "https://tcgtracking.com/tcgapi/v1";
 export const TCGTRACKING_DEFAULT_TIMEOUT_MS = 8000;
 export const TCGTRACKING_DEFAULT_RETRIES = 1;
 export const TCGTRACKING_MAGIC_CATEGORY_ID = "1";
+export const TCGTRACKING_MAGIC_GAME_ID = 1;
 
 export class TcgTrackingProviderError extends Error {
   status?: number;
@@ -59,6 +62,7 @@ export class TcgTrackingProviderError extends Error {
 
 export class TcgTrackingClient {
   private readonly baseUrl: string;
+  private readonly scanBaseUrl: string;
   private readonly apiKey?: string;
   private readonly timeoutMs: number;
   private readonly retries: number;
@@ -69,6 +73,11 @@ export class TcgTrackingClient {
       config.baseUrl ??
         process.env.TCGTRACKING_API_BASE_URL ??
         TCGTRACKING_BASE_URL,
+    );
+    this.scanBaseUrl = normalizeBaseUrl(
+      config.scanBaseUrl ??
+        process.env.TCGTRACKING_SCAN_BASE_URL ??
+        TCGTRACKING_SCAN_BASE_URL,
     );
     this.apiKey =
       config.apiKey ?? process.env.TCGTRACKING_API_KEY;
@@ -189,6 +198,9 @@ export class TcgTrackingClient {
   async scanCardImage(input: {
     image: Blob | ArrayBuffer | Uint8Array | string;
     category?: string;
+    gameId?: number;
+    setIds?: number[];
+    limit?: 5 | 10;
   }): Promise<TcgTrackingScanResult> {
     const startedAt = Date.now();
     try {
@@ -202,6 +214,8 @@ export class TcgTrackingClient {
       return {
         provider: "tcgtracking",
         status: candidates.length ? "matched" : "unresolved",
+        gameId: input.gameId ?? gameIdFromCategory(input.category),
+        setIds: normalizeNumericSetIds(input.setIds),
         candidates,
         latencyMs: Date.now() - startedAt,
       };
@@ -209,6 +223,8 @@ export class TcgTrackingClient {
       return {
         provider: "tcgtracking",
         status: "provider_failed",
+        gameId: input.gameId ?? gameIdFromCategory(input.category),
+        setIds: normalizeNumericSetIds(input.setIds),
         candidates: [],
         latencyMs: Date.now() - startedAt,
         error:
@@ -226,15 +242,23 @@ export class TcgTrackingClient {
   private async postScan(input: {
     image: Blob | ArrayBuffer | Uint8Array | string;
     category?: string;
+    gameId?: number;
+    setIds?: number[];
+    limit?: 5 | 10;
   }) {
     const headers = this.headers();
     let body: BodyInit;
+    const gameId = input.gameId ?? gameIdFromCategory(input.category);
+    const setIds = normalizeNumericSetIds(input.setIds);
+    const limit = input.limit === 10 ? 10 : 5;
 
     if (typeof input.image === "string") {
       headers.set("content-type", "application/json");
       body = JSON.stringify({
         image: input.image,
-        category: input.category,
+        game_id: gameId,
+        set_ids: setIds.length ? setIds : undefined,
+        limit,
       });
     } else {
       const form = new FormData();
@@ -243,11 +267,13 @@ export class TcgTrackingClient {
           ? input.image
           : new Blob([toArrayBuffer(input.image)], { type: "image/jpeg" });
       form.set("image", blob, "card.jpg");
-      if (input.category) form.set("category", input.category);
+      form.set("game_id", String(gameId));
+      if (setIds.length) form.set("set_ids", setIds.join(","));
+      form.set("limit", String(limit));
       body = form;
     }
 
-    return this.requestJson("/scan", {
+    return this.requestJson(`${this.scanBaseUrl}/scan`, {
       method: "POST",
       headers,
       body,
@@ -380,6 +406,7 @@ export class TcgTrackingClient {
   }
 
   private url(endpoint: string) {
+    if (/^https?:\/\//i.test(endpoint)) return endpoint;
     return `${this.baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
   }
 }
@@ -411,6 +438,31 @@ function categoryPath(value: string) {
     return TCGTRACKING_MAGIC_CATEGORY_ID;
   }
   return encodePath(value);
+}
+
+function gameIdFromCategory(value: string | undefined) {
+  if (!value) return TCGTRACKING_MAGIC_GAME_ID;
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized === "magic" ||
+    normalized === "mtg" ||
+    normalized === "magic: the gathering" ||
+    normalized === TCGTRACKING_MAGIC_CATEGORY_ID
+  ) {
+    return TCGTRACKING_MAGIC_GAME_ID;
+  }
+  const numeric = Number(value);
+  return Number.isSafeInteger(numeric) && numeric > 0
+    ? numeric
+    : TCGTRACKING_MAGIC_GAME_ID;
+}
+
+function normalizeNumericSetIds(value: number[] | undefined) {
+  return Array.isArray(value)
+    ? value
+        .map((entry) => Math.trunc(entry))
+        .filter((entry) => Number.isSafeInteger(entry) && entry > 0)
+    : [];
 }
 
 function normalizeBaseUrl(value: string) {

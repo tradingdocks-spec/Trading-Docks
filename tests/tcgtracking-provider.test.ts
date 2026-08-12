@@ -22,6 +22,7 @@ import {
   reconcileTcgTrackingWithLocalCatalog,
   loadTcgTrackingLocalCatalogStatus,
   runTcgTrackingCatalogReconciliation,
+  selectTcgTrackingSkuForConfirmation,
   scannerAdapterResult,
   serializeSupabaseError,
   skuPriceSnapshotRow,
@@ -30,8 +31,14 @@ import {
   summarizeImageReliability,
   summarizePricingDeltas,
   summarizeTcgTrackingScanBenchmark,
+  classifyTcgTrackingScanConfidence,
+  decodedImageBytes,
+  enrichScanResultWithProducts,
+  normalizeTcgTrackingScanProviderRequest,
   TCGTRACKING_CATALOG_RECONCILIATION_DEFAULT_SAMPLE_SIZE,
   TCGTRACKING_CATALOG_RECONCILIATION_MAX_SAMPLE_SIZE,
+  TCGTRACKING_MAGIC_GAME_ID,
+  TCGTRACKING_SCAN_MAX_IMAGE_BYTES,
   TCGTRACKING_CACHE_TABLE_PROPOSAL,
   TCGTRACKING_LOCAL_CATALOG_SELECT_COLUMNS,
   TCGTRACKING_LOCAL_CATALOG_SKU_QUERY_CHUNK_SIZE,
@@ -269,10 +276,12 @@ test("TCGTracking scanner adapter returns candidates without creating inventory 
 });
 
 test("TCGTracking scan client parses candidate wrappers and timeout failures", async () => {
+  const scanRequests: unknown[] = [];
   const okClient = new TcgTrackingClient({
     retries: 0,
-    fetch: (async () =>
-      json({
+    fetch: (async (_url, init) => {
+      scanRequests.push(JSON.parse(String(init?.body)));
+      return json({
         candidates: [
           {
             tcgplayer_product_id: 456789,
@@ -280,11 +289,20 @@ test("TCGTracking scan client parses candidate wrappers and timeout failures", a
             product_name: "Unblinking Observer",
           },
         ],
-      })) as typeof fetch,
+      });
+    }) as typeof fetch,
   });
-  const result = await okClient.scanCardImage({ image: "base64-image", category: "magic" });
+  const result = await okClient.scanCardImage({ image: "base64-image", category: "magic", setIds: [2708], limit: 10 });
   assert.equal(result.status, "matched");
+  assert.equal(result.gameId, TCGTRACKING_MAGIC_GAME_ID);
+  assert.deepEqual(result.setIds, [2708]);
   assert.equal(result.candidates[0]?.confidence, 0.88);
+  assert.deepEqual(scanRequests[0], {
+    image: "base64-image",
+    game_id: 1,
+    set_ids: [2708],
+    limit: 10,
+  });
 
   const failedClient = new TcgTrackingClient({
     retries: 0,
@@ -294,6 +312,59 @@ test("TCGTracking scan client parses candidate wrappers and timeout failures", a
     }) as typeof fetch,
   });
   assert.equal((await failedClient.scanCardImage({ image: "x" })).status, "provider_failed");
+});
+
+test("TCGTracking scan request validation enforces Magic game id, numeric set ids, limit, and 100KB images", () => {
+  const image = "a".repeat(40);
+  const request = normalizeTcgTrackingScanProviderRequest({
+    image,
+    setIds: [2708, "bad", 2708, 0, 1234],
+    limit: 10,
+  });
+  assert.equal(request.ok, true);
+  if (request.ok) {
+    assert.equal(request.request.gameId, 1);
+    assert.deepEqual(request.request.setIds, [2708, 1234]);
+    assert.equal(request.request.limit, 10);
+  }
+  assert.equal(decodedImageBytes("AAAA"), 3);
+  const tooLarge = normalizeTcgTrackingScanProviderRequest({
+    image: "a".repeat(Math.ceil((TCGTRACKING_SCAN_MAX_IMAGE_BYTES + 1) / 3) * 4),
+  });
+  assert.equal(tooLarge.ok, false);
+  if (!tooLarge.ok) assert.equal(tooLarge.status, 413);
+});
+
+test("TCGTracking scan adapter enriches Product IDs and recommends fallback below conservative threshold", async () => {
+  const result = await enrichScanResultWithProducts({
+    provider: "tcgtracking",
+    status: "matched",
+    candidates: [
+      { providerProductId: "456789", confidence: 0.74, metadata: {} },
+      { providerProductId: "456790", confidence: 0.93, metadata: {} },
+    ],
+  }, {
+    product: async (productId) => normalizeProduct({
+      ...providerProduct(),
+      product_id: productId,
+      tcgplayer_product_id: Number(productId),
+      scryfall_id: `00000000-0000-4000-8000-${productId.padStart(12, "0")}`,
+    }, "1"),
+  });
+  const adapted = scannerAdapterResult(result);
+  assert.equal(adapted.status, "candidates");
+  assert.equal(adapted.candidates[0]?.providerProductId, "456790");
+  assert.equal(adapted.candidates[0]?.productIdentity?.tcgplayerProductId, 456790);
+  assert.equal(adapted.confidenceBand, "high");
+  assert.equal(adapted.fallbackRecommended, false);
+
+  const low = scannerAdapterResult({
+    provider: "tcgtracking",
+    status: "matched",
+    candidates: [{ tcgplayerProductId: 1, confidence: 0.42, metadata: {} }],
+  });
+  assert.equal(classifyTcgTrackingScanConfidence(0.42), "low");
+  assert.equal(low.fallbackRecommended, true);
 });
 
 test("TCGTracking cache proposal is non-authoritative and reuses existing catalog authority", () => {
@@ -433,6 +504,39 @@ test("TCGTracking local reconciliation matches exact SKUs and classifies identit
       conflict.field === "tcgplayerSkuId"
     ),
     true,
+  );
+});
+
+test("TCGTracking exact SKU selection waits for confirmed condition finish and language", () => {
+  const normal = normalizeSku(providerSku());
+  const foil = normalizeSku({
+    ...providerSku(),
+    sku_id: "provider-sku-foil",
+    tcgplayer_sku_id: 987655,
+    variant: "Foil",
+    language: "English",
+  });
+  assert.ok(normal);
+  assert.ok(foil);
+  assert.equal(
+    selectTcgTrackingSkuForConfirmation({
+      skus: [normal, foil],
+      tcgplayerProductId: 456789,
+      condition: "Near Mint",
+      finish: "foil",
+      language: "en",
+    })?.tcgplayerSkuId,
+    987655,
+  );
+  assert.equal(
+    selectTcgTrackingSkuForConfirmation({
+      skus: [normal, foil],
+      tcgplayerProductId: 456789,
+      condition: "Heavily Played",
+      finish: "foil",
+      language: "en",
+    }),
+    null,
   );
 });
 

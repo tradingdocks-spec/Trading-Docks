@@ -66,6 +66,10 @@ import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } 
 import { enrichScannerSessionLinePrice, type ScannerPricingTrace } from '@/services/scanner-price-enrichment';
 import { runScannerParallelEnrichment } from '@/services/scanner-parallel-enrichment';
 import {
+  prepareTcgTrackingScanImage,
+  scanPreparedImageWithTcgTracking,
+} from '@/services/tcgtracking-scan-provider';
+import {
   appendScannerPerformanceSample,
   buildScannerPerformanceReport,
   createScannerPerformanceSample,
@@ -1012,6 +1016,17 @@ export default function AutomaticScannerScreen() {
         online: true,
         cachedCandidates: candidates.map(scannerCandidateToRecognitionCandidate),
         deferCleanup: diagnosticsEnabled,
+        enhancedProductScan: async ({ imageUri, mapping }) => {
+          const preparedImage = await prepareTcgTrackingScanImage({
+            imageUri,
+            cropPixels: mapping.cardCropPixels,
+          });
+          return scanPreparedImageWithTcgTracking({
+            preparedImage,
+            gameId: 1,
+            limit: 5,
+          });
+        },
         onStage: (stage) => {
           if (mountedRef.current && activeCaptureIdRef.current === captureId) setRecognitionStage(stage);
         },

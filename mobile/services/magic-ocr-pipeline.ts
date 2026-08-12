@@ -147,6 +147,31 @@ export type MagicStillScanResult =
     cleanup?: CaptureCleanupResult;
   };
 
+export type EnhancedProductScanResult =
+  | {
+    ok: true;
+    provider: 'tcgtracking';
+    candidates: ScannerCardCandidate[];
+    latencyMs: number | null;
+    confidenceBand: 'high' | 'medium' | 'low';
+    topConfidence: number | null;
+    fallbackRecommended: boolean;
+    image: { width: number; height: number; bytes: number; retained: false };
+  }
+  | {
+    ok: false;
+    provider: 'tcgtracking';
+    reason: string;
+    fallbackRecommended: true;
+    latencyMs?: number | null;
+  };
+
+export type EnhancedProductScanProvider = (input: {
+  imageUri: string;
+  mapping: GuideCropMapping;
+  online: boolean;
+}) => Promise<EnhancedProductScanResult>;
+
 export type CaptureCleanupResult =
   | { ok: true; deleted: true }
   | { ok: true; deleted: false; reason: 'no_uri' | 'non_file_uri' | 'deferred_for_diagnostics' }
@@ -174,6 +199,7 @@ export async function recognizeMagicStillCapture(input: {
   vision?: ScannerVisionResult | null;
   visualIndex?: VisualReferenceIndex | null;
   detectRectangle?: typeof detectCardRectangle;
+  enhancedProductScan?: EnhancedProductScanProvider;
   onStage?: (stage: 'reading_title' | 'finding_card') => void;
   onLookupDiagnostics?: (diagnostics: MagicStillScanLookupDiagnostics) => void;
 }): Promise<MagicStillScanResult> {
@@ -188,6 +214,52 @@ export async function recognizeMagicStillCapture(input: {
   const cleanupCapture = () => input.deferCleanup
     ? Promise.resolve<CaptureCleanupResult>({ ok: true, deleted: false, reason: 'deferred_for_diagnostics' })
     : cleanup(input.imageUri);
+  let enhancedScan: EnhancedProductScanResult | null = null;
+  if (input.enhancedProductScan && input.online) {
+    try {
+      enhancedScan = await input.enhancedProductScan({
+        imageUri: input.imageUri,
+        mapping,
+        online: input.online,
+      });
+    } catch (error) {
+      enhancedScan = {
+        ok: false,
+        provider: 'tcgtracking',
+        reason: error instanceof Error ? error.message : 'TCGTracking enhanced recognition failed.',
+        fallbackRecommended: true,
+      };
+    }
+  }
+  if (enhancedScan?.ok && !enhancedScan.fallbackRecommended && enhancedScan.candidates.length) {
+    const cleanupResult = await cleanupCapture();
+    const signals = emptySignals();
+    const cropDiagnostics = createCropDiagnostics(input.preview, input.guide, mapping, [], null);
+    const lookupDiagnostics = createStillLookupDiagnostics(signals, {
+      queryString: null,
+      httpStatus: 200,
+      responseItemCount: enhancedScan.candidates.length,
+      errorCode: null,
+      latencyMs: enhancedScan.latencyMs ?? 0,
+      topThreeCandidateNames: enhancedScan.candidates.slice(0, 3).map((candidate) => candidate.name),
+    });
+    const recognition = recognitionFromEnhancedProductScan(enhancedScan.candidates, enhancedScan.confidenceBand);
+    return {
+      ok: true,
+      ocr: { ok: true, provider: 'apple_vision', fullText: '', observations: [], latencyMs: 0, orientationUsed: 'provider_product_identity', warnings: ['TCGTracking product scan supplied card identity before OCR fallback.'] },
+      signals,
+      recognition,
+      candidates: enhancedScan.candidates,
+      selected: enhancedScan.candidates[0] ?? null,
+      confidenceLabel: confidenceLabel(recognition),
+      mapping,
+      cropDiagnostics,
+      lookupLatencyMs: enhancedScan.latencyMs ?? 0,
+      lookupDiagnostics,
+      multiSignal: null,
+      cleanup: cleanupResult,
+    };
+  }
   input.onStage?.('reading_title');
   const ocr = input.sequentialTitleOcr
     ? await recognizeSequentialMagicTitle({
@@ -881,6 +953,36 @@ function recognitionFromFusion(multiSignal: MultiSignalRecognitionResult, candid
       multiSignal.diagnostics.decisionReason,
       `Visual candidate: ${multiSignal.diagnostics.visualCandidate ?? 'unavailable'}`,
       `OCR candidate: ${multiSignal.diagnostics.ocrCandidate ?? 'unavailable'}`,
+    ],
+  };
+}
+
+function recognitionFromEnhancedProductScan(candidates: ScannerCardCandidate[], confidenceBand: 'high' | 'medium' | 'low'): MagicRecognitionResult & { ok: true } {
+  const recognitionCandidates = candidates.map(scannerCandidateToRecognitionCandidate);
+  const topConfidence = Math.round((candidates[0]?.confidence ?? 0) * 100);
+  return {
+    ok: true,
+    selected: recognitionCandidates[0] ?? null,
+    candidates: recognitionCandidates,
+    source: 'injected',
+    confidence: {
+      overall: topConfidence,
+      threshold: 78,
+      requiresConfirmation: true,
+      signals: [
+        {
+          key: 'artwork',
+          label: 'TCGTracking product scan',
+          score: topConfidence,
+          weight: 1,
+          evidence: 'TCGTracking supplied a product identity candidate; condition, finish, language, and SKU still require confirmation.',
+        },
+      ],
+      conflicts: confidenceBand === 'low' ? ['TCGTracking confidence was too low for automatic selection.'] : [],
+    },
+    explanation: [
+      'TCGTracking product scan supplied ranked Product ID candidates.',
+      'Trading Docks still requires exact printing, condition, finish, and language confirmation before inventory mutation.',
     ],
   };
 }

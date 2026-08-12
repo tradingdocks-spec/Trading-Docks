@@ -33,6 +33,9 @@ export type ScannerRecognitionInput = {
 
 export type ScannerCardCandidate = {
   id: string;
+  tcgplayerProductId?: number | null;
+  providerProductId?: string | null;
+  providerSource?: 'scryfall' | 'tcgtracking' | 'visual_index' | null;
   oracleId?: string | null;
   name: string;
   setCode: string | null;
@@ -164,18 +167,22 @@ export function validateScannerConfirmation(
 }
 
 export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: string): ScannerAddPayload {
+  const scryfallId = confirmedScryfallId(confirmation.candidate);
   return {
     id,
     user_id: confirmation.userId,
     card_name: confirmation.candidate.name,
-    scryfall_id: confirmation.candidate.id,
+    scryfall_id: scryfallId,
     set_code: confirmation.candidate.setCode,
     collector_number: confirmation.candidate.collectorNumber,
     quantity: confirmation.quantity,
     location_id: confirmation.storageLocationId,
     data: {
       name: confirmation.candidate.name,
-      scryfallId: confirmation.candidate.id,
+      scryfallId,
+      tcgplayerProductId: confirmation.candidate.tcgplayerProductId ?? null,
+      providerProductId: confirmation.candidate.providerProductId ?? null,
+      providerSource: confirmation.candidate.providerSource ?? null,
       set: confirmation.candidate.setCode,
       setName: confirmation.candidate.setName,
       collectorNumber: confirmation.candidate.collectorNumber,
@@ -235,6 +242,9 @@ export function scannerPrivacySummary() {
 
 export function normalizeScannerCandidate(raw: {
   id?: unknown;
+  tcgplayerProductId?: unknown;
+  providerProductId?: unknown;
+  providerSource?: unknown;
   oracleId?: unknown;
   name?: unknown;
   setCode?: unknown;
@@ -257,6 +267,9 @@ export function normalizeScannerCandidate(raw: {
     : [];
   return {
     id,
+    tcgplayerProductId: numberValue(raw.tcgplayerProductId),
+    providerProductId: stringValue(raw.providerProductId),
+    providerSource: raw.providerSource === 'tcgtracking' || raw.providerSource === 'visual_index' ? raw.providerSource : 'scryfall',
     oracleId: stringValue(raw.oracleId),
     name,
     setCode: stringValue(raw.setCode)?.toUpperCase() ?? null,
@@ -294,6 +307,22 @@ export const unavailableCameraProvider: ScannerRecognitionProvider = {
 
 function stringValue(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function numberValue(value: unknown) {
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
+function confirmedScryfallId(candidate: ScannerCardCandidate) {
+  if (candidate.providerSource === 'tcgtracking' && candidate.id.startsWith('tcgtracking:')) {
+    return null;
+  }
+  return candidate.id;
 }
 
 function normalizeCandidateMarketPrice(value: ScannerCandidateMarketPrice | null | undefined): ScannerCandidateMarketPrice | null {

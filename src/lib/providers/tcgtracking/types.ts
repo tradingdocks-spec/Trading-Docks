@@ -5,6 +5,7 @@ export type TcgTrackingSkuId = string;
 
 export type TcgTrackingProviderConfig = {
   baseUrl?: string;
+  scanBaseUrl?: string;
   apiKey?: string;
   timeoutMs?: number;
   retries?: number;
@@ -106,6 +107,7 @@ export type TcgTrackingPriceSnapshot = {
 export type TcgTrackingScanCandidate = {
   providerProductId?: TcgTrackingProductId;
   tcgplayerProductId?: number;
+  productIdentity?: TradingDocksProductIdentity | null;
   name?: string;
   setName?: string;
   setCode?: string;
@@ -118,6 +120,8 @@ export type TcgTrackingScanCandidate = {
 export type TcgTrackingScanResult = {
   provider: "tcgtracking";
   status: "matched" | "unresolved" | "provider_failed";
+  gameId?: number;
+  setIds?: number[];
   candidates: TcgTrackingScanCandidate[];
   latencyMs?: number;
   error?: string;
