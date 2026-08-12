@@ -79,6 +79,7 @@ export async function searchTcgProducts(input: {
       : index.products;
 
   return products
+    .filter((product) => !isExcludedPokemonUtilityProduct(product))
     .map((product) => {
       const haystack = normalizeSearchText([
         product.name,
@@ -96,6 +97,8 @@ export async function searchTcgProducts(input: {
       if (haystack.includes(query)) score += 42;
       if (product.collectorNumber && normalizeSearchText(product.collectorNumber) === query) score += 36;
       if (setText.includes(query)) score += 12;
+      if (cleanNameText === query) score += 30;
+      if (isCollectiblePokemonCard(product)) score += 18;
       score += queryParts.filter((part) => haystack.includes(part)).length * 8;
       return score > 0 ? { ...product, score } : null;
     })
@@ -149,7 +152,13 @@ async function loadPokemonProductIndex(
     const productGroups = await Promise.all(
       sets.map(async (set) => {
         try {
-          return await client.cards(TCGTRACKING_POKEMON_CATEGORY_ID, set.id);
+          const products = await client.cards(TCGTRACKING_POKEMON_CATEGORY_ID, set.id);
+          return products.map((product) => ({
+            ...product,
+            setId: product.setId ?? set.id,
+            setName: product.setName ?? set.name,
+            setCode: product.setCode ?? set.abbreviation,
+          }));
         } catch {
           return [];
         }
@@ -226,14 +235,19 @@ function toSkuOption(sku: TcgTrackingSku, pricing: TcgTrackingPriceSnapshot[]): 
   const price = pricing.find((entry) =>
     entry.providerSkuId === sku.providerSkuId ||
     (sku.tcgplayerSkuId != null && entry.tcgplayerSkuId === sku.tcgplayerSkuId),
-  );
+  ) ?? pricing.find((entry) => {
+    const sameProduct =
+      entry.providerProductId === sku.providerProductId ||
+      (sku.tcgplayerProductId != null && entry.tcgplayerProductId === sku.tcgplayerProductId);
+    return sameProduct && normalizeVariantKey(entry.providerSkuId?.split(":").at(-1) ?? "") === normalizeVariantKey(formatVariant(sku.variant ?? sku.variantAbbreviation));
+  });
   return {
     providerSkuId: sku.providerSkuId,
     providerProductId: sku.providerProductId,
     tcgplayerSkuId: sku.tcgplayerSkuId ?? null,
     tcgplayerProductId: sku.tcgplayerProductId ?? null,
-    condition: sku.condition ?? sku.conditionCode ?? "Condition unavailable",
-    variant: sku.variant ?? sku.variantAbbreviation ?? "Normal",
+    condition: formatCondition(sku.condition ?? sku.conditionCode),
+    variant: formatVariant(sku.variant ?? sku.variantAbbreviation),
     language: sku.language ?? "English",
     marketPrice: sku.marketPrice ?? price?.tcgMarket ?? null,
     lowPrice: sku.lowPrice ?? price?.tcgLow ?? null,
@@ -241,6 +255,48 @@ function toSkuOption(sku: TcgTrackingSku, pricing: TcgTrackingPriceSnapshot[]): 
     activeListings: sku.activeListings ?? price?.activeListings ?? null,
     lastSyncedAt: sku.lastSyncedAt ?? price?.updatedAt,
   };
+}
+
+export function isExcludedPokemonUtilityProduct(product: Pick<TcgProductSearchResult, "name" | "cleanName">) {
+  const name = normalizeSearchText(product.name);
+  const cleanName = normalizeSearchText(product.cleanName ?? product.name);
+  return isPokemonCodeCardName(name) || isPokemonCodeCardName(cleanName);
+}
+
+function isPokemonCodeCardName(value: string) {
+  return (
+    /^code card\b/.test(value) ||
+    /^online code card\b/.test(value) ||
+    /^pokemon tcg live code card\b/.test(value) ||
+    /^ptcgl code card\b/.test(value) ||
+    /\bcode card\b/.test(value) && /\b(online|redemption|tcg live|ptcgl)\b/.test(value)
+  );
+}
+
+function isCollectiblePokemonCard(product: TcgProductSearchResult) {
+  return !isExcludedPokemonUtilityProduct(product);
+}
+
+function formatCondition(value: string | undefined) {
+  const key = normalizeSearchText(value ?? "");
+  if (key === "nm" || key === "near mint") return "Near Mint";
+  if (key === "lp" || key === "lightly played") return "Lightly Played";
+  if (key === "mp" || key === "moderately played") return "Moderately Played";
+  if (key === "hp" || key === "heavily played") return "Heavily Played";
+  if (key === "dm" || key === "damaged") return "Damaged";
+  return value?.trim() || "Condition unavailable";
+}
+
+function formatVariant(value: string | undefined) {
+  const key = normalizeVariantKey(value ?? "");
+  if (key === "normal" || key === "regular") return "Normal";
+  if (key === "holo" || key === "holofoil") return "Holo";
+  if (key === "reverseholo" || key === "reverseholofoil") return "Reverse Holo";
+  return value?.trim() || "Normal";
+}
+
+function normalizeVariantKey(value: string) {
+  return normalizeSearchText(value).replace(/\s+/g, "");
 }
 
 function dedupeSkuOptions(skus: TcgProductSkuOption[]) {

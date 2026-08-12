@@ -8,6 +8,7 @@ import {
   TCGTRACKING_POKEMON_CATEGORY_ID,
   TCGTRACKING_POKEMON_GAME_ID,
   clearTcgProductSearchCache,
+  isExcludedPokemonUtilityProduct,
   resolveTcgProductSkus,
   searchTcgProducts,
 } from "../src/lib/providers/tcgtracking/index.ts";
@@ -100,6 +101,99 @@ test("Pokemon exact SKU resolution preserves condition variant language and pric
   assert.equal(resolved.skus[0]?.activeListings, 24);
 });
 
+test("Pokemon exact SKU resolution maps product finish pricing when SKU rows omit prices", async () => {
+  const resolved = await resolveTcgProductSkus({
+    gameId: TCGTRACKING_POKEMON_GAME_ID,
+    providerProductId: "188370",
+    setId: "swsh4",
+    client: {
+      product: async () => pokemonProduct({ providerProductId: "188370" }),
+      skus: async () => [
+        {
+          providerSkuId: "sku-reverse-nm",
+          providerProductId: "188370",
+          tcgplayerSkuId: 445567,
+          tcgplayerProductId: 188370,
+          conditionCode: "NM",
+          variant: "Reverse Holofoil",
+          language: "English",
+          raw: {},
+        },
+      ],
+      pricing: async () => [
+        {
+          providerProductId: "188370",
+          providerSkuId: "188370:Reverse Holo",
+          tcgplayerProductId: 188370,
+          tcgMarket: 24,
+          tcgLow: 21.5,
+          tcgHigh: 31,
+          activeListings: 18,
+          manapoolLow: null,
+          updatedAt: "2026-08-12T10:00:00.000Z",
+        },
+      ],
+    },
+  });
+
+  assert.equal(resolved.skus[0]?.condition, "Near Mint");
+  assert.equal(resolved.skus[0]?.variant, "Reverse Holo");
+  assert.equal(resolved.skus[0]?.marketPrice, 24);
+  assert.equal(resolved.skus[0]?.lowPrice, 21.5);
+  assert.equal(resolved.skus[0]?.highPrice, 31);
+  assert.equal(resolved.skus[0]?.activeListings, 18);
+});
+
+test("Pokemon utility code cards are excluded from ordinary product discovery", async () => {
+  clearTcgProductSearchCache();
+  assert.equal(isExcludedPokemonUtilityProduct({ name: "Code Card - Crown Zenith Elite Trainer Box", cleanName: "Code Card Crown Zenith Elite Trainer Box" }), true);
+  assert.equal(isExcludedPokemonUtilityProduct({ name: "Pokemon TCG Live Code Card - Scarlet & Violet", cleanName: "Pokemon TCG Live Code Card Scarlet Violet" }), true);
+  assert.equal(isExcludedPokemonUtilityProduct({ name: "Codebreaker Pikachu", cleanName: "Codebreaker Pikachu" }), false);
+
+  const results = await searchTcgProducts({
+    gameId: TCGTRACKING_POKEMON_GAME_ID,
+    query: "Pikachu VMAX",
+    limit: 10,
+    client: {
+      sets: async (category) => [{ id: "swsh4", categoryId: category, name: "Vivid Voltage", abbreviation: "VIV" }],
+      cards: async () => [
+        pokemonProduct({ providerProductId: "code-1", name: "Code Card - Pikachu VMAX", collectorNumber: "" }),
+        pokemonProduct({ providerProductId: "188370", name: "Pikachu VMAX", collectorNumber: "44" }),
+      ],
+    },
+  });
+
+  assert.equal(results.some((result) => result.name.startsWith("Code Card")), false);
+  assert.equal(results[0]?.name, "Pikachu VMAX");
+});
+
+test("Pokemon discovery preserves set context required for exact SKU pricing", async () => {
+  clearTcgProductSearchCache();
+
+  const results = await searchTcgProducts({
+    gameId: TCGTRACKING_POKEMON_GAME_ID,
+    query: "Pikachu VMAX",
+    limit: 1,
+    client: {
+      sets: async (category) => [{ id: "swsh4", categoryId: category, name: "Vivid Voltage", abbreviation: "VIV" }],
+      cards: async () => [
+        pokemonProduct({
+          providerProductId: "188370",
+          name: "Pikachu VMAX",
+          collectorNumber: "44",
+          setId: undefined,
+          setName: undefined,
+          setCode: undefined,
+        }),
+      ],
+    },
+  });
+
+  assert.equal(results[0]?.setId, "swsh4");
+  assert.equal(results[0]?.setName, "Vivid Voltage");
+  assert.equal(results[0]?.setCode, "VIV");
+});
+
 test("Pokemon purchasing UI excludes Magic-only market and variant vocabulary", () => {
   assert.deepEqual(variantOptionsForGame("pokemon"), [
     "Normal",
@@ -171,16 +265,19 @@ function pokemonProduct(overrides: Partial<{
   providerProductId: string;
   name: string;
   collectorNumber: string;
+  setId: string | undefined;
+  setName: string | undefined;
+  setCode: string | undefined;
 }> = {}) {
   return {
     providerProductId: overrides.providerProductId ?? "188370",
     categoryId: "3",
-    setId: "swsh4",
+    setId: Object.prototype.hasOwnProperty.call(overrides, "setId") ? overrides.setId : "swsh4",
     tcgplayerProductId: Number(overrides.providerProductId ?? "188370"),
     name: overrides.name ?? "Pikachu VMAX",
     cleanName: overrides.name ?? "Pikachu VMAX",
-    setName: "Vivid Voltage",
-    setCode: "VIV",
+    setName: Object.prototype.hasOwnProperty.call(overrides, "setName") ? overrides.setName : "Vivid Voltage",
+    setCode: Object.prototype.hasOwnProperty.call(overrides, "setCode") ? overrides.setCode : "VIV",
     collectorNumber: overrides.collectorNumber ?? "44",
     rarity: "Ultra Rare",
     imageUrl: "https://cdn.tcgtracking.com/product/188370_200w.jpg",

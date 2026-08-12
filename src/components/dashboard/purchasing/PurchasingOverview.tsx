@@ -388,10 +388,33 @@ function DetailPanel(props: {
       </section>
     );
   }
-  const hasExactSku = product.productType === "sealed" || Boolean(props.sku?.marketPrice ?? product.marketPrice);
+  const hasExactSku = product.productType === "sealed" || (props.sku?.marketPrice ?? product.marketPrice) != null;
+  const conditionOptions = uniqueSkuValues(product.skus.map((sku) => sku.condition));
+  const variantOptions = uniqueSkuValues(product.skus.map((sku) => sku.variant));
+  const languageOptions = uniqueSkuValues(product.skus.map((sku) => sku.language));
+  const conditionValue = props.sku?.condition ?? conditionOptions[0] ?? "Near Mint";
+  const variantValue = props.sku?.variant ?? product.variants[0] ?? "Normal";
+  const languageValue = props.sku?.language ?? languageOptions[0] ?? "English";
+  const chooseSku = (next: { condition?: string; variant?: string; language?: string }) => {
+    const target = {
+      condition: next.condition ?? conditionValue,
+      variant: next.variant ?? variantValue,
+      language: next.language ?? languageValue,
+    };
+    const exact = product.skus.find((sku) =>
+      sku.condition === target.condition &&
+      sku.variant === target.variant &&
+      sku.language === target.language,
+    );
+    const fallback = product.skus.find((sku) =>
+      sku.condition === target.condition &&
+      sku.variant === target.variant,
+    ) ?? product.skus.find((sku) => sku.condition === target.condition) ?? product.skus[0];
+    props.onSkuChange((exact ?? fallback)?.id ?? "");
+  };
   return (
     <section className="rounded-[28px] border border-white/[0.07] bg-[#06141f] p-4 sm:p-5">
-      <div className="grid gap-5 lg:grid-cols-[240px_1fr_260px]">
+      <div className="grid gap-5 2xl:grid-cols-[240px_minmax(420px,1fr)_280px]">
         <div>
           <ProductImage product={product} size="large" />
           <div className="mt-3 rounded-2xl border border-white/[0.06] bg-black/15 p-3">
@@ -414,24 +437,32 @@ function DetailPanel(props: {
             {[product.setName, product.setCode, product.collectorNumber ? `#${product.collectorNumber}` : null, product.rarity].filter(Boolean).join(" · ") || "Exact product identity"}
           </p>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-1 xl:grid-cols-3">
             <Metric label="Market" value={money(props.sku?.marketPrice ?? product.marketPrice) ?? "Unavailable"} />
             <Metric label="Low" value={money(props.sku?.lowPrice ?? product.lowPrice) ?? "Unavailable"} />
             <Metric label="Listings" value={String(props.sku?.activeListings ?? product.activeListings ?? "N/A")} />
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <p className="mt-6 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">SKU details</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-1 xl:grid-cols-2">
             {product.productType === "card" ? (
               <>
-                <Control label="Exact SKU">
-                  <select value={props.selectedSkuId} onChange={(event) => props.onSkuChange(event.target.value)} className={FIELD_CLASS}>
-                    {product.skus.length ? product.skus.map((sku) => (
-                      <option key={sku.id} value={sku.id}>{sku.condition} · {sku.variant} · {sku.language}</option>
-                    )) : <option value="">SKU pricing unavailable</option>}
+                <Control label="Condition">
+                  <select value={conditionValue} onChange={(event) => chooseSku({ condition: event.target.value })} className={FIELD_CLASS}>
+                    {conditionOptions.length ? conditionOptions.map((condition) => (
+                      <option key={condition} value={condition}>{condition}</option>
+                    )) : <option value="">Unavailable</option>}
                   </select>
                 </Control>
                 <Control label="Variant">
-                  <input readOnly value={props.sku?.variant ?? product.variants[0] ?? "Normal"} className={FIELD_CLASS} />
+                  <select value={variantValue} onChange={(event) => chooseSku({ variant: event.target.value })} className={FIELD_CLASS}>
+                    {(variantOptions.length ? variantOptions : product.variants).map((variant) => <option key={variant} value={variant}>{variant}</option>)}
+                  </select>
+                </Control>
+                <Control label="Language">
+                  <select value={languageValue} onChange={(event) => chooseSku({ language: event.target.value })} className={FIELD_CLASS}>
+                    {languageOptions.length ? languageOptions.map((language) => <option key={language} value={language}>{language}</option>) : <option value="English">English</option>}
+                  </select>
                 </Control>
               </>
             ) : (
@@ -598,9 +629,9 @@ function SegmentedProductType({ value, onChange }: { value: "all" | PurchasingPr
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-black/20 p-3">
+    <div className="min-w-0 rounded-2xl bg-black/20 p-3">
       <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-600">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-100">{value}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-slate-100">{value}</p>
     </div>
   );
 }
@@ -612,6 +643,10 @@ function Control({ label, children }: { label: string; children: ReactNode }) {
       <div className="mt-2">{children}</div>
     </label>
   );
+}
+
+function uniqueSkuValues(values: string[]) {
+  return Array.from(new Set(values.filter((value) => value.trim()))).sort((left, right) => left.localeCompare(right));
 }
 
 function BuyingRow({ label, value, strong = false }: { label: string; value: string | null; strong?: boolean }) {

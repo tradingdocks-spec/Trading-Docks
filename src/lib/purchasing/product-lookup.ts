@@ -176,15 +176,16 @@ export function magicScryfallToPurchasingResult(card: Record<string, unknown>): 
 }
 
 export function calculateBuyingOffer(marketPrice: number | null | undefined, offerPercent = 60) {
-  const market = Number(marketPrice ?? 0);
+  const market = marketPrice == null ? null : Number(marketPrice);
   const percent = Math.max(0, Math.min(100, Number(offerPercent)));
-  const cashOffer = Number.isFinite(market) ? roundMoney(market * (percent / 100)) : 0;
+  const hasMarket = market != null && Number.isFinite(market);
+  const cashOffer = hasMarket ? roundMoney(market * (percent / 100)) : null;
   return {
-    marketReference: Number.isFinite(market) ? roundMoney(market) : 0,
+    marketReference: hasMarket ? roundMoney(market) : null,
     offerPercent: percent,
     cashOffer,
-    storeCreditOffer: roundMoney(cashOffer * 1.15),
-    spread: roundMoney(Math.max(0, market - cashOffer)),
+    storeCreditOffer: cashOffer == null ? null : roundMoney(cashOffer * 1.15),
+    spread: hasMarket && cashOffer != null ? roundMoney(Math.max(0, market - cashOffer)) : null,
   };
 }
 
@@ -202,7 +203,7 @@ export function buildPurchaseWorkspaceLine(input: {
     product: input.product,
     sku: input.sku ?? null,
     quantity,
-    unitOffer: offer.cashOffer,
+    unitOffer: offer.cashOffer ?? 0,
   };
 }
 

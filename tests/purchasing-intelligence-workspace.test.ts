@@ -150,6 +150,16 @@ test("buying rules expose clear cash store-credit and spread math", () => {
   });
 });
 
+test("unavailable market prices do not become fake zero-dollar offers", () => {
+  assert.deepEqual(calculateBuyingOffer(null, 60), {
+    marketReference: null,
+    offerPercent: 60,
+    cashOffer: null,
+    storeCreditOffer: null,
+    spread: null,
+  });
+});
+
 test("lookup API is buying-capability gated and supports inventory persistence", () => {
   const route = source("src/app/api/purchasing/product-lookup/route.ts");
 
@@ -167,6 +177,17 @@ test("lookup API is buying-capability gated and supports inventory persistence",
   assert.match(route, /add-trade-binder/);
   assert.match(route, /add-wishlist/);
   assert.doesNotMatch(route, /Scryfall.*pokemon/i);
+});
+
+test("selected-product layout uses readable SKU controls instead of raw SKU IDs", () => {
+  const page = source("src/components/dashboard/purchasing/PurchasingOverview.tsx");
+
+  assert.match(page, /SKU details/);
+  assert.match(page, /label="Condition"/);
+  assert.match(page, /label="Variant"/);
+  assert.match(page, /label="Language"/);
+  assert.doesNotMatch(page, /label="Exact SKU"/);
+  assert.doesNotMatch(page, /SKU pricing unavailable/);
 });
 
 test("mobile scanner architecture remains available outside Purchasing Intelligence", () => {
