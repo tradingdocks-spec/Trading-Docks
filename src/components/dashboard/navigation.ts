@@ -98,8 +98,13 @@ export const PURCHASING_NAV: NavigationSection = {
   href: "/dashboard/purchasing",
   children: [
     {
-      href: "/dashboard/card-photo-scanner",
+      href: "/dashboard/purchasing",
       label: "Purchasing Intelligence",
+      icon: PackageSearch,
+    },
+    {
+      href: "/dashboard/card-photo-scanner",
+      label: "Image Lookup",
       icon: ScanLine,
     },
     {

@@ -7,6 +7,7 @@ import {
 import type {
   TcgTrackingPriceSnapshot,
   TcgTrackingProduct,
+  TcgTrackingSealedProduct,
   TcgTrackingSet,
   TcgTrackingSku,
 } from "./types.ts";
@@ -50,7 +51,8 @@ type ProductIndex = {
   categoryId: string;
   builtAt: number;
   sets: TcgTrackingSet[];
-  products: TcgTrackingProduct[];
+  products: TcgProductSearchResult[];
+  sealedProducts: TcgProductSearchResult[];
 };
 
 let pokemonIndex: ProductIndex | null = null;
@@ -60,7 +62,8 @@ export async function searchTcgProducts(input: {
   gameId: number;
   query: string;
   limit?: number;
-  client?: Pick<TcgTrackingClient, "sets" | "cards">;
+  productType?: "card" | "sealed" | "all";
+  client?: Pick<TcgTrackingClient, "sets" | "cards"> & Partial<Pick<TcgTrackingClient, "sealed">>;
 }): Promise<TcgProductSearchResult[]> {
   const query = normalizeSearchText(input.query);
   if (!query || input.gameId !== TCGTRACKING_POKEMON_GAME_ID) return [];
@@ -68,8 +71,14 @@ export async function searchTcgProducts(input: {
   const index = await loadPokemonProductIndex(input.client);
   const limit = clampLimit(input.limit);
   const queryParts = query.split(" ").filter(Boolean);
+  const productType = input.productType ?? "card";
+  const products = productType === "sealed"
+    ? index.sealedProducts
+    : productType === "all"
+      ? [...index.products, ...index.sealedProducts]
+      : index.products;
 
-  return index.products
+  return products
     .map((product) => {
       const haystack = normalizeSearchText([
         product.name,
@@ -88,7 +97,7 @@ export async function searchTcgProducts(input: {
       if (product.collectorNumber && normalizeSearchText(product.collectorNumber) === query) score += 36;
       if (setText.includes(query)) score += 12;
       score += queryParts.filter((part) => haystack.includes(part)).length * 8;
-      return score > 0 ? toSearchResult(product, score) : null;
+      return score > 0 ? { ...product, score } : null;
     })
     .filter((result): result is TcgProductSearchResult => Boolean(result))
     .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name))
@@ -130,12 +139,12 @@ export function clearTcgProductSearchCache() {
 }
 
 async function loadPokemonProductIndex(
-  client: Pick<TcgTrackingClient, "sets" | "cards"> = createTcgTrackingClient(),
+  client: Pick<TcgTrackingClient, "sets" | "cards"> & Partial<Pick<TcgTrackingClient, "sealed">> = createTcgTrackingClient(),
 ) {
   if (pokemonIndex && Date.now() - pokemonIndex.builtAt < STATIC_INDEX_TTL_MS) return pokemonIndex;
   if (pokemonIndexPromise) return pokemonIndexPromise;
 
-  pokemonIndexPromise = (async () => {
+  const promise = (async () => {
     const sets = await client.sets(TCGTRACKING_POKEMON_CATEGORY_ID);
     const productGroups = await Promise.all(
       sets.map(async (set) => {
@@ -146,19 +155,33 @@ async function loadPokemonProductIndex(
         }
       }),
     );
-    const products = productGroups.flat();
+    const sealedGroups = await Promise.all(
+      sets.map(async (set) => {
+        try {
+          return typeof client.sealed === "function"
+            ? await client.sealed(TCGTRACKING_POKEMON_CATEGORY_ID, set.id)
+            : [];
+        } catch {
+          return [];
+        }
+      }),
+    );
+    const products = productGroups.flat().map((product) => toSearchResult(product, 0));
+    const sealedProducts = sealedGroups.flat().map((product) => sealedToSearchResult(product, 12));
     const index = {
       categoryId: TCGTRACKING_POKEMON_CATEGORY_ID,
       builtAt: Date.now(),
       sets,
       products,
+      sealedProducts,
     };
     pokemonIndex = index;
     pokemonIndexPromise = null;
     return index;
   })();
 
-  return pokemonIndexPromise;
+  pokemonIndexPromise = promise;
+  return promise;
 }
 
 function toSearchResult(product: TcgTrackingProduct, score: number): TcgProductSearchResult {
@@ -176,6 +199,25 @@ function toSearchResult(product: TcgTrackingProduct, score: number): TcgProductS
     rarity: product.rarity,
     imageUrl: product.imageUrl,
     variants: product.finishes,
+    score,
+  };
+}
+
+function sealedToSearchResult(product: TcgTrackingSealedProduct, score: number): TcgProductSearchResult {
+  return {
+    providerProductId: product.providerProductId,
+    tcgplayerProductId: product.tcgplayerProductId ?? null,
+    gameId: TCGTRACKING_POKEMON_GAME_ID,
+    categoryId: TCGTRACKING_POKEMON_CATEGORY_ID,
+    name: product.name,
+    cleanName: product.name,
+    setId: product.setId,
+    setName: product.productType,
+    setCode: undefined,
+    collectorNumber: undefined,
+    rarity: undefined,
+    imageUrl: product.imageUrl,
+    variants: ["Sealed"],
     score,
   };
 }
