@@ -5,6 +5,10 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { getAccountAwareNavigationGroups } from "../src/components/dashboard/navigation.ts";
+import {
+  getTopbarCreateActions,
+  topbarCreateActions,
+} from "../src/components/dashboard/shell/create-menu-actions.ts";
 import { ROUTE_ACCESS_REGISTRY, hasRouteAccess } from "../src/lib/platform/route-access.ts";
 import {
   resolvePlatformAccessContext,
@@ -167,6 +171,49 @@ test("route access registry classifies every concrete dashboard page", () => {
   });
 
   assert.deepEqual(unclassified, []);
+});
+
+test("global Create menu actions resolve to real non-placeholder destinations", () => {
+  const routes = appRoutePatterns();
+
+  assert.ok(topbarCreateActions.length >= 2, "Create menu should expose primary actions");
+
+  for (const action of topbarCreateActions) {
+    assert.ok(action.href.trim(), `${action.label} should have a destination`);
+    assert.notEqual(action.href, "#", `${action.label} must not use a placeholder href`);
+    assert.doesNotMatch(action.href, /javascript:|void\(0\)/i, `${action.label} must not use a script href`);
+    assert.ok(matchesKnownRoute(action.href, routes), `${action.label} links to missing route ${action.href}`);
+  }
+
+  assert.equal(
+    topbarCreateActions.find((item) => item.id === "add-inventory-card")?.href,
+    "/dashboard/card-photo-scanner",
+  );
+  assert.equal(
+    topbarCreateActions.find((item) => item.id === "create-deck")?.href,
+    "/dashboard/deck-vault/new",
+  );
+});
+
+test("global Create menu tier filtering avoids unauthorized dead actions", () => {
+  assert.deepEqual(
+    getTopbarCreateActions("free").map((item) => item.id),
+    ["add-inventory-card", "create-deck"],
+  );
+  assert.ok(getTopbarCreateActions("collector").some((item) => item.id === "create-storage-location"));
+  assert.ok(getTopbarCreateActions("seller").some((item) => item.id === "create-marketplace-listing"));
+  assert.ok(getTopbarCreateActions("store").some((item) => item.id === "record-store-expense"));
+});
+
+test("active Collection workspace honors storage route query for Create menu location actions", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/collector-workspace/CollectorWorkspace.tsx"),
+    "utf8",
+  );
+
+  assert.match(source, /useSearchParams/);
+  assert.match(source, /searchParams\.get\("section"\)/);
+  assert.match(source, /isCollectionSection\(requestedSection\)/);
 });
 
 test("shared scaffold surfaces do not render fake action buttons", () => {

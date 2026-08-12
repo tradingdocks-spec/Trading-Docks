@@ -28,10 +28,21 @@ import { logout } from "@/app/actions/auth";
 import {
   normalizeAccountTier,
   PLAN_ENTITLEMENTS,
-  type AccountTier,
 } from "@/lib/plan-entitlements";
 import { NotificationBell } from "../notifications/NotificationBell";
 import { GlobalSearch } from "../search/GlobalSearch";
+import {
+  getTopbarCreateActions,
+  type TopbarCreateActionId,
+} from "./create-menu-actions";
+
+const createActionIcons: Record<TopbarCreateActionId, ComponentType<{ className?: string }>> = {
+  "add-inventory-card": PackagePlus,
+  "create-deck": LibraryBig,
+  "create-storage-location": FolderPlus,
+  "create-marketplace-listing": ShoppingBag,
+  "record-store-expense": CreditCard,
+};
 
 export function Topbar({
   collapsed,
@@ -74,15 +85,10 @@ export function Topbar({
   }, []);
 
   const createItems = useMemo(() => {
-    const items = [
-      { label: "Add inventory card", href: "/dashboard/inventory?create=card", icon: PackagePlus, minimum: "free" as AccountTier },
-      { label: "Create deck", href: "/dashboard/deck-vault?create=deck", icon: LibraryBig, minimum: "free" as AccountTier },
-      { label: "Create binder or box", href: "/dashboard/inventory?create=location", icon: FolderPlus, minimum: "collector" as AccountTier },
-      { label: "Create marketplace listing", href: "/dashboard/marketplaces?create=listing", icon: ShoppingBag, minimum: "seller" as AccountTier },
-      { label: "Record store expense", href: "/dashboard/finances?create=expense", icon: CreditCard, minimum: "store" as AccountTier },
-    ];
-    const rank: Record<AccountTier, number> = { free: 0, collector: 1, seller: 2, store: 3 };
-    return items.filter((item) => rank[plan] >= rank[item.minimum]);
+    return getTopbarCreateActions(plan).map((item) => ({
+      ...item,
+      icon: createActionIcons[item.id],
+    }));
   }, [plan]);
 
   return (
@@ -116,7 +122,7 @@ export function Topbar({
 
         <div ref={menuRef} className="relative ml-auto flex items-center gap-2">
           <Link
-            href="/dashboard/inventory?create=card"
+            href="/dashboard/card-photo-scanner"
             aria-label="Add inventory"
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-300/[0.14] bg-blue-400/[0.07] text-blue-200 sm:hidden"
           >

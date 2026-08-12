@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowUpDown,
   Activity,
@@ -77,6 +78,7 @@ export function CollectorWorkspace({
   inventoryLimit: number | null;
   hasFullPlatformAccess?: boolean;
 }) {
+  const searchParams = useSearchParams();
   const [cards, setCards] = useState<CollectionCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -100,6 +102,13 @@ export function CollectorWorkspace({
     const timer = window.setTimeout(() => setDebouncedQuery(query), 250);
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    const requestedSection = searchParams.get("section");
+    if (isCollectionSection(requestedSection)) {
+      setActiveSection(requestedSection);
+    }
+  }, [searchParams]);
 
   const loadPage = useCallback((cursor: string | null, reset: boolean) => {
     const filter = {
@@ -650,6 +659,16 @@ function allocationBySet(cards: CollectionCard[]) {
 
 function titleCase(value: string) {
   return value.slice(0, 1).toUpperCase() + value.slice(1);
+}
+
+function isCollectionSection(value: string | null): value is CollectionSection {
+  return value === "overview" ||
+    value === "cards" ||
+    value === "binders" ||
+    value === "portfolio" ||
+    value === "storage" ||
+    value === "trade" ||
+    value === "wishlist";
 }
 
 function StorageCell({
