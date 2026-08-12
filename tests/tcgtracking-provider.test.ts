@@ -45,6 +45,9 @@ import {
   tcgTrackingCachePolicy,
 } from "../src/lib/providers/tcgtracking/index.ts";
 import {
+  isAllowedTcgTrackingImageUrl,
+  normalizeTcgTrackingImageUrl,
+  productImageProxyUrl,
   resolveExactProductImageUrl,
   tcgTrackingProductImageUrl,
 } from "../src/lib/card-image-authority.ts";
@@ -399,6 +402,48 @@ test("TCGTracking image priority prefers existing Trading Docks image before pro
     }),
     "https://cdn.tcgtracking.com/product/226694_200w.jpg",
   );
+  assert.equal(
+    resolveExactProductImageUrl({
+      gameId: "pokemon",
+      providerProductId: 528226,
+      tcgplayerProductId: 528226,
+      tcgTrackingImageUrl: "https://cdn.tcgtracking.com/product/528226_200w.jpg",
+    }),
+    "/api/catalog/product-image?gameId=pokemon&providerProductId=528226&productType=card&tcgplayerProductId=528226&source=https%3A%2F%2Fcdn.tcgtracking.com%2Fproduct%2F528226_200w.jpg",
+  );
+});
+
+test("TCGTracking image normalization supports exact Pokemon card and sealed product identity", () => {
+  assert.equal(
+    normalizeTcgTrackingImageUrl("https://cdn.tcgtracking.com/product/250305_200w.jpg"),
+    "https://cdn.tcgtracking.com/product/250305_200w.jpg",
+  );
+  assert.equal(
+    normalizeTcgTrackingImageUrl("/product/250305_200w.jpg"),
+    "https://cdn.tcgtracking.com/product/250305_200w.jpg",
+  );
+  assert.equal(
+    normalizeTcgTrackingImageUrl("//cdn.tcgtracking.com/product/250305_200w.jpg"),
+    "https://cdn.tcgtracking.com/product/250305_200w.jpg",
+  );
+  assert.equal(normalizeTcgTrackingImageUrl("https://cards.scryfall.io/card.jpg"), null);
+  assert.equal(normalizeTcgTrackingImageUrl("javascript:alert(1)"), null);
+  assert.equal(
+    isAllowedTcgTrackingImageUrl("https://cdn.tcgtracking.com/product/250305_200w.jpg", 250305),
+    true,
+  );
+  assert.equal(
+    isAllowedTcgTrackingImageUrl("https://cdn.tcgtracking.com/product/250306_200w.jpg", 250305),
+    false,
+  );
+  assert.equal(
+    productImageProxyUrl({
+      gameId: "pokemon",
+      productType: "sealed",
+      providerProductId: 251054,
+    }),
+    "/api/catalog/product-image?gameId=pokemon&providerProductId=251054&productType=sealed",
+  );
 });
 
 test("TCGTracking proposal migration is additive global cache and keeps catalog canonical", () => {
@@ -427,7 +472,7 @@ test("TCGTracking mapping and price snapshot models preserve exact SKU identity"
   const mapping = mappingRowFromTcgTrackingProduct(product, "2026-08-11T00:00:00.000Z");
   assert.equal(mapping?.tcgplayer_product_id, 456789);
   assert.equal(mapping?.scryfall_id, "00000000-0000-4000-8000-000000000082");
-  assert.equal(mapping?.image_url, "https://cdn.tcgtracking.test/magic/mid/82.jpg");
+  assert.equal(mapping?.image_url, "https://cdn.tcgtracking.com/product/456789_200w.jpg");
 
   const snapshot = skuPriceSnapshotRow({
     tcgplayerProductId: sku.tcgplayerProductId,
@@ -1184,7 +1229,7 @@ function providerProduct() {
     set_name: "Innistrad: Midnight Hunt",
     set_abbr: "MID",
     collector_number: "82",
-    image_url: "https://cdn.tcgtracking.test/magic/mid/82.jpg",
+    image_url: "https://cdn.tcgtracking.com/product/456789_200w.jpg",
     scryfall_id: "00000000-0000-4000-8000-000000000082",
     mtgjson_uuid: "mtgjson-82",
     cardmarket_id: "cardmarket-82",

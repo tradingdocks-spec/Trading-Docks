@@ -7,6 +7,7 @@ import type {
   TcgTrackingSet,
   TcgTrackingSku,
 } from "./types.ts";
+import { normalizeTcgTrackingImageUrl } from "../../card-image-authority.ts";
 
 export function asObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -173,9 +174,9 @@ export function normalizeProduct(
       "number",
     ]),
     rarity: stringField(source, ["rarity"]),
-    imageUrl: safeProviderUrl(
+    imageUrl: normalizeTcgTrackingImageUrl(
       stringField(source, ["image_url", "imageUrl", "image"]),
-    ),
+    ) ?? undefined,
     scryfallId: stringField(source, ["scryfall_id", "scryfallId"]),
     mtgjsonUuid: stringField(source, ["mtgjson_uuid", "mtgjsonUuid", "uuid"]),
     cardtraderId: stringField(source, ["cardtrader_id", "cardtraderId"]),
@@ -288,7 +289,7 @@ export function normalizeScanCandidate(value: unknown): TcgTrackingScanCandidate
     setName: stringField(source, ["set_name", "setName"]),
     setCode: stringField(source, ["set_abbr", "setAbbr", "set_code", "setCode"]),
     collectorNumber: stringField(source, ["collector_number", "collectorNumber", "number"]),
-    imageUrl: safeProviderUrl(stringField(source, ["image_url", "imageUrl", "image"])),
+    imageUrl: normalizeTcgTrackingImageUrl(stringField(source, ["image_url", "imageUrl", "image"])) ?? undefined,
     confidence: Math.max(0, Math.min(1, confidence > 1 ? confidence / 100 : confidence)),
     metadata: source,
   };

@@ -124,11 +124,35 @@ test("Purchasing scanner route wires Pokemon through TCGTracking scan and not Sc
   assert.match(route, /TCGTRACKING_POKEMON_GAME_ID/);
   assert.match(route, /scanCardImageWithTcgTracking/);
   assert.match(route, /searchTcgProducts/);
+  assert.match(route, /resolveExactProductImageUrl/);
   assert.match(route, /No Pokemon products found/);
   assert.doesNotMatch(route, /\.search\(/);
   assert.match(scanner, /compressImageForTcgTracking/);
   assert.match(scanner, /form\.set\("gameId", gameContext\)/);
+  assert.match(scanner, /Image unavailable/);
+  assert.match(scanner, /onImageError/);
   assert.doesNotMatch(scanner, /Pokemon purchasing recognition is in beta/);
+});
+
+test("Pokemon product images use provider-locked first-party image route", () => {
+  const imageRoute = readFileSync(
+    path.join(repoRoot, "src/app/api/catalog/product-image/route.ts"),
+    "utf8",
+  );
+  const scannerRoute = readFileSync(
+    path.join(repoRoot, "src/app/api/purchasing/card-photo-scan/route.ts"),
+    "utf8",
+  );
+
+  assert.match(imageRoute, /isAllowedTcgTrackingImageUrl/);
+  assert.match(imageRoute, /tcgTrackingProductImageUrl/);
+  assert.match(imageRoute, /content-type/);
+  assert.match(imageRoute, /startsWith\("image\/"\)/);
+  assert.match(imageRoute, /Cache-Control/);
+  assert.doesNotMatch(imageRoute, /scryfall/i);
+  assert.match(scannerRoute, /productType: "card"/);
+  assert.match(scannerRoute, /providerProductId: product\.providerProductId/);
+  assert.match(scannerRoute, /tcgplayerProductId: product\.tcgplayerProductId/);
 });
 
 test("Collection Buying exposes Pokemon context and does not guess ambiguous Pokemon printings", () => {
@@ -159,7 +183,7 @@ function pokemonProduct(overrides: Partial<{
     setCode: "VIV",
     collectorNumber: overrides.collectorNumber ?? "44",
     rarity: "Ultra Rare",
-    imageUrl: "https://tcgplayer-cdn.tcgplayer.com/product/188370_200w.jpg",
+    imageUrl: "https://cdn.tcgtracking.com/product/188370_200w.jpg",
     colors: [],
     finishes: ["Normal", "Holo"],
     raw: {},

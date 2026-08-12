@@ -24,7 +24,7 @@ export type ApiAccessRule = {
 export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "revenuecat-webhook", pattern: /^\/api\/webhooks\/revenuecat\/?$/, kind: "webhook", label: "RevenueCat webhook" },
   { id: "cloudflare-email-webhook", pattern: /^\/api\/webhooks\/cloudflare-email\/?$/, kind: "webhook", label: "Cloudflare email webhook" },
-  { id: "public-card-images", pattern: /^\/api\/(landing-card-image|scryfall-image|scryfall-card-image|tcg-image|tcgcsv\/image|card-shows\/image)(\/|$)/, kind: "public", label: "Public card image proxy" },
+  { id: "public-card-images", pattern: /^\/api\/(catalog\/product-image|landing-card-image|scryfall-image|scryfall-card-image|tcg-image|tcgcsv\/image|card-shows\/image)(\/|$)/, kind: "public", label: "Public card image proxy" },
   { id: "public-market-data", pattern: /^\/api\/(market-cards|multi-game-market|deck-vault\/game-changers)(\/|$)/, kind: "public", label: "Public market data" },
   { id: "admin", pattern: /^\/api\/admin(\/|$)/, kind: "admin-only", capability: "platform.admin", label: "Admin APIs" },
   { id: "billing", pattern: /^\/api\/billing\/revenuecat(\/|$)/, kind: "authenticated", label: "RevenueCat billing checkout and management" },

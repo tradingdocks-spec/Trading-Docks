@@ -6,6 +6,7 @@ import type {
   CardScanResponse,
   ScanIdentification,
 } from "@/lib/card-photo-scanner/types";
+import { resolveExactProductImageUrl } from "@/lib/card-image-authority";
 import {
   TCGTRACKING_POKEMON_CATEGORY_ID,
   TCGTRACKING_POKEMON_GAME_ID,
@@ -290,7 +291,13 @@ function pokemonCandidate(
     language: sku?.language ?? "English",
     finishes: skuVariants(skus, product),
     rarity: product.rarity ?? null,
-    imageUrl: product.imageUrl ?? null,
+    imageUrl: resolveExactProductImageUrl({
+      gameId: "pokemon",
+      productType: "card",
+      providerProductId: product.providerProductId,
+      tcgplayerProductId: product.tcgplayerProductId,
+      tcgTrackingImageUrl: product.imageUrl,
+    }),
     scryfallUrl: null,
     gameId: "pokemon",
     provider: "tcgtracking",

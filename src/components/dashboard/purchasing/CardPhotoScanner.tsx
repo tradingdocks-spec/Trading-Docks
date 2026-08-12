@@ -222,6 +222,7 @@ export function CardPhotoScanner() {
   const [condition, setCondition] = useState("Near Mint");
   const [finish, setFinish] = useState("Nonfoil");
   const [gameContext, setGameContext] = useState<GameContextId>("magic");
+  const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
   const [offerPercent, setOfferPercent] = useState(60);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [notice, setNotice] = useState("");
@@ -285,6 +286,7 @@ export function CardPhotoScanner() {
       setError("");
       setResult(null);
       setSelectedId(null);
+      setFailedImages(new Set());
 
       if (!next) return;
 
@@ -348,6 +350,7 @@ export function CardPhotoScanner() {
 
       setResult(payload);
       setSelectedId(payload.candidates[0]?.id ?? null);
+      setFailedImages(new Set());
 
       if (payload.identification.finish === "foil") setFinish("Foil");
       if (payload.identification.finish === "etched") setFinish("Etched");
@@ -371,6 +374,7 @@ export function CardPhotoScanner() {
     setManualName("");
     setResult(null);
     setSelectedId(null);
+    setFailedImages(new Set());
     setError("");
     setNotice("");
   }
@@ -400,6 +404,7 @@ export function CardPhotoScanner() {
               setGameContext(nextGame);
               setResult(null);
               setSelectedId(null);
+              setFailedImages(new Set());
               setError("");
               setNotice(
                 nextGame === "pokemon"
@@ -427,6 +432,10 @@ export function CardPhotoScanner() {
                 selectedId={selected?.id ?? null}
                 onSelect={setSelectedId}
                 gameContext={gameContext}
+                failedImages={failedImages}
+                onImageError={(id) =>
+                  setFailedImages((current) => new Set(current).add(id))
+                }
               />
             </aside>
 
@@ -772,6 +781,8 @@ function CandidateList(props: {
   selectedId: string | null;
   onSelect: (id: string) => void;
   gameContext: GameContextId;
+  failedImages: Set<string>;
+  onImageError: (id: string) => void;
 }) {
   return (
     <section className="rounded-[26px] border border-white/[.075] bg-[#07121f] p-5">
@@ -802,15 +813,26 @@ function CandidateList(props: {
               }`}
             >
               <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-[#020914]">
-                {candidate.imageUrl ? (
+                {candidate.imageUrl && !props.failedImages.has(candidate.id) ? (
                   <Image
                     src={candidate.imageUrl}
                     alt={candidate.name}
                     fill
                     unoptimized
                     className="object-contain"
+                    sizes="56px"
+                    onError={() => props.onImageError(candidate.id)}
                   />
-                ) : null}
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center gap-1 px-1 text-center">
+                    <span className="text-[9px] font-bold text-cyan-300">
+                      {props.gameContext === "pokemon" ? "PKM" : "TCG"}
+                    </span>
+                    <span className="text-[7px] leading-3 text-slate-700">
+                      Image unavailable
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
