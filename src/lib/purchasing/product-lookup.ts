@@ -52,7 +52,10 @@ export type PurchaseWorkspaceLine = {
   product: PurchasingLookupResult;
   sku: PurchasingSkuOption | null;
   quantity: number;
+  marketReference: number | null;
+  offerPercent: number;
   unitOffer: number;
+  storeCreditOffer: number | null;
   storageLocationId?: string | null;
 };
 
@@ -175,16 +178,17 @@ export function magicScryfallToPurchasingResult(card: Record<string, unknown>): 
   };
 }
 
-export function calculateBuyingOffer(marketPrice: number | null | undefined, offerPercent = 60) {
+export function calculateBuyingOffer(marketPrice: number | null | undefined, offerPercent = 60, storeCreditBonusPercent = 15) {
   const market = marketPrice == null ? null : Number(marketPrice);
   const percent = Math.max(0, Math.min(100, Number(offerPercent)));
+  const storeCreditBonus = Math.max(0, Math.min(100, Number(storeCreditBonusPercent)));
   const hasMarket = market != null && Number.isFinite(market);
   const cashOffer = hasMarket ? roundMoney(market * (percent / 100)) : null;
   return {
     marketReference: hasMarket ? roundMoney(market) : null,
     offerPercent: percent,
     cashOffer,
-    storeCreditOffer: cashOffer == null ? null : roundMoney(cashOffer * 1.15),
+    storeCreditOffer: cashOffer == null ? null : roundMoney(cashOffer * (1 + storeCreditBonus / 100)),
     spread: hasMarket && cashOffer != null ? roundMoney(Math.max(0, market - cashOffer)) : null,
   };
 }
@@ -194,16 +198,20 @@ export function buildPurchaseWorkspaceLine(input: {
   sku?: PurchasingSkuOption | null;
   quantity: number;
   offerPercent?: number;
+  storeCreditBonusPercent?: number;
 }): PurchaseWorkspaceLine {
   const quantity = Math.max(1, Math.floor(input.quantity));
   const market = input.sku?.marketPrice ?? input.product.marketPrice;
-  const offer = calculateBuyingOffer(market, input.offerPercent);
+  const offer = calculateBuyingOffer(market, input.offerPercent, input.storeCreditBonusPercent);
   return {
     id: purchaseLineIdentity(input.product, input.sku),
     product: input.product,
     sku: input.sku ?? null,
     quantity,
+    marketReference: offer.marketReference,
+    offerPercent: offer.offerPercent,
     unitOffer: offer.cashOffer ?? 0,
+    storeCreditOffer: offer.storeCreditOffer,
   };
 }
 
@@ -277,8 +285,10 @@ export function purchaseLineDetails(line: PurchaseWorkspaceLine) {
     condition: line.sku?.condition ?? null,
     variant: line.sku?.variant ?? line.product.variants[0] ?? null,
     language: line.sku?.language ?? "English",
-    market_reference: line.sku?.marketPrice ?? line.product.marketPrice,
+    market_reference: line.marketReference ?? line.sku?.marketPrice ?? line.product.marketPrice,
+    buying_percent: line.offerPercent,
     unit_offer: line.unitOffer,
+    store_credit_offer: line.storeCreditOffer,
   };
 }
 

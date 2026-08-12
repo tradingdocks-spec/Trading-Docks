@@ -5,6 +5,12 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  DEFAULT_PURCHASING_BUYING_RULES,
+  PURCHASING_BUYING_RULES_DOCUMENT,
+  resolveEffectiveBuyingRule,
+  resolvePurchasingBuyingRules,
+} from "../src/lib/purchasing/buying-rules.ts";
+import {
   buildInventorySku,
   buildPurchaseWorkspaceLine,
   calculateBuyingOffer,
@@ -23,6 +29,10 @@ test("Purchasing Intelligence is search-first and photo upload is secondary", ()
   const canonicalRoute = source("src/app/dashboard/purchasing-intelligence/page.tsx");
 
   assert.match(page, /Search cards, sealed products, sets, or product IDs/);
+  assert.match(page, /type="submit"[\s\S]*Search/);
+  assert.match(page, /function submitSearch/);
+  assert.match(page, /void runSearch\(query\)/);
+  assert.match(page, /void runSearch\(trimmed\)/);
   assert.match(page, /Search the catalog/);
   assert.match(page, /Upload image/);
   assert.match(canonicalRoute, /PurchasingOverview/);
@@ -123,6 +133,9 @@ test("selected products create canonical purchase ledger lines with exact SKU de
   assert.equal(payload.purchase.lines[0].details.game_id, "pokemon");
   assert.equal(payload.purchase.lines[0].details.provider_product_id, "528226");
   assert.equal(payload.purchase.lines[0].details.provider_sku_id, "sku-holo-nm");
+  assert.equal(payload.purchase.lines[0].details.buying_percent, 60);
+  assert.equal(payload.purchase.lines[0].details.market_reference, 42);
+  assert.equal(payload.purchase.lines[0].details.store_credit_offer, 28.98);
   assert.equal(payload.purchase.lines[0].totalCost, 50.4);
 });
 
@@ -148,6 +161,41 @@ test("buying rules expose clear cash store-credit and spread math", () => {
     storeCreditOffer: 28.98,
     spread: 16.8,
   });
+});
+
+test("Purchasing Intelligence buying rules resolve singles and sealed rates from one authority", () => {
+  assert.equal(PURCHASING_BUYING_RULES_DOCUMENT, "purchasing-intelligence:buying-rules:v1");
+  assert.deepEqual(DEFAULT_PURCHASING_BUYING_RULES, {
+    singlesPercent: 60,
+    sealedPercent: 75,
+    storeCreditBonusPercent: 15,
+    manualOfferAllowed: false,
+  });
+
+  const singles = resolveEffectiveBuyingRule({
+    productType: "card",
+    rules: resolvePurchasingBuyingRules({
+      singlesPercent: 58,
+      sealedPercent: 72,
+      storeCreditBonusPercent: 12,
+    }).rules,
+    configured: true,
+  });
+  const sealed = resolveEffectiveBuyingRule({
+    productType: "sealed",
+    rules: resolvePurchasingBuyingRules({
+      singlesPercent: 58,
+      sealedPercent: 72,
+      storeCreditBonusPercent: 12,
+    }).rules,
+    configured: true,
+  });
+
+  assert.equal(singles.label, "58% · Singles");
+  assert.equal(sealed.label, "72% · Sealed");
+  assert.equal(sealed.sourceLabel, "Workspace rule");
+  assert.equal(calculateBuyingOffer(100, sealed.percent ?? 0, sealed.storeCreditBonusPercent).cashOffer, 72);
+  assert.equal(calculateBuyingOffer(100, sealed.percent ?? 0, sealed.storeCreditBonusPercent).storeCreditOffer, 80.64);
 });
 
 test("unavailable market prices do not become fake zero-dollar offers", () => {
@@ -186,8 +234,15 @@ test("selected-product layout uses readable SKU controls instead of raw SKU IDs"
   assert.match(page, /label="Condition"/);
   assert.match(page, /label="Variant"/);
   assert.match(page, /label="Language"/);
+  assert.match(page, /Add to Purchase/);
+  assert.match(page, /disabled=\{Boolean\(props\.addToPurchaseDisabledReason\)\}/);
+  assert.match(page, /Select a priced variant before adding to purchase/);
+  assert.match(page, /Edit rules/);
+  assert.match(page, /href="\/dashboard\/buying-rules"/);
+  assert.match(page, /Rule source/);
   assert.doesNotMatch(page, /label="Exact SKU"/);
   assert.doesNotMatch(page, /SKU pricing unavailable/);
+  assert.doesNotMatch(page, /useState\\(60\\)/);
 });
 
 test("mobile scanner architecture remains available outside Purchasing Intelligence", () => {

@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import {
   ArrowRight,
   Boxes,
@@ -20,7 +20,16 @@ import {
 } from "lucide-react";
 
 import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
+import { loadAccountDocument } from "@/lib/account-documents";
 import { createClient } from "@/lib/supabase/client";
+import {
+  DEFAULT_PURCHASING_BUYING_RULES,
+  PURCHASING_BUYING_RULES_DOCUMENT,
+  resolveEffectiveBuyingRule,
+  resolvePurchasingBuyingRules,
+  type EffectiveBuyingRule,
+  type PurchasingBuyingRules,
+} from "@/lib/purchasing/buying-rules";
 import {
   buildPurchaseWorkspaceLine,
   calculateBuyingOffer,
@@ -44,6 +53,7 @@ const FIELD_CLASS = "h-10 w-full rounded-xl border border-white/[0.08] bg-black/
 
 export function PurchasingOverview() {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchRequestRef = useRef(0);
   const [gameContext, setGameContext] = useState<GameContextId>("magic");
   const [productType, setProductType] = useState<"all" | PurchasingProductType>("all");
   const [query, setQuery] = useState("");
@@ -51,7 +61,9 @@ export function PurchasingOverview() {
   const [selected, setSelected] = useState<PurchasingLookupResult | null>(null);
   const [selectedSkuId, setSelectedSkuId] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [offerPercent, setOfferPercent] = useState(60);
+  const [buyingRules, setBuyingRules] = useState<PurchasingBuyingRules>(DEFAULT_PURCHASING_BUYING_RULES);
+  const [buyingRulesConfigured, setBuyingRulesConfigured] = useState(false);
+  const [buyingRulesLoading, setBuyingRulesLoading] = useState(true);
   const [storageLocationId, setStorageLocationId] = useState("");
   const [locations, setLocations] = useState<StorageOption[]>([]);
   const [cart, setCart] = useState<PurchaseWorkspaceLine[]>([]);
@@ -89,12 +101,70 @@ export function PurchasingOverview() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    setBuyingRulesLoading(true);
+    void loadAccountDocument(PURCHASING_BUYING_RULES_DOCUMENT)
+      .then((document) => {
+        if (!active) return;
+        const resolved = resolvePurchasingBuyingRules(document);
+        setBuyingRules(resolved.rules);
+        setBuyingRulesConfigured(resolved.configured);
+      })
+      .catch(() => {
+        if (!active) return;
+        setBuyingRules(DEFAULT_PURCHASING_BUYING_RULES);
+        setBuyingRulesConfigured(false);
+      })
+      .finally(() => {
+        if (active) setBuyingRulesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     setSelected(null);
     setSelectedSkuId("");
     setResults([]);
     setError("");
     setNotice("");
   }, [gameContext, productType]);
+
+  const runSearch = useCallback(async (rawQuery = query) => {
+    const trimmed = rawQuery.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      setLoading(false);
+      setSelected(null);
+      return;
+    }
+    const requestId = searchRequestRef.current + 1;
+    searchRequestRef.current = requestId;
+    setLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({
+        q: trimmed,
+        gameId: gameContext,
+        productType,
+        limit: "12",
+      });
+      const response = await fetch(`/api/purchasing/product-lookup?${params.toString()}`);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? "Product lookup failed.");
+      if (searchRequestRef.current !== requestId) return;
+      const nextResults = Array.isArray(payload.results) ? payload.results as PurchasingLookupResult[] : [];
+      setResults(nextResults);
+      setSelected((current) => current && nextResults.some((item) => item.id === current.id) ? current : nextResults[0] ?? null);
+    } catch (lookupError) {
+      if (searchRequestRef.current === requestId) {
+        setError(lookupError instanceof Error ? lookupError.message : "Product lookup failed.");
+      }
+    } finally {
+      if (searchRequestRef.current === requestId) setLoading(false);
+    }
+  }, [gameContext, productType, query]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -103,38 +173,13 @@ export function PurchasingOverview() {
       setLoading(false);
       return;
     }
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const params = new URLSearchParams({
-          q: trimmed,
-          gameId: gameContext,
-          productType,
-          limit: "12",
-        });
-        const response = await fetch(`/api/purchasing/product-lookup?${params.toString()}`, {
-          signal: controller.signal,
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error ?? "Product lookup failed.");
-        const nextResults = Array.isArray(payload.results) ? payload.results as PurchasingLookupResult[] : [];
-        setResults(nextResults);
-        setSelected((current) => current && nextResults.some((item) => item.id === current.id) ? current : nextResults[0] ?? null);
-      } catch (lookupError) {
-        if (!controller.signal.aborted) {
-          setError(lookupError instanceof Error ? lookupError.message : "Product lookup failed.");
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
+    const timer = window.setTimeout(() => {
+      void runSearch(trimmed);
     }, 320);
     return () => {
-      controller.abort();
       window.clearTimeout(timer);
     };
-  }, [gameContext, productType, query]);
+  }, [query, runSearch]);
 
   useEffect(() => {
     setSelectedSkuId(selected?.skus[0]?.id ?? "");
@@ -156,13 +201,44 @@ export function PurchasingOverview() {
   const condition = selectedSku?.condition ?? (selected?.productType === "sealed" ? "Sealed" : DEFAULT_CONDITIONS[0]);
   const variant = selectedSku?.variant ?? selected?.variants[0] ?? "Normal";
   const language = selectedSku?.language ?? "English";
-  const offer = calculateBuyingOffer(selectedSku?.marketPrice ?? selected?.marketPrice ?? null, offerPercent);
+  const effectiveRule = useMemo(() => selected
+    ? resolveEffectiveBuyingRule({
+      productType: selected.productType,
+      rules: buyingRules,
+      configured: buyingRulesConfigured,
+    })
+    : null, [buyingRules, buyingRulesConfigured, selected]);
+  const offer = calculateBuyingOffer(
+    selectedSku?.marketPrice ?? selected?.marketPrice ?? null,
+    effectiveRule?.percent ?? 0,
+    effectiveRule?.storeCreditBonusPercent ?? DEFAULT_PURCHASING_BUYING_RULES.storeCreditBonusPercent,
+  );
   const cartTotal = cart.reduce((sum, line) => sum + line.unitOffer * line.quantity, 0);
   const cartUnits = cart.reduce((sum, line) => sum + line.quantity, 0);
+  const addToPurchaseReason = selected
+    ? addToPurchaseDisabledReason({
+      product: selected,
+      sku: selectedSku,
+      quantity,
+      offer,
+      rule: effectiveRule,
+    })
+    : "Choose a product before adding it to a purchase.";
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void runSearch(query);
+  }
 
   function addSelectedToCart() {
-    if (!selected) return;
-    const line = buildPurchaseWorkspaceLine({ product: selected, sku: selectedSku, quantity, offerPercent });
+    if (!selected || addToPurchaseReason || !effectiveRule) return;
+    const line = buildPurchaseWorkspaceLine({
+      product: selected,
+      sku: selectedSku,
+      quantity,
+      offerPercent: effectiveRule.percent ?? 0,
+      storeCreditBonusPercent: effectiveRule.storeCreditBonusPercent,
+    });
     setCart((current) => {
       const existing = current.find((item) => item.id === line.id);
       if (!existing) return [...current, line];
@@ -244,24 +320,34 @@ export function PurchasingOverview() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 xl:grid-cols-[1fr_auto_auto_auto] xl:items-center">
-            <label className="relative block">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
-              <input
-                ref={searchInputRef}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search cards, sealed products, sets, or product IDs..."
-                className="h-12 w-full rounded-2xl border border-white/[0.08] bg-black/25 pl-11 pr-4 text-sm font-medium text-white outline-none transition placeholder:text-slate-700 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/15"
-              />
-            </label>
+          <form onSubmit={submitSearch} className="mt-6 grid gap-3 xl:grid-cols-[minmax(280px,1fr)_auto_auto_auto] xl:items-center">
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <label className="relative block">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+                <input
+                  ref={searchInputRef}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search cards, sealed products, sets, or product IDs..."
+                  className="h-12 w-full rounded-2xl border border-white/[0.08] bg-black/25 pl-11 pr-4 text-sm font-medium text-white outline-none transition placeholder:text-slate-700 focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/15"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={query.trim().length < 2 || loading}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-5 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Search
+              </button>
+            </div>
             <GameContextControl value={gameContext} onChange={setGameContext} includeAll={false} ariaLabel="Purchasing game context" />
             <SegmentedProductType value={productType} onChange={setProductType} />
             <Link href="/dashboard/card-photo-scanner" className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/[0.08] px-4 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-200">
               <Upload className="h-3.5 w-3.5" />
               Upload image
             </Link>
-          </div>
+          </form>
         </header>
 
         {error ? <Status tone="error" message={error} /> : null}
@@ -282,12 +368,13 @@ export function PurchasingOverview() {
             onSkuChange={setSelectedSkuId}
             quantity={quantity}
             onQuantityChange={setQuantity}
-            offerPercent={offerPercent}
-            onOfferPercentChange={setOfferPercent}
+            buyingRule={effectiveRule}
+            buyingRulesLoading={buyingRulesLoading}
             storageLocationId={storageLocationId}
             onStorageLocationChange={setStorageLocationId}
             locations={locations}
             offer={offer}
+            addToPurchaseDisabledReason={addToPurchaseReason}
             onAddPurchase={addSelectedToCart}
             onProductAction={runProductAction}
             productActionSaving={productActionSaving}
@@ -370,12 +457,13 @@ function DetailPanel(props: {
   onSkuChange: (id: string) => void;
   quantity: number;
   onQuantityChange: (value: number) => void;
-  offerPercent: number;
-  onOfferPercentChange: (value: number) => void;
+  buyingRule: EffectiveBuyingRule | null;
+  buyingRulesLoading: boolean;
   storageLocationId: string;
   onStorageLocationChange: (id: string) => void;
   locations: StorageOption[];
   offer: ReturnType<typeof calculateBuyingOffer>;
+  addToPurchaseDisabledReason: string | null;
   onAddPurchase: () => void;
   onProductAction: (action: ProductAction) => void;
   productActionSaving: ProductAction | null;
@@ -483,24 +571,26 @@ function DetailPanel(props: {
         </div>
 
         <aside className="rounded-[24px] bg-black/20 p-4">
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Market + Buying</p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Buying</p>
+            <Link href="/dashboard/buying-rules" className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500 transition hover:text-cyan-200">
+              Edit rules
+            </Link>
+          </div>
           <div className="mt-4 space-y-3">
-            <BuyingRow label="Market" value={money(props.offer.marketReference)} />
-            <BuyingRow label="Buying rule" value={`${props.offer.offerPercent}%`} />
+            <BuyingRow label="Market reference" value={money(props.offer.marketReference)} />
+            <BuyingRow label="Rule" value={props.buyingRulesLoading ? "Loading..." : props.buyingRule?.label ?? "Not configured"} />
+            <BuyingRow label="Rule source" value={props.buyingRule?.sourceLabel ?? "Set Buying Rule"} />
             <BuyingRow label="Cash offer" value={money(props.offer.cashOffer)} strong />
             <BuyingRow label="Store credit" value={money(props.offer.storeCreditOffer)} />
             <BuyingRow label="Spread" value={money(props.offer.spread)} />
           </div>
-          <label className="mt-5 block text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">
-            Offer %
-            <input type="range" min={20} max={90} value={props.offerPercent} onChange={(event) => props.onOfferPercentChange(Number(event.target.value))} className="mt-3 w-full accent-cyan-300" />
-          </label>
-          {!hasExactSku ? (
+          {!hasExactSku || props.addToPurchaseDisabledReason ? (
             <p className="mt-4 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-3 text-[10px] leading-5 text-amber-100/80">
-              Confirm exact SKU pricing before finalizing an offer.
+              {props.addToPurchaseDisabledReason ?? "Confirm exact SKU pricing before finalizing an offer."}
             </p>
           ) : null}
-          <button type="button" onClick={props.onAddPurchase} disabled={!hasExactSku} className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] disabled:cursor-not-allowed disabled:opacity-40">
+          <button type="button" onClick={props.onAddPurchase} disabled={Boolean(props.addToPurchaseDisabledReason)} className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
             <ShoppingCart className="h-4 w-4" />
             Add to Purchase
           </button>
@@ -573,7 +663,12 @@ function PurchaseCartPanel(props: {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold text-white">{line.product.name}</p>
-                <p className="mt-1 text-[9px] text-slate-600">{line.product.gameLabel} · {line.sku?.variant ?? line.product.productType}</p>
+                <p className="mt-1 text-[9px] text-slate-600">
+                  {line.product.gameLabel} · {line.product.productType === "sealed" ? "Sealed" : line.sku?.condition ?? "Single"} · {line.sku?.variant ?? line.product.variants[0] ?? "Default"} · {line.sku?.language ?? "English"}
+                </p>
+                <p className="mt-1 text-[9px] text-slate-600">
+                  {line.offerPercent == null ? "Rule N/A" : `Rule ${line.offerPercent}%`} · Market {money(line.marketReference) ?? "Unavailable"}
+                </p>
               </div>
               <button type="button" aria-label={`Remove ${line.product.name}`} onClick={() => props.onRemove(line.id)} className="rounded-lg p-1 text-slate-600 transition hover:bg-white/[0.05] hover:text-red-300">
                 <Trash2 className="h-3.5 w-3.5" />
@@ -647,6 +742,26 @@ function Control({ label, children }: { label: string; children: ReactNode }) {
 
 function uniqueSkuValues(values: string[]) {
   return Array.from(new Set(values.filter((value) => value.trim()))).sort((left, right) => left.localeCompare(right));
+}
+
+function addToPurchaseDisabledReason(input: {
+  product: PurchasingLookupResult;
+  sku: PurchasingSkuOption | null;
+  quantity: number;
+  offer: ReturnType<typeof calculateBuyingOffer>;
+  rule: EffectiveBuyingRule | null;
+}) {
+  if (!Number.isFinite(input.quantity) || input.quantity < 1) return "Enter a quantity greater than zero.";
+  if (!input.rule || input.rule.percent == null) return "Set Buying Rule before adding to purchase.";
+  if (input.product.productType === "card" && !input.sku) return "Select an exact variant before adding to purchase.";
+  if (input.product.productType === "card" && input.sku?.marketPrice == null && input.sku?.lowPrice == null) {
+    return "Select a priced variant before adding to purchase.";
+  }
+  if (input.product.productType === "sealed" && input.product.marketPrice == null && input.product.lowPrice == null) {
+    return "Select a sealed product with market pricing before adding to purchase.";
+  }
+  if (input.offer.cashOffer == null && !input.rule.manualOfferAllowed) return "Offer could not be calculated from the current market and buying rule.";
+  return null;
 }
 
 function BuyingRow({ label, value, strong = false }: { label: string; value: string | null; strong?: boolean }) {
