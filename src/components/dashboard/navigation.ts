@@ -95,10 +95,10 @@ export const PURCHASING_NAV: NavigationSection = {
   id: "purchasing",
   label: "Purchasing",
   icon: PackageSearch,
-  href: "/dashboard/purchasing",
+  href: "/dashboard/purchasing-intelligence",
   children: [
     {
-      href: "/dashboard/purchasing",
+      href: "/dashboard/purchasing-intelligence",
       label: "Purchasing Intelligence",
       icon: PackageSearch,
     },

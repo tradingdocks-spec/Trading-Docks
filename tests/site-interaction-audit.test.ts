@@ -187,7 +187,7 @@ test("global Create menu actions resolve to real non-placeholder destinations", 
 
   assert.equal(
     topbarCreateActions.find((item) => item.id === "add-inventory-card")?.href,
-    "/dashboard/card-photo-scanner",
+    "/dashboard/purchasing-intelligence?action=add-inventory",
   );
   assert.equal(
     topbarCreateActions.find((item) => item.id === "create-deck")?.href,

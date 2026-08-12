@@ -20,13 +20,34 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 test("Purchasing Intelligence is search-first and photo upload is secondary", () => {
   const page = source("src/components/dashboard/purchasing/PurchasingOverview.tsx");
   const scanner = source("src/components/dashboard/purchasing/CardPhotoScanner.tsx");
+  const canonicalRoute = source("src/app/dashboard/purchasing-intelligence/page.tsx");
 
   assert.match(page, /Search cards, sealed products, sets, or product IDs/);
   assert.match(page, /Search the catalog/);
   assert.match(page, /Upload image/);
+  assert.match(canonicalRoute, /PurchasingOverview/);
+  assert.doesNotMatch(canonicalRoute, /CardPhotoScanner/);
   assert.doesNotMatch(page, /Drop a card photo here/);
+  assert.doesNotMatch(page, /Scan Stage/);
+  assert.doesNotMatch(page, /Recognition Assist/);
+  assert.doesNotMatch(page, /Image Quality/);
+  assert.doesNotMatch(page, /Accuracy Standard/);
+  assert.doesNotMatch(page, /Trading Docks Vision/);
   assert.doesNotMatch(page, /Vision matching/);
   assert.match(scanner, /Drop card front|Drop a card photo here|Vision matching/);
+});
+
+test("Purchasing Intelligence canonical route is registered in navigation and access rules", () => {
+  const navigation = source("src/components/dashboard/navigation.ts");
+  const routeAccess = source("src/lib/platform/route-access.ts");
+  const tierAccess = source("src/lib/tier-access.ts");
+  const createMenu = source("src/components/dashboard/shell/create-menu-actions.ts");
+
+  assert.match(navigation, /href: "\/dashboard\/purchasing-intelligence"/);
+  assert.match(routeAccess, /purchasing-intelligence/);
+  assert.match(tierAccess, /purchasing-intelligence/);
+  assert.match(createMenu, /\/dashboard\/purchasing-intelligence\?action=add-inventory/);
+  assert.doesNotMatch(createMenu, /href: "\/dashboard\/card-photo-scanner"[\s\S]*add-inventory-card/);
 });
 
 test("Pokemon lookup uses TCGTracking product identity and never Scryfall market sources", () => {
@@ -136,8 +157,15 @@ test("lookup API is buying-capability gated and supports inventory persistence",
   assert.match(route, /searchTcgProducts/);
   assert.match(route, /searchSealedProducts/);
   assert.match(route, /\.from\("inventory_items"\)/);
+  assert.match(route, /\.from\("inventory_locations"\)/);
+  assert.match(route, /\.from\("collector_wishlist"\)/);
+  assert.match(route, /\.from\("binder_card_trade_status"\)/);
   assert.match(route, /\.eq\("user_id"/);
-  assert.match(route, /onChange|add-inventory/);
+  assert.match(route, /add-inventory/);
+  assert.match(route, /add-collection/);
+  assert.match(route, /add-binder/);
+  assert.match(route, /add-trade-binder/);
+  assert.match(route, /add-wishlist/);
   assert.doesNotMatch(route, /Scryfall.*pokemon/i);
 });
 

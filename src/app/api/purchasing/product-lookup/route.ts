@@ -21,6 +21,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SCRYFALL = "https://api.scryfall.com";
+const PRODUCT_ACTIONS = new Set(["add-inventory", "add-collection", "add-binder", "add-trade-binder", "add-wishlist"]);
+
+type AuthorizedCapability = Extract<Awaited<ReturnType<typeof requireApiCapability>>, { ok: true }>;
 
 export async function GET(request: NextRequest) {
   const capability = await requireApiCapability("buying.manage");
@@ -53,13 +56,44 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const payload = isRecord(body) ? body : {};
-  if (payload.action !== "add-inventory") {
+  const action = typeof payload.action === "string" ? payload.action : "";
+  if (!PRODUCT_ACTIONS.has(action)) {
     return NextResponse.json({ error: "Unsupported Purchasing Intelligence action." }, { status: 400 });
   }
 
   const product = isRecord(payload.product) ? payload.product as PurchasingLookupResult : null;
   if (!product) return NextResponse.json({ error: "Choose a product first." }, { status: 400 });
 
+  if (action === "add-wishlist") {
+    return addProductToWishlist(capability, payload, product);
+  }
+
+  if (action === "add-binder" && typeof payload.storageLocationId !== "string") {
+    return NextResponse.json({ error: "Choose a binder or storage location before adding this product to a binder." }, { status: 400 });
+  }
+
+  const inventoryResult = await upsertProductInventory(capability, payload, product);
+  if (!inventoryResult.ok) return inventoryResult.response;
+
+  if (action === "add-trade-binder") {
+    const tradeResult = await addInventoryToTradeBinder(capability, inventoryResult.inventoryItemId, product);
+    if (!tradeResult.ok) return tradeResult.response;
+  }
+
+  return NextResponse.json({
+    ok: true,
+    action,
+    inventoryItemId: inventoryResult.inventoryItemId,
+    quantity: inventoryResult.quantity,
+    merged: inventoryResult.merged,
+  }, { status: inventoryResult.merged ? 200 : 201 });
+}
+
+async function upsertProductInventory(
+  capability: AuthorizedCapability,
+  payload: Record<string, unknown>,
+  product: PurchasingLookupResult,
+) {
   const quantity = Math.max(1, Math.floor(Number(payload.quantity ?? 1)));
   const condition = typeof payload.condition === "string" ? payload.condition : null;
   const variant = typeof payload.variant === "string" ? payload.variant : null;
@@ -80,8 +114,8 @@ export async function POST(request: Request) {
       .eq("user_id", capability.user?.id ?? "")
       .eq("id", locationId)
       .maybeSingle();
-    if (locationError) return NextResponse.json({ error: locationError.message }, { status: 500 });
-    if (!location) return NextResponse.json({ error: "Choose one of your storage locations." }, { status: 400 });
+    if (locationError) return { ok: false as const, response: NextResponse.json({ error: locationError.message }, { status: 500 }) };
+    if (!location) return { ok: false as const, response: NextResponse.json({ error: "Choose one of your storage locations." }, { status: 400 }) };
   }
 
   const existing = await capability.supabase
@@ -90,7 +124,7 @@ export async function POST(request: Request) {
     .eq("user_id", capability.user?.id ?? "")
     .eq("sku", sku)
     .maybeSingle();
-  if (existing.error) return NextResponse.json({ error: existing.error.message }, { status: 500 });
+  if (existing.error) return { ok: false as const, response: NextResponse.json({ error: existing.error.message }, { status: 500 }) };
 
   const now = new Date().toISOString();
   if (existing.data) {
@@ -114,8 +148,8 @@ export async function POST(request: Request) {
       })
       .eq("user_id", capability.user?.id ?? "")
       .eq("id", existing.data.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, inventoryItemId: existing.data.id, quantity: nextQuantity, merged: true });
+    if (error) return { ok: false as const, response: NextResponse.json({ error: error.message }, { status: 500 }) };
+    return { ok: true as const, inventoryItemId: String(existing.data.id), quantity: nextQuantity, merged: true };
   }
 
   const id = crypto.randomUUID();
@@ -147,8 +181,66 @@ export async function POST(request: Request) {
     },
     updated_at: now,
   });
+  if (error) return { ok: false as const, response: NextResponse.json({ error: error.message }, { status: 500 }) };
+  return { ok: true as const, inventoryItemId: id, quantity, merged: false };
+}
+
+async function addInventoryToTradeBinder(
+  capability: AuthorizedCapability,
+  inventoryItemId: string,
+  product: PurchasingLookupResult,
+) {
+  const { error } = await capability.supabase
+    .from("binder_card_trade_status")
+    .upsert({
+      user_id: capability.user?.id ?? "",
+      inventory_item_id: inventoryItemId,
+      status: "available",
+      trade_value: product.marketPrice ?? product.lowPrice ?? null,
+      notes: productActionNotes(product).slice(0, 500),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,inventory_item_id" });
+  if (error) return { ok: false as const, response: NextResponse.json({ error: error.message }, { status: 500 }) };
+  return { ok: true as const };
+}
+
+async function addProductToWishlist(
+  capability: AuthorizedCapability,
+  payload: Record<string, unknown>,
+  product: PurchasingLookupResult,
+) {
+  const condition = typeof payload.condition === "string" ? payload.condition : product.productType === "sealed" ? "Sealed" : "Any";
+  const variant = typeof payload.variant === "string" ? payload.variant : product.variants[0] ?? null;
+  const targetValue = money(product.marketPrice ?? product.lowPrice);
+  const { data, error } = await capability.supabase
+    .from("collector_wishlist")
+    .insert({
+      user_id: capability.user?.id ?? "",
+      card_name: product.name.slice(0, 160),
+      set_code: product.setCode?.toUpperCase().slice(0, 12) ?? null,
+      target_condition: condition.slice(0, 40),
+      target_finish: variant?.slice(0, 40) ?? null,
+      target_value: targetValue,
+      priority: "medium",
+      notes: productActionNotes(product).slice(0, 500),
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, inventoryItemId: id, quantity, merged: false }, { status: 201 });
+  return NextResponse.json({ ok: true, action: "add-wishlist", wishlistItemId: data?.id ?? null }, { status: 201 });
+}
+
+function productActionNotes(product: PurchasingLookupResult) {
+  return [
+    "Added from Purchasing Intelligence.",
+    `Game: ${product.gameLabel}`,
+    `Product type: ${product.productType}`,
+    product.provider ? `Provider: ${product.provider}` : null,
+    product.providerProductId ? `Provider product ID: ${product.providerProductId}` : null,
+    product.tcgplayerProductId ? `TCGplayer product ID: ${product.tcgplayerProductId}` : null,
+    product.collectorNumber ? `Collector number: ${product.collectorNumber}` : null,
+  ].filter(Boolean).join("\n");
 }
 
 async function searchPokemonProducts(input: { query: string; productType: "all" | PurchasingProductType; limit: number }) {

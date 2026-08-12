@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowRight,
@@ -36,12 +36,14 @@ type StorageOption = {
   id: string;
   name: string;
 };
+type ProductAction = "add-inventory" | "add-collection" | "add-binder" | "add-trade-binder" | "add-wishlist";
 
 const CART_STORAGE_KEY = "trading-docks:purchasing-intelligence-cart:v1";
 const DEFAULT_CONDITIONS = ["Near Mint", "Lightly Played", "Moderately Played", "Heavily Played", "Damaged"];
 const FIELD_CLASS = "h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs font-semibold text-white outline-none transition focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/15";
 
 export function PurchasingOverview() {
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [gameContext, setGameContext] = useState<GameContextId>("magic");
   const [productType, setProductType] = useState<"all" | PurchasingProductType>("all");
   const [query, setQuery] = useState("");
@@ -55,7 +57,7 @@ export function PurchasingOverview() {
   const [cart, setCart] = useState<PurchaseWorkspaceLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingPurchase, setSavingPurchase] = useState(false);
-  const [inventorySaving, setInventorySaving] = useState(false);
+  const [productActionSaving, setProductActionSaving] = useState<ProductAction | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -140,6 +142,13 @@ export function PurchasingOverview() {
     setStorageLocationId("");
   }, [selected]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") !== "add-inventory") return;
+    searchInputRef.current?.focus();
+    setNotice("Search for a product, confirm the exact SKU, then add it to inventory or collection.");
+  }, []);
+
   const selectedSku = useMemo(() => {
     if (!selected) return null;
     return selected.skus.find((sku) => sku.id === selectedSkuId) ?? selected.skus[0] ?? null;
@@ -183,16 +192,16 @@ export function PurchasingOverview() {
     }
   }
 
-  async function addSelectedToInventory() {
+  async function runProductAction(action: ProductAction) {
     if (!selected) return;
-    setInventorySaving(true);
+    setProductActionSaving(action);
     setError("");
     try {
       const response = await fetch("/api/purchasing/product-lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "add-inventory",
+          action,
           product: selected,
           quantity,
           condition,
@@ -203,12 +212,12 @@ export function PurchasingOverview() {
         }),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error ?? "Inventory could not be updated.");
-      setNotice(payload.merged ? "Existing inventory quantity increased." : "Product added to inventory.");
+      if (!response.ok) throw new Error(payload.error ?? "Product action could not be completed.");
+      setNotice(productActionNotice(action, Boolean(payload.merged)));
     } catch (inventoryError) {
-      setError(inventoryError instanceof Error ? inventoryError.message : "Inventory could not be updated.");
+      setError(inventoryError instanceof Error ? inventoryError.message : "Product action could not be completed.");
     } finally {
-      setInventorySaving(false);
+      setProductActionSaving(null);
     }
   }
 
@@ -239,6 +248,7 @@ export function PurchasingOverview() {
             <label className="relative block">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
               <input
+                ref={searchInputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search cards, sealed products, sets, or product IDs..."
@@ -279,8 +289,8 @@ export function PurchasingOverview() {
             locations={locations}
             offer={offer}
             onAddPurchase={addSelectedToCart}
-            onAddInventory={addSelectedToInventory}
-            inventorySaving={inventorySaving}
+            onProductAction={runProductAction}
+            productActionSaving={productActionSaving}
           />
           <PurchaseCartPanel
             lines={cart}
@@ -367,8 +377,8 @@ function DetailPanel(props: {
   locations: StorageOption[];
   offer: ReturnType<typeof calculateBuyingOffer>;
   onAddPurchase: () => void;
-  onAddInventory: () => void;
-  inventorySaving: boolean;
+  onProductAction: (action: ProductAction) => void;
+  productActionSaving: ProductAction | null;
 }) {
   const product = props.product;
   if (!product) {
@@ -463,13 +473,44 @@ function DetailPanel(props: {
             <ShoppingCart className="h-4 w-4" />
             Add to Purchase
           </button>
-          <button type="button" onClick={props.onAddInventory} disabled={props.inventorySaving} className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] text-[10px] font-black uppercase tracking-[0.12em] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:opacity-50">
-            {props.inventorySaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
+          <button type="button" onClick={() => props.onProductAction("add-inventory")} disabled={props.productActionSaving === "add-inventory"} className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] text-[10px] font-black uppercase tracking-[0.12em] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:opacity-50">
+            {props.productActionSaving === "add-inventory" ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
             Add to Inventory
           </button>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <SecondaryProductAction label="Collection" action="add-collection" saving={props.productActionSaving} onClick={props.onProductAction} />
+            <SecondaryProductAction label="Wishlist" action="add-wishlist" saving={props.productActionSaving} onClick={props.onProductAction} />
+            <SecondaryProductAction label="Trade Binder" action="add-trade-binder" saving={props.productActionSaving} onClick={props.onProductAction} />
+            <SecondaryProductAction label="Binder" action="add-binder" saving={props.productActionSaving} onClick={props.onProductAction} disabled={!props.storageLocationId} title={!props.storageLocationId ? "Choose a storage or binder location first." : undefined} />
+          </div>
+          <Link href="/dashboard/market-intelligence" className="mt-3 flex h-10 items-center justify-center rounded-2xl text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 transition hover:bg-white/[0.035] hover:text-cyan-200">
+            View Market
+          </Link>
         </aside>
       </div>
     </section>
+  );
+}
+
+function SecondaryProductAction(props: {
+  label: string;
+  action: ProductAction;
+  saving: ProductAction | null;
+  onClick: (action: ProductAction) => void;
+  disabled?: boolean;
+  title?: string;
+}) {
+  const loading = props.saving === props.action;
+  return (
+    <button
+      type="button"
+      title={props.title}
+      onClick={() => props.onClick(props.action)}
+      disabled={props.disabled || loading}
+      className="flex h-9 items-center justify-center rounded-xl border border-white/[0.06] px-2 text-[9px] font-black uppercase tracking-[0.08em] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : props.label}
+    </button>
   );
 }
 
@@ -592,6 +633,14 @@ function Status({ message, tone }: { message: string; tone: "error" | "success" 
       {message}
     </div>
   );
+}
+
+function productActionNotice(action: ProductAction, merged: boolean) {
+  if (action === "add-wishlist") return "Product added to Wishlist.";
+  if (action === "add-trade-binder") return merged ? "Existing inventory marked available in Trade Binder." : "Product added and marked available in Trade Binder.";
+  if (action === "add-binder") return merged ? "Existing inventory moved to the selected binder or storage location." : "Product added to the selected binder or storage location.";
+  if (action === "add-collection") return merged ? "Existing collection quantity increased." : "Product added to Collection.";
+  return merged ? "Existing inventory quantity increased." : "Product added to inventory.";
 }
 
 function EmptyState({ title, detail, compact = false }: { title: string; detail: string; compact?: boolean }) {

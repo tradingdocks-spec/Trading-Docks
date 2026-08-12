@@ -148,7 +148,7 @@ export function Sidebar({
                   onToggle={() => setOpenSection(openSection === "purchasing" ? null : "purchasing")}
                   onNavigate={onCloseMobile}
                   priorityHrefs={[
-                    "/dashboard/purchasing",
+                    "/dashboard/purchasing-intelligence",
                     "/dashboard/collection-buying",
                     "/dashboard/buying-rules",
                     "/dashboard/buylist-intelligence",

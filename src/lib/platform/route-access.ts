@@ -42,7 +42,7 @@ export const ROUTE_ACCESS_REGISTRY: RouteAccessRule[] = [
   { id: "collector-portfolio", pattern: /^\/dashboard\/collector-portfolio(\/|$)/, kind: "capability", capability: "analytics.view", label: "Collector Portfolio" },
   {
     id: "buying",
-    pattern: /^\/dashboard\/(purchasing|card-photo-scanner|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-rules|buying-recommendations|buylist-intelligence|buylist-connections|market-intelligence|precon-intelligence)(\/|$)/,
+    pattern: /^\/dashboard\/(purchasing|purchasing-intelligence|card-photo-scanner|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-rules|buying-recommendations|buylist-intelligence|buylist-connections|market-intelligence|precon-intelligence)(\/|$)/,
     kind: "capability",
     capability: "buying.manage",
     label: "Buying workflows",

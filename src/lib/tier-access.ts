@@ -134,6 +134,7 @@ export const PLAN_CAPABILITIES: PlanCapability[] = [
     minimumPlan: "seller",
     routes: [
       "/dashboard/purchasing",
+      "/dashboard/purchasing-intelligence",
       "/dashboard/card-photo-scanner",
       "/dashboard/collection-buying",
       "/dashboard/sealed-buying",
@@ -249,7 +250,7 @@ const ROUTE_RULES: Array<{ test: (pathname: string) => boolean; feature: PlanFea
   { test: (p) => p.startsWith("/dashboard/customers"), feature: "crm" },
   {
     test: (p) =>
-      /^\/dashboard\/(purchasing|card-photo-scanner|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-rules|buying-recommendations|buylist-intelligence|buylist-connections|market-intelligence)(\/|$)/.test(p),
+      /^\/dashboard\/(purchasing|purchasing-intelligence|card-photo-scanner|collection-buying|sealed-buying|bulk-buying|purchase-history|buying-rules|buying-recommendations|buylist-intelligence|buylist-connections|market-intelligence)(\/|$)/.test(p),
     feature: "purchasing",
   },
   {
