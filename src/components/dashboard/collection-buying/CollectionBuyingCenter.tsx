@@ -42,6 +42,7 @@ import {
 import { MetricCard } from "../common/MetricCard";
 import { PageHeader } from "../common/PageHeader";
 import { WorkspaceFrame } from "../common/WorkspaceFrame";
+import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
 import styles from "../styles.module.css";
 import {
   CardPreviewPortal,
@@ -78,6 +79,8 @@ import {
   loadAccountDocument,
   saveAccountDocument,
 } from "@/lib/account-documents";
+import type { CardCandidate, CardScanResponse } from "@/lib/card-photo-scanner/types";
+import { variantOptionsForGame, type GameContextId } from "@/lib/multi-tcg";
 
 const STORAGE_KEY = "trading-docks-collection-appraisals-v1";
 const DRAFT_KEY = "trading-docks-collection-buying-draft-v1";
@@ -138,6 +141,7 @@ export function CollectionBuyingCenter() {
   const [printingPicker, setPrintingPicker] =
     useState<PrintingPickerRequest>(null);
   const [preferredSetCode, setPreferredSetCode] = useState("");
+  const [gameContext, setGameContext] = useState<GameContextId>("magic");
   const [rememberedFinish, setRememberedFinish] =
     useState<PriceFinish>("nonfoil");
   const [rememberedCondition, setRememberedCondition] =
@@ -168,6 +172,9 @@ export function CollectionBuyingCenter() {
         {},
       );
       if (preferences) {
+        setGameContext(
+          preferences.gameContext === "pokemon" ? "pokemon" : "magic",
+        );
         setPreferredSetCode(String(preferences.preferredSetCode ?? ""));
         setRememberedFinish(
           (preferences.rememberedFinish as PriceFinish) ?? "nonfoil",
@@ -209,6 +216,7 @@ export function CollectionBuyingCenter() {
     if (!accountDataReady || !accountId) return;
     const timeout = window.setTimeout(() => {
       void saveAccountDocument(PREFERENCES_DOCUMENT, {
+        gameContext,
         preferredSetCode,
         rememberedFinish,
         rememberedCondition,
@@ -218,6 +226,7 @@ export function CollectionBuyingCenter() {
     return () => window.clearTimeout(timeout);
   }, [
     preferredSetCode,
+    gameContext,
     rememberedFinish,
     rememberedCondition,
     lockPreferredSet, accountDataReady, accountId,
@@ -406,6 +415,15 @@ export function CollectionBuyingCenter() {
     setIsPricing(true);
     setProgress({ current: 0, total: parsedRows.length });
 
+    if (gameContext === "pokemon") {
+      await resolvePokemonCollection(parsedRows);
+      setIsPricing(false);
+      notify(
+        `${parsedRows.length.toLocaleString("en-US")} Pokemon collection rows checked with TCGTracking.`,
+      );
+      return;
+    }
+
     await resolveCollection(
       parsedRows,
       (index, resolvedCard?: ScryfallCard, error?: string) => {
@@ -461,6 +479,68 @@ export function CollectionBuyingCenter() {
     notify(
       `${parsedRows.length.toLocaleString("en-US")} collection rows priced from Scryfall.`,
     );
+  }
+
+  async function resolvePokemonCollection(
+    parsedRows: ReturnType<typeof parseCollectionText>,
+  ) {
+    for (let index = 0; index < parsedRows.length; index += 1) {
+      const row = parsedRows[index];
+      try {
+        const form = new FormData();
+        form.set("gameId", "pokemon");
+        form.set("cardName", row.name);
+        const response = await fetch("/api/purchasing/card-photo-scan", {
+          method: "POST",
+          body: form,
+        });
+        const payload = (await response.json().catch(() => null)) as
+          | (CardScanResponse & { error?: string })
+          | null;
+        if (!response.ok || !payload) {
+          throw new Error(payload?.error ?? `No Pokemon products found for "${row.name}".`);
+        }
+
+        const match = choosePokemonCandidate(row, payload.candidates);
+        if (!match) {
+          throw new Error(
+            payload.candidates.length > 1
+              ? `Multiple Pokemon products found for ${row.name}. Add a set and collector number to choose the exact version.`
+              : `No Pokemon products found for "${row.name}".`,
+          );
+        }
+
+        const effectiveInput = {
+          ...row,
+          finish:
+            row.finish === "nonfoil" ? normalizePokemonFinish(rememberedFinish) : normalizePokemonFinish(row.finish),
+          condition:
+            row.condition === "NM" ? rememberedCondition : row.condition,
+        };
+        const pokemonCard = pokemonCandidateToCard(match);
+        setCards((current) =>
+          current.map((item, itemIndex) =>
+            itemIndex === index
+              ? hydrateAppraisalCard(effectiveInput, pokemonCard, settings, item)
+              : item,
+          ),
+        );
+      } catch (error) {
+        setCards((current) =>
+          current.map((item, itemIndex) =>
+            itemIndex === index
+              ? {
+                  ...item,
+                  status: "error",
+                  error: error instanceof Error ? error.message : "Pokemon product lookup failed.",
+                }
+              : item,
+          ),
+        );
+      } finally {
+        setProgress({ current: index + 1, total: parsedRows.length });
+      }
+    }
   }
 
   async function applyPreferredSetToResolvedRows(
@@ -898,12 +978,28 @@ export function CollectionBuyingCenter() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <GameContextControl
+              value={gameContext}
+              onChange={(value) => {
+                const nextGame = value === "all" ? "magic" : value;
+                setGameContext(nextGame);
+                setRememberedFinish(
+                  ((variantOptionsForGame(nextGame)[0] ?? "Nonfoil")
+                    .toLowerCase()
+                    .replace(/\s+/g, "_") as PriceFinish),
+                );
+              }}
+              includeAll={false}
+              ariaLabel="Collection buying game"
+            />
             <SessionPill
               label="Preferred set"
               value={
                 preferredSetCode
                   ? preferredSetCode.toUpperCase()
-                  : "Scryfall default"
+                  : gameContext === "pokemon"
+                    ? "Exact set optional"
+                    : "Scryfall default"
               }
             />
             <SessionPill
@@ -2905,6 +3001,73 @@ function emptyTotalsShape() {
     averageOfferPercent: 0,
     projectedMargin: 0,
     units: 0,
+  };
+}
+
+function choosePokemonCandidate(
+  row: ReturnType<typeof parseCollectionText>[number],
+  candidates: CardCandidate[],
+) {
+  if (!candidates.length) return null;
+  if (row.setCode && row.collectorNumber) {
+    const normalizedSet = row.setCode.toLowerCase();
+    const normalizedNumber = row.collectorNumber.toLowerCase();
+    return candidates.find(
+      (candidate) =>
+        candidate.setCode.toLowerCase() === normalizedSet &&
+        candidate.collectorNumber.toLowerCase() === normalizedNumber,
+    ) ?? null;
+  }
+  if (row.setCode) {
+    const normalizedSet = row.setCode.toLowerCase();
+    const matchingSet = candidates.filter(
+      (candidate) => candidate.setCode.toLowerCase() === normalizedSet,
+    );
+    return matchingSet.length === 1 ? matchingSet[0] : null;
+  }
+  return candidates.length === 1 ? candidates[0] : null;
+}
+
+function normalizePokemonFinish(finish: PriceFinish): PriceFinish {
+  if (finish === "foil") return "holo";
+  if (finish === "etched") return "reverse_holo";
+  if (finish === "nonfoil") return "normal";
+  return finish;
+}
+
+function pokemonCandidateToCard(candidate: CardCandidate): ScryfallCard {
+  const market =
+    candidate.prices.find((price) => price.label === "TCG Market")?.value ??
+    candidate.prices.find((price) => price.label === "TCG Low")?.value ??
+    null;
+
+  return {
+    id: candidate.id,
+    gameId: "pokemon",
+    provider: "tcgtracking",
+    providerProductId: candidate.providerProductId,
+    providerSkuId: candidate.providerSkuId,
+    tcgplayerProductId: candidate.tcgplayerProductId,
+    tcgplayerSkuId: candidate.tcgplayerSkuId,
+    name: candidate.name,
+    set: candidate.setCode.toLowerCase(),
+    set_name: candidate.setName,
+    collector_number: candidate.collectorNumber,
+    rarity: candidate.rarity ?? "unknown",
+    reserved: false,
+    reprint: true,
+    prices: {
+      usd: market == null ? null : String(market),
+      usd_foil: market == null ? null : String(market),
+      usd_etched: null,
+    },
+    image_uris: candidate.imageUrl
+      ? {
+          small: candidate.imageUrl,
+          normal: candidate.imageUrl,
+        }
+      : undefined,
+    purchase_uris: {},
   };
 }
 

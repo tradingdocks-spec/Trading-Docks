@@ -78,7 +78,9 @@ test("visible multi-TCG surfaces consume the shared game context", () => {
   assert.match(collection, /gameId: gameContext/);
   assert.match(collection, /Allocation by game/);
   assert.match(scanner, /GameContextControl/);
-  assert.match(scanner, /Pokemon purchasing recognition is in beta/);
+  assert.match(scanner, /compressImageForTcgTracking/);
+  assert.match(scanner, /form\.set\("gameId", gameContext\)/);
+  assert.doesNotMatch(scanner, /Pokemon purchasing recognition is in beta/);
   assert.match(scanner, /Sources are scoped to/);
   assert.match(createMenu, /label: "Add inventory"/);
   assert.match(deckVault, /Scryfall/);

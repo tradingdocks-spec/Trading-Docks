@@ -6,12 +6,29 @@ import type {
   CardScanResponse,
   ScanIdentification,
 } from "@/lib/card-photo-scanner/types";
+import {
+  TCGTRACKING_POKEMON_CATEGORY_ID,
+  TCGTRACKING_POKEMON_GAME_ID,
+  createTcgTrackingClient,
+} from "@/lib/providers/tcgtracking/client";
+import {
+  TCGTRACKING_SCAN_MAX_IMAGE_BYTES,
+  decodedImageBytes,
+  scanCardImageWithTcgTracking,
+} from "@/lib/providers/tcgtracking/scanner";
+import {
+  resolveTcgProductSkus,
+  searchTcgProducts,
+  type TcgProductSearchResult,
+  type TcgProductSkuOption,
+} from "@/lib/providers/tcgtracking/product-search";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SCRYFALL = "https://api.scryfall.com";
 const USER_AGENT = "TradingDocks/0.56 card-photo-scanner";
+const POKEMON_GAME = "pokemon";
 
 type ScryfallCard = {
   id: string;
@@ -71,6 +88,8 @@ function toCandidate(
     finishes: card.finishes ?? [],
     imageUrl: cardImage(card),
     scryfallUrl: card.scryfall_uri ?? null,
+    gameId: "magic",
+    provider: "scryfall",
     confidence,
     prices: [
       {
@@ -185,6 +204,8 @@ async function identifyWithVision(file: File): Promise<ScanIdentification | null
     notes: Array.isArray(parsed.notes)
       ? parsed.notes.filter((item): item is string => typeof item === "string")
       : [],
+    gameId: "magic",
+    provider: "scryfall",
   };
 }
 
@@ -221,6 +242,188 @@ async function getCandidates(identification: ScanIdentification) {
   return cards.slice(0, 8).map((card, index) => toCandidate(card, identification, index));
 }
 
+function normalizeGameId(value: FormDataEntryValue | null) {
+  const normalized = String(value ?? "magic").trim().toLowerCase();
+  if (
+    normalized === POKEMON_GAME ||
+    normalized === String(TCGTRACKING_POKEMON_GAME_ID) ||
+    normalized === "pkm" ||
+    normalized === "ptcg"
+  ) {
+    return POKEMON_GAME;
+  }
+  return "magic";
+}
+
+function preferredSku(skus: TcgProductSkuOption[]) {
+  return (
+    skus.find((sku) => sku.marketPrice != null) ??
+    skus.find((sku) => sku.lowPrice != null || sku.highPrice != null) ??
+    skus[0] ??
+    null
+  );
+}
+
+function skuVariants(skus: TcgProductSkuOption[], product: TcgProductSearchResult) {
+  const variants = [
+    ...new Set(
+      [...product.variants, ...skus.map((sku) => sku.variant)]
+        .map((variant) => variant.trim())
+        .filter(Boolean),
+    ),
+  ];
+  return variants.length ? variants : ["Normal"];
+}
+
+function pokemonCandidate(
+  product: TcgProductSearchResult,
+  skus: TcgProductSkuOption[],
+  index: number,
+): CardCandidate {
+  const sku = preferredSku(skus);
+  return {
+    id: `pokemon:${product.providerProductId}`,
+    name: product.name,
+    setName: product.setName ?? "Pokemon set unavailable",
+    setCode: product.setCode ?? product.setId ?? "PKM",
+    collectorNumber: product.collectorNumber ?? "Unknown",
+    language: sku?.language ?? "English",
+    finishes: skuVariants(skus, product),
+    rarity: product.rarity ?? null,
+    imageUrl: product.imageUrl ?? null,
+    scryfallUrl: null,
+    gameId: "pokemon",
+    provider: "tcgtracking",
+    providerCategoryId: TCGTRACKING_POKEMON_CATEGORY_ID,
+    providerProductId: product.providerProductId,
+    providerSkuId: sku?.providerSkuId ?? null,
+    tcgplayerProductId: product.tcgplayerProductId,
+    tcgplayerSkuId: sku?.tcgplayerSkuId ?? null,
+    skuOptions: skus.map((option) => ({
+      providerSkuId: option.providerSkuId,
+      tcgplayerSkuId: option.tcgplayerSkuId,
+      condition: option.condition,
+      variant: option.variant,
+      language: option.language,
+      marketPrice: option.marketPrice,
+      lowPrice: option.lowPrice,
+      highPrice: option.highPrice,
+      activeListings: option.activeListings,
+    })),
+    exactSkuRequired: true,
+    confidence: Math.max(0.58, Math.min(0.98, product.score / 120 - index * 0.03)),
+    prices: [
+      {
+        label: "TCG Market",
+        value: sku?.marketPrice ?? null,
+        currency: "USD",
+        source: "TCGplayer",
+        available: sku?.marketPrice != null,
+        note: "Provider SKU market price.",
+      },
+      {
+        label: "TCG Low",
+        value: sku?.lowPrice ?? null,
+        currency: "USD",
+        source: "TCGplayer",
+        available: sku?.lowPrice != null,
+        note: "Provider SKU low price.",
+      },
+      {
+        label: "TCG High",
+        value: sku?.highPrice ?? null,
+        currency: "USD",
+        source: "TCGplayer",
+        available: sku?.highPrice != null,
+        note: "Provider SKU high price.",
+      },
+      {
+        label: "Active Listings",
+        value: sku?.activeListings ?? null,
+        currency: "USD",
+        source: "TCGTracking",
+        available: sku?.activeListings != null,
+        note: "Listing count, not a price.",
+      },
+      {
+        label: "Cardmarket exact product",
+        value: null,
+        currency: "EUR",
+        source: "Cardmarket",
+        available: false,
+        note: "Regional marketplace pricing is not connected for Pokemon.",
+      },
+    ],
+  };
+}
+
+async function pokemonCandidatesFromProducts(products: TcgProductSearchResult[]) {
+  return Promise.all(
+    products.slice(0, 10).map(async (product, index) => {
+      const exact = await resolveTcgProductSkus({
+        gameId: TCGTRACKING_POKEMON_GAME_ID,
+        providerProductId: product.providerProductId,
+        setId: product.setId,
+      });
+      return pokemonCandidate(exact.product ?? product, exact.skus, index);
+    }),
+  );
+}
+
+async function getPokemonCandidates(input: {
+  manualName: string;
+  compressedImage: string;
+}) {
+  const client = createTcgTrackingClient();
+  if (input.compressedImage) {
+    const bytes = decodedImageBytes(input.compressedImage);
+    if (bytes > TCGTRACKING_SCAN_MAX_IMAGE_BYTES) {
+      throw new Error(
+        `Pokemon photo recognition requires a compressed image under ${TCGTRACKING_SCAN_MAX_IMAGE_BYTES.toLocaleString("en-US")} bytes.`,
+      );
+    }
+    const scan = await scanCardImageWithTcgTracking({
+      client,
+      image: input.compressedImage,
+      gameId: TCGTRACKING_POKEMON_GAME_ID,
+      limit: 10,
+    });
+    const scanProducts = scan.candidates
+      .map((candidate): TcgProductSearchResult | null => {
+        const product = candidate.productIdentity;
+        const providerProductId =
+          product?.providerProductId ?? candidate.providerProductId;
+        if (!providerProductId) return null;
+        return {
+          providerProductId,
+          tcgplayerProductId:
+            product?.tcgplayerProductId ?? candidate.tcgplayerProductId ?? null,
+          gameId: TCGTRACKING_POKEMON_GAME_ID,
+          categoryId: TCGTRACKING_POKEMON_CATEGORY_ID,
+          name: product?.name ?? candidate.name ?? "Unknown Pokemon card",
+          setId: undefined,
+          setName: product?.setName ?? candidate.setName,
+          setCode: product?.setCode ?? candidate.setCode,
+          collectorNumber: product?.collectorNumber ?? candidate.collectorNumber,
+          imageUrl: product?.imageUrl ?? candidate.imageUrl,
+          variants: [],
+          score: candidate.confidence * 120,
+        };
+      })
+      .filter((product): product is TcgProductSearchResult => Boolean(product));
+    if (scanProducts.length) return pokemonCandidatesFromProducts(scanProducts);
+  }
+
+  if (!input.manualName) return [];
+  const products = await searchTcgProducts({
+    gameId: TCGTRACKING_POKEMON_GAME_ID,
+    query: input.manualName,
+    limit: 10,
+    client,
+  });
+  return pokemonCandidatesFromProducts(products);
+}
+
 export async function POST(request: Request) {
   const capability = await requireApiCapability("buying.manage");
   if (!capability.ok) return capability.response;
@@ -228,8 +431,10 @@ export async function POST(request: Request) {
     const form = await request.formData();
     const image = form.get("image");
     const manualName = String(form.get("cardName") ?? "").trim();
+    const gameId = normalizeGameId(form.get("gameId"));
+    const compressedImage = String(form.get("compressedImage") ?? "").trim();
     const file = image instanceof File && image.size > 0 ? image : null;
-    if (!file && !manualName) {
+    if (!file && !manualName && !compressedImage) {
       return NextResponse.json({ error: "Add a card photo or enter a card name." }, { status: 400 });
     }
     if (file && file.size > 12 * 1024 * 1024) {
@@ -240,6 +445,49 @@ export async function POST(request: Request) {
     }
 
     const warnings: string[] = [];
+    if (gameId === POKEMON_GAME) {
+      const candidates = await getPokemonCandidates({
+        manualName,
+        compressedImage,
+      });
+      if (!candidates.length) {
+        const message = manualName
+          ? `No Pokemon products found for "${manualName}".`
+          : "Pokemon scan could not resolve a product. Enter a product name to search manually.";
+        return NextResponse.json({ error: message }, { status: 404 });
+      }
+      const payload: CardScanResponse = {
+        identification: {
+          name: manualName || candidates[0]?.name || "Pokemon card",
+          setCode: null,
+          collectorNumber: null,
+          language: "English",
+          finish: "unknown",
+          confidence: candidates[0]?.confidence ?? 0.72,
+          notes: ["Pokemon recognition uses TCGTracking product identity. Confirm the exact version and SKU before purchase."],
+          gameId: "pokemon",
+          provider: "tcgtracking",
+        },
+        candidates,
+        recognitionMode: compressedImage ? "tcgtracking" : "manual",
+        warnings,
+        pricingCoverage: {
+          checked: 3,
+          available: candidates.some((candidate) =>
+            candidate.prices.some((price) => price.available),
+          )
+            ? 2
+            : 1,
+          sources: [
+            { name: "TCGplayer", status: "available" },
+            { name: "TCGTracking", status: "available" },
+            { name: "Cardmarket", status: "planned" },
+          ],
+        },
+      };
+      return NextResponse.json(payload);
+    }
+
     let recognitionMode: CardScanResponse["recognitionMode"] = "manual";
     let identification = file ? await identifyWithVision(file) : null;
     if (identification) recognitionMode = "vision";
@@ -252,6 +500,8 @@ export async function POST(request: Request) {
         finish: "unknown",
         confidence: 0.91,
         notes: ["Name supplied by the user; confirm the exact printing."],
+        gameId: "magic",
+        provider: "scryfall",
       };
     }
     if (!identification) {

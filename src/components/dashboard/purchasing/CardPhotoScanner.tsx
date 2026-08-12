@@ -68,6 +68,8 @@ const conditionMultiplier: Record<string, number> = {
   Damaged: 0.4,
 };
 
+const TCGTRACKING_SCAN_MAX_IMAGE_BYTES = 100_000;
+
 const sourceBrand: Record<
   string,
   { short: string; accent: string; badge: string }
@@ -81,6 +83,11 @@ const sourceBrand: Record<
     short: "TCG",
     accent: "text-blue-300",
     badge: "border-blue-300/15 bg-blue-300/[.045]",
+  },
+  TCGTracking: {
+    short: "TRK",
+    accent: "text-cyan-300",
+    badge: "border-cyan-300/15 bg-cyan-300/[.045]",
   },
   "Mana Pool": {
     short: "MP",
@@ -162,6 +169,45 @@ function qualityFor(width: number, height: number): Quality {
   };
 }
 
+async function compressImageForTcgTracking(file: File) {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Browser image compression is unavailable.");
+
+  const widths = [720, 560, 420, 320];
+  const qualities = [0.72, 0.6, 0.48, 0.36, 0.28];
+  let lastDataUrl = "";
+
+  for (const width of widths) {
+    const scale = Math.min(1, width / bitmap.width);
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    for (const quality of qualities) {
+      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      lastDataUrl = dataUrl;
+      if (decodedDataUrlBytes(dataUrl) <= TCGTRACKING_SCAN_MAX_IMAGE_BYTES) {
+        bitmap.close?.();
+        return dataUrl;
+      }
+    }
+  }
+
+  bitmap.close?.();
+  throw new Error(
+    `Pokemon photo recognition requires an image under ${TCGTRACKING_SCAN_MAX_IMAGE_BYTES.toLocaleString("en-US")} bytes after compression. Try cropping closer to the card or use manual search.`,
+  );
+}
+
+function decodedDataUrlBytes(dataUrl: string) {
+  const base64 = dataUrl.split(",").pop() ?? "";
+  const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+}
+
 export function CardPhotoScanner() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -191,12 +237,17 @@ export function CardPhotoScanner() {
   const referencePrice = useMemo(() => {
     if (!selected) return null;
 
+    const normalizedFinish = finish.toLowerCase();
     const target =
-      finish === "Foil"
+      normalizedFinish === "foil"
         ? "foil reference"
-        : finish === "Etched"
+        : normalizedFinish === "etched"
           ? "etched reference"
-          : "nonfoil reference";
+          : normalizedFinish === "holo" || normalizedFinish === "reverse holo"
+            ? "tcg market"
+            : normalizedFinish === "normal"
+              ? "tcg market"
+              : "nonfoil reference";
 
     return (
       selected.prices.find((price) =>
@@ -267,11 +318,6 @@ export function CardPhotoScanner() {
       return;
     }
 
-    if (gameContext === "pokemon") {
-      setError("Pokemon purchasing recognition is in beta. Use Magic for live photo analysis while Pokemon catalog matching is validated.");
-      return;
-    }
-
     setLoading(true);
     setError("");
     setNotice("");
@@ -280,6 +326,10 @@ export function CardPhotoScanner() {
       const form = new FormData();
       if (file) form.set("image", file);
       if (manualName.trim()) form.set("cardName", manualName.trim());
+      form.set("gameId", gameContext);
+      if (gameContext === "pokemon" && file) {
+        form.set("compressedImage", await compressImageForTcgTracking(file));
+      }
 
       const response = await fetch("/api/purchasing/card-photo-scan", {
         method: "POST",
@@ -775,7 +825,9 @@ function CandidateList(props: {
                   {candidate.setCode} #{candidate.collectorNumber}
                 </p>
                 <p className="mt-1 text-[8px] text-slate-700">
-                  {candidate.finishes.join(" · ") || "Finish unavailable"}
+                  {[candidate.rarity, candidate.finishes.join(" · ")]
+                    .filter(Boolean)
+                    .join(" · ") || "Variant unavailable"}
                 </p>
               </div>
               <div className="text-right">
@@ -1105,6 +1157,10 @@ export function buildMarketRows(prices: PricePoint[], gameContext: GameContextId
   );
 
   const tcg = prices.find((price) => price.source === "TCGplayer");
+  const tcgMarket = prices.find((price) => price.label === "TCG Market");
+  const tcgLow = prices.find((price) => price.label === "TCG Low");
+  const tcgHigh = prices.find((price) => price.label === "TCG High");
+  const activeListings = prices.find((price) => price.label === "Active Listings");
   const cardmarket = prices.find((price) => price.source === "Cardmarket");
 
   const rows = [
@@ -1119,12 +1175,20 @@ export function buildMarketRows(prices: PricePoint[], gameContext: GameContextId
     },
     {
       name: "TCGplayer",
-      price: null,
-      secondary: null,
+      price: tcgMarket?.value ?? tcgLow?.value ?? null,
+      secondary: tcgHigh?.value ?? null,
       buylist: null,
-      status: tcg?.url ? "Exact-printing link" : "Connection required",
+      status:
+        tcgMarket?.value != null || tcgLow?.value != null
+          ? "SKU pricing available"
+          : tcg?.url
+            ? "Exact-printing link"
+            : "Connection required",
       url: tcg?.url ?? null,
-      note: "Live seller-price API not connected",
+      note:
+        activeListings?.value != null
+          ? `${activeListings.value.toLocaleString("en-US")} active listings`
+          : "Exact product/SKU market reference",
     },
     {
       name: "Mana Pool",
@@ -1158,9 +1222,9 @@ export function buildMarketRows(prices: PricePoint[], gameContext: GameContextId
       price: null,
       secondary: null,
       buylist: null,
-      status: "Provider validation",
+      status: activeListings?.value != null ? "Listing count available" : "Provider validation",
       url: null,
-      note: "Product identity and beta pricing coverage",
+      note: "Product identity and Pokemon SKU coverage",
     },
   ];
 

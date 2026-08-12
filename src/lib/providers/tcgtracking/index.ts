@@ -5,6 +5,7 @@ export * from "./client.ts";
 export * from "./identity.ts";
 export * from "./normalization.ts";
 export * from "./pricing.ts";
+export * from "./product-search.ts";
 export * from "./reconciliation.ts";
 export * from "./scanner.ts";
 export * from "./status.ts";

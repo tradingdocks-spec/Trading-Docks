@@ -46,10 +46,21 @@ export function parseCardLine(raw: string): ParsedCardLine {
     working = working.slice(0, conditionMatch.index).trim();
   }
 
-  const finishMatch = working.match(/\s+(FOIL|ETCHED|NONFOIL)\s*$/i);
+  const finishMatch = working.match(/\s+(FOIL|ETCHED|NONFOIL|NORMAL|HOLO|REVERSE\s+HOLO)\s*$/i);
   if (finishMatch) {
-    const value = finishMatch[1].toLowerCase();
-    finish = value === "foil" ? "foil" : value === "etched" ? "etched" : "nonfoil";
+    const value = finishMatch[1].toLowerCase().replace(/\s+/g, "_");
+    finish =
+      value === "foil"
+        ? "foil"
+        : value === "etched"
+          ? "etched"
+          : value === "holo"
+            ? "holo"
+            : value === "reverse_holo"
+              ? "reverse_holo"
+              : value === "normal"
+                ? "normal"
+                : "nonfoil";
     working = working.slice(0, finishMatch.index).trim();
   }
 

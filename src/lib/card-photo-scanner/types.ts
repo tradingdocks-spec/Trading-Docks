@@ -3,9 +3,11 @@ export type ScanIdentification = {
   setCode?: string | null;
   collectorNumber?: string | null;
   language?: string | null;
-  finish?: "nonfoil" | "foil" | "etched" | "unknown";
+  finish?: string | null;
   confidence: number;
   notes?: string[];
+  gameId?: "magic" | "pokemon";
+  provider?: "scryfall" | "tcgtracking";
 };
 
 export type PricePoint = {
@@ -26,8 +28,28 @@ export type CardCandidate = {
   collectorNumber: string;
   language: string;
   finishes: string[];
+  rarity?: string | null;
   imageUrl?: string | null;
   scryfallUrl?: string | null;
+  gameId?: "magic" | "pokemon";
+  provider?: "scryfall" | "tcgtracking";
+  providerCategoryId?: string | null;
+  providerProductId?: string | null;
+  providerSkuId?: string | null;
+  tcgplayerProductId?: number | null;
+  tcgplayerSkuId?: number | null;
+  skuOptions?: Array<{
+    providerSkuId: string;
+    tcgplayerSkuId: number | null;
+    condition: string;
+    variant: string;
+    language: string;
+    marketPrice: number | null;
+    lowPrice: number | null;
+    highPrice: number | null;
+    activeListings: number | null;
+  }>;
+  exactSkuRequired?: boolean;
   confidence: number;
   prices: PricePoint[];
 };
@@ -35,7 +57,7 @@ export type CardCandidate = {
 export type CardScanResponse = {
   identification: ScanIdentification;
   candidates: CardCandidate[];
-  recognitionMode: "vision" | "manual" | "filename";
+  recognitionMode: "vision" | "manual" | "filename" | "tcgtracking";
   warnings: string[];
   pricingCoverage: {
     checked: number;

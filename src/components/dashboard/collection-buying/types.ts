@@ -1,5 +1,11 @@
 export type Condition = "NM" | "LP" | "MP" | "HP" | "DMG";
-export type PriceFinish = "nonfoil" | "foil" | "etched";
+export type PriceFinish =
+  | "nonfoil"
+  | "foil"
+  | "etched"
+  | "normal"
+  | "holo"
+  | "reverse_holo";
 export type OfferMode = "safe" | "balanced" | "aggressive" | "custom";
 
 export type ParsedCardLine = {
@@ -14,6 +20,12 @@ export type ParsedCardLine = {
 
 export type ScryfallCard = {
   id: string;
+  gameId?: "magic" | "pokemon";
+  provider?: "scryfall" | "tcgtracking";
+  providerProductId?: string | null;
+  providerSkuId?: string | null;
+  tcgplayerProductId?: number | null;
+  tcgplayerSkuId?: number | null;
   oracle_id?: string;
   name: string;
   set: string;
