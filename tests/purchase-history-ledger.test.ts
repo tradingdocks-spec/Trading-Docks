@@ -8,6 +8,7 @@ import {
   validateNewPurchaseInput,
   type PurchaseLedgerRecord,
 } from "../src/lib/purchase-history/ledger.ts";
+import { purchaseRecordFromRow } from "../src/lib/purchase-history/server.ts";
 
 function record(patch: Partial<PurchaseLedgerRecord>): PurchaseLedgerRecord {
   return {
@@ -161,4 +162,49 @@ test("cost-basis linkage remains optional and separate from inventory authority"
 
   assert.equal(linked.lines[0].inventoryItemId, "inventory-row-1");
   assert.equal(linked.lines[0].details.condition, "NM");
+});
+
+test("purchase history preserves game identity for multi-TCG acquisition lines", () => {
+  const record = purchaseRecordFromRow({
+    id: "purchase-pokemon",
+    user_id: "user-1",
+    workspace_id: "workspace-1",
+    source_type: "collection_buying",
+    seller_name: "Walk-in seller",
+    status: "received",
+    payment_method: "cash",
+    subtotal: 8,
+    adjustment: 0,
+    total_cost: 8,
+    item_count: 1,
+    unit_count: 1,
+    created_by: "user-1",
+    purchased_at: "2026-08-11T10:00:00.000Z",
+    notes: "",
+    details: {},
+    purchase_ledger_lines: [
+      {
+        id: "line-pokemon",
+        purchase_id: "purchase-pokemon",
+        line_type: "single",
+        description: "Pikachu ex",
+        quantity: 1,
+        unit_count: 1,
+        unit_cost: 8,
+        total_cost: 8,
+        inventory_item_id: "pokemon-inventory-1",
+        details: {
+          game_id: "pokemon",
+          product_type: "card",
+          variant: "Holofoil",
+          language: "English",
+        },
+      },
+    ],
+  });
+
+  assert.equal(record.lines[0].gameId, "pokemon");
+  assert.equal(record.lines[0].productType, "card");
+  assert.equal(record.lines[0].variant, "Holofoil");
+  assert.equal(record.lines[0].language, "English");
 });

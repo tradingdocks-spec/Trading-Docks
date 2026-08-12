@@ -19,6 +19,7 @@ import {
   renderLabel,
   validateLabelTemplate,
 } from "../src/lib/label-studio/label-templates.ts";
+import { labelItemFromRows } from "../src/lib/label-studio/persistence.ts";
 import { buildBulkLabelRenderJob, detectRepricingVariance } from "../src/lib/label-studio/label-workflow.ts";
 import {
   buildPosCartItemContract,
@@ -116,6 +117,9 @@ test("label template presets and dynamic bindings cover initial categories", () 
   ]);
   assert.equal(LABEL_BINDINGS.includes("card.collector_number"), true);
   assert.equal(LABEL_BINDINGS.includes("inventory.sku"), true);
+  assert.equal(LABEL_BINDINGS.includes("inventory.game"), true);
+  assert.equal(LABEL_BINDINGS.includes("inventory.variant"), true);
+  assert.equal(LABEL_BINDINGS.includes("inventory.language"), true);
   assert.equal(LABEL_BINDINGS.includes("sealed.product_name"), true);
 });
 
@@ -147,6 +151,29 @@ test("default single and sealed labels render live inventory data", () => {
   assert.equal(validateLabelTemplate(single).ok, true);
   assert.equal(renderLabel(single, data).elements.find((element) => element.id === "name")?.value, "Ledger Shredder");
   assert.equal(renderLabel(sealed, data).elements.find((element) => element.id === "name")?.value, "Modern Horizons 3 Bundle");
+});
+
+test("Label Studio preserves generic game variant fields without showing Pokemon as Magic foil", () => {
+  const item = labelItemFromRows({
+    id: "pokemon-1",
+    user_id: "user-1",
+    workspace_id: "workspace-1",
+    game_id: "pokemon",
+    product_type: "card",
+    card_name: "Pikachu ex",
+    set_code: "SV08",
+    collector_number: "057/191",
+    variant: "Holofoil",
+    language: "English",
+    sku: "TD-PKM-0001",
+    data: { condition: "Near Mint" },
+  }, null, "https://example.test");
+
+  assert.equal(item.inventory?.game, "Pokemon");
+  assert.equal(item.inventory?.product_type, "Card");
+  assert.equal(item.inventory?.variant, "Holofoil");
+  assert.equal(item.inventory?.language, "English");
+  assert.equal(item.inventory?.finish, null);
 });
 
 test("pricing rules preview repricing without overwriting inventory price", () => {

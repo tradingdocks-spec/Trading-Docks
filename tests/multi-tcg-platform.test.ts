@@ -414,6 +414,10 @@ test("multi-TCG schema proposals are category-aware and do not replace Magic aut
   assert.match(inventoryMigration, /add column if not exists game_id text/);
   assert.match(inventoryMigration, /add column if not exists product_type text/);
   assert.match(inventoryMigration, /add column if not exists tcgplayer_sku_id bigint/);
+  assert.doesNotMatch(inventoryMigration, /product_type text not null default 'card'/);
+  assert.match(inventoryMigration, /set product_type = 'sealed'/);
+  assert.match(inventoryMigration, /alter column product_type set default 'card'/);
+  assert.match(inventoryMigration, /inventory_items_user_game_provider_sku_idx/);
   assert.doesNotMatch(inventoryMigration, /drop table/i);
   assert.doesNotMatch(inventoryMigration, /drop column/i);
   assert.doesNotMatch(inventoryMigration, /drop constraint/i);

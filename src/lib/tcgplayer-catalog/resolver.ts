@@ -30,6 +30,7 @@ export type TcgplayerCatalogVariant = {
 };
 
 export type ResolveTcgplayerVariantInput = {
+  gameId?: string | number | null;
   productName: string;
   setName?: string | null;
   setCode?: string | null;
@@ -41,6 +42,7 @@ export type ResolveTcgplayerVariantInput = {
 };
 
 export type TcgplayerResolveReasonCode =
+  | "UNSUPPORTED_GAME"
   | "UNKNOWN_SET_CODE"
   | "SET_MAPPED_NO_PRODUCT"
   | "COLLECTOR_NUMBER_MISMATCH"
@@ -84,6 +86,14 @@ export async function resolveTcgplayerVariant(
   client: SupabaseCatalogResolverClient,
   input: ResolveTcgplayerVariantInput,
 ): Promise<ResolveTcgplayerVariantResult> {
+  if (!isMagicResolverGame(input.gameId)) {
+    return unresolved("UNSUPPORTED_GAME", "The TCGplayer Magic resolver only supports Magic inventory rows.", {
+      stage: "direct",
+      sourceSet: input.setCode || input.setName,
+      collectorNumber: input.collectorNumber,
+    });
+  }
+
   if (input.finish?.toLowerCase() === "etched") {
     return unresolved("UNSUPPORTED_ETCHED", "Etched foil SKU resolution is not supported by the current TCGplayer catalog contract.", {
       stage: "direct",
@@ -144,6 +154,12 @@ export async function resolveTcgplayerVariant(
     normalizedCondition: normalized.normalizedCondition,
     normalizedFinish: normalized.normalizedFinish,
   });
+}
+
+function isMagicResolverGame(value: string | number | null | undefined) {
+  if (value === null || value === undefined || value === "") return true;
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === "magic" || normalized === "mtg" || normalized === "1" || normalized === "magic: the gathering";
 }
 
 async function exactMatch(

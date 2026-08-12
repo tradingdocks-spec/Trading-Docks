@@ -65,12 +65,58 @@ test('quantity validation and Free-plan limits are enforced before save', () => 
 
 test('scanner add payload includes storage assignment and exact printing fields', () => {
   const payload = buildScannerAddPayload(confirmation, 'scan-1');
+  assert.equal(payload.game_id, 'magic');
+  assert.equal(payload.product_type, 'card');
+  assert.equal(payload.provider_category_id, '1');
+  assert.equal(payload.variant, 'foil');
+  assert.equal(payload.language, 'en');
   assert.equal(payload.location_id, 'binder-1');
   assert.equal(payload.quantity, 1);
   assert.equal(payload.set_code, 'WOT');
   assert.equal(payload.collector_number, '25');
   assert.equal(payload.data.finish, 'foil');
   assert.equal(payload.data.condition, 'near_mint');
+});
+
+test('Pokemon scanner payload preserves generic product identity without Scryfall or foil assumptions', () => {
+  const pokemonCandidate = normalizeScannerCandidate({
+    id: 'tcgtracking:553927',
+    gameId: 'pokemon',
+    gameLabel: 'Pokemon',
+    productType: 'card',
+    providerCategoryId: '3',
+    providerProductId: '553927',
+    providerSkuId: 'sku-777',
+    tcgplayerProductId: 553927,
+    tcgplayerSkuId: 777,
+    providerSource: 'tcgtracking',
+    name: 'Pikachu ex',
+    setCode: 'sv08',
+    setName: 'Surging Sparks',
+    collectorNumber: '057/191',
+    variant: 'Holofoil',
+    finishes: ['normal'],
+    language: 'English',
+    confidence: 0.9,
+    recognitionMode: 'assisted_capture',
+  })!;
+  const payload = buildScannerAddPayload({
+    ...confirmation,
+    candidate: pokemonCandidate,
+    finish: 'normal',
+    language: 'English',
+  }, 'pokemon-scan-1');
+
+  assert.equal(payload.game_id, 'pokemon');
+  assert.equal(payload.product_type, 'card');
+  assert.equal(payload.provider_category_id, '3');
+  assert.equal(payload.provider_sku_id, 'sku-777');
+  assert.equal(payload.tcgplayer_product_id, 553927);
+  assert.equal(payload.tcgplayer_sku_id, 777);
+  assert.equal(payload.variant, 'Holofoil');
+  assert.equal(payload.scryfall_id, null);
+  assert.equal(payload.data.finish, 'normal');
+  assert.equal(payload.data.variant, 'Holofoil');
 });
 
 test('Trade Binder status and Wishlist action are preserved in confirmation', () => {
@@ -85,6 +131,23 @@ test('rapid-scan reset clears selected and confirmation state', () => {
 test('offline queued add keys are user scoped and deduplicated by validated card state', () => {
   assert.equal(scannerQueueKey(confirmation), scannerQueueKey({ ...confirmation }));
   assert.notEqual(scannerQueueKey(confirmation), scannerQueueKey({ ...confirmation, userId: 'user-2' }));
+});
+
+test('offline queued scanner keys distinguish same-name cross-game cards', () => {
+  const pokemonCandidate = normalizeScannerCandidate({
+    id: candidate.id,
+    gameId: 'pokemon',
+    providerCategoryId: '3',
+    name: candidate.name,
+    setCode: 'WOT',
+    collectorNumber: '25',
+    finishes: ['normal'],
+    variant: 'Holofoil',
+  })!;
+  assert.notEqual(
+    scannerQueueKey(confirmation),
+    scannerQueueKey({ ...confirmation, candidate: pokemonCandidate, finish: 'normal', language: 'English' }),
+  );
 });
 
 test('failed mutation rollback can restore previous scanner candidate selection', () => {

@@ -58,9 +58,47 @@ test('TCGTracking candidate conversion preserves product identity without invent
   });
   assert.ok(candidate);
   assert.equal(candidate.providerSource, 'tcgtracking');
+  assert.equal(candidate.gameId, 'magic');
+  assert.equal(candidate.providerCategoryId, '1');
   assert.equal(candidate.tcgplayerProductId, 456789);
   assert.equal(candidate.providerProductId, '456789');
   assert.deepEqual(candidate.finishes, ['normal', 'foil', 'etched']);
+});
+
+test('TCGTracking Pokemon scan candidates preserve selected game, SKU, and variant identity', () => {
+  const candidate = tcgTrackingCandidateToScannerCandidate({
+    source: 'tcgtracking',
+    gameId: TCGTRACKING_POKEMON_GAME_ID,
+    providerCategoryId: '3',
+    providerProductId: '553927',
+    providerSkuId: 'sku-777',
+    tcgplayerProductId: 553927,
+    tcgplayerSkuId: 777,
+    variant: 'Reverse Holofoil',
+    productIdentity: {
+      name: 'Pikachu ex',
+      setCode: 'SV08',
+      setName: 'Surging Sparks',
+      collectorNumber: '057/191',
+      providerProductId: '553927',
+      providerSkuId: 'sku-777',
+      tcgplayerProductId: 553927,
+      tcgplayerSkuId: 777,
+      providerCategoryId: '3',
+      variant: 'Reverse Holofoil',
+    },
+    confidence: 0.91,
+    requiresConfirmation: true,
+  }, { game: 'pokemon' });
+
+  assert.ok(candidate);
+  assert.equal(candidate.gameId, 'pokemon');
+  assert.equal(candidate.gameLabel, 'Pokemon');
+  assert.equal(candidate.providerCategoryId, '3');
+  assert.equal(candidate.providerSkuId, 'sku-777');
+  assert.equal(candidate.tcgplayerSkuId, 777);
+  assert.equal(candidate.variant, 'Reverse Holofoil');
+  assert.deepEqual(candidate.finishes, ['normal']);
 });
 
 test('TCGTracking product-only candidates do not write provider ids as Scryfall ids', () => {
@@ -93,6 +131,8 @@ test('TCGTracking product-only candidates do not write provider ids as Scryfall 
     addToWishlist: false,
   } satisfies ScannerConfirmation, 'inventory-id-1');
   assert.equal(payload.scryfall_id, null);
+  assert.equal(payload.game_id, 'magic');
+  assert.equal(payload.tcgplayer_product_id, 456789);
   assert.equal(payload.data.tcgplayerProductId, 456789);
   assert.equal(payload.data.providerSource, 'tcgtracking');
 });

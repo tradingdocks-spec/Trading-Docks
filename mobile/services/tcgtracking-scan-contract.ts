@@ -28,8 +28,14 @@ export function tcgTrackingScanGameLabel(game: TcgTrackingScanGame) {
 
 export type TcgTrackingMobileScanCandidate = {
   source: 'tcgtracking';
+  gameId?: number | string;
+  providerCategoryId?: string;
   tcgplayerProductId?: number;
+  tcgplayerSkuId?: number;
   providerProductId?: string;
+  providerSkuId?: string;
+  productType?: 'card' | 'sealed';
+  variant?: string;
   productIdentity?: {
     scryfallId?: string;
     name?: string;
@@ -38,7 +44,12 @@ export type TcgTrackingMobileScanCandidate = {
     collectorNumber?: string;
     imageUrl?: string;
     tcgplayerProductId?: number;
+    tcgplayerSkuId?: number;
     providerProductId?: string;
+    providerSkuId?: string;
+    providerCategoryId?: string;
+    productType?: 'card' | 'sealed';
+    variant?: string;
   } | null;
   name?: string;
   setName?: string;
@@ -51,17 +62,29 @@ export type TcgTrackingMobileScanCandidate = {
 
 export function tcgTrackingCandidateToScannerCandidate(
   candidate: TcgTrackingMobileScanCandidate,
+  options: { game?: TcgTrackingScanGame; gameId?: number | string } = {},
 ): ScannerCardCandidate | null {
   const identity = candidate.productIdentity ?? null;
   const scryfallId = identity?.scryfallId?.trim();
   const providerProductId = identity?.providerProductId ?? candidate.providerProductId;
+  const providerSkuId = identity?.providerSkuId ?? candidate.providerSkuId;
+  const providerCategoryId = identity?.providerCategoryId ?? candidate.providerCategoryId ?? categoryIdFromGame(options.gameId ?? candidate.gameId ?? options.game);
   const tcgplayerProductId = identity?.tcgplayerProductId ?? candidate.tcgplayerProductId;
+  const tcgplayerSkuId = identity?.tcgplayerSkuId ?? candidate.tcgplayerSkuId;
   const id = scryfallId || (tcgplayerProductId ? `tcgtracking:${tcgplayerProductId}` : providerProductId ? `tcgtracking:${providerProductId}` : null);
   if (!id) return null;
+  const gameId = normalizeMobileGameId(options.gameId ?? candidate.gameId ?? options.game ?? providerCategoryId);
+  const variant = identity?.variant ?? candidate.variant ?? null;
   return normalizeScannerCandidate({
     id,
+    gameId,
+    gameLabel: gameId === 'pokemon' ? 'Pokemon' : 'Magic: The Gathering',
+    productType: identity?.productType ?? candidate.productType ?? 'card',
+    providerCategoryId,
     tcgplayerProductId,
+    tcgplayerSkuId,
     providerProductId,
+    providerSkuId,
     providerSource: 'tcgtracking',
     name: identity?.name ?? candidate.name,
     setCode: identity?.setCode ?? candidate.setCode,
@@ -70,7 +93,8 @@ export function tcgTrackingCandidateToScannerCandidate(
     imageUrl: identity?.imageUrl ?? candidate.imageUrl,
     confidence: candidate.confidence,
     recognitionMode: 'assisted_capture',
-    finishes: ['normal', 'foil', 'etched'],
+    finishes: gameId === 'pokemon' ? ['normal'] : ['normal', 'foil', 'etched'],
+    variant,
     language: 'en',
   });
 }
@@ -86,4 +110,15 @@ export function decodedImageBytes(image: string) {
   const clean = (image.includes(',') ? image.split(',').pop() ?? '' : image).replace(/\s+/g, '');
   const padding = clean.endsWith('==') ? 2 : clean.endsWith('=') ? 1 : 0;
   return Math.max(0, Math.floor((clean.length * 3) / 4) - padding);
+}
+
+function normalizeMobileGameId(value: unknown): TcgTrackingScanGame {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (raw === 'pokemon' || raw === String(TCGTRACKING_POKEMON_GAME_ID)) return 'pokemon';
+  return 'magic';
+}
+
+function categoryIdFromGame(value: unknown) {
+  const game = normalizeMobileGameId(value);
+  return String(tcgTrackingScanGameId(game));
 }

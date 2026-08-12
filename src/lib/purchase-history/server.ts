@@ -9,7 +9,7 @@ import {
   type PurchaseHistoryFilters,
   type PurchaseLedgerLine,
   type PurchaseLedgerRecord,
-} from "./ledger";
+} from "./ledger.ts";
 
 type SupabaseResult<T> = {
   data: T | null;
@@ -58,6 +58,13 @@ function nullableString(value: unknown) {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function normalizeProductType(value: unknown) {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (raw === "sealed" || raw === "sealed_product" || raw === "unopened") return "sealed";
+  if (raw === "card" || raw === "single" || raw === "singles") return "card";
+  return null;
+}
+
 function timestampValue(value: unknown) {
   return typeof value === "string" && value.trim()
     ? value
@@ -65,6 +72,7 @@ function timestampValue(value: unknown) {
 }
 
 function lineFromRow(row: Record<string, unknown>): PurchaseLedgerLine {
+  const details = objectRecord(row.details);
   return {
     id: stringValue(row.id),
     purchaseId: stringValue(row.purchase_id),
@@ -75,7 +83,11 @@ function lineFromRow(row: Record<string, unknown>): PurchaseLedgerLine {
     unitCost: normalizeMoney(row.unit_cost),
     totalCost: normalizeMoney(row.total_cost),
     inventoryItemId: nullableString(row.inventory_item_id),
-    details: objectRecord(row.details),
+    gameId: nullableString(details.gameId ?? details.game_id),
+    productType: normalizeProductType(details.productType ?? details.product_type),
+    variant: nullableString(details.variant),
+    language: nullableString(details.language),
+    details,
   };
 }
 
@@ -202,17 +214,26 @@ export async function createPurchaseLedgerRecord({
     return { data: null, error: { message: "Purchase record was created without a returned id." } };
   }
 
-  const lines = purchase.lines.map((line) => ({
-    purchase_id: purchaseId,
-    line_type: line.lineType,
-    description: line.description,
-    quantity: normalizeCount(line.quantity),
-    unit_count: normalizeCount(line.unitCount),
-    unit_cost: normalizeMoney(line.unitCost),
-    total_cost: normalizeMoney(line.totalCost),
-    inventory_item_id: line.inventoryItemId ?? null,
-    details: line.details ?? {},
-  }));
+  const lines = purchase.lines.map((line) => {
+    const details = {
+      ...(line.details ?? {}),
+      ...(line.gameId ? { gameId: line.gameId, game_id: line.gameId } : {}),
+      ...(line.productType ? { productType: line.productType, product_type: line.productType } : {}),
+      ...(line.variant ? { variant: line.variant } : {}),
+      ...(line.language ? { language: line.language } : {}),
+    };
+    return {
+      purchase_id: purchaseId,
+      line_type: line.lineType,
+      description: line.description,
+      quantity: normalizeCount(line.quantity),
+      unit_count: normalizeCount(line.unitCount),
+      unit_cost: normalizeMoney(line.unitCost),
+      total_cost: normalizeMoney(line.totalCost),
+      inventory_item_id: line.inventoryItemId ?? null,
+      details,
+    };
+  });
 
   const lineResult = await client
     .from("purchase_ledger_lines")

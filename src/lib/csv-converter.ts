@@ -18,6 +18,8 @@ export type CsvFormatId =
 
 export type CardRow = {
   sourceRow: number;
+  game: string;
+  productType: "card" | "sealed";
   name: string;
   setCode: string;
   setName: string;
@@ -26,6 +28,7 @@ export type CardRow = {
   condition: string;
   language: string;
   finish: "normal" | "foil" | "etched" | "";
+  variant: string;
   scryfallId: string;
   tcgplayerId: string;
   rarity: string;
@@ -68,6 +71,8 @@ export const CSV_FORMATS: CsvFormat[] = [
 
 const aliases: Record<string, string[]> = {
   name: ["name", "card", "card name", "product name"],
+  game: ["game", "product line", "category", "tcg", "game name"],
+  productType: ["product type", "item type", "category", "sealed"],
   setCode: ["set code", "set id", "code", "edition code"],
   setName: ["set name", "set", "edition"],
   collectorNumber: ["collector number", "collector #", "card number", "number"],
@@ -75,6 +80,7 @@ const aliases: Record<string, string[]> = {
   condition: ["condition"],
   language: ["language"],
   finish: ["finish", "foil", "printing", "premium"],
+  variant: ["variant", "finish", "printing", "foil", "premium"],
   scryfallId: ["scryfall id", "scryfall_id"],
   tcgplayerId: ["tcgplayer id"],
   rarity: ["rarity"],
@@ -184,11 +190,25 @@ function normalizeFinish(input: string): CardRow["finish"] {
   return "";
 }
 
+function normalizeGame(input: string) {
+  const key = input.trim().toLowerCase();
+  if (!key || key === "magic" || key === "mtg" || key === "magic: the gathering") return "magic";
+  if (key === "pokemon" || key === "pokémon" || key === "ptcg") return "pokemon";
+  return key;
+}
+
+function normalizeProductType(input: string): CardRow["productType"] {
+  const key = input.trim().toLowerCase();
+  return key === "sealed" || key === "sealed product" || key === "unopened" ? "sealed" : "card";
+}
+
 function baseRow(row: Record<string, string>, sourceRow: number): CardRow {
   const name = value(row, "name");
   const quantity = Math.max(0, Number.parseInt(value(row, "quantity") || "1", 10) || 0);
   const normalized: CardRow = {
     sourceRow,
+    game: normalizeGame(value(row, "game")),
+    productType: normalizeProductType(value(row, "productType")),
     name,
     setCode: value(row, "setCode").toLowerCase(),
     setName: value(row, "setName"),
@@ -197,6 +217,7 @@ function baseRow(row: Record<string, string>, sourceRow: number): CardRow {
     condition: normalizeCondition(value(row, "condition")),
     language: normalizeLanguage(value(row, "language")),
     finish: normalizeFinish(value(row, "finish")),
+    variant: value(row, "variant"),
     scryfallId: value(row, "scryfallId"),
     tcgplayerId: value(row, "tcgplayerId"),
     rarity: value(row, "rarity"),
@@ -213,6 +234,9 @@ function baseRow(row: Record<string, string>, sourceRow: number): CardRow {
   }
   if (!normalized.condition) normalized.warnings.push("Condition needs review");
   if (!normalized.finish) normalized.warnings.push("Finish needs review");
+  if (normalized.game !== "magic" && normalized.scryfallId) {
+    normalized.warnings.push("Scryfall identity is Magic-only");
+  }
   return normalized;
 }
 
@@ -274,6 +298,11 @@ function foilFlag(row: CardRow) {
 }
 
 export function exportCsv(rows: CardRow[], output: Exclude<CsvFormatId, "auto" | "generic">) {
+  const unsupported = unsupportedExportIssues(rows, output);
+  if (unsupported.length) {
+    throw new Error(unsupported[0]);
+  }
+
   switch (output) {
     case "tcgplayer": {
       const headers = ["TCGplayer Id", "Product Line", "Set Name", "Product Name", "Title", "Number", "Rarity", "Condition", "TCG Market Price", "TCG Direct Low", "TCG Low Price With Shipping", "TCG Low Price", "Total Quantity", "Add to Quantity", "TCG Marketplace Price", "Photo URL"];
@@ -323,8 +352,22 @@ export function blockingIssues(rows: CardRow[], output: CsvFormatId) {
   return rows.reduce((count, row) => {
     let issues = row.warnings.filter((warning) => warning !== "Condition needs review" && warning !== "Finish needs review").length;
     if (!row.condition) issues += 1;
-    if (!row.finish) issues += 1;
+    if (row.game === "magic" && !row.finish) issues += 1;
     if (output === "tcgplayer" && !row.tcgplayerId) issues += 1;
+    if (unsupportedExportIssues([row], output).length) issues += 1;
     return count + issues;
   }, 0);
+}
+
+export function unsupportedExportIssues(rows: CardRow[], output: CsvFormatId) {
+  if (output === "auto" || output === "generic") return [];
+  return rows.flatMap((row) => {
+    if (row.game !== "magic") {
+      return [`Row ${row.sourceRow}: ${output} export is currently Magic-only for Trading Docks CSV conversion.`];
+    }
+    if (row.productType !== "card") {
+      return [`Row ${row.sourceRow}: ${output} export does not support sealed inventory rows.`];
+    }
+    return [];
+  });
 }

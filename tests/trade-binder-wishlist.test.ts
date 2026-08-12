@@ -102,6 +102,59 @@ test('condition and finish mismatches are rejected', () => {
   assert.deepEqual(matchWishlistToBinderItem(state.wishlistItems.find((item) => item.id === 'wish-4')!, binder), { ok: false, reason: 'finish' });
 });
 
+test('wishlist matching distinguishes same-name cards across games and variants', () => {
+  const mixedCards = buildCollectionCards({
+    items: [
+      {
+        id: 'magic-pikachu',
+        card_name: 'Pikachu',
+        set_code: 'SLD',
+        collector_number: '1',
+        quantity: 1,
+        data: { finish: 'normal', condition: 'near_mint', language: 'English' },
+      },
+      {
+        id: 'pokemon-pikachu',
+        game_id: 'pokemon',
+        product_type: 'card',
+        card_name: 'Pikachu',
+        set_code: 'sv08',
+        collector_number: '057/191',
+        quantity: 1,
+        variant: 'Holofoil',
+        language: 'English',
+        data: { condition: 'near_mint' },
+      },
+    ],
+    tradeStatuses: [
+      { inventory_item_id: 'magic-pikachu', status: 'available' },
+      { inventory_item_id: 'pokemon-pikachu', status: 'available' },
+    ],
+  });
+  const mixedState = buildTradeBinderWishlistState({
+    userId,
+    cards: mixedCards,
+    tradeRows: [
+      { inventory_item_id: 'magic-pikachu', status: 'available' },
+      { inventory_item_id: 'pokemon-pikachu', status: 'available' },
+    ],
+    wishlistRows: [
+      {
+        id: 'wish-pokemon',
+        game_id: 'pokemon',
+        product_type: 'card',
+        card_name: 'Pikachu',
+        set_code: 'SV08',
+        target_condition: 'near_mint',
+        target_variant: 'Holofoil',
+        target_language: 'English',
+      },
+    ],
+  });
+
+  assert.deepEqual(mixedState.matches.map((match) => match.binderItem.id), ['pokemon-pikachu']);
+});
+
 test('quantity handling excludes zero-quantity matches', () => {
   const zeroState = buildTradeBinderWishlistState({
     userId,

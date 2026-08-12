@@ -34,8 +34,12 @@ export type LabelBinding =
   | "card.name"
   | "card.set"
   | "card.collector_number"
+  | "inventory.game"
+  | "inventory.product_type"
   | "inventory.condition"
   | "inventory.finish"
+  | "inventory.variant"
+  | "inventory.language"
   | "inventory.asking_price"
   | "inventory.market_price"
   | "inventory.sku"
@@ -96,8 +100,12 @@ export type LabelRenderData = {
     collector_number?: string | null;
   };
   inventory?: {
+    game?: string | null;
+    product_type?: string | null;
     condition?: string | null;
     finish?: string | null;
+    variant?: string | null;
+    language?: string | null;
     asking_price?: number | null;
     market_price?: number | null;
     sku?: string | null;
@@ -155,8 +163,12 @@ export const LABEL_BINDINGS: LabelBinding[] = [
   "card.name",
   "card.set",
   "card.collector_number",
+  "inventory.game",
+  "inventory.product_type",
   "inventory.condition",
   "inventory.finish",
+  "inventory.variant",
+  "inventory.language",
   "inventory.asking_price",
   "inventory.market_price",
   "inventory.sku",

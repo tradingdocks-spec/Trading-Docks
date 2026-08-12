@@ -158,7 +158,7 @@ export async function scanPreparedImageWithTcgTracking(input: {
       return failure(payload.error ?? 'Enhanced recognition is unavailable.', payload.latencyMs ?? Date.now() - startedAt);
     }
     const candidates = (payload.candidates ?? [])
-      .map(tcgTrackingCandidateToScannerCandidate)
+      .map((candidate) => tcgTrackingCandidateToScannerCandidate(candidate, { gameId: input.gameId ?? TCGTRACKING_MAGIC_GAME_ID }))
       .filter((candidate): candidate is ScannerCardCandidate => Boolean(candidate));
     if (!candidates.length) {
       return failure('Enhanced recognition did not resolve a supported printing.', payload.latencyMs ?? Date.now() - startedAt);

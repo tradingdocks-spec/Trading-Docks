@@ -25,10 +25,14 @@ export type RawTradeBinderRow = {
 
 export type RawWishlistRow = {
   id?: string | null;
+  game_id?: string | null;
+  product_type?: string | null;
   card_name?: string | null;
   set_code?: string | null;
   target_condition?: string | null;
   target_finish?: string | null;
+  target_variant?: string | null;
+  target_language?: string | null;
   target_value?: number | string | null;
   priority?: string | null;
   notes?: string | null;
@@ -50,10 +54,14 @@ export type TradeBinderItem = {
 export type WishlistItem = {
   id: string;
   userId: string;
+  gameId: string;
+  productType: 'card' | 'sealed';
   cardName: string;
   setCode: string | null;
   targetCondition: CardCondition | 'any';
   targetFinish: CardFinish | 'any';
+  targetVariant: string | 'any';
+  targetLanguage: string | 'any';
   targetValue: number | null;
   priority: WishlistPriority;
   notes: string;
@@ -164,10 +172,14 @@ export function buildWishlistItem(userId: string, row: RawWishlistRow): Wishlist
   return {
     id: stringValue(row.id) || wishlistStableId(row),
     userId,
+    gameId: normalizeWishlistGame(row.game_id),
+    productType: normalizeWishlistProductType(row.product_type),
     cardName,
     setCode: stringValue(row.set_code)?.toUpperCase() ?? null,
     targetCondition: normalizeWishlistCondition(row.target_condition),
     targetFinish: normalizeWishlistFinish(row.target_finish),
+    targetVariant: stringValue(row.target_variant) || 'any',
+    targetLanguage: stringValue(row.target_language) || 'any',
     targetValue: numberValue(row.target_value),
     priority: normalizeWishlistPriority(row.priority),
     notes: stringValue(row.notes),
@@ -203,7 +215,7 @@ export function filterWishlistItems(items: WishlistItem[], matches: WishlistMatc
   const query = normalize(filter.query ?? '');
   const matchedIds = new Set(matches.map((match) => match.wishlistItem.id));
   return items.filter((item) => {
-    const haystack = normalize([item.cardName, item.setCode, item.targetCondition, item.targetFinish, item.priority, item.notes].join(' '));
+    const haystack = normalize([item.gameId, item.productType, item.cardName, item.setCode, item.targetCondition, item.targetVariant, item.targetLanguage, item.targetFinish, item.priority, item.notes].join(' '));
     if (query && !haystack.includes(query)) return false;
     if (filter.priority && filter.priority !== 'all' && item.priority !== filter.priority) return false;
     if (filter.matchState === 'matched' && !matchedIds.has(item.id)) return false;
@@ -253,15 +265,19 @@ export function matchWishlistToBinderItem(wishlistItem: WishlistItem, binderItem
   | { ok: false; reason: 'name' | 'set' | 'condition' | 'finish' | 'quantity' } {
   const card = binderItem.card;
   if (binderItem.quantityAvailable <= 0) return { ok: false, reason: 'quantity' };
+  if (card.gameId !== wishlistItem.gameId || card.productType !== wishlistItem.productType) return { ok: false, reason: 'name' };
   if (normalize(card.cardName) !== normalize(wishlistItem.cardName)) return { ok: false, reason: 'name' };
   if (wishlistItem.setCode && normalize(card.printing.setCode ?? '') !== normalize(wishlistItem.setCode)) return { ok: false, reason: 'set' };
   if (wishlistItem.targetCondition !== 'any' && card.condition !== wishlistItem.targetCondition) return { ok: false, reason: 'condition' };
+  if (wishlistItem.targetVariant !== 'any' && normalize(card.printing.variant ?? displayFinish(card.printing.finish)) !== normalize(wishlistItem.targetVariant)) return { ok: false, reason: 'finish' };
+  if (wishlistItem.targetLanguage !== 'any' && normalize(card.printing.language ?? '') !== normalize(wishlistItem.targetLanguage)) return { ok: false, reason: 'finish' };
   if (wishlistItem.targetFinish !== 'any' && card.printing.finish !== wishlistItem.targetFinish) return { ok: false, reason: 'finish' };
-  const exact = Boolean(wishlistItem.setCode && wishlistItem.targetCondition !== 'any' && wishlistItem.targetFinish !== 'any');
+  const exact = Boolean(wishlistItem.setCode && wishlistItem.targetCondition !== 'any' && (wishlistItem.targetVariant !== 'any' || wishlistItem.targetFinish !== 'any'));
   const reasons = [
+    wishlistItem.gameId,
     wishlistItem.setCode ? 'set' : 'any set',
     wishlistItem.targetCondition !== 'any' ? 'condition' : 'any condition',
-    wishlistItem.targetFinish !== 'any' ? 'finish' : 'any finish',
+    wishlistItem.targetVariant !== 'any' ? 'variant' : wishlistItem.targetFinish !== 'any' ? 'finish' : 'any variant',
   ];
   return { ok: true, matchType: exact ? 'exact' : 'flexible', reasons };
 }
@@ -348,7 +364,18 @@ function normalizeWishlistFinish(value: unknown): CardFinish | 'any' {
 }
 
 function wishlistStableId(row: RawWishlistRow) {
-  return [row.card_name, row.set_code, row.target_condition, row.target_finish].map((value) => normalize(String(value ?? 'any'))).join(':');
+  return [row.game_id ?? 'magic', row.product_type ?? 'card', row.card_name, row.set_code, row.target_condition, row.target_variant ?? row.target_finish, row.target_language].map((value) => normalize(String(value ?? 'any'))).join(':');
+}
+
+function normalizeWishlistGame(value: unknown) {
+  const raw = normalize(String(value ?? ''));
+  if (raw === 'pokemon' || raw === 'ptcg' || raw === '3') return 'pokemon';
+  return 'magic';
+}
+
+function normalizeWishlistProductType(value: unknown): 'card' | 'sealed' {
+  const raw = normalize(String(value ?? ''));
+  return raw === 'sealed' || raw === 'sealedproduct' || raw === 'unopened' ? 'sealed' : 'card';
 }
 
 function cloneTradeItem(item: TradeBinderItem): TradeBinderItem {

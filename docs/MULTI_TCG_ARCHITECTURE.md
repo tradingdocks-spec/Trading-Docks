@@ -6,7 +6,7 @@
 - Partially Implemented: Pokemon is registered as the first beta/proof-of-concept game through TCGTracking category `3`.
 - Partially Implemented: The shared identity adapters in `src/lib/multi-tcg` define game-aware product, set, SKU, sealed, market, inventory, and search contracts.
 - Partially Implemented: Collection and Portfolio adapters can render mixed Magic/Pokemon and card/sealed records from persisted inventory data.
-- Planned: Production Pokemon catalog import, inventory writes, valuation, and scanner rollout remain future work.
+- Partially Implemented: Production Pokemon catalog import, valuation, and broad scanner rollout remain future work; scanner add payloads now preserve Pokemon game/product/SKU identity when a confirmed provider candidate is explicitly saved.
 - Requires Production Configuration: Any additional game requires provider licensing, cache cadence, attribution, and QA approval before production exposure.
 
 ## Current Magic-Specific Assumption Audit
@@ -21,15 +21,15 @@
 ### B. Generic Logic With Magic Naming
 
 - Partially Implemented: `inventory_items.card_name`, `set_code`, `collector_number`, and `data.finish` describe card ownership today but are Magic-shaped names.
-- Partially Implemented: Collection, Storage, Trade Binder, Wishlist, Label Studio, and CSV conversion can use the same ownership rows but need explicit game identity before accepting non-Magic cards.
-- Partially Implemented: `finish` maps well enough for Magic Normal/Foil but must become generic `variant` for games such as Pokemon.
+- Partially Implemented: Collection, Storage, Trade Binder, Wishlist, Label Studio, and CSV conversion can use the same ownership rows with explicit game identity; production Pokemon import/export workflows remain beta.
+- Implemented: `finish` remains the Magic-compatible UI field, while `variant` is the generic per-game SKU label for games such as Pokemon.
 
 ### C. Shared Inventory And Collection Logic
 
 - Implemented: `inventory_items.user_id`, `id`, `quantity`, `location_id`, `inventory_value`, `sku`, and `data` are reusable ownership concepts.
 - Implemented: `inventory_locations` is game-neutral.
 - Implemented: Trade Binder, Wishlist, storage assignment, and label identity should remain one shared inventory system, not one table per game.
-- Planned: First-class `game_id`, `product_type`, provider product/SKU IDs, `variant`, and `language` are needed before non-Magic inventory writes are production-authoritative.
+- Partially Implemented: First-class `game_id`, `product_type`, provider product/SKU IDs, `variant`, and `language` are proposed for `inventory_items`; active scanner and adapter tests now preserve those values through confirmed saves.
 
 ### D. Marketplace Integration Logic
 
@@ -99,12 +99,13 @@
 
 - Planned Migration Proposal Only: `supabase/migrations/202608120001_multi_tcg_inventory_identity_proposal.sql`.
 - Adds: `inventory_items.game_id`, `product_type`, `provider_category_id`, `provider_product_id`, `provider_sku_id`, `tcgplayer_product_id`, `tcgplayer_sku_id`, `variant`, and `language`.
-- Adds indexes for user-scoped game/product/SKU lookups.
-- Backfills only Magic-shaped rows to `game_id = 'magic'` and provider category `1`.
+- Adds indexes for user-scoped game/product/SKU lookups, including exact provider SKU and exact TCGplayer SKU paths.
+- Backfills existing sealed-shaped rows to `product_type = 'sealed'` before setting the default for future rows to `card`.
+- Backfills only Magic-shaped card rows to `game_id = 'magic'` and provider category `1`; unknown/manual rows remain nullable for review rather than being silently classified.
 - Does not alter RLS, delete data, replace tables, or apply Pokemon data.
 - Safety Review: The proposal is additive and forward-only; constraints are added idempotently when absent, and existing user/workspace ownership policies remain authoritative.
 - Staging Decision: Safe to apply to staging for validation after review.
-- Production Decision: Not safe to apply to production yet because Inventory, Label Studio, CSV conversion, and scanner QA still need migrated-schema verification.
+- Production Decision: Safe to apply to production after a final database backup and staging replay. The migration is additive, does not create inventory rows, and preserves ambiguous legacy rows for review.
 - Rollout rule: apply only after app code has been verified against staging and product-owner approval is given.
 
 ## Portfolio And Inventory Views
@@ -112,7 +113,7 @@
 - Partially Implemented: Portfolio summaries group persisted inventory by game and product type where data is present.
 - Partially Implemented: Collection summaries group by game and by singles/sealed product type.
 - Partially Implemented: Collection filters support the conceptual `All`, `Magic`, and `Pokemon` model via `gameId`, plus `card` versus `sealed` via `productType`.
-- Planned: Seller Inventory UI should expose the same filters after the migration is approved.
+- Partially Implemented: Seller Inventory can tolerate unknown game rows through existing generic quantity/cost fields, but Pokemon selling/listing remains beta-hidden until marketplace export formats are approved.
 - Implemented: Exact SKU matching keys include game, product type, provider/TCGplayer SKU identity, condition, variant, and language.
 
 ## Seller Inventory Readiness
@@ -125,7 +126,7 @@
 ## Backwards-Compatibility Risks
 
 - Risk: Existing inventory rows without Magic-shaped fields can remain `game_id = null` after the proposal and should be shown as unknown/manual until reviewed.
-- Risk: Magic UI that reads `finish` directly may need a `variant` adapter before Pokemon writes are enabled.
+- Risk: Magic-only export formats remain intentionally blocked for Pokemon and sealed inventory until exact marketplace format contracts are approved.
 - Risk: TCGTracking provider availability, category names, set identifiers, and sealed endpoint behavior must be validated against live data before production use.
 - Risk: The active scanner must not switch provider authority without benchmark evidence and confirmation UX.
 - Risk: Marketplace exports must keep using exact TCGplayer SKU IDs; parent product IDs are insufficient.
@@ -149,3 +150,14 @@
 5. Enable Pokemon search and scanner confirmation behind beta gating.
 6. Add Pokemon inventory writes only after exact SKU matching and rollback tests pass.
 7. Expand portfolio and seller analytics to group by game/product type.
+
+## Final Compatibility Pass
+
+- Implemented: The migration no longer uses a blanket `not null default 'card'` column addition that would classify every historical row as a card. Sealed-shaped rows are backfilled first, Magic-shaped card rows are then backfilled deterministically, and nullable unknown/manual rows are left for review.
+- Implemented: Scanner confirmed-add payloads and offline queue keys include `game_id`, `product_type`, provider category/product/SKU ids, TCGplayer product/SKU ids, generic `variant`, and `language`.
+- Implemented: Label Studio render data includes generic `inventory.game`, `inventory.product_type`, `inventory.variant`, and `inventory.language`; Pokemon labels do not receive Magic `finish` output.
+- Implemented: The Magic TCGplayer resolver rejects non-Magic rows with `UNSUPPORTED_GAME` before querying `tcgplayer_magic_catalog`.
+- Implemented: CSV conversion carries row-level `game` and `productType`, preserves the existing Magic flow, and blocks Pokemon or sealed rows from Magic-only export formats.
+- Implemented: Purchase History lines preserve game/product/variant/language in line details without creating inventory rows.
+- Implemented: Wishlist matching compares game and product type before name/set/condition/variant, preventing same-name cross-game matches.
+- Production Gate: YES, the multi-TCG inventory migration is production-safe as an additive schema migration after backup and staging replay. Pokemon remains beta for catalog import, selling/export, and scanner recognition reliability; Magic remains the production authority.

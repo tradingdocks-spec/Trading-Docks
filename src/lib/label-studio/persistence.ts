@@ -33,6 +33,15 @@ export type LabelStudioInventoryRow = {
   user_id: string;
   workspace_id: string | null;
   item_kind?: string | null;
+  game_id?: string | null;
+  product_type?: string | null;
+  variant?: string | null;
+  language?: string | null;
+  provider_category_id?: string | null;
+  provider_product_id?: string | null;
+  provider_sku_id?: string | null;
+  tcgplayer_product_id?: number | string | null;
+  tcgplayer_sku_id?: number | string | null;
   card_name?: string | null;
   product_name?: string | null;
   set_code?: string | null;
@@ -139,15 +148,19 @@ export function labelItemFromRows(
   origin: string,
 ): LabelStudioItem {
   const data = item.data && typeof item.data === "object" ? item.data : {};
+  const gameId = normalizeGameId(item.game_id ?? data.game_id ?? data.gameId ?? data.game);
+  const productType = normalizeProductType(item.product_type ?? data.product_type ?? data.productType ?? item.item_kind);
   const condition = stringValue(data.condition);
-  const finish = stringValue(data.finish) ?? stringValue(data.treatment);
+  const variant = stringValue(item.variant) ?? stringValue(data.variant) ?? stringValue(data.finish) ?? stringValue(data.treatment);
+  const finish = gameId === "magic" ? variant : null;
+  const language = stringValue(item.language) ?? stringValue(data.language);
   const productName =
     stringValue(item.product_name) ??
     stringValue(data.productName) ??
     stringValue(data.name);
   const cardName = stringValue(item.card_name);
   const sku = identity?.sku ?? stringValue(item.sku);
-  const targetType = identity?.target_type ?? stringValue(item.item_kind) ?? (productName && !cardName ? "sealed" : "single");
+  const targetType = identity?.target_type ?? stringValue(item.item_kind) ?? (productType === "sealed" || (productName && !cardName) ? "sealed" : "single");
   return {
     id: item.id,
     userId: item.user_id,
@@ -166,8 +179,12 @@ export function labelItemFromRows(
       product_name: productName,
     },
     inventory: {
+      game: gameLabel(gameId),
+      product_type: productType === "sealed" ? "Sealed" : "Card",
       condition,
       finish,
+      variant,
+      language,
       asking_price: money(item.asking_price),
       market_price: money(item.market_price),
       sku,
@@ -192,4 +209,20 @@ function money(value: unknown) {
 
 function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeGameId(value: unknown) {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (raw === "pokemon" || raw === "ptcg" || raw === "3") return "pokemon";
+  return "magic";
+}
+
+function normalizeProductType(value: unknown) {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (raw === "sealed" || raw === "sealed_product" || raw === "unopened") return "sealed";
+  return "card";
+}
+
+function gameLabel(gameId: string) {
+  return gameId === "pokemon" ? "Pokemon" : "Magic";
 }

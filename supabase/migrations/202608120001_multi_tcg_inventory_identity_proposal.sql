@@ -5,7 +5,7 @@
 
 alter table public.inventory_items
   add column if not exists game_id text,
-  add column if not exists product_type text not null default 'card',
+  add column if not exists product_type text,
   add column if not exists provider_category_id text,
   add column if not exists provider_product_id text,
   add column if not exists provider_sku_id text,
@@ -48,6 +48,16 @@ begin
   end if;
 end $$;
 
+-- Preserve sealed/manual historical rows before defaulting new writes to card.
+update public.inventory_items
+set product_type = 'sealed'
+where product_type is null
+  and (
+    item_kind in ('sealed', 'sealed_product') or
+    (product_name is not null and card_name is null) or
+    data ->> 'productType' in ('sealed', 'sealed_product')
+  );
+
 -- Existing active inventory is Magic-first. Backfill only rows with Magic-shaped
 -- identifiers so unknown/manual rows are not silently misclassified.
 update public.inventory_items
@@ -61,6 +71,9 @@ where game_id is null
     set_code is not null or
     collector_number is not null
   );
+
+alter table public.inventory_items
+  alter column product_type set default 'card';
 
 create index if not exists inventory_items_user_game_type_idx
   on public.inventory_items(user_id, game_id, product_type);
@@ -76,6 +89,10 @@ create index if not exists inventory_items_user_game_tcgsku_idx
 create index if not exists inventory_items_user_game_provider_product_idx
   on public.inventory_items(user_id, game_id, provider_product_id)
   where provider_product_id is not null;
+
+create index if not exists inventory_items_user_game_provider_sku_idx
+  on public.inventory_items(user_id, game_id, provider_sku_id)
+  where provider_sku_id is not null;
 
 create index if not exists inventory_items_user_game_variant_idx
   on public.inventory_items(user_id, game_id, (data ->> 'condition'), variant, language)

@@ -32,9 +32,10 @@
 - Implemented: Multi-TCG contracts are defined in `mobile/services/multi-tcg-scanner.ts`, including `SupportedTcg`, game detection observations, game adapters, universal card/printing identity, mixed sessions, universal exports, and unsupported-card observations.
 - Implemented: `ScanDestination` separates Collection, user-created Binder, Trade Binder, named Scan Session, and future Deal Desk handoff.
 - Implemented: `ScanExportRow` preserves market price, price source, and price timestamp as nullable fields; missing prices remain unavailable rather than `$0`.
-- Partially Implemented: `inventory_items` is Magic-compatible today because active scanner writes use Scryfall, set code, and collector-number fields. Universal identity should be introduced through a migration proposal only.
+- Partially Implemented: `inventory_items` is Magic-compatible today and the reviewed multi-TCG proposal adds `game_id`, `product_type`, provider product/SKU ids, TCGplayer product/SKU ids, `variant`, and `language` without replacing the table.
 - Partially Implemented: General user-created binder assignment is a typed destination only. Active scanner writes currently support Collection, Storage assignment, Trade Binder status, and Wishlist action.
 - Planned: Preserve existing Magic records by adapting `scryfall_id`, `set_code`, and `collector_number` into the universal contract rather than destructively converting rows.
+- Implemented: The multi-TCG proposal backfills only Magic-shaped rows to `game_id = 'magic'`, preserves sealed-shaped rows as `product_type = 'sealed'`, and leaves unknown/manual rows nullable for review.
 - Planned: If user-created binders become a production scanner destination, add a reviewed migration proposal for first-class binder ownership and assignment instead of overloading Trade Binder state.
 - Planned: Persisted scan sessions and saved scanner exports need reviewed schema design before production use.
 
@@ -127,13 +128,13 @@
 - Implemented: Trade Binder statuses use existing canonical values: `available`, `reserved`, `pending`, `not_for_trade`, `looking_for_upgrade`, and `for_sale`.
 - Implemented: Wishlist priorities use existing database values: `low`, `medium`, `high`, and `grail`.
 - Implemented: Matching rules are strict when fields are specified and flexible only for omitted wishlist fields.
-- Partially Implemented: `collector_wishlist` does not store collector number, language, or Scryfall id, so exact-printing matching is limited to card name plus set code, condition, and finish.
+- Partially Implemented: `collector_wishlist` does not store collector number or Scryfall id. Application matching now includes game/product type and can honor target variant/language where rows provide those fields, while older rows remain Magic-compatible.
 - Planned: Add a reviewed migration proposal before requiring wishlist collector-number/Scryfall exactness, durable match snapshots, or trade-calculator audit trails.
 
 ## Scanner Data Contract
 
-- Implemented: Scanner candidates map to exact-printing fields already used by Collection: Scryfall id, card name, set code, set name, collector number, finish, language, and image URL when available.
-- Implemented: Confirmed scans insert `inventory_items` records with `quantity`, `location_id`, and exact-printing metadata in `data`.
+- Implemented: Scanner candidates map to exact-printing fields already used by Collection: game, product type, provider/TCGplayer ids, Scryfall id for Magic, card/product name, set code, set name, collector/product number, variant/finish, language, and image URL when available.
+- Implemented: Confirmed scans insert `inventory_items` records with `quantity`, `location_id`, exact-printing metadata in `data`, and the additive multi-TCG identity columns when the migration is present.
 - Implemented: Continuous scanner session lines are local user-scoped records containing scan identity, game, exact-printing fields, condition, finish, quantity, price fields, offer fields, destination, confidence, review status, and sync state.
 - Implemented: Offer sessions keep market value, cash offer, trade value, and estimated margin separate; missing prices remain `null`.
 - Partially Implemented: Scanner candidate records can carry nullable Scryfall USD price metadata for normal, foil, and etched finishes. The active scanner applies that metadata asynchronously to matching session lines with stale-row and manual-price guards; it does not persist a normalized price-history table.
@@ -146,7 +147,7 @@
 ## Purchase History Acquisition Ledger
 
 - Partially Implemented: Purchase History is now modeled as the canonical inbound acquisition ledger for Bulk Buying, Collection Buying, Sealed Buying, Buylist intake, Vendor purchases, Card Show buys, Trade-ins/store credit, and Manual purchases.
-- Partially Implemented: `src/lib/purchase-history/ledger.ts` defines shared source, status, payment, record, line, filter, metric, and Bulk Buying conversion contracts.
+- Partially Implemented: `src/lib/purchase-history/ledger.ts` defines shared source, status, payment, record, line, filter, metric, Bulk Buying conversion, and optional game/product/variant/language line identity contracts.
 - Partially Implemented: `/dashboard/purchase-history` reads the canonical ledger when the schema exists and clearly reports when the proposal has not been applied in the current Supabase project.
 - Partially Implemented: `/api/purchase-history` can create acquisition ledger records for permitted Seller/Store/Owner users through the existing `buying.manage` capability.
 - Planned: Apply and verify `purchase_ledger`, `purchase_ledger_lines`, and `purchase_inventory_links` in staging before using the ledger as production persistence.
@@ -161,4 +162,4 @@
 - Partially Implemented: Existing inventory remains user-owned through `inventory_items.user_id`; the requested Label Studio architecture requires workspace-scoped inventory identity before shared Store workflows are production-authoritative.
 - Planned: Required migration proposal only: add `inventory_identity`, `label_templates`, `label_print_jobs`, and `inventory_price_reviews` with workspace RLS, unique `(workspace_id, sku)`, unique QR token, token revocation, and template/print-job audit metadata.
 - Planned: Public QR routes must resolve through server-side sanitized views and never expose cost basis, internal ids, private customer data, or workspace-private notes.
-- Planned: Sealed labels need durable sealed product identity before sealed inventory QR labels can be considered complete.
+- Partially Implemented: Label render data now includes generic game, product type, variant, and language fields; Magic `finish` remains Magic-only output and sealed labels continue to use sealed product names.

@@ -14,6 +14,8 @@ import {
 export type ScannerPermissionState = 'not_requested' | 'granted' | 'denied' | 'unavailable';
 export type ScannerRecognitionMode = 'unavailable' | 'manual_search' | 'assisted_capture';
 export type ScannerWorkflowState = 'idle' | 'permission_needed' | 'searching' | 'selecting_printing' | 'confirming' | 'saving' | 'success' | 'error' | 'offline';
+export type ScannerGameId = 'magic' | 'pokemon';
+export type ScannerProductType = 'card' | 'sealed';
 
 export type ScannerRecognitionProvider = {
   id: string;
@@ -33,8 +35,14 @@ export type ScannerRecognitionInput = {
 
 export type ScannerCardCandidate = {
   id: string;
+  gameId?: ScannerGameId;
+  gameLabel?: string;
+  productType?: ScannerProductType;
+  providerCategoryId?: string | null;
   tcgplayerProductId?: number | null;
+  tcgplayerSkuId?: number | null;
   providerProductId?: string | null;
+  providerSkuId?: string | null;
   providerSource?: 'scryfall' | 'tcgtracking' | 'visual_index' | null;
   oracleId?: string | null;
   name: string;
@@ -43,6 +51,7 @@ export type ScannerCardCandidate = {
   collectorNumber: string | null;
   finishes: CardFinish[];
   language: string | null;
+  variant?: string | null;
   imageUrl?: string | null;
   confidence: number;
   recognitionMode: ScannerRecognitionMode;
@@ -106,6 +115,15 @@ export type ScannerDraft = {
 export type ScannerAddPayload = {
   id: string;
   user_id: string;
+  game_id: ScannerGameId;
+  product_type: ScannerProductType;
+  provider_category_id: string | null;
+  provider_product_id: string | null;
+  provider_sku_id: string | null;
+  tcgplayer_product_id: number | null;
+  tcgplayer_sku_id: number | null;
+  variant: string | null;
+  language: string | null;
   card_name: string;
   scryfall_id: string | null;
   set_code: string | null;
@@ -168,9 +186,22 @@ export function validateScannerConfirmation(
 
 export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: string): ScannerAddPayload {
   const scryfallId = confirmedScryfallId(confirmation.candidate);
+  const gameId = normalizeScannerGameId(confirmation.candidate.gameId ?? confirmation.candidate.providerCategoryId);
+  const gameLabel = confirmation.candidate.gameLabel ?? scannerGameLabel(gameId);
+  const productType = normalizeScannerProductType(confirmation.candidate.productType);
+  const variant = confirmation.candidate.variant ?? confirmation.finish;
   return {
     id,
     user_id: confirmation.userId,
+    game_id: gameId,
+    product_type: productType,
+    provider_category_id: confirmation.candidate.providerCategoryId ?? (gameId === 'magic' ? '1' : gameId === 'pokemon' ? '3' : null),
+    provider_product_id: confirmation.candidate.providerProductId ?? null,
+    provider_sku_id: confirmation.candidate.providerSkuId ?? null,
+    tcgplayer_product_id: confirmation.candidate.tcgplayerProductId ?? null,
+    tcgplayer_sku_id: confirmation.candidate.tcgplayerSkuId ?? null,
+    variant,
+    language: confirmation.language,
     card_name: confirmation.candidate.name,
     scryfall_id: scryfallId,
     set_code: confirmation.candidate.setCode,
@@ -179,14 +210,26 @@ export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: st
     location_id: confirmation.storageLocationId,
     data: {
       name: confirmation.candidate.name,
+      gameId,
+      game_id: gameId,
+      gameLabel,
+      productType,
+      product_type: productType,
       scryfallId,
       tcgplayerProductId: confirmation.candidate.tcgplayerProductId ?? null,
+      tcgplayerSkuId: confirmation.candidate.tcgplayerSkuId ?? null,
+      tcgplayer_sku_id: confirmation.candidate.tcgplayerSkuId ?? null,
+      providerCategoryId: confirmation.candidate.providerCategoryId ?? null,
+      provider_category_id: confirmation.candidate.providerCategoryId ?? null,
       providerProductId: confirmation.candidate.providerProductId ?? null,
+      providerSkuId: confirmation.candidate.providerSkuId ?? null,
+      provider_sku_id: confirmation.candidate.providerSkuId ?? null,
       providerSource: confirmation.candidate.providerSource ?? null,
       set: confirmation.candidate.setCode,
       setName: confirmation.candidate.setName,
       collectorNumber: confirmation.candidate.collectorNumber,
       finish: confirmation.finish,
+      variant,
       condition: confirmation.condition,
       language: confirmation.language,
       imageUrl: confirmation.candidate.imageUrl ?? null,
@@ -200,7 +243,17 @@ export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: st
 }
 
 export function scannerQueueKey(confirmation: ScannerConfirmation) {
-  return `${confirmation.userId}:${confirmation.candidate.id}:${confirmation.finish}:${confirmation.condition}:${confirmation.storageLocationId ?? 'unassigned'}:${confirmation.binderPage ?? 'no-page'}:${confirmation.binderSlot ?? 'no-slot'}`;
+  const candidate = confirmation.candidate;
+  const gameId = normalizeScannerGameId(candidate.gameId ?? candidate.providerCategoryId);
+  const productType = normalizeScannerProductType(candidate.productType);
+  const identity = [
+    gameId,
+    productType,
+    candidate.tcgplayerSkuId ?? candidate.providerSkuId ?? candidate.tcgplayerProductId ?? candidate.providerProductId ?? candidate.id,
+    candidate.variant ?? confirmation.finish,
+    confirmation.language ?? candidate.language ?? 'unknown-language',
+  ].join(':');
+  return `${confirmation.userId}:${identity}:${confirmation.condition}:${confirmation.storageLocationId ?? 'unassigned'}:${confirmation.binderPage ?? 'no-page'}:${confirmation.binderSlot ?? 'no-slot'}`;
 }
 
 export function scannerIdempotencyKey(confirmation: ScannerConfirmation, inventoryItemId: string) {
@@ -242,8 +295,14 @@ export function scannerPrivacySummary() {
 
 export function normalizeScannerCandidate(raw: {
   id?: unknown;
+  gameId?: unknown;
+  gameLabel?: unknown;
+  productType?: unknown;
+  providerCategoryId?: unknown;
   tcgplayerProductId?: unknown;
+  tcgplayerSkuId?: unknown;
   providerProductId?: unknown;
+  providerSkuId?: unknown;
   providerSource?: unknown;
   oracleId?: unknown;
   name?: unknown;
@@ -252,6 +311,7 @@ export function normalizeScannerCandidate(raw: {
   collectorNumber?: unknown;
   finishes?: unknown;
   language?: unknown;
+  variant?: unknown;
   imageUrl?: unknown;
   confidence?: unknown;
   recognitionMode?: unknown;
@@ -267,8 +327,14 @@ export function normalizeScannerCandidate(raw: {
     : [];
   return {
     id,
+    gameId: normalizeScannerGameId(raw.gameId ?? raw.providerCategoryId),
+    gameLabel: scannerGameLabel(raw.gameLabel ?? raw.gameId ?? raw.providerCategoryId),
+    productType: normalizeScannerProductType(raw.productType),
+    providerCategoryId: stringValue(raw.providerCategoryId),
     tcgplayerProductId: numberValue(raw.tcgplayerProductId),
+    tcgplayerSkuId: numberValue(raw.tcgplayerSkuId),
     providerProductId: stringValue(raw.providerProductId),
+    providerSkuId: stringValue(raw.providerSkuId),
     providerSource: raw.providerSource === 'tcgtracking' || raw.providerSource === 'visual_index' ? raw.providerSource : 'scryfall',
     oracleId: stringValue(raw.oracleId),
     name,
@@ -277,6 +343,7 @@ export function normalizeScannerCandidate(raw: {
     collectorNumber: stringValue(raw.collectorNumber) ?? null,
     finishes: finishes.length ? [...new Set(finishes)] : ['normal'],
     language: stringValue(raw.language) ?? 'en',
+    variant: stringValue(raw.variant),
     imageUrl: stringValue(raw.imageUrl),
     confidence: typeof raw.confidence === 'number' && Number.isFinite(raw.confidence) ? Math.max(0, Math.min(1, raw.confidence)) : 0,
     recognitionMode: raw.recognitionMode === 'assisted_capture' ? 'assisted_capture' : 'manual_search',
@@ -319,10 +386,31 @@ function numberValue(value: unknown) {
 }
 
 function confirmedScryfallId(candidate: ScannerCardCandidate) {
+  const gameId = normalizeScannerGameId(candidate.gameId ?? candidate.providerCategoryId);
+  if (gameId !== 'magic') {
+    return null;
+  }
   if (candidate.providerSource === 'tcgtracking' && candidate.id.startsWith('tcgtracking:')) {
     return null;
   }
   return candidate.id;
+}
+
+function normalizeScannerGameId(value: unknown): ScannerGameId {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (raw === 'pokemon' || raw === 'ptcg' || raw === '3') return 'pokemon';
+  return 'magic';
+}
+
+function scannerGameLabel(value: unknown) {
+  const gameId = normalizeScannerGameId(value);
+  return gameId === 'pokemon' ? 'Pokemon' : 'Magic: The Gathering';
+}
+
+function normalizeScannerProductType(value: unknown): ScannerProductType {
+  const raw = String(value ?? '').trim().toLowerCase();
+  if (raw === 'sealed' || raw === 'sealed_product' || raw === 'unopened') return 'sealed';
+  return 'card';
 }
 
 function normalizeCandidateMarketPrice(value: ScannerCandidateMarketPrice | null | undefined): ScannerCandidateMarketPrice | null {

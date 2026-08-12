@@ -739,6 +739,25 @@ test("catalog resolver returns exact TCGplayer IDs and refuses ambiguous or miss
   assert.equal(missing.status, "unresolved");
 });
 
+test("catalog resolver refuses non-Magic rows before querying Magic catalog", async () => {
+  const client = new FakeResolverClient([
+    mappedRecord(100, "Set A", "Pikachu", "1", "Near Mint"),
+  ]);
+
+  const result = await resolveTcgplayerVariant(client, {
+    gameId: "pokemon",
+    productName: "Pikachu",
+    setName: "Set A",
+    collectorNumber: "1",
+    condition: "Near Mint",
+    finish: "normal",
+  });
+
+  assert.equal(result.status, "unresolved");
+  assert.equal(result.status === "unresolved" ? result.reasonCode : null, "UNSUPPORTED_GAME");
+  assert.equal(client.queries.length, 0);
+});
+
 test("catalog resolver translates Scryfall set codes before exact TCGplayer matching", async () => {
   const rows: TcgplayerMagicCatalogRecord[] = [
     mappedRecord(4057536, "Modern Horizons", "Bazaar Trademage", "41", "Lightly Played Foil"),
@@ -1188,12 +1207,14 @@ class FailingUpsertStorageCatalogClient extends FakeStorageCatalogClient {
 
 class FakeResolverClient {
   rows: TcgplayerMagicCatalogRecord[];
+  queries: string[] = [];
 
   constructor(rows: TcgplayerMagicCatalogRecord[]) {
     this.rows = rows;
   }
 
-  from() {
+  from(table = "tcgplayer_magic_catalog") {
+    this.queries.push(table);
     const filters: Record<string, string> = {};
     const query = {
       select() {

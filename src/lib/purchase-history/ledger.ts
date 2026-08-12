@@ -41,6 +41,10 @@ export type PurchaseLedgerLine = {
   unitCost: number;
   totalCost: number;
   inventoryItemId: string | null;
+  gameId?: string | null;
+  productType?: "card" | "sealed" | null;
+  variant?: string | null;
+  language?: string | null;
   details: Record<string, unknown>;
 };
 
@@ -95,6 +99,10 @@ export type NewPurchaseLineInput = {
   unitCost: number;
   totalCost: number;
   inventoryItemId?: string | null;
+  gameId?: string | null;
+  productType?: "card" | "sealed" | null;
+  variant?: string | null;
+  language?: string | null;
   details?: Record<string, unknown>;
 };
 
