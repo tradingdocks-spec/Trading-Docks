@@ -7,6 +7,10 @@ import type {
   TcgTrackingScanResult,
   TradingDocksProductIdentity,
 } from "./types.ts";
+import {
+  getGameByTcgTrackingGameId,
+  TCGTRACKING_MAGIC_GAME_ID,
+} from "../../multi-tcg/registry.ts";
 
 export const TCGTRACKING_SCAN_PROVIDER = "tcgtracking";
 export const TCGTRACKING_SCAN_DEFAULT_LIMIT = 5;
@@ -140,7 +144,14 @@ export function normalizeTcgTrackingScanProviderRequest(
   }
 
   const gameId = normalizePositiveInteger(source.gameId ?? source.game_id)
-    ?? 1;
+    ?? TCGTRACKING_MAGIC_GAME_ID;
+  if (!getGameByTcgTrackingGameId(gameId)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Choose a supported scanner game.",
+    };
+  }
   const limitValue = normalizePositiveInteger(source.limit);
   const limit = limitValue === TCGTRACKING_SCAN_MAX_LIMIT
     ? TCGTRACKING_SCAN_MAX_LIMIT

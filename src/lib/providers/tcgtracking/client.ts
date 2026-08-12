@@ -20,6 +20,14 @@ import type {
   TcgTrackingSet,
   TcgTrackingSku,
 } from "./types.ts";
+import {
+  gameIdFromTcgTrackingCategory,
+  normalizeTcgTrackingCategoryPath,
+  TCGTRACKING_MAGIC_CATEGORY_ID as REGISTRY_MAGIC_CATEGORY_ID,
+  TCGTRACKING_MAGIC_GAME_ID as REGISTRY_MAGIC_GAME_ID,
+  TCGTRACKING_POKEMON_CATEGORY_ID as REGISTRY_POKEMON_CATEGORY_ID,
+  TCGTRACKING_POKEMON_GAME_ID as REGISTRY_POKEMON_GAME_ID,
+} from "../../multi-tcg/registry.ts";
 
 export const TCGTRACKING_BASE_URL =
   "https://openapi.tcgtracking.com/v1";
@@ -27,8 +35,10 @@ export const TCGTRACKING_SCAN_BASE_URL =
   "https://tcgtracking.com/tcgapi/v1";
 export const TCGTRACKING_DEFAULT_TIMEOUT_MS = 8000;
 export const TCGTRACKING_DEFAULT_RETRIES = 1;
-export const TCGTRACKING_MAGIC_CATEGORY_ID = "1";
-export const TCGTRACKING_MAGIC_GAME_ID = 1;
+export const TCGTRACKING_MAGIC_CATEGORY_ID = REGISTRY_MAGIC_CATEGORY_ID;
+export const TCGTRACKING_MAGIC_GAME_ID = REGISTRY_MAGIC_GAME_ID;
+export const TCGTRACKING_POKEMON_CATEGORY_ID = REGISTRY_POKEMON_CATEGORY_ID;
+export const TCGTRACKING_POKEMON_GAME_ID = REGISTRY_POKEMON_GAME_ID;
 
 export class TcgTrackingProviderError extends Error {
   status?: number;
@@ -429,32 +439,11 @@ function encodePath(value: string) {
 }
 
 function categoryPath(value: string) {
-  const normalized = value.trim().toLowerCase();
-  if (
-    normalized === "magic" ||
-    normalized === "mtg" ||
-    normalized === "magic: the gathering"
-  ) {
-    return TCGTRACKING_MAGIC_CATEGORY_ID;
-  }
-  return encodePath(value);
+  return encodePath(normalizeTcgTrackingCategoryPath(value));
 }
 
 function gameIdFromCategory(value: string | undefined) {
-  if (!value) return TCGTRACKING_MAGIC_GAME_ID;
-  const normalized = value.trim().toLowerCase();
-  if (
-    normalized === "magic" ||
-    normalized === "mtg" ||
-    normalized === "magic: the gathering" ||
-    normalized === TCGTRACKING_MAGIC_CATEGORY_ID
-  ) {
-    return TCGTRACKING_MAGIC_GAME_ID;
-  }
-  const numeric = Number(value);
-  return Number.isSafeInteger(numeric) && numeric > 0
-    ? numeric
-    : TCGTRACKING_MAGIC_GAME_ID;
+  return gameIdFromTcgTrackingCategory(value);
 }
 
 function normalizeNumericSetIds(value: number[] | undefined) {
