@@ -35,6 +35,14 @@ import type {
   CardScanResponse,
   PricePoint,
 } from "@/lib/card-photo-scanner/types";
+import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
+import {
+  displayGameBadge,
+  marketSourcesForGame,
+  shortGameLabel,
+  variantOptionsForGame,
+  type GameContextId,
+} from "@/lib/multi-tcg";
 
 type Quality = {
   width: number;
@@ -51,8 +59,6 @@ const conditions = [
   "Heavily Played",
   "Damaged",
 ];
-
-const finishOptions = ["Nonfoil", "Foil", "Etched"];
 
 const conditionMultiplier: Record<string, number> = {
   "Near Mint": 1,
@@ -169,6 +175,7 @@ export function CardPhotoScanner() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [condition, setCondition] = useState("Near Mint");
   const [finish, setFinish] = useState("Nonfoil");
+  const [gameContext, setGameContext] = useState<GameContextId>("magic");
   const [offerPercent, setOfferPercent] = useState(60);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [notice, setNotice] = useState("");
@@ -260,6 +267,11 @@ export function CardPhotoScanner() {
       return;
     }
 
+    if (gameContext === "pokemon") {
+      setError("Pokemon purchasing recognition is in beta. Use Magic for live photo analysis while Pokemon catalog matching is validated.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setNotice("");
@@ -332,6 +344,20 @@ export function CardPhotoScanner() {
             setDragging={setDragging}
             chooseFile={chooseFile}
             analyze={analyze}
+            gameContext={gameContext}
+            setGameContext={(value) => {
+              const nextGame = value === "all" ? "magic" : value;
+              setGameContext(nextGame);
+              setResult(null);
+              setSelectedId(null);
+              setError("");
+              setNotice(
+                nextGame === "pokemon"
+                  ? "Pokemon scanner context selected. Live recognition remains beta and requires manual confirmation."
+                  : "",
+              );
+              setFinish(variantOptionsForGame(nextGame)[0] ?? "Nonfoil");
+            }}
           />
         ) : (
           <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
@@ -343,12 +369,14 @@ export function CardPhotoScanner() {
                 quality={quality}
                 result={result}
                 reset={reset}
+                gameContext={gameContext}
               />
 
               <CandidateList
                 candidates={result.candidates}
                 selectedId={selected?.id ?? null}
                 onSelect={setSelectedId}
+                gameContext={gameContext}
               />
             </aside>
 
@@ -366,6 +394,7 @@ export function CardPhotoScanner() {
                     finish={finish}
                     setCondition={setCondition}
                     setFinish={setFinish}
+                    gameContext={gameContext}
                     offerPercent={offerPercent}
                     setOfferPercent={setOfferPercent}
                     advancedOpen={advancedOpen}
@@ -375,6 +404,7 @@ export function CardPhotoScanner() {
                   <MarketIntelligence
                     candidate={selected}
                     coverage={result.pricingCoverage}
+                    gameContext={gameContext}
                   />
 
                   <ActionBar
@@ -437,6 +467,8 @@ type ScanWorkspaceProps = {
   setDragging: (value: boolean) => void;
   chooseFile: (file: File | null) => void;
   analyze: () => void;
+  gameContext: GameContextId;
+  setGameContext: (value: GameContextId) => void;
 };
 
 function ScanWorkspace({
@@ -451,6 +483,8 @@ function ScanWorkspace({
   setDragging,
   chooseFile,
   analyze,
+  gameContext,
+  setGameContext,
 }: ScanWorkspaceProps) {
   return (
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,.8fr)]">
@@ -543,6 +577,14 @@ function ScanWorkspace({
             Entering the name is optional, but it is a reliable fallback when
             small text is obscured.
           </p>
+          <div className="mt-4">
+            <GameContextControl
+              value={gameContext}
+              onChange={setGameContext}
+              includeAll={false}
+              ariaLabel="Purchasing recognition game"
+            />
+          </div>
 
           <label className="mt-5 block">
             <span className="text-[9px] font-semibold uppercase tracking-[.13em] text-slate-600">
@@ -614,11 +656,17 @@ function RecognitionSummary(props: {
   quality: Quality | null;
   result: CardScanResponse;
   reset: () => void;
+  gameContext: GameContextId;
 }) {
   return (
     <section className="rounded-[26px] border border-white/[.075] bg-[#07121f] p-5 shadow-[0_22px_70px_rgba(0,0,0,.24)]">
       <div className="flex items-start justify-between gap-3">
-        <SectionKicker icon={ScanLine} label="Recognition" />
+        <div className="flex flex-wrap items-center gap-2">
+          <SectionKicker icon={ScanLine} label="Recognition" />
+          <span className="rounded-full border border-cyan-300/16 bg-cyan-300/[.045] px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[.1em] text-cyan-200">
+            {displayGameBadge(props.gameContext)}
+          </span>
+        </div>
         <button
           type="button"
           onClick={props.reset}
@@ -647,13 +695,13 @@ function RecognitionSummary(props: {
         <p className="mt-1 text-[10px] leading-5 text-slate-500">
           {props.selected
             ? `${props.selected.setName} · ${props.selected.setCode} #${props.selected.collectorNumber}`
-            : "Select a printing candidate"}
+            : "Select a version match"}
         </p>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <RecognitionMetric
-          label="Printing"
+          label="Version"
           value={`${props.confidence}%`}
           tone="blue"
         />
@@ -673,14 +721,15 @@ function CandidateList(props: {
   candidates: CardCandidate[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  gameContext: GameContextId;
 }) {
   return (
     <section className="rounded-[26px] border border-white/[.075] bg-[#07121f] p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <SectionKicker icon={Layers3} label="Printing candidates" />
+          <SectionKicker icon={Layers3} label="Version matches" />
           <p className="mt-2 text-sm font-semibold">
-            Confirm the exact version
+            Confirm the exact product version
           </p>
         </div>
         <span className="rounded-full border border-white/[.07] px-2.5 py-1 text-[8px] font-semibold text-slate-600">
@@ -756,6 +805,7 @@ function DecisionHero(props: {
   finish: string;
   setCondition: (value: string) => void;
   setFinish: (value: string) => void;
+  gameContext: GameContextId;
   offerPercent: number;
   setOfferPercent: (value: number) => void;
   advancedOpen: boolean;
@@ -769,6 +819,7 @@ function DecisionHero(props: {
         : props.marginPercent >= 25
           ? "CONSIDER"
           : "PASS";
+  const finishOptions = variantOptionsForGame(props.gameContext);
 
   return (
     <section className="relative overflow-hidden rounded-[28px] border border-blue-300/[.16] bg-[#07121f] p-5 shadow-[0_26px_90px_rgba(37,99,235,.08)] sm:p-6">
@@ -781,6 +832,9 @@ function DecisionHero(props: {
               icon={BadgeDollarSign}
               label="Purchase recommendation"
             />
+            <span className="mt-3 inline-flex rounded-full border border-white/[.08] bg-white/[.025] px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[.1em] text-slate-400">
+              {shortGameLabel(props.gameContext)}
+            </span>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight">
               {props.selected.name}
             </h2>
@@ -860,7 +914,7 @@ function DecisionHero(props: {
             onChange={props.setCondition}
           />
           <SelectField
-            label="Finish"
+            label="Variant"
             value={props.finish}
             options={finishOptions}
             onChange={props.setFinish}
@@ -915,8 +969,9 @@ function DecisionHero(props: {
 function MarketIntelligence(props: {
   candidate: CardCandidate;
   coverage: CardScanResponse["pricingCoverage"];
+  gameContext: GameContextId;
 }) {
-  const rows = buildMarketRows(props.candidate.prices);
+  const rows = buildMarketRows(props.candidate.prices, props.gameContext);
 
   return (
     <section className="rounded-[28px] border border-white/[.075] bg-[#07121f] p-5 sm:p-6">
@@ -927,7 +982,7 @@ function MarketIntelligence(props: {
             Compare exact-printing markets
           </h2>
           <p className="mt-1 text-[10px] leading-5 text-slate-600">
-            Prices are separated by source, freshness, and connector status.
+            Sources are scoped to {displayGameBadge(props.gameContext)} so Magic-only providers stay out of other games.
           </p>
         </div>
 
@@ -1036,7 +1091,7 @@ function ActionBar(props: {
   );
 }
 
-function buildMarketRows(prices: PricePoint[]) {
+export function buildMarketRows(prices: PricePoint[], gameContext: GameContextId = "magic") {
   const scryfallNonfoil =
     prices.find((price) =>
       price.label.toLowerCase().includes("nonfoil reference"),
@@ -1052,7 +1107,7 @@ function buildMarketRows(prices: PricePoint[]) {
   const tcg = prices.find((price) => price.source === "TCGplayer");
   const cardmarket = prices.find((price) => price.source === "Cardmarket");
 
-  return [
+  const rows = [
     {
       name: "Scryfall",
       price: scryfallNonfoil?.value ?? null,
@@ -1098,7 +1153,19 @@ function buildMarketRows(prices: PricePoint[]) {
       url: cardmarket?.url ?? null,
       note: "Regional marketplace link",
     },
+    {
+      name: "TCGTracking",
+      price: null,
+      secondary: null,
+      buylist: null,
+      status: "Provider validation",
+      url: null,
+      note: "Product identity and beta pricing coverage",
+    },
   ];
+
+  const allowedSources = new Set(marketSourcesForGame(gameContext));
+  return rows.filter((row) => allowedSources.has(row.name as ReturnType<typeof marketSourcesForGame>[number]));
 }
 
 function MarketRow({

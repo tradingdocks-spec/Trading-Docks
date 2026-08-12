@@ -24,7 +24,7 @@ const rank: Record<AccountTier, number> = {
 export const topbarCreateActions: TopbarCreateAction[] = [
   {
     id: "add-inventory-card",
-    label: "Add inventory card",
+    label: "Add inventory",
     href: "/dashboard/card-photo-scanner",
     minimum: "free",
   },

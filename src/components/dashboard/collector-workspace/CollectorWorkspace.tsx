@@ -32,6 +32,7 @@ import {
   TDScreen,
   TDText,
 } from "@/components/design-system/td-primitives";
+import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
 import { cn } from "@/lib/utils";
 import { loadWebCollectorCollectionPage } from "@/lib/collector-workspace-client-data";
 import {
@@ -53,6 +54,12 @@ import {
   type CollectionSummary,
   type CollectionSort,
 } from "@/lib/collector-workspace";
+import {
+  collectionGameEmptyMessage,
+  collectionGameEmptyTitle,
+  displayGameBadge,
+  type GameContextId,
+} from "@/lib/multi-tcg";
 import type { AccountTier } from "@/lib/plan-entitlements";
 import { StorageLocationManager } from "./StorageLocationManager";
 import { TradeBinderWishlistWorkspace } from "./TradeBinderWishlistWorkspace";
@@ -89,6 +96,7 @@ export function CollectorWorkspace({
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [sort, setSort] = useState<CollectionSort>("recently_updated");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("list");
+  const [gameContext, setGameContext] = useState<GameContextId>("all");
   const [tradeOnly, setTradeOnly] = useState(false);
   const [wishlistOnly, setWishlistOnly] = useState(false);
   const [activeSection, setActiveSection] = useState<CollectionSection>("overview");
@@ -113,6 +121,7 @@ export function CollectorWorkspace({
   const loadPage = useCallback((cursor: string | null, reset: boolean) => {
     const filter = {
       query: debouncedQuery,
+      gameId: gameContext,
       tradeBinderStatus: tradeOnly ? "tradeable" as const : "all" as const,
       wishlistStatus: wishlistOnly ? "wanted" as const : "all" as const,
     };
@@ -146,7 +155,7 @@ export function CollectorWorkspace({
         if (reset) setLoading(false);
         else setLoadingMore(false);
       });
-  }, [debouncedQuery, sort, tradeOnly, wishlistOnly]);
+  }, [debouncedQuery, gameContext, sort, tradeOnly, wishlistOnly]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => loadPage(null, true), 0);
@@ -221,7 +230,7 @@ export function CollectorWorkspace({
           <TDText variant="label" tone="info">Collector Workspace</TDText>
           <TDText as="h1" variant="display" className="mt-2">Collection</TDText>
           <TDText tone="muted" className="mt-2">
-            Manage exact printings, quantities, storage, trade status, and wishlist state from existing saved collection records.
+            Manage exact versions, quantities, storage, trade status, and wishlist state from existing saved collection records.
           </TDText>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -281,6 +290,14 @@ export function CollectorWorkspace({
         <SectionTab label="Wishlist" selected={activeSection === "wishlist"} onClick={() => setActiveSection("wishlist")} />
       </nav>
 
+      <div className="flex flex-col gap-2 rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <TDText variant="label" tone="info">Game context</TDText>
+          <TDText variant="caption" tone="muted">Shared Collection tools stay game-aware while Deck Vault and Commander tools remain Magic-specific.</TDText>
+        </div>
+        <GameContextControl value={gameContext} onChange={setGameContext} ariaLabel="Collection game filter" />
+      </div>
+
       {storageError ? <TDErrorState title="Storage update failed" message={storageError} /> : null}
 
       {activeSection === "overview" ? (
@@ -336,9 +353,9 @@ export function CollectorWorkspace({
         ) : viewState === "error" ? (
           <TDErrorState title="Collection unavailable" message={error ?? "Collection data could not be loaded."} action={<TDButton label="Retry" variant="secondary" onClick={retry} />} />
         ) : viewState === "empty" ? (
-          <TDEmptyState title="No cards in this collection yet" message="Saved inventory cards will appear here after they are added through supported collection tools." />
+          <TDEmptyState title={collectionGameEmptyTitle(gameContext)} message={collectionGameEmptyMessage(gameContext)} />
         ) : viewState === "no_results" ? (
-          <TDEmptyState title="No matching cards" message="Adjust search, trade binder, or wishlist filters to widen the result set." />
+          <TDEmptyState title="No matching cards" message={`Adjust search, game, trade binder, or wishlist filters to widen the ${displayGameBadge(gameContext)} result set.`} />
         ) : displayMode === "grid" ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {visibleCards.map((card) => <CollectionCardTile key={card.id} card={card} />)}
@@ -364,6 +381,7 @@ export function CollectorWorkspace({
                         {card.cardName}
                       </Link>
                       <TDText variant="caption" tone="muted">{displayCondition(card.condition)} - {displayFinish(card.printing.finish)}</TDText>
+                      <TDBadge tone={card.gameId === "pokemon" ? "accent" : "neutral"}>{displayGameBadge(card.gameId)}</TDBadge>
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--td-text-secondary)]">{displayPrinting(card.printing)}</td>
                     <td className="px-4 py-3 text-sm text-[var(--td-text-secondary)]">
@@ -617,6 +635,19 @@ function CollectionPortfolioView({ summary, cards }: { summary: CollectionSummar
           </div>
         )) : <TDText variant="small" tone="muted">No allocation data yet.</TDText>}
       </TDCard>
+
+      <TDCard variant="outlined" className="space-y-3">
+        <TDText variant="title">Allocation by game</TDText>
+        {summary.games.length ? summary.games.map((item) => (
+          <div key={item.gameId} className="grid grid-cols-[1fr_auto] items-center gap-3">
+            <div className="min-w-0">
+              <TDText variant="small" className="truncate">{displayGameBadge(item.gameId)}</TDText>
+              <TDText variant="caption" tone="muted">{item.uniquePrintings.toLocaleString()} unique versions</TDText>
+            </div>
+            <TDBadge tone={item.gameId === "pokemon" ? "accent" : "neutral"}>{item.quantity.toLocaleString()} cards</TDBadge>
+          </div>
+        )) : <TDText variant="small" tone="muted">No game allocation data yet.</TDText>}
+      </TDCard>
     </TDCard>
   );
 }
@@ -801,6 +832,7 @@ function CollectionCardTile({ card }: { card: CollectionCard }) {
           {card.cardName}
         </Link>
         <TDText variant="caption" tone="muted">{displayPrinting(card.printing)}</TDText>
+        <TDBadge tone={card.gameId === "pokemon" ? "accent" : "neutral"}>{displayGameBadge(card.gameId)}</TDBadge>
         <TDText variant="caption" tone="secondary">{displayStorageLocation(card)}</TDText>
         <StatusBadges card={card} />
         <div className="mt-auto flex items-center justify-between gap-3">
