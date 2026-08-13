@@ -612,52 +612,64 @@ function BuyingPanel(props: {
     : props.buyingRule?.configured
       ? props.buyingRule.label
       : "Not configured";
-  const ruleSource = props.buyingRulesLoading
-    ? "Loading"
-    : props.buyingRule?.configured
-      ? props.buyingRule.sourceLabel
-      : "Set Buying Rule";
   const ruleActionLabel = props.buyingRule?.configured
     ? "Edit rule"
     : props.productType === "sealed"
       ? "Set sealed buying rule"
       : "Set buying rule";
+  const cashOffer = money(props.offer.cashOffer) ?? "-";
+  const storeCreditOffer = money(props.offer.storeCreditOffer) ?? "-";
+  const spread = money(props.offer.spread) ?? "-";
+  const storeCreditBonus = props.buyingRule?.configured && props.offer.storeCreditOffer != null && props.buyingRule.storeCreditBonusPercent > 0
+    ? `+${props.buyingRule.storeCreditBonusPercent}% bonus`
+    : null;
   return (
-    <section className="mt-6 rounded-[24px] bg-black/20 p-4" aria-label="Buying">
+    <section className="mt-6 rounded-[24px] bg-black/20 p-4 sm:p-5" aria-label="Buying">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Buying</p>
-        <Link href="/dashboard/buying-rules" className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500 transition hover:text-cyan-200">
-          {ruleActionLabel}
-        </Link>
       </div>
-      <div className="mt-4 space-y-3">
-        <BuyingRow label="Market reference" value={money(props.offer.marketReference) ?? "Unavailable"} />
-        <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] pb-3 text-sm">
-          <span className="text-slate-500">Buying rule</span>
-          <span className="text-right font-semibold text-slate-200">{ruleLabel}</span>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <BuyingSummaryBlock label="Market reference" value={money(props.offer.marketReference) ?? "Unavailable"} />
+        <div className="rounded-2xl bg-white/[0.025] p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600">Buying rule</p>
+              <p className="mt-2 truncate text-xl font-semibold tracking-[-0.025em] text-slate-100">{ruleLabel}</p>
+            </div>
+            <Link href="/dashboard/buying-rules" className="shrink-0 rounded-xl border border-white/[0.08] px-3 py-2 text-[9px] font-black uppercase tracking-[0.08em] text-slate-400 transition hover:border-cyan-300/25 hover:text-cyan-200">
+              {ruleActionLabel}
+            </Link>
+          </div>
         </div>
-        <BuyingRow label="Rule source" value={ruleSource} />
-        <div className="my-1 border-t border-white/[0.06]" />
-        <BuyingRow label="Cash offer" value={money(props.offer.cashOffer) ?? "Not calculated"} strong />
-        <BuyingRow label="Store credit" value={money(props.offer.storeCreditOffer) ?? "Not calculated"} />
-        <BuyingRow label="Spread" value={money(props.offer.spread) ?? "Not calculated"} />
       </div>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <BuyingMetric label="Cash offer" value={cashOffer} tone="primary" />
+        <BuyingMetric label="Store credit" value={storeCreditOffer} detail={storeCreditBonus} tone="secondary" />
+        <BuyingMetric label="Spread" value={spread} tone="neutral" />
+      </div>
+
       {!props.hasExactSku || props.addToPurchaseDisabledReason ? (
         <p className="mt-4 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-3 text-[10px] leading-5 text-amber-100/80">
           {props.addToPurchaseDisabledReason ?? "Confirm exact SKU pricing before finalizing an offer."}
         </p>
       ) : null}
-      <div className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(180px,220px)]">
-        <button type="button" onClick={props.onAddPurchase} disabled={Boolean(props.addToPurchaseDisabledReason)} className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
+
+      <div className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(190px,240px)]">
+        <button type="button" onClick={props.onAddPurchase} disabled={Boolean(props.addToPurchaseDisabledReason)} className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-cyan-300 px-4 text-[10px] font-black uppercase tracking-[0.08em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
           <ShoppingCart className="h-4 w-4" />
           Add to Current Purchase
         </button>
-        <button type="button" onClick={() => props.onProductAction("add-inventory")} disabled={props.productActionSaving === "add-inventory"} className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] text-[10px] font-black uppercase tracking-[0.12em] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:opacity-50">
+        <button type="button" onClick={() => props.onProductAction("add-inventory")} disabled={props.productActionSaving === "add-inventory"} className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-white/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.08em] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:opacity-50">
           {props.productActionSaving === "add-inventory" ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
           Add to Inventory
         </button>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-4">
+        <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600">More actions</p>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <SecondaryProductAction label="Wishlist" action="add-wishlist" saving={props.productActionSaving} onClick={props.onProductAction} />
         <SecondaryProductAction label="Trade Binder" action="add-trade-binder" saving={props.productActionSaving} onClick={props.onProductAction} />
         <SecondaryProductAction label="Binder" action="add-binder" saving={props.productActionSaving} onClick={props.onProductAction} disabled={!props.storageLocationId} title={!props.storageLocationId ? "Choose a storage or binder location first." : undefined} />
@@ -666,6 +678,30 @@ function BuyingPanel(props: {
         </Link>
       </div>
     </section>
+  );
+}
+
+function BuyingSummaryBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/[0.025] p-4">
+      <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">{value}</p>
+    </div>
+  );
+}
+
+function BuyingMetric({ label, value, detail, tone }: { label: string; value: string; detail?: string | null; tone: "primary" | "secondary" | "neutral" }) {
+  const valueClass = tone === "primary"
+    ? "text-cyan-200"
+    : tone === "secondary"
+      ? "text-emerald-200"
+      : "text-slate-100";
+  return (
+    <div className="min-w-0 rounded-2xl bg-[#03101a] p-4">
+      <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</p>
+      <p className={`mt-2 truncate text-2xl font-semibold tracking-[-0.03em] ${valueClass}`}>{value}</p>
+      {detail ? <p className="mt-1 text-[10px] font-semibold text-emerald-300/75">{detail}</p> : null}
+    </div>
   );
 }
 
@@ -879,15 +915,6 @@ function addToPurchaseDisabledReason(input: {
   }
   if (input.offer.cashOffer == null && !input.rule.manualOfferAllowed) return "Offer could not be calculated from the current market and buying rule.";
   return null;
-}
-
-function BuyingRow({ label, value, strong = false }: { label: string; value: string | null; strong?: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-4 text-sm">
-      <span className="text-slate-500">{label}</span>
-      <span className={strong ? "text-lg font-semibold text-cyan-200" : "font-semibold text-slate-200"}>{value ?? "N/A"}</span>
-    </div>
-  );
 }
 
 function Badge({ label }: { label: string }) {
