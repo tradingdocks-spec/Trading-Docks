@@ -212,9 +212,10 @@ export function PurchasingOverview() {
       configured: buyingRulesConfigured,
     })
     : null, [buyingRules, buyingRulesConfigured, selected]);
+  const selectedMarketReference = selectedSku?.marketPrice ?? selectedSku?.lowPrice ?? selected?.marketPrice ?? selected?.lowPrice ?? null;
   const offer = calculateBuyingOffer(
-    selectedSku?.marketPrice ?? selected?.marketPrice ?? null,
-    effectiveRule?.percent ?? 0,
+    selectedMarketReference,
+    effectiveRule?.configured ? effectiveRule.percent : null,
     effectiveRule?.storeCreditBonusPercent ?? DEFAULT_PURCHASING_BUYING_RULES.storeCreditBonusPercent,
   );
   const cartSummary = useMemo(() => summarizePurchaseCart(cart), [cart]);
@@ -234,7 +235,7 @@ export function PurchasingOverview() {
   }
 
   function addSelectedToCart() {
-    if (!selected || addToPurchaseReason || !effectiveRule) return;
+    if (!selected || addToPurchaseReason || !effectiveRule?.configured) return;
     const line = buildPurchaseWorkspaceLine({
       product: selected,
       sku: selectedSku,
@@ -477,7 +478,7 @@ function DetailPanel(props: {
       </section>
     );
   }
-  const hasExactSku = product.productType === "sealed" || (props.sku?.marketPrice ?? product.marketPrice) != null;
+  const hasExactSku = product.productType === "sealed" || (props.sku?.marketPrice ?? props.sku?.lowPrice ?? product.marketPrice ?? product.lowPrice) != null;
   const conditionOptions = uniqueSkuValues(product.skus.map((sku) => sku.condition));
   const variantOptions = uniqueSkuValues(product.skus.map((sku) => sku.variant));
   const languageOptions = uniqueSkuValues(product.skus.map((sku) => sku.language));
@@ -503,7 +504,7 @@ function DetailPanel(props: {
   };
   return (
     <section className="rounded-[28px] border border-white/[0.07] bg-[#06141f] p-4 sm:p-5">
-      <div className="grid gap-5 2xl:grid-cols-[240px_minmax(420px,1fr)_280px]">
+      <div className="grid gap-5 2xl:grid-cols-[240px_minmax(420px,1fr)]">
         <div>
           <ProductImage product={product} size="large" />
           <div className="mt-3 rounded-2xl border border-white/[0.06] bg-black/15 p-3">
@@ -527,7 +528,7 @@ function DetailPanel(props: {
           </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-1 xl:grid-cols-3">
-            <Metric label="Market" value={money(props.sku?.marketPrice ?? product.marketPrice) ?? "Unavailable"} />
+            <Metric label="Market" value={money(props.sku?.marketPrice ?? props.sku?.lowPrice ?? product.marketPrice ?? product.lowPrice) ?? "Unavailable"} />
             <Metric label="Low" value={money(props.sku?.lowPrice ?? product.lowPrice) ?? "Unavailable"} />
             <Metric label="Listings" value={String(props.sku?.activeListings ?? product.activeListings ?? "N/A")} />
           </div>
@@ -569,46 +570,83 @@ function DetailPanel(props: {
               </select>
             </Control>
           </div>
-        </div>
 
-        <aside className="rounded-[24px] bg-black/20 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Buying</p>
-            <Link href="/dashboard/buying-rules" className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500 transition hover:text-cyan-200">
-              Edit rules
-            </Link>
-          </div>
-          <div className="mt-4 space-y-3">
-            <BuyingRow label="Market reference" value={money(props.offer.marketReference)} />
-            <BuyingRow label="Rule" value={props.buyingRulesLoading ? "Loading..." : props.buyingRule?.label ?? "Not configured"} />
-            <BuyingRow label="Rule source" value={props.buyingRule?.sourceLabel ?? "Set Buying Rule"} />
-            <BuyingRow label="Cash offer" value={money(props.offer.cashOffer)} strong />
-            <BuyingRow label="Store credit" value={money(props.offer.storeCreditOffer)} />
-            <BuyingRow label="Spread" value={money(props.offer.spread)} />
-          </div>
-          {!hasExactSku || props.addToPurchaseDisabledReason ? (
-            <p className="mt-4 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-3 text-[10px] leading-5 text-amber-100/80">
-              {props.addToPurchaseDisabledReason ?? "Confirm exact SKU pricing before finalizing an offer."}
-            </p>
-          ) : null}
-          <button type="button" onClick={props.onAddPurchase} disabled={Boolean(props.addToPurchaseDisabledReason)} className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
-            <ShoppingCart className="h-4 w-4" />
-            Add to Current Purchase
-          </button>
-          <button type="button" onClick={() => props.onProductAction("add-inventory")} disabled={props.productActionSaving === "add-inventory"} className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] text-[10px] font-black uppercase tracking-[0.12em] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:opacity-50">
-            {props.productActionSaving === "add-inventory" ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
-            Add to Inventory
-          </button>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <SecondaryProductAction label="Collection" action="add-collection" saving={props.productActionSaving} onClick={props.onProductAction} />
-            <SecondaryProductAction label="Wishlist" action="add-wishlist" saving={props.productActionSaving} onClick={props.onProductAction} />
-            <SecondaryProductAction label="Trade Binder" action="add-trade-binder" saving={props.productActionSaving} onClick={props.onProductAction} />
-            <SecondaryProductAction label="Binder" action="add-binder" saving={props.productActionSaving} onClick={props.onProductAction} disabled={!props.storageLocationId} title={!props.storageLocationId ? "Choose a storage or binder location first." : undefined} />
-          </div>
-          <Link href="/dashboard/market-intelligence" className="mt-3 flex h-10 items-center justify-center rounded-2xl text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 transition hover:bg-white/[0.035] hover:text-cyan-200">
-            View Market
-          </Link>
-        </aside>
+          <BuyingPanel
+            hasExactSku={hasExactSku}
+            buyingRule={props.buyingRule}
+            buyingRulesLoading={props.buyingRulesLoading}
+            offer={props.offer}
+            addToPurchaseDisabledReason={props.addToPurchaseDisabledReason}
+            onAddPurchase={props.onAddPurchase}
+            onProductAction={props.onProductAction}
+            productActionSaving={props.productActionSaving}
+            storageLocationId={props.storageLocationId}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BuyingPanel(props: {
+  hasExactSku: boolean;
+  buyingRule: EffectiveBuyingRule | null;
+  buyingRulesLoading: boolean;
+  offer: ReturnType<typeof calculateBuyingOffer>;
+  addToPurchaseDisabledReason: string | null;
+  onAddPurchase: () => void;
+  onProductAction: (action: ProductAction) => void;
+  productActionSaving: ProductAction | null;
+  storageLocationId: string;
+}) {
+  const ruleLabel = props.buyingRulesLoading
+    ? "Loading..."
+    : props.buyingRule?.configured
+      ? props.buyingRule.label
+      : "Not configured";
+  const ruleSource = props.buyingRulesLoading
+    ? "Loading"
+    : props.buyingRule?.configured
+      ? props.buyingRule.sourceLabel
+      : "Set Buying Rule";
+  return (
+    <section className="mt-6 rounded-[24px] bg-black/20 p-4" aria-label="Buying">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Buying</p>
+        <Link href="/dashboard/buying-rules" className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500 transition hover:text-cyan-200">
+          {props.buyingRule?.configured ? "Edit rules" : "Set Buying Rule"}
+        </Link>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <BuyingRow label="Market reference" value={money(props.offer.marketReference) ?? "Unavailable"} />
+        <BuyingRow label="Buying Rule" value={ruleLabel} />
+        <BuyingRow label="Rule source" value={ruleSource} />
+        <BuyingRow label="Cash Offer" value={money(props.offer.cashOffer) ?? "Not calculated"} strong />
+        <BuyingRow label="Store Credit" value={money(props.offer.storeCreditOffer) ?? "Not calculated"} />
+        <BuyingRow label="Spread" value={money(props.offer.spread) ?? "Not calculated"} />
+      </div>
+      {!props.hasExactSku || props.addToPurchaseDisabledReason ? (
+        <p className="mt-4 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-3 text-[10px] leading-5 text-amber-100/80">
+          {props.addToPurchaseDisabledReason ?? "Confirm exact SKU pricing before finalizing an offer."}
+        </p>
+      ) : null}
+      <div className="mt-5 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(180px,220px)]">
+        <button type="button" onClick={props.onAddPurchase} disabled={Boolean(props.addToPurchaseDisabledReason)} className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
+          <ShoppingCart className="h-4 w-4" />
+          Add to Current Purchase
+        </button>
+        <button type="button" onClick={() => props.onProductAction("add-inventory")} disabled={props.productActionSaving === "add-inventory"} className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] text-[10px] font-black uppercase tracking-[0.12em] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:opacity-50">
+          {props.productActionSaving === "add-inventory" ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
+          Add to Inventory
+        </button>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <SecondaryProductAction label="Wishlist" action="add-wishlist" saving={props.productActionSaving} onClick={props.onProductAction} />
+        <SecondaryProductAction label="Trade Binder" action="add-trade-binder" saving={props.productActionSaving} onClick={props.onProductAction} />
+        <SecondaryProductAction label="Binder" action="add-binder" saving={props.productActionSaving} onClick={props.onProductAction} disabled={!props.storageLocationId} title={!props.storageLocationId ? "Choose a storage or binder location first." : undefined} />
+        <Link href="/dashboard/market-intelligence" className="flex h-9 items-center justify-center rounded-xl border border-white/[0.06] px-2 text-[9px] font-black uppercase tracking-[0.08em] text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-200">
+          View Market
+        </Link>
       </div>
     </section>
   );
@@ -790,13 +828,13 @@ function addToPurchaseDisabledReason(input: {
   rule: EffectiveBuyingRule | null;
 }) {
   if (!Number.isFinite(input.quantity) || input.quantity < 1) return "Enter a quantity greater than zero.";
-  if (!input.rule || input.rule.percent == null) return "Set Buying Rule before adding to purchase.";
-  if (input.product.productType === "card" && !input.sku) return "Select an exact variant before adding to purchase.";
+  if (!input.rule?.configured || input.rule.percent == null) return "Configure a buying rule before adding this item.";
+  if (input.product.productType === "card" && !input.sku) return "Select a valid condition / variant / language first.";
   if (input.product.productType === "card" && input.sku?.marketPrice == null && input.sku?.lowPrice == null) {
-    return "Select a priced variant before adding to purchase.";
+    return "No market price is available for this SKU.";
   }
   if (input.product.productType === "sealed" && input.product.marketPrice == null && input.product.lowPrice == null) {
-    return "Select a sealed product with market pricing before adding to purchase.";
+    return "No market price is available for this SKU.";
   }
   if (input.offer.cashOffer == null && !input.rule.manualOfferAllowed) return "Offer could not be calculated from the current market and buying rule.";
   return null;

@@ -53,7 +53,7 @@ export type PurchaseWorkspaceLine = {
   sku: PurchasingSkuOption | null;
   quantity: number;
   marketReference: number | null;
-  offerPercent: number;
+  offerPercent: number | null;
   unitOffer: number;
   storeCreditOffer: number | null;
   storageLocationId?: string | null;
@@ -187,12 +187,13 @@ export function magicScryfallToPurchasingResult(card: Record<string, unknown>): 
   };
 }
 
-export function calculateBuyingOffer(marketPrice: number | null | undefined, offerPercent = 60, storeCreditBonusPercent = 15) {
+export function calculateBuyingOffer(marketPrice: number | null | undefined, offerPercent: number | null | undefined = 60, storeCreditBonusPercent = 15) {
   const market = marketPrice == null ? null : Number(marketPrice);
-  const percent = Math.max(0, Math.min(100, Number(offerPercent)));
+  const rawPercent = offerPercent == null ? Number.NaN : Number(offerPercent);
+  const percent = Number.isFinite(rawPercent) ? Math.max(0, Math.min(100, rawPercent)) : null;
   const storeCreditBonus = Math.max(0, Math.min(100, Number(storeCreditBonusPercent)));
   const hasMarket = market != null && Number.isFinite(market);
-  const cashOffer = hasMarket ? roundMoney(market * (percent / 100)) : null;
+  const cashOffer = hasMarket && percent != null ? roundMoney(market * (percent / 100)) : null;
   return {
     marketReference: hasMarket ? roundMoney(market) : null,
     offerPercent: percent,
@@ -210,7 +211,7 @@ export function buildPurchaseWorkspaceLine(input: {
   storeCreditBonusPercent?: number;
 }): PurchaseWorkspaceLine {
   const quantity = Math.max(1, Math.floor(input.quantity));
-  const market = input.sku?.marketPrice ?? input.product.marketPrice;
+  const market = input.sku?.marketPrice ?? input.sku?.lowPrice ?? input.product.marketPrice ?? input.product.lowPrice;
   const offer = calculateBuyingOffer(market, input.offerPercent, input.storeCreditBonusPercent);
   return {
     id: purchaseLineIdentity(input.product, input.sku),

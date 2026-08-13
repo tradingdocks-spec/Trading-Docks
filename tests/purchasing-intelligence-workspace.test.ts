@@ -253,6 +253,50 @@ test("buying rules expose clear cash store-credit and spread math", () => {
   });
 });
 
+test("Force-of-Will-like Magic selection calculates a visible purchase offer", () => {
+  const product = magicScryfallToPurchasingResult({
+    id: "force-of-will-dmr-50",
+    name: "Force of Will",
+    set_name: "Dominaria Remastered",
+    set: "dmr",
+    collector_number: "50",
+    rarity: "mythic",
+    tcgplayer_id: 470280,
+    finishes: ["nonfoil", "foil"],
+    prices: { usd: "59.48", usd_foil: "82.35" },
+    image_uris: { normal: "https://cards.scryfall.io/normal/front/test.jpg" },
+  });
+  const sku = product.skus.find((item) => item.condition === "Near Mint" && item.variant === "Normal" && item.language === "English");
+  const offer = calculateBuyingOffer(sku?.marketPrice ?? product.marketPrice, 60, 15);
+  const line = buildPurchaseWorkspaceLine({
+    product,
+    sku,
+    quantity: 1,
+    offerPercent: 60,
+    storeCreditBonusPercent: 15,
+  });
+
+  assert.ok(sku);
+  assert.equal(offer.marketReference, 59.48);
+  assert.equal(offer.cashOffer, 35.69);
+  assert.equal(offer.storeCreditOffer, 41.04);
+  assert.equal(offer.spread, 23.79);
+  assert.equal(line.sku?.condition, "Near Mint");
+  assert.equal(line.sku?.variant, "Normal");
+  assert.equal(line.sku?.language, "English");
+  assert.equal(summarizePurchaseCart([line]).cashOffer, 35.69);
+});
+
+test("missing buying rules do not calculate default purchase offers", () => {
+  assert.deepEqual(calculateBuyingOffer(59.48, null, 15), {
+    marketReference: 59.48,
+    offerPercent: null,
+    cashOffer: null,
+    storeCreditOffer: null,
+    spread: null,
+  });
+});
+
 test("Purchasing Intelligence buying rules resolve singles and sealed rates from one authority", () => {
   assert.equal(PURCHASING_BUYING_RULES_DOCUMENT, "purchasing-intelligence:buying-rules:v1");
   assert.deepEqual(DEFAULT_PURCHASING_BUYING_RULES, {
@@ -321,19 +365,29 @@ test("selected-product layout uses readable SKU controls instead of raw SKU IDs"
   const page = source("src/components/dashboard/purchasing/PurchasingOverview.tsx");
 
   assert.match(page, /SKU details/);
+  assert.match(page, /aria-label="Buying"/);
   assert.match(page, /label="Condition"/);
   assert.match(page, /label="Variant"/);
   assert.match(page, /label="Language"/);
   assert.match(page, /Add to Current Purchase/);
   assert.match(page, /Current purchase/);
   assert.match(page, /Effective buy rate/);
+  assert.match(page, /Market reference/);
+  assert.match(page, /Buying Rule/);
+  assert.match(page, /Cash Offer/);
+  assert.match(page, /Store Credit/);
+  assert.match(page, /Not configured/);
+  assert.match(page, /Configure a buying rule before adding this item/);
+  assert.match(page, /No market price is available for this SKU/);
+  assert.match(page, /Select a valid condition \/ variant \/ language first/);
   assert.match(page, /Decrease \$\{line\.product\.name\} quantity/);
   assert.match(page, /Increase \$\{line\.product\.name\} quantity/);
   assert.match(page, /disabled=\{Boolean\(props\.addToPurchaseDisabledReason\)\}/);
-  assert.match(page, /Select a priced variant before adding to purchase/);
-  assert.match(page, /Edit rules/);
+  assert.match(page, /Edit rules|Set Buying Rule/);
   assert.match(page, /href="\/dashboard\/buying-rules"/);
   assert.match(page, /Rule source/);
+  assert.match(page, /selectedMarketReference/);
+  assert.doesNotMatch(page, /2xl:grid-cols-\[240px_minmax\(420px,1fr\)_280px\]/);
   assert.doesNotMatch(page, /label="Exact SKU"/);
   assert.doesNotMatch(page, /SKU pricing unavailable/);
   assert.doesNotMatch(page, /useState\\(60\\)/);
