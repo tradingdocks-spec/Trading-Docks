@@ -11,13 +11,17 @@ import {
   resolvePurchasingBuyingRules,
 } from "../src/lib/purchasing/buying-rules.ts";
 import {
+  addOrIncrementPurchaseLine,
   buildInventorySku,
   buildPurchaseWorkspaceLine,
   calculateBuyingOffer,
   magicScryfallToPurchasingResult,
   purchaseLineDetails,
+  removePurchaseLine,
+  summarizePurchaseCart,
   tcgProductToPurchasingResult,
   toPurchaseHistoryPayload,
+  updatePurchaseLineQuantity,
   type PurchasingLookupResult,
 } from "../src/lib/purchasing/product-lookup.ts";
 
@@ -139,6 +143,92 @@ test("selected products create canonical purchase ledger lines with exact SKU de
   assert.equal(payload.purchase.lines[0].totalCost, 50.4);
 });
 
+test("live purchase cart increments exact duplicates and preserves distinct variants", () => {
+  const product = pokemonProduct();
+  const first = buildPurchaseWorkspaceLine({
+    product,
+    sku: product.skus[0],
+    quantity: 1,
+    offerPercent: 60,
+  });
+  const duplicate = buildPurchaseWorkspaceLine({
+    product,
+    sku: product.skus[0],
+    quantity: 2,
+    offerPercent: 60,
+  });
+  const reverseSku = {
+    ...product.skus[0],
+    id: "sku-reverse-nm",
+    providerSkuId: "sku-reverse-nm",
+    tcgplayerSkuId: 1002,
+    variant: "Reverse Holo",
+    marketPrice: 30,
+    lowPrice: 26,
+    highPrice: 35,
+  };
+  const distinctVariant = buildPurchaseWorkspaceLine({
+    product: { ...product, variants: ["Holo", "Reverse Holo"] },
+    sku: reverseSku,
+    quantity: 1,
+    offerPercent: 60,
+  });
+
+  let lines = addOrIncrementPurchaseLine([], first);
+  lines = addOrIncrementPurchaseLine(lines, duplicate);
+
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0].quantity, 3);
+
+  lines = addOrIncrementPurchaseLine(lines, distinctVariant);
+
+  assert.equal(lines.length, 2);
+  assert.equal(summarizePurchaseCart(lines).unitCount, 4);
+  assert.equal(summarizePurchaseCart(lines).marketValue, 156);
+  assert.equal(summarizePurchaseCart(lines).cashOffer, 93.6);
+  assert.equal(summarizePurchaseCart(lines).storeCreditOffer, 107.64);
+  assert.equal(summarizePurchaseCart(lines).effectiveBuyRate, 60);
+
+  lines = updatePurchaseLineQuantity(lines, first.id, 5);
+  assert.equal(lines.find((line) => line.id === first.id)?.quantity, 5);
+
+  lines = removePurchaseLine(lines, distinctVariant.id);
+  assert.equal(lines.length, 1);
+});
+
+test("purchase cart summary supports weighted singles and sealed buying rules", () => {
+  const single = pokemonProduct();
+  const sealed: PurchasingLookupResult = {
+    ...single,
+    id: "pokemon:sealed:booster-box",
+    productType: "sealed",
+    providerProductId: "sealed-1",
+    tcgplayerProductId: 900001,
+    name: "Crown Zenith Booster Bundle",
+    productFamily: "Booster Bundle",
+    collectorNumber: null,
+    rarity: null,
+    variants: ["Sealed"],
+    marketPrice: 100,
+    lowPrice: 92,
+    highPrice: 118,
+    activeListings: 41,
+    skus: [],
+  };
+  const lines = [
+    buildPurchaseWorkspaceLine({ product: single, sku: single.skus[0], quantity: 1, offerPercent: 60 }),
+    buildPurchaseWorkspaceLine({ product: sealed, sku: null, quantity: 1, offerPercent: 75 }),
+  ];
+  const summary = summarizePurchaseCart(lines);
+
+  assert.equal(lines[0].offerPercent, 60);
+  assert.equal(lines[1].offerPercent, 75);
+  assert.equal(summary.marketValue, 142);
+  assert.equal(summary.cashOffer, 100.2);
+  assert.equal(summary.storeCreditOffer, 115.23);
+  assert.equal(summary.effectiveBuyRate, 70.56);
+});
+
 test("inventory identity merges exact product SKU condition variant and language", () => {
   const product = pokemonProduct();
   const sku = buildInventorySku({
@@ -234,7 +324,11 @@ test("selected-product layout uses readable SKU controls instead of raw SKU IDs"
   assert.match(page, /label="Condition"/);
   assert.match(page, /label="Variant"/);
   assert.match(page, /label="Language"/);
-  assert.match(page, /Add to Purchase/);
+  assert.match(page, /Add to Current Purchase/);
+  assert.match(page, /Current purchase/);
+  assert.match(page, /Effective buy rate/);
+  assert.match(page, /Decrease \$\{line\.product\.name\} quantity/);
+  assert.match(page, /Increase \$\{line\.product\.name\} quantity/);
   assert.match(page, /disabled=\{Boolean\(props\.addToPurchaseDisabledReason\)\}/);
   assert.match(page, /Select a priced variant before adding to purchase/);
   assert.match(page, /Edit rules/);

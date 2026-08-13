@@ -59,6 +59,15 @@ export type PurchaseWorkspaceLine = {
   storageLocationId?: string | null;
 };
 
+export type PurchaseCartSummary = {
+  itemCount: number;
+  unitCount: number;
+  marketValue: number;
+  cashOffer: number;
+  storeCreditOffer: number;
+  effectiveBuyRate: number | null;
+};
+
 export function tcgProductToPurchasingResult(
   product: TcgProductSearchResult,
   skus: TcgProductSkuOption[] = [],
@@ -215,12 +224,61 @@ export function buildPurchaseWorkspaceLine(input: {
   };
 }
 
+export function addOrIncrementPurchaseLine(
+  lines: PurchaseWorkspaceLine[],
+  line: PurchaseWorkspaceLine,
+) {
+  const existing = lines.find((item) => item.id === line.id);
+  if (!existing) return [...lines, line];
+  return lines.map((item) =>
+    item.id === line.id
+      ? { ...item, quantity: item.quantity + line.quantity }
+      : item,
+  );
+}
+
+export function updatePurchaseLineQuantity(
+  lines: PurchaseWorkspaceLine[],
+  lineId: string,
+  quantity: number,
+) {
+  const parsedQuantity = Math.floor(Number(quantity));
+  const nextQuantity = Number.isFinite(parsedQuantity) ? Math.max(1, parsedQuantity) : 1;
+  return lines.map((line) =>
+    line.id === lineId ? { ...line, quantity: nextQuantity } : line,
+  );
+}
+
+export function removePurchaseLine(lines: PurchaseWorkspaceLine[], lineId: string) {
+  return lines.filter((line) => line.id !== lineId);
+}
+
+export function summarizePurchaseCart(lines: PurchaseWorkspaceLine[]): PurchaseCartSummary {
+  const marketValue = roundMoney(lines.reduce((sum, line) =>
+    sum + (line.marketReference ?? 0) * line.quantity, 0));
+  const cashOffer = roundMoney(lines.reduce((sum, line) =>
+    sum + line.unitOffer * line.quantity, 0));
+  const storeCreditOffer = roundMoney(lines.reduce((sum, line) =>
+    sum + (line.storeCreditOffer ?? line.unitOffer) * line.quantity, 0));
+  return {
+    itemCount: lines.length,
+    unitCount: lines.reduce((sum, line) => sum + line.quantity, 0),
+    marketValue,
+    cashOffer,
+    storeCreditOffer,
+    effectiveBuyRate: marketValue > 0 ? roundMoney((cashOffer / marketValue) * 100) : null,
+  };
+}
+
 export function purchaseLineIdentity(product: PurchasingLookupResult, sku?: PurchasingSkuOption | null) {
   return [
     product.gameId,
     product.productType,
     product.providerProductId ?? product.scryfallId ?? product.id,
     sku?.providerSkuId ?? sku?.id ?? "default",
+    sku?.condition ?? "default",
+    sku?.variant ?? product.variants[0] ?? "default",
+    sku?.language ?? "English",
   ].join(":");
 }
 

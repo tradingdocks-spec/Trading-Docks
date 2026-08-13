@@ -31,9 +31,13 @@ import {
   type PurchasingBuyingRules,
 } from "@/lib/purchasing/buying-rules";
 import {
+  addOrIncrementPurchaseLine,
   buildPurchaseWorkspaceLine,
   calculateBuyingOffer,
+  removePurchaseLine,
+  summarizePurchaseCart,
   toPurchaseHistoryPayload,
+  updatePurchaseLineQuantity,
   type PurchaseWorkspaceLine,
   type PurchasingLookupResult,
   type PurchasingProductType,
@@ -213,8 +217,7 @@ export function PurchasingOverview() {
     effectiveRule?.percent ?? 0,
     effectiveRule?.storeCreditBonusPercent ?? DEFAULT_PURCHASING_BUYING_RULES.storeCreditBonusPercent,
   );
-  const cartTotal = cart.reduce((sum, line) => sum + line.unitOffer * line.quantity, 0);
-  const cartUnits = cart.reduce((sum, line) => sum + line.quantity, 0);
+  const cartSummary = useMemo(() => summarizePurchaseCart(cart), [cart]);
   const addToPurchaseReason = selected
     ? addToPurchaseDisabledReason({
       product: selected,
@@ -239,12 +242,8 @@ export function PurchasingOverview() {
       offerPercent: effectiveRule.percent ?? 0,
       storeCreditBonusPercent: effectiveRule.storeCreditBonusPercent,
     });
-    setCart((current) => {
-      const existing = current.find((item) => item.id === line.id);
-      if (!existing) return [...current, line];
-      return current.map((item) => item.id === line.id ? { ...item, quantity: item.quantity + line.quantity } : item);
-    });
-    setNotice(`${selected.name} added to the current purchase.`);
+    setCart((current) => addOrIncrementPurchaseLine(current, line));
+    setNotice(`${selected.name} added to Current Purchase.`);
   }
 
   async function savePurchaseDraft() {
@@ -381,13 +380,15 @@ export function PurchasingOverview() {
           />
           <PurchaseCartPanel
             lines={cart}
-            units={cartUnits}
-            total={cartTotal}
+            summary={cartSummary}
             saving={savingPurchase}
             onSave={savePurchaseDraft}
-            onClear={() => setCart([])}
-            onRemove={(id) => setCart((current) => current.filter((line) => line.id !== id))}
-            onQuantity={(id, nextQuantity) => setCart((current) => current.map((line) => line.id === id ? { ...line, quantity: Math.max(1, nextQuantity) } : line))}
+            onClear={() => {
+              if (cart.length > 1 && !window.confirm("Clear all current purchase lines?")) return;
+              setCart([]);
+            }}
+            onRemove={(id) => setCart((current) => removePurchaseLine(current, id))}
+            onQuantity={(id, nextQuantity) => setCart((current) => updatePurchaseLineQuantity(current, id, nextQuantity))}
           />
         </section>
       </div>
@@ -592,7 +593,7 @@ function DetailPanel(props: {
           ) : null}
           <button type="button" onClick={props.onAddPurchase} disabled={Boolean(props.addToPurchaseDisabledReason)} className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 text-[10px] font-black uppercase tracking-[0.12em] text-[#021018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40">
             <ShoppingCart className="h-4 w-4" />
-            Add to Purchase
+            Add to Current Purchase
           </button>
           <button type="button" onClick={() => props.onProductAction("add-inventory")} disabled={props.productActionSaving === "add-inventory"} className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] text-[10px] font-black uppercase tracking-[0.12em] text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-200 disabled:opacity-50">
             {props.productActionSaving === "add-inventory" ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackagePlus className="h-4 w-4" />}
@@ -637,8 +638,7 @@ function SecondaryProductAction(props: {
 
 function PurchaseCartPanel(props: {
   lines: PurchaseWorkspaceLine[];
-  units: number;
-  total: number;
+  summary: ReturnType<typeof summarizePurchaseCart>;
   saving: boolean;
   onSave: () => void;
   onClear: () => void;
@@ -646,37 +646,57 @@ function PurchaseCartPanel(props: {
   onQuantity: (id: string, quantity: number) => void;
 }) {
   return (
-    <aside className="rounded-[26px] border border-white/[0.07] bg-[#06141f] p-4">
+    <aside className="rounded-[26px] border border-white/[0.07] bg-[#06141f] p-4 xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-hidden">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Current purchase</p>
-          <h2 className="mt-2 text-2xl font-semibold">{money(props.total) ?? "$0.00"}</h2>
-          <p className="mt-1 text-xs text-slate-600">{props.units} units · {props.lines.length} items</p>
+          <h2 className="mt-2 text-2xl font-semibold">{money(props.summary.cashOffer) ?? "$0.00"}</h2>
+          <p className="mt-1 text-xs text-slate-600">{props.summary.unitCount} units · {props.summary.itemCount} items</p>
         </div>
         <WalletCards className="h-5 w-5 text-cyan-300" />
       </div>
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 rounded-2xl bg-black/20 p-3">
+        <CartSummaryRow label="Market value" value={money(props.summary.marketValue) ?? "$0.00"} />
+        <CartSummaryRow label="Cash offer" value={money(props.summary.cashOffer) ?? "$0.00"} strong />
+        <CartSummaryRow label="Store credit" value={money(props.summary.storeCreditOffer) ?? "$0.00"} />
+        <CartSummaryRow label="Effective buy rate" value={props.summary.effectiveBuyRate == null ? "N/A" : `${props.summary.effectiveBuyRate}%`} />
+      </div>
+      <div className="mt-4 max-h-[min(52vh,620px)] space-y-2 overflow-y-auto pr-1">
         {!props.lines.length ? (
-          <EmptyState title="No purchase lines" detail="Add selected products here before reviewing the draft purchase." compact />
+          <EmptyState title="No purchase lines" detail="Search for a product, confirm the version, and select Add to Current Purchase." compact />
         ) : props.lines.map((line) => (
           <div key={line.id} className="rounded-2xl border border-white/[0.055] bg-white/[0.018] p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-white">{line.product.name}</p>
-                <p className="mt-1 text-[9px] text-slate-600">
-                  {line.product.gameLabel} · {line.product.productType === "sealed" ? "Sealed" : line.sku?.condition ?? "Single"} · {line.sku?.variant ?? line.product.variants[0] ?? "Default"} · {line.sku?.language ?? "English"}
+            <div className="flex items-start gap-3">
+              <ProductImage product={line.product} size="small" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-full bg-cyan-300/[0.1] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-cyan-200">{line.product.gameLabel}</span>
+                  <span className="rounded-full bg-white/[0.055] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-slate-400">{line.product.productType === "sealed" ? "Sealed" : "Single"}</span>
+                </div>
+                <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-white">{line.product.name}</p>
+                <p className="mt-1 truncate text-[9px] text-slate-600">
+                  {[line.product.setName ?? line.product.productFamily, line.product.collectorNumber ? `#${line.product.collectorNumber}` : null].filter(Boolean).join(" · ") || "Exact product"}
                 </p>
-                <p className="mt-1 text-[9px] text-slate-600">
-                  {line.offerPercent == null ? "Rule N/A" : `Rule ${line.offerPercent}%`} · Market {money(line.marketReference) ?? "Unavailable"}
+                <p className="mt-1 truncate text-[9px] text-slate-500">
+                  {[line.sku?.condition ?? (line.product.productType === "sealed" ? "Sealed" : "Condition N/A"), line.sku?.variant ?? line.product.variants[0] ?? "Default", line.sku?.language ?? "English"].filter(Boolean).join(" · ")}
                 </p>
               </div>
               <button type="button" aria-label={`Remove ${line.product.name}`} onClick={() => props.onRemove(line.id)} className="rounded-lg p-1 text-slate-600 transition hover:bg-white/[0.05] hover:text-red-300">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
+            <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-black/20 p-2">
+              <CartMetric label="Market" value={money((line.marketReference ?? 0) * line.quantity) ?? "N/A"} />
+              <CartMetric label="Buy rule" value={line.offerPercent == null ? "N/A" : `${line.offerPercent}%`} />
+              <CartMetric label="Cash offer" value={money(line.unitOffer * line.quantity) ?? "$0.00"} strong />
+            </div>
             <div className="mt-3 flex items-center justify-between gap-2">
-              <input type="number" min={1} value={line.quantity} onChange={(event) => props.onQuantity(line.id, Number(event.target.value))} className="h-8 w-20 rounded-lg border border-white/[0.08] bg-black/20 px-2 text-xs text-white outline-none" />
-              <p className="text-xs font-semibold text-cyan-200">{money(line.unitOffer * line.quantity)}</p>
+              <div className="inline-flex h-8 overflow-hidden rounded-xl border border-white/[0.08] bg-black/20">
+                <button type="button" aria-label={`Decrease ${line.product.name} quantity`} disabled={line.quantity <= 1} onClick={() => props.onQuantity(line.id, line.quantity - 1)} className="w-8 text-sm font-bold text-slate-400 transition hover:bg-white/[0.05] hover:text-white disabled:cursor-not-allowed disabled:opacity-35">-</button>
+                <input type="number" min={1} value={line.quantity} onChange={(event) => props.onQuantity(line.id, Number(event.target.value))} className="h-8 w-12 border-x border-white/[0.08] bg-transparent text-center text-xs font-semibold text-white outline-none" />
+                <button type="button" aria-label={`Increase ${line.product.name} quantity`} onClick={() => props.onQuantity(line.id, line.quantity + 1)} className="w-8 text-sm font-bold text-slate-400 transition hover:bg-white/[0.05] hover:text-white">+</button>
+              </div>
+              <p className="text-[10px] font-semibold text-slate-500">Store credit {money((line.storeCreditOffer ?? line.unitOffer) * line.quantity) ?? "$0.00"}</p>
             </div>
           </div>
         ))}
@@ -689,6 +709,24 @@ function PurchaseCartPanel(props: {
         Clear purchase
       </button>
     </aside>
+  );
+}
+
+function CartSummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-600">{label}</p>
+      <p className={`text-xs font-semibold ${strong ? "text-cyan-200" : "text-slate-200"}`}>{value}</p>
+    </div>
+  );
+}
+
+function CartMetric({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-600">{label}</p>
+      <p className={`mt-1 truncate text-[10px] font-semibold ${strong ? "text-cyan-200" : "text-slate-200"}`}>{value}</p>
+    </div>
   );
 }
 
