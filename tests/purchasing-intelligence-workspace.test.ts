@@ -15,7 +15,9 @@ import {
   buildInventorySku,
   buildPurchaseWorkspaceLine,
   calculateBuyingOffer,
+  magicSealedToPurchasingResult,
   magicScryfallToPurchasingResult,
+  pokemonSealedToPurchasingResult,
   purchaseLineDetails,
   removePurchaseLine,
   summarizePurchaseCart,
@@ -119,6 +121,62 @@ test("Magic lookup retains Magic enrichments and supported finish variants", () 
   assert.equal(product.marketSources.includes("Scryfall"), true);
   assert.equal(product.marketSources.includes("Mana Pool"), true);
   assert.deepEqual(product.variants, ["Normal", "Foil", "Etched"]);
+});
+
+test("Magic sealed products use the shared product image proxy and preserve case identity", () => {
+  const product = magicSealedToPurchasingResult({
+    productId: 619694,
+    categoryId: 1,
+    categoryName: "Magic: The Gathering",
+    groupId: 24233,
+    groupName: "Edge of Eternities",
+    name: "Edge of Eternities - Collector Booster Display Case",
+    cleanName: "Edge of Eternities Collector Booster Display Case",
+    productType: "Case",
+    imageUrl: "https://tcgplayer-cdn.tcgplayer.com/product/619694_in_1000x1000.jpg",
+    productUrl: "https://www.tcgplayer.com/product/619694/magic-edge-of-eternities-edge-of-eternities-collector-booster-display-case",
+    marketPrice: 3708.66,
+    lowPrice: 5000,
+    midPrice: 6000,
+    directLowPrice: 0,
+    priceSubtype: "Normal",
+    allPrices: [],
+    isPresale: false,
+    releasedOn: null,
+    modifiedOn: "2025-10-30T16:19:46.453",
+    dataSource: "TCGCSV",
+  });
+
+  assert.equal(product.productType, "sealed");
+  assert.equal(product.productFamily, "Case");
+  assert.equal(product.marketPrice, 3708.66);
+  assert.equal(product.lowPrice, 5000);
+  assert.match(product.imageUrl ?? "", /^\/api\/catalog\/product-image\?/);
+  assert.match(product.imageUrl ?? "", /gameId=magic/);
+  assert.match(product.imageUrl ?? "", /productType=sealed/);
+  assert.match(product.imageUrl ?? "", /619694/);
+});
+
+test("Pokemon sealed products use the shared product image proxy", () => {
+  const product = pokemonSealedToPurchasingResult({
+    providerProductId: "251054",
+    tcgplayerProductId: 251054,
+    gameId: 3,
+    categoryId: "3",
+    name: "Elite Trainer Box",
+    setId: "sv1",
+    setName: "Elite Trainer Box",
+    setCode: "SV1",
+    collectorNumber: undefined,
+    rarity: undefined,
+    imageUrl: "https://cdn.tcgtracking.com/product/251054_200w.jpg",
+    variants: ["Sealed"],
+    score: 100,
+  });
+
+  assert.equal(product.productType, "sealed");
+  assert.match(product.imageUrl ?? "", /^\/api\/catalog\/product-image\?/);
+  assert.match(product.imageUrl ?? "", /productType=sealed/);
 });
 
 test("selected products create canonical purchase ledger lines with exact SKU details", () => {
@@ -366,6 +424,7 @@ test("selected-product layout uses readable SKU controls instead of raw SKU IDs"
 
   assert.match(page, /SKU details/);
   assert.match(page, /aria-label="Buying"/);
+  assert.match(page, /function BuyingPanel/);
   assert.match(page, /label="Condition"/);
   assert.match(page, /label="Variant"/);
   assert.match(page, /label="Language"/);
@@ -374,12 +433,17 @@ test("selected-product layout uses readable SKU controls instead of raw SKU IDs"
   assert.match(page, /Effective buy rate/);
   assert.match(page, /Market reference/);
   assert.match(page, /Buying Rule/);
-  assert.match(page, /Cash Offer/);
-  assert.match(page, /Store Credit/);
+  assert.match(page, /Cash offer/);
+  assert.match(page, /Store credit/);
   assert.match(page, /Not configured/);
   assert.match(page, /Configure a buying rule before adding this item/);
   assert.match(page, /No market price is available for this SKU/);
   assert.match(page, /Select a valid condition \/ variant \/ language first/);
+  assert.match(page, /Set sealed buying rule/);
+  assert.match(page, /isSealed[\s\S]*aspect-\[4\/3\]/);
+  assert.match(page, /Sealed product/);
+  assert.match(page, /animate-pulse/);
+  assert.doesNotMatch(page, /grid gap-3 sm:grid-cols-2 xl:grid-cols-3/);
   assert.match(page, /Decrease \$\{line\.product\.name\} quantity/);
   assert.match(page, /Increase \$\{line\.product\.name\} quantity/);
   assert.match(page, /disabled=\{Boolean\(props\.addToPurchaseDisabledReason\)\}/);

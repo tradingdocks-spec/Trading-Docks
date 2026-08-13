@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
 import {
+  isAllowedTcgPlayerProductImageUrl,
   isAllowedTcgTrackingImageUrl,
+  normalizeTcgPlayerProductImageUrl,
   normalizeTcgTrackingImageUrl,
   tcgTrackingProductImageUrl,
 } from "@/lib/card-image-authority";
@@ -22,7 +24,7 @@ export async function GET(request: Request) {
   const source = url.searchParams.get("source");
 
   const game = getSupportedGame(gameId);
-  if (!game || game.id !== "pokemon") {
+  if (!game || (game.id !== "pokemon" && game.id !== "magic")) {
     return NextResponse.json({ error: "Unsupported product image game." }, { status: 400 });
   }
   if (!ALLOWED_PRODUCT_TYPES.has(productType)) {
@@ -36,8 +38,8 @@ export async function GET(request: Request) {
   }
 
   const sourceUrl =
-    source && isAllowedTcgTrackingImageUrl(source, numericProductId)
-      ? normalizeTcgTrackingImageUrl(source)
+    source && isAllowedProductImageUrl(source, numericProductId)
+      ? normalizeProductImageUrl(source)
       : tcgTrackingProductImageUrl(numericProductId);
   if (!sourceUrl) {
     return NextResponse.json({ error: "Product image unavailable." }, { status: 404 });
@@ -67,9 +69,9 @@ async function fetchProviderImage(sourceUrl: string, productId: number) {
       redirect: "follow",
       signal: controller.signal,
     });
-    const finalUrl = normalizeTcgTrackingImageUrl(response.url);
+    const finalUrl = normalizeProductImageUrl(response.url);
     const contentType = response.headers.get("content-type") ?? "";
-    const safe = Boolean(finalUrl) && isAllowedTcgTrackingImageUrl(finalUrl, productId);
+    const safe = Boolean(finalUrl) && isAllowedProductImageUrl(finalUrl, productId);
     const image = contentType.toLowerCase().startsWith("image/");
     if (process.env.NODE_ENV !== "production") {
       console.info("Product image fetch", {
@@ -96,4 +98,15 @@ async function fetchProviderImage(sourceUrl: string, productId: number) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function normalizeProductImageUrl(value: string | null | undefined) {
+  return normalizeTcgTrackingImageUrl(value) ?? normalizeTcgPlayerProductImageUrl(value);
+}
+
+function isAllowedProductImageUrl(value: string | null | undefined, productId: number) {
+  return (
+    isAllowedTcgTrackingImageUrl(value, productId) ||
+    isAllowedTcgPlayerProductImageUrl(value, productId)
+  );
 }

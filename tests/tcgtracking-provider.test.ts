@@ -45,6 +45,8 @@ import {
   tcgTrackingCachePolicy,
 } from "../src/lib/providers/tcgtracking/index.ts";
 import {
+  isAllowedTcgPlayerProductImageUrl,
+  normalizeTcgPlayerProductImageUrl,
   isAllowedTcgTrackingImageUrl,
   normalizeTcgTrackingImageUrl,
   productImageProxyUrl,
@@ -443,6 +445,56 @@ test("TCGTracking image normalization supports exact Pokemon card and sealed pro
       providerProductId: 251054,
     }),
     "/api/catalog/product-image?gameId=pokemon&providerProductId=251054&productType=sealed",
+  );
+});
+
+test("product image authority proxies Magic and Pokemon sealed images through locked provider paths", () => {
+  assert.equal(
+    normalizeTcgPlayerProductImageUrl("https://tcgplayer-cdn.tcgplayer.com/product/619694_in_1000x1000.jpg"),
+    "https://tcgplayer-cdn.tcgplayer.com/product/619694_in_1000x1000.jpg",
+  );
+  assert.equal(
+    normalizeTcgPlayerProductImageUrl("https://product-images.tcgplayer.com/product/619694_in_1000x1000.jpg"),
+    "https://product-images.tcgplayer.com/product/619694_in_1000x1000.jpg",
+  );
+  assert.equal(normalizeTcgPlayerProductImageUrl("https://example.com/product/619694_in_1000x1000.jpg"), null);
+  assert.equal(
+    isAllowedTcgPlayerProductImageUrl("https://tcgplayer-cdn.tcgplayer.com/product/619694_in_1000x1000.jpg", 619694),
+    true,
+  );
+  assert.equal(
+    isAllowedTcgPlayerProductImageUrl("https://tcgplayer-cdn.tcgplayer.com/product/619695_in_1000x1000.jpg", 619694),
+    false,
+  );
+  assert.equal(
+    resolveExactProductImageUrl({
+      gameId: "magic",
+      productType: "sealed",
+      providerProductId: 619694,
+      tcgplayerProductId: 619694,
+      knownExactImageUrl: "https://tcgplayer-cdn.tcgplayer.com/product/619694_in_1000x1000.jpg",
+    }),
+    "/api/catalog/product-image?gameId=magic&providerProductId=619694&productType=sealed&tcgplayerProductId=619694&source=https%3A%2F%2Ftcgplayer-cdn.tcgplayer.com%2Fproduct%2F619694_in_1000x1000.jpg",
+  );
+  assert.equal(
+    resolveExactProductImageUrl({
+      gameId: "magic",
+      productType: "sealed",
+      providerProductId: 619694,
+      tcgplayerProductId: 619694,
+      knownExactImageUrl: "https://example.com/product/619694_in_1000x1000.jpg",
+    }),
+    null,
+  );
+  assert.equal(
+    resolveExactProductImageUrl({
+      gameId: "pokemon",
+      productType: "sealed",
+      providerProductId: 251054,
+      tcgplayerProductId: 251054,
+      tcgTrackingImageUrl: "https://cdn.tcgtracking.com/product/251054_200w.jpg",
+    }),
+    "/api/catalog/product-image?gameId=pokemon&providerProductId=251054&productType=sealed&tcgplayerProductId=251054&source=https%3A%2F%2Fcdn.tcgtracking.com%2Fproduct%2F251054_200w.jpg",
   );
 });
 

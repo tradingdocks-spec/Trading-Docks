@@ -437,6 +437,9 @@ function ResultsPanel({ query, loading, results, selectedId, onSelect }: {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-cyan-300/[0.1] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-cyan-200">{result.gameLabel}</span>
                 <span className="rounded-full bg-white/[0.055] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-slate-500">{result.productType === "sealed" ? "Sealed" : "Single"}</span>
+                {result.productType === "sealed" && result.productFamily ? (
+                  <span className="rounded-full bg-white/[0.035] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-slate-500">{result.productFamily}</span>
+                ) : null}
               </div>
               <h2 className="mt-2 truncate text-sm font-semibold text-white">{result.name}</h2>
               <p className="mt-1 truncate text-[10px] text-slate-500">{[result.setName, result.collectorNumber ? `#${result.collectorNumber}` : null, result.rarity].filter(Boolean).join(" · ")}</p>
@@ -521,6 +524,9 @@ function DetailPanel(props: {
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-cyan-300/[0.1] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-200">{product.gameLabel}</span>
             <span className="rounded-full bg-white/[0.055] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">{product.productType === "sealed" ? "Sealed product" : "Single"}</span>
+            {product.productType === "sealed" && product.productFamily ? (
+              <span className="rounded-full bg-white/[0.035] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500">{product.productFamily}</span>
+            ) : null}
           </div>
           <h2 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl">{product.name}</h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -572,6 +578,7 @@ function DetailPanel(props: {
           </div>
 
           <BuyingPanel
+            productType={product.productType}
             hasExactSku={hasExactSku}
             buyingRule={props.buyingRule}
             buyingRulesLoading={props.buyingRulesLoading}
@@ -589,6 +596,7 @@ function DetailPanel(props: {
 }
 
 function BuyingPanel(props: {
+  productType: PurchasingProductType;
   hasExactSku: boolean;
   buyingRule: EffectiveBuyingRule | null;
   buyingRulesLoading: boolean;
@@ -609,20 +617,29 @@ function BuyingPanel(props: {
     : props.buyingRule?.configured
       ? props.buyingRule.sourceLabel
       : "Set Buying Rule";
+  const ruleActionLabel = props.buyingRule?.configured
+    ? "Edit rule"
+    : props.productType === "sealed"
+      ? "Set sealed buying rule"
+      : "Set buying rule";
   return (
     <section className="mt-6 rounded-[24px] bg-black/20 p-4" aria-label="Buying">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">Buying</p>
         <Link href="/dashboard/buying-rules" className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500 transition hover:text-cyan-200">
-          {props.buyingRule?.configured ? "Edit rules" : "Set Buying Rule"}
+          {ruleActionLabel}
         </Link>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-4 space-y-3">
         <BuyingRow label="Market reference" value={money(props.offer.marketReference) ?? "Unavailable"} />
-        <BuyingRow label="Buying Rule" value={ruleLabel} />
+        <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] pb-3 text-sm">
+          <span className="text-slate-500">Buying rule</span>
+          <span className="text-right font-semibold text-slate-200">{ruleLabel}</span>
+        </div>
         <BuyingRow label="Rule source" value={ruleSource} />
-        <BuyingRow label="Cash Offer" value={money(props.offer.cashOffer) ?? "Not calculated"} strong />
-        <BuyingRow label="Store Credit" value={money(props.offer.storeCreditOffer) ?? "Not calculated"} />
+        <div className="my-1 border-t border-white/[0.06]" />
+        <BuyingRow label="Cash offer" value={money(props.offer.cashOffer) ?? "Not calculated"} strong />
+        <BuyingRow label="Store credit" value={money(props.offer.storeCreditOffer) ?? "Not calculated"} />
         <BuyingRow label="Spread" value={money(props.offer.spread) ?? "Not calculated"} />
       </div>
       {!props.hasExactSku || props.addToPurchaseDisabledReason ? (
@@ -770,15 +787,39 @@ function CartMetric({ label, value, strong }: { label: string; value: string; st
 
 function ProductImage({ product, size }: { product: PurchasingLookupResult; size: "small" | "large" }) {
   const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [product.imageUrl]);
-  const className = size === "large" ? "aspect-[3/4] w-full rounded-[24px]" : "h-24 w-16 rounded-xl";
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+    setLoaded(false);
+  }, [product.imageUrl]);
+  const isSealed = product.productType === "sealed";
+  const className = size === "large"
+    ? isSealed
+      ? "aspect-[4/3] w-full rounded-[24px]"
+      : "aspect-[3/4] w-full rounded-[24px]"
+    : isSealed
+      ? "h-20 w-20 rounded-xl"
+      : "h-24 w-16 rounded-xl";
   return (
     <div className={`relative shrink-0 overflow-hidden bg-[#020914] ${className}`}>
       {product.imageUrl && !failed ? (
-        <Image src={product.imageUrl} alt={product.name} fill unoptimized sizes={size === "large" ? "240px" : "64px"} className="object-contain" onError={() => setFailed(true)} />
+        <>
+          {!loaded ? <div className="absolute inset-0 animate-pulse bg-white/[0.035]" aria-hidden="true" /> : null}
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            unoptimized
+            sizes={size === "large" ? (isSealed ? "360px" : "240px") : (isSealed ? "80px" : "64px")}
+            className="object-contain"
+            onLoad={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+          />
+        </>
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-1 px-2 text-center">
           {product.productType === "sealed" ? <Boxes className="h-5 w-5 text-cyan-300/70" /> : <Layers3 className="h-5 w-5 text-cyan-300/70" />}
+          {product.productType === "sealed" ? <span className="text-[8px] font-black uppercase tracking-[0.12em] text-cyan-200/80">Sealed product</span> : null}
           <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500">Image unavailable</span>
         </div>
       )}

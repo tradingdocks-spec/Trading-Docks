@@ -13,6 +13,11 @@ export type ExactProductImageInput = {
 
 const TCGTRACKING_IMAGE_ORIGIN = "https://cdn.tcgtracking.com";
 const TCGTRACKING_IMAGE_HOST = "cdn.tcgtracking.com";
+const TCGPLAYER_IMAGE_ORIGIN = "https://tcgplayer-cdn.tcgplayer.com";
+const TCGPLAYER_IMAGE_HOSTS = new Set([
+  "tcgplayer-cdn.tcgplayer.com",
+  "product-images.tcgplayer.com",
+]);
 
 export function resolveExactProductImageUrl(input: ExactProductImageInput) {
   const tcgTrackingImageUrl =
@@ -25,6 +30,15 @@ export function resolveExactProductImageUrl(input: ExactProductImageInput) {
       providerProductId: input.providerProductId ?? input.tcgplayerProductId,
       tcgplayerProductId: input.tcgplayerProductId,
       sourceUrl: tcgTrackingImageUrl,
+    });
+  }
+  if (input.gameId === "magic" && input.productType === "sealed" && (input.providerProductId || input.tcgplayerProductId)) {
+    return productImageProxyUrl({
+      gameId: input.gameId,
+      productType: input.productType,
+      providerProductId: input.providerProductId ?? input.tcgplayerProductId,
+      tcgplayerProductId: input.tcgplayerProductId,
+      sourceUrl: input.knownExactImageUrl,
     });
   }
 
@@ -67,11 +81,42 @@ export function normalizeTcgTrackingImageUrl(value: string | null | undefined) {
   }
 }
 
+export function normalizeTcgPlayerProductImageUrl(value: string | null | undefined) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  try {
+    const url = raw.startsWith("//")
+      ? new URL(`https:${raw}`)
+      : raw.startsWith("/")
+        ? new URL(raw, TCGPLAYER_IMAGE_ORIGIN)
+        : new URL(raw);
+    if (url.protocol !== "https:") return null;
+    if (!TCGPLAYER_IMAGE_HOSTS.has(url.hostname)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function isAllowedTcgTrackingImageUrl(
   value: string | null | undefined,
   productId?: number | string | null,
 ) {
   const url = normalizeTcgTrackingImageUrl(value);
+  if (!url) return false;
+  if (productId == null || productId === "") return true;
+  const numericProductId = Number(productId);
+  if (!Number.isSafeInteger(numericProductId) || numericProductId <= 0) {
+    return false;
+  }
+  return new URL(url).pathname.startsWith(`/product/${numericProductId}_`);
+}
+
+export function isAllowedTcgPlayerProductImageUrl(
+  value: string | null | undefined,
+  productId?: number | string | null,
+) {
+  const url = normalizeTcgPlayerProductImageUrl(value);
   if (!url) return false;
   if (productId == null || productId === "") return true;
   const numericProductId = Number(productId);
@@ -102,9 +147,15 @@ export function productImageProxyUrl(input: {
   if (input.tcgplayerProductId != null) {
     params.set("tcgplayerProductId", String(input.tcgplayerProductId));
   }
-  const sourceUrl = normalizeTcgTrackingImageUrl(input.sourceUrl);
-  if (sourceUrl && isAllowedTcgTrackingImageUrl(sourceUrl, numericProductId)) {
+  const sourceUrl = normalizeTcgTrackingImageUrl(input.sourceUrl) ?? normalizeTcgPlayerProductImageUrl(input.sourceUrl);
+  if (
+    sourceUrl &&
+    (isAllowedTcgTrackingImageUrl(sourceUrl, numericProductId) ||
+      isAllowedTcgPlayerProductImageUrl(sourceUrl, numericProductId))
+  ) {
     params.set("source", sourceUrl);
+  } else if (input.gameId === "magic" && input.productType === "sealed") {
+    return null;
   }
   return `/api/catalog/product-image?${params.toString()}`;
 }
