@@ -9,7 +9,10 @@ export type CanonicalChannelId =
 
 export type CanonicalOrderItem = {
   marketplace_order_id?: string | null;
+  external_sku?: string | null;
+  title?: string | null;
   quantity?: number | string | null;
+  inventory_item_id?: string | null;
   match_status?: string | null;
 };
 

@@ -11,6 +11,14 @@ import {
   getBusinessDateWindow,
 } from "../src/lib/dashboard/business-command-center.ts";
 import {
+  buildExecutiveBrief,
+  buildRankedActions,
+  buildTradingDocksSignals,
+  calculateInventoryAttribution,
+  calculateInventoryCapital,
+  calculateProfitConfidence,
+} from "../src/lib/dashboard/intelligence/business-intelligence.ts";
+import {
   filterOrdersByCanonicalDateRange,
   summarizeCanonicalOrders,
 } from "../src/lib/orders/order-metrics.ts";
@@ -82,7 +90,7 @@ test("seller summary uses real user-scoped order and item rows", () => {
         total: 100,
         net_profit: 42,
         normalized_status: "new",
-        marketplace_order_items: [{ marketplace_order_id: "order-1", quantity: 2, match_status: "matched" }],
+        marketplace_order_items: [{ marketplace_order_id: "order-1", quantity: 2, inventory_item_id: "item-1", match_status: "matched" }],
       },
       {
         id: "order-2",
@@ -106,8 +114,124 @@ test("seller summary uses real user-scoped order and item rows", () => {
   assert.equal(summary.openFulfillmentCount, 1);
   assert.equal(summary.listingIssues, 1);
   assert.equal(summary.syncIssues, 1);
+  assert.equal(summary.inventoryAttribution.coveragePercent, 50);
+  assert.equal(summary.profitConfidence.level, "Medium");
+  assert.ok(summary.docksBrief.includes("orders generated"));
   assert.equal(summary.channelBreakdown.find((channel) => channel.id === "tcgplayer")?.grossSales, 100);
   assert.equal(summary.channelBreakdown.find((channel) => channel.id === "ebay")?.grossSales, 50.5);
+});
+
+test("executive brief explains revenue decline only when real metrics support it", () => {
+  const brief = buildExecutiveBrief({
+    rangeLabel: "Last 7 days",
+    grossSales: 173,
+    previousGrossSales: 181,
+    salesChangePercent: -4.419,
+    orderCount: 25,
+    previousOrderCount: 22,
+    averageOrderValue: 6.92,
+    previousAverageOrderValue: 8.23,
+    connectedChannelCount: 2,
+  });
+
+  assert.equal(brief.headline, "Sales softened 4.4%, but order volume increased.");
+  assert.equal(brief.explanation, "Lower average order value, not lower order volume, drove the revenue decline.");
+  assert.match(brief.metricsLine, /\$173 revenue · 25 orders · \$7 AOV · 2 active channels/);
+});
+
+test("inventory attribution and profit confidence expose coverage instead of fake certainty", () => {
+  const orders = [
+    {
+      id: "matched",
+      marketplace_order_items: [
+        { quantity: 2, inventory_item_id: "item-1", match_status: "matched" },
+        { quantity: 1, inventory_item_id: "item-2", match_status: "matched" },
+      ],
+    },
+    {
+      id: "unmatched",
+      marketplace_order_items: [
+        { quantity: 3, match_status: "unmatched" },
+      ],
+    },
+  ];
+  const attribution = calculateInventoryAttribution(orders);
+  const confidence = calculateProfitConfidence(orders, attribution);
+
+  assert.equal(attribution.matchedOrderCount, 1);
+  assert.equal(attribution.totalOrderCount, 2);
+  assert.equal(attribution.unmatchedLineCount, 1);
+  assert.equal(attribution.coveragePercent, 66.66666666666666);
+  assert.equal(confidence.matchedSoldUnits, 3);
+  assert.equal(confidence.totalSoldUnits, 6);
+  assert.equal(confidence.level, "Medium");
+  assert.match(confidence.reason, /50% of sold units/);
+});
+
+test("capital at risk uses explicit stale inventory threshold and value coverage", () => {
+  const capital = calculateInventoryCapital({
+    now: new Date("2026-08-14T12:00:00.000Z"),
+    inventoryRows: [
+      { id: "listed", inventory_value: 200, updated_at: "2026-08-01T12:00:00.000Z" },
+      { id: "stale", inventory_value: 842, updated_at: "2026-04-01T12:00:00.000Z" },
+      { id: "unvalued", inventory_value: 0, updated_at: "2026-03-01T12:00:00.000Z" },
+    ],
+    listingRows: [{ inventory_item_id: "listed", match_status: "matched" }],
+  });
+
+  assert.equal(capital.totalValue, 1042);
+  assert.equal(capital.listedValue, 200);
+  assert.equal(capital.unlistedValue, 842);
+  assert.equal(capital.staleValue, 842);
+  assert.equal(capital.staleItemCount, 1);
+  assert.equal(capital.staleThresholdDays, 90);
+  assert.equal(Math.round(capital.coveragePercent), 67);
+});
+
+test("Trading Docks signals and next actions are evidence-ranked without fabricated AI scores", () => {
+  const attribution = {
+    coveragePercent: 0,
+    matchedOrderCount: 0,
+    totalOrderCount: 3,
+    matchedLineCount: 0,
+    totalLineCount: 4,
+    unmatchedLineCount: 4,
+    reason: "0 of 3 orders have complete inventory attribution.",
+  };
+  const inventoryCapital = {
+    totalValue: 1400,
+    listedValue: 300,
+    unlistedValue: 1100,
+    staleValue: 1240,
+    staleItemCount: 14,
+    staleThresholdDays: 90,
+    coveragePercent: 84,
+  };
+  const signals = buildTradingDocksSignals({
+    openFulfillmentCount: 9,
+    listingIssues: 4,
+    repricingReviewCount: 14,
+    syncIssues: 1,
+    inventoryCapital,
+    inventoryAttribution: attribution,
+    orders: [
+      { id: "one", marketplace_order_items: [{ title: "Fast SKU", quantity: 2, match_status: "unmatched" }] },
+    ],
+  });
+  const actions = buildRankedActions({
+    signals,
+    connectedChannelCount: 1,
+    hasStoreAccess: false,
+    employeeCount: null,
+    vendorCount: null,
+    supplyAlertCount: null,
+  });
+
+  assert.equal(signals[0].id, "sync-issues");
+  assert.ok(signals.some((signal) => signal.id === "inventory-attribution-gap"));
+  assert.ok(signals.some((signal) => signal.id === "capital-at-risk"));
+  assert.equal(actions[0].id, "sync-issues");
+  assert.doesNotMatch(JSON.stringify(signals), /ai score/i);
 });
 
 test("current-week date window includes the full Aug 10 2026 order day", () => {
@@ -179,6 +303,9 @@ test("imported orders count toward gross sales even when item matching is incomp
   assert.equal(tcgplayer?.connected, true);
   assert.equal(tcgplayer?.orderCount, 2);
   assert.equal(tcgplayer?.grossSales, 200);
+  assert.equal(summary.inventoryAttribution.coveragePercent, 0);
+  assert.equal(summary.profitConfidence.level, "Low");
+  assert.ok(summary.signals.some((signal) => signal.type === "inventory-attribution"));
 });
 
 test("disconnected marketplaces are distinct from connected channels with zero activity", () => {
@@ -240,14 +367,26 @@ test("dashboard page wires business HQ through shared business summary authority
   assert.match(service, /loadCanonicalOrders\(\{/);
   assert.doesNotMatch(page, /effectivePlan === "seller" \|\| effectivePlan === "store"/);
   assert.match(component, /Marketplace matrix/);
+  assert.match(component, /Today's Docks Brief/);
+  assert.match(component, /Revenue & Profit/);
+  assert.match(component, /Trading Docks Signals/);
+  assert.match(component, /Inventory Capital/);
+  assert.match(component, /What Changed/);
+  assert.match(component, /Profit Confidence/);
+  assert.match(component, /Inventory Attribution/);
   assert.match(component, /Connect another channel/);
   assert.match(component, /Needs attention/);
-  assert.match(component, /Setup and growth/);
+  assert.match(component, /Workspace setup/);
   assert.match(component, /RANGE_OPTIONS/);
+  assert.doesNotMatch(component, /Revenue pulse/);
+  assert.doesNotMatch(component, /OperationalSnapshot/);
+  assert.doesNotMatch(component, /FulfillmentPulse/);
   assert.match(service, /end\.setHours\(23, 59, 59, 999\)/);
   assert.match(repository, /CANONICAL_ORDER_SELECT[\s\S]*marketplace_order_items\(\*\)/);
   assert.match(repository, /\.eq\("user_id", userId\)/);
   assert.match(repository, /rowsUsingCreatedAtFallback/);
   assert.match(repository, /sampleOrder/);
   assert.match(service, /\.eq\("workspace_id", access\.workspaceId\)/);
+  assert.match(service, /\.from<InventoryCapitalRow>\("inventory_items"\)[\s\S]*\.eq\("user_id", access\.userId\)/);
+  assert.match(service, /\.from<ListingRow>\("marketplace_listing_mappings"\)[\s\S]*\.eq\("user_id", access\.userId\)/);
 });

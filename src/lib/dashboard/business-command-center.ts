@@ -7,27 +7,44 @@ import {
   normalizeChannelId,
   summarizeCanonicalOrders,
   type CanonicalChannelId,
-  type CanonicalChannelMetric,
   type CanonicalOrder,
 } from "../orders/order-metrics.ts";
 import {
   loadCanonicalOrders,
   type CanonicalOrderSupabaseClient,
 } from "../orders/order-repository.ts";
+import {
+  buildActivityFeed,
+  buildChannelInsights,
+  buildDocksBrief,
+  buildExecutiveBrief,
+  buildOpportunities,
+  buildPeriodDeltas,
+  buildRankedActions,
+  buildTradingDocksSignals,
+  calculateInventoryAttribution,
+  calculateInventoryCapital,
+  calculateProfitConfidence,
+  type BusinessActivity,
+  type BusinessOpportunity,
+  type ChannelPerformanceInsight,
+  type ExecutiveBrief,
+  type InventoryAttribution,
+  type InventoryCapital,
+  type InventoryCapitalRow,
+  type ListingRow,
+  type PeriodDelta,
+  type ProfitConfidence,
+  type RankedBusinessAction,
+  type SyncRunRow,
+  type TradingDocksSignal,
+} from "./intelligence/business-intelligence.ts";
 
 export type BusinessDateRange = "today" | "week" | "7d" | "30d" | "month";
 
-export type BusinessChannelId = CanonicalChannelId;
+export type BusinessChannelSummary = ChannelPerformanceInsight;
 
-export type BusinessChannelSummary = CanonicalChannelMetric;
-
-export type BusinessNextAction = {
-  id: string;
-  label: string;
-  detail: string;
-  href: string;
-  severity: "high" | "medium" | "low";
-};
+export type BusinessNextAction = RankedBusinessAction;
 
 export type BusinessCommandCenterSummary = {
   range: BusinessDateRange;
@@ -55,6 +72,15 @@ export type BusinessCommandCenterSummary = {
   supplyAlertCount: number | null;
   connectedChannelCount: number;
   channelBreakdown: BusinessChannelSummary[];
+  executiveBrief: ExecutiveBrief;
+  docksBrief: string;
+  profitConfidence: ProfitConfidence;
+  inventoryAttribution: InventoryAttribution;
+  inventoryCapital: InventoryCapital;
+  signals: TradingDocksSignal[];
+  periodDeltas: PeriodDelta[];
+  opportunities: BusinessOpportunity[];
+  activityFeed: BusinessActivity[];
   nextActions: BusinessNextAction[];
   generatedAt: string;
 };
@@ -83,11 +109,7 @@ type MarketplaceConnectionRow = {
   status?: string | null;
 };
 
-type MarketplaceSyncRunRow = {
-  marketplace_id?: string | null;
-  status?: string | null;
-  created_at?: string | null;
-};
+type MarketplaceSyncRunRow = SyncRunRow;
 
 type BusinessSummaryInput = {
   access: PlatformAccessContext;
@@ -97,6 +119,8 @@ type BusinessSummaryInput = {
   previousOrders?: MarketplaceOrderRow[];
   connections?: MarketplaceConnectionRow[];
   syncRuns?: MarketplaceSyncRunRow[];
+  inventoryRows?: InventoryCapitalRow[];
+  listingRows?: ListingRow[];
   customerCount?: number | null;
   employeeCount?: number | null;
   vendorCount?: number | null;
@@ -141,6 +165,8 @@ export async function loadBusinessCommandCenter({
     vendorsResult,
     supplyResult,
     repricingResult,
+    inventoryResult,
+    listingsResult,
   ] = await Promise.all([
     loadCanonicalOrders({
       supabase,
@@ -198,6 +224,17 @@ export async function loadBusinessCommandCenter({
           .eq("workspace_id", access.workspaceId)
           .eq("status", "needs_review")
       : Promise.resolve({ data: null, count: null }),
+    supabase
+      .from<InventoryCapitalRow>("inventory_items")
+      .select("id,quantity,inventory_value,updated_at")
+      .eq("user_id", access.userId)
+      .order("updated_at", { ascending: false })
+      .limit(1000),
+    supabase
+      .from<ListingRow>("marketplace_listing_mappings")
+      .select("marketplace_id,inventory_item_id,match_status,last_seen_quantity,last_seen_price,last_seen_at")
+      .eq("user_id", access.userId)
+      .limit(1000),
   ]);
 
   return buildBusinessCommandCenterSummary({
@@ -208,6 +245,8 @@ export async function loadBusinessCommandCenter({
     previousOrders: previousOrdersResult.orders,
     connections: connectionsResult.data ?? [],
     syncRuns: syncRunsResult.data ?? [],
+    inventoryRows: inventoryResult.data ?? [],
+    listingRows: listingsResult.data ?? [],
     customerCount: customersResult.count ?? null,
     employeeCount: employeesResult.count ?? null,
     vendorCount: vendorsResult.count ?? null,
@@ -224,6 +263,8 @@ export function buildBusinessCommandCenterSummary({
   previousOrders = [],
   connections = [],
   syncRuns = [],
+  inventoryRows = [],
+  listingRows = [],
   customerCount = null,
   employeeCount = null,
   vendorCount = null,
@@ -236,12 +277,61 @@ export function buildBusinessCommandCenterSummary({
     connections
       .filter((connection) => normalizeStatus(connection.status) === "ready")
       .map((connection) => normalizeChannelId(connection.marketplace_id))
-      .filter((id): id is BusinessChannelId => Boolean(id)),
+      .filter((id): id is CanonicalChannelId => Boolean(id)),
   ][0];
   const orderMetrics = summarizeCanonicalOrders(orders, connectedIds);
   const previousOrderMetrics = summarizeCanonicalOrders(previousOrders, connectedIds);
   const syncIssues = syncRuns.filter((run) => normalizeStatus(run.status) === "failed").length;
   const connectedChannelCount = orderMetrics.channels.filter((channel) => channel.connected).length;
+  const inventoryAttribution = calculateInventoryAttribution(orders);
+  const previousInventoryAttribution = calculateInventoryAttribution(previousOrders);
+  const profitConfidence = calculateProfitConfidence(orders, inventoryAttribution);
+  const inventoryCapital = calculateInventoryCapital({ inventoryRows, listingRows, now });
+  const channelBreakdown = buildChannelInsights({
+    current: orderMetrics.channels,
+    previous: previousOrderMetrics.channels,
+    syncRuns,
+  });
+  const periodDeltas = buildPeriodDeltas({
+    grossSales: orderMetrics.grossSales,
+    previousGrossSales: previousOrderMetrics.grossSales,
+    orderCount: orderMetrics.orderCount,
+    previousOrderCount: previousOrderMetrics.orderCount,
+    averageOrderValue: orderMetrics.averageOrderValue,
+    previousAverageOrderValue: previousOrderMetrics.averageOrderValue,
+    unmatchedLineCount: inventoryAttribution.unmatchedLineCount,
+    previousUnmatchedLineCount: previousInventoryAttribution.unmatchedLineCount,
+    realizedProfit: orderMetrics.realizedProfit,
+    previousRealizedProfit: previousOrderMetrics.realizedProfit,
+  });
+  const signals = buildTradingDocksSignals({
+    openFulfillmentCount: orderMetrics.openFulfillmentCount,
+    listingIssues: orderMetrics.listingIssues,
+    repricingReviewCount: repricingReviewCount ?? 0,
+    syncIssues,
+    inventoryCapital,
+    inventoryAttribution,
+    orders,
+  });
+  const nextActions = buildRankedActions({
+    signals,
+    connectedChannelCount,
+    hasStoreAccess,
+    employeeCount,
+    vendorCount,
+    supplyAlertCount,
+  });
+  const executiveBrief = buildExecutiveBrief({
+    rangeLabel: rangeLabel(range, now),
+    grossSales: orderMetrics.grossSales,
+    previousGrossSales: previousOrderMetrics.grossSales,
+    salesChangePercent: percentageChange(previousOrderMetrics.grossSales, orderMetrics.grossSales),
+    orderCount: orderMetrics.orderCount,
+    previousOrderCount: previousOrderMetrics.orderCount,
+    averageOrderValue: orderMetrics.averageOrderValue,
+    previousAverageOrderValue: previousOrderMetrics.averageOrderValue,
+    connectedChannelCount,
+  });
 
   return {
     range,
@@ -268,108 +358,30 @@ export function buildBusinessCommandCenterSummary({
     vendorCount: hasStoreAccess ? vendorCount : null,
     supplyAlertCount: hasStoreAccess ? supplyAlertCount : null,
     connectedChannelCount,
-    channelBreakdown: orderMetrics.channels,
-    nextActions: buildNextActions({
-      connectedChannelCount,
+    channelBreakdown,
+    executiveBrief,
+    docksBrief: buildDocksBrief({
+      rangeLabel: rangeLabel(range, now),
+      grossSales: orderMetrics.grossSales,
+      orderCount: orderMetrics.orderCount,
+      salesChangePercent: percentageChange(previousOrderMetrics.grossSales, orderMetrics.grossSales),
+      averageOrderValue: orderMetrics.averageOrderValue,
+      previousAverageOrderValue: previousOrderMetrics.averageOrderValue,
       openFulfillmentCount: orderMetrics.openFulfillmentCount,
-      listingIssues: orderMetrics.listingIssues,
-      syncIssues,
-      repricingReviewCount: repricingReviewCount ?? 0,
-      hasStoreAccess,
-      employeeCount,
-      vendorCount,
-      supplyAlertCount,
+      inventoryAttribution,
+      channelInsights: channelBreakdown,
+      signals,
     }),
+    profitConfidence,
+    inventoryAttribution,
+    inventoryCapital,
+    signals,
+    periodDeltas,
+    opportunities: buildOpportunities({ signals, orders }),
+    activityFeed: buildActivityFeed({ orders, syncRuns }),
+    nextActions,
     generatedAt: now.toISOString(),
   };
-}
-
-function buildNextActions(input: {
-  connectedChannelCount: number;
-  openFulfillmentCount: number;
-  listingIssues: number;
-  syncIssues: number;
-  repricingReviewCount: number;
-  hasStoreAccess: boolean;
-  employeeCount: number | null;
-  vendorCount: number | null;
-  supplyAlertCount: number | null;
-}) {
-  const actions: BusinessNextAction[] = [];
-  if (input.syncIssues > 0) {
-    actions.push({
-      id: "sync-issues",
-      label: "Review marketplace sync issues",
-      detail: `${input.syncIssues} failed sync ${input.syncIssues === 1 ? "run" : "runs"} need attention.`,
-      href: "/dashboard/marketplaces",
-      severity: "high",
-    });
-  }
-  if (input.openFulfillmentCount > 0) {
-    actions.push({
-      id: "open-fulfillment",
-      label: "Fulfill open orders",
-      detail: `${input.openFulfillmentCount} order${input.openFulfillmentCount === 1 ? "" : "s"} awaiting fulfillment or review.`,
-      href: "/dashboard/orders",
-      severity: "high",
-    });
-  }
-  if (input.listingIssues > 0) {
-    actions.push({
-      id: "listing-issues",
-      label: "Match order items to inventory",
-      detail: `${input.listingIssues} sold item${input.listingIssues === 1 ? "" : "s"} need matching or conflict review.`,
-      href: "/dashboard/orders",
-      severity: "medium",
-    });
-  }
-  if (input.repricingReviewCount > 0) {
-    actions.push({
-      id: "repricing-review",
-      label: "Review repricing queue",
-      detail: `${input.repricingReviewCount} inventory price ${input.repricingReviewCount === 1 ? "change" : "changes"} ready for review.`,
-      href: "/dashboard/label-studio",
-      severity: "medium",
-    });
-  }
-  if (input.connectedChannelCount === 0) {
-    actions.push({
-      id: "connect-marketplace",
-      label: "Connect a sales channel",
-      detail: "Connect TCGplayer, eBay, Mana Pool, or another channel to populate live sales.",
-      href: "/dashboard/marketplaces",
-      severity: "medium",
-    });
-  }
-  if (input.hasStoreAccess && !input.employeeCount) {
-    actions.push({
-      id: "team-setup",
-      label: "Set up store staff",
-      detail: "Add employees when you are ready to delegate shared store operations.",
-      href: "/dashboard/employees",
-      severity: "low",
-    });
-  }
-  if (input.hasStoreAccess && !input.vendorCount) {
-    actions.push({
-      id: "vendor-setup",
-      label: "Add vendor relationships",
-      detail: "Track vendor terms, purchase orders, and replenishment sources.",
-      href: "/dashboard/vendors",
-      severity: "low",
-    });
-  }
-  if (input.hasStoreAccess && input.supplyAlertCount === 0) {
-    actions.push({
-      id: "supply-alerts",
-      label: "Configure supply alerts",
-      detail: "Track sleeves, labels, shipping materials, and store operating supplies.",
-      href: "/dashboard/supplies",
-      severity: "low",
-    });
-  }
-
-  return actions.slice(0, 5);
 }
 
 export function getBusinessDateWindow(range: BusinessDateRange, now: Date) {
