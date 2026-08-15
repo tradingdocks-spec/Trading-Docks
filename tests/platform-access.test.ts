@@ -402,6 +402,12 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
     platformRoleAuthority: "trusted",
     workspaceRole: null,
   });
+  const admin = access({
+    tier: "free",
+    platformRole: "admin",
+    platformRoleAuthority: "trusted",
+    workspaceRole: null,
+  });
 
   const freeHrefs = navigationHrefsFor(free);
   assert.ok(freeHrefs.includes("/dashboard/inventory"));
@@ -453,6 +459,7 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
 
   const ownerHrefs = navigationHrefsFor(owner);
   const ownerLabels = navigationLabelsFor(owner);
+  const adminHrefs = navigationHrefsFor(admin);
   for (const href of [
     "/dashboard/collection-buying",
     "/dashboard/sealed-buying",
@@ -466,6 +473,7 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
     "/dashboard/admin",
   ]) {
     assert.ok(ownerHrefs.includes(href), `Owner navigation missing ${href}`);
+    assert.ok(adminHrefs.includes(href), `Admin navigation missing ${href}`);
   }
   assert.ok(ownerLabels.includes("Command Center"));
 
@@ -485,6 +493,12 @@ test("account-aware dashboard navigation does not duplicate route entries", () =
     ["Owner", access({
       tier: "free",
       platformRole: "owner",
+      platformRoleAuthority: "trusted",
+      workspaceRole: null,
+    })],
+    ["Admin", access({
+      tier: "free",
+      platformRole: "admin",
       platformRoleAuthority: "trusted",
       workspaceRole: null,
     })],

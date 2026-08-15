@@ -39,7 +39,7 @@ import {
 
 import {
   hasCapability,
-  hasTrustedOwnerAccess,
+  hasTrustedFullPlatformAccess,
   normalizeAccountType,
   type ClientSafePlatformAccess,
   type AccountType,
@@ -365,7 +365,7 @@ function isAccessibleOrOwner(
   clientAccess?: ClientSafePlatformAccess,
 ) {
   if (!clientAccess) return true;
-  if (hasTrustedOwnerAccess(clientAccess)) return true;
+  if (hasTrustedFullPlatformAccess(clientAccess)) return true;
   if (item.href === LABEL_STUDIO_ROUTE) return hasCapability(clientAccess, "label.view");
   return true;
 }
@@ -386,7 +386,7 @@ export function getAccountAwareNavigationGroups(
   clientAccess?: ClientSafePlatformAccess,
 ): AccountAwareNavigationGroup[] {
   const tier = normalizeAccountType(accountType);
-  const receivesFullSurface = Boolean(clientAccess && hasTrustedOwnerAccess(clientAccess));
+  const receivesFullSurface = Boolean(clientAccess && hasTrustedFullPlatformAccess(clientAccess));
   const effectiveTier = receivesFullSurface ? "store" : tier;
   const canAccessAdmin = clientAccess
     ? hasCapability(clientAccess, "platform.admin")

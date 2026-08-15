@@ -32,6 +32,7 @@ Status labels:
 - Complete: Tasks, Vendors, and Supplies use direct empty states instead of hidden empty-array template loops.
 - Complete: auth redirect origin construction is normalized so scheme-bearing forwarded hosts cannot produce malformed `https://https://...` callback URLs.
 - Complete: Store/Owner dashboard navigation no longer repeats the same route in multiple sidebar sections.
+- Complete: trusted Admin navigation now uses the same full-platform access authority as Owner instead of hiding Seller/Store tools behind the raw billing tier.
 - Complete: Analytics now composes Owner/Admin views from trusted platform authority instead of raw billing tier, while preserving the displayed commercial membership.
 - Complete: Analytics inventory aging uses real row timestamps for recent inventory and no longer renders broken encoded separators.
 
@@ -40,7 +41,7 @@ Status labels:
 - Needs QA: public landing, pricing, sign-in, sign-up, password reset, and onboarding flows.
 - Needs QA: dashboard navigation and role-aware route visibility across Free, Collector, Seller, Store, Owner, and Admin accounts.
 - Complete: generic operational dashboard pages now avoid fake charts, fake activity, dead primary actions, and hidden template rows in the active Store/Owner surfaces reviewed in this pass.
-- Complete: automated route/navigation tests now assert account-aware navigation does not duplicate route entries and analytics Owner/Admin access does not regress to a Free-style composition.
+- Complete: automated route/navigation tests now assert account-aware navigation does not duplicate route entries, trusted Admin sees the full operational surface, and analytics Owner/Admin access does not regress to a Free-style composition.
 - Needs QA: generic operational dashboard pages still need browser walkthroughs with real Store/Owner workspaces and representative empty/non-empty data.
 - Needs QA: Collection, Storage, Trade Binder, Wishlist, and inventory persistence with representative user-owned data.
 - Needs QA: Deck Vault import, deck detail, card preview, and Supabase persistence.
