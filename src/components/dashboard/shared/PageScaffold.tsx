@@ -52,10 +52,10 @@ export function PageScaffold({
               <div className="mt-5 flex flex-wrap gap-4 text-[10px] text-slate-600">
                 <span className="flex items-center gap-2">
                   <CircleDot className="h-3 w-3 text-emerald-300" />
-                  Live workspace
+                  Connected workspace
                 </span>
-                <span>Awaiting first workspace event</span>
-                <span>Supabase connected</span>
+                <span>Waiting for first workspace event</span>
+                <span>Secure cloud sync</span>
               </div>
             </div>
 
@@ -82,7 +82,7 @@ export function PageScaffold({
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat, index) => (
+          {stats.map((stat) => (
             <article
               key={stat.label}
               className="group relative overflow-hidden rounded-[22px] border border-white/[0.075] bg-[#07141e]/82 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.2)] transition duration-400 hover:-translate-y-1 hover:border-cyan-300/[0.16] hover:bg-[#081823]"
@@ -96,10 +96,7 @@ export function PageScaffold({
               </p>
               <p className="relative mt-2 text-xs text-slate-600">{stat.detail}</p>
               <div className="relative mt-4 h-1 overflow-hidden rounded-full bg-white/[0.04]">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.35)]"
-                  style={{ width: `${48 + index * 12}%` }}
-                />
+                <div className="h-full w-0 rounded-full bg-cyan-300" />
               </div>
             </article>
           ))}
@@ -110,12 +107,12 @@ export function PageScaffold({
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
               Workspace overview
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-white">Recent performance</h2>
+            <h2 className="mt-2 text-lg font-semibold text-white">Performance baseline</h2>
             <p className="mt-1 text-xs text-slate-600">
-              Charts, tables, and live data will populate as this workspace records activity.
+              Charts and tables will populate as this workspace records activity.
             </p>
 
-            <div className="relative mt-6 h-[260px] overflow-hidden rounded-2xl border border-white/[0.05] bg-[#02090f] p-5">
+            <div className="relative mt-6 flex h-[260px] items-center justify-center overflow-hidden rounded-2xl border border-white/[0.05] bg-[#02090f] p-5 text-center">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_74%_20%,rgba(34,211,238,0.08),transparent_30%)]" />
               {[28, 50, 72].map((top) => (
                 <div
@@ -124,22 +121,18 @@ export function PageScaffold({
                   style={{ top: `${top}%` }}
                 />
               ))}
-              <div className="relative flex h-full items-end gap-3">
-                {Array.from({ length: 10 }, () => 0).map((height, index) => (
-                  <div key={index} className="flex h-full flex-1 items-end">
-                    <div
-                      className="w-full rounded-t-lg bg-gradient-to-t from-cyan-600/45 via-cyan-400/70 to-cyan-200/95 shadow-[0_0_16px_rgba(34,211,238,0.07)]"
-                      style={{ height: `${height}%` }}
-                    />
-                  </div>
-                ))}
+              <div className="relative max-w-sm">
+                <p className="text-sm font-semibold text-slate-300">No trend data yet</p>
+                <p className="mt-2 text-xs leading-5 text-slate-600">
+                  This view will show real movement after orders, inventory updates, or workspace events are recorded.
+                </p>
               </div>
             </div>
           </div>
 
           <div className="rounded-[26px] border border-white/[0.075] bg-[#06121b]/82 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
-              Live activity
+              Activity
             </p>
             <h2 className="mt-2 text-lg font-semibold text-white">Recent updates</h2>
 

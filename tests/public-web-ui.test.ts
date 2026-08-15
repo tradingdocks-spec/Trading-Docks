@@ -68,7 +68,20 @@ test("dashboard scaffolds use production empty-state copy", () => {
 
     assert.doesNotMatch(source, /placeholder/i, `${relative} exposes placeholder language`);
     assert.match(source, /workspace records activity/, `${relative} should describe the real empty state`);
+    assert.match(source, /No trend data yet/, `${relative} should avoid decorative fake charts`);
+    assert.doesNotMatch(source, /Live workspace|Awaiting first workspace event/, `${relative} should not imply live data before events exist`);
+    assert.doesNotMatch(source, /48 \+ index/, `${relative} should not render fake progress bars`);
   }
+});
+
+test("automation workspace exposes a complete beta empty state", () => {
+  const source = readFileSync(path.join(repoRoot, "src/app/dashboard/automation/page.tsx"), "utf8");
+
+  assert.match(source, /PageScaffold/);
+  assert.match(source, /Active workflows/);
+  assert.match(source, /Pending runs/);
+  assert.match(source, /Review buying rules/);
+  assert.doesNotMatch(source, /WorkspaceFrame|PageHeader/);
 });
 
 test("modular dashboard presents a premium command-center hierarchy", () => {
