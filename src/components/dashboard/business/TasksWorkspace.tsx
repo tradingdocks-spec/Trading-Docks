@@ -26,16 +26,6 @@ export function TasksWorkspace() {
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
         <div className="space-y-3">
-          {([] as string[][]).map(([title, owner, due]) => (
-            <div key={title} className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
-              <button className="h-5 w-5 rounded-full border border-white/[0.12] bg-white/[0.02]" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-slate-200">{title}</p>
-                <p className="mt-1 text-[9px] text-slate-600">Assigned to {owner}</p>
-              </div>
-              <span className="text-[9px] text-cyan-300">{due}</span>
-            </div>
-          ))}
           <p className="py-10 text-center text-xs text-slate-600">No tasks have been created.</p>
         </div>
       </section>

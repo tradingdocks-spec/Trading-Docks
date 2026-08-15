@@ -121,6 +121,7 @@ test("business beta pages do not expose dead primary actions", () => {
   for (const route of unimplementedActionPages) {
     const source = readFileSync(path.join(repoRoot, route), "utf8");
     assert.doesNotMatch(source, /actionLabel=/, `${route} should not expose a dead header action`);
+    assert.doesNotMatch(source, /\(\[\]\s+as|\[\]\)\.map/, `${route} should not keep template array mapping`);
   }
 
   for (const route of implementedActionPages) {

@@ -26,13 +26,6 @@ export function VendorsWorkspace() {
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
         <div className="grid gap-3 lg:grid-cols-3">
-          {([] as string[][]).map(([name, category, terms]) => (
-            <div key={name} className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
-              <p className="text-sm font-semibold text-white">{name}</p>
-              <p className="mt-2 text-[10px] text-slate-500">{category}</p>
-              <p className="mt-4 text-[9px] text-cyan-300">{terms}</p>
-            </div>
-          ))}
           <p className="col-span-full py-10 text-center text-xs text-slate-600">No vendors have been added.</p>
         </div>
       </section>

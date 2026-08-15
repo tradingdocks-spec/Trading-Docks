@@ -26,20 +26,6 @@ export function SuppliesWorkspace() {
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
         <div className="space-y-3">
-          {([] as Array<[string, string, number, string]>).map(([name, remaining, level, recommendation]) => (
-            <div key={name as string} className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-200">{name as string}</p>
-                  <p className="mt-1 text-[9px] text-slate-600">{remaining as string}</p>
-                </div>
-                <span className="text-[9px] font-semibold text-cyan-300">{recommendation as string}</span>
-              </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.04]">
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-300" style={{ width: `${level}%` }} />
-              </div>
-            </div>
-          ))}
           <p className="py-10 text-center text-xs text-slate-600">No supply items have been added.</p>
         </div>
       </section>
