@@ -84,6 +84,17 @@ test("automation workspace exposes a complete beta empty state", () => {
   assert.doesNotMatch(source, /WorkspaceFrame|PageHeader/);
 });
 
+test("customer CRM empty state avoids dead import CTAs", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/business/CustomerCrmWorkspace.tsx"),
+    "utf8",
+  );
+
+  assert.match(source, /Add first customer/);
+  assert.match(source, /Bulk customer import is intentionally unavailable/);
+  assert.doesNotMatch(source, /CSV import is coming next|Import CSV <span|Soon/);
+});
+
 test("modular dashboard presents a premium command-center hierarchy", () => {
   const source = readFileSync(
     path.join(repoRoot, "src/components/dashboard/workspace/ModularWorkspace.tsx"),
