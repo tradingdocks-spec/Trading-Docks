@@ -15,7 +15,6 @@ export function PayrollWorkspace() {
         title="Approve time, calculate payroll, and export."
         description="Review employee hours, overtime, deductions, and payroll readiness before sending approved records to your payroll provider."
         icon={CreditCard}
-        actionLabel="Run payroll review"
       />
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

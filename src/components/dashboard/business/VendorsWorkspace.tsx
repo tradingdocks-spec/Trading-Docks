@@ -15,7 +15,6 @@ export function VendorsWorkspace() {
         title="Suppliers, distributors, and delivery relationships."
         description="Track vendor contacts, open purchase orders, delivery performance, terms, and product availability."
         icon={Truck}
-        actionLabel="Add vendor"
       />
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

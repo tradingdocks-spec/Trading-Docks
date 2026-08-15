@@ -95,6 +95,41 @@ test("customer CRM empty state avoids dead import CTAs", () => {
   assert.doesNotMatch(source, /CSV import is coming next|Import CSV <span|Soon/);
 });
 
+test("business beta pages do not expose dead primary actions", () => {
+  const pageHeader = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/common/PageHeader.tsx"),
+    "utf8",
+  );
+  const unimplementedActionPages = [
+    "src/components/dashboard/business/TasksWorkspace.tsx",
+    "src/components/dashboard/business/ReportsWorkspace.tsx",
+    "src/components/dashboard/business/VendorsWorkspace.tsx",
+    "src/components/dashboard/business/SuppliesWorkspace.tsx",
+    "src/components/dashboard/business/PayrollWorkspace.tsx",
+  ];
+  const implementedActionPages = [
+    "src/components/dashboard/business/CalendarWorkspace.tsx",
+    "src/components/dashboard/business/CustomerCrmWorkspace.tsx",
+    "src/components/dashboard/business/EmployeesWorkspace.tsx",
+    "src/components/dashboard/business/TournamentsWorkspace.tsx",
+  ];
+
+  assert.match(pageHeader, /actionLabel && onAction/);
+  assert.doesNotMatch(pageHeader, /Live workspace/);
+  assert.match(pageHeader, /Connected workspace/);
+
+  for (const route of unimplementedActionPages) {
+    const source = readFileSync(path.join(repoRoot, route), "utf8");
+    assert.doesNotMatch(source, /actionLabel=/, `${route} should not expose a dead header action`);
+  }
+
+  for (const route of implementedActionPages) {
+    const source = readFileSync(path.join(repoRoot, route), "utf8");
+    assert.match(source, /actionLabel=/, `${route} should keep its implemented header action`);
+    assert.match(source, /onAction=/, `${route} should wire its implemented header action`);
+  }
+});
+
 test("modular dashboard presents a premium command-center hierarchy", () => {
   const source = readFileSync(
     path.join(repoRoot, "src/components/dashboard/workspace/ModularWorkspace.tsx"),

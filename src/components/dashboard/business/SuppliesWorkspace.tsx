@@ -15,7 +15,6 @@ export function SuppliesWorkspace() {
         title="Know what to reorder before it runs out."
         description="Track on-hand quantities, reorder points, vendor lead time, open purchase orders, and expected deliveries."
         icon={PackageCheck}
-        actionLabel="Create purchase order"
       />
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

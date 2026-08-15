@@ -38,13 +38,13 @@ export function PageHeader({
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-slate-600 sm:mt-4">
             <span className="flex items-center gap-2">
               <CircleDot className="h-3 w-3 text-emerald-300" />
-              Live workspace
+              Connected workspace
             </span>
             <span>Secure cloud save</span>
           </div>
         </div>
 
-        {actionLabel ? (
+        {actionLabel && onAction ? (
           <button
             type="button"
             onClick={onAction}

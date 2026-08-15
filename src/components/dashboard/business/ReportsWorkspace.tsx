@@ -22,7 +22,6 @@ export function ReportsWorkspace() {
         title="Turn account activity into clear reports."
         description="Revenue, inventory, expenses, taxes, payroll, marketplace, and operating reports will populate from this account's records."
         icon={LineChart}
-        actionLabel="Create report"
       />
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
