@@ -16,21 +16,28 @@ Status labels:
 
 - Complete: root TypeScript passes with `npm run typecheck`.
 - Complete: root unit tests pass with `npm test`.
-- Complete: focused dashboard scaffold lint passes.
-- Complete: focused public/dashboard UI tests pass.
-- In Progress: full production build and final repository-wide validation after this pass.
+- Complete: focused dashboard/auth/public UI tests pass.
+- Complete: focused lint passes for changed dashboard and auth files.
+- Complete: full production build passed after the latest production-readiness slice.
 
 ## Fixes Completed
 
 - Complete: generic dashboard scaffold empty states no longer imply live data before the workspace records activity.
 - Complete: generic dashboard scaffold no longer renders decorative fake progress bars for zero-data routes.
 - Complete: Automation route now renders a complete beta empty state with clear operational entry points instead of a header-only workspace.
+- Complete: Customer CRM empty state no longer exposes an inactive CSV import CTA.
+- Complete: Mission Control Preview is removed from production navigation and the direct route redirects to the dashboard instead of showing hard-coded preview metrics.
+- Complete: shared dashboard page headers render primary action buttons only when a real handler is wired.
+- Complete: Tasks, Reports, Vendors, Supplies, and Payroll no longer display non-functional primary actions.
+- Complete: Tasks, Vendors, and Supplies use direct empty states instead of hidden empty-array template loops.
+- Complete: auth redirect origin construction is normalized so scheme-bearing forwarded hosts cannot produce malformed `https://https://...` callback URLs.
 
 ## Product Surface Checklist
 
 - Needs QA: public landing, pricing, sign-in, sign-up, password reset, and onboarding flows.
 - Needs QA: dashboard navigation and role-aware route visibility across Free, Collector, Seller, Store, Owner, and Admin accounts.
-- In Progress: generic operational dashboard pages and shared empty/error/loading states.
+- Complete: generic operational dashboard pages now avoid fake charts, fake activity, dead primary actions, and hidden template rows in the active Store/Owner surfaces reviewed in this pass.
+- Needs QA: generic operational dashboard pages still need browser walkthroughs with real Store/Owner workspaces and representative empty/non-empty data.
 - Needs QA: Collection, Storage, Trade Binder, Wishlist, and inventory persistence with representative user-owned data.
 - Needs QA: Deck Vault import, deck detail, card preview, and Supabase persistence.
 - Needs QA: Purchasing Intelligence, Image Lookup, Collection Buying, Sealed Buying, Precon, Bulk Buying, and Purchase History.
@@ -41,4 +48,5 @@ Status labels:
 
 - Follow-up: older `src/components/dashboard-v2` modules still contain browser-storage persistence paths and should be retired or formally archived once active imports are fully audited.
 - Follow-up: browser QA needs representative authenticated accounts for Free, Collector, Seller, Store, Owner, and Admin to verify role-aware dashboards and route access end to end.
+- Follow-up: Playwright is referenced in the lockfile but `node_modules/@playwright/test` is not installed locally in this workspace, so automated browser walkthroughs were not run in this pass.
 - Follow-up: production/staging Supabase verification should be run with non-production customer data only; do not copy production auth, inventory, or billing data into staging.
