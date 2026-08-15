@@ -346,6 +346,11 @@ test("Label Studio is an Operations navigation item gated by route access", () =
 });
 
 test("dashboard navigation preserves the full account-aware feature surface", () => {
+  const navigationSource = readFileSync(path.join(repoRoot, "src/components/dashboard/navigation.ts"), "utf8");
+  const missionControlPreviewPage = readFileSync(
+    path.join(repoRoot, "src/app/dashboard/mission-control-preview/page.tsx"),
+    "utf8",
+  );
   const free = access({ tier: "free" });
   const collector = access({ tier: "collector" });
   const seller = access({ tier: "seller" });
@@ -422,6 +427,12 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
     assert.ok(ownerHrefs.includes(href), `Owner navigation missing ${href}`);
   }
   assert.ok(ownerLabels.includes("Command Center"));
+
+  assert.equal(sellerHrefs.includes("/dashboard/mission-control-preview"), false);
+  assert.equal(ownerHrefs.includes("/dashboard/mission-control-preview"), false);
+  assert.doesNotMatch(navigationSource, /Mission Control Preview/);
+  assert.match(missionControlPreviewPage, /redirect\("\/dashboard"\)/);
+  assert.doesNotMatch(missionControlPreviewPage, /orderCount:\s*284|revenue:\s*18426|profit:\s*6284/);
 });
 
 test("server workspace access resolves only valid active or unambiguous memberships", () => {

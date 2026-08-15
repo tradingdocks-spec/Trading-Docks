@@ -194,11 +194,6 @@ export const SELLING_NAV: NavigationSection = {
   icon: CircleDollarSign,
   href: "/dashboard/sell-optimizer",
   children: [
-    {
-      href: "/dashboard/mission-control-preview",
-      label: "Mission Control Preview",
-      icon: LayoutDashboard,
-    },
     { href: "/dashboard/seller-launch", label: "Seller Launch", icon: Rocket },
     { href: "/dashboard/sell-optimizer", label: "Sell Optimizer", icon: CircleDollarSign },
     { href: "/dashboard/card-shows", label: "Card Shows", icon: CalendarRange },
