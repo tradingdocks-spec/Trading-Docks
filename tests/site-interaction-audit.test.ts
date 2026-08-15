@@ -230,6 +230,20 @@ test("shared scaffold surfaces do not render fake action buttons", () => {
   }
 });
 
+test("Card Shows purchase drafts persist through account documents not localStorage authority", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/card-shows/CardShowsWorkspace.tsx"),
+    "utf8",
+  );
+
+  assert.match(source, /loadAccountDocument<PurchaseOrderDraft>\("card-shows:buying-cart:v1"\)/);
+  assert.match(source, /saveAccountDocument\("card-shows:buying-cart:v1"/);
+  assert.match(source, /deleteAccountDocument\("card-shows:buying-cart:v1"\)/);
+  assert.doesNotMatch(source, /localStorage\.setItem\(\s*["']td-card-show-buying-cart-v1["']/);
+  assert.match(source, /localStorage\.getItem\("td-card-show-buying-cart-v1"\)/);
+  assert.match(source, /localStorage\.removeItem\("td-card-show-buying-cart-v1"\)/);
+});
+
 function appRoutePatterns(): RegExp[] {
   return appRoutesFromFiles(["page.tsx", "route.ts"]).map(routeToPattern);
 }

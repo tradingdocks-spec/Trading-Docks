@@ -35,6 +35,7 @@ Status labels:
 - Complete: trusted Admin navigation now uses the same full-platform access authority as Owner instead of hiding Seller/Store tools behind the raw billing tier.
 - Complete: Analytics now composes Owner/Admin views from trusted platform authority instead of raw billing tier, while preserving the displayed commercial membership.
 - Complete: Analytics inventory aging uses real row timestamps for recent inventory and no longer renders broken encoded separators.
+- Complete: Card Shows buying-cart drafts now persist to workspace account documents, with legacy localStorage only used for one-time migration cleanup.
 
 ## Product Surface Checklist
 

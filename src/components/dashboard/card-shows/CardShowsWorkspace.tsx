@@ -30,7 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { CARD_SHOW_GAMES, type CardShowGameId } from "@/lib/card-show-games";
-import { loadAccountDocument, saveAccountDocument } from "@/lib/account-documents";
+import { deleteAccountDocument, loadAccountDocument, saveAccountDocument } from "@/lib/account-documents";
 import { labelStudioHref } from "@/lib/label-studio/routes";
 import {
   persistInventorySnapshotDiff,
@@ -98,6 +98,13 @@ type PurchaseOrderLine = {
   marketPrice: number;
   buyingRate: number;
   recommendedUnitOffer: number;
+};
+type PurchaseOrderDraft = {
+  lines?: PurchaseOrderLine[];
+  actualPaid?: string;
+  purchaseDate?: string;
+  sellerSource?: string;
+  purchaseNotes?: string;
 };
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof CalendarDays }> = [
@@ -420,38 +427,45 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
   const hasBuyingRate = Number.isFinite(numericRate) && numericRate > 0 && numericRate <= 100;
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("td-card-show-buying-cart-v1");
-      if (saved) {
-        const parsed = JSON.parse(saved) as {
-          lines?: PurchaseOrderLine[];
-          actualPaid?: string;
-          purchaseDate?: string;
-          sellerSource?: string;
-          purchaseNotes?: string;
-        };
-        if (Array.isArray(parsed.lines)) setPurchaseOrder(parsed.lines);
-        setActualPaid(parsed.actualPaid ?? "");
-        setPurchaseDate(parsed.purchaseDate ?? "");
-        setSellerSource(parsed.sellerSource ?? "");
-        setPurchaseNotes(parsed.purchaseNotes ?? "");
+    void (async () => {
+      try {
+        let parsed = await loadAccountDocument<PurchaseOrderDraft>("card-shows:buying-cart:v1");
+        const legacy = window.localStorage.getItem("td-card-show-buying-cart-v1");
+        if (!parsed && legacy) {
+          parsed = JSON.parse(legacy) as PurchaseOrderDraft;
+          await saveAccountDocument("card-shows:buying-cart:v1", parsed);
+          window.localStorage.removeItem("td-card-show-buying-cart-v1");
+        }
+        if (Array.isArray(parsed?.lines)) setPurchaseOrder(parsed.lines);
+        setActualPaid(parsed?.actualPaid ?? "");
+        setPurchaseDate(parsed?.purchaseDate ?? "");
+        setSellerSource(parsed?.sellerSource ?? "");
+        setPurchaseNotes(parsed?.purchaseNotes ?? "");
+      } catch {
+        setPurchaseMessage("Purchase draft could not be loaded for this workspace.");
+      } finally {
+        setPurchaseOrderLoaded(true);
       }
-    } catch {}
-    setPurchaseOrderLoaded(true);
+    })();
   }, []);
 
   useEffect(() => {
     if (!purchaseOrderLoaded) return;
-    window.localStorage.setItem(
-      "td-card-show-buying-cart-v1",
-      JSON.stringify({
+    const timer = window.setTimeout(
+      () => void saveAccountDocument("card-shows:buying-cart:v1", {
         lines: purchaseOrder,
         actualPaid,
         purchaseDate,
         sellerSource,
         purchaseNotes,
+      }).catch((reason) => {
+        setPurchaseMessage(
+          reason instanceof Error ? reason.message : "Purchase draft could not be saved.",
+        );
       }),
+      300,
     );
+    return () => window.clearTimeout(timer);
   }, [
     purchaseOrderLoaded,
     purchaseOrder,
@@ -624,6 +638,7 @@ function LookupPanel({ query, setQuery, game, setGame, type, setType, marketPric
         items: inventoryItems,
         movements,
       });
+      await deleteAccountDocument("card-shows:buying-cart:v1");
       window.localStorage.removeItem("td-card-show-buying-cart-v1");
       setPurchaseOrder([]);
       setActualPaid("");
