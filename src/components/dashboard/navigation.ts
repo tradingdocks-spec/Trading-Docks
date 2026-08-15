@@ -415,7 +415,6 @@ export function getAccountAwareNavigationGroups(
   if (isAtLeast(effectiveTier, "store")) {
     groups.push(
       group("crm", "CRM", CRM_NAV, clientAccess),
-      group("business", "Business Hub", BUSINESS_NAV, clientAccess),
     );
   }
 

@@ -435,6 +435,30 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
   assert.doesNotMatch(missionControlPreviewPage, /orderCount:\s*284|revenue:\s*18426|profit:\s*6284/);
 });
 
+test("account-aware dashboard navigation does not duplicate route entries", () => {
+  const contexts = [
+    ["Free", access({ tier: "free" })],
+    ["Collector", access({ tier: "collector" })],
+    ["Seller", access({ tier: "seller" })],
+    ["Store", access({ tier: "store", workspaceRole: "owner" })],
+    ["Owner", access({
+      tier: "free",
+      platformRole: "owner",
+      platformRoleAuthority: "trusted",
+      workspaceRole: null,
+    })],
+  ] as const;
+
+  for (const [label, context] of contexts) {
+    const hrefs = navigationHrefsFor(context);
+    assert.deepEqual(
+      hrefs,
+      Array.from(new Set(hrefs)),
+      `${label} navigation should not repeat routes across sections`,
+    );
+  }
+});
+
 test("server workspace access resolves only valid active or unambiguous memberships", () => {
   assert.deepEqual(
     resolveWorkspaceAccessFromRows(null, [{ workspace_id: "workspace-a", role: "owner" }]),
