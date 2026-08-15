@@ -12,6 +12,7 @@ import {
   persistentAuthCookieOptions,
   REMEMBER_ME_COOKIE,
 } from "@/lib/supabase/auth-cookie-policy";
+import { resolveRequestOrigin } from "@/lib/request-origin";
 
 function getString(formData: FormData, fieldName: string): string {
   const value = formData.get(fieldName);
@@ -32,20 +33,12 @@ function withSignInEntrance(path: string) {
 
 async function getRequestOrigin() {
   const requestHeaders = await headers();
-  const forwardedHost = requestHeaders.get("x-forwarded-host");
-  const host = forwardedHost ?? requestHeaders.get("host");
-  const forwardedProtocol = requestHeaders.get("x-forwarded-proto");
-
-  if (host) {
-    const protocol =
-      forwardedProtocol ??
-      (host.startsWith("localhost") || host.startsWith("127.0.0.1")
-        ? "http"
-        : "https");
-    return `${protocol}://${host}`;
-  }
-
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  return resolveRequestOrigin({
+    forwardedHost: requestHeaders.get("x-forwarded-host"),
+    host: requestHeaders.get("host"),
+    forwardedProtocol: requestHeaders.get("x-forwarded-proto"),
+    fallbackOrigin: process.env.NEXT_PUBLIC_SITE_URL,
+  });
 }
 
 export async function loginWithGoogle(formData: FormData) {
