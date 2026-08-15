@@ -30,10 +30,15 @@ import {
 
 import { WorkspaceFrame } from "@/components/dashboard/common/WorkspaceFrame";
 import type { AccountTier } from "@/lib/plan-entitlements";
+import type {
+  PlatformRole,
+} from "../../../../mobile/services/platform-access.ts";
 
 type Props = {
   plan: AccountTier;
   inventory: { units: number; value: number; skus: number; addedLast30Days: number };
+  fullPlatformAccess?: boolean;
+  platformRole?: PlatformRole;
 };
 
 type Range = "7D" | "30D" | "90D" | "1Y";
@@ -53,13 +58,24 @@ const rangeLabels: Record<Range, string> = {
   "1Y": "Last 12 months",
 };
 
-export function AnalyticsCommandCenter({ plan, inventory }: Props) {
+export function AnalyticsCommandCenter({
+  plan,
+  inventory,
+  fullPlatformAccess = false,
+  platformRole = "user",
+}: Props) {
   const [range, setRange] = useState<Range>("30D");
   const [metric, setMetric] = useState<ChartMetric>("Revenue");
   const [channel, setChannel] = useState("All channels");
   const hasInventory = inventory.skus > 0;
-  const sellerView = plan === "seller" || plan === "store";
-  const planLabel = plan === "store" ? "Store" : plan[0].toUpperCase() + plan.slice(1);
+  const sellerView = fullPlatformAccess || plan === "seller" || plan === "store";
+  const planLabel = fullPlatformAccess
+    ? platformRole === "owner"
+      ? "Owner full access"
+      : "Admin full access"
+    : plan === "store"
+      ? "Store"
+      : plan[0].toUpperCase() + plan.slice(1);
   const readinessSteps = hasInventory ? 1 : 0;
 
   const metrics = useMemo(
@@ -69,7 +85,7 @@ export function AnalyticsCommandCenter({ plan, inventory }: Props) {
       { label: "Inventory value", value: currency.format(inventory.value), detail: `${number.format(inventory.units)} units across ${number.format(inventory.skus)} SKUs`, icon: Boxes },
       { label: "Sell-through", value: "0%", detail: "No sales in this period", icon: Gauge },
       { label: "Avg. order value", value: "$0", detail: "No completed orders", icon: ShoppingBag },
-      { label: "Inventory turnover", value: "0.0×", detail: "Needs sales history", icon: RefreshCw },
+      { label: "Inventory turnover", value: "0.0x", detail: "Needs sales history", icon: RefreshCw },
     ],
     [inventory],
   );
@@ -169,7 +185,7 @@ export function AnalyticsCommandCenter({ plan, inventory }: Props) {
             <div className="mt-3 flex items-center justify-between text-[9px] text-slate-600"><span>{rangeLabels[range]}</span><span>Compared with previous period</span></div>
           </Panel>
 
-          <Panel title="Action center" eyebrow="What needs attention" icon={Zap} badge="Live priorities">
+          <Panel title="Action center" eyebrow="What needs attention" icon={Zap} badge="Setup priorities">
             <div className="mt-4 space-y-2.5">
               <ActionItem icon={hasInventory ? Clock3 : PackageOpen} tone="amber" title={hasInventory ? "Inventory needs sales history" : "Add your first inventory"} detail={hasInventory ? `${number.format(inventory.units)} units are ready to begin aging analysis.` : "Import cards to start tracking value and velocity."} href="/dashboard/inventory" action={hasInventory ? "Review inventory" : "Add inventory"} />
               <ActionItem icon={Store} tone="cyan" title="Connect a sales channel" detail="Bring orders and fees into one performance view." href="/dashboard/marketplaces" action="Connect channel" />
@@ -182,16 +198,16 @@ export function AnalyticsCommandCenter({ plan, inventory }: Props) {
           <Panel title="Inventory aging" eyebrow="Capital by time held" icon={Clock3}>
             <div className="mt-5 space-y-3">
               {[
-                ["0–30 days", inventory.addedLast30Days, "Fresh", "bg-cyan-300"],
-                ["31–90 days", 0, "Healthy", "bg-emerald-300"],
-                ["91–180 days", 0, "Slowing", "bg-amber-300"],
-                ["181–365 days", 0, "At risk", "bg-orange-400"],
+                ["0-30 days", inventory.addedLast30Days, "Fresh", "bg-cyan-300"],
+                ["31-90 days", 0, "Healthy", "bg-emerald-300"],
+                ["91-180 days", 0, "Slowing", "bg-amber-300"],
+                ["181-365 days", 0, "At risk", "bg-orange-400"],
                 ["365+ days", 0, "Dead stock", "bg-rose-400"],
               ].map(([age, count, status, color]) => (
                 <div key={String(age)} className="grid grid-cols-[78px_1fr_auto] items-center gap-3">
                   <span className="text-[10px] font-medium text-slate-400">{age}</span>
                   <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.055]"><div className={`h-full rounded-full ${color}`} style={{ width: Number(count) ? "18%" : "0%" }} /></div>
-                  <span className="w-16 text-right text-[9px] text-slate-600">{Number(count) ? `${number.format(Number(count))} · ` : ""}{status}</span>
+                  <span className="w-16 text-right text-[9px] text-slate-600">{Number(count) ? `${number.format(Number(count))} - ` : ""}{status}</span>
                 </div>
               ))}
             </div>
@@ -201,7 +217,7 @@ export function AnalyticsCommandCenter({ plan, inventory }: Props) {
           <Panel title="Marketplace performance" eyebrow="Channel comparison" icon={Store}>
             <div className="mt-4 overflow-hidden rounded-2xl border border-white/[0.06]">
               <div className="grid grid-cols-[1fr_auto_auto] gap-3 border-b border-white/[0.06] bg-white/[0.025] px-3 py-2.5 text-[8px] font-bold uppercase tracking-[0.14em] text-slate-600"><span>Channel</span><span>Sales</span><span>Margin</span></div>
-              {["TCGplayer", "eBay", "Shopify", "In-store"].map((name) => <div key={name} className="grid grid-cols-[1fr_auto_auto] gap-3 border-b border-white/[0.045] px-3 py-3 text-[10px] last:border-0"><span className="font-medium text-slate-300">{name}</span><span className="w-12 text-right text-slate-600">$0</span><span className="w-12 text-right text-slate-600">—</span></div>)}
+              {["TCGplayer", "eBay", "Shopify", "In-store"].map((name) => <div key={name} className="grid grid-cols-[1fr_auto_auto] gap-3 border-b border-white/[0.045] px-3 py-3 text-[10px] last:border-0"><span className="font-medium text-slate-300">{name}</span><span className="w-12 text-right text-slate-600">$0</span><span className="w-12 text-right text-slate-600">-</span></div>)}
             </div>
             <Link href="/dashboard/marketplaces" className="mt-4 inline-flex items-center gap-2 text-[10px] font-bold text-cyan-300">Manage connections <ArrowRight className="h-3.5 w-3.5" /></Link>
           </Panel>
@@ -233,7 +249,7 @@ export function AnalyticsCommandCenter({ plan, inventory }: Props) {
               <Breakdown label={sellerView ? "Purchasing spend" : "Acquisition cost"} value="$0" />
               <Breakdown label="Current market value" value={currency.format(inventory.value)} accent={hasInventory} />
               <Breakdown label={sellerView ? "Cost recovered" : "Value change"} value="$0" />
-              <Breakdown label="Projected ROI" value="—" />
+              <Breakdown label="Projected ROI" value="-" />
             </div>
             <MiniEmpty text={sellerView ? "Collection purchases will show recovered cost, held value, and projected profit." : "Add acquisition costs to understand gains, losses, and collection performance."} />
           </Panel>

@@ -28,6 +28,7 @@ import {
   availableDashboardLayouts,
   canUseDashboardWidget,
 } from "../src/lib/dashboard-entitlements.ts";
+import { summarizeAnalyticsInventory } from "../src/lib/dashboard/analytics-summary.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -288,6 +289,46 @@ test("dashboard module filtering uses effective entitlements instead of raw bill
   assert.equal(canUseDashboardWidget("free", "revenue", manipulated), false);
   assert.equal(availableDashboardLayouts("free", ownerFree).has("business"), true);
   assert.equal(availableDashboardLayouts("free", manipulated).has("business"), false);
+});
+
+test("analytics workspace composes Owner/Admin access from platform authority", () => {
+  const pageSource = readFileSync(path.join(repoRoot, "src/app/dashboard/analytics/page.tsx"), "utf8");
+  const componentSource = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/analytics/AnalyticsCommandCenter.tsx"),
+    "utf8",
+  );
+
+  assert.match(pageSource, /resolvePlatformAccessForUser/);
+  assert.match(pageSource, /hasTrustedFullPlatformAccess\(access\)/);
+  assert.match(pageSource, /fullPlatformAccess=\{hasTrustedFullPlatformAccess\(access\)\}/);
+  assert.match(componentSource, /const sellerView = fullPlatformAccess \|\| plan === "seller" \|\| plan === "store"/);
+  assert.match(componentSource, /Owner full access/);
+  assert.doesNotMatch(componentSource, /Live priorities/);
+});
+
+test("analytics inventory summary counts recent rows from real timestamps", () => {
+  const now = Date.parse("2026-08-15T12:00:00.000Z");
+
+  assert.deepEqual(
+    summarizeAnalyticsInventory(
+      [
+        {
+          quantity: 3,
+          inventory_value: 12.5,
+          data: null,
+          updated_at: "2026-08-10T12:00:00.000Z",
+        },
+        {
+          quantity: null,
+          inventory_value: null,
+          data: { quantity: 2, value: 7.25 },
+          updated_at: "2026-07-01T12:00:00.000Z",
+        },
+      ],
+      now,
+    ),
+    { units: 5, value: 19.75, skus: 2, addedLast30Days: 3 },
+  );
 });
 
 test("representative route registry maps public auth tier and platform routes", () => {
