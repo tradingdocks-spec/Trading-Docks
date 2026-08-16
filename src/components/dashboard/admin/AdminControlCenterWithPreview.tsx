@@ -38,6 +38,11 @@ import {
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import {
+  beginAdminTotpEnrollment,
+  loadAdminMfaSecurityState,
+  verifyAdminTotpFactor,
+} from "@/app/actions/admin-mfa";
 import { OperationsSection, type OperationsTab } from "@/components/dashboard/admin/AdminOperationsPanels";
 import { PlanPreview } from "@/components/dashboard/admin/PlanPreview";
 import { TrialsManager } from "@/components/dashboard/admin/TrialsManager";
@@ -128,7 +133,6 @@ const fallbackFeatures: Feature[] = [
 ];
 
 export function AdminControlCenter({ adminIdentityLabel }: { adminIdentityLabel: string }) {
-  const supabase = useMemo(() => createClient(), []);
   const [checking, setChecking] = useState(true);
   const [verified, setVerified] = useState(false);
   const [factors, setFactors] = useState<Factor[]>([]);
@@ -139,14 +143,18 @@ export function AdminControlCenter({ adminIdentityLabel }: { adminIdentityLabel:
 
   const refreshSecurity = useCallback(async () => {
     setChecking(true);
-    const [{ data: aal }, { data: factorData }] = await Promise.all([
-      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-      supabase.auth.mfa.listFactors(),
-    ]);
-    setVerified(aal?.currentLevel === "aal2");
-    setFactors((factorData?.totp ?? []) as Factor[]);
+    setAuthError("");
+    const result = await loadAdminMfaSecurityState();
+    if (result.ok) {
+      setVerified(result.verified);
+      setFactors(result.factors as Factor[]);
+    } else {
+      setVerified(false);
+      setFactors([]);
+      setAuthError(result.error);
+    }
     setChecking(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     void refreshSecurity();
@@ -155,12 +163,9 @@ export function AdminControlCenter({ adminIdentityLabel }: { adminIdentityLabel:
   async function beginEnrollment() {
     setWorking(true);
     setAuthError("");
-    const { data, error } = await supabase.auth.mfa.enroll({
-      factorType: "totp",
-      friendlyName: "Trading Docks Admin",
-    });
-    if (error) setAuthError(error.message);
-    else if (data?.totp) setEnrollment({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
+    const result = await beginAdminTotpEnrollment();
+    if (result.ok) setEnrollment(result.enrollment);
+    else setAuthError(result.error);
     setWorking(false);
   }
 
@@ -171,12 +176,14 @@ export function AdminControlCenter({ adminIdentityLabel }: { adminIdentityLabel:
     }
     setWorking(true);
     setAuthError("");
-    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
-    if (error) setAuthError(error.message);
-    else {
+    const result = await verifyAdminTotpFactor(factorId, code);
+    if (result.ok) {
       setEnrollment(null);
       setCode("");
-      await refreshSecurity();
+      setVerified(result.verified);
+      setFactors(result.factors as Factor[]);
+    } else {
+      setAuthError(result.error);
     }
     setWorking(false);
   }
