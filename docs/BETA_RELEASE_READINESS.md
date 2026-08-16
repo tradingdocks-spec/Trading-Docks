@@ -23,6 +23,33 @@ Status labels:
 - Complete: `git diff --check` passes.
 - Complete: `.next/` generated artifacts are not tracked by Git.
 
+## Preview/Staging Deployment Readiness
+
+- PASS: production build passes locally and emits the active app route manifest.
+- PASS: public Supabase clients use `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; mobile uses `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- PASS: trusted server-only Supabase access is isolated to `SUPABASE_SERVICE_ROLE_KEY` through server/admin code paths.
+- PASS: committed secret scan found placeholders, documentation, SQL grants, and server env references only; no live production secret values were found in tracked source.
+- PASS: `VERCEL_ENV`, not `NODE_ENV` alone, is used for production host canonicalization so Vercel Preview can remain on its preview hostname.
+- PASS: development URLs are not required for deployed auth redirects; local fallback remains `http://localhost:3000` for local development only.
+- PASS: `.env.local.example` documents safe placeholder names for required Supabase, RevenueCat, email, catalog, marketplace, and optional AI/provider configuration.
+- PASS: destructive production database operations are not required for this beta QA checkpoint.
+- BLOCKED: preview deployment must be pointed at a safe Supabase environment before real-account QA. Do not run representative write tests against production customer data.
+- BLOCKED: external integrations require sandbox/test credentials to validate live failure and success paths.
+
+## Real QA Run Ledger
+
+Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLOCKED`, or `NOT APPLICABLE`.
+
+| Result | Account tier | Route | Browser/device | Action | Expected | Actual | Severity | Fix commit |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| BLOCKED | Free | `/sign-in`, `/dashboard` | Deployed browser | Log in and verify Free dashboard/navigation | Free user can sign in, sees Free surface only, and premium routes are blocked | Representative Free account/browser session not available in this coding environment | P1 until tested | N/A |
+| BLOCKED | Collector | `/dashboard/inventory`, `/dashboard/deck-vault`, `/dashboard/collector-portfolio` | Deployed browser | Verify Collector workspace and persistence | Collector can use Collection, Deck Vault, Portfolio, and plan limits correctly | Representative Collector account/browser session not available in this coding environment | P1 until tested | N/A |
+| BLOCKED | Seller | `/dashboard`, `/dashboard/purchasing-intelligence`, `/dashboard/orders`, `/dashboard/marketplaces` | Deployed browser | Verify Seller command center, workflows, and integration states | Seller sees seller surface and graceful disconnected/provider states | Representative Seller account/browser session not available in this coding environment | P1 until tested | N/A |
+| BLOCKED | Store | `/dashboard`, `/dashboard/customers`, `/dashboard/card-shows`, `/dashboard/inventory`, `/dashboard/orders` | Deployed browser | Verify Store operations and safe writes | Store sees full store workspace and writes persist after refresh/sign-in | Representative Store account/browser session not available in this coding environment | P1 until tested | N/A |
+| BLOCKED | Owner/Admin | `/dashboard/admin`, `/dashboard/admin/catalog/tcgplayer`, `/dashboard/label-studio` | Deployed browser | Verify full platform surface and no billing-tier restriction | Trusted platform role gets full access without exposing it to ordinary accounts | Representative Owner/Admin browser session not available in this coding environment | P1 until tested | N/A |
+| BLOCKED | Any two accounts | Collection, Purchasing, CRM, Label Studio | Deployed browser | Create/read/update/delete safe non-production test records | Each account sees only its own workspace records | Safe non-production accounts and Supabase environment not available in this coding environment | P0 until tested | N/A |
+| BLOCKED | Mobile accounts | Native app | Physical iOS/Android | Validate native auth, scanner, session restore, offline replay, deep links, purchase restore | Native workflows pass on actual builds/devices | Physical-device validation not run in this web-focused coding environment | P1 if mobile is in beta scope | N/A |
+
 ## Fixes Completed In This Readiness Branch
 
 - Complete: generic dashboard scaffold empty states no longer imply live data before workspace records activity.
@@ -79,6 +106,47 @@ Status labels:
 - Needs QA: TCGTracking provider health, SKU enrichment, pricing fallback, scanner provider failure states, and image fallback behavior.
 - Needs QA: marketplace integrations distinguish disconnected channels from true zero activity.
 - Needs QA: email delivery templates and redirect URLs for staging/preview and production domains.
+
+## Environment Variable Checklist
+
+Required for web Preview/Production:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` for trusted server-only admin routes, webhooks, imports, and reconciliation.
+- `NEXT_PUBLIC_SITE_URL` and/or `NEXT_PUBLIC_APP_URL` for deployed redirects/email links.
+- `REVENUECAT_WEBHOOK_AUTHORIZATION` for `/api/webhooks/revenuecat`.
+- At least one RevenueCat web purchase link: `REVENUECAT_WEB_PURCHASE_LINK` or the package-specific `REVENUECAT_WEB_COLLECTOR_MONTHLY_URL`, `REVENUECAT_WEB_COLLECTOR_YEARLY_URL`, `REVENUECAT_WEB_SELLER_MONTHLY_URL`, `REVENUECAT_WEB_SELLER_YEARLY_URL`, `REVENUECAT_WEB_STORE_MONTHLY_URL`, `REVENUECAT_WEB_STORE_YEARLY_URL`.
+- RevenueCat management link: `REVENUECAT_WEB_CUSTOMER_PORTAL_URL` or `REVENUECAT_WEB_MANAGEMENT_URL`.
+
+Required for transactional beta invitations:
+
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+
+Optional integration/provider variables that should degrade gracefully when absent:
+
+- `TCGTRACKING_API_KEY`, `TCGTRACKING_API_BASE_URL`, `TCGTRACKING_SCAN_BASE_URL`
+- `JUSTTCG_API_KEY`
+- `MANAPOOL_API_BASE_URL`, `MANAPOOL_INITIAL_SYNC_SINCE`
+- `POKEMON_TCG_API_KEY`
+- `POKEMON_JAPAN_MARKET_API_KEY`, `POKEMON_JAPAN_MARKET_ENDPOINT`
+- `CLOUDFLARE_EMAIL_WEBHOOK_SECRET`
+- `CRON_SECRET`
+- `MARKETPLACE_CREDENTIAL_ENCRYPTION_KEY`, `MARKETPLACE_CREDENTIAL_KEY_VERSION`
+- `OPENAI_API_KEY`, `OPENAI_DECK_DOCTOR_MODEL`, `OPENAI_VISION_MODEL`
+
+Required for mobile beta builds if mobile is included in scope:
+
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`
+- `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` for Android purchase/restore validation.
+
+Forbidden in browser/mobile public env:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- Any `EXPO_PUBLIC_*` or `NEXT_PUBLIC_*` value containing service-role credentials, `sb_secret`, webhook secrets, provider REST secrets, or private API keys.
 
 ## Closed-Beta Severity Gate
 
