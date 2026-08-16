@@ -51,6 +51,8 @@
 - Implemented: `src/components/dashboard/shared/PageScaffold.tsx` is the canonical scaffold for generic beta/empty workspace pages. `src/components/dashboard/common/PageScaffold.tsx` re-exports it to avoid duplicated visual systems.
 - Implemented: Shared scaffolds use a compact operational briefing layout with honest empty states. They must not render fake charts, zero-width progress bars, or generic “live workspace” status copy before records exist.
 - Implemented: Dashboard navigation group labels use workflow language: Collection, Acquire, Sell, Operate, Intelligence, Relationships, Utilities, Account, and Admin.
+- Implemented: Public homepage hero now uses a Trading Docks card-lifecycle composition instead of a generic SaaS dashboard mockup.
+- Implemented: Public pricing uses a workflow progression and comparison table rather than four oversized plan cards.
 - Partially Implemented: The current pass updates global tokens, common scaffolds, dashboard shell, sidebar, topbar, and shared page headers. High-traffic individual pages still need route-by-route redesign.
 - Planned: See `docs/PRODUCT_DESIGN_AUDIT.md` for the ongoing product-design backlog and quality bar.
 
@@ -62,6 +64,8 @@
 - Panels should use `.td-panel` or `.td-panel-strong` unless a route has a justified domain-specific component.
 - Empty states should explain what real record or integration will populate the view and what the user can do next.
 - Do not display fabricated revenue, inventory, price movement, order, customer, or opportunity values in authenticated product surfaces.
+- Public pages should use Trading Docks workflow structures such as `Identify -> Value -> Place -> Move` and `Organize -> Understand -> Sell -> Operate`; do not default to hero, three cards, screenshot, icon grid, pricing cards, CTA.
+- Public pricing should communicate audience, price, workflow stage, and limits through typographic hierarchy, dividers, and comparison rows. Do not reintroduce giant glowing plan cards or a generic `Most popular` badge.
 
 ## Token Naming
 

@@ -1,29 +1,79 @@
 import Image from "next/image";
 import Link from "next/link";
 
+const FOOTER_GROUPS = [
+  {
+    title: "Product",
+    links: [
+      ["Lifecycle", "#experience"],
+      ["Platform", "#platform"],
+      ["Market", "#market"],
+      ["Pricing", "#pricing"],
+    ],
+  },
+  {
+    title: "Workspace",
+    links: [
+      ["Collection", "/sign-up?plan=collector"],
+      ["Seller", "/sign-up?plan=seller"],
+      ["Store", "/sign-up?plan=store"],
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      ["Security", "/security"],
+      ["Privacy", "/privacy"],
+      ["Terms", "/terms"],
+    ],
+  },
+];
+
 export function Footer() {
   return (
-    <footer className="relative z-10 border-t border-white/[0.05]">
-      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6 px-5 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12">
-        <Image
-          src="/trading-docks-horizontal.png"
-          alt="Trading Docks"
-          width={2048}
-          height={682}
-          className="h-auto w-[220px] object-contain object-left"
-        />
-
-        <div className="max-w-2xl">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-slate-500">
-            <span>© 2026 Trading Docks. All rights reserved.</span>
-            <Link href="/privacy" className="transition hover:text-slate-300">Privacy Policy</Link>
-            <Link href="/terms" className="transition hover:text-slate-300">Terms of Service</Link>
-            <Link href="/security" className="transition hover:text-slate-300">Security</Link>
-          </div>
-          <p className="mt-4 text-[10px] leading-5 text-slate-700">
-            Trading Docks is an independent inventory and business-management platform and is not affiliated with or endorsed by the publishers or owners of the supported trading-card games. Product names and trademarks belong to their respective owners. Market values are estimates and are not guarantees of sale price.
+    <footer className="relative z-10 border-t border-white/[0.06] bg-[#02070c]">
+      <div className="mx-auto grid w-full max-w-[1480px] gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1fr_1.2fr] lg:px-12">
+        <div>
+          <Image
+            src="/trading-docks-horizontal.png"
+            alt="Trading Docks"
+            width={2048}
+            height={682}
+            className="h-auto w-[220px] object-contain object-left"
+          />
+          <p className="mt-5 max-w-md text-sm leading-6 text-slate-600">
+            Card intelligence, inventory control, and operating workflows for
+            collectors, sellers, and stores.
           </p>
         </div>
+
+        <div className="grid gap-8 sm:grid-cols-3">
+          {FOOTER_GROUPS.map((group) => (
+            <nav key={group.title} aria-label={group.title}>
+              <h2 className="text-sm font-semibold text-slate-300">{group.title}</h2>
+              <div className="mt-4 grid gap-3">
+                {group.links.map(([label, href]) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="text-sm text-slate-600 transition hover:text-cyan-200"
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </nav>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-3 border-t border-white/[0.06] px-5 py-5 text-xs text-slate-700 sm:flex-row sm:justify-between sm:px-8 lg:px-12">
+        <span>Copyright 2026 Trading Docks. All rights reserved.</span>
+        <span className="max-w-3xl">
+          Trading Docks is independent and is not affiliated with or endorsed by
+          the publishers or owners of supported trading-card games. Market values
+          are estimates, not guaranteed sale prices.
+        </span>
       </div>
     </footer>
   );

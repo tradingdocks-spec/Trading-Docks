@@ -2,18 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Crown,
-  HelpCircle,
-  ShieldCheck,
-  Sparkles,
-  Store,
-  Users,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+
 import { RevenueCatWebPurchaseButton } from "@/components/billing/RevenueCatWebPurchaseButton";
 import {
   PLAN_ENTITLEMENTS,
@@ -23,125 +13,86 @@ import {
 type BillingCycle = "monthly" | "annual";
 
 type Plan = {
-  id: "free" | "collector" | "seller" | "store";
+  id: AccountTier;
   name: string;
+  motion: string;
   audience: string;
-  monthlyPrice: number;
-  annualMonthlyPrice: number;
-  annualPrice: number;
   description: string;
-  badge?: string;
-  features: string[];
-  limitations: string[];
+  annualNote: string;
+  recommended?: boolean;
 };
 
 const plans: Plan[] = [
   {
     id: "free",
     name: "Free",
-    audience: "Explore Trading Docks",
-    monthlyPrice: PLAN_ENTITLEMENTS.free.monthlyPrice,
-    annualMonthlyPrice: PLAN_ENTITLEMENTS.free.annualMonthlyPrice,
-    annualPrice: PLAN_ENTITLEMENTS.free.annualPrice,
-    description:
-      "A simple starting point for discovering the platform and following your favorite cards.",
-    features: [
-      "Personal dashboard",
-      "Up to 500 cards",
-      "Up to 5 decks",
-      "Card scanner",
-      "Basic collection tools",
-    ],
-    limitations: ["No unlimited collection", "No seller tools"],
+    motion: "Organize",
+    audience: "New collections",
+    description: "500 cards, 5 decks, scanner, and a clean personal inventory foundation.",
+    annualNote: "Free forever",
   },
   {
     id: "collector",
     name: "Collector",
-    audience: "Organize a personal collection",
-    monthlyPrice: PLAN_ENTITLEMENTS.collector.monthlyPrice,
-    annualMonthlyPrice: PLAN_ENTITLEMENTS.collector.annualMonthlyPrice,
-    annualPrice: PLAN_ENTITLEMENTS.collector.annualPrice,
-    description:
-      "Catalog, organize, and understand a growing personal card collection without seller complexity.",
-    features: [
-      "Everything in Free",
-      "Unlimited cards and decks",
-      "Storage locations and capacity",
-      "Put-away and movement history",
-      "Collection value tracking",
-      "Collection value and price history",
-      "Financial insights",
-      "Trade binder, wishlist, and market signals",
-    ],
-    limitations: ["No Deal Desk", "No full web seller workspace"],
+    motion: "Understand",
+    audience: "Serious collectors",
+    description: "Unlimited collection, price history, storage, trade binder, wishlist, and signals.",
+    annualNote: "Best for a growing personal collection",
   },
   {
     id: "seller",
     name: "Seller",
-    audience: "Run an online card business",
-    monthlyPrice: PLAN_ENTITLEMENTS.seller.monthlyPrice,
-    annualMonthlyPrice: PLAN_ENTITLEMENTS.seller.annualMonthlyPrice,
-    annualPrice: PLAN_ENTITLEMENTS.seller.annualPrice,
-    description:
-      "Turn inventory into listings with the daily pricing, intake, and marketplace tools sellers need.",
-    features: [
-      "Everything in Collector",
-      "Deal Desk",
-      "Buying profiles and buying sessions",
-      "Trade calculator",
-      "Card-show tools",
-      "Sealed evaluator",
-      "CSV/email export",
-      "Full web workspace access",
-    ],
-    limitations: ["No employee accounts", "No shared store workflows"],
+    motion: "Sell",
+    audience: "Online sellers",
+    description: "Deal Desk, buying sessions, exports, sealed evaluator, and full web workspace.",
+    annualNote: "Recommended for weekly buying and listing",
+    recommended: true,
   },
   {
     id: "store",
     name: "Store",
-    audience: "Operate a team and storefront",
-    monthlyPrice: PLAN_ENTITLEMENTS.store.monthlyPrice,
-    annualMonthlyPrice: PLAN_ENTITLEMENTS.store.annualMonthlyPrice,
-    annualPrice: PLAN_ENTITLEMENTS.store.annualPrice,
-    description:
-      "The complete Trading Docks command center for stores managing inventory, staff, and performance.",
-    badge: "Full platform",
-    features: [
-      "Everything in Seller",
-      "Employee accounts",
-      "Shared buying profiles",
-      "Approval limits",
-      "Shared sessions",
-      "Customer-facing trade summaries",
-      "Shared inventory access",
-      "Store operations tools",
-    ],
-    limitations: ["Employee capacity pending product configuration"],
+    motion: "Operate",
+    audience: "Store teams",
+    description: "Shared buying profiles, approvals, customer summaries, staff, and operations.",
+    annualNote: "Employee capacity pending configuration",
   },
 ];
 
 const comparisonRows = [
-  { label: "Deck Vault decks", values: ["5", "Unlimited", "Unlimited", "Unlimited"] },
   { label: "Cards", values: ["500", "Unlimited", "Unlimited", "Unlimited"] },
-  { label: "Collection analytics", values: [false, true, true, true] },
-  { label: "Trade binder and wishlist", values: [false, true, true, true] },
-  { label: "Purchasing workflows", values: [false, false, true, true] },
-  { label: "Deal Desk", values: [false, false, true, true] },
-  { label: "Full web workspace", values: [false, false, true, true] },
-  { label: "CSV/email export", values: [false, false, true, true] },
-  { label: "Business Intelligence", values: [false, false, false, true] },
-  { label: "Store operations", values: [false, false, false, true] },
-  { label: "Employee accounts", values: ["No", "No", "No", "Capacity pending"] },
-]
+  { label: "Deck Vault", values: ["5 decks", "Unlimited", "Unlimited", "Unlimited"] },
+  { label: "Collection analytics", values: ["Basic", "Full", "Full", "Full"] },
+  { label: "Trade binder and wishlist", values: ["No", "Yes", "Yes", "Yes"] },
+  { label: "Purchasing workflows", values: ["No", "No", "Deal Desk + sessions", "Shared workflows"] },
+  { label: "Web seller workspace", values: ["No", "No", "Yes", "Yes"] },
+  { label: "CSV/email export", values: ["No", "No", "Yes", "Yes"] },
+  { label: "Business intelligence", values: ["No", "No", "Seller view", "Store view"] },
+  { label: "Store operations", values: ["No", "No", "No", "Yes"] },
+  { label: "Employee accounts", values: ["No", "No", "No", "Configurable"] },
+];
 
 function formatPrice(value: number) {
   return value === 0 ? "$0" : `$${value.toFixed(value % 1 === 0 ? 0 : 2)}`;
 }
 
-function planAction(plan: Plan, currentPlan: string) {
-  if (plan.id === currentPlan) return "Current plan";
+function displayPrice(plan: Plan, billing: BillingCycle) {
+  const entitlement = PLAN_ENTITLEMENTS[plan.id];
+  return billing === "annual"
+    ? formatPrice(entitlement.annualMonthlyPrice)
+    : formatPrice(entitlement.monthlyPrice);
+}
+
+function billingDetail(plan: Plan, billing: BillingCycle) {
+  const entitlement = PLAN_ENTITLEMENTS[plan.id];
+  if (entitlement.monthlyPrice === 0) return "Free forever";
+  if (billing === "annual") return `${formatPrice(entitlement.annualPrice)} billed annually`;
+  return "Billed monthly";
+}
+
+function planAction(plan: Plan, currentPlan: AccountTier | null, publicView: boolean) {
+  if (!publicView && plan.id === currentPlan) return "Current plan";
   if (plan.id === "free") return "Use Free";
-  return plan.id === "store" ? "Choose Store" : `Choose ${plan.name}`;
+  return `Choose ${plan.name}`;
 }
 
 export function TieredPlanComparison({
@@ -154,96 +105,88 @@ export function TieredPlanComparison({
   const [billing, setBilling] = useState<BillingCycle>("monthly");
 
   return (
-    <div className="min-h-full bg-[#030a10] px-4 py-8 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1440px]">
+    <div className="min-h-full bg-[#03080d] px-5 py-8 text-white sm:px-8 lg:px-12">
+      <div className="mx-auto max-w-[1480px]">
         <Link
           href={publicView ? "/" : "/dashboard"}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-cyan-200"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-cyan-200"
         >
           <ArrowLeft className="h-4 w-4" />
           {publicView ? "Back to Trading Docks" : "Back to Dashboard"}
         </Link>
 
-        <header className="mx-auto max-w-3xl pb-10 pt-10 text-center">
-          <div className="mx-auto flex w-fit items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">
-            <Sparkles className="h-3.5 w-3.5" />
-            Plans built to grow with you
+        <header className="grid gap-8 border-b border-white/[0.08] py-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div className="max-w-3xl">
+            <p className="text-sm font-medium text-cyan-200">Pricing</p>
+            <h1 className="mt-4 text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-6xl">
+              Choose by workflow, not by a feature-card wall.
+            </h1>
+            <p className="mt-5 text-base leading-8 text-slate-500">
+              Trading Docks progresses from collection organization to market
+              understanding, selling operations, and store management. Billing
+              changes the workspace surface; platform authority remains separate.
+            </p>
           </div>
-          <h1 className="mt-5 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">
-            Choose the workspace that fits.
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
-            Start free, organize a personal collection, grow an online sales operation,
-            or run your entire store from one connected platform.
-          </p>
 
-          <div className="mx-auto mt-7 flex w-fit items-center rounded-2xl border border-white/[0.08] bg-white/[0.035] p-1">
+          <div className="flex w-fit items-center border border-white/[0.1] p-1">
             {(["monthly", "annual"] as const).map((cycle) => (
               <button
                 key={cycle}
                 type="button"
                 onClick={() => setBilling(cycle)}
-                className={`rounded-xl px-5 py-2.5 text-xs font-semibold capitalize transition ${
+                className={[
+                  "h-10 px-4 text-sm font-semibold capitalize transition",
                   billing === cycle
-                    ? "bg-cyan-400 text-[#00151b] shadow-[0_8px_25px_rgba(34,211,238,0.22)]"
-                    : "text-slate-400 hover:text-white"
-                }`}
+                    ? "bg-cyan-300 text-[#01131a]"
+                    : "text-slate-500 hover:text-white",
+                ].join(" ")}
               >
                 {cycle}
-                {cycle === "annual" && (
-                  <span className="ml-2 rounded-full bg-[#002b35] px-2 py-0.5 text-[9px] uppercase tracking-wide text-cyan-200">
-                    Save up to 25%
-                  </span>
-                )}
               </button>
             ))}
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {plans.map((plan) => {
-            const price =
-              billing === "annual" ? plan.annualMonthlyPrice : plan.monthlyPrice;
+        <section className="grid border-b border-white/[0.08] lg:grid-cols-4">
+          {plans.map((plan, index) => {
             const isCurrent = !publicView && plan.id === currentPlan;
-            const revenueCatPlan = plan.id === "collector" || plan.id === "seller" || plan.id === "store"
-              ? plan.id
-              : null;
+            const revenueCatPlan =
+              plan.id === "collector" || plan.id === "seller" || plan.id === "store"
+                ? plan.id
+                : null;
+
             return (
               <article
                 key={plan.id}
-                className="group relative flex min-h-[680px] flex-col overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#07141d] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:bg-[linear-gradient(180deg,rgba(15,62,75,0.48),rgba(5,20,29,0.96)_35%)] hover:shadow-[0_25px_80px_rgba(0,200,230,0.11)]"
+                className="border-b border-white/[0.08] py-7 lg:border-b-0 lg:border-r lg:px-6 lg:last:border-r-0"
               >
-                {plan.badge && (
-                  <div className="absolute right-5 top-5 rounded-full border border-cyan-300/15 bg-cyan-400/[0.08] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-200">
-                    {plan.badge}
-                  </div>
-                )}
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04] text-cyan-300">
-                  {plan.id === "free" && <Sparkles className="h-5 w-5" />}
-                  {plan.id === "collector" && <Crown className="h-5 w-5" />}
-                  {plan.id === "seller" && <ShieldCheck className="h-5 w-5" />}
-                  {plan.id === "store" && <Store className="h-5 w-5" />}
-                </div>
-                <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.17em] text-slate-500">
-                  {plan.audience}
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold">{plan.name}</h2>
-                <div className="mt-5 flex items-end gap-1">
-                  <span className="text-4xl font-semibold tracking-[-0.045em]">
-                    {formatPrice(price)}
+                <div className="flex min-h-6 items-center justify-between gap-4">
+                  <span className="text-xs text-slate-600">
+                    {String(index + 1).padStart(2, "0")}
                   </span>
-                  <span className="pb-1 text-xs text-slate-500">/ month</span>
+                  {plan.recommended ? (
+                    <span className="text-xs font-semibold text-cyan-200">
+                      Seller recommendation
+                    </span>
+                  ) : null}
                 </div>
-                <p className="mt-2 min-h-5 text-[11px] text-slate-500">
-                  {billing === "annual" && plan.annualPrice > 0
-                    ? `${formatPrice(plan.annualPrice)} billed annually`
-                    : plan.monthlyPrice > 0
-                      ? "Billed monthly"
-                      : "Free forever"}
-                </p>
-                <p className="mt-5 min-h-[72px] text-sm leading-6 text-slate-400">
+                <p className="mt-5 text-sm font-semibold text-slate-400">{plan.motion}</p>
+                <h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
+                  {plan.name}
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">{plan.audience}</p>
+                <div className="mt-7">
+                  <span className="text-4xl font-semibold tracking-[-0.05em]">
+                    {displayPrice(plan, billing)}
+                  </span>
+                  <span className="ml-2 text-sm text-slate-600">/ month</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-600">{billingDetail(plan, billing)}</p>
+                <p className="mt-5 min-h-[96px] text-sm leading-6 text-slate-400">
                   {plan.description}
                 </p>
+                <p className="mt-3 text-xs leading-5 text-slate-600">{plan.annualNote}</p>
+
                 {publicView ? (
                   <Link
                     href={
@@ -251,66 +194,57 @@ export function TieredPlanComparison({
                         ? "/sign-up"
                         : `/sign-up?plan=${plan.id}&billing=${billing}`
                     }
-                    className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-slate-100 transition group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
+                    className={[
+                      "mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-semibold transition",
+                      plan.recommended
+                        ? "bg-cyan-300 text-[#01131a] hover:bg-cyan-200"
+                        : "border border-white/[0.12] text-slate-200 hover:border-cyan-200/35 hover:text-white",
+                    ].join(" ")}
                   >
-                    {plan.id === "free" ? "Start free" : planAction(plan, "")}
+                    {planAction(plan, currentPlan, publicView)}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 ) : isCurrent || plan.id === "free" || currentPlan !== "free" ? (
                   <Link
                     href={currentPlan !== "free" ? "/dashboard/settings" : "/dashboard"}
                     aria-current={isCurrent ? "true" : undefined}
-                    className="mt-5 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] text-sm font-semibold text-slate-100 transition group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
+                    className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-white/[0.12] px-4 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/35 hover:text-white"
                   >
                     {currentPlan !== "free" && !isCurrent
                       ? "Change in billing portal"
-                      : planAction(plan, currentPlan)}
-                    {!isCurrent && <ArrowRight className="h-4 w-4" />}
+                      : planAction(plan, currentPlan, publicView)}
+                    {!isCurrent ? <ArrowRight className="h-4 w-4" /> : null}
                   </Link>
                 ) : revenueCatPlan ? (
-                  <RevenueCatWebPurchaseButton
-                    plan={revenueCatPlan}
-                    billing={billing}
-                    label={planAction(plan, currentPlan)}
-                    featured={false}
-                  />
+                  <div className="mt-6">
+                    <RevenueCatWebPurchaseButton
+                      plan={revenueCatPlan}
+                      billing={billing}
+                      label={planAction(plan, currentPlan, publicView)}
+                      featured={false}
+                    />
+                  </div>
                 ) : null}
-                <div className="mt-7 border-t border-white/[0.07] pt-6">
-                  <p className="text-xs font-semibold text-slate-200">What&apos;s included</p>
-                  <ul className="mt-4 space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex gap-2.5 text-xs leading-5 text-slate-400">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
-                        {feature}
-                      </li>
-                    ))}
-                    {plan.limitations.map((limitation) => (
-                      <li key={limitation} className="flex gap-2.5 text-xs leading-5 text-slate-600">
-                        <X className="mt-0.5 h-4 w-4 shrink-0" />
-                        {limitation}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               </article>
             );
           })}
         </section>
 
-        <section className="mt-10 overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#07141d]">
-          <div className="border-b border-white/[0.07] p-6 sm:p-8">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
-              Detailed comparison
+        <section className="grid gap-8 py-10 lg:grid-cols-[300px_1fr]">
+          <div>
+            <p className="text-sm font-semibold text-white">Capability matrix</p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Compact by design. The important question is what workflow becomes
+              available at each stage.
             </p>
-            <h2 className="mt-2 text-2xl font-semibold">Compare Inventory features</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-left">
+            <table className="w-full min-w-[860px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-white/[0.07] text-xs text-slate-400">
-                  <th className="p-5 font-medium sm:px-8">Feature</th>
+                <tr className="border-b border-white/[0.08] text-xs text-slate-600">
+                  <th className="py-3 pr-6 font-medium">Capability</th>
                   {plans.map((plan) => (
-                    <th key={plan.id} className="p-5 font-semibold text-slate-200">
+                    <th key={plan.id} className="px-4 py-3 font-medium">
                       {plan.name}
                     </th>
                   ))}
@@ -318,17 +252,14 @@ export function TieredPlanComparison({
               </thead>
               <tbody>
                 {comparisonRows.map((row) => (
-                  <tr key={row.label} className="border-b border-white/[0.05] last:border-0">
-                    <td className="p-5 text-xs font-medium text-slate-400 sm:px-8">{row.label}</td>
+                  <tr
+                    key={row.label}
+                    className="border-b border-white/[0.055] text-sm last:border-b-0"
+                  >
+                    <td className="py-4 pr-6 font-medium text-slate-300">{row.label}</td>
                     {row.values.map((value, index) => (
-                      <td key={`${row.label}-${plans[index].id}`} className="p-5 text-xs text-slate-300">
-                        {value === true ? (
-                          <Check className="h-4 w-4 text-cyan-300" aria-label="Included" />
-                        ) : value === false ? (
-                          <span className="text-slate-700">—</span>
-                        ) : (
-                          value
-                        )}
+                      <td key={`${row.label}-${plans[index].id}`} className="px-4 py-4 leading-6 text-slate-500">
+                        {value}
                       </td>
                     ))}
                   </tr>
@@ -338,21 +269,17 @@ export function TieredPlanComparison({
           </div>
         </section>
 
-        <section className="mt-10 grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 border-t border-white/[0.08] py-8 md:grid-cols-3">
           {[
-            [ShieldCheck, "No surprise fees", "Clear plan limits and straightforward monthly or annual billing."],
-            [Users, "Upgrade as you grow", "Move plans without rebuilding your inventory or losing your history."],
-            [HelpCircle, "Need help choosing?", "Start with the plan that fits today. Your workspace can grow later."],
-          ].map(([Icon, title, copy]) => {
-            const FeatureIcon = Icon as typeof ShieldCheck;
-            return (
-              <div key={title as string} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5">
-                <FeatureIcon className="h-5 w-5 text-cyan-300" />
-                <h3 className="mt-4 text-sm font-semibold">{title as string}</h3>
-                <p className="mt-2 text-xs leading-5 text-slate-500">{copy as string}</p>
-              </div>
-            );
-          })}
+            ["No surprise fees", "Clear plan limits and straightforward monthly or annual billing."],
+            ["Upgrade without rebuilding", "Your workspace history, inventory, and account identity stay intact."],
+            ["Owner access stays separate", "Platform Owner/Admin authority is not faked as a commercial subscription."],
+          ].map(([title, copy]) => (
+            <div key={title} className="border-l border-white/[0.08] pl-4">
+              <h3 className="text-sm font-semibold text-white">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{copy}</p>
+            </div>
+          ))}
         </section>
       </div>
     </div>

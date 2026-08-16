@@ -205,6 +205,39 @@ test("landing page preview data uses realistic sample states instead of template
   }
 });
 
+test("public redesign removes generic SaaS hero and pricing-card architecture", () => {
+  const hero = readFileSync(path.join(repoRoot, "src/components/landing/Hero.tsx"), "utf8");
+  const pricing = readFileSync(path.join(repoRoot, "src/components/landing/PricingSection.tsx"), "utf8");
+  const planComparison = readFileSync(
+    path.join(repoRoot, "src/app/dashboard/plans/TieredPlanComparison.tsx"),
+    "utf8",
+  );
+  const header = readFileSync(path.join(repoRoot, "src/components/landing/Header.tsx"), "utf8");
+  const footer = readFileSync(path.join(repoRoot, "src/components/landing/Footer.tsx"), "utf8");
+
+  assert.match(hero, /CARD_LIFECYCLE/);
+  assert.match(hero, /Follow every card from scan to sale/);
+  assert.match(hero, /operating snapshot/);
+  assert.doesNotMatch(hero, /DashboardPreview/);
+  assert.doesNotMatch(hero, /rounded-full bg-blue|orbitField|floating dashboard/i);
+
+  assert.match(pricing, /Organize/);
+  assert.match(pricing, /Understand/);
+  assert.match(pricing, /Sell/);
+  assert.match(pricing, /Operate/);
+  assert.match(pricing, /COMPARISON_ROWS/);
+  assert.doesNotMatch(pricing, /PricingCard|Most popular|bg-gradient-to|Sparkles/);
+
+  assert.match(planComparison, /Choose by workflow/);
+  assert.match(planComparison, /Capability matrix/);
+  assert.doesNotMatch(planComparison, /min-h-\[680px\]|What's included|rounded-\[28px\]/);
+
+  assert.match(header, /PRODUCT_NAV/);
+  assert.match(header, /Lifecycle/);
+  assert.match(footer, /Card intelligence, inventory control, and operating workflows/);
+  assert.doesNotMatch(footer, /Â©/);
+});
+
 test("create account page keeps signup primary and low-friction", () => {
   const signUp = readFileSync(path.join(repoRoot, "src/app/sign-up/page.tsx"), "utf8");
   const authActions = readFileSync(path.join(repoRoot, "src/app/actions/auth.ts"), "utf8");

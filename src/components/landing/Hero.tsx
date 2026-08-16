@@ -1,152 +1,186 @@
-import {
-  ArrowRight,
-  BadgeCheck,
-  BarChart3,
-  Building2,
-  Check,
-  Layers3,
-  PackageSearch,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-import { DashboardPreview } from "./DashboardPreview";
 import {
   ExploreLink,
   TransitionLink,
 } from "@/components/navigation/PolishedNavigation";
-import styles from "./SignatureHero.module.css";
+import { HERO_DEMO_WORKSPACE } from "./landing-data";
 
-const PLAN_STAGES = [
+const CARD_LIFECYCLE = [
   {
-    name: "Free",
-    description: "Inventory and Deck Vault",
-    icon: Layers3,
+    step: "Identify",
+    copy: "Resolve the exact printing before it enters the workspace.",
   },
   {
-    name: "Collector",
-    description: "Analytics and CSV tools",
-    icon: BarChart3,
+    step: "Value",
+    copy: "Attach market context, cost basis, condition, finish, and risk.",
   },
   {
-    name: "Seller",
-    description: "Purchasing, CRM, and orders",
-    icon: PackageSearch,
+    step: "Place",
+    copy: "Know whether it belongs in storage, a binder, a deck, or a listing queue.",
   },
   {
-    name: "Store",
-    description: "Teams and store operations",
-    icon: Building2,
+    step: "Move",
+    copy: "Turn ownership into sales, trades, orders, labels, and reporting.",
   },
 ];
 
-const TRUST_POINTS = [
-  "Start free",
-  "Clear plan boundaries",
-  "Upgrade without rebuilding",
+const INTELLIGENCE_ROWS = [
+  {
+    label: "TCGplayer order",
+    value: "$74.36",
+    detail: "3 cards ready to pick",
+  },
+  {
+    label: "Reprice candidate",
+    value: "62",
+    detail: "Floor rules respected",
+  },
+  {
+    label: "Buylist spread",
+    value: "+18%",
+    detail: "Retro frame singles",
+  },
+  {
+    label: "Storage review",
+    value: "18",
+    detail: "Unassigned cards",
+  },
 ];
 
 export function Hero() {
+  const demo = HERO_DEMO_WORKSPACE;
+
   return (
-    <section className="relative z-10">
-      <div className={styles.signatureGrid} aria-hidden="true" />
-
-      <div className={styles.orbitField} aria-hidden="true">
-        <span className={styles.orbitRingOne} />
-        <span className={styles.orbitRingTwo} />
-        <span className={styles.orbitDotOne} />
-        <span className={styles.orbitDotTwo} />
-        <span className={styles.orbitDotThree} />
-      </div>
-
-      <div className="pointer-events-none absolute left-[2%] top-[4%] h-[470px] w-[470px] rounded-full bg-blue-400/[0.05] blur-[155px]" />
-
-      <div
-        className={`${styles.heroGlass} mx-auto min-h-0 lg:min-h-[calc(100vh-92px)] w-full max-w-[1480px] overflow-visible`}
-      >
-        <div
-          className={`${styles.heroGlassContent} grid min-h-0 lg:min-h-[calc(100vh-92px)] gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:gap-14 lg:px-12 lg:py-10`}
-        >
-          <div className="mx-auto max-w-[680px] text-center lg:mx-0 lg:text-left">
-            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-blue-300/[0.16] bg-blue-300/[0.05] px-3 py-2 text-[11px] sm:px-3.5 sm:text-xs font-semibold text-blue-100 shadow-[0_0_30px_rgba(59,130,246,0.05)] backdrop-blur-xl">
-              <Sparkles className="h-4 w-4 text-cyan-300" />
-              One operating system for every stage of your collection
-            </div>
-
-            <h1 className="mt-6 text-[40px] font-semibold leading-[0.94] tracking-[-0.06em] text-white min-[390px]:text-[44px] sm:text-[58px] lg:text-[66px] xl:text-[72px]">
-              Every card. Every order.
-              <span
-                className={`${styles.headlineGlow} mt-1 block bg-gradient-to-r from-cyan-200 via-blue-300 to-blue-500 bg-clip-text text-transparent`}
-              >
-                One intelligent workspace.
-              </span>
-            </h1>
-
-            <p className="mx-auto mt-5 max-w-[640px] text-[15px] leading-7 lg:mx-0 text-slate-400 sm:text-lg">
-              Trading Docks gives collectors, sellers, and stores the exact
-              tools they need—without forcing every user into the same
-              oversized workspace.
+    <section className="relative z-10 border-b border-white/[0.06]">
+      <div className="mx-auto grid min-h-[calc(100vh-92px)] w-full max-w-[1480px] gap-10 px-5 py-14 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:px-12 lg:py-16">
+        <div className="flex max-w-3xl flex-col justify-center">
+          <div className="max-w-[680px]">
+            <p className="text-sm font-medium leading-6 text-cyan-200">
+              Trading Docks is a card intelligence and operations system.
             </p>
-
-            <div className="mx-auto mt-6 grid max-w-[560px] grid-cols-2 gap-2 lg:mx-0">
-              {PLAN_STAGES.map(({ name, description, icon: Icon }) => (
-                <div
-                  key={name}
-                  className="group flex items-center gap-3 rounded-2xl border border-white/[0.065] bg-white/[0.018] px-3.5 py-3 backdrop-blur-xl transition hover:border-blue-300/[0.16] hover:bg-blue-400/[0.035]"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-300/[0.13] bg-blue-400/[0.05] text-blue-300">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{name}</p>
-                    <p className="mt-0.5 hidden text-xs text-slate-600 min-[390px]:block">
-                      {description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mx-auto mt-7 grid max-w-[560px] grid-cols-1 gap-3 min-[390px]:grid-cols-2 lg:mx-0">
-              <TransitionLink
-                href="/sign-up?plan=free"
-                className={`${styles.primaryButton} group inline-flex h-[54px] items-center justify-center gap-3 rounded-[15px] bg-gradient-to-b from-cyan-300 via-blue-400 to-blue-600 px-7 text-sm font-semibold text-[#001018] shadow-[0_18px_45px_rgba(59,130,246,0.2),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition hover:-translate-y-0.5 hover:brightness-105`}
-              >
-                <span className="relative z-10">Start free</span>
-                <ArrowRight className="relative z-10 h-4 w-4 transition group-hover:translate-x-0.5" />
-              </TransitionLink>
-
-              <ExploreLink
-                href="#plans"
-                className={`${styles.edgeGlow} group inline-flex h-[54px] items-center justify-center gap-3 rounded-[15px] border border-white/[0.09] bg-white/[0.02] px-7 text-sm font-semibold text-slate-200 backdrop-blur-xl`}
-              >
-                See which plan fits
-                <ArrowRight className="h-4 w-4 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-blue-300" />
-              </ExploreLink>
-            </div>
-
-            <div className="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 lg:justify-start">
-              {TRUST_POINTS.map((point) => (
-                <div
-                  key={point}
-                  className="flex items-center gap-2 text-xs font-medium text-slate-500"
-                >
-                  <Check className="h-3.5 w-3.5 text-emerald-300" />
-                  {point}
-                </div>
-              ))}
-            </div>
+            <h1 className="mt-5 text-[44px] font-semibold leading-[0.92] tracking-[-0.06em] text-white sm:text-[64px] lg:text-[78px]">
+              Follow every card from scan to sale.
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-8 text-slate-400 sm:text-lg">
+              Identify exact printings, understand value, organize physical
+              storage, acquire inventory, and operate selling workflows from a
+              single workspace built around the life of the card.
+            </p>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[760px]">
-            <div className="absolute -inset-3 sm:-inset-8 rounded-[40px] bg-blue-500/[0.055] blur-3xl" />
-            <DashboardPreview />
+          <div className="mt-9 grid gap-0 border-y border-white/[0.08]">
+            {CARD_LIFECYCLE.map((item, index) => (
+              <div
+                key={item.step}
+                className="grid gap-3 border-b border-white/[0.06] py-4 last:border-b-0 sm:grid-cols-[92px_1fr]"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-slate-600">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-sm font-semibold text-white">{item.step}</span>
+                </div>
+                <p className="text-sm leading-6 text-slate-500">{item.copy}</p>
+              </div>
+            ))}
+          </div>
 
-            <div className="relative mx-auto mt-4 flex max-w-xl items-start gap-3 rounded-2xl border border-emerald-300/[0.12] bg-[#06131e]/90 px-4 py-3 shadow-[0_18px_55px_rgba(0,0,0,.28)] backdrop-blur-xl">
-              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-              <p className="text-xs leading-5 text-slate-400">
-                The permissions shown on the landing page match the actual
-                workspace each plan receives.
-              </p>
+          <div className="mt-9 flex flex-col gap-3 min-[420px]:flex-row">
+            <TransitionLink
+              href="/sign-up?plan=free"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-[10px] bg-cyan-300 px-5 text-sm font-semibold text-[#01131a] transition hover:bg-cyan-200"
+            >
+              Start with your collection
+              <ArrowRight className="h-4 w-4" />
+            </TransitionLink>
+            <ExploreLink
+              href="#pricing"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-[10px] border border-white/[0.12] px-5 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/40 hover:text-white"
+            >
+              Compare plans
+              <ArrowRight className="h-4 w-4" />
+            </ExploreLink>
+          </div>
+        </div>
+
+        <div className="flex items-center">
+          <div className="w-full border-l border-white/[0.08] pl-5 sm:pl-8 lg:pl-10">
+            <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+              <div>
+                <div className="flex items-end justify-between gap-6 border-b border-white/[0.08] pb-5">
+                  <div>
+                    <p className="text-sm text-slate-500">{demo.disclosure}</p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white">
+                      {demo.plan} operating snapshot
+                    </h2>
+                  </div>
+                  <p className="hidden max-w-[190px] text-right text-xs leading-5 text-slate-600 sm:block">
+                    Concrete sample activity, not a live account.
+                  </p>
+                </div>
+
+                <div className="grid border-b border-white/[0.08] sm:grid-cols-2">
+                  {demo.metricLabels.map((label, index) => (
+                    <div
+                      key={label}
+                      className="border-b border-white/[0.06] py-5 pr-5 even:sm:pl-5 sm:odd:border-r sm:[&:nth-last-child(-n+2)]:border-b-0"
+                    >
+                      <p className="text-xs text-slate-500">{label}</p>
+                      <p className="mt-2 text-3xl font-semibold tracking-[-0.045em] text-white">
+                        {demo.metricValues[index]}
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-slate-600">
+                        {demo.metricDetails[index]}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6">
+                  <div className="grid grid-cols-[1fr_auto_auto] border-b border-white/[0.08] pb-2 text-xs text-slate-600">
+                    <span>Signal</span>
+                    <span>Value</span>
+                    <span className="pl-5">Context</span>
+                  </div>
+                  {INTELLIGENCE_ROWS.map((row) => (
+                    <div
+                      key={row.label}
+                      className="grid grid-cols-[1fr_auto_auto] items-center border-b border-white/[0.06] py-3 text-sm last:border-b-0"
+                    >
+                      <span className="font-medium text-slate-200">{row.label}</span>
+                      <span className="font-semibold text-white">{row.value}</span>
+                      <span className="max-w-[150px] pl-5 text-right text-xs leading-5 text-slate-600">
+                        {row.detail}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <aside className="border-t border-white/[0.08] pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+                <p className="text-sm font-semibold text-white">Workspace route</p>
+                <div className="mt-4 grid gap-3">
+                  {demo.nav.map((item, index) => (
+                    <div
+                      key={item}
+                      className="flex items-center justify-between border-b border-white/[0.06] pb-3 last:border-b-0"
+                    >
+                      <span className="text-sm text-slate-400">{item}</span>
+                      <span className="text-xs text-slate-700">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-7 border-t border-white/[0.08] pt-5">
+                  <p className="text-xs leading-5 text-slate-600">
+                    Permissions shown on the public site are backed by the same
+                    plan-aware workspace model used after signup.
+                  </p>
+                </div>
+              </aside>
             </div>
           </div>
         </div>

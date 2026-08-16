@@ -39,6 +39,15 @@ Trading Docks should feel like a TCG intelligence and operations system, not a g
 - Tightened the dashboard shell, topbar, and sidebar visual treatment.
 - Updated sidebar group vocabulary to `Collection`, `Acquire`, `Sell`, `Operate`, `Intelligence`, `Relationships`, and `Utilities`.
 
+## Public Website Redesign Checkpoint
+
+- Replaced the previous public hero pattern of pill headline, plan cards, glowing dashboard preview, and floating status badges with a lifecycle-ledger composition centered on `Identify`, `Value`, `Place`, and `Move`.
+- Reworked the homepage hero around the concrete product promise: following every card from scan to sale.
+- Replaced the landing pricing section's four giant SaaS cards with a plan progression and compact comparison table: `Organize -> Understand -> Sell -> Operate`.
+- Rebuilt the standalone pricing route to use the same workflow-first plan structure while preserving RevenueCat checkout and current-plan behavior.
+- Reduced public navigation to lifecycle-oriented anchors and rebuilt the footer as a restrained product index.
+- Removed the `Most popular`/glowing featured-card treatment from public pricing. Seller remains recommended through text hierarchy, not neon decoration.
+
 ## Remaining Page Priorities
 
 1. Dashboard homepage: convert fully from customizable widget grid into attention-first intelligence briefing.
@@ -47,7 +56,7 @@ Trading Docks should feel like a TCG intelligence and operations system, not a g
 4. Collection and Deck Vault: align collector surfaces to the same visual system while preserving visual richness.
 5. CRM and Store tools: remove admin-template patterns and make them feel like operating workspaces.
 6. Admin: reduce giant section placeholders and make platform controls precise and auditable.
-7. Landing page: keep current structure for now, then replace generic platform claims with Trading Docks workflow language.
+7. Remaining public content sections: replace repeated icon grids and card stacks with lifecycle/product-specific surfaces.
 
 ## Guardrails
 
