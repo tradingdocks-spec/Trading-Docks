@@ -53,6 +53,7 @@
 - Implemented: Dashboard navigation group labels use workflow language: Collection, Acquire, Sell, Operate, Intelligence, Relationships, Utilities, Account, and Admin.
 - Implemented: Public homepage hero now uses a Trading Docks card-lifecycle composition instead of a generic SaaS dashboard mockup.
 - Implemented: Public pricing uses a workflow progression and comparison table rather than four oversized plan cards.
+- Implemented: Public mid-page sections now follow the same language as the new hero and pricing. `ExperienceSection`, `FeaturesSection`, `WorkflowExperienceSection`, `EcosystemSection`, `PlanJourneySection`, and `MarketSection` use lifecycle traces, product-authority rows, connected-source tables, and market-intelligence lists instead of repeated icon grids, floating statistic boxes, oversized feature cards, or generic AI/SaaS gradient treatments.
 - Partially Implemented: The current pass updates global tokens, common scaffolds, dashboard shell, sidebar, topbar, and shared page headers. High-traffic individual pages still need route-by-route redesign.
 - Planned: See `docs/PRODUCT_DESIGN_AUDIT.md` for the ongoing product-design backlog and quality bar.
 
@@ -65,6 +66,8 @@
 - Empty states should explain what real record or integration will populate the view and what the user can do next.
 - Do not display fabricated revenue, inventory, price movement, order, customer, or opportunity values in authenticated product surfaces.
 - Public pages should use Trading Docks workflow structures such as `Identify -> Value -> Place -> Move` and `Organize -> Understand -> Sell -> Operate`; do not default to hero, three cards, screenshot, icon grid, pricing cards, CTA.
+- Public mid-page sections should translate those structures into product-specific evidence: card lifecycle rows, catalog/inventory authority, storage/location, purchasing, marketplace movement, portfolio/capital, scanner/recognition, multi-TCG context, and workflow progression.
+- Public market previews should read as market/product intelligence. They may show realistic sample movement, provider coverage, and timestamps, but should not mimic a stock-market dashboard or imply live data when a section is rendering demo data.
 - Public pricing should communicate audience, price, workflow stage, and limits through typographic hierarchy, dividers, and comparison rows. Do not reintroduce giant glowing plan cards or a generic `Most popular` badge.
 
 ## Token Naming

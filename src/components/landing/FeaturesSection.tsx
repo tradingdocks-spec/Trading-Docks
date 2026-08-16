@@ -1,199 +1,87 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import {
-  ArrowRight,
-  BarChart3,
-  Building2,
-  Check,
-  Network,
-  PackageSearch,
-  ShoppingCart,
-  Users,
-} from "lucide-react";
-
-import styles from "./LandingMotion.module.css";
-
-const capabilities = [
+const PRODUCT_AUTHORITIES = [
   {
-    title: "Inventory and Deck Vault",
-    description: "Organize singles, sealed products, graded cards, decks, and exact storage locations.",
-    plan: "Free",
-    metric: "500+",
-    metricLabel: "inventory units",
-    preview: ["Exact printing", "Binder locations", "Deck assignment"],
-    icon: PackageSearch,
+    name: "Product identity",
+    detail: "TCGplayer ID, SKU, set, collector number, language, finish, and image authority.",
+    owner: "Scanner + catalog",
   },
   {
-    title: "Collection analytics",
-    description: "Track value, growth, and collection history with richer CSV workflows.",
-    plan: "Collector",
-    metric: "+2.6%",
-    metricLabel: "portfolio growth",
-    preview: ["Value history", "Market movement", "CSV enrichment"],
-    icon: BarChart3,
+    name: "Collection authority",
+    detail: "Owned quantity, condition, storage path, deck use, binder status, and wishlist intent.",
+    owner: "Inventory records",
   },
   {
-    title: "Purchasing and CRM",
-    description: "Evaluate acquisitions, manage customers, loyalty, store credit, and buying rules.",
-    plan: "Seller",
-    metric: "18%",
-    metricLabel: "margin opportunity",
-    preview: ["Photo scan", "Buying rules", "Customer credit"],
-    icon: Users,
+    name: "Market intelligence",
+    detail: "Movement, demand, spread, source quality, and pricing context without pretending every feed is live.",
+    owner: "Market engine",
   },
   {
-    title: "Marketplaces and orders",
-    description: "Connect sales channels, import orders, and manage fulfillment in one workspace.",
-    plan: "Seller",
-    metric: "19",
-    metricLabel: "orders synchronized",
-    preview: ["Channel sync", "Order review", "Inventory reconciliation"],
-    icon: Network,
-  },
-  {
-    title: "Card Shows and automation",
-    description: "Support seller events, repetitive workflows, and operational review queues.",
-    plan: "Seller",
-    metric: "86",
-    metricLabel: "players checked in",
-    preview: ["Show inventory", "Live sales", "Automated tasks"],
-    icon: ShoppingCart,
-  },
-  {
-    title: "Store operations",
-    description: "Run business intelligence, tasks, staff, vendors, tournaments, payroll, and finances.",
-    plan: "Store",
-    metric: "5",
-    metricLabel: "team seats",
-    preview: ["Business intelligence", "Payroll", "Vendor operations"],
-    icon: Building2,
+    name: "Business operations",
+    detail: "Purchases, orders, labels, marketplace sync, staff tasks, vendor work, and show prep.",
+    owner: "Workspace modules",
   },
 ];
 
+const DECISION_ROWS = [
+  ["What is it?", "Exact product identity", "Prevents wrong-printing inventory"],
+  ["What is it worth?", "Market and cost basis", "Supports buying and listing decisions"],
+  ["Where is it?", "Storage and location", "Makes physical recovery practical"],
+  ["What should happen?", "Workflow state", "Turns records into action"],
+];
+
 export function FeaturesSection() {
-  const [active, setActive] = useState(2);
-  const [autoRotate, setAutoRotate] = useState(true);
-  const item = capabilities[active];
-  const ActiveIcon = item.icon;
-
-  useEffect(() => {
-    if (!autoRotate) return;
-    const timer = window.setInterval(() => {
-      setActive((current) => (current + 1) % capabilities.length);
-    }, 4300);
-    return () => window.clearInterval(timer);
-  }, [autoRotate]);
-
   return (
     <section
       id="platform"
       data-td-reveal
-      className="relative z-10 overflow-hidden border-y border-white/[0.05] bg-[#020a12]"
+      className="relative z-10 border-y border-white/[0.06] bg-[#03080d] px-5 py-16 text-white sm:px-8 sm:py-20 lg:px-12"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_45%,rgba(37,99,235,.11),transparent_32%)]" />
-
-      <div className="relative mx-auto w-full max-w-[1480px] px-4 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-28">
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Permission-aware by design</p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-white sm:text-5xl">
-            Explore the product, not a wall of feature cards.
+      <div className="mx-auto grid max-w-[1480px] min-w-0 gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-cyan-200">Platform authority</p>
+          <h2 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-5xl">
+            Trading Docks is built around records that can be trusted later.
           </h2>
-          <p className="mx-auto mt-5 max-w-3xl text-base leading-8 text-slate-500">
-            Select a capability to see how it behaves inside the workspace and
-            which plan unlocks it.
+          <p className="mt-5 max-w-xl text-sm leading-7 text-slate-500">
+            The public product is not a bundle of feature cards. It is a chain
+            of authorities that answer the operational questions a card creates.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-5 lg:grid-cols-[0.78fr_1.22fr]">
-          <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:grid lg:grid-cols-1 lg:overflow-visible lg:px-0">
-            {capabilities.map(({ title, plan, icon: Icon }, index) => {
-              const selected = index === active;
-              return (
-                <button
-                  key={title}
-                  type="button"
-                  onClick={() => {
-                    setAutoRotate(false);
-                    setActive(index);
-                  }}
-                  onMouseEnter={() => {
-                    setAutoRotate(false);
-                    setActive(index);
-                  }}
-                  className={[
-                    "group flex min-h-[74px] min-w-[235px] snap-start lg:min-w-0 items-center gap-4 rounded-2xl border px-4 text-left transition duration-300",
-                    selected
-                      ? "border-cyan-300/[0.23] bg-gradient-to-r from-blue-500/[0.16] to-cyan-300/[0.05] shadow-[0_18px_55px_rgba(37,99,235,.11)]"
-                      : "border-white/[0.065] bg-[#07131f]/80 hover:border-blue-300/[0.15] hover:bg-[#081824]",
-                  ].join(" ")}
-                >
-                  <span className={selected ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cyan-300/[0.09] text-cyan-200" : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-400/[0.05] text-blue-300/70"}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-white">{title}</span>
-                    <span className="mt-1 block text-xs text-slate-600">{plan}+ plan</span>
-                  </span>
-                  <ArrowRight className={selected ? "h-4 w-4 text-cyan-300" : "h-4 w-4 text-slate-700 transition group-hover:text-blue-300"} />
-                </button>
-              );
-            })}
+        <div className="min-w-0">
+          <div className="grid border-y border-white/[0.08] md:grid-cols-2">
+            {PRODUCT_AUTHORITIES.map((item) => (
+              <article
+                key={item.name}
+                className="border-b border-white/[0.08] py-5 pr-5 odd:md:border-r even:md:pl-5 md:[&:nth-last-child(-n+2)]:border-b-0"
+              >
+                <p className="text-xs text-slate-700">{item.owner}</p>
+                <h3 className="mt-2 text-xl font-semibold tracking-[-0.025em] text-white">
+                  {item.name}
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-slate-500">{item.detail}</p>
+              </article>
+            ))}
           </div>
 
-          <div
-            key={item.title}
-            className={`${styles.previewSwap} relative overflow-hidden rounded-[24px] border sm:rounded-[30px] border-cyan-300/[0.18] bg-gradient-to-br from-[#0a1c2b] via-[#071522] to-[#04101a] p-5 shadow-[0_36px_110px_rgba(0,0,0,.42)] sm:p-7`}
-          >
-            <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/[0.15] blur-[100px]" />
-            <div className="relative flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
-              <div className="max-w-xl">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/[0.18] bg-cyan-300/[0.08] text-cyan-200">
-                    <ActiveIcon className="h-5 w-5" />
-                  </span>
-                  <span className="rounded-full border border-blue-300/[0.14] bg-blue-400/[0.05] px-3 py-1.5 text-xs font-semibold text-blue-200">
-                    {item.plan}+ plan
-                  </span>
-                </div>
-                <h3 className="mt-6 text-3xl font-semibold tracking-[-0.04em] text-white">{item.title}</h3>
-                <p className="mt-4 max-w-lg text-sm leading-7 text-slate-400">{item.description}</p>
-              </div>
-
-              <div className="rounded-2xl border border-white/[0.07] bg-black/[0.14] px-5 py-4">
-                <p className="text-3xl font-semibold tracking-[-0.04em] text-white">{item.metric}</p>
-                <p className="mt-1 text-xs text-slate-600">{item.metricLabel}</p>
-              </div>
-            </div>
-
-            <div className="relative mt-7 grid gap-2 min-[390px]:grid-cols-3 sm:mt-8 sm:gap-3">
-              {item.preview.map((feature, index) => (
-                <div
-                  key={feature}
-                  className={`${styles.metricRise} rounded-2xl border border-white/[0.07] bg-[#06121d] p-4`}
-                  style={{ animationDelay: `${index * 90}ms` }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-400/[0.07] text-cyan-300">
-                      <Check className="h-4 w-4" />
-                    </span>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-700">Live</span>
-                  </div>
-                  <p className="mt-6 text-sm font-semibold text-slate-200">{feature}</p>
-                  <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
-                    <span className="block h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-300" style={{ width: `${68 + index * 11}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="relative mt-4 flex items-center justify-between rounded-2xl border border-emerald-300/[0.11] bg-emerald-300/[0.035] px-4 py-3">
-              <span className="text-xs text-emerald-100/70">Sample workspace behavior</span>
-              <span className="flex items-center gap-2 text-xs font-semibold text-emerald-300">
-                <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,.8)]" />
-                Healthy
-              </span>
-            </div>
+          <div className="mt-8 min-w-0 overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-white/[0.08] text-xs text-slate-600">
+                  <th className="py-3 pr-6 font-medium">Question</th>
+                  <th className="px-4 py-3 font-medium">Authority</th>
+                  <th className="px-4 py-3 font-medium">Why it matters</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DECISION_ROWS.map(([question, authority, reason]) => (
+                  <tr key={question} className="border-b border-white/[0.055] last:border-b-0">
+                    <td className="py-4 pr-6 text-sm font-medium text-slate-300">{question}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{authority}</td>
+                    <td className="px-4 py-4 text-sm text-slate-500">{reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

@@ -238,6 +238,33 @@ test("public redesign removes generic SaaS hero and pricing-card architecture", 
   assert.doesNotMatch(footer, /Â©/);
 });
 
+test("remaining homepage sections use the unified Trading Docks product language", () => {
+  const experience = readFileSync(path.join(repoRoot, "src/components/landing/ExperienceSection.tsx"), "utf8");
+  const features = readFileSync(path.join(repoRoot, "src/components/landing/FeaturesSection.tsx"), "utf8");
+  const workflow = readFileSync(path.join(repoRoot, "src/components/landing/WorkflowExperienceSection.tsx"), "utf8");
+  const ecosystem = readFileSync(path.join(repoRoot, "src/components/landing/EcosystemSection.tsx"), "utf8");
+  const plans = readFileSync(path.join(repoRoot, "src/components/landing/PlanJourneySection.tsx"), "utf8");
+  const market = readFileSync(path.join(repoRoot, "src/components/landing/MarketSection.tsx"), "utf8");
+
+  assert.match(experience, /WORKFLOW_BY_PERSONA/);
+  assert.match(experience, /The same card lifecycle/);
+  assert.match(features, /PRODUCT_AUTHORITIES/);
+  assert.match(features, /DECISION_ROWS/);
+  assert.match(workflow, /LIFECYCLE_TRACE/);
+  assert.match(workflow, /A card should never become an orphaned row/);
+  assert.match(ecosystem, /SOURCE_ROWS/);
+  assert.match(ecosystem, /Catalog identity stays separate from owned inventory/);
+  assert.match(plans, /Organize, understand, sell, operate/);
+  assert.match(plans, /MEMBERSHIP_PLANS/);
+  assert.match(market, /Product movement, not a fake stock ticker/);
+  assert.match(market, /rankCards/);
+
+  for (const source of [experience, features, workflow, ecosystem, plans, market]) {
+    assert.doesNotMatch(source, /bg-gradient-to|rounded-\[2[468]px\]|rounded-3xl|Sparkles|td-spotlight-card/);
+    assert.doesNotMatch(source, /(?:Ã|Â|â[€”]|�)/);
+  }
+});
+
 test("create account page keeps signup primary and low-friction", () => {
   const signUp = readFileSync(path.join(repoRoot, "src/app/sign-up/page.tsx"), "utf8");
   const authActions = readFileSync(path.join(repoRoot, "src/app/actions/auth.ts"), "utf8");

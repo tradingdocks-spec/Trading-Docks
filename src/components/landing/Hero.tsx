@@ -54,15 +54,15 @@ export function Hero() {
   return (
     <section className="relative z-10 border-b border-white/[0.06]">
       <div className="mx-auto grid min-h-[calc(100vh-92px)] w-full max-w-[1480px] gap-10 px-5 py-14 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:px-12 lg:py-16">
-        <div className="flex max-w-3xl flex-col justify-center">
-          <div className="max-w-[680px]">
+        <div className="flex min-w-0 max-w-3xl flex-col justify-center">
+          <div className="min-w-0 max-w-[680px]">
             <p className="text-sm font-medium leading-6 text-cyan-200">
               Trading Docks is a card intelligence and operations system.
             </p>
-            <h1 className="mt-5 text-[44px] font-semibold leading-[0.92] tracking-[-0.06em] text-white sm:text-[64px] lg:text-[78px]">
+            <h1 className="mt-5 max-w-full text-[38px] font-semibold leading-[0.94] tracking-[-0.04em] text-white sm:text-[64px] sm:tracking-[-0.06em] lg:text-[78px]">
               Follow every card from scan to sale.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-slate-400 sm:text-lg">
+            <p className="mt-6 max-w-2xl break-words text-base leading-8 text-slate-400 sm:text-lg">
               Identify exact printings, understand value, organize physical
               storage, acquire inventory, and operate selling workflows from a
               single workspace built around the life of the card.
@@ -73,7 +73,7 @@ export function Hero() {
             {CARD_LIFECYCLE.map((item, index) => (
               <div
                 key={item.step}
-                className="grid gap-3 border-b border-white/[0.06] py-4 last:border-b-0 sm:grid-cols-[92px_1fr]"
+                className="grid min-w-0 gap-3 border-b border-white/[0.06] py-4 last:border-b-0 sm:grid-cols-[92px_1fr]"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-semibold text-slate-600">
@@ -81,22 +81,22 @@ export function Hero() {
                   </span>
                   <span className="text-sm font-semibold text-white">{item.step}</span>
                 </div>
-                <p className="text-sm leading-6 text-slate-500">{item.copy}</p>
+                <p className="min-w-0 break-words text-sm leading-6 text-slate-500">{item.copy}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-9 flex flex-col gap-3 min-[420px]:flex-row">
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <TransitionLink
               href="/sign-up?plan=free"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-[10px] bg-cyan-300 px-5 text-sm font-semibold text-[#01131a] transition hover:bg-cyan-200"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-cyan-300 px-5 text-sm font-semibold text-[#01131a] transition hover:bg-cyan-200 sm:w-auto"
             >
               Start with your collection
               <ArrowRight className="h-4 w-4" />
             </TransitionLink>
             <ExploreLink
               href="#pricing"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-[10px] border border-white/[0.12] px-5 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/40 hover:text-white"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-white/[0.12] px-5 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/40 hover:text-white sm:w-auto"
             >
               Compare plans
               <ArrowRight className="h-4 w-4" />
@@ -104,9 +104,9 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="flex items-center">
-          <div className="w-full border-l border-white/[0.08] pl-5 sm:pl-8 lg:pl-10">
-            <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
+        <div className="flex min-w-0 items-center">
+          <div className="min-w-0 w-full border-l border-white/[0.08] pl-5 sm:pl-8 lg:pl-10">
+            <div className="grid min-w-0 gap-5 lg:grid-cols-[1fr_280px]">
               <div>
                 <div className="flex items-end justify-between gap-6 border-b border-white/[0.08] pb-5">
                   <div>
@@ -138,7 +138,7 @@ export function Hero() {
                 </div>
 
                 <div className="mt-6">
-                  <div className="grid grid-cols-[1fr_auto_auto] border-b border-white/[0.08] pb-2 text-xs text-slate-600">
+                  <div className="hidden grid-cols-[1fr_auto_auto] border-b border-white/[0.08] pb-2 text-xs text-slate-600 sm:grid">
                     <span>Signal</span>
                     <span>Value</span>
                     <span className="pl-5">Context</span>
@@ -146,11 +146,11 @@ export function Hero() {
                   {INTELLIGENCE_ROWS.map((row) => (
                     <div
                       key={row.label}
-                      className="grid grid-cols-[1fr_auto_auto] items-center border-b border-white/[0.06] py-3 text-sm last:border-b-0"
+                      className="grid gap-1 border-b border-white/[0.06] py-3 text-sm last:border-b-0 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-0"
                     >
                       <span className="font-medium text-slate-200">{row.label}</span>
-                      <span className="font-semibold text-white">{row.value}</span>
-                      <span className="max-w-[150px] pl-5 text-right text-xs leading-5 text-slate-600">
+                      <span className="font-semibold text-white sm:text-right">{row.value}</span>
+                      <span className="text-xs leading-5 text-slate-600 sm:max-w-[150px] sm:pl-5 sm:text-right">
                         {row.detail}
                       </span>
                     </div>

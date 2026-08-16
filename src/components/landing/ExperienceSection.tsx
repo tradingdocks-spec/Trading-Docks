@@ -1,311 +1,137 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  BarChart3,
-  Boxes,
-  Building2,
-  Check,
-  CircleDollarSign,
-  PackageCheck,
-  PackageSearch,
-  RefreshCw,
-  Search,
-  ShoppingBag,
-  Sparkles,
-} from "lucide-react";
+import { useState } from "react";
 
-import { LANDING_DEMO_WORKSPACES } from "./landing-data";
-import styles from "./LandingMotion.module.css";
+import { LANDING_DEMO_WORKSPACES, type LandingDemoPersona } from "./landing-data";
 
-const personas = {
-  collector: {
-    accent: "from-cyan-300 to-blue-500",
-    icon: BarChart3,
-  },
-  seller: {
-    accent: "from-blue-400 to-cyan-300",
-    icon: PackageSearch,
-  },
-  store: {
-    accent: "from-cyan-300 via-blue-400 to-indigo-500",
-    icon: Building2,
-  },
-} as const;
+const PERSONAS: LandingDemoPersona[] = ["collector", "seller", "store"];
 
-type PersonaKey = keyof typeof personas;
-
-const personaOrder: PersonaKey[] = ["collector", "seller", "store"];
+const WORKFLOW_BY_PERSONA: Record<
+  LandingDemoPersona,
+  Array<{ label: string; action: string; evidence: string }>
+> = {
+  collector: [
+    { label: "Identify", action: "Add exact printings", evidence: "Scanner and binder records" },
+    { label: "Value", action: "Track movement", evidence: "Collection value history" },
+    { label: "Place", action: "Assign storage", evidence: "Binder, box, page, slot" },
+    { label: "Move", action: "Prepare trades", evidence: "Wishlist and trade binder" },
+  ],
+  seller: [
+    { label: "Identify", action: "Resolve intake", evidence: "TCGplayer IDs and condition" },
+    { label: "Value", action: "Calculate offer", evidence: "Margin, fees, and demand" },
+    { label: "Place", action: "Route inventory", evidence: "Listed, held, or repriced" },
+    { label: "Move", action: "Fulfill orders", evidence: "Marketplace queue" },
+  ],
+  store: [
+    { label: "Identify", action: "Receive product", evidence: "Singles, sealed, labels" },
+    { label: "Value", action: "Control capital", evidence: "Weekly revenue and intake" },
+    { label: "Place", action: "Coordinate staff", evidence: "Tasks and locations" },
+    { label: "Move", action: "Operate channels", evidence: "POS, shows, marketplaces" },
+  ],
+};
 
 export function ExperienceSection() {
-  const [active, setActive] = useState<PersonaKey>("seller");
-  const [activeNav, setActiveNav] = useState(0);
-  const [syncing, setSyncing] = useState(false);
-  const [synced, setSynced] = useState(false);
-  const [autoRotate, setAutoRotate] = useState(true);
-  const intervalRef = useRef<number | null>(null);
-  const persona = personas[active];
+  const [active, setActive] = useState<LandingDemoPersona>("seller");
   const demo = LANDING_DEMO_WORKSPACES[active];
-  const Icon = persona.icon;
-
-  useEffect(() => {
-    setSynced(false);
-    setSyncing(false);
-    setActiveNav(0);
-  }, [active]);
-
-  useEffect(() => {
-    if (!autoRotate) return;
-    intervalRef.current = window.setInterval(() => {
-      setActive((current) => {
-        const index = personaOrder.indexOf(current);
-        return personaOrder[(index + 1) % personaOrder.length];
-      });
-    }, 5500);
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-    };
-  }, [autoRotate]);
-
-  const statusText = useMemo(() => {
-    if (syncing) return "Synchronizing connected systems";
-    if (synced) return `${demo.plan} snapshot refreshed`;
-    return demo.statusLabel;
-  }, [demo.plan, demo.statusLabel, syncing, synced]);
-
-  function choosePersona(key: PersonaKey) {
-    setAutoRotate(false);
-    setActive(key);
-  }
-
-  function runSync() {
-    if (syncing) return;
-    setAutoRotate(false);
-    setSyncing(true);
-    setSynced(false);
-    window.setTimeout(() => {
-      setSyncing(false);
-      setSynced(true);
-    }, 1450);
-  }
-
-  const currentValues = synced ? demo.syncedValues : demo.metricValues;
-  const currentActivity = synced ? demo.syncedActivity : demo.activity;
+  const workflow = WORKFLOW_BY_PERSONA[active];
 
   return (
     <section
       id="experience"
       data-td-reveal
-      className="relative z-10 overflow-hidden border-y border-white/[0.05] bg-[#020912] px-4 py-20 sm:px-8 sm:py-24 lg:px-12 lg:py-32"
+      className="relative z-10 border-y border-white/[0.06] bg-[#020912] px-5 py-16 text-white sm:px-8 sm:py-20 lg:px-12"
     >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[10%] top-[-13rem] h-[34rem] w-[34rem] rounded-full bg-blue-500/[0.11] blur-[145px]" />
-        <div className="absolute bottom-[-12rem] right-[8%] h-[30rem] w-[30rem] rounded-full bg-cyan-300/[0.075] blur-[135px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(79,140,220,.022)_1px,transparent_1px),linear-gradient(90deg,rgba(79,140,220,.022)_1px,transparent_1px)] bg-[size:54px_54px]" />
-      </div>
-
-      <div className="relative mx-auto max-w-[1480px]">
-        <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-end">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.16] bg-cyan-300/[0.05] px-3.5 py-2 text-xs font-semibold text-cyan-200">
-              <Sparkles className="h-4 w-4" />
-              Build your workspace
-            </div>
-            <h2 className="mt-5 max-w-[660px] text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl lg:text-6xl">
-              Watch the product reshape itself around you.
+      <div className="mx-auto max-w-[1480px]">
+        <div className="grid min-w-0 gap-10 lg:grid-cols-[360px_1fr]">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-cyan-200">Workspace fit</p>
+            <h2 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-5xl">
+              The same card lifecycle, tuned for different operators.
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-8 text-slate-500">
-              Select a workspace type. Navigation, metrics, activity, and the
-              recommended plan transform instantly.
+            <p className="mt-5 text-sm leading-7 text-slate-500">
+              Collector, Seller, and Store workspaces share the same data
+              authority. The interface changes because the decisions change.
             </p>
           </div>
 
-          <div className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto rounded-[20px] border border-white/[0.075] bg-[#07131f]/88 p-2 shadow-[0_22px_80px_rgba(0,0,0,.24)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible">
-            {(Object.keys(personas) as PersonaKey[]).map((key) => {
-              const item = personas[key];
-              const ItemIcon = item.icon;
-              const selected = key === active;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => choosePersona(key)}
-                  className={[
-                    "group relative flex min-h-[64px] min-w-[210px] snap-start items-center gap-3 overflow-hidden rounded-2xl px-4 text-left transition duration-300",
-                    selected
-                      ? "bg-gradient-to-r from-blue-500/[0.24] to-cyan-300/[0.09] text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,.18),0_12px_30px_rgba(37,99,235,.13)]"
-                      : "text-slate-500 hover:bg-white/[0.035] hover:text-white",
-                  ].join(" ")}
-                >
-                  <span className={selected ? "flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-300/[0.09] text-cyan-200" : "flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.025] text-blue-300/55"}>
-                    <ItemIcon className="h-4 w-4" />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold">{LANDING_DEMO_WORKSPACES[key].selectorLabel}</span>
-                    <span className="mt-0.5 block text-[11px] text-slate-600">{LANDING_DEMO_WORKSPACES[key].plan} workspace</span>
-                  </span>
-                  {selected && autoRotate ? (
-                    <span className="absolute inset-x-0 bottom-0 h-[2px] bg-white/[0.06]">
-                      <span key={active} className={`${styles.selectorProgress} block h-full bg-gradient-to-r from-cyan-300 to-blue-500`} />
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div
-          key={`${active}-${synced ? "synced" : "base"}`}
-          className={`${styles.previewSwap} mt-10 grid overflow-hidden rounded-[24px] border sm:rounded-[34px] border-blue-300/[0.18] bg-[#06131e] shadow-[0_44px_140px_rgba(0,0,0,.56),0_0_90px_rgba(37,99,235,.08)] lg:grid-cols-[260px_1fr]`}
-        >
-          <aside className="border-b border-white/[0.06] bg-[#030d16] p-4 lg:border-b-0 lg:border-r">
-            <div className="flex items-center gap-3 rounded-2xl border border-blue-300/[0.11] bg-blue-400/[0.045] p-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-400/[0.09] text-cyan-200">
-                <Icon className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-white">{demo.plan} workspace</p>
-                <p className="mt-0.5 text-xs text-slate-600">Recommended for you</p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mt-5 lg:block lg:space-y-1 lg:overflow-visible">
-              {demo.nav.map((item, index) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setActiveNav(index)}
-                  className={[
-                    "flex h-10 min-w-max items-center gap-3 rounded-xl px-3 text-left text-sm font-medium transition duration-200",
-                    index === activeNav
-                      ? "bg-gradient-to-r from-blue-500/[0.19] to-transparent text-white"
-                      : "text-slate-500 hover:bg-white/[0.025] hover:text-slate-300",
-                  ].join(" ")}
-                >
-                  <span className={index === activeNav ? "h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,.8)]" : "h-1.5 w-1.5 rounded-full bg-slate-800"} />
-                  {item}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4 hidden rounded-2xl border lg:mt-6 lg:block border-white/[0.06] bg-white/[0.018] p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-700">Recommended plan</p>
-              <p className="mt-2 text-lg font-semibold text-white">{demo.plan}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-600">{demo.tagline}</p>
-            </div>
-          </aside>
-
-          <div className="relative min-w-0 overflow-hidden p-4 sm:p-6 lg:p-7">
-            {syncing ? (
-              <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-r-[34px] bg-blue-500/[0.025]">
-                <span className={`${styles.syncSweep} absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-cyan-200/[0.14] to-transparent`} />
-              </div>
-            ) : null}
-
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-cyan-300">Interactive product preview</p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white">
-                  {demo.nav[activeNav]}
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="hidden items-center gap-2 rounded-xl border border-white/[0.06] bg-black/[0.12] px-3 py-2 text-xs text-slate-500 sm:flex">
-                  <Search className="h-3.5 w-3.5" />
-                  Search your workspace
-                </span>
-                <button
-                  type="button"
-                  onClick={runSync}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.18] bg-cyan-300/[0.07] px-3.5 text-xs font-semibold text-cyan-100 transition hover:-translate-y-0.5 hover:bg-cyan-300/[0.11]"
-                >
-                  <RefreshCw className={syncing ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
-                  {syncing ? "Syncing…" : synced ? "Sync again" : "Run live sync"}
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {demo.metricLabels.map((label, index) => {
-                const MetricIcon = [CircleDollarSign, Boxes, PackageCheck, ShoppingBag][index];
+          <div className="min-w-0">
+            <div className="grid border-y border-white/[0.08] md:grid-cols-3">
+              {PERSONAS.map((persona) => {
+                const item = LANDING_DEMO_WORKSPACES[persona];
+                const selected = persona === active;
                 return (
-                  <div
-                    key={`${active}-${label}-${synced}`}
-                    className={`${styles.metricRise} td-spotlight-card rounded-2xl border border-white/[0.075] bg-[#081925] p-4`}
-                    style={{ animationDelay: `${index * 70}ms` }}
+                  <button
+                    key={persona}
+                    type="button"
+                    onClick={() => setActive(persona)}
+                    className={[
+                      "border-b border-white/[0.08] py-5 text-left transition md:border-b-0 md:border-r md:px-5 md:last:border-r-0",
+                      selected ? "text-white" : "text-slate-500 hover:text-slate-200",
+                    ].join(" ")}
                   >
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">{label}</p>
-                      <MetricIcon className="h-4 w-4 text-blue-300/70" />
-                    </div>
-                    <p className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-white">{currentValues[index]}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {synced ? demo.syncedDetails[index] : demo.metricDetails[index]}
-                    </p>
-                  </div>
+                    <span className="text-xs text-slate-700">{item.disclosure}</span>
+                    <span className="mt-2 block text-2xl font-semibold tracking-[-0.035em]">
+                      {item.plan}
+                    </span>
+                    <span className="mt-2 block text-sm leading-6 text-slate-500">
+                      {item.tagline}
+                    </span>
+                  </button>
                 );
               })}
             </div>
 
-            <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_390px]">
-              <div className="rounded-2xl border border-white/[0.07] bg-[#030d16] p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-white">Workspace momentum</p>
-                    <p className="mt-1 text-xs text-slate-600">{demo.disclosure} for the selected account type</p>
-                  </div>
-                  <span className="rounded-full border border-emerald-300/[0.12] bg-emerald-300/[0.04] px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
-                    {syncing ? "Syncing" : "Healthy"}
-                  </span>
-                </div>
-
-                <div className="mt-4 flex h-[150px] sm:mt-5 sm:h-[190px] items-end gap-2 rounded-xl border border-white/[0.045] bg-black/[0.12] px-4 pb-4 pt-8">
-                  {demo.chartShape.map((height, index) => (
-                    <span
-                      key={`${active}-${index}`}
-                      className="block flex-1 rounded-t-md bg-gradient-to-t from-cyan-300/80 via-blue-400/85 to-indigo-500/85 shadow-[0_0_18px_rgba(59,130,246,.08)] transition-[height] duration-700"
-                      style={{ height: `${Math.max(18, height - (syncing ? 9 : 0) + (synced ? 4 : 0))}%`, transitionDelay: `${index * 35}ms` }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/[0.07] bg-[#071522] p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-white">Live activity</p>
-                  <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.9)]" />
-                </div>
-                <div className="mt-4 space-y-2.5">
-                  {currentActivity.map(({ label: title, value }, index) => (
+            <div className="grid gap-8 border-b border-white/[0.08] py-8 lg:grid-cols-[1fr_320px]">
+              <div>
+                <div className="grid grid-cols-2 border-y border-white/[0.08]">
+                  {demo.metricLabels.map((label, index) => (
                     <div
-                      key={`${active}-${title}-${synced}`}
-                      className={`${styles.activitySlide} rounded-xl border border-white/[0.055] bg-black/[0.11] p-3`}
-                      style={{ animationDelay: `${index * 80}ms` }}
+                      key={label}
+                      className="border-b border-white/[0.06] py-4 pr-4 odd:border-r even:pl-4 [&:nth-last-child(-n+2)]:border-b-0"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold text-slate-300">{title}</p>
-                        <span className={value.startsWith("-") ? "text-xs font-semibold text-rose-300" : "text-xs font-semibold text-emerald-300"}>{value}</span>
-                      </div>
-                      <p className="mt-1 text-[11px] text-slate-700">{activityDetail(active, index, synced)}</p>
+                      <p className="text-xs text-slate-600">{label}</p>
+                      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">
+                        {demo.metricValues[index]}
+                      </p>
+                      <p className="mt-2 text-xs leading-5 text-slate-600">
+                        {demo.metricDetails[index]}
+                      </p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 flex items-center gap-2 rounded-xl border border-blue-300/[0.11] bg-blue-400/[0.035] px-3 py-2.5 text-xs text-blue-100/75">
-                  <Check className="h-3.5 w-3.5 text-cyan-300" />
-                  {statusText}
-                </div>
               </div>
+
+              <aside>
+                <p className="text-sm font-semibold text-white">{demo.plan} navigation</p>
+                <div className="mt-4 grid gap-3">
+                  {demo.nav.map((item, index) => (
+                    <div key={item} className="flex justify-between border-b border-white/[0.06] pb-3">
+                      <span className="text-sm text-slate-400">{item}</span>
+                      <span className="text-xs text-slate-700">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </aside>
+            </div>
+
+            <div className="grid border-b border-white/[0.08] md:grid-cols-4">
+              {workflow.map((step, index) => (
+                <div
+                  key={step.label}
+                  className="border-b border-white/[0.08] py-5 md:border-b-0 md:border-r md:px-5 md:last:border-r-0"
+                >
+                  <p className="text-xs text-slate-700">{String(index + 1).padStart(2, "0")}</p>
+                  <h3 className="mt-3 text-lg font-semibold text-white">{step.label}</h3>
+                  <p className="mt-2 text-sm text-slate-400">{step.action}</p>
+                  <p className="mt-3 text-xs leading-5 text-slate-600">{step.evidence}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
     </section>
   );
-}
-
-function activityDetail(active: PersonaKey, index: number, synced: boolean) {
-  const demo = LANDING_DEMO_WORKSPACES[active];
-  const activity = synced ? demo.syncedActivity[index] : demo.activity[index];
-  return activity?.detail ?? demo.statusLabel;
 }

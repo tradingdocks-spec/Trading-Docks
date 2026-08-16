@@ -47,6 +47,15 @@ Trading Docks should feel like a TCG intelligence and operations system, not a g
 - Rebuilt the standalone pricing route to use the same workflow-first plan structure while preserving RevenueCat checkout and current-plan behavior.
 - Reduced public navigation to lifecycle-oriented anchors and rebuilt the footer as a restrained product index.
 - Removed the `Most popular`/glowing featured-card treatment from public pricing. Seller remains recommended through text hierarchy, not neon decoration.
+- Rebuilt the remaining homepage sections around Trading Docks-specific operating concepts instead of old generic SaaS section patterns:
+  `ExperienceSection` now shows how the same card lifecycle adapts for Collector, Seller, and Store workspaces;
+  `FeaturesSection` now explains product authorities and decision outputs;
+  `WorkflowExperienceSection` now presents an acquisition-to-analysis trace;
+  `EcosystemSection` now distinguishes provider inputs from Trading Docks authority;
+  `PlanJourneySection` now mirrors the plan ladder language; and
+  `MarketSection` now reads as product/market intelligence instead of a stock-market-style widget.
+- Removed repeated icon grids, oversized floating feature cards, decorative gradient treatments, rotating integration orbits, and generic `live simulation` patterns from those remaining homepage sections.
+- Kept public demo values tied to the centralized landing sample data so persona metrics, activity, and market context remain internally consistent.
 
 ## Remaining Page Priorities
 
@@ -56,7 +65,7 @@ Trading Docks should feel like a TCG intelligence and operations system, not a g
 4. Collection and Deck Vault: align collector surfaces to the same visual system while preserving visual richness.
 5. CRM and Store tools: remove admin-template patterns and make them feel like operating workspaces.
 6. Admin: reduce giant section placeholders and make platform controls precise and auditable.
-7. Remaining public content sections: replace repeated icon grids and card stacks with lifecycle/product-specific surfaces.
+7. Auth and conversion pages: continue tightening signup/signin polish while preserving the proven authentication flow.
 
 ## Guardrails
 
