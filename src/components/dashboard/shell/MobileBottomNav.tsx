@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Menu } from "lucide-react";
 
 import { getAccountAwareNavigationGroups, type NavigationItem } from "../navigation";
+import type { ClientSafePlatformAccess } from "@/lib/platform/client-access";
 
 const NAV_ITEM_CLASS =
   "group relative m-0 flex h-[60px] min-h-[60px] min-w-0 appearance-none select-none touch-manipulation flex-col items-center justify-center gap-[5px] rounded-[17px] border border-blue-300/[0.09] bg-blue-400/[0.065] px-1 py-0 font-sans text-[10px] font-semibold leading-none !text-[#f1fbff] outline-none shadow-[inset_0_1px_0_rgba(255,255,255,.035)] transition-[filter,box-shadow,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-300/70";
@@ -70,16 +71,18 @@ function NavigationStatus() {
 export function MobileBottomNav({
   accountType,
   isOwner,
+  clientAccess,
   menuOpen,
   onOpenMenu,
 }: {
   accountType: string;
   isOwner: boolean;
+  clientAccess?: ClientSafePlatformAccess;
   menuOpen: boolean;
   onOpenMenu: () => void;
 }) {
   const pathname = usePathname();
-  const items = getAccountAwareNavigationGroups(accountType, isOwner)
+  const items = getAccountAwareNavigationGroups(accountType, isOwner, clientAccess)
     .flatMap((group) => group.items)
     .filter((item, index, all) => all.findIndex((candidate) => candidate.href === item.href) === index)
     .slice(0, 4);

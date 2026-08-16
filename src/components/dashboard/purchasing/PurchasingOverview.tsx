@@ -20,7 +20,11 @@ import {
 } from "lucide-react";
 
 import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
-import { loadAccountDocument } from "@/lib/account-documents";
+import {
+  deleteAccountDocument,
+  loadAccountDocument,
+  saveAccountDocument,
+} from "@/lib/account-documents";
 import { createClient } from "@/lib/supabase/client";
 import {
   DEFAULT_PURCHASING_BUYING_RULES,
@@ -51,7 +55,8 @@ type StorageOption = {
 };
 type ProductAction = "add-inventory" | "add-collection" | "add-binder" | "add-trade-binder" | "add-wishlist";
 
-const CART_STORAGE_KEY = "trading-docks:purchasing-intelligence-cart:v1";
+const PURCHASE_CART_DOCUMENT = "purchasing-intelligence:current-purchase:v1";
+const LEGACY_CART_STORAGE_KEY = "trading-docks:purchasing-intelligence-cart:v1";
 const DEFAULT_CONDITIONS = ["Near Mint", "Lightly Played", "Moderately Played", "Heavily Played", "Damaged"];
 const FIELD_CLASS = "h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs font-semibold text-white outline-none transition focus:border-cyan-300/35 focus:ring-2 focus:ring-cyan-300/15";
 
@@ -71,6 +76,7 @@ export function PurchasingOverview() {
   const [storageLocationId, setStorageLocationId] = useState("");
   const [locations, setLocations] = useState<StorageOption[]>([]);
   const [cart, setCart] = useState<PurchaseWorkspaceLine[]>([]);
+  const [cartLoaded, setCartLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savingPurchase, setSavingPurchase] = useState(false);
   const [productActionSaving, setProductActionSaving] = useState<ProductAction | null>(null);
@@ -78,17 +84,47 @@ export function PurchasingOverview() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    try {
-      const parsed = JSON.parse(sessionStorage.getItem(CART_STORAGE_KEY) ?? "[]");
-      if (Array.isArray(parsed)) setCart(parsed as PurchaseWorkspaceLine[]);
-    } catch {
-      setCart([]);
-    }
+    let active = true;
+    void loadAccountDocument<PurchaseWorkspaceLine[]>(PURCHASE_CART_DOCUMENT)
+      .then(async (document) => {
+        if (!active) return;
+        if (Array.isArray(document)) {
+          setCart(document);
+          return;
+        }
+
+        const legacyValue = window.sessionStorage.getItem(LEGACY_CART_STORAGE_KEY);
+        if (!legacyValue) return;
+        try {
+          const parsed = JSON.parse(legacyValue) as unknown;
+          if (Array.isArray(parsed)) {
+            setCart(parsed as PurchaseWorkspaceLine[]);
+            await saveAccountDocument(PURCHASE_CART_DOCUMENT, parsed);
+          }
+        } finally {
+          window.sessionStorage.removeItem(LEGACY_CART_STORAGE_KEY);
+        }
+      })
+      .catch(() => {
+        if (active) setError("Current Purchase could not be restored. Start a new purchase or try again.");
+      })
+      .finally(() => {
+        if (active) setCartLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  }, [cart]);
+    if (!cartLoaded) return;
+    void (cart.length
+      ? saveAccountDocument(PURCHASE_CART_DOCUMENT, cart)
+      : deleteAccountDocument(PURCHASE_CART_DOCUMENT)
+    ).catch(() => {
+      setError("Current Purchase could not be synced. Your latest edits may need to be retried.");
+    });
+  }, [cart, cartLoaded]);
 
   useEffect(() => {
     const supabase = createClient();

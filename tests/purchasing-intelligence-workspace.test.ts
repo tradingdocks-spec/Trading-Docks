@@ -473,6 +473,19 @@ test("mobile scanner architecture remains available outside Purchasing Intellige
   assert.match(scannerApi, /scanCardImageWithTcgTracking/);
 });
 
+test("Current Purchase draft persists through account documents with legacy session migration only", () => {
+  const page = source("src/components/dashboard/purchasing/PurchasingOverview.tsx");
+
+  assert.match(page, /PURCHASE_CART_DOCUMENT = "purchasing-intelligence:current-purchase:v1"/);
+  assert.match(page, /loadAccountDocument<PurchaseWorkspaceLine\[\]>\(PURCHASE_CART_DOCUMENT\)/);
+  assert.match(page, /saveAccountDocument\(PURCHASE_CART_DOCUMENT, cart\)/);
+  assert.match(page, /deleteAccountDocument\(PURCHASE_CART_DOCUMENT\)/);
+  assert.match(page, /LEGACY_CART_STORAGE_KEY = "trading-docks:purchasing-intelligence-cart:v1"/);
+  assert.match(page, /window\.sessionStorage\.getItem\(LEGACY_CART_STORAGE_KEY\)/);
+  assert.match(page, /window\.sessionStorage\.removeItem\(LEGACY_CART_STORAGE_KEY\)/);
+  assert.doesNotMatch(page, /sessionStorage\.setItem/);
+});
+
 function pokemonProduct(): PurchasingLookupResult {
   return {
     id: "pokemon:card:528226",

@@ -35,6 +35,11 @@ import {
   getTopbarCreateActions,
   type TopbarCreateActionId,
 } from "./create-menu-actions";
+import {
+  hasCapability,
+  hasTrustedFullPlatformAccess,
+  type ClientSafePlatformAccess,
+} from "@/lib/platform/client-access";
 
 const createActionIcons: Record<TopbarCreateActionId, ComponentType<{ className?: string }>> = {
   "add-inventory-card": PackagePlus,
@@ -50,14 +55,35 @@ export function Topbar({
   accountType = "free",
   userName = "Trading Docks",
   isOwner = false,
+  clientAccess,
 }: {
   collapsed: boolean;
   onOpenMobile: () => void;
   accountType?: string;
   userName?: string;
   isOwner?: boolean;
+  clientAccess?: ClientSafePlatformAccess;
 }) {
   const plan = normalizeAccountTier(accountType);
+  const hasPlatformAdminAccess = clientAccess
+    ? hasCapability(clientAccess, "platform.admin")
+    : isOwner;
+  const hasFullPlatformAccess = clientAccess
+    ? hasTrustedFullPlatformAccess(clientAccess)
+    : isOwner;
+  const platformAccessLabel = hasFullPlatformAccess
+    ? clientAccess?.platformRole === "owner"
+      ? "Platform Owner"
+      : "Platform Admin"
+    : null;
+  const planUsageSummary = [
+    PLAN_ENTITLEMENTS[plan].inventoryLimit == null
+      ? "Unlimited cards"
+      : `${PLAN_ENTITLEMENTS[plan].inventoryLimit.toLocaleString()} cards`,
+    PLAN_ENTITLEMENTS[plan].deckLimit
+      ? `${PLAN_ENTITLEMENTS[plan].deckLimit} decks`
+      : "Unlimited decks",
+  ].join(" / ");
   const [openMenu, setOpenMenu] = useState<"create" | "workspace" | "profile" | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const initials = userName
@@ -176,16 +202,19 @@ export function Topbar({
 
           {openMenu === "workspace" ? (
             <TopbarMenu className="right-12 top-12 w-72">
-              <MenuHeading title="Trading Docks" subtitle="Workspace and subscription" onClose={() => setOpenMenu(null)} />
+              <MenuHeading title="Trading Docks" subtitle="Workspace and access" onClose={() => setOpenMenu(null)} />
               <div className="border-b border-white/[0.06] p-3">
                 <div className="rounded-xl border border-blue-300/15 bg-blue-400/[0.05] p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white">{PLAN_ENTITLEMENTS[plan].name} plan</span>
+                    <span className="text-xs font-semibold text-white">
+                      {platformAccessLabel ?? `${PLAN_ENTITLEMENTS[plan].name} plan`}
+                    </span>
                     <Check className="h-4 w-4 text-blue-300" />
                   </div>
                   <p className="mt-1 text-[10px] text-slate-500">
-                    {PLAN_ENTITLEMENTS[plan].inventoryLimit == null ? "Unlimited cards" : `${PLAN_ENTITLEMENTS[plan].inventoryLimit.toLocaleString()} cards`}
-                    {PLAN_ENTITLEMENTS[plan].deckLimit ? ` · ${PLAN_ENTITLEMENTS[plan].deckLimit} decks` : " · Unlimited decks"}
+                    {platformAccessLabel
+                      ? `${PLAN_ENTITLEMENTS[plan].name} billing plan / Full platform access`
+                      : planUsageSummary}
                   </p>
                 </div>
               </div>
@@ -194,14 +223,14 @@ export function Topbar({
                 <MenuLink href="/dashboard/plans" label="Compare plans & pricing" icon={BarChart3} onClick={() => setOpenMenu(null)} />
                 <MenuLink href="/dashboard/settings?section=billing" label="Billing & subscription" icon={CreditCard} onClick={() => setOpenMenu(null)} />
                 <MenuLink href="/dashboard/settings?section=workspace" label="Workspace settings" icon={Settings} onClick={() => setOpenMenu(null)} />
-                {isOwner ? <MenuLink href="/dashboard/admin" label="Admin Control Center" icon={ShieldCheck} onClick={() => setOpenMenu(null)} /> : null}
+                {hasPlatformAdminAccess ? <MenuLink href="/dashboard/admin" label="Admin Control Center" icon={ShieldCheck} onClick={() => setOpenMenu(null)} /> : null}
               </div>
             </TopbarMenu>
           ) : null}
 
           {openMenu === "profile" ? (
             <TopbarMenu className="right-0 top-12 w-64">
-              <MenuHeading title={userName} subtitle={`${PLAN_ENTITLEMENTS[plan].name} account`} onClose={() => setOpenMenu(null)} />
+              <MenuHeading title={userName} subtitle={platformAccessLabel ?? `${PLAN_ENTITLEMENTS[plan].name} account`} onClose={() => setOpenMenu(null)} />
               <div className="p-2">
                 <MenuLink href="/dashboard/settings?section=profile" label="Profile" icon={UserRound} onClick={() => setOpenMenu(null)} />
                 <MenuLink href="/dashboard/settings" label="Preferences & security" icon={Settings} onClick={() => setOpenMenu(null)} />

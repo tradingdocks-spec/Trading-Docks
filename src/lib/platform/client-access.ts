@@ -1,6 +1,7 @@
 import {
   clientAccessFromTier,
   hasCapability,
+  hasTrustedFullPlatformAccess,
   hasTrustedOwnerAccess,
   toClientSafeAccess,
   type ClientSafePlatformAccess,
@@ -12,6 +13,7 @@ import { hasRouteAccess } from "./route-access";
 export {
   clientAccessFromTier,
   hasCapability,
+  hasTrustedFullPlatformAccess,
   hasTrustedOwnerAccess,
   toClientSafeAccess,
   type ClientSafePlatformAccess,

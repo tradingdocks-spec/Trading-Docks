@@ -49,6 +49,7 @@ export function TieredDashboardShell({
         accountType={accountType}
         userName={userName}
         isOwner={isOwner}
+        clientAccess={clientAccess}
       />
 
       <div
@@ -72,6 +73,7 @@ export function TieredDashboardShell({
       <MobileBottomNav
         accountType={accountType}
         isOwner={isOwner}
+        clientAccess={clientAccess}
         menuOpen={mobileOpen}
         onOpenMenu={() => setMobileOpen(true)}
       />

@@ -291,6 +291,32 @@ test("dashboard module filtering uses effective entitlements instead of raw bill
   assert.equal(availableDashboardLayouts("free", manipulated).has("business"), false);
 });
 
+test("dashboard chrome consumes canonical platform access instead of raw billing plan", () => {
+  const layoutSource = readFileSync(path.join(repoRoot, "src/app/dashboard/layout.tsx"), "utf8");
+  const shellSource = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/shell/TieredDashboardShell.tsx"),
+    "utf8",
+  );
+  const topbarSource = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/shell/Topbar.tsx"),
+    "utf8",
+  );
+  const mobileNavSource = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/shell/MobileBottomNav.tsx"),
+    "utf8",
+  );
+
+  assert.match(layoutSource, /const clientAccess = toClientSafeAccess\(platformAccess\)/);
+  assert.match(layoutSource, /hasCapability\(clientAccess, "platform\.admin"\)/);
+  assert.match(shellSource, /<Topbar[\s\S]*clientAccess=\{clientAccess\}/);
+  assert.match(shellSource, /<MobileBottomNav[\s\S]*clientAccess=\{clientAccess\}/);
+  assert.match(topbarSource, /hasCapability\(clientAccess, "platform\.admin"\)/);
+  assert.match(topbarSource, /hasTrustedFullPlatformAccess\(clientAccess\)/);
+  assert.match(topbarSource, /Full platform access/);
+  assert.doesNotMatch(topbarSource, /Free plan[\s\S]{0,160}Admin Control Center/);
+  assert.match(mobileNavSource, /getAccountAwareNavigationGroups\(accountType, isOwner, clientAccess\)/);
+});
+
 test("analytics workspace composes Owner/Admin access from platform authority", () => {
   const pageSource = readFileSync(path.join(repoRoot, "src/app/dashboard/analytics/page.tsx"), "utf8");
   const componentSource = readFileSync(
