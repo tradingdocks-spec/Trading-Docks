@@ -61,15 +61,27 @@ test("public web metadata is production-ready and auth utility pages stay out of
 
 test("dashboard scaffolds use production empty-state copy", () => {
   const files = DASHBOARD_UI_ROOTS.flatMap((entry) => listSourceFiles(path.join(repoRoot, entry)));
+  const sharedScaffold = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/shared/PageScaffold.tsx"),
+    "utf8",
+  );
+  const commonScaffold = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/common/PageScaffold.tsx"),
+    "utf8",
+  );
+
+  assert.match(commonScaffold, /export \{ PageScaffold \} from "\.\.\/shared\/PageScaffold"/);
+  assert.match(sharedScaffold, /Decision surface/);
+  assert.match(sharedScaffold, /workspace records activity/);
+  assert.match(sharedScaffold, /does not fabricate charts/);
+  assert.doesNotMatch(sharedScaffold, /Connected workspace|Secure cloud sync|Performance baseline/);
 
   for (const file of files) {
     const relative = path.relative(repoRoot, file).replace(/\\/g, "/");
     const source = readFileSync(file, "utf8");
 
     assert.doesNotMatch(source, /placeholder/i, `${relative} exposes placeholder language`);
-    assert.match(source, /workspace records activity/, `${relative} should describe the real empty state`);
-    assert.match(source, /No trend data yet/, `${relative} should avoid decorative fake charts`);
-    assert.doesNotMatch(source, /Live workspace|Awaiting first workspace event/, `${relative} should not imply live data before events exist`);
+    assert.doesNotMatch(source, /Live workspace|Awaiting first workspace event|Connected workspace|Secure cloud sync/, `${relative} should not imply live data before events exist`);
     assert.doesNotMatch(source, /48 \+ index/, `${relative} should not render fake progress bars`);
   }
 });
@@ -116,7 +128,7 @@ test("business beta pages do not expose dead primary actions", () => {
 
   assert.match(pageHeader, /actionLabel && onAction/);
   assert.doesNotMatch(pageHeader, /Live workspace/);
-  assert.match(pageHeader, /Connected workspace/);
+  assert.doesNotMatch(pageHeader, /Connected workspace|Secure cloud save/);
 
   for (const route of unimplementedActionPages) {
     const source = readFileSync(path.join(repoRoot, route), "utf8");
@@ -146,6 +158,31 @@ test("modular dashboard presents a premium command-center hierarchy", () => {
   assert.doesNotMatch(source, /Your Trading Docks workspace/);
   assert.doesNotMatch(source, /starter module|pro module|business module/i);
   assert.doesNotMatch(source, /Available on \{definition\.plan\}/);
+});
+
+test("dashboard design foundation uses Trading Docks workflow language", () => {
+  const globals = readFileSync(path.join(repoRoot, "src/app/globals.css"), "utf8");
+  const audit = readFileSync(path.join(repoRoot, "docs/PRODUCT_DESIGN_AUDIT.md"), "utf8");
+  const navigation = readFileSync(path.join(repoRoot, "src/components/dashboard/navigation.ts"), "utf8");
+  const shell = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredDashboardShell.tsx"), "utf8");
+  const sidebar = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredSidebar.tsx"), "utf8");
+  const topbar = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/Topbar.tsx"), "utf8");
+
+  assert.match(globals, /--td-accent-warm/);
+  assert.match(globals, /\.td-panel-strong/);
+  assert.match(globals, /\.td-button-primary/);
+  assert.match(audit, /TCG intelligence and operations system/);
+  assert.match(audit, /Do not fabricate business, collection, order, price, or marketplace data/);
+  assert.match(navigation, /label:\s*"Collection"/);
+  assert.match(navigation, /label:\s*"Acquire"/);
+  assert.match(navigation, /label:\s*"Sell"/);
+  assert.match(navigation, /label:\s*"Intelligence"/);
+  assert.match(navigation, /label:\s*"Operate"/);
+  assert.match(navigation, /group\("crm",\s*"Relationships"/);
+  assert.match(navigation, /group\("tools",\s*"Utilities"/);
+  assert.match(shell, /bg-\[var\(--td-background-primary\)\]/);
+  assert.match(sidebar, /TCG Intelligence OS/);
+  assert.match(topbar, /TCG intelligence/);
 });
 
 test("landing page preview data uses realistic sample states instead of template placeholders", () => {

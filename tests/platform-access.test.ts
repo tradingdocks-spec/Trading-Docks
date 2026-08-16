@@ -402,8 +402,9 @@ test("Label Studio is an Operations navigation item gated by route access", () =
   const sellingNavStart = navigationSource.indexOf("export const SELLING_NAV");
   const operationsNavStart = navigationSource.indexOf("export const OPERATIONS_NAV");
   const sellingNavBlock = navigationSource.slice(sellingNavStart, operationsNavStart);
+  const operationsNavBlock = navigationSource.slice(operationsNavStart);
 
-  assert.match(navigationSource, /label:\s*"Operations"[\s\S]*label:\s*"Label Studio"/);
+  assert.match(operationsNavBlock, /label:\s*"Operate"[\s\S]*label:\s*"Label Studio"/);
   assert.doesNotMatch(sellingNavBlock, /label:\s*"Label Studio"/);
   assert.match(sidebarSource, /item\.href === LABEL_STUDIO_ROUTE && !allowed/);
   assert.equal(hasRouteAccess(sellerClient, "/dashboard/label-studio"), true);

@@ -120,7 +120,7 @@ export function Topbar({
   return (
     <header
       className={[
-        "fixed inset-x-0 top-0 z-30 h-16 border-b border-white/[0.055] bg-[#041019]/96 transition-[padding-left] duration-300 md:h-[72px] md:bg-[#041019]/84 md:backdrop-blur-2xl",
+        "fixed inset-x-0 top-0 z-30 h-16 border-b border-white/[0.06] bg-[#03090f]/96 transition-[padding-left] duration-300 md:h-[72px] md:bg-[#03090f]/88 md:backdrop-blur-xl",
         collapsed ? "xl:pl-[76px]" : "xl:pl-[264px]",
       ].join(" ")}
     >
@@ -129,9 +129,9 @@ export function Topbar({
           type="button"
           onClick={onOpenMobile}
           aria-label="Open dashboard menu"
-          className="group flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-blue-300/[0.12] bg-blue-400/[0.075] text-blue-100/90 shadow-[inset_0_1px_0_rgba(255,255,255,.04),0_7px_20px_rgba(8,145,178,.08)] outline-none transition-[filter,box-shadow,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-blue-300/70 xl:hidden"
+          className="group flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-[11px] border border-blue-300/[0.12] bg-blue-400/[0.055] text-blue-100/90 outline-none transition-[filter,transform] duration-200 hover:brightness-110 active:scale-[0.96] active:brightness-125 focus-visible:ring-2 focus-visible:ring-blue-300/70 xl:hidden"
         >
-          <Menu className="h-5 w-5 stroke-[2] drop-shadow-[0_0_7px_rgba(59,130,246,.16)] transition-transform duration-200 group-hover:-translate-y-px" />
+          <Menu className="h-5 w-5 stroke-[2] transition-transform duration-200 group-hover:-translate-y-px" />
         </button>
 
         <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2.5 sm:hidden">
@@ -140,7 +140,7 @@ export function Topbar({
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[13px] font-semibold tracking-[-0.025em] text-white">Trading Docks</span>
-            <span className="mt-0.5 block text-[8px] font-semibold uppercase tracking-[0.17em] text-blue-300/65">Command center</span>
+            <span className="mt-0.5 block text-[8px] font-semibold uppercase tracking-[0.17em] text-blue-300/65">TCG intelligence</span>
           </span>
         </Link>
 
@@ -158,7 +158,7 @@ export function Topbar({
             type="button"
             onClick={() => setOpenMenu((value) => value === "create" ? null : "create")}
             aria-expanded={openMenu === "create"}
-            className="hidden h-10 items-center gap-2 rounded-xl border border-blue-300/[0.15] bg-blue-400/[0.07] px-4 text-xs font-semibold text-blue-100 transition hover:-translate-y-px hover:bg-blue-400/[0.11] sm:flex"
+            className="hidden h-10 items-center gap-2 rounded-[11px] border border-blue-300/[0.15] bg-blue-400/[0.065] px-4 text-xs font-semibold text-blue-100 transition hover:-translate-y-px hover:bg-blue-400/[0.11] sm:flex"
           >
             <Plus className="h-4 w-4 text-blue-300" />
             Create
@@ -170,7 +170,7 @@ export function Topbar({
             type="button"
             onClick={() => setOpenMenu((value) => value === "workspace" ? null : "workspace")}
             aria-expanded={openMenu === "workspace"}
-            className="hidden h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 text-xs text-slate-400 md:flex"
+            className="hidden h-10 items-center gap-2 rounded-[11px] border border-white/[0.07] bg-white/[0.025] px-3 text-xs text-slate-400 md:flex"
           >
             <Store className="h-4 w-4 text-slate-600" />
             Trading Docks
@@ -181,7 +181,7 @@ export function Topbar({
             type="button"
             onClick={() => setOpenMenu((value) => value === "profile" ? null : "profile")}
             aria-expanded={openMenu === "profile"}
-            className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] p-1.5 pr-2 text-xs text-slate-400"
+            className="flex h-10 items-center gap-2 rounded-[11px] border border-white/[0.07] bg-white/[0.025] p-1.5 pr-2 text-xs text-slate-400"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-400/[0.1] font-semibold text-blue-200">
               {initials}
@@ -250,7 +250,7 @@ export function Topbar({
 }
 
 function TopbarMenu({ children, className }: { children: ReactNode; className: string }) {
-  return <div className={`absolute z-[80] overflow-hidden rounded-2xl border border-white/[0.09] bg-[#07131d]/[0.99] shadow-[0_28px_80px_rgba(0,0,0,0.58)] backdrop-blur-2xl ${className}`}>{children}</div>;
+  return <div className={`absolute z-[80] overflow-hidden rounded-[17px] border border-white/[0.09] bg-[#07131d]/[0.99] shadow-[0_18px_48px_rgba(0,0,0,0.42)] backdrop-blur-xl ${className}`}>{children}</div>;
 }
 
 function MenuHeading({ title, subtitle, onClose }: { title: string; subtitle: string; onClose: () => void }) {

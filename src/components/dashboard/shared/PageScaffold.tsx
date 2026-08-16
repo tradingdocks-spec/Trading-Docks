@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { ArrowUpRight, CircleDot } from "lucide-react";
+import { ArrowRight, CircleDot } from "lucide-react";
 
 type PageScaffoldProps = {
   eyebrow: string;
@@ -26,54 +26,35 @@ export function PageScaffold({
   stats,
   actions = [],
 }: PageScaffoldProps) {
+  const primaryAction = actions[0] ?? null;
+  const secondaryActions = actions.slice(1);
+
   return (
-    <div className="relative min-h-full overflow-hidden">
-      <DashboardBackground />
-
-      <div className="relative mx-auto flex w-full max-w-[1640px] flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/[0.13] bg-[#06131d]/86 p-6 shadow-[0_30px_95px_rgba(0,0,0,0.32),0_0_70px_rgba(34,211,238,0.035)] backdrop-blur-2xl sm:p-8">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_25%,rgba(34,211,238,0.07),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.018),transparent_28%)]" />
-
-          <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.14] bg-cyan-400/[0.045] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
+    <div className="td-page-shell">
+      <div className="td-workspace flex flex-col gap-5">
+        <section className="td-panel-strong p-5 sm:p-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:items-end">
+            <div className="min-w-0">
+              <div className="td-kicker inline-flex items-center gap-2">
                 <Icon className="h-3.5 w-3.5" />
                 {eyebrow}
               </div>
 
-              <h1 className="mt-5 text-3xl font-semibold tracking-[-0.045em] text-white sm:text-4xl">
-                {title}
-              </h1>
-
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
-                {description}
-              </p>
-
-              <div className="mt-5 flex flex-wrap gap-4 text-[10px] text-slate-600">
-                <span className="flex items-center gap-2">
-                  <CircleDot className="h-3 w-3 text-emerald-300" />
-                  Connected workspace
-                </span>
-                <span>Waiting for first workspace event</span>
-                <span>Secure cloud sync</span>
-              </div>
+              <h1 className="td-title mt-3">{title}</h1>
+              <p className="td-body mt-3 max-w-3xl">{description}</p>
             </div>
 
-            {actions.length ? (
-              <div className="flex flex-wrap gap-3">
-                {actions.map((action, index) => (
-                  <Link
-                    key={action.href}
-                    href={action.href}
-                  className={[
-                    "group inline-flex h-11 items-center gap-2 rounded-xl px-4 text-xs font-semibold transition hover:-translate-y-0.5",
-                    index === 0
-                      ? "bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 text-[#001018] shadow-[0_14px_32px_rgba(6,182,212,0.2),inset_0_1px_0_rgba(255,255,255,0.62)]"
-                      : "border border-white/[0.08] bg-white/[0.025] text-slate-300 hover:border-cyan-300/[0.16] hover:bg-cyan-400/[0.03]",
-                  ].join(" ")}
-                >
+            {primaryAction || secondaryActions.length ? (
+              <div className="flex flex-wrap gap-2 lg:justify-end">
+                {primaryAction ? (
+                  <Link href={primaryAction.href} className="td-button-primary px-4">
+                    {primaryAction.label}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                ) : null}
+                {secondaryActions.map((action) => (
+                  <Link key={action.href} href={action.href} className="td-button-secondary px-4">
                     {action.label}
-                    <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </Link>
                 ))}
               </div>
@@ -81,66 +62,62 @@ export function PageScaffold({
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <article
-              key={stat.label}
-              className="group relative overflow-hidden rounded-[22px] border border-white/[0.075] bg-[#07141e]/82 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.2)] transition duration-400 hover:-translate-y-1 hover:border-cyan-300/[0.16] hover:bg-[#081823]"
-            >
-              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-cyan-400/[0.045] blur-[55px] transition group-hover:bg-cyan-400/[0.08]" />
-              <p className="relative text-[9px] font-semibold uppercase tracking-[0.17em] text-slate-600">
-                {stat.label}
-              </p>
-              <p className="relative mt-3 text-2xl font-semibold tracking-[-0.035em] text-white">
-                {stat.value}
-              </p>
-              <p className="relative mt-2 text-xs text-slate-600">{stat.detail}</p>
-              <div className="relative mt-4 h-1 overflow-hidden rounded-full bg-white/[0.04]">
-                <div className="h-full w-0 rounded-full bg-cyan-300" />
-              </div>
-            </article>
-          ))}
-        </section>
-
-        <section className="grid gap-5 xl:grid-cols-[1.4fr_0.8fr]">
-          <div className="rounded-[26px] border border-white/[0.075] bg-[#06121b]/82 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
-              Workspace overview
-            </p>
-            <h2 className="mt-2 text-lg font-semibold text-white">Performance baseline</h2>
-            <p className="mt-1 text-xs text-slate-600">
-              Charts and tables will populate as this workspace records activity.
-            </p>
-
-            <div className="relative mt-6 flex h-[260px] items-center justify-center overflow-hidden rounded-2xl border border-white/[0.05] bg-[#02090f] p-5 text-center">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_74%_20%,rgba(34,211,238,0.08),transparent_30%)]" />
-              {[28, 50, 72].map((top) => (
-                <div
-                  key={top}
-                  className="absolute inset-x-5 border-t border-dashed border-white/[0.045]"
-                  style={{ top: `${top}%` }}
-                />
-              ))}
-              <div className="relative max-w-sm">
-                <p className="text-sm font-semibold text-slate-300">No trend data yet</p>
-                <p className="mt-2 text-xs leading-5 text-slate-600">
-                  This view will show real movement after orders, inventory updates, or workspace events are recorded.
+        {stats.length ? (
+          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <article key={stat.label} className="td-panel p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--td-text-faint)]">
+                  {stat.label}
                 </p>
-              </div>
+                <p className="mt-2 text-xl font-semibold tracking-[-0.02em] text-[var(--td-text-primary)]">
+                  {stat.value}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--td-text-muted)]">{stat.detail}</p>
+              </article>
+            ))}
+          </section>
+        ) : null}
+
+        <section className="grid gap-4 xl:grid-cols-[1.3fr_0.9fr]">
+          <div className="td-panel p-5">
+            <p className="td-kicker">Decision surface</p>
+            <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-white">
+              No trend data yet
+            </h2>
+            <p className="td-body mt-2">
+              This view will show real movement after the workspace records activity. Trading Docks does not fabricate charts before orders, inventory updates, purchases, or account events exist.
+            </p>
+
+            <div className="mt-5 grid gap-2">
+              {[
+                "Capture the first real workspace event",
+                "Verify account data after refresh",
+                "Review the matching operational workflow",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="flex items-center gap-3 rounded-[13px] border border-white/[0.06] bg-white/[0.018] px-3 py-2.5"
+                >
+                  <CircleDot className="h-3.5 w-3.5 text-[var(--td-information)]" />
+                  <span className="text-xs font-medium text-slate-300">{item}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-white/[0.075] bg-[#06121b]/82 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
-              Activity
+          <div className="td-panel p-5">
+            <p className="td-kicker">Activity</p>
+            <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-white">
+              No recent activity
+            </h2>
+            <p className="td-body mt-2">
+              This account&apos;s updates will appear here after real records are created, changed, imported, or synced.
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-white">Recent updates</h2>
-
-            <div className="mt-6 space-y-3">
-              <div className="rounded-xl border border-dashed border-white/[0.07] bg-black/[0.08] px-4 py-8 text-center">
-                <p className="text-xs font-semibold text-slate-400">No recent activity</p>
-                <p className="mt-1 text-[10px] text-slate-600">This account&apos;s updates will appear here.</p>
-              </div>
+            <div className="mt-5 rounded-[13px] border border-dashed border-white/[0.08] bg-black/[0.1] px-4 py-6">
+              <p className="text-xs font-semibold text-slate-300">Waiting for workspace records activity</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                Empty states remain quiet until the underlying workflow has data to evaluate.
+              </p>
             </div>
           </div>
         </section>
@@ -148,22 +125,3 @@ export function PageScaffold({
     </div>
   );
 }
-
-function DashboardBackground() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute left-[7%] top-[-90px] h-[470px] w-[470px] rounded-full bg-cyan-400/[0.04] blur-[165px]" />
-      <div className="absolute right-[3%] top-[28%] h-[420px] w-[420px] rounded-full bg-blue-500/[0.025] blur-[170px]" />
-      <div
-        className="absolute inset-0 opacity-[0.12]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(103,232,249,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(103,232,249,0.022) 1px, transparent 1px)",
-          backgroundSize: "58px 58px",
-          maskImage: "linear-gradient(to bottom, black, transparent 78%)",
-        }}
-      />
-    </div>
-  );
-}
-

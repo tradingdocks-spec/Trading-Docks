@@ -2,6 +2,9 @@
   position: relative;
   min-height: 100%;
   overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.012), transparent 220px),
+    #02070b;
 }
 
 .appBackground::before {
@@ -10,8 +13,9 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 10% 0%, rgba(34, 211, 238, 0.055), transparent 31%),
-    radial-gradient(circle at 90% 32%, rgba(59, 130, 246, 0.03), transparent 32%);
+    linear-gradient(90deg, rgba(51, 151, 255, 0.055), transparent 36%),
+    linear-gradient(180deg, rgba(199, 138, 59, 0.022), transparent 30%);
+  mask-image: linear-gradient(to bottom, black, transparent 56%);
 }
 
 .appBackground::after {
@@ -19,23 +23,25 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.12;
+  opacity: 0.05;
   background-image:
-    linear-gradient(rgba(103, 232, 249, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(103, 232, 249, 0.022) 1px, transparent 1px);
-  background-size: 58px 58px;
-  mask-image: linear-gradient(to bottom, black, transparent 84%);
+    linear-gradient(rgba(177, 189, 201, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(177, 189, 201, 0.018) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, transparent 66%);
 }
 
 .glassPanel {
-  border: 1px solid rgba(255, 255, 255, 0.075);
-  background: rgba(6, 19, 29, 0.88);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(24px);
+  border: 1px solid rgba(177, 189, 201, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 42%),
+    rgba(8, 19, 28, 0.88);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(14px);
 }
 
 .glassPanel:hover {
-  border-color: rgba(103, 232, 249, 0.14);
+  border-color: rgba(85, 199, 255, 0.18);
 }
 
 .metricCard {
@@ -48,7 +54,7 @@
 }
 
 .metricCard:hover {
-  transform: translateY(-3px);
+  transform: translateY(-1px);
 }
 
 .metricCard::after {
@@ -59,8 +65,8 @@
   width: 9rem;
   height: 9rem;
   border-radius: 999px;
-  background: rgba(34, 211, 238, 0.045);
-  filter: blur(52px);
+  background: rgba(51, 151, 255, 0.026);
+  filter: blur(44px);
   pointer-events: none;
 }
 
@@ -123,9 +129,9 @@
   }
 
   .glassPanel {
-    background: linear-gradient(145deg, rgba(6, 21, 31, 0.94), rgba(4, 15, 24, 0.96));
-    box-shadow: 0 16px 46px rgba(0, 0, 0, 0.24);
-    backdrop-filter: blur(18px);
+    background: rgba(7, 17, 25, 0.94);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(12px);
   }
 
   .metricCard:hover {

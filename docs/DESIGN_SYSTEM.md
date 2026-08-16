@@ -44,6 +44,25 @@
 - Drift rule: token value changes must be made in `mobile/design/shared-tokens.ts` first, then reflected in CSS custom properties in the same change. Do not edit adapter aliases as independent design decisions.
 - Known duplication: CSS custom property literal values in `src/app/globals.css` intentionally duplicate the canonical token values until a build-time CSS token generation step exists.
 
+## Web Product Design Direction
+
+- Implemented: `src/app/globals.css` now defines quieter Trading Docks web tokens for near-black/navy backgrounds, tonal panels, restrained blue action color, warm owner/attention accent, compact radii, and shared `.td-*` utility classes.
+- Implemented: Web workspace backgrounds now use restrained linear light and low-opacity grid texture. Avoid new radial orb decorations, glassmorphism-heavy page sections, or glow effects in authenticated tools.
+- Implemented: `src/components/dashboard/shared/PageScaffold.tsx` is the canonical scaffold for generic beta/empty workspace pages. `src/components/dashboard/common/PageScaffold.tsx` re-exports it to avoid duplicated visual systems.
+- Implemented: Shared scaffolds use a compact operational briefing layout with honest empty states. They must not render fake charts, zero-width progress bars, or generic “live workspace” status copy before records exist.
+- Implemented: Dashboard navigation group labels use workflow language: Collection, Acquire, Sell, Operate, Intelligence, Relationships, Utilities, Account, and Admin.
+- Partially Implemented: The current pass updates global tokens, common scaffolds, dashboard shell, sidebar, topbar, and shared page headers. High-traffic individual pages still need route-by-route redesign.
+- Planned: See `docs/PRODUCT_DESIGN_AUDIT.md` for the ongoing product-design backlog and quality bar.
+
+## Web Visual Rules
+
+- Page titles should use `.td-title` or equivalent compact type, not oversized marketing hero typography inside authenticated workspaces.
+- Kicker labels should use `.td-kicker`; avoid random badge/pill treatments for every section heading.
+- Primary actions should use `.td-button-primary`; secondary actions should use `.td-button-secondary`. Do not make every action a bright filled button.
+- Panels should use `.td-panel` or `.td-panel-strong` unless a route has a justified domain-specific component.
+- Empty states should explain what real record or integration will populate the view and what the user can do next.
+- Do not display fabricated revenue, inventory, price movement, order, customer, or opportunity values in authenticated product surfaces.
+
 ## Token Naming
 
 Use semantic tokens first:

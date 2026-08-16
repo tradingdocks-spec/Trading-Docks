@@ -93,7 +93,7 @@ export const CRM_NAV: NavigationItem[] = [
 
 export const PURCHASING_NAV: NavigationSection = {
   id: "purchasing",
-  label: "Purchasing",
+  label: "Acquire",
   icon: PackageSearch,
   href: "/dashboard/purchasing-intelligence",
   children: [
@@ -190,7 +190,7 @@ export const PRIMARY_NAV_AFTER_PURCHASING: NavigationItem[] = [
 
 export const SELLING_NAV: NavigationSection = {
   id: "selling",
-  label: "Selling",
+  label: "Sell",
   icon: CircleDollarSign,
   href: "/dashboard/sell-optimizer",
   children: [
@@ -204,7 +204,7 @@ export const SELLING_NAV: NavigationSection = {
 
 export const INSIGHTS_NAV: NavigationSection = {
   id: "insights",
-  label: "Insights",
+  label: "Intelligence",
   icon: BarChart3,
   href: "/dashboard/analytics",
   children: [
@@ -216,7 +216,7 @@ export const INSIGHTS_NAV: NavigationSection = {
 
 export const OPERATIONS_NAV: NavigationSection = {
   id: "operations",
-  label: "Operations",
+  label: "Operate",
   icon: BriefcaseBusiness,
   href: "/dashboard/tasks",
   children: [
@@ -392,7 +392,7 @@ export function getAccountAwareNavigationGroups(
     ? hasCapability(clientAccess, "platform.admin")
     : isOwner;
   const groups: Array<AccountAwareNavigationGroup | null> = [
-    group("collector", "Collector", COLLECTOR_WORKSPACE_NAV, clientAccess),
+    group("collector", "Collection", COLLECTOR_WORKSPACE_NAV, clientAccess),
   ];
 
   if (isAtLeast(effectiveTier, "seller")) {
@@ -408,13 +408,13 @@ export function getAccountAwareNavigationGroups(
           : OPERATIONS_NAV.children.filter((item) => item.href === LABEL_STUDIO_ROUTE),
         clientAccess,
       ),
-      group("tools", "Tools", TOOLS_NAV, clientAccess),
+      group("tools", "Utilities", TOOLS_NAV, clientAccess),
     );
   }
 
   if (isAtLeast(effectiveTier, "store")) {
     groups.push(
-      group("crm", "CRM", CRM_NAV, clientAccess),
+      group("crm", "Relationships", CRM_NAV, clientAccess),
     );
   }
 

@@ -217,15 +217,24 @@ test("active Collection workspace honors storage route query for Create menu loc
 });
 
 test("shared scaffold surfaces do not render fake action buttons", () => {
-  for (const file of [
-    "src/components/dashboard/common/PageScaffold.tsx",
-    "src/components/dashboard/shared/PageScaffold.tsx",
-  ]) {
-    const source = readFileSync(path.join(repoRoot, file), "utf8");
+  const commonSource = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/common/PageScaffold.tsx"),
+    "utf8",
+  );
+  const sharedSource = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/shared/PageScaffold.tsx"),
+    "utf8",
+  );
 
+  assert.match(commonSource, /export \{ PageScaffold \} from "\.\.\/shared\/PageScaffold"/);
+
+  for (const source of [commonSource, sharedSource]) {
     assert.doesNotMatch(source, /actions\s*=\s*\["Open workspace",\s*"View activity"\]/);
     assert.doesNotMatch(source, /<button[\s\S]{0,220}\{action\}/);
-    assert.match(source, /actions\.length/);
+  }
+
+  for (const source of [sharedSource]) {
+    assert.match(source, /primaryAction \|\| secondaryActions\.length/);
     assert.match(source, /href=\{action\.href\}/);
   }
 });

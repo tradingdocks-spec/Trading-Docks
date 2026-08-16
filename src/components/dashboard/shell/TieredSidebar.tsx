@@ -131,14 +131,13 @@ export function TieredSidebar({
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-white/[0.055] bg-[#020a12]/[0.985] shadow-[28px_0_90px_rgba(0,0,0,.42)] backdrop-blur-2xl transition-[width,transform] duration-300 xl:w-auto",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-white/[0.06] bg-[#02080d]/[0.985] shadow-[18px_0_54px_rgba(0,0,0,.34)] backdrop-blur-xl transition-[width,transform] duration-300 xl:w-auto",
           collapsed ? "xl:w-[76px]" : "xl:w-[264px]",
           mobileOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0",
         ].join(" ")}
       >
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-16 h-72 w-72 rounded-full bg-blue-500/[0.055] blur-[115px]" />
-          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-blue-300/[0.11] to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-blue-300/[.11] to-transparent" />
         </div>
 
         <SidebarBrand collapsed={collapsed} onCloseMobile={onCloseMobile} />
@@ -193,19 +192,18 @@ function SidebarBrand({
         onClick={onCloseMobile}
         aria-label="Trading Docks dashboard"
         className={[
-          "group flex min-w-0 flex-1 items-center rounded-xl transition hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/45",
+          "group flex min-w-0 flex-1 items-center rounded-[13px] transition hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/45",
           collapsed ? "justify-center px-1 py-2" : "gap-3 px-2 py-2",
         ].join(" ")}
       >
         <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
-          <span className="absolute inset-1 rounded-2xl bg-blue-400/[0.12] blur-xl transition group-hover:bg-blue-300/[0.19]" />
           <Image
             src="/trading-docks-mark.png"
             alt="Trading Docks"
             width={1024}
             height={1024}
             priority
-            className="relative h-11 w-11 object-contain transition duration-300 group-hover:-translate-y-0.5"
+            className="relative h-10 w-10 object-contain transition duration-300 group-hover:-translate-y-0.5"
           />
         </span>
 
@@ -214,8 +212,8 @@ function SidebarBrand({
             <span className="block truncate text-sm font-semibold tracking-[-0.025em] text-white">
               Trading Docks
             </span>
-            <span className="mt-0.5 block text-[10px] uppercase tracking-[0.19em] text-slate-600">
-              Collectibles OS
+            <span className="mt-0.5 block text-[10px] uppercase tracking-[0.18em] text-slate-600">
+              TCG Intelligence OS
             </span>
           </span>
         ) : null}
@@ -306,9 +304,9 @@ function SectionHeader({
       onClick={onToggle}
       aria-expanded={open}
       className={[
-        "mb-1.5 flex h-8 w-full items-center justify-between rounded-lg px-3 text-left text-[10px] font-bold uppercase tracking-[0.18em] outline-none transition focus-visible:ring-2 focus-visible:ring-blue-300/45",
+        "mb-1.5 flex h-8 w-full items-center justify-between rounded-[9px] px-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] outline-none transition focus-visible:ring-2 focus-visible:ring-blue-300/45",
         active
-          ? "bg-blue-400/[0.055] text-cyan-100"
+          ? "bg-blue-400/[0.045] text-blue-100"
           : "text-slate-600 hover:bg-white/[0.035] hover:text-slate-300",
       ].join(" ")}
     >
@@ -353,15 +351,15 @@ function NavigationRow({
       title={collapsed ? item.label : undefined}
       aria-current={active ? "page" : undefined}
       className={[
-        "group relative flex min-h-10 items-center rounded-xl outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-blue-300/45",
+        "group relative flex min-h-10 items-center rounded-[11px] outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-blue-300/45",
         collapsed ? "justify-center px-0" : "gap-3 px-3",
         active
-          ? "bg-gradient-to-r from-blue-500/[0.15] to-cyan-300/[0.045] text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,.08)]"
+          ? "bg-blue-400/[0.09] text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,.09)]"
           : "text-slate-400 hover:bg-white/[0.035] hover:text-white",
       ].join(" ")}
     >
       {active ? (
-        <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.72)]" />
+        <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-blue-300" />
       ) : null}
 
       {allowed ? (
@@ -369,7 +367,7 @@ function NavigationRow({
           className={[
             "h-[17px] w-[17px] shrink-0 transition",
             active
-              ? "text-cyan-200"
+              ? "text-blue-100"
               : "text-blue-300/65 group-hover:text-blue-200",
           ].join(" ")}
         />
@@ -383,7 +381,7 @@ function NavigationRow({
             {item.label}
           </span>
           {!allowed ? (
-            <span className="rounded-full border border-blue-300/[0.11] bg-blue-400/[0.035] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-200/65">
+            <span className="rounded-[7px] border border-blue-300/[0.11] bg-blue-400/[0.035] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-200/65">
               {requiredPlan ?? "Upgrade"}
             </span>
           ) : null}
@@ -443,7 +441,7 @@ function WorkspaceFooter({
 
   return (
     <div className="relative border-t border-white/[0.055] p-3">
-      <div className="rounded-2xl bg-white/[0.022] p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,.055)]">
+      <div className="rounded-[17px] bg-white/[0.022] p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,.055)]">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-300/20 bg-blue-400/[0.08] text-xs font-semibold text-blue-100">
             {initials}
