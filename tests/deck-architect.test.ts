@@ -23,6 +23,8 @@ import {
   rankCommanderStrategiesForCollection,
   constructValidatedArchetypeDeck,
   constructValidatedCommanderDeck,
+  commanderColorIdentityFits,
+  commanderColorIdentityQuery,
   detectCardTaxonomy,
   getCommanderCatalogCandidates,
   applyDeckChangeProposal,
@@ -335,6 +337,29 @@ test("Deck Architect preserves review-first behavior without fake autonomous AI"
   assert.doesNotMatch(workspace, /ChatGPT|magic AI deck builder|Apply Changes automatically|silently applies/i);
 });
 
+test("Deck Architect workspace builds Commander decks through the authenticated server generator", () => {
+  assert.match(workspace, /\/api\/deck-architect\/commander-build/);
+  assert.match(workspace, /generationStatus/);
+  assert.match(workspace, /Deck couldn't be generated/);
+  assert.match(workspace, /Upgrade budget/);
+  assert.match(workspace, /Complete validated deck/);
+  assert.match(workspace, /Draft shell/);
+  assert.doesNotMatch(workspace, /constructValidatedCommanderDeck\(/);
+});
+
+test("Commander build API uses server-side collection authority and Scryfall global candidates", () => {
+  const apiRoute = readFileSync(
+    path.join(repoRoot, "src/app/api/deck-architect/commander-build/route.ts"),
+    "utf8",
+  );
+
+  assert.match(apiRoute, /supabase\.auth\.getUser\(\)/);
+  assert.match(apiRoute, /loadDeckArchitectCollectionSnapshot\(supabase, user\)/);
+  assert.match(apiRoute, /fetchCommanderGlobalCandidates/);
+  assert.match(apiRoute, /candidateSource: "global-scryfall"/);
+  assert.doesNotMatch(apiRoute, /payload\?\.collection/);
+});
+
 test("card role classifier uses rules text and type line deterministically", () => {
   assert.deepEqual(classifyCardRoles({
     name: "Counterspell",
@@ -610,6 +635,125 @@ test("Best Possible can build around an unowned potential commander without requ
   assert.equal(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
   assert.ok(result.requirements.some((requirement) => requirement.name === "Venerated Rotpriest"));
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
+});
+
+test("Krenko Best Possible uses global Commander candidates to produce a complete validated deck", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: krenkoCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+  const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+
+  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.validation.valid, true);
+  assert.equal(totalCards, 100);
+  assert.equal(result.buildability?.requiredCards, 100);
+  assert.equal(result.candidateSourcePolicy, "Strategy and catalog recommendations first; ownership is calculated afterward.");
+  assert.equal(result.candidateSource, "global-fixture");
+  assert.ok(names.has("Impact Tremors"));
+  assert.ok([...names].some((name) => name.includes("Krenko Global Candidate")));
+  assert.equal([...names].some((name) => name.includes("Blue")), false);
+  assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
+});
+
+test("Krenko Budget build respects the configured budget and surfaces unknown pricing", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "budget",
+    strategyId: "krenko-go-wide-goblins",
+    budgetCents: 2500,
+    globalCandidates: [
+      ...krenkoCandidatePool(),
+      commanderCard("pricey-mono-red", "Pricey Mono-Red Staple", ["R"], "Creature - Goblin", "Create a token."),
+    ].map((card) => card.name === "Pricey Mono-Red Staple" ? { ...card, marketPrice: 20 } : card),
+    candidateSource: "global-fixture",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.validation.valid, true);
+  assert.equal(names.has("Pricey Mono-Red Staple"), false);
+  assert.ok(result.warnings.some((warning) => /strict budget compliance/i.test(warning)));
+});
+
+test("No Purchases Commander generation fails safely when owned cards are insufficient", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    quantityOwned: 1,
+    typeLine: "Legendary Creature - Goblin Warrior",
+  };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [commander],
+    intentId: "no-purchases",
+    strategyId: "krenko-go-wide-goblins",
+  });
+
+  assert.equal(result.generationStatus, "failed");
+  assert.equal(result.buildability, null);
+  assert.ok(result.failure);
+  assert.ok(result.warnings.some((warning) => /without purchases/i.test(warning)));
+});
+
+test("No Purchases Commander generation can complete from sufficient owned legal cards", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    quantityOwned: 1,
+    typeLine: "Legendary Creature - Goblin Warrior",
+  };
+  const ownedPool = krenkoCandidatePool(80).map((card) => ({ ...card, quantityOwned: 1, inventoryId: `owned-${card.inventoryId}` }));
+  const mountain = commanderCard("owned-mountain", "Mountain", ["R"], "Basic Land - Mountain", "");
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [commander, ...ownedPool, { ...mountain, quantityOwned: 36, marketPrice: 0.05 }],
+    intentId: "no-purchases",
+    strategyId: "krenko-go-wide-goblins",
+  });
+  const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+
+  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.validation.valid, true);
+  assert.equal(totalCards, 100);
+  assert.equal(result.ownership.every((match) => match.missingQuantity === 0), true);
+});
+
+test("Commander color identity boundaries cover mono two-color three-color five-color and colorless decks", () => {
+  const monoRed = commanderCandidate("mono-red", "Mono Red Commander", ["R"]);
+  const rakdos = commanderCandidate("rakdos", "Rakdos Commander", ["B", "R"]);
+  const grixis = commanderCandidate("grixis", "Grixis Commander", ["U", "B", "R"]);
+  const fiveColor = commanderCandidate("five", "Five Color Commander", ["W", "U", "B", "R", "G"]);
+  const colorless = commanderCandidate("colorless", "Colorless Commander", []);
+  const blueCard = commanderCard("blue", "Blue Card", ["U"], "Instant", "Draw a card.");
+  const redCard = commanderCard("red", "Red Card", ["R"], "Instant", "Deal damage.");
+  const rakdosCard = commanderCard("br", "Rakdos Card", ["B", "R"], "Creature", "Draw a card.");
+  const colorlessCard = commanderCard("rock", "Mind Stone", [], "Artifact", "Add one mana. Draw a card.");
+
+  assert.equal(commanderColorIdentityQuery(monoRed), "id<=R");
+  assert.equal(commanderColorIdentityQuery(colorless), "id<=c");
+  assert.equal(commanderColorIdentityFits(blueCard, monoRed), false);
+  assert.equal(commanderColorIdentityFits(redCard, monoRed), true);
+  assert.equal(commanderColorIdentityFits(rakdosCard, rakdos), true);
+  assert.equal(commanderColorIdentityFits(blueCard, rakdos), false);
+  assert.equal(commanderColorIdentityFits(rakdosCard, grixis), true);
+  assert.equal(commanderColorIdentityFits(blueCard, fiveColor), true);
+  assert.equal(commanderColorIdentityFits(colorlessCard, colorless), true);
+  assert.equal(commanderColorIdentityFits(redCard, colorless), false);
 });
 
 test("Use My Collection blends owned support with important missing recommendations", () => {
@@ -998,6 +1142,47 @@ function commanderCard(
     colorIdentity,
     marketPrice: 1,
   };
+}
+
+function krenkoCandidatePool(count = 78): CollectionGraphCard[] {
+  const cards: CollectionGraphCard[] = [
+    commanderCard("impact-tremors", "Impact Tremors", ["R"], "Enchantment", "Whenever a creature enters the battlefield under your control, Impact Tremors deals 1 damage to each opponent."),
+    commanderCard("shared-animosity", "Shared Animosity", ["R"], "Enchantment", "Whenever a creature you control attacks, it gets +1/+0 for each other attacking creature that shares a creature type with it."),
+    commanderCard("skirk-prospector", "Skirk Prospector", ["R"], "Creature - Goblin", "Sacrifice a Goblin: Add red mana."),
+    commanderCard("goblin-chieftain", "Goblin Chieftain", ["R"], "Creature - Goblin", "Other Goblin creatures you control get +1/+1 and have haste."),
+    { ...commanderCard("unknown-price-goblin", "Unknown Price Goblin Engine", ["R"], "Creature - Goblin", "Create a Goblin token. Draw a card."), marketPrice: null },
+    commanderCard("off-color-blue", "Blue Token Advisor", ["U"], "Creature - Advisor", "Create a token."),
+  ];
+  for (let index = 0; cards.length < count; index += 1) {
+    const roleText = index % 7 === 0
+      ? "Add one mana. Create a Treasure token."
+      : index % 7 === 1
+        ? "Draw a card."
+        : index % 7 === 2
+          ? "Destroy target creature."
+          : index % 7 === 3
+            ? "Destroy all creatures."
+            : index % 7 === 4
+              ? "Return target card from your graveyard."
+              : index % 7 === 5
+                ? "Create two 1/1 red Goblin creature tokens."
+                : "Creatures you control get +1/+0 until end of turn.";
+    cards.push({
+      ...commanderCard(
+        `krenko-global-${index}`,
+        `Krenko Global Candidate ${index}`,
+        ["R"],
+        index % 4 === 0 ? "Artifact" : "Creature - Goblin",
+        roleText,
+      ),
+      legalities: { commander: "legal" },
+      marketPrice: index % 11 === 0 ? null : 0.5 + (index % 5),
+    });
+  }
+  return cards.map((card) => ({
+    ...card,
+    legalities: { commander: "legal", ...(card.legalities ?? {}) },
+  }));
 }
 
 function requirement(

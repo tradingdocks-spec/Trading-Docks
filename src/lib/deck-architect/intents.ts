@@ -67,6 +67,10 @@ export const BUILD_INTENTS: Record<BuildIntentId, BuildIntent> = {
   },
 };
 
+export function isBuildIntentId(value: unknown): value is BuildIntentId {
+  return typeof value === "string" && value in BUILD_INTENTS;
+}
+
 export function getBuildIntent(intentId: BuildIntentId) {
   return BUILD_INTENTS[intentId] ?? BUILD_INTENTS["use-collection"];
 }

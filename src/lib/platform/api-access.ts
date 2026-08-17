@@ -34,6 +34,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "collector-portfolio", pattern: /^\/api\/collector-portfolio(\/|$)/, kind: "capability", capability: "binder.manage", label: "Collector portfolio APIs" },
   { id: "inventory", pattern: /^\/api\/inventory(\/|$)/, kind: "capability", capability: "collection.read", label: "Inventory APIs" },
   { id: "deck-vault", pattern: /^\/api\/deck-vault(\/|$)/, kind: "capability", capability: "deck.manage", label: "Deck Vault APIs" },
+  { id: "deck-architect", pattern: /^\/api\/deck-architect(\/|$)/, kind: "capability", capability: "deck.manage", label: "Deck Architect APIs" },
   { id: "csv", pattern: /^\/api\/(csv-converter|tools\/csv)(\/|$)/, kind: "capability", capability: "csv.export", label: "CSV APIs" },
   { id: "buying", pattern: /^\/api\/(buylist|market-intelligence|purchasing|purchase-history|precon-intelligence|tcgcsv\/sealed)(\/|$)/, kind: "capability", capability: "buying.manage", label: "Buying APIs" },
   { id: "card-shows", pattern: /^\/api\/card-shows(\/|$)/, kind: "capability", capability: "buying.manage", label: "Card Show APIs" },

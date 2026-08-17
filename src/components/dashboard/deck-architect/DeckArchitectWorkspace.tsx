@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,7 +29,6 @@ import {
   buildWorkingDeckRequirementsFromCollection,
   calculateBuildabilityScore,
   compareRequirementsToCollection,
-  constructValidatedCommanderDeck,
   generateDeckArchitectBrewAnalysis,
   getFormatProfile,
   proposeDeckRecommendations,
@@ -44,6 +43,7 @@ import {
   type DeckArchitectRole,
   type DeckArchitectSavedDeckSummary,
   type DeckArchitectBrewAnalysis,
+  type CommanderGenerationResult,
   type DeckRecommendation,
   type DeckRequirement,
   type OwnershipMatch,
@@ -184,6 +184,10 @@ export function DeckArchitectWorkspace({
   const [builderStatus, setBuilderStatus] = useState<"idle" | "saving" | "error">("idle");
   const [builderError, setBuilderError] = useState("");
   const [buildRequested, setBuildRequested] = useState(Boolean(activeDeck));
+  const [commanderGeneration, setCommanderGeneration] = useState<CommanderGenerationResult | null>(null);
+  const [generationStatus, setGenerationStatus] = useState<"idle" | "generating" | "error">("idle");
+  const [generationError, setGenerationError] = useState("");
+  const [budgetCents, setBudgetCents] = useState(2500);
   const [brewPrompt, setBrewPrompt] = useState("Make this more resilient and use more cards I own.");
 
   const format = getFormatProfile(formatId);
@@ -209,36 +213,36 @@ export function DeckArchitectWorkspace({
         (intentId !== "no-purchases" || Boolean(selectedCommander?.quantityOwned))
       : snapshot.cards.length > 0;
 
-  const deckRequirements = useMemo(
-    () => {
-      if (activeDeck) return importedDeckRequirements;
-      if (!canBuildWorkingDeck || !buildRequested) return [];
-      if (formatId === "commander" && selectedCommander) {
-        return constructValidatedCommanderDeck({
-          commander: selectedCommander,
-          collection: snapshot.cards,
-          intentId,
-          strategyId: selectedStrategyId === "auto" ? null : selectedStrategyId,
-        }).requirements;
-      }
-      return buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId);
-    },
-    [activeDeck, buildRequested, canBuildWorkingDeck, formatId, importedDeckRequirements, intentId, selectedCommander, selectedStrategyId, snapshot.cards],
-  );
-  const hasGeneratedDeck = workflowId !== "discover" && canBuildWorkingDeck && deckRequirements.length > 0;
+  useEffect(() => {
+    setCommanderGeneration(null);
+    setGenerationError("");
+    setGenerationStatus("idle");
+    if (!activeDeck) setBuildRequested(false);
+  }, [activeDeck, formatId, intentId, selectedCommander?.inventoryId, selectedStrategyId]);
+
+  const deckRequirements = useMemo(() => {
+    if (activeDeck) return importedDeckRequirements;
+    if (!canBuildWorkingDeck || !buildRequested) return [];
+    if (formatId === "commander") return commanderGeneration?.requirements ?? [];
+    return buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId);
+  }, [activeDeck, buildRequested, canBuildWorkingDeck, commanderGeneration?.requirements, formatId, importedDeckRequirements, intentId, selectedCommander, snapshot.cards]);
+  const commanderBuildStatus = activeDeck ? "complete" : commanderGeneration?.generationStatus ?? null;
+  const hasGeneratedDeck = workflowId !== "discover" && canBuildWorkingDeck && deckRequirements.length > 0 && commanderBuildStatus !== "failed";
   const potentialCommanders = useMemo(
     () => potentialCommanderMatches.map((match) => match.card),
     [potentialCommanderMatches],
   );
   const targetDeckSize = format.exactDeckSize ?? format.minimumMainDeckSize ?? 60;
-  const hasCompleteWorkingDeck = deckRequirements.reduce((sum, card) => sum + card.requiredQuantity, 0) >= targetDeckSize;
+  const hasCompleteWorkingDeck = commanderBuildStatus === "complete" || (
+    !commanderBuildStatus && deckRequirements.reduce((sum, card) => sum + card.requiredQuantity, 0) >= targetDeckSize
+  );
   const ownership = useMemo(
     () => deckRequirements.length ? compareRequirementsToCollection(deckRequirements, snapshot.cards, format) : [],
     [deckRequirements, format, snapshot.cards],
   );
   const buildability = useMemo(
-    () => ownership.length && hasCompleteWorkingDeck ? calculateBuildabilityScore(ownership) : null,
-    [hasCompleteWorkingDeck, ownership],
+    () => commanderGeneration?.buildability ?? (ownership.length && hasCompleteWorkingDeck ? calculateBuildabilityScore(ownership) : null),
+    [commanderGeneration?.buildability, hasCompleteWorkingDeck, ownership],
   );
   const health = useMemo(
     () => deckRequirements.length && hasCompleteWorkingDeck ? analyzeDeckHealth(deckRequirements, format) : null,
@@ -319,8 +323,48 @@ export function DeckArchitectWorkspace({
     }
   }
 
+  async function runCommanderBuild() {
+    if (!selectedCommander) return;
+    setGenerationStatus("generating");
+    setGenerationError("");
+    setCommanderGeneration(null);
+    setBuildRequested(true);
+    setViewMode("intelligence");
+    try {
+      const response = await fetch("/api/deck-architect/commander-build", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          commander: selectedCommander,
+          intentId,
+          strategyId: selectedStrategyId === "auto" ? null : selectedStrategyId,
+          budgetCents: intentId === "budget" ? budgetCents : null,
+        }),
+      });
+      const payload = await response.json().catch(() => null) as (CommanderGenerationResult & { error?: string }) | null;
+      if (!response.ok || !payload) {
+        throw new Error(payload?.error ?? "Deck generation failed.");
+      }
+      setCommanderGeneration(payload);
+      setViewMode(payload.generationStatus === "complete" ? "deck" : "intelligence");
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : "Deck generation failed.");
+      setCommanderGeneration(null);
+      setGenerationStatus("error");
+      setBuildRequested(false);
+      setViewMode("intelligence");
+    } finally {
+      setGenerationStatus((current) => current === "generating" ? "idle" : current);
+    }
+  }
+
   async function openInDeckBuilder() {
     if (!deckRequirements.length) return;
+    if (commanderBuildStatus && commanderBuildStatus !== "complete") {
+      setBuilderStatus("error");
+      setBuilderError("Only a complete validated deck can be saved to Deck Vault. Change build settings or choose another strategy.");
+      return;
+    }
     setBuilderStatus("saving");
     setBuilderError("");
     try {
@@ -422,70 +466,72 @@ export function DeckArchitectWorkspace({
         ) : (
           <section className={[
             "mt-6 grid gap-5",
-            hasGeneratedDeck ? "xl:grid-cols-[280px_minmax(0,1fr)]" : "xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)]",
+            hasGeneratedDeck ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)]",
           ].join(" ")}>
-            <aside className="space-y-4">
-              <SetupPanel
-                workflowId={workflowId}
-                setWorkflowId={setWorkflowId}
-                formatId={formatId}
-                setFormatId={(value) => {
-                  setFormatId(value);
-                  setSelectedCommanderId(null);
-                  setSelectedStrategyId(null);
-                  setPotentialCommander(null);
-                  setSelectedCardId(null);
-                  setBuildRequested(false);
-                }}
-                intentId={intentId}
-                setIntentId={(value) => {
-                  setIntentId(value);
-                  setBuildRequested(false);
-                }}
-              />
-              {format.commanderRequired && !hasGeneratedDeck ? (
-                <CommanderPicker
-                  commanders={filteredCommanders}
-                  selectedCommanderId={selectedCommanderId}
-                  setSelectedCommanderId={(id) => {
-                    setSelectedCommanderId(id);
+            {!hasGeneratedDeck ? (
+              <aside className="space-y-4">
+                <SetupPanel
+                  workflowId={workflowId}
+                  setWorkflowId={setWorkflowId}
+                  formatId={formatId}
+                  setFormatId={(value) => {
+                    setFormatId(value);
+                    setSelectedCommanderId(null);
                     setSelectedStrategyId(null);
                     setPotentialCommander(null);
+                    setSelectedCardId(null);
                     setBuildRequested(false);
-                    setWorkflowId(workflowId ?? "build-deck");
-                    setViewMode("deck");
                   }}
-                  search={commanderSearch}
-                  setSearch={setCommanderSearch}
-                  potentialCommanders={potentialCommanders}
-                  potentialCommanderError={potentialCommanderError}
-                  potentialCommanderLoading={potentialCommanderLoading}
-                  potentialCommanderMatches={potentialCommanderMatches}
-                  onSearchPotentialCommanders={searchPotentialCommanders}
-                  onSelectPotentialCommander={(card) => {
-                    setPotentialCommander(card);
-                    setSelectedCommanderId(card.inventoryId);
-                    setSelectedStrategyId(null);
+                  intentId={intentId}
+                  setIntentId={(value) => {
+                    setIntentId(value);
                     setBuildRequested(false);
-                    setWorkflowId(workflowId ?? "build-deck");
-                    setViewMode("deck");
-                  }}
-                  strategiesByCommander={{ ...intelligence.commanderStrategies, ...potentialStrategiesByCommander }}
-                />
-              ) : null}
-              {format.commanderRequired && selectedCommander && !hasGeneratedDeck ? (
-                <StrategyPicker
-                  commander={selectedCommander}
-                  fits={selectedCommanderStrategyFits}
-                  selectedStrategyId={selectedStrategyId}
-                  setSelectedStrategyId={(value) => {
-                    setSelectedStrategyId(value);
-                    setBuildRequested(false);
-                    setViewMode("deck");
                   }}
                 />
-              ) : null}
-            </aside>
+                {format.commanderRequired ? (
+                  <CommanderPicker
+                    commanders={filteredCommanders}
+                    selectedCommanderId={selectedCommanderId}
+                    setSelectedCommanderId={(id) => {
+                      setSelectedCommanderId(id);
+                      setSelectedStrategyId(null);
+                      setPotentialCommander(null);
+                      setBuildRequested(false);
+                      setWorkflowId(workflowId ?? "build-deck");
+                      setViewMode("deck");
+                    }}
+                    search={commanderSearch}
+                    setSearch={setCommanderSearch}
+                    potentialCommanders={potentialCommanders}
+                    potentialCommanderError={potentialCommanderError}
+                    potentialCommanderLoading={potentialCommanderLoading}
+                    potentialCommanderMatches={potentialCommanderMatches}
+                    onSearchPotentialCommanders={searchPotentialCommanders}
+                    onSelectPotentialCommander={(card) => {
+                      setPotentialCommander(card);
+                      setSelectedCommanderId(card.inventoryId);
+                      setSelectedStrategyId(null);
+                      setBuildRequested(false);
+                      setWorkflowId(workflowId ?? "build-deck");
+                      setViewMode("deck");
+                    }}
+                    strategiesByCommander={{ ...intelligence.commanderStrategies, ...potentialStrategiesByCommander }}
+                  />
+                ) : null}
+                {format.commanderRequired && selectedCommander ? (
+                  <StrategyPicker
+                    commander={selectedCommander}
+                    fits={selectedCommanderStrategyFits}
+                    selectedStrategyId={selectedStrategyId}
+                    setSelectedStrategyId={(value) => {
+                      setSelectedStrategyId(value);
+                      setBuildRequested(false);
+                      setViewMode("deck");
+                    }}
+                  />
+                ) : null}
+              </aside>
+            ) : null}
 
             <div className="min-w-0">
               {workflowId === "discover" ? (
@@ -499,7 +545,7 @@ export function DeckArchitectWorkspace({
                     setViewMode("deck");
                   }}
                 />
-              ) : !canBuildWorkingDeck ? (
+              ) : !hasGeneratedDeck ? (
                 <PreBuildState
                   formatId={formatId}
                   formatRequiresCommander={format.commanderRequired}
@@ -510,9 +556,17 @@ export function DeckArchitectWorkspace({
                   intentId={intentId}
                   setFormatId={setFormatId}
                   readyToBuild={canBuildWorkingDeck}
+                  budgetCents={budgetCents}
+                  setBudgetCents={setBudgetCents}
+                  generationStatus={generationStatus}
+                  generationError={generationError}
+                  generationResult={commanderGeneration}
                   onBuild={() => {
-                    setBuildRequested(true);
-                    setViewMode("intelligence");
+                    if (formatId === "commander") void runCommanderBuild();
+                    else {
+                      setBuildRequested(true);
+                      setViewMode("intelligence");
+                    }
                   }}
                 />
               ) : (
@@ -524,6 +578,16 @@ export function DeckArchitectWorkspace({
                   health={health}
                   isCompleteWorkingDeck={hasCompleteWorkingDeck}
                   intentLabel={INTENT_COPY[intent.id].label}
+                  generationStatus={commanderBuildStatus}
+                  generationWarnings={commanderGeneration?.warnings ?? []}
+                  generationFailure={commanderGeneration?.failure ?? null}
+                  onChangeBuildSettings={() => {
+                    setBuildRequested(false);
+                    setCommanderGeneration(null);
+                    setGenerationError("");
+                    setGenerationStatus("idle");
+                    setViewMode("deck");
+                  }}
                   lockedCards={lockedCards}
                   missing={missing}
                   mustIncludeCards={mustIncludeCards}
@@ -1055,6 +1119,11 @@ function PreBuildState({
   intentId,
   setFormatId,
   readyToBuild,
+  budgetCents,
+  setBudgetCents,
+  generationStatus,
+  generationError,
+  generationResult,
   onBuild,
 }: {
   formatId: DeckArchitectFormatId;
@@ -1066,6 +1135,11 @@ function PreBuildState({
   intentId: BuildIntentId;
   setFormatId: (value: DeckArchitectFormatId) => void;
   readyToBuild: boolean;
+  budgetCents: number;
+  setBudgetCents: (value: number) => void;
+  generationStatus: "idle" | "generating" | "error";
+  generationError: string;
+  generationResult: CommanderGenerationResult | null;
   onBuild: () => void;
 }) {
   if (!hasCollection) {
@@ -1105,6 +1179,68 @@ function PreBuildState({
     );
   }
 
+  if (generationStatus === "generating") {
+    return (
+      <CenteredState
+        title="Building your Commander deck"
+        body="Finding legal candidates, matching the strategy, building the mana base, checking owned cards, and validating the final 100-card plan."
+      />
+    );
+  }
+
+  if (generationStatus === "error" || generationResult?.generationStatus === "failed") {
+    return (
+      <CenteredState
+        title="Deck couldn't be generated"
+        body={generationResult?.failure ?? generationError ?? "Deck Architect could not assemble a meaningful validated Commander deck from the available data."}
+        action={(
+          <button
+            type="button"
+            onClick={onBuild}
+            className="inline-flex items-center gap-2 rounded-[12px] bg-cyan-300 px-5 py-3 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+          >
+            Try again
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        )}
+      />
+    );
+  }
+
+  const action = readyToBuild ? (
+    <div className="flex flex-col items-center gap-4">
+      {intentId === "budget" ? (
+        <div className="w-full max-w-md rounded-[16px] bg-black/25 p-4 text-left">
+          <p className="text-sm font-semibold text-slate-200">Upgrade budget</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Set the missing-card budget Deck Architect should respect while assembling candidates.</p>
+          <div className="mt-3 grid grid-cols-4 gap-2">
+            {[2500, 5000, 10000, 25000].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setBudgetCents(value)}
+                className={[
+                  "h-9 rounded-[10px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                  budgetCents === value ? "bg-cyan-300 text-[#02131b]" : "bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]",
+                ].join(" ")}
+              >
+                ${(value / 100).toFixed(0)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      <button
+        type="button"
+        onClick={onBuild}
+        className="inline-flex items-center gap-2 rounded-[12px] bg-cyan-300 px-5 py-3 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        Build My Deck
+        <ArrowRight className="h-4 w-4" />
+      </button>
+    </div>
+  ) : null;
+
   return (
     <CenteredState
       title={formatId === "commander" && hasSelectedCommander ? "Choose a strategy" : formatId === "commander" ? "Choose a commander" : "Ready to build"}
@@ -1115,16 +1251,7 @@ function PreBuildState({
             : "Select an owned or potential commander to continue."
           : "Deck Architect can now create a working deck plan from your collection."
       }
-      action={readyToBuild ? (
-        <button
-          type="button"
-          onClick={onBuild}
-          className="inline-flex items-center gap-2 rounded-[12px] bg-cyan-300 px-5 py-3 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
-        >
-          Build My Deck
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      ) : null}
+      action={action}
     />
   );
 }
@@ -1137,6 +1264,10 @@ function ActiveDeckWorkspace({
   health,
   isCompleteWorkingDeck,
   intentLabel,
+  generationStatus,
+  generationWarnings,
+  generationFailure,
+  onChangeBuildSettings,
   lockedCards,
   missing,
   mustIncludeCards,
@@ -1166,6 +1297,10 @@ function ActiveDeckWorkspace({
   health: ReturnType<typeof analyzeDeckHealth> | null;
   isCompleteWorkingDeck: boolean;
   intentLabel: string;
+  generationStatus: CommanderGenerationResult["generationStatus"] | null;
+  generationWarnings: string[];
+  generationFailure: string | null;
+  onChangeBuildSettings: () => void;
   lockedCards: Set<string>;
   missing: OwnershipMatch[];
   mustIncludeCards: Set<string>;
@@ -1192,6 +1327,11 @@ function ActiveDeckWorkspace({
   const owned = buildability?.ownedCards ?? 0;
   const required = buildability?.requiredCards ?? 0;
   const missingCount = buildability?.missingCards ?? 0;
+  const statusLabel = generationStatus === "complete"
+    ? "Complete validated deck"
+    : generationStatus === "draft_shell"
+      ? "Draft shell"
+      : "Working plan";
 
   return (
     <section className="min-w-0">
@@ -1201,13 +1341,13 @@ function ActiveDeckWorkspace({
             {selectedCommander ? <CardThumb card={selectedCommander} size="large" /> : null}
             <div className="min-w-0">
               <p className="text-sm font-semibold text-cyan-300">
-                {formatName} / {selectedStrategyLabel ? `${selectedStrategyLabel} / ` : ""}{intentLabel}
+                {statusLabel} / {formatName} / {selectedStrategyLabel ? `${selectedStrategyLabel} / ` : ""}{intentLabel}
               </p>
               <h2 className="mt-1 truncate text-3xl font-semibold tracking-[-0.05em] text-white">{deckName}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                 {isCompleteWorkingDeck
                   ? "Working deck plan assembled from your build intent, collection, and missing-card gaps. Review every change before saving to Deck Vault."
-                  : "Working shell assembled from your build intent and available card data. Add more cards or choose another format for full deck scoring."}
+                  : generationFailure ?? "Draft shell assembled from available card data. Change build settings or choose another strategy before saving to Deck Vault."}
               </p>
             </div>
           </div>
@@ -1233,14 +1373,30 @@ function ActiveDeckWorkspace({
           ))}
           <button
             type="button"
+            onClick={onChangeBuildSettings}
+            className="h-9 rounded-full bg-white/[0.06] px-4 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+          >
+            Change build settings
+          </button>
+          <button
+            type="button"
             onClick={() => void onOpenInBuilder()}
-            disabled={!ownership.length || builderStatus === "saving"}
+            disabled={!ownership.length || builderStatus === "saving" || generationStatus === "draft_shell" || generationStatus === "failed"}
             className="ml-auto inline-flex h-9 items-center gap-2 rounded-full bg-cyan-300 px-4 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {builderStatus === "saving" ? "Saving..." : "Open in Deck Builder"}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
+        {generationWarnings.length ? (
+          <div className="mt-3 space-y-2">
+            {generationWarnings.map((warning) => (
+              <p key={warning} className="rounded-[12px] bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+                {warning}
+              </p>
+            ))}
+          </div>
+        ) : null}
         {builderStatus === "error" ? (
           <p className="mt-3 rounded-[12px] bg-rose-400/10 px-3 py-2 text-sm text-rose-100" role="alert">
             {builderError}

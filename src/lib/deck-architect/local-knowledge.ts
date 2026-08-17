@@ -555,6 +555,103 @@ const COMMANDER_STRATEGY_LIBRARY: Record<string, CommanderStrategyProfile[]> = {
       [seed("Ichormoon Gauntlet", 1, ["synergy", "card-advantage"], 5, "Artifact")],
     ),
   ],
+  [normalizeCardKey("Krenko, Mob Boss")]: [
+    libraryStrategy(
+      "krenko-go-wide-goblins",
+      "Krenko, Mob Boss",
+      "Go-Wide Goblins",
+      "Create a wide Goblin board, add haste and anthem effects, then convert tokens into combat pressure.",
+      ["token-generation", "threat", "finisher", "synergy"],
+      [
+        seed("Skirk Prospector", 1, ["ramp", "sacrifice-outlet", "synergy"], 1.5, "Creature - Goblin"),
+        seed("Goblin Chieftain", 1, ["threat", "finisher", "synergy"], 8, "Creature - Goblin"),
+        seed("Impact Tremors", 1, ["synergy", "finisher"], 2, "Enchantment"),
+        seed("Shared Animosity", 1, ["finisher", "synergy"], 10, "Enchantment"),
+      ],
+      [
+        seed("Goblin Instigator", 1, ["token-generation", "threat"], 0.2, "Creature - Goblin"),
+        seed("Hordeling Outburst", 1, ["token-generation"], 0.25, "Sorcery"),
+        seed("Dragon Fodder", 1, ["token-generation"], 0.15, "Sorcery"),
+      ],
+      {
+        primaryArchetypes: ["aggro"],
+        strategies: ["Tokens", "Typal"],
+        themes: ["Goblins", "Tokens"],
+        typal: ["Goblin"],
+        mechanics: ["Haste"],
+      },
+    ),
+    libraryStrategy(
+      "krenko-goblin-aristocrats",
+      "Krenko, Mob Boss",
+      "Goblin Aristocrats",
+      "Use Krenko tokens as sacrifice fuel, then convert deaths and Treasures into damage and recovery.",
+      ["token-generation", "sacrifice-outlet", "synergy", "recursion"],
+      [
+        seed("Skirk Prospector", 1, ["ramp", "sacrifice-outlet", "synergy"], 1.5, "Creature - Goblin"),
+        seed("Goblin Bombardment", 1, ["sacrifice-outlet", "interaction", "finisher"], 4, "Enchantment"),
+        seed("Pashalik Mons", 1, ["synergy", "finisher"], 2.5, "Legendary Creature - Goblin Warrior"),
+        seed("Mogg War Marshal", 1, ["token-generation"], 0.3, "Creature - Goblin Warrior"),
+      ],
+      [
+        seed("Thermopod", 1, ["sacrifice-outlet", "ramp"], 0.5, "Creature - Slug"),
+        seed("Barrage of Expendables", 1, ["sacrifice-outlet", "interaction"], 0.15, "Enchantment"),
+      ],
+      {
+        primaryArchetypes: ["aggro-combo"],
+        strategies: ["Aristocrats", "Tokens"],
+        themes: ["Goblins", "Sacrifice", "Treasure"],
+        typal: ["Goblin"],
+        mechanics: [],
+      },
+    ),
+    libraryStrategy(
+      "krenko-goblin-combo",
+      "Krenko, Mob Boss",
+      "Goblin Combo",
+      "Pair Krenko with haste, untap, and mana-conversion effects. Combo lines remain review-first.",
+      ["combo-piece", "token-generation", "ramp", "protection"],
+      [
+        seed("Thornbite Staff", 1, ["combo-piece", "synergy"], 12, "Artifact - Equipment"),
+        seed("Skirk Prospector", 1, ["ramp", "sacrifice-outlet", "combo-piece"], 1.5, "Creature - Goblin"),
+        seed("Goblin Warchief", 1, ["ramp", "threat", "synergy"], 1, "Creature - Goblin Warrior"),
+      ],
+      [
+        seed("Lightning Greaves", 1, ["protection"], 6, "Artifact - Equipment"),
+        seed("Magewright's Stone", 1, ["combo-piece"], 0.5, "Artifact"),
+      ],
+      {
+        primaryArchetypes: ["combo"],
+        strategies: ["Tokens", "Combo"],
+        themes: ["Goblins"],
+        typal: ["Goblin"],
+        mechanics: ["Untap", "Haste"],
+      },
+    ),
+    libraryStrategy(
+      "krenko-goblin-aggro",
+      "Krenko, Mob Boss",
+      "Goblin Aggro",
+      "Lower the curve, maximize Goblin density, and pressure life totals before slower decks stabilize.",
+      ["threat", "finisher", "token-generation", "burn"],
+      [
+        seed("Goblin Guide", 1, ["threat"], 8, "Creature - Goblin Scout"),
+        seed("Goblin Rabblemaster", 1, ["token-generation", "threat"], 5, "Creature - Goblin Warrior"),
+        seed("Lightning Bolt", 1, ["interaction", "burn"], 1, "Instant"),
+      ],
+      [
+        seed("Foundry Street Denizen", 1, ["threat", "synergy"], 0.15, "Creature - Goblin Warrior"),
+        seed("Reckless Bushwhacker", 1, ["finisher", "threat"], 0.5, "Creature - Goblin Warrior Ally"),
+      ],
+      {
+        primaryArchetypes: ["aggro"],
+        strategies: ["Typal"],
+        themes: ["Goblins"],
+        typal: ["Goblin"],
+        mechanics: ["Haste"],
+      },
+    ),
+  ],
 };
 
 function addStrategy(

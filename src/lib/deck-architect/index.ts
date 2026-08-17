@@ -3,6 +3,7 @@ export * from "./brewer.ts";
 export * from "./card-roles.ts";
 export * from "./commander-search.ts";
 export * from "./commander-catalog.ts";
+export * from "./commander-global-candidates.ts";
 export * from "./formats.ts";
 export * from "./health.ts";
 export * from "./intents.ts";

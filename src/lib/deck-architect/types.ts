@@ -383,6 +383,23 @@ export type DeckValidationResult = {
   issues: DeckValidationIssue[];
 };
 
+export type DeckGenerationStatus = "complete" | "draft_shell" | "failed";
+
+export type CommanderGenerationResult = {
+  generationStatus: DeckGenerationStatus;
+  requirements: DeckRequirement[];
+  validation: DeckValidationResult;
+  ownership: OwnershipMatch[];
+  buildability: BuildabilityScore | null;
+  strategyFit: CommanderStrategyFit | null;
+  candidateSourcePolicy: string;
+  candidateSource: "owned-only" | "owned-plus-curated" | "global-scryfall" | "global-fixture";
+  generatedCardCount: number;
+  failure: string | null;
+  warnings: string[];
+  performanceMs?: number;
+};
+
 export type DeckArchitectIntelligence = {
   generatedAt: string;
   supportedFormats: DeckArchitectFormatId[];

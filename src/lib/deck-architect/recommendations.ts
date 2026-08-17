@@ -1,7 +1,8 @@
 import { calculateBuildabilityScore } from "./buildability.ts";
 import { classifyCardRoles } from "./card-roles.ts";
 import { getCommanderCatalogCandidates } from "./commander-catalog.ts";
-import { getFormatProfile, maximumCopiesForCard } from "./formats.ts";
+import { commanderColorIdentityFits } from "./commander-global-candidates.ts";
+import { getFormatProfile, isBasicLand, maximumCopiesForCard } from "./formats.ts";
 import { validateDeckRequirements } from "./legality.ts";
 import {
   getLocalArchetypes,
@@ -27,6 +28,7 @@ import type {
   OwnershipMatch,
   RecommendationConfidence,
   DeckChangeProposal,
+  CommanderGenerationResult,
   DeckKnowledgeCardSeed,
 } from "./types.ts";
 
@@ -181,29 +183,45 @@ export function constructValidatedCommanderDeck({
   collection,
   intentId,
   strategyId,
+  globalCandidates = [],
+  budgetCents,
+  candidateSource = globalCandidates.length ? "global-scryfall" : "owned-plus-curated",
 }: {
   commander: CollectionGraphCard;
   collection: CollectionGraphCard[];
   intentId: BuildIntentId;
   strategyId?: string | null;
-}) {
+  globalCandidates?: CollectionGraphCard[];
+  budgetCents?: number | null;
+  candidateSource?: CommanderGenerationResult["candidateSource"];
+}): CommanderGenerationResult {
+  const started = Date.now();
   const format = getFormatProfile("commander");
   const strategyFits = rankCommanderStrategiesForCollection(commander, collection, intentId);
   const strategyFit = strategyId
     ? strategyFits.find((fit) => fit.strategy.id === strategyId) ?? strategyFits[0] ?? null
     : strategyFits[0] ?? null;
-  const pool = collection
+  const maxBudgetDollars = typeof budgetCents === "number"
+    ? Math.max(0, budgetCents / 100)
+    : 25;
+  const ownedPool = collection
     .filter((card) => card.inventoryId !== commander.inventoryId)
-    .filter((card) => colorIdentityFits(card, commander))
-    .filter((card) => intentId !== "budget" || (card.marketPrice ?? 0) <= 25)
-    .sort((left, right) => {
-      const leftRoles = classifyCardRoles(left);
-      const rightRoles = classifyCardRoles(right);
-      const targetRoles = strategyFit?.strategy.roles ?? [];
-      const leftScore = scoreCardForIntent(left, intentId) + leftRoles.filter((role) => targetRoles.includes(role)).length * 12;
-      const rightScore = scoreCardForIntent(right, intentId) + rightRoles.filter((role) => targetRoles.includes(role)).length * 12;
-      return rightScore - leftScore || left.name.localeCompare(right.name);
-    });
+    .filter((card) => commanderColorIdentityFits(card, commander))
+    .filter((card) => commanderLegalOrUnknown(card))
+    .filter((card) => intentId !== "budget" || card.marketPrice === null || (card.marketPrice ?? 0) <= maxBudgetDollars);
+  const globalPool = globalCandidates
+    .filter((card) => commanderColorIdentityFits(card, commander))
+    .filter((card) => card.legalities?.commander === "legal")
+    .filter((card) => intentId !== "budget" || card.marketPrice === null || (card.marketPrice ?? 0) <= Math.max(5, maxBudgetDollars / 3));
+  const pool = rankCommanderPool({
+    cards: intentId === "no-purchases"
+      ? ownedPool
+      : intentId === "strongest-possible" || intentId === "competitive"
+        ? [...globalPool, ...ownedPool]
+        : [...ownedPool, ...globalPool],
+    intentId,
+    targetRoles: strategyFit?.strategy.roles ?? [],
+  });
   const requirements: DeckRequirement[] = [toRequirement(commander, 1, "commander", true)];
   const usedNames = new Set([normalizeCardKey(commander.name)]);
   const allowMissingCards = intentId !== "no-purchases";
@@ -222,17 +240,27 @@ export function constructValidatedCommanderDeck({
     addSeedRequirements(requirements, usedNames, strategySeeds, commander, format, strategyFit?.strategy.id ?? "strategy", intentId);
   }
 
+  addRoleBucketCards(requirements, usedNames, pool, [
+    { roles: ["ramp", "mana-fixing"], target: 10 },
+    { roles: ["card-advantage", "card-draw"], target: 10 },
+    { roles: ["interaction", "removal", "targeted-removal", "countermagic"], target: 11 },
+    { roles: ["board-wipe", "mass-removal"], target: 3 },
+    { roles: ["protection", "recursion"], target: 6 },
+    { roles: strategyFit?.strategy.roles ?? ["synergy"], target: 22 },
+    { roles: ["threat", "finisher", "combo-piece"], target: 8 },
+  ], commander, format);
+
   for (const card of pool) {
-    if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
-    const key = normalizeCardKey(card.name);
-    if (usedNames.has(key) && !format.singleton) continue;
-    if (format.singleton && usedNames.has(key)) continue;
-    requirements.push(toRequirement(card, 1, "main", false));
-    usedNames.add(key);
+    if (nonLandMainCount(requirements) >= 63) break;
+    addPoolCard(requirements, usedNames, card, commander, format);
   }
 
   if (allowMissingCards && !["strongest-possible", "competitive", "casual"].includes(intentId)) {
     addSeedRequirements(requirements, usedNames, catalogSeeds, commander, format, strategyFit?.strategy.id ?? "catalog", intentId);
+  }
+
+  if (intentId === "no-purchases") {
+    addOwnedBasicLands(requirements, collection, commander, 100);
   }
 
   const basicLand = fallbackLandForColors(commander.colorIdentity ?? []);
@@ -252,14 +280,40 @@ export function constructValidatedCommanderDeck({
   }
   const validation = validateDeckRequirements(requirements, format, { commander });
   const ownership = compareRequirementsToCollection(requirements, collection, format);
+  const generatedCardCount = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
+  const meaningfulNonLandCount = requirements
+    .filter((requirement) => requirement.board === "main" && !requirement.roles.includes("land"))
+    .reduce((sum, item) => sum + item.requiredQuantity, 0);
+  const generationStatus =
+    validation.valid && generatedCardCount === 100 && meaningfulNonLandCount >= 30
+      ? "complete"
+      : generatedCardCount > 1 || meaningfulNonLandCount > 0
+        ? "draft_shell"
+        : "failed";
+  const warnings: string[] = [];
+  if (intentId === "budget" && requirements.some((requirement) => requirement.estimatedPrice === null)) {
+    warnings.push("Some card prices are unavailable, so strict budget compliance cannot be guaranteed.");
+  }
+  if (intentId === "no-purchases" && generationStatus !== "complete") {
+    warnings.push("You don't currently own enough legal cards to complete this deck without purchases.");
+  }
   return {
     requirements,
     validation,
     ownership,
-    buildability: validation.valid ? calculateBuildabilityScore(ownership) : null,
+    buildability: generationStatus === "complete" ? calculateBuildabilityScore(ownership) : null,
     strategyFit,
     candidateSourcePolicy: candidateSourcePolicyForIntent(intentId),
-    failure: validation.valid ? null : validation.issues[0]?.message ?? "A valid complete Commander deck could not be generated.",
+    candidateSource: intentId === "no-purchases" ? "owned-only" : candidateSource,
+    generatedCardCount,
+    generationStatus,
+    failure: generationStatus === "failed"
+      ? "Deck Architect could not assemble a meaningful Commander deck from the available candidate data."
+      : generationStatus === "draft_shell"
+        ? validation.issues[0]?.message ?? "A useful draft shell was generated, but it is not a complete validated Commander deck."
+        : null,
+    warnings,
+    performanceMs: Date.now() - started,
   };
 }
 
@@ -573,6 +627,105 @@ function colorIdentityFits(card: CollectionGraphCard, commander: CollectionGraph
   const colors = card.colorIdentity ?? [];
   const commanderColors = commander.colorIdentity ?? [];
   return colors.every((color) => commanderColors.includes(color));
+}
+
+function commanderLegalOrUnknown(card: CollectionGraphCard) {
+  return !card.legalities?.commander || card.legalities.commander === "legal";
+}
+
+function rankCommanderPool({
+  cards,
+  intentId,
+  targetRoles,
+}: {
+  cards: CollectionGraphCard[];
+  intentId: BuildIntentId;
+  targetRoles: DeckArchitectRole[];
+}) {
+  const seen = new Set<string>();
+  return cards
+    .filter((card) => {
+      const key = normalizeCardKey(card.name);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((left, right) => {
+      const leftRoles = classifyCardRoles(left);
+      const rightRoles = classifyCardRoles(right);
+      const leftScore = scoreCardForIntent(left, intentId) + leftRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      const rightScore = scoreCardForIntent(right, intentId) + rightRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      return rightScore - leftScore || left.name.localeCompare(right.name);
+    });
+}
+
+function addRoleBucketCards(
+  requirements: DeckRequirement[],
+  usedNames: Set<string>,
+  pool: CollectionGraphCard[],
+  buckets: Array<{ roles: DeckArchitectRole[]; target: number }>,
+  commander: CollectionGraphCard,
+  format: FormatProfile,
+) {
+  for (const bucket of buckets) {
+    let current = requirements
+      .filter((requirement) => requirement.roles.some((role) => bucket.roles.includes(role)))
+      .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+    for (const card of pool) {
+      if (current >= bucket.target || nonLandMainCount(requirements) >= 63) break;
+      const added = addPoolCard(requirements, usedNames, card, commander, format, bucket.roles);
+      if (added) current += 1;
+    }
+  }
+}
+
+function addPoolCard(
+  requirements: DeckRequirement[],
+  usedNames: Set<string>,
+  card: CollectionGraphCard,
+  commander: CollectionGraphCard,
+  format: FormatProfile,
+  requiredRoles?: DeckArchitectRole[],
+) {
+  const key = normalizeCardKey(card.name);
+  if (format.singleton && usedNames.has(key)) return false;
+  if (!commanderColorIdentityFits(card, commander)) return false;
+  const roles = classifyCardRoles(card);
+  if (requiredRoles?.length && !roles.some((role) => requiredRoles.includes(role))) return false;
+  if (roles.includes("land")) return false;
+  requirements.push(toRequirement(card, 1, "main", false));
+  usedNames.add(key);
+  return true;
+}
+
+function addOwnedBasicLands(
+  requirements: DeckRequirement[],
+  collection: CollectionGraphCard[],
+  commander: CollectionGraphCard,
+  targetCount: number,
+) {
+  const ownedBasics = collection
+    .filter((card) => isBasicLand(card.name) && card.quantityOwned > 0)
+    .filter((card) => commanderColorIdentityFits(card, commander))
+    .sort((left, right) => right.quantityOwned - left.quantityOwned || left.name.localeCompare(right.name));
+  for (const card of ownedBasics) {
+    const currentCount = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
+    if (currentCount >= targetCount) break;
+    const quantity = Math.min(card.quantityOwned, targetCount - currentCount);
+    if (quantity <= 0) continue;
+    requirements.push({
+      ...toRequirement(card, quantity, "main", false),
+      id: `owned-basic:${normalizeCardKey(card.name)}:${requirements.length}`,
+      roles: ["land"],
+      legalityStatus: "unknown",
+    });
+  }
+}
+
+function nonLandMainCount(requirements: DeckRequirement[]) {
+  return requirements
+    .filter((requirement) => requirement.board === "main" && !requirement.roles.includes("land"))
+    .reduce((sum, item) => sum + item.requiredQuantity, 0);
 }
 
 function seedColorIdentityFits(seed: DeckKnowledgeCardSeed, commander: CollectionGraphCard) {
