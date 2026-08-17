@@ -302,7 +302,9 @@ export function DeckArchitectWorkspace({
   );
 
   async function searchPotentialCommanders(query: string) {
-    if (query.trim().length < 2) {
+    const searchText = query.trim();
+    const commanderQuery = searchText.replace(/^krinko\b/i, "Krenko");
+    if (searchText.length < 2) {
       setPotentialCommanderMatches([]);
       setPotentialCommanderError("");
       return;
@@ -310,12 +312,12 @@ export function DeckArchitectWorkspace({
     setPotentialCommanderLoading(true);
     setPotentialCommanderError("");
     try {
-      const params = new URLSearchParams({ q: `${query.trim()} is:commander` });
+      const params = new URLSearchParams({ q: `${commanderQuery} is:commander` });
       const response = await fetch(`/api/deck-vault/card-search?${params.toString()}`);
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Commander search failed.");
       const candidates = (payload.results ?? []).map(scryfallResultToPotentialCommander);
-      setPotentialCommanderMatches(rankCommanderSearchResults(candidates, query, { limit: 12 }));
+      setPotentialCommanderMatches(rankCommanderSearchResults(candidates, commanderQuery, { limit: 12 }));
     } catch (error) {
       setPotentialCommanderError(error instanceof Error ? error.message : "Commander search failed.");
     } finally {
@@ -402,18 +404,15 @@ export function DeckArchitectWorkspace({
       <div className="mx-auto max-w-[1520px]">
         {snapshot.error ? <LoadError message={snapshot.error} /> : null}
 
-        <header className="border-y border-white/[0.08] py-6">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-end">
+        <header className="border-y border-white/[0.08] py-4">
+          <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-cyan-300">Trading Docks</p>
-              <h1 className="mt-2 text-4xl font-semibold leading-none tracking-[-0.055em] sm:text-5xl">
+              <h1 className="mt-1 text-4xl font-semibold leading-none tracking-[-0.045em]">
                 Deck Architect
               </h1>
-              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
-                Build, improve, and discover decks using the cards you actually own.
-              </p>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                Choose a format, build around your collection, or find decks you are already close to completing.
+              <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300">
+                Build decks from your collection, upgrade what you own, or discover what you're close to completing.
               </p>
             </div>
             <CollectionSummary snapshot={snapshot} />
@@ -465,8 +464,8 @@ export function DeckArchitectWorkspace({
           </section>
         ) : (
           <section className={[
-            "mt-6 grid gap-5",
-            hasGeneratedDeck ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)]",
+            "mt-5 grid gap-5",
+            hasGeneratedDeck ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(360px,0.34fr)_minmax(0,0.66fr)] xl:items-start",
           ].join(" ")}>
             {!hasGeneratedDeck ? (
               <aside className="space-y-4">
@@ -475,10 +474,15 @@ export function DeckArchitectWorkspace({
                   setWorkflowId={setWorkflowId}
                   formatId={formatId}
                   setFormatId={(value) => {
+                    const nextFormat = getFormatProfile(value);
                     setFormatId(value);
-                    setSelectedCommanderId(null);
-                    setSelectedStrategyId(null);
-                    setPotentialCommander(null);
+                    if (!nextFormat.commanderRequired) {
+                      setSelectedCommanderId(null);
+                      setSelectedStrategyId(null);
+                      setPotentialCommander(null);
+                    } else if (selectedCommander) {
+                      setSelectedStrategyId((current) => current ?? "auto");
+                    }
                     setSelectedCardId(null);
                     setBuildRequested(false);
                   }}
@@ -491,14 +495,21 @@ export function DeckArchitectWorkspace({
                 {format.commanderRequired ? (
                   <CommanderPicker
                     commanders={filteredCommanders}
+                    selectedCommander={selectedCommander}
                     selectedCommanderId={selectedCommanderId}
                     setSelectedCommanderId={(id) => {
                       setSelectedCommanderId(id);
-                      setSelectedStrategyId(null);
+                      setSelectedStrategyId("auto");
                       setPotentialCommander(null);
                       setBuildRequested(false);
                       setWorkflowId(workflowId ?? "build-deck");
                       setViewMode("deck");
+                    }}
+                    onClearCommander={() => {
+                      setSelectedCommanderId(null);
+                      setPotentialCommander(null);
+                      setSelectedStrategyId(null);
+                      setBuildRequested(false);
                     }}
                     search={commanderSearch}
                     setSearch={setCommanderSearch}
@@ -510,7 +521,7 @@ export function DeckArchitectWorkspace({
                     onSelectPotentialCommander={(card) => {
                       setPotentialCommander(card);
                       setSelectedCommanderId(card.inventoryId);
-                      setSelectedStrategyId(null);
+                      setSelectedStrategyId("auto");
                       setBuildRequested(false);
                       setWorkflowId(workflowId ?? "build-deck");
                       setViewMode("deck");
@@ -553,6 +564,8 @@ export function DeckArchitectWorkspace({
                   hasCommanders={snapshot.commanderCandidates.length > 0}
                   hasSelectedCommander={Boolean(selectedCommander)}
                   selectedCommanderOwned={Boolean(selectedCommander?.quantityOwned)}
+                  selectedCommander={selectedCommander}
+                  selectedStrategyLabel={selectedStrategyFit?.strategy.label ?? (selectedStrategyId === "auto" ? "Architect for me" : null)}
                   intentId={intentId}
                   setFormatId={setFormatId}
                   readyToBuild={canBuildWorkingDeck}
@@ -621,31 +634,18 @@ export function DeckArchitectWorkspace({
 
 function CollectionSummary({ snapshot }: { snapshot: DeckArchitectCollectionSnapshot }) {
   return (
-    <section className="rounded-[18px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <div className="flex items-start justify-between gap-4">
+    <section className="min-w-[280px] rounded-[16px] bg-[#06131f] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-white">Your Collection</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            Deck Architect uses cards saved to your Trading Docks collection.
+          <p className="text-sm font-semibold text-white">Collection</p>
+          <p className="mt-1 text-sm text-slate-400">
+            {snapshot.totalOwnedQuantity.toLocaleString("en-US")} cards / {snapshot.totalRows.toLocaleString("en-US")} unique / {snapshot.commanderCandidates.length.toLocaleString("en-US")} commanders
           </p>
         </div>
         <Link href="/dashboard/inventory" className="text-xs font-semibold text-cyan-300 hover:text-cyan-100">
-          View collection
+          Open
         </Link>
       </div>
-      <dl className="mt-5 grid grid-cols-3 gap-3">
-        <SummaryMetric label="Cards tracked" value={snapshot.totalOwnedQuantity.toLocaleString("en-US")} />
-        <SummaryMetric label="Unique cards" value={snapshot.totalRows.toLocaleString("en-US")} />
-        <SummaryMetric label="Commanders" value={snapshot.commanderCandidates.length.toLocaleString("en-US")} />
-      </dl>
-      {!snapshot.commanderCandidates.length ? (
-        <div className="mt-4 rounded-[14px] bg-black/20 p-3">
-          <p className="text-xs font-semibold text-slate-200">No commanders found yet</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            Add legendary creatures to your collection or choose another format to continue.
-          </p>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -790,15 +790,6 @@ function OpportunityCard({
   );
 }
 
-function SummaryMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-[11px] text-slate-500">{label}</dt>
-      <dd className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">{value}</dd>
-    </div>
-  );
-}
-
 function SetupPanel({
   workflowId,
   setWorkflowId,
@@ -815,66 +806,120 @@ function SetupPanel({
   setIntentId: (value: BuildIntentId) => void;
 }) {
   const selectedWorkflow = PRIMARY_WORKFLOWS.find((workflow) => workflow.id === workflowId);
+  const sourceMode: "collection-only" | "suggested-purchases" = intentId === "no-purchases" ? "collection-only" : "suggested-purchases";
+  const powerTarget: "casual" | "optimized" | "competitive" = intentId === "competitive"
+    ? "competitive"
+    : intentId === "casual"
+      ? "casual"
+      : "optimized";
+  const budgetMode: "no-purchases" | "budget" | "best-available" = intentId === "no-purchases"
+    ? "no-purchases"
+    : intentId === "budget"
+      ? "budget"
+      : intentId === "strongest-possible"
+        ? "best-available"
+        : "budget";
 
   return (
     <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <button
-        type="button"
-        onClick={() => setWorkflowId(null)}
-        className="mb-4 text-xs font-semibold text-slate-500 transition hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
-      >
-        Change workflow
-      </button>
-      <p className="text-lg font-semibold tracking-[-0.025em] text-white">{selectedWorkflow?.title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{selectedWorkflow?.description}</p>
-
-      <div className="mt-5">
-        <p className="text-sm font-semibold text-slate-200">Choose format</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {INITIAL_DECK_ARCHITECT_FORMATS.filter((id) => id !== "custom" && id !== "brawl").map((id) => {
-            const profile = getFormatProfile(id);
-            const selected = id === formatId;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setFormatId(id)}
-                className={[
-                  "rounded-[12px] px-3 py-2 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-                  selected ? "bg-cyan-300 text-[#02131b]" : "bg-black/20 text-slate-300 hover:bg-white/[0.06]",
-                ].join(" ")}
-              >
-                {profile.name}
-              </button>
-            );
-          })}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-base font-semibold tracking-[-0.02em] text-white">{selectedWorkflow?.title}</p>
+          <p className="mt-1 text-sm leading-6 text-slate-400">{selectedWorkflow?.description}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => setWorkflowId(null)}
+          className="shrink-0 rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.1] hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+        >
+          Change
+        </button>
       </div>
 
-      <div className="mt-5">
-        <p className="text-sm font-semibold text-slate-200">Build intent</p>
-        <div className="mt-3 space-y-2">
-          {Object.values(INTENT_COPY).map((copy) => {
-            const id = Object.keys(INTENT_COPY).find((key) => INTENT_COPY[key as BuildIntentId] === copy) as BuildIntentId;
-            const selected = id === intentId;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setIntentId(id)}
-                className={[
-                  "w-full rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-                  selected ? "bg-white/[0.075]" : "bg-black/20 hover:bg-white/[0.045]",
-                ].join(" ")}
-              >
-                <span className="block text-sm font-semibold text-white">{copy.label}</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">{copy.body}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <label className="mt-4 block">
+        <span className="text-sm font-semibold text-slate-200">Format</span>
+        <select
+          value={formatId}
+          onChange={(event) => setFormatId(event.target.value as DeckArchitectFormatId)}
+          className="mt-2 h-11 w-full rounded-[12px] border border-white/[0.08] bg-black/25 px-3 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/50"
+        >
+          {INITIAL_DECK_ARCHITECT_FORMATS.filter((id) => id !== "custom" && id !== "brawl").map((id) => (
+            <option key={id} value={id} className="bg-[#06131f] text-white">
+              {getFormatProfile(id).name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <PreferenceGroup
+        title="Card source"
+        options={[
+          { id: "collection-only", label: "Collection only", description: "Use owned cards only." },
+          { id: "suggested-purchases", label: "Collection + suggestions", description: "Owned cards plus missing recommendations." },
+        ]}
+        selectedId={sourceMode}
+        onSelect={(id) => setIntentId(id === "collection-only" ? "no-purchases" : "use-collection")}
+      />
+
+      <PreferenceGroup
+        title="Power target"
+        options={[
+          { id: "casual", label: "Casual", description: "Readable, lower-pressure build." },
+          { id: "optimized", label: "Optimized", description: "Cohesive and upgrade-aware." },
+          { id: "competitive", label: "Competitive", description: "Tighter role density." },
+        ]}
+        selectedId={powerTarget}
+        onSelect={(id) => setIntentId(id === "competitive" ? "competitive" : id === "casual" ? "casual" : "use-collection")}
+      />
+
+      <PreferenceGroup
+        title="Budget"
+        options={[
+          { id: "no-purchases", label: "No purchases", description: "Do not add unowned cards." },
+          { id: "budget", label: "Budget", description: "Respect a spending cap." },
+          { id: "best-available", label: "Best available", description: "Prioritize strongest fits." },
+        ]}
+        selectedId={budgetMode}
+        onSelect={(id) => setIntentId(id === "no-purchases" ? "no-purchases" : id === "budget" ? "budget" : "strongest-possible")}
+      />
     </section>
+  );
+}
+
+function PreferenceGroup({
+  title,
+  options,
+  selectedId,
+  onSelect,
+}: {
+  title: string;
+  options: Array<{ id: string; label: string; description: string }>;
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="mt-4">
+      <p className="text-sm font-semibold text-slate-200">{title}</p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+        {options.map((option) => {
+          const selected = option.id === selectedId;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onSelect(option.id)}
+              className={[
+                "rounded-[12px] px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                selected ? "bg-cyan-300/[0.12] text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 text-slate-300 hover:bg-white/[0.055]",
+              ].join(" ")}
+            >
+              <span className="block text-sm font-semibold">{option.label}</span>
+              <span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.description}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -882,10 +927,12 @@ function CommanderPicker({
   commanders,
   onSearchPotentialCommanders,
   onSelectPotentialCommander,
+  onClearCommander,
   potentialCommanderError,
   potentialCommanderLoading,
   potentialCommanderMatches,
   potentialCommanders,
+  selectedCommander,
   selectedCommanderId,
   setSelectedCommanderId,
   search,
@@ -895,10 +942,12 @@ function CommanderPicker({
   commanders: CollectionGraphCard[];
   onSearchPotentialCommanders: (query: string) => Promise<void>;
   onSelectPotentialCommander: (card: CollectionGraphCard) => void;
+  onClearCommander: () => void;
   potentialCommanderError: string;
   potentialCommanderLoading: boolean;
   potentialCommanderMatches: RankedCommanderSearchResult[];
   potentialCommanders: CollectionGraphCard[];
+  selectedCommander: CollectionGraphCard | null;
   selectedCommanderId: string | null;
   setSelectedCommanderId: (id: string) => void;
   search: string;
@@ -906,12 +955,58 @@ function CommanderPicker({
   strategiesByCommander: DeckArchitectIntelligence["commanderStrategies"];
 }) {
   const [mode, setMode] = useState<"owned" | "potential">("owned");
+  const [changing, setChanging] = useState(false);
   const visibleCommanders = mode === "owned" ? commanders : potentialCommanders;
+  const selectedIsPotential = Boolean(selectedCommander && selectedCommander.quantityOwned <= 0);
+
+  if (selectedCommander && !changing) {
+    return (
+      <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm font-semibold text-white">Commander</p>
+          <button
+            type="button"
+            onClick={() => setChanging(true)}
+            className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-cyan-200 transition hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+          >
+            Change commander
+          </button>
+        </div>
+        <div className="mt-3 flex gap-4 rounded-[16px] bg-black/25 p-3">
+          <CardThumb card={selectedCommander} size="large" />
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-semibold leading-6 tracking-[-0.025em] text-white">{selectedCommander.name}</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              {selectedCommander.colorIdentity?.length ? `${colorIdentityLabel(selectedCommander.colorIdentity)} / ` : ""}
+              {selectedCommander.typeLine ?? "Commander"}
+            </p>
+            <p className={["mt-3 text-sm font-semibold", selectedIsPotential ? "text-amber-100" : "text-emerald-200"].join(" ")}>
+              {selectedIsPotential ? "Not currently in your collection" : `Owned ${selectedCommander.quantityOwned}`}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-white">Choose commander</p>
-        <div className="flex rounded-full bg-black/25 p-1">
+        <div className="flex items-center gap-2">
+          {selectedCommander ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClearCommander();
+                setChanging(false);
+              }}
+              className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-semibold text-slate-400 hover:text-cyan-100"
+            >
+              Clear
+            </button>
+          ) : null}
+          <div className="flex rounded-full bg-black/25 p-1">
           {(["owned", "potential"] as const).map((item) => (
             <button
               key={item}
@@ -928,6 +1023,7 @@ function CommanderPicker({
               {item}
             </button>
           ))}
+          </div>
         </div>
       </div>
       <label className="mt-3 flex h-10 items-center gap-2 rounded-[12px] bg-black/25 px-3">
@@ -969,6 +1065,7 @@ function CommanderPicker({
               onClick={() => {
                 if (mode === "potential") onSelectPotentialCommander(card);
                 else setSelectedCommanderId(card.inventoryId);
+                setChanging(false);
               }}
               data-match-category={searchMatch?.category}
               data-relevance-score={searchMatch?.score}
@@ -1041,27 +1138,61 @@ function StrategyPicker({
   selectedStrategyId: StrategySelectionId | null;
   setSelectedStrategyId: (value: StrategySelectionId) => void;
 }) {
+  const [customOpen, setCustomOpen] = useState(selectedStrategyId !== "auto" && selectedStrategyId !== null);
+  const balancedFit = fits[0] ?? null;
   return (
     <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <p className="text-sm font-semibold text-white">Choose strategy</p>
-      <p className="mt-2 text-xs leading-5 text-slate-500">
-        How do you want to build around {commander.name}? This choice changes the recommended cards.
+      <p className="text-sm font-semibold text-white">Strategy</p>
+      <p className="mt-1 text-sm leading-6 text-slate-400">
+        Choose how much direction Deck Architect should apply to {commander.name}.
       </p>
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
         <button
           type="button"
-          onClick={() => setSelectedStrategyId("auto")}
+          onClick={() => {
+            setCustomOpen(false);
+            setSelectedStrategyId("auto");
+          }}
           className={[
-            "w-full rounded-[14px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-            selectedStrategyId === "auto" ? "bg-cyan-300/10" : "bg-black/20 hover:bg-white/[0.045]",
+            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+            selectedStrategyId === "auto" || selectedStrategyId === null ? "bg-cyan-300/[0.12] shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 hover:bg-white/[0.055]",
           ].join(" ")}
         >
-          <span className="block text-sm font-semibold text-white">Let Deck Architect choose</span>
-          <span className="mt-1 block text-xs leading-5 text-slate-500">
-            Use the strongest strategy fit detected from the commander and your collection.
-          </span>
+          <span className="block text-sm font-semibold text-white">Architect for me</span>
+          <span className="mt-1 block text-xs leading-5 text-slate-500">Pick the best fit.</span>
         </button>
-        {fits.map((fit) => {
+        <button
+          type="button"
+          onClick={() => {
+            setCustomOpen(false);
+            setSelectedStrategyId(balancedFit?.strategy.id ?? "auto");
+          }}
+          className={[
+            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+            balancedFit && selectedStrategyId === balancedFit.strategy.id && !customOpen ? "bg-cyan-300/[0.12] shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 hover:bg-white/[0.055]",
+          ].join(" ")}
+        >
+          <span className="block text-sm font-semibold text-white">Balanced</span>
+          <span className="mt-1 block text-xs leading-5 text-slate-500">{balancedFit?.strategy.label ?? "General shell"}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setCustomOpen(true);
+            setSelectedStrategyId(balancedFit?.strategy.id ?? "auto");
+          }}
+          className={[
+            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+            customOpen ? "bg-cyan-300/[0.12] shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 hover:bg-white/[0.055]",
+          ].join(" ")}
+        >
+          <span className="block text-sm font-semibold text-white">Custom</span>
+          <span className="mt-1 block text-xs leading-5 text-slate-500">Tune strategy.</span>
+        </button>
+      </div>
+      {customOpen ? (
+        <div className="mt-3 space-y-2">
+          {fits.slice(0, 4).map((fit) => {
           const selected = selectedStrategyId === fit.strategy.id;
           const taxonomy = fit.strategy.taxonomy;
           const tags = [
@@ -1098,13 +1229,8 @@ function StrategyPicker({
             </button>
           );
         })}
-        <div className="rounded-[14px] bg-black/20 p-3">
-          <p className="text-xs font-semibold text-slate-200">Customize strategy</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            Advanced mixed-strategy tuning is planned behind this step. Choose the closest strategy now, then tune cards in Deck Builder.
-          </p>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }
@@ -1116,6 +1242,8 @@ function PreBuildState({
   hasCommanders,
   hasSelectedCommander,
   selectedCommanderOwned,
+  selectedCommander,
+  selectedStrategyLabel,
   intentId,
   setFormatId,
   readyToBuild,
@@ -1132,6 +1260,8 @@ function PreBuildState({
   hasCommanders: boolean;
   hasSelectedCommander: boolean;
   selectedCommanderOwned: boolean;
+  selectedCommander: CollectionGraphCard | null;
+  selectedStrategyLabel: string | null;
   intentId: BuildIntentId;
   setFormatId: (value: DeckArchitectFormatId) => void;
   readyToBuild: boolean;
@@ -1152,11 +1282,11 @@ function PreBuildState({
     );
   }
 
-  if (formatRequiresCommander && !hasCommanders) {
+  if (formatRequiresCommander && !hasSelectedCommander && !hasCommanders) {
     return (
       <CenteredState
-        title="No commanders found yet"
-        body="Choose a non-Commander format, or add eligible legendary creatures to your collection."
+        title="Choose a commander to start building"
+        body="No eligible commanders match your collection yet. Search Potential to build around a commander from the supported catalog, or choose another format."
         action={
           <button
             type="button"
@@ -1172,7 +1302,13 @@ function PreBuildState({
 
   if (formatRequiresCommander && hasSelectedCommander && intentId === "no-purchases" && !selectedCommanderOwned) {
     return (
-      <CenteredState
+      <DeckPreviewState
+        selectedCommander={selectedCommander}
+        selectedStrategyLabel={selectedStrategyLabel}
+        intentId={intentId}
+        actionLabel="Switch card source to continue"
+        action={null}
+        tone="attention"
         title="No-purchase build unavailable"
         body="This commander is not in your collection. Choose an owned commander, switch to Use My Collection, or allow missing recommendations."
       />
@@ -1181,7 +1317,10 @@ function PreBuildState({
 
   if (generationStatus === "generating") {
     return (
-      <CenteredState
+      <DeckPreviewState
+        selectedCommander={selectedCommander}
+        selectedStrategyLabel={selectedStrategyLabel}
+        intentId={intentId}
         title="Building your Commander deck"
         body="Finding legal candidates, matching the strategy, building the mana base, checking owned cards, and validating the final 100-card plan."
       />
@@ -1190,7 +1329,10 @@ function PreBuildState({
 
   if (generationStatus === "error" || generationResult?.generationStatus === "failed") {
     return (
-      <CenteredState
+      <DeckPreviewState
+        selectedCommander={selectedCommander}
+        selectedStrategyLabel={selectedStrategyLabel}
+        intentId={intentId}
         title="Deck couldn't be generated"
         body={generationResult?.failure ?? generationError ?? "Deck Architect could not assemble a meaningful validated Commander deck from the available data."}
         action={(
@@ -1208,9 +1350,9 @@ function PreBuildState({
   }
 
   const action = readyToBuild ? (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-start gap-4">
       {intentId === "budget" ? (
-        <div className="w-full max-w-md rounded-[16px] bg-black/25 p-4 text-left">
+        <div className="w-full rounded-[16px] bg-black/25 p-4 text-left">
           <p className="text-sm font-semibold text-slate-200">Upgrade budget</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">Set the missing-card budget Deck Architect should respect while assembling candidates.</p>
           <div className="mt-3 grid grid-cols-4 gap-2">
@@ -1233,26 +1375,83 @@ function PreBuildState({
       <button
         type="button"
         onClick={onBuild}
-        className="inline-flex items-center gap-2 rounded-[12px] bg-cyan-300 px-5 py-3 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-cyan-300 px-5 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
       >
-        Build My Deck
+        Architect Deck
         <ArrowRight className="h-4 w-4" />
       </button>
     </div>
   ) : null;
 
+  if (formatRequiresCommander && hasSelectedCommander) {
+    return (
+      <DeckPreviewState
+        selectedCommander={selectedCommander}
+        selectedStrategyLabel={selectedStrategyLabel}
+        intentId={intentId}
+        title={`${selectedCommander?.name ?? "Commander"} is ready`}
+        body="Choose your build preferences, then architect the deck. Ownership and missing cards will be calculated after generation."
+        action={action}
+      />
+    );
+  }
+
   return (
     <CenteredState
-      title={formatId === "commander" && hasSelectedCommander ? "Choose a strategy" : formatId === "commander" ? "Choose a commander" : "Ready to build"}
+      title={formatId === "commander" ? "Choose a commander to start building" : "Ready to build"}
       body={
         formatRequiresCommander
-          ? hasSelectedCommander
-            ? "Select how you want to build this commander, then choose Build My Deck to enter the focused workspace."
-            : "Select an owned or potential commander to continue."
+          ? "Select an owned or potential commander to continue."
           : "Deck Architect can now create a working deck plan from your collection."
       }
       action={action}
     />
+  );
+}
+
+function DeckPreviewState({
+  selectedCommander,
+  selectedStrategyLabel,
+  intentId,
+  title,
+  body,
+  action,
+  tone = "neutral",
+}: {
+  selectedCommander: CollectionGraphCard | null;
+  selectedStrategyLabel: string | null;
+  intentId: BuildIntentId;
+  title: string;
+  body: string;
+  action?: ReactNode;
+  actionLabel?: string;
+  tone?: "neutral" | "attention";
+}) {
+  return (
+    <section className="min-h-[420px] rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.2)]">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+        {selectedCommander ? <CardThumb card={selectedCommander} size="large" /> : null}
+        <div className="min-w-0 flex-1">
+          <p className={["text-sm font-semibold", tone === "attention" ? "text-amber-100" : "text-cyan-300"].join(" ")}>
+            Deck preview
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.045em] text-white">{title}</h2>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">{body}</p>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <Detail label="Commander" value={selectedCommander?.name ?? "Not selected"} />
+            <Detail label="Build settings" value={INTENT_COPY[intentId].label} />
+            <Detail label="Strategy" value={selectedStrategyLabel ?? "Architect for me"} />
+          </div>
+          {selectedCommander && selectedCommander.quantityOwned <= 0 ? (
+            <p className="mt-4 rounded-[12px] bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+              Not currently in your collection. Deck Architect can still build with suggested purchases unless Card source is Collection only.
+            </p>
+          ) : null}
+          {action ? <div className="mt-5">{action}</div> : null}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -2114,4 +2313,19 @@ function LoadError({ message }: { message: string }) {
 
 function primaryRoleLabel(roles: DeckArchitectRole[]) {
   return (roles[0] ?? "synergy").replace("-", " ");
+}
+
+function colorIdentityLabel(colors: string[]) {
+  if (!colors.length) return "Colorless";
+  if (colors.length === 1) {
+    const labels: Record<string, string> = {
+      W: "Mono-White",
+      U: "Mono-Blue",
+      B: "Mono-Black",
+      R: "Mono-Red",
+      G: "Mono-Green",
+    };
+    return labels[colors[0]] ?? colors[0];
+  }
+  return colors.join("");
 }

@@ -225,7 +225,7 @@ test("Deck Architect dashboard is routed under Decks and uses real collection sn
   assert.match(route, /loadDeckArchitectServerState/);
   assert.match(route, /redirect\("\/sign-in\?next=\/dashboard\/deck-architect"\)/);
   assert.match(navigation, /href: "\/dashboard\/deck-architect", label: "Deck Architect"/);
-  assert.match(workspace, /Build, improve, and discover decks using the cards you actually own/);
+  assert.match(workspace, /Build decks from your collection, upgrade what you own/);
   assert.match(workspace, /snapshot\.commanderCandidates/);
   assert.match(workspace, /compareRequirementsToCollection/);
   assert.match(workspace, /calculateBuildabilityScore/);
@@ -296,8 +296,8 @@ test("Deck Architect landing state is product-facing and avoids internal engine 
   assert.match(workspace, /Build From My Collection/);
   assert.match(workspace, /Improve a Deck/);
   assert.match(workspace, /What Can I Build/);
-  assert.match(workspace, /Your Collection/);
-  assert.match(workspace, /No commanders found yet/);
+  assert.match(workspace, /Collection/);
+  assert.match(workspace, /Choose a commander to start building/);
   assert.doesNotMatch(workspace, /Provider-ready|Engine architecture|collection graph|Quantity scanned for v1|Owned sample|Full snapshot loaded|foundation pool|Proposal Control/i);
 });
 
@@ -309,8 +309,10 @@ test("Deck Architect does not show buildability or health scores before a workin
 
 test("Deck Architect supports active commander selection card states and mobile modes", () => {
   assert.match(workspace, /setSelectedCommanderId/);
-  assert.match(workspace, /Choose strategy/);
-  assert.match(workspace, /Let Deck Architect choose/);
+  assert.match(workspace, /Strategy/);
+  assert.match(workspace, /Architect for me/);
+  assert.match(workspace, /Balanced/);
+  assert.match(workspace, /Custom/);
   assert.match(workspace, /selectedStrategyId/);
   assert.match(workspace, /No-purchase build unavailable/);
   assert.match(workspace, /Buildability/);
@@ -332,9 +334,59 @@ test("Deck Architect preserves review-first behavior without fake autonomous AI"
   assert.match(workspace, /Hidden Synergy/);
   assert.match(workspace, /What If \/ Fork Deck/);
   assert.match(workspace, /Deck Personality/);
-  assert.match(workspace, /Build My Deck/);
+  assert.match(workspace, /Architect Deck/);
   assert.match(workspace, /Apply after review unavailable/);
   assert.doesNotMatch(workspace, /ChatGPT|magic AI deck builder|Apply Changes automatically|silently applies/i);
+});
+
+test("Deck Architect selected commander state does not conflict with no-commander empty state", () => {
+  const preBuildState = workspace.slice(
+    workspace.indexOf("function PreBuildState"),
+    workspace.indexOf("function DeckPreviewState"),
+  );
+  const collectionSummary = workspace.slice(
+    workspace.indexOf("function CollectionSummary"),
+    workspace.indexOf("function DiscoverWorkspace"),
+  );
+
+  assert.match(workspace, /selectedCommander=\{selectedCommander\}/);
+  assert.match(workspace, /hasSelectedCommander=\{Boolean\(selectedCommander\)\}/);
+  assert.match(preBuildState, /hasSelectedCommander: boolean/);
+  assert.match(preBuildState, /formatRequiresCommander &&\s*!hasSelectedCommander &&\s*!hasCommanders/);
+  assert.doesNotMatch(collectionSummary, /No commanders found yet/);
+});
+
+test("Deck Architect potential commander selection propagates to preview and generation", () => {
+  assert.match(workspace, /onSelectPotentialCommander=\{\(card\) =>/);
+  assert.match(workspace, /setPotentialCommander\(card\)/);
+  assert.match(workspace, /setSelectedStrategyId\("auto"\)/);
+  assert.match(workspace, /commander: selectedCommander/);
+  assert.match(workspace, /Not currently in your collection/);
+  assert.match(workspace, /\$\{selectedCommander\?\.name \?\? "Commander"\} is ready/);
+});
+
+test("Deck Architect split build goals into source power and budget controls", () => {
+  assert.match(workspace, /Card source/);
+  assert.match(workspace, /Collection only/);
+  assert.match(workspace, /Collection \+ suggestions/);
+  assert.match(workspace, /Power target/);
+  assert.match(workspace, /Casual/);
+  assert.match(workspace, /Optimized/);
+  assert.match(workspace, /Competitive/);
+  assert.match(workspace, /Budget/);
+  assert.match(workspace, /Best available/);
+});
+
+test("Deck Architect preserves valid commander selection across compatible format changes", () => {
+  assert.match(workspace, /const nextFormat = getFormatProfile\(value\)/);
+  assert.match(workspace, /if \(!nextFormat\.commanderRequired\)/);
+  assert.match(workspace, /else if \(selectedCommander\)/);
+  assert.match(workspace, /setSelectedStrategyId\(\(current\) => current \?\? "auto"\)/);
+});
+
+test("Deck Architect potential commander search tolerates the Krinko typo", () => {
+  assert.match(workspace, /replace\(\/\^krinko\\b\/i, "Krenko"\)/);
+  assert.match(workspace, /rankCommanderSearchResults\(candidates, commanderQuery/);
 });
 
 test("Deck Architect workspace builds Commander decks through the authenticated server generator", () => {
@@ -663,6 +715,31 @@ test("Krenko Best Possible uses global Commander candidates to produce a complet
   assert.ok(names.has("Impact Tremors"));
   assert.ok([...names].some((name) => name.includes("Krenko Global Candidate")));
   assert.equal([...names].some((name) => name.includes("Blue")), false);
+  assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
+});
+
+test("Krenko Tin Street Kingpin potential commander keeps mono-red identity separate from ownership", () => {
+  const commander = {
+    ...commanderCandidate("krenko-tin-street", "Krenko, Tin Street Kingpin", ["R"]),
+    typeLine: "Legendary Creature - Goblin",
+    oracleText: "Whenever Krenko, Tin Street Kingpin attacks, put a +1/+1 counter on it, then create a number of 1/1 red Goblin creature tokens equal to Krenko's power.",
+  };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: krenkoCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.validation.valid, true);
+  assert.equal(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
+  assert.ok(names.has("Krenko, Tin Street Kingpin"));
+  assert.equal(result.requirements.some((requirement) => requirement.colorIdentity.includes("U")), false);
+  assert.ok((result.buildability?.ownedCards ?? 0) < 100);
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
 
