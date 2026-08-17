@@ -76,17 +76,22 @@ export type CollectionGraphCard = {
   inventoryId: string;
   name: string;
   quantityOwned: number;
+  imageUri?: string | null;
   setCode?: string | null;
   collectorNumber?: string | null;
   scryfallId?: string | null;
   tcgplayerId?: string | number | null;
   typeLine?: string | null;
+  oracleText?: string | null;
+  manaCost?: string | null;
+  colors?: string[];
   colorIdentity?: string[];
   manaValue?: number | null;
   condition?: string | null;
   finish?: string | null;
   language?: string | null;
   location?: string | null;
+  legalities?: Record<string, string>;
   marketPrice?: number | null;
 };
 
@@ -98,8 +103,12 @@ export type DeckRequirement = {
   roles: DeckArchitectRole[];
   estimatedPrice?: number | null;
   importance?: number;
+  imageUri?: string | null;
   typeLine?: string | null;
+  oracleText?: string | null;
+  manaCost?: string | null;
   colorIdentity?: string[];
+  location?: string | null;
   isCommander?: boolean;
   legalityStatus?: "legal" | "banned" | "not_legal" | "restricted" | "unknown";
 };

@@ -78,19 +78,32 @@ function toCollectionGraphCard(row: unknown): CollectionGraphCard | null {
     inventoryId: String(record.id ?? `${name}:${record.set_code ?? ""}:${record.collector_number ?? ""}`),
     name,
     quantityOwned: quantity,
+    imageUri: imageUriFromData(data),
     setCode: stringValue(record.set_code) ?? stringValue(data.setCode) ?? stringValue(data.set),
     collectorNumber: stringValue(record.collector_number) ?? stringValue(data.collectorNumber),
     scryfallId: stringValue(data.scryfallId) ?? stringValue(data.scryfall_id),
     tcgplayerId: stringValue(data.tcgplayerId) ?? stringValue(data.tcgplayer_id),
-    typeLine: stringValue(data.typeLine) ?? stringValue(data.type_line),
+    typeLine: firstString(data.typeLine, data.type_line, data.type, nestedString(data, "card.type_line")),
+    oracleText: firstString(data.oracleText, data.oracle_text, nestedString(data, "card.oracle_text")),
+    manaCost: firstString(data.manaCost, data.mana_cost, nestedString(data, "card.mana_cost")),
+    colors: stringArray(data.colors) ?? stringArray(nestedValue(data, "card.colors")) ?? undefined,
     colorIdentity: stringArray(data.colorIdentity) ?? stringArray(data.color_identity) ?? undefined,
     manaValue: numberValue(data.manaValue) ?? numberValue(data.cmc),
     condition: stringValue(data.condition),
     finish: stringValue(data.finish),
     language: stringValue(data.language),
     location: stringValue(data.location) ?? stringValue(data.locationName),
+    legalities: recordObject(data.legalities) ?? recordObject(nestedValue(data, "card.legalities")) ?? undefined,
     marketPrice: unitMarketPrice,
   };
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    const next = stringValue(value);
+    if (next) return next;
+  }
+  return null;
 }
 
 function stringValue(value: unknown) {
@@ -117,4 +130,50 @@ function stringArray(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
     : null;
+}
+
+function recordObject(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, string>
+    : null;
+}
+
+function nestedValue(source: Record<string, unknown>, key: string) {
+  const keys = key.split(".");
+  let current: unknown = source;
+  for (const item of keys) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return null;
+    current = (current as Record<string, unknown>)[item];
+  }
+  return current;
+}
+
+function nestedString(source: Record<string, unknown>, key: string) {
+  return stringValue(nestedValue(source, key));
+}
+
+function imageUriFromData(data: Record<string, unknown>) {
+  return firstString(
+    data.imageUri,
+    data.imageUrl,
+    data.image_url,
+    data.normalImageUrl,
+    data.artworkUrl,
+    nestedString(data, "image_uris.normal"),
+    nestedString(data, "image_uris.large"),
+    nestedString(data, "card.image_uris.normal"),
+    nestedString(data, "card.image_uris.large"),
+    firstCardFaceImage(data),
+  );
+}
+
+function firstCardFaceImage(data: Record<string, unknown>) {
+  const faces = data.card_faces;
+  if (!Array.isArray(faces)) return null;
+  const firstFace = faces.find((face) => face && typeof face === "object" && !Array.isArray(face));
+  if (!firstFace) return null;
+  return firstString(
+    nestedString(firstFace as Record<string, unknown>, "image_uris.normal"),
+    nestedString(firstFace as Record<string, unknown>, "image_uris.large"),
+  );
 }

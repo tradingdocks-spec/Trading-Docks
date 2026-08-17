@@ -5,370 +5,1025 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  BrainCircuit,
-  CheckCircle2,
+  BookOpen,
+  Check,
+  ChevronRight,
   Layers3,
   Lock,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
+  Sparkles,
+  Star,
+  X,
 } from "lucide-react";
 
 import {
   BUILD_INTENTS,
   INITIAL_DECK_ARCHITECT_FORMATS,
+  analyzeDeckHealth,
   calculateBuildabilityScore,
   compareRequirementsToCollection,
   getFormatProfile,
-  analyzeDeckHealth,
   type BuildIntentId,
   type CollectionGraphCard,
-  type DeckArchitectRole,
   type DeckArchitectFormatId,
+  type DeckArchitectRole,
   type DeckRequirement,
+  type OwnershipMatch,
 } from "@/lib/deck-architect";
 import type { DeckArchitectCollectionSnapshot } from "@/lib/deck-architect/server";
 
-const WORKFLOWS = [
-  {
-    name: "Build From My Collection",
-    description: "Start with owned cards and let Deck Architect identify coherent shells, roles, and gaps.",
-    status: "Foundation",
-  },
-  {
-    name: "Build Around a Card",
-    description: "Choose an owned or catalog card, then evaluate legal formats and archetype directions.",
-    status: "Foundation",
-  },
-  {
-    name: "Commander Build",
-    description: "Rank eligible owned commanders by collection support, color identity, and missing-card cost.",
-    status: "Live collection scan",
-  },
-  {
-    name: "What Can I Build?",
-    description: "Discover ready, nearly complete, and worth-considering builds from collection templates.",
-    status: "Provider-ready",
-  },
-  {
-    name: "Upgrade a Deck",
-    description: "Review saved Deck Vault lists and generate structured change proposals before applying.",
-    status: "Architecture",
-  },
-  {
-    name: "Start From Scratch",
-    description: "Use a traditional builder with collection intelligence, health, and missing-card diagnostics.",
-    status: "Architecture",
-  },
-] as const;
+type WorkflowId = "build-deck" | "collection" | "improve" | "discover";
+type ViewMode = "deck" | "cards" | "intelligence";
 
-const ENGINE_LAYERS = [
-  ["Format rules", "Deck size, copy limits, sideboard, commander and color identity rules."],
-  ["Collection Graph", "Owned quantities, printings, locations, wishlist, saved decks, and missing cards."],
-  ["Deck Health", "Mana, consistency, interaction, card advantage, synergy, and legality signals."],
-  ["Propose -> Review -> Apply", "Recommendations become structured proposals before any deck mutation."],
-] as const;
+const PRIMARY_WORKFLOWS: Array<{
+  id: WorkflowId;
+  title: string;
+  description: string;
+  action: string;
+}> = [
+  {
+    id: "build-deck",
+    title: "Build a Deck",
+    description: "Start with a format, commander, card, or strategy.",
+    action: "Start building",
+  },
+  {
+    id: "collection",
+    title: "Build From My Collection",
+    description: "Prioritize cards already tracked in your inventory.",
+    action: "Use my cards",
+  },
+  {
+    id: "improve",
+    title: "Improve a Deck",
+    description: "Choose a saved Deck Vault deck and review changes before applying.",
+    action: "Open Deck Vault",
+  },
+  {
+    id: "discover",
+    title: "What Can I Build?",
+    description: "Find deck opportunities your collection is already close to supporting.",
+    action: "Check opportunities",
+  },
+];
+
+const INTENT_COPY: Record<BuildIntentId, { label: string; body: string }> = {
+  "use-collection": {
+    label: "Use My Collection",
+    body: "Prioritize cards I already own.",
+  },
+  "no-purchases": {
+    label: "No Purchases",
+    body: "Only use cards currently in my collection.",
+  },
+  "strongest-possible": {
+    label: "Best Possible",
+    body: "Recommend the strongest appropriate build, even if I need cards.",
+  },
+  budget: {
+    label: "Budget Build",
+    body: "Improve the deck while keeping missing-card cost under control.",
+  },
+  casual: {
+    label: "Casual",
+    body: "Favor a fun, cohesive deck over maximum optimization.",
+  },
+  competitive: {
+    label: "Competitive",
+    body: "Favor consistency, efficiency, and stronger archetype alignment.",
+  },
+  "upgrade-over-time": {
+    label: "Upgrade Over Time",
+    body: "Plan improvements in small, reviewable steps.",
+  },
+};
+
+const ROLE_ORDER: DeckArchitectRole[] = [
+  "ramp",
+  "card-advantage",
+  "interaction",
+  "protection",
+  "synergy",
+  "threat",
+  "finisher",
+  "land",
+];
 
 export function DeckArchitectWorkspace({
   snapshot,
 }: {
   snapshot: DeckArchitectCollectionSnapshot;
 }) {
+  const [workflowId, setWorkflowId] = useState<WorkflowId | null>(null);
   const [formatId, setFormatId] = useState<DeckArchitectFormatId>("commander");
   const [intentId, setIntentId] = useState<BuildIntentId>("use-collection");
   const [commanderSearch, setCommanderSearch] = useState("");
+  const [selectedCommanderId, setSelectedCommanderId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("deck");
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [lockedCards, setLockedCards] = useState<Set<string>>(() => new Set());
+  const [mustIncludeCards, setMustIncludeCards] = useState<Set<string>>(() => new Set());
+
   const format = getFormatProfile(formatId);
   const intent = BUILD_INTENTS[intentId];
+  const selectedCommander = snapshot.commanderCandidates.find((card) => card.inventoryId === selectedCommanderId) ?? null;
+  const canBuildWorkingDeck = snapshot.cards.length > 0 && (!format.commanderRequired || Boolean(selectedCommander));
+
+  const deckRequirements = useMemo(
+    () => canBuildWorkingDeck ? buildWorkingDeckRequirements(snapshot.cards, formatId, selectedCommander, intentId) : [],
+    [canBuildWorkingDeck, formatId, intentId, selectedCommander, snapshot.cards],
+  );
+  const targetDeckSize = format.exactDeckSize ?? format.minimumMainDeckSize ?? 60;
+  const hasCompleteWorkingDeck = deckRequirements.reduce((sum, card) => sum + card.requiredQuantity, 0) >= targetDeckSize;
+  const ownership = useMemo(
+    () => deckRequirements.length ? compareRequirementsToCollection(deckRequirements, snapshot.cards, format) : [],
+    [deckRequirements, format, snapshot.cards],
+  );
+  const buildability = useMemo(
+    () => ownership.length && hasCompleteWorkingDeck ? calculateBuildabilityScore(ownership) : null,
+    [hasCompleteWorkingDeck, ownership],
+  );
+  const health = useMemo(
+    () => deckRequirements.length && hasCompleteWorkingDeck ? analyzeDeckHealth(deckRequirements, format) : null,
+    [deckRequirements, format, hasCompleteWorkingDeck],
+  );
+  const selectedCard = ownership.find((match) => match.requirement.id === selectedCardId) ?? null;
+  const missing = ownership.filter((match) => match.missingQuantity > 0);
+  const totalKnownMissingCost = missing.every((match) => match.estimatedMissingValue !== null)
+    ? missing.reduce((sum, match) => sum + (match.estimatedMissingValue ?? 0), 0)
+    : null;
+  const grouped = groupByRole(ownership);
   const filteredCommanders = useMemo(() => {
     const query = commanderSearch.trim().toLowerCase();
     return snapshot.commanderCandidates
       .filter((card) => !query || card.name.toLowerCase().includes(query))
-      .slice(0, 8);
+      .slice(0, 12);
   }, [commanderSearch, snapshot.commanderCandidates]);
-  const foundationRequirements = useMemo(
-    () => buildFoundationRequirements(snapshot.cards, formatId),
-    [formatId, snapshot.cards],
-  );
-  const ownership = useMemo(
-    () => compareRequirementsToCollection(foundationRequirements, snapshot.cards, format),
-    [format, foundationRequirements, snapshot.cards],
-  );
-  const buildability = useMemo(() => calculateBuildabilityScore(ownership), [ownership]);
-  const health = useMemo(() => analyzeDeckHealth(foundationRequirements, format), [format, foundationRequirements]);
-  const missing = ownership.filter((match) => match.missingQuantity > 0);
+
+  function toggleSet(setter: (value: Set<string>) => void, source: Set<string>, id: string) {
+    const next = new Set(source);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setter(next);
+  }
 
   return (
     <main className="min-h-screen bg-[#020912] px-4 py-5 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1540px]">
-        {snapshot.error ? (
-          <div className="mb-5 rounded-[18px] border border-amber-300/20 bg-amber-300/10 px-5 py-4 text-sm text-amber-100">
-            Deck Architect could not load the collection snapshot: {snapshot.error}
-          </div>
-        ) : null}
+      <div className="mx-auto max-w-[1520px]">
+        {snapshot.error ? <LoadError message={snapshot.error} /> : null}
 
-        <header className="border-y border-white/[0.08] py-7">
-          <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-end">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">
-                Trading Docks Deck Intelligence
-              </p>
-              <h1 className="mt-3 text-4xl font-semibold leading-[0.96] tracking-[-0.055em] sm:text-5xl">
+        <header className="border-y border-white/[0.08] py-6">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-end">
+            <div>
+              <p className="text-sm font-semibold text-cyan-300">Trading Docks</p>
+              <h1 className="mt-2 text-4xl font-semibold leading-none tracking-[-0.055em] sm:text-5xl">
                 Deck Architect
               </h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400">
-                Build smarter decks from the cards you already own. Deck Architect
-                starts with collection authority, applies format rules, scores
-                buildability, then turns recommendations into reviewable proposals.
+              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
+                Build, improve, and discover decks using the cards you actually own.
+              </p>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                Choose a format, build around your collection, or find decks you are already close to completing.
               </p>
             </div>
-
-            <div className="grid gap-3 border-l border-white/[0.08] pl-5 sm:grid-cols-3 xl:grid-cols-1">
-              <Metric label="Owned sample" value={snapshot.totalOwnedQuantity.toLocaleString("en-US")} detail="Quantity scanned for v1" />
-              <Metric label="Unique records" value={snapshot.totalRows.toLocaleString("en-US")} detail={snapshot.truncated ? `Showing newest ${snapshot.sampleLimit}` : "Full snapshot loaded"} />
-              <Metric label="Commanders" value={snapshot.commanderCandidates.length.toLocaleString("en-US")} detail="Eligible owned legends found" />
-            </div>
+            <CollectionSummary snapshot={snapshot} />
           </div>
         </header>
 
-        <section className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
-          <div className="min-w-0 rounded-[22px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.20)]">
-            <SectionHeading
-              eyebrow="Start workflow"
-              title="Choose how Deck Architect should enter the collection graph."
-            />
-            <div className="mt-5 divide-y divide-white/[0.06] border-y border-white/[0.08]" role="list">
-              {WORKFLOWS.map((workflow) => (
-                <div
-                  key={workflow.name}
-                  className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_140px_auto]"
-                  role="listitem"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white">{workflow.name}</p>
-                    <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500">{workflow.description}</p>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-500">{workflow.status}</span>
-                  <ArrowRight className="h-4 w-4 text-cyan-300/55" aria-hidden="true" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-[22px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.20)]">
-            <SectionHeading eyebrow="Format and intent" title="Rules first, then optimization." />
-            <div className="mt-5 grid gap-3">
-              <label className="space-y-2">
-                <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Format</span>
-                <select
-                  value={formatId}
-                  onChange={(event) => setFormatId(event.target.value as DeckArchitectFormatId)}
-                  className="h-11 w-full rounded-[12px] border border-white/[0.08] bg-black/20 px-3 text-sm text-slate-100 outline-none focus:border-cyan-300/40"
-                >
-                  {INITIAL_DECK_ARCHITECT_FORMATS.map((id) => (
-                    <option key={id} value={id}>{getFormatProfile(id).name}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Build intent</span>
-                <select
-                  value={intentId}
-                  onChange={(event) => setIntentId(event.target.value as BuildIntentId)}
-                  className="h-11 w-full rounded-[12px] border border-white/[0.08] bg-black/20 px-3 text-sm text-slate-100 outline-none focus:border-cyan-300/40"
-                >
-                  {Object.values(BUILD_INTENTS).map((buildIntent) => (
-                    <option key={buildIntent.id} value={buildIntent.id}>{buildIntent.label}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="mt-5 border-y border-white/[0.08] py-4">
-              <p className="text-sm font-semibold text-white">{format.name}</p>
-              <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                <Rule label="Deck size" value={format.exactDeckSize ? `${format.exactDeckSize} exact` : `${format.minimumMainDeckSize ?? "Custom"}+`} />
-                <Rule label="Copies" value={format.maximumCopies ? `${format.maximumCopies} max` : "Custom"} />
-                <Rule label="Commander" value={format.commanderRequired ? "Required" : "Not required"} />
-                <Rule label="Sideboard" value={format.sideboardAllowed ? `${format.maximumSideboardSize ?? "Custom"} max` : "No"} />
-              </dl>
-            </div>
-
-            <div className="mt-4 rounded-[16px] border border-cyan-300/15 bg-cyan-300/[0.045] p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-cyan-200">{intent.label}</p>
-              <p className="mt-2 text-xs leading-5 text-slate-400">
-                Ownership {percent(intent.ownershipWeight)} / Price {percent(intent.priceWeight)} / Power {percent(intent.powerWeight)} / Synergy {percent(intent.synergyWeight)}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(360px,0.7fr)]">
-          <Panel title="Commanders in your collection" icon={<ShieldCheck className="h-4 w-4" />}>
-            <label className="mt-4 flex h-11 items-center gap-2 rounded-[12px] border border-white/[0.08] bg-black/20 px-3">
-              <Search className="h-4 w-4 text-slate-600" />
-              <input
-                value={commanderSearch}
-                onChange={(event) => setCommanderSearch(event.target.value)}
-                placeholder="Search owned commanders"
-                className="min-w-0 flex-1 bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-700"
-              />
-            </label>
-            <div className="mt-4 divide-y divide-white/[0.06] border-y border-white/[0.08]">
-              {filteredCommanders.length ? filteredCommanders.map((card) => (
-                <div key={card.inventoryId} className="py-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">{card.name}</p>
-                      <p className="mt-1 text-xs text-slate-600">
-                        Owned: {card.quantityOwned} / {card.setCode ? card.setCode.toUpperCase() : "Set unknown"} {card.collectorNumber ? `#${card.collectorNumber}` : ""}
-                      </p>
-                    </div>
-                    <span className="text-sm font-semibold text-cyan-200">
-                      {commanderBuildability(card, snapshot.cards)}%
-                    </span>
-                  </div>
-                  <p className="mt-3 text-xs font-semibold text-cyan-300">
-                    Commander workflow candidate
-                  </p>
-                </div>
-              )) : (
-                <EmptyState title="No owned commanders found in this snapshot" body="Deck Architect did not find legendary creature records with type-line metadata. Add or enrich collection records to unlock commander ranking." />
-              )}
-            </div>
-          </Panel>
-
-          <Panel title="Buildability foundation" icon={<Layers3 className="h-4 w-4" />}>
-            <div className="mt-4 border-y border-white/[0.08] py-5">
-              <p className="text-5xl font-semibold tracking-[-0.06em] text-white">{buildability.score}%</p>
-              <p className="mt-2 text-sm text-slate-500">
-                {buildability.ownedCards} / {buildability.requiredCards} required cards covered
-              </p>
-              <p className="mt-1 text-xs text-slate-600">
-                {foundationRequirements.length ? "Calculated from the current collection-derived foundation pool." : "Add collection records to calculate buildability."}
-              </p>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {buildability.factors.map((factor) => (
-                <div key={factor.label} className="rounded-[14px] bg-black/20 p-3">
-                  <p className="text-xs text-slate-600">{factor.label}</p>
-                  <p className={["mt-1 text-sm font-semibold", factor.impact === "negative" ? "text-amber-200" : "text-slate-200"].join(" ")}>
-                    {factor.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="Deck Health" icon={<BrainCircuit className="h-4 w-4" />}>
-            <div className="mt-4 border-y border-white/[0.08] py-4">
-              <p className="text-4xl font-semibold tracking-[-0.055em]">{health.overall}</p>
-              <p className="mt-1 text-xs text-slate-600">Deterministic analyzer foundation</p>
-            </div>
-            <div className="mt-4 space-y-3">
-              {Object.entries(health.categories).filter(([key]) => key !== "overall").map(([label, value]) => (
-                <HealthRow key={label} label={label} value={value} />
-              ))}
-            </div>
-          </Panel>
-        </section>
-
-        <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="rounded-[22px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.20)]">
-            <SectionHeading eyebrow="Missing from this deck" title="Missing cards are a first-class object, not a footnote." />
-            <div className="mt-5 divide-y divide-white/[0.06] border-y border-white/[0.08]">
-              {missing.length ? missing.slice(0, 6).map((match) => (
-                <div key={match.requirement.id} className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_120px_120px] sm:items-center">
-                  <div>
-                    <p className="text-sm font-semibold text-white">{match.requirement.name}</p>
-                    <p className="mt-1 text-xs text-slate-600">
-                      Needed {match.requirement.requiredQuantity} / Owned {match.ownedQuantity} / Missing {match.missingQuantity}
+        {!workflowId ? (
+          <section className="mt-6 grid gap-4 lg:grid-cols-4">
+            {PRIMARY_WORKFLOWS.map((workflow) => {
+              const className = "group min-h-[210px] rounded-[18px] bg-[#06131f] p-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_18px_54px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:bg-[#071827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45";
+              const content = (
+                <div className="flex h-full flex-col">
+                  <p className="text-lg font-semibold tracking-[-0.025em] text-white">{workflow.title}</p>
+                  {workflow.id === "collection" ? (
+                    <p className="mt-3 text-sm font-semibold text-cyan-200">
+                      {snapshot.totalOwnedQuantity.toLocaleString("en-US")} cards currently tracked
                     </p>
-                  </div>
-                  <p className="text-sm font-semibold text-slate-300">
-                    {match.estimatedMissingValue === null ? "Price unavailable" : `$${match.estimatedMissingValue.toFixed(2)}`}
-                  </p>
-                  <p className="text-left text-xs font-semibold text-cyan-300 sm:text-right">
-                    Wishlist action pending
-                  </p>
+                  ) : null}
+                  <p className="mt-3 flex-1 text-sm leading-6 text-slate-400">{workflow.description}</p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300">
+                    {workflow.action}
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </span>
                 </div>
-              )) : (
-                <EmptyState title="No missing cards in this foundation view" body={snapshot.cards.length ? "The current collection-derived requirement pool is covered." : "Missing cards will appear after the user has collection and candidate-deck data."} />
+              );
+              return workflow.id === "improve" ? (
+                <Link key={workflow.id} href="/dashboard/deck-vault" className={className}>
+                  {content}
+                </Link>
+              ) : (
+                <button
+                  key={workflow.id}
+                  type="button"
+                  onClick={() => {
+                    setWorkflowId(workflow.id);
+                    setViewMode("deck");
+                  }}
+                  className={className}
+                >
+                  {content}
+                </button>
+              );
+            })}
+          </section>
+        ) : (
+          <section className="mt-6 grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <aside className="space-y-4">
+              <SetupPanel
+                workflowId={workflowId}
+                setWorkflowId={setWorkflowId}
+                formatId={formatId}
+                setFormatId={(value) => {
+                  setFormatId(value);
+                  setSelectedCommanderId(null);
+                  setSelectedCardId(null);
+                }}
+                intentId={intentId}
+                setIntentId={setIntentId}
+              />
+              {format.commanderRequired ? (
+                <CommanderPicker
+                  commanders={filteredCommanders}
+                  selectedCommanderId={selectedCommanderId}
+                  setSelectedCommanderId={(id) => {
+                    setSelectedCommanderId(id);
+                    setWorkflowId(workflowId ?? "build-deck");
+                    setViewMode("deck");
+                  }}
+                  search={commanderSearch}
+                  setSearch={setCommanderSearch}
+                />
+              ) : null}
+            </aside>
+
+            <div className="min-w-0">
+              {!canBuildWorkingDeck ? (
+                <PreBuildState
+                  formatId={formatId}
+                  formatRequiresCommander={format.commanderRequired}
+                  hasCollection={snapshot.cards.length > 0}
+                  hasCommanders={snapshot.commanderCandidates.length > 0}
+                  setFormatId={setFormatId}
+                />
+              ) : (
+                <ActiveDeckWorkspace
+                  buildability={buildability}
+                  formatId={formatId}
+                  formatName={format.name}
+                  grouped={grouped}
+                  health={health}
+                  isCompleteWorkingDeck={hasCompleteWorkingDeck}
+                  intentLabel={INTENT_COPY[intent.id].label}
+                  lockedCards={lockedCards}
+                  missing={missing}
+                  mustIncludeCards={mustIncludeCards}
+                  ownership={ownership}
+                  selectedCard={selectedCard}
+                  selectedCommander={selectedCommander}
+                  setSelectedCardId={setSelectedCardId}
+                  toggleLocked={(id) => toggleSet(setLockedCards, lockedCards, id)}
+                  toggleMustInclude={(id) => toggleSet(setMustIncludeCards, mustIncludeCards, id)}
+                  totalKnownMissingCost={totalKnownMissingCost}
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                />
               )}
             </div>
-          </div>
-
-          <div className="rounded-[22px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.20)]">
-            <SectionHeading eyebrow="Proposal control" title="Propose, review, apply." />
-            <div className="mt-5 space-y-4">
-              <ProposalStep icon={<SlidersHorizontal className="h-4 w-4" />} title="Request" body="Natural-language requests become structured intent, not direct deck mutations." />
-              <ProposalStep icon={<Lock className="h-4 w-4" />} title="Respect locks" body="Must Include and Locked cards are represented in deck state and protected during optimization." />
-              <ProposalStep icon={<CheckCircle2 className="h-4 w-4" />} title="Apply after review" body="Future changes list remove/add lines, health delta, and additional purchase cost before applying." />
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-5 rounded-[22px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.20)]">
-          <SectionHeading eyebrow="Engine architecture" title="Provider-ready foundations without fake production recommendations." />
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {ENGINE_LAYERS.map(([title, body]) => (
-              <div key={title} className="border-l border-cyan-300/25 pl-4">
-                <p className="text-sm font-semibold text-white">{title}</p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">{body}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/dashboard/deck-vault" className="inline-flex h-11 items-center justify-center gap-2 rounded-[12px] bg-cyan-300 px-4 text-sm font-semibold text-[#01131a] transition hover:bg-cyan-200">
-              Open Deck Vault
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/dashboard/inventory" className="inline-flex h-11 items-center justify-center gap-2 rounded-[12px] border border-white/[0.1] px-4 text-sm font-semibold text-slate-200 transition hover:border-cyan-300/35">
-              Add cards to Collection
-            </Link>
-          </div>
-        </section>
+          </section>
+        )}
       </div>
     </main>
   );
 }
 
-function buildFoundationRequirements(
+function CollectionSummary({ snapshot }: { snapshot: DeckArchitectCollectionSnapshot }) {
+  return (
+    <section className="rounded-[18px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-white">Your Collection</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Deck Architect uses cards saved to your Trading Docks collection.
+          </p>
+        </div>
+        <Link href="/dashboard/inventory" className="text-xs font-semibold text-cyan-300 hover:text-cyan-100">
+          View collection
+        </Link>
+      </div>
+      <dl className="mt-5 grid grid-cols-3 gap-3">
+        <SummaryMetric label="Cards tracked" value={snapshot.totalOwnedQuantity.toLocaleString("en-US")} />
+        <SummaryMetric label="Unique cards" value={snapshot.totalRows.toLocaleString("en-US")} />
+        <SummaryMetric label="Commanders" value={snapshot.commanderCandidates.length.toLocaleString("en-US")} />
+      </dl>
+      {!snapshot.commanderCandidates.length ? (
+        <div className="mt-4 rounded-[14px] bg-black/20 p-3">
+          <p className="text-xs font-semibold text-slate-200">No commanders found yet</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Add legendary creatures to your collection or choose another format to continue.
+          </p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[11px] text-slate-500">{label}</dt>
+      <dd className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">{value}</dd>
+    </div>
+  );
+}
+
+function SetupPanel({
+  workflowId,
+  setWorkflowId,
+  formatId,
+  setFormatId,
+  intentId,
+  setIntentId,
+}: {
+  workflowId: WorkflowId;
+  setWorkflowId: (value: WorkflowId | null) => void;
+  formatId: DeckArchitectFormatId;
+  setFormatId: (value: DeckArchitectFormatId) => void;
+  intentId: BuildIntentId;
+  setIntentId: (value: BuildIntentId) => void;
+}) {
+  const selectedWorkflow = PRIMARY_WORKFLOWS.find((workflow) => workflow.id === workflowId);
+
+  return (
+    <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <button
+        type="button"
+        onClick={() => setWorkflowId(null)}
+        className="mb-4 text-xs font-semibold text-slate-500 transition hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+      >
+        Change workflow
+      </button>
+      <p className="text-lg font-semibold tracking-[-0.025em] text-white">{selectedWorkflow?.title}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{selectedWorkflow?.description}</p>
+
+      <div className="mt-5">
+        <p className="text-sm font-semibold text-slate-200">Choose format</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {INITIAL_DECK_ARCHITECT_FORMATS.filter((id) => id !== "custom" && id !== "brawl").map((id) => {
+            const profile = getFormatProfile(id);
+            const selected = id === formatId;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setFormatId(id)}
+                className={[
+                  "rounded-[12px] px-3 py-2 text-left text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                  selected ? "bg-cyan-300 text-[#02131b]" : "bg-black/20 text-slate-300 hover:bg-white/[0.06]",
+                ].join(" ")}
+              >
+                {profile.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <p className="text-sm font-semibold text-slate-200">Build intent</p>
+        <div className="mt-3 space-y-2">
+          {Object.values(INTENT_COPY).map((copy) => {
+            const id = Object.keys(INTENT_COPY).find((key) => INTENT_COPY[key as BuildIntentId] === copy) as BuildIntentId;
+            const selected = id === intentId;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setIntentId(id)}
+                className={[
+                  "w-full rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                  selected ? "bg-white/[0.075]" : "bg-black/20 hover:bg-white/[0.045]",
+                ].join(" ")}
+              >
+                <span className="block text-sm font-semibold text-white">{copy.label}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">{copy.body}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CommanderPicker({
+  commanders,
+  selectedCommanderId,
+  setSelectedCommanderId,
+  search,
+  setSearch,
+}: {
+  commanders: CollectionGraphCard[];
+  selectedCommanderId: string | null;
+  setSelectedCommanderId: (id: string) => void;
+  search: string;
+  setSearch: (value: string) => void;
+}) {
+  return (
+    <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <p className="text-sm font-semibold text-white">Choose commander</p>
+      <label className="mt-3 flex h-10 items-center gap-2 rounded-[12px] bg-black/25 px-3">
+        <Search className="h-4 w-4 text-slate-500" />
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search owned commanders"
+          className="min-w-0 flex-1 bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-600"
+        />
+      </label>
+      <div className="mt-3 space-y-2">
+        {commanders.length ? commanders.map((card) => {
+          const selected = card.inventoryId === selectedCommanderId;
+          return (
+            <button
+              key={card.inventoryId}
+              type="button"
+              onClick={() => setSelectedCommanderId(card.inventoryId)}
+              className={[
+                "flex w-full items-center gap-3 rounded-[14px] p-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                selected ? "bg-cyan-300/10" : "bg-black/20 hover:bg-white/[0.045]",
+              ].join(" ")}
+            >
+              <CardThumb card={card} size="small" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-white">{card.name}</span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  Owned {card.quantityOwned}{card.setCode ? ` / ${card.setCode.toUpperCase()}` : ""}
+                </span>
+              </span>
+              {selected ? <Check className="h-4 w-4 text-cyan-200" /> : <ChevronRight className="h-4 w-4 text-slate-600" />}
+            </button>
+          );
+        }) : (
+          <div className="rounded-[14px] bg-black/20 p-4">
+            <p className="text-sm font-semibold text-slate-100">No commanders found yet</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Deck Architect could not find an eligible commander in your current collection.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/dashboard/inventory" className="rounded-[10px] bg-cyan-300 px-3 py-2 text-xs font-semibold text-[#02131b]">
+                Add cards
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PreBuildState({
+  formatId,
+  formatRequiresCommander,
+  hasCollection,
+  hasCommanders,
+  setFormatId,
+}: {
+  formatId: DeckArchitectFormatId;
+  formatRequiresCommander: boolean;
+  hasCollection: boolean;
+  hasCommanders: boolean;
+  setFormatId: (value: DeckArchitectFormatId) => void;
+}) {
+  if (!hasCollection) {
+    return (
+      <CenteredState
+        title="Add cards to start building"
+        body="Deck Architect works from your Trading Docks collection. Add owned cards, then return here to build with them."
+        action={<LinkButton href="/dashboard/inventory">Open Collection</LinkButton>}
+      />
+    );
+  }
+
+  if (formatRequiresCommander && !hasCommanders) {
+    return (
+      <CenteredState
+        title="No commanders found yet"
+        body="Choose a non-Commander format, or add eligible legendary creatures to your collection."
+        action={
+          <button
+            type="button"
+            onClick={() => setFormatId("casual60")}
+            className="rounded-[12px] bg-cyan-300 px-4 py-2 text-sm font-semibold text-[#02131b]"
+          >
+            Choose another format
+          </button>
+        }
+      />
+    );
+  }
+
+  return (
+    <CenteredState
+      title={formatId === "commander" ? "Choose a commander" : "Ready to build"}
+      body={formatRequiresCommander ? "Select an owned commander to create a working deck plan." : "Deck Architect can now create a working deck plan from your collection."}
+    />
+  );
+}
+
+function ActiveDeckWorkspace({
+  buildability,
+  formatId,
+  formatName,
+  grouped,
+  health,
+  isCompleteWorkingDeck,
+  intentLabel,
+  lockedCards,
+  missing,
+  mustIncludeCards,
+  ownership,
+  selectedCard,
+  selectedCommander,
+  setSelectedCardId,
+  toggleLocked,
+  toggleMustInclude,
+  totalKnownMissingCost,
+  viewMode,
+  setViewMode,
+}: {
+  buildability: ReturnType<typeof calculateBuildabilityScore> | null;
+  formatId: DeckArchitectFormatId;
+  formatName: string;
+  grouped: Array<[DeckArchitectRole, OwnershipMatch[]]>;
+  health: ReturnType<typeof analyzeDeckHealth> | null;
+  isCompleteWorkingDeck: boolean;
+  intentLabel: string;
+  lockedCards: Set<string>;
+  missing: OwnershipMatch[];
+  mustIncludeCards: Set<string>;
+  ownership: OwnershipMatch[];
+  selectedCard: OwnershipMatch | null;
+  selectedCommander: CollectionGraphCard | null;
+  setSelectedCardId: (id: string | null) => void;
+  toggleLocked: (id: string) => void;
+  toggleMustInclude: (id: string) => void;
+  totalKnownMissingCost: number | null;
+  viewMode: ViewMode;
+  setViewMode: (value: ViewMode) => void;
+}) {
+  const deckName = selectedCommander ? `${selectedCommander.name} Build` : `${formatName} Collection Build`;
+  const owned = buildability?.ownedCards ?? 0;
+  const required = buildability?.requiredCards ?? 0;
+  const missingCount = buildability?.missingCards ?? 0;
+
+  return (
+    <section className="min-w-0">
+      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.2)]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="flex min-w-0 gap-4">
+            {selectedCommander ? <CardThumb card={selectedCommander} size="large" /> : null}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-cyan-300">{formatName} / {intentLabel}</p>
+              <h2 className="mt-1 truncate text-3xl font-semibold tracking-[-0.05em] text-white">{deckName}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                {isCompleteWorkingDeck
+                  ? "Working deck plan based on cards saved in your collection. Review every change before saving to Deck Vault."
+                  : "Working shell based on cards saved in your collection. Add more cards or choose another format for full deck scoring."}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:min-w-[360px]">
+            <HeaderMetric label="Buildable" value={buildability ? `${buildability.score}%` : "Not calculated"} />
+            <HeaderMetric label="Owned" value={required ? `${owned}/${required}` : "Not calculated"} />
+            <HeaderMetric label="Health" value={health ? String(health.overall) : "Not calculated"} />
+          </div>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          {(["deck", "cards", "intelligence"] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setViewMode(mode)}
+              className={[
+                "h-9 rounded-full px-4 text-sm font-semibold capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                viewMode === mode ? "bg-cyan-300 text-[#02131b]" : "bg-black/25 text-slate-300 hover:bg-white/[0.06]",
+              ].join(" ")}
+            >
+              {mode}
+            </button>
+          ))}
+          <span className="ml-auto text-xs text-slate-500">
+            Save to Deck Vault after proposal persistence is enabled.
+          </span>
+        </div>
+      </div>
+
+      {viewMode === "deck" ? (
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <DeckStructure grouped={grouped} setSelectedCardId={setSelectedCardId} />
+          <SideRail
+            buildability={buildability}
+            health={health}
+            missing={missing}
+            totalKnownMissingCost={totalKnownMissingCost}
+          />
+        </div>
+      ) : null}
+
+      {viewMode === "cards" ? (
+        <CardWorkspace
+          ownership={ownership}
+          selectedCard={selectedCard}
+          setSelectedCardId={setSelectedCardId}
+          lockedCards={lockedCards}
+          mustIncludeCards={mustIncludeCards}
+          toggleLocked={toggleLocked}
+          toggleMustInclude={toggleMustInclude}
+        />
+      ) : null}
+
+      {viewMode === "intelligence" ? (
+        <DeckIntelligence health={health} missing={missing} formatId={formatId} />
+      ) : null}
+
+      {selectedCard ? (
+        <CardDetailDrawer
+          match={selectedCard}
+          locked={lockedCards.has(selectedCard.requirement.id)}
+          mustInclude={mustIncludeCards.has(selectedCard.requirement.id)}
+          onClose={() => setSelectedCardId(null)}
+          toggleLocked={() => toggleLocked(selectedCard.requirement.id)}
+          toggleMustInclude={() => toggleMustInclude(selectedCard.requirement.id)}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function DeckStructure({
+  grouped,
+  setSelectedCardId,
+}: {
+  grouped: Array<[DeckArchitectRole, OwnershipMatch[]]>;
+  setSelectedCardId: (id: string) => void;
+}) {
+  return (
+    <section className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-lg font-semibold tracking-[-0.025em] text-white">Deck Structure</p>
+          <p className="mt-1 text-sm text-slate-500">Cards are grouped by their primary role in the current plan.</p>
+        </div>
+      </div>
+      <div className="mt-5 space-y-5">
+        {grouped.map(([role, matches]) => (
+          <div key={role}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold capitalize text-slate-200">{role.replace("-", " ")}</p>
+              <p className="text-xs text-slate-600">{matches.length} cards</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+              {matches.slice(0, 10).map((match) => (
+                <button
+                  key={match.requirement.id}
+                  type="button"
+                  onClick={() => setSelectedCardId(match.requirement.id)}
+                  className="group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+                >
+                  <div className="overflow-hidden rounded-[14px] bg-black/25">
+                    <CardImage card={match.requirement} />
+                  </div>
+                  <p className="mt-2 truncate text-xs font-semibold text-white">{match.requirement.name}</p>
+                  <OwnershipPill match={match} />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SideRail({
+  buildability,
+  health,
+  missing,
+  totalKnownMissingCost,
+}: {
+  buildability: ReturnType<typeof calculateBuildabilityScore> | null;
+  health: ReturnType<typeof analyzeDeckHealth> | null;
+  missing: OwnershipMatch[];
+  totalKnownMissingCost: number | null;
+}) {
+  return (
+    <aside className="space-y-5">
+      <InfoPanel title="Buildability" icon={<Layers3 className="h-4 w-4" />}>
+        {buildability ? (
+          <>
+            <p className="text-4xl font-semibold tracking-[-0.055em] text-white">{buildability.score}%</p>
+            <p className="mt-2 text-sm text-slate-500">
+              {buildability.ownedCards} / {buildability.requiredCards} cards available
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              {buildability.missingCards} missing
+            </p>
+            <p className="mt-3 text-sm font-semibold text-slate-200">
+              Estimated completion: {totalKnownMissingCost === null ? "Price unavailable" : `$${totalKnownMissingCost.toFixed(2)}`}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm leading-6 text-slate-500">Choose or build a deck to see how much of it you already own.</p>
+        )}
+      </InfoPanel>
+
+      <InfoPanel title="Deck Health" icon={<ShieldCheck className="h-4 w-4" />}>
+        {health ? (
+          <>
+            <p className="text-4xl font-semibold tracking-[-0.055em] text-white">{health.overall}</p>
+            <div className="mt-4 space-y-3">
+              {Object.entries(health.categories).filter(([key]) => key !== "overall").map(([label, value]) => (
+                <HealthRow key={label} label={label} value={value} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-sm leading-6 text-slate-500">Choose or build a deck to analyze its balance, consistency, and interaction.</p>
+        )}
+      </InfoPanel>
+
+      <InfoPanel title="Missing Cards" icon={<BookOpen className="h-4 w-4" />}>
+        {missing.length ? (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">
+              {missing.length} cards missing. Estimated completion: {totalKnownMissingCost === null ? "Price unavailable" : `$${totalKnownMissingCost.toFixed(2)}`}
+            </p>
+            {missing.slice(0, 4).map((match) => (
+              <div key={match.requirement.id} className="rounded-[12px] bg-black/20 p-3">
+                <p className="text-sm font-semibold text-white">{match.requirement.name}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Need {match.requirement.requiredQuantity} / Owned {match.ownedQuantity}
+                </p>
+                <p className="mt-2 text-xs text-slate-300">
+                  {match.estimatedMissingValue === null ? "Price unavailable" : `$${match.estimatedMissingValue.toFixed(2)}`}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-slate-500">You already own every card in this working plan.</p>
+        )}
+      </InfoPanel>
+    </aside>
+  );
+}
+
+function CardWorkspace({
+  ownership,
+  selectedCard,
+  setSelectedCardId,
+  lockedCards,
+  mustIncludeCards,
+  toggleLocked,
+  toggleMustInclude,
+}: {
+  ownership: OwnershipMatch[];
+  selectedCard: OwnershipMatch | null;
+  setSelectedCardId: (id: string) => void;
+  lockedCards: Set<string>;
+  mustIncludeCards: Set<string>;
+  toggleLocked: (id: string) => void;
+  toggleMustInclude: (id: string) => void;
+}) {
+  return (
+    <section className="mt-5 rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-lg font-semibold tracking-[-0.025em] text-white">Card Workspace</p>
+          <p className="mt-1 text-sm text-slate-500">Review ownership, roles, prices, locks, and must-include choices.</p>
+        </div>
+      </div>
+      <div className="mt-5 overflow-hidden rounded-[16px] bg-black/20">
+        {ownership.map((match) => {
+          const selected = selectedCard?.requirement.id === match.requirement.id;
+          return (
+            <div
+              key={match.requirement.id}
+              className={[
+                "grid gap-3 border-b border-white/[0.06] p-3 last:border-b-0 md:grid-cols-[52px_minmax(0,1fr)_120px_120px_120px] md:items-center",
+                selected ? "bg-cyan-300/[0.055]" : "",
+              ].join(" ")}
+            >
+              <button type="button" onClick={() => setSelectedCardId(match.requirement.id)} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+                <CardThumb card={match.requirement} size="small" />
+              </button>
+              <button type="button" onClick={() => setSelectedCardId(match.requirement.id)} className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+                <p className="truncate text-sm font-semibold text-white">{match.requirement.name}</p>
+                <p className="mt-1 truncate text-xs text-slate-500">{match.requirement.typeLine ?? "Card type unavailable"}</p>
+              </button>
+              <OwnershipPill match={match} />
+              <p className="text-sm text-slate-300">{match.requirement.estimatedPrice == null ? "Price unavailable" : `$${match.requirement.estimatedPrice.toFixed(2)}`}</p>
+              <div className="flex gap-2">
+                <IconToggle
+                  active={lockedCards.has(match.requirement.id)}
+                  label="Lock card"
+                  onClick={() => toggleLocked(match.requirement.id)}
+                  icon={<Lock className="h-4 w-4" />}
+                />
+                <IconToggle
+                  active={mustIncludeCards.has(match.requirement.id)}
+                  label="Mark must include"
+                  onClick={() => toggleMustInclude(match.requirement.id)}
+                  icon={<Star className="h-4 w-4" />}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function DeckIntelligence({
+  health,
+  missing,
+  formatId,
+}: {
+  health: ReturnType<typeof analyzeDeckHealth> | null;
+  missing: OwnershipMatch[];
+  formatId: DeckArchitectFormatId;
+}) {
+  const issues = health?.warnings ?? [];
+  return (
+    <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+        <p className="text-lg font-semibold tracking-[-0.025em] text-white">Deck Intelligence</p>
+        <p className="mt-1 text-sm text-slate-500">Recommendations stay reviewable. Deck Architect never mutates a deck silently.</p>
+        <div className="mt-5 space-y-3">
+          {issues.length ? issues.map((issue) => (
+            <IntelligenceItem
+              key={issue}
+              title={issue}
+              body="Review cards in this role and compare owned alternatives before applying changes."
+              tone="attention"
+            />
+          )) : (
+            <IntelligenceItem
+              title="No urgent health issues"
+              body="This working plan has no major balance warnings from the current analyzer."
+              tone="good"
+            />
+          )}
+          {missing.length ? (
+            <IntelligenceItem
+              title="Missing opportunity"
+              body={`${missing[0].requirement.name} is not currently owned. Look for an owned card with a similar role before adding it to a wishlist.`}
+              tone="neutral"
+            />
+          ) : null}
+          <IntelligenceItem
+            title={formatId === "commander" ? "Commander plan ready for review" : "Deck plan ready for review"}
+            body="Save/apply actions remain disabled until Deck Vault proposal persistence is connected."
+            tone="neutral"
+          />
+        </div>
+      </div>
+      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+        <p className="text-sm font-semibold text-white">Recommended Change</p>
+        {missing[0] ? (
+          <div className="mt-4 space-y-4">
+            <SwapRow label="Remove" name="Open deck slot" note="No current card selected." />
+            <SwapRow label="Add" name={missing[0].requirement.name} note={missing[0].estimatedMissingValue === null ? "Price unavailable" : `$${missing[0].estimatedMissingValue.toFixed(2)} estimated`} />
+            <p className="text-sm leading-6 text-slate-500">
+              Why: fills a missing {primaryRoleLabel(missing[0].requirement.roles)} role in this working plan.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="rounded-[12px] bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-400" disabled>
+                Apply after review unavailable
+              </button>
+              <button type="button" className="rounded-[12px] bg-black/25 px-4 py-2 text-sm font-semibold text-slate-300">
+                Dismiss
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm leading-6 text-slate-500">Build or select a deck with missing cards to receive recommendations.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function CardDetailDrawer({
+  match,
+  locked,
+  mustInclude,
+  onClose,
+  toggleLocked,
+  toggleMustInclude,
+}: {
+  match: OwnershipMatch;
+  locked: boolean;
+  mustInclude: boolean;
+  onClose: () => void;
+  toggleLocked: () => void;
+  toggleMustInclude: () => void;
+}) {
+  const card = match.requirement;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/45 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
+      <div className="flex h-full w-full max-w-[460px] flex-col overflow-hidden rounded-[22px] bg-[#06131f] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-white/[0.08] p-4">
+          <p className="text-sm font-semibold text-white">Card details</p>
+          <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-5">
+          <div className="mx-auto max-w-[280px] overflow-hidden rounded-[18px] bg-black/25">
+            <CardImage card={card} />
+          </div>
+          <h3 className="mt-5 text-2xl font-semibold tracking-[-0.04em] text-white">{card.name}</h3>
+          <p className="mt-2 text-sm text-slate-500">{card.typeLine ?? "Card type unavailable"}</p>
+          {card.oracleText ? <p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-300">{card.oracleText}</p> : null}
+          <dl className="mt-5 grid grid-cols-2 gap-3">
+            <Detail label="Required" value={String(card.requiredQuantity)} />
+            <Detail label="Owned" value={String(match.ownedQuantity)} />
+            <Detail label="Location" value={card.location ?? "Location unavailable"} />
+            <Detail label="Price" value={card.estimatedPrice == null ? "Price unavailable" : `$${card.estimatedPrice.toFixed(2)}`} />
+          </dl>
+          <div className="mt-5 grid gap-3">
+            <button type="button" onClick={toggleLocked} className="flex items-center justify-between rounded-[14px] bg-black/20 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+              <span>
+                <span className="block text-sm font-semibold text-white">Lock</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">Deck Architect cannot remove this card during optimization.</span>
+              </span>
+              <span className={locked ? "text-cyan-300" : "text-slate-600"}><Lock className="h-4 w-4" /></span>
+            </button>
+            <button type="button" onClick={toggleMustInclude} className="flex items-center justify-between rounded-[14px] bg-black/20 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+              <span>
+                <span className="block text-sm font-semibold text-white">Must Include</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">Deck Architect should preserve this card in rebuilds.</span>
+              </span>
+              <span className={mustInclude ? "text-cyan-300" : "text-slate-600"}><Star className="h-4 w-4" /></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildWorkingDeckRequirements(
   cards: CollectionGraphCard[],
   formatId: DeckArchitectFormatId,
+  commander: CollectionGraphCard | null,
+  intentId: BuildIntentId,
 ): DeckRequirement[] {
   const format = getFormatProfile(formatId);
-  const commander = format.commanderRequired ? cards.find((card) => /legendary/i.test(card.typeLine ?? "")) : null;
-  const ownedCards = cards.slice(0, format.commanderRequired ? 29 : 36);
+  const targetSize = format.exactDeckSize ?? format.minimumMainDeckSize ?? 60;
+  const pool = cards
+    .filter((card) => !commander || card.inventoryId === commander.inventoryId || colorIdentityFits(card, commander))
+    .sort((left, right) => scoreCardForIntent(right, intentId) - scoreCardForIntent(left, intentId));
   const requirements: DeckRequirement[] = [];
-  if (commander) {
-    requirements.push({
-      id: `commander:${commander.inventoryId}`,
-      name: commander.name,
-      requiredQuantity: 1,
-      board: "commander",
-      roles: ["synergy"],
-      estimatedPrice: commander.marketPrice,
-      importance: 1.5,
-      typeLine: commander.typeLine,
-      isCommander: true,
-      legalityStatus: "unknown",
-    });
+
+  if (commander) requirements.push(toRequirement(commander, 1, "commander", true));
+
+  let currentCount = requirements.reduce((sum, card) => sum + card.requiredQuantity, 0);
+  for (const card of pool) {
+    if (commander && card.inventoryId === commander.inventoryId) continue;
+    if (currentCount >= targetSize) break;
+    const quantity = format.singleton ? 1 : Math.min(4, Math.max(1, Math.min(card.quantityOwned, 4)));
+    const nextQuantity = Math.min(quantity, targetSize - currentCount);
+    requirements.push(toRequirement(card, nextQuantity, "main", false));
+    currentCount += nextQuantity;
   }
-  for (const card of ownedCards) {
-    requirements.push({
-      id: `main:${card.inventoryId}`,
-      name: card.name,
-      requiredQuantity: format.singleton ? 1 : Math.min(4, Math.max(1, Math.min(card.quantityOwned, 4))),
-      board: "main",
-      roles: inferRoles(card),
-      estimatedPrice: card.marketPrice,
-      typeLine: card.typeLine,
-      colorIdentity: card.colorIdentity,
-      legalityStatus: "unknown",
-    });
-  }
+
   return requirements;
+}
+
+function toRequirement(card: CollectionGraphCard, quantity: number, board: "commander" | "main", isCommander: boolean): DeckRequirement {
+  return {
+    id: `${board}:${card.inventoryId}`,
+    name: card.name,
+    requiredQuantity: quantity,
+    board,
+    roles: inferRoles(card),
+    estimatedPrice: card.marketPrice ?? null,
+    importance: isCommander ? 1.5 : 1,
+    imageUri: card.imageUri,
+    typeLine: card.typeLine,
+    oracleText: card.oracleText,
+    manaCost: card.manaCost,
+    colorIdentity: card.colorIdentity,
+    location: card.location,
+    isCommander,
+    legalityStatus: "unknown",
+  };
 }
 
 function inferRoles(card: CollectionGraphCard): DeckArchitectRole[] {
@@ -376,56 +1031,109 @@ function inferRoles(card: CollectionGraphCard): DeckArchitectRole[] {
   const name = card.name.toLowerCase();
   const roles: DeckArchitectRole[] = [];
   if (typeLine.includes("land")) roles.push("land");
-  if (/draw|study|ponder|consider|insight|harmonize/.test(name)) roles.push("card-advantage");
-  if (/counter|negate|swords|path|destroy|exile|bolt|removal/.test(name)) roles.push("interaction", "removal");
-  if (/ramp|signet|sol ring|cultivate|treasure/.test(name)) roles.push("ramp", "mana-fixing");
+  if (/draw|study|ponder|consider|insight|harmonize|remora|rhystic/.test(name)) roles.push("card-advantage");
+  if (/counter|negate|swords|path|destroy|exile|bolt|removal|claim|push/.test(name)) roles.push("interaction", "removal");
+  if (/ramp|signet|sol ring|cultivate|treasure|lore|elder/.test(name)) roles.push("ramp", "mana-fixing");
+  if (/protect|heroic intervention|boots|greaves|ward/.test(name)) roles.push("protection");
   if (/tutor|search/.test(name)) roles.push("tutor");
   if (/combo|engine|altar|station/.test(name)) roles.push("combo-piece", "synergy");
   if (!roles.length) roles.push(typeLine.includes("creature") ? "threat" : "synergy");
   return [...new Set(roles)];
 }
 
-function commanderBuildability(card: CollectionGraphCard, collection: CollectionGraphCard[]) {
-  const support = collection.filter((item) => {
-    const colors = item.colorIdentity ?? [];
-    const commanderColors = card.colorIdentity ?? [];
-    return colors.every((color) => commanderColors.includes(color));
-  }).length;
-  return Math.min(99, Math.max(35, 60 + support * 2));
+function colorIdentityFits(card: CollectionGraphCard, commander: CollectionGraphCard) {
+  const colors = card.colorIdentity ?? [];
+  const commanderColors = commander.colorIdentity ?? [];
+  return colors.every((color) => commanderColors.includes(color));
 }
 
-function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
+function scoreCardForIntent(card: CollectionGraphCard, intentId: BuildIntentId) {
+  const roles = inferRoles(card);
+  let score = card.quantityOwned * 4;
+  if (roles.includes("land")) score += 8;
+  if (roles.includes("ramp")) score += 7;
+  if (roles.includes("interaction")) score += 6;
+  if (roles.includes("card-advantage")) score += 5;
+  if (intentId === "no-purchases" || intentId === "use-collection") score += card.quantityOwned * 2;
+  if (intentId === "budget" && (card.marketPrice ?? 0) <= 5) score += 4;
+  if (intentId === "competitive" && roles.some((role) => role === "interaction" || role === "ramp")) score += 4;
+  return score;
+}
+
+function groupByRole(ownership: OwnershipMatch[]) {
+  const groups = new Map<DeckArchitectRole, OwnershipMatch[]>();
+  for (const match of ownership) {
+    const primary = match.requirement.isCommander ? "synergy" : match.requirement.roles[0] ?? "synergy";
+    groups.set(primary, [...(groups.get(primary) ?? []), match]);
+  }
+  return ROLE_ORDER
+    .filter((role) => groups.has(role))
+    .map((role) => [role, groups.get(role) ?? []] as [DeckArchitectRole, OwnershipMatch[]]);
+}
+
+function CardThumb({ card, size }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri">; size: "small" | "large" }) {
+  const classes = size === "large" ? "h-24 w-16" : "h-14 w-10";
   return (
-    <div>
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-cyan-300">{eyebrow}</p>
-      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">{title}</h2>
+    <div className={`${classes} shrink-0 overflow-hidden rounded-[10px] bg-slate-900`}>
+      <CardImage card={card} />
     </div>
   );
 }
 
-function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
+function CardImage({ card }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri"> }) {
+  if (!card.imageUri) {
+    return (
+      <div className="flex aspect-[63/88] h-full w-full items-center justify-center bg-gradient-to-b from-slate-800 to-slate-950 p-3 text-center text-[10px] font-semibold leading-4 text-slate-500">
+        {card.name}
+      </div>
+    );
+  }
   return (
-    <div className="min-w-0">
-      <p className="text-xs text-slate-600">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-[-0.045em] text-white">{value}</p>
-      <p className="mt-1 text-xs text-slate-600">{detail}</p>
+    <img
+      src={card.imageUri}
+      alt={`${card.name} card art`}
+      loading="lazy"
+      className="aspect-[63/88] h-full w-full object-cover"
+    />
+  );
+}
+
+function OwnershipPill({ match }: { match: OwnershipMatch }) {
+  if (match.status === "owned") {
+    return (
+      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-300/10 px-2 py-1 text-[11px] font-semibold text-emerald-200">
+        <Check className="h-3 w-3" />
+        Owned
+      </span>
+    );
+  }
+  if (match.status === "partial") {
+    return (
+      <span className="mt-2 inline-flex rounded-full bg-amber-300/10 px-2 py-1 text-[11px] font-semibold text-amber-200">
+        {match.ownedQuantity} / {match.requirement.requiredQuantity} owned
+      </span>
+    );
+  }
+  return (
+    <span className="mt-2 inline-flex rounded-full bg-slate-500/10 px-2 py-1 text-[11px] font-semibold text-slate-300">
+      Missing
+    </span>
+  );
+}
+
+function HeaderMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[14px] bg-black/20 p-3">
+      <p className="text-[11px] text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-semibold tracking-[-0.035em] text-white">{value}</p>
     </div>
   );
 }
 
-function Rule({ label, value }: { label: string; value: string }) {
+function InfoPanel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <div>
-      <dt className="text-slate-700">{label}</dt>
-      <dd className="mt-1 font-semibold text-slate-300">{value}</dd>
-    </div>
-  );
-}
-
-function Panel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
-  return (
-    <section className="min-w-0 rounded-[22px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.20)]">
-      <div className="flex items-center gap-2 text-sm font-semibold text-white">
+    <section className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
         <span className="text-cyan-300">{icon}</span>
         {title}
       </div>
@@ -434,20 +1142,12 @@ function Panel({ title, icon, children }: { title: string; icon: ReactNode; chil
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="py-8">
-      <p className="text-sm font-semibold text-slate-200">{title}</p>
-      <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">{body}</p>
-    </div>
-  );
-}
-
 function HealthRow({ label, value }: { label: string; value: number }) {
+  const readable = label.replace("-", " ");
   return (
     <div>
       <div className="flex items-center justify-between gap-4">
-        <p className="text-xs capitalize text-slate-500">{label.replace("-", " ")}</p>
+        <p className="text-xs capitalize text-slate-400">{readable}</p>
         <p className="text-sm font-semibold text-slate-200">{value}</p>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30">
@@ -457,20 +1157,82 @@ function HealthRow({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ProposalStep({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
+function IntelligenceItem({ title, body, tone }: { title: string; body: string; tone: "good" | "attention" | "neutral" }) {
+  const color = tone === "good" ? "text-emerald-200" : tone === "attention" ? "text-amber-200" : "text-slate-200";
   return (
-    <div className="flex gap-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-cyan-300/15 bg-cyan-300/[0.055] text-cyan-300">
-        {icon}
-      </span>
-      <div>
-        <p className="text-sm font-semibold text-white">{title}</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">{body}</p>
-      </div>
+    <div className="rounded-[16px] bg-black/20 p-4">
+      <p className={`text-sm font-semibold ${color}`}>{title}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
     </div>
   );
 }
 
-function percent(value: number) {
-  return `${Math.round(value * 100)}%`;
+function SwapRow({ label, name, note }: { label: string; name: string; note: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-white">{name}</p>
+      <p className="mt-1 text-xs text-slate-500">{note}</p>
+    </div>
+  );
+}
+
+function IconToggle({ active, label, onClick, icon }: { active: boolean; label: string; onClick: () => void; icon: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      aria-label={label}
+      onClick={onClick}
+      className={[
+        "flex h-9 w-9 items-center justify-center rounded-[10px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+        active ? "bg-cyan-300/15 text-cyan-200" : "bg-black/25 text-slate-500 hover:text-slate-200",
+      ].join(" ")}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function CenteredState({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
+  return (
+    <section className="flex min-h-[520px] items-center justify-center rounded-[20px] bg-[#06131f] p-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="max-w-md">
+        <Sparkles className="mx-auto h-8 w-8 text-cyan-300" />
+        <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-slate-500">{body}</p>
+        {action ? <div className="mt-5">{action}</div> : null}
+      </div>
+    </section>
+  );
+}
+
+function LinkButton({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link href={href} className="inline-flex rounded-[12px] bg-cyan-300 px-4 py-2 text-sm font-semibold text-[#02131b]">
+      {children}
+    </Link>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[12px] bg-black/20 p-3">
+      <dt className="text-[11px] text-slate-500">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-slate-200">{value}</dd>
+    </div>
+  );
+}
+
+function LoadError({ message }: { message: string }) {
+  return (
+    <div className="mb-5 rounded-[18px] border border-amber-300/20 bg-amber-300/10 px-5 py-4">
+      <p className="text-sm font-semibold text-amber-100">Deck Architect could not load your collection.</p>
+      <p className="mt-1 text-sm text-amber-100/75">{message}</p>
+    </div>
+  );
+}
+
+function primaryRoleLabel(roles: DeckArchitectRole[]) {
+  return (roles[0] ?? "synergy").replace("-", " ");
 }

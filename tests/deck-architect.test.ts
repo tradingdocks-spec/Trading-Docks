@@ -170,7 +170,7 @@ test("Deck Architect dashboard is routed under Decks and uses real collection sn
   assert.match(route, /loadDeckArchitectCollectionSnapshot/);
   assert.match(route, /redirect\("\/sign-in\?next=\/dashboard\/deck-architect"\)/);
   assert.match(navigation, /href: "\/dashboard\/deck-architect", label: "Deck Architect"/);
-  assert.match(workspace, /Build smarter decks from the cards you already own/);
+  assert.match(workspace, /Build, improve, and discover decks using the cards you actually own/);
   assert.match(workspace, /snapshot\.commanderCandidates/);
   assert.match(workspace, /compareRequirementsToCollection/);
   assert.match(workspace, /calculateBuildabilityScore/);
@@ -199,7 +199,14 @@ test("Deck Architect collection snapshot derives unit price from total inventory
                 collector_number: "305",
                 quantity: 4,
                 inventory_value: 12,
-                data: { typeLine: "Artifact" },
+                data: {
+                  typeLine: "Artifact",
+                  image_uris: { normal: "https://img.example/arcane-signet.jpg" },
+                  oracle_text: "Add one mana of any color in your commander's color identity.",
+                  mana_cost: "{2}",
+                  color_identity: [],
+                  legalities: { commander: "legal" },
+                },
               },
               {
                 id: "inv-2",
@@ -221,15 +228,48 @@ test("Deck Architect collection snapshot derives unit price from total inventory
   const snapshot = await loadDeckArchitectCollectionSnapshot(supabase, { id: "user-1" });
 
   assert.equal(snapshot.cards[0].marketPrice, 3);
+  assert.equal(snapshot.cards[0].imageUri, "https://img.example/arcane-signet.jpg");
+  assert.equal(snapshot.cards[0].oracleText, "Add one mana of any color in your commander's color identity.");
+  assert.equal(snapshot.cards[0].manaCost, "{2}");
+  assert.deepEqual(snapshot.cards[0].legalities, { commander: "legal" });
   assert.equal(snapshot.cards[1].marketPrice, 37.5);
   assert.equal(snapshot.totalOwnedQuantity, 5);
 });
 
-test("Deck Architect UI keeps AI as infrastructure and preserves proposal review", () => {
-  assert.match(workspace, /Propose, review, apply/);
-  assert.match(workspace, /Natural-language requests become structured intent/);
-  assert.match(workspace, /Must Include and Locked cards/);
-  assert.doesNotMatch(workspace, /ChatGPT|magic AI deck builder|Apply Changes automatically/i);
+test("Deck Architect landing state is product-facing and avoids internal engine language", () => {
+  assert.match(workspace, /Build a Deck/);
+  assert.match(workspace, /Build From My Collection/);
+  assert.match(workspace, /Improve a Deck/);
+  assert.match(workspace, /What Can I Build/);
+  assert.match(workspace, /Your Collection/);
+  assert.match(workspace, /No commanders found yet/);
+  assert.doesNotMatch(workspace, /Provider-ready|Engine architecture|collection graph|Quantity scanned for v1|Owned sample|Full snapshot loaded|foundation pool|Proposal Control/i);
+});
+
+test("Deck Architect does not show buildability or health scores before a working deck exists", () => {
+  assert.match(workspace, /Choose or build a deck to see how much of it you already own/);
+  assert.match(workspace, /Choose or build a deck to analyze its balance, consistency, and interaction/);
+  assert.match(workspace, /Not calculated/);
+});
+
+test("Deck Architect supports active commander selection card states and mobile modes", () => {
+  assert.match(workspace, /setSelectedCommanderId/);
+  assert.match(workspace, /Buildability/);
+  assert.match(workspace, /Deck Health/);
+  assert.match(workspace, /Missing Cards/);
+  assert.match(workspace, /Card Workspace/);
+  assert.match(workspace, /Deck Intelligence/);
+  assert.match(workspace, /type ViewMode = "deck" \| "cards" \| "intelligence"/);
+  assert.match(workspace, /aria-pressed/);
+  assert.match(workspace, /Lock/);
+  assert.match(workspace, /Must Include/);
+});
+
+test("Deck Architect preserves review-first behavior without fake autonomous AI", () => {
+  assert.match(workspace, /Recommendations stay reviewable/);
+  assert.match(workspace, /Deck Architect never mutates a deck silently/);
+  assert.match(workspace, /Apply after review unavailable/);
+  assert.doesNotMatch(workspace, /ChatGPT|magic AI deck builder|Apply Changes automatically|silently applies/i);
 });
 
 function requirement(

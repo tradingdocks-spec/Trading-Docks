@@ -384,12 +384,14 @@ Implemented improvements:
 - Added a scoped Deck Architect route, navigation entry, deterministic engine modules, and source-contract tests.
 - Kept user-owned collection loading server-side and scoped by authenticated Supabase user id.
 - Avoided fake AI, copied third-party deck recommendations, or external-provider claims in the first surface.
+- Removed customer-facing internal engine language from the active page and replaced it with workflow, deck, card, and recommendation states.
+- Added broader existing-inventory metadata mapping for card images and card facts without duplicating catalog data or changing schemas.
 
 Remaining risks:
 
 - The initial foundation uses collection-derived requirements rather than a complete archetype/template provider.
 - Proposal persistence, Deck Vault mutation integration, legality provider checks, and saved apply/revert flows are still planned.
-- Commander candidate quality depends on type-line metadata being present in saved inventory records.
+- Commander candidate quality still depends on type-line metadata being present in saved inventory or catalog payloads.
 - Price-aware scoring only uses saved inventory values when available; missing prices stay unavailable.
 
 Recommended next stabilization task:

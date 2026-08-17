@@ -244,6 +244,7 @@ Implemented this checkpoint:
 2. Added deterministic deck-architecture contracts for formats, build intents, ownership comparison, buildability scoring, commander candidates, missing-card visibility, and deck-health categories.
 3. Loaded real user-scoped collection data from `inventory_items` for the initial collection graph snapshot.
 4. Kept proposal review, must-include, locked-card, and AI concepts as explicit foundations without claiming autonomous deckbuilding.
+5. Polished the active product surface into a progressive customer workflow with card imagery, Commander selection, deck/card/intelligence modes, card-detail drawer, ownership states, and honest unavailable states for save/apply persistence.
 
 Recommended next checkpoint:
 
