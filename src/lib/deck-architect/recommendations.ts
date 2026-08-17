@@ -26,6 +26,7 @@ import type {
   OwnershipMatch,
   RecommendationConfidence,
   DeckChangeProposal,
+  DeckKnowledgeCardSeed,
 } from "./types.ts";
 
 export function generateDeckArchitectIntelligence({
@@ -199,6 +200,25 @@ export function constructValidatedCommanderDeck({
     });
   const requirements: DeckRequirement[] = [toRequirement(commander, 1, "commander", true)];
   const usedNames = new Set([normalizeCardKey(commander.name)]);
+  const allowMissingCards = intentId !== "no-purchases";
+  const strategySeeds = strategyFit
+    ? [...(strategyFit.strategy.coreCards ?? []), ...(strategyFit.strategy.flexCards ?? [])]
+    : [];
+
+  if (allowMissingCards) {
+    for (const seed of strategySeeds) {
+      if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
+      if (intentId === "budget" && (seed.estimatedPrice ?? 0) > 25) continue;
+      if (!seedColorIdentityFits(seed, commander)) continue;
+      const key = normalizeCardKey(seed.name);
+      if (format.singleton && usedNames.has(key)) continue;
+      const quantity = Math.min(seed.quantity, 100 - requirements.reduce((sum, item) => sum + item.requiredQuantity, 0));
+      if (quantity <= 0) continue;
+      requirements.push(seedToRequirement(seed, quantity, commander, strategyFit?.strategy.id ?? "strategy"));
+      usedNames.add(key);
+    }
+  }
+
   for (const card of pool) {
     if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
     const key = normalizeCardKey(card.name);
@@ -544,6 +564,33 @@ function colorIdentityFits(card: CollectionGraphCard, commander: CollectionGraph
   const colors = card.colorIdentity ?? [];
   const commanderColors = commander.colorIdentity ?? [];
   return colors.every((color) => commanderColors.includes(color));
+}
+
+function seedColorIdentityFits(seed: DeckKnowledgeCardSeed, commander: CollectionGraphCard) {
+  const colors = seed.colorIdentity ?? [];
+  const commanderColors = commander.colorIdentity ?? [];
+  return colors.every((color) => commanderColors.includes(color));
+}
+
+function seedToRequirement(
+  seed: DeckKnowledgeCardSeed,
+  quantity: number,
+  commander: CollectionGraphCard,
+  strategyId: string,
+): DeckRequirement {
+  return {
+    id: `strategy:${strategyId}:${normalizeCardKey(seed.name)}`,
+    name: seed.name,
+    requiredQuantity: quantity,
+    board: "main",
+    roles: seed.roles,
+    estimatedPrice: seed.estimatedPrice ?? null,
+    importance: seed.importance ?? 1.1,
+    typeLine: seed.typeLine,
+    oracleText: seed.oracleText,
+    colorIdentity: seed.colorIdentity ?? commander.colorIdentity,
+    legalityStatus: "unknown",
+  };
 }
 
 function scoreCardForIntent(card: CollectionGraphCard, intentId: BuildIntentId) {

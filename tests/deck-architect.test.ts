@@ -19,6 +19,7 @@ import {
   maximumCopiesForCard,
   recommendOwnedSubstitutions,
   proposeDeckRecommendations,
+  rankCommanderSearchResults,
   rankCommanderStrategiesForCollection,
   constructValidatedArchetypeDeck,
   constructValidatedCommanderDeck,
@@ -29,6 +30,7 @@ import {
   type DeckRequirement,
 } from "../src/lib/deck-architect/index.ts";
 import { loadDeckArchitectCollectionSnapshot, loadDeckArchitectSavedDecks, loadDeckArchitectServerState } from "../src/lib/deck-architect/server.ts";
+import { scryfallResultToPotentialCommander } from "../src/lib/deck-suite/domain.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workspace = readFileSync(
@@ -499,6 +501,85 @@ test("Commander construction returns only validated complete decks", () => {
   assert.ok(result.strategyFit);
 });
 
+test("Potential commander search ranks exact names ahead of catalog false positives", () => {
+  const candidates: CollectionGraphCard[] = [
+    commanderCandidate("cabal-patriarch", "Cabal Patriarch"),
+    commanderCandidate("patron-akki", "Patron of the Akki"),
+    commanderCandidate("kardum", "Kardum, Patron of Flames", ["B", "R"]),
+    commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]),
+    {
+      ...commanderCandidate("artifact", "Atraxa's Skitterfang"),
+      typeLine: "Artifact Creature - Phyrexian Insect",
+    },
+  ];
+
+  const atraxaResults = rankCommanderSearchResults(candidates, "atraxa", { limit: 8 });
+  assert.equal(atraxaResults[0].card.name, "Atraxa, Praetors' Voice");
+  assert.equal(atraxaResults.some((result) => result.card.name === "Atraxa's Skitterfang"), false);
+
+  const kardumResults = rankCommanderSearchResults(candidates, "kardum", { limit: 8 });
+  assert.equal(kardumResults[0].card.name, "Kardum, Patron of Flames");
+  assert.equal(kardumResults.some((result) => result.card.name === "Cabal Patriarch"), false);
+});
+
+test("Best Possible Commander construction can include missing strategy cards without polluting No Purchases", () => {
+  const commander = collection[0];
+  const bestPossible = constructValidatedCommanderDeck({
+    commander,
+    collection: [commander, collection[1]],
+    intentId: "strongest-possible",
+  });
+  const noPurchases = constructValidatedCommanderDeck({
+    commander,
+    collection: [commander, collection[1]],
+    intentId: "no-purchases",
+  });
+
+  assert.ok(bestPossible.requirements.some((requirement) => requirement.name === "Eternal Witness"));
+  assert.equal(noPurchases.requirements.some((requirement) => requirement.name === "Eternal Witness"), false);
+  assert.ok(bestPossible.ownership.some((match) => match.requirement.name === "Eternal Witness" && match.missingQuantity > 0));
+});
+
+test("Commander construction rejects off-color cards for Rakdos commanders", () => {
+  const commander = commanderCandidate("kardum", "Kardum, Patron of Flames", ["B", "R"]);
+  const offColorCollection: CollectionGraphCard[] = [
+    commander,
+    commanderCard("swords", "Swords to Plowshares", ["W"], "Instant", "Exile target creature."),
+    commanderCard("rift", "Cyclonic Rift", ["U"], "Instant", "Return target nonland permanent."),
+    commanderCard("crop", "Crop Rotation", ["G"], "Instant", "Search your library for a land."),
+    commanderCard("nec", "Necropotence", ["B"], "Enchantment", "Draw cards."),
+    commanderCard("signet", "Rakdos Signet", [], "Artifact", "Add black and red mana."),
+  ];
+  const result = constructValidatedCommanderDeck({ commander, collection: offColorCollection, intentId: "strongest-possible" });
+  const names = result.requirements.map((requirement) => requirement.name);
+
+  assert.equal(names.includes("Swords to Plowshares"), false);
+  assert.equal(names.includes("Cyclonic Rift"), false);
+  assert.equal(names.includes("Crop Rotation"), false);
+  assert.equal(names.includes("Necropotence"), true);
+  assert.equal(names.includes("Rakdos Signet"), true);
+});
+
+test("Scryfall potential commanders do not convert missing price into fake zero-dollar market value", () => {
+  const commander = scryfallResultToPotentialCommander({
+    id: "scryfall-unpriced",
+    name: "Unpriced Commander",
+    manaValue: 4,
+    colors: ["U"],
+    colorIdentity: ["U"],
+    typeLine: "Legendary Creature - Wizard",
+    setCode: "tdo",
+    setName: "Trading Docks",
+    collectorNumber: "42",
+    image: "",
+    artCrop: "",
+    price: 0,
+    gameChanger: false,
+  });
+
+  assert.equal(commander.marketPrice, null);
+});
+
 test("owned substitutions preserve exact ownership and explain confidence", () => {
   const missingMatch = compareRequirementsToCollection(
     [requirement("lava", "Lava Spike", 4, 1.25, false, ["interaction", "removal"], "Sorcery")],
@@ -691,6 +772,40 @@ test("Deck Architect saved deck read integration remains user scoped", async () 
   assert.equal(decks[0].id, "deck-a");
   assert.equal(decks[0].cardCount, 60);
 });
+
+function commanderCandidate(
+  inventoryId: string,
+  name: string,
+  colorIdentity: CollectionGraphCard["colorIdentity"] = ["G"],
+): CollectionGraphCard {
+  return {
+    inventoryId,
+    name,
+    quantityOwned: 0,
+    typeLine: "Legendary Creature - Human Wizard",
+    oracleText: "Whenever you cast a spell, draw a card.",
+    colorIdentity,
+    marketPrice: null,
+  };
+}
+
+function commanderCard(
+  inventoryId: string,
+  name: string,
+  colorIdentity: CollectionGraphCard["colorIdentity"],
+  typeLine: string,
+  oracleText: string,
+): CollectionGraphCard {
+  return {
+    inventoryId,
+    name,
+    quantityOwned: 1,
+    typeLine,
+    oracleText,
+    colorIdentity,
+    marketPrice: 1,
+  };
+}
 
 function requirement(
   id: string,

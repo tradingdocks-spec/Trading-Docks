@@ -13,6 +13,7 @@ export type DeckArchitectFormatId =
 export type DeckArchitectBoard = "commander" | "main" | "sideboard" | "maybeboard";
 
 export type DeckArchitectRole =
+  | "commander"
   | "ramp"
   | "card-draw"
   | "card-advantage"

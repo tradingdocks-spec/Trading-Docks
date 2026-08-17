@@ -271,7 +271,7 @@ export function scryfallResultToPotentialCommander(card: ScryfallCardResult): Co
     manaValue: card.manaValue,
     colors: card.colors,
     colorIdentity: card.colorIdentity,
-    marketPrice: card.price,
+    marketPrice: card.price > 0 ? card.price : null,
   };
 }
 

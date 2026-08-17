@@ -25,8 +25,10 @@ import {
   buildWorkingDeckRequirementsFromCollection,
   calculateBuildabilityScore,
   compareRequirementsToCollection,
+  constructValidatedCommanderDeck,
   getFormatProfile,
   proposeDeckRecommendations,
+  rankCommanderSearchResults,
   rankCommanderStrategiesForCollection,
   type BuildOpportunity,
   type BuildIntentId,
@@ -39,6 +41,7 @@ import {
   type DeckRecommendation,
   type DeckRequirement,
   type OwnershipMatch,
+  type RankedCommanderSearchResult,
 } from "@/lib/deck-architect";
 import type { DeckArchitectActiveDeck, DeckArchitectCollectionSnapshot } from "@/lib/deck-architect/server";
 import { saveDeckRecord } from "@/lib/deck-vault/persistence";
@@ -114,14 +117,33 @@ const INTENT_COPY: Record<BuildIntentId, { label: string; body: string }> = {
 };
 
 const ROLE_ORDER: DeckArchitectRole[] = [
+  "commander",
+  "land",
   "ramp",
+  "mana-fixing",
+  "card-draw",
   "card-advantage",
   "interaction",
+  "targeted-removal",
+  "removal",
+  "mass-removal",
+  "board-wipe",
+  "countermagic",
   "protection",
+  "recursion",
+  "graveyard-interaction",
   "synergy",
+  "token-generation",
+  "sacrifice-outlet",
+  "combo-piece",
   "threat",
   "finisher",
-  "land",
+  "tutor",
+  "discard",
+  "lifegain",
+  "burn",
+  "artifact-interaction",
+  "enchantment-interaction",
 ];
 
 export function DeckArchitectWorkspace({
@@ -141,7 +163,7 @@ export function DeckArchitectWorkspace({
   const [intentId, setIntentId] = useState<BuildIntentId>((activeDeck?.metadata?.buildIntentId as BuildIntentId | undefined) ?? "use-collection");
   const [commanderSearch, setCommanderSearch] = useState("");
   const [selectedCommanderId, setSelectedCommanderId] = useState<string | null>(null);
-  const [potentialCommanders, setPotentialCommanders] = useState<CollectionGraphCard[]>([]);
+  const [potentialCommanderMatches, setPotentialCommanderMatches] = useState<RankedCommanderSearchResult[]>([]);
   const [potentialCommander, setPotentialCommander] = useState<CollectionGraphCard | null>(null);
   const [potentialCommanderLoading, setPotentialCommanderLoading] = useState(false);
   const [potentialCommanderError, setPotentialCommanderError] = useState("");
@@ -166,9 +188,18 @@ export function DeckArchitectWorkspace({
   const deckRequirements = useMemo(
     () => {
       if (activeDeck) return importedDeckRequirements;
-      return canBuildWorkingDeck ? buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId) : [];
+      if (!canBuildWorkingDeck) return [];
+      if (formatId === "commander" && selectedCommander) {
+        return constructValidatedCommanderDeck({ commander: selectedCommander, collection: snapshot.cards, intentId }).requirements;
+      }
+      return buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId);
     },
     [activeDeck, canBuildWorkingDeck, formatId, importedDeckRequirements, intentId, selectedCommander, snapshot.cards],
+  );
+  const hasGeneratedDeck = workflowId !== "discover" && canBuildWorkingDeck && deckRequirements.length > 0;
+  const potentialCommanders = useMemo(
+    () => potentialCommanderMatches.map((match) => match.card),
+    [potentialCommanderMatches],
   );
   const targetDeckSize = format.exactDeckSize ?? format.minimumMainDeckSize ?? 60;
   const hasCompleteWorkingDeck = deckRequirements.reduce((sum, card) => sum + card.requiredQuantity, 0) >= targetDeckSize;
@@ -224,7 +255,7 @@ export function DeckArchitectWorkspace({
 
   async function searchPotentialCommanders(query: string) {
     if (query.trim().length < 2) {
-      setPotentialCommanders([]);
+      setPotentialCommanderMatches([]);
       setPotentialCommanderError("");
       return;
     }
@@ -235,7 +266,8 @@ export function DeckArchitectWorkspace({
       const response = await fetch(`/api/deck-vault/card-search?${params.toString()}`);
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Commander search failed.");
-      setPotentialCommanders((payload.results ?? []).map(scryfallResultToPotentialCommander).slice(0, 12));
+      const candidates = (payload.results ?? []).map(scryfallResultToPotentialCommander);
+      setPotentialCommanderMatches(rankCommanderSearchResults(candidates, query, { limit: 12 }));
     } catch (error) {
       setPotentialCommanderError(error instanceof Error ? error.message : "Commander search failed.");
     } finally {
@@ -343,7 +375,10 @@ export function DeckArchitectWorkspace({
             })}
           </section>
         ) : (
-          <section className="mt-6 grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <section className={[
+            "mt-6 grid gap-5",
+            hasGeneratedDeck ? "xl:grid-cols-[280px_minmax(0,1fr)]" : "xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)]",
+          ].join(" ")}>
             <aside className="space-y-4">
               <SetupPanel
                 workflowId={workflowId}
@@ -358,7 +393,7 @@ export function DeckArchitectWorkspace({
                 intentId={intentId}
                 setIntentId={setIntentId}
               />
-              {format.commanderRequired ? (
+              {format.commanderRequired && !hasGeneratedDeck ? (
                 <CommanderPicker
                   commanders={filteredCommanders}
                   selectedCommanderId={selectedCommanderId}
@@ -373,6 +408,7 @@ export function DeckArchitectWorkspace({
                   potentialCommanders={potentialCommanders}
                   potentialCommanderError={potentialCommanderError}
                   potentialCommanderLoading={potentialCommanderLoading}
+                  potentialCommanderMatches={potentialCommanderMatches}
                   onSearchPotentialCommanders={searchPotentialCommanders}
                   onSelectPotentialCommander={(card) => {
                     setPotentialCommander(card);
@@ -706,6 +742,7 @@ function CommanderPicker({
   onSelectPotentialCommander,
   potentialCommanderError,
   potentialCommanderLoading,
+  potentialCommanderMatches,
   potentialCommanders,
   selectedCommanderId,
   setSelectedCommanderId,
@@ -718,6 +755,7 @@ function CommanderPicker({
   onSelectPotentialCommander: (card: CollectionGraphCard) => void;
   potentialCommanderError: string;
   potentialCommanderLoading: boolean;
+  potentialCommanderMatches: RankedCommanderSearchResult[];
   potentialCommanders: CollectionGraphCard[];
   selectedCommanderId: string | null;
   setSelectedCommanderId: (id: string) => void;
@@ -779,6 +817,9 @@ function CommanderPicker({
         {visibleCommanders.length ? visibleCommanders.map((card) => {
           const selected = card.inventoryId === selectedCommanderId;
           const strategy = strategiesByCommander[card.inventoryId]?.[0];
+          const searchMatch = mode === "potential"
+            ? potentialCommanderMatches.find((match) => match.card.inventoryId === card.inventoryId) ?? null
+            : null;
           return (
             <button
               key={card.inventoryId}
@@ -787,20 +828,36 @@ function CommanderPicker({
                 if (mode === "potential") onSelectPotentialCommander(card);
                 else setSelectedCommanderId(card.inventoryId);
               }}
+              data-match-category={searchMatch?.category}
+              data-relevance-score={searchMatch?.score}
               className={[
-                "flex w-full items-center gap-3 rounded-[14px] p-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                "flex w-full items-start gap-3 rounded-[14px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
                 selected ? "bg-cyan-300/10" : "bg-black/20 hover:bg-white/[0.045]",
               ].join(" ")}
             >
-              <CardThumb card={card} size="small" />
+              <CardThumb card={card} size={mode === "potential" ? "medium" : "small"} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-white">{card.name}</span>
-                <span className="mt-1 block text-xs text-slate-500">
+                <span className="block text-sm font-semibold leading-5 text-white">{card.name}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">
                   {card.quantityOwned > 0 ? `Owned ${card.quantityOwned}` : "Commander not owned"}{card.setCode ? ` / ${card.setCode.toUpperCase()}` : ""}
                 </span>
+                {card.colorIdentity?.length ? (
+                  <span className="mt-2 inline-flex items-center gap-1" aria-label={`Color identity ${card.colorIdentity.join(", ")}`}>
+                    {card.colorIdentity.map((color) => (
+                      <span key={color} className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-white/[0.08] text-[9px] font-semibold text-slate-200">
+                        {color}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
                 {strategy ? (
-                  <span className="mt-1 block truncate text-xs text-cyan-200/80">
+                  <span className="mt-2 block text-xs leading-5 text-cyan-200/80">
                     {strategy.label} / {strategy.confidence} confidence
+                  </span>
+                ) : null}
+                {searchMatch ? (
+                  <span className="mt-1 block text-[11px] leading-4 text-slate-600">
+                    {searchMatch.category.replace("-", " ")} match
                   </span>
                 ) : null}
               </span>
@@ -810,12 +867,14 @@ function CommanderPicker({
         }) : !potentialCommanderLoading ? (
           <div className="rounded-[14px] bg-black/20 p-4">
             <p className="text-sm font-semibold text-slate-100">
-              {mode === "owned" ? "No commanders found yet" : "Search for a commander"}
+              {mode === "owned" ? "No commanders found yet" : search.trim() ? `No commanders found for "${search.trim()}"` : "Search for a commander"}
             </p>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               {mode === "owned"
                 ? "Deck Architect could not find an eligible commander in your current collection."
-                : "Build around a commander from the supported catalog even if it is not in your collection yet."}
+                : search.trim()
+                  ? "Try the commander name, a shorter prefix, or another exact card name. Unrelated catalog matches are intentionally filtered out."
+                  : "Build around a commander from the supported catalog even if it is not in your collection yet."}
             </p>
             {mode === "owned" ? <div className="mt-4 flex flex-wrap gap-2">
               <Link href="/dashboard/inventory" className="rounded-[10px] bg-cyan-300 px-3 py-2 text-xs font-semibold text-[#02131b]">
@@ -945,8 +1004,8 @@ function ActiveDeckWorkspace({
               <h2 className="mt-1 truncate text-3xl font-semibold tracking-[-0.05em] text-white">{deckName}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                 {isCompleteWorkingDeck
-                  ? "Working deck plan based on cards saved in your collection. Review every change before saving to Deck Vault."
-                  : "Working shell based on cards saved in your collection. Add more cards or choose another format for full deck scoring."}
+                  ? "Working deck plan assembled from your build intent, collection, and missing-card gaps. Review every change before saving to Deck Vault."
+                  : "Working shell assembled from your build intent and available card data. Add more cards or choose another format for full deck scoring."}
               </p>
             </div>
           </div>
@@ -988,7 +1047,7 @@ function ActiveDeckWorkspace({
       </div>
 
       {viewMode === "deck" ? (
-        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <DeckStructure grouped={grouped} setSelectedCardId={setSelectedCardId} />
           <SideRail
             buildability={buildability}
@@ -1051,7 +1110,7 @@ function DeckStructure({
               <p className="text-sm font-semibold capitalize text-slate-200">{role.replace("-", " ")}</p>
               <p className="text-xs text-slate-600">{matches.length} cards</p>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {matches.slice(0, 10).map((match) => (
                 <button
                   key={match.requirement.id}
@@ -1059,7 +1118,7 @@ function DeckStructure({
                   onClick={() => setSelectedCardId(match.requirement.id)}
                   className="group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
                 >
-                  <div className="overflow-hidden rounded-[14px] bg-black/25">
+                  <div className="overflow-hidden rounded-[15px] bg-black/25 shadow-[0_16px_34px_rgba(0,0,0,.24)] transition group-hover:-translate-y-0.5 group-hover:bg-white/[0.045]">
                     <CardImage card={match.requirement} />
                   </div>
                   <p className="mt-2 truncate text-xs font-semibold text-white">{match.requirement.name}</p>
@@ -1365,7 +1424,7 @@ function CardDetailDrawer({
 function groupByRole(ownership: OwnershipMatch[]) {
   const groups = new Map<DeckArchitectRole, OwnershipMatch[]>();
   for (const match of ownership) {
-    const primary = match.requirement.isCommander ? "synergy" : match.requirement.roles[0] ?? "synergy";
+    const primary = primaryRoleForRequirement(match.requirement);
     groups.set(primary, [...(groups.get(primary) ?? []), match]);
   }
   return ROLE_ORDER
@@ -1373,10 +1432,16 @@ function groupByRole(ownership: OwnershipMatch[]) {
     .map((role) => [role, groups.get(role) ?? []] as [DeckArchitectRole, OwnershipMatch[]]);
 }
 
-function CardThumb({ card, size }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri">; size: "small" | "large" }) {
-  const classes = size === "large" ? "h-24 w-16" : "h-14 w-10";
+function primaryRoleForRequirement(requirement: DeckRequirement): DeckArchitectRole {
+  if (requirement.isCommander || requirement.board === "commander") return "commander";
+  if (requirement.roles.includes("land")) return "land";
+  return requirement.roles.find((role) => ROLE_ORDER.includes(role)) ?? requirement.roles[0] ?? "synergy";
+}
+
+function CardThumb({ card, size }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri">; size: "small" | "medium" | "large" }) {
+  const classes = size === "large" ? "h-28 w-20" : size === "medium" ? "h-20 w-14" : "h-16 w-12";
   return (
-    <div className={`${classes} shrink-0 overflow-hidden rounded-[10px] bg-slate-900`}>
+    <div className={`${classes} shrink-0 overflow-hidden rounded-[12px] bg-slate-900 shadow-[0_10px_24px_rgba(0,0,0,.2)]`}>
       <CardImage card={card} />
     </div>
   );
@@ -1385,8 +1450,9 @@ function CardThumb({ card, size }: { card: Pick<CollectionGraphCard | DeckRequir
 function CardImage({ card }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri"> }) {
   if (!card.imageUri) {
     return (
-      <div className="flex aspect-[63/88] h-full w-full items-center justify-center bg-gradient-to-b from-slate-800 to-slate-950 p-3 text-center text-[10px] font-semibold leading-4 text-slate-500">
-        {card.name}
+      <div className="flex aspect-[63/88] h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_18%,rgba(34,211,238,.18),transparent_34%),linear-gradient(180deg,#132236,#050b14)] p-3 text-center">
+        <span className="text-[10px] font-semibold leading-4 text-slate-200">{card.name}</span>
+        <span className="mt-2 text-[9px] font-medium uppercase tracking-[0.12em] text-slate-500">Art unavailable</span>
       </div>
     );
   }

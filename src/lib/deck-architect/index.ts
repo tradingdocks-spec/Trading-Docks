@@ -1,5 +1,6 @@
 export * from "./buildability.ts";
 export * from "./card-roles.ts";
+export * from "./commander-search.ts";
 export * from "./formats.ts";
 export * from "./health.ts";
 export * from "./intents.ts";
