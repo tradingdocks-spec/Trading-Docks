@@ -6,6 +6,7 @@ import { logAuthDiagnostic, logAuthWarning } from '@/services/auth-diagnostics';
 import { authPreferences } from '@/services/auth-preferences';
 import { resolveRestoredSessionState } from '@/services/auth-session-core';
 import { configureRevenueCatForUser, logOutRevenueCatUser } from '@/services/revenuecat';
+import { logStartupCheckpoint } from '@/services/startup-telemetry';
 
 type AuthState = {
   session: Session | null;
@@ -22,6 +23,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState(true);
   const [biometricLocked, setBiometricLocked] = useState(false);
   const [biometricError, setBiometricError] = useState<string | null>(null);
+  useEffect(() => {
+    logStartupCheckpoint('Auth provider mounted');
+  }, []);
 
   const unlockWithBiometrics = useCallback(async () => {
     if (Platform.OS === 'web') { setBiometricLocked(false); return true; }
@@ -64,6 +68,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     const initialize = async () => {
       try {
+        logStartupCheckpoint('Session restore started');
         const { data, error } = await client.auth.getSession();
         if (error) logAuthWarning('session_restore_error', { message: error.message });
         const discard = Boolean(data.session) && await authPreferences.shouldDiscardRestoredSession();
@@ -80,6 +85,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setBiometricLocked(restored.biometricLocked);
           if (restored.session?.user.id) void configureRevenueCatForUser(restored.session.user.id);
           else void logOutRevenueCatUser();
+          logStartupCheckpoint('Session restore completed');
           logAuthDiagnostic('session_restore_complete', {
             restored: Boolean(restored.session),
             biometricLocked: restored.biometricLocked,

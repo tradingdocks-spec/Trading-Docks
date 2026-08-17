@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 
 import { logAuthWarning } from '@/services/auth-diagnostics';
 import { authStorage } from '@/services/storage/auth-storage';
+import { logStartupCheckpoint } from '@/services/startup-telemetry';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -27,3 +28,5 @@ export const supabase = url && key && !keyLooksSecret
       },
     })
   : null;
+
+logStartupCheckpoint(supabase ? 'Supabase initialized' : 'Supabase not initialized');

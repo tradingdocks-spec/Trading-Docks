@@ -32,7 +32,7 @@ test('production app identifiers are canonical and not placeholders', () => {
   assert.equal(app.ios.bundleIdentifier, MOBILE_PRODUCTION_IOS_BUNDLE_ID);
   assert.equal(app.android.package, MOBILE_PRODUCTION_ANDROID_PACKAGE);
   assert.notEqual(app.android.package, 'com.placeholder.appid');
-  assert.equal(app.ios.buildNumber, '1');
+  assert.equal(app.ios.buildNumber, '7');
   assert.equal(app.android.versionCode, 1);
 });
 
