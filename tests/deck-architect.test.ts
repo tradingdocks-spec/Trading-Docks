@@ -23,6 +23,8 @@ import {
   rankCommanderStrategiesForCollection,
   constructValidatedArchetypeDeck,
   constructValidatedCommanderDeck,
+  detectCardTaxonomy,
+  getCommanderCatalogCandidates,
   applyDeckChangeProposal,
   validateDeckRequirements,
   analyzeDeckHealth,
@@ -301,6 +303,10 @@ test("Deck Architect does not show buildability or health scores before a workin
 
 test("Deck Architect supports active commander selection card states and mobile modes", () => {
   assert.match(workspace, /setSelectedCommanderId/);
+  assert.match(workspace, /Choose strategy/);
+  assert.match(workspace, /Let Deck Architect choose/);
+  assert.match(workspace, /selectedStrategyId/);
+  assert.match(workspace, /No-purchase build unavailable/);
   assert.match(workspace, /Buildability/);
   assert.match(workspace, /Deck Health/);
   assert.match(workspace, /Missing Cards/);
@@ -538,6 +544,123 @@ test("Best Possible Commander construction can include missing strategy cards wi
   assert.ok(bestPossible.requirements.some((requirement) => requirement.name === "Eternal Witness"));
   assert.equal(noPurchases.requirements.some((requirement) => requirement.name === "Eternal Witness"), false);
   assert.ok(bestPossible.ownership.some((match) => match.requirement.name === "Eternal Witness" && match.missingQuantity > 0));
+});
+
+test("Atraxa Poison and +1/+1 Counters generate materially different Best Possible lists", () => {
+  const commander = commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]);
+  const counters = constructValidatedCommanderDeck({
+    commander,
+    collection: [commander],
+    intentId: "strongest-possible",
+    strategyId: "atraxa-counters",
+  });
+  const poison = constructValidatedCommanderDeck({
+    commander,
+    collection: [commander],
+    intentId: "strongest-possible",
+    strategyId: "atraxa-poison",
+  });
+  const counterNames = new Set(counters.requirements.map((requirement) => requirement.name));
+  const poisonNames = new Set(poison.requirements.map((requirement) => requirement.name));
+
+  assert.equal(counters.validation.valid, true);
+  assert.equal(poison.validation.valid, true);
+  assert.equal(counters.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
+  assert.equal(poison.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
+  assert.ok(counterNames.has("Hardened Scales"));
+  assert.ok(poisonNames.has("Venerated Rotpriest"));
+  assert.equal(poisonNames.has("Hardened Scales"), false);
+  assert.equal(counterNames.has("Venerated Rotpriest"), false);
+});
+
+test("No Purchases with an unowned potential commander is surfaced as an incomplete draft shell", () => {
+  const commander = commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]);
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "no-purchases",
+    strategyId: "atraxa-counters",
+  });
+
+  assert.equal(result.validation.valid, false);
+  assert.equal(result.ownership.some((match) => match.missingQuantity > 0), true);
+  assert.equal(result.requirements.some((requirement) => requirement.name === "Hardened Scales"), false);
+});
+
+test("Best Possible can build around an unowned potential commander without requiring collection filler", () => {
+  const commander = commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]);
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "atraxa-poison",
+  });
+
+  assert.equal(result.validation.valid, true);
+  assert.equal(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
+  assert.ok(result.requirements.some((requirement) => requirement.name === "Venerated Rotpriest"));
+  assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
+});
+
+test("Use My Collection blends owned support with important missing recommendations", () => {
+  const commander = commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]);
+  const ownedSupport = commanderCard("owned-evolution", "Evolution Sage", ["G"], "Creature - Elf Druid", "Whenever a land enters the battlefield under your control, proliferate.");
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [ownedSupport],
+    intentId: "use-collection",
+    strategyId: "atraxa-counters",
+  });
+
+  assert.ok(result.requirements.some((requirement) => requirement.name === "Evolution Sage"));
+  assert.ok(result.requirements.some((requirement) => requirement.name === "Hardened Scales"));
+  assert.equal(
+    result.ownership.find((match) => match.requirement.name === "Evolution Sage")?.status,
+    "owned",
+  );
+  assert.ok(
+    (result.ownership.find((match) => match.requirement.name === "Hardened Scales")?.missingQuantity ?? 0) > 0,
+  );
+});
+
+test("Budget Commander catalog candidates exclude unknown-price recommendations", () => {
+  const commander = commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]);
+  const candidates = getCommanderCatalogCandidates({
+    commander,
+    intentId: "budget",
+    strategy: {
+      id: "budget-fixture",
+      commanderName: commander.name,
+      label: "Budget fixture",
+      summary: "Budget test fixture.",
+      roles: ["synergy"],
+      coreCards: [
+        { name: "Known Cheap Card", quantity: 1, roles: ["synergy"], estimatedPrice: 1, typeLine: "Creature", colorIdentity: ["G"] },
+        { name: "Unknown Price Card", quantity: 1, roles: ["synergy"], estimatedPrice: null, typeLine: "Creature", colorIdentity: ["G"] },
+      ],
+      confidence: "medium",
+      signals: [],
+      provenance: ["Test fixture."],
+    },
+  });
+
+  assert.equal(candidates.some((candidate) => candidate.name === "Known Cheap Card"), true);
+  assert.equal(candidates.some((candidate) => candidate.name === "Unknown Price Card"), false);
+  assert.ok(candidates.every((candidate) => candidate.estimatedPrice !== null));
+});
+
+test("Deck Architect taxonomy detects strategies themes typal and mechanics from real card text", () => {
+  const taxonomy = detectCardTaxonomy({
+    name: "Atraxa, Praetors' Voice",
+    typeLine: "Legendary Creature - Phyrexian Angel Horror",
+    oracleText: "Flying, vigilance, deathtouch, lifelink. At the beginning of your end step, proliferate.",
+  });
+
+  assert.ok(taxonomy.strategies.includes("Counters"));
+  assert.ok(taxonomy.themes.includes("Counters"));
+  assert.ok(taxonomy.mechanics.includes("Proliferate"));
+  assert.ok(taxonomy.typal.includes("Phyrexian"));
+  assert.ok(taxonomy.typal.includes("Angel"));
 });
 
 test("Commander construction rejects off-color cards for Rakdos commanders", () => {

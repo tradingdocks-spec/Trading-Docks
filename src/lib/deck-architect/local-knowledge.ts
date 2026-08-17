@@ -13,11 +13,12 @@ import type {
 import { calculateBuildabilityScore } from "./buildability.ts";
 import { getFormatProfile } from "./formats.ts";
 import { compareRequirementsToCollection, normalizeCardKey } from "./ownership.ts";
+import { compactTaxonomy, detectCardTaxonomy } from "./taxonomy.ts";
 import { validateDeckRequirements } from "./legality.ts";
 
 export const LOCAL_DECK_KNOWLEDGE_PROVIDER = {
   id: "trading-docks-local-deck-knowledge",
-  name: "Trading Docks Local Deck Knowledge",
+  name: "Trading Docks Deck Intelligence",
   sourceType: "trading-docks-authored" as const,
   provenance: [
     "Trading Docks-authored archetype requirements and structural rules.",
@@ -174,6 +175,7 @@ export function inferCommanderStrategies(commander: CollectionGraphCard): Comman
     return curated.map((strategy) => ({
       ...strategy,
       commanderName: commander.name,
+      taxonomy: strategy.taxonomy ?? strategyTaxonomy(strategy.label, strategy.roles, commander),
       signals: [
         ...strategy.signals,
         {
@@ -192,6 +194,13 @@ export function inferCommanderStrategies(commander: CollectionGraphCard): Comman
     label: "Graveyard recursion",
     summary: "Prioritize self-mill, permanent recursion, and value pieces that can be replayed.",
     roles: ["graveyard-interaction", "card-advantage", "synergy"],
+    taxonomy: {
+      primaryArchetypes: ["midrange"],
+      strategies: ["Reanimator", "Graveyard Value"],
+      themes: ["Graveyard"],
+      typal: [],
+      mechanics: ["Flashback", "Escape"],
+    },
     confidence: matches(text, ["graveyard", "return", "permanent card", "from your graveyard"]) ? "high" : "low",
     active: matches(text, ["graveyard", "return", "permanent card", "from your graveyard"]),
     detail: "Commander text references graveyard or recursion patterns.",
@@ -201,6 +210,13 @@ export function inferCommanderStrategies(commander: CollectionGraphCard): Comman
     label: "Counters and scaling threats",
     summary: "Use counter engines, proliferate effects, and creatures that grow over time.",
     roles: ["synergy", "threat", "card-advantage"],
+    taxonomy: {
+      primaryArchetypes: ["midrange"],
+      strategies: ["Counters"],
+      themes: ["Counters"],
+      typal: [],
+      mechanics: ["+1/+1 Counters", "Proliferate"],
+    },
     confidence: matches(text, ["counter", "proliferate", "+1/+1"]) ? "high" : "low",
     active: matches(text, ["counter", "proliferate", "+1/+1"]),
     detail: "Commander text references counters or proliferate.",
@@ -210,6 +226,13 @@ export function inferCommanderStrategies(commander: CollectionGraphCard): Comman
     label: "Token engine",
     summary: "Build around token makers, sacrifice outlets, and payoff engines.",
     roles: ["synergy", "combo-piece", "threat"],
+    taxonomy: {
+      primaryArchetypes: ["aggro-combo"],
+      strategies: ["Tokens"],
+      themes: ["Tokens"],
+      typal: [],
+      mechanics: [],
+    },
     confidence: matches(text, ["create", "token", "populate"]) ? "high" : "low",
     active: matches(text, ["create", "token", "populate"]),
     detail: "Commander text references token creation or token payoffs.",
@@ -219,6 +242,13 @@ export function inferCommanderStrategies(commander: CollectionGraphCard): Comman
     label: "Artifact engine",
     summary: "Lean on artifact ramp, reusable engines, and artifact-count payoffs.",
     roles: ["ramp", "mana-fixing", "synergy"],
+    taxonomy: {
+      primaryArchetypes: ["ramp"],
+      strategies: ["Artifacts", "Treasure"],
+      themes: ["Artifacts", "Treasure"],
+      typal: [],
+      mechanics: [],
+    },
     confidence: matches(text, ["artifact", "treasure"]) ? "high" : "low",
     active: matches(text, ["artifact", "treasure"]),
     detail: "Commander text references artifacts or Treasures.",
@@ -228,6 +258,13 @@ export function inferCommanderStrategies(commander: CollectionGraphCard): Comman
     label: "Spellslinger",
     summary: "Favor cheap instants, sorceries, card velocity, and spell-count payoffs.",
     roles: ["card-advantage", "interaction", "synergy"],
+    taxonomy: {
+      primaryArchetypes: ["tempo"],
+      strategies: ["Spellslinger"],
+      themes: [],
+      typal: [],
+      mechanics: ["Magecraft", "Prowess"],
+    },
     confidence: matches(text, ["instant", "sorcery", "noncreature spell", "cast your"]) ? "high" : "low",
     active: matches(text, ["instant", "sorcery", "noncreature spell", "cast your"]),
     detail: "Commander text references instants, sorceries, or noncreature spells.",
@@ -241,6 +278,7 @@ export function inferCommanderStrategies(commander: CollectionGraphCard): Comman
       label: "Balanced commander shell",
       summary: "Use the commander color identity with a balanced ramp, interaction, draw, and threat package.",
       roles: ["ramp", "interaction", "card-advantage", "threat"],
+      taxonomy: strategyTaxonomy("Balanced commander shell", ["ramp", "interaction", "card-advantage", "threat"], commander),
       confidence: "medium",
       signals: [{
         label: "Fallback strategy",
@@ -412,6 +450,7 @@ function libraryStrategy(
   roles: CommanderStrategyProfile["roles"],
   coreCards: DeckKnowledgeCardSeed[],
   flexCards: DeckKnowledgeCardSeed[],
+  taxonomy?: CommanderStrategyProfile["taxonomy"],
 ): CommanderStrategyProfile {
   return {
     id,
@@ -419,6 +458,7 @@ function libraryStrategy(
     label,
     summary,
     roles,
+    taxonomy: taxonomy ?? strategyTaxonomy(label, roles),
     coreCards,
     flexCards,
     roleTargets: Object.fromEntries(roles.map((role) => [role, { min: 6, ideal: 10 }])),
@@ -525,6 +565,7 @@ function addStrategy(
     label: string;
     summary: string;
     roles: CommanderStrategyProfile["roles"];
+    taxonomy?: CommanderStrategyProfile["taxonomy"];
     confidence: RecommendationConfidence;
     active: boolean;
     detail: string;
@@ -541,6 +582,7 @@ function addStrategy(
     commanderName: commander.name,
     label: config.label,
     summary: config.summary,
+    taxonomy: config.taxonomy ?? strategyTaxonomy(config.label, config.roles, commander),
     roles: config.roles,
     confidence: config.confidence,
     signals: [signal],
@@ -550,6 +592,58 @@ function addStrategy(
 
 function matches(value: string, needles: string[]) {
   return needles.some((needle) => value.includes(needle));
+}
+
+function strategyTaxonomy(
+  label: string,
+  roles: CommanderStrategyProfile["roles"],
+  commander?: CollectionGraphCard,
+) {
+  const inferred = commander ? detectCardTaxonomy(commander) : {
+    primaryArchetypes: [],
+    strategies: [],
+    themes: [],
+    typal: [],
+    mechanics: [],
+  };
+  const lowerLabel = label.toLowerCase();
+  return compactTaxonomy({
+    primaryArchetypes: [
+      ...inferred.primaryArchetypes,
+      roles.includes("ramp") ? "ramp" : null,
+      roles.includes("countermagic") ? "control" : null,
+      roles.includes("combo-piece") ? "combo" : null,
+      roles.includes("threat") ? "midrange" : null,
+    ].filter((value): value is string => Boolean(value)),
+    strategies: [
+      ...inferred.strategies,
+      lowerLabel.includes("poison") ? "Combo" : null,
+      lowerLabel.includes("counter") ? "Counters" : null,
+      lowerLabel.includes("recursion") ? "Reanimator" : null,
+      lowerLabel.includes("sacrifice") ? "Aristocrats" : null,
+      lowerLabel.includes("self-mill") ? "Self-Mill" : null,
+      lowerLabel.includes("superfriends") ? "Superfriends" : null,
+      lowerLabel.includes("spellslinger") ? "Spellslinger" : null,
+      lowerLabel.includes("artifact") ? "Artifacts" : null,
+      lowerLabel.includes("token") ? "Tokens" : null,
+    ].filter((value): value is string => Boolean(value)),
+    themes: [
+      ...inferred.themes,
+      lowerLabel.includes("graveyard") || lowerLabel.includes("recursion") ? "Graveyard" : null,
+      lowerLabel.includes("counter") || lowerLabel.includes("poison") ? "Counters" : null,
+      lowerLabel.includes("superfriends") ? "Planeswalkers" : null,
+      lowerLabel.includes("artifact") ? "Artifacts" : null,
+      lowerLabel.includes("token") ? "Tokens" : null,
+    ].filter((value): value is string => Boolean(value)),
+    typal: inferred.typal,
+    mechanics: [
+      ...inferred.mechanics,
+      lowerLabel.includes("poison") ? "Poison" : null,
+      lowerLabel.includes("poison") ? "Toxic" : null,
+      lowerLabel.includes("counter") ? "+1/+1 Counters" : null,
+      lowerLabel.includes("counter") || lowerLabel.includes("superfriends") ? "Proliferate" : null,
+    ].filter((value): value is string => Boolean(value)),
+  });
 }
 
 function confidenceRank(confidence: RecommendationConfidence) {

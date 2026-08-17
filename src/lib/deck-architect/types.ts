@@ -197,6 +197,14 @@ export type BuildOpportunity = {
 
 export type RecommendationSupportLevel = "full-intelligence" | "builder-legality" | "experimental";
 
+export type DeckArchetypeTaxonomy = {
+  primaryArchetypes: string[];
+  strategies: string[];
+  themes: string[];
+  typal: string[];
+  mechanics: string[];
+};
+
 export type DeckKnowledgeCardSeed = {
   name: string;
   quantity: number;
@@ -230,6 +238,7 @@ export type CommanderStrategyProfile = {
   commanderName: string;
   label: string;
   summary: string;
+  taxonomy?: DeckArchetypeTaxonomy;
   roles: DeckArchitectRole[];
   coreCards?: DeckKnowledgeCardSeed[];
   flexCards?: DeckKnowledgeCardSeed[];

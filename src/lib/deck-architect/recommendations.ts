@@ -1,5 +1,6 @@
 import { calculateBuildabilityScore } from "./buildability.ts";
 import { classifyCardRoles } from "./card-roles.ts";
+import { getCommanderCatalogCandidates } from "./commander-catalog.ts";
 import { getFormatProfile, maximumCopiesForCard } from "./formats.ts";
 import { validateDeckRequirements } from "./legality.ts";
 import {
@@ -60,8 +61,8 @@ export function generateDeckArchitectIntelligence({
     limitations: [
       "Pauper archetype recommendations use Trading Docks-authored role profiles and collection comparison.",
       "Commander strategy recommendations combine structured Trading Docks profiles, commander text signals, and owned collection fit.",
-      "Deck Vault proposal persistence and apply/revert remain disabled until a validated proposal table is approved.",
-      "Combo providers are prepared as provider boundaries but not activated in this checkpoint.",
+      "Deck Vault proposal persistence and apply/revert remain review-only until proposal storage is approved.",
+      "Combo discovery is not required for core deck generation and remains limited to existing Deck Vault combo support.",
     ],
   };
 }
@@ -179,13 +180,18 @@ export function constructValidatedCommanderDeck({
   commander,
   collection,
   intentId,
+  strategyId,
 }: {
   commander: CollectionGraphCard;
   collection: CollectionGraphCard[];
   intentId: BuildIntentId;
+  strategyId?: string | null;
 }) {
   const format = getFormatProfile("commander");
-  const strategyFit = rankCommanderStrategiesForCollection(commander, collection, intentId)[0] ?? null;
+  const strategyFits = rankCommanderStrategiesForCollection(commander, collection, intentId);
+  const strategyFit = strategyId
+    ? strategyFits.find((fit) => fit.strategy.id === strategyId) ?? strategyFits[0] ?? null
+    : strategyFits[0] ?? null;
   const pool = collection
     .filter((card) => card.inventoryId !== commander.inventoryId)
     .filter((card) => colorIdentityFits(card, commander))
@@ -204,19 +210,16 @@ export function constructValidatedCommanderDeck({
   const strategySeeds = strategyFit
     ? [...(strategyFit.strategy.coreCards ?? []), ...(strategyFit.strategy.flexCards ?? [])]
     : [];
+  const catalogSeeds = getCommanderCatalogCandidates({
+    commander,
+    intentId,
+    strategy: strategyFit?.strategy ?? null,
+  });
 
-  if (allowMissingCards) {
-    for (const seed of strategySeeds) {
-      if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
-      if (intentId === "budget" && (seed.estimatedPrice ?? 0) > 25) continue;
-      if (!seedColorIdentityFits(seed, commander)) continue;
-      const key = normalizeCardKey(seed.name);
-      if (format.singleton && usedNames.has(key)) continue;
-      const quantity = Math.min(seed.quantity, 100 - requirements.reduce((sum, item) => sum + item.requiredQuantity, 0));
-      if (quantity <= 0) continue;
-      requirements.push(seedToRequirement(seed, quantity, commander, strategyFit?.strategy.id ?? "strategy"));
-      usedNames.add(key);
-    }
+  if (allowMissingCards && ["strongest-possible", "competitive", "casual"].includes(intentId)) {
+    addSeedRequirements(requirements, usedNames, [...strategySeeds, ...catalogSeeds], commander, format, strategyFit?.strategy.id ?? "strategy", intentId);
+  } else if (allowMissingCards) {
+    addSeedRequirements(requirements, usedNames, strategySeeds, commander, format, strategyFit?.strategy.id ?? "strategy", intentId);
   }
 
   for (const card of pool) {
@@ -227,6 +230,11 @@ export function constructValidatedCommanderDeck({
     requirements.push(toRequirement(card, 1, "main", false));
     usedNames.add(key);
   }
+
+  if (allowMissingCards && !["strongest-possible", "competitive", "casual"].includes(intentId)) {
+    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, format, strategyFit?.strategy.id ?? "catalog", intentId);
+  }
+
   const basicLand = fallbackLandForColors(commander.colorIdentity ?? []);
   const current = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
   if (current < 100 && intentId !== "no-purchases") {
@@ -250,6 +258,7 @@ export function constructValidatedCommanderDeck({
     ownership,
     buildability: validation.valid ? calculateBuildabilityScore(ownership) : null,
     strategyFit,
+    candidateSourcePolicy: candidateSourcePolicyForIntent(intentId),
     failure: validation.valid ? null : validation.issues[0]?.message ?? "A valid complete Commander deck could not be generated.",
   };
 }
@@ -572,6 +581,29 @@ function seedColorIdentityFits(seed: DeckKnowledgeCardSeed, commander: Collectio
   return colors.every((color) => commanderColors.includes(color));
 }
 
+function addSeedRequirements(
+  requirements: DeckRequirement[],
+  usedNames: Set<string>,
+  seeds: DeckKnowledgeCardSeed[],
+  commander: CollectionGraphCard,
+  format: FormatProfile,
+  strategyId: string,
+  intentId: BuildIntentId,
+) {
+  for (const seed of seeds) {
+    if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
+    if (intentId === "budget" && seed.estimatedPrice === null) continue;
+    if (intentId === "budget" && (seed.estimatedPrice ?? Number.POSITIVE_INFINITY) > 25) continue;
+    if (!seedColorIdentityFits(seed, commander)) continue;
+    const key = normalizeCardKey(seed.name);
+    if (format.singleton && usedNames.has(key)) continue;
+    const quantity = Math.min(seed.quantity, 100 - requirements.reduce((sum, item) => sum + item.requiredQuantity, 0));
+    if (quantity <= 0) continue;
+    requirements.push(seedToRequirement(seed, quantity, commander, strategyId));
+    usedNames.add(key);
+  }
+}
+
 function seedToRequirement(
   seed: DeckKnowledgeCardSeed,
   quantity: number,
@@ -604,6 +636,14 @@ function scoreCardForIntent(card: CollectionGraphCard, intentId: BuildIntentId) 
   if (intentId === "budget" && (card.marketPrice ?? 0) <= 5) score += 4;
   if (intentId === "competitive" && roles.some((role) => role === "interaction" || role === "ramp")) score += 4;
   return score;
+}
+
+function candidateSourcePolicyForIntent(intentId: BuildIntentId) {
+  if (intentId === "no-purchases") return "Owned legal cards only.";
+  if (intentId === "strongest-possible") return "Strategy and catalog recommendations first; ownership is calculated afterward.";
+  if (intentId === "budget") return "Owned cards plus known-price catalog recommendations within budget.";
+  if (intentId === "use-collection") return "Owned cards strongly preferred, with important missing recommendations allowed.";
+  return "Strategy and catalog recommendations blended with owned cards for a coherent deck.";
 }
 
 function categoryForBuildability(

@@ -1,6 +1,7 @@
 export * from "./buildability.ts";
 export * from "./card-roles.ts";
 export * from "./commander-search.ts";
+export * from "./commander-catalog.ts";
 export * from "./formats.ts";
 export * from "./health.ts";
 export * from "./intents.ts";
@@ -8,4 +9,5 @@ export * from "./legality.ts";
 export * from "./local-knowledge.ts";
 export * from "./ownership.ts";
 export * from "./recommendations.ts";
+export * from "./taxonomy.ts";
 export * from "./types.ts";

@@ -52,6 +52,7 @@ import {
 
 type WorkflowId = "build-deck" | "collection" | "improve" | "discover";
 type ViewMode = "deck" | "cards" | "intelligence";
+type StrategySelectionId = "auto" | string;
 
 const PRIMARY_WORKFLOWS: Array<{
   id: WorkflowId;
@@ -163,6 +164,9 @@ export function DeckArchitectWorkspace({
   const [intentId, setIntentId] = useState<BuildIntentId>((activeDeck?.metadata?.buildIntentId as BuildIntentId | undefined) ?? "use-collection");
   const [commanderSearch, setCommanderSearch] = useState("");
   const [selectedCommanderId, setSelectedCommanderId] = useState<string | null>(null);
+  const [selectedStrategyId, setSelectedStrategyId] = useState<StrategySelectionId | null>(
+    (activeDeck?.metadata?.strategyId as StrategySelectionId | undefined) ?? null,
+  );
   const [potentialCommanderMatches, setPotentialCommanderMatches] = useState<RankedCommanderSearchResult[]>([]);
   const [potentialCommander, setPotentialCommander] = useState<CollectionGraphCard | null>(null);
   const [potentialCommanderLoading, setPotentialCommanderLoading] = useState(false);
@@ -180,21 +184,38 @@ export function DeckArchitectWorkspace({
   const selectedCommander = potentialCommander && selectedCommanderId === potentialCommander.inventoryId
     ? potentialCommander
     : ownedCommander;
+  const selectedCommanderStrategyFits = useMemo(
+    () => selectedCommander ? rankCommanderStrategiesForCollection(selectedCommander, snapshot.cards, intentId) : [],
+    [intentId, selectedCommander, snapshot.cards],
+  );
+  const selectedStrategyFit = selectedStrategyId && selectedStrategyId !== "auto"
+    ? selectedCommanderStrategyFits.find((fit) => fit.strategy.id === selectedStrategyId) ?? null
+    : selectedCommanderStrategyFits[0] ?? null;
+  const strategySelectionComplete = !format.commanderRequired || Boolean(activeDeck) || Boolean(selectedStrategyId);
   const importedDeckRequirements = activeDeck?.requirements ?? [];
   const canBuildWorkingDeck = activeDeck
     ? importedDeckRequirements.length > 0
-    : snapshot.cards.length > 0 && (!format.commanderRequired || Boolean(selectedCommander));
+    : format.commanderRequired
+      ? Boolean(selectedCommander) &&
+        strategySelectionComplete &&
+        (intentId !== "no-purchases" || Boolean(selectedCommander?.quantityOwned))
+      : snapshot.cards.length > 0;
 
   const deckRequirements = useMemo(
     () => {
       if (activeDeck) return importedDeckRequirements;
       if (!canBuildWorkingDeck) return [];
       if (formatId === "commander" && selectedCommander) {
-        return constructValidatedCommanderDeck({ commander: selectedCommander, collection: snapshot.cards, intentId }).requirements;
+        return constructValidatedCommanderDeck({
+          commander: selectedCommander,
+          collection: snapshot.cards,
+          intentId,
+          strategyId: selectedStrategyId === "auto" ? null : selectedStrategyId,
+        }).requirements;
       }
       return buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId);
     },
-    [activeDeck, canBuildWorkingDeck, formatId, importedDeckRequirements, intentId, selectedCommander, snapshot.cards],
+    [activeDeck, canBuildWorkingDeck, formatId, importedDeckRequirements, intentId, selectedCommander, selectedStrategyId, snapshot.cards],
   );
   const hasGeneratedDeck = workflowId !== "discover" && canBuildWorkingDeck && deckRequirements.length > 0;
   const potentialCommanders = useMemo(
@@ -292,6 +313,7 @@ export function DeckArchitectWorkspace({
         lockedCardIds: Array.from(lockedCards),
         mustIncludeCardIds: Array.from(mustIncludeCards),
         sourceDeckId: activeDeck?.id,
+        strategyId: selectedStrategyFit?.strategy.id,
       });
       await saveDeckRecord(deck);
       router.push(`/dashboard/deck-vault/decks/${encodeURIComponent(deck.id)}?from=architect`);
@@ -387,6 +409,7 @@ export function DeckArchitectWorkspace({
                 setFormatId={(value) => {
                   setFormatId(value);
                   setSelectedCommanderId(null);
+                  setSelectedStrategyId(null);
                   setPotentialCommander(null);
                   setSelectedCardId(null);
                 }}
@@ -399,6 +422,7 @@ export function DeckArchitectWorkspace({
                   selectedCommanderId={selectedCommanderId}
                   setSelectedCommanderId={(id) => {
                     setSelectedCommanderId(id);
+                    setSelectedStrategyId(null);
                     setPotentialCommander(null);
                     setWorkflowId(workflowId ?? "build-deck");
                     setViewMode("deck");
@@ -413,10 +437,22 @@ export function DeckArchitectWorkspace({
                   onSelectPotentialCommander={(card) => {
                     setPotentialCommander(card);
                     setSelectedCommanderId(card.inventoryId);
+                    setSelectedStrategyId(null);
                     setWorkflowId(workflowId ?? "build-deck");
                     setViewMode("deck");
                   }}
                   strategiesByCommander={{ ...intelligence.commanderStrategies, ...potentialStrategiesByCommander }}
+                />
+              ) : null}
+              {format.commanderRequired && selectedCommander && !hasGeneratedDeck ? (
+                <StrategyPicker
+                  commander={selectedCommander}
+                  fits={selectedCommanderStrategyFits}
+                  selectedStrategyId={selectedStrategyId}
+                  setSelectedStrategyId={(value) => {
+                    setSelectedStrategyId(value);
+                    setViewMode("deck");
+                  }}
                 />
               ) : null}
             </aside>
@@ -439,6 +475,9 @@ export function DeckArchitectWorkspace({
                   formatRequiresCommander={format.commanderRequired}
                   hasCollection={snapshot.cards.length > 0}
                   hasCommanders={snapshot.commanderCandidates.length > 0}
+                  hasSelectedCommander={Boolean(selectedCommander)}
+                  selectedCommanderOwned={Boolean(selectedCommander?.quantityOwned)}
+                  intentId={intentId}
                   setFormatId={setFormatId}
                 />
               ) : (
@@ -460,6 +499,7 @@ export function DeckArchitectWorkspace({
                   activeDeckName={activeDeck?.name ?? null}
                   selectedCard={selectedCard}
                   selectedCommander={selectedCommander}
+                  selectedStrategyLabel={selectedStrategyFit?.strategy.label ?? (selectedStrategyId === "auto" ? "Deck Architect choice" : null)}
                   recommendations={activeRecommendations}
                   setSelectedCardId={setSelectedCardId}
                   toggleLocked={(id) => toggleSet(setLockedCards, lockedCards, id)}
@@ -536,7 +576,7 @@ function DiscoverWorkspace({
           </div>
           <div className="rounded-[14px] bg-black/20 px-4 py-3">
             <p className="text-xs font-semibold text-slate-200">{provider.name}</p>
-            <p className="mt-1 text-xs text-slate-500">Trading Docks-authored rules</p>
+            <p className="mt-1 text-xs text-slate-500">Trading Docks support matrix</p>
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -561,7 +601,7 @@ function DiscoverWorkspace({
       )}
 
       <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-        <p className="text-sm font-semibold text-white">Provider boundaries</p>
+        <p className="text-sm font-semibold text-white">Current support</p>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {limitations.map((item) => (
             <p key={item} className="rounded-[12px] bg-black/20 p-3 text-xs leading-5 text-slate-500">
@@ -888,17 +928,102 @@ function CommanderPicker({
   );
 }
 
+function StrategyPicker({
+  commander,
+  fits,
+  selectedStrategyId,
+  setSelectedStrategyId,
+}: {
+  commander: CollectionGraphCard;
+  fits: ReturnType<typeof rankCommanderStrategiesForCollection>;
+  selectedStrategyId: StrategySelectionId | null;
+  setSelectedStrategyId: (value: StrategySelectionId) => void;
+}) {
+  return (
+    <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <p className="text-sm font-semibold text-white">Choose strategy</p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">
+        How do you want to build around {commander.name}? This choice changes the recommended cards.
+      </p>
+      <div className="mt-3 space-y-2">
+        <button
+          type="button"
+          onClick={() => setSelectedStrategyId("auto")}
+          className={[
+            "w-full rounded-[14px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+            selectedStrategyId === "auto" ? "bg-cyan-300/10" : "bg-black/20 hover:bg-white/[0.045]",
+          ].join(" ")}
+        >
+          <span className="block text-sm font-semibold text-white">Let Deck Architect choose</span>
+          <span className="mt-1 block text-xs leading-5 text-slate-500">
+            Use the strongest strategy fit detected from the commander and your collection.
+          </span>
+        </button>
+        {fits.map((fit) => {
+          const selected = selectedStrategyId === fit.strategy.id;
+          const taxonomy = fit.strategy.taxonomy;
+          const tags = [
+            ...(taxonomy?.strategies ?? []),
+            ...(taxonomy?.themes ?? []),
+            ...(taxonomy?.mechanics ?? []),
+            ...(taxonomy?.typal ?? []),
+          ].slice(0, 4);
+          return (
+            <button
+              key={fit.strategy.id}
+              type="button"
+              onClick={() => setSelectedStrategyId(fit.strategy.id)}
+              className={[
+                "w-full rounded-[14px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                selected ? "bg-cyan-300/10" : "bg-black/20 hover:bg-white/[0.045]",
+              ].join(" ")}
+            >
+              <span className="flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold text-white">{fit.strategy.label}</span>
+                <span className="text-xs font-semibold text-cyan-200">{fit.fit} fit</span>
+              </span>
+              <span className="mt-1 block text-xs leading-5 text-slate-500">{fit.strategy.summary}</span>
+              <span className="mt-2 flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <span key={tag} className="rounded-full bg-white/[0.06] px-2 py-1 text-[10px] font-semibold text-slate-300">
+                    {tag}
+                  </span>
+                ))}
+              </span>
+              <span className="mt-2 block text-[11px] leading-4 text-slate-600">
+                {fit.ownedSupportCount} supporting cards owned / {fit.missingCoreCards.length} core gaps
+              </span>
+            </button>
+          );
+        })}
+        <div className="rounded-[14px] bg-black/20 p-3">
+          <p className="text-xs font-semibold text-slate-200">Customize strategy</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Advanced mixed-strategy tuning is planned behind this step. Choose the closest strategy now, then tune cards in Deck Builder.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PreBuildState({
   formatId,
   formatRequiresCommander,
   hasCollection,
   hasCommanders,
+  hasSelectedCommander,
+  selectedCommanderOwned,
+  intentId,
   setFormatId,
 }: {
   formatId: DeckArchitectFormatId;
   formatRequiresCommander: boolean;
   hasCollection: boolean;
   hasCommanders: boolean;
+  hasSelectedCommander: boolean;
+  selectedCommanderOwned: boolean;
+  intentId: BuildIntentId;
   setFormatId: (value: DeckArchitectFormatId) => void;
 }) {
   if (!hasCollection) {
@@ -929,10 +1054,25 @@ function PreBuildState({
     );
   }
 
+  if (formatRequiresCommander && hasSelectedCommander && intentId === "no-purchases" && !selectedCommanderOwned) {
+    return (
+      <CenteredState
+        title="No-purchase build unavailable"
+        body="This commander is not in your collection. Choose an owned commander, switch to Use My Collection, or allow missing recommendations."
+      />
+    );
+  }
+
   return (
     <CenteredState
-      title={formatId === "commander" ? "Choose a commander" : "Ready to build"}
-      body={formatRequiresCommander ? "Select an owned commander to create a working deck plan." : "Deck Architect can now create a working deck plan from your collection."}
+      title={formatId === "commander" && hasSelectedCommander ? "Choose a strategy" : formatId === "commander" ? "Choose a commander" : "Ready to build"}
+      body={
+        formatRequiresCommander
+          ? hasSelectedCommander
+            ? "Select how you want to build this commander, then choose a build preference."
+            : "Select an owned or potential commander to continue."
+          : "Deck Architect can now create a working deck plan from your collection."
+      }
     />
   );
 }
@@ -956,6 +1096,7 @@ function ActiveDeckWorkspace({
   recommendations,
   selectedCard,
   selectedCommander,
+  selectedStrategyLabel,
   setSelectedCardId,
   toggleLocked,
   toggleMustInclude,
@@ -981,6 +1122,7 @@ function ActiveDeckWorkspace({
   recommendations: DeckRecommendation[];
   selectedCard: OwnershipMatch | null;
   selectedCommander: CollectionGraphCard | null;
+  selectedStrategyLabel: string | null;
   setSelectedCardId: (id: string | null) => void;
   toggleLocked: (id: string) => void;
   toggleMustInclude: (id: string) => void;
@@ -1000,7 +1142,9 @@ function ActiveDeckWorkspace({
           <div className="flex min-w-0 gap-4">
             {selectedCommander ? <CardThumb card={selectedCommander} size="large" /> : null}
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-cyan-300">{formatName} / {intentLabel}</p>
+              <p className="text-sm font-semibold text-cyan-300">
+                {formatName} / {selectedStrategyLabel ? `${selectedStrategyLabel} / ` : ""}{intentLabel}
+              </p>
               <h2 className="mt-1 truncate text-3xl font-semibold tracking-[-0.05em] text-white">{deckName}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                 {isCompleteWorkingDeck
