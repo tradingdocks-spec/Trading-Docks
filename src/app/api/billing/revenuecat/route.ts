@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  inspectRevenueCatWebBillingConfiguration,
   isRevenueCatWebBillingCycle,
   isRevenueCatWebPurchasePlan,
   revenueCatWebPurchaseUrlFor,
@@ -42,8 +43,12 @@ export async function POST(request: Request) {
   });
 
   if (!url) {
+    const config = inspectRevenueCatWebBillingConfiguration();
     return NextResponse.json(
-      { error: "RevenueCat web purchases are not configured." },
+      {
+        error: "RevenueCat web purchases are not configured.",
+        missing: config.missingPurchaseEnv,
+      },
       { status: 503 },
     );
   }

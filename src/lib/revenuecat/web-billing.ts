@@ -50,6 +50,27 @@ const PACKAGE_LINK_ENV: Record<
   },
 };
 
+export const REVENUECAT_WEB_BILLING_ENV_VARS = [
+  "REVENUECAT_WEB_PURCHASE_LINK",
+  "REVENUECAT_WEB_COLLECTOR_MONTHLY_URL",
+  "REVENUECAT_WEB_COLLECTOR_YEARLY_URL",
+  "REVENUECAT_WEB_SELLER_MONTHLY_URL",
+  "REVENUECAT_WEB_SELLER_YEARLY_URL",
+  "REVENUECAT_WEB_STORE_MONTHLY_URL",
+  "REVENUECAT_WEB_STORE_YEARLY_URL",
+  "REVENUECAT_WEB_CUSTOMER_PORTAL_URL",
+  "REVENUECAT_WEB_MANAGEMENT_URL",
+] as const;
+
+export type RevenueCatWebBillingConfiguration = {
+  purchasesConfigured: boolean;
+  portalConfigured: boolean;
+  missingPurchaseEnv: string[];
+  missingPortalEnv: string[];
+  configuredPurchaseEnv: string[];
+  configuredPortalEnv: string[];
+};
+
 export function isRevenueCatWebPurchasePlan(
   value: unknown,
 ): value is RevenueCatWebPurchasePlan {
@@ -83,6 +104,15 @@ export function revenueCatWebPurchaseBaseUrl({
     || null;
 }
 
+function safeUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
 export function buildRevenueCatWebPurchaseUrl({
   baseUrl,
   input,
@@ -90,7 +120,8 @@ export function buildRevenueCatWebPurchaseUrl({
   baseUrl: string;
   input: RevenueCatWebPurchaseInput;
 }) {
-  const url = new URL(baseUrl);
+  const url = safeUrl(baseUrl);
+  if (!url) return null;
   url.searchParams.set("app_user_id", input.appUserId);
   url.searchParams.set("package_id", revenueCatPackageIdFor(input.plan, input.billing));
   if (input.email) url.searchParams.set("email", input.email);
@@ -131,9 +162,51 @@ export function revenueCatWebManagementUrlFor({
     || null;
   if (!baseUrl) return null;
 
-  const url = new URL(baseUrl);
+  const url = safeUrl(baseUrl);
+  if (!url) return null;
   url.searchParams.set("app_user_id", appUserId);
   if (email) url.searchParams.set("email", email);
   if (returnUrl) url.searchParams.set("return_url", returnUrl);
   return url.toString();
+}
+
+export function inspectRevenueCatWebBillingConfiguration(
+  env: Record<string, string | undefined> = process.env,
+): RevenueCatWebBillingConfiguration {
+  const configuredPurchaseEnv = [
+    "REVENUECAT_WEB_PURCHASE_LINK",
+    "REVENUECAT_WEB_COLLECTOR_MONTHLY_URL",
+    "REVENUECAT_WEB_COLLECTOR_YEARLY_URL",
+    "REVENUECAT_WEB_SELLER_MONTHLY_URL",
+    "REVENUECAT_WEB_SELLER_YEARLY_URL",
+    "REVENUECAT_WEB_STORE_MONTHLY_URL",
+    "REVENUECAT_WEB_STORE_YEARLY_URL",
+  ].filter((name) => Boolean(env[name]?.trim()));
+  const configuredPortalEnv = [
+    "REVENUECAT_WEB_CUSTOMER_PORTAL_URL",
+    "REVENUECAT_WEB_MANAGEMENT_URL",
+  ].filter((name) => Boolean(env[name]?.trim()));
+  const sharedPurchaseConfigured = Boolean(env.REVENUECAT_WEB_PURCHASE_LINK?.trim());
+  const missingPurchaseEnv = sharedPurchaseConfigured
+    ? []
+    : [
+      "REVENUECAT_WEB_COLLECTOR_MONTHLY_URL",
+      "REVENUECAT_WEB_COLLECTOR_YEARLY_URL",
+      "REVENUECAT_WEB_SELLER_MONTHLY_URL",
+      "REVENUECAT_WEB_SELLER_YEARLY_URL",
+      "REVENUECAT_WEB_STORE_MONTHLY_URL",
+      "REVENUECAT_WEB_STORE_YEARLY_URL",
+    ].filter((name) => !env[name]?.trim());
+
+  return {
+    purchasesConfigured: missingPurchaseEnv.length === 0,
+    portalConfigured: configuredPortalEnv.length > 0,
+    missingPurchaseEnv,
+    missingPortalEnv: configuredPortalEnv.length ? [] : [
+      "REVENUECAT_WEB_CUSTOMER_PORTAL_URL",
+      "REVENUECAT_WEB_MANAGEMENT_URL",
+    ],
+    configuredPurchaseEnv,
+    configuredPortalEnv,
+  };
 }

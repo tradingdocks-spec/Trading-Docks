@@ -12,6 +12,7 @@ Implemented:
 - The webhook reconciles a canonical `billing_subscriptions` cache row for fast web/mobile access checks.
 - Web paid upgrade CTAs now request RevenueCat Web Purchase Links through `/api/billing/revenuecat`.
 - Web subscription management now requests a RevenueCat customer management link through `/api/billing/revenuecat/portal`.
+- Web billing helpers validate missing or malformed RevenueCat purchase/management URLs and return clear unavailable states instead of silently failing.
 - Direct Stripe membership checkout, portal, webhook, server helper, and plan mapping source files have been retired.
 - Historical Stripe metadata is ignored by effective commercial-membership resolution.
 - Shared platform access distinguishes commercial membership from trusted platform roles.
@@ -20,6 +21,7 @@ Requires Production Configuration:
 - Configure RevenueCat Web Purchase Links for the paid packages.
 - Configure a RevenueCat customer management or portal URL.
 - Keep the RevenueCat webhook deployed and authorized.
+- Run RevenueCat sandbox/test web purchases and customer-management flows before enabling public paid conversion.
 
 ## RevenueCat Mapping
 
@@ -53,6 +55,8 @@ The server appends:
 - `package_id`
 - `email` when available
 - `return_url`
+
+If the purchase or customer-management URL is absent or malformed, the API returns a configuration-unavailable response. The browser never grants paid access from checkout UI state; entitlements still require RevenueCat webhook reconciliation into canonical backend membership.
 
 ## Stripe Retirement
 

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { revenueCatWebManagementUrlFor } from "@/lib/revenuecat/web-billing";
+import {
+  inspectRevenueCatWebBillingConfiguration,
+  revenueCatWebManagementUrlFor,
+} from "@/lib/revenuecat/web-billing";
 import { createClient } from "@/lib/supabase/server";
 
 function appOrigin(request: Request) {
@@ -27,8 +30,12 @@ export async function POST(request: Request) {
   });
 
   if (!url) {
+    const config = inspectRevenueCatWebBillingConfiguration();
     return NextResponse.json(
-      { error: "RevenueCat subscription management is not configured." },
+      {
+        error: "RevenueCat subscription management is not configured.",
+        missing: config.missingPortalEnv,
+      },
       { status: 503 },
     );
   }

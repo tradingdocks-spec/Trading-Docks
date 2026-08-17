@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildRevenueCatWebPurchaseUrl,
+  inspectRevenueCatWebBillingConfiguration,
   revenueCatPackageIdFor,
   revenueCatWebManagementUrlFor,
   revenueCatWebPurchaseUrlFor,
@@ -63,6 +64,36 @@ test("RevenueCat web billing supports shared and per-package purchase links", ()
     }),
     "https://pay.rev.cat/store-yearly?app_user_id=user-2&package_id=store_yearly",
   );
+});
+
+test("RevenueCat web billing rejects malformed purchase and portal URLs safely", () => {
+  assert.equal(buildRevenueCatWebPurchaseUrl({
+    baseUrl: "not-a-url",
+    input: {
+      plan: "collector",
+      billing: "monthly",
+      appUserId: "user-1",
+    },
+  }), null);
+  assert.equal(revenueCatWebManagementUrlFor({
+    appUserId: "user-1",
+    env: { REVENUECAT_WEB_CUSTOMER_PORTAL_URL: "not-a-url" },
+  }), null);
+});
+
+test("RevenueCat web billing exposes exact production env contract", () => {
+  const shared = inspectRevenueCatWebBillingConfiguration({
+    REVENUECAT_WEB_PURCHASE_LINK: "https://pay.rev.cat/trading-docks",
+    REVENUECAT_WEB_MANAGEMENT_URL: "https://customers.rev.cat/trading-docks",
+  });
+  const missing = inspectRevenueCatWebBillingConfiguration({});
+
+  assert.equal(shared.purchasesConfigured, true);
+  assert.equal(shared.portalConfigured, true);
+  assert.deepEqual(shared.missingPurchaseEnv, []);
+  assert.equal(missing.purchasesConfigured, false);
+  assert.ok(missing.missingPurchaseEnv.includes("REVENUECAT_WEB_COLLECTOR_MONTHLY_URL"));
+  assert.ok(missing.missingPortalEnv.includes("REVENUECAT_WEB_CUSTOMER_PORTAL_URL"));
 });
 
 test("RevenueCat customer management link includes app user identity", () => {

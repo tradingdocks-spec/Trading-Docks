@@ -391,10 +391,12 @@ Implemented improvements:
 - Added Architect -> Builder and Builder -> Architect navigation through existing Deck Vault persistence and user-scoped deck id loading.
 - Added potential commander search through the supported card-search path, with not-owned commanders reflected in missing-card summaries.
 - Added the first serious deterministic recommendation engine layer: expanded role vocabulary, collection-aware commander strategy ranking, validated Pauper archetype construction, validated Commander shell construction, structured add/cut swaps, owned substitute ranking, and atomic non-persistent proposal application.
+- Added the Master Brewer foundation with structured natural-language constraint parsing, Hidden Synergy clusters, Deck Personality heuristics, Role Compression, strategy-overload detection, What If/Fork previews, Surprise Me directions, and collection-specific opportunity discovery.
+- Added an explicit Build My Deck transition before the focused workspace appears.
 
 Remaining risks:
 
-- The first recommendation layer is deterministic and local. External archetype, combo, EDHREC, and provider-backed knowledge sources are not active yet.
+- The first recommendation and brewer layers are deterministic and local. External archetype, combo, EDHREC, LLM, and provider-backed knowledge sources are not active yet.
 - Structured proposal persistence, applied-proposal history, provider freshness checks, and deeper deck-history controls are still planned.
 - Commander candidate quality still depends on type-line metadata being present in saved inventory or catalog payloads.
 - Price-aware scoring only uses saved inventory values when available; missing prices stay unavailable.

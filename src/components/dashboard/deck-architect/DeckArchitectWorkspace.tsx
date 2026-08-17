@@ -7,14 +7,18 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BookOpen,
+  Brain,
   Check,
   ChevronRight,
+  GitFork,
   Layers3,
   Lock,
   Search,
   ShieldCheck,
+  Shuffle,
   Sparkles,
   Star,
+  Wand2,
   X,
 } from "lucide-react";
 
@@ -26,6 +30,7 @@ import {
   calculateBuildabilityScore,
   compareRequirementsToCollection,
   constructValidatedCommanderDeck,
+  generateDeckArchitectBrewAnalysis,
   getFormatProfile,
   proposeDeckRecommendations,
   rankCommanderSearchResults,
@@ -38,6 +43,7 @@ import {
   type DeckArchitectIntelligence,
   type DeckArchitectRole,
   type DeckArchitectSavedDeckSummary,
+  type DeckArchitectBrewAnalysis,
   type DeckRecommendation,
   type DeckRequirement,
   type OwnershipMatch,
@@ -177,6 +183,8 @@ export function DeckArchitectWorkspace({
   const [mustIncludeCards, setMustIncludeCards] = useState<Set<string>>(() => new Set(activeDeck?.metadata?.mustIncludeCardIds ?? []));
   const [builderStatus, setBuilderStatus] = useState<"idle" | "saving" | "error">("idle");
   const [builderError, setBuilderError] = useState("");
+  const [buildRequested, setBuildRequested] = useState(Boolean(activeDeck));
+  const [brewPrompt, setBrewPrompt] = useState("Make this more resilient and use more cards I own.");
 
   const format = getFormatProfile(formatId);
   const intent = BUILD_INTENTS[intentId];
@@ -204,7 +212,7 @@ export function DeckArchitectWorkspace({
   const deckRequirements = useMemo(
     () => {
       if (activeDeck) return importedDeckRequirements;
-      if (!canBuildWorkingDeck) return [];
+      if (!canBuildWorkingDeck || !buildRequested) return [];
       if (formatId === "commander" && selectedCommander) {
         return constructValidatedCommanderDeck({
           commander: selectedCommander,
@@ -215,7 +223,7 @@ export function DeckArchitectWorkspace({
       }
       return buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId);
     },
-    [activeDeck, canBuildWorkingDeck, formatId, importedDeckRequirements, intentId, selectedCommander, selectedStrategyId, snapshot.cards],
+    [activeDeck, buildRequested, canBuildWorkingDeck, formatId, importedDeckRequirements, intentId, selectedCommander, selectedStrategyId, snapshot.cards],
   );
   const hasGeneratedDeck = workflowId !== "discover" && canBuildWorkingDeck && deckRequirements.length > 0;
   const potentialCommanders = useMemo(
@@ -273,6 +281,21 @@ export function DeckArchitectWorkspace({
     }
     return map;
   }, [intentId, potentialCommanders, snapshot.cards]);
+  const brewAnalysis = useMemo(
+    () => deckRequirements.length
+      ? generateDeckArchitectBrewAnalysis({
+        prompt: brewPrompt,
+        requirements: deckRequirements,
+        collection: snapshot.cards,
+        formatId,
+        commander: selectedCommander,
+        strategy: selectedStrategyFit?.strategy ?? null,
+        lockedCardIds: lockedCards,
+        mustIncludeCardIds: mustIncludeCards,
+      })
+      : null,
+    [brewPrompt, deckRequirements, formatId, lockedCards, mustIncludeCards, selectedCommander, selectedStrategyFit?.strategy, snapshot.cards],
+  );
 
   async function searchPotentialCommanders(query: string) {
     if (query.trim().length < 2) {
@@ -412,9 +435,13 @@ export function DeckArchitectWorkspace({
                   setSelectedStrategyId(null);
                   setPotentialCommander(null);
                   setSelectedCardId(null);
+                  setBuildRequested(false);
                 }}
                 intentId={intentId}
-                setIntentId={setIntentId}
+                setIntentId={(value) => {
+                  setIntentId(value);
+                  setBuildRequested(false);
+                }}
               />
               {format.commanderRequired && !hasGeneratedDeck ? (
                 <CommanderPicker
@@ -424,6 +451,7 @@ export function DeckArchitectWorkspace({
                     setSelectedCommanderId(id);
                     setSelectedStrategyId(null);
                     setPotentialCommander(null);
+                    setBuildRequested(false);
                     setWorkflowId(workflowId ?? "build-deck");
                     setViewMode("deck");
                   }}
@@ -438,6 +466,7 @@ export function DeckArchitectWorkspace({
                     setPotentialCommander(card);
                     setSelectedCommanderId(card.inventoryId);
                     setSelectedStrategyId(null);
+                    setBuildRequested(false);
                     setWorkflowId(workflowId ?? "build-deck");
                     setViewMode("deck");
                   }}
@@ -451,6 +480,7 @@ export function DeckArchitectWorkspace({
                   selectedStrategyId={selectedStrategyId}
                   setSelectedStrategyId={(value) => {
                     setSelectedStrategyId(value);
+                    setBuildRequested(false);
                     setViewMode("deck");
                   }}
                 />
@@ -479,6 +509,11 @@ export function DeckArchitectWorkspace({
                   selectedCommanderOwned={Boolean(selectedCommander?.quantityOwned)}
                   intentId={intentId}
                   setFormatId={setFormatId}
+                  readyToBuild={canBuildWorkingDeck}
+                  onBuild={() => {
+                    setBuildRequested(true);
+                    setViewMode("intelligence");
+                  }}
                 />
               ) : (
                 <ActiveDeckWorkspace
@@ -501,6 +536,9 @@ export function DeckArchitectWorkspace({
                   selectedCommander={selectedCommander}
                   selectedStrategyLabel={selectedStrategyFit?.strategy.label ?? (selectedStrategyId === "auto" ? "Deck Architect choice" : null)}
                   recommendations={activeRecommendations}
+                  brewAnalysis={brewAnalysis}
+                  brewPrompt={brewPrompt}
+                  setBrewPrompt={setBrewPrompt}
                   setSelectedCardId={setSelectedCardId}
                   toggleLocked={(id) => toggleSet(setLockedCards, lockedCards, id)}
                   toggleMustInclude={(id) => toggleSet(setMustIncludeCards, mustIncludeCards, id)}
@@ -1016,6 +1054,8 @@ function PreBuildState({
   selectedCommanderOwned,
   intentId,
   setFormatId,
+  readyToBuild,
+  onBuild,
 }: {
   formatId: DeckArchitectFormatId;
   formatRequiresCommander: boolean;
@@ -1025,6 +1065,8 @@ function PreBuildState({
   selectedCommanderOwned: boolean;
   intentId: BuildIntentId;
   setFormatId: (value: DeckArchitectFormatId) => void;
+  readyToBuild: boolean;
+  onBuild: () => void;
 }) {
   if (!hasCollection) {
     return (
@@ -1069,10 +1111,20 @@ function PreBuildState({
       body={
         formatRequiresCommander
           ? hasSelectedCommander
-            ? "Select how you want to build this commander, then choose a build preference."
+            ? "Select how you want to build this commander, then choose Build My Deck to enter the focused workspace."
             : "Select an owned or potential commander to continue."
           : "Deck Architect can now create a working deck plan from your collection."
       }
+      action={readyToBuild ? (
+        <button
+          type="button"
+          onClick={onBuild}
+          className="inline-flex items-center gap-2 rounded-[12px] bg-cyan-300 px-5 py-3 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+        >
+          Build My Deck
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      ) : null}
     />
   );
 }
@@ -1094,6 +1146,9 @@ function ActiveDeckWorkspace({
   ownership,
   activeDeckName,
   recommendations,
+  brewAnalysis,
+  brewPrompt,
+  setBrewPrompt,
   selectedCard,
   selectedCommander,
   selectedStrategyLabel,
@@ -1120,6 +1175,9 @@ function ActiveDeckWorkspace({
   ownership: OwnershipMatch[];
   activeDeckName: string | null;
   recommendations: DeckRecommendation[];
+  brewAnalysis: DeckArchitectBrewAnalysis | null;
+  brewPrompt: string;
+  setBrewPrompt: (value: string) => void;
   selectedCard: OwnershipMatch | null;
   selectedCommander: CollectionGraphCard | null;
   selectedStrategyLabel: string | null;
@@ -1215,7 +1273,15 @@ function ActiveDeckWorkspace({
       ) : null}
 
       {viewMode === "intelligence" ? (
-        <DeckIntelligence health={health} missing={missing} formatId={formatId} recommendations={recommendations} />
+        <DeckIntelligence
+          health={health}
+          missing={missing}
+          formatId={formatId}
+          recommendations={recommendations}
+          brewAnalysis={brewAnalysis}
+          brewPrompt={brewPrompt}
+          setBrewPrompt={setBrewPrompt}
+        />
       ) : null}
 
       {selectedCard ? (
@@ -1422,16 +1488,84 @@ function DeckIntelligence({
   missing,
   formatId,
   recommendations,
+  brewAnalysis,
+  brewPrompt,
+  setBrewPrompt,
 }: {
   health: ReturnType<typeof analyzeDeckHealth> | null;
   missing: OwnershipMatch[];
   formatId: DeckArchitectFormatId;
   recommendations: DeckRecommendation[];
+  brewAnalysis: DeckArchitectBrewAnalysis | null;
+  brewPrompt: string;
+  setBrewPrompt: (value: string) => void;
 }) {
   const issues = health?.warnings ?? [];
   return (
-    <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+    <section className="mt-5 space-y-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-lg font-semibold tracking-[-0.025em] text-white">Brew With Deck Architect</p>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                Describe the direction. Deck Architect translates it into structured constraints, then validation decides what can safely change.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+              <Brain className="h-3.5 w-3.5" />
+              AI proposes / Trading Docks validates
+            </span>
+          </div>
+          <label className="mt-5 block">
+            <span className="sr-only">Tell Deck Architect what you want</span>
+            <textarea
+              value={brewPrompt}
+              onChange={(event) => setBrewPrompt(event.target.value)}
+              rows={3}
+              className="w-full resize-none rounded-[16px] bg-black/25 p-4 text-sm leading-6 text-slate-100 outline-none ring-1 ring-white/[0.06] transition placeholder:text-slate-600 focus:ring-cyan-300/45"
+              placeholder="Example: Make this more resilient, cut expensive staples, avoid infinite combos, and use more cards I own."
+            />
+          </label>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {(brewAnalysis?.parsedConstraints.length ? brewAnalysis.parsedConstraints : [
+              { label: "Review mode", detail: "Enter a goal to generate structured constraints.", confidence: "medium" as const },
+            ]).slice(0, 3).map((constraint) => (
+              <div key={constraint.label} className="rounded-[14px] bg-black/20 p-3">
+                <p className="text-sm font-semibold text-white">{constraint.label}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{constraint.detail}</p>
+                <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-200">{constraint.confidence} confidence</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+          <p className="flex items-center gap-2 text-sm font-semibold text-white">
+            <Shuffle className="h-4 w-4 text-cyan-300" />
+            Surprise Me
+          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Less typical directions hiding in the current card pool.
+          </p>
+          <div className="mt-4 space-y-3">
+            {brewAnalysis?.surpriseDirections.length ? brewAnalysis.surpriseDirections.slice(0, 3).map((idea) => (
+              <div key={idea.id} className="rounded-[14px] bg-black/20 p-3">
+                <p className="text-sm font-semibold text-white">{idea.name}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">{idea.signals?.[0]?.detail ?? idea.disclosure}</p>
+                <p className="mt-2 text-xs font-semibold text-cyan-200">{idea.buildability.score}% collection fit</p>
+              </div>
+            )) : (
+              <p className="rounded-[14px] bg-black/20 p-3 text-sm leading-6 text-slate-500">
+                Add more cards with rules text to reveal collection-specific brewing directions.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
         <p className="text-lg font-semibold tracking-[-0.025em] text-white">Deck Intelligence</p>
         <p className="mt-1 text-sm text-slate-500">Recommendations stay reviewable. Deck Architect never mutates a deck silently.</p>
         <div className="mt-5 space-y-3">
@@ -1472,7 +1606,10 @@ function DeckIntelligence({
         </div>
       </div>
       <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-        <p className="text-sm font-semibold text-white">Recommended Change</p>
+        <p className="flex items-center gap-2 text-sm font-semibold text-white">
+          <Wand2 className="h-4 w-4 text-cyan-300" />
+          Recommended Change
+        </p>
         {recommendations[0]?.adds[0] ? (
           <div className="mt-4 space-y-4">
             <SwapRow
@@ -1500,6 +1637,68 @@ function DeckIntelligence({
         ) : (
           <p className="mt-4 text-sm leading-6 text-slate-500">Build or select a deck with missing cards to receive recommendations.</p>
         )}
+      </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <IntelligencePanel title="Hidden Synergy" icon={<Sparkles className="h-4 w-4" />}>
+          {brewAnalysis?.hiddenSynergies.length ? brewAnalysis.hiddenSynergies.map((cluster) => (
+            <div key={cluster.id} className="rounded-[14px] bg-black/20 p-3">
+              <p className="text-sm font-semibold text-white">{cluster.title}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{cluster.summary}</p>
+              <p className="mt-2 text-[11px] text-slate-400">
+                {cluster.resources.join(" + ")} into {cluster.payoffs.join(" + ")}
+              </p>
+            </div>
+          )) : <p className="text-sm leading-6 text-slate-500">No strong hidden synergy cluster is visible yet.</p>}
+        </IntelligencePanel>
+
+        <IntelligencePanel title="Role Compression" icon={<Layers3 className="h-4 w-4" />}>
+          {brewAnalysis?.roleCompression.length ? brewAnalysis.roleCompression.slice(0, 4).map((item) => (
+            <div key={item.cardName} className="rounded-[14px] bg-black/20 p-3">
+              <p className="text-sm font-semibold text-white">{item.cardName}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{item.explanation}</p>
+              <p className="mt-2 text-[11px] font-semibold text-cyan-200">{item.owned ? "Owned" : "Missing"}</p>
+            </div>
+          )) : <p className="text-sm leading-6 text-slate-500">No multi-role cards stand out in this plan yet.</p>}
+        </IntelligencePanel>
+
+        <IntelligencePanel title="What If / Fork Deck" icon={<GitFork className="h-4 w-4" />}>
+          {brewAnalysis?.proposals.length ? brewAnalysis.proposals.slice(0, 3).map((proposal) => (
+            <div key={proposal.id} className="rounded-[14px] bg-black/20 p-3">
+              <p className="text-sm font-semibold text-white">{proposal.title}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{proposal.explanation}</p>
+              <p className={["mt-2 text-[11px] font-semibold", proposal.validation.valid ? "text-emerald-200" : "text-amber-200"].join(" ")}>
+                {proposal.validation.valid ? "Validator approved proposal shape" : "Needs review before saving"}
+              </p>
+            </div>
+          )) : <p className="text-sm leading-6 text-slate-500">Enter a brew goal to generate a fork proposal.</p>}
+        </IntelligencePanel>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <IntelligencePanel title="Deck Personality" icon={<Brain className="h-4 w-4" />}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {brewAnalysis?.personality.explanations.map((item) => (
+              <HealthRow key={item.dimension} label={item.label} value={brewAnalysis.personality.dimensions[item.dimension]} />
+            )) ?? <p className="text-sm leading-6 text-slate-500">Build a deck to calculate personality signals.</p>}
+          </div>
+        </IntelligencePanel>
+
+        <IntelligencePanel title="Strategy Overload" icon={<ShieldCheck className="h-4 w-4" />}>
+          <p className="text-sm leading-6 text-slate-500">
+            {brewAnalysis?.strategyOverload.recommendation ?? "Build a deck to check for overloaded strategy packages."}
+          </p>
+          {brewAnalysis?.strategyOverload.themes.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {brewAnalysis.strategyOverload.themes.map((theme) => (
+                <span key={theme} className="rounded-full bg-white/[0.06] px-2 py-1 text-[11px] font-semibold text-slate-300">
+                  {theme}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </IntelligencePanel>
       </div>
     </section>
   );
@@ -1676,6 +1875,18 @@ function IntelligenceItem({ title, body, tone }: { title: string; body: string; 
       <p className={`text-sm font-semibold ${color}`}>{title}</p>
       <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
     </div>
+  );
+}
+
+function IntelligencePanel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <section className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
+        <span className="text-cyan-300">{icon}</span>
+        {title}
+      </div>
+      <div className="space-y-3">{children}</div>
+    </section>
   );
 }
 

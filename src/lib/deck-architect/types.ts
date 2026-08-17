@@ -180,6 +180,89 @@ export type DeckChangeProposal = {
   explanation: string;
 };
 
+export type BrewConstraintKey =
+  | "more-aggressive"
+  | "more-interaction"
+  | "more-resilient"
+  | "reduce-variance"
+  | "collection-first"
+  | "budget-cap"
+  | "avoid-infinite-combos"
+  | "less-commander-dependent"
+  | "add-sacrifice-subtheme"
+  | "more-unusual";
+
+export type BrewConstraint = {
+  key: BrewConstraintKey;
+  label: string;
+  detail: string;
+  confidence: RecommendationConfidence;
+};
+
+export type HiddenSynergyCluster = {
+  id: string;
+  title: string;
+  summary: string;
+  cards: Array<{ name: string; role: DeckArchitectRole; owned: boolean }>;
+  resources: string[];
+  payoffs: string[];
+  confidence: RecommendationConfidence;
+};
+
+export type DeckPersonalityDimension =
+  | "explosive"
+  | "interactive"
+  | "resilient"
+  | "linear"
+  | "political"
+  | "combo-reliance"
+  | "complexity"
+  | "variance"
+  | "commander-dependence";
+
+export type DeckPersonalityReport = {
+  dimensions: Record<DeckPersonalityDimension, number>;
+  explanations: Array<{ dimension: DeckPersonalityDimension; label: string; detail: string }>;
+};
+
+export type RoleCompressionInsight = {
+  cardName: string;
+  roles: DeckArchitectRole[];
+  explanation: string;
+  owned: boolean;
+};
+
+export type StrategyOverloadInsight = {
+  themes: string[];
+  overloaded: boolean;
+  recommendation: string;
+};
+
+export type BrewStructuredProposal = {
+  id: string;
+  title: string;
+  mode: "brew" | "what-if" | "surprise";
+  intentChanges: BrewConstraint[];
+  strategyChanges: string[];
+  suggestedAdds: DeckChangeProposal["adds"];
+  suggestedCuts: DeckChangeProposal["removes"];
+  constraints: BrewConstraint[];
+  explanation: string;
+  validation: DeckValidationResult;
+  projectedHealthDelta: DeckChangeProposal["projectedHealthDelta"];
+  additionalCost: number | null;
+};
+
+export type DeckArchitectBrewAnalysis = {
+  parsedConstraints: BrewConstraint[];
+  hiddenSynergies: HiddenSynergyCluster[];
+  personality: DeckPersonalityReport;
+  roleCompression: RoleCompressionInsight[];
+  strategyOverload: StrategyOverloadInsight;
+  proposals: BrewStructuredProposal[];
+  surpriseDirections: BuildOpportunity[];
+};
+
 export type BuildOpportunity = {
   id: string;
   name: string;

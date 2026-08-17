@@ -26,6 +26,10 @@ import {
   detectCardTaxonomy,
   getCommanderCatalogCandidates,
   applyDeckChangeProposal,
+  generateDeckArchitectBrewAnalysis,
+  parseBrewRequest,
+  analyzeDeckPersonality,
+  detectHiddenSynergies,
   validateDeckRequirements,
   analyzeDeckHealth,
   type CollectionGraphCard,
@@ -321,6 +325,12 @@ test("Deck Architect supports active commander selection card states and mobile 
 test("Deck Architect preserves review-first behavior without fake autonomous AI", () => {
   assert.match(workspace, /Recommendations stay reviewable/);
   assert.match(workspace, /Deck Architect never mutates a deck silently/);
+  assert.match(workspace, /Brew With Deck Architect/);
+  assert.match(workspace, /AI proposes \/ Trading Docks validates/);
+  assert.match(workspace, /Hidden Synergy/);
+  assert.match(workspace, /What If \/ Fork Deck/);
+  assert.match(workspace, /Deck Personality/);
+  assert.match(workspace, /Build My Deck/);
   assert.match(workspace, /Apply after review unavailable/);
   assert.doesNotMatch(workspace, /ChatGPT|magic AI deck builder|Apply Changes automatically|silently applies/i);
 });
@@ -661,6 +671,66 @@ test("Deck Architect taxonomy detects strategies themes typal and mechanics from
   assert.ok(taxonomy.mechanics.includes("Proliferate"));
   assert.ok(taxonomy.typal.includes("Phyrexian"));
   assert.ok(taxonomy.typal.includes("Angel"));
+});
+
+test("Master Brewer parses natural language into structured constraints", () => {
+  const constraints = parseBrewRequest("Make this more resilient, use more cards I own, no infinite combos, and cut expensive staples.");
+
+  assert.ok(constraints.some((constraint) => constraint.key === "more-resilient"));
+  assert.ok(constraints.some((constraint) => constraint.key === "collection-first"));
+  assert.ok(constraints.some((constraint) => constraint.key === "avoid-infinite-combos"));
+  assert.ok(constraints.some((constraint) => constraint.key === "budget-cap"));
+});
+
+test("Hidden Synergy detects deterministic relationship clusters", () => {
+  const requirements: DeckRequirement[] = [
+    requirement("seer", "Viscera Seer", 1, 0.5, false, ["sacrifice-outlet"], "Creature - Vampire Wizard"),
+    requirement("token", "Ophiomancer", 1, 4, false, ["token-generation"], "Creature - Human Shaman"),
+    {
+      ...requirement("payoff", "Zulaport Cutthroat", 1, 1, false, ["synergy"], "Creature - Human Rogue Ally"),
+      oracleText: "Whenever another creature you control dies, each opponent loses 1 life.",
+    },
+  ];
+  const clusters = detectHiddenSynergies(requirements);
+
+  assert.equal(clusters[0].id, "sacrifice-token-payoff");
+  assert.match(clusters[0].summary, /Token production/);
+});
+
+test("Deck Personality exposes explainable heuristic dimensions", () => {
+  const personality = analyzeDeckPersonality([
+    requirement("draw", "Rhystic Study", 1, 38, false, ["card-advantage", "card-draw"], "Enchantment"),
+    requirement("counter", "Counterspell", 1, 1, false, ["interaction", "countermagic"], "Instant"),
+    requirement("witness", "Eternal Witness", 1, 2, false, ["recursion", "card-advantage"], "Creature - Human Shaman"),
+  ]);
+
+  assert.ok(personality.dimensions.interactive > 0);
+  assert.ok(personality.dimensions.resilient > 0);
+  assert.ok(personality.explanations.every((entry) => /based on visible roles/i.test(entry.detail)));
+});
+
+test("Master Brewer proposals are structured and validator-backed", () => {
+  const commander = commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]);
+  const constructed = constructValidatedCommanderDeck({
+    commander,
+    collection: [commander, commanderCard("evolution", "Evolution Sage", ["G"], "Creature - Elf Druid", "Landfall - proliferate.")],
+    intentId: "use-collection",
+    strategyId: "atraxa-counters",
+  });
+  const analysis = generateDeckArchitectBrewAnalysis({
+    prompt: "What if this were more interactive and less commander-dependent?",
+    requirements: constructed.requirements,
+    collection: [commander],
+    formatId: "commander",
+    commander,
+    strategy: constructed.strategyFit?.strategy ?? null,
+  });
+
+  assert.ok(analysis.parsedConstraints.some((constraint) => constraint.key === "more-interaction"));
+  assert.ok(analysis.proposals.length > 0);
+  assert.ok(analysis.proposals.every((proposal) => Array.isArray(proposal.suggestedAdds)));
+  assert.ok(analysis.proposals.every((proposal) => proposal.validation.issues !== undefined));
+  assert.ok(analysis.roleCompression.length > 0);
 });
 
 test("Commander construction rejects off-color cards for Rakdos commanders", () => {

@@ -236,7 +236,7 @@ Recommended next checkpoint:
 
 ## Deck Architect
 
-Status: Deck Suite Integration Implemented.
+Status: Master Brewer Foundation Implemented.
 
 Implemented this checkpoint:
 
@@ -250,11 +250,15 @@ Implemented this checkpoint:
 8. Added Architect -> Builder and Builder -> Architect handoffs using saved Deck Vault records or compact deck ids instead of URL-serialized decklists.
 9. Added owned/potential commander discovery, shared import parsing, and shared deck export adapters for plain text, CSV, MTGO-style, and Arena-compatible output where supported.
 10. Added the first production recommendation intelligence layer: expanded role classification, collection-aware commander strategy ranking, validated Pauper archetype construction, validated Commander shell construction, structured add/cut swaps, owned substitute ranking, and atomic non-persistent proposal application.
+11. Added the Master Brewer foundation: natural-language goals are parsed into structured constraints, Hidden Synergy clusters, Deck Personality signals, Role Compression insights, strategy-overload warnings, What If/Fork proposal previews, Surprise Me directions, and collection-specific opportunity discovery.
+12. Added an explicit Build My Deck transition so setup choices do not present as a finished deck until the user asks Deck Architect to assemble one.
+13. Preserved the safety boundary: AI-style brewer proposals remain structured and validator-backed; raw model text cannot directly mutate or persist a deck.
 
 Recommended next checkpoint:
 
-1. Add saved proposal persistence and apply/revert flows into Deck Vault.
-2. Add external provider-backed archetype/template catalogs with source attribution and no copied third-party workflows.
-3. Expand legality/provider validation from saved Scryfall legalities into provider refresh and stale-data handling.
-4. Expand collection leverage from deterministic Pauper/Commander opportunities into complete candidate deck planning for additional formats after provider quality is verified.
-5. Add combo intelligence through an approved Commander Spellbook provider boundary.
+1. Add saved proposal persistence and apply/revert flows into Deck Vault with stale-deck protection.
+2. Add an approved LLM provider contract that emits only structured proposal JSON for deterministic validation.
+3. Add external provider-backed archetype/template catalogs with source attribution and no copied third-party workflows.
+4. Expand legality/provider validation from saved Scryfall legalities into provider refresh and stale-data handling.
+5. Expand collection leverage from deterministic Pauper/Commander opportunities into complete candidate deck planning for additional formats after provider quality is verified.
+6. Add combo intelligence through an approved Commander Spellbook provider boundary.
