@@ -233,3 +233,22 @@ Recommended next checkpoint:
 2. Validate print CSS on representative label stock and store printer settings.
 3. Approve production rollout only after staging environment and Supabase project targeting are verified.
 4. Add mobile QR scanner mode as a separate scan mode without changing card recognition.
+
+## Deck Architect
+
+Status: Foundation Implemented.
+
+Implemented this checkpoint:
+
+1. Added `/dashboard/deck-architect` as a Collector workspace surface connected to the existing dashboard navigation.
+2. Added deterministic deck-architecture contracts for formats, build intents, ownership comparison, buildability scoring, commander candidates, missing-card visibility, and deck-health categories.
+3. Loaded real user-scoped collection data from `inventory_items` for the initial collection graph snapshot.
+4. Kept proposal review, must-include, locked-card, and AI concepts as explicit foundations without claiming autonomous deckbuilding.
+
+Recommended next checkpoint:
+
+1. Add saved proposal persistence and apply/revert flows into Deck Vault.
+2. Add provider-backed archetype/template catalogs with source attribution and no copied third-party workflows.
+3. Add legality/provider validation for each supported format.
+4. Expand collection leverage and "What Can I Build?" from foundation scoring into complete candidate deck planning.
+5. Add upgrade workflows for existing decks with missing-card, budget, and locked-card constraints.

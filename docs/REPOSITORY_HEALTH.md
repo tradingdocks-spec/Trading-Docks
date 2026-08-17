@@ -374,3 +374,27 @@ Recommended next stabilization task:
 2. Add QR route-handler integration tests for public, employee, cross-workspace, revoked-token, and missing-token behavior.
 3. Verify Label Studio print CSS on representative 2 x 1, 3 x 2, and 4 x 2 label stock.
 4. Map legacy inventory components that already expose SKU-like fields before production bulk print rollout.
+
+## Deck Architect Health
+
+Status: Foundation Implemented.
+
+Implemented improvements:
+
+- Added a scoped Deck Architect route, navigation entry, deterministic engine modules, and source-contract tests.
+- Kept user-owned collection loading server-side and scoped by authenticated Supabase user id.
+- Avoided fake AI, copied third-party deck recommendations, or external-provider claims in the first surface.
+
+Remaining risks:
+
+- The initial foundation uses collection-derived requirements rather than a complete archetype/template provider.
+- Proposal persistence, Deck Vault mutation integration, legality provider checks, and saved apply/revert flows are still planned.
+- Commander candidate quality depends on type-line metadata being present in saved inventory records.
+- Price-aware scoring only uses saved inventory values when available; missing prices stay unavailable.
+
+Recommended next stabilization task:
+
+1. Add route-level integration tests for signed-out redirect and user-scoped collection loading.
+2. Add saved proposal tables or a reviewed non-destructive persistence plan before enabling apply/revert flows.
+3. Add provider-backed format legality and archetype-template adapters with source attribution.
+4. Expand browser QA for empty collection, large collection, mobile-width dashboard, and Owner/Admin access.

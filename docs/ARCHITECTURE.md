@@ -298,3 +298,13 @@ Status: Partially Implemented
 - Partially Implemented: The staging-applied Label Studio migration provides workspace-scoped SKUs, QR identities, token revocation, label templates, print jobs, and repricing review. Production persistence still requires explicit rollout approval and environment verification.
 - Implemented: `/q/{token}` resolves through the sanitized public Supabase function and does not expose inventory ids, workspace ids, cost basis, suppliers, storage locations, or private notes.
 - Planned: Mobile QR scanner mode should be added later as a separate scanner-mode integration that does not alter card recognition architecture.
+
+## Deck Architect Architecture
+
+- Implemented: Web Deck Architect lives at `/dashboard/deck-architect` and is linked from the Collector workspace navigation alongside Deck Vault.
+- Implemented: The route authenticates through the existing Supabase server-cookie session and loads a user-scoped collection snapshot from `inventory_items`; it does not use localStorage or cross-user data.
+- Implemented: Core deterministic engine contracts live in `src/lib/deck-architect`, including format profiles, build intents, ownership comparison, buildability scoring, commander candidate detection, and deck-health analysis.
+- Implemented: Initial format support is format-aware rather than Commander-only: Commander, Standard, Modern, Pioneer, Pauper, Legacy, Vintage, Brawl, casual 60-card, and custom foundations are represented.
+- Partially Implemented: The workspace currently evaluates collection-derived foundation requirements and owned commander candidates. It does not yet persist deck proposals, generate full archetype templates, or apply mutations to Deck Vault.
+- Partially Implemented: AI is represented as future orchestration infrastructure only. Current recommendations are deterministic and review-first; the UI does not claim autonomous deckbuilding or live external intelligence.
+- Planned: Add provider-backed archetype/template sources, legality validation, saved proposal persistence, upgrade paths from existing Deck Vault decks, and richer price/provider coverage after the foundation is reviewed.

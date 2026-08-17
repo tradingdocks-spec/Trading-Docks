@@ -299,6 +299,7 @@ const ICON_BY_LABEL = {
   Dashboard: LayoutDashboard,
   Collection: Boxes,
   Decks: LibraryBig,
+  "Deck Architect": BrainCircuit,
   "Trade Binder": WalletCards,
   Portfolio: Palette,
   Settings,
@@ -338,6 +339,7 @@ const COLLECTOR_WORKSPACE_NAV: NavigationItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/inventory", label: "Collection", icon: Boxes },
   { href: "/dashboard/deck-vault", label: "Deck Vault", icon: LibraryBig },
+  { href: "/dashboard/deck-architect", label: "Deck Architect", icon: BrainCircuit },
   { href: "/dashboard/collector-portfolio", label: "Portfolio", icon: Palette },
 ];
 

@@ -39,6 +39,7 @@ export const ROUTE_ACCESS_REGISTRY: RouteAccessRule[] = [
   { id: "label-studio", pattern: /^\/dashboard\/label-studio(\/|$)/, kind: "capability", capability: "label.view", label: "Label Studio" },
   { id: "collection", pattern: /^\/dashboard\/collection(\/|$)/, kind: "capability", capability: "collection.read", label: "Collection" },
   { id: "deck-vault", pattern: /^\/dashboard\/deck-vault(\/|$)/, kind: "capability", capability: "deck.manage", label: "Deck Vault" },
+  { id: "deck-architect", pattern: /^\/dashboard\/deck-architect(\/|$)/, kind: "capability", capability: "deck.manage", label: "Deck Architect" },
   { id: "collector-portfolio", pattern: /^\/dashboard\/collector-portfolio(\/|$)/, kind: "capability", capability: "analytics.view", label: "Collector Portfolio" },
   {
     id: "buying",
