@@ -360,7 +360,14 @@ function hasAny(value: string, needles: string[]) {
 
 const STRUCTURAL_ROLES = new Set<DeckArchitectRole>([
   "ramp",
+  "mana-rock",
+  "mana-dork",
+  "ritual",
+  "treasure-generation",
+  "cost-reduction",
   "mana-fixing",
+  "color-fixing",
+  "land-fixing",
   "card-advantage",
   "card-draw",
   "interaction",

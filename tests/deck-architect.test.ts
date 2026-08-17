@@ -40,6 +40,12 @@ import {
   evaluateCandidate,
   selectArchetypeProfile,
   TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER,
+  CommanderSpellbookProvider,
+  EDHREC_INTEGRATION_STATUS,
+  TradingDocksCorpusMetaProvider,
+  buildRecommendationEvidence,
+  normalizeSpellbookPayload,
+  passesProfessionalQualityFloor,
   type CollectionGraphCard,
   type DeckRequirement,
 } from "../src/lib/deck-architect/index.ts";
@@ -827,6 +833,59 @@ test("Krenko archetype generation rejects observed off-strategy production fixtu
   assert.ok(rejectedTotal >= rejectedFixtures.length);
 });
 
+test("Commander recommendation evidence rejects legal cards with insufficient deck-specific support", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const profile = TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, null, []);
+  const archetype = selectArchetypeProfile(profile, null);
+  const filler = commanderCard("random-legal", "Random Red Vehicle", ["R"], "Artifact - Vehicle", "Whenever this Vehicle attacks, scry 1.");
+  const evaluation = evaluateCandidate(filler, archetype);
+  const evidence = buildRecommendationEvidence(filler, evaluation, {
+    commander,
+    archetype,
+    strategy: null,
+    intentId: "strongest-possible",
+    ownedQuantity: 0,
+    source: "inferred",
+  });
+
+  assert.equal(evidence.confidence, "insufficient");
+  assert.equal(passesProfessionalQualityFloor(evidence, "strongest-possible"), false);
+  assert.ok(evidence.rejectionReasons?.some((reason) => /archetype|confidence|strategy|role/i.test(reason)));
+});
+
+test("Krenko recommendations carry professional evidence and keep generic staples capped", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: [
+      ...krenkoCandidatePool(),
+      commanderCard("celestial-prism", "Celestial Prism", [], "Artifact", "Pay 2, tap: Add one mana of any color."),
+      commanderCard("random-vehicle", "Random Red Vehicle", ["R"], "Artifact - Vehicle", "Whenever this Vehicle attacks, scry 1."),
+    ],
+    candidateSource: "global-fixture",
+  });
+  const nonland = result.requirements.filter((requirement) => requirement.board === "main" && !requirement.roles.includes("land"));
+  const genericCount = nonland.filter((requirement) => requirement.archetypeCategory === "generic").length;
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(result.generationStatus, "complete");
+  assert.ok(genericCount <= (result.archetypeProfile?.genericCardLimit ?? 0));
+  assert.equal(names.has("Celestial Prism"), false);
+  assert.equal(names.has("Random Red Vehicle"), false);
+  assert.ok(nonland.some((requirement) => requirement.recommendationEvidence?.confidence === "strong" || requirement.recommendationEvidence?.confidence === "good"));
+});
+
 test("incidental Treasure text does not make Goblin Airbrusher a primary mana-fixing card", () => {
   const card = commanderCard(
     "goblin-airbrusher",
@@ -842,6 +901,109 @@ test("incidental Treasure text does not make Goblin Airbrusher a primary mana-fi
   assert.equal(roleSignals.some((signal) => signal.role === "ramp" && signal.confidence === "high"), false);
   assert.ok(tags.includes("goblin"));
   assert.equal(tags.includes("mana-engine"), false);
+});
+
+test("professional role classification separates ramp, treasure, cost reduction, and color fixing", () => {
+  const signet = classifyCardRoles(commanderCard("arcane-signet", "Arcane Signet", [], "Artifact", "Tap: Add one mana of any color in your commander's color identity."));
+  const prospector = classifyCardRoles(commanderCard("skirk", "Skirk Prospector", ["R"], "Creature - Goblin", "Sacrifice a Goblin: Add red mana."));
+  const warchief = classifyCardRoles(commanderCard("warchief", "Goblin Warchief", ["R"], "Creature - Goblin", "Goblin spells you cast cost 1 less to cast. Goblins you control have haste."));
+  const conditionalTreasure = classifyCardRoleSignals(commanderCard("contract", "Contract Hero", ["R"], "Creature - Human", "When this creature enters, create a Treasure token if you committed a crime this turn."));
+
+  assert.ok(signet.includes("mana-rock"));
+  assert.ok(signet.includes("color-fixing"));
+  assert.ok(prospector.includes("ramp"));
+  assert.ok(prospector.includes("treasure-generation") === false);
+  assert.ok(warchief.includes("cost-reduction"));
+  assert.equal(conditionalTreasure.find((signal) => signal.role === "treasure-generation")?.confidence, "medium");
+  assert.equal(conditionalTreasure.find((signal) => signal.role === "ramp")?.confidence, "low");
+});
+
+test("Commander Spellbook provider normalizes combos and degrades gracefully on provider failure", async () => {
+  const payload = {
+    results: {
+      included: [{
+        id: "combo-1",
+        status: "OK",
+        uses: [
+          { card: { name: "Krenko, Mob Boss" }, mustBeCommander: true },
+          { card: { name: "Skirk Prospector" } },
+        ],
+        produces: [{ feature: { name: "Infinite mana" } }],
+        description: "Tap Krenko.\nSacrifice Goblins.",
+        legalities: { commander: true },
+        popularity: 12,
+      }],
+      almostIncluded: [{
+        id: "combo-2",
+        status: "OK",
+        uses: [
+          { card: { name: "Krenko, Mob Boss" }, mustBeCommander: true },
+          { card: { name: "Thornbite Staff" } },
+        ],
+        produces: [{ feature: { name: "Infinite damage" } }],
+        legalities: { commander: true },
+      }],
+    },
+  };
+  const normalized = normalizeSpellbookPayload(payload, ["Krenko, Mob Boss", "Skirk Prospector"], ["Thornbite Staff"]);
+  assert.equal(normalized.summary.complete, 1);
+  assert.equal(normalized.summary.nearCombos, 1);
+  assert.equal(normalized.summary.fullyOwned, 1);
+  assert.equal(normalized.summary.winLineCount, 2);
+
+  const provider = new CommanderSpellbookProvider({
+    fetchImpl: async () => ({ ok: false, status: 429, json: async () => ({}) }) as Response,
+    logger: { info() {}, warn() {}, error() {} },
+  });
+  const fallback = await provider.findCombosForDeck(["Krenko, Mob Boss"]);
+  assert.equal(fallback.available, false);
+  assert.match(fallback.message ?? "", /temporarily unavailable/i);
+});
+
+test("Trading Docks corpus requires adequate samples and keeps EDHREC as licensed-only placeholder", async () => {
+  assert.equal(EDHREC_INTEGRATION_STATUS.integrated, false);
+  assert.equal(EDHREC_INTEGRATION_STATUS.scrapingAllowed, false);
+
+  const provider = new TradingDocksCorpusMetaProvider([
+    {
+      commanderId: "Krenko, Mob Boss",
+      format: "commander",
+      archetypeId: "krenko-goblin-swarm",
+      strategyId: "krenko-go-wide-goblins",
+      cardId: "Skirk Prospector",
+      cardName: "Skirk Prospector",
+      observedDeckCount: 20,
+      eligibleDeckCount: 20,
+      coOccurrenceCount: 18,
+      baselineInclusionRate: 0.1,
+      observedAt: "2026-08-17T00:00:00.000Z",
+      sourceCategory: "trading-docks-curated",
+      provenance: ["fixture"],
+    },
+    {
+      commanderId: "Krenko, Mob Boss",
+      format: "commander",
+      archetypeId: "krenko-goblin-swarm",
+      strategyId: "krenko-go-wide-goblins",
+      cardId: "Impact Tremors",
+      cardName: "Impact Tremors",
+      observedDeckCount: 40,
+      eligibleDeckCount: 50,
+      coOccurrenceCount: 34,
+      baselineInclusionRate: 0.2,
+      observedAt: "2026-08-17T00:00:00.000Z",
+      sourceCategory: "trading-docks-curated",
+      provenance: ["fixture"],
+    },
+  ]);
+  const lowSample = await provider.getCardEvidence("Krenko, Mob Boss", "Skirk Prospector", "krenko-go-wide-goblins");
+  const adequateSample = await provider.getCardEvidence("Krenko, Mob Boss", "Impact Tremors", "krenko-go-wide-goblins");
+
+  assert.equal(lowSample?.classification, "unsupported");
+  assert.equal(lowSample?.inclusionRate, null);
+  assert.equal(adequateSample?.classification, "core");
+  assert.equal(adequateSample?.inclusionRate, 0.8);
+  assert.equal(adequateSample?.synergyLift, 0.6000000000000001);
 });
 
 test("Deck Architect knowledge provider exposes benchmark archetype profiles before role filling", () => {

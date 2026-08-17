@@ -396,7 +396,8 @@ Implemented improvements:
 
 Remaining risks:
 
-- The first recommendation and brewer layers are deterministic and local. External archetype, combo, EDHREC, LLM, and provider-backed knowledge sources are not active yet.
+- The first recommendation and brewer layers remain deterministic and local for base deck generation. Commander Spellbook is now active as an additive server-side combo provider for Deck Vault combo analysis; provider failure does not block deck generation. EDHREC remains not integrated pending commercial permission/licensing.
+- Trading Docks Deck Corpus types and sample-size/provenance rules exist, but no corpus persistence migration has been applied.
 - Structured proposal persistence, applied-proposal history, provider freshness checks, and deeper deck-history controls are still planned.
 - Commander candidate quality still depends on type-line metadata being present in saved inventory or catalog payloads.
 - Price-aware scoring only uses saved inventory values when available; missing prices stay unavailable.

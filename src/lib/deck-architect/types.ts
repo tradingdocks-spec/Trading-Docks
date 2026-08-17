@@ -15,6 +15,13 @@ export type DeckArchitectBoard = "commander" | "main" | "sideboard" | "maybeboar
 export type DeckArchitectRole =
   | "commander"
   | "ramp"
+  | "mana-rock"
+  | "mana-dork"
+  | "ritual"
+  | "treasure-generation"
+  | "cost-reduction"
+  | "color-fixing"
+  | "land-fixing"
   | "card-draw"
   | "card-advantage"
   | "interaction"
@@ -75,6 +82,125 @@ export type DeckStrategyTag =
   | "board-wipe";
 
 export type ArchetypeCandidateCategory = "core" | "synergy" | "support" | "generic" | "reject";
+
+export type RecommendationEvidenceConfidence = "strong" | "good" | "possible" | "insufficient";
+
+export type RecommendationEvidence = {
+  legalityVerified: boolean;
+  archetypeAffinity: number | null;
+  commanderAffinity: number | null;
+  roleFit: number;
+  strategyFit: number;
+  curveFit: number;
+  observedInCorpus?: boolean;
+  inclusionRate?: number | null;
+  synergyLift?: number | null;
+  coOccurrenceScore?: number | null;
+  comboRelevance?: {
+    comboCount: number;
+    nearComboCount: number;
+    winLineCount: number;
+  };
+  ownership: {
+    owned: boolean;
+    quantity: number;
+  };
+  confidence: RecommendationEvidenceConfidence;
+  reasons: string[];
+  rejectionReasons?: string[];
+  sourceCategories: Array<"curated" | "corpus" | "combo" | "inferred" | "owned">;
+};
+
+export type CardKnowledge = {
+  cardId: string;
+  name: string;
+  colorIdentity: string[];
+  typeLine: string | null;
+  oracleText: string | null;
+  legalities: Record<string, string>;
+};
+
+export type CommanderMetaProfile = {
+  commanderId: string;
+  commanderName: string;
+  strategyEvidence: CommanderStrategyEvidence[];
+  source: "trading-docks-corpus" | "licensed-provider" | "curated";
+  observedDeckCount: number | null;
+};
+
+export type CommanderStrategyEvidence = {
+  id: string;
+  label: string;
+  sampleSize: number | null;
+  coreCards: string[];
+  synergyCards: string[];
+  flexCards: string[];
+};
+
+export type CommanderCardEvidence = {
+  commanderId: string;
+  cardId: string;
+  strategyId?: string;
+  observedInCorpus: boolean;
+  inclusionRate: number | null;
+  sampleSize: number | null;
+  synergyLift: number | null;
+  coOccurrenceScore: number | null;
+  classification: "core" | "strong-synergy" | "flex" | "fringe" | "unsupported";
+  provenance: string[];
+};
+
+export type CardKnowledgeProvider = {
+  getCard(cardId: string): Promise<CardKnowledge | null>;
+  getCards(cardIds: string[]): Promise<CardKnowledge[]>;
+};
+
+export type CommanderMetaProvider = {
+  getCommanderProfile(commanderId: string): Promise<CommanderMetaProfile | null>;
+  getCardEvidence(commanderId: string, cardId: string, strategyId?: string): Promise<CommanderCardEvidence | null>;
+  getStrategyProfiles(commanderId: string): Promise<CommanderStrategyEvidence[]>;
+};
+
+export type ComboRecommendation = {
+  id: string;
+  source: "Commander Spellbook";
+  cards: Array<{ name: string; mustBeCommander: boolean; imageUri?: string | null }>;
+  prerequisites: string[];
+  steps: string[];
+  results: string[];
+  commanderRequirements: string[];
+  colorIdentity: string[];
+  legalities: Record<string, boolean>;
+  popularity: number | null;
+  winCondition: boolean;
+  spellbookUrl: string;
+};
+
+export type DeckComboResult = {
+  available: boolean;
+  source: "Commander Spellbook";
+  complete: ComboRecommendation[];
+  fullyOwned: ComboRecommendation[];
+  nearCombos: NearComboResult[];
+  summary: {
+    complete: number;
+    fullyOwned: number;
+    nearCombos: number;
+    winLineCount: number;
+  };
+  message?: string;
+};
+
+export type NearComboResult = ComboRecommendation & {
+  ownedPieces: string[];
+  missingPieces: string[];
+};
+
+export type ComboKnowledgeProvider = {
+  findCombosForDeck(cardNames: string[], inventoryCardNames?: string[]): Promise<DeckComboResult>;
+  findCombosForCommander(commanderName: string): Promise<ComboRecommendation[]>;
+  findNearCombos(cardNames: string[]): Promise<NearComboResult[]>;
+};
 
 export type ArchetypeProfile = {
   id: string;
@@ -188,6 +314,7 @@ export type DeckRequirement = {
   strategyTags?: DeckStrategyTag[];
   archetypeCategory?: ArchetypeCandidateCategory;
   archetypeScore?: number;
+  recommendationEvidence?: RecommendationEvidence;
   primaryRoles?: DeckArchitectRole[];
   secondaryRoles?: DeckArchitectRole[];
   whyThisCard?: string;

@@ -261,4 +261,5 @@ Recommended next checkpoint:
 3. Add external provider-backed archetype/template catalogs with source attribution and no copied third-party workflows.
 4. Expand legality/provider validation from saved Scryfall legalities into provider refresh and stale-data handling.
 5. Expand collection leverage from deterministic Pauper/Commander opportunities into complete candidate deck planning for additional formats after provider quality is verified.
-6. Add combo intelligence through an approved Commander Spellbook provider boundary.
+6. Extend the implemented Commander Spellbook provider from Deck Vault combo analysis into richer Deck Architect combo panels and reviewed combo-aware proposals.
+7. Review and approve a Trading Docks Deck Corpus persistence migration before storing aggregate deck observations.
