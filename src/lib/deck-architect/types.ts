@@ -14,19 +14,30 @@ export type DeckArchitectBoard = "commander" | "main" | "sideboard" | "maybeboar
 
 export type DeckArchitectRole =
   | "ramp"
+  | "card-draw"
   | "card-advantage"
   | "interaction"
+  | "targeted-removal"
   | "removal"
+  | "mass-removal"
   | "protection"
   | "threat"
   | "finisher"
   | "board-wipe"
   | "tutor"
   | "countermagic"
+  | "recursion"
   | "graveyard-interaction"
   | "mana-fixing"
   | "synergy"
   | "combo-piece"
+  | "token-generation"
+  | "sacrifice-outlet"
+  | "discard"
+  | "lifegain"
+  | "burn"
+  | "artifact-interaction"
+  | "enchantment-interaction"
   | "land";
 
 export type RecommendationConfidence = "high" | "medium" | "low";
@@ -183,6 +194,8 @@ export type BuildOpportunity = {
   disclosure: string;
 };
 
+export type RecommendationSupportLevel = "full-intelligence" | "builder-legality" | "experimental";
+
 export type DeckKnowledgeCardSeed = {
   name: string;
   quantity: number;
@@ -205,6 +218,8 @@ export type DeckArchetypeProfile = {
   coreCards: DeckKnowledgeCardSeed[];
   flexCards: DeckKnowledgeCardSeed[];
   landPlan?: DeckKnowledgeCardSeed[];
+  sideboardPlan?: DeckKnowledgeCardSeed[];
+  supportLevel?: RecommendationSupportLevel;
   provenance: string[];
   sourceType: "trading-docks-authored" | "external-provider";
 };
@@ -215,9 +230,23 @@ export type CommanderStrategyProfile = {
   label: string;
   summary: string;
   roles: DeckArchitectRole[];
+  coreCards?: DeckKnowledgeCardSeed[];
+  flexCards?: DeckKnowledgeCardSeed[];
+  roleTargets?: RecommendationProfile["roleTargets"];
   confidence: RecommendationConfidence;
   signals: RecommendationSignal[];
   provenance: string[];
+};
+
+export type CommanderStrategyFit = {
+  commander: CollectionGraphCard;
+  strategy: CommanderStrategyProfile;
+  score: number;
+  fit: "strong" | "good" | "moderate" | "low";
+  ownedSupportCount: number;
+  missingCoreCards: OwnershipMatch[];
+  estimatedBuildability: BuildabilityScore | null;
+  signals: RecommendationSignal[];
 };
 
 export type OwnedSubstitution = {

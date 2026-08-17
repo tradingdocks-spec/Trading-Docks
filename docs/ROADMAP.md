@@ -249,11 +249,12 @@ Implemented this checkpoint:
 7. Added a shared deck-suite adapter layer so Deck Vault `DeckRecord` remains the canonical persisted deck representation for Architect, Builder, import, export, and analysis handoffs.
 8. Added Architect -> Builder and Builder -> Architect handoffs using saved Deck Vault records or compact deck ids instead of URL-serialized decklists.
 9. Added owned/potential commander discovery, shared import parsing, and shared deck export adapters for plain text, CSV, MTGO-style, and Arena-compatible output where supported.
+10. Added the first production recommendation intelligence layer: expanded role classification, collection-aware commander strategy ranking, validated Pauper archetype construction, validated Commander shell construction, structured add/cut swaps, owned substitute ranking, and atomic non-persistent proposal application.
 
 Recommended next checkpoint:
 
 1. Add saved proposal persistence and apply/revert flows into Deck Vault.
 2. Add external provider-backed archetype/template catalogs with source attribution and no copied third-party workflows.
 3. Expand legality/provider validation from saved Scryfall legalities into provider refresh and stale-data handling.
-4. Expand collection leverage from deterministic Pauper/Commander opportunities into complete candidate deck planning for additional formats.
-5. Add upgrade workflows for existing decks with missing-card, budget, and locked-card constraints.
+4. Expand collection leverage from deterministic Pauper/Commander opportunities into complete candidate deck planning for additional formats after provider quality is verified.
+5. Add combo intelligence through an approved Commander Spellbook provider boundary.

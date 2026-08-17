@@ -18,6 +18,11 @@ import {
   isBasicLand,
   maximumCopiesForCard,
   recommendOwnedSubstitutions,
+  proposeDeckRecommendations,
+  rankCommanderStrategiesForCollection,
+  constructValidatedArchetypeDeck,
+  constructValidatedCommanderDeck,
+  applyDeckChangeProposal,
   validateDeckRequirements,
   analyzeDeckHealth,
   type CollectionGraphCard,
@@ -331,6 +336,21 @@ test("card role classifier uses rules text and type line deterministically", () 
   }).includes("land"));
 });
 
+test("card role classifier covers production recommendation role vocabulary", () => {
+  const roles = classifyCardRoles({
+    name: "Prismari Command",
+    typeLine: "Instant",
+    oracleText: "Choose two - Prismari Command deals 2 damage to any target; target player draws two cards, then discards two cards; target player creates a Treasure token; destroy target artifact.",
+    manaCost: "{1}{U}{R}",
+  });
+
+  assert.ok(roles.includes("burn"));
+  assert.ok(roles.includes("card-draw"));
+  assert.ok(roles.includes("discard"));
+  assert.ok(roles.includes("artifact-interaction"));
+  assert.ok(roles.includes("token-generation"));
+});
+
 test("legality validator rejects copy-limit color-identity and illegal-card failures", () => {
   const format = getFormatProfile("commander");
   const commander = collection[0];
@@ -379,6 +399,106 @@ test("Deck Architect intelligence ranks build opportunities and owned substituti
   assert.ok(intelligence.limitations.some((item) => /proposal persistence/i.test(item)));
 });
 
+test("commander strategy ranking changes based on the user's collection", () => {
+  const muldrotha: CollectionGraphCard = {
+    inventoryId: "potential-muldrotha",
+    name: "Muldrotha, the Gravetide",
+    quantityOwned: 0,
+    typeLine: "Legendary Creature - Elemental Avatar",
+    colorIdentity: ["B", "G", "U"],
+    marketPrice: 12,
+  };
+  const recursionCollection: CollectionGraphCard[] = [
+    muldrotha,
+    { inventoryId: "satyr", name: "Satyr Wayfinder", quantityOwned: 4, typeLine: "Creature - Satyr", oracleText: "When Satyr Wayfinder enters, reveal the top four cards. Put a land into your hand and the rest into your graveyard.", colorIdentity: ["G"], marketPrice: 0.15 },
+    { inventoryId: "witness", name: "Eternal Witness", quantityOwned: 1, typeLine: "Creature - Human Shaman", oracleText: "Return target card from your graveyard to your hand.", colorIdentity: ["G"], marketPrice: 2.5 },
+    { inventoryId: "seal", name: "Seal of Primordium", quantityOwned: 1, typeLine: "Enchantment", oracleText: "Sacrifice Seal of Primordium: Destroy target artifact or enchantment.", colorIdentity: ["G"], marketPrice: 0.3 },
+  ];
+  const sacrificeCollection: CollectionGraphCard[] = [
+    muldrotha,
+    { inventoryId: "seer", name: "Viscera Seer", quantityOwned: 1, typeLine: "Creature - Vampire Wizard", oracleText: "Sacrifice a creature: Scry 1.", colorIdentity: ["B"], marketPrice: 0.5 },
+    { inventoryId: "cutthroat", name: "Zulaport Cutthroat", quantityOwned: 1, typeLine: "Creature - Human Rogue Ally", oracleText: "Whenever a creature you control dies, each opponent loses 1 life and you gain 1 life.", colorIdentity: ["B"], marketPrice: 1 },
+    { inventoryId: "elder", name: "Sakura-Tribe Elder", quantityOwned: 1, typeLine: "Creature - Snake Shaman", oracleText: "Sacrifice Sakura-Tribe Elder: Search your library for a basic land.", colorIdentity: ["G"], marketPrice: 0.2 },
+  ];
+
+  const recursionTop = rankCommanderStrategiesForCollection(muldrotha, recursionCollection)[0];
+  const sacrificeTop = rankCommanderStrategiesForCollection(muldrotha, sacrificeCollection)[0];
+
+  assert.equal(recursionTop.strategy.label, "Permanent Recursion");
+  assert.equal(sacrificeTop.strategy.label, "Sacrifice Value");
+  assert.ok(recursionTop.score !== sacrificeTop.score || recursionTop.strategy.id !== sacrificeTop.strategy.id);
+});
+
+test("Potential commanders can be ranked even when the commander is not owned", () => {
+  const atraxa: CollectionGraphCard = {
+    inventoryId: "potential-atraxa",
+    name: "Atraxa, Praetors' Voice",
+    quantityOwned: 0,
+    typeLine: "Legendary Creature - Phyrexian Angel Horror",
+    oracleText: "At the beginning of your end step, proliferate.",
+    colorIdentity: ["G", "W", "U", "B"],
+    marketPrice: 18,
+  };
+  const fits = rankCommanderStrategiesForCollection(atraxa, [
+    { inventoryId: "scales", name: "Hardened Scales", quantityOwned: 1, typeLine: "Enchantment", oracleText: "If one or more +1/+1 counters would be put on a creature you control, that many plus one are put on it instead.", colorIdentity: ["G"], marketPrice: 4 },
+    { inventoryId: "sage", name: "Evolution Sage", quantityOwned: 1, typeLine: "Creature - Elf Druid", oracleText: "Landfall - proliferate.", colorIdentity: ["G"], marketPrice: 1.5 },
+  ]);
+
+  assert.equal(fits[0].commander.quantityOwned, 0);
+  assert.equal(fits[0].strategy.label, "+1/+1 Counters");
+  assert.ok(fits[0].signals.some((signal) => /owned cards match/i.test(signal.detail)));
+});
+
+test("Pauper archetype construction returns a complete validated 60-card shell", () => {
+  const archetype = getLocalArchetypes("pauper").find((entry) => entry.id === "pauper-red-deck-wins");
+  assert.ok(archetype);
+  const result = constructValidatedArchetypeDeck({ archetype, collection, intentId: "best-possible" });
+  const mainCount = result.requirements
+    .filter((requirement) => requirement.board === "main")
+    .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+  const sideboardCount = result.requirements
+    .filter((requirement) => requirement.board === "sideboard")
+    .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+
+  assert.equal(mainCount, 60);
+  assert.ok(sideboardCount <= 15);
+  assert.equal(result.validation.valid, true);
+});
+
+test("Build Intent materially changes constructed archetype output", () => {
+  const archetype = getLocalArchetypes("pauper").find((entry) => entry.id === "pauper-red-deck-wins");
+  assert.ok(archetype);
+  const bestPossible = constructValidatedArchetypeDeck({ archetype, collection, intentId: "best-possible" });
+  const noPurchases = constructValidatedArchetypeDeck({ archetype, collection, intentId: "no-purchases" });
+
+  assert.ok(bestPossible.requirements.length > noPurchases.requirements.length);
+  assert.ok(noPurchases.failure);
+});
+
+test("Commander construction returns only validated complete decks", () => {
+  const commander = collection[0];
+  const deepCollection = [
+    ...collection,
+    ...Array.from({ length: 110 }, (_, index): CollectionGraphCard => ({
+      inventoryId: `owned-green-${index}`,
+      name: `Owned Simic Tool ${index}`,
+      quantityOwned: 1,
+      typeLine: index % 4 === 0 ? "Instant" : index % 4 === 1 ? "Creature - Elf" : index % 4 === 2 ? "Artifact" : "Enchantment",
+      oracleText: index % 4 === 0 ? "Draw a card." : index % 4 === 1 ? "Add one mana." : index % 4 === 2 ? "Return target card from your graveyard." : "Create a token.",
+      colorIdentity: index % 2 === 0 ? ["G"] : ["U"],
+      marketPrice: 0.25,
+    })),
+  ];
+  const result = constructValidatedCommanderDeck({ commander, collection: deepCollection, intentId: "use-collection" });
+  const commandMainCount = result.requirements
+    .filter((requirement) => requirement.board === "commander" || requirement.board === "main")
+    .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+
+  assert.equal(commandMainCount, 100);
+  assert.equal(result.validation.valid, true);
+  assert.ok(result.strategyFit);
+});
+
 test("owned substitutions preserve exact ownership and explain confidence", () => {
   const missingMatch = compareRequirementsToCollection(
     [requirement("lava", "Lava Spike", 4, 1.25, false, ["interaction", "removal"], "Sorcery")],
@@ -390,6 +510,56 @@ test("owned substitutions preserve exact ownership and explain confidence", () =
   assert.equal(substitutions[0].ownedCard.name, "Chain Lightning");
   assert.ok(substitutions[0].score > 0);
   assert.ok(substitutions[0].reasons.length > 0);
+});
+
+test("recommendations produce structured swaps and preserve locked cards", () => {
+  const format = getFormatProfile("pauper");
+  const requirements: DeckRequirement[] = [
+    { id: "locked", name: "Lightning Bolt", requiredQuantity: 4, board: "main", roles: ["interaction"], estimatedPrice: 0.75, typeLine: "Instant", importance: 1.5 },
+    { id: "flex", name: "Needle Drop", requiredQuantity: 4, board: "main", roles: ["interaction"], estimatedPrice: 0.2, typeLine: "Instant", importance: 0.5 },
+    { id: "missing", name: "Lava Spike", requiredQuantity: 4, board: "main", roles: ["burn", "interaction"], estimatedPrice: 1.25, typeLine: "Sorcery", importance: 1 },
+    { id: "land", name: "Mountain", requiredQuantity: 48, board: "main", roles: ["land"], estimatedPrice: 0.05, typeLine: "Basic Land - Mountain" },
+  ];
+  const recommendations = proposeDeckRecommendations({
+    requirements,
+    collection,
+    format,
+    lockedCardIds: new Set(["locked"]),
+  });
+
+  assert.ok(recommendations[0].adds.length > 0);
+  assert.ok(recommendations[0].cuts.every((cut) => cut.name !== "Lightning Bolt"));
+});
+
+test("proposal application is atomic and rejects invalid resulting decks", () => {
+  const format = getFormatProfile("pauper");
+  const requirements: DeckRequirement[] = [
+    { id: "bolt", name: "Lightning Bolt", requiredQuantity: 4, board: "main", roles: ["interaction"], typeLine: "Instant" },
+    { id: "mountain", name: "Mountain", requiredQuantity: 56, board: "main", roles: ["land"], typeLine: "Basic Land - Mountain" },
+  ];
+  const invalid = applyDeckChangeProposal(requirements, {
+    id: "bad",
+    status: "pending",
+    removes: [],
+    adds: [{ name: "Lightning Bolt", quantity: 1, reason: "Too many copies.", ownedQuantity: 0, additionalCost: 1 }],
+    projectedHealthDelta: null,
+    additionalCost: 1,
+    explanation: "Invalid extra copy.",
+  }, format);
+  const valid = applyDeckChangeProposal(requirements, {
+    id: "good",
+    status: "pending",
+    removes: [{ name: "Lightning Bolt", quantity: 1, reason: "Make room." }],
+    adds: [{ name: "Chain Lightning", quantity: 1, reason: "Similar burn role.", ownedQuantity: 4, additionalCost: 0 }],
+    projectedHealthDelta: null,
+    additionalCost: 0,
+    explanation: "Valid role swap.",
+  }, format);
+
+  assert.equal(invalid.applied, false);
+  assert.deepEqual(invalid.requirements, requirements);
+  assert.equal(valid.applied, true);
+  assert.equal(valid.requirements.find((requirement) => requirement.name === "Chain Lightning")?.requiredQuantity, 1);
 });
 
 test("working deck assembly validates complete Commander shells before scoring", () => {

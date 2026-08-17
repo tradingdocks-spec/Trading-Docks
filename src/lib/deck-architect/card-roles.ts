@@ -13,17 +13,17 @@ export function classifyCardRoles(card: RoleInput): DeckArchitectRole[] {
   if (matches(haystack, ["add one mana", "add two mana", "treasure token", "search your library for a land", "ramp", "signet", "sol ring", "cultivate", "kodama's reach", "nature's lore"])) {
     roles.push("ramp", "mana-fixing");
   }
-  if (matches(haystack, ["draw a card", "draw two cards", "draw three cards", "whenever you draw", "look at the top", "ponder", "preordain", "brainstorm", "consider", "rhystic", "remora", "impulse"])) {
-    roles.push("card-advantage");
+  if (matches(haystack, ["draw a card", "draw two cards", "draws two cards", "draw three cards", "draws three cards", "whenever you draw", "look at the top", "ponder", "preordain", "brainstorm", "consider", "rhystic", "remora", "impulse"])) {
+    roles.push("card-draw", "card-advantage");
   }
   if (matches(haystack, ["counter target", "counterspell", "negate", "spell pierce", "exclude"])) {
     roles.push("interaction", "countermagic");
   }
   if (matches(haystack, ["destroy target", "exile target", "damage to any target", "damage to target", "return target", "sacrifice target", "lightning bolt", "cast down", "snuff out", "journey to nowhere"])) {
-    roles.push("interaction", "removal");
+    roles.push("interaction", "removal", "targeted-removal");
   }
   if (matches(haystack, ["destroy all", "exile all", "each creature", "all creatures", "board wipe", "wrath"])) {
-    roles.push("interaction", "board-wipe");
+    roles.push("interaction", "removal", "board-wipe", "mass-removal");
   }
   if (matches(haystack, ["hexproof", "indestructible", "protection from", "phase out", "prevent all damage", "boots", "greaves", "ward"])) {
     roles.push("protection");
@@ -32,16 +32,34 @@ export function classifyCardRoles(card: RoleInput): DeckArchitectRole[] {
     roles.push("tutor");
   }
   if (matches(haystack, ["from your graveyard", "return target card", "return target creature card", "escape", "flashback", "dredge", "delve"])) {
-    roles.push("graveyard-interaction", "synergy");
+    roles.push("recursion", "graveyard-interaction", "synergy");
   }
   if (matches(haystack, ["create", "token", "populate", "doubling", "convoke"])) {
-    roles.push("synergy");
+    roles.push("token-generation", "synergy");
   }
-  if (matches(haystack, ["sacrifice", "dies", "aristocrat", "blood artist", "altar"])) {
+  if (matches(haystack, ["sacrifice", "sacrifice another", "sacrifice a creature", "altar"])) {
+    roles.push("sacrifice-outlet", "synergy", "combo-piece");
+  }
+  if (matches(haystack, ["dies", "aristocrat", "blood artist"])) {
     roles.push("synergy", "combo-piece");
+  }
+  if (matches(haystack, ["discard a card", "discards a card", "then discards", "target player discards", "each opponent discards"])) {
+    roles.push("discard", "interaction");
   }
   if (matches(haystack, ["combo", "infinite", "untap", "station", "engine"])) {
     roles.push("combo-piece", "synergy");
+  }
+  if (matches(haystack, ["gain life", "lifelink", "whenever you gain life"])) {
+    roles.push("lifegain", "synergy");
+  }
+  if (matches(haystack, ["damage to any target", "damage to target", "lightning bolt", "lava spike", "burn"])) {
+    roles.push("burn", "interaction");
+  }
+  if (matches(haystack, ["destroy target artifact", "exile target artifact", "artifact or enchantment", "shatter"])) {
+    roles.push("artifact-interaction", "interaction");
+  }
+  if (matches(haystack, ["destroy target enchantment", "exile target enchantment", "artifact or enchantment", "naturalize"])) {
+    roles.push("enchantment-interaction", "interaction");
   }
   if (typeLine.includes("creature") && !roles.includes("ramp")) {
     roles.push("threat");

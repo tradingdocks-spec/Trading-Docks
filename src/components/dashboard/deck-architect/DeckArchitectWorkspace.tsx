@@ -27,9 +27,11 @@ import {
   compareRequirementsToCollection,
   getFormatProfile,
   proposeDeckRecommendations,
+  rankCommanderStrategiesForCollection,
   type BuildOpportunity,
   type BuildIntentId,
   type CollectionGraphCard,
+  type CommanderStrategyProfile,
   type DeckArchitectFormatId,
   type DeckArchitectIntelligence,
   type DeckArchitectRole,
@@ -207,6 +209,18 @@ export function DeckArchitectWorkspace({
       .filter((card) => !query || card.name.toLowerCase().includes(query))
       .slice(0, 12);
   }, [commanderSearch, snapshot.commanderCandidates]);
+  const potentialStrategiesByCommander = useMemo(() => {
+    const map: Record<string, CommanderStrategyProfile[]> = {};
+    for (const commander of potentialCommanders) {
+      map[commander.inventoryId] = rankCommanderStrategiesForCollection(commander, snapshot.cards, intentId)
+        .map((fit) => ({
+          ...fit.strategy,
+          confidence: fit.fit === "strong" ? "high" : fit.fit === "good" ? "medium" : fit.strategy.confidence,
+          signals: [...fit.strategy.signals, ...fit.signals],
+        }));
+    }
+    return map;
+  }, [intentId, potentialCommanders, snapshot.cards]);
 
   async function searchPotentialCommanders(query: string) {
     if (query.trim().length < 2) {
@@ -366,7 +380,7 @@ export function DeckArchitectWorkspace({
                     setWorkflowId(workflowId ?? "build-deck");
                     setViewMode("deck");
                   }}
-                  strategiesByCommander={intelligence.commanderStrategies}
+                  strategiesByCommander={{ ...intelligence.commanderStrategies, ...potentialStrategiesByCommander }}
                 />
               ) : null}
             </aside>

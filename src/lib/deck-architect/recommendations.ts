@@ -6,6 +6,7 @@ import {
   getLocalArchetypes,
   inferCommanderStrategies,
   LOCAL_DECK_KNOWLEDGE_PROVIDER,
+  rankCommanderStrategiesForCollection,
   supportedRecommendationFormats,
 } from "./local-knowledge.ts";
 import { compareRequirementsToCollection, normalizeCardKey } from "./ownership.ts";
@@ -24,6 +25,7 @@ import type {
   OwnedSubstitution,
   OwnershipMatch,
   RecommendationConfidence,
+  DeckChangeProposal,
 } from "./types.ts";
 
 export function generateDeckArchitectIntelligence({
@@ -39,7 +41,12 @@ export function generateDeckArchitectIntelligence({
     .slice(0, 8);
   const commanderStrategies: Record<string, CommanderStrategyProfile[]> = {};
   for (const commander of collection.filter((card) => card.typeLine?.toLowerCase().includes("legendary") && card.typeLine?.toLowerCase().includes("creature"))) {
-    commanderStrategies[commander.inventoryId] = inferCommanderStrategies(commander);
+    commanderStrategies[commander.inventoryId] = rankCommanderStrategiesForCollection(commander, collection)
+      .map((fit) => ({
+        ...fit.strategy,
+        confidence: fit.fit === "strong" ? "high" : fit.fit === "good" ? "medium" : fit.strategy.confidence,
+        signals: [...fit.strategy.signals, ...fit.signals],
+      }));
   }
 
   return {
@@ -51,7 +58,7 @@ export function generateDeckArchitectIntelligence({
     recommendations: opportunities.flatMap((opportunity) => opportunityToRecommendations(opportunity)).slice(0, 4),
     limitations: [
       "Pauper archetype recommendations use Trading Docks-authored role profiles and collection comparison.",
-      "Commander strategy recommendations are deterministic rules based on owned commander metadata.",
+      "Commander strategy recommendations combine structured Trading Docks profiles, commander text signals, and owned collection fit.",
       "Deck Vault proposal persistence and apply/revert remain disabled until a validated proposal table is approved.",
       "Combo providers are prepared as provider boundaries but not activated in this checkpoint.",
     ],
@@ -95,8 +102,136 @@ export function assembleDeckRequirementsFromArchetype(
     });
     current += quantity;
   }
+  while (current < target) {
+    const fallback = fallbackLandForArchetype(archetype);
+    const remaining = target - current;
+    requirements.push({
+      id: `${archetype.id}:fallback:${normalizeCardKey(fallback)}:${current}`,
+      name: fallback,
+      requiredQuantity: remaining,
+      board: "main",
+      roles: ["land"],
+      estimatedPrice: 0.05,
+      importance: 0.75,
+      typeLine: `Basic Land - ${fallback}`,
+      colorIdentity: archetype.colors.slice(0, 1),
+      legalityStatus: "unknown",
+    });
+    current += remaining;
+  }
+
+  if (format.sideboardAllowed && archetype.sideboardPlan?.length) {
+    let sideboardCount = 0;
+    for (const seed of archetype.sideboardPlan) {
+      if (sideboardCount >= (format.maximumSideboardSize ?? 15)) break;
+      const quantity = Math.min(seed.quantity, maximumCopiesForCard(format, seed.name), (format.maximumSideboardSize ?? 15) - sideboardCount);
+      requirements.push({
+        id: `${archetype.id}:sideboard:${normalizeCardKey(seed.name)}`,
+        name: seed.name,
+        requiredQuantity: quantity,
+        board: "sideboard",
+        roles: seed.roles,
+        estimatedPrice: seed.estimatedPrice ?? null,
+        importance: seed.importance ?? 0.75,
+        typeLine: seed.typeLine,
+        oracleText: seed.oracleText,
+        colorIdentity: seed.colorIdentity,
+        legalityStatus: "unknown",
+      });
+      sideboardCount += quantity;
+    }
+  }
 
   return requirements;
+}
+
+export function constructValidatedArchetypeDeck({
+  archetype,
+  collection,
+  intentId,
+}: {
+  archetype: DeckArchetypeProfile;
+  collection: CollectionGraphCard[];
+  intentId: BuildIntentId;
+}) {
+  const format = getFormatProfile(archetype.formatId);
+  let requirements = assembleDeckRequirementsFromArchetype(archetype, format);
+  if (intentId === "no-purchases") {
+    const ownedNames = new Set(collection.filter((card) => card.quantityOwned > 0).map((card) => normalizeCardKey(card.name)));
+    requirements = requirements.filter((requirement) => ownedNames.has(normalizeCardKey(requirement.name)) || requirement.roles.includes("land"));
+  }
+  if (intentId === "budget") {
+    requirements = requirements.filter((requirement) => (requirement.estimatedPrice ?? 0) <= 25 || requirement.roles.includes("land"));
+  }
+  const validation = validateDeckRequirements(requirements, format);
+  const ownership = compareRequirementsToCollection(requirements, collection, format);
+  return {
+    requirements,
+    validation,
+    ownership,
+    buildability: validation.valid ? calculateBuildabilityScore(ownership) : null,
+    failure: validation.valid ? null : validation.issues[0]?.message ?? "A valid complete build could not be generated.",
+  };
+}
+
+export function constructValidatedCommanderDeck({
+  commander,
+  collection,
+  intentId,
+}: {
+  commander: CollectionGraphCard;
+  collection: CollectionGraphCard[];
+  intentId: BuildIntentId;
+}) {
+  const format = getFormatProfile("commander");
+  const strategyFit = rankCommanderStrategiesForCollection(commander, collection, intentId)[0] ?? null;
+  const pool = collection
+    .filter((card) => card.inventoryId !== commander.inventoryId)
+    .filter((card) => colorIdentityFits(card, commander))
+    .filter((card) => intentId !== "budget" || (card.marketPrice ?? 0) <= 25)
+    .sort((left, right) => {
+      const leftRoles = classifyCardRoles(left);
+      const rightRoles = classifyCardRoles(right);
+      const targetRoles = strategyFit?.strategy.roles ?? [];
+      const leftScore = scoreCardForIntent(left, intentId) + leftRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      const rightScore = scoreCardForIntent(right, intentId) + rightRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      return rightScore - leftScore || left.name.localeCompare(right.name);
+    });
+  const requirements: DeckRequirement[] = [toRequirement(commander, 1, "commander", true)];
+  const usedNames = new Set([normalizeCardKey(commander.name)]);
+  for (const card of pool) {
+    if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
+    const key = normalizeCardKey(card.name);
+    if (usedNames.has(key) && !format.singleton) continue;
+    if (format.singleton && usedNames.has(key)) continue;
+    requirements.push(toRequirement(card, 1, "main", false));
+    usedNames.add(key);
+  }
+  const basicLand = fallbackLandForColors(commander.colorIdentity ?? []);
+  const current = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
+  if (current < 100 && intentId !== "no-purchases") {
+    requirements.push({
+      id: `commander:${commander.inventoryId}:fallback-land`,
+      name: basicLand,
+      requiredQuantity: 100 - current,
+      board: "main",
+      roles: ["land"],
+      estimatedPrice: 0.05,
+      typeLine: `Basic Land - ${basicLand}`,
+      colorIdentity: commander.colorIdentity?.slice(0, 1) ?? [],
+      legalityStatus: "unknown",
+    });
+  }
+  const validation = validateDeckRequirements(requirements, format, { commander });
+  const ownership = compareRequirementsToCollection(requirements, collection, format);
+  return {
+    requirements,
+    validation,
+    ownership,
+    buildability: validation.valid ? calculateBuildabilityScore(ownership) : null,
+    strategyFit,
+    failure: validation.valid ? null : validation.issues[0]?.message ?? "A valid complete Commander deck could not be generated.",
+  };
 }
 
 export function buildWorkingDeckRequirementsFromCollection(
@@ -201,12 +336,14 @@ export function proposeDeckRecommendations({
 
   const matches = compareRequirementsToCollection(requirements, collection, format);
   const missing = matches.filter((match) => match.missingQuantity > 0);
-  return missing.slice(0, 3).map((match) => {
+  const cuts = findCutCandidates(requirements, lockedCardIds, mustIncludeCardIds);
+  return missing.slice(0, 3).map((match, index) => {
     const substitutions = recommendOwnedSubstitutions(match, collection, format, commander);
     const best = substitutions[0];
+    const pairedCut = cuts[index];
     return {
       id: `substitute:${normalizeCardKey(match.requirement.name)}`,
-      title: best ? `Use ${best.ownedCard.name} until ${match.requirement.name} is acquired` : `${match.requirement.name} is a real acquisition gap`,
+      title: best ? `Swap toward ${best.ownedCard.name}` : `${match.requirement.name} is a real acquisition gap`,
       body: best
         ? `${best.ownedCard.name} is already owned and shares ${primaryRole(match.requirement.roles)} responsibilities.`
         : "No owned substitution scored highly enough to recommend.",
@@ -228,9 +365,46 @@ export function proposeDeckRecommendations({
         ownedQuantity: 0,
         additionalCost: match.estimatedMissingValue,
       }],
-      cuts: [],
+      cuts: pairedCut ? [{
+        name: pairedCut.name,
+        quantity: 1,
+        reason: pairedCut.reason,
+      }] : [],
     };
   });
+}
+
+export function applyDeckChangeProposal(
+  requirements: DeckRequirement[],
+  proposal: DeckChangeProposal,
+  format: FormatProfile,
+  options: { commander?: CollectionGraphCard | null } = {},
+) {
+  const nextRequirements = requirements.map((requirement) => ({ ...requirement }));
+  for (const cut of proposal.removes) {
+    const target = nextRequirements.find((requirement) => normalizeCardKey(requirement.name) === normalizeCardKey(cut.name));
+    if (!target) continue;
+    target.requiredQuantity -= cut.quantity;
+  }
+  for (const add of proposal.adds) {
+    const existing = nextRequirements.find((requirement) => normalizeCardKey(requirement.name) === normalizeCardKey(add.name));
+    if (existing) existing.requiredQuantity += add.quantity;
+    else {
+      nextRequirements.push({
+        id: `proposal:${proposal.id}:${normalizeCardKey(add.name)}`,
+        name: add.name,
+        requiredQuantity: add.quantity,
+        board: "main",
+        roles: ["synergy"],
+        estimatedPrice: add.additionalCost,
+        legalityStatus: "unknown",
+      });
+    }
+  }
+  const cleaned = nextRequirements.filter((requirement) => requirement.requiredQuantity > 0);
+  const validation = validateDeckRequirements(cleaned, format, options);
+  if (!validation.valid) return { applied: false as const, requirements, validation };
+  return { applied: true as const, requirements: cleaned, validation };
 }
 
 function archetypeOpportunity(
@@ -275,18 +449,19 @@ function commanderOpportunities(collection: CollectionGraphCard[]): BuildOpportu
   const commanders = collection.filter((card) => card.typeLine?.toLowerCase().includes("legendary") && card.typeLine?.toLowerCase().includes("creature"));
   const format = getFormatProfile("commander");
   return commanders.slice(0, 6).map((commander) => {
-    const requirements = buildWorkingDeckRequirementsFromCollection(collection, "commander", commander, "use-collection");
+    const constructed = constructValidatedCommanderDeck({ commander, collection, intentId: "use-collection" });
+    const requirements = constructed.requirements;
     const validation = validateDeckRequirements(requirements, format, { commander });
     const matches = compareRequirementsToCollection(requirements, collection, format);
     const buildability = calculateBuildabilityScore(matches);
-    const strategies = inferCommanderStrategies(commander);
+    const strategies = rankCommanderStrategiesForCollection(commander, collection);
     return {
       id: `commander:${commander.inventoryId}`,
-      name: `${commander.name} Commander Shell`,
+      name: `${commander.name} ${strategies[0]?.strategy.label ?? "Commander"} Shell`,
       formatId: "commander",
       category: validation.valid && buildability.missingCards === 0 ? "ready-now" : "worth-considering",
       buildability,
-      confidence: strategies[0]?.confidence ?? "medium",
+      confidence: strategies[0]?.fit === "strong" ? "high" : strategies[0]?.fit === "good" ? "medium" : "low",
       signals: [
         ...(strategies[0]?.signals ?? []),
         {
@@ -296,7 +471,7 @@ function commanderOpportunities(collection: CollectionGraphCard[]): BuildOpportu
         },
       ],
       source: "collection-calculation",
-      disclosure: "Commander shell assembled from owned cards, then checked for singleton and color identity rules.",
+      disclosure: `Commander shell assembled from owned cards, ranked against ${strategies[0]?.strategy.label ?? "balanced"} strategy fit, then checked for singleton and color identity rules.`,
     };
   });
 }
@@ -408,4 +583,39 @@ function estimateManaValue(manaCost: string) {
   const generic = manaCost.match(/\{(\d+)\}/g)?.reduce((sum, token) => sum + Number(token.replace(/[{}]/g, "")), 0) ?? 0;
   const pips = manaCost.match(/\{[WUBRGC]\}/g)?.length ?? 0;
   return generic + pips;
+}
+
+function findCutCandidates(
+  requirements: DeckRequirement[],
+  lockedCardIds: Set<string>,
+  mustIncludeCardIds: Set<string>,
+) {
+  return requirements
+    .filter((requirement) =>
+      requirement.board === "main" &&
+      !requirement.roles.includes("land") &&
+      !lockedCardIds.has(requirement.id) &&
+      !mustIncludeCardIds.has(requirement.id),
+    )
+    .map((requirement) => ({
+      ...requirement,
+      reason: requirement.importance && requirement.importance < 1
+        ? "Lower-importance flexible slot."
+        : `Flexible ${primaryRole(requirement.roles)} slot to review before adding a missing card.`,
+    }))
+    .sort((left, right) => (left.importance ?? 1) - (right.importance ?? 1) || left.name.localeCompare(right.name))
+    .slice(0, 6);
+}
+
+function fallbackLandForArchetype(archetype: DeckArchetypeProfile) {
+  return fallbackLandForColors(archetype.colors);
+}
+
+function fallbackLandForColors(colors: string[]) {
+  const color = colors[0];
+  if (color === "W") return "Plains";
+  if (color === "U") return "Island";
+  if (color === "B") return "Swamp";
+  if (color === "R") return "Mountain";
+  return "Forest";
 }
