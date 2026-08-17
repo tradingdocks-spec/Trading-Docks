@@ -6,7 +6,10 @@ import {
   type CollectionGraphCard,
   type DeckArchitectIntelligence,
   type DeckArchitectSavedDeckSummary,
+  type DeckRequirement,
 } from "./index.ts";
+import { deckRecordToArchitectRequirements, deckFormatToArchitectFormat } from "../deck-suite/domain.ts";
+import type { DeckRecord } from "../deck-vault/types.ts";
 
 export type DeckArchitectCollectionSnapshot = {
   cards: CollectionGraphCard[];
@@ -22,6 +25,16 @@ export type DeckArchitectServerState = {
   snapshot: DeckArchitectCollectionSnapshot;
   intelligence: DeckArchitectIntelligence;
   savedDecks: DeckArchitectSavedDeckSummary[];
+  activeDeck: DeckArchitectActiveDeck | null;
+};
+
+export type DeckArchitectActiveDeck = {
+  id: string;
+  name: string;
+  formatId: ReturnType<typeof deckFormatToArchitectFormat>;
+  commander: string | null;
+  requirements: DeckRequirement[];
+  metadata: DeckRecord["architectMetadata"] | null;
 };
 
 const COLLECTION_SAMPLE_LIMIT = 750;
@@ -115,12 +128,41 @@ export async function loadDeckArchitectServerState(
     from: (table: string) => any;
   },
   user: Pick<User, "id">,
+  options: { deckId?: string | null } = {},
 ): Promise<DeckArchitectServerState> {
   const snapshot = await loadDeckArchitectCollectionSnapshot(supabase, user);
   return {
     snapshot,
     intelligence: generateDeckArchitectIntelligence({ collection: snapshot.cards }),
     savedDecks: await loadDeckArchitectSavedDecks(supabase, user),
+    activeDeck: options.deckId ? await loadDeckArchitectActiveDeck(supabase, user, options.deckId) : null,
+  };
+}
+
+export async function loadDeckArchitectActiveDeck(
+  supabase: {
+    from: (table: string) => any;
+  },
+  user: Pick<User, "id">,
+  deckId: string,
+): Promise<DeckArchitectActiveDeck | null> {
+  const { data, error } = await supabase
+    .from("deck_vault_decks")
+    .select("deck_key,deck_data")
+    .eq("user_id", user.id)
+    .eq("deck_key", deckId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const deckData = data.deck_data as DeckRecord | null;
+  if (!deckData || typeof deckData !== "object" || !Array.isArray(deckData.cards)) return null;
+  return {
+    id: deckData.id ?? deckId,
+    name: deckData.name ?? "Saved deck",
+    formatId: deckFormatToArchitectFormat(deckData.format),
+    commander: deckData.commander ?? null,
+    requirements: deckRecordToArchitectRequirements(deckData),
+    metadata: deckData.architectMetadata ?? null,
   };
 }
 

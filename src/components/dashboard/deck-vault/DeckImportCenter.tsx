@@ -25,21 +25,17 @@ import {
 import type { DeckCard, DeckFormat, DeckRecord, ManaColor, ScryfallCardResult } from "@/lib/deck-vault/types";
 import { loadDeckVault, saveDeckRecord } from "@/lib/deck-vault/persistence";
 import { DECK_FORMATS, normalizeDeckFormat } from "@/lib/deck-vault/formats";
+import {
+  detectDeckListSource,
+  parseDeckListText,
+  type DeckSuiteParsedEntry,
+} from "@/lib/deck-suite/domain";
 
 type ImportMode = "paste" | "url" | "file";
-type Board = "commander" | "main" | "sideboard" | "maybeboard";
-
-type ParsedEntry = {
-  quantity: number;
-  name: string;
-  setCode?: string;
-  collectorNumber?: string;
-  board: Board;
-};
 
 type ResolvedPayload = {
   cards: DeckCard[];
-  unresolved: ParsedEntry[];
+  unresolved: DeckSuiteParsedEntry[];
   colors: ManaColor[];
   marketValue: number;
 };
@@ -73,7 +69,7 @@ export function DeckImportCenter({
   const [commanderSearching, setCommanderSearching] = useState(false);
   const isCommanderFormat = format === "EDH" || format === "Pauper EDH";
 
-  const parsed = useMemo(() => parseDeckList(value), [value]);
+  const parsed = useMemo(() => parseDeckListText(value), [value]);
   const totalQuantity = parsed.reduce((sum, card) => sum + card.quantity, 0);
   const commanderCount =
     (selectedCommander ? 1 : 0) +
@@ -138,7 +134,7 @@ export function DeckImportCenter({
       setValue(text);
       setFileName(file.name);
       setDeckName(file.name.replace(/\.[^.]+$/, "") || "Imported Deck");
-      setSource(detectSource(text, file.name));
+      setSource(detectDeckListSource(text, file.name));
       setMode("paste");
       setNotice(`${file.name} was loaded successfully. Review the recognized cards below.`);
     } catch {
@@ -175,7 +171,7 @@ export function DeckImportCenter({
     if (!isCommanderFormat) {
       return parsed.map((entry) =>
         entry.board === "commander"
-          ? { ...entry, board: "main" as Board }
+          ? { ...entry, board: "main" as const }
           : entry,
       );
     }
@@ -209,14 +205,14 @@ export function DeckImportCenter({
         return {
           ...entry,
           quantity: 1,
-          board: "commander" as Board,
+          board: "commander" as const,
         };
       }
 
       if (entry.board === "commander") {
         return {
           ...entry,
-          board: "main" as Board,
+          board: "main" as const,
         };
       }
 
@@ -627,7 +623,7 @@ export function DeckImportCenter({
                       value={value}
                       onChange={(event) => {
                         setValue(event.target.value);
-                        setSource(detectSource(event.target.value));
+                    setSource(detectDeckListSource(event.target.value));
                       }}
                       placeholder={"Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n1 Arcane Signet\n4 Island\n4 Forest"}
                       className="mt-2 min-h-[430px] w-full resize-y rounded-2xl border border-white/[0.075] bg-black/[0.14] p-5 font-mono text-[14px] leading-7 text-slate-200 outline-none placeholder:text-slate-700 focus:border-cyan-300/[0.22]"
@@ -722,50 +718,6 @@ export function DeckImportCenter({
       </div>
     </main>
   );
-}
-
-function parseDeckList(value: string): ParsedEntry[] {
-  const lines = value.replace(/^\uFEFF/, "").split(/\r?\n/);
-  let board: Board = "main";
-  const entries: ParsedEntry[] = [];
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line || /^\/\//.test(line) || /^#/.test(line)) continue;
-
-    const heading = line.replace(/:$/, "").toLowerCase();
-    if (["commander", "commanders"].includes(heading)) { board = "commander"; continue; }
-    if (["deck", "mainboard", "main deck", "maindeck"].includes(heading)) { board = "main"; continue; }
-    if (["sideboard", "side board"].includes(heading)) { board = "sideboard"; continue; }
-    if (["maybeboard", "considering", "maybe board"].includes(heading)) { board = "maybeboard"; continue; }
-    if (/^quantity\s*,\s*name/i.test(line)) continue;
-
-    const csv = parseCsvLine(line);
-    if (csv) { entries.push({ ...csv, board }); continue; }
-
-    const match = line.match(/^(\d+)\s*x?\s+(.+?)(?:\s+\(([A-Z0-9]{2,8})\)\s*([A-Za-z0-9-]+)?)?(?:\s+\*[A-Z]+\*)?$/i);
-    if (!match) continue;
-
-    let name = match[2].trim().replace(/\s+\[[^\]]+\]$/, "").replace(/\s+\*F\*$/i, "").trim();
-    entries.push({ quantity: Number(match[1]), name, setCode: match[3]?.toLowerCase(), collectorNumber: match[4], board });
-  }
-
-  return entries;
-}
-
-function parseCsvLine(line: string): Omit<ParsedEntry, "board"> | null {
-  const fields = line.match(/("(?:[^"]|"")*"|[^,]+)/g)?.map((field) => field.trim().replace(/^"|"$/g, "").replace(/""/g, '"'));
-  if (!fields || fields.length < 2 || !/^\d+$/.test(fields[0])) return null;
-  return { quantity: Number(fields[0]), name: fields[1], setCode: fields[2]?.toLowerCase(), collectorNumber: fields[3] };
-}
-
-function detectSource(value: string, fileName = "") {
-  if (/moxfield/i.test(fileName)) return "Moxfield";
-  if (/manabox/i.test(fileName)) return "ManaBox";
-  if (/\.csv$/i.test(fileName) || /^quantity\s*,\s*name/im.test(value)) return "CSV";
-  if (/\([A-Z0-9]{2,8}\)\s+[A-Za-z0-9-]+/i.test(value)) return "ManaBox / Moxfield";
-  if (/SIDEBOARD|MAYBEBOARD|COMMANDER/i.test(value)) return "Sectioned decklist";
-  return value.trim() ? "Plain text" : "Unknown";
 }
 
 function normalizeFormat(value?: string): DeckFormat {

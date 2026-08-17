@@ -4,7 +4,12 @@ import { DeckArchitectWorkspace } from "@/components/dashboard/deck-architect/De
 import { loadDeckArchitectServerState } from "@/lib/deck-architect/server";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function DeckArchitectPage() {
+export default async function DeckArchitectPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ deckId?: string }>;
+}) {
+  const params = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -12,7 +17,11 @@ export default async function DeckArchitectPage() {
 
   if (!user) redirect("/sign-in?next=/dashboard/deck-architect");
 
-  const { snapshot, intelligence, savedDecks } = await loadDeckArchitectServerState(supabase, user);
+  const { snapshot, intelligence, savedDecks, activeDeck } = await loadDeckArchitectServerState(
+    supabase,
+    user,
+    { deckId: params?.deckId },
+  );
 
-  return <DeckArchitectWorkspace snapshot={snapshot} intelligence={intelligence} savedDecks={savedDecks} />;
+  return <DeckArchitectWorkspace snapshot={snapshot} intelligence={intelligence} savedDecks={savedDecks} activeDeck={activeDeck} />;
 }

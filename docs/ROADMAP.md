@@ -236,7 +236,7 @@ Recommended next checkpoint:
 
 ## Deck Architect
 
-Status: Deterministic Recommendation Foundation Implemented.
+Status: Deck Suite Integration Implemented.
 
 Implemented this checkpoint:
 
@@ -246,6 +246,9 @@ Implemented this checkpoint:
 4. Kept proposal review, must-include, locked-card, and AI concepts as explicit foundations without claiming autonomous deckbuilding.
 5. Polished the active product surface into a progressive customer workflow with card imagery, Commander selection, deck/card/intelligence modes, card-detail drawer, ownership states, and honest unavailable states for save/apply persistence.
 6. Added a deterministic Deck Intelligence provider with Trading Docks-authored Pauper archetype profiles, Commander strategy inference, legality validation, ranked "What Can I Build?" opportunities, confidence signals, and owned-card substitutions.
+7. Added a shared deck-suite adapter layer so Deck Vault `DeckRecord` remains the canonical persisted deck representation for Architect, Builder, import, export, and analysis handoffs.
+8. Added Architect -> Builder and Builder -> Architect handoffs using saved Deck Vault records or compact deck ids instead of URL-serialized decklists.
+9. Added owned/potential commander discovery, shared import parsing, and shared deck export adapters for plain text, CSV, MTGO-style, and Arena-compatible output where supported.
 
 Recommended next checkpoint:
 

@@ -66,6 +66,10 @@ import {
   deleteDeckRecord,
   saveDeckRecord,
 } from "@/lib/deck-vault/persistence";
+import {
+  exportDeckCsv,
+  exportDeckPlainText,
+} from "@/lib/deck-suite/domain";
 import { isCommanderDeckFormat } from "@/lib/deck-vault/formats";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 import { DeckPlaytest } from "@/components/deck-vault/DeckPlaytest";
@@ -321,6 +325,7 @@ export function DeckDetailWorkspace({
   const [deckActionBusy, setDeckActionBusy] = useState(false);
   const [externalDropBusy, setExternalDropBusy] = useState(false);
   const [externalDropError, setExternalDropError] = useState("");
+  const [suiteActionStatus, setSuiteActionStatus] = useState("");
 
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [saveError, setSaveError] = useState("");
@@ -990,6 +995,37 @@ export function DeckDetailWorkspace({
     router.push("/dashboard/deck-vault");
   }
 
+  async function analyzeWithDeckArchitect() {
+    setSuiteActionStatus("Saving before analysis...");
+    try {
+      await saveDeckRecord(lastDeckRef.current);
+      router.push(`/dashboard/deck-architect?deckId=${encodeURIComponent(deck.id)}`);
+    } catch {
+      setSuiteActionStatus("Save failed. Retry save before analyzing this deck.");
+    }
+  }
+
+  async function copyDeckText() {
+    const text = exportDeckPlainText(lastDeckRef.current);
+    try {
+      await navigator.clipboard.writeText(text);
+      setSuiteActionStatus("Decklist copied.");
+    } catch {
+      setSuiteActionStatus("Clipboard unavailable. Use CSV export instead.");
+    }
+  }
+
+  function downloadDeckCsv() {
+    const blob = new Blob([exportDeckCsv(lastDeckRef.current)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${deckName.trim() || "deck"}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setSuiteActionStatus("CSV export downloaded.");
+  }
+
   const commanderCard = useMemo(
     () =>
       cards.find(
@@ -1148,15 +1184,44 @@ export function DeckDetailWorkspace({
         </nav>
 
         <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setDeckActionsOpen(true)}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-300/[0.14] bg-rose-400/[0.045] px-4 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/[0.08]"
-          >
-            <Trash2 className="h-4 w-4" />
-            Tear apart or archive deck
-          </button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => void analyzeWithDeckArchitect()}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-semibold text-[#00121c] transition hover:bg-cyan-200"
+            >
+              <BrainCircuit className="h-4 w-4" />
+              Analyze with Deck Architect
+            </button>
+            <button
+              type="button"
+              onClick={() => void copyDeckText()}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 text-xs font-semibold text-slate-200 transition hover:bg-white/[0.05]"
+            >
+              <Copy className="h-4 w-4" />
+              Copy list
+            </button>
+            <button
+              type="button"
+              onClick={downloadDeckCsv}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 text-xs font-semibold text-slate-200 transition hover:bg-white/[0.05]"
+            >
+              <Download className="h-4 w-4" />
+              CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeckActionsOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-300/[0.14] bg-rose-400/[0.045] px-4 text-xs font-semibold text-rose-200 transition hover:bg-rose-400/[0.08]"
+            >
+              <Trash2 className="h-4 w-4" />
+              Tear apart or archive deck
+            </button>
+          </div>
         </div>
+        {suiteActionStatus ? (
+          <p className="mt-2 text-right text-xs text-slate-500" role="status">{suiteActionStatus}</p>
+        ) : null}
 
         {tab === "Cards" ? (
           <CardsWorkspace

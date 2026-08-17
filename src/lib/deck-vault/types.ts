@@ -144,6 +144,19 @@ export type DeckRecord = {
   updatedAt: string;
   status: "Complete" | "Building" | "Wishlist";
   cards: DeckCard[];
+  architectMetadata?: DeckSuiteMetadata;
+};
+
+export type DeckSuiteMetadata = {
+  source: "deck-architect" | "deck-builder" | "import" | "deck-vault";
+  sourceDeckId?: string;
+  buildIntentId?: string;
+  strategyId?: string;
+  lockedCardIds?: string[];
+  mustIncludeCardIds?: string[];
+  missingCardNames?: string[];
+  recommendationIds?: string[];
+  generatedAt: string;
 };
 
 export type ScryfallCardResult = {

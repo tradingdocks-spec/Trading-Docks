@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BookOpen,
@@ -37,7 +38,12 @@ import {
   type DeckRequirement,
   type OwnershipMatch,
 } from "@/lib/deck-architect";
-import type { DeckArchitectCollectionSnapshot } from "@/lib/deck-architect/server";
+import type { DeckArchitectActiveDeck, DeckArchitectCollectionSnapshot } from "@/lib/deck-architect/server";
+import { saveDeckRecord } from "@/lib/deck-vault/persistence";
+import {
+  createDeckRecordFromArchitectPlan,
+  scryfallResultToPotentialCommander,
+} from "@/lib/deck-suite/domain";
 
 type WorkflowId = "build-deck" | "collection" | "improve" | "discover";
 type ViewMode = "deck" | "cards" | "intelligence";
@@ -117,32 +123,50 @@ const ROLE_ORDER: DeckArchitectRole[] = [
 ];
 
 export function DeckArchitectWorkspace({
+  activeDeck,
   intelligence,
   savedDecks,
   snapshot,
 }: {
+  activeDeck: DeckArchitectActiveDeck | null;
   intelligence: DeckArchitectIntelligence;
   savedDecks: DeckArchitectSavedDeckSummary[];
   snapshot: DeckArchitectCollectionSnapshot;
 }) {
-  const [workflowId, setWorkflowId] = useState<WorkflowId | null>(null);
-  const [formatId, setFormatId] = useState<DeckArchitectFormatId>("commander");
-  const [intentId, setIntentId] = useState<BuildIntentId>("use-collection");
+  const router = useRouter();
+  const [workflowId, setWorkflowId] = useState<WorkflowId | null>(activeDeck ? "improve" : null);
+  const [formatId, setFormatId] = useState<DeckArchitectFormatId>(activeDeck?.formatId ?? "commander");
+  const [intentId, setIntentId] = useState<BuildIntentId>((activeDeck?.metadata?.buildIntentId as BuildIntentId | undefined) ?? "use-collection");
   const [commanderSearch, setCommanderSearch] = useState("");
   const [selectedCommanderId, setSelectedCommanderId] = useState<string | null>(null);
+  const [potentialCommanders, setPotentialCommanders] = useState<CollectionGraphCard[]>([]);
+  const [potentialCommander, setPotentialCommander] = useState<CollectionGraphCard | null>(null);
+  const [potentialCommanderLoading, setPotentialCommanderLoading] = useState(false);
+  const [potentialCommanderError, setPotentialCommanderError] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("deck");
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const [lockedCards, setLockedCards] = useState<Set<string>>(() => new Set());
-  const [mustIncludeCards, setMustIncludeCards] = useState<Set<string>>(() => new Set());
+  const [lockedCards, setLockedCards] = useState<Set<string>>(() => new Set(activeDeck?.metadata?.lockedCardIds ?? []));
+  const [mustIncludeCards, setMustIncludeCards] = useState<Set<string>>(() => new Set(activeDeck?.metadata?.mustIncludeCardIds ?? []));
+  const [builderStatus, setBuilderStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [builderError, setBuilderError] = useState("");
 
   const format = getFormatProfile(formatId);
   const intent = BUILD_INTENTS[intentId];
-  const selectedCommander = snapshot.commanderCandidates.find((card) => card.inventoryId === selectedCommanderId) ?? null;
-  const canBuildWorkingDeck = snapshot.cards.length > 0 && (!format.commanderRequired || Boolean(selectedCommander));
+  const ownedCommander = snapshot.commanderCandidates.find((card) => card.inventoryId === selectedCommanderId) ?? null;
+  const selectedCommander = potentialCommander && selectedCommanderId === potentialCommander.inventoryId
+    ? potentialCommander
+    : ownedCommander;
+  const importedDeckRequirements = activeDeck?.requirements ?? [];
+  const canBuildWorkingDeck = activeDeck
+    ? importedDeckRequirements.length > 0
+    : snapshot.cards.length > 0 && (!format.commanderRequired || Boolean(selectedCommander));
 
   const deckRequirements = useMemo(
-    () => canBuildWorkingDeck ? buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId) : [],
-    [canBuildWorkingDeck, formatId, intentId, selectedCommander, snapshot.cards],
+    () => {
+      if (activeDeck) return importedDeckRequirements;
+      return canBuildWorkingDeck ? buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId) : [];
+    },
+    [activeDeck, canBuildWorkingDeck, formatId, importedDeckRequirements, intentId, selectedCommander, snapshot.cards],
   );
   const targetDeckSize = format.exactDeckSize ?? format.minimumMainDeckSize ?? 60;
   const hasCompleteWorkingDeck = deckRequirements.reduce((sum, card) => sum + card.requiredQuantity, 0) >= targetDeckSize;
@@ -183,6 +207,53 @@ export function DeckArchitectWorkspace({
       .filter((card) => !query || card.name.toLowerCase().includes(query))
       .slice(0, 12);
   }, [commanderSearch, snapshot.commanderCandidates]);
+
+  async function searchPotentialCommanders(query: string) {
+    if (query.trim().length < 2) {
+      setPotentialCommanders([]);
+      setPotentialCommanderError("");
+      return;
+    }
+    setPotentialCommanderLoading(true);
+    setPotentialCommanderError("");
+    try {
+      const params = new URLSearchParams({ q: `${query.trim()} is:commander` });
+      const response = await fetch(`/api/deck-vault/card-search?${params.toString()}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Commander search failed.");
+      setPotentialCommanders((payload.results ?? []).map(scryfallResultToPotentialCommander).slice(0, 12));
+    } catch (error) {
+      setPotentialCommanderError(error instanceof Error ? error.message : "Commander search failed.");
+    } finally {
+      setPotentialCommanderLoading(false);
+    }
+  }
+
+  async function openInDeckBuilder() {
+    if (!deckRequirements.length) return;
+    setBuilderStatus("saving");
+    setBuilderError("");
+    try {
+      const deckId = activeDeck?.id ?? crypto.randomUUID();
+      const deck = createDeckRecordFromArchitectPlan({
+        id: deckId,
+        name: activeDeck?.name ?? `${selectedCommander?.name ?? getFormatProfile(formatId).name} Build`,
+        formatId,
+        requirements: deckRequirements,
+        ownership,
+        commander: selectedCommander,
+        buildIntentId: intentId,
+        lockedCardIds: Array.from(lockedCards),
+        mustIncludeCardIds: Array.from(mustIncludeCards),
+        sourceDeckId: activeDeck?.id,
+      });
+      await saveDeckRecord(deck);
+      router.push(`/dashboard/deck-vault/decks/${encodeURIComponent(deck.id)}?from=architect`);
+    } catch (error) {
+      setBuilderStatus("error");
+      setBuilderError(error instanceof Error ? error.message : "Deck could not be saved to Deck Vault.");
+    }
+  }
 
   function toggleSet(setter: (value: Set<string>) => void, source: Set<string>, id: string) {
     const next = new Set(source);
@@ -267,6 +338,7 @@ export function DeckArchitectWorkspace({
                 setFormatId={(value) => {
                   setFormatId(value);
                   setSelectedCommanderId(null);
+                  setPotentialCommander(null);
                   setSelectedCardId(null);
                 }}
                 intentId={intentId}
@@ -278,11 +350,22 @@ export function DeckArchitectWorkspace({
                   selectedCommanderId={selectedCommanderId}
                   setSelectedCommanderId={(id) => {
                     setSelectedCommanderId(id);
+                    setPotentialCommander(null);
                     setWorkflowId(workflowId ?? "build-deck");
                     setViewMode("deck");
                   }}
                   search={commanderSearch}
                   setSearch={setCommanderSearch}
+                  potentialCommanders={potentialCommanders}
+                  potentialCommanderError={potentialCommanderError}
+                  potentialCommanderLoading={potentialCommanderLoading}
+                  onSearchPotentialCommanders={searchPotentialCommanders}
+                  onSelectPotentialCommander={(card) => {
+                    setPotentialCommander(card);
+                    setSelectedCommanderId(card.inventoryId);
+                    setWorkflowId(workflowId ?? "build-deck");
+                    setViewMode("deck");
+                  }}
                   strategiesByCommander={intelligence.commanderStrategies}
                 />
               ) : null}
@@ -320,7 +403,11 @@ export function DeckArchitectWorkspace({
                   lockedCards={lockedCards}
                   missing={missing}
                   mustIncludeCards={mustIncludeCards}
+                  onOpenInBuilder={openInDeckBuilder}
+                  builderError={builderError}
+                  builderStatus={builderStatus}
                   ownership={ownership}
+                  activeDeckName={activeDeck?.name ?? null}
                   selectedCard={selectedCard}
                   selectedCommander={selectedCommander}
                   recommendations={activeRecommendations}
@@ -601,6 +688,11 @@ function SetupPanel({
 
 function CommanderPicker({
   commanders,
+  onSearchPotentialCommanders,
+  onSelectPotentialCommander,
+  potentialCommanderError,
+  potentialCommanderLoading,
+  potentialCommanders,
   selectedCommanderId,
   setSelectedCommanderId,
   search,
@@ -608,33 +700,79 @@ function CommanderPicker({
   strategiesByCommander,
 }: {
   commanders: CollectionGraphCard[];
+  onSearchPotentialCommanders: (query: string) => Promise<void>;
+  onSelectPotentialCommander: (card: CollectionGraphCard) => void;
+  potentialCommanderError: string;
+  potentialCommanderLoading: boolean;
+  potentialCommanders: CollectionGraphCard[];
   selectedCommanderId: string | null;
   setSelectedCommanderId: (id: string) => void;
   search: string;
   setSearch: (value: string) => void;
   strategiesByCommander: DeckArchitectIntelligence["commanderStrategies"];
 }) {
+  const [mode, setMode] = useState<"owned" | "potential">("owned");
+  const visibleCommanders = mode === "owned" ? commanders : potentialCommanders;
   return (
     <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <p className="text-sm font-semibold text-white">Choose commander</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-white">Choose commander</p>
+        <div className="flex rounded-full bg-black/25 p-1">
+          {(["owned", "potential"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => {
+                setMode(item);
+                if (item === "potential") void onSearchPotentialCommanders(search);
+              }}
+              className={[
+                "rounded-full px-3 py-1 text-[11px] font-semibold capitalize transition",
+                mode === item ? "bg-cyan-300 text-[#02131b]" : "text-slate-500 hover:text-slate-200",
+              ].join(" ")}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
       <label className="mt-3 flex h-10 items-center gap-2 rounded-[12px] bg-black/25 px-3">
         <Search className="h-4 w-4 text-slate-500" />
         <input
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search owned commanders"
+          onChange={(event) => {
+            setSearch(event.target.value);
+            if (mode === "potential") void onSearchPotentialCommanders(event.target.value);
+          }}
+          placeholder={mode === "owned" ? "Search owned commanders" : "Search supported catalog"}
           className="min-w-0 flex-1 bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-600"
         />
       </label>
+      {mode === "potential" ? (
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          Potential commanders are not treated as owned and will appear in the missing-card summary.
+        </p>
+      ) : null}
+      {potentialCommanderError && mode === "potential" ? (
+        <p className="mt-2 rounded-[10px] bg-rose-400/10 px-3 py-2 text-xs text-rose-100" role="alert">
+          {potentialCommanderError}
+        </p>
+      ) : null}
       <div className="mt-3 space-y-2">
-        {commanders.length ? commanders.map((card) => {
+        {potentialCommanderLoading && mode === "potential" ? (
+          <div className="rounded-[14px] bg-black/20 p-4 text-sm text-slate-400">Searching supported catalog...</div>
+        ) : null}
+        {visibleCommanders.length ? visibleCommanders.map((card) => {
           const selected = card.inventoryId === selectedCommanderId;
           const strategy = strategiesByCommander[card.inventoryId]?.[0];
           return (
             <button
               key={card.inventoryId}
               type="button"
-              onClick={() => setSelectedCommanderId(card.inventoryId)}
+              onClick={() => {
+                if (mode === "potential") onSelectPotentialCommander(card);
+                else setSelectedCommanderId(card.inventoryId);
+              }}
               className={[
                 "flex w-full items-center gap-3 rounded-[14px] p-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
                 selected ? "bg-cyan-300/10" : "bg-black/20 hover:bg-white/[0.045]",
@@ -644,7 +782,7 @@ function CommanderPicker({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-white">{card.name}</span>
                 <span className="mt-1 block text-xs text-slate-500">
-                  Owned {card.quantityOwned}{card.setCode ? ` / ${card.setCode.toUpperCase()}` : ""}
+                  {card.quantityOwned > 0 ? `Owned ${card.quantityOwned}` : "Commander not owned"}{card.setCode ? ` / ${card.setCode.toUpperCase()}` : ""}
                 </span>
                 {strategy ? (
                   <span className="mt-1 block truncate text-xs text-cyan-200/80">
@@ -655,19 +793,23 @@ function CommanderPicker({
               {selected ? <Check className="h-4 w-4 text-cyan-200" /> : <ChevronRight className="h-4 w-4 text-slate-600" />}
             </button>
           );
-        }) : (
+        }) : !potentialCommanderLoading ? (
           <div className="rounded-[14px] bg-black/20 p-4">
-            <p className="text-sm font-semibold text-slate-100">No commanders found yet</p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Deck Architect could not find an eligible commander in your current collection.
+            <p className="text-sm font-semibold text-slate-100">
+              {mode === "owned" ? "No commanders found yet" : "Search for a commander"}
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              {mode === "owned"
+                ? "Deck Architect could not find an eligible commander in your current collection."
+                : "Build around a commander from the supported catalog even if it is not in your collection yet."}
+            </p>
+            {mode === "owned" ? <div className="mt-4 flex flex-wrap gap-2">
               <Link href="/dashboard/inventory" className="rounded-[10px] bg-cyan-300 px-3 py-2 text-xs font-semibold text-[#02131b]">
                 Add cards
               </Link>
-            </div>
+            </div> : null}
           </div>
-        )}
+        ) : null}
       </div>
     </section>
   );
@@ -733,7 +875,11 @@ function ActiveDeckWorkspace({
   lockedCards,
   missing,
   mustIncludeCards,
+  onOpenInBuilder,
+  builderError,
+  builderStatus,
   ownership,
+  activeDeckName,
   recommendations,
   selectedCard,
   selectedCommander,
@@ -754,7 +900,11 @@ function ActiveDeckWorkspace({
   lockedCards: Set<string>;
   missing: OwnershipMatch[];
   mustIncludeCards: Set<string>;
+  onOpenInBuilder: () => Promise<void>;
+  builderError: string;
+  builderStatus: "idle" | "saving" | "error";
   ownership: OwnershipMatch[];
+  activeDeckName: string | null;
   recommendations: DeckRecommendation[];
   selectedCard: OwnershipMatch | null;
   selectedCommander: CollectionGraphCard | null;
@@ -765,7 +915,7 @@ function ActiveDeckWorkspace({
   viewMode: ViewMode;
   setViewMode: (value: ViewMode) => void;
 }) {
-  const deckName = selectedCommander ? `${selectedCommander.name} Build` : `${formatName} Collection Build`;
+  const deckName = activeDeckName ?? (selectedCommander ? `${selectedCommander.name} Build` : `${formatName} Collection Build`);
   const owned = buildability?.ownedCards ?? 0;
   const required = buildability?.requiredCards ?? 0;
   const missingCount = buildability?.missingCards ?? 0;
@@ -806,10 +956,21 @@ function ActiveDeckWorkspace({
               {mode}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-500">
-            Save to Deck Vault after proposal persistence is enabled.
-          </span>
+          <button
+            type="button"
+            onClick={() => void onOpenInBuilder()}
+            disabled={!ownership.length || builderStatus === "saving"}
+            className="ml-auto inline-flex h-9 items-center gap-2 rounded-full bg-cyan-300 px-4 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {builderStatus === "saving" ? "Saving..." : "Open in Deck Builder"}
+            <ArrowRight className="h-4 w-4" />
+          </button>
         </div>
+        {builderStatus === "error" ? (
+          <p className="mt-3 rounded-[12px] bg-rose-400/10 px-3 py-2 text-sm text-rose-100" role="alert">
+            {builderError}
+          </p>
+        ) : null}
       </div>
 
       {viewMode === "deck" ? (
