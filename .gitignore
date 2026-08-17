@@ -13,3 +13,4 @@ mobile/benchmark-output/
 .env*
 *.log
 .DS_Store
+.vercel
