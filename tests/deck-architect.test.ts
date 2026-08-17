@@ -36,6 +36,10 @@ import {
   validateDeckRequirements,
   analyzeDeckHealth,
   resolveDeckCardImageUri,
+  classifyStrategyTags,
+  evaluateCandidate,
+  selectArchetypeProfile,
+  TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER,
   type CollectionGraphCard,
   type DeckRequirement,
 } from "../src/lib/deck-architect/index.ts";
@@ -691,7 +695,7 @@ test("Best Possible can build around an unowned potential commander without requ
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
 
-test("Krenko Best Possible returns a draft shell instead of completing with low-confidence filler", () => {
+test("Krenko Best Possible completes as an archetype-dense Goblin deck without low-confidence filler", () => {
   const commander = {
     ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
     typeLine: "Legendary Creature - Goblin Warrior",
@@ -708,11 +712,16 @@ test("Krenko Best Possible returns a draft shell instead of completing with low-
   const names = new Set(result.requirements.map((requirement) => requirement.name));
   const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
 
-  assert.equal(result.generationStatus, "draft_shell");
+  assert.equal(result.generationStatus, "complete");
   assert.equal(result.validation.valid, true);
   assert.equal(totalCards, 100);
-  assert.equal(result.buildability, null);
-  assert.equal(result.qualityGates.noFiller, false);
+  assert.ok(result.buildability);
+  assert.equal(result.archetypeProfile?.id, "krenko-goblin-swarm");
+  assert.equal(result.qualityGates.archetypeDensityAcceptable, true);
+  assert.equal(result.qualityGates.strategySynergyAcceptable, true);
+  assert.equal(result.qualityGates.noRejectedCards, true);
+  assert.equal(result.qualityGates.noFiller, true);
+  assert.ok((result.diagnostics?.composition.core ?? 0) + (result.diagnostics?.composition.synergy ?? 0) >= 26);
   assert.equal(result.candidateSourcePolicy, "Strategy and catalog recommendations first; ownership is calculated afterward.");
   assert.equal(result.candidateSource, "global-fixture");
   assert.ok(names.has("Impact Tremors"));
@@ -737,12 +746,12 @@ test("Krenko Tin Street Kingpin potential commander keeps mono-red identity sepa
   });
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
-  assert.equal(result.generationStatus, "draft_shell");
+  assert.equal(result.generationStatus, "complete");
   assert.equal(result.validation.valid, true);
   assert.equal(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
   assert.ok(names.has("Krenko, Tin Street Kingpin"));
   assert.equal(result.requirements.some((requirement) => requirement.colorIdentity.includes("U")), false);
-  assert.equal(result.buildability, null);
+  assert.ok(result.buildability);
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
 
@@ -785,6 +794,109 @@ test("bad production screenshot ramp fixtures cannot satisfy high-confidence Ram
   }
 });
 
+test("Krenko archetype generation rejects observed off-strategy production fixtures", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const rejectedFixtures = [
+    commanderCard("heroes-for-hire", "Heroes for Hire", ["R"], "Sorcery", "Create a Treasure token for each Mercenary you control."),
+    commanderCard("contract-hero", "Contract Hero", ["R"], "Creature - Human Mercenary", "When this creature enters, create a Treasure token if you committed a crime this turn."),
+    commanderCard("giants-boulder", "Giant's Boulder", ["R"], "Artifact - Equipment", "Equipped creature gets +2/+0. It has reach as long as you control a Giant."),
+    commanderCard("brass-secretary", "Brass Secretary", [], "Artifact Creature - Construct", "Whenever you cast your second spell each turn, draw a card."),
+    commanderCard("well-of-discovery", "Well of Discovery", [], "Artifact", "At the beginning of your end step, if you committed a crime this turn, investigate."),
+    commanderCard("big-wheel", "Big Wheel", [], "Artifact - Vehicle", "Whenever a creature crews Big Wheel, add a lore counter."),
+    commanderCard("stone-giant", "Stone-Giant of High Pass", ["R"], "Creature - Giant", "Reach. Whenever a Giant attacks, target creature gets +2/+0."),
+  ];
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: [...rejectedFixtures, ...krenkoCandidatePool()],
+    candidateSource: "global-fixture",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(result.generationStatus, "complete");
+  for (const fixture of rejectedFixtures) {
+    assert.equal(names.has(fixture.name), false, fixture.name);
+  }
+  const rejectedTotal = Object.values(result.diagnostics?.rejectionCounts ?? {}).reduce((sum, count) => sum + count, 0);
+  assert.ok(rejectedTotal >= rejectedFixtures.length);
+});
+
+test("incidental Treasure text does not make Goblin Airbrusher a primary mana-fixing card", () => {
+  const card = commanderCard(
+    "goblin-airbrusher",
+    "Goblin Airbrusher",
+    ["R"],
+    "Creature - Goblin Artificer",
+    "When Goblin Airbrusher enters the battlefield, if you committed a crime this turn, create a Treasure token.",
+  );
+  const roleSignals = classifyCardRoleSignals(card);
+  const tags = classifyStrategyTags(card);
+
+  assert.equal(roleSignals.some((signal) => signal.role === "mana-fixing" && signal.confidence === "high"), false);
+  assert.equal(roleSignals.some((signal) => signal.role === "ramp" && signal.confidence === "high"), false);
+  assert.ok(tags.includes("goblin"));
+  assert.equal(tags.includes("mana-engine"), false);
+});
+
+test("Deck Architect knowledge provider exposes benchmark archetype profiles before role filling", () => {
+  const fixtures = [
+    {
+      expected: "krenko-goblin-swarm",
+      commander: commanderCard("krenko", "Krenko, Mob Boss", ["R"], "Legendary Creature - Goblin Warrior", "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control."),
+      sample: commanderCard("payoff", "Impact Tremors", ["R"], "Enchantment", "Whenever a creature enters the battlefield under your control, Impact Tremors deals 1 damage to each opponent."),
+    },
+    {
+      expected: "graveyard-recursion",
+      commander: commanderCard("meren", "Meren of Clan Nel Toth", ["B", "G"], "Legendary Creature - Human Shaman", "Whenever another creature you control dies, get an experience counter. Return target creature card from your graveyard to your hand."),
+      sample: commanderCard("recursion", "Victimize", ["B"], "Sorcery", "Return two target creature cards from your graveyard to the battlefield. Sacrifice a creature."),
+    },
+    {
+      expected: "spellslinger",
+      commander: commanderCard("veyran", "Veyran, Voice of Duality", ["U", "R"], "Legendary Creature - Efreet Wizard", "Magecraft - whenever you cast or copy an instant or sorcery spell, Veyran gets +1/+1."),
+      sample: commanderCard("spell", "Young Pyromancer", ["R"], "Creature - Human Shaman", "Whenever you cast an instant or sorcery spell, create a 1/1 red Elemental creature token."),
+    },
+    {
+      expected: "counters-value",
+      commander: commanderCard("ezuri", "Ezuri, Claw of Progress", ["G", "U"], "Legendary Creature - Elf Warrior", "Put +1/+1 counters on another target creature you control."),
+      sample: commanderCard("counter", "Evolution Sage", ["G"], "Creature - Elf Druid", "Whenever a land enters the battlefield under your control, proliferate."),
+    },
+    {
+      expected: "artifact-value",
+      commander: commanderCard("urza", "Urza, Chief Artificer", ["W", "U", "B"], "Legendary Creature - Human Artificer", "Artifact creatures you control get +2/+2. Create a Construct artifact creature token."),
+      sample: commanderCard("artifact", "Sai, Master Thopterist", ["U"], "Legendary Creature - Human Artificer", "Whenever you cast an artifact spell, create a Thopter artifact creature token."),
+    },
+    {
+      expected: "sacrifice-aristocrats",
+      commander: commanderCard("korvold", "Korvold, Fae-Cursed King", ["B", "R", "G"], "Legendary Creature - Dragon Noble", "Whenever you sacrifice a permanent, put a +1/+1 counter on Korvold and draw a card."),
+      sample: commanderCard("artist", "Blood Artist", ["B"], "Creature - Vampire", "Whenever Blood Artist or another creature dies, target player loses 1 life and you gain 1 life."),
+    },
+    {
+      expected: "voltron",
+      commander: commanderCard("wyleth", "Wyleth, Soul of Steel", ["R", "W"], "Legendary Creature - Human Warrior", "Whenever Wyleth attacks, draw a card for each Aura and Equipment attached to it."),
+      sample: commanderCard("boots", "Swiftfoot Boots", [], "Artifact - Equipment", "Equipped creature has hexproof and haste. Equip 1."),
+    },
+    {
+      expected: "five-color-value",
+      commander: commanderCard("jodah", "Jodah, the Unifier", ["W", "U", "B", "R", "G"], "Legendary Creature - Human Wizard", "Legendary creatures you control get +X/+X. Whenever you cast a legendary spell, reveal cards from the top of your library."),
+      sample: commanderCard("fixing", "Chromatic Lantern", [], "Artifact", "Lands you control have tap: Add one mana of any color. Add one mana of any color."),
+    },
+  ];
+
+  for (const fixture of fixtures) {
+    const profile = TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(fixture.commander, null, [fixture.sample]);
+    const archetype = selectArchetypeProfile(profile, null);
+    const evaluation = evaluateCandidate(fixture.sample, archetype);
+    assert.equal(archetype?.id, fixture.expected, fixture.commander.name);
+    assert.notEqual(evaluation.category, "reject", fixture.sample.name);
+  }
+});
+
 test("complete Commander generation rejects illegal off-color banned and non-playable cards before ranking", () => {
   const commander = commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]);
   const result = constructValidatedCommanderDeck({
@@ -805,8 +917,10 @@ test("complete Commander generation rejects illegal off-color banned and non-pla
   assert.equal(names.has("Blue Filler"), false);
   assert.equal(names.has("Banned Goblin"), false);
   assert.equal(names.has("Goblin Token"), false);
-  assert.notEqual(result.generationStatus, "complete");
-  assert.equal(result.buildability, null);
+  assert.equal(result.generationStatus, "complete");
+  assert.ok((result.diagnostics?.rejectionCounts["Off-color"] ?? 0) >= 1);
+  assert.ok((result.diagnostics?.rejectionCounts.Illegal ?? 0) >= 1);
+  assert.ok((result.diagnostics?.rejectionCounts["Non-playable"] ?? 0) >= 1);
 });
 
 test("generated requirements use centralized image fallback and never encode unknown price as zero", () => {

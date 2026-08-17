@@ -1,4 +1,10 @@
 import { calculateBuildabilityScore } from "./buildability.ts";
+import {
+  evaluateCandidate,
+  selectArchetypeProfile,
+  TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER,
+  type ArchetypeCandidateEvaluation,
+} from "./archetypes.ts";
 import { classifyCardRoles, classifyCardRoleSignals } from "./card-roles.ts";
 import { resolveDeckCardImageUri } from "./card-assets.ts";
 import { getCommanderCatalogCandidates } from "./commander-catalog.ts";
@@ -31,6 +37,9 @@ import type {
   DeckChangeProposal,
   CommanderGenerationResult,
   DeckKnowledgeCardSeed,
+  ArchetypeCandidateCategory,
+  ArchetypeProfile,
+  DeckStrategyTag,
 } from "./types.ts";
 
 export function generateDeckArchitectIntelligence({
@@ -205,24 +214,36 @@ export function constructValidatedCommanderDeck({
   const maxBudgetDollars = typeof budgetCents === "number"
     ? Math.max(0, budgetCents / 100)
     : 25;
-  const ownedPool = collection
-    .filter((card) => card.inventoryId !== commander.inventoryId)
-    .filter((card) => isCommanderCandidatePlayable(card, commander, { allowUnknownLegality: true }))
-    .filter((card) => intentId !== "budget" || card.marketPrice === null || (card.marketPrice ?? 0) <= maxBudgetDollars);
-  const globalPool = globalCandidates
-    .filter((card) => isCommanderCandidatePlayable(card, commander, { allowUnknownLegality: false }))
-    .filter((card) => intentId !== "budget" || card.marketPrice === null || (card.marketPrice ?? 0) <= Math.max(5, maxBudgetDollars / 3));
+  const commanderProfile = TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, strategyFit?.strategy ?? null, collection);
+  const archetypeProfile = selectArchetypeProfile(commanderProfile, strategyFit?.strategy ?? null);
+  const diagnostics = createCommanderDiagnostics(commander, strategyFit?.strategy?.label ?? archetypeProfile?.label ?? null);
+  const ownedPool = prepareCommanderCandidatePool({
+    cards: collection.filter((card) => card.inventoryId !== commander.inventoryId),
+    commander,
+    archetype: archetypeProfile,
+    allowUnknownLegality: true,
+    maxBudgetDollars: intentId === "budget" ? maxBudgetDollars : null,
+    diagnostics,
+  });
+  const globalPool = prepareCommanderCandidatePool({
+    cards: globalCandidates,
+    commander,
+    archetype: archetypeProfile,
+    allowUnknownLegality: false,
+    maxBudgetDollars: intentId === "budget" ? Math.max(5, maxBudgetDollars / 3) : null,
+    diagnostics,
+  });
   const pool = rankCommanderPool({
-    cards: intentId === "no-purchases"
+    entries: intentId === "no-purchases"
       ? ownedPool
       : intentId === "strongest-possible" || intentId === "competitive"
         ? [...globalPool, ...ownedPool]
         : [...ownedPool, ...globalPool],
     intentId,
     targetRoles: strategyFit?.strategy.roles ?? [],
-    strategy: strategyFit?.strategy ?? null,
+    archetype: archetypeProfile,
   });
-  const requirements: DeckRequirement[] = [toRequirement(commander, 1, "commander", true)];
+  const requirements: DeckRequirement[] = [toRequirement(commander, 1, "commander", true, evaluateCandidate(commander, archetypeProfile))];
   const usedNames = new Set([normalizeCardKey(commander.name)]);
   const allowMissingCards = intentId !== "no-purchases";
   const strategySeeds = strategyFit
@@ -235,9 +256,10 @@ export function constructValidatedCommanderDeck({
   });
 
   if (allowMissingCards && ["strongest-possible", "competitive", "casual"].includes(intentId)) {
-    addSeedRequirements(requirements, usedNames, [...strategySeeds, ...catalogSeeds], commander, format, strategyFit?.strategy.id ?? "strategy", intentId);
+    addSeedRequirements(requirements, usedNames, strategySeeds, commander, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile);
+    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, format, "catalog", intentId, "generic", archetypeProfile);
   } else if (allowMissingCards) {
-    addSeedRequirements(requirements, usedNames, strategySeeds, commander, format, strategyFit?.strategy.id ?? "strategy", intentId);
+    addSeedRequirements(requirements, usedNames, strategySeeds, commander, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile);
   }
 
   addRoleBucketCards(requirements, usedNames, pool, [
@@ -248,12 +270,12 @@ export function constructValidatedCommanderDeck({
     { roles: ["protection", "recursion"], target: 6 },
     { roles: strategyFit?.strategy.roles ?? ["synergy"], target: 22 },
     { roles: ["threat", "finisher", "combo-piece"], target: 8 },
-  ], commander, format, strategyFit?.strategy ?? null);
+  ], commander, format, archetypeProfile, diagnostics);
 
-  addStrategySupportCards(requirements, usedNames, pool, commander, format, strategyFit?.strategy ?? null);
+  addStrategySupportCards(requirements, usedNames, pool, commander, format, archetypeProfile, diagnostics);
 
   if (allowMissingCards && !["strongest-possible", "competitive", "casual"].includes(intentId)) {
-    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, format, strategyFit?.strategy.id ?? "catalog", intentId);
+    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, format, "catalog", intentId, "generic", archetypeProfile);
   }
 
   if (intentId === "no-purchases") {
@@ -286,7 +308,7 @@ export function constructValidatedCommanderDeck({
     requirements,
     validation,
     commander,
-    strategy: strategyFit?.strategy ?? null,
+    archetype: archetypeProfile,
     generatedCardCount,
     meaningfulNonLandCount,
   });
@@ -312,6 +334,8 @@ export function constructValidatedCommanderDeck({
     qualityGates,
     pricingSummary,
     strategyFit,
+    archetypeProfile,
+    diagnostics: finalizeCommanderDiagnostics(diagnostics, requirements),
     candidateSourcePolicy: candidateSourcePolicyForIntent(intentId),
     candidateSource: intentId === "no-purchases" ? "owned-only" : candidateSource,
     generatedCardCount,
@@ -611,13 +635,25 @@ function opportunityToRecommendations(opportunity: BuildOpportunity): DeckRecomm
   }];
 }
 
-function toRequirement(card: CollectionGraphCard, quantity: number, board: "commander" | "main", isCommander: boolean): DeckRequirement {
+function toRequirement(
+  card: CollectionGraphCard,
+  quantity: number,
+  board: "commander" | "main",
+  isCommander: boolean,
+  evaluation?: ArchetypeCandidateEvaluation,
+): DeckRequirement {
   return {
     id: `${board}:${card.inventoryId}`,
     name: card.name,
     requiredQuantity: quantity,
     board,
     roles: classifyCardRoles(card),
+    strategyTags: evaluation?.tags,
+    archetypeCategory: evaluation?.category,
+    archetypeScore: evaluation?.score,
+    primaryRoles: evaluation?.primaryRoles,
+    secondaryRoles: evaluation?.secondaryRoles,
+    whyThisCard: evaluation?.reasons[0],
     estimatedPrice: card.marketPrice ?? null,
     importance: isCommander ? 1.5 : 1,
     imageUri: resolveDeckCardImageUri(card),
@@ -675,45 +711,134 @@ function isNonPlayableObject(card: Pick<CollectionGraphCard | DeckRequirement, "
   );
 }
 
-function rankCommanderPool({
+type CommanderCandidatePoolEntry = {
+  card: CollectionGraphCard;
+  evaluation: ArchetypeCandidateEvaluation;
+};
+
+type CommanderDiagnostics = {
+  commander: string;
+  strategy: string | null;
+  rejectionCounts: Record<string, number>;
+  composition: Record<ArchetypeCandidateCategory, number>;
+};
+
+function createCommanderDiagnostics(commander: CollectionGraphCard, strategy: string | null): CommanderDiagnostics {
+  return {
+    commander: commander.name,
+    strategy,
+    rejectionCounts: {
+      Illegal: 0,
+      "Off-color": 0,
+      "Non-playable": 0,
+      "Low archetype fit": 0,
+      "Low role confidence": 0,
+      Duplicate: 0,
+      "Low quality": 0,
+    },
+    composition: { core: 0, synergy: 0, support: 0, generic: 0, reject: 0 },
+  };
+}
+
+function finalizeCommanderDiagnostics(
+  diagnostics: CommanderDiagnostics,
+  requirements: DeckRequirement[],
+): CommanderDiagnostics {
+  const composition: Record<ArchetypeCandidateCategory, number> = { core: 0, synergy: 0, support: 0, generic: 0, reject: 0 };
+  for (const requirement of requirements) {
+    const category = requirement.archetypeCategory;
+    if (!category || requirement.roles.includes("land")) continue;
+    composition[category] += requirement.requiredQuantity;
+  }
+  return {
+    ...diagnostics,
+    composition,
+  };
+}
+
+function prepareCommanderCandidatePool({
   cards,
-  intentId,
-  targetRoles,
-  strategy,
+  commander,
+  archetype,
+  allowUnknownLegality,
+  maxBudgetDollars,
+  diagnostics,
 }: {
   cards: CollectionGraphCard[];
+  commander: CollectionGraphCard;
+  archetype: ArchetypeProfile | null;
+  allowUnknownLegality: boolean;
+  maxBudgetDollars: number | null;
+  diagnostics: CommanderDiagnostics;
+}): CommanderCandidatePoolEntry[] {
+  const seen = new Set<string>();
+  const entries: CommanderCandidatePoolEntry[] = [];
+  for (const card of cards) {
+    const key = normalizeCardKey(card.name);
+    if (seen.has(key)) {
+      diagnostics.rejectionCounts.Duplicate += 1;
+      continue;
+    }
+    seen.add(key);
+    if (!commanderColorIdentityFits(card, commander)) {
+      diagnostics.rejectionCounts["Off-color"] += 1;
+      continue;
+    }
+    if (isNonPlayableObject(card)) {
+      diagnostics.rejectionCounts["Non-playable"] += 1;
+      continue;
+    }
+    const legality = card.legalities?.commander;
+    if ((legality && legality !== "legal") || (!legality && !allowUnknownLegality)) {
+      diagnostics.rejectionCounts.Illegal += 1;
+      continue;
+    }
+    if (typeof maxBudgetDollars === "number" && card.marketPrice !== null && (card.marketPrice ?? 0) > maxBudgetDollars) {
+      diagnostics.rejectionCounts["Low quality"] += 1;
+      continue;
+    }
+    const evaluation = evaluateCandidate(card, archetype);
+    diagnostics.composition[evaluation.category] += 1;
+    if (evaluation.category === "reject" || evaluation.score < (archetype?.minimumRelevanceScore ?? 1)) {
+      diagnostics.rejectionCounts["Low archetype fit"] += 1;
+      continue;
+    }
+    entries.push({ card, evaluation });
+  }
+  return entries;
+}
+
+function rankCommanderPool({
+  entries,
+  intentId,
+  targetRoles,
+  archetype,
+}: {
+  entries: CommanderCandidatePoolEntry[];
   intentId: BuildIntentId;
   targetRoles: DeckArchitectRole[];
-  strategy: CommanderStrategyProfile | null;
+  archetype: ArchetypeProfile | null;
 }) {
-  const seen = new Set<string>();
-  return cards
-    .filter((card) => {
-      const key = normalizeCardKey(card.name);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .map((card) => ({ card, fit: commanderStrategyFitTier(card, strategy) }))
-    .filter((entry) => entry.fit !== "filler")
+  return entries
     .sort((left, right) => {
       const leftRoles = classifyCardRoles(left.card);
       const rightRoles = classifyCardRoles(right.card);
-      const leftScore = scoreCardForIntent(left.card, intentId) + strategyFitScore(left.fit) + leftRoles.filter((role) => targetRoles.includes(role)).length * 12;
-      const rightScore = scoreCardForIntent(right.card, intentId) + strategyFitScore(right.fit) + rightRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      const leftScore = scoreCardForIntent(left.card, intentId) + archetypeFitScore(left.evaluation, archetype) + leftRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      const rightScore = scoreCardForIntent(right.card, intentId) + archetypeFitScore(right.evaluation, archetype) + rightRoles.filter((role) => targetRoles.includes(role)).length * 12;
       return rightScore - leftScore || left.card.name.localeCompare(right.card.name);
     })
-    .map((entry) => entry.card);
+    .map((entry) => entry);
 }
 
 function addRoleBucketCards(
   requirements: DeckRequirement[],
   usedNames: Set<string>,
-  pool: CollectionGraphCard[],
+  pool: CommanderCandidatePoolEntry[],
   buckets: Array<{ roles: DeckArchitectRole[]; target: number }>,
   commander: CollectionGraphCard,
   format: FormatProfile,
-  strategy: CommanderStrategyProfile | null,
+  archetype: ArchetypeProfile | null,
+  diagnostics: CommanderDiagnostics,
 ) {
   for (const bucket of buckets) {
     let current = requirements
@@ -721,7 +846,7 @@ function addRoleBucketCards(
       .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
     for (const card of pool) {
       if (current >= bucket.target || nonLandMainCount(requirements) >= 63) break;
-      const added = addPoolCard(requirements, usedNames, card, commander, format, bucket.roles, strategy);
+      const added = addPoolCard(requirements, usedNames, card, commander, format, bucket.roles, archetype, diagnostics);
       if (added) current += 1;
     }
   }
@@ -730,38 +855,55 @@ function addRoleBucketCards(
 function addStrategySupportCards(
   requirements: DeckRequirement[],
   usedNames: Set<string>,
-  pool: CollectionGraphCard[],
+  pool: CommanderCandidatePoolEntry[],
   commander: CollectionGraphCard,
   format: FormatProfile,
-  strategy: CommanderStrategyProfile | null,
+  archetype: ArchetypeProfile | null,
+  diagnostics: CommanderDiagnostics,
 ) {
   for (const card of pool) {
     if (nonLandMainCount(requirements) >= 63) break;
-    addPoolCard(requirements, usedNames, card, commander, format, undefined, strategy);
+    addPoolCard(requirements, usedNames, card, commander, format, undefined, archetype, diagnostics);
   }
 }
 
 function addPoolCard(
   requirements: DeckRequirement[],
   usedNames: Set<string>,
-  card: CollectionGraphCard,
+  entry: CommanderCandidatePoolEntry,
   commander: CollectionGraphCard,
   format: FormatProfile,
   requiredRoles?: DeckArchitectRole[],
-  strategy?: CommanderStrategyProfile | null,
+  archetype?: ArchetypeProfile | null,
+  diagnostics?: CommanderDiagnostics,
 ) {
+  const { card, evaluation } = entry;
   const key = normalizeCardKey(card.name);
   if (format.singleton && usedNames.has(key)) return false;
   if (!commanderColorIdentityFits(card, commander)) return false;
   if (!isCommanderCandidatePlayable(card, commander, { allowUnknownLegality: true })) return false;
   const roles = classifyCardRoles(card);
-  const highConfidenceRoles = highConfidenceRoleSet(card);
-  if (requiredRoles?.length && !requiredRoles.some((role) => highConfidenceRoles.has(role))) return false;
-  if (!requiredRoles?.length && commanderStrategyFitTier(card, strategy ?? null) === "filler") return false;
+  const highConfidenceRoles = new Set(evaluation.primaryRoles);
+  if (requiredRoles?.length && !requiredRoles.some((role) => highConfidenceRoles.has(role))) {
+    diagnostics && (diagnostics.rejectionCounts["Low role confidence"] += 1);
+    return false;
+  }
+  if (evaluation.category === "reject" || evaluation.score < (archetype?.minimumRelevanceScore ?? 1)) return false;
   if (roles.includes("land")) return false;
-  requirements.push(toRequirement(card, 1, "main", false));
+  requirements.push(toRequirement(card, 1, "main", false, evaluation));
   usedNames.add(key);
   return true;
+}
+
+function archetypeFitScore(evaluation: ArchetypeCandidateEvaluation, archetype: ArchetypeProfile | null) {
+  const categoryScore: Record<ArchetypeCandidateCategory, number> = {
+    core: 90,
+    synergy: 62,
+    support: 34,
+    generic: 8,
+    reject: -1000,
+  };
+  return categoryScore[evaluation.category] + evaluation.score + (archetype ? 0 : -30);
 }
 
 function addOwnedBasicLands(
@@ -809,6 +951,8 @@ function addSeedRequirements(
   format: FormatProfile,
   strategyId: string,
   intentId: BuildIntentId,
+  sourceCategory: ArchetypeCandidateCategory,
+  archetype: ArchetypeProfile | null,
 ) {
   for (const seed of seeds) {
     if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
@@ -819,7 +963,7 @@ function addSeedRequirements(
     if (format.singleton && usedNames.has(key)) continue;
     const quantity = Math.min(seed.quantity, 100 - requirements.reduce((sum, item) => sum + item.requiredQuantity, 0));
     if (quantity <= 0) continue;
-    requirements.push(seedToRequirement(seed, quantity, commander, strategyId));
+    requirements.push(seedToRequirement(seed, quantity, commander, strategyId, sourceCategory, archetype));
     usedNames.add(key);
   }
 }
@@ -829,13 +973,32 @@ function seedToRequirement(
   quantity: number,
   commander: CollectionGraphCard,
   strategyId: string,
+  sourceCategory: ArchetypeCandidateCategory,
+  archetype: ArchetypeProfile | null,
 ): DeckRequirement {
+  const seedCard = seedToCollectionCard(seed, commander, strategyId);
+  const evaluation = evaluateCandidate(seedCard, archetype);
+  const category = sourceCategory === "core" && evaluation.category === "reject"
+    ? "synergy"
+    : sourceCategory === "generic"
+      ? (evaluation.category === "core" || evaluation.category === "synergy" ? evaluation.category : "generic")
+      : evaluation.category;
   return {
     id: `strategy:${strategyId}:${normalizeCardKey(seed.name)}`,
     name: seed.name,
     requiredQuantity: quantity,
     board: "main",
     roles: seed.roles,
+    strategyTags: evaluation.tags,
+    archetypeCategory: category,
+    archetypeScore: Math.max(evaluation.score, category === "core" ? 100 : category === "synergy" ? 72 : category === "support" ? 48 : 24),
+    primaryRoles: evaluation.primaryRoles,
+    secondaryRoles: evaluation.secondaryRoles,
+    whyThisCard: category === "core"
+      ? "Trading Docks authored strategy core card."
+      : category === "generic"
+        ? "Generic Commander support card allowed within archetype limit."
+        : evaluation.reasons[0],
     estimatedPrice: seed.estimatedPrice ?? null,
     imageUri: resolveDeckCardImageUri({ name: seed.name }),
     importance: seed.importance ?? 1.1,
@@ -843,6 +1006,22 @@ function seedToRequirement(
     oracleText: seed.oracleText,
     colorIdentity: seed.colorIdentity ?? commander.colorIdentity,
     legalityStatus: "unknown",
+  };
+}
+
+function seedToCollectionCard(
+  seed: DeckKnowledgeCardSeed,
+  commander: CollectionGraphCard,
+  strategyId: string,
+): CollectionGraphCard {
+  return {
+    inventoryId: `seed:${strategyId}:${normalizeCardKey(seed.name)}`,
+    name: seed.name,
+    quantityOwned: 0,
+    typeLine: seed.typeLine,
+    oracleText: seed.oracleText,
+    colorIdentity: seed.colorIdentity ?? commander.colorIdentity,
+    marketPrice: seed.estimatedPrice ?? null,
   };
 }
 
@@ -898,33 +1077,66 @@ function commanderQualityGates({
   requirements,
   validation,
   commander,
-  strategy,
+  archetype,
   generatedCardCount,
   meaningfulNonLandCount,
 }: {
   requirements: DeckRequirement[];
   validation: ReturnType<typeof validateDeckRequirements>;
   commander: CollectionGraphCard;
-  strategy: CommanderStrategyProfile | null;
+  archetype: ArchetypeProfile | null;
   generatedCardCount: number;
   meaningfulNonLandCount: number;
 }): CommanderGenerationResult["qualityGates"] {
   const main = requirements.filter((requirement) => requirement.board === "main");
   const lands = main.filter((requirement) => requirement.roles.includes("land")).reduce((sum, card) => sum + card.requiredQuantity, 0);
   const nonLand = main.filter((requirement) => !requirement.roles.includes("land"));
-  const strategyCards = nonLand.filter((requirement) => commanderStrategyFitTier(requirementToCard(requirement), strategy) !== "filler");
+  const coreAndSynergy = nonLand.filter((requirement) => requirement.archetypeCategory === "core" || requirement.archetypeCategory === "synergy");
+  const support = nonLand.filter((requirement) => requirement.archetypeCategory === "support");
+  const genericCount = nonLand
+    .filter((requirement) => requirement.archetypeCategory === "generic")
+    .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+  const rejected = nonLand.filter((requirement) => requirement.archetypeCategory === "reject");
   const highConfidenceRoleCards = nonLand.filter((requirement) =>
     classifyCardRoleSignals(requirement)
       .some((signal) => signal.confidence === "high" && signal.role !== "land"),
   );
+  const typalCount = archetype?.typal
+    ? nonLand.filter((requirement) => {
+        const typeLine = requirement.typeLine?.toLowerCase() ?? "";
+        const tags = requirement.strategyTags ?? [];
+        return archetype.typal?.creatureTypes.some((type) => typeLine.includes(type.toLowerCase())) ||
+          tags.includes("typal-lord") ||
+          tags.includes("goblin-payoff") ||
+          tags.includes("goblin-token-maker");
+      }).reduce((sum, requirement) => sum + requirement.requiredQuantity, 0)
+    : null;
+  const roleCoverageAcceptable = archetype
+    ? Object.entries(archetype.roleTargets).every(([role, target]) => {
+        const min = target?.min ?? 0;
+        if (min <= 0) return true;
+        const covered = nonLand
+          .filter((requirement) => requirement.roles.includes(role as DeckArchitectRole))
+          .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+        return covered >= min;
+      })
+    : highConfidenceRoleCards.length >= Math.min(28, nonLand.length);
+  const colorIdentityValid = !validation.issues.some((issue) => issue.code === "color-identity");
   return {
     formatValid: validation.valid && generatedCardCount === 100,
     commanderValid: !isNonPlayableObject(commander) && commanderLegalOrUnknown(commander),
-    strategyCoherent: strategy ? strategyCards.length >= Math.min(24, nonLand.length) : nonLand.length >= 24,
-    roleCoverageAcceptable: highConfidenceRoleCards.length >= Math.min(28, nonLand.length),
-    manaBaseAcceptable: lands >= 32 && lands <= 45 && meaningfulNonLandCount >= 30,
+    colorIdentityValid,
+    archetypeValid: Boolean(archetype),
+    archetypeDensityAcceptable: typeof typalCount === "number" && archetype?.typal
+      ? typalCount >= archetype.typal.minSupportCount
+      : coreAndSynergy.length >= Math.min(archetype?.minimumCoreAndSynergy ?? 18, nonLand.length),
+    strategyCoherent: archetype ? coreAndSynergy.length >= Math.min(archetype.minimumCoreAndSynergy, nonLand.length) : nonLand.length >= 24,
+    strategySynergyAcceptable: coreAndSynergy.length + support.length >= Math.min(36, nonLand.length),
+    roleCoverageAcceptable,
+    manaBaseAcceptable: lands >= 32 && lands <= 45 && meaningfulNonLandCount >= 45,
     candidateConfidenceAcceptable: highConfidenceRoleCards.length >= Math.min(28, nonLand.length),
-    noFiller: nonLand.every((requirement) => commanderStrategyFitTier(requirementToCard(requirement), strategy) !== "filler"),
+    noRejectedCards: rejected.length === 0,
+    noFiller: rejected.length === 0 && genericCount <= (archetype?.genericCardLimit ?? 18),
   };
 }
 
@@ -956,6 +1168,9 @@ function completionPricingSummary(ownership: OwnershipMatch[]): CommanderGenerat
 
 function failedQualityGateMessage(gates: CommanderGenerationResult["qualityGates"]) {
   const failed = Object.entries(gates).find(([, value]) => !value)?.[0];
+  if (failed === "archetypeDensityAcceptable") return "A useful draft shell was generated, but the list does not contain enough cards that actually advance the selected archetype.";
+  if (failed === "strategySynergyAcceptable") return "A useful draft shell was generated, but the strategy support density is still too low for a complete Commander deck.";
+  if (failed === "noRejectedCards") return "A useful draft shell was generated, but rejected off-strategy cards were found in the final list.";
   if (failed === "noFiller") return "A useful draft shell was generated, but low-confidence filler was rejected before completing the list.";
   if (failed === "strategyCoherent") return "A useful draft shell was generated, but the candidate pool was not coherent enough for the selected strategy.";
   if (failed === "manaBaseAcceptable") return "A useful draft shell was generated, but the mana base was not acceptable yet.";

@@ -41,6 +41,70 @@ export type DeckArchitectRole =
   | "enchantment-interaction"
   | "land";
 
+export type DeckStrategyTag =
+  | "goblin"
+  | "goblin-payoff"
+  | "goblin-token-maker"
+  | "typal-lord"
+  | "haste-enabler"
+  | "untap-engine"
+  | "mana-engine"
+  | "sacrifice-outlet"
+  | "death-payoff"
+  | "token-payoff"
+  | "token-maker"
+  | "artifact-synergy"
+  | "artifact"
+  | "graveyard-enabler"
+  | "recursion-target"
+  | "recursion"
+  | "spell-payoff"
+  | "spellslinger"
+  | "prowess"
+  | "counters-payoff"
+  | "proliferate"
+  | "equipment-payoff"
+  | "aura-payoff"
+  | "voltron"
+  | "blink-enabler"
+  | "reanimation"
+  | "card-advantage"
+  | "interaction"
+  | "ramp"
+  | "protection"
+  | "board-wipe";
+
+export type ArchetypeCandidateCategory = "core" | "synergy" | "support" | "generic" | "reject";
+
+export type ArchetypeProfile = {
+  id: string;
+  label: string;
+  description: string;
+  requiredTags: DeckStrategyTag[];
+  preferredTags: DeckStrategyTag[];
+  discouragedTags: DeckStrategyTag[];
+  excludedTags: DeckStrategyTag[];
+  excludedNames?: string[];
+  typal?: {
+    creatureTypes: string[];
+    minSupportCount: number;
+    idealSupportCount: number;
+  };
+  roleTargets: Partial<Record<DeckArchitectRole, { min?: number; ideal?: number }>>;
+  genericCardLimit: number;
+  minimumCoreAndSynergy: number;
+  minimumRelevanceScore: number;
+};
+
+export type CommanderProfile = {
+  commanderName: string;
+  colors: string[];
+  creatureTypes: string[];
+  mechanicalThemes: DeckStrategyTag[];
+  viableArchetypes: ArchetypeProfile[];
+  recommendedArchetypeId: string;
+};
+
 export type RecommendationConfidence = "high" | "medium" | "low";
 
 export type RecommendationSignal = {
@@ -121,6 +185,12 @@ export type DeckRequirement = {
   requiredQuantity: number;
   board: DeckArchitectBoard;
   roles: DeckArchitectRole[];
+  strategyTags?: DeckStrategyTag[];
+  archetypeCategory?: ArchetypeCandidateCategory;
+  archetypeScore?: number;
+  primaryRoles?: DeckArchitectRole[];
+  secondaryRoles?: DeckArchitectRole[];
+  whyThisCard?: string;
   estimatedPrice?: number | null;
   importance?: number;
   imageUri?: string | null;
@@ -397,10 +467,15 @@ export type CommanderGenerationResult = {
   qualityGates: {
     formatValid: boolean;
     commanderValid: boolean;
+    colorIdentityValid: boolean;
+    archetypeValid: boolean;
+    archetypeDensityAcceptable: boolean;
     strategyCoherent: boolean;
+    strategySynergyAcceptable: boolean;
     roleCoverageAcceptable: boolean;
     manaBaseAcceptable: boolean;
     candidateConfidenceAcceptable: boolean;
+    noRejectedCards: boolean;
     noFiller: boolean;
   };
   pricingSummary: {
@@ -411,6 +486,13 @@ export type CommanderGenerationResult = {
   candidateSourcePolicy: string;
   candidateSource: "owned-only" | "owned-plus-curated" | "global-scryfall" | "global-fixture";
   generatedCardCount: number;
+  archetypeProfile: ArchetypeProfile | null;
+  diagnostics?: {
+    commander: string;
+    strategy: string | null;
+    rejectionCounts: Record<string, number>;
+    composition: Record<ArchetypeCandidateCategory, number>;
+  };
   failure: string | null;
   warnings: string[];
   performanceMs?: number;

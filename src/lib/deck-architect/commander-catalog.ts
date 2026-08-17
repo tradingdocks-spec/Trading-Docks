@@ -9,7 +9,7 @@ const GENERIC_COMMANDER_CATALOG: DeckKnowledgeCardSeed[] = [
   seed("Path of Ancestry", 1, ["land", "mana-fixing"], 0.4, "Land", "Add one mana of any color in your commander's color identity. Scry 1."),
   seed("Swiftfoot Boots", 1, ["protection"], 1.25, "Artifact - Equipment", "Equipped creature has hexproof and haste."),
   seed("Lightning Greaves", 1, ["protection"], 4.5, "Artifact - Equipment", "Equipped creature has haste and shroud."),
-  seed("Heroic Intervention", 1, ["protection"], 9, "Instant", "Permanents you control gain hexproof and indestructible."),
+  seed("Heroic Intervention", 1, ["protection"], 9, "Instant", "Permanents you control gain hexproof and indestructible.", ["G"]),
   seed("Beast Within", 1, ["interaction", "removal"], 1.25, "Instant", "Destroy target permanent.", ["G"]),
   seed("Swords to Plowshares", 1, ["interaction", "removal"], 1, "Instant", "Exile target creature.", ["W"]),
   seed("Counterspell", 1, ["interaction", "countermagic"], 0.5, "Instant", "Counter target spell.", ["U"]),
