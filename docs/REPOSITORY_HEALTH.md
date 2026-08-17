@@ -377,7 +377,7 @@ Recommended next stabilization task:
 
 ## Deck Architect Health
 
-Status: Foundation Implemented.
+Status: Deterministic Recommendation Foundation Implemented.
 
 Implemented improvements:
 
@@ -386,11 +386,12 @@ Implemented improvements:
 - Avoided fake AI, copied third-party deck recommendations, or external-provider claims in the first surface.
 - Removed customer-facing internal engine language from the active page and replaced it with workflow, deck, card, and recommendation states.
 - Added broader existing-inventory metadata mapping for card images and card facts without duplicating catalog data or changing schemas.
+- Added Trading Docks-authored Pauper archetype profiles, Commander strategy inference, card-role classification, legality validation, ranked build opportunities, owned substitutions, and recommendation confidence/provenance tests.
 
 Remaining risks:
 
-- The initial foundation uses collection-derived requirements rather than a complete archetype/template provider.
-- Proposal persistence, Deck Vault mutation integration, legality provider checks, and saved apply/revert flows are still planned.
+- The first recommendation layer is deterministic and local. External archetype, combo, EDHREC, and provider-backed knowledge sources are not active yet.
+- Proposal persistence, Deck Vault mutation integration, provider freshness checks, and saved apply/revert flows are still planned.
 - Commander candidate quality still depends on type-line metadata being present in saved inventory or catalog payloads.
 - Price-aware scoring only uses saved inventory values when available; missing prices stay unavailable.
 

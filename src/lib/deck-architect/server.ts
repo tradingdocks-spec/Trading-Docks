@@ -1,6 +1,12 @@
 import type { User } from "@supabase/supabase-js";
 
-import { findOwnedCommanderCandidates, type CollectionGraphCard } from "./index.ts";
+import {
+  findOwnedCommanderCandidates,
+  generateDeckArchitectIntelligence,
+  type CollectionGraphCard,
+  type DeckArchitectIntelligence,
+  type DeckArchitectSavedDeckSummary,
+} from "./index.ts";
 
 export type DeckArchitectCollectionSnapshot = {
   cards: CollectionGraphCard[];
@@ -10,6 +16,12 @@ export type DeckArchitectCollectionSnapshot = {
   sampleLimit: number;
   truncated: boolean;
   error: string | null;
+};
+
+export type DeckArchitectServerState = {
+  snapshot: DeckArchitectCollectionSnapshot;
+  intelligence: DeckArchitectIntelligence;
+  savedDecks: DeckArchitectSavedDeckSummary[];
 };
 
 const COLLECTION_SAMPLE_LIMIT = 750;
@@ -95,6 +107,61 @@ function toCollectionGraphCard(row: unknown): CollectionGraphCard | null {
     location: stringValue(data.location) ?? stringValue(data.locationName),
     legalities: recordObject(data.legalities) ?? recordObject(nestedValue(data, "card.legalities")) ?? undefined,
     marketPrice: unitMarketPrice,
+  };
+}
+
+export async function loadDeckArchitectServerState(
+  supabase: {
+    from: (table: string) => any;
+  },
+  user: Pick<User, "id">,
+): Promise<DeckArchitectServerState> {
+  const snapshot = await loadDeckArchitectCollectionSnapshot(supabase, user);
+  return {
+    snapshot,
+    intelligence: generateDeckArchitectIntelligence({ collection: snapshot.cards }),
+    savedDecks: await loadDeckArchitectSavedDecks(supabase, user),
+  };
+}
+
+export async function loadDeckArchitectSavedDecks(
+  supabase: {
+    from: (table: string) => any;
+  },
+  user: Pick<User, "id">,
+): Promise<DeckArchitectSavedDeckSummary[]> {
+  const { data, error } = await supabase
+    .from("deck_vault_decks")
+    .select("deck_key,name,format,commander,deck_data,updated_at")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false })
+    .limit(8);
+
+  if (error) return [];
+  return (data ?? []).map(toSavedDeckSummary).filter(Boolean) as DeckArchitectSavedDeckSummary[];
+}
+
+function toSavedDeckSummary(row: unknown): DeckArchitectSavedDeckSummary | null {
+  if (!row || typeof row !== "object") return null;
+  const record = row as Record<string, unknown>;
+  const deckData = record.deck_data && typeof record.deck_data === "object" && !Array.isArray(record.deck_data)
+    ? record.deck_data as Record<string, unknown>
+    : {};
+  const id = stringValue(record.deck_key) ?? stringValue(deckData.id);
+  const name = stringValue(record.name) ?? stringValue(deckData.name);
+  if (!id || !name) return null;
+  const cards = Array.isArray(deckData.cards) ? deckData.cards : null;
+  return {
+    id,
+    name,
+    format: stringValue(record.format) ?? stringValue(deckData.format),
+    commander: stringValue(record.commander) ?? stringValue(deckData.commander),
+    cardCount: cards ? cards.reduce((sum, card) => {
+      if (!card || typeof card !== "object") return sum;
+      const quantity = positiveInteger((card as Record<string, unknown>).quantity);
+      return sum + quantity;
+    }, 0) : null,
+    updatedAt: stringValue(record.updated_at) ?? stringValue(deckData.updatedAt),
   };
 }
 

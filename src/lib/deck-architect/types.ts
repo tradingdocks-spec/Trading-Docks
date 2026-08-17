@@ -29,6 +29,14 @@ export type DeckArchitectRole =
   | "combo-piece"
   | "land";
 
+export type RecommendationConfidence = "high" | "medium" | "low";
+
+export type RecommendationSignal = {
+  label: string;
+  impact: "positive" | "neutral" | "negative";
+  detail: string;
+};
+
 export type RecommendationProfile = {
   roleTargets: Partial<Record<DeckArchitectRole, { min?: number; ideal?: number }>>;
   preferredManaCurve?: Record<number, number>;
@@ -109,6 +117,7 @@ export type DeckRequirement = {
   manaCost?: string | null;
   colorIdentity?: string[];
   location?: string | null;
+  legalities?: Record<string, string>;
   isCommander?: boolean;
   legalityStatus?: "legal" | "banned" | "not_legal" | "restricted" | "unknown";
 };
@@ -164,6 +173,114 @@ export type BuildOpportunity = {
   name: string;
   formatId: DeckArchitectFormatId;
   buildability: BuildabilityScore;
+  category?: "ready-now" | "nearly-complete" | "worth-considering";
+  archetypeId?: string;
+  missingCards?: OwnershipMatch[];
+  ownedSubstitutions?: OwnedSubstitution[];
+  confidence?: RecommendationConfidence;
+  signals?: RecommendationSignal[];
   source: "collection-calculation" | "template-provider" | "future-provider";
   disclosure: string;
+};
+
+export type DeckKnowledgeCardSeed = {
+  name: string;
+  quantity: number;
+  roles: DeckArchitectRole[];
+  importance?: number;
+  estimatedPrice?: number | null;
+  typeLine?: string;
+  oracleText?: string;
+  colorIdentity?: string[];
+  tags?: string[];
+};
+
+export type DeckArchetypeProfile = {
+  id: string;
+  name: string;
+  formatId: DeckArchitectFormatId;
+  colors: string[];
+  summary: string;
+  roleTargets: RecommendationProfile["roleTargets"];
+  coreCards: DeckKnowledgeCardSeed[];
+  flexCards: DeckKnowledgeCardSeed[];
+  landPlan?: DeckKnowledgeCardSeed[];
+  provenance: string[];
+  sourceType: "trading-docks-authored" | "external-provider";
+};
+
+export type CommanderStrategyProfile = {
+  id: string;
+  commanderName: string;
+  label: string;
+  summary: string;
+  roles: DeckArchitectRole[];
+  confidence: RecommendationConfidence;
+  signals: RecommendationSignal[];
+  provenance: string[];
+};
+
+export type OwnedSubstitution = {
+  missingCardName: string;
+  ownedCard: CollectionGraphCard;
+  score: number;
+  confidence: RecommendationConfidence;
+  reasons: string[];
+};
+
+export type DeckRecommendation = {
+  id: string;
+  title: string;
+  body: string;
+  tone: "good" | "attention" | "neutral";
+  confidence: RecommendationConfidence;
+  signals: RecommendationSignal[];
+  adds: Array<{
+    name: string;
+    quantity: number;
+    reason: string;
+    ownedQuantity: number;
+    additionalCost: number | null;
+  }>;
+  cuts: Array<{
+    name: string;
+    quantity: number;
+    reason: string;
+  }>;
+};
+
+export type DeckValidationIssue = {
+  code: string;
+  severity: "error" | "warning";
+  cardName?: string;
+  message: string;
+};
+
+export type DeckValidationResult = {
+  valid: boolean;
+  issues: DeckValidationIssue[];
+};
+
+export type DeckArchitectIntelligence = {
+  generatedAt: string;
+  supportedFormats: DeckArchitectFormatId[];
+  provider: {
+    id: string;
+    name: string;
+    sourceType: "trading-docks-authored" | "external-provider";
+    provenance: string[];
+  };
+  opportunities: BuildOpportunity[];
+  commanderStrategies: Record<string, CommanderStrategyProfile[]>;
+  recommendations: DeckRecommendation[];
+  limitations: string[];
+};
+
+export type DeckArchitectSavedDeckSummary = {
+  id: string;
+  name: string;
+  format: string | null;
+  commander: string | null;
+  cardCount: number | null;
+  updatedAt: string | null;
 };

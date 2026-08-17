@@ -21,13 +21,19 @@ import {
   BUILD_INTENTS,
   INITIAL_DECK_ARCHITECT_FORMATS,
   analyzeDeckHealth,
+  buildWorkingDeckRequirementsFromCollection,
   calculateBuildabilityScore,
   compareRequirementsToCollection,
   getFormatProfile,
+  proposeDeckRecommendations,
+  type BuildOpportunity,
   type BuildIntentId,
   type CollectionGraphCard,
   type DeckArchitectFormatId,
+  type DeckArchitectIntelligence,
   type DeckArchitectRole,
+  type DeckArchitectSavedDeckSummary,
+  type DeckRecommendation,
   type DeckRequirement,
   type OwnershipMatch,
 } from "@/lib/deck-architect";
@@ -111,8 +117,12 @@ const ROLE_ORDER: DeckArchitectRole[] = [
 ];
 
 export function DeckArchitectWorkspace({
+  intelligence,
+  savedDecks,
   snapshot,
 }: {
+  intelligence: DeckArchitectIntelligence;
+  savedDecks: DeckArchitectSavedDeckSummary[];
   snapshot: DeckArchitectCollectionSnapshot;
 }) {
   const [workflowId, setWorkflowId] = useState<WorkflowId | null>(null);
@@ -131,7 +141,7 @@ export function DeckArchitectWorkspace({
   const canBuildWorkingDeck = snapshot.cards.length > 0 && (!format.commanderRequired || Boolean(selectedCommander));
 
   const deckRequirements = useMemo(
-    () => canBuildWorkingDeck ? buildWorkingDeckRequirements(snapshot.cards, formatId, selectedCommander, intentId) : [],
+    () => canBuildWorkingDeck ? buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId) : [],
     [canBuildWorkingDeck, formatId, intentId, selectedCommander, snapshot.cards],
   );
   const targetDeckSize = format.exactDeckSize ?? format.minimumMainDeckSize ?? 60;
@@ -147,6 +157,19 @@ export function DeckArchitectWorkspace({
   const health = useMemo(
     () => deckRequirements.length && hasCompleteWorkingDeck ? analyzeDeckHealth(deckRequirements, format) : null,
     [deckRequirements, format, hasCompleteWorkingDeck],
+  );
+  const activeRecommendations = useMemo(
+    () => deckRequirements.length && hasCompleteWorkingDeck
+      ? proposeDeckRecommendations({
+        requirements: deckRequirements,
+        collection: snapshot.cards,
+        format,
+        commander: selectedCommander,
+        lockedCardIds: lockedCards,
+        mustIncludeCardIds: mustIncludeCards,
+      })
+      : intelligence.recommendations,
+    [deckRequirements, format, hasCompleteWorkingDeck, intelligence.recommendations, lockedCards, mustIncludeCards, selectedCommander, snapshot.cards],
   );
   const selectedCard = ownership.find((match) => match.requirement.id === selectedCardId) ?? null;
   const missing = ownership.filter((match) => match.missingQuantity > 0);
@@ -203,6 +226,11 @@ export function DeckArchitectWorkspace({
                       {snapshot.totalOwnedQuantity.toLocaleString("en-US")} cards currently tracked
                     </p>
                   ) : null}
+                  {workflow.id === "improve" ? (
+                    <p className="mt-3 text-sm font-semibold text-cyan-200">
+                      {savedDecks.length ? `${savedDecks.length} recent Deck Vault decks available` : "Open Deck Vault to import or save a deck"}
+                    </p>
+                  ) : null}
                   <p className="mt-3 flex-1 text-sm leading-6 text-slate-400">{workflow.description}</p>
                   <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300">
                     {workflow.action}
@@ -255,12 +283,24 @@ export function DeckArchitectWorkspace({
                   }}
                   search={commanderSearch}
                   setSearch={setCommanderSearch}
+                  strategiesByCommander={intelligence.commanderStrategies}
                 />
               ) : null}
             </aside>
 
             <div className="min-w-0">
-              {!canBuildWorkingDeck ? (
+              {workflowId === "discover" ? (
+                <DiscoverWorkspace
+                  opportunities={intelligence.opportunities}
+                  provider={intelligence.provider}
+                  limitations={intelligence.limitations}
+                  onChooseFormat={(nextFormat) => {
+                    setFormatId(nextFormat);
+                    setWorkflowId("build-deck");
+                    setViewMode("deck");
+                  }}
+                />
+              ) : !canBuildWorkingDeck ? (
                 <PreBuildState
                   formatId={formatId}
                   formatRequiresCommander={format.commanderRequired}
@@ -283,6 +323,7 @@ export function DeckArchitectWorkspace({
                   ownership={ownership}
                   selectedCard={selectedCard}
                   selectedCommander={selectedCommander}
+                  recommendations={activeRecommendations}
                   setSelectedCardId={setSelectedCardId}
                   toggleLocked={(id) => toggleSet(setLockedCards, lockedCards, id)}
                   toggleMustInclude={(id) => toggleSet(setMustIncludeCards, mustIncludeCards, id)}
@@ -327,6 +368,146 @@ function CollectionSummary({ snapshot }: { snapshot: DeckArchitectCollectionSnap
         </div>
       ) : null}
     </section>
+  );
+}
+
+function DiscoverWorkspace({
+  opportunities,
+  provider,
+  limitations,
+  onChooseFormat,
+}: {
+  opportunities: BuildOpportunity[];
+  provider: DeckArchitectIntelligence["provider"];
+  limitations: string[];
+  onChooseFormat: (formatId: DeckArchitectFormatId) => void;
+}) {
+  const ready = opportunities.filter((opportunity) => opportunity.category === "ready-now");
+  const nearly = opportunities.filter((opportunity) => opportunity.category === "nearly-complete");
+  const considering = opportunities.filter((opportunity) => opportunity.category === "worth-considering");
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.2)]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-cyan-300">What Can I Build?</p>
+            <h2 className="mt-1 text-3xl font-semibold tracking-[-0.05em] text-white">Collection opportunities</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Ranked from deterministic archetype profiles, owned quantities, missing-card cost, and legality validation.
+            </p>
+          </div>
+          <div className="rounded-[14px] bg-black/20 px-4 py-3">
+            <p className="text-xs font-semibold text-slate-200">{provider.name}</p>
+            <p className="mt-1 text-xs text-slate-500">Trading Docks-authored rules</p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <HeaderMetric label="Ready now" value={String(ready.length)} />
+          <HeaderMetric label="Nearly complete" value={String(nearly.length)} />
+          <HeaderMetric label="Worth considering" value={String(considering.length)} />
+        </div>
+      </div>
+
+      {opportunities.length ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {opportunities.map((opportunity) => (
+            <OpportunityCard key={opportunity.id} opportunity={opportunity} onChooseFormat={onChooseFormat} />
+          ))}
+        </div>
+      ) : (
+        <CenteredState
+          title="No supported opportunities yet"
+          body="Deck Architect did not find a supported Pauper or Commander opportunity in the current collection snapshot."
+          action={<LinkButton href="/dashboard/inventory">Add cards</LinkButton>}
+        />
+      )}
+
+      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+        <p className="text-sm font-semibold text-white">Provider boundaries</p>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          {limitations.map((item) => (
+            <p key={item} className="rounded-[12px] bg-black/20 p-3 text-xs leading-5 text-slate-500">
+              {item}
+            </p>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function OpportunityCard({
+  opportunity,
+  onChooseFormat,
+}: {
+  opportunity: BuildOpportunity;
+  onChooseFormat: (formatId: DeckArchitectFormatId) => void;
+}) {
+  const category = opportunity.category === "ready-now"
+    ? "Ready now"
+    : opportunity.category === "nearly-complete"
+      ? "Nearly complete"
+      : "Worth considering";
+  const categoryClass = opportunity.category === "ready-now"
+    ? "text-emerald-200"
+    : opportunity.category === "nearly-complete"
+      ? "text-cyan-200"
+      : "text-slate-300";
+  const missing = opportunity.missingCards ?? [];
+  const substitutions = opportunity.ownedSubstitutions ?? [];
+
+  return (
+    <article className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${categoryClass}`}>{category}</p>
+          <h3 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-white">{opportunity.name}</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{opportunity.disclosure}</p>
+        </div>
+        <p className="rounded-full bg-black/25 px-3 py-1 text-xs font-semibold text-slate-300">
+          {getFormatProfile(opportunity.formatId).name}
+        </p>
+      </div>
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        <HeaderMetric label="Buildable" value={`${opportunity.buildability.score}%`} />
+        <HeaderMetric label="Owned" value={`${opportunity.buildability.ownedCards}/${opportunity.buildability.requiredCards}`} />
+        <HeaderMetric
+          label="Completion"
+          value={opportunity.buildability.estimatedCompletionCost === null ? "Unknown" : `$${opportunity.buildability.estimatedCompletionCost.toFixed(0)}`}
+        />
+      </div>
+      <div className="mt-5 space-y-2">
+        {missing.slice(0, 3).map((match) => (
+          <div key={match.requirement.id} className="flex items-center justify-between gap-3 rounded-[12px] bg-black/20 p-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">{match.requirement.name}</p>
+              <p className="mt-1 text-xs text-slate-500">Need {match.missingQuantity} / {primaryRoleLabel(match.requirement.roles)}</p>
+            </div>
+            <p className="text-xs font-semibold text-slate-300">
+              {match.estimatedMissingValue === null ? "Price unavailable" : `$${match.estimatedMissingValue.toFixed(2)}`}
+            </p>
+          </div>
+        ))}
+        {substitutions[0] ? (
+          <p className="rounded-[12px] bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-100/80">
+            Owned substitute: {substitutions[0].ownedCard.name} for {substitutions[0].missingCardName}
+          </p>
+        ) : null}
+      </div>
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onChooseFormat(opportunity.formatId)}
+          className="rounded-[12px] bg-cyan-300 px-4 py-2 text-sm font-semibold text-[#02131b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+        >
+          Build in this format
+        </button>
+        <p className="text-xs text-slate-500">
+          Confidence: {opportunity.confidence ?? "medium"}
+        </p>
+      </div>
+    </article>
   );
 }
 
@@ -424,12 +605,14 @@ function CommanderPicker({
   setSelectedCommanderId,
   search,
   setSearch,
+  strategiesByCommander,
 }: {
   commanders: CollectionGraphCard[];
   selectedCommanderId: string | null;
   setSelectedCommanderId: (id: string) => void;
   search: string;
   setSearch: (value: string) => void;
+  strategiesByCommander: DeckArchitectIntelligence["commanderStrategies"];
 }) {
   return (
     <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
@@ -446,6 +629,7 @@ function CommanderPicker({
       <div className="mt-3 space-y-2">
         {commanders.length ? commanders.map((card) => {
           const selected = card.inventoryId === selectedCommanderId;
+          const strategy = strategiesByCommander[card.inventoryId]?.[0];
           return (
             <button
               key={card.inventoryId}
@@ -462,6 +646,11 @@ function CommanderPicker({
                 <span className="mt-1 block text-xs text-slate-500">
                   Owned {card.quantityOwned}{card.setCode ? ` / ${card.setCode.toUpperCase()}` : ""}
                 </span>
+                {strategy ? (
+                  <span className="mt-1 block truncate text-xs text-cyan-200/80">
+                    {strategy.label} / {strategy.confidence} confidence
+                  </span>
+                ) : null}
               </span>
               {selected ? <Check className="h-4 w-4 text-cyan-200" /> : <ChevronRight className="h-4 w-4 text-slate-600" />}
             </button>
@@ -545,6 +734,7 @@ function ActiveDeckWorkspace({
   missing,
   mustIncludeCards,
   ownership,
+  recommendations,
   selectedCard,
   selectedCommander,
   setSelectedCardId,
@@ -565,6 +755,7 @@ function ActiveDeckWorkspace({
   missing: OwnershipMatch[];
   mustIncludeCards: Set<string>;
   ownership: OwnershipMatch[];
+  recommendations: DeckRecommendation[];
   selectedCard: OwnershipMatch | null;
   selectedCommander: CollectionGraphCard | null;
   setSelectedCardId: (id: string | null) => void;
@@ -646,7 +837,7 @@ function ActiveDeckWorkspace({
       ) : null}
 
       {viewMode === "intelligence" ? (
-        <DeckIntelligence health={health} missing={missing} formatId={formatId} />
+        <DeckIntelligence health={health} missing={missing} formatId={formatId} recommendations={recommendations} />
       ) : null}
 
       {selectedCard ? (
@@ -852,10 +1043,12 @@ function DeckIntelligence({
   health,
   missing,
   formatId,
+  recommendations,
 }: {
   health: ReturnType<typeof analyzeDeckHealth> | null;
   missing: OwnershipMatch[];
   formatId: DeckArchitectFormatId;
+  recommendations: DeckRecommendation[];
 }) {
   const issues = health?.warnings ?? [];
   return (
@@ -890,16 +1083,32 @@ function DeckIntelligence({
             body="Save/apply actions remain disabled until Deck Vault proposal persistence is connected."
             tone="neutral"
           />
+          {recommendations.slice(0, 3).map((recommendation) => (
+            <IntelligenceItem
+              key={recommendation.id}
+              title={recommendation.title}
+              body={`${recommendation.body} Confidence: ${recommendation.confidence}.`}
+              tone={recommendation.tone}
+            />
+          ))}
         </div>
       </div>
       <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
         <p className="text-sm font-semibold text-white">Recommended Change</p>
-        {missing[0] ? (
+        {recommendations[0]?.adds[0] ? (
           <div className="mt-4 space-y-4">
-            <SwapRow label="Remove" name="Open deck slot" note="No current card selected." />
-            <SwapRow label="Add" name={missing[0].requirement.name} note={missing[0].estimatedMissingValue === null ? "Price unavailable" : `$${missing[0].estimatedMissingValue.toFixed(2)} estimated`} />
+            <SwapRow
+              label="Remove"
+              name={recommendations[0].cuts[0]?.name ?? "Open deck slot"}
+              note={recommendations[0].cuts[0]?.reason ?? "No current card selected."}
+            />
+            <SwapRow
+              label="Add"
+              name={recommendations[0].adds[0].name}
+              note={recommendations[0].adds[0].additionalCost === null ? "Price unavailable" : `$${recommendations[0].adds[0].additionalCost.toFixed(2)} estimated`}
+            />
             <p className="text-sm leading-6 text-slate-500">
-              Why: fills a missing {primaryRoleLabel(missing[0].requirement.roles)} role in this working plan.
+              Why: {recommendations[0].adds[0].reason}
             </p>
             <div className="flex flex-wrap gap-2">
               <button type="button" className="rounded-[12px] bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-400" disabled>
@@ -976,88 +1185,6 @@ function CardDetailDrawer({
       </div>
     </div>
   );
-}
-
-function buildWorkingDeckRequirements(
-  cards: CollectionGraphCard[],
-  formatId: DeckArchitectFormatId,
-  commander: CollectionGraphCard | null,
-  intentId: BuildIntentId,
-): DeckRequirement[] {
-  const format = getFormatProfile(formatId);
-  const targetSize = format.exactDeckSize ?? format.minimumMainDeckSize ?? 60;
-  const pool = cards
-    .filter((card) => !commander || card.inventoryId === commander.inventoryId || colorIdentityFits(card, commander))
-    .sort((left, right) => scoreCardForIntent(right, intentId) - scoreCardForIntent(left, intentId));
-  const requirements: DeckRequirement[] = [];
-
-  if (commander) requirements.push(toRequirement(commander, 1, "commander", true));
-
-  let currentCount = requirements.reduce((sum, card) => sum + card.requiredQuantity, 0);
-  for (const card of pool) {
-    if (commander && card.inventoryId === commander.inventoryId) continue;
-    if (currentCount >= targetSize) break;
-    const quantity = format.singleton ? 1 : Math.min(4, Math.max(1, Math.min(card.quantityOwned, 4)));
-    const nextQuantity = Math.min(quantity, targetSize - currentCount);
-    requirements.push(toRequirement(card, nextQuantity, "main", false));
-    currentCount += nextQuantity;
-  }
-
-  return requirements;
-}
-
-function toRequirement(card: CollectionGraphCard, quantity: number, board: "commander" | "main", isCommander: boolean): DeckRequirement {
-  return {
-    id: `${board}:${card.inventoryId}`,
-    name: card.name,
-    requiredQuantity: quantity,
-    board,
-    roles: inferRoles(card),
-    estimatedPrice: card.marketPrice ?? null,
-    importance: isCommander ? 1.5 : 1,
-    imageUri: card.imageUri,
-    typeLine: card.typeLine,
-    oracleText: card.oracleText,
-    manaCost: card.manaCost,
-    colorIdentity: card.colorIdentity,
-    location: card.location,
-    isCommander,
-    legalityStatus: "unknown",
-  };
-}
-
-function inferRoles(card: CollectionGraphCard): DeckArchitectRole[] {
-  const typeLine = card.typeLine?.toLowerCase() ?? "";
-  const name = card.name.toLowerCase();
-  const roles: DeckArchitectRole[] = [];
-  if (typeLine.includes("land")) roles.push("land");
-  if (/draw|study|ponder|consider|insight|harmonize|remora|rhystic/.test(name)) roles.push("card-advantage");
-  if (/counter|negate|swords|path|destroy|exile|bolt|removal|claim|push/.test(name)) roles.push("interaction", "removal");
-  if (/ramp|signet|sol ring|cultivate|treasure|lore|elder/.test(name)) roles.push("ramp", "mana-fixing");
-  if (/protect|heroic intervention|boots|greaves|ward/.test(name)) roles.push("protection");
-  if (/tutor|search/.test(name)) roles.push("tutor");
-  if (/combo|engine|altar|station/.test(name)) roles.push("combo-piece", "synergy");
-  if (!roles.length) roles.push(typeLine.includes("creature") ? "threat" : "synergy");
-  return [...new Set(roles)];
-}
-
-function colorIdentityFits(card: CollectionGraphCard, commander: CollectionGraphCard) {
-  const colors = card.colorIdentity ?? [];
-  const commanderColors = commander.colorIdentity ?? [];
-  return colors.every((color) => commanderColors.includes(color));
-}
-
-function scoreCardForIntent(card: CollectionGraphCard, intentId: BuildIntentId) {
-  const roles = inferRoles(card);
-  let score = card.quantityOwned * 4;
-  if (roles.includes("land")) score += 8;
-  if (roles.includes("ramp")) score += 7;
-  if (roles.includes("interaction")) score += 6;
-  if (roles.includes("card-advantage")) score += 5;
-  if (intentId === "no-purchases" || intentId === "use-collection") score += card.quantityOwned * 2;
-  if (intentId === "budget" && (card.marketPrice ?? 0) <= 5) score += 4;
-  if (intentId === "competitive" && roles.some((role) => role === "interaction" || role === "ramp")) score += 4;
-  return score;
 }
 
 function groupByRole(ownership: OwnershipMatch[]) {

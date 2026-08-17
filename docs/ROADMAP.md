@@ -236,7 +236,7 @@ Recommended next checkpoint:
 
 ## Deck Architect
 
-Status: Foundation Implemented.
+Status: Deterministic Recommendation Foundation Implemented.
 
 Implemented this checkpoint:
 
@@ -245,11 +245,12 @@ Implemented this checkpoint:
 3. Loaded real user-scoped collection data from `inventory_items` for the initial collection graph snapshot.
 4. Kept proposal review, must-include, locked-card, and AI concepts as explicit foundations without claiming autonomous deckbuilding.
 5. Polished the active product surface into a progressive customer workflow with card imagery, Commander selection, deck/card/intelligence modes, card-detail drawer, ownership states, and honest unavailable states for save/apply persistence.
+6. Added a deterministic Deck Intelligence provider with Trading Docks-authored Pauper archetype profiles, Commander strategy inference, legality validation, ranked "What Can I Build?" opportunities, confidence signals, and owned-card substitutions.
 
 Recommended next checkpoint:
 
 1. Add saved proposal persistence and apply/revert flows into Deck Vault.
-2. Add provider-backed archetype/template catalogs with source attribution and no copied third-party workflows.
-3. Add legality/provider validation for each supported format.
-4. Expand collection leverage and "What Can I Build?" from foundation scoring into complete candidate deck planning.
+2. Add external provider-backed archetype/template catalogs with source attribution and no copied third-party workflows.
+3. Expand legality/provider validation from saved Scryfall legalities into provider refresh and stale-data handling.
+4. Expand collection leverage from deterministic Pauper/Commander opportunities into complete candidate deck planning for additional formats.
 5. Add upgrade workflows for existing decks with missing-card, budget, and locked-card constraints.

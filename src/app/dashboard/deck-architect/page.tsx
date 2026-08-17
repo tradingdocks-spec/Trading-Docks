@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { DeckArchitectWorkspace } from "@/components/dashboard/deck-architect/DeckArchitectWorkspace";
-import { loadDeckArchitectCollectionSnapshot } from "@/lib/deck-architect/server";
+import { loadDeckArchitectServerState } from "@/lib/deck-architect/server";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DeckArchitectPage() {
@@ -12,7 +12,7 @@ export default async function DeckArchitectPage() {
 
   if (!user) redirect("/sign-in?next=/dashboard/deck-architect");
 
-  const snapshot = await loadDeckArchitectCollectionSnapshot(supabase, user);
+  const { snapshot, intelligence, savedDecks } = await loadDeckArchitectServerState(supabase, user);
 
-  return <DeckArchitectWorkspace snapshot={snapshot} />;
+  return <DeckArchitectWorkspace snapshot={snapshot} intelligence={intelligence} savedDecks={savedDecks} />;
 }
