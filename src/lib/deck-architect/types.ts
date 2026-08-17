@@ -127,6 +127,9 @@ export type DeckRequirement = {
   typeLine?: string | null;
   oracleText?: string | null;
   manaCost?: string | null;
+  setCode?: string | null;
+  collectorNumber?: string | null;
+  tcgplayerId?: string | number | null;
   colorIdentity?: string[];
   location?: string | null;
   legalities?: Record<string, string>;
@@ -391,6 +394,19 @@ export type CommanderGenerationResult = {
   validation: DeckValidationResult;
   ownership: OwnershipMatch[];
   buildability: BuildabilityScore | null;
+  qualityGates: {
+    formatValid: boolean;
+    commanderValid: boolean;
+    strategyCoherent: boolean;
+    roleCoverageAcceptable: boolean;
+    manaBaseAcceptable: boolean;
+    candidateConfidenceAcceptable: boolean;
+    noFiller: boolean;
+  };
+  pricingSummary: {
+    knownCompletionCost: number | null;
+    unavailablePriceCount: number;
+  };
   strategyFit: CommanderStrategyFit | null;
   candidateSourcePolicy: string;
   candidateSource: "owned-only" | "owned-plus-curated" | "global-scryfall" | "global-fixture";

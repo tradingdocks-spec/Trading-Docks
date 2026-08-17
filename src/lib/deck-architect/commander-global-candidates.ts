@@ -47,20 +47,20 @@ export function commanderStrategyQueries(
     ...(strategy?.taxonomy?.mechanics ?? []),
   ].map((value) => value.toLowerCase());
   const queries = [
-    `${color} f:commander -is:digital`,
-    `${color} f:commander (t:land or o:"add one mana" or o:treasure) -is:digital`,
-    `${color} f:commander (o:"draw a card" or o:"exile the top" or o:"impulse") -is:digital`,
-    `${color} f:commander (o:"destroy target" or o:"exile target" or o:"damage to any target") -is:digital`,
+    `${color} f:commander game:paper -is:digital -is:funny`,
+    `${color} f:commander game:paper (t:land or o:"add one mana" or o:treasure) -is:digital -is:funny`,
+    `${color} f:commander game:paper (o:"draw a card" or o:"exile the top" or o:"impulse") -is:digital -is:funny`,
+    `${color} f:commander game:paper (o:"destroy target" or o:"exile target" or o:"damage to any target") -is:digital -is:funny`,
   ];
-  if (typal) queries.unshift(`${color} f:commander (t:${typal} or o:${typal}) -is:digital`);
+  if (typal) queries.unshift(`${color} f:commander game:paper (t:${typal} or o:${typal}) -is:digital -is:funny`);
   if (strategyTerms.some((term) => term.includes("token"))) {
-    queries.unshift(`${color} f:commander (o:"create" o:"token") -is:digital`);
+    queries.unshift(`${color} f:commander game:paper (o:"create" o:"token") -is:digital -is:funny`);
   }
   if (strategyTerms.some((term) => term.includes("aristocrat") || term.includes("sacrifice"))) {
-    queries.unshift(`${color} f:commander (o:"sacrifice" or o:"dies") -is:digital`);
+    queries.unshift(`${color} f:commander game:paper (o:"sacrifice" or o:"dies") -is:digital -is:funny`);
   }
   if (strategyTerms.some((term) => term.includes("combo"))) {
-    queries.unshift(`${color} f:commander (o:"untap" or o:"add" or o:"sacrifice") -is:digital`);
+    queries.unshift(`${color} f:commander game:paper (o:"untap" or o:"add" or o:"sacrifice") -is:digital -is:funny`);
   }
   return [...new Set(queries)].slice(0, 7);
 }
@@ -87,7 +87,8 @@ export async function fetchCommanderGlobalCandidates({
   const deduped = new Map<string, CollectionGraphCard>();
   for (const card of rows) {
     if (!commanderColorIdentityFits(card, commander)) continue;
-    if (card.legalities?.commander && card.legalities.commander !== "legal") continue;
+    if (card.legalities?.commander !== "legal") continue;
+    if (isNonPlayableObject(card)) continue;
     if (intentId === "budget" && budgetDollars !== null && card.marketPrice !== null && (card.marketPrice ?? 0) > Math.max(5, budgetDollars / 4)) continue;
     const key = normalizeCardKey(card.name);
     if (!deduped.has(key)) deduped.set(key, card);
@@ -102,6 +103,19 @@ export async function fetchCommanderGlobalCandidates({
       inventoryId: card.inventoryId.startsWith("global:") ? card.inventoryId : `global:${card.inventoryId}`,
       quantityOwned: 0,
     }));
+}
+
+function isNonPlayableObject(card: Pick<CollectionGraphCard, "name" | "typeLine">) {
+  const typeLine = card.typeLine?.toLowerCase() ?? "";
+  const name = card.name.toLowerCase();
+  return typeLine.includes("token") ||
+    typeLine.includes("emblem") ||
+    typeLine.includes("plane ") ||
+    typeLine.includes("scheme") ||
+    typeLine.includes("vanguard") ||
+    typeLine.includes("phenomenon") ||
+    typeLine.includes("attraction") ||
+    name.includes(" // token");
 }
 
 export function scryfallCommanderProvider(fetcher = fetch): CommanderCandidateProvider {

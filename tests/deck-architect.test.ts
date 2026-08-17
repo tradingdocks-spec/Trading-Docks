@@ -10,6 +10,7 @@ import {
   buildWorkingDeckRequirementsFromCollection,
   cardLegalityForFormat,
   classifyCardRoles,
+  classifyCardRoleSignals,
   compareRequirementsToCollection,
   findOwnedCommanderCandidates,
   generateDeckArchitectIntelligence,
@@ -34,6 +35,7 @@ import {
   detectHiddenSynergies,
   validateDeckRequirements,
   analyzeDeckHealth,
+  resolveDeckCardImageUri,
   type CollectionGraphCard,
   type DeckRequirement,
 } from "../src/lib/deck-architect/index.ts";
@@ -689,7 +691,7 @@ test("Best Possible can build around an unowned potential commander without requ
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
 
-test("Krenko Best Possible uses global Commander candidates to produce a complete validated deck", () => {
+test("Krenko Best Possible returns a draft shell instead of completing with low-confidence filler", () => {
   const commander = {
     ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
     typeLine: "Legendary Creature - Goblin Warrior",
@@ -706,10 +708,11 @@ test("Krenko Best Possible uses global Commander candidates to produce a complet
   const names = new Set(result.requirements.map((requirement) => requirement.name));
   const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
 
-  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.generationStatus, "draft_shell");
   assert.equal(result.validation.valid, true);
   assert.equal(totalCards, 100);
-  assert.equal(result.buildability?.requiredCards, 100);
+  assert.equal(result.buildability, null);
+  assert.equal(result.qualityGates.noFiller, false);
   assert.equal(result.candidateSourcePolicy, "Strategy and catalog recommendations first; ownership is calculated afterward.");
   assert.equal(result.candidateSource, "global-fixture");
   assert.ok(names.has("Impact Tremors"));
@@ -734,12 +737,12 @@ test("Krenko Tin Street Kingpin potential commander keeps mono-red identity sepa
   });
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
-  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.generationStatus, "draft_shell");
   assert.equal(result.validation.valid, true);
   assert.equal(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
   assert.ok(names.has("Krenko, Tin Street Kingpin"));
   assert.equal(result.requirements.some((requirement) => requirement.colorIdentity.includes("U")), false);
-  assert.ok((result.buildability?.ownedCards ?? 0) < 100);
+  assert.equal(result.buildability, null);
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
 
@@ -763,10 +766,63 @@ test("Krenko Budget build respects the configured budget and surfaces unknown pr
   });
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
-  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.generationStatus, "draft_shell");
   assert.equal(result.validation.valid, true);
   assert.equal(names.has("Pricey Mono-Red Staple"), false);
   assert.ok(result.warnings.some((warning) => /strict budget compliance/i.test(warning)));
+  assert.ok(result.pricingSummary.unavailablePriceCount > 0);
+});
+
+test("bad production screenshot ramp fixtures cannot satisfy high-confidence Ramp", () => {
+  for (const badCard of [
+    commanderCard("big-wheel", "Big Wheel", ["R"], "Artifact", "Whenever a creature crews Big Wheel, add a lore counter."),
+    commanderCard("giants-boulder", "Giant's Boulder", ["R"], "Artifact", "Equipped creature gets +2/+0. It has reach as long as you control a Giant."),
+    commanderCard("contract-hero", "Contract Hero", ["R"], "Creature - Human Mercenary", "When this creature enters, create a Treasure token if you committed a crime this turn."),
+    commanderCard("gravestone-strider", "Gravestone Strider", ["R"], "Creature - Elemental", "When it enters, return target land card from your graveyard to your hand."),
+  ]) {
+    const signals = classifyCardRoleSignals(badCard);
+    assert.equal(signals.some((signal) => signal.role === "ramp" && signal.confidence === "high"), false, badCard.name);
+  }
+});
+
+test("complete Commander generation rejects illegal off-color banned and non-playable cards before ranking", () => {
+  const commander = commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]);
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: [
+      commanderCard("blue", "Blue Filler", ["U"], "Creature - Wizard", "Draw a card."),
+      { ...commanderCard("banned", "Banned Goblin", ["R"], "Creature - Goblin", "Create a Goblin token."), legalities: { commander: "banned" } },
+      { ...commanderCard("token", "Goblin Token", ["R"], "Token Creature - Goblin", "Token"), legalities: { commander: "legal" } },
+      ...krenkoCandidatePool(),
+    ],
+    candidateSource: "global-fixture",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(names.has("Blue Filler"), false);
+  assert.equal(names.has("Banned Goblin"), false);
+  assert.equal(names.has("Goblin Token"), false);
+  assert.notEqual(result.generationStatus, "complete");
+  assert.equal(result.buildability, null);
+});
+
+test("generated requirements use centralized image fallback and never encode unknown price as zero", () => {
+  const image = resolveDeckCardImageUri({ name: "Command Tower", imageUri: null });
+  assert.match(image, /\/api\/deck-vault\/card-image\?name=Command\+Tower/);
+
+  const result = constructValidatedCommanderDeck({
+    commander: commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: [{ ...commanderCard("unknown", "Unknown Price Goblin Engine", ["R"], "Creature - Goblin", "Create a Goblin token."), marketPrice: null }],
+    candidateSource: "global-fixture",
+  });
+  assert.equal(result.requirements.some((requirement) => requirement.estimatedPrice === 0), false);
+  assert.ok(result.requirements.every((requirement) => requirement.imageUri));
 });
 
 test("No Purchases Commander generation fails safely when owned cards are insufficient", () => {
