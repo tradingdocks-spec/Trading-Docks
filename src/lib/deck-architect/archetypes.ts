@@ -130,6 +130,9 @@ export function classifyStrategyTags(card: Pick<CollectionGraphCard, "name" | "t
   if (hasAny(haystack, ["prowess", "magecraft"])) tags.push("prowess", "spell-payoff");
   if (hasAny(haystack, ["+1/+1 counter", "counters on", "double the number of counters"])) tags.push("counters-payoff");
   if (haystack.includes("proliferate")) tags.push("proliferate");
+  if (hasAny(haystack, ["poison counter", "poison counters"])) tags.push("poison");
+  if (haystack.includes("infect")) tags.push("infect");
+  if (haystack.includes("toxic")) tags.push("toxic");
   if (hasAny(haystack, ["equipment", "equipped creature"])) tags.push("equipment-payoff");
   if (hasAny(haystack, ["aura", "enchanted creature"])) tags.push("aura-payoff");
   if (hasAny(haystack, ["commander gets", "equipped creature", "enchanted creature", "double strike", "trample"])) tags.push("voltron");
@@ -341,6 +344,9 @@ function tagsFromTaxonomy(taxonomy: NonNullable<CommanderStrategyProfile["taxono
     text.includes("spellslinger") ? "spellslinger" : null,
     text.includes("counter") ? "counters-payoff" : null,
     text.includes("proliferate") ? "proliferate" : null,
+    text.includes("poison") ? "poison" : null,
+    text.includes("infect") ? "infect" : null,
+    text.includes("toxic") ? "toxic" : null,
     text.includes("artifact") ? "artifact-synergy" : null,
   ].filter((tag): tag is DeckStrategyTag => Boolean(tag));
 }

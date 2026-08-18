@@ -70,6 +70,9 @@ export type DeckStrategyTag =
   | "prowess"
   | "counters-payoff"
   | "proliferate"
+  | "poison"
+  | "infect"
+  | "toxic"
   | "equipment-payoff"
   | "aura-payoff"
   | "voltron"
@@ -594,6 +597,8 @@ export type CommanderGenerationResult = {
   qualityGates: {
     formatValid: boolean;
     commanderValid: boolean;
+    canonicalFactsKnown: boolean;
+    legalityKnown: boolean;
     colorIdentityValid: boolean;
     archetypeValid: boolean;
     archetypeDensityAcceptable: boolean;
@@ -602,6 +607,7 @@ export type CommanderGenerationResult = {
     roleCoverageAcceptable: boolean;
     manaBaseAcceptable: boolean;
     candidateConfidenceAcceptable: boolean;
+    deckIdentityAcceptable: boolean;
     noRejectedCards: boolean;
     noFiller: boolean;
   };

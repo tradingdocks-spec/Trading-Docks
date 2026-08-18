@@ -2,6 +2,7 @@ export * from "./archetypes.ts";
 export * from "./buildability.ts";
 export * from "./brewer.ts";
 export * from "./card-assets.ts";
+export * from "./card-facts.ts";
 export * from "./card-roles.ts";
 export * from "./commander-search.ts";
 export * from "./commander-catalog.ts";

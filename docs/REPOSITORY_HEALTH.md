@@ -391,6 +391,7 @@ Implemented improvements:
 - Added Architect -> Builder and Builder -> Architect navigation through existing Deck Vault persistence and user-scoped deck id loading.
 - Added potential commander search through the supported card-search path, with not-owned commanders reflected in missing-card summaries.
 - Added the first serious deterministic recommendation engine layer: expanded role vocabulary, collection-aware commander strategy ranking, validated Pauper archetype construction, validated Commander shell construction, structured add/cut swaps, owned substitute ranking, and atomic non-persistent proposal application.
+- Hardened Commander recommendation correctness so unknown legality, malformed metadata, weak archetype relevance, and low-confidence role signals produce draft shells or rejections rather than technically legal but nonsensical filler.
 - Added the Master Brewer foundation with structured natural-language constraint parsing, Hidden Synergy clusters, Deck Personality heuristics, Role Compression, strategy-overload detection, What If/Fork previews, Surprise Me directions, and collection-specific opportunity discovery.
 - Added an explicit Build My Deck transition before the focused workspace appears.
 

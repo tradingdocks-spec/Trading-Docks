@@ -1,12 +1,12 @@
 import type { CollectionGraphCard, DeckArchitectRole, DeckRequirement } from "./types.ts";
 
 type RoleInput = Pick<CollectionGraphCard | DeckRequirement, "name" | "oracleText" | "typeLine" | "manaCost">;
-export type RoleSignal = { role: DeckArchitectRole; confidence: "high" | "medium" | "low"; reason: string };
+export type RoleSignal = { role: DeckArchitectRole; confidence: "high" | "medium" | "low"; confidenceScore: number; reason: string };
 
 export function classifyCardRoles(card: RoleInput): DeckArchitectRole[] {
   const signals = classifyCardRoleSignals(card);
   const roles = signals
-    .filter((signal) => signal.confidence !== "low")
+    .filter((signal) => signal.confidenceScore >= 0.55)
     .map((signal) => signal.role);
   return [...new Set<DeckArchitectRole>(roles.length ? roles : ["synergy"])];
 }
@@ -27,7 +27,7 @@ export function classifyCardRoleSignals(card: RoleInput): RoleSignal[] {
   if (isManaRock(card)) add(signals, "mana-rock", "high", "Artifact that produces mana.");
   if (isManaDork(card)) add(signals, "mana-dork", "high", "Creature that produces mana.");
   if (isRitual(card)) add(signals, "ritual", "high", "Temporary burst mana.");
-  if (isTreasureGeneration(card)) add(signals, "treasure-generation", isConditionalTreasure(card) ? "medium" : "high", "Creates Treasure mana.");
+  if (isTreasureGeneration(card)) add(signals, "treasure-generation", isConditionalTreasure(card) ? "medium" : "high", isConditionalTreasure(card) ? "Conditionally creates Treasure." : "Creates Treasure mana.");
   if (isCostReduction(card)) add(signals, "cost-reduction", "high", "Reduces spell or typal costs.");
   if (isHighConfidenceRamp(card)) {
     add(signals, "ramp", "high", "Meaningfully accelerates mana.");
@@ -108,7 +108,7 @@ export function classifyCardRoleSignals(card: RoleInput): RoleSignal[] {
     add(signals, "finisher", "medium", "Can help close a game.");
   }
 
-  return dedupeSignals(signals.length ? signals : [{ role: "synergy", confidence: "low", reason: "No stronger role evidence." }]);
+  return dedupeSignals(signals.length ? signals : [{ role: "synergy", confidence: "low", confidenceScore: 0.2, reason: "No stronger role evidence." }]);
 }
 
 function matches(value: string, needles: string[]) {
@@ -116,15 +116,15 @@ function matches(value: string, needles: string[]) {
 }
 
 function add(signals: RoleSignal[], role: DeckArchitectRole, confidence: RoleSignal["confidence"], reason: string) {
-  signals.push({ role, confidence, reason });
+  const confidenceScore = confidence === "high" ? 0.9 : confidence === "medium" ? 0.6 : 0.25;
+  signals.push({ role, confidence, confidenceScore, reason });
 }
 
 function dedupeSignals(signals: RoleSignal[]) {
-  const rank = { high: 3, medium: 2, low: 1 };
   const byRole = new Map<DeckArchitectRole, RoleSignal>();
   for (const signal of signals) {
     const previous = byRole.get(signal.role);
-    if (!previous || rank[signal.confidence] > rank[previous.confidence]) byRole.set(signal.role, signal);
+    if (!previous || signal.confidenceScore > previous.confidenceScore) byRole.set(signal.role, signal);
   }
   return [...byRole.values()];
 }
@@ -134,7 +134,7 @@ function isHighConfidenceRamp(card: RoleInput) {
   const oracleText = card.oracleText?.toLowerCase() ?? "";
   const name = card.name.toLowerCase();
   if (matches(name, ["sol ring", "arcane signet", "signet", "talisman", "cultivate", "kodama's reach", "nature's lore", "skirk prospector"])) return true;
-  if (matches(oracleText, ["add two mana", "add two colorless", "add three mana", "for each", "search your library for up to two basic land cards", "put a land card onto the battlefield", "put those cards onto the battlefield"])) return true;
+  if (matches(oracleText, ["add two mana", "add two colorless", "add three mana", "search your library for up to two basic land cards", "put a land card onto the battlefield", "put those cards onto the battlefield", "you may play an additional land"])) return true;
   if (/add\s+\w+\s+and\s+\w+\s+mana/.test(oracleText)) return true;
   if (/add\s+(white|blue|black|red|green)\s+and\s+(white|blue|black|red|green)\s+mana/.test(oracleText)) return true;
   if (matches(oracleText, ["add one mana of any color", "add one mana of the chosen color", "add one mana of any color in your commander's color identity"]) && !typeLine.includes("land")) return true;

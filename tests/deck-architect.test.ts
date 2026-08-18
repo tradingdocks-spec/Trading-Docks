@@ -46,7 +46,9 @@ import {
   buildRecommendationEvidence,
   normalizeSpellbookPayload,
   passesProfessionalQualityFloor,
+  cardMetadataIssues,
   type CollectionGraphCard,
+  type CommanderGenerationResult,
   type DeckRequirement,
 } from "../src/lib/deck-architect/index.ts";
 import { loadDeckArchitectCollectionSnapshot, loadDeckArchitectSavedDecks, loadDeckArchitectServerState } from "../src/lib/deck-architect/server.ts";
@@ -662,14 +664,55 @@ test("Atraxa Poison and +1/+1 Counters generate materially different Best Possib
   const counterNames = new Set(counters.requirements.map((requirement) => requirement.name));
   const poisonNames = new Set(poison.requirements.map((requirement) => requirement.name));
 
-  assert.equal(counters.validation.valid, true);
-  assert.equal(poison.validation.valid, true);
-  assert.equal(counters.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
-  assert.equal(poison.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
+  assert.equal(counters.generationStatus, "draft_shell");
+  assert.equal(poison.generationStatus, "draft_shell");
+  assert.ok(counters.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0) < 100);
+  assert.ok(poison.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0) < 100);
   assert.ok(counterNames.has("Hardened Scales"));
   assert.ok(poisonNames.has("Venerated Rotpriest"));
   assert.equal(poisonNames.has("Hardened Scales"), false);
   assert.equal(counterNames.has("Venerated Rotpriest"), false);
+});
+
+test("unrelated Commander benchmarks do not recycle the same non-generic nonland package", () => {
+  const krenko = constructValidatedCommanderDeck({
+    commander: {
+      ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+      typeLine: "Legendary Creature - Goblin Warrior",
+      oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+    },
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: krenkoCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const atraxaPoison = constructValidatedCommanderDeck({
+    commander: commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "atraxa-poison",
+    globalCandidates: [],
+  });
+  const muldrotha = constructValidatedCommanderDeck({
+    commander: {
+      ...commanderCandidate("muldrotha", "Muldrotha, the Gravetide", ["B", "G", "U"]),
+      typeLine: "Legendary Creature - Elemental Avatar",
+      oracleText: "During each of your turns, you may play a permanent card of each permanent type from your graveyard.",
+    },
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "muldrotha-permanent-recursion",
+    globalCandidates: [],
+  });
+  const overlap = suspiciousOverlap([
+    nonGenericNonlandNames(krenko),
+    nonGenericNonlandNames(atraxaPoison),
+    nonGenericNonlandNames(muldrotha),
+  ]);
+
+  assert.equal(krenko.generationStatus, "complete");
+  assert.ok(overlap.length <= 2, overlap.join(", "));
 });
 
 test("No Purchases with an unowned potential commander is surfaced as an incomplete draft shell", () => {
@@ -695,8 +738,8 @@ test("Best Possible can build around an unowned potential commander without requ
     strategyId: "atraxa-poison",
   });
 
-  assert.equal(result.validation.valid, true);
-  assert.equal(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
+  assert.equal(result.generationStatus, "draft_shell");
+  assert.ok(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0) < 100);
   assert.ok(result.requirements.some((requirement) => requirement.name === "Venerated Rotpriest"));
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
@@ -794,9 +837,12 @@ test("bad production screenshot ramp fixtures cannot satisfy high-confidence Ram
     commanderCard("giants-boulder", "Giant's Boulder", ["R"], "Artifact", "Equipped creature gets +2/+0. It has reach as long as you control a Giant."),
     commanderCard("contract-hero", "Contract Hero", ["R"], "Creature - Human Mercenary", "When this creature enters, create a Treasure token if you committed a crime this turn."),
     commanderCard("gravestone-strider", "Gravestone Strider", ["R"], "Creature - Elemental", "When it enters, return target land card from your graveyard to your hand."),
+    commanderCard("zombie-mob", "Fixture Graveyard Counter Mob", ["B"], "Creature - Zombie", "This creature enters with counters. Exile a card from a graveyard to put a +1/+1 counter on it."),
+    commanderCard("scavenging-ghoul", "Fixture Scavenging Ghoul", ["B"], "Creature - Zombie", "At the beginning of your end step, if a creature card left a graveyard, put a counter on this."),
   ]) {
     const signals = classifyCardRoleSignals(badCard);
     assert.equal(signals.some((signal) => signal.role === "ramp" && signal.confidence === "high"), false, badCard.name);
+    assert.equal(signals.some((signal) => signal.role === "ramp" && signal.confidenceScore >= 0.55), false, badCard.name);
   }
 });
 
@@ -898,9 +944,63 @@ test("incidental Treasure text does not make Goblin Airbrusher a primary mana-fi
   const tags = classifyStrategyTags(card);
 
   assert.equal(roleSignals.some((signal) => signal.role === "mana-fixing" && signal.confidence === "high"), false);
+  assert.equal(roleSignals.some((signal) => signal.role === "mana-fixing" && signal.confidenceScore >= 0.55), false);
   assert.equal(roleSignals.some((signal) => signal.role === "ramp" && signal.confidence === "high"), false);
   assert.ok(tags.includes("goblin"));
   assert.equal(tags.includes("mana-engine"), false);
+});
+
+test("live screenshot mana-fixing patterns do not satisfy fixing from incidental Treasure or unrelated artifacts", () => {
+  const fixtures = [
+    commanderCard("grey-dog", "Fixture Long-Bodied Hound", ["R"], "Creature - Dog", "Whenever this creature attacks, create a Treasure token if you committed a crime this turn."),
+    commanderCard("kaleidoscope", "Fixture Diamond Kaleidoscope", [], "Artifact", "Pay three mana: Target creature becomes the color of your choice until end of turn."),
+    commanderCard("boulder", "Fixture Boulder Equipment", [], "Artifact - Equipment", "Equipped creature gets +2/+0. Equip 2."),
+  ];
+
+  for (const card of fixtures) {
+    const signals = classifyCardRoleSignals(card);
+    assert.equal(signals.some((signal) => signal.role === "mana-fixing" && signal.confidenceScore >= 0.55), false, card.name);
+    assert.equal(signals.some((signal) => signal.role === "color-fixing" && signal.confidenceScore >= 0.55), false, card.name);
+  }
+});
+
+test("owned discovery candidates with unknown legality cannot produce a completed Commander build", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const unknownLegalityCollection = [commander, ...krenkoCandidatePool().map((card) => {
+    const { legalities: _legalities, ...rest } = card;
+    return rest;
+  })];
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: unknownLegalityCollection,
+    intentId: "no-purchases",
+    strategyId: "krenko-go-wide-goblins",
+  });
+
+  assert.notEqual(result.generationStatus, "complete");
+  assert.equal(result.qualityGates.legalityKnown, false);
+  assert.equal(result.qualityGates.canonicalFactsKnown, false);
+});
+
+test("card metadata audit flags malformed final-build candidates", () => {
+  const issues = cardMetadataIssues({
+    inventoryId: "bad",
+    name: "Malformed Fixture",
+    quantityOwned: 1,
+    typeLine: "",
+    oracleText: "",
+    colorIdentity: undefined,
+    legalities: {},
+    marketPrice: null,
+  } as CollectionGraphCard);
+
+  assert.ok(issues.includes("missing-color-identity"));
+  assert.ok(issues.includes("missing-commander-legality"));
+  assert.ok(issues.includes("missing-type-line"));
 });
 
 test("professional role classification separates ramp, treasure, cost reduction, and color fixing", () => {
@@ -1532,7 +1632,28 @@ function commanderCandidate(
     oracleText: "Whenever you cast a spell, draw a card.",
     colorIdentity,
     marketPrice: null,
+    legalities: { commander: "legal" },
   };
+}
+
+function nonGenericNonlandNames(result: CommanderGenerationResult) {
+  const universal = new Set(["sol ring", "arcane signet", "command tower", "path of ancestry", "swiftfoot boots", "lightning greaves"]);
+  return result.requirements
+    .filter((requirement) => requirement.board === "main")
+    .filter((requirement) => !requirement.roles.includes("land"))
+    .filter((requirement) => requirement.archetypeCategory !== "generic")
+    .map((requirement) => requirement.name.toLowerCase())
+    .filter((name) => !universal.has(name));
+}
+
+function suspiciousOverlap(groups: string[][]) {
+  const counts = new Map<string, number>();
+  for (const group of groups) {
+    for (const name of new Set(group)) {
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()].filter(([, count]) => count >= 2).map(([name]) => name);
 }
 
 function commanderCard(
@@ -1550,6 +1671,7 @@ function commanderCard(
     oracleText,
     colorIdentity,
     marketPrice: 1,
+    legalities: { commander: "legal" },
   };
 }
 

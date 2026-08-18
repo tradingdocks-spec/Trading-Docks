@@ -6,6 +6,7 @@ import {
   type ArchetypeCandidateEvaluation,
 } from "./archetypes.ts";
 import { classifyCardRoles, classifyCardRoleSignals } from "./card-roles.ts";
+import { cardMetadataIssues, hasCanonicalCommanderFacts, isNonPlayableCardObject } from "./card-facts.ts";
 import { resolveDeckCardImageUri } from "./card-assets.ts";
 import { getCommanderCatalogCandidates } from "./commander-catalog.ts";
 import { commanderColorIdentityFits } from "./commander-global-candidates.ts";
@@ -119,6 +120,7 @@ export function assembleDeckRequirementsFromArchetype(
       typeLine: seed.typeLine,
       oracleText: seed.oracleText,
       colorIdentity: seed.colorIdentity,
+      legalities: { commander: "legal" },
       legalityStatus: "unknown",
     });
     current += quantity;
@@ -136,6 +138,7 @@ export function assembleDeckRequirementsFromArchetype(
       importance: 0.75,
       typeLine: `Basic Land - ${fallback}`,
       colorIdentity: archetype.colors.slice(0, 1),
+      legalities: { commander: "legal" },
       legalityStatus: "unknown",
     });
     current += remaining;
@@ -157,6 +160,7 @@ export function assembleDeckRequirementsFromArchetype(
         typeLine: seed.typeLine,
         oracleText: seed.oracleText,
         colorIdentity: seed.colorIdentity,
+        legalities: { commander: "legal" },
         legalityStatus: "unknown",
       });
       sideboardCount += quantity;
@@ -300,7 +304,7 @@ export function constructValidatedCommanderDeck({
 
   const basicLand = fallbackLandForColors(commander.colorIdentity ?? []);
   const current = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
-  if (current < 100 && intentId !== "no-purchases") {
+  if (current < 100 && intentId !== "no-purchases" && nonLandMainCount(requirements) >= 45) {
     requirements.push({
       id: `commander:${commander.inventoryId}:fallback-land`,
       name: basicLand,
@@ -311,6 +315,7 @@ export function constructValidatedCommanderDeck({
       imageUri: resolveDeckCardImageUri({ name: basicLand }),
       typeLine: `Basic Land - ${basicLand}`,
       colorIdentity: commander.colorIdentity?.slice(0, 1) ?? [],
+      legalities: { commander: "legal" },
       legalityStatus: "unknown",
     });
   }
@@ -328,6 +333,16 @@ export function constructValidatedCommanderDeck({
     generatedCardCount,
     meaningfulNonLandCount,
   });
+  const unknownLegalityInFinalBuild = requirements.some((requirement) =>
+    requirement.board !== "sideboard" &&
+    !requirement.roles.includes("land") &&
+    !requirement.isCommander &&
+    requirement.legalities?.commander !== "legal"
+  );
+  if (unknownLegalityInFinalBuild) {
+    qualityGates.legalityKnown = false;
+    qualityGates.canonicalFactsKnown = false;
+  }
   const pricingSummary = completionPricingSummary(ownership);
   let generationStatus: DeckGenerationStatus =
     Object.values(qualityGates).every(Boolean)
@@ -704,28 +719,11 @@ function isCommanderCandidatePlayable(
   { allowUnknownLegality }: { allowUnknownLegality: boolean },
 ) {
   if (!commanderColorIdentityFits(card, commander)) return false;
-  if (isNonPlayableObject(card)) return false;
+  if (isNonPlayableCardObject(card)) return false;
   const legality = card.legalities?.commander;
   if (legality && legality !== "legal") return false;
   if (!legality && !allowUnknownLegality) return false;
   return true;
-}
-
-function isNonPlayableObject(card: Pick<CollectionGraphCard | DeckRequirement, "name" | "typeLine">) {
-  const typeLine = card.typeLine?.toLowerCase() ?? "";
-  const name = card.name.toLowerCase();
-  return (
-    typeLine.includes("token") ||
-    typeLine.includes("emblem") ||
-    typeLine.includes("card //") ||
-    typeLine.includes("plane ") ||
-    typeLine.includes("scheme") ||
-    typeLine.includes("vanguard") ||
-    typeLine.includes("phenomenon") ||
-    typeLine.includes("attraction") ||
-    typeLine.includes("stickers") ||
-    name.includes(" // token")
-  );
 }
 
 type CommanderCandidatePoolEntry = {
@@ -753,6 +751,7 @@ function createCommanderDiagnostics(commander: CollectionGraphCard, strategy: st
       "Low role confidence": 0,
       Duplicate: 0,
       "Low quality": 0,
+      "Malformed metadata": 0,
       "Poor commander affinity": 0,
       "Insufficient confidence": 0,
       "Strategy mismatch": 0,
@@ -832,8 +831,13 @@ function prepareCommanderCandidatePool({
       diagnostics.rejectionCounts["Off-color"] += 1;
       continue;
     }
-    if (isNonPlayableObject(card)) {
+    if (isNonPlayableCardObject(card)) {
       diagnostics.rejectionCounts["Non-playable"] += 1;
+      continue;
+    }
+    const metadataIssues = cardMetadataIssues(card);
+    if (!allowUnknownLegality && metadataIssues.some((issue) => issue === "missing-commander-legality" || issue === "missing-color-identity" || issue === "missing-type-line")) {
+      diagnostics.rejectionCounts["Malformed metadata"] = (diagnostics.rejectionCounts["Malformed metadata"] ?? 0) + 1;
       continue;
     }
     const legality = card.legalities?.commander;
@@ -1026,7 +1030,12 @@ function addSeedRequirements(
     if (format.singleton && usedNames.has(key)) continue;
     const quantity = Math.min(seed.quantity, 100 - requirements.reduce((sum, item) => sum + item.requiredQuantity, 0));
     if (quantity <= 0) continue;
-    requirements.push(seedToRequirement(seed, quantity, commander, strategyId, intentId, sourceCategory, archetype));
+    const requirement = seedToRequirement(seed, quantity, commander, strategyId, intentId, sourceCategory, archetype);
+    const genericCount = requirements
+      .filter((item) => item.board === "main" && item.archetypeCategory === "generic" && !item.roles.includes("land"))
+      .reduce((sum, item) => sum + item.requiredQuantity, 0);
+    if (requirement.archetypeCategory === "generic" && genericCount >= (archetype?.genericCardLimit ?? 18)) continue;
+    requirements.push(requirement);
     usedNames.add(key);
   }
 }
@@ -1078,6 +1087,7 @@ function seedToRequirement(
     typeLine: seed.typeLine,
     oracleText: seed.oracleText,
     colorIdentity: seed.colorIdentity ?? commander.colorIdentity,
+    legalities: { commander: "legal" },
     legalityStatus: "unknown",
   };
 }
@@ -1095,6 +1105,7 @@ function seedToCollectionCard(
     oracleText: seed.oracleText,
     colorIdentity: seed.colorIdentity ?? commander.colorIdentity,
     marketPrice: seed.estimatedPrice ?? null,
+    legalities: { commander: "legal" },
   };
 }
 
@@ -1172,8 +1183,11 @@ function commanderQualityGates({
   const rejected = nonLand.filter((requirement) => requirement.archetypeCategory === "reject");
   const highConfidenceRoleCards = nonLand.filter((requirement) =>
     classifyCardRoleSignals(requirement)
-      .some((signal) => signal.confidence === "high" && signal.role !== "land"),
+      .some((signal) => signal.confidenceScore >= 0.82 && signal.role !== "land"),
   );
+  const canonicalFactsKnown = nonLand.every((requirement) => hasCanonicalCommanderFacts(requirement));
+  const legalityKnown = nonLand.every((requirement) => requirement.legalities?.commander === "legal");
+  const identityScore = deckIdentityScore(nonLand, archetype);
   const typalCount = archetype?.typal
     ? nonLand.filter((requirement) => {
         const typeLine = requirement.typeLine?.toLowerCase() ?? "";
@@ -1197,7 +1211,9 @@ function commanderQualityGates({
   const colorIdentityValid = !validation.issues.some((issue) => issue.code === "color-identity");
   return {
     formatValid: validation.valid && generatedCardCount === 100,
-    commanderValid: !isNonPlayableObject(commander) && commanderLegalOrUnknown(commander),
+    commanderValid: !isNonPlayableCardObject(commander) && commanderLegalOrUnknown(commander),
+    canonicalFactsKnown,
+    legalityKnown,
     colorIdentityValid,
     archetypeValid: Boolean(archetype),
     archetypeDensityAcceptable: typeof typalCount === "number" && archetype?.typal
@@ -1208,9 +1224,39 @@ function commanderQualityGates({
     roleCoverageAcceptable,
     manaBaseAcceptable: lands >= 32 && lands <= 45 && meaningfulNonLandCount >= 45,
     candidateConfidenceAcceptable: highConfidenceRoleCards.length >= Math.min(28, nonLand.length),
+    deckIdentityAcceptable: identityScore >= 0.58,
     noRejectedCards: rejected.length === 0,
     noFiller: rejected.length === 0 && genericCount <= (archetype?.genericCardLimit ?? 18),
   };
+}
+
+function deckIdentityScore(nonLand: DeckRequirement[], archetype: ArchetypeProfile | null) {
+  if (!nonLand.length) return 0;
+  const weighted = nonLand.reduce((sum, requirement) => {
+    const category = requirement.archetypeCategory;
+    const evidence = requirement.recommendationEvidence;
+    const categoryScore =
+      category === "core" ? 1 :
+      category === "synergy" ? 0.82 :
+      category === "support" ? 0.58 :
+      category === "generic" ? 0.28 : 0;
+    const evidenceScore =
+      evidence?.confidence === "strong" ? 0.12 :
+      evidence?.confidence === "good" ? 0.08 :
+      evidence?.confidence === "possible" ? 0.03 : 0;
+    return sum + Math.min(1, categoryScore + evidenceScore) * requirement.requiredQuantity;
+  }, 0);
+  const base = weighted / nonLand.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+  if (!archetype?.typal) return base;
+  const typalCards = nonLand
+    .filter((requirement) => {
+      const typeLine = requirement.typeLine?.toLowerCase() ?? "";
+      const tags = requirement.strategyTags ?? [];
+      return archetype.typal?.creatureTypes.some((type) => typeLine.includes(type.toLowerCase())) ||
+        tags.some((tag) => archetype.requiredTags.includes(tag) || archetype.preferredTags.includes(tag));
+    })
+    .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+  return (base * 0.7) + Math.min(1, typalCards / Math.max(1, archetype.typal.minSupportCount)) * 0.3;
 }
 
 function requirementToCard(requirement: DeckRequirement): CollectionGraphCard {
