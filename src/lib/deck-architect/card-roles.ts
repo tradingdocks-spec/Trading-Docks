@@ -91,6 +91,19 @@ export function classifyCardRoleSignals(card: RoleInput): RoleSignal[] {
     add(signals, "token-generation", "high", "Creates or rewards tokens.");
     add(signals, "synergy", "medium", "Supports token strategies.");
   }
+  if (typeLine.includes("goblin") || name.includes("goblin")) {
+    add(signals, "goblin-payoff", "medium", "Contributes to Goblin typal density.");
+    add(signals, "synergy", "medium", "Supports Goblin commander strategies.");
+  }
+  if ((typeLine.includes("goblin") || oracleText.includes("goblin")) && matches(haystack, ["create", "token", "tokens"])) {
+    add(signals, "goblin-token-maker", "high", "Creates or scales Goblin tokens.");
+  }
+  if (matches(haystack, ["other goblin", "goblins you control", "goblin creatures you control", "goblin spells you cast"])) {
+    add(signals, "goblin-payoff", "high", "Directly rewards Goblin cards.");
+  }
+  if (matches(haystack, ["have haste", "gain haste", "haste until", "creatures you control have haste"])) {
+    add(signals, "haste-enabler", "high", "Lets the deck use tap or combat engines immediately.");
+  }
   if (matches(haystack, ["sacrifice", "sacrifice another", "sacrifice a creature", "altar"])) {
     add(signals, "sacrifice-outlet", "high", "Sacrifice outlet or sacrifice engine.");
     add(signals, "synergy", "medium", "Supports sacrifice strategies.");

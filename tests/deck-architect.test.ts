@@ -43,6 +43,7 @@ import {
   critiqueCommanderDeck,
   evaluateCandidate,
   finalHumanSanityReview,
+  TRADING_DOCKS_COMMANDER_KNOWLEDGE_PROVIDER,
   selectArchetypeProfile,
   TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER,
   CommanderSpellbookProvider,
@@ -730,7 +731,8 @@ test("unrelated Commander benchmarks do not recycle the same non-generic nonland
     nonGenericNonlandNames(muldrotha),
   ]);
 
-  assert.equal(krenko.generationStatus, "draft_shell");
+  assert.equal(krenko.generationStatus, "complete");
+  assert.equal(krenko.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
   assert.ok(overlap.length <= 2, overlap.join(", "));
 });
 
@@ -780,20 +782,25 @@ test("Krenko Best Possible returns an archetype-dense Goblin shell without low-c
   const names = new Set(result.requirements.map((requirement) => requirement.name));
   const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
 
-  assert.equal(result.generationStatus, "draft_shell");
-  assert.ok(totalCards < 100);
-  assert.equal(result.validation.valid, false);
-  assert.equal(result.buildability, null);
+  assert.equal(result.generationStatus, "complete");
+  assert.equal(totalCards, 100);
+  assert.equal(result.validation.valid, true);
+  assert.ok(result.buildability);
   assert.equal(result.archetypeProfile?.id, "krenko-goblin-swarm");
   assert.equal(result.qualityGates.archetypeDensityAcceptable, true);
   assert.equal(result.qualityGates.strategySynergyAcceptable, true);
+  assert.equal(result.qualityGates.formatValid, true);
+  assert.equal(result.qualityGates.manaBaseAcceptable, true);
+  assert.equal(result.qualityGates.candidateConfidenceAcceptable, true);
   assert.equal(result.qualityGates.noRejectedCards, true);
   assert.equal(result.qualityGates.noFiller, true);
   assert.ok((result.diagnostics?.composition.core ?? 0) + (result.diagnostics?.composition.synergy ?? 0) >= 26);
   assert.equal(result.candidateSourcePolicy, "Strategy and catalog recommendations first; ownership is calculated afterward.");
   assert.equal(result.candidateSource, "global-fixture");
   assert.ok(names.has("Impact Tremors"));
-  assert.ok([...names].some((name) => name.includes("Krenko Global Candidate")));
+  assert.ok(names.has("Skirk Prospector"));
+  assert.ok(names.has("Goblin Warchief"));
+  assert.ok(result.requirements.some((requirement) => requirement.name === "Mountain" && requirement.requiredQuantity >= 20));
   assert.equal([...names].some((name) => name.includes("Blue")), false);
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
@@ -843,7 +850,7 @@ test("Krenko Budget build respects the configured budget and surfaces unknown pr
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
   assert.equal(result.generationStatus, "draft_shell");
-  assert.equal(result.validation.valid, false);
+  assert.equal(result.validation.valid, true);
   assert.equal(names.has("Pricey Mono-Red Staple"), false);
   assert.ok(result.warnings.some((warning) => /strict budget compliance/i.test(warning)));
   assert.ok(result.pricingSummary.unavailablePriceCount > 0);
@@ -961,7 +968,8 @@ test("Krenko archetype generation rejects observed off-strategy production fixtu
   });
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
-  assert.equal(result.generationStatus, "draft_shell");
+  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
   for (const fixture of rejectedFixtures) {
     assert.equal(names.has(fixture.name), false, fixture.name);
   }
@@ -1015,11 +1023,29 @@ test("Krenko recommendations carry professional evidence and keep generic staple
   const genericCount = nonland.filter((requirement) => requirement.archetypeCategory === "generic").length;
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
-  assert.equal(result.generationStatus, "draft_shell");
+  assert.equal(result.generationStatus, "complete");
   assert.ok(genericCount <= (result.archetypeProfile?.genericCardLimit ?? 0));
   assert.equal(names.has("Celestial Prism"), false);
   assert.equal(names.has("Random Red Vehicle"), false);
   assert.ok(nonland.some((requirement) => requirement.recommendationEvidence?.confidence === "strong" || requirement.recommendationEvidence?.confidence === "good"));
+});
+
+test("Trading Docks Commander knowledge provider exposes EDHREC-class shells without EDHREC scraping", async () => {
+  const shell = await TRADING_DOCKS_COMMANDER_KNOWLEDGE_PROVIDER.getAverageShell("Krenko, Mob Boss", "krenko-go-wide-goblins");
+  const recommendations = await TRADING_DOCKS_COMMANDER_KNOWLEDGE_PROVIDER.getRecommendedCards("Krenko, Mob Boss", "krenko-go-wide-goblins");
+
+  assert.ok(shell);
+  assert.equal(shell.commanderId, "Krenko, Mob Boss");
+  assert.equal(shell.strategyId, "krenko-go-wide-goblins");
+  assert.ok(shell.coreCards.some((card) => card.name === "Skirk Prospector"));
+  assert.ok(shell.coreCards.some((card) => card.name === "Goblin Warchief"));
+  assert.ok(shell.strongSynergyCards.length >= 35);
+  assert.ok(shell.landTarget.min >= 34);
+  assert.ok(shell.landTarget.max <= 39);
+  assert.ok(recommendations.length >= 40);
+  assert.ok(recommendations.some((card) => card.name === "Impact Tremors" && card.commanderSynergyScore && card.commanderSynergyScore >= 0.8));
+  assert.equal(EDHREC_INTEGRATION_STATUS.integrated, false);
+  assert.equal(EDHREC_INTEGRATION_STATUS.scrapingAllowed, false);
 });
 
 test("incidental Treasure text does not make Goblin Airbrusher a primary mana-fixing card", () => {
@@ -1388,9 +1414,11 @@ test("No Purchases Commander generation stays owned-only when a full pool still 
   const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
 
   assert.equal(result.generationStatus, "draft_shell");
-  assert.equal(result.validation.valid, false);
-  assert.ok(totalCards < 100);
+  assert.equal(result.validation.valid, true);
+  assert.equal(totalCards, 100);
   assert.equal(result.ownership.every((match) => match.missingQuantity === 0), true);
+  assert.equal(result.requirements.some((requirement) => requirement.name === "Impact Tremors"), false);
+  assert.equal(result.requirements.some((requirement) => requirement.name.startsWith("Krenko Global Candidate")), true);
   assert.equal(result.qualityGates.roleCoverageAcceptable, false);
 });
 

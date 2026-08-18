@@ -400,12 +400,14 @@ Implemented improvements:
 - Added DeckPlan -> Build -> Critique -> Revise -> Validate architecture for Commander construction. Cards now carry inclusion justifications, contested slots use contextual comparison, and Complete status depends on a final sanity gate.
 - Added deterministic critic coverage plus a future `DeckCriticProvider` boundary. A future reasoning model may request review/replacements, but it cannot bypass Trading Docks legality, budget, evidence, or persistence rules.
 - Added Winota Human/non-Human structural benchmark coverage alongside Nekusar, Krenko, Muldrotha, and Atraxa strategy differentiation checks.
+- Added the EDHREC-class commander knowledge architecture without scraping or claiming EDHREC integration. `CommanderKnowledgeProvider` and `CommanderShell` now support Trading Docks-authored commander profiles, strategy card recommendations, flexible role targets, land ranges, and future licensed-provider adapters.
+- Upgraded the Krenko, Mob Boss golden benchmark from a partial shell to a complete validated Commander build. The current benchmark produces 100 cards with algorithmic Mountains, mono-red utility lands, Goblin token makers/payoffs, haste/untap support, sacrifice engines, acceleration, card advantage, and interaction.
 
 Remaining risks:
 
 - The first recommendation and brewer layers remain deterministic and local for base deck generation. Commander Spellbook is now active as an additive server-side combo provider for Deck Vault combo analysis; provider failure does not block deck generation. EDHREC remains not integrated pending commercial permission/licensing.
 - Trading Docks Deck Corpus types and sample-size/provenance rules exist, but no corpus persistence migration has been applied.
-- Nekusar is covered as the current Commander evidence benchmark; broader commander coverage still requires lawful corpus ingestion, licensed provider data, or additional reviewed Trading Docks profiles.
+- Krenko is covered as the current complete Commander benchmark; Nekusar and Winota remain evidence/structure benchmarks. Broader complete Commander coverage still requires lawful corpus ingestion, licensed provider data, or additional reviewed Trading Docks profiles.
 - Structured proposal persistence, applied-proposal history, provider freshness checks, and deeper deck-history controls are still planned.
 - Commander candidate quality still depends on type-line metadata being present in saved inventory or catalog payloads.
 - Price-aware scoring only uses saved inventory values when available; missing prices stay unavailable.

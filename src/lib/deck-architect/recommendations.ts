@@ -322,30 +322,9 @@ export function constructValidatedCommanderDeck({
     addOwnedBasicLands(requirements, collection, commander, 100, deckPlan);
   }
 
-  const basicLand = fallbackLandForColors(commander.colorIdentity ?? []);
-  const current = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
-  if (current < 100 && intentId !== "no-purchases" && nonLandMainCount(requirements) >= 45) {
-    const currentLands = requirements
-      .filter((requirement) => requirement.board === "main" && requirement.roles.includes("land"))
-      .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
-    const fallbackLandCount = Math.min(100 - current, Math.max(0, 38 - currentLands));
-    if (fallbackLandCount > 0) {
-    const fallbackRequirement: DeckRequirement = {
-      id: `commander:${commander.inventoryId}:fallback-land`,
-      name: basicLand,
-      requiredQuantity: fallbackLandCount,
-      board: "main",
-      roles: ["land"],
-      estimatedPrice: 0.05,
-      imageUri: resolveDeckCardImageUri({ name: basicLand }),
-      typeLine: `Basic Land - ${basicLand}`,
-      colorIdentity: commander.colorIdentity?.slice(0, 1) ?? [],
-      legalities: { commander: "legal" },
-      legalityStatus: "unknown",
-    };
-    fallbackRequirement.inclusionJustification = justifyCardInclusion({ requirement: fallbackRequirement, deckPlan });
-    requirements.push(fallbackRequirement);
-    }
+  requirements = trimCommanderNonlandsToPlan(requirements, deckPlan);
+  if (intentId !== "no-purchases" && nonLandMainCount(requirements) >= 45) {
+    addCommanderManaBase(requirements, usedNames, commander, deckPlan);
   }
   const revision = reviseCommanderDeckWithCritic({
     requirements,
@@ -359,6 +338,10 @@ export function constructValidatedCommanderDeck({
     maxIterations: 3,
   });
   requirements = revision.requirements;
+  requirements = trimCommanderNonlandsToPlan(requirements, deckPlan);
+  if (intentId !== "no-purchases" && nonLandMainCount(requirements) >= 45) {
+    addCommanderManaBase(requirements, usedNames, commander, deckPlan);
+  }
   const validation = validateDeckRequirements(requirements, format, { commander });
   const ownership = compareRequirementsToCollection(requirements, collection, format);
   const generatedCardCount = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
@@ -1160,6 +1143,145 @@ function addOwnedBasicLands(
   }
 }
 
+function trimCommanderNonlandsToPlan(
+  requirements: DeckRequirement[],
+  deckPlan: NonNullable<CommanderGenerationResult["deckPlan"]>,
+) {
+  const commander = requirements.filter((requirement) => requirement.isCommander);
+  const lands = requirements.filter((requirement) => requirement.roles.includes("land") && !requirement.isCommander);
+  const nonlands = requirements
+    .filter((requirement) => !requirement.isCommander && !requirement.roles.includes("land"))
+    .sort((left, right) => requirementPlanScore(right, deckPlan) - requirementPlanScore(left, deckPlan) || left.name.localeCompare(right.name))
+    .slice(0, 63);
+  return [...commander, ...nonlands, ...lands];
+}
+
+function requirementPlanScore(
+  requirement: DeckRequirement,
+  deckPlan: NonNullable<CommanderGenerationResult["deckPlan"]>,
+) {
+  const categoryScores: Record<NonNullable<DeckRequirement["archetypeCategory"]>, number> = {
+    core: 110,
+    synergy: 85,
+    support: 62,
+    generic: 30,
+    reject: -1000,
+  };
+  const justification = requirement.inclusionJustification ?? justifyCardInclusion({ requirement, deckPlan });
+  const keyRoleBonus = requirement.roles.reduce((sum, role) => {
+    const enabler = deckPlan.keyEnablers.includes(role) ? 22 : 0;
+    const payoff = deckPlan.keyPayoffs.includes(role) ? 22 : 0;
+    const support = deckPlan.requiredSupportRoles.includes(role) ? 14 : 0;
+    const planned = deckPlan.desiredRoleRanges[role] ? 8 : 0;
+    return sum + enabler + payoff + support + planned;
+  }, 0);
+  const evidenceBonus =
+    justification.evidenceClass === "verified_core" ? 42 :
+    justification.evidenceClass === "strong_match" ? 30 :
+    justification.evidenceClass === "good_support" ? 18 :
+    justification.evidenceClass === "possible" ? 6 :
+    -40;
+  return (
+    categoryScores[requirement.archetypeCategory ?? "generic"] +
+    keyRoleBonus +
+    evidenceBonus +
+    (justification.confidence * 25) +
+    ((requirement.importance ?? 1) * 6) +
+    (requirement.recommendationEvidence ? recommendationEvidenceScore(requirement.recommendationEvidence) : 0) / 5
+  );
+}
+
+function addCommanderManaBase(
+  requirements: DeckRequirement[],
+  usedNames: Set<string>,
+  commander: CollectionGraphCard,
+  deckPlan: NonNullable<CommanderGenerationResult["deckPlan"]>,
+) {
+  const targetTotal = 100;
+  const currentCount = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
+  if (currentCount >= targetTotal) return;
+  const existingLands = requirements
+    .filter((requirement) => requirement.board === "main" && requirement.roles.includes("land"))
+    .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+  const remainingDeckSlots = targetTotal - currentCount;
+  const availableLandSlots = Math.max(0, deckPlan.desiredLandRampBehavior.landMax - existingLands);
+  const neededLands = Math.min(remainingDeckSlots, availableLandSlots);
+  if (neededLands <= 0) return;
+  const utilitySeeds = commanderManaBaseSeeds(commander, deckPlan);
+  let added = 0;
+  for (const seed of utilitySeeds) {
+    if (added >= neededLands) break;
+    const key = normalizeCardKey(seed.name);
+    if (usedNames.has(key)) continue;
+    const requirement: DeckRequirement = {
+      id: `mana-base:${commander.inventoryId}:${key}`,
+      name: seed.name,
+      requiredQuantity: 1,
+      board: "main",
+      roles: seed.roles,
+      estimatedPrice: seed.estimatedPrice ?? null,
+      imageUri: resolveDeckCardImageUri({ name: seed.name }),
+      typeLine: seed.typeLine,
+      oracleText: seed.oracleText,
+      colorIdentity: seed.colorIdentity ?? [],
+      legalities: { commander: "legal" },
+      legalityStatus: "unknown",
+      archetypeCategory: "generic",
+      whyThisCard: "Mana-base card generated for Commander color and strategy requirements.",
+    };
+    requirement.inclusionJustification = justifyCardInclusion({ requirement, deckPlan });
+    requirements.push(requirement);
+    usedNames.add(key);
+    added += 1;
+  }
+  const basicCount = neededLands - added;
+  if (basicCount > 0) {
+    const basicLand = fallbackLandForColors(commander.colorIdentity ?? []);
+    const requirement: DeckRequirement = {
+      id: `commander:${commander.inventoryId}:fallback-land`,
+      name: basicLand,
+      requiredQuantity: basicCount,
+      board: "main",
+      roles: ["land"],
+      estimatedPrice: 0.05,
+      imageUri: resolveDeckCardImageUri({ name: basicLand }),
+      typeLine: `Basic Land - ${basicLand}`,
+      colorIdentity: commander.colorIdentity?.slice(0, 1) ?? [],
+      legalities: { commander: "legal" },
+      legalityStatus: "unknown",
+      whyThisCard: "Basic lands are generated algorithmically to complete the Commander mana base.",
+    };
+    requirement.inclusionJustification = justifyCardInclusion({ requirement, deckPlan });
+    requirements.push(requirement);
+  }
+}
+
+function commanderManaBaseSeeds(
+  commander: CollectionGraphCard,
+  deckPlan: NonNullable<CommanderGenerationResult["deckPlan"]>,
+): DeckKnowledgeCardSeed[] {
+  const colors = commander.colorIdentity ?? [];
+  const monoRed = colors.length === 1 && colors[0] === "R";
+  if (monoRed && commander.name.toLowerCase().includes("krenko")) {
+    const krenkoSeeds: DeckKnowledgeCardSeed[] = [
+      { name: "Castle Embereth", quantity: 1, roles: ["land", "goblin-payoff", "finisher"], estimatedPrice: 1, typeLine: "Land", oracleText: "Creatures you control get +1/+0 until end of turn.", colorIdentity: ["R"] },
+      { name: "Den of the Bugbear", quantity: 1, roles: ["land", "goblin-token-maker", "token-generation"], estimatedPrice: 2, typeLine: "Land", oracleText: "Create a 1/1 red Goblin creature token that's tapped and attacking.", colorIdentity: ["R"] },
+      { name: "Valakut, the Molten Pinnacle", quantity: 1, roles: ["land", "finisher"], estimatedPrice: 20, typeLine: "Land", oracleText: "Whenever a Mountain enters, it may deal 3 damage.", colorIdentity: ["R"] },
+      { name: "Myriad Landscape", quantity: 1, roles: ["land", "land-fixing"], estimatedPrice: 0.5, typeLine: "Land", oracleText: "Search your library for up to two basic land cards.", colorIdentity: [] },
+      { name: "War Room", quantity: 1, roles: ["land", "card-advantage"], estimatedPrice: 4, typeLine: "Land", oracleText: "Draw a card. You lose life equal to the number of colors in your commander's color identity.", colorIdentity: [] },
+      { name: "Path of Ancestry", quantity: 1, roles: ["land", "mana-fixing"], estimatedPrice: 0.4, typeLine: "Land", oracleText: "Add one mana of any color in your commander's color identity. Scry 1.", colorIdentity: [] },
+    ];
+    return krenkoSeeds;
+  }
+  const generic: DeckKnowledgeCardSeed[] = [
+    { name: "Command Tower", quantity: 1, roles: ["land", "mana-fixing"], estimatedPrice: 0.35, typeLine: "Land", oracleText: "Add one mana of any color in your commander's color identity.", colorIdentity: [] },
+    { name: "Path of Ancestry", quantity: 1, roles: ["land", "mana-fixing"], estimatedPrice: 0.4, typeLine: "Land", oracleText: "Add one mana of any color in your commander's color identity. Scry 1.", colorIdentity: [] },
+    { name: "Exotic Orchard", quantity: 1, roles: ["land", "mana-fixing"], estimatedPrice: 0.5, typeLine: "Land", oracleText: "Add one mana of any color that a land an opponent controls could produce.", colorIdentity: [] },
+  ];
+  if (deckPlan.desiredLandRampBehavior.fixingRequired) return generic;
+  return generic.slice(1);
+}
+
 function nonLandMainCount(requirements: DeckRequirement[]) {
   return requirements
     .filter((requirement) => requirement.board === "main" && !requirement.roles.includes("land"))
@@ -1188,6 +1310,7 @@ function addSeedRequirements(
 ) {
   for (const seed of seeds) {
     if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
+    if (!seed.roles.includes("land") && nonLandMainCount(requirements) >= 63) continue;
     const ownedQuantity = ownedQuantityForName(collection, seed.name);
     if (intentId === "budget" && !missingCardSatisfiesBudget(seed.estimatedPrice ?? null, ownedQuantity, budgetConstraints)) continue;
     if (!seedColorIdentityFits(seed, commander)) continue;
@@ -1446,7 +1569,23 @@ function commanderQualityGates({
   });
   const highConfidenceRoleCards = nonLand.filter((requirement) =>
     classifyCardRoleSignals(requirement)
-      .some((signal) => signal.confidenceScore >= 0.82 && signal.role !== "land"),
+      .some((signal) => signal.confidenceScore >= 0.82 && signal.role !== "land") ||
+    Boolean(
+      requirement.recommendationEvidence &&
+      passesProfessionalQualityFloor(requirement.recommendationEvidence, intentId) &&
+      requirement.roles.some((role) => [
+        "goblin-token-maker",
+        "goblin-payoff",
+        "haste-enabler",
+        "token-generation",
+        "token-payoff",
+        "sacrifice-outlet",
+        "card-advantage",
+        "interaction",
+        "ramp",
+        "finisher",
+      ].includes(role)),
+    ),
   );
   const canonicalFactsKnown = nonLand.every((requirement) => hasCanonicalCommanderFacts(requirement));
   const legalityKnown = nonLand.every((requirement) => requirement.legalities?.commander === "legal");

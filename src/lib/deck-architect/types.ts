@@ -47,6 +47,8 @@ export type DeckArchitectRole =
   | "synergy"
   | "combo-piece"
   | "token-generation"
+  | "token-payoff"
+  | "untap-engine"
   | "sacrifice-outlet"
   | "discard"
   | "lifegain"
@@ -208,6 +210,36 @@ export type CommanderCardEvidence = {
   sourceDate?: string | null;
   freshnessDays?: number | null;
   provenance: string[];
+};
+
+export type CommanderCardRecommendation = DeckKnowledgeCardSeed & {
+  commanderId: string;
+  strategyId?: string;
+  tier: "core" | "strong-synergy" | "support" | "generic-structural";
+  inclusionFrequency?: number | null;
+  commanderSynergyScore?: number | null;
+  provenance: string[];
+};
+
+export type CommanderShell = {
+  commanderId: string;
+  strategyId: string;
+  coreCards: DeckKnowledgeCardSeed[];
+  strongSynergyCards: DeckKnowledgeCardSeed[];
+  flexibleRoleTargets: Array<{ role: DeckArchitectRole; min: number; ideal: number; max?: number }>;
+  landTarget: { min: number; ideal: number; max: number };
+  curveTarget?: {
+    earlyPlays: number;
+    midgamePlays: number;
+    topEndLimit: number;
+  };
+};
+
+export type CommanderKnowledgeProvider = {
+  getCommanderProfile(commanderId: string): Promise<CommanderMetaProfile | null>;
+  getStrategies(commanderId: string): Promise<CommanderStrategyEvidence[]>;
+  getRecommendedCards(commanderId: string, strategyId?: string): Promise<CommanderCardRecommendation[]>;
+  getAverageShell(commanderId: string, strategyId?: string): Promise<CommanderShell | null>;
 };
 
 export type CommanderMechanicalProfile = {

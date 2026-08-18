@@ -1,11 +1,17 @@
 import { evaluateCandidate, type ArchetypeCandidateEvaluation } from "./archetypes.ts";
 import { classifyCardRoles } from "./card-roles.ts";
+import { getCommanderCatalogCandidates } from "./commander-catalog.ts";
+import { inferCommanderStrategies } from "./local-knowledge.ts";
 import { normalizeCardKey } from "./ownership.ts";
 import type {
   BuildIntentId,
   CardInclusionJustification,
   CollectionGraphCard,
   CommanderMechanicalProfile,
+  CommanderCardRecommendation,
+  CommanderKnowledgeProvider,
+  CommanderMetaProfile,
+  CommanderShell,
   CommanderStrategyProfile,
   DeckArchitectRole,
   DeckBudgetConstraints,
@@ -21,6 +27,62 @@ type ComparableCandidate = {
   evaluation: ArchetypeCandidateEvaluation;
   evidence: RecommendationEvidence;
 };
+
+export class TradingDocksCommanderKnowledgeProvider implements CommanderKnowledgeProvider {
+  async getCommanderProfile(commanderId: string): Promise<CommanderMetaProfile | null> {
+    return {
+      commanderId,
+      commanderName: commanderId,
+      strategyEvidence: [],
+      source: "curated",
+      observedDeckCount: null,
+    };
+  }
+
+  async getStrategies(_commanderId: string) {
+    return [];
+  }
+
+  async getRecommendedCards(commanderId: string, strategyId?: string): Promise<CommanderCardRecommendation[]> {
+    const commander = commanderFromKnowledgeId(commanderId);
+    const strategy = inferCommanderStrategies(commander).find((candidate) => !strategyId || candidate.id === strategyId) ?? null;
+    return getCommanderCatalogCandidates({ commander, intentId: "strongest-possible", strategy })
+      .map((seed) => ({
+        ...seed,
+        commanderId,
+        strategyId: strategy?.id,
+        tier: seed.roles.some((role) => strategy?.roles.includes(role)) ? "strong-synergy" : "generic-structural",
+        commanderSynergyScore: seed.roles.some((role) => strategy?.roles.includes(role)) ? 0.82 : 0.55,
+        inclusionFrequency: null,
+        provenance: ["Trading Docks authored commander knowledge."],
+      }));
+  }
+
+  async getAverageShell(commanderId: string, strategyId?: string): Promise<CommanderShell | null> {
+    const commander = commanderFromKnowledgeId(commanderId);
+    const strategy = inferCommanderStrategies(commander).find((candidate) => !strategyId || candidate.id === strategyId) ?? null;
+    if (!strategy) return null;
+    const plan = createCommanderDeckPlan({ commander, strategy, intentId: "strongest-possible", budget: { enabled: false } });
+    return {
+      commanderId,
+      strategyId: strategy.id,
+      coreCards: strategy.coreCards ?? [],
+      strongSynergyCards: strategy.flexCards ?? [],
+      flexibleRoleTargets: Object.entries(plan.desiredRoleRanges).map(([role, range]) => ({
+        role: role as DeckArchitectRole,
+        ...range,
+      })),
+      landTarget: {
+        min: plan.desiredLandRampBehavior.landMin,
+        ideal: Math.round((plan.desiredLandRampBehavior.landMin + plan.desiredLandRampBehavior.landMax) / 2),
+        max: plan.desiredLandRampBehavior.landMax,
+      },
+      curveTarget: plan.desiredManaCurve,
+    };
+  }
+}
+
+export const TRADING_DOCKS_COMMANDER_KNOWLEDGE_PROVIDER = new TradingDocksCommanderKnowledgeProvider();
 
 export function createCommanderDeckPlan({
   commander,
@@ -377,6 +439,36 @@ export function validateDeckCriticOutput(value: unknown): value is DeckCritique 
 
 function primaryGamePlanForProfile(profile: CommanderMechanicalProfile) {
   return `${profile.commanderName} should prioritize ${profile.enablerRoles.map((role) => role.replace(/-/g, " ")).join(", ")} before generic support.`;
+}
+
+function commanderFromKnowledgeId(commanderId: string): CollectionGraphCard {
+  const name =
+    commanderId.includes(",") || commanderId.includes(" ")
+      ? commanderId
+      : commanderId
+          .split(/[-_]/g)
+          .filter(Boolean)
+          .map((part) => part[0]?.toUpperCase() + part.slice(1))
+          .join(" ");
+  const lower = name.toLowerCase();
+  return {
+    inventoryId: `knowledge:${normalizeCardKey(name)}`,
+    name,
+    quantityOwned: 0,
+    typeLine: lower.includes("krenko")
+      ? "Legendary Creature - Goblin Warrior"
+      : lower.includes("winota")
+        ? "Legendary Creature - Human Warrior"
+        : "Legendary Creature",
+    oracleText: lower.includes("krenko")
+      ? "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control."
+      : lower.includes("winota")
+        ? "Whenever a non-Human creature you control attacks, look at the top six cards of your library. You may put a Human creature card from among them onto the battlefield tapped and attacking."
+        : "",
+    colorIdentity: lower.includes("krenko") ? ["R"] : lower.includes("winota") ? ["R", "W"] : [],
+    legalities: { commander: "legal" },
+    marketPrice: null,
+  };
 }
 
 function secondaryGamePlanForProfile(profile: CommanderMechanicalProfile) {

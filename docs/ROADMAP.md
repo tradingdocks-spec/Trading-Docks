@@ -258,12 +258,14 @@ Implemented this checkpoint:
 16. Expanded card-draw semantics so wheels, group draw, draw punishment, cantrips, conditional draw, and incidental draw no longer satisfy the same major card-advantage role automatically.
 17. Added the first human-reasoning architecture for Commander builds: DeckPlan creation, commander mechanical profiles, card-level inclusion justifications, pairwise candidate comparison, deterministic critic findings, bounded replacement loops, and a final sanity gate before Complete status.
 18. Added Winota as a structural Commander benchmark so the engine can distinguish non-Human enablers from Human payoffs instead of filling Boros roles mechanically.
+19. Added the EDHREC-class commander knowledge abstraction without integrating or scraping EDHREC. The active provider is Trading Docks-authored local commander knowledge with `CommanderShell`, commander-specific recommendations, strategy role targets, and future adapter seams for licensed EDHREC data or approved public corpus data.
+20. Promoted Krenko, Mob Boss / Goblin Swarm to the first complete Commander golden benchmark. Best Possible generation now returns a validated 100-card deck with algorithmic basic lands, Krenko-specific Goblin density, acceleration, draw, interaction, haste/untap support, sacrifice outlets, and token payoffs.
 
 Recommended next checkpoint:
 
 1. Add saved proposal persistence and apply/revert flows into Deck Vault with stale-deck protection.
 2. Add an approved LLM provider contract that emits only structured proposal JSON for deterministic validation.
-3. Add external provider-backed archetype/template catalogs with source attribution and no copied third-party workflows.
+3. Add external provider-backed archetype/template catalogs with source attribution and no copied third-party workflows. EDHREC remains a future licensed/commercial integration only; do not scrape EDHREC pages or undocumented endpoints.
 4. Expand legality/provider validation from saved Scryfall legalities into provider refresh and stale-data handling.
 5. Expand collection leverage from deterministic Pauper/Commander opportunities into complete candidate deck planning for additional formats after provider quality is verified.
 6. Extend the implemented Commander Spellbook provider from Deck Vault combo analysis into richer Deck Architect combo panels and reviewed combo-aware proposals.

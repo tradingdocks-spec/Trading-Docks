@@ -264,6 +264,8 @@ function krenkoGoblinSwarm(): ArchetypeProfile {
     excludedNames: PRODUCTION_FAILURE_NAMES,
     typal: { creatureTypes: ["Goblin"], minSupportCount: 24, idealSupportCount: 32 },
     roleTargets: {
+      "goblin-token-maker": { min: 8, ideal: 14 },
+      "goblin-payoff": { min: 7, ideal: 12 },
       ramp: { min: 7, ideal: 10 },
       "card-advantage": { min: 6, ideal: 9 },
       interaction: { min: 7, ideal: 10 },
@@ -481,4 +483,14 @@ const STRUCTURAL_ROLES = new Set<DeckArchitectRole>([
   "mass-removal",
   "protection",
   "recursion",
+  "goblin-token-maker",
+  "goblin-payoff",
+  "haste-enabler",
+  "attack-support",
+  "human-payoff",
+  "non-human-enabler",
+  "poison",
+  "infect",
+  "toxic",
+  "proliferate",
 ]);
