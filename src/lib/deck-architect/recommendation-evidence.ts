@@ -9,7 +9,9 @@ import type {
   CollectionGraphCard,
   CommanderStrategyProfile,
   DeckArchitectRole,
+  ProfessionalEvidenceQuality,
   RecommendationEvidence,
+  RecommendationEvidenceProvenance,
 } from "./types.ts";
 
 export type RecommendationEvidenceContext = {
@@ -78,6 +80,17 @@ export function buildRecommendationEvidence(
   const sourceCategories = new Set<RecommendationEvidence["sourceCategories"][number]>([context.source, "inferred"]);
   if (context.ownedQuantity > 0) sourceCategories.add("owned");
   if (comboRelevance) sourceCategories.add("combo");
+  const provenance = recommendationEvidenceProvenance(card, context, comboRelevance);
+  const professionalQuality = ProfessionalEvidenceGate.classify({
+    confidence,
+    legalityVerified: card.legalities?.commander === "legal",
+    archetypeAffinity,
+    commanderAffinity,
+    roleFit,
+    strategyFit,
+    sourceCategories: [...sourceCategories],
+    comboRelevance,
+  });
 
   return {
     legalityVerified: card.legalities?.commander === "legal",
@@ -92,8 +105,10 @@ export function buildRecommendationEvidence(
       quantity: Math.max(0, context.ownedQuantity),
     },
     confidence,
+    professionalQuality,
+    provenance,
     reasons: evidenceReasons(card, evaluation, context, { roleFit, strategyFit, comboRelevance }),
-    rejectionReasons: confidence === "insufficient"
+    rejectionReasons: confidence === "insufficient" || professionalQuality === "reject"
       ? rejectionReasons(card, evaluation, context, { roleFit, strategyFit, archetypeAffinity })
       : undefined,
     sourceCategories: [...sourceCategories],
@@ -101,10 +116,7 @@ export function buildRecommendationEvidence(
 }
 
 export function passesProfessionalQualityFloor(evidence: RecommendationEvidence, intentId: BuildIntentId) {
-  if (evidence.confidence === "strong" || evidence.confidence === "good") return true;
-  if (intentId === "use-collection" && evidence.confidence === "possible" && evidence.ownership.owned) return true;
-  if (intentId === "no-purchases") return evidence.ownership.owned && evidence.confidence !== "insufficient";
-  return evidence.confidence === "possible" && (evidence.archetypeAffinity ?? 0) >= 0.45 && evidence.roleFit >= 0.35;
+  return ProfessionalEvidenceGate.accepts(evidence, intentId);
 }
 
 export function recommendationEvidenceScore(evidence: RecommendationEvidence) {
@@ -204,4 +216,78 @@ function clamp01(value: number) {
 
 export function recommendationDiagnosticKey(card: Pick<CollectionGraphCard, "name">) {
   return normalizeCardKey(card.name);
+}
+
+export class ProfessionalEvidenceGate {
+  static classify(evidence: Pick<
+    RecommendationEvidence,
+    "confidence" | "legalityVerified" | "archetypeAffinity" | "commanderAffinity" | "roleFit" | "strategyFit" | "sourceCategories" | "comboRelevance"
+  >): ProfessionalEvidenceQuality {
+    if (!evidence.legalityVerified) return "reject";
+    const hasCuratedOrCorpus = evidence.sourceCategories.some((source) => source === "curated" || source === "corpus");
+    const hasComboEvidence = Boolean(evidence.comboRelevance?.comboCount || evidence.comboRelevance?.nearComboCount || evidence.comboRelevance?.winLineCount);
+    const archetypeAffinity = evidence.archetypeAffinity ?? 0;
+    const commanderAffinity = evidence.commanderAffinity ?? 0;
+    const strongDeckEvidence =
+      archetypeAffinity >= 0.68 ||
+      evidence.strategyFit >= 0.62 ||
+      commanderAffinity >= 0.58 ||
+      hasCuratedOrCorpus;
+    const adequateRole = evidence.roleFit >= 0.5 || hasCuratedOrCorpus || hasComboEvidence;
+
+    if (evidence.confidence === "strong" && strongDeckEvidence && adequateRole) return "verified-core";
+    if ((evidence.confidence === "strong" || evidence.confidence === "good") && strongDeckEvidence && adequateRole) return "strong-match";
+    if (hasCuratedOrCorpus && evidence.confidence !== "insufficient" && (archetypeAffinity >= 0.35 || evidence.strategyFit >= 0.35 || evidence.roleFit >= 0.35)) return "good-support";
+    if (hasCuratedOrCorpus && (archetypeAffinity >= 0.2 || evidence.strategyFit >= 0.18 || evidence.roleFit >= 0.18)) return "good-support";
+    if (evidence.confidence === "good" && archetypeAffinity >= 0.45 && evidence.roleFit >= 0.45) return "good-support";
+    if (evidence.confidence === "possible" && archetypeAffinity >= 0.45 && evidence.roleFit >= 0.45) return "possible";
+    return "reject";
+  }
+
+  static accepts(evidence: RecommendationEvidence, intentId: BuildIntentId) {
+    if (evidence.professionalQuality === "verified-core" || evidence.professionalQuality === "strong-match" || evidence.professionalQuality === "good-support") {
+      return true;
+    }
+    if (intentId === "no-purchases") {
+      return evidence.ownership.owned && evidence.professionalQuality !== "reject";
+    }
+    if (intentId === "use-collection") {
+      return evidence.ownership.owned && evidence.professionalQuality === "possible";
+    }
+    return false;
+  }
+}
+
+function recommendationEvidenceProvenance(
+  card: CollectionGraphCard,
+  context: RecommendationEvidenceContext,
+  comboRelevance?: RecommendationEvidence["comboRelevance"],
+): RecommendationEvidenceProvenance {
+  const source = context.source;
+  return {
+    canonicalCardSource:
+      source === "curated" ? "curated" :
+      source === "owned" ? "collection" :
+      source === "corpus" ? "catalog" :
+      source === "inferred" ? "global-provider" :
+      "unknown",
+    legalitySource:
+      source === "curated" ? "curated" :
+      source === "owned" ? "collection" :
+      card.legalities?.commander === "legal" ? "scryfall" :
+      "unknown",
+    archetypeSource:
+      source === "curated" ? "curated" :
+      source === "corpus" ? "corpus" :
+      "deterministic",
+    roleSource: "deterministic-role-classifier",
+    corpusSource: source === "corpus" ? "trading-docks-corpus" : undefined,
+    comboSource: comboRelevance ? "commander-spellbook" : undefined,
+    priceSource:
+      card.marketPrice === null || card.marketPrice === undefined ? "unknown" :
+      source === "owned" ? "collection" :
+      source === "curated" ? "curated" :
+      "provider",
+    ownershipSource: "user-collection",
+  };
 }

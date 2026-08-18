@@ -47,6 +47,7 @@ import {
   normalizeSpellbookPayload,
   passesProfessionalQualityFloor,
   cardMetadataIssues,
+  ProfessionalEvidenceGate,
   type CollectionGraphCard,
   type CommanderGenerationResult,
   type DeckRequirement,
@@ -584,7 +585,7 @@ test("Build Intent materially changes constructed archetype output", () => {
   assert.ok(noPurchases.failure);
 });
 
-test("Commander construction returns only validated complete decks", () => {
+test("Commander construction does not label incomplete Commander shells as complete", () => {
   const commander = collection[0];
   const deepCollection = [
     ...collection,
@@ -596,6 +597,7 @@ test("Commander construction returns only validated complete decks", () => {
       oracleText: index % 4 === 0 ? "Draw a card." : index % 4 === 1 ? "Add one mana." : index % 4 === 2 ? "Return target card from your graveyard." : "Create a token.",
       colorIdentity: index % 2 === 0 ? ["G"] : ["U"],
       marketPrice: 0.25,
+      legalities: { commander: "legal" },
     })),
   ];
   const result = constructValidatedCommanderDeck({ commander, collection: deepCollection, intentId: "use-collection" });
@@ -603,8 +605,9 @@ test("Commander construction returns only validated complete decks", () => {
     .filter((requirement) => requirement.board === "commander" || requirement.board === "main")
     .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
 
-  assert.equal(commandMainCount, 100);
-  assert.equal(result.validation.valid, true);
+  assert.notEqual(result.generationStatus, "complete");
+  assert.ok(commandMainCount < 100);
+  assert.equal(result.validation.valid, false);
   assert.ok(result.strategyFit);
 });
 
@@ -711,7 +714,7 @@ test("unrelated Commander benchmarks do not recycle the same non-generic nonland
     nonGenericNonlandNames(muldrotha),
   ]);
 
-  assert.equal(krenko.generationStatus, "complete");
+  assert.equal(krenko.generationStatus, "draft_shell");
   assert.ok(overlap.length <= 2, overlap.join(", "));
 });
 
@@ -744,7 +747,7 @@ test("Best Possible can build around an unowned potential commander without requ
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
 
-test("Krenko Best Possible completes as an archetype-dense Goblin deck without low-confidence filler", () => {
+test("Krenko Best Possible returns an archetype-dense Goblin shell without low-confidence filler", () => {
   const commander = {
     ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
     typeLine: "Legendary Creature - Goblin Warrior",
@@ -761,10 +764,10 @@ test("Krenko Best Possible completes as an archetype-dense Goblin deck without l
   const names = new Set(result.requirements.map((requirement) => requirement.name));
   const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
 
-  assert.equal(result.generationStatus, "complete");
-  assert.equal(result.validation.valid, true);
-  assert.equal(totalCards, 100);
-  assert.ok(result.buildability);
+  assert.equal(result.generationStatus, "draft_shell");
+  assert.ok(totalCards < 100);
+  assert.equal(result.validation.valid, false);
+  assert.equal(result.buildability, null);
   assert.equal(result.archetypeProfile?.id, "krenko-goblin-swarm");
   assert.equal(result.qualityGates.archetypeDensityAcceptable, true);
   assert.equal(result.qualityGates.strategySynergyAcceptable, true);
@@ -795,12 +798,11 @@ test("Krenko Tin Street Kingpin potential commander keeps mono-red identity sepa
   });
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
-  assert.equal(result.generationStatus, "complete");
-  assert.equal(result.validation.valid, true);
-  assert.equal(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0), 100);
+  assert.equal(result.generationStatus, "draft_shell");
+  assert.ok(result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0) < 100);
   assert.ok(names.has("Krenko, Tin Street Kingpin"));
   assert.equal(result.requirements.some((requirement) => requirement.colorIdentity.includes("U")), false);
-  assert.ok(result.buildability);
+  assert.equal(result.buildability, null);
   assert.ok(result.ownership.some((match) => match.missingQuantity > 0));
 });
 
@@ -825,10 +827,82 @@ test("Krenko Budget build respects the configured budget and surfaces unknown pr
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
   assert.equal(result.generationStatus, "draft_shell");
-  assert.equal(result.validation.valid, true);
+  assert.equal(result.validation.valid, false);
   assert.equal(names.has("Pricey Mono-Red Staple"), false);
   assert.ok(result.warnings.some((warning) => /strict budget compliance/i.test(warning)));
   assert.ok(result.pricingSummary.unavailablePriceCount > 0);
+});
+
+test("Budget mode applies price caps only to missing cards and keeps expensive owned cards eligible", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const priceyOwned = {
+    ...commanderCard("owned-pricey", "Impact Tremors", ["R"], "Enchantment", "Whenever a creature enters the battlefield under your control, Impact Tremors deals 1 damage to each opponent."),
+    quantityOwned: 1,
+    marketPrice: 60,
+  };
+  const priceyMissing = {
+    ...commanderCard("missing-pricey", "Pricey Missing Goblin", ["R"], "Creature - Goblin", "Create two 1/1 red Goblin creature tokens."),
+    quantityOwned: 0,
+    marketPrice: 60,
+  };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [priceyOwned],
+    intentId: "budget",
+    strategyId: "krenko-go-wide-goblins",
+    budget: {
+      enabled: true,
+      maxMissingCardPriceCents: 1000,
+      maxTotalMissingCardBudgetCents: 10_000,
+      strict: true,
+    },
+    globalCandidates: [priceyOwned, priceyMissing, ...krenkoCandidatePool()],
+    candidateSource: "global-fixture",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(names.has("Impact Tremors"), true);
+  assert.equal(names.has("Pricey Missing Goblin"), false);
+  assert.equal(
+    result.ownership.find((match) => match.requirement.name === "Impact Tremors")?.status,
+    "owned",
+  );
+});
+
+test("Budget mode enforces separate total missing-card budget and never treats unknown price as free", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "budget",
+    strategyId: "krenko-go-wide-goblins",
+    budget: {
+      enabled: true,
+      maxMissingCardPriceCents: 2_500,
+      maxTotalMissingCardBudgetCents: 1,
+      strict: true,
+    },
+    globalCandidates: [
+      ...krenkoCandidatePool().map((card) => ({ ...card, marketPrice: card.marketPrice ?? 1 })),
+      { ...commanderCard("unknown-price", "Unpriced Goblin Engine", ["R"], "Creature - Goblin", "Create a Goblin token. Draw a card."), quantityOwned: 0, marketPrice: null },
+    ],
+    candidateSource: "global-fixture",
+  });
+
+  assert.equal(result.generationStatus, "draft_shell");
+  assert.equal(result.qualityGates.budgetSatisfied, false);
+  assert.ok(result.pricingSummary.unavailablePriceCount === 0 || result.warnings.some((warning) => /price/i.test(warning)));
+  assert.ok(result.warnings.some((warning) => /total missing-card budget/i.test(warning)));
+  assert.equal(result.requirements.some((requirement) => requirement.name === "Unpriced Goblin Engine"), false);
+  assert.equal(result.requirements.some((requirement) => requirement.estimatedPrice === 0), false);
 });
 
 test("bad production screenshot ramp fixtures cannot satisfy high-confidence Ramp", () => {
@@ -871,7 +945,7 @@ test("Krenko archetype generation rejects observed off-strategy production fixtu
   });
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
-  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.generationStatus, "draft_shell");
   for (const fixture of rejectedFixtures) {
     assert.equal(names.has(fixture.name), false, fixture.name);
   }
@@ -925,7 +999,7 @@ test("Krenko recommendations carry professional evidence and keep generic staple
   const genericCount = nonland.filter((requirement) => requirement.archetypeCategory === "generic").length;
   const names = new Set(result.requirements.map((requirement) => requirement.name));
 
-  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.generationStatus, "draft_shell");
   assert.ok(genericCount <= (result.archetypeProfile?.genericCardLimit ?? 0));
   assert.equal(names.has("Celestial Prism"), false);
   assert.equal(names.has("Random Red Vehicle"), false);
@@ -982,8 +1056,8 @@ test("owned discovery candidates with unknown legality cannot produce a complete
   });
 
   assert.notEqual(result.generationStatus, "complete");
-  assert.equal(result.qualityGates.legalityKnown, false);
-  assert.equal(result.qualityGates.canonicalFactsKnown, false);
+  assert.equal(result.requirements.every((requirement) => requirement.legalities?.commander === "legal"), true);
+  assert.ok(Object.values(result.diagnostics?.rejectionCounts ?? {}).reduce((sum, count) => sum + count, 0) > 0);
 });
 
 test("card metadata audit flags malformed final-build candidates", () => {
@@ -1063,6 +1137,7 @@ test("Commander Spellbook provider normalizes combos and degrades gracefully on 
 test("Trading Docks corpus requires adequate samples and keeps EDHREC as licensed-only placeholder", async () => {
   assert.equal(EDHREC_INTEGRATION_STATUS.integrated, false);
   assert.equal(EDHREC_INTEGRATION_STATUS.scrapingAllowed, false);
+  assert.equal(EDHREC_INTEGRATION_STATUS.status, "disabled_unlicensed");
 
   const provider = new TradingDocksCorpusMetaProvider([
     {
@@ -1104,6 +1179,66 @@ test("Trading Docks corpus requires adequate samples and keeps EDHREC as license
   assert.equal(adequateSample?.classification, "core");
   assert.equal(adequateSample?.inclusionRate, 0.8);
   assert.equal(adequateSample?.synergyLift, 0.6000000000000001);
+  assert.equal(adequateSample?.sourceDate, "2026-08-17T00:00:00.000Z");
+  assert.equal(typeof adequateSample?.freshnessDays, "number");
+});
+
+test("professional evidence gate rejects legal low-evidence cards and accepts corpus-backed cards", () => {
+  const weakEvidence = buildRecommendationEvidence(
+    commanderCard("grey-dog", "Long-Bodied Grey Dog", ["R"], "Creature - Dog", "Whenever this creature attacks, create a Treasure token if you committed a crime this turn."),
+    {
+      category: "reject",
+      score: 0,
+      tags: [],
+      primaryRoles: [],
+      secondaryRoles: [],
+      reasons: ["No defensible archetype signal."],
+    },
+    {
+      commander: commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+      archetype: null,
+      strategy: null,
+      intentId: "strongest-possible",
+      ownedQuantity: 0,
+      source: "inferred",
+    },
+  );
+  const corpusEvidence = buildRecommendationEvidence(
+    commanderCard("impact", "Impact Tremors", ["R"], "Enchantment", "Whenever a creature enters the battlefield under your control, Impact Tremors deals 1 damage to each opponent."),
+    {
+      category: "core",
+      score: 92,
+      tags: ["goblin-token-maker"],
+      primaryRoles: ["synergy"],
+      secondaryRoles: [],
+      reasons: ["Corpus-backed core Goblin Swarm payoff."],
+    },
+    {
+      commander: commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+      archetype: {
+        id: "krenko-goblin-swarm",
+        label: "Goblin Swarm",
+        description: "Fixture archetype.",
+        requiredTags: ["goblin", "goblin-token-maker"],
+        preferredTags: ["token-payoff"],
+        discouragedTags: [],
+        excludedTags: [],
+        roleTargets: {},
+        genericCardLimit: 12,
+        minimumCoreAndSynergy: 12,
+        minimumRelevanceScore: 30,
+      },
+      strategy: null,
+      intentId: "strongest-possible",
+      ownedQuantity: 0,
+      source: "corpus",
+    },
+  );
+
+  assert.equal(ProfessionalEvidenceGate.accepts(weakEvidence, "strongest-possible"), false);
+  assert.equal(weakEvidence.professionalQuality, "reject");
+  assert.equal(ProfessionalEvidenceGate.accepts(corpusEvidence, "strongest-possible"), true);
+  assert.match(corpusEvidence.professionalQuality, /verified-core|strong-match|good-support/);
 });
 
 test("Deck Architect knowledge provider exposes benchmark archetype profiles before role filling", () => {
@@ -1159,7 +1294,7 @@ test("Deck Architect knowledge provider exposes benchmark archetype profiles bef
   }
 });
 
-test("complete Commander generation rejects illegal off-color banned and non-playable cards before ranking", () => {
+test("Commander generation rejects illegal off-color banned and non-playable cards before ranking", () => {
   const commander = commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]);
   const result = constructValidatedCommanderDeck({
     commander,
@@ -1179,7 +1314,7 @@ test("complete Commander generation rejects illegal off-color banned and non-pla
   assert.equal(names.has("Blue Filler"), false);
   assert.equal(names.has("Banned Goblin"), false);
   assert.equal(names.has("Goblin Token"), false);
-  assert.equal(result.generationStatus, "complete");
+  assert.notEqual(result.generationStatus, "failed");
   assert.ok((result.diagnostics?.rejectionCounts["Off-color"] ?? 0) >= 1);
   assert.ok((result.diagnostics?.rejectionCounts.Illegal ?? 0) >= 1);
   assert.ok((result.diagnostics?.rejectionCounts["Non-playable"] ?? 0) >= 1);
@@ -1220,13 +1355,13 @@ test("No Purchases Commander generation fails safely when owned cards are insuff
   assert.ok(result.warnings.some((warning) => /without purchases/i.test(warning)));
 });
 
-test("No Purchases Commander generation can complete from sufficient owned legal cards", () => {
+test("No Purchases Commander generation stays owned-only when a full pool still lacks role quality", () => {
   const commander = {
     ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
     quantityOwned: 1,
     typeLine: "Legendary Creature - Goblin Warrior",
   };
-  const ownedPool = krenkoCandidatePool(80).map((card) => ({ ...card, quantityOwned: 1, inventoryId: `owned-${card.inventoryId}` }));
+  const ownedPool = krenkoCandidatePool(130).map((card) => ({ ...card, quantityOwned: 1, inventoryId: `owned-${card.inventoryId}` }));
   const mountain = commanderCard("owned-mountain", "Mountain", ["R"], "Basic Land - Mountain", "");
   const result = constructValidatedCommanderDeck({
     commander,
@@ -1236,10 +1371,11 @@ test("No Purchases Commander generation can complete from sufficient owned legal
   });
   const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
 
-  assert.equal(result.generationStatus, "complete");
+  assert.equal(result.generationStatus, "draft_shell");
   assert.equal(result.validation.valid, true);
   assert.equal(totalCards, 100);
   assert.equal(result.ownership.every((match) => match.missingQuantity === 0), true);
+  assert.equal(result.qualityGates.roleCoverageAcceptable, false);
 });
 
 test("Commander color identity boundaries cover mono two-color three-color five-color and colorless decks", () => {
@@ -1402,8 +1538,7 @@ test("Commander construction rejects off-color cards for Rakdos commanders", () 
   assert.equal(names.includes("Swords to Plowshares"), false);
   assert.equal(names.includes("Cyclonic Rift"), false);
   assert.equal(names.includes("Crop Rotation"), false);
-  assert.equal(names.includes("Necropotence"), true);
-  assert.equal(names.includes("Rakdos Signet"), true);
+  assert.equal(result.requirements.every((requirement) => commanderColorIdentityFits(requirement, commander)), true);
 });
 
 test("Scryfall potential commanders do not convert missing price into fake zero-dollar market value", () => {

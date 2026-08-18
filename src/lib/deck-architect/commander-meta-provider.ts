@@ -20,8 +20,15 @@ export class EdhrecLicensedMetaProvider implements CommanderMetaProvider {
 }
 
 export const EDHREC_INTEGRATION_STATUS = {
+  status: "disabled_unlicensed",
   integrated: false,
   reason: "Commercial permission/licensing required before EDHREC data can be used by Trading Docks.",
   scrapingAllowed: false,
   providerInterfaceReady: true,
-} as const;
+} as const satisfies {
+  status: "disabled_unlicensed" | "configured" | "unavailable";
+  integrated: boolean;
+  reason: string;
+  scrapingAllowed: boolean;
+  providerInterfaceReady: boolean;
+};

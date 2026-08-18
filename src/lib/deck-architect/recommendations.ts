@@ -34,6 +34,7 @@ import type {
   DeckArchitectIntelligence,
   DeckArchitectRole,
   DeckArchetypeProfile,
+  DeckBudgetConstraints,
   DeckRecommendation,
   DeckRequirement,
   DeckGenerationStatus,
@@ -206,6 +207,7 @@ export function constructValidatedCommanderDeck({
   strategyId,
   globalCandidates = [],
   budgetCents,
+  budget,
   candidateSource = globalCandidates.length ? "global-scryfall" : "owned-plus-curated",
 }: {
   commander: CollectionGraphCard;
@@ -214,6 +216,7 @@ export function constructValidatedCommanderDeck({
   strategyId?: string | null;
   globalCandidates?: CollectionGraphCard[];
   budgetCents?: number | null;
+  budget?: DeckBudgetConstraints | null;
   candidateSource?: CommanderGenerationResult["candidateSource"];
 }): CommanderGenerationResult {
   const started = Date.now();
@@ -222,9 +225,7 @@ export function constructValidatedCommanderDeck({
   const strategyFit = strategyId
     ? strategyFits.find((fit) => fit.strategy.id === strategyId) ?? strategyFits[0] ?? null
     : strategyFits[0] ?? null;
-  const maxBudgetDollars = typeof budgetCents === "number"
-    ? Math.max(0, budgetCents / 100)
-    : 25;
+  const budgetConstraints = normalizeCommanderBudgetConstraints(intentId, budgetCents, budget);
   const commanderProfile = TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, strategyFit?.strategy ?? null, collection);
   const archetypeProfile = selectArchetypeProfile(commanderProfile, strategyFit?.strategy ?? null);
   const diagnostics = createCommanderDiagnostics(commander, strategyFit?.strategy?.label ?? archetypeProfile?.label ?? null);
@@ -235,8 +236,8 @@ export function constructValidatedCommanderDeck({
     strategy: strategyFit?.strategy ?? null,
     intentId,
     source: "owned",
-    allowUnknownLegality: true,
-    maxBudgetDollars: intentId === "budget" ? maxBudgetDollars : null,
+    allowUnknownLegality: false,
+    budgetConstraints,
     diagnostics,
   });
   const globalPool = prepareCommanderCandidatePool({
@@ -247,7 +248,7 @@ export function constructValidatedCommanderDeck({
     intentId,
     source: "inferred",
     allowUnknownLegality: false,
-    maxBudgetDollars: intentId === "budget" ? Math.max(5, maxBudgetDollars / 3) : null,
+    budgetConstraints,
     diagnostics,
   });
   const pool = rankCommanderPool({
@@ -273,10 +274,10 @@ export function constructValidatedCommanderDeck({
   });
 
   if (allowMissingCards && ["strongest-possible", "competitive", "casual"].includes(intentId)) {
-    addSeedRequirements(requirements, usedNames, strategySeeds, commander, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile);
-    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, format, "catalog", intentId, "generic", archetypeProfile);
+    addSeedRequirements(requirements, usedNames, strategySeeds, commander, collection, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile, budgetConstraints);
+    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, collection, format, "catalog", intentId, "generic", archetypeProfile, budgetConstraints);
   } else if (allowMissingCards) {
-    addSeedRequirements(requirements, usedNames, strategySeeds, commander, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile);
+    addSeedRequirements(requirements, usedNames, strategySeeds, commander, collection, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile, budgetConstraints);
   }
 
   const rampRoles: DeckArchitectRole[] = (commander.colorIdentity?.length ?? 0) <= 1
@@ -295,7 +296,7 @@ export function constructValidatedCommanderDeck({
   addStrategySupportCards(requirements, usedNames, pool, commander, format, archetypeProfile, diagnostics);
 
   if (allowMissingCards && !["strongest-possible", "competitive", "casual"].includes(intentId)) {
-    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, format, "catalog", intentId, "generic", archetypeProfile);
+    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, collection, format, "catalog", intentId, "generic", archetypeProfile, budgetConstraints);
   }
 
   if (intentId === "no-purchases") {
@@ -305,10 +306,15 @@ export function constructValidatedCommanderDeck({
   const basicLand = fallbackLandForColors(commander.colorIdentity ?? []);
   const current = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
   if (current < 100 && intentId !== "no-purchases" && nonLandMainCount(requirements) >= 45) {
+    const currentLands = requirements
+      .filter((requirement) => requirement.board === "main" && requirement.roles.includes("land"))
+      .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+    const fallbackLandCount = Math.min(100 - current, Math.max(0, 38 - currentLands));
+    if (fallbackLandCount > 0) {
     requirements.push({
       id: `commander:${commander.inventoryId}:fallback-land`,
       name: basicLand,
-      requiredQuantity: 100 - current,
+      requiredQuantity: fallbackLandCount,
       board: "main",
       roles: ["land"],
       estimatedPrice: 0.05,
@@ -318,6 +324,7 @@ export function constructValidatedCommanderDeck({
       legalities: { commander: "legal" },
       legalityStatus: "unknown",
     });
+    }
   }
   const validation = validateDeckRequirements(requirements, format, { commander });
   const ownership = compareRequirementsToCollection(requirements, collection, format);
@@ -332,6 +339,7 @@ export function constructValidatedCommanderDeck({
     archetype: archetypeProfile,
     generatedCardCount,
     meaningfulNonLandCount,
+    intentId,
   });
   const unknownLegalityInFinalBuild = requirements.some((requirement) =>
     requirement.board !== "sideboard" &&
@@ -344,6 +352,8 @@ export function constructValidatedCommanderDeck({
     qualityGates.canonicalFactsKnown = false;
   }
   const pricingSummary = completionPricingSummary(ownership);
+  const budgetCheck = commanderBudgetCheck(ownership, budgetConstraints);
+  if (!budgetCheck.satisfied) qualityGates.budgetSatisfied = false;
   let generationStatus: DeckGenerationStatus =
     Object.values(qualityGates).every(Boolean)
       ? "complete"
@@ -351,9 +361,17 @@ export function constructValidatedCommanderDeck({
         ? "draft_shell"
         : "failed";
   const warnings: string[] = [];
-  if (intentId === "budget" && pricingSummary.unavailablePriceCount > 0) {
+  if (budgetCheck.unknownPriceCount > 0) {
     if (generationStatus === "complete") generationStatus = "draft_shell";
     warnings.push("Some card prices are unavailable, so strict budget compliance cannot be guaranteed.");
+  }
+  if (budgetCheck.maxCardPriceExceededCount > 0) {
+    if (generationStatus === "complete") generationStatus = "draft_shell";
+    warnings.push("Some missing cards exceed the maximum individual missing-card budget.");
+  }
+  if (budgetCheck.totalBudgetExceeded) {
+    if (generationStatus === "complete") generationStatus = "draft_shell";
+    warnings.push("The known missing-card cost exceeds the total missing-card budget.");
   }
   if (intentId === "no-purchases" && generationStatus !== "complete") {
     warnings.push("You don't currently own enough legal cards to complete this deck without purchases.");
@@ -805,7 +823,7 @@ function prepareCommanderCandidatePool({
   intentId,
   source,
   allowUnknownLegality,
-  maxBudgetDollars,
+  budgetConstraints,
   diagnostics,
 }: {
   cards: CollectionGraphCard[];
@@ -815,7 +833,7 @@ function prepareCommanderCandidatePool({
   intentId: BuildIntentId;
   source: "curated" | "corpus" | "combo" | "inferred" | "owned";
   allowUnknownLegality: boolean;
-  maxBudgetDollars: number | null;
+  budgetConstraints: Required<DeckBudgetConstraints>;
   diagnostics: CommanderDiagnostics;
 }): CommanderCandidatePoolEntry[] {
   const seen = new Set<string>();
@@ -845,7 +863,8 @@ function prepareCommanderCandidatePool({
       diagnostics.rejectionCounts.Illegal += 1;
       continue;
     }
-    if (typeof maxBudgetDollars === "number" && card.marketPrice !== null && (card.marketPrice ?? 0) > maxBudgetDollars) {
+    const ownedQuantity = Math.max(0, card.quantityOwned);
+    if (!missingCardSatisfiesBudget(card.marketPrice ?? null, ownedQuantity, budgetConstraints)) {
       diagnostics.rejectionCounts["Low quality"] += 1;
       continue;
     }
@@ -861,7 +880,7 @@ function prepareCommanderCandidatePool({
       strategy,
       intentId,
       source,
-      ownedQuantity: card.quantityOwned,
+      ownedQuantity,
     });
     if (!passesProfessionalQualityFloor(evidence, intentId)) {
       for (const reason of evidence.rejectionReasons ?? ["insufficient confidence"]) {
@@ -1015,16 +1034,18 @@ function addSeedRequirements(
   usedNames: Set<string>,
   seeds: DeckKnowledgeCardSeed[],
   commander: CollectionGraphCard,
+  collection: CollectionGraphCard[],
   format: FormatProfile,
   strategyId: string,
   intentId: BuildIntentId,
   sourceCategory: ArchetypeCandidateCategory,
   archetype: ArchetypeProfile | null,
+  budgetConstraints: Required<DeckBudgetConstraints>,
 ) {
   for (const seed of seeds) {
     if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
-    if (intentId === "budget" && seed.estimatedPrice === null) continue;
-    if (intentId === "budget" && (seed.estimatedPrice ?? Number.POSITIVE_INFINITY) > 25) continue;
+    const ownedQuantity = ownedQuantityForName(collection, seed.name);
+    if (intentId === "budget" && !missingCardSatisfiesBudget(seed.estimatedPrice ?? null, ownedQuantity, budgetConstraints)) continue;
     if (!seedColorIdentityFits(seed, commander)) continue;
     const key = normalizeCardKey(seed.name);
     if (format.singleton && usedNames.has(key)) continue;
@@ -1109,6 +1130,75 @@ function seedToCollectionCard(
   };
 }
 
+function normalizeCommanderBudgetConstraints(
+  intentId: BuildIntentId,
+  legacyBudgetCents?: number | null,
+  budget?: DeckBudgetConstraints | null,
+): Required<DeckBudgetConstraints> {
+  const enabled = Boolean(budget?.enabled) || intentId === "budget";
+  const maxMissingCardPriceCents =
+    budget?.maxMissingCardPriceCents ??
+    (typeof legacyBudgetCents === "number" ? legacyBudgetCents : null);
+  const maxTotalMissingCardBudgetCents = budget?.maxTotalMissingCardBudgetCents ?? null;
+  return {
+    enabled,
+    maxMissingCardPriceCents,
+    maxTotalMissingCardBudgetCents,
+    strict: budget?.strict ?? enabled,
+  };
+}
+
+function missingCardSatisfiesBudget(
+  marketPrice: number | null,
+  ownedQuantity: number,
+  budget: Required<DeckBudgetConstraints>,
+) {
+  if (!budget.enabled || ownedQuantity > 0) return true;
+  if (typeof budget.maxMissingCardPriceCents !== "number") return true;
+  if (marketPrice === null || marketPrice === undefined || !Number.isFinite(marketPrice)) return false;
+  return marketPrice * 100 <= budget.maxMissingCardPriceCents;
+}
+
+function commanderBudgetCheck(
+  ownership: OwnershipMatch[],
+  budget: Required<DeckBudgetConstraints>,
+) {
+  if (!budget.enabled) {
+    return {
+      satisfied: true,
+      unknownPriceCount: 0,
+      maxCardPriceExceededCount: 0,
+      totalBudgetExceeded: false,
+    };
+  }
+  const missing = ownership.filter((match) => match.missingQuantity > 0 && !match.requirement.roles.includes("land"));
+  const unknownPriceCount = missing.filter((match) => match.estimatedMissingValue === null).length;
+  const maxMissingCardPriceCents = budget.maxMissingCardPriceCents;
+  const maxCardPriceExceededCount = typeof maxMissingCardPriceCents === "number"
+    ? missing.filter((match) => {
+        const price = match.requirement.estimatedPrice;
+        return typeof price === "number" && Number.isFinite(price) && price * 100 > maxMissingCardPriceCents;
+      }).length
+    : 0;
+  const knownMissingCost = missing.reduce((sum, match) => sum + (match.estimatedMissingValue ?? 0), 0);
+  const totalBudgetExceeded =
+    typeof budget.maxTotalMissingCardBudgetCents === "number" &&
+    knownMissingCost * 100 > budget.maxTotalMissingCardBudgetCents;
+  return {
+    satisfied: budget.strict ? unknownPriceCount === 0 && maxCardPriceExceededCount === 0 && !totalBudgetExceeded : maxCardPriceExceededCount === 0 && !totalBudgetExceeded,
+    unknownPriceCount,
+    maxCardPriceExceededCount,
+    totalBudgetExceeded,
+  };
+}
+
+function ownedQuantityForName(collection: CollectionGraphCard[], name: string) {
+  const key = normalizeCardKey(name);
+  return collection
+    .filter((card) => normalizeCardKey(card.name) === key)
+    .reduce((sum, card) => sum + Math.max(0, card.quantityOwned), 0);
+}
+
 function scoreCardForIntent(card: CollectionGraphCard, intentId: BuildIntentId) {
   const roles = classifyCardRoles(card);
   let score = card.quantityOwned * 4;
@@ -1117,7 +1207,7 @@ function scoreCardForIntent(card: CollectionGraphCard, intentId: BuildIntentId) 
   if (roles.includes("interaction")) score += 6;
   if (roles.includes("card-advantage")) score += 5;
   if (intentId === "no-purchases" || intentId === "use-collection") score += card.quantityOwned * 2;
-  if (intentId === "budget" && (card.marketPrice ?? 0) <= 5) score += 4;
+  if (intentId === "budget" && card.marketPrice !== null && card.marketPrice !== undefined && card.marketPrice <= 5) score += 4;
   if (intentId === "competitive" && roles.some((role) => role === "interaction" || role === "ramp")) score += 4;
   return score;
 }
@@ -1164,6 +1254,7 @@ function commanderQualityGates({
   archetype,
   generatedCardCount,
   meaningfulNonLandCount,
+  intentId,
 }: {
   requirements: DeckRequirement[];
   validation: ReturnType<typeof validateDeckRequirements>;
@@ -1171,6 +1262,7 @@ function commanderQualityGates({
   archetype: ArchetypeProfile | null;
   generatedCardCount: number;
   meaningfulNonLandCount: number;
+  intentId: BuildIntentId;
 }): CommanderGenerationResult["qualityGates"] {
   const main = requirements.filter((requirement) => requirement.board === "main");
   const lands = main.filter((requirement) => requirement.roles.includes("land")).reduce((sum, card) => sum + card.requiredQuantity, 0);
@@ -1181,6 +1273,15 @@ function commanderQualityGates({
     .filter((requirement) => requirement.archetypeCategory === "generic")
     .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
   const rejected = nonLand.filter((requirement) => requirement.archetypeCategory === "reject");
+  const acceptedProfessionalQualities = new Set(["verified-core", "strong-match", "good-support"]);
+  const professionalEvidenceAcceptable = nonLand.every((requirement) => {
+    const evidence = requirement.recommendationEvidence;
+    const quality = evidence?.professionalQuality;
+    return requirement.isCommander ||
+      requirement.archetypeCategory === "core" ||
+      Boolean(evidence && passesProfessionalQualityFloor(evidence, intentId)) ||
+      Boolean(quality && acceptedProfessionalQualities.has(quality));
+  });
   const highConfidenceRoleCards = nonLand.filter((requirement) =>
     classifyCardRoleSignals(requirement)
       .some((signal) => signal.confidenceScore >= 0.82 && signal.role !== "land"),
@@ -1225,6 +1326,8 @@ function commanderQualityGates({
     manaBaseAcceptable: lands >= 32 && lands <= 45 && meaningfulNonLandCount >= 45,
     candidateConfidenceAcceptable: highConfidenceRoleCards.length >= Math.min(28, nonLand.length),
     deckIdentityAcceptable: identityScore >= 0.58,
+    professionalEvidenceAcceptable,
+    budgetSatisfied: true,
     noRejectedCards: rejected.length === 0,
     noFiller: rejected.length === 0 && genericCount <= (archetype?.genericCardLimit ?? 18),
   };

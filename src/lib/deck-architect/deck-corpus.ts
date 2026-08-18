@@ -52,12 +52,16 @@ export class TradingDocksCorpusMetaProvider implements CommanderMetaProvider {
         coreCards: [],
         synergyCards: [],
         flexCards: [],
+        sourceDate: observation.observedAt,
+        freshnessDays: freshnessDays(observation.observedAt),
       };
       const classification = classifyCorpusObservation(observation);
       if (classification === "core") existing.coreCards.push(observation.cardName);
       if (classification === "strong-synergy") existing.synergyCards.push(observation.cardName);
       if (classification === "flex") existing.flexCards.push(observation.cardName);
       existing.sampleSize = Math.max(existing.sampleSize ?? 0, observation.eligibleDeckCount);
+      existing.sourceDate = newestDate(existing.sourceDate ?? null, observation.observedAt);
+      existing.freshnessDays = existing.sourceDate ? freshnessDays(existing.sourceDate) : null;
       byStrategy.set(strategyId, existing);
     }
     return {
@@ -88,6 +92,8 @@ export class TradingDocksCorpusMetaProvider implements CommanderMetaProvider {
       synergyLift: inclusionRate !== null && baseline !== null ? inclusionRate - baseline : null,
       coOccurrenceScore: match.coOccurrenceCount !== null && match.eligibleDeckCount > 0 ? match.coOccurrenceCount / match.eligibleDeckCount : null,
       classification: classifyCorpusObservation(match),
+      sourceDate: match.observedAt,
+      freshnessDays: freshnessDays(match.observedAt),
       provenance: match.provenance,
     };
   }
@@ -125,4 +131,19 @@ function titleCase(value: string) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function freshnessDays(observedAt: string) {
+  const timestamp = Date.parse(observedAt);
+  if (!Number.isFinite(timestamp)) return null;
+  return Math.max(0, Math.floor((Date.now() - timestamp) / 86_400_000));
+}
+
+function newestDate(left: string | null, right: string) {
+  if (!left) return right;
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(right);
+  if (!Number.isFinite(leftTime)) return right;
+  if (!Number.isFinite(rightTime)) return left;
+  return rightTime > leftTime ? right : left;
 }

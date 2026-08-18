@@ -87,6 +87,18 @@ export type DeckStrategyTag =
 export type ArchetypeCandidateCategory = "core" | "synergy" | "support" | "generic" | "reject";
 
 export type RecommendationEvidenceConfidence = "strong" | "good" | "possible" | "insufficient";
+export type ProfessionalEvidenceQuality = "verified-core" | "strong-match" | "good-support" | "possible" | "reject";
+
+export type RecommendationEvidenceProvenance = {
+  canonicalCardSource: "catalog" | "curated" | "collection" | "global-provider" | "unknown";
+  legalitySource: "scryfall" | "catalog" | "curated" | "collection" | "unknown";
+  archetypeSource: "curated" | "corpus" | "licensed-provider" | "deterministic" | "none";
+  roleSource: "deterministic-role-classifier";
+  corpusSource?: string;
+  comboSource?: string;
+  priceSource: "collection" | "catalog" | "curated" | "provider" | "unknown";
+  ownershipSource: "user-collection";
+};
 
 export type RecommendationEvidence = {
   legalityVerified: boolean;
@@ -109,9 +121,18 @@ export type RecommendationEvidence = {
     quantity: number;
   };
   confidence: RecommendationEvidenceConfidence;
+  professionalQuality: ProfessionalEvidenceQuality;
+  provenance: RecommendationEvidenceProvenance;
   reasons: string[];
   rejectionReasons?: string[];
   sourceCategories: Array<"curated" | "corpus" | "combo" | "inferred" | "owned">;
+};
+
+export type DeckBudgetConstraints = {
+  enabled?: boolean;
+  maxMissingCardPriceCents?: number | null;
+  maxTotalMissingCardBudgetCents?: number | null;
+  strict?: boolean;
 };
 
 export type CardKnowledge = {
@@ -135,6 +156,8 @@ export type CommanderStrategyEvidence = {
   id: string;
   label: string;
   sampleSize: number | null;
+  sourceDate?: string | null;
+  freshnessDays?: number | null;
   coreCards: string[];
   synergyCards: string[];
   flexCards: string[];
@@ -150,6 +173,8 @@ export type CommanderCardEvidence = {
   synergyLift: number | null;
   coOccurrenceScore: number | null;
   classification: "core" | "strong-synergy" | "flex" | "fringe" | "unsupported";
+  sourceDate?: string | null;
+  freshnessDays?: number | null;
   provenance: string[];
 };
 
@@ -608,6 +633,8 @@ export type CommanderGenerationResult = {
     manaBaseAcceptable: boolean;
     candidateConfidenceAcceptable: boolean;
     deckIdentityAcceptable: boolean;
+    professionalEvidenceAcceptable: boolean;
+    budgetSatisfied: boolean;
     noRejectedCards: boolean;
     noFiller: boolean;
   };
