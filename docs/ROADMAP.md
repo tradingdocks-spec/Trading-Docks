@@ -256,6 +256,8 @@ Implemented this checkpoint:
 14. Hardened Commander recommendations to be evidence-first: commander profile and selected strategy evidence now seed deck identity before global catalog fallback, with Nekusar Wheels / Group Slug and Burn / Draw Punishment as production regression benchmarks.
 15. Added Budget Mode controls for maximum individual missing-card price and total missing-card budget. Budget rules apply after commander relevance, strategy relevance, professional quality, and role fit; unknown missing-card prices are not treated as free.
 16. Expanded card-draw semantics so wheels, group draw, draw punishment, cantrips, conditional draw, and incidental draw no longer satisfy the same major card-advantage role automatically.
+17. Added the first human-reasoning architecture for Commander builds: DeckPlan creation, commander mechanical profiles, card-level inclusion justifications, pairwise candidate comparison, deterministic critic findings, bounded replacement loops, and a final sanity gate before Complete status.
+18. Added Winota as a structural Commander benchmark so the engine can distinguish non-Human enablers from Human payoffs instead of filling Boros roles mechanically.
 
 Recommended next checkpoint:
 
@@ -267,3 +269,4 @@ Recommended next checkpoint:
 6. Extend the implemented Commander Spellbook provider from Deck Vault combo analysis into richer Deck Architect combo panels and reviewed combo-aware proposals.
 7. Review and approve a Trading Docks Deck Corpus persistence migration before storing aggregate deck observations.
 8. Add customer-facing budget alternative labels and custom budget entry once the recommendation review UI has persistence and apply/revert flows.
+9. Add persisted DeckPlan, critique, and revision-history review surfaces once proposal storage is approved.

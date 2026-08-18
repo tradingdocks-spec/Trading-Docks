@@ -116,6 +116,20 @@ export function classifyCardRoleSignals(card: RoleInput): RoleSignal[] {
     add(signals, "burn", "high", "Direct damage.");
     add(signals, "interaction", "medium", "Can interact through damage.");
   }
+  if (typeLine.includes("creature") && typeLine.includes("human")) {
+    add(signals, "human-payoff", "high", "Human creature can be a Winota hit.");
+    add(signals, "synergy", "medium", "Supports Human payoff structures.");
+  }
+  if (typeLine.includes("creature") && !typeLine.includes("human")) {
+    add(signals, "non-human-enabler", Number(cardManaValue(card)) <= 3 ? "high" : "medium", "Non-Human creature can enable Winota attacks.");
+  }
+  if (matches(haystack, ["attacks", "attacking", "combat damage", "haste"])) {
+    add(signals, "attack-support", "high", "Supports attack-triggered game plans.");
+  }
+  if (matches(haystack, ["poison counter", "poison counters"])) add(signals, "poison", "high", "Advances poison-counter pressure.");
+  if (haystack.includes("infect")) add(signals, "infect", "high", "Deals damage as poison counters.");
+  if (haystack.includes("toxic")) add(signals, "toxic", "high", "Adds toxic poison pressure.");
+  if (haystack.includes("proliferate")) add(signals, "proliferate", "high", "Multiplies existing counters.");
   if (matches(haystack, ["destroy target artifact", "exile target artifact", "artifact or enchantment", "shatter"])) {
     add(signals, "artifact-interaction", "high", "Answers artifacts.");
     add(signals, "interaction", "medium", "Answers opposing cards.");

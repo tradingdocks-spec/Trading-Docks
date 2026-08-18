@@ -10,6 +10,13 @@ import { cardMetadataIssues, hasCanonicalCommanderFacts, isNonPlayableCardObject
 import { resolveDeckCardImageUri } from "./card-assets.ts";
 import { getCommanderCatalogCandidates } from "./commander-catalog.ts";
 import { commanderColorIdentityFits } from "./commander-global-candidates.ts";
+import {
+  compareCommanderCandidates,
+  createCommanderDeckPlan,
+  critiqueCommanderDeck,
+  finalHumanSanityReview,
+  justifyCardInclusion,
+} from "./deck-planning.ts";
 import { getFormatProfile, isBasicLand, maximumCopiesForCard } from "./formats.ts";
 import { validateDeckRequirements } from "./legality.ts";
 import {
@@ -228,6 +235,12 @@ export function constructValidatedCommanderDeck({
   const budgetConstraints = normalizeCommanderBudgetConstraints(intentId, budgetCents, budget);
   const commanderProfile = TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, strategyFit?.strategy ?? null, collection);
   const archetypeProfile = selectArchetypeProfile(commanderProfile, strategyFit?.strategy ?? null);
+  const deckPlan = createCommanderDeckPlan({
+    commander,
+    strategy: strategyFit?.strategy ?? null,
+    intentId,
+    budget: budgetConstraints,
+  });
   const diagnostics = createCommanderDiagnostics(commander, strategyFit?.strategy?.label ?? archetypeProfile?.label ?? null);
   const ownedPool = prepareCommanderCandidatePool({
     cards: collection.filter((card) => card.inventoryId !== commander.inventoryId),
@@ -260,8 +273,9 @@ export function constructValidatedCommanderDeck({
     intentId,
     targetRoles: strategyFit?.strategy.roles ?? [],
     archetype: archetypeProfile,
+    deckPlan,
   });
-  const requirements: DeckRequirement[] = [toRequirement(commander, 1, "commander", true, evaluateCandidate(commander, archetypeProfile))];
+  let requirements: DeckRequirement[] = [toRequirement(commander, 1, "commander", true, evaluateCandidate(commander, archetypeProfile), deckPlan)];
   const usedNames = new Set([normalizeCardKey(commander.name)]);
   const allowMissingCards = intentId !== "no-purchases";
   const strategySeeds = strategyFit
@@ -274,10 +288,10 @@ export function constructValidatedCommanderDeck({
   });
 
   if (allowMissingCards && ["strongest-possible", "competitive", "casual"].includes(intentId)) {
-    addSeedRequirements(requirements, usedNames, strategySeeds, commander, collection, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile, budgetConstraints);
-    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, collection, format, "catalog", intentId, "generic", archetypeProfile, budgetConstraints);
+    addSeedRequirements(requirements, usedNames, strategySeeds, commander, collection, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile, budgetConstraints, deckPlan);
+    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, collection, format, "catalog", intentId, "generic", archetypeProfile, budgetConstraints, deckPlan);
   } else if (allowMissingCards) {
-    addSeedRequirements(requirements, usedNames, strategySeeds, commander, collection, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile, budgetConstraints);
+    addSeedRequirements(requirements, usedNames, strategySeeds, commander, collection, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile, budgetConstraints, deckPlan);
   }
 
   const rampRoles: DeckArchitectRole[] = (commander.colorIdentity?.length ?? 0) <= 1
@@ -296,16 +310,16 @@ export function constructValidatedCommanderDeck({
     { roles: ["protection", "recursion"], target: 6 },
     { roles: strategyFit?.strategy.roles ?? ["synergy"], target: 22 },
     { roles: ["threat", "finisher", "combo-piece"], target: 8 },
-  ], commander, format, archetypeProfile, diagnostics);
+  ], commander, format, archetypeProfile, diagnostics, deckPlan);
 
-  addStrategySupportCards(requirements, usedNames, pool, commander, format, archetypeProfile, diagnostics);
+  addStrategySupportCards(requirements, usedNames, pool, commander, format, archetypeProfile, diagnostics, deckPlan);
 
   if (allowMissingCards && !["strongest-possible", "competitive", "casual"].includes(intentId)) {
-    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, collection, format, "catalog", intentId, "generic", archetypeProfile, budgetConstraints);
+    addSeedRequirements(requirements, usedNames, catalogSeeds, commander, collection, format, "catalog", intentId, "generic", archetypeProfile, budgetConstraints, deckPlan);
   }
 
   if (intentId === "no-purchases") {
-    addOwnedBasicLands(requirements, collection, commander, 100);
+    addOwnedBasicLands(requirements, collection, commander, 100, deckPlan);
   }
 
   const basicLand = fallbackLandForColors(commander.colorIdentity ?? []);
@@ -316,7 +330,7 @@ export function constructValidatedCommanderDeck({
       .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
     const fallbackLandCount = Math.min(100 - current, Math.max(0, 38 - currentLands));
     if (fallbackLandCount > 0) {
-    requirements.push({
+    const fallbackRequirement: DeckRequirement = {
       id: `commander:${commander.inventoryId}:fallback-land`,
       name: basicLand,
       requiredQuantity: fallbackLandCount,
@@ -328,9 +342,23 @@ export function constructValidatedCommanderDeck({
       colorIdentity: commander.colorIdentity?.slice(0, 1) ?? [],
       legalities: { commander: "legal" },
       legalityStatus: "unknown",
-    });
+    };
+    fallbackRequirement.inclusionJustification = justifyCardInclusion({ requirement: fallbackRequirement, deckPlan });
+    requirements.push(fallbackRequirement);
     }
   }
+  const revision = reviseCommanderDeckWithCritic({
+    requirements,
+    pool,
+    usedNames,
+    commander,
+    format,
+    archetype: archetypeProfile,
+    diagnostics,
+    deckPlan,
+    maxIterations: 3,
+  });
+  requirements = revision.requirements;
   const validation = validateDeckRequirements(requirements, format, { commander });
   const ownership = compareRequirementsToCollection(requirements, collection, format);
   const generatedCardCount = requirements.reduce((sum, item) => sum + item.requiredQuantity, 0);
@@ -359,6 +387,11 @@ export function constructValidatedCommanderDeck({
   const pricingSummary = completionPricingSummary(ownership);
   const budgetCheck = commanderBudgetCheck(ownership, budgetConstraints);
   if (!budgetCheck.satisfied) qualityGates.budgetSatisfied = false;
+  const critique = critiqueCommanderDeck({ deckPlan, requirements });
+  const finalReview = finalHumanSanityReview({ deckPlan, critique, requirements });
+  if (finalReview.status !== "pass" || critique.weakCards.some((card) => card.severity === "high")) {
+    qualityGates.finalSanityReviewPassed = false;
+  }
   let generationStatus: DeckGenerationStatus =
     Object.values(qualityGates).every(Boolean)
       ? "complete"
@@ -390,6 +423,10 @@ export function constructValidatedCommanderDeck({
     pricingSummary,
     strategyFit,
     archetypeProfile,
+    deckPlan,
+    critique,
+    revisionHistory: revision.revisionHistory,
+    finalSanityReview: finalReview,
     diagnostics: finalizeCommanderDiagnostics(diagnostics, requirements),
     candidateSourcePolicy: candidateSourcePolicyForIntent(intentId),
     candidateSource: intentId === "no-purchases" ? "owned-only" : candidateSource,
@@ -696,8 +733,9 @@ function toRequirement(
   board: "commander" | "main",
   isCommander: boolean,
   evaluation?: ArchetypeCandidateEvaluation,
+  deckPlan?: NonNullable<CommanderGenerationResult["deckPlan"]>,
 ): DeckRequirement {
-  return {
+  const requirement: DeckRequirement = {
     id: `${board}:${card.inventoryId}`,
     name: card.name,
     requiredQuantity: quantity,
@@ -724,6 +762,8 @@ function toRequirement(
     legalities: card.legalities,
     legalityStatus: "unknown",
   };
+  if (deckPlan) requirement.inclusionJustification = justifyCardInclusion({ requirement, deckPlan });
+  return requirement;
 }
 
 function colorIdentityFits(card: CollectionGraphCard, commander: CollectionGraphCard) {
@@ -903,11 +943,13 @@ function rankCommanderPool({
   intentId,
   targetRoles,
   archetype,
+  deckPlan,
 }: {
   entries: CommanderCandidatePoolEntry[];
   intentId: BuildIntentId;
   targetRoles: DeckArchitectRole[];
   archetype: ArchetypeProfile | null;
+  deckPlan: CommanderGenerationResult["deckPlan"];
 }) {
   return entries
     .sort((left, right) => {
@@ -915,6 +957,10 @@ function rankCommanderPool({
       const rightRoles = classifyCardRoles(right.card);
       const leftScore = scoreCardForIntent(left.card, intentId) + archetypeFitScore(left.evaluation, archetype) + recommendationEvidenceScore(left.evidence) + evidenceSourcePriorityScore(left.evidence) + leftRoles.filter((role) => targetRoles.includes(role)).length * 12;
       const rightScore = scoreCardForIntent(right.card, intentId) + archetypeFitScore(right.evaluation, archetype) + recommendationEvidenceScore(right.evidence) + evidenceSourcePriorityScore(right.evidence) + rightRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      if (deckPlan) {
+        const comparison = compareCommanderCandidates({ left, right, deckPlan });
+        if (comparison.leftScore !== comparison.rightScore) return comparison.rightScore - comparison.leftScore;
+      }
       return rightScore - leftScore || left.card.name.localeCompare(right.card.name);
     })
     .map((entry) => entry);
@@ -929,6 +975,7 @@ function addRoleBucketCards(
   format: FormatProfile,
   archetype: ArchetypeProfile | null,
   diagnostics: CommanderDiagnostics,
+  deckPlan: NonNullable<CommanderGenerationResult["deckPlan"]>,
 ) {
   for (const bucket of buckets) {
     let current = requirements
@@ -936,7 +983,7 @@ function addRoleBucketCards(
       .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
     for (const card of pool) {
       if (current >= bucket.target || nonLandMainCount(requirements) >= 63) break;
-      const added = addPoolCard(requirements, usedNames, card, commander, format, bucket.roles, archetype, diagnostics);
+      const added = addPoolCard(requirements, usedNames, card, commander, format, bucket.roles, archetype, diagnostics, deckPlan);
       if (added) current += 1;
     }
   }
@@ -950,11 +997,92 @@ function addStrategySupportCards(
   format: FormatProfile,
   archetype: ArchetypeProfile | null,
   diagnostics: CommanderDiagnostics,
+  deckPlan: NonNullable<CommanderGenerationResult["deckPlan"]>,
 ) {
   for (const card of pool) {
     if (nonLandMainCount(requirements) >= 63) break;
-    addPoolCard(requirements, usedNames, card, commander, format, undefined, archetype, diagnostics);
+    addPoolCard(requirements, usedNames, card, commander, format, undefined, archetype, diagnostics, deckPlan);
   }
+}
+
+function reviseCommanderDeckWithCritic({
+  requirements,
+  pool,
+  usedNames,
+  commander,
+  format,
+  archetype,
+  diagnostics,
+  deckPlan,
+  maxIterations,
+}: {
+  requirements: DeckRequirement[];
+  pool: CommanderCandidatePoolEntry[];
+  usedNames: Set<string>;
+  commander: CollectionGraphCard;
+  format: FormatProfile;
+  archetype: ArchetypeProfile | null;
+  diagnostics: CommanderDiagnostics;
+  deckPlan: NonNullable<CommanderGenerationResult["deckPlan"]>;
+  maxIterations: number;
+}) {
+  const revisionHistory: NonNullable<CommanderGenerationResult["revisionHistory"]> = [];
+  let current: DeckRequirement[] = requirements.map((requirement) => ({
+    ...requirement,
+    inclusionJustification: requirement.inclusionJustification ?? justifyCardInclusion({ requirement, deckPlan }),
+  }));
+  const removedNames = new Set<string>();
+
+  for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
+    const critique = critiqueCommanderDeck({ deckPlan, requirements: current });
+    const request = critique.replacementRequests[0];
+    if (!request) break;
+    const weak = current.find((requirement) => requirement.id === request.cardId);
+    if (!weak) break;
+    const weakKey = normalizeCardKey(weak.name);
+    removedNames.add(weakKey);
+    usedNames.delete(weakKey);
+    const replacement = pool.find((entry) => {
+      const key = normalizeCardKey(entry.card.name);
+      if (usedNames.has(key) || removedNames.has(key)) return false;
+      if (!request.desiredRoles.some((role) => entry.evaluation.primaryRoles.includes(role))) return false;
+      const comparison = compareCommanderCandidates({
+        left: entry,
+        right: {
+          card: requirementToCard(weak),
+          evaluation: evaluateCandidate(requirementToCard(weak), archetype),
+          evidence: weak.recommendationEvidence ?? entry.evidence,
+        },
+        role: request.desiredRoles[0],
+        deckPlan,
+      });
+      return comparison.winner === "left" && comparison.leftScore > comparison.rightScore;
+    });
+    current = current.filter((requirement) => requirement.id !== weak.id);
+    if (replacement) {
+      const added = toRequirement(replacement.card, 1, "main", false, replacement.evaluation, deckPlan);
+      added.recommendationEvidence = replacement.evidence;
+      added.inclusionJustification = justifyCardInclusion({ requirement: added, deckPlan });
+      current.push(added);
+      usedNames.add(normalizeCardKey(replacement.card.name));
+      revisionHistory.push({
+        iteration,
+        removedCardName: weak.name,
+        addedCardName: replacement.card.name,
+        reason: request.reasons[0] ?? "Critic requested a stronger deck-plan fit.",
+      });
+    } else {
+      diagnostics.rejectionCounts["Better candidates available"] += 1;
+      revisionHistory.push({
+        iteration,
+        removedCardName: weak.name,
+        addedCardName: null,
+        reason: "Critic removed a weak card; no stronger validated replacement fit the constraints.",
+      });
+    }
+  }
+
+  return { requirements: current, revisionHistory };
 }
 
 function addPoolCard(
@@ -966,6 +1094,7 @@ function addPoolCard(
   requiredRoles?: DeckArchitectRole[],
   archetype?: ArchetypeProfile | null,
   diagnostics?: CommanderDiagnostics,
+  deckPlan?: NonNullable<CommanderGenerationResult["deckPlan"]>,
 ) {
   const { card, evaluation } = entry;
   const key = normalizeCardKey(card.name);
@@ -980,8 +1109,14 @@ function addPoolCard(
   }
   if (evaluation.category === "reject" || evaluation.score < (archetype?.minimumRelevanceScore ?? 1)) return false;
   if (roles.includes("land")) return false;
-  requirements.push(toRequirement(card, 1, "main", false, evaluation));
+  requirements.push(toRequirement(card, 1, "main", false, evaluation, deckPlan));
   requirements[requirements.length - 1].recommendationEvidence = entry.evidence;
+  if (deckPlan) {
+    requirements[requirements.length - 1].inclusionJustification = justifyCardInclusion({
+      requirement: requirements[requirements.length - 1],
+      deckPlan,
+    });
+  }
   usedNames.add(key);
   return true;
 }
@@ -1002,6 +1137,7 @@ function addOwnedBasicLands(
   collection: CollectionGraphCard[],
   commander: CollectionGraphCard,
   targetCount: number,
+  deckPlan?: NonNullable<CommanderGenerationResult["deckPlan"]>,
 ) {
   const ownedBasics = collection
     .filter((card) => isBasicLand(card.name) && card.quantityOwned > 0)
@@ -1012,13 +1148,15 @@ function addOwnedBasicLands(
     if (currentCount >= targetCount) break;
     const quantity = Math.min(card.quantityOwned, targetCount - currentCount);
     if (quantity <= 0) continue;
-    requirements.push({
+    const requirement: DeckRequirement = {
       ...toRequirement(card, quantity, "main", false),
       id: `owned-basic:${normalizeCardKey(card.name)}:${requirements.length}`,
       roles: ["land"],
       imageUri: resolveDeckCardImageUri(card),
       legalityStatus: "unknown",
-    });
+    };
+    if (deckPlan) requirement.inclusionJustification = justifyCardInclusion({ requirement, deckPlan });
+    requirements.push(requirement);
   }
 }
 
@@ -1046,6 +1184,7 @@ function addSeedRequirements(
   sourceCategory: ArchetypeCandidateCategory,
   archetype: ArchetypeProfile | null,
   budgetConstraints: Required<DeckBudgetConstraints>,
+  deckPlan: NonNullable<CommanderGenerationResult["deckPlan"]>,
 ) {
   for (const seed of seeds) {
     if (requirements.reduce((sum, item) => sum + item.requiredQuantity, 0) >= 100) break;
@@ -1056,7 +1195,7 @@ function addSeedRequirements(
     if (format.singleton && usedNames.has(key)) continue;
     const quantity = Math.min(seed.quantity, 100 - requirements.reduce((sum, item) => sum + item.requiredQuantity, 0));
     if (quantity <= 0) continue;
-    const requirement = seedToRequirement(seed, quantity, commander, strategyId, intentId, sourceCategory, archetype);
+    const requirement = seedToRequirement(seed, quantity, commander, strategyId, intentId, sourceCategory, archetype, deckPlan);
     const genericCount = requirements
       .filter((item) => item.board === "main" && item.archetypeCategory === "generic" && !item.roles.includes("land"))
       .reduce((sum, item) => sum + item.requiredQuantity, 0);
@@ -1074,6 +1213,7 @@ function seedToRequirement(
   intentId: BuildIntentId,
   sourceCategory: ArchetypeCandidateCategory,
   archetype: ArchetypeProfile | null,
+  deckPlan?: NonNullable<CommanderGenerationResult["deckPlan"]>,
 ): DeckRequirement {
   const seedCard = seedToCollectionCard(seed, commander, strategyId);
   const evaluation = evaluateCandidate(seedCard, archetype);
@@ -1090,7 +1230,7 @@ function seedToRequirement(
     : sourceCategory === "generic"
       ? (evaluation.category === "core" || evaluation.category === "synergy" ? evaluation.category : "generic")
       : evaluation.category;
-  return {
+  const requirement: DeckRequirement = {
     id: `strategy:${strategyId}:${normalizeCardKey(seed.name)}`,
     name: seed.name,
     requiredQuantity: quantity,
@@ -1116,6 +1256,8 @@ function seedToRequirement(
     legalities: { commander: "legal" },
     legalityStatus: "unknown",
   };
+  requirement.inclusionJustification = deckPlan ? justifyCardInclusion({ requirement, deckPlan }) : undefined;
+  return requirement;
 }
 
 function seedToCollectionCard(
@@ -1350,6 +1492,7 @@ function commanderQualityGates({
     budgetSatisfied: true,
     noRejectedCards: rejected.length === 0,
     noFiller: rejected.length === 0 && genericCount <= (archetype?.genericCardLimit ?? 18),
+    finalSanityReviewPassed: true,
   };
 }
 

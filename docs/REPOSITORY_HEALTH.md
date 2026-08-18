@@ -397,6 +397,9 @@ Implemented improvements:
 - Added an evidence-first Commander recommendation pass: commander profiles and selected strategies now drive candidate pools before global catalog fallback, with Nekusar Wheels / Group Slug and Burn / Draw Punishment covered as regression benchmarks.
 - Split card-draw semantics into wheels, group draw, draw punishment, conditional draw, incidental draw, cantrips, hand cycling, and true card advantage so one-shot replacement text no longer satisfies primary deck-identity quotas.
 - Added Budget Mode UI and engine constraints for maximum individual missing-card price and total missing-card budget while keeping expensive owned cards eligible and treating unknown missing-card prices as unavailable.
+- Added DeckPlan -> Build -> Critique -> Revise -> Validate architecture for Commander construction. Cards now carry inclusion justifications, contested slots use contextual comparison, and Complete status depends on a final sanity gate.
+- Added deterministic critic coverage plus a future `DeckCriticProvider` boundary. A future reasoning model may request review/replacements, but it cannot bypass Trading Docks legality, budget, evidence, or persistence rules.
+- Added Winota Human/non-Human structural benchmark coverage alongside Nekusar, Krenko, Muldrotha, and Atraxa strategy differentiation checks.
 
 Remaining risks:
 
@@ -408,6 +411,7 @@ Remaining risks:
 - Price-aware scoring only uses saved inventory values when available; missing prices stay unavailable.
 - Pauper is currently the only 60-card Full Intelligence format. Other constructed formats remain builder/legality or experimental until provider quality is reviewed.
 - Budget alternatives are enforced by the engine today, but explicit "Budget Alternative" labeling is still planned for the proposal-review UI.
+- DeckPlan, critique findings, and revision history are returned from the engine but are not yet persisted or given a full customer-facing review timeline.
 
 Recommended next stabilization task:
 

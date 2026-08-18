@@ -55,8 +55,11 @@ export function getCommanderProfile(
   const lowerName = commander.name.toLowerCase();
   const isKrenko = lowerName.includes("krenko") || creatureTypes.includes("Goblin") || tags.includes("goblin-token-maker");
   const isNekusar = lowerName.includes("nekusar") || tags.includes("draw-punishment") || tags.includes("wheel");
+  const isWinota = lowerName.includes("winota") || commander.oracleText?.toLowerCase().includes("non-human creature you control attacks");
   const viableArchetypes = isNekusar
     ? [nekusarWheelsGroupSlug(), nekusarBurnPunishment()]
+    : isWinota
+    ? [winotaAggressiveCombat()]
     : isKrenko
     ? [krenkoGoblinSwarm(), krenkoGoblinCombo(), sacrificeAristocrats()]
     : [
@@ -145,6 +148,9 @@ export function classifyStrategyTags(card: Pick<CollectionGraphCard, "name" | "t
   if (hasAny(haystack, ["exile another target", "return that card to the battlefield", "blink"])) tags.push("blink-enabler");
   if (hasAny(haystack, ["return target creature card from your graveyard to the battlefield", "reanimate"])) tags.push("reanimation");
   if (hasAny(haystack, ["artifact you control", "whenever an artifact", "artifact spell"])) tags.push("artifact-synergy");
+  if (typeLine.includes("human") && typeLine.includes("creature")) tags.push("human-payoff");
+  if (typeLine.includes("creature") && !typeLine.includes("human")) tags.push("non-human-enabler");
+  if (hasAny(haystack, ["attacks", "attacking", "combat damage", "haste"])) tags.push("attack-support");
 
   return [...new Set(tags)];
 }
@@ -339,6 +345,29 @@ function nekusarBurnPunishment(): ArchetypeProfile {
   });
 }
 
+function winotaAggressiveCombat(): ArchetypeProfile {
+  return archetype({
+    id: "winota-aggressive-combat",
+    label: "Aggressive Combat / Winota Triggers",
+    description: "Cheap non-Human attackers and token bodies trigger Winota into high-impact Human payoffs.",
+    requiredTags: ["non-human-enabler", "human-payoff"],
+    preferredTags: ["token-maker", "attack-support", "haste-enabler", "protection", "interaction", "ramp", "card-advantage"],
+    discouragedTags: ["artifact-synergy", "voltron", "graveyard-enabler"],
+    excludedNames: PRODUCTION_FAILURE_NAMES,
+    roleTargets: {
+      "non-human-enabler": { min: 12, ideal: 18 },
+      "human-payoff": { min: 8, ideal: 12 },
+      "token-generation": { min: 5, ideal: 9 },
+      protection: { min: 4, ideal: 7 },
+      ramp: { min: 7, ideal: 10 },
+      interaction: { min: 6, ideal: 9 },
+    },
+    genericCardLimit: 10,
+    minimumCoreAndSynergy: 24,
+    minimumRelevanceScore: 32,
+  });
+}
+
 function graveyardRecursion() {
   return archetype({ id: "graveyard-recursion", label: "Graveyard Recursion", description: "Graveyard setup, recursion engines, sacrifice value, and durable card advantage.", requiredTags: ["graveyard-enabler", "recursion"], preferredTags: ["sacrifice-outlet", "death-payoff", "card-advantage", "interaction", "ramp"], roleTargets: { recursion: { min: 8, ideal: 14 }, "graveyard-interaction": { min: 10, ideal: 16 }, "card-advantage": { min: 7, ideal: 10 } }, genericCardLimit: 16, minimumCoreAndSynergy: 20, minimumRelevanceScore: 28 });
 }
@@ -379,6 +408,7 @@ function strategyMatchesArchetype(strategy: CommanderStrategyProfile, archetype:
   const text = `${strategy.id} ${strategy.label}`.toLowerCase();
   if (text.includes("wheel") || text.includes("group slug")) return archetype.id === "nekusar-wheels-group-slug";
   if (text.includes("draw punishment") || text.includes("burn")) return archetype.id === "nekusar-burn-draw-punishment";
+  if (text.includes("winota") || text.includes("combat") || text.includes("non-human")) return archetype.id === "winota-aggressive-combat";
   if (text.includes("swarm") || text.includes("go wide") || text.includes("go-wide") || text.includes("aggro")) return archetype.id === "krenko-goblin-swarm";
   if (text.includes("combo")) return archetype.id === "krenko-goblin-combo";
   return archetype.id === strategy.id || text.includes(archetype.label.toLowerCase());
@@ -408,6 +438,9 @@ function tagsFromTaxonomy(taxonomy: NonNullable<CommanderStrategyProfile["taxono
     text.includes("draw punishment") ? "draw-punishment" : null,
     text.includes("forced draw") || text.includes("opponent draw") ? "opponent-draw" : null,
     text.includes("hand cycling") ? "hand-cycling" : null,
+    text.includes("human") ? "human-payoff" : null,
+    text.includes("non-human") || text.includes("nonhuman") ? "non-human-enabler" : null,
+    text.includes("attack") || text.includes("combat") ? "attack-support" : null,
   ].filter((tag): tag is DeckStrategyTag => Boolean(tag));
 }
 

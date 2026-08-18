@@ -10,6 +10,7 @@ export * from "./commander-global-candidates.ts";
 export * from "./commander-meta-provider.ts";
 export * from "./combo-provider.ts";
 export * from "./deck-corpus.ts";
+export * from "./deck-planning.ts";
 export * from "./formats.ts";
 export * from "./health.ts";
 export * from "./intents.ts";

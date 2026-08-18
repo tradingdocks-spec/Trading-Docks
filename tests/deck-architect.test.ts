@@ -37,7 +37,12 @@ import {
   analyzeDeckHealth,
   resolveDeckCardImageUri,
   classifyStrategyTags,
+  compareCommanderCandidates,
+  createCommanderDeckPlan,
+  createCommanderMechanicalProfile,
+  critiqueCommanderDeck,
   evaluateCandidate,
+  finalHumanSanityReview,
   selectArchetypeProfile,
   TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER,
   CommanderSpellbookProvider,
@@ -48,6 +53,7 @@ import {
   passesProfessionalQualityFloor,
   cardMetadataIssues,
   ProfessionalEvidenceGate,
+  validateDeckCriticOutput,
   type CollectionGraphCard,
   type CommanderGenerationResult,
   type DeckRequirement,
@@ -1736,6 +1742,150 @@ test("Commander strategy packages remain distinct across Nekusar Krenko Atraxa a
   ]).length <= 2);
 });
 
+test("DeckPlan captures commander mechanics before card selection", () => {
+  const commander = winotaCommander();
+  const strategy = rankCommanderStrategiesForCollection(commander, [], "strongest-possible")[0]?.strategy ?? null;
+  const plan = createCommanderDeckPlan({
+    commander,
+    strategy,
+    intentId: "strongest-possible",
+    budget: { enabled: false },
+  });
+
+  assert.equal(plan.commander, "Winota, Joiner of Forces");
+  assert.match(plan.selectedStrategy, /Winota|Combat/);
+  assert.ok(plan.keyEnablers.includes("non-human-enabler"));
+  assert.ok(plan.keyPayoffs.includes("human-payoff"));
+  assert.ok(plan.commanderSpecificMechanicalRequirements.some((requirement) => /Non-Human/i.test(requirement)));
+});
+
+test("CardInclusionJustification answers why a card belongs in this commander deck", () => {
+  const result = constructValidatedCommanderDeck({
+    commander: nekusarCommander(),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "nekusar-wheels-group-slug",
+    globalCandidates: nekusarCandidatePool(),
+  });
+  const windfall = result.requirements.find((requirement) => requirement.name === "Windfall");
+
+  assert.ok(result.deckPlan);
+  assert.ok(windfall?.inclusionJustification);
+  assert.equal(windfall.inclusionJustification.primaryRole, "wheel");
+  assert.ok(windfall.inclusionJustification.commanderRelationship.length > 0);
+  assert.ok(windfall.inclusionJustification.strategyRelationship.length > 0);
+  assert.ok(windfall.inclusionJustification.confidence >= 0.8);
+});
+
+test("pairwise candidate comparison favors commander-plan fit over generic role filling", () => {
+  const commander = nekusarCommander();
+  const strategy = rankCommanderStrategiesForCollection(commander, [], "strongest-possible")[0]?.strategy ?? null;
+  const commanderProfile = TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, strategy, []);
+  const archetype = selectArchetypeProfile(commanderProfile, strategy);
+  const deckPlan = createCommanderDeckPlan({ commander, strategy, intentId: "strongest-possible", budget: { enabled: false } });
+  const windfall = nekusarCandidatePool().find((card) => card.name === "Windfall")!;
+  const randomCantrip = nekusarCandidatePool().find((card) => card.name === "Random Removal Cantrip")!;
+  const leftEvaluation = evaluateCandidate(windfall, archetype);
+  const rightEvaluation = evaluateCandidate(randomCantrip, archetype);
+  const leftEvidence = buildRecommendationEvidence(windfall, leftEvaluation, { commander, archetype, strategy, intentId: "strongest-possible", source: "curated", ownedQuantity: 0 });
+  const rightEvidence = buildRecommendationEvidence(randomCantrip, rightEvaluation, { commander, archetype, strategy, intentId: "strongest-possible", source: "inferred", ownedQuantity: 0 });
+  const comparison = compareCommanderCandidates({
+    left: { card: windfall, evaluation: leftEvaluation, evidence: leftEvidence },
+    right: { card: randomCantrip, evaluation: rightEvaluation, evidence: rightEvidence },
+    role: "wheel",
+    deckPlan,
+  });
+
+  assert.equal(comparison.winner, "left");
+  assert.ok(comparison.leftScore > comparison.rightScore);
+});
+
+test("DeckCritic flags weak justifications and final review requires revision", () => {
+  const commander = nekusarCommander();
+  const strategy = rankCommanderStrategiesForCollection(commander, [], "strongest-possible")[0]?.strategy ?? null;
+  const deckPlan = createCommanderDeckPlan({ commander, strategy, intentId: "strongest-possible", budget: { enabled: false } });
+  const weak: DeckRequirement = {
+    id: "main:random-cantrip",
+    name: "Random Removal Cantrip",
+    requiredQuantity: 1,
+    board: "main",
+    roles: ["interaction", "cantrip", "incidental-draw"],
+    archetypeCategory: "generic",
+    typeLine: "Instant",
+    oracleText: "Return target creature to its owner's hand. Draw a card.",
+    legalities: { commander: "legal" },
+  };
+  const critique = critiqueCommanderDeck({ deckPlan, requirements: [weak] });
+  const review = finalHumanSanityReview({ deckPlan, critique, requirements: [weak] });
+
+  assert.ok(validateDeckCriticOutput(critique));
+  assert.ok(critique.weakCards.some((card) => card.severity === "high"));
+  assert.equal(review.status, "review_required");
+});
+
+test("AI critic provider output is only accepted as structured critique data", () => {
+  assert.equal(validateDeckCriticOutput({ weakCards: [], missingFunctions: [], overrepresentedFunctions: [], structuralIssues: [], replacementRequests: [], confidence: 0.7 }), true);
+  assert.equal(validateDeckCriticOutput({ weakCards: [], confidence: 1, directCardToAdd: "Black Lotus" }), false);
+});
+
+test("Winota benchmark separates non-Human enablers from Human payoffs", () => {
+  const commander = winotaCommander();
+  const profile = createCommanderMechanicalProfile(commander);
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "winota-aggressive-combat",
+    globalCandidates: winotaCandidatePool(),
+  });
+  const nonHumanCount = result.requirements.filter((requirement) => requirement.roles.includes("non-human-enabler")).length;
+  const humanCount = result.requirements.filter((requirement) => requirement.roles.includes("human-payoff")).length;
+
+  assert.ok(profile.enablerRoles.includes("non-human-enabler"));
+  assert.ok(profile.payoffRoles.includes("human-payoff"));
+  assert.equal(result.archetypeProfile?.id, "winota-aggressive-combat");
+  assert.ok(nonHumanCount >= 4);
+  assert.ok(humanCount >= 4);
+  assert.ok(result.finalSanityReview);
+});
+
+test("Commander build result includes DeckPlan critique revision and final sanity review", () => {
+  const result = constructValidatedCommanderDeck({
+    commander: nekusarCommander(),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "nekusar-wheels-group-slug",
+    globalCandidates: nekusarCandidatePool(),
+  });
+
+  assert.ok(result.deckPlan);
+  assert.ok(result.critique);
+  assert.ok(Array.isArray(result.revisionHistory));
+  assert.ok(result.revisionHistory.length <= 3);
+  assert.ok(result.finalSanityReview);
+  if (result.generationStatus === "complete") {
+    assert.equal(result.finalSanityReview.status, "pass");
+  }
+});
+
+test("benchmarks expose distinct mechanical profiles for Nekusar Krenko Muldrotha and Atraxa", () => {
+  const atraxa = commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]);
+  const profiles = [
+    createCommanderMechanicalProfile(nekusarCommander(), rankCommanderStrategiesForCollection(nekusarCommander(), [])[0]?.strategy ?? null),
+    createCommanderMechanicalProfile(commanderCandidate("krenko", "Krenko, Mob Boss", ["R"])),
+    createCommanderMechanicalProfile(commanderCandidate("muldrotha", "Muldrotha, the Gravetide", ["B", "G", "U"])),
+    createCommanderMechanicalProfile(atraxa, { ...rankCommanderStrategiesForCollection(atraxa, [])[0]!.strategy, id: "atraxa-poison", label: "Poison" }),
+    createCommanderMechanicalProfile(atraxa, { ...rankCommanderStrategiesForCollection(atraxa, [])[0]!.strategy, id: "atraxa-counters", label: "+1/+1 Counters" }),
+  ];
+  const metricKeys = profiles.map((profile) => profile.qualityMetrics.map((metric) => metric.key).join(","));
+
+  assert.ok(metricKeys[0].includes("wheel-density"));
+  assert.ok(metricKeys[1].includes("goblin-density"));
+  assert.ok(metricKeys[2].includes("permanent-density"));
+  assert.ok(metricKeys[3].includes("poison-density"));
+  assert.ok(metricKeys[4].includes("counter-density"));
+});
+
 test("Scryfall potential commanders do not convert missing price into fake zero-dollar market value", () => {
   const commander = scryfallResultToPotentialCommander({
     id: "scryfall-unpriced",
@@ -2093,6 +2243,37 @@ function nekusarCandidatePool(): CollectionGraphCard[] {
       card.name === "Expensive Missing Wheel" ? 50 :
       card.name === "Unknown Price Wheel" ? null :
       card.marketPrice,
+  }));
+}
+
+function winotaCommander(): CollectionGraphCard {
+  return {
+    ...commanderCandidate("winota", "Winota, Joiner of Forces", ["R", "W"]),
+    typeLine: "Legendary Creature - Human Warrior",
+    oracleText: "Whenever a non-Human creature you control attacks, look at the top six cards of your library. You may put a Human creature card from among them onto the battlefield tapped and attacking.",
+  };
+}
+
+function winotaCandidatePool(): CollectionGraphCard[] {
+  const cards = [
+    commanderCard("ornithopter", "Ornithopter", [], "Artifact Creature - Thopter", "Flying."),
+    commanderCard("gingerbrute", "Gingerbrute", [], "Artifact Creature - Food Golem", "Haste. Gingerbrute can't be blocked except by creatures with haste."),
+    commanderCard("legion-warboss", "Legion Warboss", ["R"], "Creature - Goblin Soldier", "At the beginning of combat on your turn, create a 1/1 red Goblin creature token with haste."),
+    commanderCard("selfless-spirit", "Selfless Spirit", ["W"], "Creature - Spirit Cleric", "Sacrifice Selfless Spirit: Creatures you control gain indestructible until end of turn."),
+    commanderCard("hunted-witness", "Hunted Witness", ["W"], "Creature - Human", "When Hunted Witness dies, create a 1/1 white Soldier creature token with lifelink."),
+    commanderCard("blade-historian", "Blade Historian", ["R", "W"], "Creature - Human Cleric", "Attacking creatures you control have double strike."),
+    commanderCard("angraths-marauders", "Angrath's Marauders", ["R"], "Creature - Human Pirate", "If a source you control would deal damage to a permanent or player, it deals double that damage instead."),
+    commanderCard("thalias-lancers", "Thalia's Lancers", ["W"], "Creature - Human Knight", "When Thalia's Lancers enters the battlefield, you may search your library for a legendary card."),
+    commanderCard("esper-sentinel", "Esper Sentinel", ["W"], "Artifact Creature - Human Soldier", "Whenever an opponent casts their first noncreature spell each turn, draw a card unless that player pays mana."),
+    commanderCard("professional-facebreaker", "Professional Face-Breaker", ["R"], "Creature - Human Warrior", "Whenever one or more creatures you control deal combat damage to a player, create a Treasure token."),
+    commanderCard("lightning-greaves", "Lightning Greaves", [], "Artifact - Equipment", "Equipped creature has haste and shroud."),
+    commanderCard("boros-charm", "Boros Charm", ["R", "W"], "Instant", "Permanents you control gain indestructible until end of turn."),
+    commanderCard("arcane-signet-winota", "Arcane Signet", [], "Artifact", "Tap: Add one mana of any color in your commander's color identity."),
+    commanderCard("irrelevant-fixer", "Irrelevant Fixing Rock", [], "Artifact", "Tap: Add one mana of any color."),
+  ];
+  return cards.map((card) => ({
+    ...card,
+    legalities: { commander: "legal", ...(card.legalities ?? {}) },
   }));
 }
 

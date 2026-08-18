@@ -53,6 +53,16 @@ export type DeckArchitectRole =
   | "burn"
   | "artifact-interaction"
   | "enchantment-interaction"
+  | "goblin-token-maker"
+  | "goblin-payoff"
+  | "haste-enabler"
+  | "poison"
+  | "infect"
+  | "toxic"
+  | "proliferate"
+  | "non-human-enabler"
+  | "human-payoff"
+  | "attack-support"
   | "land";
 
 export type DeckStrategyTag =
@@ -94,6 +104,9 @@ export type DeckStrategyTag =
   | "opponent-draw"
   | "discard"
   | "burn"
+  | "non-human-enabler"
+  | "human-payoff"
+  | "attack-support"
   | "interaction"
   | "ramp"
   | "protection"
@@ -195,6 +208,111 @@ export type CommanderCardEvidence = {
   sourceDate?: string | null;
   freshnessDays?: number | null;
   provenance: string[];
+};
+
+export type CommanderMechanicalProfile = {
+  commanderName: string;
+  triggerModel: string[];
+  payoffModel: string[];
+  enablerRoles: DeckArchitectRole[];
+  payoffRoles: DeckArchitectRole[];
+  supportRoles: DeckArchitectRole[];
+  antiSynergies: string[];
+  qualityMetrics: Array<{
+    key: string;
+    label: string;
+    roles: DeckArchitectRole[];
+    min: number;
+    ideal: number;
+  }>;
+  confidence: "curated" | "inferred";
+};
+
+export type DeckPlan = {
+  commander: string;
+  selectedStrategy: string;
+  primaryGamePlan: string;
+  secondaryGamePlan: string;
+  keyEnablers: DeckArchitectRole[];
+  keyPayoffs: DeckArchitectRole[];
+  requiredSupportRoles: DeckArchitectRole[];
+  winConditions: DeckArchitectRole[];
+  antiSynergies: string[];
+  commanderSpecificMechanicalRequirements: string[];
+  desiredRoleRanges: Record<string, { min: number; ideal: number; max?: number }>;
+  desiredManaCurve: {
+    earlyPlays: number;
+    midgamePlays: number;
+    topEndLimit: number;
+  };
+  desiredLandRampBehavior: {
+    landMin: number;
+    landMax: number;
+    rampMin: number;
+    fixingRequired: boolean;
+  };
+  buildIntent: BuildIntentId;
+  budgetConstraints: DeckBudgetConstraints;
+  mechanicalProfile: CommanderMechanicalProfile;
+};
+
+export type CardInclusionJustification = {
+  cardId: string;
+  primaryRole: DeckArchitectRole;
+  secondaryRoles: DeckArchitectRole[];
+  commanderRelationship: string[];
+  strategyRelationship: string[];
+  deckPlanRelationship: string[];
+  evidenceClass: "verified_core" | "strong_match" | "good_support" | "possible" | "reject";
+  alternativeAdvantage?: string[];
+  confidence: number;
+  ownership: {
+    owned: boolean;
+    quantity: number;
+  };
+  budgetStatus: "owned" | "within-budget" | "over-budget" | "unknown-price" | "not-budgeted";
+};
+
+export type DeckReplacementRequest = {
+  cardId: string;
+  replaceCardName: string;
+  desiredRoles: DeckArchitectRole[];
+  reasons: string[];
+  budgetConstraints?: DeckBudgetConstraints;
+};
+
+export type DeckCritique = {
+  weakCards: Array<{
+    cardId: string;
+    cardName: string;
+    reasons: string[];
+    severity: "low" | "medium" | "high";
+  }>;
+  missingFunctions: DeckArchitectRole[];
+  overrepresentedFunctions: DeckArchitectRole[];
+  structuralIssues: string[];
+  replacementRequests: DeckReplacementRequest[];
+  confidence: number;
+};
+
+export type DeckCriticProvider = {
+  critique(input: {
+    deckPlan: DeckPlan;
+    requirements: DeckRequirement[];
+  }): Promise<DeckCritique>;
+};
+
+export type DeckRevision = {
+  iteration: number;
+  removedCardName: string;
+  addedCardName: string | null;
+  reason: string;
+};
+
+export type FinalHumanSanityReview = {
+  status: "pass" | "review_required";
+  reasons: string[];
+  confidence: number;
 };
 
 export type CardKnowledgeProvider = {
@@ -365,6 +483,7 @@ export type DeckRequirement = {
   archetypeCategory?: ArchetypeCandidateCategory;
   archetypeScore?: number;
   recommendationEvidence?: RecommendationEvidence;
+  inclusionJustification?: CardInclusionJustification;
   primaryRoles?: DeckArchitectRole[];
   secondaryRoles?: DeckArchitectRole[];
   whyThisCard?: string;
@@ -659,6 +778,7 @@ export type CommanderGenerationResult = {
     budgetSatisfied: boolean;
     noRejectedCards: boolean;
     noFiller: boolean;
+    finalSanityReviewPassed: boolean;
   };
   pricingSummary: {
     knownCompletionCost: number | null;
@@ -669,6 +789,10 @@ export type CommanderGenerationResult = {
   candidateSource: "owned-only" | "owned-plus-curated" | "global-scryfall" | "global-fixture";
   generatedCardCount: number;
   archetypeProfile: ArchetypeProfile | null;
+  deckPlan?: DeckPlan;
+  critique?: DeckCritique;
+  revisionHistory?: DeckRevision[];
+  finalSanityReview?: FinalHumanSanityReview;
   diagnostics?: {
     commander: string;
     strategy: string | null;

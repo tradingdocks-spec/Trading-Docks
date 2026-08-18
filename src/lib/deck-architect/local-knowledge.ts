@@ -476,6 +476,39 @@ function libraryStrategy(
 }
 
 const COMMANDER_STRATEGY_LIBRARY: Record<string, CommanderStrategyProfile[]> = {
+  [normalizeCardKey("Winota, Joiner of Forces")]: [
+    libraryStrategy(
+      "winota-aggressive-combat",
+      "Winota, Joiner of Forces",
+      "Aggressive Combat / Winota Triggers",
+      "Attack with cheap non-Human enablers, then convert Winota triggers into high-impact Human payoffs.",
+      ["non-human-enabler", "human-payoff", "token-generation", "attack-support", "protection", "ramp", "interaction"],
+      [
+        seed("Ornithopter", 1, ["non-human-enabler", "attack-support"], 0.2, "Artifact Creature - Thopter"),
+        seed("Loyal Apprentice", 1, ["non-human-enabler", "token-generation", "attack-support"], 2, "Creature - Human Artificer"),
+        seed("Legion Warboss", 1, ["non-human-enabler", "token-generation", "attack-support"], 1.5, "Creature - Goblin Soldier"),
+        seed("Raise the Alarm", 1, ["non-human-enabler", "token-generation"], 0.1, "Instant"),
+        seed("Angrath's Marauders", 1, ["human-payoff", "finisher"], 3, "Creature - Human Pirate"),
+        seed("Blade Historian", 1, ["human-payoff", "finisher", "attack-support"], 4, "Creature - Human Cleric"),
+        seed("Thalia's Lancers", 1, ["human-payoff", "tutor"], 0.5, "Creature - Human Knight"),
+        seed("Selfless Spirit", 1, ["non-human-enabler", "protection"], 2, "Creature - Spirit Cleric"),
+      ],
+      [
+        seed("Esper Sentinel", 1, ["human-payoff", "card-advantage"], 25, "Artifact Creature - Human Soldier"),
+        seed("Professional Face-Breaker", 1, ["human-payoff", "treasure-generation", "card-advantage"], 4, "Creature - Human Warrior"),
+        seed("Tilonalli's Summoner", 1, ["human-payoff", "token-generation"], 2, "Creature - Human Shaman"),
+        seed("Lightning Greaves", 1, ["protection", "haste-enabler"], 8, "Artifact - Equipment"),
+        seed("Boros Charm", 1, ["protection", "interaction"], 3, "Instant"),
+      ],
+      {
+        primaryArchetypes: ["aggro", "combat"],
+        strategies: ["Winota Triggers", "Aggressive Combat"],
+        themes: ["Non-Human Enablers", "Human Payoffs", "Attack Triggers", "Token Pressure"],
+        typal: ["Human", "Non-Human"],
+        mechanics: ["Attack", "Triggered Ability"],
+      },
+    ),
+  ],
   [normalizeCardKey("Nekusar, the Mindrazer")]: [
     libraryStrategy(
       "nekusar-wheels-group-slug",
