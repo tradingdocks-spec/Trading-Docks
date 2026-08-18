@@ -283,9 +283,14 @@ export function constructValidatedCommanderDeck({
   const rampRoles: DeckArchitectRole[] = (commander.colorIdentity?.length ?? 0) <= 1
     ? ["ramp", "mana-rock", "mana-dork", "ritual", "treasure-generation", "cost-reduction", "land-fixing"]
     : ["ramp", "mana-fixing", "color-fixing", "land-fixing"];
+  const strategyRoles = new Set(strategyFit?.strategy.roles ?? []);
+  const cardAdvantageRoles: DeckArchitectRole[] =
+    strategyRoles.has("wheel") || strategyRoles.has("draw-punishment") || strategyRoles.has("group-draw")
+      ? ["wheel", "draw-punishment", "hand-cycling", "group-draw", "card-advantage"]
+      : ["card-advantage", "card-draw"];
   addRoleBucketCards(requirements, usedNames, pool, [
     { roles: rampRoles, target: 10 },
-    { roles: ["card-advantage", "card-draw"], target: 10 },
+    { roles: cardAdvantageRoles, target: 10 },
     { roles: ["interaction", "removal", "targeted-removal", "countermagic"], target: 11 },
     { roles: ["board-wipe", "mass-removal"], target: 3 },
     { roles: ["protection", "recursion"], target: 6 },
@@ -863,7 +868,7 @@ function prepareCommanderCandidatePool({
       diagnostics.rejectionCounts.Illegal += 1;
       continue;
     }
-    const ownedQuantity = Math.max(0, card.quantityOwned);
+    const ownedQuantity = source === "owned" ? Math.max(0, card.quantityOwned) : 0;
     if (!missingCardSatisfiesBudget(card.marketPrice ?? null, ownedQuantity, budgetConstraints)) {
       diagnostics.rejectionCounts["Low quality"] += 1;
       continue;
@@ -908,8 +913,8 @@ function rankCommanderPool({
     .sort((left, right) => {
       const leftRoles = classifyCardRoles(left.card);
       const rightRoles = classifyCardRoles(right.card);
-      const leftScore = scoreCardForIntent(left.card, intentId) + archetypeFitScore(left.evaluation, archetype) + recommendationEvidenceScore(left.evidence) + leftRoles.filter((role) => targetRoles.includes(role)).length * 12;
-      const rightScore = scoreCardForIntent(right.card, intentId) + archetypeFitScore(right.evaluation, archetype) + recommendationEvidenceScore(right.evidence) + rightRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      const leftScore = scoreCardForIntent(left.card, intentId) + archetypeFitScore(left.evaluation, archetype) + recommendationEvidenceScore(left.evidence) + evidenceSourcePriorityScore(left.evidence) + leftRoles.filter((role) => targetRoles.includes(role)).length * 12;
+      const rightScore = scoreCardForIntent(right.card, intentId) + archetypeFitScore(right.evaluation, archetype) + recommendationEvidenceScore(right.evidence) + evidenceSourcePriorityScore(right.evidence) + rightRoles.filter((role) => targetRoles.includes(role)).length * 12;
       return rightScore - leftScore || left.card.name.localeCompare(right.card.name);
     })
     .map((entry) => entry);
@@ -1197,6 +1202,21 @@ function ownedQuantityForName(collection: CollectionGraphCard[], name: string) {
   return collection
     .filter((card) => normalizeCardKey(card.name) === key)
     .reduce((sum, card) => sum + Math.max(0, card.quantityOwned), 0);
+}
+
+function evidenceSourcePriorityScore(evidence: RecommendationEvidence) {
+  const sources = new Set(evidence.sourceCategories);
+  let score = 0;
+  if (sources.has("curated")) score += 34;
+  if (sources.has("corpus")) score += 28;
+  if (sources.has("combo")) score += 18;
+  if (sources.has("owned")) score += 10;
+  if (sources.has("inferred") && sources.size === 1) score -= 8;
+  if (evidence.professionalQuality === "verified-core") score += 24;
+  if (evidence.professionalQuality === "strong-match") score += 16;
+  if (evidence.professionalQuality === "good-support") score += 8;
+  if (evidence.professionalQuality === "possible") score -= 10;
+  return score;
 }
 
 function scoreCardForIntent(card: CollectionGraphCard, intentId: BuildIntentId) {

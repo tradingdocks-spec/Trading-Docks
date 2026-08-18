@@ -34,9 +34,32 @@ export function classifyCardRoleSignals(card: RoleInput): RoleSignal[] {
   } else if (isLowConfidenceRampText(card)) {
     add(signals, "ramp", "low", "Mana text exists but does not prove meaningful acceleration.");
   }
-  if (matches(haystack, ["draw a card", "draw cards", "draw two cards", "draws two cards", "draw three cards", "draws three cards", "whenever you draw", "look at the top", "ponder", "preordain", "brainstorm", "consider", "rhystic", "remora", "impulse"])) {
-    add(signals, "card-draw", "high", "Provides card draw or selection.");
-    add(signals, "card-advantage", "high", "Provides card advantage.");
+  const drawProfile = classifyDrawProfile(card);
+  if (drawProfile.wheel) {
+    add(signals, "wheel", "high", "Replaces hands or creates a wheel effect.");
+    add(signals, "hand-cycling", "high", "Forces hand replacement or discard/draw churn.");
+    add(signals, "card-draw", "high", "Creates meaningful multi-card draw.");
+    add(signals, "card-advantage", "high", "Provides meaningful card velocity or advantage.");
+  } else if (drawProfile.drawPunishment) {
+    add(signals, "draw-punishment", "high", "Punishes card drawing.");
+    add(signals, "burn", "medium", "Turns draw into damage or life loss.");
+    add(signals, "synergy", "high", "Directly rewards a draw-punishment strategy.");
+  } else if (drawProfile.groupDraw) {
+    add(signals, "group-draw", "high", "Makes multiple players draw cards.");
+    add(signals, "card-draw", "high", "Creates meaningful shared draw.");
+    add(signals, "card-advantage", "medium", "Creates draw velocity but may help opponents.");
+  } else if (drawProfile.engine) {
+    add(signals, "card-draw", "high", "Provides repeatable or meaningful card draw.");
+    add(signals, "card-advantage", "high", "Provides repeatable or meaningful resource advantage.");
+  } else if (drawProfile.cantrip) {
+    const incidental = drawProfile.hasPrimaryNonDrawRole;
+    add(signals, "cantrip", incidental ? "medium" : "high", "Replaces itself with a card.");
+    add(signals, "card-draw", incidental ? "low" : "medium", incidental ? "Incidental draw attached to another effect." : "One-shot card selection.");
+    add(signals, "incidental-draw", incidental ? "medium" : "low", "Draw is not the primary strategic reason for the card.");
+  } else if (drawProfile.conditional) {
+    add(signals, "conditional-draw", "medium", "Draw depends on a board state or trigger.");
+    add(signals, "card-draw", "medium", "Can produce cards in the right shell.");
+    add(signals, "card-advantage", "medium", "Can provide conditional advantage.");
   }
   if (matches(haystack, ["counter target", "counterspell", "negate", "spell pierce", "exclude"])) {
     add(signals, "interaction", "high", "Interacts with opposing spells.");
@@ -118,6 +141,79 @@ function matches(value: string, needles: string[]) {
 function add(signals: RoleSignal[], role: DeckArchitectRole, confidence: RoleSignal["confidence"], reason: string) {
   const confidenceScore = confidence === "high" ? 0.9 : confidence === "medium" ? 0.6 : 0.25;
   signals.push({ role, confidence, confidenceScore, reason });
+}
+
+function classifyDrawProfile(card: RoleInput) {
+  const typeLine = card.typeLine?.toLowerCase() ?? "";
+  const oracleText = card.oracleText?.toLowerCase() ?? "";
+  const name = card.name.toLowerCase();
+  const haystack = `${name} ${typeLine} ${oracleText}`;
+  const hasPrimaryNonDrawRole = matches(haystack, [
+    "counter target",
+    "destroy target",
+    "exile target",
+    "damage to any target",
+    "damage to target",
+    "return target",
+    "sacrifice target",
+  ]);
+  const wheel = matches(haystack, [
+    "wheel of fortune",
+    "windfall",
+    "winds of change",
+    "reversal of fortune",
+    "reforge the soul",
+    "wheel and deal",
+    "dark deal",
+    "whispering madness",
+    "commit // memory",
+    "time reversal",
+    "each player discards their hand",
+    "discard their hands",
+    "then draws that many cards",
+    "draws cards equal to the greatest number of cards a player discarded",
+    "shuffles their hand and graveyard into their library, then draws",
+  ]);
+  const drawPunishment = matches(haystack, [
+    "whenever an opponent draws",
+    "whenever a player draws",
+    "whenever one or more opponents draw",
+    "draws a card, ",
+    "draws a card.",
+  ]) && matches(haystack, ["deals", "damage", "loses", "lose 1 life", "life loss", "underworld dreams", "spiteful visions", "fate unraveler", "psychosis crawler"]);
+  const groupDraw = matches(haystack, [
+    "each player draws",
+    "each opponent draws",
+    "target player draws",
+    "players draw",
+    "opponent draws",
+    "opponents draw",
+  ]);
+  const engine = matches(haystack, [
+    "whenever you draw",
+    "whenever you cast",
+    "at the beginning of your upkeep, you draw",
+    "whenever an opponent casts",
+    "rhystic",
+    "mystic remora",
+    "draw two cards",
+    "draw three cards",
+    "draws two cards",
+    "draws three cards",
+    "exile the top",
+    "impulse",
+  ]);
+  const cantrip = matches(haystack, ["draw a card", "ponder", "preordain", "brainstorm", "consider", "opt"]);
+  const conditional = matches(haystack, ["if you", "whenever", "at the beginning", "unless", "for each"]);
+  return {
+    wheel,
+    drawPunishment,
+    groupDraw,
+    engine,
+    cantrip,
+    conditional,
+    hasPrimaryNonDrawRole,
+  };
 }
 
 function dedupeSignals(signals: RoleSignal[]) {

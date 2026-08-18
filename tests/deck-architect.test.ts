@@ -214,6 +214,14 @@ test("Build Intent model supports no-purchase and budget weighting as structure"
   assert.equal(typeof BUILD_INTENTS.budget.budgetCents, "number");
 });
 
+test("Deck Architect Budget Mode UI exposes individual and total missing-card controls", () => {
+  assert.match(workspace, /Budget Mode/);
+  assert.match(workspace, /Max individual missing-card price/);
+  assert.match(workspace, /Total missing-card budget/);
+  assert.match(workspace, /maxMissingCardPriceCents/);
+  assert.match(workspace, /maxTotalMissingCardBudgetCents/);
+});
+
 test("owned commander browsing detects eligible legendary creatures from collection metadata", () => {
   const commanders = findOwnedCommanderCandidates(collection);
 
@@ -408,7 +416,9 @@ test("Deck Architect workspace builds Commander decks through the authenticated 
   assert.match(workspace, /\/api\/deck-architect\/commander-build/);
   assert.match(workspace, /generationStatus/);
   assert.match(workspace, /Deck couldn't be generated/);
-  assert.match(workspace, /Upgrade budget/);
+  assert.match(workspace, /Budget Mode/);
+  assert.match(workspace, /maxMissingCardPriceCents/);
+  assert.match(workspace, /maxTotalMissingCardBudgetCents/);
   assert.match(workspace, /Complete validated deck/);
   assert.match(workspace, /Draft shell/);
   assert.doesNotMatch(workspace, /constructValidatedCommanderDeck\(/);
@@ -1372,8 +1382,8 @@ test("No Purchases Commander generation stays owned-only when a full pool still 
   const totalCards = result.requirements.reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
 
   assert.equal(result.generationStatus, "draft_shell");
-  assert.equal(result.validation.valid, true);
-  assert.equal(totalCards, 100);
+  assert.equal(result.validation.valid, false);
+  assert.ok(totalCards < 100);
   assert.equal(result.ownership.every((match) => match.missingQuantity === 0), true);
   assert.equal(result.qualityGates.roleCoverageAcceptable, false);
 });
@@ -1539,6 +1549,191 @@ test("Commander construction rejects off-color cards for Rakdos commanders", () 
   assert.equal(names.includes("Cyclonic Rift"), false);
   assert.equal(names.includes("Crop Rotation"), false);
   assert.equal(result.requirements.every((requirement) => commanderColorIdentityFits(requirement, commander)), true);
+});
+
+test("Nekusar exposes authored Wheels and Burn strategy profiles", () => {
+  const commander = nekusarCommander();
+  const strategies = rankCommanderStrategiesForCollection(commander, [], "strongest-possible");
+  const strategyIds = strategies.map((fit) => fit.strategy.id);
+
+  assert.equal(strategyIds.includes("nekusar-wheels-group-slug"), true);
+  assert.equal(strategyIds.includes("nekusar-burn-draw-punishment"), true);
+  assert.equal(strategies[0].strategy.id, "nekusar-wheels-group-slug");
+});
+
+test("Wheel and incidental draw classification are materially different", () => {
+  const wheel = commanderCard("windfall", "Windfall", ["U"], "Sorcery", "Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way.");
+  const removalCantrip = commanderCard("dismissive-removal", "Dismissive Removal", ["U"], "Instant", "Counter target spell. Draw a card.");
+  const wheelRoles = classifyCardRoleSignals(wheel);
+  const removalRoles = classifyCardRoleSignals(removalCantrip);
+
+  assert.equal(wheelRoles.some((signal) => signal.role === "wheel" && signal.confidence === "high"), true);
+  assert.equal(wheelRoles.some((signal) => signal.role === "hand-cycling" && signal.confidence === "high"), true);
+  assert.equal(removalRoles.some((signal) => signal.role === "countermagic" && signal.confidence === "high"), true);
+  assert.equal(removalRoles.some((signal) => signal.role === "card-advantage" && signal.confidence === "high"), false);
+  assert.equal(removalRoles.some((signal) => signal.role === "incidental-draw"), true);
+});
+
+test("Nekusar Wheels Best Possible is evidence-first and does not use random cantrips as the draw package", () => {
+  const result = constructValidatedCommanderDeck({
+    commander: nekusarCommander(),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "nekusar-wheels-group-slug",
+    globalCandidates: nekusarCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const nonland = result.requirements.filter((requirement) => requirement.board === "main" && !requirement.roles.includes("land"));
+  const names = new Set(nonland.map((requirement) => requirement.name));
+  const identityCards = nonland.filter((requirement) =>
+    requirement.roles.some((role) => ["wheel", "draw-punishment", "hand-cycling", "group-draw"].includes(role)),
+  );
+  const firstThirty = nonland.slice(0, 30);
+
+  assert.equal(result.archetypeProfile?.id, "nekusar-wheels-group-slug");
+  assert.equal(names.has("Random Removal Cantrip"), false);
+  assert.equal(names.has("Random Counter Cantrip"), false);
+  assert.equal(identityCards.length >= 10, true);
+  assert.equal(firstThirty.every((requirement) => requirement.archetypeCategory !== "reject"), true);
+  assert.equal(firstThirty.every((requirement) => requirement.recommendationEvidence?.professionalQuality !== "possible"), true);
+  assert.notEqual(result.generationStatus, "complete");
+});
+
+test("Nekusar Use My Collection keeps missing core strategy cards over irrelevant owned cards", () => {
+  const irrelevantOwned = {
+    ...commanderCard("owned-random", "Owned Random Grixis Cantrip", ["U"], "Instant", "Return target creature to its owner's hand. Draw a card."),
+    quantityOwned: 1,
+  };
+  const result = constructValidatedCommanderDeck({
+    commander: nekusarCommander(),
+    collection: [irrelevantOwned],
+    intentId: "use-collection",
+    strategyId: "nekusar-wheels-group-slug",
+    globalCandidates: nekusarCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(names.has("Windfall"), true);
+  assert.equal(names.has("Underworld Dreams"), true);
+  assert.equal(names.has("Owned Random Grixis Cantrip"), false);
+  assert.ok(result.ownership.some((match) => match.requirement.name === "Windfall" && match.missingQuantity > 0));
+});
+
+test("Nekusar No Purchases refuses owned filler and returns a draft shell when quality is insufficient", () => {
+  const commander = { ...nekusarCommander(), quantityOwned: 1 };
+  const ownedWheel = { ...commanderCard("owned-windfall", "Windfall", ["U"], "Sorcery", "Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way."), quantityOwned: 1 };
+  const ownedFiller = { ...commanderCard("owned-filler", "Owned Random Grixis Cantrip", ["U"], "Instant", "Return target creature to its owner's hand. Draw a card."), quantityOwned: 1 };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [commander, ownedWheel, ownedFiller],
+    intentId: "no-purchases",
+    strategyId: "nekusar-wheels-group-slug",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(result.generationStatus, "draft_shell");
+  assert.equal(names.has("Windfall"), true);
+  assert.equal(names.has("Owned Random Grixis Cantrip"), false);
+  assert.equal(result.ownership.every((match) => match.missingQuantity === 0), true);
+});
+
+test("Nekusar Budget Mode preserves strategy identity while excluding over-budget missing cards", () => {
+  const expensiveOwned = {
+    ...commanderCard("owned-wheel", "Wheel of Fortune", ["R"], "Sorcery", "Each player discards their hand, then draws seven cards."),
+    quantityOwned: 1,
+    marketPrice: 300,
+  };
+  const result = constructValidatedCommanderDeck({
+    commander: nekusarCommander(),
+    collection: [expensiveOwned],
+    intentId: "budget",
+    strategyId: "nekusar-wheels-group-slug",
+    budget: {
+      enabled: true,
+      maxMissingCardPriceCents: 500,
+      maxTotalMissingCardBudgetCents: 5_000,
+      strict: true,
+    },
+    globalCandidates: nekusarCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+  const identityCards = result.requirements.filter((requirement) =>
+    requirement.roles.some((role) => ["wheel", "draw-punishment", "hand-cycling", "group-draw"].includes(role)),
+  );
+
+  assert.equal(names.has("Wheel of Fortune"), true);
+  assert.equal(result.ownership.find((match) => match.requirement.name === "Wheel of Fortune")?.status, "owned");
+  assert.equal(names.has("Expensive Missing Wheel"), false);
+  assert.equal(names.has("Unknown Price Wheel"), false);
+  assert.ok(identityCards.length >= 6);
+});
+
+test("Nekusar Wheels and Burn strategies produce materially different packages", () => {
+  const wheels = constructValidatedCommanderDeck({
+    commander: nekusarCommander(),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "nekusar-wheels-group-slug",
+    globalCandidates: nekusarCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const burn = constructValidatedCommanderDeck({
+    commander: nekusarCommander(),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "nekusar-burn-draw-punishment",
+    globalCandidates: nekusarCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const wheelNames = new Set(nonGenericNonlandNames(wheels));
+  const burnNames = new Set(nonGenericNonlandNames(burn));
+  const overlap = [...wheelNames].filter((name) => burnNames.has(name));
+
+  assert.equal(wheels.archetypeProfile?.id, "nekusar-wheels-group-slug");
+  assert.equal(burn.archetypeProfile?.id, "nekusar-burn-draw-punishment");
+  assert.ok(wheelNames.has("windfall"));
+  assert.ok(burnNames.has("underworld dreams"));
+  assert.ok(overlap.length < Math.min(wheelNames.size, burnNames.size));
+});
+
+test("Commander strategy packages remain distinct across Nekusar Krenko Atraxa and Muldrotha", () => {
+  const nekusar = constructValidatedCommanderDeck({
+    commander: nekusarCommander(),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "nekusar-wheels-group-slug",
+    globalCandidates: nekusarCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const krenko = constructValidatedCommanderDeck({
+    commander: commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: krenkoCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const atraxa = constructValidatedCommanderDeck({
+    commander: commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "atraxa-poison",
+  });
+  const muldrotha = constructValidatedCommanderDeck({
+    commander: commanderCandidate("muldrotha", "Muldrotha, the Gravetide", ["B", "G", "U"]),
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "muldrotha-permanent-recursion",
+  });
+
+  assert.ok(suspiciousOverlap([
+    nonGenericNonlandNames(nekusar),
+    nonGenericNonlandNames(krenko),
+    nonGenericNonlandNames(atraxa),
+    nonGenericNonlandNames(muldrotha),
+  ]).length <= 2);
 });
 
 test("Scryfall potential commanders do not convert missing price into fake zero-dollar market value", () => {
@@ -1848,6 +2043,56 @@ function krenkoCandidatePool(count = 78): CollectionGraphCard[] {
   return cards.map((card) => ({
     ...card,
     legalities: { commander: "legal", ...(card.legalities ?? {}) },
+  }));
+}
+
+function nekusarCommander(): CollectionGraphCard {
+  return {
+    ...commanderCandidate("nekusar", "Nekusar, the Mindrazer", ["U", "B", "R"]),
+    typeLine: "Legendary Creature - Zombie Wizard",
+    oracleText: "At the beginning of each player's draw step, that player draws an additional card. Whenever an opponent draws a card, Nekusar, the Mindrazer deals 1 damage to that player.",
+  };
+}
+
+function nekusarCandidatePool(): CollectionGraphCard[] {
+  return [
+    commanderCard("windfall", "Windfall", ["U"], "Sorcery", "Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way."),
+    commanderCard("reforge", "Reforge the Soul", ["R"], "Sorcery", "Each player discards their hand, then draws seven cards."),
+    commanderCard("dark-deal", "Dark Deal", ["B"], "Sorcery", "Each player discards all the cards in their hand, then draws that many cards minus one."),
+    commanderCard("whispering", "Whispering Madness", ["U", "B"], "Sorcery", "Each player discards their hand, then draws cards equal to the greatest number of cards a player discarded this way."),
+    commanderCard("winds-change", "Winds of Change", ["R"], "Sorcery", "Each player shuffles the cards from their hand into their library, then draws that many cards."),
+    commanderCard("wheel-and-deal", "Wheel and Deal", ["U"], "Instant", "Any number of target opponents each discard their hand, then draw seven cards."),
+    commanderCard("underworld", "Underworld Dreams", ["B"], "Enchantment", "Whenever an opponent draws a card, Underworld Dreams deals 1 damage to that player."),
+    commanderCard("fate-unraveler", "Fate Unraveler", ["B"], "Enchantment Creature - Hag", "Whenever an opponent draws a card, Fate Unraveler deals 1 damage to that player."),
+    commanderCard("spiteful", "Spiteful Visions", ["B", "R"], "Enchantment", "At the beginning of each player's draw step, that player draws an additional card. Whenever a player draws a card, Spiteful Visions deals 1 damage to that player."),
+    commanderCard("psychosis", "Psychosis Crawler", [], "Artifact Creature - Phyrexian Horror", "Whenever you draw a card, each opponent loses 1 life."),
+    commanderCard("dictate", "Dictate of Kruphix", ["U"], "Enchantment", "At the beginning of each player's draw step, that player draws an additional card."),
+    commanderCard("kami", "Kami of the Crescent Moon", ["U"], "Legendary Creature - Spirit", "At the beginning of each player's draw step, that player draws an additional card."),
+    commanderCard("liliana-caress", "Liliana's Caress", ["B"], "Enchantment", "Whenever an opponent discards a card, that player loses 2 life."),
+    commanderCard("megrim", "Megrim", ["B"], "Enchantment", "Whenever an opponent discards a card, Megrim deals 2 damage to that player."),
+    commanderCard("waste-not", "Waste Not", ["B"], "Enchantment", "Whenever an opponent discards a creature card, create a Zombie. Whenever an opponent discards a land card, add black mana. Whenever an opponent discards a noncreature, nonland card, draw a card."),
+    commanderCard("notion-thief", "Notion Thief", ["U", "B"], "Creature - Human Rogue", "If an opponent would draw a card except the first one they draw in each of their draw steps, instead that player skips that draw and you draw a card."),
+    commanderCard("pricey-missing-wheel", "Expensive Missing Wheel", ["R"], "Sorcery", "Each player discards their hand, then draws seven cards."),
+    { ...commanderCard("unknown-price-wheel", "Unknown Price Wheel", ["U"], "Sorcery", "Each player discards their hand, then draws seven cards."), quantityOwned: 0, marketPrice: null },
+    commanderCard("random-removal-cantrip", "Random Removal Cantrip", ["U"], "Instant", "Return target creature to its owner's hand. Draw a card."),
+    commanderCard("random-counter-cantrip", "Random Counter Cantrip", ["U"], "Instant", "Counter target spell. Draw a card."),
+    commanderCard("generic-grixis-card", "Generic Grixis Value Card", ["B", "R"], "Creature - Human Rogue", "When this creature enters, draw a card if an opponent lost life this turn."),
+    commanderCard("sol-ring", "Sol Ring", [], "Artifact", "Tap: Add two colorless mana."),
+    commanderCard("arcane-signet", "Arcane Signet", [], "Artifact", "Tap: Add one mana of any color in your commander's color identity."),
+    commanderCard("izzet-signet", "Izzet Signet", [], "Artifact", "Add blue and red mana."),
+    commanderCard("dimir-signet", "Dimir Signet", [], "Artifact", "Add blue and black mana."),
+    commanderCard("rakdos-signet", "Rakdos Signet", [], "Artifact", "Add black and red mana."),
+    commanderCard("swiftfoot", "Swiftfoot Boots", [], "Artifact - Equipment", "Equipped creature has hexproof and haste."),
+    commanderCard("chaos-warp", "Chaos Warp", ["R"], "Instant", "The owner of target permanent shuffles it into their library."),
+    commanderCard("feed-swarm", "Feed the Swarm", ["B"], "Sorcery", "Destroy target creature or enchantment an opponent controls."),
+    commanderCard("cyclonic-rift", "Cyclonic Rift", ["U"], "Instant", "Return target nonland permanent you don't control to its owner's hand."),
+  ].map((card) => ({
+    ...card,
+    legalities: { commander: "legal", ...(card.legalities ?? {}) },
+    marketPrice:
+      card.name === "Expensive Missing Wheel" ? 50 :
+      card.name === "Unknown Price Wheel" ? null :
+      card.marketPrice,
   }));
 }
 

@@ -188,6 +188,7 @@ export function DeckArchitectWorkspace({
   const [generationStatus, setGenerationStatus] = useState<"idle" | "generating" | "error">("idle");
   const [generationError, setGenerationError] = useState("");
   const [budgetCents, setBudgetCents] = useState(2500);
+  const [totalBudgetCents, setTotalBudgetCents] = useState(5000);
   const [brewPrompt, setBrewPrompt] = useState("Make this more resilient and use more cards I own.");
 
   const format = getFormatProfile(formatId);
@@ -341,6 +342,14 @@ export function DeckArchitectWorkspace({
           intentId,
           strategyId: selectedStrategyId === "auto" ? null : selectedStrategyId,
           budgetCents: intentId === "budget" ? budgetCents : null,
+          budget: intentId === "budget"
+            ? {
+                enabled: true,
+                maxMissingCardPriceCents: budgetCents,
+                maxTotalMissingCardBudgetCents: totalBudgetCents,
+                strict: true,
+              }
+            : null,
         }),
       });
       const payload = await response.json().catch(() => null) as (CommanderGenerationResult & { error?: string }) | null;
@@ -571,6 +580,8 @@ export function DeckArchitectWorkspace({
                   readyToBuild={canBuildWorkingDeck}
                   budgetCents={budgetCents}
                   setBudgetCents={setBudgetCents}
+                  totalBudgetCents={totalBudgetCents}
+                  setTotalBudgetCents={setTotalBudgetCents}
                   generationStatus={generationStatus}
                   generationError={generationError}
                   generationResult={commanderGeneration}
@@ -1249,6 +1260,8 @@ function PreBuildState({
   readyToBuild,
   budgetCents,
   setBudgetCents,
+  totalBudgetCents,
+  setTotalBudgetCents,
   generationStatus,
   generationError,
   generationResult,
@@ -1267,6 +1280,8 @@ function PreBuildState({
   readyToBuild: boolean;
   budgetCents: number;
   setBudgetCents: (value: number) => void;
+  totalBudgetCents: number;
+  setTotalBudgetCents: (value: number) => void;
   generationStatus: "idle" | "generating" | "error";
   generationError: string;
   generationResult: CommanderGenerationResult | null;
@@ -1353,10 +1368,11 @@ function PreBuildState({
     <div className="flex flex-col items-start gap-4">
       {intentId === "budget" ? (
         <div className="w-full rounded-[16px] bg-black/25 p-4 text-left">
-          <p className="text-sm font-semibold text-slate-200">Upgrade budget</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Set the missing-card budget Deck Architect should respect while assembling candidates.</p>
+          <p className="text-sm font-semibold text-slate-200">Budget Mode</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Budget applies only to missing cards. Owned expensive cards remain eligible; unknown prices are excluded in strict budget builds.</p>
+          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Max individual missing-card price</p>
           <div className="mt-3 grid grid-cols-4 gap-2">
-            {[2500, 5000, 10000, 25000].map((value) => (
+            {[100, 200, 500, 1000, 2500].map((value) => (
               <button
                 key={value}
                 type="button"
@@ -1364,6 +1380,22 @@ function PreBuildState({
                 className={[
                   "h-9 rounded-[10px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
                   budgetCents === value ? "bg-cyan-300 text-[#02131b]" : "bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]",
+                ].join(" ")}
+              >
+                ${(value / 100).toFixed(0)}
+              </button>
+            ))}
+          </div>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Total missing-card budget</p>
+          <div className="mt-3 grid grid-cols-4 gap-2">
+            {[2500, 5000, 10000, 20000].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTotalBudgetCents(value)}
+                className={[
+                  "h-9 rounded-[10px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                  totalBudgetCents === value ? "bg-cyan-300 text-[#02131b]" : "bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]",
                 ].join(" ")}
               >
                 ${(value / 100).toFixed(0)}

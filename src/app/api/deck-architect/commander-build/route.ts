@@ -6,6 +6,7 @@ import {
   isBuildIntentId,
   rankCommanderStrategiesForCollection,
   type CollectionGraphCard,
+  type DeckBudgetConstraints,
 } from "@/lib/deck-architect";
 import { loadDeckArchitectCollectionSnapshot } from "@/lib/deck-architect/server";
 import { createClient } from "@/lib/supabase/server";
@@ -17,6 +18,7 @@ type BuildRequest = {
   intentId?: unknown;
   strategyId?: string | null;
   budgetCents?: number | null;
+  budget?: DeckBudgetConstraints | null;
 };
 
 export async function POST(request: Request) {
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
     strategyId: strategy?.id ?? payload?.strategyId ?? null,
     globalCandidates,
     budgetCents: payload?.budgetCents,
+    budget: payload?.budget,
     candidateSource: "global-scryfall",
   });
 

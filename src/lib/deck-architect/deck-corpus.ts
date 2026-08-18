@@ -54,12 +54,18 @@ export class TradingDocksCorpusMetaProvider implements CommanderMetaProvider {
         flexCards: [],
         sourceDate: observation.observedAt,
         freshnessDays: freshnessDays(observation.observedAt),
+        theme: observation.strategyId ?? observation.archetypeId,
+        archetype: observation.archetypeId,
+        observedDeckCount: observation.observedDeckCount,
+        commanderAffinity: observation.eligibleDeckCount > 0 ? observation.observedDeckCount / observation.eligibleDeckCount : null,
       };
       const classification = classifyCorpusObservation(observation);
       if (classification === "core") existing.coreCards.push(observation.cardName);
       if (classification === "strong-synergy") existing.synergyCards.push(observation.cardName);
       if (classification === "flex") existing.flexCards.push(observation.cardName);
       existing.sampleSize = Math.max(existing.sampleSize ?? 0, observation.eligibleDeckCount);
+      existing.observedDeckCount = Math.max(existing.observedDeckCount ?? 0, observation.observedDeckCount);
+      existing.commanderAffinity = Math.max(existing.commanderAffinity ?? 0, observation.eligibleDeckCount > 0 ? observation.observedDeckCount / observation.eligibleDeckCount : 0);
       existing.sourceDate = newestDate(existing.sourceDate ?? null, observation.observedAt);
       existing.freshnessDays = existing.sourceDate ? freshnessDays(existing.sourceDate) : null;
       byStrategy.set(strategyId, existing);
@@ -96,6 +102,18 @@ export class TradingDocksCorpusMetaProvider implements CommanderMetaProvider {
       freshnessDays: freshnessDays(match.observedAt),
       provenance: match.provenance,
     };
+  }
+
+  async getCommanderCardEvidence(commanderId: string, cardId: string): Promise<CommanderCardEvidence | null> {
+    return this.getCardEvidence(commanderId, cardId);
+  }
+
+  async getStrategyCardEvidence(commanderId: string, strategyId: string, cardId: string): Promise<CommanderCardEvidence | null> {
+    return this.getCardEvidence(commanderId, cardId, strategyId);
+  }
+
+  async getCommanderStrategies(commanderId: string): Promise<CommanderStrategyEvidence[]> {
+    return this.getStrategyProfiles(commanderId);
   }
 
   async getStrategyProfiles(commanderId: string): Promise<CommanderStrategyEvidence[]> {

@@ -24,6 +24,13 @@ export type DeckArchitectRole =
   | "land-fixing"
   | "card-draw"
   | "card-advantage"
+  | "wheel"
+  | "group-draw"
+  | "draw-punishment"
+  | "conditional-draw"
+  | "incidental-draw"
+  | "cantrip"
+  | "hand-cycling"
   | "interaction"
   | "targeted-removal"
   | "removal"
@@ -79,6 +86,14 @@ export type DeckStrategyTag =
   | "blink-enabler"
   | "reanimation"
   | "card-advantage"
+  | "wheel"
+  | "group-draw"
+  | "draw-punishment"
+  | "hand-cycling"
+  | "group-slug"
+  | "opponent-draw"
+  | "discard"
+  | "burn"
   | "interaction"
   | "ramp"
   | "protection"
@@ -158,6 +173,10 @@ export type CommanderStrategyEvidence = {
   sampleSize: number | null;
   sourceDate?: string | null;
   freshnessDays?: number | null;
+  theme?: string | null;
+  archetype?: string | null;
+  observedDeckCount?: number | null;
+  commanderAffinity?: number | null;
   coreCards: string[];
   synergyCards: string[];
   flexCards: string[];
@@ -185,6 +204,9 @@ export type CardKnowledgeProvider = {
 
 export type CommanderMetaProvider = {
   getCommanderProfile(commanderId: string): Promise<CommanderMetaProfile | null>;
+  getCommanderStrategies?(commanderId: string): Promise<CommanderStrategyEvidence[]>;
+  getCommanderCardEvidence?(commanderId: string, cardId: string): Promise<CommanderCardEvidence | null>;
+  getStrategyCardEvidence?(commanderId: string, strategyId: string, cardId: string): Promise<CommanderCardEvidence | null>;
   getCardEvidence(commanderId: string, cardId: string, strategyId?: string): Promise<CommanderCardEvidence | null>;
   getStrategyProfiles(commanderId: string): Promise<CommanderStrategyEvidence[]>;
 };

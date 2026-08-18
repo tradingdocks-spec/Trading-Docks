@@ -253,6 +253,9 @@ Implemented this checkpoint:
 11. Added the Master Brewer foundation: natural-language goals are parsed into structured constraints, Hidden Synergy clusters, Deck Personality signals, Role Compression insights, strategy-overload warnings, What If/Fork proposal previews, Surprise Me directions, and collection-specific opportunity discovery.
 12. Added an explicit Build My Deck transition so setup choices do not present as a finished deck until the user asks Deck Architect to assemble one.
 13. Preserved the safety boundary: AI-style brewer proposals remain structured and validator-backed; raw model text cannot directly mutate or persist a deck.
+14. Hardened Commander recommendations to be evidence-first: commander profile and selected strategy evidence now seed deck identity before global catalog fallback, with Nekusar Wheels / Group Slug and Burn / Draw Punishment as production regression benchmarks.
+15. Added Budget Mode controls for maximum individual missing-card price and total missing-card budget. Budget rules apply after commander relevance, strategy relevance, professional quality, and role fit; unknown missing-card prices are not treated as free.
+16. Expanded card-draw semantics so wheels, group draw, draw punishment, cantrips, conditional draw, and incidental draw no longer satisfy the same major card-advantage role automatically.
 
 Recommended next checkpoint:
 
@@ -263,3 +266,4 @@ Recommended next checkpoint:
 5. Expand collection leverage from deterministic Pauper/Commander opportunities into complete candidate deck planning for additional formats after provider quality is verified.
 6. Extend the implemented Commander Spellbook provider from Deck Vault combo analysis into richer Deck Architect combo panels and reviewed combo-aware proposals.
 7. Review and approve a Trading Docks Deck Corpus persistence migration before storing aggregate deck observations.
+8. Add customer-facing budget alternative labels and custom budget entry once the recommendation review UI has persistence and apply/revert flows.

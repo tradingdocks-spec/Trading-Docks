@@ -296,7 +296,7 @@ export function rankCommanderStrategiesForCollection(
 ): CommanderStrategyFit[] {
   const format = getFormatProfile("commander");
   return inferCommanderStrategies(commander)
-    .map((strategy) => {
+    .map((strategy, index) => {
       const requirements = strategyToRequirements(commander, strategy, format, intentId);
       const validation = validateDeckRequirements(requirements, format, { commander });
       const ownership = compareRequirementsToCollection(requirements, collection, format);
@@ -309,10 +309,14 @@ export function rankCommanderStrategiesForCollection(
         colorIdentityFits(card, commander) &&
         strategy.roles.some((role) => strategyCardRoles(card).includes(role)),
       ).length;
+      const missingCorePenalty = intentId === "strongest-possible" || intentId === "competitive"
+        ? 0
+        : missingCoreCards.length * 5;
       const score = Math.max(0, Math.min(100,
         (buildability?.score ?? 0) * 0.55 +
         Math.min(25, ownedSupportCount * 3) -
-        missingCoreCards.length * 5 +
+        missingCorePenalty +
+        Math.max(0, 4 - index) +
         intentBonus(intentId, ownership),
       ));
       const fit = score >= 78 ? "strong" : score >= 62 ? "good" : score >= 42 ? "moderate" : "low";
@@ -431,7 +435,10 @@ function strategyCardRoles(card: CollectionGraphCard) {
   if (matches(text, ["counter", "proliferate", "+1/+1"])) roles.push("synergy", "threat");
   if (matches(text, ["poison", "toxic", "infect"])) roles.push("synergy", "threat");
   if (matches(text, ["planeswalker"])) roles.push("card-advantage", "threat");
-  if (matches(text, ["draw", "look at the top"])) roles.push("card-draw", "card-advantage");
+  if (matches(text, ["wheel of fortune", "windfall", "each player discards their hand", "discard their hands", "then draws that many cards", "reforge the soul", "dark deal", "whispering madness"])) roles.push("wheel", "hand-cycling", "card-draw", "card-advantage", "synergy");
+  if (matches(text, ["whenever an opponent draws", "whenever a player draws", "underworld dreams", "fate unraveler", "spiteful visions", "psychosis crawler"])) roles.push("draw-punishment", "burn", "synergy");
+  if (matches(text, ["each player draws", "each opponent draws", "opponent draws", "opponents draw"])) roles.push("group-draw", "card-draw", "synergy");
+  if (matches(text, ["draw two cards", "draw three cards", "whenever you draw", "look at the top", "rhystic", "remora"])) roles.push("card-draw", "card-advantage");
   if (matches(text, ["destroy target", "exile target", "counter target"])) roles.push("interaction");
   return roles.length ? roles : ["synergy"];
 }
@@ -469,6 +476,67 @@ function libraryStrategy(
 }
 
 const COMMANDER_STRATEGY_LIBRARY: Record<string, CommanderStrategyProfile[]> = {
+  [normalizeCardKey("Nekusar, the Mindrazer")]: [
+    libraryStrategy(
+      "nekusar-wheels-group-slug",
+      "Nekusar, the Mindrazer",
+      "Wheels / Group Slug",
+      "Use wheels, opponent draw, discard churn, and draw-punishment payoffs so Nekusar's trigger defines the deck.",
+      ["wheel", "draw-punishment", "hand-cycling", "group-draw", "card-advantage", "ramp", "interaction", "protection", "finisher"],
+      [
+        seed("Windfall", 1, ["wheel", "hand-cycling", "card-draw", "synergy"], 5, "Sorcery"),
+        seed("Wheel of Fortune", 1, ["wheel", "hand-cycling", "card-draw", "synergy"], 300, "Sorcery"),
+        seed("Reforge the Soul", 1, ["wheel", "hand-cycling", "card-draw", "synergy"], 4, "Sorcery"),
+        seed("Dark Deal", 1, ["wheel", "hand-cycling", "discard", "synergy"], 2, "Sorcery"),
+        seed("Whispering Madness", 1, ["wheel", "hand-cycling", "discard", "synergy"], 1.5, "Sorcery"),
+        seed("Underworld Dreams", 1, ["draw-punishment", "burn", "synergy"], 3, "Enchantment"),
+        seed("Fate Unraveler", 1, ["draw-punishment", "burn", "synergy"], 1, "Enchantment Creature - Hag"),
+        seed("Spiteful Visions", 1, ["draw-punishment", "group-draw", "burn", "synergy"], 6, "Enchantment"),
+      ],
+      [
+        seed("Liliana's Caress", 1, ["discard", "burn", "synergy"], 4, "Enchantment"),
+        seed("Megrim", 1, ["discard", "burn", "synergy"], 1, "Enchantment"),
+        seed("Waste Not", 1, ["discard", "card-advantage", "synergy"], 7, "Enchantment"),
+        seed("Dictate of Kruphix", 1, ["group-draw", "card-draw", "synergy"], 2, "Enchantment"),
+        seed("Kami of the Crescent Moon", 1, ["group-draw", "card-draw", "synergy"], 2, "Legendary Creature - Spirit"),
+        seed("Psychosis Crawler", 1, ["draw-punishment", "finisher", "synergy"], 1, "Artifact Creature - Phyrexian Horror"),
+      ],
+      {
+        primaryArchetypes: ["group-slug", "control"],
+        strategies: ["Wheels", "Group Slug"],
+        themes: ["Forced Draw", "Draw Punishment", "Hand Cycling", "Discard"],
+        typal: [],
+        mechanics: ["Wheel", "Discard", "Opponent Draw"],
+      },
+    ),
+    libraryStrategy(
+      "nekusar-burn-draw-punishment",
+      "Nekusar, the Mindrazer",
+      "Burn / Draw Punishment",
+      "Lean harder into punishment and damage amplification, using wheels as pressure and reload rather than the whole plan.",
+      ["draw-punishment", "burn", "group-draw", "wheel", "interaction", "ramp", "protection", "finisher"],
+      [
+        seed("Underworld Dreams", 1, ["draw-punishment", "burn", "synergy"], 3, "Enchantment"),
+        seed("Fate Unraveler", 1, ["draw-punishment", "burn", "synergy"], 1, "Enchantment Creature - Hag"),
+        seed("Spiteful Visions", 1, ["draw-punishment", "group-draw", "burn", "synergy"], 6, "Enchantment"),
+        seed("Psychosis Crawler", 1, ["draw-punishment", "finisher", "synergy"], 1, "Artifact Creature - Phyrexian Horror"),
+        seed("Fiery Emancipation", 1, ["burn", "finisher"], 15, "Enchantment"),
+      ],
+      [
+        seed("Windfall", 1, ["wheel", "hand-cycling", "card-draw", "synergy"], 5, "Sorcery"),
+        seed("Reforge the Soul", 1, ["wheel", "hand-cycling", "card-draw", "synergy"], 4, "Sorcery"),
+        seed("Liliana's Caress", 1, ["discard", "burn", "synergy"], 4, "Enchantment"),
+        seed("Megrim", 1, ["discard", "burn", "synergy"], 1, "Enchantment"),
+      ],
+      {
+        primaryArchetypes: ["group-slug"],
+        strategies: ["Burn", "Group Slug"],
+        themes: ["Draw Punishment", "Life Loss", "Forced Draw"],
+        typal: [],
+        mechanics: ["Opponent Draw", "Damage Amplification"],
+      },
+    ),
+  ],
   [normalizeCardKey("Muldrotha, the Gravetide")]: [
     libraryStrategy(
       "muldrotha-permanent-recursion",
@@ -723,6 +791,10 @@ function strategyTaxonomy(
       lowerLabel.includes("spellslinger") ? "Spellslinger" : null,
       lowerLabel.includes("artifact") ? "Artifacts" : null,
       lowerLabel.includes("token") ? "Tokens" : null,
+      lowerLabel.includes("wheel") ? "Wheels" : null,
+      lowerLabel.includes("group slug") ? "Group Slug" : null,
+      lowerLabel.includes("draw punishment") ? "Draw Punishment" : null,
+      lowerLabel.includes("burn") ? "Burn" : null,
     ].filter((value): value is string => Boolean(value)),
     themes: [
       ...inferred.themes,
@@ -731,6 +803,9 @@ function strategyTaxonomy(
       lowerLabel.includes("superfriends") ? "Planeswalkers" : null,
       lowerLabel.includes("artifact") ? "Artifacts" : null,
       lowerLabel.includes("token") ? "Tokens" : null,
+      lowerLabel.includes("wheel") ? "Hand Cycling" : null,
+      lowerLabel.includes("group slug") ? "Forced Draw" : null,
+      lowerLabel.includes("draw punishment") ? "Draw Punishment" : null,
     ].filter((value): value is string => Boolean(value)),
     typal: inferred.typal,
     mechanics: [
@@ -739,6 +814,8 @@ function strategyTaxonomy(
       lowerLabel.includes("poison") ? "Toxic" : null,
       lowerLabel.includes("counter") ? "+1/+1 Counters" : null,
       lowerLabel.includes("counter") || lowerLabel.includes("superfriends") ? "Proliferate" : null,
+      lowerLabel.includes("wheel") ? "Wheel" : null,
+      lowerLabel.includes("group slug") || lowerLabel.includes("draw punishment") ? "Opponent Draw" : null,
     ].filter((value): value is string => Boolean(value)),
   });
 }

@@ -248,12 +248,8 @@ export class ProfessionalEvidenceGate {
     if (evidence.professionalQuality === "verified-core" || evidence.professionalQuality === "strong-match" || evidence.professionalQuality === "good-support") {
       return true;
     }
-    if (intentId === "no-purchases") {
-      return evidence.ownership.owned && evidence.professionalQuality !== "reject";
-    }
-    if (intentId === "use-collection") {
-      return evidence.ownership.owned && evidence.professionalQuality === "possible";
-    }
+    if (intentId === "no-purchases") return false;
+    if (intentId === "use-collection") return false;
     return false;
   }
 }

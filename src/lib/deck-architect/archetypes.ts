@@ -54,7 +54,10 @@ export function getCommanderProfile(
   const tags = classifyStrategyTags(commander);
   const lowerName = commander.name.toLowerCase();
   const isKrenko = lowerName.includes("krenko") || creatureTypes.includes("Goblin") || tags.includes("goblin-token-maker");
-  const viableArchetypes = isKrenko
+  const isNekusar = lowerName.includes("nekusar") || tags.includes("draw-punishment") || tags.includes("wheel");
+  const viableArchetypes = isNekusar
+    ? [nekusarWheelsGroupSlug(), nekusarBurnPunishment()]
+    : isKrenko
     ? [krenkoGoblinSwarm(), krenkoGoblinCombo(), sacrificeAristocrats()]
     : [
         ...(strategy ? [archetypeFromStrategy(strategy, commander)] : []),
@@ -119,7 +122,10 @@ export function classifyStrategyTags(card: Pick<CollectionGraphCard, "name" | "t
   if (hasAny(haystack, ["sacrifice", "altar"])) tags.push("sacrifice-outlet");
   if (hasAny(haystack, ["dies", "whenever a creature dies", "blood artist", "zulaport"])) tags.push("death-payoff");
   if (hasAny(oracleText, ["whenever a creature enters", "creature enters the battlefield under your control", "token you control", "creature token"])) tags.push("token-payoff");
-  if (hasAny(haystack, ["draw a card", "draw cards", "impulse", "exile the top", "look at the top", "card advantage"])) tags.push("card-advantage");
+  if (hasAny(haystack, ["wheel of fortune", "windfall", "each player discards their hand", "discard their hands", "then draws that many cards", "reforge the soul", "dark deal", "whispering madness"])) tags.push("wheel", "hand-cycling", "card-advantage");
+  if (hasAny(haystack, ["whenever an opponent draws", "whenever a player draws", "underworld dreams", "fate unraveler", "spiteful visions", "psychosis crawler"])) tags.push("draw-punishment", "group-slug", "opponent-draw");
+  if (hasAny(haystack, ["each player draws", "each opponent draws", "opponent draws", "opponents draw"])) tags.push("group-draw", "opponent-draw");
+  if (hasAny(haystack, ["draw two cards", "draw three cards", "whenever you draw", "rhystic", "remora", "impulse", "exile the top", "look at the top", "card advantage"])) tags.push("card-advantage");
   if (hasAny(haystack, ["destroy target", "exile target", "counter target", "damage to any target", "return target"])) tags.push("interaction");
   if (classifyCardRoles(card as CollectionGraphCard).includes("ramp")) tags.push("ramp");
   if (classifyCardRoles(card as CollectionGraphCard).includes("protection")) tags.push("protection");
@@ -286,6 +292,53 @@ function krenkoGoblinCombo(): ArchetypeProfile {
   });
 }
 
+function nekusarWheelsGroupSlug(): ArchetypeProfile {
+  return archetype({
+    id: "nekusar-wheels-group-slug",
+    label: "Wheels / Group Slug",
+    description: "Hand-reset effects, opponent draw, discard churn, and punishment payoffs that make Nekusar's trigger central.",
+    requiredTags: ["wheel", "draw-punishment"],
+    preferredTags: ["hand-cycling", "group-draw", "opponent-draw", "group-slug", "discard", "card-advantage", "interaction", "ramp", "protection"],
+    discouragedTags: ["goblin", "voltron", "equipment-payoff", "artifact-synergy"],
+    excludedNames: PRODUCTION_FAILURE_NAMES,
+    roleTargets: {
+      wheel: { min: 6, ideal: 10 },
+      "draw-punishment": { min: 6, ideal: 10 },
+      "hand-cycling": { min: 5, ideal: 8 },
+      "card-advantage": { min: 6, ideal: 9 },
+      ramp: { min: 8, ideal: 12 },
+      interaction: { min: 7, ideal: 10 },
+      protection: { min: 3, ideal: 6 },
+    },
+    genericCardLimit: 12,
+    minimumCoreAndSynergy: 24,
+    minimumRelevanceScore: 32,
+  });
+}
+
+function nekusarBurnPunishment(): ArchetypeProfile {
+  return archetype({
+    id: "nekusar-burn-draw-punishment",
+    label: "Burn / Draw Punishment",
+    description: "Damage multipliers, draw punishment, hand churn, and group-slug pressure with a smaller wheel package.",
+    requiredTags: ["draw-punishment", "group-slug"],
+    preferredTags: ["burn", "opponent-draw", "wheel", "hand-cycling", "discard", "card-advantage", "interaction", "ramp", "protection"],
+    discouragedTags: ["goblin", "voltron", "equipment-payoff", "artifact-synergy"],
+    excludedNames: PRODUCTION_FAILURE_NAMES,
+    roleTargets: {
+      "draw-punishment": { min: 8, ideal: 12 },
+      burn: { min: 5, ideal: 8 },
+      wheel: { min: 3, ideal: 6 },
+      ramp: { min: 8, ideal: 12 },
+      interaction: { min: 7, ideal: 10 },
+      protection: { min: 3, ideal: 6 },
+    },
+    genericCardLimit: 12,
+    minimumCoreAndSynergy: 22,
+    minimumRelevanceScore: 32,
+  });
+}
+
 function graveyardRecursion() {
   return archetype({ id: "graveyard-recursion", label: "Graveyard Recursion", description: "Graveyard setup, recursion engines, sacrifice value, and durable card advantage.", requiredTags: ["graveyard-enabler", "recursion"], preferredTags: ["sacrifice-outlet", "death-payoff", "card-advantage", "interaction", "ramp"], roleTargets: { recursion: { min: 8, ideal: 14 }, "graveyard-interaction": { min: 10, ideal: 16 }, "card-advantage": { min: 7, ideal: 10 } }, genericCardLimit: 16, minimumCoreAndSynergy: 20, minimumRelevanceScore: 28 });
 }
@@ -324,6 +377,8 @@ function archetype(config: Partial<ArchetypeProfile> & Pick<ArchetypeProfile, "i
 
 function strategyMatchesArchetype(strategy: CommanderStrategyProfile, archetype: ArchetypeProfile) {
   const text = `${strategy.id} ${strategy.label}`.toLowerCase();
+  if (text.includes("wheel") || text.includes("group slug")) return archetype.id === "nekusar-wheels-group-slug";
+  if (text.includes("draw punishment") || text.includes("burn")) return archetype.id === "nekusar-burn-draw-punishment";
   if (text.includes("swarm") || text.includes("go wide") || text.includes("go-wide") || text.includes("aggro")) return archetype.id === "krenko-goblin-swarm";
   if (text.includes("combo")) return archetype.id === "krenko-goblin-combo";
   return archetype.id === strategy.id || text.includes(archetype.label.toLowerCase());
@@ -348,6 +403,11 @@ function tagsFromTaxonomy(taxonomy: NonNullable<CommanderStrategyProfile["taxono
     text.includes("infect") ? "infect" : null,
     text.includes("toxic") ? "toxic" : null,
     text.includes("artifact") ? "artifact-synergy" : null,
+    text.includes("wheel") ? "wheel" : null,
+    text.includes("group slug") ? "group-slug" : null,
+    text.includes("draw punishment") ? "draw-punishment" : null,
+    text.includes("forced draw") || text.includes("opponent draw") ? "opponent-draw" : null,
+    text.includes("hand cycling") ? "hand-cycling" : null,
   ].filter((tag): tag is DeckStrategyTag => Boolean(tag));
 }
 
@@ -376,6 +436,10 @@ const STRUCTURAL_ROLES = new Set<DeckArchitectRole>([
   "land-fixing",
   "card-advantage",
   "card-draw",
+  "wheel",
+  "group-draw",
+  "draw-punishment",
+  "hand-cycling",
   "interaction",
   "removal",
   "targeted-removal",

@@ -14,6 +14,18 @@ export class EdhrecLicensedMetaProvider implements CommanderMetaProvider {
     return null;
   }
 
+  async getCommanderCardEvidence(_commanderId: string, _cardId: string): Promise<CommanderCardEvidence | null> {
+    return null;
+  }
+
+  async getStrategyCardEvidence(_commanderId: string, _strategyId: string, _cardId: string): Promise<CommanderCardEvidence | null> {
+    return null;
+  }
+
+  async getCommanderStrategies(_commanderId: string): Promise<CommanderStrategyEvidence[]> {
+    return [];
+  }
+
   async getStrategyProfiles(_commanderId: string): Promise<CommanderStrategyEvidence[]> {
     return [];
   }

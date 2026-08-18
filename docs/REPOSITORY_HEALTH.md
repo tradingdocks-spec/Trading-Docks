@@ -394,15 +394,20 @@ Implemented improvements:
 - Hardened Commander recommendation correctness so unknown legality, malformed metadata, weak archetype relevance, and low-confidence role signals produce draft shells or rejections rather than technically legal but nonsensical filler.
 - Added the Master Brewer foundation with structured natural-language constraint parsing, Hidden Synergy clusters, Deck Personality heuristics, Role Compression, strategy-overload detection, What If/Fork previews, Surprise Me directions, and collection-specific opportunity discovery.
 - Added an explicit Build My Deck transition before the focused workspace appears.
+- Added an evidence-first Commander recommendation pass: commander profiles and selected strategies now drive candidate pools before global catalog fallback, with Nekusar Wheels / Group Slug and Burn / Draw Punishment covered as regression benchmarks.
+- Split card-draw semantics into wheels, group draw, draw punishment, conditional draw, incidental draw, cantrips, hand cycling, and true card advantage so one-shot replacement text no longer satisfies primary deck-identity quotas.
+- Added Budget Mode UI and engine constraints for maximum individual missing-card price and total missing-card budget while keeping expensive owned cards eligible and treating unknown missing-card prices as unavailable.
 
 Remaining risks:
 
 - The first recommendation and brewer layers remain deterministic and local for base deck generation. Commander Spellbook is now active as an additive server-side combo provider for Deck Vault combo analysis; provider failure does not block deck generation. EDHREC remains not integrated pending commercial permission/licensing.
 - Trading Docks Deck Corpus types and sample-size/provenance rules exist, but no corpus persistence migration has been applied.
+- Nekusar is covered as the current Commander evidence benchmark; broader commander coverage still requires lawful corpus ingestion, licensed provider data, or additional reviewed Trading Docks profiles.
 - Structured proposal persistence, applied-proposal history, provider freshness checks, and deeper deck-history controls are still planned.
 - Commander candidate quality still depends on type-line metadata being present in saved inventory or catalog payloads.
 - Price-aware scoring only uses saved inventory values when available; missing prices stay unavailable.
 - Pauper is currently the only 60-card Full Intelligence format. Other constructed formats remain builder/legality or experimental until provider quality is reviewed.
+- Budget alternatives are enforced by the engine today, but explicit "Budget Alternative" labeling is still planned for the proposal-review UI.
 
 Recommended next stabilization task:
 
