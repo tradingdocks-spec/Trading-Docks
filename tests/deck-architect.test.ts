@@ -1182,8 +1182,53 @@ test("professional role classification separates ramp, treasure, cost reduction,
   assert.ok(prospector.includes("ramp"));
   assert.ok(prospector.includes("treasure-generation") === false);
   assert.ok(warchief.includes("cost-reduction"));
-  assert.equal(conditionalTreasure.find((signal) => signal.role === "treasure-generation")?.confidence, "medium");
+  assert.equal(conditionalTreasure.find((signal) => signal.role === "treasure-generation")?.confidence, "low");
   assert.equal(conditionalTreasure.find((signal) => signal.role === "ramp")?.confidence, "low");
+});
+
+test("Mana Fixing requires repeatable color access instead of incidental mana words", () => {
+  const badFixtures = [
+    commanderCard("gravestone-strider", "Gravestone Strider", ["R"], "Creature - Elemental", "When it enters, return target land card from your graveyard to your hand."),
+    commanderCard("goblin-airbrusher", "Goblin Airbrusher", ["R"], "Creature - Goblin Artificer", "When Goblin Airbrusher enters the battlefield, if you committed a crime this turn, create a Treasure token."),
+    commanderCard("long-bodied-grey-dog", "Long-Bodied Grey Dog", ["R"], "Creature - Dog", "Whenever this creature attacks, create a Treasure token if you committed a crime this turn."),
+    commanderCard("buy-your-silence", "Buy Your Silence", ["B"], "Sorcery", "Destroy target creature. Create a Treasure token if you committed a crime this turn."),
+    commanderCard("lotus-guardian", "Lotus Guardian", [], "Artifact Creature - Dragon", "Flying. When Lotus Guardian enters, you may return target artifact card from your graveyard to your hand."),
+    commanderCard("salvaged-manaworker", "Salvaged Manaworker", [], "Artifact Creature - Construct", "When Salvaged Manaworker dies, add one mana of any color. Spend this mana only to cast artifact spells."),
+    commanderCard("helionaut", "Helionaut", ["W"], "Creature - Human Soldier", "Flying. When Helionaut enters, add one mana of any color. Spend this mana only to cast a creature spell."),
+  ];
+
+  for (const card of badFixtures) {
+    const roles = classifyCardRoles(card);
+    const signals = classifyCardRoleSignals(card);
+    assert.equal(roles.includes("mana-fixing"), false, card.name);
+    assert.equal(roles.includes("color-fixing"), false, card.name);
+    assert.equal(signals.some((signal) => signal.role === "ramp" && signal.confidence === "high"), false, card.name);
+  }
+});
+
+test("mono-color Commander decks do not create a Mana Fixing support package", () => {
+  const commander = {
+    ...commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]),
+    typeLine: "Legendary Creature - Goblin Warrior",
+    oracleText: "Tap: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+  };
+  const result = constructValidatedCommanderDeck({
+    commander,
+    collection: [],
+    intentId: "strongest-possible",
+    strategyId: "krenko-go-wide-goblins",
+    globalCandidates: krenkoCandidatePool(),
+    candidateSource: "global-fixture",
+  });
+  const nonlandFixers = result.requirements.filter((requirement) =>
+    !requirement.roles.includes("land") &&
+    (requirement.roles.includes("mana-fixing") || requirement.roles.includes("color-fixing")),
+  );
+  const path = result.requirements.find((requirement) => requirement.name === "Path of Ancestry");
+
+  assert.equal(nonlandFixers.length, 0);
+  assert.equal(path?.roles.includes("mana-fixing"), false);
+  assert.equal(path?.roles.includes("utility-mana"), true);
 });
 
 test("Commander Spellbook provider normalizes combos and degrades gracefully on provider failure", async () => {

@@ -541,6 +541,9 @@ function weakCardReasons(
   const roles = new Set(requirement.roles);
   if (justification.evidenceClass === "reject") reasons.push("Professional evidence rejects this card.");
   if (justification.evidenceClass === "possible" && justification.confidence < 0.58) reasons.push("Low-confidence inclusion cannot answer why this card belongs here.");
+  if (isWeakCriticalSupportSlot(requirement, deckPlan)) {
+    reasons.push("Low-confidence support role cannot fill a critical ramp, fixing, or card-advantage slot.");
+  }
   if (!justification.commanderRelationship.length && !justification.strategyRelationship.length && !justification.deckPlanRelationship.length) {
     reasons.push("Cannot answer why this card belongs in this commander strategy.");
   }
@@ -556,4 +559,28 @@ function weakCardReasons(
     }
   }
   return reasons;
+}
+
+function isWeakCriticalSupportSlot(requirement: DeckRequirement, deckPlan: DeckPlan) {
+  const acceptedProfessionalQualities = new Set(["verified-core", "strong-match", "good-support"]);
+  const professionalQuality = requirement.recommendationEvidence?.professionalQuality;
+  if (professionalQuality && acceptedProfessionalQualities.has(professionalQuality)) return false;
+  if (requirement.archetypeCategory === "core" || requirement.archetypeCategory === "synergy") return false;
+  const criticalRoles = new Set<DeckArchitectRole>([
+    "ramp",
+    "mana-rock",
+    "mana-dork",
+    "ritual",
+    "cost-reduction",
+    "mana-fixing",
+    "color-fixing",
+    "land-fixing",
+    "card-draw",
+    "card-advantage",
+  ]);
+  const fillsCriticalRole = requirement.roles.some((role) => criticalRoles.has(role) && deckPlan.desiredRoleRanges[role]);
+  if (!fillsCriticalRole) return false;
+  const justificationConfidence = requirement.inclusionJustification?.confidence ?? 0;
+  const evidenceConfidence = requirement.recommendationEvidence?.confidence ?? "insufficient";
+  return justificationConfidence < 0.62 || evidenceConfidence === "possible" || evidenceConfidence === "insufficient";
 }

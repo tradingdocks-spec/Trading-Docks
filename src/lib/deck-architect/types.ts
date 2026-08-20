@@ -22,6 +22,7 @@ export type DeckArchitectRole =
   | "cost-reduction"
   | "color-fixing"
   | "land-fixing"
+  | "utility-mana"
   | "card-draw"
   | "card-advantage"
   | "wheel"

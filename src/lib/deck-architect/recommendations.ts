@@ -1269,7 +1269,7 @@ function commanderManaBaseSeeds(
       { name: "Valakut, the Molten Pinnacle", quantity: 1, roles: ["land", "finisher"], estimatedPrice: 20, typeLine: "Land", oracleText: "Whenever a Mountain enters, it may deal 3 damage.", colorIdentity: ["R"] },
       { name: "Myriad Landscape", quantity: 1, roles: ["land", "land-fixing"], estimatedPrice: 0.5, typeLine: "Land", oracleText: "Search your library for up to two basic land cards.", colorIdentity: [] },
       { name: "War Room", quantity: 1, roles: ["land", "card-advantage"], estimatedPrice: 4, typeLine: "Land", oracleText: "Draw a card. You lose life equal to the number of colors in your commander's color identity.", colorIdentity: [] },
-      { name: "Path of Ancestry", quantity: 1, roles: ["land", "mana-fixing"], estimatedPrice: 0.4, typeLine: "Land", oracleText: "Add one mana of any color in your commander's color identity. Scry 1.", colorIdentity: [] },
+      { name: "Path of Ancestry", quantity: 1, roles: ["land", "utility-mana"], estimatedPrice: 0.4, typeLine: "Land", oracleText: "Add one mana of any color in your commander's color identity. Scry 1.", colorIdentity: [] },
     ];
     return krenkoSeeds;
   }
@@ -1279,7 +1279,7 @@ function commanderManaBaseSeeds(
     { name: "Exotic Orchard", quantity: 1, roles: ["land", "mana-fixing"], estimatedPrice: 0.5, typeLine: "Land", oracleText: "Add one mana of any color that a land an opponent controls could produce.", colorIdentity: [] },
   ];
   if (deckPlan.desiredLandRampBehavior.fixingRequired) return generic;
-  return generic.slice(1);
+  return generic.slice(1).map((seed) => ({ ...seed, roles: seed.roles.map((role) => role === "mana-fixing" ? "utility-mana" : role) }));
 }
 
 function nonLandMainCount(requirements: DeckRequirement[]) {
@@ -1358,7 +1358,7 @@ function seedToRequirement(
     name: seed.name,
     requiredQuantity: quantity,
     board: "main",
-    roles: seed.roles,
+    roles: normalizeSeedRolesForCommander(seed.roles, commander),
     strategyTags: evaluation.tags,
     archetypeCategory: category,
     archetypeScore: Math.max(evaluation.score, category === "core" ? 100 : category === "synergy" ? 72 : category === "support" ? 48 : 24),
@@ -1381,6 +1381,14 @@ function seedToRequirement(
   };
   requirement.inclusionJustification = deckPlan ? justifyCardInclusion({ requirement, deckPlan }) : undefined;
   return requirement;
+}
+
+function normalizeSeedRolesForCommander(
+  roles: DeckArchitectRole[],
+  commander: CollectionGraphCard,
+): DeckArchitectRole[] {
+  if ((commander.colorIdentity?.length ?? 0) > 1) return roles;
+  return roles.map((role) => role === "mana-fixing" || role === "color-fixing" ? "utility-mana" : role);
 }
 
 function seedToCollectionCard(
@@ -1521,8 +1529,15 @@ function commanderStrategyFitTier(card: CollectionGraphCard, strategy: Commander
   const roleOverlap = strategy.roles.filter((role) => roles.includes(role)).length;
   if (typalHits.length && (themeHits.length || highRoleOverlap)) return "core";
   if (typalHits.length || themeHits.length >= 2 || highRoleOverlap >= 2) return "strong";
-  if (highRoleOverlap >= 1 || roleOverlap >= 2 || roles.some((role) => ["interaction", "removal", "protection", "card-advantage", "card-draw", "ramp", "mana-fixing", "land"].includes(role))) return "utility";
+  if (highRoleOverlap >= 1 || roleOverlap >= 2 || roles.some((role) => isStrongGenericSupportRole(role, highRoles))) return "utility";
   return "filler";
+}
+
+function isStrongGenericSupportRole(role: DeckArchitectRole, highRoles: Set<DeckArchitectRole>) {
+  if (["interaction", "removal", "protection", "card-advantage", "card-draw"].includes(role)) return highRoles.has(role);
+  if (["ramp", "mana-rock", "mana-dork", "ritual", "cost-reduction", "land-fixing"].includes(role)) return highRoles.has(role);
+  if (["mana-fixing", "color-fixing", "treasure-generation"].includes(role)) return highRoles.has(role);
+  return false;
 }
 
 function strategyFitScore(tier: ReturnType<typeof commanderStrategyFitTier>) {

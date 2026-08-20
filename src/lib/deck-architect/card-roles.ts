@@ -19,15 +19,16 @@ export function classifyCardRoleSignals(card: RoleInput): RoleSignal[] {
   const signals: RoleSignal[] = [];
 
   if (typeLine.includes("land")) add(signals, "land", "high", "Land card.");
-  if (isColorFixing(card)) {
-    add(signals, "mana-fixing", typeLine.includes("land") ? "medium" : "high", "Produces or fixes mana.");
-    add(signals, "color-fixing", typeLine.includes("land") ? "medium" : "high", "Improves access to required colors.");
+  const fixing = colorFixingProfile(card);
+  if (fixing.confidence) {
+    add(signals, "mana-fixing", fixing.confidence, fixing.reason);
+    add(signals, "color-fixing", fixing.confidence, "Improves access to required deck colors.");
   }
   if (isLandFixing(card)) add(signals, "land-fixing", "high", "Searches or improves lands.");
   if (isManaRock(card)) add(signals, "mana-rock", "high", "Artifact that produces mana.");
   if (isManaDork(card)) add(signals, "mana-dork", "high", "Creature that produces mana.");
   if (isRitual(card)) add(signals, "ritual", "high", "Temporary burst mana.");
-  if (isTreasureGeneration(card)) add(signals, "treasure-generation", isConditionalTreasure(card) ? "medium" : "high", isConditionalTreasure(card) ? "Conditionally creates Treasure." : "Creates Treasure mana.");
+  if (isTreasureGeneration(card)) add(signals, "treasure-generation", isConditionalTreasure(card) ? "low" : "high", isConditionalTreasure(card) ? "Conditionally creates Treasure; not reliable fixing or ramp." : "Creates Treasure mana.");
   if (isCostReduction(card)) add(signals, "cost-reduction", "high", "Reduces spell or typal costs.");
   if (isHighConfidenceRamp(card)) {
     add(signals, "ramp", "high", "Meaningfully accelerates mana.");
@@ -256,24 +257,38 @@ function isHighConfidenceRamp(card: RoleInput) {
   const typeLine = card.typeLine?.toLowerCase() ?? "";
   const oracleText = card.oracleText?.toLowerCase() ?? "";
   const name = card.name.toLowerCase();
+  if (isConditionalTreasure(card)) return false;
   if (matches(name, ["sol ring", "arcane signet", "signet", "talisman", "cultivate", "kodama's reach", "nature's lore", "skirk prospector"])) return true;
   if (matches(oracleText, ["add two mana", "add two colorless", "add three mana", "search your library for up to two basic land cards", "put a land card onto the battlefield", "put those cards onto the battlefield", "you may play an additional land"])) return true;
   if (/add\s+\w+\s+and\s+\w+\s+mana/.test(oracleText)) return true;
   if (/add\s+(white|blue|black|red|green)\s+and\s+(white|blue|black|red|green)\s+mana/.test(oracleText)) return true;
-  if (matches(oracleText, ["add one mana of any color", "add one mana of the chosen color", "add one mana of any color in your commander's color identity"]) && !typeLine.includes("land")) return true;
-  if (oracleText.includes("if ") && oracleText.includes("create a treasure token")) return false;
+  if (
+    matches(oracleText, ["add one mana of any color", "add one mana of the chosen color", "add one mana of any color in your commander's color identity"]) &&
+    !typeLine.includes("land") &&
+    (isManaRock(card) || isManaDork(card))
+  ) return true;
   if (matches(oracleText, ["create a treasure token", "create two treasure tokens", "create x treasure tokens"])) return true;
   if (matches(oracleText, ["creature spells you cast cost", "goblin spells you cast cost", "spells you cast cost"])) return true;
   if (matches(oracleText, ["sacrifice a goblin: add", "sacrifice a creature: add"])) return true;
   return false;
 }
 
-function isColorFixing(card: RoleInput) {
+function colorFixingProfile(card: RoleInput): { confidence: RoleSignal["confidence"] | null; reason: string } {
   const typeLine = card.typeLine?.toLowerCase() ?? "";
   const oracleText = card.oracleText?.toLowerCase() ?? "";
-  return typeLine.includes("land") ||
-    matches(oracleText, ["add one mana of any color", "add one mana of the chosen color", "mana of any color"]) ||
+  const reliableFixingText =
+    matches(oracleText, [
+      "add one mana of any color",
+      "add one mana of the chosen color",
+      "add one mana of any color in your commander's color identity",
+      "mana of any color that a land an opponent controls could produce",
+    ]) ||
     /add\s+(white|blue|black|red|green)\s+and\s+(white|blue|black|red|green)\s+mana/.test(oracleText);
+  if (!reliableFixingText) return { confidence: null, reason: "" };
+  if (isConditionalTreasure(card)) return { confidence: null, reason: "" };
+  if (typeLine.includes("land")) return { confidence: "medium", reason: "Land can produce multiple colors in the right deck context." };
+  if (isManaRock(card) || isManaDork(card)) return { confidence: "high", reason: "Repeatable mana source improves access to required colors." };
+  return { confidence: null, reason: "" };
 }
 
 function isLandFixing(card: RoleInput) {
@@ -284,13 +299,22 @@ function isLandFixing(card: RoleInput) {
 function isManaRock(card: RoleInput) {
   const typeLine = card.typeLine?.toLowerCase() ?? "";
   const oracleText = card.oracleText?.toLowerCase() ?? "";
-  return typeLine.includes("artifact") && (matches(oracleText, ["add two colorless", "add one mana", "add one mana of any color", "add one mana of the chosen color"]) || /add\s+(white|blue|black|red|green)\s+and\s+(white|blue|black|red|green)\s+mana/.test(oracleText));
+  return typeLine.includes("artifact") &&
+    hasRepeatableManaAbility(oracleText) &&
+    (matches(oracleText, ["add two colorless", "add one mana", "add one mana of any color", "add one mana of the chosen color"]) || /add\s+(white|blue|black|red|green)\s+and\s+(white|blue|black|red|green)\s+mana/.test(oracleText));
 }
 
 function isManaDork(card: RoleInput) {
   const typeLine = card.typeLine?.toLowerCase() ?? "";
   const oracleText = card.oracleText?.toLowerCase() ?? "";
-  return typeLine.includes("creature") && matches(oracleText, ["add one mana", "add one mana of any color", "add one mana of the chosen color"]);
+  return typeLine.includes("creature") &&
+    hasRepeatableManaAbility(oracleText) &&
+    matches(oracleText, ["add one mana", "add one mana of any color", "add one mana of the chosen color"]);
+}
+
+function hasRepeatableManaAbility(oracleText: string) {
+  return matches(oracleText, ["tap: add", "{t}: add", "sacrifice a goblin: add", "sacrifice a creature: add"]) ||
+    /^add\s/.test(oracleText.trim());
 }
 
 function isRitual(card: RoleInput) {
@@ -306,7 +330,7 @@ function isTreasureGeneration(card: RoleInput) {
 
 function isConditionalTreasure(card: RoleInput) {
   const oracleText = card.oracleText?.toLowerCase() ?? "";
-  return oracleText.includes("if ") && oracleText.includes("create a treasure token");
+  return matches(oracleText, ["if you", "if it", "if a", "if an", "if this", "if you committed a crime"]) && oracleText.includes("create a treasure token");
 }
 
 function isCostReduction(card: RoleInput) {
