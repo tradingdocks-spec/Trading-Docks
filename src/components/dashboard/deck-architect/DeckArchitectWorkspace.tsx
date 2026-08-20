@@ -31,9 +31,11 @@ import {
   compareRequirementsToCollection,
   generateDeckArchitectBrewAnalysis,
   getFormatProfile,
+  getDeckArchitectBuildBlocker,
   proposeDeckRecommendations,
   rankCommanderSearchResults,
   rankCommanderStrategiesForCollection,
+  resolveDeckArchitectCommanderSelection,
   type BuildOpportunity,
   type BuildIntentId,
   type CollectionGraphCard,
@@ -193,10 +195,16 @@ export function DeckArchitectWorkspace({
 
   const format = getFormatProfile(formatId);
   const intent = BUILD_INTENTS[intentId];
-  const ownedCommander = snapshot.commanderCandidates.find((card) => card.inventoryId === selectedCommanderId) ?? null;
-  const selectedCommander = potentialCommander && selectedCommanderId === potentialCommander.inventoryId
-    ? potentialCommander
-    : ownedCommander;
+  const commanderSelection = useMemo(
+    () => resolveDeckArchitectCommanderSelection({
+      selectedCommanderId,
+      ownedCommanders: snapshot.commanderCandidates,
+      potentialCommander,
+    }),
+    [potentialCommander, selectedCommanderId, snapshot.commanderCandidates],
+  );
+  const selectedCommander = commanderSelection.commander;
+  const selectedCommanderOwned = commanderSelection.owned;
   const selectedCommanderStrategyFits = useMemo(
     () => selectedCommander ? rankCommanderStrategiesForCollection(selectedCommander, snapshot.cards, intentId) : [],
     [intentId, selectedCommander, snapshot.cards],
@@ -206,13 +214,17 @@ export function DeckArchitectWorkspace({
     : selectedCommanderStrategyFits[0] ?? null;
   const strategySelectionComplete = !format.commanderRequired || Boolean(activeDeck) || Boolean(selectedStrategyId);
   const importedDeckRequirements = activeDeck?.requirements ?? [];
+  const buildBlocker = getDeckArchitectBuildBlocker({
+    hasCollection: snapshot.cards.length > 0,
+    formatRequiresCommander: format.commanderRequired,
+    selectedCommander,
+    selectedCommanderOwned,
+    strategySelectionComplete,
+    intentId,
+  });
   const canBuildWorkingDeck = activeDeck
     ? importedDeckRequirements.length > 0
-    : format.commanderRequired
-      ? Boolean(selectedCommander) &&
-        strategySelectionComplete &&
-        (intentId !== "no-purchases" || Boolean(selectedCommander?.quantityOwned))
-      : snapshot.cards.length > 0;
+    : buildBlocker === null;
 
   useEffect(() => {
     setCommanderGeneration(null);
@@ -409,19 +421,19 @@ export function DeckArchitectWorkspace({
   }
 
   return (
-    <main className="min-h-screen bg-[#020912] px-4 py-5 text-white sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#020912] px-4 py-4 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1520px]">
         {snapshot.error ? <LoadError message={snapshot.error} /> : null}
 
-        <header className="border-y border-white/[0.08] py-4">
-          <div className="flex flex-wrap items-end justify-between gap-4">
+        <header className="border-y border-white/[0.08] py-3">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-cyan-300">Trading Docks</p>
-              <h1 className="mt-1 text-4xl font-semibold leading-none tracking-[-0.045em]">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">Trading Docks</p>
+              <h1 className="mt-1 text-3xl font-semibold leading-none tracking-[-0.045em] sm:text-4xl">
                 Deck Architect
               </h1>
-              <p className="mt-3 max-w-3xl text-base leading-7 text-slate-300">
-                Build decks from your collection, upgrade what you own, or discover what you're close to completing.
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+                Choose a format and commander, set the build intent, then generate a reviewable deck shell.
               </p>
             </div>
             <CollectionSummary snapshot={snapshot} />
@@ -474,7 +486,7 @@ export function DeckArchitectWorkspace({
         ) : (
           <section className={[
             "mt-5 grid gap-5",
-            hasGeneratedDeck ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(360px,0.34fr)_minmax(0,0.66fr)] xl:items-start",
+            hasGeneratedDeck ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(380px,0.32fr)_minmax(0,0.68fr)] xl:items-start",
           ].join(" ")}>
             {!hasGeneratedDeck ? (
               <aside className="space-y-4">
@@ -570,9 +582,9 @@ export function DeckArchitectWorkspace({
                   formatId={formatId}
                   formatRequiresCommander={format.commanderRequired}
                   hasCollection={snapshot.cards.length > 0}
-                  hasCommanders={snapshot.commanderCandidates.length > 0}
+                  hasCommanders={snapshot.commanderCandidates.length > 0 || commanderSelection.source === "potential"}
                   hasSelectedCommander={Boolean(selectedCommander)}
-                  selectedCommanderOwned={Boolean(selectedCommander?.quantityOwned)}
+                  selectedCommanderOwned={selectedCommanderOwned}
                   selectedCommander={selectedCommander}
                   selectedStrategyLabel={selectedStrategyFit?.strategy.label ?? (selectedStrategyId === "auto" ? "Architect for me" : null)}
                   intentId={intentId}
@@ -645,12 +657,16 @@ export function DeckArchitectWorkspace({
 
 function CollectionSummary({ snapshot }: { snapshot: DeckArchitectCollectionSnapshot }) {
   return (
-    <section className="min-w-[280px] rounded-[16px] bg-[#06131f] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <div className="flex items-center justify-between gap-4">
+    <section className="min-w-[280px] rounded-[14px] bg-[#06131f] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <div className="flex items-center justify-between gap-5">
         <div>
-          <p className="text-sm font-semibold text-white">Collection</p>
-          <p className="mt-1 text-sm text-slate-400">
-            {snapshot.totalOwnedQuantity.toLocaleString("en-US")} cards / {snapshot.totalRows.toLocaleString("en-US")} unique / {snapshot.commanderCandidates.length.toLocaleString("en-US")} commanders
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Collection snapshot</p>
+          <p className="mt-1 text-sm font-semibold text-white">
+            {snapshot.totalOwnedQuantity.toLocaleString("en-US")} cards
+            <span className="mx-2 text-slate-600">/</span>
+            {snapshot.totalRows.toLocaleString("en-US")} printings
+            <span className="mx-2 text-slate-600">/</span>
+            {snapshot.commanderCandidates.length.toLocaleString("en-US")} commanders
           </p>
         </div>
         <Link href="/dashboard/inventory" className="text-xs font-semibold text-cyan-300 hover:text-cyan-100">
@@ -833,10 +849,10 @@ function SetupPanel({
 
   return (
     <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-base font-semibold tracking-[-0.02em] text-white">{selectedWorkflow?.title}</p>
-          <p className="mt-1 text-sm leading-6 text-slate-400">{selectedWorkflow?.description}</p>
+          <p className="mt-1 truncate text-sm text-slate-400">{selectedWorkflow?.description}</p>
         </div>
         <button
           type="button"
@@ -847,12 +863,12 @@ function SetupPanel({
         </button>
       </div>
 
-      <label className="mt-4 block">
-        <span className="text-sm font-semibold text-slate-200">Format</span>
+      <label className="mt-4 block rounded-[14px] bg-black/20 p-3">
+        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Format</span>
         <select
           value={formatId}
           onChange={(event) => setFormatId(event.target.value as DeckArchitectFormatId)}
-          className="mt-2 h-11 w-full rounded-[12px] border border-white/[0.08] bg-black/25 px-3 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/50"
+          className="mt-2 h-10 w-full rounded-[10px] border border-white/[0.08] bg-[#071827] px-3 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/50"
         >
           {INITIAL_DECK_ARCHITECT_FORMATS.filter((id) => id !== "custom" && id !== "brawl").map((id) => (
             <option key={id} value={id} className="bg-[#06131f] text-white">
@@ -870,6 +886,7 @@ function SetupPanel({
         ]}
         selectedId={sourceMode}
         onSelect={(id) => setIntentId(id === "collection-only" ? "no-purchases" : "use-collection")}
+        columns={2}
       />
 
       <PreferenceGroup
@@ -881,6 +898,7 @@ function SetupPanel({
         ]}
         selectedId={powerTarget}
         onSelect={(id) => setIntentId(id === "competitive" ? "competitive" : id === "casual" ? "casual" : "use-collection")}
+        columns={3}
       />
 
       <PreferenceGroup
@@ -892,6 +910,7 @@ function SetupPanel({
         ]}
         selectedId={budgetMode}
         onSelect={(id) => setIntentId(id === "no-purchases" ? "no-purchases" : id === "budget" ? "budget" : "strongest-possible")}
+        columns={3}
       />
     </section>
   );
@@ -902,16 +921,18 @@ function PreferenceGroup({
   options,
   selectedId,
   onSelect,
+  columns = 2,
 }: {
   title: string;
   options: Array<{ id: string; label: string; description: string }>;
   selectedId: string;
   onSelect: (id: string) => void;
+  columns?: 2 | 3;
 }) {
   return (
-    <div className="mt-4">
-      <p className="text-sm font-semibold text-slate-200">{title}</p>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+    <div className="mt-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{title}</p>
+      <div className={["mt-2 grid gap-2", columns === 3 ? "grid-cols-3" : "grid-cols-2"].join(" ")}>
         {options.map((option) => {
           const selected = option.id === selectedId;
           return (
@@ -920,12 +941,12 @@ function PreferenceGroup({
               type="button"
               onClick={() => onSelect(option.id)}
               className={[
-                "rounded-[12px] px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
+                "min-h-[66px] rounded-[12px] px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
                 selected ? "bg-cyan-300/[0.12] text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 text-slate-300 hover:bg-white/[0.055]",
               ].join(" ")}
             >
-              <span className="block text-sm font-semibold">{option.label}</span>
-              <span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.description}</span>
+              <span className="block text-xs font-semibold leading-4 sm:text-sm">{option.label}</span>
+              <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">{option.description}</span>
             </button>
           );
         })}
@@ -973,8 +994,8 @@ function CommanderPicker({
   if (selectedCommander && !changing) {
     return (
       <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-sm font-semibold text-white">Commander</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Selected commander</p>
           <button
             type="button"
             onClick={() => setChanging(true)}
@@ -983,15 +1004,15 @@ function CommanderPicker({
             Change commander
           </button>
         </div>
-        <div className="mt-3 flex gap-4 rounded-[16px] bg-black/25 p-3">
+        <div className="mt-3 flex gap-4 rounded-[16px] bg-black/25 p-3 shadow-[inset_0_0_0_1px_rgba(103,232,249,.08)]">
           <CardThumb card={selectedCommander} size="large" />
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-semibold leading-6 tracking-[-0.025em] text-white">{selectedCommander.name}</p>
+            <p className="text-xl font-semibold leading-6 tracking-[-0.035em] text-white">{selectedCommander.name}</p>
             <p className="mt-1 text-sm leading-6 text-slate-400">
               {selectedCommander.colorIdentity?.length ? `${colorIdentityLabel(selectedCommander.colorIdentity)} / ` : ""}
               {selectedCommander.typeLine ?? "Commander"}
             </p>
-            <p className={["mt-3 text-sm font-semibold", selectedIsPotential ? "text-amber-100" : "text-emerald-200"].join(" ")}>
+            <p className={["mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", selectedIsPotential ? "bg-amber-300/10 text-amber-100" : "bg-emerald-300/10 text-emerald-200"].join(" ")}>
               {selectedIsPotential ? "Not currently in your collection" : `Owned ${selectedCommander.quantityOwned}`}
             </p>
           </div>
@@ -1003,7 +1024,7 @@ function CommanderPicker({
   return (
     <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-white">Choose commander</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Choose commander</p>
         <div className="flex items-center gap-2">
           {selectedCommander ? (
             <button
@@ -1460,15 +1481,19 @@ function DeckPreviewState({
   tone?: "neutral" | "attention";
 }) {
   return (
-    <section className="min-h-[420px] rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.2)]">
+    <section className="min-h-[360px] rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.2)]">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-        {selectedCommander ? <CardThumb card={selectedCommander} size="large" /> : null}
+        {selectedCommander ? (
+          <div className="rounded-[18px] bg-black/25 p-2">
+            <CardThumb card={selectedCommander} size="preview" />
+          </div>
+        ) : null}
         <div className="min-w-0 flex-1">
           <p className={["text-sm font-semibold", tone === "attention" ? "text-amber-100" : "text-cyan-300"].join(" ")}>
-            Deck preview
+            Commander workspace
           </p>
-          <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.045em] text-white">{title}</h2>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">{body}</p>
+          <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.045em] text-white sm:text-3xl">{title}</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">{body}</p>
 
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             <Detail label="Commander" value={selectedCommander?.name ?? "Not selected"} />
@@ -2168,8 +2193,8 @@ function primaryRoleForRequirement(requirement: DeckRequirement): DeckArchitectR
   return requirement.roles.find((role) => ROLE_ORDER.includes(role)) ?? requirement.roles[0] ?? "synergy";
 }
 
-function CardThumb({ card, size }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri">; size: "small" | "medium" | "large" }) {
-  const classes = size === "large" ? "h-28 w-20" : size === "medium" ? "h-20 w-14" : "h-16 w-12";
+function CardThumb({ card, size }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri">; size: "small" | "medium" | "large" | "preview" }) {
+  const classes = size === "preview" ? "h-44 w-32" : size === "large" ? "h-28 w-20" : size === "medium" ? "h-20 w-14" : "h-16 w-12";
   return (
     <div className={`${classes} shrink-0 overflow-hidden rounded-[12px] bg-slate-900 shadow-[0_10px_24px_rgba(0,0,0,.2)]`}>
       <CardImage card={card} />

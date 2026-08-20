@@ -54,6 +54,8 @@ import {
   passesProfessionalQualityFloor,
   cardMetadataIssues,
   ProfessionalEvidenceGate,
+  getDeckArchitectBuildBlocker,
+  resolveDeckArchitectCommanderSelection,
   validateDeckCriticOutput,
   type CollectionGraphCard,
   type CommanderGenerationResult,
@@ -255,7 +257,7 @@ test("Deck Architect dashboard is routed under Decks and uses real collection sn
   assert.match(route, /loadDeckArchitectServerState/);
   assert.match(route, /redirect\("\/sign-in\?next=\/dashboard\/deck-architect"\)/);
   assert.match(navigation, /href: "\/dashboard\/deck-architect", label: "Deck Architect"/);
-  assert.match(workspace, /Build decks from your collection, upgrade what you own/);
+  assert.match(workspace, /Choose a format and commander, set the build intent/);
   assert.match(workspace, /snapshot\.commanderCandidates/);
   assert.match(workspace, /compareRequirementsToCollection/);
   assert.match(workspace, /calculateBuildabilityScore/);
@@ -393,6 +395,56 @@ test("Deck Architect potential commander selection propagates to preview and gen
   assert.match(workspace, /commander: selectedCommander/);
   assert.match(workspace, /Not currently in your collection/);
   assert.match(workspace, /\$\{selectedCommander\?\.name \?\? "Commander"\} is ready/);
+});
+
+test("Deck Architect resolves a selected potential commander as the active build context", () => {
+  const ownedCommander = collection[0];
+  const krenko: CollectionGraphCard = {
+    inventoryId: "potential-krenko-tin-street-kingpin",
+    name: "Krenko, Tin Street Kingpin",
+    quantityOwned: 0,
+    typeLine: "Legendary Creature - Goblin",
+    colorIdentity: ["R"],
+    setCode: "war",
+    collectorNumber: "137",
+    marketPrice: 0.74,
+  };
+
+  const resolved = resolveDeckArchitectCommanderSelection({
+    selectedCommanderId: krenko.inventoryId,
+    ownedCommanders: [ownedCommander],
+    potentialCommander: krenko,
+  });
+
+  assert.equal(resolved.commander?.name, "Krenko, Tin Street Kingpin");
+  assert.equal(resolved.source, "potential");
+  assert.equal(resolved.owned, false);
+
+  assert.equal(getDeckArchitectBuildBlocker({
+    hasCollection: true,
+    formatRequiresCommander: true,
+    selectedCommander: resolved.commander,
+    selectedCommanderOwned: resolved.owned,
+    strategySelectionComplete: true,
+    intentId: "use-collection",
+  }), null);
+
+  assert.equal(getDeckArchitectBuildBlocker({
+    hasCollection: true,
+    formatRequiresCommander: true,
+    selectedCommander: resolved.commander,
+    selectedCommanderOwned: resolved.owned,
+    strategySelectionComplete: true,
+    intentId: "no-purchases",
+  }), "unowned-commander-collection-only");
+});
+
+test("Deck Architect source keeps selected potential commander from contradictory empty state", () => {
+  assert.match(workspace, /resolveDeckArchitectCommanderSelection/);
+  assert.match(workspace, /commanderSelection\.source === "potential"/);
+  assert.match(workspace, /selectedCommanderOwned=\{selectedCommanderOwned\}/);
+  assert.match(workspace, /DeckPreviewState/);
+  assert.match(workspace, /Commander workspace/);
 });
 
 test("Deck Architect split build goals into source power and budget controls", () => {

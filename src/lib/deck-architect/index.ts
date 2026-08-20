@@ -21,3 +21,4 @@ export * from "./recommendation-evidence.ts";
 export * from "./recommendations.ts";
 export * from "./taxonomy.ts";
 export * from "./types.ts";
+export * from "./workspace-state.ts";
