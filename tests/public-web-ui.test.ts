@@ -166,6 +166,7 @@ test("dashboard design foundation uses Trading Docks workflow language", () => {
   const navigation = readFileSync(path.join(repoRoot, "src/components/dashboard/navigation.ts"), "utf8");
   const shell = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredDashboardShell.tsx"), "utf8");
   const sidebar = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredSidebar.tsx"), "utf8");
+  const mobileNav = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/MobileBottomNav.tsx"), "utf8");
   const topbar = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/Topbar.tsx"), "utf8");
 
   assert.match(globals, /--td-accent-warm/);
@@ -181,7 +182,13 @@ test("dashboard design foundation uses Trading Docks workflow language", () => {
   assert.match(navigation, /group\("crm",\s*"Relationships"/);
   assert.match(navigation, /group\("tools",\s*"Utilities"/);
   assert.match(shell, /bg-\[var\(--td-background-primary\)\]/);
+  assert.match(shell, /data-dashboard-mobile-menu/);
+  assert.match(globals, /body\[data-dashboard-mobile-menu="open"\]/);
+  assert.match(globals, /touch-action:\s*none/);
   assert.match(sidebar, /TCG Intelligence OS/);
+  assert.match(mobileNav, /grid-cols-5/);
+  assert.match(mobileNav, /slice\(0,\s*4\)/);
+  assert.match(mobileNav, /aria-expanded=\{menuOpen\}/);
   assert.match(topbar, /TCG intelligence/);
 });
 
@@ -236,6 +243,47 @@ test("public redesign removes generic SaaS hero and pricing-card architecture", 
   assert.match(header, /Lifecycle/);
   assert.match(footer, /Card intelligence, inventory control, and operating workflows/);
   assert.doesNotMatch(footer, /Â©/);
+});
+
+test("deployed product and mobile QA matrix records routes viewports and real-device boundaries", () => {
+  const qa = readFileSync(path.join(repoRoot, "docs/DEPLOYED_PRODUCT_MOBILE_QA.md"), "utf8");
+
+  for (const route of [
+    "/",
+    "/pricing",
+    "/sign-in",
+    "/sign-up",
+    "/forgot-password",
+    "/update-password",
+    "/dashboard",
+    "/dashboard/inventory",
+    "/dashboard/orders",
+    "/dashboard/analytics",
+    "/dashboard/customers",
+    "/dashboard/deck-architect",
+    "/dashboard/deck-vault",
+    "/dashboard/settings",
+    "/dashboard/admin",
+  ]) {
+    assert.match(qa, new RegExp(escapeRegExp(route)), `QA matrix should include ${route}`);
+  }
+
+  for (const viewport of [
+    "375 x 812",
+    "390 x 844",
+    "430 x 932",
+    "768 x 1024",
+    "1024 x 768",
+    "1280 x 800",
+    "1440 x 900",
+    "1920 x 1080",
+  ]) {
+    assert.match(qa, new RegExp(escapeRegExp(viewport)), `QA matrix should include ${viewport}`);
+  }
+
+  assert.match(qa, /Browser emulation must not be recorded as physical iPhone\/Android validation/);
+  assert.match(qa, /Physical mobile readiness: NO-GO/);
+  assert.match(qa, /body\[data-dashboard-mobile-menu="open"\]/);
 });
 
 test("remaining homepage sections use the unified Trading Docks product language", () => {
@@ -298,4 +346,8 @@ function listSourceFiles(target: string): string[] {
     files.push(...listSourceFiles(path.join(target, entry)));
   }
   return files;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

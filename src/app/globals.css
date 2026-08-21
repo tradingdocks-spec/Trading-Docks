@@ -535,6 +535,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body[data-dashboard-mobile-menu="open"] {
+  overflow: hidden;
+  touch-action: none;
+}
+
 /* Accessible, branded focus states everywhere. */
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
   outline: none;

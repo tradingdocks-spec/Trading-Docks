@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MessageSquarePlus } from "lucide-react";
 
@@ -28,6 +28,20 @@ export function TieredDashboardShell({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const body = document.body;
+    if (!mobileOpen) {
+      body.removeAttribute("data-dashboard-mobile-menu");
+      return;
+    }
+
+    body.setAttribute("data-dashboard-mobile-menu", "open");
+    return () => {
+      body.removeAttribute("data-dashboard-mobile-menu");
+    };
+  }, [mobileOpen]);
 
   return (
     <div className="desktop_layout tablet_layout mobile_layout min-h-screen bg-[var(--td-background-primary)] text-white">
