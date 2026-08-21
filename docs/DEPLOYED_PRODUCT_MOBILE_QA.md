@@ -89,6 +89,8 @@ Automated coverage added:
 - Global CSS locks page scroll/touch when the mobile dashboard menu is open.
 - Mobile dashboard bottom navigation remains a five-cell layout with the fifth cell reserved for Menu.
 - Dashboard account and workspace controls now expose stable accessible names for authenticated browser QA.
+- Shared dashboard header/action and metric-card primitives now use tighter proportions and named controls for browser QA.
+- Orders and Customer CRM received targeted premium-polish fixes for action hierarchy, caption legibility, and accessible row/modal controls.
 
 ## Defects Found And Fixed
 
@@ -97,6 +99,7 @@ Automated coverage added:
 | P1 | Opening the mobile dashboard sidebar did not mark the page as scroll-locked, so background content could scroll underneath the drawer on touch devices. | `TieredDashboardShell` now toggles `body[data-dashboard-mobile-menu="open"]`; global CSS sets `overflow: hidden` and `touch-action: none` while open. |
 | P1 | Public header had no full navigation path at tablet widths where desktop links were hidden but the hamburger was also hidden. | Public header now uses a compact drawer below `xl`, and in-page section links scroll/update the hash explicitly. |
 | P2 | Footer logo could report intrinsic image width and trigger horizontal overflow in browser automation. | Footer logo now uses rendered dimensions that match the visible layout. |
+| P2 | Orders and Customer CRM contained tiny captions, bulky panels, and unnamed row/modal controls that lowered perceived production quality. | Shared primitives plus Orders/CRM now use denser spacing, readable labels, clearer action hierarchy, and stable accessible names. |
 
 ## Known Remaining Issues / Manual Gates
 
@@ -109,6 +112,7 @@ Automated coverage added:
 | P1 | Data-dense tables for inventory, orders, analytics, CRM, imports, and admin. | Browser QA with empty and populated account states. |
 | P1 | Deck Architect/Deck Vault image sharpness, card legibility, text view density, share/export. | Browser and real-device QA with a populated deck account. |
 | P1 | Form keyboard behavior on mobile for auth, settings, CRM, inventory, purchasing, and billing. | Real iPhone/Android validation. |
+| P2 | Remaining authenticated premium-polish backlog. | Track and close items in `docs/PREMIUM_PRODUCT_POLISH.md`; do not mark resolved without real browser/device proof where required. |
 
 ## Physical Device Manual Checklist
 

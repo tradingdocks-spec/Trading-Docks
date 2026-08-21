@@ -16,6 +16,7 @@ Status labels:
 - Account isolation and entitlement QA matrix: `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`.
 - Billing provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
 - Deployed product/mobile QA matrix: `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`.
+- Premium product polish inventory: `docs/PREMIUM_PRODUCT_POLISH.md`.
 
 ## Automated Validation Baseline
 
@@ -84,6 +85,9 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Complete: public footer logo sizing no longer creates browser-level horizontal overflow.
 - Complete: Playwright E2E scripts and artifact ignores are in place for launch QA.
 - Complete: dashboard account/workspace controls expose stable accessible names for browser automation without changing visible product behavior.
+- Complete: shared dashboard headers and metric cards have tighter premium proportions, readable caption sizing, and named primary action controls.
+- Complete: Orders now has clearer primary/secondary action hierarchy, less decorative chrome, named row controls, and a more truthful no-orders state.
+- Complete: Customer CRM detail/configuration panels have more readable labels plus named loyalty, delete, and close controls.
 
 ## Closed-Beta QA Matrix
 
@@ -114,6 +118,13 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Needs QA: Collection, Deck Vault, Storage, Trade Binder, Wishlist, Purchasing, Orders, CRM, Label Studio, and Admin Catalog must be exercised with two different authenticated accounts to confirm no cross-account reads or writes.
 - Needs QA: account-document drafts should be refreshed, signed out, and re-opened in representative workspaces to confirm the intended persistence level is clear to users.
 - Follow-up: older `src/components/dashboard-v2` modules still contain browser-storage persistence paths and should be archived or deleted after active import references are fully audited.
+
+## Premium Product Polish Gate
+
+- Complete: source-level polish pass improved the shared dashboard header, metric-card primitive, Orders, and Customer CRM without changing business logic or permissions.
+- Needs QA: authenticated screenshots and interaction walkthroughs are still required for Inventory, Orders, CRM, Analytics, Deck Architect, Deck Vault, Label Studio, and Admin with representative populated accounts.
+- Needs QA: mobile polish remains physical-device-bound; this pass did not modify or verify native Expo screens.
+- Follow-up: the detailed P1/P2 polish backlog lives in `docs/PREMIUM_PRODUCT_POLISH.md`.
 
 ## Integration Failure Handling Checks
 

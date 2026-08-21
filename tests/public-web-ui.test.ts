@@ -143,6 +143,44 @@ test("business beta pages do not expose dead primary actions", () => {
   }
 });
 
+test("dashboard premium polish keeps shared actions readable and named", () => {
+  const pageHeader = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/common/PageHeader.tsx"),
+    "utf8",
+  );
+  const metricCard = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/common/MetricCard.tsx"),
+    "utf8",
+  );
+  const orders = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/orders/UniversalOrdersCenter.tsx"),
+    "utf8",
+  );
+  const crm = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/business/CustomerCrmWorkspace.tsx"),
+    "utf8",
+  );
+
+  assert.match(pageHeader, /aria-label=\{actionLabel\}/);
+  assert.match(pageHeader, /xl:items-center/);
+  assert.match(metricCard, /text-\[0\.68rem\]/);
+  assert.match(metricCard, /h-\[18px\] w-\[18px\]/);
+
+  assert.match(orders, /td-button-secondary px-4/);
+  assert.match(orders, /td-button-primary px-4/);
+  assert.match(orders, /aria-label="Select all visible orders"/);
+  assert.match(orders, /aria-label=\{`\$\{expanded \? "Collapse" : "Expand"\} order/);
+  assert.match(orders, /No orders imported yet/);
+  assert.doesNotMatch(orders, /Universal orders center/);
+  assert.doesNotMatch(orders, /right-\[-4rem\] top-\[-8rem\]/);
+
+  assert.match(crm, /aria-label=\{loyalty\.enabled \? "Pause loyalty program" : "Activate loyalty program"\}/);
+  assert.match(crm, /aria-label=\{`Delete \$\{selected\.first_name\} \$\{selected\.last_name\}`\}/);
+  assert.match(crm, /aria-label="Close panel"/);
+  assert.match(crm, /text-\[0\.68rem\] font-semibold uppercase tracking-\[0\.12em\]/);
+  assert.doesNotMatch(crm, /text-\[9px\] font-semibold uppercase tracking-wider/);
+});
+
 test("modular dashboard presents a premium command-center hierarchy", () => {
   const source = readFileSync(
     path.join(repoRoot, "src/components/dashboard/workspace/ModularWorkspace.tsx"),

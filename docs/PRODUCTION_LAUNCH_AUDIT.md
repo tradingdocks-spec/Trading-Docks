@@ -16,6 +16,7 @@ Status labels:
 - Account isolation and entitlement matrix: `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`.
 - Billing/provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
 - Deployed product/mobile QA matrix: `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`.
+- Premium product polish inventory: `docs/PREMIUM_PRODUCT_POLISH.md`.
 
 ## Route And Product Surface Inventory
 
@@ -45,6 +46,7 @@ Status labels:
 | P1 | Public site tablet navigation had a breakpoint gap where primary nav links were hidden and the hamburger menu was unavailable. | Fixed | Header now uses the compact drawer below `xl` and same-page section links perform explicit hash/scroll navigation. |
 | P2 | Footer logo and dense public tables/decorative elements exposed unhelpful horizontal-overflow regressions during browser automation. | Fixed | Footer logo dimensions are constrained; Playwright overflow checks now fail page-level leaks while allowing intentional table-internal scroll containers. |
 | P2 | Dashboard account controls lacked stable accessible names for authenticated browser QA selectors. | Fixed | Topbar workspace/account menu controls now expose explicit labels without changing visible layout. |
+| P2 | Orders and Customer CRM had prototype-like dashboard proportions: oversized decorative surfaces, tiny captions, and several unnamed row/modal controls. | Fixed | Shared headers/metric cards, Orders, and Customer CRM now use tighter proportions, clearer action hierarchy, and stable accessible labels. Authenticated visual QA is still required. |
 | P2 | Legacy `src/components/dashboard-v2` modules still contain browser-storage persistence and increase code-search noise. | Follow-up | Do a dedicated import audit before archiving/deleting; do not remove from this launch-hardening branch. |
 | P2 | Older backup mobile folders and historical snapshots should remain excluded from active tooling and not be treated as launch source. | Complete | Active paths remain `src/` for web and `mobile/` for Expo. |
 | P2 | Design-system overlap remains between older dashboard primitives and newer Trading Docks primitives. | Follow-up | Consolidate incrementally where product surfaces are touched; avoid broad redesign churn in launch hardening. |
@@ -64,11 +66,15 @@ Reviewed usage categories:
 
 - Fixed: Settings data/privacy actions no longer look like fully wired product operations when the backend process is support-assisted.
 - Fixed: Direct scanner-provider and binder-share API calls now enforce the same entitlement capabilities used by UI/navigation.
+- Fixed: shared dashboard page headers and metric cards now use calmer proportions, readable caption sizing, and named primary actions.
+- Fixed: Orders now presents a denser premium operating surface with clearer primary/secondary actions, less decorative chrome, named selection/expand controls, and a more honest empty state.
+- Fixed: Customer CRM panels and forms now use more readable labels and named loyalty/delete/close controls.
 - Needs QA: every primary CTA in Seller/Store/Owner workspaces should be clicked in browser sessions to confirm it either performs an action, opens a real route, or is deliberately absent.
 - Fixed: public website route-smoke and responsive checks now run at 1920, 1440, 1280, 1024, 768, 430, 390, and 375 widths through Playwright.
 - Complete: authenticated Playwright setup can create local `.playwright-auth/` storage states from environment-provided credentials without committing tokens.
 - Needs QA: authenticated responsive browser QA remains required for dashboard shell, Settings, Collection, Purchasing, Orders, Label Studio, and Admin because no QA credentials were present in the current run.
 - Follow-up: continue removing old generic placeholder language only when replacing it with accurate product state, not decorative copy.
+- Follow-up: continue the P1/P2 premium polish inventory in `docs/PREMIUM_PRODUCT_POLISH.md`; authenticated screenshots were not captured in this environment.
 
 ## Accessibility And Responsive Gates
 
