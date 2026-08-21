@@ -6,6 +6,7 @@ coverage/
 playwright-report/
 test-results/
 .playwright-results/
+.playwright-auth/
 mobile/dist/
 mobile/.expo/
 mobile/.cache/

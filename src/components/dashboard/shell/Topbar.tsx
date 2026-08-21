@@ -170,6 +170,7 @@ export function Topbar({
             type="button"
             onClick={() => setOpenMenu((value) => value === "workspace" ? null : "workspace")}
             aria-expanded={openMenu === "workspace"}
+            aria-label="Open workspace menu"
             className="hidden h-10 items-center gap-2 rounded-[11px] border border-white/[0.07] bg-white/[0.025] px-3 text-xs text-slate-400 md:flex"
           >
             <Store className="h-4 w-4 text-slate-600" />
@@ -181,6 +182,7 @@ export function Topbar({
             type="button"
             onClick={() => setOpenMenu((value) => value === "profile" ? null : "profile")}
             aria-expanded={openMenu === "profile"}
+            aria-label="Open account menu"
             className="flex h-10 items-center gap-2 rounded-[11px] border border-white/[0.07] bg-white/[0.025] p-1.5 pr-2 text-xs text-slate-400"
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-400/[0.1] font-semibold text-blue-200">
