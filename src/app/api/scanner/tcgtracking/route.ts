@@ -7,6 +7,8 @@ import {
   normalizeTcgTrackingScanProviderRequest,
   scanCardImageWithTcgTracking,
 } from "@/lib/providers/tcgtracking";
+import { apiCapabilityDecision } from "@/lib/platform/api-access";
+import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -14,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 type AuthenticatedScanActor = {
   userId: string;
+  access: Awaited<ReturnType<typeof resolvePlatformAccessForUser>>;
 };
 
 export async function POST(request: Request) {
@@ -23,6 +26,13 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Authentication required." },
       { status: 401 },
+    );
+  }
+  const capability = apiCapabilityDecision(actor.access, "scanner.use");
+  if (!capability.allowed) {
+    return NextResponse.json(
+      { error: capability.error },
+      { status: capability.status },
     );
   }
 
@@ -100,14 +110,19 @@ async function authenticateScanActor(
       },
     });
     const { data, error } = await supabase.auth.getUser();
-    if (!error && data.user) return { userId: data.user.id };
+    if (!error && data.user) {
+      const access = await resolvePlatformAccessForUser(supabase, data.user);
+      return { userId: data.user.id, access };
+    }
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  return user ? { userId: user.id } : null;
+  if (!user) return null;
+  const access = await resolvePlatformAccessForUser(supabase, user);
+  return { userId: user.id, access };
 }
 
 function imageByteLength(image: string) {

@@ -26,6 +26,7 @@ test("Collector inventory authority migration enforces limits with transactional
 test("binder share API derives public cards only from owned inventory records", () => {
   const source = read("src/app/api/binder-shares/route.ts");
 
+  assert.match(source, /requireApiCapability\("binder\.manage"\)/);
   assert.match(source, /inventoryItemIds/);
   assert.match(source, /\.from\("inventory_items"\)/);
   assert.match(source, /\.eq\("user_id", userId\)/);

@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 
 import { getAccountAwareNavigationGroups } from "../src/components/dashboard/navigation.ts";
 import {
+  apiAccessRuleForPath,
+  apiCapabilityDecision,
+} from "../src/lib/platform/api-access.ts";
+import {
   getTopbarCreateActions,
   topbarCreateActions,
 } from "../src/components/dashboard/shell/create-menu-actions.ts";
@@ -173,6 +177,48 @@ test("route access registry classifies every concrete dashboard page", () => {
   assert.deepEqual(unclassified, []);
 });
 
+test("API access registry classifies every concrete API route", () => {
+  const routes = appApiRoutes();
+  const unclassified = routes.filter((route) => apiAccessRuleForPath(route)?.id === "api-fallback");
+
+  assert.ok(routes.length >= 60, `expected broad API route inventory, found ${routes.length}`);
+  assert.deepEqual(unclassified, []);
+});
+
+test("direct API capability matrix protects scanner and binder share mutations", () => {
+  const free = access({ tier: "free" });
+  const collector = access({ tier: "collector" });
+  const suspendedCollector = {
+    ...collector,
+    suspended: true,
+  } satisfies PlatformAccessContext;
+
+  assert.equal(apiAccessRuleForPath("/api/scanner/tcgtracking")?.capability, "scanner.use");
+  assert.equal(apiAccessRuleForPath("/api/binder-shares")?.capability, "binder.manage");
+  assert.equal(apiCapabilityDecision(free, "scanner.use").allowed, true);
+  assert.equal(apiCapabilityDecision(free, "binder.manage").allowed, false);
+  assert.equal(apiCapabilityDecision(collector, "binder.manage").allowed, true);
+  assert.equal(apiCapabilityDecision(suspendedCollector, "scanner.use").allowed, false);
+});
+
+test("scanner and binder share routes enforce server-side capability checks", () => {
+  const scannerRoute = readFileSync(
+    path.join(repoRoot, "src/app/api/scanner/tcgtracking/route.ts"),
+    "utf8",
+  );
+  const binderShareRoute = readFileSync(
+    path.join(repoRoot, "src/app/api/binder-shares/route.ts"),
+    "utf8",
+  );
+
+  assert.match(scannerRoute, /apiCapabilityDecision\(actor\.access, "scanner\.use"\)/);
+  assert.match(scannerRoute, /resolvePlatformAccessForUser\(supabase, data\.user\)/);
+  assert.match(scannerRoute, /resolvePlatformAccessForUser\(supabase, user\)/);
+  assert.match(binderShareRoute, /requireApiCapability\("binder\.manage"\)/);
+  assert.match(binderShareRoute, /\.eq\("user_id", userId\)/);
+  assert.match(binderShareRoute, /\.eq\("owner_id", user\.id\)/);
+});
+
 test("global Create menu actions resolve to real non-placeholder destinations", () => {
   const routes = appRoutePatterns();
 
@@ -275,6 +321,10 @@ function appRoutePatterns(): RegExp[] {
 
 function appPageRoutes(): string[] {
   return appRoutesFromFiles(["page.tsx"]);
+}
+
+function appApiRoutes(): string[] {
+  return appRoutesFromFiles(["route.ts"]).filter((route) => route.startsWith("/api"));
 }
 
 function appRoutesFromFiles(routeFileNames: string[]): string[] {

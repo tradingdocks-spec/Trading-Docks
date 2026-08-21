@@ -9,6 +9,7 @@ import {
   sanitizeLegacyBinderPayload,
   safeText,
 } from "@/lib/public-share-security";
+import { requireApiCapability } from "@/lib/platform/server-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,14 +22,10 @@ type BinderShareRequest = {
 };
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json(
-      { error: "Authentication required." },
-      { status: 401 },
-    );
-  }
+  const capability = await requireApiCapability("binder.manage");
+  if (!capability.ok) return capability.response;
+  const { supabase, user } = capability;
+  if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
 
   const body = (await request.json().catch(() => null)) as BinderShareRequest | null;
   const title = safeText(body?.title, 120);
@@ -95,14 +92,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json(
-      { error: "Authentication required." },
-      { status: 401 },
-    );
-  }
+  const capability = await requireApiCapability("binder.manage");
+  if (!capability.ok) return capability.response;
+  const { user } = capability;
+  if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
 
   const body = (await request.json().catch(() => null)) as { token?: unknown } | null;
   const token = safeText(body?.token, 80);
