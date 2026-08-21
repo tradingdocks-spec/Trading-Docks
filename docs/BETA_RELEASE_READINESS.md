@@ -23,6 +23,7 @@ Status labels:
 - Complete: root unit tests pass with `npm test`.
 - Complete: focused dashboard/auth/public UI tests pass.
 - Complete: Playwright public browser QA passes with Chromium, Firefox, WebKit, tablet, and mobile projects via `npm run test:e2e`.
+- Complete: authenticated Playwright QA is wired through environment-provided credentials and local `.playwright-auth/` storage state files, but no authenticated account was exercised in this environment.
 - Complete: public screenshot baselines cover homepage desktop, homepage mobile, and pricing desktop.
 - Complete: focused lint passes with `npm run lint -- --quiet`.
 - Complete: full production build passes with `npm run build`.
@@ -82,6 +83,7 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Complete: public header navigation now has a tablet-safe compact drawer below `xl`, explicit same-page section scrolling, and named navigation landmarks for accessibility/testing.
 - Complete: public footer logo sizing no longer creates browser-level horizontal overflow.
 - Complete: Playwright E2E scripts and artifact ignores are in place for launch QA.
+- Complete: dashboard account/workspace controls expose stable accessible names for browser automation without changing visible product behavior.
 
 ## Closed-Beta QA Matrix
 
@@ -133,6 +135,13 @@ Required for web Preview/Production:
 - At least one RevenueCat web purchase link: `REVENUECAT_WEB_PURCHASE_LINK` or the package-specific `REVENUECAT_WEB_COLLECTOR_MONTHLY_URL`, `REVENUECAT_WEB_COLLECTOR_YEARLY_URL`, `REVENUECAT_WEB_SELLER_MONTHLY_URL`, `REVENUECAT_WEB_SELLER_YEARLY_URL`, `REVENUECAT_WEB_STORE_MONTHLY_URL`, `REVENUECAT_WEB_STORE_YEARLY_URL`.
 - RevenueCat management link: `REVENUECAT_WEB_CUSTOMER_PORTAL_URL` or `REVENUECAT_WEB_MANAGEMENT_URL`.
 
+Required only for local/deployed Playwright authenticated QA:
+
+- `PLAYWRIGHT_AUTH_EMAIL`
+- `PLAYWRIGHT_AUTH_PASSWORD`
+- Optional tier-specific pairs: `PLAYWRIGHT_FREE_EMAIL` / `PLAYWRIGHT_FREE_PASSWORD`, `PLAYWRIGHT_COLLECTOR_EMAIL` / `PLAYWRIGHT_COLLECTOR_PASSWORD`, `PLAYWRIGHT_SELLER_EMAIL` / `PLAYWRIGHT_SELLER_PASSWORD`, `PLAYWRIGHT_STORE_EMAIL` / `PLAYWRIGHT_STORE_PASSWORD`, `PLAYWRIGHT_OWNER_EMAIL` / `PLAYWRIGHT_OWNER_PASSWORD`.
+- Generated Playwright session state is written to `.playwright-auth/`, which is environment-local and gitignored.
+
 Required for transactional beta invitations:
 
 - `RESEND_API_KEY`
@@ -172,7 +181,7 @@ Forbidden in browser/mobile public env:
 ## Native And Real-Environment Validation Still Required
 
 - Blocked: physical iOS and Android validation was not run in this web-focused checkpoint.
-- Needs QA: authenticated Playwright dashboard tests are available but require `PLAYWRIGHT_AUTH_EMAIL` and `PLAYWRIGHT_AUTH_PASSWORD` for a representative account.
+- Needs QA: authenticated Playwright dashboard tests are available but require `PLAYWRIGHT_AUTH_EMAIL` and `PLAYWRIGHT_AUTH_PASSWORD` or tier-specific QA credentials. Current `npm run test:e2e` result without credentials: `86 passed`, `42 skipped`.
 - Blocked: Expo scanner, native OCR/autolinking, offline replay, camera permissions, and RevenueCat native purchase restore require real devices or current preview builds.
 - Blocked: representative Supabase staging accounts for Free, Collector, Seller, Store, Owner, and Admin are required before closing the matrix.
 - Blocked: external provider tests require configured sandbox/test credentials and must not use production customer data.

@@ -75,10 +75,12 @@ Completed in this checkpoint:
 Browser emulation:
 
 - Complete: Playwright is installed with Chromium, Firefox, and WebKit projects.
-- Complete: `npm run test:e2e` runs public route smoke, browser-error monitoring, horizontal-overflow checks, auth form interaction checks, mobile public-menu checks, optional authenticated dashboard shell tests, and visual baselines.
+- Complete: `npm run test:e2e` runs public route smoke, browser-error monitoring, horizontal-overflow checks, auth form interaction checks, mobile public-menu checks, credential-gated authenticated dashboard shell tests, and visual baselines.
+- Complete: the authenticated Playwright harness now creates reusable environment-local storage state files under `.playwright-auth/`; that directory is gitignored and must never be committed.
 - Complete: screenshot baselines cover homepage desktop, homepage mobile WebKit, and pricing desktop.
 - Complete: small-text audit attachments are generated for key public/auth routes to flag typography that should receive manual review instead of silently passing.
-- Needs QA: authenticated dashboard tests are wired but skip unless `PLAYWRIGHT_AUTH_EMAIL` and `PLAYWRIGHT_AUTH_PASSWORD` are provided.
+- Current run: `npm run test:e2e` completed with `86 passed` and `42 skipped`. The skips were expected: public interaction/visual tests are scoped to specific browser projects, and authenticated dashboard QA skipped because no Playwright QA credentials were present.
+- Needs QA: authenticated dashboard tests are wired but skip unless `PLAYWRIGHT_AUTH_EMAIL` and `PLAYWRIGHT_AUTH_PASSWORD` or one of the tier-specific QA account pairs is provided.
 - Needs QA: WebKit route rendering and overflow are covered; public header/menu click interactions are covered in Chromium/Firefox because local Playwright WebKit click/hash behavior was not stable enough to treat as physical Safari proof.
 
 Automated coverage added:
@@ -86,6 +88,7 @@ Automated coverage added:
 - Dashboard mobile menu now sets and clears `body[data-dashboard-mobile-menu="open"]`.
 - Global CSS locks page scroll/touch when the mobile dashboard menu is open.
 - Mobile dashboard bottom navigation remains a five-cell layout with the fifth cell reserved for Menu.
+- Dashboard account and workspace controls now expose stable accessible names for authenticated browser QA.
 
 ## Defects Found And Fixed
 
@@ -131,9 +134,10 @@ Record `PASS`, `FAIL`, `BLOCKED`, or `N/A` for each row with tester, date, devic
 
 1. Deploy Preview with safe environment variables.
 2. Test public routes unauthenticated at every viewport in the matrix.
-3. Test each representative account type: Free, Collector, Seller, Store, Owner/Admin.
-4. For each route, check horizontal overflow, clipped controls, unreadable typography, tiny touch targets, table behavior, overlays, empty/loading/error states, image sharpness, and keyboard/focus.
-5. Record failures in this document or the beta QA ledger with severity and fix commit.
+3. Configure Playwright QA credentials only through local environment variables: `PLAYWRIGHT_AUTH_EMAIL` / `PLAYWRIGHT_AUTH_PASSWORD` for one representative account, and optional `PLAYWRIGHT_FREE_EMAIL`, `PLAYWRIGHT_COLLECTOR_EMAIL`, `PLAYWRIGHT_SELLER_EMAIL`, `PLAYWRIGHT_STORE_EMAIL`, `PLAYWRIGHT_OWNER_EMAIL` with matching `*_PASSWORD` variables for tier-specific browser QA.
+4. Test each representative account type: Free, Collector, Seller, Store, Owner/Admin.
+5. For each route, check horizontal overflow, clipped controls, unreadable typography, tiny touch targets, table behavior, overlays, empty/loading/error states, image sharpness, and keyboard/focus.
+6. Record failures in this document or the beta QA ledger with severity and fix commit.
 
 ## Product/Mobile Readiness Assessment
 
