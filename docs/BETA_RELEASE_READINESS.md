@@ -22,6 +22,8 @@ Status labels:
 - Complete: root TypeScript passes with `npm run typecheck`.
 - Complete: root unit tests pass with `npm test`.
 - Complete: focused dashboard/auth/public UI tests pass.
+- Complete: Playwright public browser QA passes with Chromium, Firefox, WebKit, tablet, and mobile projects via `npm run test:e2e`.
+- Complete: public screenshot baselines cover homepage desktop, homepage mobile, and pricing desktop.
 - Complete: focused lint passes with `npm run lint -- --quiet`.
 - Complete: full production build passes with `npm run build`.
 - Complete: `git diff --check` passes.
@@ -77,12 +79,15 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Complete: web and mobile effective access now resolve RevenueCat provider state and explicit membership overrides through one shared billing resolver before falling back to legacy billing rows.
 - Complete: stale RevenueCat webhook events with older provider periods no longer overwrite newer subscription state.
 - Complete: dashboard mobile sidebar now locks background page scroll while the menu is open and restores scrolling on close/unmount.
+- Complete: public header navigation now has a tablet-safe compact drawer below `xl`, explicit same-page section scrolling, and named navigation landmarks for accessibility/testing.
+- Complete: public footer logo sizing no longer creates browser-level horizontal overflow.
+- Complete: Playwright E2E scripts and artifact ignores are in place for launch QA.
 
 ## Closed-Beta QA Matrix
 
 | Surface | Free | Collector | Seller | Store | Owner/Admin | Required checks |
 | --- | --- | --- | --- | --- | --- | --- |
-| Public website | Public | Public | Public | Public | Public | Landing, pricing, legal links, signup CTA, mobile layout, SEO metadata, no placeholder copy. |
+| Public website | Public | Public | Public | Public | Public | Landing, pricing, legal links, signup CTA, mobile layout, SEO metadata, no placeholder copy. Automated public Playwright matrix passes; deployed walkthrough still recommended. |
 | Auth | Sign in/up/reset | Sign in/up/reset | Sign in/up/reset | Sign in/up/reset | Sign in/up/reset plus Command Center entry | Email/password, magic link, OAuth redirects, malformed origin prevention, logout, refresh restore. |
 | Dashboard shell | Free modules only | Collector modules | Seller modules | Store modules | Full platform surface | Sidebar, mobile nav, topbar menus, active route state, no duplicate routes, no dead actions. |
 | Collection | Read/write own collection within Free limits | Unlimited Collector capabilities | Same core collection plus Seller tools | Same core collection plus Store tools | Full access without fake paid plan | Ownership isolation, pagination/search, storage cells, exact printing fields, missing price/image states. |
@@ -167,6 +172,7 @@ Forbidden in browser/mobile public env:
 ## Native And Real-Environment Validation Still Required
 
 - Blocked: physical iOS and Android validation was not run in this web-focused checkpoint.
+- Needs QA: authenticated Playwright dashboard tests are available but require `PLAYWRIGHT_AUTH_EMAIL` and `PLAYWRIGHT_AUTH_PASSWORD` for a representative account.
 - Blocked: Expo scanner, native OCR/autolinking, offline replay, camera permissions, and RevenueCat native purchase restore require real devices or current preview builds.
 - Blocked: representative Supabase staging accounts for Free, Collector, Seller, Store, Owner, and Admin are required before closing the matrix.
 - Blocked: external provider tests require configured sandbox/test credentials and must not use production customer data.

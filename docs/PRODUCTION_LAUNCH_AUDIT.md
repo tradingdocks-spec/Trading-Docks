@@ -12,7 +12,7 @@ Status labels:
 
 - Branch: `codex/production-launch-hardening`
 - Scope: public website, authenticated web app, admin surfaces, mobile readiness indicators, persistence/account isolation, and production-quality interaction audit.
-- Launch posture: no local-only P0 code defect was found in this initial pass. Real account isolation, billing/provider, mobile device, and deployed-environment QA remain P0/P1 launch gates before calling the product production-ready.
+- Launch posture: public browser automation is now established and passing for representative unauthenticated routes. Real account isolation, billing/provider, authenticated dashboard, mobile device, and deployed-environment QA remain P0/P1 launch gates before calling the product production-ready.
 - Account isolation and entitlement matrix: `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`.
 - Billing/provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
 - Deployed product/mobile QA matrix: `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`.
@@ -21,8 +21,8 @@ Status labels:
 
 | Surface | Active paths | Status | Notes |
 | --- | --- | --- | --- |
-| Public website | `/`, `/pricing`, legal pages, auth entry points | Needs QA | Current source has real public routes and static-link coverage. Browser QA at production breakpoints is still required. |
-| Authentication | `/sign-in`, `/sign-up`, `/forgot-password`, `/update-password`, Supabase callback flows | Needs QA | Origin normalization exists to avoid malformed callback URLs. Live email/OAuth/password flows need deployed validation. |
+| Public website | `/`, `/pricing`, legal pages, auth entry points | Complete | Playwright public-smoke runs Chromium, Firefox, WebKit, tablet, and mobile route checks with browser-error and overflow monitoring. |
+| Authentication | `/sign-in`, `/sign-up`, `/forgot-password`, `/update-password`, Supabase callback flows | Needs QA | Public auth routes/forms are covered by Playwright; live email/OAuth/password flows need deployed validation. |
 | Dashboard shell | `/dashboard/*` via `src/app/dashboard` | Needs QA | Canonical navigation/access tests exist. Real Free/Collector/Seller/Store/Owner sessions still need walkthroughs. |
 | Collector workspace | Collection, Deck Vault, Portfolio, Storage, Trade Binder, Wishlist | Needs QA | Exact-printing and workspace persistence paths exist. Cross-account CRUD verification needs representative accounts. |
 | Seller/Store operations | Purchasing, Orders, Marketplaces, Customers, Card Shows, Operations | Needs QA | Empty/disconnected states are improved, but marketplace/provider success and failure states require sandbox/live credentials. |
@@ -42,6 +42,8 @@ Status labels:
 | P1 | RevenueCat provider state could previously be bypassed by a stale paid row in `billing_subscriptions` during effective access resolution. | Fixed | Added central billing access resolution for web/mobile so active Apple/Google provider rows and explicit manual overrides are authoritative; legacy billing rows are compatibility fallback only when no provider authority exists. |
 | P1 | Older RevenueCat webhook events could overwrite a newer provider-subscription period if delivered out of order. | Fixed | Older incoming `current_period_end` values no longer replace newer stored provider state. |
 | P1 | Mobile native scanner/auth/offline replay must be tested on physical iOS/Android builds if mobile is in beta launch scope. | Blocked | Requires device builds and representative accounts. Manual matrix is documented in `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`. |
+| P1 | Public site tablet navigation had a breakpoint gap where primary nav links were hidden and the hamburger menu was unavailable. | Fixed | Header now uses the compact drawer below `xl` and same-page section links perform explicit hash/scroll navigation. |
+| P2 | Footer logo and dense public tables/decorative elements exposed unhelpful horizontal-overflow regressions during browser automation. | Fixed | Footer logo dimensions are constrained; Playwright overflow checks now fail page-level leaks while allowing intentional table-internal scroll containers. |
 | P2 | Legacy `src/components/dashboard-v2` modules still contain browser-storage persistence and increase code-search noise. | Follow-up | Do a dedicated import audit before archiving/deleting; do not remove from this launch-hardening branch. |
 | P2 | Older backup mobile folders and historical snapshots should remain excluded from active tooling and not be treated as launch source. | Complete | Active paths remain `src/` for web and `mobile/` for Expo. |
 | P2 | Design-system overlap remains between older dashboard primitives and newer Trading Docks primitives. | Follow-up | Consolidate incrementally where product surfaces are touched; avoid broad redesign churn in launch hardening. |
@@ -62,7 +64,8 @@ Reviewed usage categories:
 - Fixed: Settings data/privacy actions no longer look like fully wired product operations when the backend process is support-assisted.
 - Fixed: Direct scanner-provider and binder-share API calls now enforce the same entitlement capabilities used by UI/navigation.
 - Needs QA: every primary CTA in Seller/Store/Owner workspaces should be clicked in browser sessions to confirm it either performs an action, opens a real route, or is deliberately absent.
-- Needs QA: responsive browser QA at 1440, 1280, 1024, 768, and 390 widths for public website, dashboard shell, Settings, Collection, Purchasing, Orders, Label Studio, and Admin.
+- Fixed: public website route-smoke and responsive checks now run at 1920, 1440, 1280, 1024, 768, 430, 390, and 375 widths through Playwright.
+- Needs QA: authenticated responsive browser QA remains required for dashboard shell, Settings, Collection, Purchasing, Orders, Label Studio, and Admin.
 - Follow-up: continue removing old generic placeholder language only when replacing it with accurate product state, not decorative copy.
 
 ## Accessibility And Responsive Gates
@@ -78,8 +81,8 @@ Required before production launch:
 
 | Area | Launch state | Required next proof |
 | --- | --- | --- |
-| Automated web validation | Complete after this branch passes validation | `npm test`, typecheck, lint, build, `git diff --check`. |
-| Public website | Needs QA | Browser walkthrough and static link audit on deployed preview. |
+| Automated web validation | Complete after this branch passes validation | `npm test`, typecheck, lint, build, Playwright E2E, `git diff --check`. |
+| Public website | Complete for automated browser smoke | Deployed preview walkthrough is still recommended, but local production-mode Playwright public matrix now passes. |
 | Auth | Needs QA | Password, magic link/OAuth if enabled, reset, callback origins, logout, refresh restore. |
 | Data isolation | Blocked | Two-account workspace CRUD and admin read tests in non-production project. |
 | Billing | Needs QA | RevenueCat checkout/portal/webhook sandbox events and entitlement refresh. |

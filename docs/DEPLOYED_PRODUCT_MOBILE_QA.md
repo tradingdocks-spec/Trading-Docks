@@ -15,11 +15,11 @@ This checklist covers production-launch UI behavior for the existing Trading Doc
 
 | Family | Route | Why it is representative | Current validation |
 | --- | --- | --- | --- |
-| Public | `/` | Public hero, pricing/story entry, market demo, CTA flow, responsive marketing sections. | Automated build route; browser viewport QA still required. |
-| Public | `/pricing` | Public plan comparison, RevenueCat upgrade links, conversion CTAs. | Automated build route; provider QA still required. |
-| Auth | `/sign-in` | Login form, OAuth/password UI, redirect origin behavior. | Automated origin/source coverage; live auth QA required. |
-| Auth | `/sign-up` | Create-account conversion form, plan/billing query handling. | Automated public UI/source coverage; live signup email/provider QA required. |
-| Auth | `/forgot-password` and `/update-password` | Email form, reset callback state, validation messages. | Automated metadata coverage; live email QA required. |
+| Public | `/` | Public hero, pricing/story entry, market demo, CTA flow, responsive marketing sections. | Automated Playwright public-smoke and visual baseline coverage across Chromium, Firefox, and WebKit projects. |
+| Public | `/pricing` | Public plan comparison, RevenueCat upgrade links, conversion CTAs. | Automated Playwright public-smoke and desktop visual baseline coverage; provider checkout QA still required. |
+| Auth | `/sign-in` | Login form, OAuth/password UI, redirect origin behavior. | Automated Playwright form-rendering/password-toggle coverage in Chromium/Firefox; live auth QA required. |
+| Auth | `/sign-up` | Create-account conversion form, plan/billing query handling. | Automated Playwright form-rendering coverage; live signup email/provider QA required. |
+| Auth | `/forgot-password` and `/update-password` | Email form, reset callback state, validation messages. | Automated Playwright route-smoke coverage; live email QA required. |
 | Dashboard shell | `/dashboard` | Tier-aware home, sidebar, topbar, bottom nav, Owner/Admin full-access display. | Automated access/shell tests; representative browser QA required. |
 | Inventory | `/dashboard/inventory` and `/dashboard/inventory/[cardId]` | Dense tables/cards, search/filter, images, storage column, detail route. | Automated collection/inventory tests; two-account browser QA required. |
 | Orders | `/dashboard/orders` | Data table, status filters, disconnected marketplace states, order actions. | Automated route/build coverage; provider/account QA required. |
@@ -38,14 +38,14 @@ These viewports must be exercised against the representative routes above.
 
 | Viewport | Purpose | Current status |
 | --- | --- | --- |
-| 375 x 812 | Small modern iPhone class. | Blocked for browser/real-device QA in this coding environment. |
-| 390 x 844 | Common iPhone class. | Blocked for browser/real-device QA in this coding environment. |
-| 430 x 932 | Large iPhone class. | Blocked for browser/real-device QA in this coding environment. |
-| 768 x 1024 | iPad/tablet portrait. | Blocked for browser QA in this coding environment. |
-| 1024 x 768 | Tablet landscape/small laptop. | Blocked for browser QA in this coding environment. |
-| 1280 x 800 | Small desktop/laptop. | Blocked for browser QA in this coding environment. |
-| 1440 x 900 | Primary desktop QA size. | Blocked for browser QA in this coding environment. |
-| 1920 x 1080 | Wide desktop. | Blocked for browser QA in this coding environment. |
+| 375 x 812 | Small modern iPhone class. | Browser emulation: automated WebKit route-smoke coverage. Real device required. |
+| 390 x 844 | Common iPhone class. | Browser emulation: automated WebKit route-smoke plus homepage visual baseline. Real device required. |
+| 430 x 932 | Large iPhone class. | Browser emulation: automated Chromium route-smoke, mobile menu, auth form, and overflow coverage. Real device required. |
+| 768 x 1024 | iPad/tablet portrait. | Browser emulation: automated Chromium route-smoke, auth form, and responsive header coverage. |
+| 1024 x 768 | Tablet landscape/small laptop. | Browser emulation: automated WebKit route-smoke and overflow coverage. |
+| 1280 x 800 | Small desktop/laptop. | Browser emulation: automated Firefox route-smoke, auth form, and header navigation coverage. |
+| 1440 x 900 | Primary desktop QA size. | Browser emulation: automated Chromium route-smoke and public visual baselines. |
+| 1920 x 1080 | Wide desktop. | Browser emulation: automated Chromium route-smoke and header navigation coverage. |
 
 Browser emulation must not be recorded as physical iPhone/Android validation.
 
@@ -74,8 +74,12 @@ Completed in this checkpoint:
 
 Browser emulation:
 
-- Not run in this checkpoint. The repository does not currently install Playwright/Puppeteer or another browser automation runner, and no new QA dependency was added during launch hardening.
-- Required next step: run the viewport matrix in a deployed Preview or an approved local browser automation setup and record results here.
+- Complete: Playwright is installed with Chromium, Firefox, and WebKit projects.
+- Complete: `npm run test:e2e` runs public route smoke, browser-error monitoring, horizontal-overflow checks, auth form interaction checks, mobile public-menu checks, optional authenticated dashboard shell tests, and visual baselines.
+- Complete: screenshot baselines cover homepage desktop, homepage mobile WebKit, and pricing desktop.
+- Complete: small-text audit attachments are generated for key public/auth routes to flag typography that should receive manual review instead of silently passing.
+- Needs QA: authenticated dashboard tests are wired but skip unless `PLAYWRIGHT_AUTH_EMAIL` and `PLAYWRIGHT_AUTH_PASSWORD` are provided.
+- Needs QA: WebKit route rendering and overflow are covered; public header/menu click interactions are covered in Chromium/Firefox because local Playwright WebKit click/hash behavior was not stable enough to treat as physical Safari proof.
 
 Automated coverage added:
 
@@ -88,6 +92,8 @@ Automated coverage added:
 | Severity | Defect | Fix |
 | --- | --- | --- |
 | P1 | Opening the mobile dashboard sidebar did not mark the page as scroll-locked, so background content could scroll underneath the drawer on touch devices. | `TieredDashboardShell` now toggles `body[data-dashboard-mobile-menu="open"]`; global CSS sets `overflow: hidden` and `touch-action: none` while open. |
+| P1 | Public header had no full navigation path at tablet widths where desktop links were hidden but the hamburger was also hidden. | Public header now uses a compact drawer below `xl`, and in-page section links scroll/update the hash explicitly. |
+| P2 | Footer logo could report intrinsic image width and trigger horizontal overflow in browser automation. | Footer logo now uses rendered dimensions that match the visible layout. |
 
 ## Known Remaining Issues / Manual Gates
 
@@ -96,7 +102,7 @@ Automated coverage added:
 | P0 | Representative account isolation across two unrelated users/workspaces. | Deployed non-production accounts or carefully scoped production-safe test accounts. |
 | P0 | RevenueCat checkout, portal, webhook, and web/mobile entitlement sharing. | Deployed provider sandbox/live QA with Supabase UUID identity confirmation. |
 | P1 | Physical iOS/Android mobile navigation, keyboard, scanner, safe-area, and offline behavior. | Real devices or current mobile builds. |
-| P1 | Responsive route matrix across all listed viewports. | Deployed browser or local browser automation with authenticated representative accounts. |
+| P1 | Authenticated responsive route matrix across all listed viewports. | Playwright public route matrix passes; authenticated route matrix needs credentials and representative accounts. |
 | P1 | Data-dense tables for inventory, orders, analytics, CRM, imports, and admin. | Browser QA with empty and populated account states. |
 | P1 | Deck Architect/Deck Vault image sharpness, card legibility, text view density, share/export. | Browser and real-device QA with a populated deck account. |
 | P1 | Form keyboard behavior on mobile for auth, settings, CRM, inventory, purchasing, and billing. | Real iPhone/Android validation. |
@@ -131,7 +137,8 @@ Record `PASS`, `FAIL`, `BLOCKED`, or `N/A` for each row with tester, date, devic
 
 ## Product/Mobile Readiness Assessment
 
-- Automated product-shell readiness: GO after this checkpoint.
-- Browser-emulated deployed QA: NO-GO until viewport matrix is actually run.
+- Automated public product-shell readiness: GO after this checkpoint.
+- Browser-emulated public QA: GO for unauthenticated public/auth route rendering and public header/menu interaction in covered engines.
+- Browser-emulated authenticated QA: NO-GO until representative credentials are supplied.
 - Physical mobile readiness: NO-GO until iPhone/Android device QA is actually run.
 - Overall product/mobile readiness: NO-GO until P0/P1 manual gates above pass or are explicitly accepted as beta limitations.
