@@ -1,0 +1,90 @@
+# Trading Docks Production Launch Audit
+
+Status labels:
+
+- Complete: verified by code review and automated checks in this pass.
+- Fixed: launch issue corrected in this branch.
+- Needs QA: code path exists, but requires representative accounts, credentials, device, or deployed environment.
+- Blocked: cannot be validated safely from the local repository alone.
+- Follow-up: not a beta launch blocker unless reproduced as a user-facing failure.
+
+## Current Checkpoint
+
+- Branch: `codex/production-launch-hardening`
+- Scope: public website, authenticated web app, admin surfaces, mobile readiness indicators, persistence/account isolation, and production-quality interaction audit.
+- Launch posture: no local-only P0 code defect was found in this initial pass. Real account isolation, billing/provider, mobile device, and deployed-environment QA remain P0/P1 launch gates before calling the product production-ready.
+
+## Route And Product Surface Inventory
+
+| Surface | Active paths | Status | Notes |
+| --- | --- | --- | --- |
+| Public website | `/`, `/pricing`, legal pages, auth entry points | Needs QA | Current source has real public routes and static-link coverage. Browser QA at production breakpoints is still required. |
+| Authentication | `/sign-in`, `/sign-up`, `/forgot-password`, `/update-password`, Supabase callback flows | Needs QA | Origin normalization exists to avoid malformed callback URLs. Live email/OAuth/password flows need deployed validation. |
+| Dashboard shell | `/dashboard/*` via `src/app/dashboard` | Needs QA | Canonical navigation/access tests exist. Real Free/Collector/Seller/Store/Owner sessions still need walkthroughs. |
+| Collector workspace | Collection, Deck Vault, Portfolio, Storage, Trade Binder, Wishlist | Needs QA | Exact-printing and workspace persistence paths exist. Cross-account CRUD verification needs representative accounts. |
+| Seller/Store operations | Purchasing, Orders, Marketplaces, Customers, Card Shows, Operations | Needs QA | Empty/disconnected states are improved, but marketplace/provider success and failure states require sandbox/live credentials. |
+| Admin/Owner | Command Center, catalog imports, access controls, system health | Needs QA | Trusted platform role authority is present; admin browser QA still required. |
+| Label Studio | `/dashboard/label-studio`, `/api/label-studio`, `/q/[token]` | Needs QA | Route and API exist. Production migration/application remains a controlled external step. |
+| Mobile Expo app | `mobile/` | Blocked | Mobile code and release checks exist, but physical-device auth/scanner/offline QA was not run in this web-focused pass. |
+
+## Launch Severity Register
+
+| Severity | Finding | Status | Resolution / Owner |
+| --- | --- | --- | --- |
+| P0 | Account isolation for writes and reads must be verified with at least two real non-production accounts across Collection, Purchasing, CRM, Label Studio, and Admin read surfaces. | Blocked | Requires safe staging/preview Supabase accounts and browser QA. Do not run destructive tests against production customer data. |
+| P0 | Production database migrations must not be applied from this audit. | Complete | This pass only inspected source and changed web UI/test/docs. |
+| P1 | Web Settings > Data & Privacy exposed data/deletion actions as clickable controls even though full self-service export/deletion is still support-assisted. | Fixed | Replaced inert buttons with honest support-assisted status, a real CSV converter destination, and a prefilled support mailto deletion request. |
+| P1 | RevenueCat, catalog import, marketplace, email, and TCGTracking integrations require real configured environments to validate success/failure behavior. | Needs QA | Keep provider-specific smoke tests in the beta ledger. |
+| P1 | Mobile native scanner/auth/offline replay must be tested on physical iOS/Android builds if mobile is in beta launch scope. | Blocked | Requires device builds and representative accounts. |
+| P2 | Legacy `src/components/dashboard-v2` modules still contain browser-storage persistence and increase code-search noise. | Follow-up | Do a dedicated import audit before archiving/deleting; do not remove from this launch-hardening branch. |
+| P2 | Older backup mobile folders and historical snapshots should remain excluded from active tooling and not be treated as launch source. | Complete | Active paths remain `src/` for web and `mobile/` for Expo. |
+| P2 | Design-system overlap remains between older dashboard primitives and newer Trading Docks primitives. | Follow-up | Consolidate incrementally where product surfaces are touched; avoid broad redesign churn in launch hardening. |
+| P3 | EDHREC integration and some advanced offline/pagination follow-ups are documented as future/product decisions. | Follow-up | Not a closed-beta blocker unless a surfaced workflow claims unavailable behavior. |
+
+## Persistence And Browser Storage Review
+
+Reviewed usage categories:
+
+- Account-owned active drafts: Card Shows and Purchasing Current Purchase use Supabase-backed `workspace_documents`, with browser storage only for one-time legacy migration cleanup.
+- Deck Vault: browser storage is limited to legacy migration and local recovery buffers; it should not be treated as authoritative account storage.
+- Auth and mobile storage: local/SecureStore adapters are expected for Supabase sessions and remembered-email UX.
+- Sidebar and quick-create preferences: localStorage is UI-only state and does not grant authorization or entitlement.
+- Legacy `dashboard-v2`: still contains local browser persistence paths and should be archived after import verification.
+
+## Design And Interaction Review
+
+- Fixed: Settings data/privacy actions no longer look like fully wired product operations when the backend process is support-assisted.
+- Needs QA: every primary CTA in Seller/Store/Owner workspaces should be clicked in browser sessions to confirm it either performs an action, opens a real route, or is deliberately absent.
+- Needs QA: responsive browser QA at 1440, 1280, 1024, 768, and 390 widths for public website, dashboard shell, Settings, Collection, Purchasing, Orders, Label Studio, and Admin.
+- Follow-up: continue removing old generic placeholder language only when replacing it with accurate product state, not decorative copy.
+
+## Accessibility And Responsive Gates
+
+Required before production launch:
+
+- Keyboard traversal of public header, auth forms, dashboard sidebar/topbar, modals, dropdowns, Settings, Collection filters, Purchasing search, and Admin tables.
+- Visible focus states on all actionable dashboard controls.
+- Error states that are textual and not color-only.
+- Mobile viewport checks for no clipped tabs, no hidden primary actions, and no overflow in dense dashboards.
+
+## Production Completion Checklist
+
+| Area | Launch state | Required next proof |
+| --- | --- | --- |
+| Automated web validation | Complete after this branch passes validation | `npm test`, typecheck, lint, build, `git diff --check`. |
+| Public website | Needs QA | Browser walkthrough and static link audit on deployed preview. |
+| Auth | Needs QA | Password, magic link/OAuth if enabled, reset, callback origins, logout, refresh restore. |
+| Data isolation | Blocked | Two-account workspace CRUD and admin read tests in non-production project. |
+| Billing | Needs QA | RevenueCat checkout/portal/webhook sandbox events and entitlement refresh. |
+| Admin | Needs QA | Owner/Admin Command Center and role-gated routes in deployed preview. |
+| Mobile | Blocked | Physical-device iOS/Android build validation. |
+| Observability | Needs QA | Confirm actionable API errors for catalog/import/webhook/provider failures in Vercel logs and UI. |
+
+## Safe Launch Order
+
+1. Merge only validated, focused hardening branches into a release candidate branch.
+2. Deploy Preview pointed at safe Supabase staging/preview variables.
+3. Run the real-account QA ledger in `docs/BETA_RELEASE_READINESS.md`.
+4. Validate provider credentials and failure states without production customer mutation.
+5. Validate mobile builds separately if mobile is in launch scope.
+6. Promote only after P0/P1 items are pass or explicitly accepted as beta limitations.

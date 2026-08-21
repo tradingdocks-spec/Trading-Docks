@@ -12,6 +12,7 @@ Status labels:
 - Branch: `codex/beta-release-readiness-pass`
 - Goal: prepare Trading Docks for systematic closed-beta validation without changing pricing, weakening authorization, touching production data, or applying destructive migrations.
 - Current release posture: code/static validation is passing; the product must not be called production-ready until the real-account QA matrix below passes.
+- Related production launch audit: `docs/PRODUCTION_LAUNCH_AUDIT.md`.
 
 ## Automated Validation Baseline
 
@@ -68,6 +69,7 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Complete: Analytics inventory aging uses real row timestamps for recent inventory and no longer renders broken encoded separators.
 - Complete: Card Shows buying-cart drafts persist to workspace account documents, with legacy localStorage only used for one-time migration cleanup.
 - Complete: Purchasing Intelligence Current Purchase drafts persist to workspace account documents, with legacy sessionStorage only used for one-time migration cleanup.
+- Complete: Settings > Data & Privacy no longer exposes inert export/backup/deletion controls. Export and account deletion are labeled support-assisted during beta, inventory backup links to the CSV tool, and deletion opens a prefilled support request.
 
 ## Closed-Beta QA Matrix
 
