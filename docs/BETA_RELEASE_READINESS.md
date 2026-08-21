@@ -15,6 +15,7 @@ Status labels:
 - Related production launch audit: `docs/PRODUCTION_LAUNCH_AUDIT.md`.
 - Account isolation and entitlement QA matrix: `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`.
 - Billing provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
+- Deployed product/mobile QA matrix: `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`.
 
 ## Automated Validation Baseline
 
@@ -75,6 +76,7 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Complete: Direct scanner-provider and Trade Binder share API calls now enforce shared capability checks instead of relying on UI visibility or authentication alone.
 - Complete: web and mobile effective access now resolve RevenueCat provider state and explicit membership overrides through one shared billing resolver before falling back to legacy billing rows.
 - Complete: stale RevenueCat webhook events with older provider periods no longer overwrite newer subscription state.
+- Complete: dashboard mobile sidebar now locks background page scroll while the menu is open and restores scrolling on close/unmount.
 
 ## Closed-Beta QA Matrix
 
@@ -95,7 +97,7 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 | Label Studio | Hidden | Hidden | `label.view` gated | `label.view` gated | Full access | `/dashboard/label-studio`, API, QR route, selected inventory, print preview, persistence. |
 | Admin | Hidden | Hidden | Hidden | Hidden | Visible by trusted platform role | User roles, feature access, catalog imports, system health, no email bypass. |
 | Billing | RevenueCat web flow | RevenueCat web flow | RevenueCat web flow | RevenueCat web flow | Displays billing truth separately from platform authority | Purchase links, portal links, webhook reconciliation, stale-event ordering, no stale legacy billing-row access, no client-granted paid access. |
-| Mobile app | Auth and Free nav | Collector nav/scanner | Seller nav/actions | Store nav/actions | Additive admin access where supported | Native auth, session restore, scanner, offline queue, safe-area nav, device-only checks. |
+| Mobile app | Auth and Free nav | Collector nav/scanner | Seller nav/actions | Store nav/actions | Additive admin access where supported | Native auth, session restore, scanner, offline queue, safe-area nav, menu scroll lock, device-only checks. |
 
 ## Persistence And Account-Isolation Checks
 

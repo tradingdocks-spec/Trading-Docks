@@ -15,6 +15,7 @@ Status labels:
 - Launch posture: no local-only P0 code defect was found in this initial pass. Real account isolation, billing/provider, mobile device, and deployed-environment QA remain P0/P1 launch gates before calling the product production-ready.
 - Account isolation and entitlement matrix: `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`.
 - Billing/provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
+- Deployed product/mobile QA matrix: `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`.
 
 ## Route And Product Surface Inventory
 
@@ -40,7 +41,7 @@ Status labels:
 | P1 | RevenueCat, catalog import, marketplace, email, and TCGTracking integrations require real configured environments to validate success/failure behavior. | Needs QA | Keep provider-specific smoke tests in the beta ledger. |
 | P1 | RevenueCat provider state could previously be bypassed by a stale paid row in `billing_subscriptions` during effective access resolution. | Fixed | Added central billing access resolution for web/mobile so active Apple/Google provider rows and explicit manual overrides are authoritative; legacy billing rows are compatibility fallback only when no provider authority exists. |
 | P1 | Older RevenueCat webhook events could overwrite a newer provider-subscription period if delivered out of order. | Fixed | Older incoming `current_period_end` values no longer replace newer stored provider state. |
-| P1 | Mobile native scanner/auth/offline replay must be tested on physical iOS/Android builds if mobile is in beta launch scope. | Blocked | Requires device builds and representative accounts. |
+| P1 | Mobile native scanner/auth/offline replay must be tested on physical iOS/Android builds if mobile is in beta launch scope. | Blocked | Requires device builds and representative accounts. Manual matrix is documented in `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`. |
 | P2 | Legacy `src/components/dashboard-v2` modules still contain browser-storage persistence and increase code-search noise. | Follow-up | Do a dedicated import audit before archiving/deleting; do not remove from this launch-hardening branch. |
 | P2 | Older backup mobile folders and historical snapshots should remain excluded from active tooling and not be treated as launch source. | Complete | Active paths remain `src/` for web and `mobile/` for Expo. |
 | P2 | Design-system overlap remains between older dashboard primitives and newer Trading Docks primitives. | Follow-up | Consolidate incrementally where product surfaces are touched; avoid broad redesign churn in launch hardening. |
