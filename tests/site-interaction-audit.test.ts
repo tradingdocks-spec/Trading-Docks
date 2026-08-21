@@ -239,6 +239,22 @@ test("shared scaffold surfaces do not render fake action buttons", () => {
   }
 });
 
+test("settings data privacy actions are support-assisted or real destinations", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/components/dashboard/settings/SettingsCenter.tsx"),
+    "utf8",
+  );
+
+  assert.match(source, /function DataSettings\(\{ email \}/);
+  assert.match(source, /accountDeletionRequestHref\(email\)/);
+  assert.match(source, /mailto:tradingdocks@gmail\.com/);
+  assert.match(source, /Support-assisted/);
+  assert.match(source, /href="\/dashboard\/tools\/csv-converter"/);
+  assert.doesNotMatch(source, /<button[^>]*>\s*Request account deletion\s*<\/button>/);
+  assert.doesNotMatch(source, /<button[^>]*>\s*Export account data\s*<\/button>/);
+  assert.doesNotMatch(source, /<button[^>]*>\s*Download inventory backup\s*<\/button>/);
+});
+
 test("Card Shows purchase drafts persist through account documents not localStorage authority", () => {
   const source = readFileSync(
     path.join(repoRoot, "src/components/dashboard/card-shows/CardShowsWorkspace.tsx"),

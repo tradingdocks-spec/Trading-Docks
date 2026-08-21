@@ -287,7 +287,7 @@ export function SettingsCenter({
           {active === "notifications" && <NotificationSettings settings={settings} update={update} />}
           {active === "team" && <TeamSettings locked={plan !== "store"} />}
           {active === "security" && <SecuritySettings />}
-          {active === "data" && <DataSettings />}
+          {active === "data" && <DataSettings email={email} />}
           {active === "appearance" && <AppearanceSettings settings={settings} update={update} />}
         </div>
       </main>
@@ -462,8 +462,49 @@ function SecuritySettings() {
   ].map(([title, detail, action]) => <div key={title} className="flex flex-col gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 sm:flex-row sm:items-center"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-300/[0.07] text-emerald-300"><KeyRound className="h-4 w-4" /></span><span className="flex-1"><span className="block text-sm font-semibold text-white">{title}</span><span className="mt-1 block text-[11px] text-slate-500">{detail}</span></span><button type="button" className="h-9 rounded-lg border border-white/[0.08] px-3 text-[10px] font-semibold text-slate-300">{action}</button></div>)}</div>;
 }
 
-function DataSettings() {
-  return <div className="space-y-5"><Panel title="Your data" description="Download a portable copy or create a safety backup."><div className="grid gap-3 sm:grid-cols-2"><ActionCard icon={Download} title="Export account data" detail="Profile, preferences and activity" /><ActionCard icon={FileSpreadsheet} title="Download inventory backup" detail="Cards, locations and listing status" /></div></Panel><div className="rounded-2xl border border-rose-300/[0.14] bg-rose-400/[0.035] p-5"><div className="text-sm font-semibold text-rose-200">Danger zone</div><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">Account deletion requires confirmation and permanently removes account-owned data after the recovery period.</p><button type="button" className="mt-4 h-9 rounded-lg border border-rose-300/20 px-3 text-[10px] font-semibold text-rose-200">Request account deletion</button></div></div>;
+function DataSettings({ email }: { email: string }) {
+  const deletionRequestHref = accountDeletionRequestHref(email);
+
+  return (
+    <div className="space-y-5">
+      <Panel title="Your data" description="Download a portable copy or create a safety backup.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ActionCard
+            icon={Download}
+            title="Export account data"
+            detail="Support can prepare an account export during beta."
+            status="Support-assisted"
+          />
+          <ActionCard
+            icon={FileSpreadsheet}
+            title="Download inventory backup"
+            detail="Use CSV Conversion for inventory files while full export is prepared."
+            status="Use CSV tools"
+            href="/dashboard/tools/csv-converter"
+          />
+        </div>
+      </Panel>
+      <div className="rounded-2xl border border-rose-300/[0.14] bg-rose-400/[0.035] p-5">
+        <div className="text-sm font-semibold text-rose-200">Danger zone</div>
+        <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
+          Account deletion is support-assisted during beta so identity, workspace ownership, billing, and legally
+          retained records can be reviewed before removal.
+        </p>
+        <a
+          href={deletionRequestHref}
+          className="mt-4 inline-flex h-9 items-center rounded-lg border border-rose-300/20 px-3 text-[10px] font-semibold text-rose-200 transition hover:border-rose-300/35 hover:bg-rose-300/[0.06]"
+        >
+          Request account deletion
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function accountDeletionRequestHref(email: string) {
+  const subject = encodeURIComponent("Trading Docks account deletion request");
+  const body = encodeURIComponent(`Please help me delete my Trading Docks account.\n\nAccount email: ${email}`);
+  return `mailto:tradingdocks@gmail.com?subject=${subject}&body=${body}`;
 }
 
 function AppearanceSettings({ settings, update }: SettingsProps) {
@@ -489,4 +530,42 @@ function InlineToggle({ label, checked, onChange }: { label: string; checked: bo
 function ToggleList({ items, settings, update }: { items: string[][] } & SettingsProps) { return <div className="divide-y divide-white/[0.06]">{items.map(([title, detail, key]) => <div key={key} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-slate-200">{title}</span><span className="mt-1 block text-[11px] leading-5 text-slate-600">{detail}</span></span><InlineToggle label="" checked={settings[key] as boolean} onChange={(v) => update(key, v)} /></div>)}</div>; }
 function UploadPlaceholder() { return <button type="button" className="flex w-full items-center gap-3 rounded-xl border border-dashed border-white/[0.12] bg-black/10 p-4 text-left"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] text-slate-500"><Store className="h-4 w-4" /></span><span><span className="block text-xs font-semibold text-slate-300">Upload your logo</span><span className="mt-1 block text-[10px] text-slate-600">PNG, JPG or WebP · Recommended 512 × 512</span></span></button>; }
 function LockedFeature({ title, detail }: { title: string; detail: string }) { return <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-amber-300/[0.13] bg-amber-300/[0.025] p-8 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-300/[0.08] text-amber-300"><LockKeyhole className="h-6 w-6" /></span><h3 className="mt-5 text-lg font-semibold text-white">{title}</h3><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">{detail}</p><a href="/dashboard/plans" className="mt-6 inline-flex h-10 items-center rounded-xl bg-amber-300 px-4 text-xs font-semibold text-[#171100]">View Store plan</a></div>; }
-function ActionCard({ icon: Icon, title, detail }: { icon: LucideIcon; title: string; detail: string }) { return <button type="button" className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 text-left"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-300/[0.07] text-cyan-300"><Icon className="h-4 w-4" /></span><span><span className="block text-xs font-semibold text-slate-200">{title}</span><span className="mt-1 block text-[10px] text-slate-600">{detail}</span></span></button>; }
+function ActionCard({
+  icon: Icon,
+  title,
+  detail,
+  status,
+  href,
+}: {
+  icon: LucideIcon;
+  title: string;
+  detail: string;
+  status?: string;
+  href?: string;
+}) {
+  const content = (
+    <>
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-300/[0.07] text-cyan-300">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-semibold text-slate-200">{title}</span>
+        <span className="mt-1 block text-[10px] leading-4 text-slate-600">{detail}</span>
+      </span>
+      {status ? (
+        <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[9px] font-semibold text-slate-400">
+          {status}
+        </span>
+      ) : null}
+    </>
+  );
+  const className = "flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 text-left";
+
+  return href ? (
+    <a href={href} className={`${className} transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.035]`}>
+      {content}
+    </a>
+  ) : (
+    <div className={className}>{content}</div>
+  );
+}
