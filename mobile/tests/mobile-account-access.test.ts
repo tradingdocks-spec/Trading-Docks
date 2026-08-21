@@ -13,7 +13,7 @@ test('mobile account access uses backend subscription tier after RevenueCat reco
     rows: {
       preferences: { preferences: { account_type: 'collector' } },
       subscription: { plan_id: 'store', status: 'active' },
-      providerSubscriptions: [{ provider: 'apple', status: 'active' }],
+      providerSubscriptions: [{ provider: 'apple', plan_id: 'store', status: 'active' }],
     },
   });
 
@@ -21,6 +21,53 @@ test('mobile account access uses backend subscription tier after RevenueCat reco
   assert.equal(snapshot.membershipTier, 'store');
   assert.equal(snapshot.accountType, 'store');
   assert.equal(snapshot.billingStatus, 'active');
+  assert.equal(snapshot.providerState, 'revenuecat');
+});
+
+test('mobile account access uses RevenueCat provider state over stale canonical billing rows', () => {
+  const snapshot = resolveMobileAccountAccessSnapshot({
+    userId: 'user-123',
+    localAccountType: 'seller',
+    now: new Date('2026-08-07T12:00:00.000Z'),
+    rows: {
+      subscription: { plan_id: 'store', status: 'active', current_period_end: '2026-09-07T12:00:00.000Z' },
+      providerSubscriptions: [
+        {
+          provider: 'apple',
+          plan_id: 'store',
+          status: 'canceled',
+          current_period_end: '2026-07-07T12:00:00.000Z',
+        },
+      ],
+    },
+  });
+
+  assert.equal(snapshot.membershipTier, 'free');
+  assert.equal(snapshot.accountType, 'seller');
+  assert.equal(snapshot.billingStatus, 'free');
+  assert.equal(snapshot.providerState, 'revenuecat');
+});
+
+test('mobile account access preserves valid grace-period provider entitlements', () => {
+  const snapshot = resolveMobileAccountAccessSnapshot({
+    userId: 'user-123',
+    localAccountType: 'free',
+    now: new Date('2026-08-07T12:00:00.000Z'),
+    rows: {
+      subscription: { plan_id: 'free', status: 'free' },
+      providerSubscriptions: [
+        {
+          provider: 'google',
+          plan_id: 'seller',
+          status: 'past_due',
+          current_period_end: '2026-09-07T12:00:00.000Z',
+        },
+      ],
+    },
+  });
+
+  assert.equal(snapshot.membershipTier, 'seller');
+  assert.equal(snapshot.billingStatus, 'past_due');
   assert.equal(snapshot.providerState, 'revenuecat');
 });
 
@@ -114,7 +161,7 @@ test('mobile provider state reads provider subscriptions without requiring a bil
     localAccountType: 'free',
     rows: {
       subscription: { plan_id: 'seller', status: 'active' },
-      providerSubscriptions: [{ provider: 'google', status: 'active' }],
+      providerSubscriptions: [{ provider: 'google', plan_id: 'seller', status: 'active' }],
     },
   });
   const mixed = resolveMobileAccountAccessSnapshot({
@@ -127,7 +174,7 @@ test('mobile provider state reads provider subscriptions without requiring a bil
         stripe_customer_id: 'cus_123',
         stripe_subscription_id: 'sub_123',
       },
-      providerSubscriptions: [{ provider: 'apple', status: 'active' }],
+      providerSubscriptions: [{ provider: 'apple', plan_id: 'store', status: 'active' }],
     },
   });
 

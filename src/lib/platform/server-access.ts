@@ -9,6 +9,10 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { hasCapability } from "../../../mobile/services/platform-access.ts";
 import { apiCapabilityDecision } from "./api-access";
+import {
+  resolveBillingAccessFromRows,
+  stringValue,
+} from "./billing-access-resolution";
 import { hasRouteAccess, routeAccessRuleForPath } from "./route-access";
 import { resolveWorkspaceAccessFromRows } from "./workspace-resolution";
 
@@ -49,37 +53,6 @@ function objectRecord(value: unknown) {
     : {};
 }
 
-function stringValue(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function providerStateFromRows(
-  subscriptionError: unknown,
-  subscriptionData: Record<string, unknown> | null,
-  providerRows: Record<string, unknown>[] | null,
-  overridePlan: string | null,
-) {
-  if (overridePlan) return "manual" as const;
-  if (subscriptionError) return "unknown" as const;
-  const providerStates = new Set<"stripe" | "revenuecat">();
-  for (const row of providerRows ?? []) {
-    const provider = stringValue(row.provider);
-    if (provider === "apple" || provider === "google") providerStates.add("revenuecat");
-    if (provider === "stripe") providerStates.add("stripe");
-  }
-  if (
-    stringValue(subscriptionData?.stripe_subscription_id) ||
-    stringValue(subscriptionData?.stripe_customer_id)
-  ) {
-    providerStates.add("stripe");
-  }
-  if (providerStates.size > 1) return "mixed" as const;
-  if (providerStates.has("revenuecat")) return "revenuecat" as const;
-  if (providerStates.has("stripe")) return "stripe" as const;
-  if (!subscriptionData?.plan_id) return "none" as const;
-  return "unknown" as const;
-}
-
 export async function resolvePlatformAccessForUser(
   supabase: unknown,
   user: AuthUser | null,
@@ -91,7 +64,7 @@ export async function resolvePlatformAccessForUser(
     client.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
     client.from("user_preferences").select("preferences,active_workspace_id").eq("user_id", user.id).maybeSingle(),
     client.from("billing_subscriptions").select("plan_id,status,current_period_end,stripe_customer_id,stripe_subscription_id").eq("user_id", user.id).maybeSingle(),
-    client.from("billing_provider_subscriptions").select("provider,status,current_period_end,updated_at").eq("user_id", user.id),
+    client.from("billing_provider_subscriptions").select("provider,plan_id,status,current_period_end,updated_at").eq("user_id", user.id),
     client.from("admin_membership_overrides").select("plan_id").eq("user_id", user.id).maybeSingle(),
     client.from("workspace_members").select("workspace_id,role").eq("user_id", user.id),
   ]);
@@ -105,15 +78,12 @@ export async function resolvePlatformAccessForUser(
   const workspaceAccess = membershipsResult.error
     ? { workspaceId: null, workspaceRole: null }
     : resolveWorkspaceAccessFromRows(explicitWorkspaceId, membershipsResult.data ?? []);
-  const providerState = providerStateFromRows(
-    subscriptionResult.error,
-    subscriptionResult.data,
-    providerSubscriptionsResult.error ? null : providerSubscriptionsResult.data,
+  const billingAccess = resolveBillingAccessFromRows({
+    subscriptionError: subscriptionResult.error,
+    subscriptionData: subscriptionResult.data,
+    providerRows: providerSubscriptionsResult.error ? null : providerSubscriptionsResult.data,
     overridePlan,
-  );
-  const billingPlan = providerState === "stripe" ? null : stringValue(subscriptionResult.data?.plan_id);
-  const billingStatus = providerState === "stripe" ? null : stringValue(subscriptionResult.data?.status);
-  const billingPeriodEnd = providerState === "stripe" ? null : stringValue(subscriptionResult.data?.current_period_end);
+  });
 
   return resolvePlatformAccessContext({
     userId: user.id,
@@ -122,12 +92,12 @@ export async function resolvePlatformAccessForUser(
     platformRoleAuthority: "trusted",
     accountType: stringValue(preferences.account_type),
     membershipOverride: overridePlan,
-    billingPlan: subscriptionResult.error ? null : billingPlan,
-    billingStatus: subscriptionResult.error ? null : billingStatus,
-    billingPeriodEnd: subscriptionResult.error ? null : billingPeriodEnd,
+    billingPlan: billingAccess.billingPlan,
+    billingStatus: billingAccess.billingStatus,
+    billingPeriodEnd: billingAccess.billingPeriodEnd,
     workspaceId: workspaceAccess.workspaceId,
     workspaceRole: workspaceAccess.workspaceRole,
-    providerState,
+    providerState: billingAccess.providerState,
     suspended: Boolean(suspendedUntil && suspendedUntil > Date.now()),
   });
 }

@@ -5,6 +5,7 @@ import {
   providerStateFromRevenueCatEvent,
   resolveEffectiveMembership,
   isSupabaseUserId,
+  shouldApplyProviderStateUpdate,
   verifyRevenueCatAuthorization,
   type ProviderSubscriptionEntitlement,
   type RevenueCatProviderState,
@@ -89,6 +90,28 @@ async function saveProviderState({
   state: RevenueCatProviderState;
   payload: unknown;
 }) {
+  const existing = await supabase
+    .from("billing_provider_subscriptions")
+    .select("plan_id,status,current_period_end,updated_at")
+    .eq("provider", state.provider)
+    .eq("provider_subscription_id", state.providerSubscriptionId)
+    .maybeSingle();
+  if (existing.error) throw existing.error;
+
+  if (!shouldApplyProviderStateUpdate({
+    existing: existing.data
+      ? {
+          planId: existing.data.plan_id,
+          status: existing.data.status,
+          currentPeriodEnd: existing.data.current_period_end,
+          updatedAt: existing.data.updated_at,
+        }
+      : null,
+    incoming: state,
+  })) {
+    return { applied: false };
+  }
+
   const { error } = await supabase.from("billing_provider_subscriptions").upsert(
     {
       user_id: state.userId,
@@ -111,6 +134,7 @@ async function saveProviderState({
     { onConflict: "provider,provider_subscription_id" },
   );
   if (error) throw error;
+  return { applied: true };
 }
 
 async function providerEntitlementsForUser(

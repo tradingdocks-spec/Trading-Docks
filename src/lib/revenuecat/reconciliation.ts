@@ -81,6 +81,13 @@ export type RevenueCatProviderState = {
   rawEventType: string;
 };
 
+export type ExistingProviderStateSnapshot = {
+  currentPeriodEnd?: string | null;
+  updatedAt?: string | null;
+  status?: string | null;
+  planId?: string | null;
+};
+
 export const REVENUECAT_PRODUCT_MAPPINGS: Record<string, RevenueCatPlanMapping> = {
   "tradingdocks.collector.monthly": {
     productId: "tradingdocks.collector.monthly",
@@ -296,6 +303,29 @@ export function providerEntitlementIsValid(
     return new Date(entitlement.currentPeriodEnd).getTime() > now.getTime();
   }
   return false;
+}
+
+export function shouldApplyProviderStateUpdate({
+  existing,
+  incoming,
+}: {
+  existing: ExistingProviderStateSnapshot | null | undefined;
+  incoming: Pick<RevenueCatProviderState, "currentPeriodEnd" | "status" | "planId">;
+}) {
+  if (!existing) return true;
+
+  const existingPeriodEnd = existing.currentPeriodEnd ? new Date(existing.currentPeriodEnd).getTime() : NaN;
+  const incomingPeriodEnd = incoming.currentPeriodEnd ? new Date(incoming.currentPeriodEnd).getTime() : NaN;
+
+  if (
+    Number.isFinite(existingPeriodEnd) &&
+    Number.isFinite(incomingPeriodEnd) &&
+    incomingPeriodEnd < existingPeriodEnd
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 export function resolveEffectiveMembership({

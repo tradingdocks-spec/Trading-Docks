@@ -129,15 +129,20 @@ test("server billing resolution keeps manual override explicit and provider prec
 test("web and mobile access loaders read provider subscriptions instead of assuming Stripe", () => {
   const serverAccess = readFileSync(path.join(repoRoot, "src/lib/platform/server-access.ts"), "utf8");
   const mobileAccess = readFileSync(path.join(repoRoot, "mobile/services/mobile-account-access.ts"), "utf8");
+  const billingResolution = readFileSync(path.join(repoRoot, "src/lib/platform/billing-access-resolution.ts"), "utf8");
 
   assert.match(serverAccess, /billing_provider_subscriptions/);
   assert.match(serverAccess, /stripe_subscription_id/);
-  assert.match(serverAccess, /providerStates\.has\("revenuecat"\)/);
-  assert.match(serverAccess, /providerState === "stripe" \? null/);
+  assert.match(serverAccess, /resolveBillingAccessFromRows/);
+  assert.match(serverAccess, /select\("provider,plan_id,status,current_period_end,updated_at"\)/);
   assert.doesNotMatch(serverAccess, /return "stripe" as const;\s*\n}/);
 
   assert.match(mobileAccess, /billing_provider_subscriptions/);
   assert.match(mobileAccess, /stripe_subscription_id/);
-  assert.match(mobileAccess, /provider === 'stripe' \? null/);
-  assert.doesNotMatch(mobileAccess, /plan_id,status,current_period_end,provider/);
+  assert.match(mobileAccess, /provider,plan_id,status,current_period_end,updated_at/);
+  assert.match(mobileAccess, /resolveBillingAccessFromRows/);
+
+  assert.match(billingResolution, /resolveEffectiveMembership/);
+  assert.match(billingResolution, /providerStates\.has\("revenuecat"\)/);
+  assert.match(billingResolution, /hasRevenueCatProviderEntitlement/);
 });

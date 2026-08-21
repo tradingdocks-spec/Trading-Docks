@@ -7,6 +7,7 @@ import {
   providerStateFromRevenueCatEvent,
   resolveCommercialEntitlement,
   resolveEffectiveMembership,
+  shouldApplyProviderStateUpdate,
   verifyRevenueCatAuthorization,
 } from "../src/lib/revenuecat/reconciliation.ts";
 
@@ -187,4 +188,67 @@ test("manual admin override takes precedence and no valid provider resolves to F
   assert.equal(override.source, "manual");
   assert.equal(free.tier, "free");
   assert.equal(free.status, "free");
+});
+
+test("expired, unpaid, incomplete, incomplete_expired, and paused providers do not grant access", () => {
+  for (const status of ["canceled", "unpaid", "incomplete", "incomplete_expired", "paused"]) {
+    const resolution = resolveEffectiveMembership({
+      now: NOW,
+      providerEntitlements: [
+        {
+          provider: "apple",
+          planId: "store",
+          status,
+          currentPeriodEnd: status === "canceled" ? PAST : FUTURE,
+        },
+      ],
+    });
+
+    assert.equal(resolution.tier, "free", status);
+    assert.equal(resolution.source, "free", status);
+  }
+});
+
+test("past-due and canceled providers remain valid only through the current paid period", () => {
+  const pastDue = resolveEffectiveMembership({
+    now: NOW,
+    providerEntitlements: [
+      { provider: "apple", planId: "seller", status: "past_due", currentPeriodEnd: FUTURE },
+    ],
+  });
+  const canceledGrace = resolveEffectiveMembership({
+    now: NOW,
+    providerEntitlements: [
+      { provider: "google", planId: "collector", status: "canceled", currentPeriodEnd: FUTURE },
+    ],
+  });
+
+  assert.equal(pastDue.tier, "seller");
+  assert.equal(pastDue.status, "past_due");
+  assert.equal(canceledGrace.tier, "collector");
+  assert.equal(canceledGrace.status, "active");
+});
+
+test("provider state updates do not overwrite newer subscription periods with stale events", () => {
+  assert.equal(
+    shouldApplyProviderStateUpdate({
+      existing: { planId: "store", status: "active", currentPeriodEnd: FUTURE },
+      incoming: { planId: "store", status: "canceled", currentPeriodEnd: PAST },
+    }),
+    false,
+  );
+  assert.equal(
+    shouldApplyProviderStateUpdate({
+      existing: { planId: "seller", status: "active", currentPeriodEnd: PAST },
+      incoming: { planId: "store", status: "active", currentPeriodEnd: FUTURE },
+    }),
+    true,
+  );
+  assert.equal(
+    shouldApplyProviderStateUpdate({
+      existing: { planId: "store", status: "active", currentPeriodEnd: FUTURE },
+      incoming: { planId: "store", status: "active", currentPeriodEnd: FUTURE },
+    }),
+    true,
+  );
 });
