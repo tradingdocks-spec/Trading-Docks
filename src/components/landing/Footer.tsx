@@ -37,9 +37,10 @@ export function Footer() {
           <Image
             src="/trading-docks-horizontal.png"
             alt="Trading Docks"
-            width={2048}
-            height={682}
-            className="h-auto w-[220px] object-contain object-left"
+            width={220}
+            height={73}
+            sizes="220px"
+            className="h-auto w-[220px] max-w-full object-contain object-left"
           />
           <p className="mt-5 max-w-md text-sm leading-6 text-slate-600">
             Card intelligence, inventory control, and operating workflows for

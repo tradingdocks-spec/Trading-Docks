@@ -3,6 +3,9 @@ node_modules/
 .cache/
 dist/
 coverage/
+playwright-report/
+test-results/
+.playwright-results/
 mobile/dist/
 mobile/.expo/
 mobile/.cache/

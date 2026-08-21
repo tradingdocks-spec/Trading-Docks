@@ -5,7 +5,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
 
 import { TransitionLink } from "@/components/navigation/PolishedNavigation";
 import { BrandMark } from "./BrandMark";
@@ -21,6 +21,26 @@ const PRODUCT_NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
 
+  function navigateToSection(
+    event: MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) {
+    if (!href.startsWith("#")) return;
+
+    const target = document.querySelector(href);
+    if (!target) return;
+
+    event.preventDefault();
+    setOpen(false);
+    target.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
+    window.history.pushState(null, "", href);
+  }
+
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
@@ -33,11 +53,12 @@ export function Header() {
       <div className="mx-auto flex h-[68px] w-full max-w-[1480px] items-center justify-between px-4 sm:px-8 lg:px-12">
         <BrandMark priority />
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Primary site navigation" className="hidden items-center gap-1 xl:flex">
           {PRODUCT_NAV.map((item) => (
             <a
               key={item.href}
               href={item.href}
+              onClick={(event) => navigateToSection(event, item.href)}
               className="px-3 py-2 text-sm font-medium text-slate-500 transition hover:text-slate-200"
             >
               {item.label}
@@ -45,7 +66,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           <TransitionLink
             href="/sign-in"
             className="inline-flex h-10 shrink-0 items-center px-4 text-sm font-medium text-slate-400 transition hover:text-white"
@@ -66,20 +87,23 @@ export function Header() {
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
           aria-label={open ? "Close navigation" : "Open navigation"}
-          className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-white/[0.1] text-slate-200 transition active:scale-95 sm:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-white/[0.1] text-slate-200 transition active:scale-95 xl:hidden"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {open ? (
-        <div className="fixed inset-x-0 top-[68px] z-50 h-[calc(100dvh-68px)] border-t border-white/[0.06] bg-[#020912]/[0.98] px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl sm:hidden">
-          <nav className="mx-auto flex max-w-md flex-col gap-2">
+        <div className="fixed inset-x-0 top-[68px] z-50 h-[calc(100dvh-68px)] border-t border-white/[0.06] bg-[#020912]/[0.98] px-4 pb-[max(24px,env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl xl:hidden">
+          <nav
+            aria-label="Mobile site navigation"
+            className="mx-auto flex max-w-md flex-col gap-2"
+          >
             {PRODUCT_NAV.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                onClick={() => setOpen(false)}
+                onClick={(event) => navigateToSection(event, item.href)}
                 className="flex min-h-[52px] items-center justify-between border-b border-white/[0.08] px-1 text-base font-semibold text-slate-200 last:border-b-0"
               >
                 {item.label}
