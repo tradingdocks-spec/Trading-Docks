@@ -9,11 +9,12 @@ Status labels:
 
 ## Current Pass
 
-- Branch: `codex/beta-release-readiness-pass`
+- Branch: `codex/production-launch-hardening`
 - Goal: prepare Trading Docks for systematic closed-beta validation without changing pricing, weakening authorization, touching production data, or applying destructive migrations.
 - Current release posture: code/static validation is passing; the product must not be called production-ready until the real-account QA matrix below passes.
 - Related production launch audit: `docs/PRODUCTION_LAUNCH_AUDIT.md`.
 - Account isolation and entitlement QA matrix: `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`.
+- Billing provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
 
 ## Automated Validation Baseline
 
@@ -72,6 +73,8 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Complete: Purchasing Intelligence Current Purchase drafts persist to workspace account documents, with legacy sessionStorage only used for one-time migration cleanup.
 - Complete: Settings > Data & Privacy no longer exposes inert export/backup/deletion controls. Export and account deletion are labeled support-assisted during beta, inventory backup links to the CSV tool, and deletion opens a prefilled support request.
 - Complete: Direct scanner-provider and Trade Binder share API calls now enforce shared capability checks instead of relying on UI visibility or authentication alone.
+- Complete: web and mobile effective access now resolve RevenueCat provider state and explicit membership overrides through one shared billing resolver before falling back to legacy billing rows.
+- Complete: stale RevenueCat webhook events with older provider periods no longer overwrite newer subscription state.
 
 ## Closed-Beta QA Matrix
 
@@ -91,7 +94,7 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 | CRM/Operations | Hidden | Hidden unless capability allows | Partial operations | Store operations | Full operations | Customers, tasks, calendar, vendors, supplies, employees, payroll, reports empty/non-empty states. |
 | Label Studio | Hidden | Hidden | `label.view` gated | `label.view` gated | Full access | `/dashboard/label-studio`, API, QR route, selected inventory, print preview, persistence. |
 | Admin | Hidden | Hidden | Hidden | Hidden | Visible by trusted platform role | User roles, feature access, catalog imports, system health, no email bypass. |
-| Billing | RevenueCat web flow | RevenueCat web flow | RevenueCat web flow | RevenueCat web flow | Displays billing truth separately from platform authority | Purchase links, portal links, webhook reconciliation, no client-granted paid access. |
+| Billing | RevenueCat web flow | RevenueCat web flow | RevenueCat web flow | RevenueCat web flow | Displays billing truth separately from platform authority | Purchase links, portal links, webhook reconciliation, stale-event ordering, no stale legacy billing-row access, no client-granted paid access. |
 | Mobile app | Auth and Free nav | Collector nav/scanner | Seller nav/actions | Store nav/actions | Additive admin access where supported | Native auth, session restore, scanner, offline queue, safe-area nav, device-only checks. |
 
 ## Persistence And Account-Isolation Checks
@@ -105,7 +108,7 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 
 ## Integration Failure Handling Checks
 
-- Needs QA: RevenueCat web checkout, customer portal, mobile login identity, and webhook reconciliation with real sandbox/test events.
+- Needs QA: RevenueCat web checkout, customer portal, mobile login identity, provider status transitions, stale event ordering, and webhook reconciliation with real sandbox/test events.
 - Needs QA: Supabase Storage-backed TCGplayer catalog import retry/failure states, including failed batch recovery and no duplicate catalog rows.
 - Needs QA: TCGTracking provider health, SKU enrichment, pricing fallback, scanner provider failure states, and image fallback behavior.
 - Needs QA: marketplace integrations distinguish disconnected channels from true zero activity.

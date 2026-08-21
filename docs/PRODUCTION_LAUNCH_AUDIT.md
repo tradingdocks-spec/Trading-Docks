@@ -14,6 +14,7 @@ Status labels:
 - Scope: public website, authenticated web app, admin surfaces, mobile readiness indicators, persistence/account isolation, and production-quality interaction audit.
 - Launch posture: no local-only P0 code defect was found in this initial pass. Real account isolation, billing/provider, mobile device, and deployed-environment QA remain P0/P1 launch gates before calling the product production-ready.
 - Account isolation and entitlement matrix: `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`.
+- Billing/provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
 
 ## Route And Product Surface Inventory
 
@@ -37,6 +38,8 @@ Status labels:
 | P1 | Web Settings > Data & Privacy exposed data/deletion actions as clickable controls even though full self-service export/deletion is still support-assisted. | Fixed | Replaced inert buttons with honest support-assisted status, a real CSV converter destination, and a prefilled support mailto deletion request. |
 | P1 | Scanner provider and Trade Binder share APIs were protected by authentication/owned-row checks, but not fully aligned with the capability registry for direct API calls. | Fixed | `/api/scanner/tcgtracking` now enforces `scanner.use`; `/api/binder-shares` now enforces `binder.manage` before mutation. |
 | P1 | RevenueCat, catalog import, marketplace, email, and TCGTracking integrations require real configured environments to validate success/failure behavior. | Needs QA | Keep provider-specific smoke tests in the beta ledger. |
+| P1 | RevenueCat provider state could previously be bypassed by a stale paid row in `billing_subscriptions` during effective access resolution. | Fixed | Added central billing access resolution for web/mobile so active Apple/Google provider rows and explicit manual overrides are authoritative; legacy billing rows are compatibility fallback only when no provider authority exists. |
+| P1 | Older RevenueCat webhook events could overwrite a newer provider-subscription period if delivered out of order. | Fixed | Older incoming `current_period_end` values no longer replace newer stored provider state. |
 | P1 | Mobile native scanner/auth/offline replay must be tested on physical iOS/Android builds if mobile is in beta launch scope. | Blocked | Requires device builds and representative accounts. |
 | P2 | Legacy `src/components/dashboard-v2` modules still contain browser-storage persistence and increase code-search noise. | Follow-up | Do a dedicated import audit before archiving/deleting; do not remove from this launch-hardening branch. |
 | P2 | Older backup mobile folders and historical snapshots should remain excluded from active tooling and not be treated as launch source. | Complete | Active paths remain `src/` for web and `mobile/` for Expo. |
