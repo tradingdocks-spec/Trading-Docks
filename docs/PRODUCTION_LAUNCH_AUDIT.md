@@ -13,6 +13,7 @@ Status labels:
 - Branch: `codex/production-launch-hardening`
 - Scope: public website, authenticated web app, admin surfaces, mobile readiness indicators, persistence/account isolation, and production-quality interaction audit.
 - Launch posture: no local-only P0 code defect was found in this initial pass. Real account isolation, billing/provider, mobile device, and deployed-environment QA remain P0/P1 launch gates before calling the product production-ready.
+- Account isolation and entitlement matrix: `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`.
 
 ## Route And Product Surface Inventory
 
@@ -31,9 +32,10 @@ Status labels:
 
 | Severity | Finding | Status | Resolution / Owner |
 | --- | --- | --- | --- |
-| P0 | Account isolation for writes and reads must be verified with at least two real non-production accounts across Collection, Purchasing, CRM, Label Studio, and Admin read surfaces. | Blocked | Requires safe staging/preview Supabase accounts and browser QA. Do not run destructive tests against production customer data. |
+| P0 | Account isolation for writes and reads must be verified with at least two real non-production accounts across Collection, Purchasing, CRM, Label Studio, and Admin read surfaces. | Blocked | Requires safe staging/preview Supabase accounts and browser QA. Do not run destructive tests against production customer data. Manual procedure is documented in `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`. |
 | P0 | Production database migrations must not be applied from this audit. | Complete | This pass only inspected source and changed web UI/test/docs. |
 | P1 | Web Settings > Data & Privacy exposed data/deletion actions as clickable controls even though full self-service export/deletion is still support-assisted. | Fixed | Replaced inert buttons with honest support-assisted status, a real CSV converter destination, and a prefilled support mailto deletion request. |
+| P1 | Scanner provider and Trade Binder share APIs were protected by authentication/owned-row checks, but not fully aligned with the capability registry for direct API calls. | Fixed | `/api/scanner/tcgtracking` now enforces `scanner.use`; `/api/binder-shares` now enforces `binder.manage` before mutation. |
 | P1 | RevenueCat, catalog import, marketplace, email, and TCGTracking integrations require real configured environments to validate success/failure behavior. | Needs QA | Keep provider-specific smoke tests in the beta ledger. |
 | P1 | Mobile native scanner/auth/offline replay must be tested on physical iOS/Android builds if mobile is in beta launch scope. | Blocked | Requires device builds and representative accounts. |
 | P2 | Legacy `src/components/dashboard-v2` modules still contain browser-storage persistence and increase code-search noise. | Follow-up | Do a dedicated import audit before archiving/deleting; do not remove from this launch-hardening branch. |
@@ -54,6 +56,7 @@ Reviewed usage categories:
 ## Design And Interaction Review
 
 - Fixed: Settings data/privacy actions no longer look like fully wired product operations when the backend process is support-assisted.
+- Fixed: Direct scanner-provider and binder-share API calls now enforce the same entitlement capabilities used by UI/navigation.
 - Needs QA: every primary CTA in Seller/Store/Owner workspaces should be clicked in browser sessions to confirm it either performs an action, opens a real route, or is deliberately absent.
 - Needs QA: responsive browser QA at 1440, 1280, 1024, 768, and 390 widths for public website, dashboard shell, Settings, Collection, Purchasing, Orders, Label Studio, and Admin.
 - Follow-up: continue removing old generic placeholder language only when replacing it with accurate product state, not decorative copy.
