@@ -11,6 +11,10 @@ import { resolveDeckCardImageUri } from "./card-assets.ts";
 import { getCommanderCatalogCandidates } from "./commander-catalog.ts";
 import { commanderColorIdentityFits } from "./commander-global-candidates.ts";
 import {
+  packageBucketsFromStrategyIntelligence,
+  TRADING_DOCKS_COMMANDER_STRATEGY_INTELLIGENCE_PROVIDER,
+} from "./commander-strategy-intelligence.ts";
+import {
   compareCommanderCandidates,
   createCommanderDeckPlan,
   critiqueCommanderDeck,
@@ -277,6 +281,16 @@ export function constructValidatedCommanderDeck({
   });
   let requirements: DeckRequirement[] = [toRequirement(commander, 1, "commander", true, evaluateCandidate(commander, archetypeProfile), deckPlan)];
   const usedNames = new Set([normalizeCardKey(commander.name)]);
+  const strategyIntelligence = TRADING_DOCKS_COMMANDER_STRATEGY_INTELLIGENCE_PROVIDER.resolve({
+    commander,
+    strategy: strategyFit?.strategy ?? null,
+    archetype: archetypeProfile,
+    deckPlan,
+    intentId,
+    collection,
+    candidates: pool.map((entry) => entry.card),
+    currentRequirements: requirements,
+  });
   const allowMissingCards = intentId !== "no-purchases";
   const strategySeeds = strategyFit
     ? [...(strategyFit.strategy.coreCards ?? []), ...(strategyFit.strategy.flexCards ?? [])]
@@ -294,23 +308,7 @@ export function constructValidatedCommanderDeck({
     addSeedRequirements(requirements, usedNames, strategySeeds, commander, collection, format, strategyFit?.strategy.id ?? "strategy", intentId, "core", archetypeProfile, budgetConstraints, deckPlan);
   }
 
-  const rampRoles: DeckArchitectRole[] = (commander.colorIdentity?.length ?? 0) <= 1
-    ? ["ramp", "mana-rock", "mana-dork", "ritual", "treasure-generation", "cost-reduction", "land-fixing"]
-    : ["ramp", "mana-fixing", "color-fixing", "land-fixing"];
-  const strategyRoles = new Set(strategyFit?.strategy.roles ?? []);
-  const cardAdvantageRoles: DeckArchitectRole[] =
-    strategyRoles.has("wheel") || strategyRoles.has("draw-punishment") || strategyRoles.has("group-draw")
-      ? ["wheel", "draw-punishment", "hand-cycling", "group-draw", "card-advantage"]
-      : ["card-advantage", "card-draw"];
-  addRoleBucketCards(requirements, usedNames, pool, [
-    { roles: rampRoles, target: 10 },
-    { roles: cardAdvantageRoles, target: 10 },
-    { roles: ["interaction", "removal", "targeted-removal", "countermagic"], target: 11 },
-    { roles: ["board-wipe", "mass-removal"], target: 3 },
-    { roles: ["protection", "recursion"], target: 6 },
-    { roles: strategyFit?.strategy.roles ?? ["synergy"], target: 22 },
-    { roles: ["threat", "finisher", "combo-piece"], target: 8 },
-  ], commander, format, archetypeProfile, diagnostics, deckPlan);
+  addRoleBucketCards(requirements, usedNames, pool, packageBucketsFromStrategyIntelligence(strategyIntelligence), commander, format, archetypeProfile, diagnostics, deckPlan);
 
   addStrategySupportCards(requirements, usedNames, pool, commander, format, archetypeProfile, diagnostics, deckPlan);
 
@@ -406,6 +404,7 @@ export function constructValidatedCommanderDeck({
     pricingSummary,
     strategyFit,
     archetypeProfile,
+    strategyIntelligence,
     deckPlan,
     critique,
     revisionHistory: revision.revisionHistory,

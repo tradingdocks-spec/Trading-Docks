@@ -8,6 +8,7 @@ export * from "./commander-search.ts";
 export * from "./commander-catalog.ts";
 export * from "./commander-global-candidates.ts";
 export * from "./commander-meta-provider.ts";
+export * from "./commander-strategy-intelligence.ts";
 export * from "./combo-provider.ts";
 export * from "./deck-corpus.ts";
 export * from "./deck-planning.ts";

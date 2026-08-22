@@ -44,6 +44,8 @@ import {
   evaluateCandidate,
   finalHumanSanityReview,
   TRADING_DOCKS_COMMANDER_KNOWLEDGE_PROVIDER,
+  TRADING_DOCKS_COMMANDER_STRATEGY_INTELLIGENCE_PROVIDER,
+  buildCommanderPackageTargets,
   selectArchetypeProfile,
   TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER,
   CommanderSpellbookProvider,
@@ -1587,6 +1589,129 @@ test("Budget Commander catalog candidates exclude unknown-price recommendations"
   assert.equal(candidates.some((candidate) => candidate.name === "Known Cheap Card"), true);
   assert.equal(candidates.some((candidate) => candidate.name === "Unknown Price Card"), false);
   assert.ok(candidates.every((candidate) => candidate.estimatedPrice !== null));
+});
+
+test("Commander strategy intelligence exposes licensed-provider-ready seams without using EDHREC data", () => {
+  const commander = commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]);
+  const strategy = rankCommanderStrategiesForCollection(commander, [commander], "strongest-possible")[0]?.strategy ?? null;
+  const deckPlan = createCommanderDeckPlan({ commander, strategy, intentId: "strongest-possible", budget: { enabled: false } });
+  const packageTargets = buildCommanderPackageTargets({ commander, strategy, deckPlan });
+  const result = TRADING_DOCKS_COMMANDER_STRATEGY_INTELLIGENCE_PROVIDER.resolve({
+    commander,
+    strategy,
+    archetype: selectArchetypeProfile(TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, strategy, []), strategy),
+    deckPlan,
+    intentId: "strongest-possible",
+    collection: [],
+    candidates: krenkoCandidatePool(24),
+  });
+
+  assert.equal(result.provider.edhrecStatus, "licensed-provider-ready");
+  assert.equal(result.provider.sources.includes("future-edhrec-licensed"), false);
+  assert.ok(result.limitations.some((limitation) => /No EDHREC data is scraped/i.test(limitation)));
+  assert.ok(packageTargets.some((target) => target.id === "strategy-engines" && target.ideal > target.min));
+  assert.ok(result.recommendations.every((recommendation) => recommendation.reasons.length > 0));
+  assert.ok(result.recommendations.every((recommendation) => typeof recommendation.synergyScore === "number"));
+});
+
+test("selected Commander archetype materially changes strategy-intelligence recommendations", () => {
+  const commander = commanderCandidate("atraxa", "Atraxa, Praetors' Voice", ["W", "U", "B", "G"]);
+  const candidates = [
+    commanderCard("evolution-sage", "Evolution Sage", ["G"], "Creature - Elf Druid", "Whenever a land enters the battlefield under your control, proliferate."),
+    commanderCard("hardened-scales", "Hardened Scales", ["G"], "Enchantment", "If one or more counters would be put on a creature you control, that many plus one are put on it instead."),
+    commanderCard("glistener-elf", "Glistener Elf", ["G"], "Creature - Phyrexian Elf Warrior", "Infect."),
+    commanderCard("blightbelly-rat", "Blightbelly Rat", ["B"], "Creature - Phyrexian Rat", "Toxic 1. When Blightbelly Rat dies, proliferate."),
+    commanderCard("generic-draw", "Generic Draw Spell", ["U"], "Instant", "Draw two cards."),
+  ];
+  const strategies = rankCommanderStrategiesForCollection(commander, candidates, "strongest-possible").map((fit) => fit.strategy);
+  const countersStrategy = strategies.find((strategy) => strategy.id === "atraxa-counters") ?? null;
+  const poisonStrategy = strategies.find((strategy) => strategy.id === "atraxa-poison") ?? null;
+  const countersDeckPlan = createCommanderDeckPlan({ commander, strategy: countersStrategy, intentId: "strongest-possible", budget: { enabled: false } });
+  const poisonDeckPlan = createCommanderDeckPlan({ commander, strategy: poisonStrategy, intentId: "strongest-possible", budget: { enabled: false } });
+  const counters = TRADING_DOCKS_COMMANDER_STRATEGY_INTELLIGENCE_PROVIDER.resolve({
+    commander,
+    strategy: countersStrategy,
+    archetype: selectArchetypeProfile(TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, countersStrategy, candidates), countersStrategy),
+    deckPlan: countersDeckPlan,
+    intentId: "strongest-possible",
+    collection: [],
+    candidates,
+  });
+  const poison = TRADING_DOCKS_COMMANDER_STRATEGY_INTELLIGENCE_PROVIDER.resolve({
+    commander,
+    strategy: poisonStrategy,
+    archetype: selectArchetypeProfile(TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, poisonStrategy, candidates), poisonStrategy),
+    deckPlan: poisonDeckPlan,
+    intentId: "strongest-possible",
+    collection: [],
+    candidates,
+  });
+  const countersTop = counters.recommendations.slice(0, 3).map((entry) => entry.card.name);
+  const poisonTop = poison.recommendations.slice(0, 3).map((entry) => entry.card.name);
+
+  assert.notDeepEqual(countersTop, poisonTop);
+  assert.ok(countersTop.includes("Hardened Scales") || countersTop.includes("Evolution Sage"));
+  assert.ok(poisonTop.includes("Glistener Elf") || poisonTop.includes("Blightbelly Rat"));
+});
+
+test("Commander strategy intelligence rejects popularity-only recommendations", () => {
+  const commander = commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]);
+  const strategy = rankCommanderStrategiesForCollection(commander, [commander], "strongest-possible")[0]?.strategy ?? null;
+  const deckPlan = createCommanderDeckPlan({ commander, strategy, intentId: "strongest-possible", budget: { enabled: false } });
+  const result = TRADING_DOCKS_COMMANDER_STRATEGY_INTELLIGENCE_PROVIDER.resolve({
+    commander,
+    strategy,
+    archetype: selectArchetypeProfile(TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, strategy, []), strategy),
+    deckPlan,
+    intentId: "strongest-possible",
+    collection: [],
+    candidates: [
+      commanderCard("popular-offplan", "Popular Off-Plan Dragon", ["R"], "Creature - Dragon", "Flying. Popular Off-Plan Dragon deals 3 damage to any target."),
+    ],
+    externalSignals: [{
+      cardName: "Popular Off-Plan Dragon",
+      source: "licensed-external",
+      deckCountConfidence: 1,
+      commanderSpecificInclusion: null,
+      commanderSpecificSynergy: null,
+      archetypeFit: null,
+      category: "generic",
+      roles: ["threat"],
+      highSynergy: false,
+      commonlyPairedWith: [],
+      comboRelationships: [],
+      reasons: ["High deck-count signal from an authorized provider."],
+      provenance: ["Licensed fixture."],
+    }],
+  });
+
+  assert.equal(result.recommendations.some((recommendation) => recommendation.card.name === "Popular Off-Plan Dragon"), false);
+});
+
+test("Commander strategy intelligence emits package recommendations and cut candidates", () => {
+  const commander = commanderCandidate("krenko", "Krenko, Mob Boss", ["R"]);
+  const strategy = rankCommanderStrategiesForCollection(commander, [commander], "strongest-possible")[0]?.strategy ?? null;
+  const deckPlan = createCommanderDeckPlan({ commander, strategy, intentId: "strongest-possible", budget: { enabled: false } });
+  const providerInput = {
+    commander,
+    strategy,
+    archetype: selectArchetypeProfile(TRADING_DOCKS_DECK_KNOWLEDGE_PROVIDER.getCommanderProfile(commander, strategy, []), strategy),
+    deckPlan,
+    intentId: "strongest-possible" as const,
+    collection: [],
+    candidates: krenkoCandidatePool(30),
+    currentRequirements: [
+      requirement("weak", "Weak Off-Plan Spell", 1, 1, false, ["interaction"], "Sorcery"),
+      requirement("impact", "Impact Tremors", 1, 1, false, ["synergy"], "Enchantment"),
+    ],
+  };
+  const result = TRADING_DOCKS_COMMANDER_STRATEGY_INTELLIGENCE_PROVIDER.resolve(providerInput);
+
+  assert.ok(result.packageTargets.some((target) => target.id === "ramp"));
+  assert.ok(result.packageTargets.some((target) => target.id === "strategy-engines"));
+  assert.ok(result.recommendations.some((recommendation) => recommendation.packageId === "strategy-engines" || recommendation.packageId === "synergy-payoffs"));
+  assert.ok(result.cuts.some((cut) => cut.cardName === "Weak Off-Plan Spell"));
+  assert.ok(result.cuts.every((cut) => cut.reasons.length > 0));
 });
 
 test("Deck Architect taxonomy detects strategies themes typal and mechanics from real card text", () => {

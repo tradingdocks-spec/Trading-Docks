@@ -289,6 +289,111 @@ export type DeckPlan = {
   mechanicalProfile: CommanderMechanicalProfile;
 };
 
+export type CommanderStrategySignalSource =
+  | "trading-docks-authored"
+  | "licensed-external"
+  | "collection-derived"
+  | "combo-provider"
+  | "future-edhrec-licensed";
+
+export type CommanderStrategyCardSignal = {
+  cardName: string;
+  source: CommanderStrategySignalSource;
+  commanderSpecificInclusion?: number | null;
+  commanderSpecificSynergy?: number | null;
+  archetypeFit?: number | null;
+  deckCountConfidence?: number | null;
+  category?: ArchetypeCandidateCategory;
+  roles?: DeckArchitectRole[];
+  highSynergy?: boolean;
+  commonlyPairedWith?: string[];
+  comboRelationships?: string[];
+  budgetBand?: "budget" | "mid" | "premium" | "unknown";
+  powerBand?: "casual" | "focused" | "competitive" | "unknown";
+  reasons?: string[];
+  provenance: string[];
+};
+
+export type CommanderFunctionalPackageId =
+  | "ramp"
+  | "card-advantage"
+  | "interaction"
+  | "removal"
+  | "board-protection"
+  | "strategy-engines"
+  | "synergy-payoffs"
+  | "win-conditions"
+  | "utility"
+  | "lands";
+
+export type CommanderFunctionalPackageTarget = {
+  id: CommanderFunctionalPackageId;
+  label: string;
+  roles: DeckArchitectRole[];
+  min: number;
+  ideal: number;
+  max?: number;
+  reason: string;
+};
+
+export type CommanderStrategyRecommendation = {
+  card: CollectionGraphCard;
+  packageId: CommanderFunctionalPackageId;
+  role: DeckArchitectRole;
+  synergyScore: number;
+  archetypeFit: number;
+  commanderFit: number;
+  roleFit: number;
+  ownership: {
+    owned: boolean;
+    quantity: number;
+  };
+  priority: number;
+  reasons: string[];
+  comboRelationships: string[];
+  signals: CommanderStrategyCardSignal[];
+};
+
+export type CommanderCutRecommendation = {
+  cardName: string;
+  role: DeckArchitectRole;
+  priority: number;
+  reasons: string[];
+  strongerAlternatives: string[];
+};
+
+export type CommanderStrategyIntelligenceResult = {
+  provider: {
+    id: string;
+    name: string;
+    sources: readonly CommanderStrategySignalSource[];
+    edhrecStatus: "not-used" | "licensed-provider-ready" | "licensed-provider-configured";
+  };
+  packageTargets: CommanderFunctionalPackageTarget[];
+  recommendations: CommanderStrategyRecommendation[];
+  cuts: CommanderCutRecommendation[];
+  limitations: string[];
+};
+
+export type CommanderStrategyIntelligenceInput = {
+  commander: CollectionGraphCard;
+  strategy: CommanderStrategyProfile | null;
+  archetype: ArchetypeProfile | null;
+  deckPlan: DeckPlan;
+  intentId: BuildIntentId;
+  collection: CollectionGraphCard[];
+  candidates: CollectionGraphCard[];
+  currentRequirements?: DeckRequirement[];
+  externalSignals?: CommanderStrategyCardSignal[];
+};
+
+export type CommanderStrategyIntelligenceProvider = {
+  id: string;
+  name: string;
+  supportedSources: readonly CommanderStrategySignalSource[];
+  resolve(input: CommanderStrategyIntelligenceInput): CommanderStrategyIntelligenceResult;
+};
+
 export type CardInclusionJustification = {
   cardId: string;
   primaryRole: DeckArchitectRole;
@@ -822,6 +927,7 @@ export type CommanderGenerationResult = {
   candidateSource: "owned-only" | "owned-plus-curated" | "global-scryfall" | "global-fixture";
   generatedCardCount: number;
   archetypeProfile: ArchetypeProfile | null;
+  strategyIntelligence?: CommanderStrategyIntelligenceResult;
   deckPlan?: DeckPlan;
   critique?: DeckCritique;
   revisionHistory?: DeckRevision[];
