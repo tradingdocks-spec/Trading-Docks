@@ -96,7 +96,7 @@ Authenticated browser certification therefore remains MANUAL REQUIRED.
 | Orders | MANUAL REQUIRED | Automated source/build coverage exists; populated order/provider QA not executed. |
 | Analytics | MANUAL REQUIRED | Populated charts/metrics not exercised. |
 | CRM | MANUAL REQUIRED | Source/tests exist; populated create/edit browser QA not executed. |
-| Deck Architect | MANUAL REQUIRED | Extensive algorithm tests pass; full generated browser result QA not executed in this phase. |
+| Deck Architect | P0 FAIL / MANUAL REQUIRED | Engine-level repair tests pass, but authenticated rendered-product QA for Pauper and Krenko was not executable in this shell because no Playwright QA credentials are configured. Do not promote to PASS until the browser checklist below is completed. |
 | Deck Vault | MANUAL REQUIRED | Automated tests exist; populated visual/text/share/export QA not executed. |
 | Imports | MANUAL REQUIRED | Importer tests pass; real storage/provider/admin import flow not executed here. |
 | Settings | MANUAL REQUIRED | Source/tests cover dead-action cleanup; real browser account settings flow not executed. |
@@ -278,6 +278,8 @@ Automated/source evidence:
 
 - Route/build coverage includes active dashboard, inventory, orders, analytics, CRM, Deck Architect, Deck Vault, imports, Settings, Billing, Admin, Label Studio, public QR/share routes, and webhook/API routes.
 - Extensive unit tests cover many business contracts.
+- Deck Architect source now routes non-Commander builds through `constructValidatedFormatDeck`; the workspace only renders/saves generated decks when the build status is `complete`.
+- Deck Architect focused tests cover complete Pauper generation, illegal Pauper staple exclusion, exact owned/missing quantities, complete Krenko Commander generation, and UI routing away from the legacy owned-card pile helper.
 
 Not certified:
 
@@ -285,11 +287,78 @@ Not certified:
 - Populated Orders with multiple statuses/channels.
 - Populated CRM create/edit flow.
 - Populated Analytics metrics/charts.
-- Full generated Deck Architect result in browser.
+- Full generated Deck Architect result in authenticated browser.
 - Deck Vault visual/text/share/export in browser/mobile.
 - Real imports against storage/provider environments.
 
 Product workflow decision: NO-GO for broad launch.
+
+## Deck Architect Rendered-Product Certification
+
+Status: P0 FAIL / MANUAL REQUIRED.
+
+What is automated and passing:
+
+- `tests/deck-architect.test.ts` validates the repaired engine contracts.
+- Pauper full-intelligence construction returns a complete 60-card validated result contract.
+- Known-illegal Pauper cards such as `Rhystic Study` and `Wheel of Fortune` are excluded from Pauper outputs.
+- Owned/missing quantities are calculated from exact required quantities; partial ownership is not treated as complete ownership.
+- Krenko, Mob Boss / Goblin Swarm remains the complete Commander benchmark with a validated 100-card result.
+- The workspace source requires `activeBuildStatus === "complete"` before showing a working deck or allowing Deck Vault handoff.
+
+What could not be certified here:
+
+- No `PLAYWRIGHT_AUTH_EMAIL` / `PLAYWRIGHT_AUTH_PASSWORD` or tier-specific Playwright credentials were present.
+- Therefore, the authenticated rendered Deck Architect page was not opened with real QA inventory data.
+- Deck Architect must not move from P0 FAIL to PASS until the following browser scenarios are executed and recorded.
+
+Required browser scenario A: Pauper / Collection Optimized / Competitive
+
+1. Sign in with a QA account that has representative collection data including legal Pauper cards and at least one non-Pauper Commander staple such as `Wheel of Fortune`.
+2. Open `/dashboard/deck-architect`.
+3. Choose `Build From My Collection`.
+4. Select format `Pauper`.
+5. Set card source to Collection + suggestions / Collection Optimized.
+6. Set power target to `Competitive`.
+7. Click `Build My Deck`.
+8. Verify the rendered result shows exactly 60 main-deck cards.
+9. Verify no illegal Pauper cards are present, including `Wheel of Fortune`, `Rhystic Study`, or Commander-only staples.
+10. Verify the selected archetype is coherent and named, not a random two-card shell.
+11. Verify lands are present.
+12. Verify Buildability is calculated and not `Not calculated`.
+13. Verify Deck Health is calculated and not `Not calculated`.
+14. Verify owned and missing quantities are shown for cards with partial ownership.
+15. Verify missing cards are shown correctly and no incomplete plan says the user owns every card.
+16. Verify `Open in Deck Builder` works only for the complete validated result.
+17. Verify saving/opening in Deck Vault is blocked for any failed/draft state and works for the complete validated result.
+
+Required browser scenario B: Commander / Krenko, Mob Boss
+
+1. Sign in with a QA account that can access Deck Architect.
+2. Open `/dashboard/deck-architect`.
+3. Choose `Build a Deck`.
+4. Select format `Commander`.
+5. Search/select `Krenko, Mob Boss`.
+6. Select the Goblin strategy or allow Deck Architect to choose it.
+7. Use Best Possible / Competitive-equivalent strength.
+8. Click `Build My Deck`.
+9. Verify the rendered result shows exactly 100 cards including the commander.
+10. Verify every nonland card is mono-red or colorless and within Krenko's color identity.
+11. Verify Goblin strategy density is visible through Goblin token makers/payoffs, haste/untap support, sacrifice outlets, and token payoffs.
+12. Verify lands are present.
+13. Verify ramp, card advantage, interaction/removal, protection/support, strategy engines, payoffs, win conditions, utility, and lands are populated.
+14. Verify Buildability is calculated.
+15. Verify Deck Health is calculated.
+16. Verify missing cards are shown correctly.
+17. Click `Open in Deck Builder`.
+18. Verify Deck Builder preserves card quantities and the commander slot.
+
+Previous broken states that must remain absent:
+
+- No 2-card Pauper shell.
+- No successful-build `Not calculated` metrics.
+- No `Wheel of Fortune` or other known-illegal card in Pauper.
+- No fake "you own every card" message caused by an incomplete plan.
 
 ## Performance Certification
 

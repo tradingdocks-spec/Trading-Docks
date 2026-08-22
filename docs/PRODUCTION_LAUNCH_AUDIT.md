@@ -37,6 +37,7 @@ Status labels:
 | Severity | Finding | Status | Resolution / Owner |
 | --- | --- | --- | --- |
 | P0 | Account isolation for writes and reads must be verified with at least two real non-production accounts across Collection, Purchasing, CRM, Label Studio, and Admin read surfaces. | Blocked | Requires safe staging/preview Supabase accounts and browser QA. Do not run destructive tests against production customer data. Manual procedure is documented in `docs/ACCOUNT_ISOLATION_ENTITLEMENT_QA.md`. |
+| P0 | Deck Architect repaired engine must be certified in the actual authenticated rendered product before it can move from fail to pass. | Blocked | Engine/source tests pass for Pauper and Krenko, but no Playwright QA credentials were available in this shell. Manual browser checklist is documented in `docs/PRODUCTION_LAUNCH_CERTIFICATION.md`. |
 | P0 | Production database migrations must not be applied from this audit. | Complete | This pass only inspected source and changed web UI/test/docs. |
 | P1 | Web Settings > Data & Privacy exposed data/deletion actions as clickable controls even though full self-service export/deletion is still support-assisted. | Fixed | Replaced inert buttons with honest support-assisted status, a real CSV converter destination, and a prefilled support mailto deletion request. |
 | P1 | Scanner provider and Trade Binder share APIs were protected by authentication/owned-row checks, but not fully aligned with the capability registry for direct API calls. | Fixed | `/api/scanner/tcgtracking` now enforces `scanner.use`; `/api/binder-shares` now enforces `binder.manage` before mutation. |
@@ -79,6 +80,7 @@ Reviewed usage categories:
 - Fixed: public website route-smoke and responsive checks now run at 1920, 1440, 1280, 1024, 768, 430, 390, and 375 widths through Playwright.
 - Complete: authenticated Playwright setup can create local `.playwright-auth/` storage states from environment-provided credentials without committing tokens.
 - Needs QA: authenticated responsive browser QA remains required for dashboard shell, Settings, Collection, Purchasing, Orders, Label Studio, and Admin because no QA credentials were present in the current run.
+- Blocked: Deck Architect rendered-result certification remains required with authenticated QA data. Automated engine checks prove the repaired paths, but the product cannot be marked PASS until the Pauper and Krenko browser scenarios in `docs/PRODUCTION_LAUNCH_CERTIFICATION.md` are executed.
 - Follow-up: continue removing old generic placeholder language only when replacing it with accurate product state, not decorative copy.
 - Follow-up: continue the P1/P2 premium polish inventory in `docs/PREMIUM_PRODUCT_POLISH.md`; authenticated screenshots were not captured in this environment.
 
@@ -99,6 +101,7 @@ Required before production launch:
 | Public website | Complete for automated browser smoke | Deployed preview walkthrough is still recommended, but local production-mode Playwright public matrix now passes. |
 | Auth | Needs QA | Password, magic link/OAuth if enabled, reset, callback origins, logout, refresh restore. Playwright storageState reuse is ready once credentials are provided. |
 | Data isolation | Blocked | Two-account workspace CRUD and admin read tests in non-production project. |
+| Deck Architect | Blocked | Run authenticated browser certification for Pauper / Collection Optimized / Competitive and Commander / Krenko, Mob Boss; engine tests alone are insufficient for PASS. |
 | Billing | Needs QA | RevenueCat checkout/portal/webhook sandbox events and entitlement refresh. |
 | Admin | Needs QA | Owner/Admin Command Center and role-gated routes in deployed preview. |
 | Mobile | Blocked | Physical-device iOS/Android build validation. |
