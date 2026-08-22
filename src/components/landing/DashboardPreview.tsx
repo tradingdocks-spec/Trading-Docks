@@ -120,8 +120,9 @@ export function DashboardPreview() {
           <Image
             src="/trading-docks-mark.png"
             alt=""
-            width={1024}
-            height={1024}
+            width={128}
+            height={128}
+            sizes="64px"
             className="pointer-events-none absolute bottom-3 right-3 h-16 w-16 object-contain opacity-[0.035]"
           />
         </div>

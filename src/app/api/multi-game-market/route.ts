@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(payload, {
     headers: {
       "Cache-Control":
-        `public, s-maxage=${MARKET_REFRESH_SECONDS}, stale-while-revalidate=${MARKET_REFRESH_SECONDS * 3}`,
+        `public, max-age=60, s-maxage=${MARKET_REFRESH_SECONDS}, stale-while-revalidate=${MARKET_REFRESH_SECONDS * 3}`,
       "Access-Control-Allow-Origin": "*",
     },
   });

@@ -181,6 +181,53 @@ test("dashboard premium polish keeps shared actions readable and named", () => {
   assert.doesNotMatch(crm, /text-\[9px\] font-semibold uppercase tracking-wider/);
 });
 
+test("auth and brand logos do not request oversized optimized image variants", () => {
+  const signIn = readFileSync(path.join(repoRoot, "src/app/sign-in/page.tsx"), "utf8");
+  const signUp = readFileSync(path.join(repoRoot, "src/app/sign-up/page.tsx"), "utf8");
+  const entrance = readFileSync(path.join(repoRoot, "src/components/auth/SignInEntrance.tsx"), "utf8");
+  const brandLogo = readFileSync(path.join(repoRoot, "src/components/brand/trading-docks-logo.tsx"), "utf8");
+  const landingBrand = readFileSync(path.join(repoRoot, "src/components/landing/BrandMark.tsx"), "utf8");
+  const dashboardPreview = readFileSync(path.join(repoRoot, "src/components/landing/DashboardPreview.tsx"), "utf8");
+  const tieredSidebar = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredSidebar.tsx"), "utf8");
+
+  for (const source of [signIn, signUp]) {
+    assert.doesNotMatch(source, /src="\/trading-docks-mark\.png"[\s\S]{0,160}width=\{1024\}/);
+    assert.match(source, /src="\/trading-docks-mark\.png"[\s\S]{0,180}width=\{120\}/);
+    assert.match(source, /src="\/trading-docks-mark\.png"[\s\S]{0,220}sizes="60px"/);
+  }
+
+  assert.match(entrance, /src="\/trading-docks-mark\.png"[\s\S]{0,180}width=\{96\}/);
+  assert.match(entrance, /sizes="50px"/);
+  assert.match(brandLogo, /src="\/brand\/trading-docks-mark\.png"[\s\S]{0,180}width=\{128\}/);
+  assert.match(brandLogo, /src="\/brand\/trading-docks-horizontal\.png"[\s\S]{0,180}width=\{740\}/);
+  assert.doesNotMatch(brandLogo, /width=\{1800\}/);
+  assert.doesNotMatch(brandLogo, /width=\{700\}/);
+
+  for (const source of [landingBrand, dashboardPreview, tieredSidebar]) {
+    assert.doesNotMatch(source, /src="\/trading-docks-mark\.png"[\s\S]{0,180}width=\{1024\}/);
+  }
+  assert.match(landingBrand, /sizes="76px"/);
+  assert.match(dashboardPreview, /sizes="64px"/);
+  assert.match(tieredSidebar, /sizes="44px"/);
+});
+
+test("homepage defensive auth redirect is safe when public Supabase config is absent", () => {
+  const homePage = readFileSync(path.join(repoRoot, "src/app/page.tsx"), "utf8");
+
+  assert.match(homePage, /hasSupabasePublicConfig/);
+  assert.match(homePage, /if \(!hasSupabasePublicConfig\(\)\) return null/);
+  assert.match(homePage, /redirect\("\/dashboard"\)/);
+});
+
+test("public multi-game market feed is not forced through a no-store waterfall", () => {
+  const marketSection = readFileSync(path.join(repoRoot, "src/components/landing/MarketSection.tsx"), "utf8");
+  const marketRoute = readFileSync(path.join(repoRoot, "src/app/api/multi-game-market/route.ts"), "utf8");
+
+  assert.match(marketSection, /fetch\("\/api\/multi-game-market", \{ cache: "force-cache" \}\)/);
+  assert.doesNotMatch(marketSection, /cache: "no-store"/);
+  assert.match(marketRoute, /public, max-age=60, s-maxage=\$\{MARKET_REFRESH_SECONDS\}/);
+});
+
 test("modular dashboard presents a premium command-center hierarchy", () => {
   const source = readFileSync(
     path.join(repoRoot, "src/components/dashboard/workspace/ModularWorkspace.tsx"),

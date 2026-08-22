@@ -22,9 +22,10 @@ export function BrandMark({
         <Image
           src="/trading-docks-mark.png"
           alt=""
-          width={1024}
-          height={1024}
+          width={152}
+          height={152}
           priority={priority}
+          sizes="76px"
           className="relative h-[76px] w-[76px] object-contain transition duration-500 group-hover:-translate-y-0.5 group-hover:scale-[1.045]"
         />
       </span>
@@ -41,4 +42,3 @@ export function BrandMark({
     </Link>
   );
 }
-

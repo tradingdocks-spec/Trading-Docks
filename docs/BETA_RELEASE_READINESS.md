@@ -17,6 +17,7 @@ Status labels:
 - Billing provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
 - Deployed product/mobile QA matrix: `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`.
 - Premium product polish inventory: `docs/PREMIUM_PRODUCT_POLISH.md`.
+- Performance production readiness: `docs/PERFORMANCE_PRODUCTION_READINESS.md`.
 
 ## Automated Validation Baseline
 
@@ -30,6 +31,8 @@ Status labels:
 - Complete: full production build passes with `npm run build`.
 - Complete: `git diff --check` passes.
 - Complete: `.next/` generated artifacts are not tracked by Git.
+- Complete: public production-mode routes render without crashing when public Supabase web config is absent, and the performance baseline is documented in `docs/PERFORMANCE_PRODUCTION_READINESS.md`.
+- Needs QA: authenticated dashboard and large-workspace performance require real Free, Collector, Seller, Store, and Owner/Admin sessions.
 
 ## Preview/Staging Deployment Readiness
 
@@ -83,6 +86,9 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Complete: dashboard mobile sidebar now locks background page scroll while the menu is open and restores scrolling on close/unmount.
 - Complete: public header navigation now has a tablet-safe compact drawer below `xl`, explicit same-page section scrolling, and named navigation landmarks for accessibility/testing.
 - Complete: public footer logo sizing no longer creates browser-level horizontal overflow.
+- Complete: public/auth/brand logo image sizing no longer requests oversized optimized variants for small marks.
+- Complete: public multi-game market feed no longer forces a no-store browser fetch on the homepage.
+- Complete: public routes avoid unnecessary Supabase session lookup when public auth config is absent, while protected routes continue to fail closed.
 - Complete: Playwright E2E scripts and artifact ignores are in place for launch QA.
 - Complete: dashboard account/workspace controls expose stable accessible names for browser automation without changing visible product behavior.
 - Complete: shared dashboard headers and metric cards have tighter premium proportions, readable caption sizing, and named primary action controls.

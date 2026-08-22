@@ -87,9 +87,10 @@ export function Sidebar({
               <Image
                 src="/trading-docks-mark.png"
                 alt=""
-                width={1024}
-                height={1024}
+                width={96}
+                height={96}
                 priority
+                sizes="48px"
                 className="relative h-12 w-12 object-contain transition duration-500 group-hover:-translate-y-0.5 group-hover:scale-105"
               />
             </span>
@@ -230,4 +231,3 @@ export function Sidebar({
     </>
   );
 }
-

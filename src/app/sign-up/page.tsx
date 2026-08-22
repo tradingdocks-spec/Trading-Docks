@@ -512,9 +512,10 @@ export default async function SignUpPage({
                   <Image
                     src="/trading-docks-mark.png"
                     alt=""
-                    width={1024}
-                    height={1024}
+                    width={120}
+                    height={120}
                     priority
+                    sizes="60px"
                     className="relative h-[60px] w-[60px] object-contain transition duration-500 group-hover:-translate-y-0.5 group-hover:scale-[1.045]"
                   />
                 </span>
@@ -597,9 +598,10 @@ export default async function SignUpPage({
                 <Image
                   src="/trading-docks-mark.png"
                   alt=""
-                  width={1024}
-                  height={1024}
+                  width={120}
+                  height={120}
                   priority
+                  sizes="60px"
                   className="relative h-[60px] w-[60px] object-contain transition duration-500 group-hover:-translate-y-0.5 group-hover:scale-[1.045]"
                 />
               </span>

@@ -282,9 +282,10 @@ function SidebarBrand({
           <Image
             src="/trading-docks-mark.png"
             alt="Trading Docks"
-            width={1024}
-            height={1024}
+            width={88}
+            height={88}
             priority
+            sizes="44px"
             className="relative h-11 w-11 object-contain transition duration-300 group-hover:-translate-y-0.5"
           />
         </span>

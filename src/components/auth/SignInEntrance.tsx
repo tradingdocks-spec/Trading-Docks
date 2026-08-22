@@ -46,10 +46,11 @@ export function SignInEntrance() {
             <Image
               alt=""
               className="td-entrance__mark"
-              height={1024}
+              height={96}
               priority
+              sizes="50px"
               src="/trading-docks-mark.png"
-              width={1024}
+              width={96}
             />
           </span>
         </div>

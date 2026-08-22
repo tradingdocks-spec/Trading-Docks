@@ -17,6 +17,7 @@ Status labels:
 - Billing/provider QA matrix: `docs/BILLING_PROVIDER_LAUNCH_QA.md`.
 - Deployed product/mobile QA matrix: `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`.
 - Premium product polish inventory: `docs/PREMIUM_PRODUCT_POLISH.md`.
+- Performance production readiness: `docs/PERFORMANCE_PRODUCTION_READINESS.md`.
 
 ## Route And Product Surface Inventory
 
@@ -43,7 +44,12 @@ Status labels:
 | P1 | RevenueCat provider state could previously be bypassed by a stale paid row in `billing_subscriptions` during effective access resolution. | Fixed | Added central billing access resolution for web/mobile so active Apple/Google provider rows and explicit manual overrides are authoritative; legacy billing rows are compatibility fallback only when no provider authority exists. |
 | P1 | Older RevenueCat webhook events could overwrite a newer provider-subscription period if delivered out of order. | Fixed | Older incoming `current_period_end` values no longer replace newer stored provider state. |
 | P1 | Mobile native scanner/auth/offline replay must be tested on physical iOS/Android builds if mobile is in beta launch scope. | Blocked | Requires device builds and representative accounts. Manual matrix is documented in `docs/DEPLOYED_PRODUCT_MOBILE_QA.md`. |
+| P1 | Authenticated dashboard performance has not been measured with representative populated accounts. | Needs QA | Public production-mode routes were measured and fixed in `docs/PERFORMANCE_PRODUCTION_READINESS.md`; Free/Collector/Seller/Store/Owner dashboard timing and query-plan validation remain required. |
+| P1 | Production Web Vitals/error monitoring is not yet confirmed. | Needs QA | Add deployed Core Web Vitals and error monitoring before expanding beyond closed beta. |
 | P1 | Public site tablet navigation had a breakpoint gap where primary nav links were hidden and the hamburger menu was unavailable. | Fixed | Header now uses the compact drawer below `xl` and same-page section links perform explicit hash/scroll navigation. |
+| P1 | Public routes crashed in local production when public Supabase web config was absent because middleware/homepage code created Supabase clients unnecessarily. | Fixed | Public routes now skip session lookup when safe and render without crashing; protected routes still fail closed when auth config is missing. |
+| P2 | Public/auth logo images requested oversized optimized variants. | Fixed | Logo/mark dimensions and `sizes` hints were tightened; measured public routes now request small optimized mark variants instead of `w=1080`. |
+| P2 | Public market feed participated in the homepage waterfall through a no-store browser fetch. | Fixed | Market feed now uses cacheable public semantics with browser/server cache headers and stale-while-revalidate. |
 | P2 | Footer logo and dense public tables/decorative elements exposed unhelpful horizontal-overflow regressions during browser automation. | Fixed | Footer logo dimensions are constrained; Playwright overflow checks now fail page-level leaks while allowing intentional table-internal scroll containers. |
 | P2 | Dashboard account controls lacked stable accessible names for authenticated browser QA selectors. | Fixed | Topbar workspace/account menu controls now expose explicit labels without changing visible layout. |
 | P2 | Orders and Customer CRM had prototype-like dashboard proportions: oversized decorative surfaces, tiny captions, and several unnamed row/modal controls. | Fixed | Shared headers/metric cards, Orders, and Customer CRM now use tighter proportions, clearer action hierarchy, and stable accessible labels. Authenticated visual QA is still required. |
@@ -97,6 +103,7 @@ Required before production launch:
 | Admin | Needs QA | Owner/Admin Command Center and role-gated routes in deployed preview. |
 | Mobile | Blocked | Physical-device iOS/Android build validation. |
 | Observability | Needs QA | Confirm actionable API errors for catalog/import/webhook/provider failures in Vercel logs and UI. |
+| Performance | Needs QA | Public route baseline is fixed and documented; authenticated dashboard and large-workspace performance still need deployed account validation. |
 
 ## Safe Launch Order
 

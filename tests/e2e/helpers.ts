@@ -119,9 +119,10 @@ export async function expectNoDocumentOverflow(page: Page) {
 }
 
 export async function gotoAndAssertLoaded(page: Page, path: string) {
-  const response = await page.goto(path, { waitUntil: "networkidle" });
+  const response = await page.goto(path, { waitUntil: "load" });
   expect(response?.status(), `${path} response status`).toBeLessThan(400);
   await expect(page.locator("body")).toBeVisible();
+  await page.waitForLoadState("domcontentloaded");
 }
 
 export async function recordSmallTextAudit(page: Page, testInfo: TestInfo) {

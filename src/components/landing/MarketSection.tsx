@@ -74,7 +74,7 @@ export function MarketSection() {
     setError("");
 
     try {
-      const response = await fetch("/api/multi-game-market", { cache: "no-store" });
+      const response = await fetch("/api/multi-game-market", { cache: "force-cache" });
       if (!response.ok) throw new Error(`Market feed returned ${response.status}.`);
       const nextPayload = (await response.json()) as ApiResponse;
       setPayload(nextPayload);

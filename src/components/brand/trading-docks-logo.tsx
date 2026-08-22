@@ -16,18 +16,20 @@ export function TradingDocksLogo({
     <Image
       src="/brand/trading-docks-mark.png"
       alt="Trading Docks"
-      width={700}
-      height={700}
+      width={128}
+      height={128}
       priority
+      sizes="64px"
       className={`h-16 w-16 object-contain drop-shadow-[0_0_16px_rgba(59,130,246,0.16)] ${className}`}
     />
   ) : (
     <Image
       src="/brand/trading-docks-horizontal.png"
       alt="Trading Docks"
-      width={1800}
-      height={600}
+      width={740}
+      height={247}
       priority
+      sizes="370px"
       className={`h-[82px] w-auto max-w-[370px] object-contain object-left drop-shadow-[0_0_18px_rgba(59,130,246,0.1)] ${className}`}
     />
   );
@@ -58,8 +60,9 @@ export function TradingDocksMark({
     <Image
       src="/brand/trading-docks-mark.png"
       alt=""
-      width={700}
-      height={700}
+      width={96}
+      height={96}
+      sizes="48px"
       className={`object-contain ${className}`}
     />
   );

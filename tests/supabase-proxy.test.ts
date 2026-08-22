@@ -5,6 +5,10 @@ import {
   canonicalizeTradingDocksUrl,
   shouldRedirectToCanonicalHost,
 } from "../src/lib/supabase/canonical-host.ts";
+import {
+  hasSupabasePublicConfig,
+  routeNeedsSessionLookup,
+} from "../src/lib/supabase/proxy-routing.ts";
 
 const ORIGINAL_VERCEL_ENV = process.env.VERCEL_ENV;
 
@@ -84,4 +88,45 @@ test("local development is not canonicalized", () => {
     assert.equal(shouldRedirectToCanonicalHost("localhost"), false);
     assert.equal(shouldRedirectToCanonicalHost("127.0.0.1"), false);
   });
+});
+
+test("public routes that do not need auth skip Supabase session lookup", () => {
+  assert.equal(routeNeedsSessionLookup("/pricing"), false);
+  assert.equal(routeNeedsSessionLookup("/privacy"), false);
+  assert.equal(routeNeedsSessionLookup("/security"), false);
+  assert.equal(routeNeedsSessionLookup("/api/market-cards"), false);
+  assert.equal(routeNeedsSessionLookup("/api/landing-card-image/mid/82"), false);
+});
+
+test("session-sensitive and protected routes still require Supabase lookup", () => {
+  assert.equal(routeNeedsSessionLookup("/"), true);
+  assert.equal(routeNeedsSessionLookup("/sign-in"), true);
+  assert.equal(routeNeedsSessionLookup("/sign-up"), true);
+  assert.equal(routeNeedsSessionLookup("/dashboard"), true);
+  assert.equal(routeNeedsSessionLookup("/dashboard/orders"), true);
+  assert.equal(routeNeedsSessionLookup("/onboarding"), true);
+  assert.equal(routeNeedsSessionLookup("/api/admin/users"), true);
+  assert.equal(routeNeedsSessionLookup("/api/orders/bulk"), true);
+});
+
+test("Supabase public config requires both URL and publishable key", () => {
+  assert.equal(
+    hasSupabasePublicConfig({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_placeholder",
+    } as NodeJS.ProcessEnv),
+    true,
+  );
+  assert.equal(
+    hasSupabasePublicConfig({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+    } as NodeJS.ProcessEnv),
+    false,
+  );
+  assert.equal(
+    hasSupabasePublicConfig({
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_placeholder",
+    } as NodeJS.ProcessEnv),
+    false,
+  );
 });
