@@ -1,4 +1,4 @@
-import { expect, test, type Browser } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 
 import { REPRESENTATIVE_QA_ACCOUNT, type QaAccount } from "./auth-state";
 import {
@@ -17,6 +17,13 @@ async function openAuthenticatedPage(browser: Browser, account: QaAccount) {
   return { context, page };
 }
 
+async function waitForPublicHomepageVisualState(page: Page) {
+  await expect(page.locator("#market")).toBeVisible();
+  await expect(page.locator("#market")).not.toContainText("Connecting to market feed.", {
+    timeout: 15_000,
+  });
+}
+
 test.describe("stable visual baselines", () => {
   test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -27,6 +34,7 @@ test.describe("stable visual baselines", () => {
 
     const monitor = monitorPageErrors(page);
     await gotoAndAssertLoaded(page, "/");
+    await waitForPublicHomepageVisualState(page);
     await expect(page).toHaveScreenshot("homepage-desktop.png", {
       fullPage: true,
       animations: "disabled",

@@ -38,10 +38,19 @@ test("public web surface avoids dead signup links invalid sizing utilities and m
 
 test("public web metadata is production-ready and auth utility pages stay out of search", () => {
   const layout = readFileSync(path.join(repoRoot, "src/app/layout.tsx"), "utf8");
+  const robots = readFileSync(path.join(repoRoot, "src/app/robots.ts"), "utf8");
+  const sitemap = readFileSync(path.join(repoRoot, "src/app/sitemap.ts"), "utf8");
+
   assert.match(layout, /metadataBase:\s*new URL\("https:\/\/www\.tradingdocks\.com"\)/);
   assert.match(layout, /openGraph:\s*{/);
   assert.match(layout, /twitter:\s*{/);
   assert.match(layout, /alternates:\s*{/);
+  assert.match(robots, /sitemap:\s*"https:\/\/www\.tradingdocks\.com\/sitemap\.xml"/);
+  assert.match(sitemap, /https:\/\/www\.tradingdocks\.com/);
+  assert.match(sitemap, /path:\s*"\/pricing"/);
+  assert.match(sitemap, /path:\s*"\/sign-up"/);
+  assert.doesNotMatch(sitemap, /\/dashboard/);
+  assert.doesNotMatch(sitemap, /\/api/);
 
   const noindexRoutes = [
     "src/app/sign-in/page.tsx",
