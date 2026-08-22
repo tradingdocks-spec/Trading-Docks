@@ -943,6 +943,40 @@ export type CommanderGenerationResult = {
   performanceMs?: number;
 };
 
+export type DeckArchitectBuildResult = {
+  status: DeckGenerationStatus;
+  format: DeckArchitectFormatId;
+  strategy: string | null;
+  archetype: DeckArchetypeProfile | null;
+  requirements: DeckRequirement[];
+  totalCards: number;
+  validation: DeckValidationResult;
+  ownership: OwnershipMatch[];
+  buildability: BuildabilityScore | null;
+  health: DeckHealthReport | null;
+  missingCards: OwnershipMatch[];
+  recommendationReasons: Array<{
+    cardName: string;
+    role: DeckArchitectRole;
+    reasons: string[];
+  }>;
+  cutRecommendations: DeckRecommendation["cuts"];
+  failureReason: string | null;
+  diagnostics: {
+    format: DeckArchitectFormatId;
+    strategy: string | null;
+    mode: BuildIntentId;
+    legalCandidates: number;
+    selectedCandidates: number;
+    packageCounts: Partial<Record<DeckArchitectRole, number>>;
+    landCount: number;
+    validationValid: boolean;
+    ownedCards: number;
+    requiredCards: number;
+    finalStatus: DeckGenerationStatus;
+  };
+};
+
 export type DeckArchitectIntelligence = {
   generatedAt: string;
   supportedFormats: DeckArchitectFormatId[];

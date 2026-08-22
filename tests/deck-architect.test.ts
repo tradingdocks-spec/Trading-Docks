@@ -24,6 +24,7 @@ import {
   rankCommanderStrategiesForCollection,
   constructValidatedArchetypeDeck,
   constructValidatedCommanderDeck,
+  constructValidatedFormatDeck,
   commanderColorIdentityFits,
   commanderColorIdentityQuery,
   detectCardTaxonomy,
@@ -485,6 +486,13 @@ test("Deck Architect workspace builds Commander decks through the authenticated 
   assert.doesNotMatch(workspace, /constructValidatedCommanderDeck\(/);
 });
 
+test("Deck Architect workspace routes non-Commander builds through the validated constructor", () => {
+  assert.match(workspace, /constructValidatedFormatDeck/);
+  assert.match(workspace, /formatGeneration\?\.status === "complete"/);
+  assert.match(workspace, /activeBuildStatus === "complete"/);
+  assert.doesNotMatch(workspace, /return buildWorkingDeckRequirementsFromCollection\(snapshot\.cards/);
+});
+
 test("Commander build API uses server-side collection authority and Scryfall global candidates", () => {
   const apiRoute = readFileSync(
     path.join(repoRoot, "src/app/api/deck-architect/commander-build/route.ts"),
@@ -644,6 +652,63 @@ test("Pauper archetype construction returns a complete validated 60-card shell",
   assert.equal(mainCount, 60);
   assert.ok(sideboardCount <= 15);
   assert.equal(result.validation.valid, true);
+});
+
+test("validated Pauper format build excludes illegal Commander staples and returns a complete result contract", () => {
+  const result = constructValidatedFormatDeck({
+    formatId: "pauper",
+    collection: [
+      {
+        inventoryId: "illegal-rhystic",
+        name: "Rhystic Study",
+        quantityOwned: 1,
+        typeLine: "Enchantment",
+        oracleText: "Whenever an opponent casts a spell, you may draw a card unless that player pays 1.",
+        colorIdentity: ["U"],
+        marketPrice: 38,
+        legalities: { pauper: "not_legal", commander: "legal" },
+      },
+      {
+        inventoryId: "illegal-wheel",
+        name: "Wheel of Fortune",
+        quantityOwned: 1,
+        typeLine: "Sorcery",
+        oracleText: "Each player discards their hand, then draws seven cards.",
+        colorIdentity: ["R"],
+        marketPrice: 250,
+        legalities: { pauper: "not_legal", commander: "legal" },
+      },
+      ...collection,
+    ],
+    intentId: "competitive",
+  });
+  const names = new Set(result.requirements.map((requirement) => requirement.name));
+
+  assert.equal(result.status, "complete");
+  assert.equal(result.format, "pauper");
+  assert.equal(result.totalCards, 60);
+  assert.equal(result.validation.valid, true);
+  assert.ok(result.buildability);
+  assert.ok(result.health);
+  assert.ok(result.diagnostics.validationValid);
+  assert.equal(names.has("Rhystic Study"), false);
+  assert.equal(names.has("Wheel of Fortune"), false);
+  assert.equal(result.requirements.every((requirement) => cardLegalityForFormat(requirement, "pauper") !== "not_legal"), true);
+});
+
+test("validated Pauper build preserves exact owned and missing quantities", () => {
+  const result = constructValidatedFormatDeck({
+    formatId: "pauper",
+    collection,
+    intentId: "competitive",
+  });
+  const bolt = result.ownership.find((match) => match.requirement.name === "Lightning Bolt");
+
+  assert.equal(result.status, "complete");
+  assert.ok(bolt);
+  assert.equal(bolt.requirement.requiredQuantity, 4);
+  assert.equal(bolt.ownedQuantity, 3);
+  assert.equal(bolt.missingQuantity, 1);
 });
 
 test("Build Intent materially changes constructed archetype output", () => {

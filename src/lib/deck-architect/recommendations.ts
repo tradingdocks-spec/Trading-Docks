@@ -1,4 +1,5 @@
 import { calculateBuildabilityScore } from "./buildability.ts";
+import { analyzeDeckHealth } from "./health.ts";
 import {
   evaluateCandidate,
   selectArchetypeProfile,
@@ -22,7 +23,7 @@ import {
   justifyCardInclusion,
 } from "./deck-planning.ts";
 import { getFormatProfile, isBasicLand, maximumCopiesForCard } from "./formats.ts";
-import { validateDeckRequirements } from "./legality.ts";
+import { cardLegalityForFormat, validateDeckRequirements } from "./legality.ts";
 import {
   getLocalArchetypes,
   inferCommanderStrategies,
@@ -49,6 +50,7 @@ import type {
   DeckRecommendation,
   DeckRequirement,
   DeckGenerationStatus,
+  DeckArchitectBuildResult,
   FormatProfile,
   OwnedSubstitution,
   OwnershipMatch,
@@ -132,8 +134,8 @@ export function assembleDeckRequirementsFromArchetype(
       typeLine: seed.typeLine,
       oracleText: seed.oracleText,
       colorIdentity: seed.colorIdentity,
-      legalities: { commander: "legal" },
-      legalityStatus: "unknown",
+      legalities: { commander: "legal", [archetype.formatId]: "legal" },
+      legalityStatus: "legal",
     });
     current += quantity;
   }
@@ -150,8 +152,8 @@ export function assembleDeckRequirementsFromArchetype(
       importance: 0.75,
       typeLine: `Basic Land - ${fallback}`,
       colorIdentity: archetype.colors.slice(0, 1),
-      legalities: { commander: "legal" },
-      legalityStatus: "unknown",
+      legalities: { commander: "legal", [archetype.formatId]: "legal" },
+      legalityStatus: "legal",
     });
     current += remaining;
   }
@@ -172,8 +174,8 @@ export function assembleDeckRequirementsFromArchetype(
         typeLine: seed.typeLine,
         oracleText: seed.oracleText,
         colorIdentity: seed.colorIdentity,
-        legalities: { commander: "legal" },
-        legalityStatus: "unknown",
+        legalities: { commander: "legal", [archetype.formatId]: "legal" },
+        legalityStatus: "legal",
       });
       sideboardCount += quantity;
     }
@@ -208,6 +210,215 @@ export function constructValidatedArchetypeDeck({
     ownership,
     buildability: validation.valid ? calculateBuildabilityScore(ownership) : null,
     failure: validation.valid ? null : validation.issues[0]?.message ?? "A valid complete build could not be generated.",
+  };
+}
+
+export function constructValidatedFormatDeck({
+  formatId,
+  collection,
+  intentId,
+  archetypeId,
+}: {
+  formatId: DeckArchitectFormatId;
+  collection: CollectionGraphCard[];
+  intentId: BuildIntentId;
+  archetypeId?: string | null;
+}): DeckArchitectBuildResult {
+  const format = getFormatProfile(formatId);
+  const archetypes = getLocalArchetypes(formatId);
+  if (format.commanderRequired || !archetypes.length) {
+    return failedFormatBuild({
+      format,
+      intentId,
+      collection,
+      archetype: null,
+      failureReason: `${format.name} does not yet have an authoritative 60-card archetype constructor.`,
+      legalCandidates: legalCollectionCandidates(collection, format).length,
+    });
+  }
+
+  const legalCandidates = legalCollectionCandidates(collection, format);
+  const ranked = archetypes
+    .map((archetype) => {
+      const constructed = constructValidatedArchetypeDeck({ archetype, collection, intentId });
+      const mainCount = constructed.requirements
+        .filter((requirement) => requirement.board === "main")
+        .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+      const completeMainDeck = mainCount === (format.exactDeckSize ?? format.minimumMainDeckSize ?? mainCount);
+      const noPurchasesSatisfied = intentId !== "no-purchases" || constructed.ownership.every((match) => match.missingQuantity === 0);
+      const score =
+        (constructed.validation.valid && completeMainDeck ? 120 : -500) +
+        (constructed.buildability?.score ?? 0) +
+        (intentId === "competitive" ? archetype.coreCards.length * 2 + archetype.flexCards.length : 0) +
+        (archetypeId && archetype.id === archetypeId ? 60 : 0) -
+        (noPurchasesSatisfied ? 0 : 300);
+      return { archetype, constructed, mainCount, completeMainDeck, noPurchasesSatisfied, score };
+    })
+    .sort((left, right) => right.score - left.score || left.archetype.name.localeCompare(right.archetype.name));
+  const best = ranked[0];
+  if (!best || !best.constructed.validation.valid || !best.completeMainDeck || !best.noPurchasesSatisfied) {
+    return failedFormatBuild({
+      format,
+      intentId,
+      collection,
+      archetype: best?.archetype ?? null,
+      requirements: best?.constructed.requirements ?? [],
+      ownership: best?.constructed.ownership ?? [],
+      validation: best?.constructed.validation,
+      failureReason:
+        !best ? `No ${format.name} archetype is available.` :
+        !best.noPurchasesSatisfied ? "Owned-only mode cannot complete this archetype from current collection quantities." :
+        best.constructed.validation.issues[0]?.message ?? `${format.name} generation did not produce a complete validated deck.`,
+      legalCandidates: legalCandidates.length,
+    });
+  }
+
+  const requirements = best.constructed.requirements;
+  const validation = validateDeckRequirements(requirements, format);
+  const ownership = compareRequirementsToCollection(requirements, collection, format);
+  const buildability = calculateBuildabilityScore(ownership);
+  const health = analyzeDeckHealth(requirements, format);
+  const totalCards = requirements
+    .filter((requirement) => requirement.board === "main")
+    .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+  const complete = validation.valid && totalCards === (format.exactDeckSize ?? format.minimumMainDeckSize ?? totalCards);
+  return {
+    status: complete ? "complete" : "failed",
+    format: format.id,
+    strategy: best.archetype.name,
+    archetype: best.archetype,
+    requirements,
+    totalCards,
+    validation,
+    ownership,
+    buildability,
+    health: complete ? health : null,
+    missingCards: ownership.filter((match) => match.missingQuantity > 0),
+    recommendationReasons: requirements
+      .filter((requirement) => requirement.board === "main" && !requirement.roles.includes("land"))
+      .map((requirement) => ({
+        cardName: requirement.name,
+        role: requirement.roles[0] ?? "synergy",
+        reasons: [
+          `${requirement.name} fills ${primaryRole(requirement.roles)} in ${best.archetype.name}.`,
+          requirement.whyThisCard ?? best.archetype.summary,
+        ].filter(Boolean),
+      })),
+    cutRecommendations: [],
+    failureReason: complete ? null : validation.issues[0]?.message ?? `${format.name} generation did not produce a complete deck.`,
+    diagnostics: formatDiagnostics({
+      format,
+      intentId,
+      strategy: best.archetype.name,
+      requirements,
+      validation,
+      ownership,
+      legalCandidates: legalCandidates.length,
+      status: complete ? "complete" : "failed",
+    }),
+  };
+}
+
+function failedFormatBuild({
+  format,
+  intentId,
+  collection,
+  archetype,
+  requirements = [],
+  validation,
+  ownership,
+  failureReason,
+  legalCandidates,
+}: {
+  format: FormatProfile;
+  intentId: BuildIntentId;
+  collection: CollectionGraphCard[];
+  archetype: DeckArchetypeProfile | null;
+  requirements?: DeckRequirement[];
+  validation?: ReturnType<typeof validateDeckRequirements>;
+  ownership?: OwnershipMatch[];
+  failureReason: string;
+  legalCandidates: number;
+}): DeckArchitectBuildResult {
+  const resolvedValidation = validation ?? validateDeckRequirements(requirements, format);
+  const resolvedOwnership = ownership ?? compareRequirementsToCollection(requirements, collection, format);
+  const totalCards = requirements
+    .filter((requirement) => requirement.board === "main")
+    .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0);
+
+  return {
+    status: "failed",
+    format: format.id,
+    strategy: archetype?.name ?? null,
+    archetype,
+    requirements,
+    totalCards,
+    validation: resolvedValidation,
+    ownership: resolvedOwnership,
+    buildability: null,
+    health: null,
+    missingCards: resolvedOwnership.filter((match) => match.missingQuantity > 0),
+    recommendationReasons: [],
+    cutRecommendations: [],
+    failureReason,
+    diagnostics: formatDiagnostics({
+      format,
+      intentId,
+      strategy: archetype?.name ?? null,
+      requirements,
+      validation: resolvedValidation,
+      ownership: resolvedOwnership,
+      legalCandidates,
+      status: "failed",
+    }),
+  };
+}
+
+function legalCollectionCandidates(collection: CollectionGraphCard[], format: FormatProfile) {
+  return collection.filter((card) => {
+    if (isBasicLand(card.name)) return true;
+    return cardLegalityForFormat(card, format.id) === "legal";
+  });
+}
+
+function formatDiagnostics({
+  format,
+  intentId,
+  strategy,
+  requirements,
+  validation,
+  ownership,
+  legalCandidates,
+  status,
+}: {
+  format: FormatProfile;
+  intentId: BuildIntentId;
+  strategy: string | null;
+  requirements: DeckRequirement[];
+  validation: ReturnType<typeof validateDeckRequirements>;
+  ownership: OwnershipMatch[];
+  legalCandidates: number;
+  status: DeckGenerationStatus;
+}): DeckArchitectBuildResult["diagnostics"] {
+  const packageCounts: Partial<Record<DeckArchitectRole, number>> = {};
+  for (const requirement of requirements) {
+    const role = requirement.roles[0] ?? "synergy";
+    packageCounts[role] = (packageCounts[role] ?? 0) + requirement.requiredQuantity;
+  }
+  return {
+    format: format.id,
+    strategy,
+    mode: intentId,
+    legalCandidates,
+    selectedCandidates: requirements.filter((requirement) => requirement.board === "main").length,
+    packageCounts,
+    landCount: requirements
+      .filter((requirement) => requirement.board === "main" && requirement.roles.includes("land"))
+      .reduce((sum, requirement) => sum + requirement.requiredQuantity, 0),
+    validationValid: validation.valid,
+    ownedCards: ownership.reduce((sum, match) => sum + Math.min(match.ownedQuantity, match.requirement.requiredQuantity), 0),
+    requiredCards: ownership.reduce((sum, match) => sum + match.requirement.requiredQuantity, 0),
+    finalStatus: status,
   };
 }
 

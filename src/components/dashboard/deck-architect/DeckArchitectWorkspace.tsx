@@ -26,9 +26,9 @@ import {
   BUILD_INTENTS,
   INITIAL_DECK_ARCHITECT_FORMATS,
   analyzeDeckHealth,
-  buildWorkingDeckRequirementsFromCollection,
   calculateBuildabilityScore,
   compareRequirementsToCollection,
+  constructValidatedFormatDeck,
   generateDeckArchitectBrewAnalysis,
   getFormatProfile,
   getDeckArchitectBuildBlocker,
@@ -40,6 +40,7 @@ import {
   type BuildIntentId,
   type CollectionGraphCard,
   type CommanderStrategyProfile,
+  type DeckArchitectBuildResult,
   type DeckArchitectFormatId,
   type DeckArchitectIntelligence,
   type DeckArchitectRole,
@@ -187,6 +188,7 @@ export function DeckArchitectWorkspace({
   const [builderError, setBuilderError] = useState("");
   const [buildRequested, setBuildRequested] = useState(Boolean(activeDeck));
   const [commanderGeneration, setCommanderGeneration] = useState<CommanderGenerationResult | null>(null);
+  const [formatGeneration, setFormatGeneration] = useState<DeckArchitectBuildResult | null>(null);
   const [generationStatus, setGenerationStatus] = useState<"idle" | "generating" | "error">("idle");
   const [generationError, setGenerationError] = useState("");
   const [budgetCents, setBudgetCents] = useState(2500);
@@ -228,6 +230,7 @@ export function DeckArchitectWorkspace({
 
   useEffect(() => {
     setCommanderGeneration(null);
+    setFormatGeneration(null);
     setGenerationError("");
     setGenerationStatus("idle");
     if (!activeDeck) setBuildRequested(false);
@@ -237,29 +240,33 @@ export function DeckArchitectWorkspace({
     if (activeDeck) return importedDeckRequirements;
     if (!canBuildWorkingDeck || !buildRequested) return [];
     if (formatId === "commander") return commanderGeneration?.requirements ?? [];
-    return buildWorkingDeckRequirementsFromCollection(snapshot.cards, formatId, selectedCommander, intentId);
-  }, [activeDeck, buildRequested, canBuildWorkingDeck, commanderGeneration?.requirements, formatId, importedDeckRequirements, intentId, selectedCommander, snapshot.cards]);
-  const commanderBuildStatus = activeDeck ? "complete" : commanderGeneration?.generationStatus ?? null;
-  const hasGeneratedDeck = workflowId !== "discover" && canBuildWorkingDeck && deckRequirements.length > 0 && commanderBuildStatus !== "failed";
+    return formatGeneration?.status === "complete" ? formatGeneration.requirements : [];
+  }, [activeDeck, buildRequested, canBuildWorkingDeck, commanderGeneration, formatGeneration, formatId, importedDeckRequirements]);
+  const activeBuildStatus: CommanderGenerationResult["generationStatus"] | null = activeDeck
+    ? "complete"
+    : formatId === "commander"
+      ? commanderGeneration?.generationStatus ?? null
+      : formatGeneration?.status ?? null;
+  const hasGeneratedDeck = workflowId !== "discover" && canBuildWorkingDeck && deckRequirements.length > 0 && activeBuildStatus === "complete";
   const potentialCommanders = useMemo(
     () => potentialCommanderMatches.map((match) => match.card),
     [potentialCommanderMatches],
   );
   const targetDeckSize = format.exactDeckSize ?? format.minimumMainDeckSize ?? 60;
-  const hasCompleteWorkingDeck = commanderBuildStatus === "complete" || (
-    !commanderBuildStatus && deckRequirements.reduce((sum, card) => sum + card.requiredQuantity, 0) >= targetDeckSize
+  const hasCompleteWorkingDeck = activeBuildStatus === "complete" || (
+    !activeBuildStatus && deckRequirements.reduce((sum, card) => sum + card.requiredQuantity, 0) >= targetDeckSize
   );
   const ownership = useMemo(
     () => deckRequirements.length ? compareRequirementsToCollection(deckRequirements, snapshot.cards, format) : [],
     [deckRequirements, format, snapshot.cards],
   );
   const buildability = useMemo(
-    () => commanderGeneration?.buildability ?? (ownership.length && hasCompleteWorkingDeck ? calculateBuildabilityScore(ownership) : null),
-    [commanderGeneration?.buildability, hasCompleteWorkingDeck, ownership],
+    () => commanderGeneration?.buildability ?? formatGeneration?.buildability ?? (ownership.length && hasCompleteWorkingDeck ? calculateBuildabilityScore(ownership) : null),
+    [commanderGeneration?.buildability, formatGeneration?.buildability, hasCompleteWorkingDeck, ownership],
   );
   const health = useMemo(
-    () => deckRequirements.length && hasCompleteWorkingDeck ? analyzeDeckHealth(deckRequirements, format) : null,
-    [deckRequirements, format, hasCompleteWorkingDeck],
+    () => formatGeneration?.health ?? (deckRequirements.length && hasCompleteWorkingDeck ? analyzeDeckHealth(deckRequirements, format) : null),
+    [deckRequirements, format, formatGeneration?.health, hasCompleteWorkingDeck],
   );
   const activeRecommendations = useMemo(
     () => deckRequirements.length && hasCompleteWorkingDeck
@@ -381,9 +388,38 @@ export function DeckArchitectWorkspace({
     }
   }
 
+  function runFormatBuild() {
+    setGenerationStatus("generating");
+    setGenerationError("");
+    setFormatGeneration(null);
+    setBuildRequested(true);
+    setViewMode("intelligence");
+    try {
+      const result = constructValidatedFormatDeck({
+        formatId,
+        collection: snapshot.cards,
+        intentId,
+      });
+      setFormatGeneration(result);
+      setViewMode(result.status === "complete" ? "deck" : "intelligence");
+      if (result.status !== "complete") {
+        setGenerationError(result.failureReason ?? "Deck Architect could not assemble a complete validated deck.");
+        setGenerationStatus("error");
+        return;
+      }
+      setGenerationStatus("idle");
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : "Deck generation failed.");
+      setFormatGeneration(null);
+      setGenerationStatus("error");
+      setBuildRequested(false);
+      setViewMode("intelligence");
+    }
+  }
+
   async function openInDeckBuilder() {
     if (!deckRequirements.length) return;
-    if (commanderBuildStatus && commanderBuildStatus !== "complete") {
+    if (activeBuildStatus && activeBuildStatus !== "complete") {
       setBuilderStatus("error");
       setBuilderError("Only a complete validated deck can be saved to Deck Vault. Change build settings or choose another strategy.");
       return;
@@ -596,13 +632,10 @@ export function DeckArchitectWorkspace({
                   setTotalBudgetCents={setTotalBudgetCents}
                   generationStatus={generationStatus}
                   generationError={generationError}
-                  generationResult={commanderGeneration}
+                  generationResult={commanderGeneration ?? formatGeneration}
                   onBuild={() => {
                     if (formatId === "commander") void runCommanderBuild();
-                    else {
-                      setBuildRequested(true);
-                      setViewMode("intelligence");
-                    }
+                    else runFormatBuild();
                   }}
                 />
               ) : (
@@ -614,12 +647,13 @@ export function DeckArchitectWorkspace({
                   health={health}
                   isCompleteWorkingDeck={hasCompleteWorkingDeck}
                   intentLabel={INTENT_COPY[intent.id].label}
-                  generationStatus={commanderBuildStatus}
+                  generationStatus={activeBuildStatus}
                   generationWarnings={commanderGeneration?.warnings ?? []}
-                  generationFailure={commanderGeneration?.failure ?? null}
+                  generationFailure={commanderGeneration?.failure ?? formatGeneration?.failureReason ?? null}
                   onChangeBuildSettings={() => {
                     setBuildRequested(false);
                     setCommanderGeneration(null);
+                    setFormatGeneration(null);
                     setGenerationError("");
                     setGenerationStatus("idle");
                     setViewMode("deck");
@@ -1305,7 +1339,7 @@ function PreBuildState({
   setTotalBudgetCents: (value: number) => void;
   generationStatus: "idle" | "generating" | "error";
   generationError: string;
-  generationResult: CommanderGenerationResult | null;
+  generationResult: CommanderGenerationResult | DeckArchitectBuildResult | null;
   onBuild: () => void;
 }) {
   if (!hasCollection) {
@@ -1363,14 +1397,25 @@ function PreBuildState({
     );
   }
 
-  if (generationStatus === "error" || generationResult?.generationStatus === "failed") {
+  const resolvedGenerationStatus = generationResult
+    ? "generationStatus" in generationResult
+      ? generationResult.generationStatus
+      : generationResult.status
+    : null;
+  const resolvedGenerationFailure = generationResult
+    ? "failure" in generationResult
+      ? generationResult.failure
+      : generationResult.failureReason
+    : null;
+
+  if (generationStatus === "error" || resolvedGenerationStatus === "failed") {
     return (
       <DeckPreviewState
         selectedCommander={selectedCommander}
         selectedStrategyLabel={selectedStrategyLabel}
         intentId={intentId}
         title="Deck couldn't be generated"
-        body={generationResult?.failure ?? generationError ?? "Deck Architect could not assemble a meaningful validated Commander deck from the available data."}
+        body={resolvedGenerationFailure ?? generationError ?? "Deck Architect could not assemble a meaningful validated deck from the available data."}
         action={(
           <button
             type="button"

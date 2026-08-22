@@ -402,6 +402,8 @@ Implemented improvements:
 - Added Winota Human/non-Human structural benchmark coverage alongside Nekusar, Krenko, Muldrotha, and Atraxa strategy differentiation checks.
 - Added the EDHREC-class commander knowledge architecture without scraping or claiming EDHREC integration. `CommanderKnowledgeProvider` and `CommanderShell` now support Trading Docks-authored commander profiles, strategy card recommendations, flexible role targets, land ranges, and future licensed-provider adapters.
 - Upgraded the Krenko, Mob Boss golden benchmark from a partial shell to a complete validated Commander build. The current benchmark produces 100 cards with algorithmic Mountains, mono-red utility lands, Goblin token makers/payoffs, haste/untap support, sacrifice engines, acceleration, card advantage, and interaction.
+- Wired the validated strategy-intelligence path into the active Deck Architect workspace. Pauper/non-Commander builds now use a normalized `DeckArchitectBuildResult` with validation, ownership, buildability, health, recommendation reasons, and diagnostics; the workspace no longer presents legacy owned-card piles as generated decks.
+- Added fail-closed UI behavior so only `complete` builds can be displayed as working decks or saved into Deck Vault. Failed/draft outputs remain intelligence states, and regression tests cover illegal Pauper staples plus exact owned/missing quantities.
 
 Remaining risks:
 

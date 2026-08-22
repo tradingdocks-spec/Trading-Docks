@@ -260,6 +260,9 @@ Implemented this checkpoint:
 18. Added Winota as a structural Commander benchmark so the engine can distinguish non-Human enablers from Human payoffs instead of filling Boros roles mechanically.
 19. Added the EDHREC-class commander knowledge abstraction without integrating or scraping EDHREC. The active provider is Trading Docks-authored local commander knowledge with `CommanderShell`, commander-specific recommendations, strategy role targets, and future adapter seams for licensed EDHREC data or approved public corpus data.
 20. Promoted Krenko, Mob Boss / Goblin Swarm to the first complete Commander golden benchmark. Best Possible generation now returns a validated 100-card deck with algorithmic basic lands, Krenko-specific Goblin density, acceleration, draw, interaction, haste/untap support, sacrifice outlets, and token payoffs.
+21. Wired strategy-aware construction into the real Deck Architect workspace. Commander builds continue through the authenticated server generator, while Pauper/non-Commander full-intelligence builds now use a validated result contract instead of the legacy owned-card helper.
+22. Added fail-closed Deck Vault handoff behavior: only `complete` validated builds render as working decks and save to Deck Builder. Draft shells and failed outputs remain intelligence/failure states.
+23. Added Pauper regression coverage for complete 60-card generation, known-illegal staple exclusion, exact owned/missing quantity preservation, health/buildability diagnostics, and UI path usage.
 
 Recommended next checkpoint:
 
