@@ -12,6 +12,7 @@ import type {
 } from "./types";
 
 export const MARKET_REFRESH_SECONDS = 300;
+export const MARKET_ADAPTER_TIMEOUT_MS = 4_000;
 
 const ALL_GAMES: GameId[] = [
   "magic",
@@ -107,22 +108,22 @@ async function safeLoad(
 ): Promise<MarketCard[]> {
   try {
     if (game === "magic") {
-      return await loadMagic();
+      return await withMarketAdapterTimeout(loadMagic(), game);
     }
 
     if (game === "pokemon") {
-      return await loadPokemon();
+      return await withMarketAdapterTimeout(loadPokemon(), game);
     }
 
     if (game === "pokemon-japan") {
-      return await loadPokemonJapan();
+      return await withMarketAdapterTimeout(loadPokemonJapan(), game);
     }
 
     if (game === "lorcana") {
-      return await loadLorcana();
+      return await withMarketAdapterTimeout(loadLorcana(), game);
     }
 
-    return await loadOnePiece();
+    return await withMarketAdapterTimeout(loadOnePiece(), game);
   } catch (error) {
     console.error(
       `${game} market adapter failed:`,
@@ -130,6 +131,30 @@ async function safeLoad(
     );
 
     return fallbackCards(game);
+  }
+}
+
+async function withMarketAdapterTimeout(
+  promise: Promise<MarketCard[]>,
+  game: GameId,
+): Promise<MarketCard[]> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<MarketCard[]>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(
+            new Error(
+              `${game} market adapter timed out after ${MARKET_ADAPTER_TIMEOUT_MS}ms.`,
+            ),
+          );
+        }, MARKET_ADAPTER_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 

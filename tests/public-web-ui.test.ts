@@ -231,10 +231,14 @@ test("homepage defensive auth redirect is safe when public Supabase config is ab
 test("public multi-game market feed is not forced through a no-store waterfall", () => {
   const marketSection = readFileSync(path.join(repoRoot, "src/components/landing/MarketSection.tsx"), "utf8");
   const marketRoute = readFileSync(path.join(repoRoot, "src/app/api/multi-game-market/route.ts"), "utf8");
+  const marketEngine = readFileSync(path.join(repoRoot, "src/lib/market-engine/index.ts"), "utf8");
 
   assert.match(marketSection, /fetch\("\/api\/multi-game-market", \{ cache: "force-cache" \}\)/);
   assert.doesNotMatch(marketSection, /cache: "no-store"/);
   assert.match(marketRoute, /public, max-age=60, s-maxage=\$\{MARKET_REFRESH_SECONDS\}/);
+  assert.match(marketEngine, /MARKET_ADAPTER_TIMEOUT_MS/);
+  assert.match(marketEngine, /Promise\.race/);
+  assert.match(marketEngine, /fallbackCards\(game\)/);
 });
 
 test("modular dashboard presents a premium command-center hierarchy", () => {

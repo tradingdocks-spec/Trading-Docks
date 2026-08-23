@@ -50,7 +50,7 @@ async function openAuthenticatedPage(
 }
 
 async function assertAuthenticatedShell(page: Page) {
-  await expect(page.locator("main")).toBeVisible();
+  await expect(page.locator("main").first()).toBeVisible();
   await expect(page.getByRole("button", { name: /open account menu/i })).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: /dashboard navigation|mobile dashboard navigation/i }).first(),
@@ -166,7 +166,7 @@ if (!REPRESENTATIVE_QA_ACCOUNT) {
       try {
         await gotoAndAssertLoaded(page, "/dashboard/settings");
         await page.getByRole("button", { name: /data & privacy/i }).click();
-        await expect(page.getByText(/support-assisted/i)).toBeVisible();
+        await expect(page.getByText("Support-assisted", { exact: true }).first()).toBeVisible();
         await expect(page.getByRole("link", { name: /download inventory backup/i })).toHaveAttribute(
           "href",
           "/dashboard/tools/csv-converter",

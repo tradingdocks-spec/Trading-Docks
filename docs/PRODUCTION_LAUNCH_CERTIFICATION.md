@@ -96,7 +96,7 @@ Authenticated browser certification therefore remains MANUAL REQUIRED.
 | Orders | MANUAL REQUIRED | Automated source/build coverage exists; populated order/provider QA not executed. |
 | Analytics | MANUAL REQUIRED | Populated charts/metrics not exercised. |
 | CRM | MANUAL REQUIRED | Source/tests exist; populated create/edit browser QA not executed. |
-| Deck Architect | P0 FAIL / MANUAL REQUIRED | Engine-level repair tests pass, but authenticated rendered-product QA for Pauper and Krenko was not executable in this shell because no Playwright QA credentials are configured. Do not promote to PASS until the browser checklist below is completed. |
+| Deck Architect | P0 FAIL | Engine-level repair tests pass on this branch, but an authenticated production browser check against `https://www.tradingdocks.com/dashboard/deck-architect` still rendered the old Pauper draft-shell failure state with `Not calculated` metrics and illegal Pauper intelligence. Do not promote to PASS until the repaired branch is deployed and the browser checklist below succeeds. |
 | Deck Vault | MANUAL REQUIRED | Automated tests exist; populated visual/text/share/export QA not executed. |
 | Imports | MANUAL REQUIRED | Importer tests pass; real storage/provider/admin import flow not executed here. |
 | Settings | MANUAL REQUIRED | Source/tests cover dead-action cleanup; real browser account settings flow not executed. |
@@ -295,7 +295,7 @@ Product workflow decision: NO-GO for broad launch.
 
 ## Deck Architect Rendered-Product Certification
 
-Status: P0 FAIL / MANUAL REQUIRED.
+Status: P0 FAIL.
 
 What is automated and passing:
 
@@ -306,11 +306,15 @@ What is automated and passing:
 - Krenko, Mob Boss / Goblin Swarm remains the complete Commander benchmark with a validated 100-card result.
 - The workspace source requires `activeBuildStatus === "complete"` before showing a working deck or allowing Deck Vault handoff.
 
-What could not be certified here:
+Rendered browser evidence:
 
-- No `PLAYWRIGHT_AUTH_EMAIL` / `PLAYWRIGHT_AUTH_PASSWORD` or tier-specific Playwright credentials were present.
-- Therefore, the authenticated rendered Deck Architect page was not opened with real QA inventory data.
-- Deck Architect must not move from P0 FAIL to PASS until the following browser scenarios are executed and recorded.
+- An authenticated production browser session opened `https://www.tradingdocks.com/dashboard/deck-architect`.
+- The account resolved as an Owner workspace with a collection snapshot of `30 cards / 26 printings / 0 commanders`.
+- Scenario A setup was executable through the rendered controls: `Build a Deck` -> `Pauper` -> `Collection + suggestions` -> `Competitive` -> `Architect Deck`.
+- The rendered result still showed `Draft shell assembled from available card data`.
+- Buildability, owned percentage, and health rendered as `Not calculated`.
+- Pauper intelligence still referenced `Wheel of Fortune` and `Rhystic Study`, which are unacceptable in a successful Pauper result.
+- Therefore the currently deployed production surface remains P0 FAIL. The repaired branch must be deployed to a preview/production candidate before certification can move to PASS.
 
 Required browser scenario A: Pauper / Collection Optimized / Competitive
 
