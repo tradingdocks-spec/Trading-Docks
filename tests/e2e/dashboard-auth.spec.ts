@@ -181,6 +181,47 @@ if (!REPRESENTATIVE_QA_ACCOUNT) {
         await context.close();
       }
     });
+
+    test("Deck Architect potential commander search keeps the authenticated session", async ({
+      browser,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== "desktop-chromium-1440", "Deck Architect potential search runs once on desktop Chromium.");
+
+      const { context, page } = await openAuthenticatedPage(browser, representativeAccount);
+      const monitor = monitorPageErrors(page);
+      const searchResponses: Array<{ url: string; status: number }> = [];
+
+      page.on("response", (response) => {
+        if (response.url().includes("/api/deck-vault/card-search")) {
+          searchResponses.push({ url: response.url(), status: response.status() });
+        }
+      });
+
+      async function searchPotentialCommander(name: string, expected: RegExp) {
+        await page.getByRole("button", { name: /potential/i }).click();
+        const search = page.locator('input[placeholder="Search supported catalog"]');
+        await search.fill(name);
+        await expect(page.getByText("Sign in is required.")).toHaveCount(0);
+        await expect(page.getByText(expected).first()).toBeVisible({ timeout: 20_000 });
+        const latest = searchResponses.at(-1);
+        expect(latest?.status, `${name} card-search status`).toBeLessThan(400);
+      }
+
+      try {
+        await gotoAndAssertLoaded(page, "/dashboard/deck-architect");
+        await assertAuthenticatedShell(page);
+        await expect(page.getByText(/collection snapshot/i)).toBeVisible();
+        await page.getByRole("button", { name: /Start building/i }).click();
+
+        await searchPotentialCommander("Winota", /Winota, Joiner of Forces/i);
+        await searchPotentialCommander("Krenko, Mob Boss", /Krenko, Mob Boss/i);
+
+        await expectNoDocumentOverflow(page);
+        await expectNoUnexpectedBrowserErrors(monitor);
+      } finally {
+        await context.close();
+      }
+    });
   });
 }
 

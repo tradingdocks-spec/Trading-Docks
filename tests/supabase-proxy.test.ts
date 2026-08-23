@@ -95,6 +95,7 @@ test("public routes that do not need auth skip Supabase session lookup", () => {
   assert.equal(routeNeedsSessionLookup("/privacy"), false);
   assert.equal(routeNeedsSessionLookup("/security"), false);
   assert.equal(routeNeedsSessionLookup("/api/market-cards"), false);
+  assert.equal(routeNeedsSessionLookup("/api/deck-vault/card-search"), false);
   assert.equal(routeNeedsSessionLookup("/api/landing-card-image/mid/82"), false);
 });
 

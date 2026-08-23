@@ -6,6 +6,7 @@ const PUBLIC_API_PREFIXES = [
   "/api/tcgcsv/image/",
   "/api/card-shows/image/",
   "/api/card-shows/search",
+  "/api/deck-vault/card-search",
   "/api/market-cards",
   "/api/multi-game-market",
 ];
