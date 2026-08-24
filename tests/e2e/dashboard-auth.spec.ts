@@ -93,6 +93,54 @@ if (!REPRESENTATIVE_QA_ACCOUNT) {
       }
     });
 
+    test("authenticated session survives dashboard navigation refresh new tab and history", async ({
+      browser,
+    }, testInfo) => {
+      test.skip(testInfo.project.name !== "desktop-chromium-1440", "Authentication lifecycle runs once in desktop Chromium.");
+
+      const { context, page } = await openAuthenticatedPage(browser, representativeAccount);
+      try {
+        await gotoAndAssertLoaded(page, "/dashboard");
+        await assertAuthenticatedShell(page);
+
+        for (const route of [
+          "/dashboard/deck-vault",
+          "/dashboard/inventory",
+          "/dashboard/orders",
+          "/dashboard/analytics",
+          "/dashboard/deck-vault",
+        ]) {
+          const sidebarLink = page.locator(`nav[aria-label="Dashboard navigation"] a[href="${route}"]:visible`).first();
+          if (await sidebarLink.count()) {
+            await sidebarLink.click();
+          } else {
+            await page.goto(route);
+          }
+          await page.waitForURL(new RegExp(`${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[/?#])`));
+          await expect(page).not.toHaveURL(/\/sign-in(?:$|[/?#])/);
+          await assertAuthenticatedShell(page);
+        }
+
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await assertAuthenticatedShell(page);
+
+        const protectedResponse = await page.request.get("/api/deck-vault/card-search?q=Sol");
+        expect(protectedResponse.status()).not.toBe(401);
+
+        const newTab = await context.newPage();
+        await gotoAndAssertLoaded(newTab, "/dashboard/deck-vault");
+        await assertAuthenticatedShell(newTab);
+        await newTab.close();
+
+        await page.goBack({ waitUntil: "domcontentloaded" });
+        await assertAuthenticatedShell(page);
+        await page.goForward({ waitUntil: "domcontentloaded" });
+        await assertAuthenticatedShell(page);
+      } finally {
+        await context.close();
+      }
+    });
+
     test("mobile dashboard drawer opens navigates closes and restores page interaction", async ({
       browser,
       isMobile,

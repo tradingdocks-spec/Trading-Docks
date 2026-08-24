@@ -6,13 +6,11 @@ export const REMEMBER_ME_COOKIE = "trading-docks-remember-me";
 // the session immediately.
 export const REMEMBER_ME_MAX_AGE = 60 * 60 * 24 * 365;
 export const CANONICAL_HOST = "www.tradingdocks.com";
-export const AUTH_COOKIE_DOMAIN = ".tradingdocks.com";
 
-function productionCookieDomain(): string | undefined {
-  return process.env.NODE_ENV === "production"
-    ? AUTH_COOKIE_DOMAIN
-    : undefined;
-}
+// Keep auth cookies host-only. Vercel preview builds run with NODE_ENV set to
+// production, so assigning .tradingdocks.com here makes browsers reject every
+// auth cookie issued from a *.vercel.app preview. Production traffic is
+// normalized to CANONICAL_HOST by the proxy before authentication begins.
 
 // Trading Docks is a business workspace, so authenticated sessions are
 // persistent by default. Supabase access tokens still expire normally and are
@@ -23,7 +21,6 @@ export const DEFAULT_AUTH_COOKIE_OPTIONS: CookieOptions = {
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
   path: "/",
-  domain: productionCookieDomain(),
 };
 
 function isCookieRemoval(options: CookieOptions): boolean {
@@ -47,7 +44,6 @@ export function persistentAuthCookieOptions(
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      domain: productionCookieDomain(),
     };
   }
 
@@ -67,6 +63,5 @@ export function persistentAuthCookieOptions(
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    domain: productionCookieDomain(),
   };
 }
