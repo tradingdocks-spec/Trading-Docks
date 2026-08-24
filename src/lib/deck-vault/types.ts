@@ -173,4 +173,5 @@ export type ScryfallCardResult = {
   artCrop: string;
   price: number;
   gameChanger: boolean;
+  legalities?: Record<string, "legal" | "banned" | "not_legal" | "restricted">;
 };

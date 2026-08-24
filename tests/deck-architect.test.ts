@@ -253,10 +253,9 @@ test("Deck Health analyzer creates actionable deterministic categories", () => {
   assert.ok(Array.isArray(health.strengths));
 });
 
-test("Deck Architect dashboard is routed under Decks and uses real collection snapshot", () => {
-  assert.match(route, /loadDeckArchitectServerState/);
-  assert.match(route, /redirect\("\/sign-in\?next=\/dashboard\/deck-architect"\)/);
-  assert.match(navigation, /href: "\/dashboard\/deck-architect", label: "Deck Architect"/);
+test("Deck Architect UI is retired while its reusable collection workspace remains preserved", () => {
+  assert.match(route, /redirect\("\/dashboard\/deck-vault"\)/);
+  assert.doesNotMatch(navigation, /href: "\/dashboard\/deck-architect"/);
   assert.match(workspace, /Choose a format and commander, set the build intent/);
   assert.match(workspace, /snapshot\.commanderCandidates/);
   assert.match(workspace, /compareRequirementsToCollection/);
@@ -2103,9 +2102,8 @@ test("working deck assembly validates complete Commander shells before scoring",
   assert.equal(validation.issues.some((issue) => issue.code === "color-identity"), false);
 });
 
-test("Deck Architect route passes server-generated intelligence to the workspace", () => {
-  assert.match(route, /loadDeckArchitectServerState/);
-  assert.match(route, /<DeckArchitectWorkspace snapshot=\{snapshot\} intelligence=\{intelligence\} savedDecks=\{savedDecks\}/);
+test("Deck Architect intelligence remains preserved after its product route retires", () => {
+  assert.match(route, /redirect\("\/dashboard\/deck-vault"\)/);
   assert.match(workspace, /DiscoverWorkspace/);
   assert.match(workspace, /provider\.name/);
   assert.match(workspace, /proposeDeckRecommendations/);

@@ -18,7 +18,6 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
     { label: "Dashboard", href: "/dashboard", status: "implemented" },
     { label: "Collection", href: "/dashboard/inventory", status: "partially-implemented" },
     { label: "Decks", href: "/dashboard/deck-vault", status: "implemented" },
-    { label: "Deck Architect", href: "/dashboard/deck-architect", status: "partially-implemented" },
     { label: "Trade Binder", href: "/dashboard/collector-portfolio", status: "planned" },
     { label: "Portfolio", href: "/dashboard/collector-portfolio", status: "partially-implemented" },
     { label: "Settings", href: "/dashboard/settings", status: "implemented" },
@@ -27,7 +26,6 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
     { label: "Dashboard", href: "/dashboard", status: "implemented" },
     { label: "Collection", href: "/dashboard/inventory", status: "partially-implemented" },
     { label: "Decks", href: "/dashboard/deck-vault", status: "implemented" },
-    { label: "Deck Architect", href: "/dashboard/deck-architect", status: "partially-implemented" },
     { label: "Trade Binder", href: "/dashboard/collector-portfolio", status: "planned" },
     { label: "Portfolio", href: "/dashboard/collector-portfolio", status: "partially-implemented" },
     { label: "Settings", href: "/dashboard/settings", status: "implemented" },
@@ -35,7 +33,6 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
   seller: [
     { label: "Dashboard", href: "/dashboard", status: "implemented" },
     { label: "Inventory", href: "/dashboard/inventory", status: "implemented" },
-    { label: "Deck Architect", href: "/dashboard/deck-architect", status: "partially-implemented" },
     { label: "Deal Desk", href: "/dashboard/purchasing", status: "partially-implemented" },
     { label: "Buying Sessions", href: "/dashboard/collection-buying", status: "implemented" },
     { label: "Exports", href: "/dashboard/tools/csv-converter", status: "implemented" },
@@ -45,7 +42,6 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
   store: [
     { label: "Dashboard", href: "/dashboard", status: "implemented" },
     { label: "Inventory", href: "/dashboard/inventory", status: "implemented" },
-    { label: "Deck Architect", href: "/dashboard/deck-architect", status: "partially-implemented" },
     { label: "Deal Desk", href: "/dashboard/purchasing", status: "partially-implemented" },
     { label: "Employees", href: "/dashboard/employees", status: "implemented" },
     { label: "Customers", href: "/dashboard/customers", status: "implemented" },

@@ -97,5 +97,6 @@ function normalizeCard(card: any) {
         0,
     ),
     gameChanger: Boolean(card.game_changer),
+    legalities: card.legalities ?? {},
   };
 }

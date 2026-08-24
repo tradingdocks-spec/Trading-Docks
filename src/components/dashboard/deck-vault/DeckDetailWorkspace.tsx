@@ -73,6 +73,7 @@ import {
 import { isCommanderDeckFormat } from "@/lib/deck-vault/formats";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 import { DeckPlaytest } from "@/components/deck-vault/DeckPlaytest";
+import { DeckmasterPanel } from "./DeckmasterPanel";
 
 type StoredInventoryItem = {
   id?: string;
@@ -326,6 +327,10 @@ export function DeckDetailWorkspace({
   const [externalDropBusy, setExternalDropBusy] = useState(false);
   const [externalDropError, setExternalDropError] = useState("");
   const [suiteActionStatus, setSuiteActionStatus] = useState("");
+  const [deckmasterMobileOpen, setDeckmasterMobileOpen] = useState(false);
+  const [deckmasterCollection, setDeckmasterCollection] = useState<
+    Array<{ name: string; quantity: number }>
+  >([]);
 
   const [saveState, setSaveState] = useState<"saved" | "saving" | "error">("saved");
   const [saveError, setSaveError] = useState("");
@@ -466,6 +471,12 @@ export function DeckDetailWorkspace({
 
         try {
           const inventory = await loadOwnedCollection();
+          setDeckmasterCollection(
+            inventory.map((item) => ({
+              name: item.name,
+              quantity: item.quantity,
+            })),
+          );
 
           const response = await fetch(
             "/api/deck-vault/intelligence",
@@ -995,16 +1006,6 @@ export function DeckDetailWorkspace({
     router.push("/dashboard/deck-vault");
   }
 
-  async function analyzeWithDeckArchitect() {
-    setSuiteActionStatus("Saving before analysis...");
-    try {
-      await saveDeckRecord(lastDeckRef.current);
-      router.push(`/dashboard/deck-architect?deckId=${encodeURIComponent(deck.id)}`);
-    } catch {
-      setSuiteActionStatus("Save failed. Retry save before analyzing this deck.");
-    }
-  }
-
   async function copyDeckText() {
     const text = exportDeckPlainText(lastDeckRef.current);
     try {
@@ -1155,7 +1156,9 @@ export function DeckDetailWorkspace({
           {saveState === "saved" ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : null}
         </div>
 
-        <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#06131f] p-2">
+        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <section className="min-w-0">
+            <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#06131f] p-2">
           {[
             "Overview",
             "Cards",
@@ -1187,11 +1190,11 @@ export function DeckDetailWorkspace({
           <div className="flex flex-wrap justify-end gap-2">
             <button
               type="button"
-              onClick={() => void analyzeWithDeckArchitect()}
+              onClick={() => setDeckmasterMobileOpen(true)}
               className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-semibold text-[#00121c] transition hover:bg-cyan-200"
             >
               <BrainCircuit className="h-4 w-4" />
-              Analyze with Deck Architect
+              Open Deckmaster
             </button>
             <button
               type="button"
@@ -1290,6 +1293,20 @@ export function DeckDetailWorkspace({
             openCards={() => setTab("Cards")}
           />
         )}
+          </section>
+          <DeckmasterPanel
+            deck={{ ...deck, name: deckName, commander: commanderName || undefined, format, cards }}
+            collection={deckmasterCollection}
+            mobileOpen={deckmasterMobileOpen}
+            onMobileClose={() => setDeckmasterMobileOpen(false)}
+            onApply={(nextDeck) => {
+              setCards(nextDeck.cards);
+              setCommanderName(nextDeck.commander ?? "");
+              setDeckmasterMobileOpen(false);
+              setSaveState("saving");
+            }}
+          />
+        </div>
       </div>
 
       {dragging ? (
