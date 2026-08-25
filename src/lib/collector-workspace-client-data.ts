@@ -48,7 +48,7 @@ export async function loadWebCollectorCollectionPage({
 
   let itemQuery = supabase
     .from("inventory_items")
-    .select("id, card_name, sku, location_id, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
+    .select("id, card_name, sku, location_id, game_id, product_type, provider_category_id, provider_product_id, provider_sku_id, tcgplayer_product_id, tcgplayer_sku_id, variant, language, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
     .eq("user_id", user.id);
   itemQuery = applyInventoryFilters(itemQuery, filter, relatedFilters);
   itemQuery = applyInventorySort(itemQuery, sort);
@@ -118,7 +118,7 @@ export async function loadWebCollectorCardById(cardId: string): Promise<WebColle
 
   const { data: item, error: itemError } = await supabase
     .from("inventory_items")
-    .select("id, card_name, sku, location_id, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
+    .select("id, card_name, sku, location_id, game_id, product_type, provider_category_id, provider_product_id, provider_sku_id, tcgplayer_product_id, tcgplayer_sku_id, variant, language, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
     .eq("user_id", user.id)
     .eq("id", cardId)
     .maybeSingle();
@@ -250,6 +250,16 @@ function applyInventoryFilters(query: InventoryQuery, filter: CollectionFilter |
   if (cleanQuery) {
     const pattern = `%${cleanQuery.replace(/[%_]/g, "")}%`;
     next = next.or(`card_name.ilike.${pattern},set_code.ilike.${pattern},collector_number.ilike.${pattern}`);
+  }
+  if (filter?.gameId && filter.gameId !== "all") {
+    next = filter.gameId === "magic"
+      ? next.or("game_id.eq.magic,game_id.is.null")
+      : next.eq("game_id", filter.gameId);
+  }
+  if (filter?.productType && filter.productType !== "all") {
+    next = filter.productType === "card"
+      ? next.or("product_type.eq.card,product_type.is.null")
+      : next.eq("product_type", filter.productType);
   }
   if (filter?.condition && filter.condition !== "all") next = next.eq("data->>condition", filter.condition);
   if (filter?.finish && filter.finish !== "all") next = next.eq("data->>finish", filter.finish);

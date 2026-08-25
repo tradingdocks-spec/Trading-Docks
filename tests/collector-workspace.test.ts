@@ -4,8 +4,10 @@ import test from 'node:test';
 import {
   buildCollectionCards,
   buildCollectionPageInfo,
+  buildInventoryHealth,
   buildInventorySearchFilterExpression,
   collectionRequestKey,
+  countActiveCollectionFilters,
   cursorForCollectionCard,
   decodeCollectionCursor,
   displayPrinting,
@@ -118,6 +120,28 @@ test('collection summary reports stored and unassigned card quantities', () => {
   assert.equal(summary.unassignedCards, 1);
   assert.equal(summary.storedQuantity, 2);
   assert.equal(summary.unassignedQuantity, 501);
+});
+
+test('Inventory command center counts composable filters without treating defaults as active', () => {
+  assert.equal(countActiveCollectionFilters({ gameId: 'all', productType: 'all', condition: 'all' }), 0);
+  assert.equal(countActiveCollectionFilters({
+    query: 'sol',
+    gameId: 'magic',
+    productType: 'card',
+    condition: 'near_mint',
+    finish: 'foil',
+    storageLocationId: 'binder-1',
+  }), 6);
+});
+
+test('Inventory Health surfaces actionable loaded-record issues', () => {
+  const health = buildInventoryHealth(cards);
+
+  assert.equal(health.locatedQuantity, 2);
+  assert.equal(health.unassignedQuantity, 501);
+  assert.ok(health.score < 100);
+  assert.equal(health.issues.some((issue) => issue.id === 'unassigned' && issue.count === 501), true);
+  assert.equal(health.issues.some((issue) => issue.id === 'missing_price' && issue.count === 1), true);
 });
 
 test('wishlist indicator is resolved from wishlist rows', () => {

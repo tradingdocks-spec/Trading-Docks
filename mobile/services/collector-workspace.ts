@@ -91,6 +91,26 @@ export type CollectionFilter = {
   wishlistStatus?: WishlistStatus | 'all';
 };
 
+export type InventoryHealthIssueId =
+  | 'unassigned'
+  | 'missing_price'
+  | 'unknown_condition'
+  | 'unknown_finish';
+
+export type InventoryHealthIssue = {
+  id: InventoryHealthIssueId;
+  label: string;
+  count: number;
+  severity: 'attention' | 'neutral';
+};
+
+export type InventoryHealthSummary = {
+  score: number;
+  locatedQuantity: number;
+  unassignedQuantity: number;
+  issues: InventoryHealthIssue[];
+};
+
 export type CollectionSort =
   | 'name_asc'
   | 'name_desc'
@@ -547,6 +567,48 @@ export function summarizeCollectionCards(
       plan.id === 'free' && !options.ignoreFreeLimit && plan.limits.cardLimit !== null
         ? totalOwnedCards > plan.limits.cardLimit
         : false,
+  };
+}
+
+export function countActiveCollectionFilters(filter: CollectionFilter) {
+  return [
+    filter.query?.trim() ? 'query' : null,
+    filter.gameId && filter.gameId !== 'all' ? 'gameId' : null,
+    filter.productType && filter.productType !== 'all' ? 'productType' : null,
+    filter.condition && filter.condition !== 'all' ? 'condition' : null,
+    filter.finish && filter.finish !== 'all' ? 'finish' : null,
+    filter.variant && filter.variant !== 'all' ? 'variant' : null,
+    filter.setCode && filter.setCode !== 'all' ? 'setCode' : null,
+    filter.storageLocationId && filter.storageLocationId !== 'all' ? 'storageLocationId' : null,
+    filter.tradeBinderStatus && filter.tradeBinderStatus !== 'all' ? 'tradeBinderStatus' : null,
+    filter.wishlistStatus && filter.wishlistStatus !== 'all' ? 'wishlistStatus' : null,
+  ].filter(Boolean).length;
+}
+
+export function buildInventoryHealth(cards: CollectionCard[]): InventoryHealthSummary {
+  const totalQuantity = cards.reduce((sum, card) => sum + card.quantityOwned, 0);
+  const locatedQuantity = cards
+    .filter((card) => Boolean(card.storageLocation))
+    .reduce((sum, card) => sum + card.quantityOwned, 0);
+  const unassignedQuantity = Math.max(0, totalQuantity - locatedQuantity);
+  const missingPrice = cards.filter((card) => card.marketPrice.amount === null).length;
+  const unknownCondition = cards.filter((card) => card.condition === 'unknown').length;
+  const unknownFinish = cards.filter((card) => card.printing.finish === 'unknown').length;
+  const weightedIssues = unassignedQuantity + missingPrice + unknownCondition + unknownFinish;
+  const score = totalQuantity <= 0 ? 100 : Math.max(0, Math.round(((totalQuantity - weightedIssues) / totalQuantity) * 100));
+
+  const issues: InventoryHealthIssue[] = [
+    { id: 'unassigned', label: 'Need storage location', count: unassignedQuantity, severity: 'attention' },
+    { id: 'missing_price', label: 'Missing market value', count: missingPrice, severity: 'neutral' },
+    { id: 'unknown_condition', label: 'Condition unavailable', count: unknownCondition, severity: 'neutral' },
+    { id: 'unknown_finish', label: 'Finish unavailable', count: unknownFinish, severity: 'neutral' },
+  ];
+
+  return {
+    score,
+    locatedQuantity,
+    unassignedQuantity,
+    issues: issues.filter((issue) => issue.count > 0),
   };
 }
 
