@@ -228,7 +228,7 @@ test("Deck suite UI exposes real integration actions and omits fake share shortc
   assert.match(architectSource, /Open in Deck Builder/);
   assert.match(architectSource, /saveDeckRecord/);
   assert.match(architectSource, /Commander not owned/);
-  assert.match(builderSource, /Analyze with Deck Architect/);
+  assert.match(builderSource, /shouldShowDeckArchitectEntry/);
   assert.match(builderSource, /Copy list/);
   assert.match(builderSource, /CSV/);
 });

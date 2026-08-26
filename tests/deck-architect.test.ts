@@ -256,7 +256,8 @@ test("Deck Health analyzer creates actionable deterministic categories", () => {
 test("Deck Architect dashboard is routed under Decks and uses real collection snapshot", () => {
   assert.match(route, /loadDeckArchitectServerState/);
   assert.match(route, /redirect\("\/sign-in\?next=\/dashboard\/deck-architect"\)/);
-  assert.match(navigation, /href: "\/dashboard\/deck-architect", label: "Deck Architect"/);
+  assert.match(route, /canAccessHiddenDeckArchitect\(access\)/);
+  assert.match(navigation, /shouldShowDeckArchitectEntry/);
   assert.match(workspace, /Choose a format and commander, set the build intent/);
   assert.match(workspace, /snapshot\.commanderCandidates/);
   assert.match(workspace, /compareRequirementsToCollection/);
@@ -490,6 +491,9 @@ test("Commander build API uses server-side collection authority and Scryfall glo
   );
 
   assert.match(apiRoute, /supabase\.auth\.getUser\(\)/);
+  assert.match(apiRoute, /DECK_ARCHITECT_VISIBLE/);
+  assert.match(apiRoute, /canAccessHiddenDeckArchitect\(access\)/);
+  assert.match(apiRoute, /status: 403/);
   assert.match(apiRoute, /loadDeckArchitectCollectionSnapshot\(supabase, user\)/);
   assert.match(apiRoute, /fetchCommanderGlobalCandidates/);
   assert.match(apiRoute, /candidateSource: "global-scryfall"/);

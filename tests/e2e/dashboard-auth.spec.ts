@@ -21,7 +21,6 @@ const CORE_AUTHENTICATED_ROUTES = [
   { path: "/dashboard/orders", label: "Orders" },
   { path: "/dashboard/analytics", label: "Analytics" },
   { path: "/dashboard/customers", label: "Customers / CRM" },
-  { path: "/dashboard/deck-architect", label: "Deck Architect" },
   { path: "/dashboard/deck-vault", label: "Deck Vault" },
   { path: "/dashboard/tools/csv-converter", label: "CSV / Imports" },
   { path: "/dashboard/settings", label: "Settings" },

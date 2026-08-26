@@ -72,6 +72,7 @@ import {
 } from "@/lib/deck-suite/domain";
 import { isCommanderDeckFormat } from "@/lib/deck-vault/formats";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
+import { shouldShowDeckArchitectEntry } from "@/lib/product-visibility";
 import { DeckPlaytest } from "@/components/deck-vault/DeckPlaytest";
 
 type StoredInventoryItem = {
@@ -1185,14 +1186,16 @@ export function DeckDetailWorkspace({
 
         <div className="mt-3 flex justify-end">
           <div className="flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => void analyzeWithDeckArchitect()}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-semibold text-[#00121c] transition hover:bg-cyan-200"
-            >
-              <BrainCircuit className="h-4 w-4" />
-              Analyze with Deck Architect
-            </button>
+            {shouldShowDeckArchitectEntry() ? (
+              <button
+                type="button"
+                onClick={() => void analyzeWithDeckArchitect()}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-semibold text-[#00121c] transition hover:bg-cyan-200"
+              >
+                <BrainCircuit className="h-4 w-4" />
+                Analyze with Deck Architect
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => void copyDeckText()}

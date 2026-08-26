@@ -1,4 +1,5 @@
-import { normalizeAccountTier, type AccountTier } from "@/lib/plan-entitlements";
+import { normalizeAccountTier, type AccountTier } from "../plan-entitlements.ts";
+import { isDeckArchitectRoute, shouldShowDeckArchitectEntry } from "../product-visibility.ts";
 
 export type WebNavigationAudience = AccountTier | "admin";
 
@@ -66,7 +67,9 @@ export const WEB_NAVIGATION_CONTRACT: Record<WebNavigationAudience, WebNavigatio
 };
 
 export function getWebNavigationContract(accountType: unknown) {
-  return WEB_NAVIGATION_CONTRACT[normalizeAccountTier(accountType)];
+  return WEB_NAVIGATION_CONTRACT[normalizeAccountTier(accountType)].filter((item) =>
+    !isDeckArchitectRoute(item.href) || shouldShowDeckArchitectEntry(),
+  );
 }
 
 export function isWebNavigationActive(pathname: string, href: string) {

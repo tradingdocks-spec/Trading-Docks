@@ -9,6 +9,11 @@ import {
   type DeckBudgetConstraints,
 } from "@/lib/deck-architect";
 import { loadDeckArchitectCollectionSnapshot } from "@/lib/deck-architect/server";
+import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
+import {
+  canAccessHiddenDeckArchitect,
+  DECK_ARCHITECT_VISIBLE,
+} from "@/lib/product-visibility";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -26,6 +31,12 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.id) {
     return NextResponse.json({ error: "Sign in to build a deck." }, { status: 401 });
+  }
+  if (!DECK_ARCHITECT_VISIBLE) {
+    const access = await resolvePlatformAccessForUser(supabase, user);
+    if (!canAccessHiddenDeckArchitect(access)) {
+      return NextResponse.json({ error: "Deck Architect is not available yet." }, { status: 403 });
+    }
   }
 
   const payload = await request.json().catch(() => null) as BuildRequest | null;

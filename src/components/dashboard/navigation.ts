@@ -45,6 +45,7 @@ import {
   type AccountType,
 } from "../../../mobile/services/platform-access.ts";
 import { LABEL_STUDIO_ROUTE } from "../../lib/label-studio/routes.ts";
+import { isDeckArchitectRoute, shouldShowDeckArchitectEntry } from "../../lib/product-visibility.ts";
 
 export type NavigationItem = {
   href: string;
@@ -367,6 +368,7 @@ function isAccessibleOrOwner(
   item: NavigationItem,
   clientAccess?: ClientSafePlatformAccess,
 ) {
+  if (isDeckArchitectRoute(item.href)) return shouldShowDeckArchitectEntry();
   if (!clientAccess) return true;
   if (hasTrustedFullPlatformAccess(clientAccess)) return true;
   if (item.href === LABEL_STUDIO_ROUTE) return hasCapability(clientAccess, "label.view");
