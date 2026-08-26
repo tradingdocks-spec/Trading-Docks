@@ -170,6 +170,7 @@ Status: Partially Implemented
 - Implemented: Both platforms use owner-scoped Supabase queries against `inventory_locations.user_id` and `inventory_items.user_id`.
 - Partially Implemented: Location hierarchy is represented through `inventory_locations.data.parentId` because the active schema has no first-class parent column or database constraint. Mobile can create child locations and render breadcrumbs; database enforcement remains proposed work.
 - Partially Implemented: Recent, favorite, and archived metadata are represented in `inventory_locations.data` for this sprint. Database-enforced indexes/constraints require a reviewed migration proposal before production reliance.
+- Planned: Physical location is now a core Collection authority, not optional metadata. Collection, search, CSV import, Card Workspace, Trade Binder, and Storage must expose exact lot/location breakdowns for every owned copy; see `docs/COLLECTION_LOCATION_AUTHORITY.md`.
 - Planned: Scanner recognition, deck usage, marketplace listing, and portfolio analytics remain separate future integrations. The mobile manager exposes only a scan-to-location integration point.
 
 ## Trade Binder And Wishlist Architecture
@@ -231,6 +232,7 @@ Status: Partially Implemented
 - Implemented: Web organization writes go through `src/app/api/collector-workspace/mutations/route.ts`, which authenticates the user, scopes the inventory record by `user_id`, validates Free-plan card limits through the canonical membership contract, and then writes through authenticated Supabase/RLS.
 - Partially Implemented: Native mobile writes use Supabase RLS for server-side ownership and queue failed/offline writes by user, but DB-side Free-plan enforcement for direct native writes still needs a reviewed RPC/trigger migration proposal before it can be called production-authoritative.
 - Implemented: `supabase/migrations/202608050001_collector_mutation_security_proposal.sql` proposes a database trigger and RPC path to enforce inventory ownership and Free-plan 500 total-card quantity limits transactionally for mobile, web, and offline replay. It has not been applied.
+- Planned: Collection and Card Workspace must show physical-location lots, not just aggregate `quantityOwned`. Multi-location ownership, unassigned inventory, and partial-quantity moves are acceptance requirements for the next Collection/CSV/Storage implementation checkpoint.
 - Partially Implemented: Price display uses positive saved inventory value/unit market value when present and says unavailable when missing or defaulted to zero. Live market pricing and price history are future integration work.
 - Partially Implemented: Existing large inventory management components remain in the repository and should be migrated or retired only after a separate import/workflow review.
 

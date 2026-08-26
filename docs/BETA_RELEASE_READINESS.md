@@ -103,7 +103,7 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 | Auth | Sign in/up/reset | Sign in/up/reset | Sign in/up/reset | Sign in/up/reset | Sign in/up/reset plus Command Center entry | Email/password, magic link, OAuth redirects, malformed origin prevention, logout, refresh restore. |
 | Dashboard shell | Free modules only | Collector modules | Seller modules | Store modules | Full platform surface | Sidebar, mobile nav, topbar menus, active route state, no duplicate routes, no dead actions. |
 | Collection | Read/write own collection within Free limits | Unlimited Collector capabilities | Same core collection plus Seller tools | Same core collection plus Store tools | Full access without fake paid plan | Ownership isolation, pagination/search, storage cells, exact printing fields, missing price/image states. |
-| Storage | Basic assignment where entitled | Full collector storage | Seller inventory location use | Store operations use | Full access | Assignment, clear/move, unassigned smart view, account isolation, persistence after refresh. |
+| Storage | Basic assignment where entitled | Full collector storage | Seller inventory location use | Store operations use | Full access | Assignment, clear/move, unassigned smart view, account isolation, persistence after refresh, and exact per-lot location visibility in search/Card Workspace. |
 | Deck Vault | Available | Available | Available | Available | Available | Import/build/detail, card image loading, no localStorage authority for account data. |
 | Trade Binder/Wishlist | Limited by entitlements | Available | Available | Available | Available | Add/remove/status/priority, strict matching, offline/stale messaging if applicable. |
 | Purchasing Intelligence | Locked or upgrade path | Locked or upgrade path | Available | Available | Available | Search, product images, add to current purchase, TCGplayer CSV conversion, condition/finish mapping. |
@@ -122,6 +122,7 @@ Use this ledger for deployed-environment QA. Result must be `PASS`, `FAIL`, `BLO
 - Complete: Card Shows buying drafts now persist through `workspace_documents`; browser storage is used only to migrate and remove the old draft key.
 - Complete: Purchasing Intelligence Current Purchase drafts now persist through `workspace_documents`; browser storage is used only to migrate and remove the old session draft key.
 - Needs QA: Collection, Deck Vault, Storage, Trade Binder, Wishlist, Purchasing, Orders, CRM, Label Studio, and Admin Catalog must be exercised with two different authenticated accounts to confirm no cross-account reads or writes.
+- Needs QA: Collection/CSV/Storage must prove the location authority workflow: import a CSV into a selected physical location, search an owned card, verify every physical lot path and quantity, move a partial quantity to Trade Binder, and confirm Portfolio totals still include all copies.
 - Needs QA: account-document drafts should be refreshed, signed out, and re-opened in representative workspaces to confirm the intended persistence level is clear to users.
 - Follow-up: older `src/components/dashboard-v2` modules still contain browser-storage persistence paths and should be archived or deleted after active import references are fully audited.
 
