@@ -129,10 +129,21 @@ async function upsertProductInventory(
   const now = new Date().toISOString();
   if (existing.data) {
     const nextQuantity = Math.max(0, Number(existing.data.quantity ?? 0)) + quantity;
+    const { error: quantityError } = await capability.supabase.rpc("apply_collector_inventory_mutation", {
+      p_inventory_item_id: String(existing.data.id),
+      p_mutation_type: "quantity",
+      p_quantity: nextQuantity,
+      p_condition: null,
+      p_finish: null,
+      p_location_id: null,
+      p_idempotency_key: `purchasing-intelligence:${sku}:quantity:${now}`,
+      p_source: "purchasing_intelligence",
+    });
+    if (quantityError) return { ok: false as const, response: NextResponse.json({ error: quantityError.message }, { status: 500 }) };
+
     const { error } = await capability.supabase
       .from("inventory_items")
       .update({
-        quantity: nextQuantity,
         location_id: locationId,
         inventory_value: product.marketPrice ?? product.lowPrice ?? 0,
         data: {
@@ -153,9 +164,8 @@ async function upsertProductInventory(
   }
 
   const id = crypto.randomUUID();
-  const { error } = await capability.supabase.from("inventory_items").insert({
+  const inventoryPayload = {
     id,
-    user_id: capability.user?.id ?? "",
     card_name: product.name,
     sku,
     location_id: locationId,
@@ -179,7 +189,13 @@ async function upsertProductInventory(
       setName: product.setName,
       productFamily: product.productFamily,
     },
-    updated_at: now,
+  };
+  const { error } = await capability.supabase.rpc("create_inventory_item_with_event", {
+    p_inventory: inventoryPayload,
+    p_source: "purchasing_intelligence",
+    p_idempotency_key: `purchasing-intelligence:${sku}:create:${now}`,
+    p_related_entity_type: "purchasing_lookup_result",
+    p_related_entity_id: product.providerProductId ?? String(product.tcgplayerProductId ?? id),
   });
   if (error) return { ok: false as const, response: NextResponse.json({ error: error.message }, { status: 500 }) };
   return { ok: true as const, inventoryItemId: id, quantity, merged: false };

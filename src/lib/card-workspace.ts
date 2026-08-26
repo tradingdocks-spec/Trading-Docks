@@ -121,6 +121,10 @@ export type CardWorkspaceInventoryEvent = {
   quantityBefore: number | null;
   quantityChange: number | null;
   quantityAfter: number | null;
+  previousValue: string | null;
+  nextValue: string | null;
+  previousLocationId: string | null;
+  nextLocationId: string | null;
   source: string;
   metadata: Record<string, unknown>;
   occurredAt: string;
@@ -437,7 +441,7 @@ async function loadInventoryHistory(
   try {
     const { data, error } = await supabase
       .from("inventory_events")
-      .select("id,event_type,quantity_before,quantity_change,quantity_after,source,metadata,occurred_at")
+      .select("id,event_type,quantity_before,quantity_change,quantity_after,previous_value,next_value,previous_location_id,next_location_id,source,metadata,occurred_at")
       .eq("user_id", userId)
       .eq("inventory_item_id", inventoryItemId)
       .order("occurred_at", { ascending: false })
@@ -458,6 +462,10 @@ async function loadInventoryHistory(
         quantityBefore: numberValue(row.quantity_before),
         quantityChange: numberValue(row.quantity_change),
         quantityAfter: numberValue(row.quantity_after),
+        previousValue: typeof row.previous_value === "string" ? row.previous_value : null,
+        nextValue: typeof row.next_value === "string" ? row.next_value : null,
+        previousLocationId: typeof row.previous_location_id === "string" ? row.previous_location_id : null,
+        nextLocationId: typeof row.next_location_id === "string" ? row.next_location_id : null,
         source: String(row.source ?? "application"),
         metadata: isRecord(row.metadata) ? row.metadata : {},
         occurredAt: typeof row.occurred_at === "string" ? row.occurred_at : new Date().toISOString(),

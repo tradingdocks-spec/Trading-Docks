@@ -72,3 +72,16 @@ test("Card Workspace route is reused by highest-value card encounter surfaces", 
   assert.match(view, /Other Printings/);
   assert.match(view, /Performance Boundary/);
 });
+
+test("Card Workspace inventory history renders typed ledger details", () => {
+  const service = read("src/lib/card-workspace.ts");
+  const view = read("src/components/dashboard/card-workspace/CardWorkspaceView.tsx");
+
+  assert.match(service, /previous_value,next_value,previous_location_id,next_location_id/);
+  assert.match(service, /previousValue/);
+  assert.match(service, /nextLocationId/);
+  assert.match(view, /eventDetail\(event\)/);
+  assert.match(view, /condition_changed/);
+  assert.match(view, /location_changed/);
+  assert.doesNotMatch(view, /JSON\.stringify\(event\.metadata/);
+});

@@ -152,7 +152,7 @@ export function CardWorkspaceView({ data }: { data: CardWorkspaceData }) {
                 <InfoRow
                   key={event.id}
                   label={eventLabel(event.eventType)}
-                  value={`${event.quantityChange === null ? "Qty unchanged" : signedQuantity(event.quantityChange)} · ${new Date(event.occurredAt).toLocaleDateString("en-US")}`}
+                  value={`${eventDetail(event)} · ${new Date(event.occurredAt).toLocaleDateString("en-US")}`}
                 />
               )) : <EmptyLine text={data.history.unavailableReason ?? "No inventory events have been recorded for this card yet."} />}
             </Panel>
@@ -230,6 +230,19 @@ function attentionLabel(type: string) {
 
 function eventLabel(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function eventDetail(event: { eventType: string; quantityBefore: number | null; quantityChange: number | null; quantityAfter: number | null; previousValue: string | null; nextValue: string | null; previousLocationId: string | null; nextLocationId: string | null; source: string }) {
+  if (event.eventType === "condition_changed" || event.eventType === "finish_changed" || event.eventType === "cost_basis_changed") {
+    return `${event.previousValue ?? "Unset"} to ${event.nextValue ?? "Unset"}`;
+  }
+  if (event.eventType === "location_changed") {
+    return `${event.previousValue ?? event.previousLocationId ?? "Unassigned"} to ${event.nextValue ?? event.nextLocationId ?? "Unassigned"}`;
+  }
+  if (event.eventType === "inventory_created" || event.eventType === "imported") {
+    return `Created with ${event.quantityAfter ?? event.quantityChange ?? 0}`;
+  }
+  return event.quantityChange === null ? "Qty unchanged" : signedQuantity(event.quantityChange);
 }
 
 function signedQuantity(value: number) {

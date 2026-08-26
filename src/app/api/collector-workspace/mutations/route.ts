@@ -4,7 +4,7 @@ import { getMembershipPlan } from "@/lib/membership-catalog";
 import { validateCollectorMutation, type CollectorMutation } from "@/lib/collector-mutations";
 import { createClient } from "@/lib/supabase/server";
 import { resolveServerAccess } from "@/lib/identity/server-access";
-import { buildInventoryMutationEvent, recordInventoryEvent } from "@/lib/inventory/events";
+import { inventoryMutationIdempotencyKey, type InventoryEventSource } from "@/lib/inventory/events";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await executeMutation(supabase, user.id, mutation, itemResult.data);
+    await executeMutation(supabase, user.id, mutation);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Collection update failed." }, { status: 500 });
   }
@@ -65,93 +65,58 @@ async function executeMutation(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   mutation: CollectorMutation,
-  existingItem: { id: string; quantity: unknown; data: unknown; location_id?: string | null; card_name?: string | null; set_code?: string | null },
 ) {
   const now = new Date().toISOString();
-  const existingData = isRecord(existingItem.data) ? existingItem.data : {};
-  const beforeQuantity = Number(existingItem.quantity ?? 0);
   if (mutation.type === "quantity") {
-    const { error } = await supabase
-      .from("inventory_items")
-      .update({ quantity: mutation.quantity, updated_at: now })
-      .eq("user_id", userId)
-      .eq("id", mutation.inventoryItemId);
-    if (error) throw new Error(error.message);
-    await recordCollectorEvent(supabase, buildInventoryMutationEvent({
-      userId,
+    await applyInventoryMutation(supabase, {
       inventoryItemId: mutation.inventoryItemId,
-      eventType: mutation.quantity > beforeQuantity ? "quantity_added" : mutation.quantity < beforeQuantity ? "quantity_removed" : "adjusted",
-      beforeQuantity,
-      afterQuantity: mutation.quantity,
-      idempotencyKey: `collector:${mutation.inventoryItemId}:quantity:${now}`,
-      metadata: cardMetadata(existingItem),
-    }));
+      mutationType: "quantity",
+      quantity: mutation.quantity,
+      source: "collector_workspace",
+      idempotencyKey: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: "quantity",
+        value: mutation.quantity,
+        timestamp: now,
+      }),
+    });
     return;
   }
 
   if (mutation.type === "condition" || mutation.type === "finish") {
-    const { error } = await supabase
-      .from("inventory_items")
-      .update({
-        data: {
-          ...existingData,
-          [mutation.type]: mutation.type === "condition" ? mutation.condition : mutation.finish,
-        },
-        updated_at: now,
-      })
-      .eq("user_id", userId)
-      .eq("id", mutation.inventoryItemId);
-    if (error) throw new Error(error.message);
-    await recordCollectorEvent(supabase, buildInventoryMutationEvent({
-      userId,
+    const nextValue = mutation.type === "condition" ? mutation.condition : mutation.finish;
+    await applyInventoryMutation(supabase, {
       inventoryItemId: mutation.inventoryItemId,
-      eventType: mutation.type === "condition" ? "condition_changed" : "finish_changed",
-      beforeQuantity,
-      afterQuantity: beforeQuantity,
-      idempotencyKey: `collector:${mutation.inventoryItemId}:${mutation.type}:${now}`,
-      metadata: {
-        ...cardMetadata(existingItem),
-        previousValue: existingData[mutation.type],
-        nextValue: mutation.type === "condition" ? mutation.condition : mutation.finish,
-      },
-    }));
+      mutationType: mutation.type,
+      condition: mutation.type === "condition" ? mutation.condition : null,
+      finish: mutation.type === "finish" ? mutation.finish : null,
+      source: "collector_workspace",
+      idempotencyKey: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: mutation.type,
+        value: nextValue,
+        timestamp: now,
+      }),
+    });
     return;
   }
 
   if (mutation.type === "storage") {
-    if (mutation.storageLocationId) {
-      const { data: location, error: locationError } = await supabase
-        .from("inventory_locations")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("id", mutation.storageLocationId)
-        .maybeSingle();
-      if (locationError) throw new Error(locationError.message);
-      if (!location) throw new Error("Choose one of your storage locations.");
-    }
-    const { error } = await supabase
-      .from("inventory_items")
-      .update({
-        location_id: mutation.storageLocationId,
-        data: { ...existingData, locationId: mutation.storageLocationId },
-        updated_at: now,
-      })
-      .eq("user_id", userId)
-      .eq("id", mutation.inventoryItemId);
-    if (error) throw new Error(error.message);
-    await recordCollectorEvent(supabase, buildInventoryMutationEvent({
-      userId,
+    await applyInventoryMutation(supabase, {
       inventoryItemId: mutation.inventoryItemId,
-      eventType: "moved_location",
-      beforeQuantity,
-      afterQuantity: beforeQuantity,
-      idempotencyKey: `collector:${mutation.inventoryItemId}:storage:${now}`,
-      metadata: {
-        ...cardMetadata(existingItem),
-        previousLocationId: existingItem.location_id ?? null,
-        nextLocationId: mutation.storageLocationId,
-      },
-    }));
+      mutationType: "storage",
+      locationId: mutation.storageLocationId,
+      source: "collector_workspace",
+      idempotencyKey: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: "storage",
+        value: mutation.storageLocationId,
+        timestamp: now,
+      }),
+    });
     return;
   }
 
@@ -207,26 +172,30 @@ async function executeMutation(
   }
 }
 
-async function recordCollectorEvent(
+async function applyInventoryMutation(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  payload: Parameters<typeof recordInventoryEvent>[1],
+  input: {
+    inventoryItemId: string;
+    mutationType: "quantity" | "condition" | "finish" | "storage";
+    quantity?: number | null;
+    condition?: string | null;
+    finish?: string | null;
+    locationId?: string | null;
+    idempotencyKey: string;
+    source: InventoryEventSource;
+  },
 ) {
-  try {
-    await recordInventoryEvent(supabase, payload);
-  } catch (error) {
-    console.warn("Inventory event recording failed after collector mutation", {
-      inventoryItemId: payload.inventory_item_id,
-      eventType: payload.event_type,
-      reason: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-}
-
-function cardMetadata(item: { card_name?: string | null; set_code?: string | null }) {
-  return {
-    cardName: item.card_name ?? null,
-    setCode: item.set_code ?? null,
-  };
+  const { error } = await supabase.rpc("apply_collector_inventory_mutation", {
+    p_inventory_item_id: input.inventoryItemId,
+    p_mutation_type: input.mutationType,
+    p_quantity: input.quantity ?? null,
+    p_condition: input.condition ?? null,
+    p_finish: input.finish ?? null,
+    p_location_id: input.locationId ?? null,
+    p_idempotency_key: input.idempotencyKey,
+    p_source: input.source,
+  });
+  if (error) throw new Error(error.message);
 }
 
 function matchingWishlistQuery(
@@ -243,10 +212,6 @@ function matchingWishlistQuery(
     .eq("target_finish", mutation.finish);
   query = mutation.setCode ? query.eq("set_code", mutation.setCode) : query.is("set_code", null);
   return query;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 async function totalOwnedCardQuantity(
