@@ -88,6 +88,8 @@ export type InventoryAttentionRow = {
 
 type QueryBuilder<T> = PromiseLike<{ data: T[] | null; count?: number | null; error?: { message?: string } | null }> & {
   eq: (column: string, value: string) => QueryBuilder<T>;
+  is: (column: string, value: null) => QueryBuilder<T>;
+  or: (filters: string) => QueryBuilder<T>;
   order: (column: string, options?: { ascending?: boolean }) => QueryBuilder<T>;
   limit: (count: number) => QueryBuilder<T>;
 };
@@ -100,6 +102,13 @@ export type InventoryAttentionSupabaseClient = {
 
 export const INVENTORY_ATTENTION_SAMPLE_SIZE = 500;
 export const INVENTORY_ATTENTION_REPRESENTATIVE_LIMIT = 5;
+
+export type InventoryAttentionExactCounts = {
+  missingPriceRows: number;
+  unassignedRows: number;
+  unknownConditionRows: number;
+  unknownFinishRows: number;
+};
 
 export async function loadInventoryAttentionSummary({
   supabase,
@@ -115,11 +124,12 @@ export async function loadInventoryAttentionSummary({
   sampleSize?: number;
 }) {
   const boundedSample = Math.max(1, Math.min(sampleSize, INVENTORY_ATTENTION_SAMPLE_SIZE));
-  const [totalResult, rowsResult] = await Promise.all([
+  const [totalResult, countsResult, rowsResult] = await Promise.all([
     supabase
       .from("inventory_items")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId),
+    loadExactIssueCounts(supabase, userId),
     supabase
       .from<InventoryAttentionRow>("inventory_items")
       .select("id,card_name,sku,quantity,inventory_value,location_id,scryfall_id,set_code,collector_number,updated_at,data")
@@ -138,6 +148,7 @@ export async function loadInventoryAttentionSummary({
     workspaceId,
     rows: rows.data ?? [],
     totalInventoryRows: total.count ?? (rows.data ?? []).length,
+    exactCounts: countsResult,
     now,
   });
 }
@@ -147,12 +158,14 @@ export function buildInventoryAttentionSummary({
   workspaceId = null,
   rows,
   totalInventoryRows = rows.length,
+  exactCounts,
   now = new Date(),
 }: {
   userId: string;
   workspaceId?: string | null;
   rows: InventoryAttentionRow[];
   totalInventoryRows?: number;
+  exactCounts?: InventoryAttentionExactCounts;
   now?: Date;
 }): InventoryAttentionSummary {
   let sampledQuantity = 0;
@@ -213,7 +226,13 @@ export function buildInventoryAttentionSummary({
   }
 
   const sampledRows = rows.length;
-  const groups = groupAttentionItems(items);
+  const counts = exactCounts ?? {
+    missingPriceRows,
+    unassignedRows,
+    unknownConditionRows,
+    unknownFinishRows,
+  };
+  const groups = withExactGroupCounts(groupAttentionItems(items), counts);
   const highPriorityIssues = groups
     .filter((group) => group.severity === "high")
     .reduce((sum, group) => sum + group.count, 0);
@@ -226,12 +245,12 @@ export function buildInventoryAttentionSummary({
     sampledQuantity,
     knownMarketValue: knownPriceRows > 0 ? knownMarketValue : null,
     knownPriceRows,
-    missingPriceRows,
-    unassignedRows,
-    unknownConditionRows,
-    unknownFinishRows,
-    storageCoveragePercent: sampledRows > 0 ? ((sampledRows - unassignedRows) / sampledRows) * 100 : 0,
-    priceCoveragePercent: sampledRows > 0 ? (knownPriceRows / sampledRows) * 100 : 0,
+    missingPriceRows: counts.missingPriceRows,
+    unassignedRows: counts.unassignedRows,
+    unknownConditionRows: counts.unknownConditionRows,
+    unknownFinishRows: counts.unknownFinishRows,
+    storageCoveragePercent: totalInventoryRows > 0 ? ((totalInventoryRows - counts.unassignedRows) / totalInventoryRows) * 100 : 0,
+    priceCoveragePercent: totalInventoryRows > 0 ? ((totalInventoryRows - counts.missingPriceRows) / totalInventoryRows) * 100 : 0,
     totalIssues: groups.reduce((sum, group) => sum + group.count, 0),
     highPriorityIssues,
     categoryCounts: {
@@ -244,6 +263,58 @@ export function buildInventoryAttentionSummary({
     topActions: groups.slice(0, 3),
     generatedAt: createdAt,
     sampleLimited: totalInventoryRows > sampledRows,
+  };
+}
+
+async function loadExactIssueCounts(
+  supabase: InventoryAttentionSupabaseClient,
+  userId: string,
+): Promise<InventoryAttentionExactCounts> {
+  const countQuery = (label: string, query: QueryBuilder<unknown>) => Promise.resolve(query).then((result) => {
+    if (result.error) throw new Error(`Inventory attention ${label} count failed: ${result.error.message ?? "Unknown Supabase error"}`);
+    return result.count ?? 0;
+  });
+
+  const [missingPriceRows, unassignedRows, unknownConditionRows, unknownFinishRows] = await Promise.all([
+    countQuery(
+      "missing price",
+      supabase
+        .from("inventory_items")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .or("and(or(inventory_value.is.null,inventory_value.eq.0),or(data->>value.is.null,data->>value.eq.0,data->>value.eq.))"),
+    ),
+    countQuery(
+      "missing storage",
+      supabase
+        .from("inventory_items")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .or("and(location_id.is.null,data->>locationId.is.null)"),
+    ),
+    countQuery(
+      "unknown condition",
+      supabase
+        .from("inventory_items")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .or("data->>condition.is.null,data->>condition.eq.unknown,data->>condition.eq.n/a,data->>condition.eq."),
+    ),
+    countQuery(
+      "unknown finish",
+      supabase
+        .from("inventory_items")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .or("and(or(data->>finish.is.null,data->>finish.eq.unknown,data->>finish.eq.n/a,data->>finish.eq.),or(data->>variant.is.null,data->>variant.eq.unknown,data->>variant.eq.n/a,data->>variant.eq.),or(data->>treatment.is.null,data->>treatment.eq.unknown,data->>treatment.eq.n/a,data->>treatment.eq.))"),
+    ),
+  ]);
+
+  return {
+    missingPriceRows,
+    unassignedRows,
+    unknownConditionRows,
+    unknownFinishRows,
   };
 }
 
@@ -310,6 +381,53 @@ function groupAttentionItems(items: InventoryAttentionItem[]) {
     if (severity !== 0) return severity;
     return b.count - a.count;
   });
+}
+
+function withExactGroupCounts(
+  groups: InventoryAttentionGroup[],
+  counts: InventoryAttentionExactCounts,
+) {
+  const byType = new Map(groups.map((group) => [group.type, group]));
+  const exactEntries: Array<[Exclude<InventoryAttentionType, "inventory_setup_required">, number]> = [
+    ["missing_price", counts.missingPriceRows],
+    ["missing_storage_location", counts.unassignedRows],
+    ["unknown_condition", counts.unknownConditionRows],
+    ["unknown_finish", counts.unknownFinishRows],
+  ];
+
+  for (const [type, count] of exactEntries) {
+    const current = byType.get(type);
+    if (current) {
+      current.count = count;
+    } else if (count > 0) {
+      const rule = issueRule(type);
+      byType.set(type, {
+        type,
+        severity: rule.severity,
+        title: rule.title,
+        description: rule.description,
+        reason: rule.reason,
+        count,
+        quantity: 0,
+        value: null,
+        recommendedAction: rule.action,
+        actionHref: inventoryAttentionHref(type),
+        representativeItems: [],
+      });
+    }
+  }
+
+  if ([...byType.values()].length === 0 && counts.missingPriceRows + counts.unassignedRows + counts.unknownConditionRows + counts.unknownFinishRows === 0) {
+    return groups;
+  }
+
+  return [...byType.values()]
+    .filter((group) => group.type === "inventory_setup_required" || group.count > 0)
+    .sort((a, b) => {
+      const severity = severityRank(b.severity) - severityRank(a.severity);
+      if (severity !== 0) return severity;
+      return b.count - a.count;
+    });
 }
 
 function issueItem(input: {

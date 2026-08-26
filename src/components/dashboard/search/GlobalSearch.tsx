@@ -251,7 +251,7 @@ export function GlobalSearch() {
             unitValue:
               item.unitMarketValue ??
               ((item.value ?? 0) / Math.max(1, item.quantity || 1)),
-            href: `/dashboard/inventory?item=${encodeURIComponent(item.id)}&location=${encodeURIComponent(item.locationId)}`,
+            href: `/dashboard/cards/${encodeURIComponent(item.id)}`,
           };
         });
 

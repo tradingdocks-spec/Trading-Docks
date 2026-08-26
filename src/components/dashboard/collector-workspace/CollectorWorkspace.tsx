@@ -655,8 +655,8 @@ export function CollectorWorkspace({
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <TDButton label="Inspect" variant="ghost" size="sm" onClick={() => setInspectedCardId(card.id)} />
-                        <Link href={`/dashboard/inventory/${encodeURIComponent(card.id)}`} className="inline-flex min-h-10 items-center justify-center rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] px-3 text-xs font-black text-[var(--td-text-secondary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
-                          Details
+                        <Link href={`/dashboard/cards/${encodeURIComponent(card.id)}`} className="inline-flex min-h-10 items-center justify-center rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] px-3 text-xs font-black text-[var(--td-text-secondary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
+                          Workspace
                         </Link>
                       </div>
                     </td>
@@ -1435,7 +1435,7 @@ function InventoryInspector({
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <Link href={`/dashboard/inventory/${encodeURIComponent(card.id)}`} className="td-button-secondary min-h-10 px-3 text-xs">View Details</Link>
+        <Link href={`/dashboard/cards/${encodeURIComponent(card.id)}`} className="td-button-secondary min-h-10 px-3 text-xs">Open Workspace</Link>
         <Link href="/dashboard/deck-vault" className="td-button-secondary min-h-10 px-3 text-xs">Add to Deck</Link>
         {canUseSellerActions ? <Link href="/dashboard/marketplaces" className="td-button-secondary min-h-10 px-3 text-xs">List</Link> : null}
       </div>

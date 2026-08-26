@@ -111,6 +111,93 @@ test("inventory attention representative items are bounded for large issue group
   assert.equal(group?.representativeItems.length, INVENTORY_ATTENTION_REPRESENTATIVE_LIMIT);
 });
 
+test("inventory attention can use exact database counts beyond the representative sample", () => {
+  const rows = Array.from({ length: INVENTORY_ATTENTION_SAMPLE_SIZE }, (_, index) => ({
+    id: `recent-clean-${index}`,
+    card_name: `Recent Clean ${index}`,
+    quantity: 1,
+    inventory_value: 2,
+    location_id: "binder-1",
+    data: { condition: "near_mint", finish: "normal" },
+  }));
+  const summary = buildInventoryAttentionSummary({
+    userId: "user-larger-than-sample",
+    rows,
+    totalInventoryRows: INVENTORY_ATTENTION_SAMPLE_SIZE + 27,
+    exactCounts: {
+      missingPriceRows: 11,
+      unassignedRows: 7,
+      unknownConditionRows: 5,
+      unknownFinishRows: 4,
+    },
+  });
+
+  assert.equal(summary.sampleLimited, true);
+  assert.equal(summary.totalIssues, 27);
+  assert.equal(summary.categoryCounts.pricing, 11);
+  assert.equal(summary.categoryCounts.organization, 7);
+  assert.equal(summary.categoryCounts.dataQuality, 9);
+  assert.equal(summary.groups.find((group) => group.type === "missing_price")?.representativeItems.length, 0);
+  assert.equal(Math.round(summary.priceCoveragePercent), 98);
+});
+
+test("inventory attention loader requests exact issue counts separately from bounded examples", async () => {
+  const calls: Array<{ kind: "eq" | "is" | "or" | "limit"; table: string; column?: string; value?: unknown }> = [];
+  const supabase = {
+    from(table: string) {
+      return {
+        select(_columns: string, options?: { count?: "exact"; head?: boolean }) {
+          let issueFilterCount = 0;
+          const query = {
+            eq(column: string, value: string) {
+              calls.push({ kind: "eq", table, column, value });
+              return query;
+            },
+            is(column: string, value: null) {
+              calls.push({ kind: "is", table, column, value });
+              issueFilterCount += 2;
+              return query;
+            },
+            or(value: string) {
+              calls.push({ kind: "or", table, value });
+              issueFilterCount += value.includes("condition") ? 3 : value.includes("finish") ? 4 : value.includes("locationId") ? 2 : 1;
+              return query;
+            },
+            order() {
+              return query;
+            },
+            limit(value: number) {
+              calls.push({ kind: "limit", table, value });
+              return query;
+            },
+            then(resolve: (value: unknown) => void) {
+              const count = issueFilterCount;
+              resolve(options?.head ? { data: null, count, error: null } : { data: [], error: null });
+            },
+          };
+          return query;
+        },
+      };
+    },
+  };
+
+  const summary = await loadInventoryAttentionSummary({
+    supabase,
+    userId: "trusted-user",
+    workspaceId: "workspace-1",
+    sampleSize: 1000,
+  });
+
+  assert.equal(summary.sampledRows, 0);
+  assert.equal(summary.totalInventoryRows, 0);
+  assert.equal(summary.missingPriceRows, 1);
+  assert.equal(summary.unassignedRows, 2);
+  assert.equal(summary.unknownConditionRows, 3);
+  assert.equal(summary.unknownFinishRows, 4);
+  assert.ok(calls.some((call) => call.kind === "limit" && call.value === INVENTORY_ATTENTION_SAMPLE_SIZE));
+  assert.equal(calls.filter((call) => call.kind === "eq" && call.column === "user_id" && call.value === "trusted-user").length, 6);
+});
+
 test("inventory attention loader scopes every query to the authenticated user", async () => {
   const calls: Array<{ table: string; column: string; value: string }> = [];
   const supabase = {
@@ -120,6 +207,12 @@ test("inventory attention loader scopes every query to the authenticated user", 
           const query = {
             eq(column: string, value: string) {
               calls.push({ table, column, value });
+              return query;
+            },
+            is() {
+              return query;
+            },
+            or() {
               return query;
             },
             order() {
@@ -145,7 +238,7 @@ test("inventory attention loader scopes every query to the authenticated user", 
   });
 
   assert.equal(summary.userId, "trusted-user");
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 6);
   assert.ok(calls.every((call) => call.table === "inventory_items"));
   assert.ok(calls.every((call) => call.column === "user_id"));
   assert.ok(calls.every((call) => call.value === "trusted-user"));
@@ -164,7 +257,8 @@ test("inventory inbox and command center consume shared inventory intelligence",
   assert.match(inventory, /attention === "missing_price"/);
   assert.match(inventory, /attention === "missing_storage_location"/);
   assert.match(navigation, /Inventory Inbox/);
-  assert.match(page, /Showing grouped findings/);
+  assert.match(page, /Counts are database-level totals/);
+  assert.match(page, /Representative examples are bounded/);
   assert.match(page, /No inventory attention items found/);
   assert.match(page, /does not show demo/i);
 });

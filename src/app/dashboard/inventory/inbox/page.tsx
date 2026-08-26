@@ -66,7 +66,7 @@ export default async function InventoryInboxPage() {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Inventory attention summary">
-          <Metric icon={<AlertTriangle className="h-4 w-4" />} label="Total issues" value={summary.totalIssues.toLocaleString()} detail={summary.sampleLimited ? "Recent inventory sample" : "Current inventory state"} tone={summary.totalIssues ? "attention" : "healthy"} />
+          <Metric icon={<AlertTriangle className="h-4 w-4" />} label="Total issues" value={summary.totalIssues.toLocaleString()} detail="Exact current issue count" tone={summary.totalIssues ? "attention" : "healthy"} />
           <Metric icon={<AlertTriangle className="h-4 w-4" />} label="High priority" value={summary.highPriorityIssues.toLocaleString()} detail="Blocks valuation or selling quality" tone={summary.highPriorityIssues ? "attention" : "neutral"} />
           <Metric icon={<CircleDollarSign className="h-4 w-4" />} label="Pricing" value={summary.categoryCounts.pricing.toLocaleString()} detail={`${Math.round(summary.priceCoveragePercent)}% price coverage`} tone={summary.categoryCounts.pricing ? "attention" : "neutral"} />
           <Metric icon={<MapPin className="h-4 w-4" />} label="Organization" value={summary.categoryCounts.organization.toLocaleString()} detail={`${Math.round(summary.storageCoveragePercent)}% storage coverage`} tone={summary.categoryCounts.organization ? "attention" : "neutral"} />
@@ -75,7 +75,7 @@ export default async function InventoryInboxPage() {
 
         {summary.sampleLimited ? (
           <section className="rounded-2xl border border-cyan-300/[0.13] bg-cyan-400/[0.035] px-4 py-3 text-xs leading-5 text-cyan-100/75">
-            Showing grouped findings from {summary.sampledRows.toLocaleString()} recent inventory records out of {summary.totalInventoryRows.toLocaleString()} total rows. Detailed pagination should be added before this becomes a full historical audit queue.
+            Counts are database-level totals across {summary.totalInventoryRows.toLocaleString()} inventory rows. Representative examples are bounded to the {summary.sampledRows.toLocaleString()} most recently updated rows so the Inbox stays fast on large collections.
           </section>
         ) : null}
 
@@ -138,11 +138,11 @@ function AttentionGroupCard({ group }: { group: InventoryAttentionGroup }) {
         </Link>
       </div>
 
-      <div className="mt-5 grid gap-2">
+            <div className="mt-5 grid gap-2">
         {group.representativeItems.map((item) => (
           <Link
             key={item.id}
-            href={item.inventoryItemId ? `/dashboard/inventory/${encodeURIComponent(item.inventoryItemId)}` : group.actionHref}
+            href={item.inventoryItemId ? `/dashboard/cards/${encodeURIComponent(item.inventoryItemId)}` : group.actionHref}
             className="grid gap-3 rounded-2xl border border-white/[0.055] bg-black/[0.12] p-3 transition hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.025] sm:grid-cols-[minmax(0,1fr)_120px_110px]"
           >
             <span className="min-w-0">
@@ -153,6 +153,11 @@ function AttentionGroupCard({ group }: { group: InventoryAttentionGroup }) {
             <span className="text-xs text-slate-500">{item.value === null ? "Value unavailable" : money(item.value)}</span>
           </Link>
         ))}
+        {group.representativeItems.length === 0 ? (
+          <div className="rounded-2xl border border-white/[0.055] bg-black/[0.12] p-3 text-xs leading-5 text-slate-500">
+            No recent representative examples were included for this exact count. Open the filtered Collection to review the affected records.
+          </div>
+        ) : null}
       </div>
     </article>
   );
