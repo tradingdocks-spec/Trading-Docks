@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   ArrowUpDown,
   Activity,
+  AlertTriangle,
   BookOpen,
   Boxes,
   CheckSquare2,
@@ -338,6 +339,19 @@ export function CollectorWorkspace({
     }
   }, []);
 
+  useEffect(() => {
+    const attention = searchParams.get("attention");
+    if (attention === "missing_storage_location") {
+      applyHealthIssue("unassigned");
+    } else if (attention === "missing_price") {
+      applyHealthIssue("missing_price");
+    } else if (attention === "unknown_condition") {
+      applyHealthIssue("unknown_condition");
+    } else if (attention === "unknown_finish") {
+      applyHealthIssue("unknown_finish");
+    }
+  }, [applyHealthIssue, searchParams]);
+
   const exportVisibleCsv = useCallback(() => {
     const rows = [
       ["Name", "Game", "Product Type", "Set", "Collector Number", "Condition", "Finish", "Quantity", "Storage", "Market Price"].join(","),
@@ -390,6 +404,10 @@ export function CollectorWorkspace({
           <Link href="/dashboard/collector-portfolio" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] px-3.5 text-sm font-black text-[var(--td-text-primary)] outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
             <Layers3 className="h-4 w-4" />
             Portfolio
+          </Link>
+          <Link href="/dashboard/inventory/inbox" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-amber-300/15 bg-amber-300/[0.045] px-3.5 text-sm font-black text-amber-100 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
+            <AlertTriangle className="h-4 w-4" />
+            Inbox
           </Link>
           <button type="button" onClick={() => setActiveSection("storage")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] px-3.5 text-sm font-black text-[var(--td-text-primary)] outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
             <MapPin className="h-4 w-4" />

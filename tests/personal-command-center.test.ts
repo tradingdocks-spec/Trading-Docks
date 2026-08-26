@@ -29,7 +29,7 @@ test("personal command center does not fabricate collection activity for an empt
   assert.equal(summary.sampledQuantity, 0);
   assert.equal(summary.storageCoveragePercent, 0);
   assert.match(summary.brief, /does not show demo collection activity/i);
-  assert.deepEqual(summary.actions.map((action) => action.id), ["add-inventory", "scan-card"]);
+  assert.deepEqual(summary.actions.map((action) => action.id), ["inventory_setup_required"]);
 });
 
 test("personal command center derives storage and price actions from user-scoped inventory rows", () => {
@@ -65,10 +65,9 @@ test("personal command center derives storage and price actions from user-scoped
   assert.equal(summary.storageCoveragePercent, 50);
   assert.equal(summary.priceCoveragePercent, 50);
   assert.deepEqual(summary.actions.map((action) => action.id), [
-    "assign-storage",
-    "review-missing-prices",
-    "complete-card-details",
-    "open-collection",
+    "missing_price",
+    "missing_storage_location",
+    "unknown_condition",
   ]);
   assert.ok(summary.actions.every((action) => action.evidence.length > 0));
 });
@@ -99,6 +98,7 @@ test("dashboard wires personal command center through the same authenticated das
     "utf8",
   );
   const service = readFileSync(path.join(repoRoot, "src/lib/dashboard/personal-command-center.ts"), "utf8");
+  const intelligence = readFileSync(path.join(repoRoot, "src/lib/inventory/intelligence.ts"), "utf8");
 
   assert.match(page, /loadPersonalCommandCenter\(\{/);
   assert.match(page, /resolvePlatformAccessForUser\(supabase, user\)/);
@@ -106,6 +106,8 @@ test("dashboard wires personal command center through the same authenticated das
   assert.match(component, /personalSummary\?: PersonalCommandCenterSummary/);
   assert.match(component, /const brief = summary\?\.brief/);
   assert.doesNotMatch(component, /Open actions" value="3"/);
-  assert.match(service, /\.eq\("user_id", access\.userId\)/);
+  assert.match(service, /loadInventoryAttentionSummary/);
+  assert.match(service, /buildInventoryAttentionSummary/);
+  assert.match(intelligence, /\.eq\("user_id", userId\)/);
   assert.match(service, /PERSONAL_COMMAND_CENTER_SAMPLE_SIZE/);
 });

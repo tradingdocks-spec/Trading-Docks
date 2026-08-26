@@ -290,9 +290,21 @@ Status: Partially Implemented
 ## Web Command Center Architecture
 
 - Implemented: `/dashboard` resolves platform access through `resolvePlatformAccessForUser`. Seller, Store, Owner, and Admin accounts use the server-loaded Business Command Center; Free and Collector accounts use the personal command surface.
-- Implemented: The personal command surface loads a bounded, authenticated `inventory_items` sample plus an exact row count through `src/lib/dashboard/personal-command-center.ts`. It filters by `user_id`, does not read from localStorage, and labels large collections as sampled rather than pretending the full collection was loaded.
-- Implemented: Personal command metrics and next actions are derived from real inventory signals: known market value coverage, storage coverage, missing prices, unknown condition/finish, and empty-account onboarding. Empty accounts do not receive fabricated activity, fake value, or fake signals.
+- Implemented: The personal command surface consumes the shared Inventory Attention model in `src/lib/inventory/intelligence.ts` through the adapter in `src/lib/dashboard/personal-command-center.ts`. It filters by `user_id`, does not read from localStorage, and labels large collections as sampled rather than pretending the full collection was loaded.
+- Implemented: Personal command metrics and next actions are derived from real inventory attention groups: known market value coverage, storage coverage, missing prices, unknown condition/finish, and empty-account onboarding. Empty accounts do not receive fabricated activity, fake value, or fake signals.
 - Partially Implemented: The personal dashboard does not yet have historical collection movement, recent activity, or cross-surface opportunity scoring. Those should remain unavailable/empty until backed by persisted events or explicit server summaries.
+
+## Inventory Attention And Inbox Architecture
+
+- Implemented: `src/lib/inventory/intelligence.ts` owns the first reusable Inventory Attention domain model. `InventoryAttentionItem` and `InventoryAttentionGroup` use typed issue identifiers instead of arbitrary strings and carry severity, reason, source, recommended action, action URL, affected inventory id, quantity, value, and representative metadata where available.
+- Implemented: The current attention types are deliberately limited to rules Trading Docks can calculate truthfully from `inventory_items`: `missing_price`, `missing_storage_location`, `unknown_condition`, `unknown_finish`, and `inventory_setup_required`.
+- Implemented: Severity is deterministic: missing price is `high` because it blocks valuation and selling quality; missing storage, unknown condition, and unknown finish are `medium` because they weaken organization, trade matching, exports, and exact-pricing accuracy; empty setup is `low`.
+- Implemented: The shared loader performs server-side, authenticated, user-scoped reads. It queries an exact `inventory_items` count and a bounded recent sample ordered by `updated_at`, filtered by `user_id`. The first sample bound is `INVENTORY_ATTENTION_SAMPLE_SIZE = 500`, with representative affected items capped by `INVENTORY_ATTENTION_REPRESENTATIVE_LIMIT = 5` per group.
+- Implemented: `/dashboard/inventory/inbox` is the first Inventory Inbox surface. It renders grouped attention categories, summary counts, rule explanations, representative affected records, and direct links back into the existing Inventory workflow. It does not create a second inventory management system.
+- Implemented: The existing Inventory page accepts `?attention=missing_price`, `?attention=missing_storage_location`, `?attention=unknown_condition`, and `?attention=unknown_finish` and maps those links to the current saved-view/filter controls. The Inbox identifies work; the Collection surface performs the work.
+- Implemented: Dashboard priorities now consume the same shared Inventory Attention summary rather than duplicating pricing/storage/condition/finish rules.
+- Planned: Detailed Inbox pagination or database-backed issue materialization should be added before treating the Inbox as a full historical audit queue for very large inventories.
+- Deferred: stale inventory, price spikes/declines, demand, velocity, sell-through, underpriced/overpriced listings, grading candidates, duplicate consolidation, and near-buildable-deck opportunities remain excluded until Trading Docks has reliable persisted history, marketplace snapshots, listing states, or deck-opportunity event data. The current implementation intentionally does not infer those signals from current-state rows.
 
 ## Label Studio And Inventory QR Architecture
 
