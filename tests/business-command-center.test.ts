@@ -396,8 +396,9 @@ test("dashboard page wires business HQ through shared business summary authority
   assert.match(component, /Marketplace matrix/);
   assert.match(component, /Today's Docks Brief/);
   assert.match(component, /Revenue & Profit/);
-  assert.match(component, /Known profit/);
-  assert.match(component, /Known profit coverage/);
+  assert.match(component, /Profit estimate/);
+  assert.match(component, /Pending cost basis/);
+  assert.match(component, /Cost basis coverage/);
   assert.match(component, /Trading Docks Signals/);
   assert.match(component, /Inventory Capital/);
   assert.match(component, /What Changed/);
