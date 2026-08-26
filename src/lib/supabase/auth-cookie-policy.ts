@@ -8,8 +8,10 @@ export const REMEMBER_ME_MAX_AGE = 60 * 60 * 24 * 365;
 export const CANONICAL_HOST = "www.tradingdocks.com";
 export const AUTH_COOKIE_DOMAIN = ".tradingdocks.com";
 
-function productionCookieDomain(): string | undefined {
-  return process.env.NODE_ENV === "production"
+export function productionCookieDomain(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  return env.VERCEL_ENV === "production"
     ? AUTH_COOKIE_DOMAIN
     : undefined;
 }

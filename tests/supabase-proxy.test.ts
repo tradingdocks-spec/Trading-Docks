@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  AUTH_COOKIE_DOMAIN,
+  persistentAuthCookieOptions,
+  productionCookieDomain,
+  REMEMBER_ME_MAX_AGE,
+} from "../src/lib/supabase/auth-cookie-policy.ts";
+import {
   canonicalizeTradingDocksUrl,
   shouldRedirectToCanonicalHost,
 } from "../src/lib/supabase/canonical-host.ts";
@@ -11,6 +17,7 @@ import {
 } from "../src/lib/supabase/proxy-routing.ts";
 
 const ORIGINAL_VERCEL_ENV = process.env.VERCEL_ENV;
+const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
 
 async function withVercelEnv<T>(
   value: string | undefined,
@@ -25,6 +32,36 @@ async function withVercelEnv<T>(
   try {
     return await callback();
   } finally {
+    if (ORIGINAL_VERCEL_ENV === undefined) {
+      delete process.env.VERCEL_ENV;
+    } else {
+      process.env.VERCEL_ENV = ORIGINAL_VERCEL_ENV;
+    }
+  }
+}
+
+async function withDeploymentEnv<T>(
+  value: string | undefined,
+  callback: () => T | Promise<T>,
+): Promise<T> {
+  const writableEnv = process.env as NodeJS.ProcessEnv & { NODE_ENV?: string };
+  writableEnv.NODE_ENV = "production";
+
+  if (value === undefined) {
+    delete process.env.VERCEL_ENV;
+  } else {
+    process.env.VERCEL_ENV = value;
+  }
+
+  try {
+    return await callback();
+  } finally {
+    if (ORIGINAL_NODE_ENV === undefined) {
+      delete writableEnv.NODE_ENV;
+    } else {
+      writableEnv.NODE_ENV = ORIGINAL_NODE_ENV;
+    }
+
     if (ORIGINAL_VERCEL_ENV === undefined) {
       delete process.env.VERCEL_ENV;
     } else {
@@ -87,6 +124,37 @@ test("local development is not canonicalized", () => {
   return withVercelEnv(undefined, () => {
     assert.equal(shouldRedirectToCanonicalHost("localhost"), false);
     assert.equal(shouldRedirectToCanonicalHost("127.0.0.1"), false);
+  });
+});
+
+test("production deployments use the shared Trading Docks auth cookie domain", () => {
+  return withDeploymentEnv("production", () => {
+    assert.equal(productionCookieDomain(), AUTH_COOKIE_DOMAIN);
+    assert.equal(
+      persistentAuthCookieOptions({}, true).domain,
+      AUTH_COOKIE_DOMAIN,
+    );
+  });
+});
+
+test("preview deployments keep auth cookies scoped to the preview host", () => {
+  return withDeploymentEnv("preview", () => {
+    const options = persistentAuthCookieOptions({}, true);
+
+    assert.equal(productionCookieDomain(), undefined);
+    assert.equal(options.domain, undefined);
+    assert.equal(options.sameSite, "lax");
+    assert.equal(options.secure, true);
+    assert.equal(options.maxAge, REMEMBER_ME_MAX_AGE);
+  });
+});
+
+test("local development keeps auth cookies host-scoped", () => {
+  return withDeploymentEnv(undefined, () => {
+    const options = persistentAuthCookieOptions({}, true);
+
+    assert.equal(productionCookieDomain(), undefined);
+    assert.equal(options.domain, undefined);
   });
 });
 
