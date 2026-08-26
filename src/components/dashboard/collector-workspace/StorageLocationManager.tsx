@@ -22,7 +22,7 @@ import {
 } from "@/lib/storage-location-client-data";
 import {
   STORAGE_LOCATION_TYPES,
-  cardsInLocation,
+  cardsInLocationTree,
   favoriteLocationSummaries,
   recentLocationSummaries,
   searchLocationSummaries,
@@ -85,7 +85,7 @@ export function StorageLocationManager() {
   const selected = useMemo(() => summaries.find((location) => location.id === selectedId) ?? null, [selectedId, summaries]);
   const selectedIsUnassigned = selectedId === UNASSIGNED_LOCATION_ID;
   const selectedCards = useMemo(
-    () => selectedIsUnassigned && state ? state.unassignedCards : selected && state ? cardsInLocation(state.cards, selected.id) : [],
+    () => selectedIsUnassigned && state ? state.unassignedCards : selected && state ? cardsInLocationTree(state.cards, selected.id, state.locations) : [],
     [selected, selectedIsUnassigned, state],
   );
   const filteredCards = useMemo(() => {

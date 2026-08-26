@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/client";
 import {
   buildCollectionCards,
+  buildCollectionLocationPathLabel,
   buildCollectionPageInfo,
   COLLECTION_PAGE_SIZE,
   decodeCollectionCursor,
@@ -65,7 +66,7 @@ export async function loadWebCollectorCollectionPage({
       .select("id, name, location_type, data")
       .eq("user_id", user.id)
       .order("name", { ascending: true })
-      .limit(100),
+      .limit(500),
   ]);
 
   if (itemsError) throw new Error(`Collection storage is unavailable: ${itemsError.message}`);
@@ -132,7 +133,7 @@ export async function loadWebCollectorCardById(cardId: string): Promise<WebColle
       .select("id, name, location_type, data")
       .eq("user_id", user.id)
       .order("name", { ascending: true })
-      .limit(100),
+      .limit(500),
     supabase
       .from("binder_card_trade_status")
       .select("inventory_item_id, status")
@@ -181,9 +182,10 @@ export async function runWebCollectorMutation(mutation: CollectorMutation) {
 function buildWebStorageLocations(locations: RawInventoryLocation[]): StorageLocation[] {
   return locations.map((location) => {
     const payload = location.data ?? {};
+    const name = typeof payload.name === "string" && payload.name.trim() ? payload.name : location.name ?? "Unnamed location";
     return {
       id: location.id,
-      name: typeof payload.name === "string" && payload.name.trim() ? payload.name : location.name ?? "Unnamed location",
+      name,
       type: (location.location_type === "binder" ||
         location.location_type === "box" ||
         location.location_type === "sealed" ||
@@ -191,6 +193,8 @@ function buildWebStorageLocations(locations: RawInventoryLocation[]): StorageLoc
         location.location_type === "custom"
         ? location.location_type
         : "unknown") as StorageLocation["type"],
+      parentId: typeof payload.parentId === "string" && payload.parentId.trim() ? payload.parentId : null,
+      pathLabel: buildCollectionLocationPathLabel(location.id, locations),
       description: typeof payload.description === "string" ? payload.description : null,
       zone: typeof payload.zone === "string" ? payload.zone : null,
       binderPage: null,
@@ -203,7 +207,8 @@ async function loadRelatedFilterIds(userId: string, filter?: CollectionFilter) {
   const supabase = createClient();
   const tradeStatus = filter?.tradeBinderStatus;
   const wishlistStatus = filter?.wishlistStatus;
-  const [tradeResult, wishlistResult] = await Promise.all([
+  const query = filter?.query?.trim() ?? "";
+  const [tradeResult, wishlistResult, locationResult] = await Promise.all([
     tradeStatus && tradeStatus !== "all"
       ? supabase
         .from("binder_card_trade_status")
@@ -221,10 +226,18 @@ async function loadRelatedFilterIds(userId: string, filter?: CollectionFilter) {
         .eq("user_id", userId)
         .limit(1000)
       : Promise.resolve({ data: null, error: null }),
+    query
+      ? supabase
+        .from("inventory_locations")
+        .select("id, name, location_type, data")
+        .eq("user_id", userId)
+        .limit(500)
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
   if (tradeResult.error) throw new Error(`Trade Binder filters are unavailable: ${tradeResult.error.message}`);
   if (wishlistResult.error) throw new Error(`Wishlist filters are unavailable: ${wishlistResult.error.message}`);
+  if (locationResult.error) throw new Error(`Storage location search is unavailable: ${locationResult.error.message}`);
 
   const tradeIds = tradeStatus && tradeStatus !== "all"
     ? (tradeResult.data ?? [])
@@ -236,11 +249,15 @@ async function loadRelatedFilterIds(userId: string, filter?: CollectionFilter) {
       .map((row: { card_name?: string | null }) => row.card_name)
       .filter((name: string | null | undefined): name is string => typeof name === "string" && name.length > 0))]
     : null;
+  const locationIds = query
+    ? matchingLocationIds((locationResult.data ?? []) as RawInventoryLocation[], query)
+    : null;
 
   return {
     blocked: Boolean((tradeIds && tradeIds.length === 0) || (wishlistNames && wishlistNames.length === 0)),
     tradeIds,
     wishlistNames,
+    locationIds,
   };
 }
 
@@ -249,7 +266,10 @@ function applyInventoryFilters(query: InventoryQuery, filter: CollectionFilter |
   const cleanQuery = filter?.query?.trim();
   if (cleanQuery) {
     const pattern = `%${cleanQuery.replace(/[%_]/g, "")}%`;
-    next = next.or(`card_name.ilike.${pattern},set_code.ilike.${pattern},collector_number.ilike.${pattern}`);
+    const locationFilter = "locationIds" in related && related.locationIds?.length
+      ? `,location_id.in.(${related.locationIds.map(encodeSupabaseListValue).join(",")})`
+      : "";
+    next = next.or(`card_name.ilike.${pattern},set_code.ilike.${pattern},collector_number.ilike.${pattern}${locationFilter}`);
   }
   if (filter?.gameId && filter.gameId !== "all") {
     next = filter.gameId === "magic"
@@ -268,6 +288,41 @@ function applyInventoryFilters(query: InventoryQuery, filter: CollectionFilter |
   if ("tradeIds" in related && related.tradeIds) next = next.in("id", related.tradeIds);
   if ("wishlistNames" in related && related.wishlistNames) next = next.in("card_name", related.wishlistNames);
   return next;
+}
+
+function matchingLocationIds(locations: RawInventoryLocation[], query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return [];
+  const byParent = new Map<string, string[]>();
+  for (const location of locations) {
+    const parentId = typeof location.data?.parentId === "string" ? location.data.parentId : null;
+    if (!parentId) continue;
+    const children = byParent.get(parentId) ?? [];
+    children.push(location.id);
+    byParent.set(parentId, children);
+  }
+  const directMatches = locations.filter((location) => {
+    const path = buildCollectionLocationPathLabel(location.id, locations) ?? "";
+    return `${location.name ?? ""} ${path} ${location.location_type ?? ""}`.toLowerCase().includes(normalized);
+  });
+  const ids = new Set<string>();
+  for (const location of directMatches) {
+    ids.add(location.id);
+    const queue = [location.id];
+    while (queue.length) {
+      const current = queue.shift() as string;
+      for (const childId of byParent.get(current) ?? []) {
+        if (ids.has(childId)) continue;
+        ids.add(childId);
+        queue.push(childId);
+      }
+    }
+  }
+  return [...ids];
+}
+
+function encodeSupabaseListValue(value: string) {
+  return `"${value.replace(/"/g, '\\"')}"`;
 }
 
 function applyInventorySort(query: InventoryQuery, sort: CollectionSort) {

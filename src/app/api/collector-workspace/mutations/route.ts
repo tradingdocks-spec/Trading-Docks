@@ -120,6 +120,42 @@ async function executeMutation(
     return;
   }
 
+  if (mutation.type === "move_quantity") {
+    const { error } = await supabase.rpc("move_inventory_lot_quantity", {
+      p_inventory_item_id: mutation.inventoryItemId,
+      p_quantity: mutation.quantity,
+      p_to_location_id: mutation.storageLocationId,
+      p_idempotency_key: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: "move_quantity",
+        value: `${mutation.storageLocationId ?? "unassigned"}:${mutation.quantity}`,
+        timestamp: now,
+      }),
+      p_source: "collector_workspace",
+    });
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  if (mutation.type === "remove_quantity") {
+    const { error } = await supabase.rpc("remove_inventory_lot_quantity", {
+      p_inventory_item_id: mutation.inventoryItemId,
+      p_quantity: mutation.quantity,
+      p_reason: mutation.reason ?? "Removed from collection",
+      p_idempotency_key: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: "remove_quantity",
+        value: `${mutation.quantity}:${mutation.reason ?? ""}`,
+        timestamp: now,
+      }),
+      p_source: "collector_workspace",
+    });
+    if (error) throw new Error(error.message);
+    return;
+  }
+
   if (mutation.type === "trade_binder_status") {
     const { error } = await supabase
       .from("binder_card_trade_status")

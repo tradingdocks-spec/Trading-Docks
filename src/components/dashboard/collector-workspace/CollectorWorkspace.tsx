@@ -37,7 +37,7 @@ import {
 } from "@/components/design-system/td-primitives";
 import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
 import { cn } from "@/lib/utils";
-import { loadWebCollectorCollectionPage } from "@/lib/collector-workspace-client-data";
+import { loadWebCollectorCollectionPage, runWebCollectorMutation } from "@/lib/collector-workspace-client-data";
 import {
   assignWebStorageLocation,
   loadWebStorageLocationManager,
@@ -49,6 +49,7 @@ import {
   displayFinish,
   displayPrinting,
   displayStorageLocation,
+  filterLooseCollectionCards,
   mergeCollectionPages,
   priceLabel,
   buildInventoryHealth,
@@ -77,7 +78,7 @@ type DisplayMode = "grid" | "list";
 type CollectionSection = "overview" | "cards" | "binders" | "portfolio" | "storage" | "trade" | "wishlist";
 type StorageManagerState = Awaited<ReturnType<typeof loadWebStorageLocationManager>>;
 type InventoryTypeFilter = "all" | "card" | "sealed";
-type InventorySavedView = "all" | "recent" | "unassigned" | "missing_price" | "missing_cost_basis" | "tradeable" | "wishlist";
+type InventorySavedView = "loose" | "all" | "recent" | "unassigned" | "missing_price" | "missing_cost_basis" | "tradeable" | "wishlist";
 
 const SORT_OPTIONS: Array<{ value: CollectionSort; label: string }> = [
   { value: "recently_updated", label: "Recently updated" },
@@ -116,7 +117,8 @@ const INVENTORY_TYPE_OPTIONS: Array<{ value: InventoryTypeFilter; label: string;
 ];
 
 const SAVED_VIEW_OPTIONS: Array<{ value: InventorySavedView; label: string }> = [
-  { value: "all", label: "All inventory" },
+  { value: "loose", label: "Loose inventory" },
+  { value: "all", label: "All owned" },
   { value: "recent", label: "Recently added" },
   { value: "unassigned", label: "Unassigned" },
   { value: "missing_price", label: "Missing prices" },
@@ -150,7 +152,7 @@ export function CollectorWorkspace({
   const [conditionFilter, setConditionFilter] = useState<CardCondition | "all">("all");
   const [finishFilter, setFinishFilter] = useState<CardFinish | "all">("all");
   const [storageFilter, setStorageFilter] = useState<string | "all">("all");
-  const [savedView, setSavedView] = useState<InventorySavedView>("all");
+  const [savedView, setSavedView] = useState<InventorySavedView>("loose");
   const [tradeOnly, setTradeOnly] = useState(false);
   const [wishlistOnly, setWishlistOnly] = useState(false);
   const [activeSection, setActiveSection] = useState<CollectionSection>("cards");
@@ -266,7 +268,7 @@ export function CollectorWorkspace({
     tradeBinderStatus: tradeOnly ? "tradeable" : savedViewToFilter(savedView).tradeBinderStatus,
     wishlistStatus: wishlistOnly ? "wanted" : savedViewToFilter(savedView).wishlistStatus,
   }), [conditionFilter, debouncedQuery, finishFilter, gameContext, inventoryType, savedView, storageFilter, tradeOnly, wishlistOnly]);
-  const activeFilterCount = countActiveCollectionFilters(currentFilter) + (savedView !== "all" && savedView !== "tradeable" && savedView !== "wishlist" ? 1 : 0);
+  const activeFilterCount = countActiveCollectionFilters(currentFilter) + (savedView !== "loose" && savedView !== "all" && savedView !== "tradeable" && savedView !== "wishlist" ? 1 : 0);
   const viewState = resolveCollectionViewState({
     loading,
     loadingMore,
@@ -311,6 +313,48 @@ export function CollectorWorkspace({
     }
   }, [reloadStorageState, retry, storageState]);
 
+  const handleQuantityMove = useCallback(async (card: CollectionCard, quantity: number, toLocationId: string | null) => {
+    if (!storageState) return;
+    setStoragePendingCardId(card.id);
+    setStorageError(null);
+    try {
+      await runWebCollectorMutation({
+        type: "move_quantity",
+        userId: storageState.userId,
+        inventoryItemId: card.id,
+        quantity,
+        storageLocationId: toLocationId,
+      });
+      retry();
+      reloadStorageState();
+    } catch (moveError) {
+      setStorageError(moveError instanceof Error ? moveError.message : "Inventory move failed.");
+    } finally {
+      setStoragePendingCardId(null);
+    }
+  }, [reloadStorageState, retry, storageState]);
+
+  const handleQuantityRemove = useCallback(async (card: CollectionCard, quantity: number) => {
+    if (!storageState) return;
+    setStoragePendingCardId(card.id);
+    setStorageError(null);
+    try {
+      await runWebCollectorMutation({
+        type: "remove_quantity",
+        userId: storageState.userId,
+        inventoryItemId: card.id,
+        quantity,
+        reason: "Removed from Collection",
+      });
+      retry();
+      reloadStorageState();
+    } catch (removeError) {
+      setStorageError(removeError instanceof Error ? removeError.message : "Collection removal failed.");
+    } finally {
+      setStoragePendingCardId(null);
+    }
+  }, [reloadStorageState, retry, storageState]);
+
   const clearFilters = useCallback(() => {
     setQuery("");
     setDebouncedQuery("");
@@ -319,7 +363,7 @@ export function CollectorWorkspace({
     setConditionFilter("all");
     setFinishFilter("all");
     setStorageFilter("all");
-    setSavedView("all");
+    setSavedView("loose");
     setTradeOnly(false);
     setWishlistOnly(false);
   }, []);
@@ -717,6 +761,8 @@ export function CollectorWorkspace({
         canUseSellerActions={canUseSellerActions}
         onClose={() => setInspectedCardId(null)}
         onMove={(locationId) => inspectedCard ? void handleStorageAssignment(inspectedCard, locationId) : undefined}
+        onMoveQuantity={(quantity, locationId) => inspectedCard ? void handleQuantityMove(inspectedCard, quantity, locationId) : undefined}
+        onRemoveQuantity={(quantity) => inspectedCard ? void handleQuantityRemove(inspectedCard, quantity) : undefined}
         onOpenStorage={() => setActiveSection("storage")}
       />
       </>
@@ -1371,6 +1417,8 @@ function InventoryInspector({
   canUseSellerActions,
   onClose,
   onMove,
+  onMoveQuantity,
+  onRemoveQuantity,
   onOpenStorage,
 }: {
   card: CollectionCard | null;
@@ -1379,10 +1427,14 @@ function InventoryInspector({
   canUseSellerActions: boolean;
   onClose: () => void;
   onMove: (locationId: string | null) => void;
+  onMoveQuantity: (quantity: number, locationId: string | null) => void;
+  onRemoveQuantity: (quantity: number) => void;
   onOpenStorage: () => void;
 }) {
+  const [quantityInput, setQuantityInput] = useState("1");
   if (!card) return null;
   const locations = storageState?.summaries ?? [];
+  const parsedQuantity = Math.max(1, Math.min(card.quantityOwned, Number.parseInt(quantityInput, 10) || 1));
   return (
     <aside className="fixed inset-x-0 bottom-0 z-40 max-h-[92vh] overflow-y-auto rounded-t-[var(--td-radius-xl)] border border-[var(--td-border-default)] bg-[var(--td-background-primary)] p-4 shadow-2xl md:inset-y-0 md:left-auto md:right-0 md:w-[420px] md:rounded-none md:border-y-0 md:border-r-0 md:p-5" aria-label="Inventory item inspector">
       <div className="flex items-start justify-between gap-4">
@@ -1419,13 +1471,25 @@ function InventoryInspector({
 
       <div className="mt-5 rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] p-3">
         <TDText variant="label" tone="muted">Move inventory</TDText>
+        <label className="mt-3 block space-y-2">
+          <span className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Quantity for this action</span>
+          <input
+            type="number"
+            min={1}
+            max={card.quantityOwned}
+            value={quantityInput}
+            onChange={(event) => setQuantityInput(event.target.value)}
+            className="min-h-11 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-3 text-sm font-bold text-[var(--td-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
+          />
+          <TDText variant="caption" tone="muted">Move or remove part of this exact lot without changing the printing, condition, finish, or value lineage.</TDText>
+        </label>
         <div className="mt-3 grid gap-2">
           {locations.length ? locations.slice(0, 8).map((location) => (
             <button
               key={location.id}
               type="button"
               disabled={pending || location.id === card.storageLocation?.id}
-              onClick={() => onMove(location.id)}
+              onClick={() => parsedQuantity >= card.quantityOwned ? onMove(location.id) : onMoveQuantity(parsedQuantity, location.id)}
               className="flex items-center justify-between gap-3 rounded-[var(--td-radius-sm)] px-2 py-2 text-left text-xs font-bold text-[var(--td-text-secondary)] outline-none transition hover:bg-white/[0.035] hover:text-[var(--td-text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] disabled:opacity-45"
             >
               <span className="truncate">{location.path.label}</span>
@@ -1435,6 +1499,7 @@ function InventoryInspector({
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {card.storageLocation ? <TDButton label="Remove assignment" variant="ghost" size="sm" loading={pending} onClick={() => onMove(null)} /> : null}
+          <TDButton label={`Remove ${parsedQuantity}`} variant="ghost" size="sm" loading={pending} onClick={() => onRemoveQuantity(parsedQuantity)} />
           <TDButton label="Open Storage" variant="secondary" size="sm" onClick={onOpenStorage} />
         </div>
       </div>
@@ -1487,6 +1552,7 @@ function savedViewToFilter(savedView: InventorySavedView): Pick<CollectionFilter
 }
 
 function applySavedInventoryView(cards: CollectionCard[], savedView: InventorySavedView) {
+  if (savedView === "loose") return filterLooseCollectionCards(cards);
   if (savedView === "recent") return cards.filter((card) => timestamp(card.updatedAt) > Date.now() - 30 * 86_400_000);
   if (savedView === "unassigned") return cards.filter((card) => !card.storageLocation);
   if (savedView === "missing_price") return cards.filter((card) => card.marketPrice.amount === null);

@@ -36,7 +36,7 @@ test("Card Workspace separates aggregate position from inventory records and mis
   assert.match(service, /financials\.coverageLabel/);
   assert.match(service, /Cost basis unavailable/);
   assert.match(service, /unrealizedGain: financials\.unrealizedGain/);
-  assert.match(view, /Your Position/);
+  assert.match(view, /Stored In/);
   assert.match(view, /Financial Position/);
   assert.match(view, /Average cost/);
   assert.match(view, /Gain \/ loss/);

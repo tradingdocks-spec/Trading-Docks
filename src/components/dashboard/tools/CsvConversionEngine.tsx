@@ -34,6 +34,7 @@ import {
   type CanonicalKey,
   type CanonicalRow,
 } from "@/lib/csv-conversion/templates";
+import { reviewCollectionLocationImportRow } from "@/lib/collection-location-import";
 
 type CsvRow = Record<string, string>;
 type EnrichedRow = Partial<CanonicalRow> & {
@@ -458,22 +459,32 @@ export function CsvConversionEngine() {
       }
       const now = new Date().toISOString();
       const newItems = validRows.map((row) => {
-        const quantity = Math.max(1, Number.parseInt(row.quantity, 10) || 1);
+        const reviewed = reviewCollectionLocationImportRow({
+          name: row.name,
+          set: row.set,
+          collectorNumber: row.collectorNumber,
+          condition: row.condition,
+          finish: row.finish,
+          quantity: row.quantity,
+          storagePath: location.name,
+          tcgplayerId: row.tcgplayerId,
+        });
+        const quantity = reviewed.quantity || 1;
         const price = Math.max(0, Number.parseFloat(row.marketPrice) || 0);
         return {
           id: crypto.randomUUID(),
-          name: row.name.trim(),
+          name: reviewed.name || row.name.trim(),
           sku: row.sku.trim() || `TD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
           category: "Single",
           quantity,
           locationId: location!.id,
-          condition: row.condition.trim() || "Near Mint",
-          set: row.set.trim().toUpperCase(),
-          collectorNumber: row.collectorNumber.trim(),
+          condition: reviewed.condition,
+          set: reviewed.setCode ?? row.set.trim().toUpperCase(),
+          collectorNumber: reviewed.collectorNumber ?? row.collectorNumber.trim(),
           language: row.language.trim() || "English",
-          finish: normalizeFinish(row.finish),
+          finish: reviewed.finish,
           scryfallId: row.scryfallId.trim() || undefined,
-          tcgplayerId: row.tcgplayerId.trim() || undefined,
+          tcgplayerId: reviewed.tcgplayerId ?? (row.tcgplayerId.trim() || undefined),
           costBasis: Math.max(0, Number.parseFloat(row.costBasis) || 0),
           unitMarketValue: price,
           value: price * quantity,

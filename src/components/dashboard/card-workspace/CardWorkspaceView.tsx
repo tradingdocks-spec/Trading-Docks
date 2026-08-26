@@ -65,7 +65,7 @@ export function CardWorkspaceView({ data }: { data: CardWorkspaceData }) {
 
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,.65fr)]">
           <div className="space-y-4">
-            <Panel title="Your Position" eyebrow={data.userPosition.ownedLabel}>
+            <Panel title="Stored In" eyebrow={data.userPosition.ownedLabel}>
               <div className="space-y-2">
                 {data.inventoryRecords.map((record) => (
                   <article key={record.id} className="rounded-2xl bg-white/[0.035] p-4 ring-1 ring-white/[0.06] transition hover:bg-white/[0.05]">

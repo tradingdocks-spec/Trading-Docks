@@ -33,3 +33,17 @@ test("Collector Workspace inventory mutations use the transactional ledger RPC",
   assert.doesNotMatch(source, /eventType: "moved_location"/);
   assert.doesNotMatch(source, /eventType: mutation\.quantity > beforeQuantity/);
 });
+
+test("Collector Workspace partial move and removal use authoritative lot RPCs", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/app/api/collector-workspace/mutations/route.ts"),
+    "utf8",
+  );
+
+  assert.match(source, /mutation\.type === "move_quantity"/);
+  assert.match(source, /\.rpc\("move_inventory_lot_quantity"/);
+  assert.match(source, /p_to_location_id: mutation\.storageLocationId/);
+  assert.match(source, /mutation\.type === "remove_quantity"/);
+  assert.match(source, /\.rpc\("remove_inventory_lot_quantity"/);
+  assert.match(source, /p_reason: mutation\.reason/);
+});
