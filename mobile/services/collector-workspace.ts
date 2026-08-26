@@ -75,6 +75,7 @@ export type CollectionCard = {
   tradeBinderStatus: TradeBinderStatus;
   wishlistStatus: WishlistStatus;
   marketPrice: MarketPrice;
+  costBasisKnown: boolean;
   updatedAt?: string | null;
 };
 
@@ -94,6 +95,7 @@ export type CollectionFilter = {
 export type InventoryHealthIssueId =
   | 'unassigned'
   | 'missing_price'
+  | 'missing_cost_basis'
   | 'unknown_condition'
   | 'unknown_finish';
 
@@ -256,6 +258,7 @@ export function buildCollectionCards({
       const rawLocation = locationId ? locationById.get(locationId) : undefined;
       const quantityOwned = positiveNumber(item.quantity) ?? positiveNumber(payload.quantity) ?? 0;
       const inventoryValue = numberValue(item.inventory_value) ?? numberValue(payload.value);
+      const costBasisKnown = knownCostBasisValue(payload) !== null;
       const unitMarketValue =
         positiveNumber(payload.unitMarketValue) ??
         (inventoryValue !== null && inventoryValue > 0 && quantityOwned > 0 ? inventoryValue / quantityOwned : null);
@@ -313,6 +316,7 @@ export function buildCollectionCards({
           source: unitMarketValue === null ? 'unavailable' : 'inventory',
           updatedAt: item.updated_at ?? stringValue(payload.updatedAt) ?? null,
         },
+        costBasisKnown,
         updatedAt: item.updated_at ?? stringValue(payload.updatedAt) ?? null,
       };
     });
@@ -592,14 +596,16 @@ export function buildInventoryHealth(cards: CollectionCard[]): InventoryHealthSu
     .reduce((sum, card) => sum + card.quantityOwned, 0);
   const unassignedQuantity = Math.max(0, totalQuantity - locatedQuantity);
   const missingPrice = cards.filter((card) => card.marketPrice.amount === null).length;
+  const missingCostBasis = cards.filter((card) => !card.costBasisKnown).length;
   const unknownCondition = cards.filter((card) => card.condition === 'unknown').length;
   const unknownFinish = cards.filter((card) => card.printing.finish === 'unknown').length;
-  const weightedIssues = unassignedQuantity + missingPrice + unknownCondition + unknownFinish;
+  const weightedIssues = unassignedQuantity + missingPrice + missingCostBasis + unknownCondition + unknownFinish;
   const score = totalQuantity <= 0 ? 100 : Math.max(0, Math.round(((totalQuantity - weightedIssues) / totalQuantity) * 100));
 
   const issues: InventoryHealthIssue[] = [
     { id: 'unassigned', label: 'Need storage location', count: unassignedQuantity, severity: 'attention' },
     { id: 'missing_price', label: 'Missing market value', count: missingPrice, severity: 'neutral' },
+    { id: 'missing_cost_basis', label: 'Missing cost basis', count: missingCostBasis, severity: 'neutral' },
     { id: 'unknown_condition', label: 'Condition unavailable', count: unknownCondition, severity: 'neutral' },
     { id: 'unknown_finish', label: 'Finish unavailable', count: unknownFinish, severity: 'neutral' },
   ];
@@ -888,6 +894,19 @@ function numberValue(value: unknown) {
 function positiveNumber(value: unknown) {
   const parsed = numberValue(value);
   return parsed !== null && parsed > 0 ? parsed : null;
+}
+
+function nonNegativeNumber(value: unknown) {
+  const parsed = numberValue(value);
+  return parsed !== null && parsed >= 0 ? parsed : null;
+}
+
+function knownCostBasisValue(payload: Record<string, unknown>) {
+  return nonNegativeNumber(payload.unitCost)
+    ?? nonNegativeNumber(payload.costBasis)
+    ?? nonNegativeNumber(payload.purchasePrice)
+    ?? nonNegativeNumber(payload.totalCost)
+    ?? nonNegativeNumber(payload.totalCostBasis);
 }
 
 function timestamp(value?: string | null) {

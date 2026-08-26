@@ -32,10 +32,12 @@ test("Card Workspace separates aggregate position from inventory records and mis
 
   assert.match(service, /buildPosition/);
   assert.match(service, /knownCostQuantity/);
-  assert.match(service, /Cost basis known for \$\{knownCostQuantity\} of \$\{quantityOwned\} copies/);
+  assert.match(service, /resolveInventoryPositionFinancials/);
+  assert.match(service, /financials\.coverageLabel/);
   assert.match(service, /Cost basis unavailable/);
-  assert.match(service, /unrealizedGain: totalCostBasis !== null && hasValue/);
+  assert.match(service, /unrealizedGain: financials\.unrealizedGain/);
   assert.match(view, /Your Position/);
+  assert.match(view, /Financial Position/);
   assert.match(view, /Average cost/);
   assert.match(view, /Gain \/ loss/);
   assert.match(view, /Only when cost and value exist/);
@@ -52,6 +54,7 @@ test("Card Workspace consumes shared inventory attention and exposes real action
   assert.match(service, /Open Deck Builder/);
   assert.doesNotMatch(service, /sell now|auto price|grade recommendation|future price/i);
   assert.match(view, /Missing price/);
+  assert.match(view, /Missing cost basis/);
   assert.match(view, /Missing storage/);
   assert.match(view, /Unknown condition/);
   assert.match(view, /Unknown finish/);

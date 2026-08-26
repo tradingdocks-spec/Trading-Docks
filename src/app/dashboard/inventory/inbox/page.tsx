@@ -209,6 +209,7 @@ function severityClass(severity: InventoryAttentionSeverity) {
 
 function iconForType(type: InventoryAttentionType) {
   if (type === "missing_price") return <CircleDollarSign className="h-3.5 w-3.5" />;
+  if (type === "missing_cost_basis") return <CircleDollarSign className="h-3.5 w-3.5" />;
   if (type === "missing_storage_location") return <MapPin className="h-3.5 w-3.5" />;
   if (type === "unknown_condition" || type === "unknown_finish") return <Tag className="h-3.5 w-3.5" />;
   return <Database className="h-3.5 w-3.5" />;

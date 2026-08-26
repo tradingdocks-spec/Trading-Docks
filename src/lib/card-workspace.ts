@@ -16,6 +16,12 @@ import {
   type InventoryAttentionItem,
   type InventoryAttentionType,
 } from "@/lib/inventory/intelligence";
+import {
+  resolveInventoryCostBasis,
+  resolveInventoryPositionFinancials,
+  nonNegativeNumber,
+  type CostBasisCompleteness,
+} from "@/lib/financials/domain";
 
 export type CardWorkspaceData = {
   identity: CardWorkspaceIdentity;
@@ -33,6 +39,7 @@ export type CardWorkspaceData = {
   };
   decks: CardWorkspaceDeckReference[];
   otherPrintings: CardWorkspaceOtherPrinting[];
+  history: CardWorkspaceHistory;
   actions: CardWorkspaceAction[];
   queryStrategy: {
     inventoryRowsLoaded: number;
@@ -81,6 +88,8 @@ export type CardWorkspacePosition = {
   costBasisLabel: string;
   costBasisCoverageLabel: string;
   unrealizedGain: number | null;
+  costBasisCompleteness: CostBasisCompleteness;
+  costBasisCoverageRatio: number;
 };
 
 export type CardWorkspaceInventoryRecord = {
@@ -98,6 +107,23 @@ export type CardWorkspaceInventoryRecord = {
   attentionTypes: InventoryAttentionType[];
   editHref: string;
   inventoryFilterHref: string;
+};
+
+export type CardWorkspaceHistory = {
+  available: boolean;
+  events: CardWorkspaceInventoryEvent[];
+  unavailableReason: string | null;
+};
+
+export type CardWorkspaceInventoryEvent = {
+  id: string;
+  eventType: string;
+  quantityBefore: number | null;
+  quantityChange: number | null;
+  quantityAfter: number | null;
+  source: string;
+  metadata: Record<string, unknown>;
+  occurredAt: string;
 };
 
 export type CardWorkspaceListing = {
@@ -160,13 +186,14 @@ export async function getCardWorkspaceData({
   if (!anchor) return null;
 
   const relatedQuery = relatedInventoryQuery(supabase, userId, anchor as RawInventoryItem);
-  const [{ data: inventoryRows, error: inventoryError }, { data: locations }, { data: tradeStatuses }, { data: wishlist }, { data: listings }, { data: decks }] = await Promise.all([
+  const [{ data: inventoryRows, error: inventoryError }, { data: locations }, { data: tradeStatuses }, { data: wishlist }, { data: listings }, { data: decks }, history] = await Promise.all([
     relatedQuery.limit(RELATED_INVENTORY_LIMIT),
     supabase.from("inventory_locations").select("id,name,location_type,data").eq("user_id", userId).limit(200),
     supabase.from("binder_card_trade_status").select("inventory_item_id,status").eq("user_id", userId).limit(1000),
     supabase.from("collector_wishlist").select("card_name,set_code,target_condition,target_finish").eq("user_id", userId).limit(1000),
     supabase.from("marketplace_listing_mappings").select("id,inventory_item_id,marketplace_id,match_status,last_seen_quantity,last_seen_price").eq("user_id", userId).eq("inventory_item_id", inventoryItemId).limit(20),
     supabase.from("deck_vault_decks").select("deck_key,name,deck_data").eq("user_id", userId).not("deck_data", "is", null).limit(RELATED_DECK_LIMIT),
+    loadInventoryHistory(supabase, userId, inventoryItemId),
   ]);
 
   if (inventoryError) throw new Error(`Card workspace inventory failed: ${inventoryError.message ?? "Unknown Supabase error"}`);
@@ -243,6 +270,7 @@ export async function getCardWorkspaceData({
     },
     decks: deckReferences,
     otherPrintings,
+    history,
     actions: buildActions(inventoryItemId, anchorCard.cardName),
     queryStrategy: {
       inventoryRowsLoaded: rawInventoryRows.length,
@@ -268,7 +296,12 @@ function relatedInventoryQuery(supabase: SupabaseLike, userId: string, anchor: R
 function buildInventoryRecord(card: CollectionCard, raw: RawInventoryItem | undefined, issues: InventoryAttentionItem[]): CardWorkspaceInventoryRecord {
   const quantity = card.quantityOwned;
   const totalValue = card.marketPrice.amount === null ? null : card.marketPrice.amount * quantity;
-  const knownUnitCost = knownCost(raw);
+  const costBasis = resolveInventoryCostBasis([{
+    quantity,
+    unitCost: knownCost(raw),
+    totalCost: knownTotalCost(raw),
+  }]);
+  const knownUnitCostValue = costBasis.weightedAverageUnitCost;
   return {
     id: card.id,
     cardName: card.cardName,
@@ -278,8 +311,8 @@ function buildInventoryRecord(card: CollectionCard, raw: RawInventoryItem | unde
     location: displayStorageLocation(card),
     unitValue: card.marketPrice.amount,
     totalValue,
-    knownUnitCost,
-    knownTotalCost: knownUnitCost === null ? null : knownUnitCost * quantity,
+    knownUnitCost: knownUnitCostValue,
+    knownTotalCost: costBasis.knownTotalCost,
     updatedAt: card.updatedAt ?? null,
     attentionTypes: issues.map((issue) => issue.type),
     editHref: `/dashboard/inventory/${encodeURIComponent(card.id)}`,
@@ -289,26 +322,29 @@ function buildInventoryRecord(card: CollectionCard, raw: RawInventoryItem | unde
 
 function buildPosition(records: CardWorkspaceInventoryRecord[]): CardWorkspacePosition {
   const quantityOwned = records.reduce((sum, record) => sum + record.quantity, 0);
-  const knownCostQuantity = records.reduce((sum, record) => sum + (record.knownUnitCost === null ? 0 : record.quantity), 0);
-  const totalCost = records.reduce((sum, record) => sum + (record.knownTotalCost ?? 0), 0);
   const totalValue = records.reduce((sum, record) => sum + (record.totalValue ?? 0), 0);
   const hasValue = records.some((record) => record.totalValue !== null);
-  const totalCostBasis = knownCostQuantity > 0 ? totalCost : null;
-  const averageKnownCost = knownCostQuantity > 0 ? totalCost / knownCostQuantity : null;
+  const financials = resolveInventoryPositionFinancials({
+    lots: records.map((record) => ({
+      quantity: record.quantity,
+      unitCost: record.knownUnitCost,
+      totalCost: record.knownTotalCost,
+    })),
+    marketValue: hasValue ? totalValue : null,
+  });
+  const averageKnownCost = financials.weightedAverageUnitCost;
   return {
     quantityOwned,
     lotCount: records.length,
     ownedLabel: quantityOwned > 0 ? `You own ${quantityOwned.toLocaleString()} ${quantityOwned === 1 ? "copy" : "copies"}` : "Not in collection",
     averageKnownCost,
-    knownCostQuantity,
-    totalCostBasis,
-    costBasisLabel: averageKnownCost === null ? "Cost basis unavailable" : `${money(averageKnownCost)} average known cost`,
-    costBasisCoverageLabel: knownCostQuantity === 0
-      ? "No copies have known cost basis"
-      : knownCostQuantity === quantityOwned
-        ? "Cost basis known for all copies"
-        : `Cost basis known for ${knownCostQuantity} of ${quantityOwned} copies`,
-    unrealizedGain: totalCostBasis !== null && hasValue ? totalValue - totalCostBasis : null,
+    knownCostQuantity: financials.knownQuantity,
+    totalCostBasis: financials.knownTotalCost,
+    costBasisLabel: averageKnownCost === null ? "Cost basis unavailable" : `${money(averageKnownCost)} weighted average cost`,
+    costBasisCoverageLabel: financials.coverageLabel,
+    unrealizedGain: financials.unrealizedGain,
+    costBasisCompleteness: financials.completeness,
+    costBasisCoverageRatio: financials.coverageRatio,
   };
 }
 
@@ -385,12 +421,63 @@ function buildActions(inventoryItemId: string, cardName: string): CardWorkspaceA
 
 function knownCost(row: RawInventoryItem | undefined) {
   const data = row?.data ?? {};
-  return numberValue(data.unitCost) ?? numberValue(data.costBasis) ?? numberValue(data.purchasePrice) ?? null;
+  return nonNegativeNumber(data.unitCost) ?? nonNegativeNumber(data.costBasis) ?? nonNegativeNumber(data.purchasePrice) ?? null;
+}
+
+function knownTotalCost(row: RawInventoryItem | undefined) {
+  const data = row?.data ?? {};
+  return nonNegativeNumber(data.totalCost) ?? nonNegativeNumber(data.totalCostBasis) ?? null;
+}
+
+async function loadInventoryHistory(
+  supabase: SupabaseLike,
+  userId: string,
+  inventoryItemId: string,
+): Promise<CardWorkspaceHistory> {
+  try {
+    const { data, error } = await supabase
+      .from("inventory_events")
+      .select("id,event_type,quantity_before,quantity_change,quantity_after,source,metadata,occurred_at")
+      .eq("user_id", userId)
+      .eq("inventory_item_id", inventoryItemId)
+      .order("occurred_at", { ascending: false })
+      .limit(12);
+    if (error) {
+      const message = error.message ?? "";
+      if (/inventory_events|schema cache|does not exist/i.test(message)) {
+        return { available: false, events: [], unavailableReason: "Inventory history ledger is not enabled yet." };
+      }
+      throw new Error(message || "Inventory history failed.");
+    }
+    return {
+      available: true,
+      unavailableReason: null,
+      events: (data ?? []).map((row: any) => ({
+        id: String(row.id),
+        eventType: String(row.event_type ?? "inventory_event"),
+        quantityBefore: numberValue(row.quantity_before),
+        quantityChange: numberValue(row.quantity_change),
+        quantityAfter: numberValue(row.quantity_after),
+        source: String(row.source ?? "application"),
+        metadata: isRecord(row.metadata) ? row.metadata : {},
+        occurredAt: typeof row.occurred_at === "string" ? row.occurred_at : new Date().toISOString(),
+      })),
+    };
+  } catch (error) {
+    if (error instanceof Error && /inventory_events|schema cache|does not exist/i.test(error.message)) {
+      return { available: false, events: [], unavailableReason: "Inventory history ledger is not enabled yet." };
+    }
+    throw error;
+  }
 }
 
 function numberValue(value: unknown) {
   const number = typeof value === "number" ? value : typeof value === "string" && value.trim() ? Number(value) : Number.NaN;
   return Number.isFinite(number) ? number : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function normalizeText(value: string) {

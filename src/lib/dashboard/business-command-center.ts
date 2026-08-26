@@ -62,6 +62,9 @@ export type BusinessCommandCenterSummary = {
   itemsSold: number;
   averageOrderValue: number | null;
   realizedProfit: number | null;
+  profitCoverageRatio: number;
+  profitKnownUnits: number;
+  profitTotalUnits: number;
   openFulfillmentCount: number;
   listingIssues: number;
   syncIssues: number;
@@ -349,6 +352,9 @@ export function buildBusinessCommandCenterSummary({
     itemsSold: orderMetrics.unitsSold,
     averageOrderValue: orderMetrics.averageOrderValue,
     realizedProfit: orderMetrics.realizedProfit,
+    profitCoverageRatio: orderMetrics.profitCoverageRatio,
+    profitKnownUnits: orderMetrics.profitKnownUnits,
+    profitTotalUnits: orderMetrics.profitTotalUnits,
     openFulfillmentCount: orderMetrics.openFulfillmentCount,
     listingIssues: orderMetrics.listingIssues,
     syncIssues,

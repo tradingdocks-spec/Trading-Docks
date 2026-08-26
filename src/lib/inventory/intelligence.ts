@@ -1,5 +1,6 @@
 export type InventoryAttentionType =
   | "missing_price"
+  | "missing_cost_basis"
   | "missing_storage_location"
   | "unknown_condition"
   | "unknown_finish"
@@ -53,6 +54,7 @@ export type InventoryAttentionSummary = {
   knownMarketValue: number | null;
   knownPriceRows: number;
   missingPriceRows: number;
+  missingCostBasisRows: number;
   unassignedRows: number;
   unknownConditionRows: number;
   unknownFinishRows: number;
@@ -62,6 +64,7 @@ export type InventoryAttentionSummary = {
   highPriorityIssues: number;
   categoryCounts: {
     pricing: number;
+    financials: number;
     organization: number;
     dataQuality: number;
     setup: number;
@@ -105,6 +108,7 @@ export const INVENTORY_ATTENTION_REPRESENTATIVE_LIMIT = 5;
 
 export type InventoryAttentionExactCounts = {
   missingPriceRows: number;
+  missingCostBasisRows: number;
   unassignedRows: number;
   unknownConditionRows: number;
   unknownFinishRows: number;
@@ -172,6 +176,7 @@ export function buildInventoryAttentionSummary({
   let knownMarketValue = 0;
   let knownPriceRows = 0;
   let missingPriceRows = 0;
+  let missingCostBasisRows = 0;
   let unassignedRows = 0;
   let unknownConditionRows = 0;
   let unknownFinishRows = 0;
@@ -186,6 +191,7 @@ export function buildInventoryAttentionSummary({
     const payload = recordValue(row.data);
     const quantity = positiveNumber(row.quantity) ?? positiveNumber(payload.quantity) ?? 0;
     const value = positiveNumber(row.inventory_value) ?? positiveNumber(payload.value) ?? null;
+    const costBasis = knownCostBasisValue(payload);
     const locationId = stringValue(row.location_id) ?? stringValue(payload.locationId);
     const condition = payload.condition;
     const finish = payload.finish ?? payload.variant ?? payload.treatment ?? row.data?.finish;
@@ -209,6 +215,11 @@ export function buildInventoryAttentionSummary({
       items.push(issueItem({ ...base, type: "missing_price" }));
     }
 
+    if (costBasis === null) {
+      missingCostBasisRows += 1;
+      items.push(issueItem({ ...base, type: "missing_cost_basis" }));
+    }
+
     if (!locationId) {
       unassignedRows += 1;
       items.push(issueItem({ ...base, type: "missing_storage_location" }));
@@ -228,6 +239,7 @@ export function buildInventoryAttentionSummary({
   const sampledRows = rows.length;
   const counts = exactCounts ?? {
     missingPriceRows,
+    missingCostBasisRows,
     unassignedRows,
     unknownConditionRows,
     unknownFinishRows,
@@ -246,6 +258,7 @@ export function buildInventoryAttentionSummary({
     knownMarketValue: knownPriceRows > 0 ? knownMarketValue : null,
     knownPriceRows,
     missingPriceRows: counts.missingPriceRows,
+    missingCostBasisRows: counts.missingCostBasisRows,
     unassignedRows: counts.unassignedRows,
     unknownConditionRows: counts.unknownConditionRows,
     unknownFinishRows: counts.unknownFinishRows,
@@ -255,6 +268,7 @@ export function buildInventoryAttentionSummary({
     highPriorityIssues,
     categoryCounts: {
       pricing: countType(groups, "missing_price"),
+      financials: countType(groups, "missing_cost_basis"),
       organization: countType(groups, "missing_storage_location"),
       dataQuality: countType(groups, "unknown_condition") + countType(groups, "unknown_finish"),
       setup: countType(groups, "inventory_setup_required"),
@@ -275,7 +289,7 @@ async function loadExactIssueCounts(
     return result.count ?? 0;
   });
 
-  const [missingPriceRows, unassignedRows, unknownConditionRows, unknownFinishRows] = await Promise.all([
+  const [missingPriceRows, missingCostBasisRows, unassignedRows, unknownConditionRows, unknownFinishRows] = await Promise.all([
     countQuery(
       "missing price",
       supabase
@@ -283,6 +297,14 @@ async function loadExactIssueCounts(
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .or("and(or(inventory_value.is.null,inventory_value.eq.0),or(data->>value.is.null,data->>value.eq.0,data->>value.eq.))"),
+    ),
+    countQuery(
+      "missing cost basis",
+      supabase
+        .from("inventory_items")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .or("and(data->>unitCost.is.null,data->>costBasis.is.null,data->>purchasePrice.is.null,data->>totalCost.is.null,data->>totalCostBasis.is.null)"),
     ),
     countQuery(
       "missing storage",
@@ -312,6 +334,7 @@ async function loadExactIssueCounts(
 
   return {
     missingPriceRows,
+    missingCostBasisRows,
     unassignedRows,
     unknownConditionRows,
     unknownFinishRows,
@@ -322,6 +345,8 @@ export function inventoryAttentionHref(type: InventoryAttentionType) {
   switch (type) {
     case "missing_price":
       return "/dashboard/inventory?attention=missing_price";
+    case "missing_cost_basis":
+      return "/dashboard/inventory?attention=missing_cost_basis";
     case "missing_storage_location":
       return "/dashboard/inventory?attention=missing_storage_location";
     case "unknown_condition":
@@ -337,6 +362,8 @@ export function inventoryAttentionLabel(type: InventoryAttentionType) {
   switch (type) {
     case "missing_price":
       return "Missing prices";
+    case "missing_cost_basis":
+      return "Missing cost basis";
     case "missing_storage_location":
       return "Missing storage locations";
     case "unknown_condition":
@@ -390,6 +417,7 @@ function withExactGroupCounts(
   const byType = new Map(groups.map((group) => [group.type, group]));
   const exactEntries: Array<[Exclude<InventoryAttentionType, "inventory_setup_required">, number]> = [
     ["missing_price", counts.missingPriceRows],
+    ["missing_cost_basis", counts.missingCostBasisRows],
     ["missing_storage_location", counts.unassignedRows],
     ["unknown_condition", counts.unknownConditionRows],
     ["unknown_finish", counts.unknownFinishRows],
@@ -417,7 +445,7 @@ function withExactGroupCounts(
     }
   }
 
-  if ([...byType.values()].length === 0 && counts.missingPriceRows + counts.unassignedRows + counts.unknownConditionRows + counts.unknownFinishRows === 0) {
+  if ([...byType.values()].length === 0 && counts.missingPriceRows + counts.missingCostBasisRows + counts.unassignedRows + counts.unknownConditionRows + counts.unknownFinishRows === 0) {
     return groups;
   }
 
@@ -499,6 +527,14 @@ function issueRule(type: Exclude<InventoryAttentionType, "inventory_setup_requir
         reason: "inventory_value and data.value are absent or zero.",
         action: "Review pricing",
       };
+    case "missing_cost_basis":
+      return {
+        severity: "medium" as const,
+        title: "Missing cost basis",
+        description: "Inventory records without acquisition cost cannot produce trustworthy realized profit or ROI.",
+        reason: "data.unitCost, data.costBasis, data.purchasePrice, data.totalCost, and data.totalCostBasis are missing.",
+        action: "Add acquisition cost",
+      };
     case "missing_storage_location":
       return {
         severity: "medium" as const,
@@ -550,4 +586,12 @@ function stringValue(value: unknown) {
 function isUnknownValue(value: unknown) {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
   return !normalized || normalized === "unknown" || normalized === "n/a";
+}
+
+function knownCostBasisValue(payload: Record<string, unknown>) {
+  return positiveNumber(payload.unitCost)
+    ?? positiveNumber(payload.costBasis)
+    ?? positiveNumber(payload.purchasePrice)
+    ?? positiveNumber(payload.totalCost)
+    ?? positiveNumber(payload.totalCostBasis);
 }

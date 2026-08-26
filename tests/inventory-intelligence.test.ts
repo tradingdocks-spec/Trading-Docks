@@ -39,7 +39,7 @@ test("inventory attention returns no issues for clean inventory", () => {
         quantity: 4,
         inventory_value: 12,
         location_id: "binder-1",
-        data: { condition: "near_mint", finish: "normal" },
+        data: { condition: "near_mint", finish: "normal", costBasis: 3 },
       },
     ],
     totalInventoryRows: 1,
@@ -71,18 +71,20 @@ test("inventory attention groups missing price storage condition and finish", ()
         quantity: 2,
         inventory_value: null,
         location_id: "box-1",
-        data: { condition: "near_mint", finish: "normal" },
+        data: { condition: "near_mint", finish: "normal", costBasis: 1.5 },
       },
     ],
     totalInventoryRows: 2,
   });
 
-  assert.equal(summary.totalIssues, 5);
+  assert.equal(summary.totalIssues, 6);
   assert.equal(summary.categoryCounts.pricing, 2);
+  assert.equal(summary.categoryCounts.financials, 1);
   assert.equal(summary.categoryCounts.organization, 1);
   assert.equal(summary.categoryCounts.dataQuality, 2);
   assert.deepEqual(summary.groups.map((group) => group.type), [
     "missing_price",
+    "missing_cost_basis",
     "missing_storage_location",
     "unknown_condition",
     "unknown_finish",
@@ -98,7 +100,7 @@ test("inventory attention representative items are bounded for large issue group
     quantity: 1,
     inventory_value: 0,
     location_id: null,
-    data: { condition: "near_mint", finish: "normal" },
+    data: { condition: "near_mint", finish: "normal", costBasis: 1 },
   }));
   const summary = buildInventoryAttentionSummary({
     userId: "user-large",
@@ -118,7 +120,7 @@ test("inventory attention can use exact database counts beyond the representativ
     quantity: 1,
     inventory_value: 2,
     location_id: "binder-1",
-    data: { condition: "near_mint", finish: "normal" },
+    data: { condition: "near_mint", finish: "normal", costBasis: 1 },
   }));
   const summary = buildInventoryAttentionSummary({
     userId: "user-larger-than-sample",
@@ -126,6 +128,7 @@ test("inventory attention can use exact database counts beyond the representativ
     totalInventoryRows: INVENTORY_ATTENTION_SAMPLE_SIZE + 27,
     exactCounts: {
       missingPriceRows: 11,
+      missingCostBasisRows: 3,
       unassignedRows: 7,
       unknownConditionRows: 5,
       unknownFinishRows: 4,
@@ -133,8 +136,9 @@ test("inventory attention can use exact database counts beyond the representativ
   });
 
   assert.equal(summary.sampleLimited, true);
-  assert.equal(summary.totalIssues, 27);
+  assert.equal(summary.totalIssues, 30);
   assert.equal(summary.categoryCounts.pricing, 11);
+  assert.equal(summary.categoryCounts.financials, 3);
   assert.equal(summary.categoryCounts.organization, 7);
   assert.equal(summary.categoryCounts.dataQuality, 9);
   assert.equal(summary.groups.find((group) => group.type === "missing_price")?.representativeItems.length, 0);
@@ -191,11 +195,12 @@ test("inventory attention loader requests exact issue counts separately from bou
   assert.equal(summary.sampledRows, 0);
   assert.equal(summary.totalInventoryRows, 0);
   assert.equal(summary.missingPriceRows, 1);
+  assert.equal(summary.missingCostBasisRows, 1);
   assert.equal(summary.unassignedRows, 2);
   assert.equal(summary.unknownConditionRows, 3);
   assert.equal(summary.unknownFinishRows, 4);
   assert.ok(calls.some((call) => call.kind === "limit" && call.value === INVENTORY_ATTENTION_SAMPLE_SIZE));
-  assert.equal(calls.filter((call) => call.kind === "eq" && call.column === "user_id" && call.value === "trusted-user").length, 6);
+  assert.equal(calls.filter((call) => call.kind === "eq" && call.column === "user_id" && call.value === "trusted-user").length, 7);
 });
 
 test("inventory attention loader scopes every query to the authenticated user", async () => {
@@ -238,7 +243,7 @@ test("inventory attention loader scopes every query to the authenticated user", 
   });
 
   assert.equal(summary.userId, "trusted-user");
-  assert.equal(calls.length, 6);
+  assert.equal(calls.length, 7);
   assert.ok(calls.every((call) => call.table === "inventory_items"));
   assert.ok(calls.every((call) => call.column === "user_id"));
   assert.ok(calls.every((call) => call.value === "trusted-user"));

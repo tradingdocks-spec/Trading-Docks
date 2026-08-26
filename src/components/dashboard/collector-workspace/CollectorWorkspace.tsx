@@ -77,7 +77,7 @@ type DisplayMode = "grid" | "list";
 type CollectionSection = "overview" | "cards" | "binders" | "portfolio" | "storage" | "trade" | "wishlist";
 type StorageManagerState = Awaited<ReturnType<typeof loadWebStorageLocationManager>>;
 type InventoryTypeFilter = "all" | "card" | "sealed";
-type InventorySavedView = "all" | "recent" | "unassigned" | "missing_price" | "tradeable" | "wishlist";
+type InventorySavedView = "all" | "recent" | "unassigned" | "missing_price" | "missing_cost_basis" | "tradeable" | "wishlist";
 
 const SORT_OPTIONS: Array<{ value: CollectionSort; label: string }> = [
   { value: "recently_updated", label: "Recently updated" },
@@ -120,6 +120,7 @@ const SAVED_VIEW_OPTIONS: Array<{ value: InventorySavedView; label: string }> = 
   { value: "recent", label: "Recently added" },
   { value: "unassigned", label: "Unassigned" },
   { value: "missing_price", label: "Missing prices" },
+  { value: "missing_cost_basis", label: "Missing cost basis" },
   { value: "tradeable", label: "Trade binder" },
   { value: "wishlist", label: "Wishlist matches" },
 ];
@@ -330,6 +331,8 @@ export function CollectorWorkspace({
       setStorageFilter("all");
     } else if (issueId === "missing_price") {
       setSavedView("missing_price");
+    } else if (issueId === "missing_cost_basis") {
+      setSavedView("missing_cost_basis");
     } else if (issueId === "unknown_condition") {
       setConditionFilter("unknown");
       setSavedView("all");
@@ -345,6 +348,8 @@ export function CollectorWorkspace({
       applyHealthIssue("unassigned");
     } else if (attention === "missing_price") {
       applyHealthIssue("missing_price");
+    } else if (attention === "missing_cost_basis") {
+      applyHealthIssue("missing_cost_basis");
     } else if (attention === "unknown_condition") {
       applyHealthIssue("unknown_condition");
     } else if (attention === "unknown_finish") {
@@ -1485,6 +1490,7 @@ function applySavedInventoryView(cards: CollectionCard[], savedView: InventorySa
   if (savedView === "recent") return cards.filter((card) => timestamp(card.updatedAt) > Date.now() - 30 * 86_400_000);
   if (savedView === "unassigned") return cards.filter((card) => !card.storageLocation);
   if (savedView === "missing_price") return cards.filter((card) => card.marketPrice.amount === null);
+  if (savedView === "missing_cost_basis") return cards.filter((card) => !card.costBasisKnown);
   return cards;
 }
 

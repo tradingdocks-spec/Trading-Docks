@@ -209,7 +209,12 @@ function RevenueProfitModule({ summary }: { summary: BusinessCommandCenterSummar
       <div className="mt-5 grid gap-2 sm:grid-cols-4">
         <CompactMetric label="Orders" value={summary.orderCount.toLocaleString()} detail={`${summary.previousOrderCount.toLocaleString()} prior`} icon={<ShoppingBag className="h-3.5 w-3.5" />} />
         <CompactMetric label="AOV" value={summary.averageOrderValue === null ? "No data" : money(summary.averageOrderValue)} detail="Average order value" icon={<BarChart3 className="h-3.5 w-3.5" />} />
-        <CompactMetric label="Profit estimate" value={summary.realizedProfit === null ? "Unavailable" : money(summary.realizedProfit)} detail={`${summary.profitConfidence.level} confidence`} icon={<CircleDollarSign className="h-3.5 w-3.5" />} />
+        <CompactMetric
+          label="Known profit"
+          value={summary.realizedProfit === null ? "Cost basis missing" : money(summary.realizedProfit)}
+          detail={summary.profitTotalUnits > 0 ? `Available for ${summary.profitKnownUnits.toLocaleString()} of ${summary.profitTotalUnits.toLocaleString()} sold units` : "No sold units in range"}
+          icon={<CircleDollarSign className="h-3.5 w-3.5" />}
+        />
         <CompactMetric label="Prior period" value={money(summary.previousGrossSales)} detail="Comparable range" icon={<Clock3 className="h-3.5 w-3.5" />} />
       </div>
       <PeriodBars current={summary.grossSales} previous={summary.previousGrossSales} />
@@ -225,6 +230,9 @@ function ProfitConfidenceModule({ summary }: { summary: BusinessCommandCenterSum
         <div>
           <p className="text-3xl font-semibold text-white">{summary.profitConfidence.level}</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">{summary.profitConfidence.reason}</p>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            Known profit coverage: {summary.profitKnownUnits.toLocaleString()} of {summary.profitTotalUnits.toLocaleString()} sold units.
+          </p>
         </div>
         <span className="text-sm font-semibold text-cyan-200">{Math.round(summary.profitConfidence.coveragePercent)}%</span>
       </div>

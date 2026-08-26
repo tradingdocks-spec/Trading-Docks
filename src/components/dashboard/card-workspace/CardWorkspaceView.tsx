@@ -125,6 +125,13 @@ export function CardWorkspaceView({ data }: { data: CardWorkspaceData }) {
               <InfoRow label="Updated" value={data.market.timestamp ? new Date(data.market.timestamp).toLocaleDateString("en-US") : "Timestamp unavailable"} />
             </Panel>
 
+            <Panel title="Financial Position" eyebrow={data.userPosition.costBasisCompleteness === "known" ? "Known cost basis" : data.userPosition.costBasisCompleteness === "partial" ? "Partial cost basis" : "Cost basis missing"}>
+              <InfoRow label="Known coverage" value={data.userPosition.costBasisCoverageLabel} />
+              <InfoRow label="Weighted average cost" value={data.userPosition.averageKnownCost === null ? "Unavailable" : money(data.userPosition.averageKnownCost)} />
+              <InfoRow label="Known total cost" value={money(data.userPosition.totalCostBasis)} />
+              <InfoRow label="Unrealized gain/loss" value={data.userPosition.unrealizedGain === null ? "Unavailable" : money(data.userPosition.unrealizedGain)} />
+            </Panel>
+
             <Panel title="Selling" eyebrow={data.selling.listedQuantity > 0 ? `${data.selling.listedQuantity} listed` : "No active listing data"}>
               {data.selling.listings.length ? data.selling.listings.map((listing) => (
                 <InfoRow key={listing.id} label={listing.marketplace} value={`${listing.status} · ${listing.quantity ?? 0} @ ${money(listing.price)}`} />
@@ -138,6 +145,16 @@ export function CardWorkspaceView({ data }: { data: CardWorkspaceData }) {
                   <span className="text-xs text-slate-500">x{deck.quantity}</span>
                 </Link>
               )) : <EmptyLine text="No bounded Deck Vault references were found for this card name." />}
+            </Panel>
+
+            <Panel title="Inventory History" eyebrow={data.history.available ? `${data.history.events.length} recent events` : "Ledger unavailable"}>
+              {data.history.available && data.history.events.length ? data.history.events.map((event) => (
+                <InfoRow
+                  key={event.id}
+                  label={eventLabel(event.eventType)}
+                  value={`${event.quantityChange === null ? "Qty unchanged" : signedQuantity(event.quantityChange)} · ${new Date(event.occurredAt).toLocaleDateString("en-US")}`}
+                />
+              )) : <EmptyLine text={data.history.unavailableReason ?? "No inventory events have been recorded for this card yet."} />}
             </Panel>
 
             <Panel title="Identifiers" eyebrow="Exact printing">
@@ -205,7 +222,16 @@ function actionClass(priority: "primary" | "secondary" | "tertiary") {
 function attentionLabel(type: string) {
   if (type === "missing_price") return "Missing price";
   if (type === "missing_storage_location") return "Missing storage";
+  if (type === "missing_cost_basis") return "Missing cost basis";
   if (type === "unknown_condition") return "Unknown condition";
   if (type === "unknown_finish") return "Unknown finish";
   return "Needs attention";
+}
+
+function eventLabel(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function signedQuantity(value: number) {
+  return value > 0 ? `+${value}` : value.toString();
 }

@@ -4,6 +4,7 @@ import { getMembershipPlan } from "@/lib/membership-catalog";
 import { validateCollectorMutation, type CollectorMutation } from "@/lib/collector-mutations";
 import { createClient } from "@/lib/supabase/server";
 import { resolveServerAccess } from "@/lib/identity/server-access";
+import { buildInventoryMutationEvent, recordInventoryEvent } from "@/lib/inventory/events";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await executeMutation(supabase, user.id, mutation, isRecord(itemResult.data.data) ? itemResult.data.data : {});
+    await executeMutation(supabase, user.id, mutation, itemResult.data);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Collection update failed." }, { status: 500 });
   }
@@ -64,9 +65,11 @@ async function executeMutation(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   mutation: CollectorMutation,
-  existingData: Record<string, unknown>,
+  existingItem: { id: string; quantity: unknown; data: unknown; location_id?: string | null; card_name?: string | null; set_code?: string | null },
 ) {
   const now = new Date().toISOString();
+  const existingData = isRecord(existingItem.data) ? existingItem.data : {};
+  const beforeQuantity = Number(existingItem.quantity ?? 0);
   if (mutation.type === "quantity") {
     const { error } = await supabase
       .from("inventory_items")
@@ -74,6 +77,15 @@ async function executeMutation(
       .eq("user_id", userId)
       .eq("id", mutation.inventoryItemId);
     if (error) throw new Error(error.message);
+    await recordCollectorEvent(supabase, buildInventoryMutationEvent({
+      userId,
+      inventoryItemId: mutation.inventoryItemId,
+      eventType: mutation.quantity > beforeQuantity ? "quantity_added" : mutation.quantity < beforeQuantity ? "quantity_removed" : "adjusted",
+      beforeQuantity,
+      afterQuantity: mutation.quantity,
+      idempotencyKey: `collector:${mutation.inventoryItemId}:quantity:${now}`,
+      metadata: cardMetadata(existingItem),
+    }));
     return;
   }
 
@@ -90,6 +102,19 @@ async function executeMutation(
       .eq("user_id", userId)
       .eq("id", mutation.inventoryItemId);
     if (error) throw new Error(error.message);
+    await recordCollectorEvent(supabase, buildInventoryMutationEvent({
+      userId,
+      inventoryItemId: mutation.inventoryItemId,
+      eventType: mutation.type === "condition" ? "condition_changed" : "finish_changed",
+      beforeQuantity,
+      afterQuantity: beforeQuantity,
+      idempotencyKey: `collector:${mutation.inventoryItemId}:${mutation.type}:${now}`,
+      metadata: {
+        ...cardMetadata(existingItem),
+        previousValue: existingData[mutation.type],
+        nextValue: mutation.type === "condition" ? mutation.condition : mutation.finish,
+      },
+    }));
     return;
   }
 
@@ -114,6 +139,19 @@ async function executeMutation(
       .eq("user_id", userId)
       .eq("id", mutation.inventoryItemId);
     if (error) throw new Error(error.message);
+    await recordCollectorEvent(supabase, buildInventoryMutationEvent({
+      userId,
+      inventoryItemId: mutation.inventoryItemId,
+      eventType: "moved_location",
+      beforeQuantity,
+      afterQuantity: beforeQuantity,
+      idempotencyKey: `collector:${mutation.inventoryItemId}:storage:${now}`,
+      metadata: {
+        ...cardMetadata(existingItem),
+        previousLocationId: existingItem.location_id ?? null,
+        nextLocationId: mutation.storageLocationId,
+      },
+    }));
     return;
   }
 
@@ -167,6 +205,28 @@ async function executeMutation(
     const { error } = await deleteQuery;
     if (error) throw new Error(error.message);
   }
+}
+
+async function recordCollectorEvent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  payload: Parameters<typeof recordInventoryEvent>[1],
+) {
+  try {
+    await recordInventoryEvent(supabase, payload);
+  } catch (error) {
+    console.warn("Inventory event recording failed after collector mutation", {
+      inventoryItemId: payload.inventory_item_id,
+      eventType: payload.event_type,
+      reason: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}
+
+function cardMetadata(item: { card_name?: string | null; set_code?: string | null }) {
+  return {
+    cardName: item.card_name ?? null,
+    setCode: item.set_code ?? null,
+  };
 }
 
 function matchingWishlistQuery(

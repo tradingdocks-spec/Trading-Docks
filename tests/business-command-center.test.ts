@@ -88,6 +88,7 @@ test("seller summary uses real user-scoped order and item rows", () => {
         id: "order-1",
         marketplace_id: "TCGPlayer",
         total: 100,
+        cost_of_goods: 58,
         net_profit: 42,
         normalized_status: "new",
         marketplace_order_items: [{ marketplace_order_id: "order-1", quantity: 2, inventory_item_id: "item-1", match_status: "matched" }],
@@ -96,6 +97,7 @@ test("seller summary uses real user-scoped order and item rows", () => {
         id: "order-2",
         marketplace_id: "eBay",
         total: "50.50",
+        cost_of_goods: 40.25,
         net_profit: "10.25",
         normalized_status: "shipped",
         marketplace_order_items: [{ marketplace_order_id: "order-2", quantity: "3", match_status: "unmatched" }],
@@ -111,6 +113,9 @@ test("seller summary uses real user-scoped order and item rows", () => {
   assert.equal(summary.itemsSold, 5);
   assert.equal(summary.averageOrderValue, 75.25);
   assert.equal(summary.realizedProfit, 52.25);
+  assert.equal(summary.profitKnownUnits, 5);
+  assert.equal(summary.profitTotalUnits, 5);
+  assert.equal(summary.profitCoverageRatio, 1);
   assert.equal(summary.openFulfillmentCount, 1);
   assert.equal(summary.listingIssues, 1);
   assert.equal(summary.syncIssues, 1);
@@ -308,6 +313,28 @@ test("imported orders count toward gross sales even when item matching is incomp
   assert.ok(summary.signals.some((signal) => signal.type === "inventory-attribution"));
 });
 
+test("orders without known cost basis do not fabricate realized profit", () => {
+  const metrics = summarizeCanonicalOrders([
+    {
+      id: "missing-cost",
+      marketplace_id: "tcgplayer",
+      total: 120,
+      marketplace_fees: 12,
+      shipping_cost: 4,
+      normalized_status: "shipped",
+      marketplace_order_items: [
+        { quantity: 2, unit_price: 60, match_status: "matched", inventory_item_id: "item-1" },
+      ],
+    },
+  ]);
+
+  assert.equal(metrics.grossSales, 120);
+  assert.equal(metrics.realizedProfit, null);
+  assert.equal(metrics.profitKnownUnits, 0);
+  assert.equal(metrics.profitTotalUnits, 2);
+  assert.equal(metrics.profitCoverageRatio, 0);
+});
+
 test("disconnected marketplaces are distinct from connected channels with zero activity", () => {
   const summary = buildBusinessCommandCenterSummary({
     access: access({ tier: "seller" }),
@@ -369,6 +396,8 @@ test("dashboard page wires business HQ through shared business summary authority
   assert.match(component, /Marketplace matrix/);
   assert.match(component, /Today's Docks Brief/);
   assert.match(component, /Revenue & Profit/);
+  assert.match(component, /Known profit/);
+  assert.match(component, /Known profit coverage/);
   assert.match(component, /Trading Docks Signals/);
   assert.match(component, /Inventory Capital/);
   assert.match(component, /What Changed/);
