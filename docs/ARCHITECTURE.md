@@ -287,6 +287,13 @@ Status: Partially Implemented
 - Partially Implemented: Market movement, recent activity feed, notification counts, and operations signals are unavailable states until backed by real data.
 - Planned: Add native screenshots/manual QA coverage for small phone, large phone, iOS safe area, Android safe area, long text, no user data, populated user data, and offline/stale state.
 
+## Web Command Center Architecture
+
+- Implemented: `/dashboard` resolves platform access through `resolvePlatformAccessForUser`. Seller, Store, Owner, and Admin accounts use the server-loaded Business Command Center; Free and Collector accounts use the personal command surface.
+- Implemented: The personal command surface loads a bounded, authenticated `inventory_items` sample plus an exact row count through `src/lib/dashboard/personal-command-center.ts`. It filters by `user_id`, does not read from localStorage, and labels large collections as sampled rather than pretending the full collection was loaded.
+- Implemented: Personal command metrics and next actions are derived from real inventory signals: known market value coverage, storage coverage, missing prices, unknown condition/finish, and empty-account onboarding. Empty accounts do not receive fabricated activity, fake value, or fake signals.
+- Partially Implemented: The personal dashboard does not yet have historical collection movement, recent activity, or cross-surface opportunity scoring. Those should remain unavailable/empty until backed by persisted events or explicit server summaries.
+
 ## Label Studio And Inventory QR Architecture
 
 - Implemented: Shared SKU, QR, label-template, bulk-render, repricing, and future POS contracts live in `src/lib/label-studio`.
