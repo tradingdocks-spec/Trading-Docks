@@ -203,6 +203,26 @@ a {
   color: var(--td-text-primary);
 }
 
+.td-input {
+  border: 1px solid var(--td-border-subtle);
+  border-radius: var(--td-radius-sm);
+  background: rgba(2, 10, 16, 0.78);
+  padding-inline: 0.75rem;
+  color: var(--td-text-primary);
+  outline: none;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.td-input::placeholder {
+  color: var(--td-text-faint);
+}
+
+.td-input:focus {
+  border-color: rgba(85, 199, 255, 0.44);
+  background: rgba(5, 13, 20, 0.92);
+  box-shadow: 0 0 0 3px rgba(85, 199, 255, 0.08);
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }
