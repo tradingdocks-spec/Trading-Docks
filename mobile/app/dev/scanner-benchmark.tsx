@@ -9,6 +9,12 @@ import { TDBadge, TDButton, TDCard, TDEmptyState, TDErrorState, TDInput, TDLoadi
 import { color, radius, space } from '@/design';
 import { searchScannerPrintings } from '@/services/scanner-data';
 import { buildScannerLabReferenceSet, runScannerRecognitionLab, type ScannerRecognitionLabReport } from '@/services/scanner-recognition-lab';
+import {
+  createScannerProviderBakeoffAdapters,
+  runScannerProviderBakeoff,
+  type ScannerProviderBakeoffReport,
+} from '@/services/scanner-provider-bakeoff';
+import { buildScannerProviderManifest, resolveScannerProviderFlags, scannerProviderSummary } from '@/services/scanner-provider-stack';
 import type { ScannerCardCandidate, ScannerPermissionState } from '@/services/scanner-foundation';
 import { resolveScannerPermissionState } from '@/services/scanner-foundation';
 import {
@@ -72,9 +78,14 @@ export default function ScannerBenchmarkBuilder() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [labRunning, setLabRunning] = useState(false);
   const [labReport, setLabReport] = useState<ScannerRecognitionLabReport | null>(null);
+  const [providerBakeoffRunning, setProviderBakeoffRunning] = useState(false);
+  const [providerBakeoffReport, setProviderBakeoffReport] = useState<ScannerProviderBakeoffReport | null>(null);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const summary = useMemo(() => dataset ? summarizeBenchmarkDataset(dataset) : null, [dataset]);
+  const providerFlags = useMemo(() => resolveScannerProviderFlags(), []);
+  const providerManifest = useMemo(() => buildScannerProviderManifest(providerFlags), [providerFlags]);
+  const providerManifestSummary = useMemo(() => scannerProviderSummary(providerManifest), [providerManifest]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -237,6 +248,38 @@ export default function ScannerBenchmarkBuilder() {
     }
   };
 
+  const runProviderBakeoff = async () => {
+    if (!capturedUri || !selectedPrinting) {
+      setError('Capture one physical card and select the expected printing before running the provider bake-off.');
+      return;
+    }
+    setProviderBakeoffRunning(true);
+    setError(null);
+    setStatus('Running the provider bake-off against the same local capture. This stays local-only unless a configured provider adapter is enabled.');
+    try {
+      const report = await runScannerProviderBakeoff({
+        fixtures: [{
+          id: 'current-capture',
+          localImagePath: capturedUri,
+          expectedCardName: selectedPrinting.name,
+          expectedSetCode: selectedPrinting.setCode ?? 'unknown',
+          expectedCollectorNumber: selectedPrinting.collectorNumber ?? 'unknown',
+          expectedScryfallId: selectedPrinting.id,
+          expectedLanguage: selectedPrinting.language ?? 'en',
+          notes: 'On-device capture from the current scanner benchmark screen.',
+        }],
+        adapters: createScannerProviderBakeoffAdapters(),
+        allowNetwork: false,
+      });
+      setProviderBakeoffReport(report);
+      setStatus('Provider bake-off complete. Review provider availability, baseline OCR, and feature-flagged adapter readiness.');
+    } catch (bakeoffError) {
+      setError(bakeoffError instanceof Error ? bakeoffError.message : 'Provider bake-off failed.');
+    } finally {
+      setProviderBakeoffRunning(false);
+    }
+  };
+
   const removeFirstFixture = async () => {
     if (!dataset || !dataset.manifest.fixtures[0]) return;
     const result = removeBenchmarkFixture(dataset, dataset.manifest.fixtures[0].id);
@@ -382,6 +425,19 @@ export default function ScannerBenchmarkBuilder() {
               <TDButton label="Run recognition lab" loading={labRunning} disabled={!capturedUri || !selectedPrinting} onPress={runRecognitionLab} />
               {labReport ? <RecognitionLabReportView report={labReport} /> : <TDEmptyState title="No lab run yet" message="Capture one card and select the expected printing, then run the lab." />}
             </TDCard>
+
+            <TDCard style={s.section}>
+              <TDText variant="title">Provider stack bake-off</TDText>
+              <TDText variant="small" tone="muted">Compares the local baseline against feature-flagged provider adapters on the same private capture. Providers that are not configured remain explicitly unavailable.</TDText>
+              <View style={s.metricGrid}>
+                <Metric label="Recognizers" value={providerManifestSummary.recognitionProviders} />
+                <Metric label="Normalizers" value={providerManifestSummary.normalizers} />
+                <Metric label="Available" value={providerManifestSummary.availableProviders} />
+                <Metric label="Gated" value={providerManifestSummary.gatedProviders} />
+              </View>
+              <TDButton label="Run provider bake-off" loading={providerBakeoffRunning} disabled={!capturedUri || !selectedPrinting} onPress={runProviderBakeoff} />
+              {providerBakeoffReport ? <ProviderBakeoffReportView report={providerBakeoffReport} /> : <TDEmptyState title="No provider run yet" message="Capture one card and select the expected printing, then run the provider bake-off." />}
+            </TDCard>
           </>
         )}
       </ScrollView>
@@ -415,6 +471,25 @@ function RecognitionLabReportView({ report }: { report: ScannerRecognitionLabRep
         </View>
       ))}
       {report.debugArtifacts ? <TDText variant="caption" tone="muted">Debug artifact export is opt-in for this lab run: normalized crop URI, OCR regions, and engine candidates are available in memory only.</TDText> : null}
+    </View>
+  );
+}
+
+function ProviderBakeoffReportView({ report }: { report: ScannerProviderBakeoffReport }) {
+  return (
+    <View style={s.lab}>
+      <TDText variant="small" tone="muted">{report.recommendation}</TDText>
+      {report.providers.map((provider) => (
+        <View key={provider.providerId} style={s.labEngine}>
+          <View style={s.rowBetween}>
+            <TDText variant="label">{provider.providerName}</TDText>
+            <TDBadge tone={provider.availability === 'available' ? 'success' : provider.availability === 'disabled' ? 'neutral' : 'warning'}>{provider.availability}</TDBadge>
+          </View>
+          <TDText variant="small">{`${provider.fixturesEvaluated} fixture${provider.fixturesEvaluated === 1 ? '' : 's'} / exact name ${provider.exactNameFixtures} / exact printing ${provider.exactPrintingFixtures}`}</TDText>
+          <TDText variant="caption" tone="muted">{`Avg latency ${provider.averageLatencyMs === null ? 'unavailable' : `${provider.averageLatencyMs} ms`} / top candidate ${provider.topCandidate ?? 'none'}`}</TDText>
+          {provider.notes.length ? <TDText variant="caption" tone="muted">{provider.notes.join(' | ')}</TDText> : null}
+        </View>
+      ))}
     </View>
   );
 }
