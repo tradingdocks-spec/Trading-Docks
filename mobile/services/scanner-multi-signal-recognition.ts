@@ -86,6 +86,7 @@ export type MultiSignalRecognitionResult = {
   confidenceBand: MultiSignalConfidenceBand;
   confidence: RecognitionConfidence;
   visual: VisualMatch | null;
+  visualCandidates: VisualRankedMatch[];
   ocr: OcrIdentitySignal;
   printing: PrintingRefinementResult;
   diagnostics: {
@@ -364,6 +365,7 @@ export function createOcrIdentitySignal(input: {
 export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): MultiSignalRecognitionResult {
   const ocrScopedOracleIds = ocrOracleScope(input.ocr);
   const visual = matchVisualDescriptor(input.visualIndex, input.descriptor, { oracleIds: ocrScopedOracleIds });
+  const visualCandidates = matchVisualDescriptorTopK(input.visualIndex, input.descriptor, 5, { oracleIds: ocrScopedOracleIds });
   const visualName = visual?.record?.name ?? null;
   const visualOracleId = visual?.record?.oracleId ?? null;
   const ocrName = input.ocr.match.entry?.name ?? null;
@@ -426,6 +428,7 @@ export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): Mu
     confidenceBand,
     confidence,
     visual,
+    visualCandidates,
     ocr: input.ocr,
     printing,
     diagnostics: {

@@ -87,6 +87,8 @@ export async function searchTcgProducts(input: {
         product.collectorNumber,
         product.setName,
         product.setCode,
+        product.providerProductId,
+        product.tcgplayerProductId,
       ].filter(Boolean).join(" "));
       const nameText = normalizeSearchText(product.name);
       const cleanNameText = normalizeSearchText(product.cleanName ?? product.name);
@@ -98,6 +100,7 @@ export async function searchTcgProducts(input: {
       if (product.collectorNumber && normalizeSearchText(product.collectorNumber) === query) score += 36;
       if (setText.includes(query)) score += 12;
       if (cleanNameText === query) score += 30;
+      if (normalizeSearchText(product.providerProductId) === query || normalizeSearchText(String(product.tcgplayerProductId ?? "")) === query) score += 160;
       if (isCollectiblePokemonCard(product)) score += 18;
       score += queryParts.filter((part) => haystack.includes(part)).length * 8;
       return score > 0 ? { ...product, score } : null;

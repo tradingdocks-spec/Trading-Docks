@@ -1,6 +1,7 @@
 import { normalizeCardFinish, type CardFinish } from './collector-workspace.ts';
 import { parseBottomLeftPrintingText, refineExactPrintingConfidence } from './exact-printing-recognition.ts';
 import type { TcgRecognitionAdapter, UniversalScanCandidate } from './multi-tcg-scanner.ts';
+import { MOBILE_CANONICAL_SITE_URL } from './mobile-release-config.ts';
 import {
   SCANNER_CONFIDENCE_THRESHOLD,
   parseCollectorInfoText,
@@ -318,7 +319,7 @@ export const MagicRecognitionAdapter: TcgRecognitionAdapter = {
 
 export async function recognizeMagicCard(
   input: MagicRecognitionInput,
-  searchCatalog: MagicCatalogSearch = searchScryfallMagicCatalog,
+  searchCatalog: MagicCatalogSearch = searchTradingDocksMagicCatalog,
 ): Promise<MagicRecognitionResult> {
   const collectorInfo = input.collectorInfoObservation ?? (input.collectorInfoText ? parseCollectorInfoText(input.collectorInfoText) : undefined);
   const bottomLeftEvidence = parseBottomLeftPrintingText(input.bottomLeftPrintingText ?? input.collectorInfoText);
@@ -362,6 +363,45 @@ export async function recognizeMagicCard(
     explanation: explainMagicConfidence(confidence),
     source: loaded.source,
   };
+}
+
+export async function searchTradingDocksMagicCatalog(query: MagicCatalogQuery): Promise<RecognitionCandidate[]> {
+  const url = `${MOBILE_CANONICAL_SITE_URL}/api/card-intelligence/search?${new URLSearchParams({
+    q: query.name ?? query.collectorNumber ?? '',
+    game: 'magic',
+    ...(query.setCode ? { set: query.setCode } : {}),
+    ...(query.collectorNumber ? { collectorNumber: query.collectorNumber } : {}),
+    limit: '10',
+  }).toString()}`;
+  try {
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error(`Trading Docks card intelligence failed (${response.status}).`);
+    const payload = await response.json() as { candidates?: TradingDocksIntelligenceCandidate[] };
+    if (!Array.isArray(payload.candidates)) throw new Error('Trading Docks card intelligence returned an invalid response.');
+    return payload.candidates.map(intelligenceToRecognitionCandidate).filter((candidate): candidate is RecognitionCandidate => Boolean(candidate));
+  } catch {
+    // Preserve the established lawful catalog fallback when Trading Docks is temporarily unavailable.
+    return searchScryfallMagicCatalog(query);
+  }
+}
+
+export async function recognizeTradingDocksMagicSignals(signals: {
+  cardName?: string | null; ocrText?: string | null; ocrConfidence?: number | null; setCode?: string | null;
+  collectorNumber?: string | null; language?: string | null; finish?: string | null;
+  visualCandidates?: Array<{ printingId: string; similarity: number }>;
+  providerIds?: Record<string, string | number>;
+}, fetcher: typeof fetch = fetch): Promise<RecognitionCandidate[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+  try {
+    const response = await fetcher(`${MOBILE_CANONICAL_SITE_URL}/api/card-intelligence/recognize`, {
+      method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signals: { game: 'magic', ...signals }, limit: 5 }), signal: controller.signal,
+    });
+    if (!response.ok) return [];
+    const payload = await response.json() as { candidates?: TradingDocksIntelligenceCandidate[] };
+    return (payload.candidates ?? []).map(intelligenceToRecognitionCandidate).filter((candidate): candidate is RecognitionCandidate => Boolean(candidate));
+  } catch { return []; } finally { clearTimeout(timeout); }
 }
 
 export function rankMagicCandidates(input: {
@@ -868,6 +908,8 @@ function scryfallToRecognitionCandidate(card: ScryfallCard): RecognitionCandidat
     imageUrl: card.image_uris?.normal ?? card.image_uris?.large ?? card.card_faces?.[0]?.image_uris?.normal ?? null,
     confidence: 0,
     recognitionMode: 'assisted_capture',
+    providerSource: 'scryfall',
+    providerSources: ['scryfall'],
     marketPrice: scryfallPriceMetadata(card.prices),
     specialPrintingLabels: scryfallSpecialLabels(card),
     scryfallMetadata: {
@@ -880,6 +922,41 @@ function scryfallToRecognitionCandidate(card: ScryfallCard): RecognitionCandidat
     },
     layout: card.layout ?? null,
     colorIdentity: card.color_identity ?? [],
+  };
+}
+
+type TradingDocksIntelligenceCandidate = {
+  printingId?: string; canonicalCardId?: string; name?: string; setCode?: string | null; setName?: string | null;
+  collectorNumber?: string | null; language?: string | null; finishes?: string[]; imageUrl?: string | null;
+  score?: number; rarity?: string | null; providerIds?: Record<string, string | number>;
+  prices?: Array<{ market?: number | null; source?: string }>;
+  provenance?: string[];
+};
+
+function intelligenceToRecognitionCandidate(candidate: TradingDocksIntelligenceCandidate): RecognitionCandidate | null {
+  if (!candidate.printingId || !candidate.name) return null;
+  const price = (finish: string) => candidate.prices?.find((entry) => entry.source === `scryfall:${finish}`)?.market ?? null;
+  const legalFinishes = normalizeFinishes(candidate.finishes);
+  return {
+    id: candidate.printingId,
+    oracleId: candidate.canonicalCardId ?? null,
+    name: candidate.name,
+    setCode: candidate.setCode?.toUpperCase() ?? null,
+    setName: candidate.setName ?? null,
+    collectorNumber: candidate.collectorNumber ?? null,
+    finishes: legalFinishes,
+    legalFinishes,
+    language: candidate.language ?? 'en',
+    imageUrl: candidate.imageUrl ?? null,
+    confidence: Math.round((candidate.score ?? 0) * 100),
+    recognitionMode: 'assisted_capture',
+    providerSource: candidate.provenance?.length === 1 && ['scryfall', 'tcgplayer', 'tcgtracking'].includes(candidate.provenance[0]) ? candidate.provenance[0] as 'scryfall' | 'tcgplayer' | 'tcgtracking' : candidate.provenance?.length ? 'multiple' : null,
+    providerSources: candidate.provenance ?? [],
+    marketPrice: { usd: price('nonfoil'), usdFoil: price('foil'), usdEtched: price('etched'), source: 'scryfall', fetchedAt: null },
+    specialPrintingLabels: [],
+    scryfallMetadata: null,
+    layout: null,
+    colorIdentity: [],
   };
 }
 

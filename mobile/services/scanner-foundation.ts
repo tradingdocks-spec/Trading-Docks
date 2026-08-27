@@ -43,7 +43,10 @@ export type ScannerCardCandidate = {
   tcgplayerSkuId?: number | null;
   providerProductId?: string | null;
   providerSkuId?: string | null;
-  providerSource?: 'scryfall' | 'tcgtracking' | 'visual_index' | null;
+  providerSource?: 'scryfall' | 'tcgplayer' | 'tcgtracking' | 'visual_index' | 'multiple' | null;
+  providerSources?: string[];
+  providerIds?: Record<string, string | number>;
+  identityAuthority?: 'provider_confirmed' | 'synthetic_fallback' | null;
   oracleId?: string | null;
   name: string;
   setCode: string | null;
@@ -225,6 +228,11 @@ export function buildScannerAddPayload(confirmation: ScannerConfirmation, id: st
       providerSkuId: confirmation.candidate.providerSkuId ?? null,
       provider_sku_id: confirmation.candidate.providerSkuId ?? null,
       providerSource: confirmation.candidate.providerSource ?? null,
+      providerSources: confirmation.candidate.providerSources ?? [],
+      providerIds: confirmation.candidate.providerIds ?? {},
+      canonicalCardId: confirmation.candidate.oracleId ?? null,
+      exactPrintingId: confirmation.candidate.id,
+      identityAuthority: confirmation.candidate.identityAuthority ?? null,
       set: confirmation.candidate.setCode,
       setName: confirmation.candidate.setName,
       collectorNumber: confirmation.candidate.collectorNumber,
@@ -304,6 +312,9 @@ export function normalizeScannerCandidate(raw: {
   providerProductId?: unknown;
   providerSkuId?: unknown;
   providerSource?: unknown;
+  providerSources?: unknown;
+  providerIds?: unknown;
+  identityAuthority?: unknown;
   oracleId?: unknown;
   name?: unknown;
   setCode?: unknown;
@@ -335,7 +346,10 @@ export function normalizeScannerCandidate(raw: {
     tcgplayerSkuId: numberValue(raw.tcgplayerSkuId),
     providerProductId: stringValue(raw.providerProductId),
     providerSkuId: stringValue(raw.providerSkuId),
-    providerSource: raw.providerSource === 'tcgtracking' || raw.providerSource === 'visual_index' ? raw.providerSource : 'scryfall',
+    providerSource: raw.providerSource === 'tcgtracking' || raw.providerSource === 'tcgplayer' || raw.providerSource === 'visual_index' || raw.providerSource === 'multiple' ? raw.providerSource : raw.providerSource === 'scryfall' ? 'scryfall' : null,
+    providerSources: Array.isArray(raw.providerSources) ? raw.providerSources.map(stringValue).filter((value): value is string => Boolean(value)).slice(0, 6) : [],
+    providerIds: normalizeProviderIds(raw.providerIds),
+    identityAuthority: raw.identityAuthority === 'provider_confirmed' || raw.identityAuthority === 'synthetic_fallback' ? raw.identityAuthority : null,
     oracleId: stringValue(raw.oracleId),
     name,
     setCode: stringValue(raw.setCode)?.toUpperCase() ?? null,
@@ -385,15 +399,23 @@ function numberValue(value: unknown) {
   return null;
 }
 
+function normalizeProviderIds(value: unknown): Record<string, string | number> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).slice(0, 12).flatMap(([key, entry]) => {
+    const provider = key.trim().toLowerCase();
+    if (!provider || (typeof entry !== 'string' && typeof entry !== 'number')) return [];
+    return [[provider, entry]];
+  }));
+}
+
 function confirmedScryfallId(candidate: ScannerCardCandidate) {
   const gameId = normalizeScannerGameId(candidate.gameId ?? candidate.providerCategoryId);
-  if (gameId !== 'magic') {
-    return null;
-  }
-  if (candidate.providerSource === 'tcgtracking' && candidate.id.startsWith('tcgtracking:')) {
-    return null;
-  }
-  return candidate.id;
+  if (gameId !== 'magic') return null;
+  const providerId = candidate.providerIds?.scryfall;
+  if (typeof providerId === 'string' && providerId) return providerId;
+  const sources = new Set(candidate.providerSources ?? []);
+  if (candidate.providerSource === 'scryfall') sources.add('scryfall');
+  return sources.has('scryfall') ? candidate.id : null;
 }
 
 function normalizeScannerGameId(value: unknown): ScannerGameId {

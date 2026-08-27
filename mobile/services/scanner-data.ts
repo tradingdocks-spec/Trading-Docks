@@ -4,6 +4,8 @@ import { buildStorageLocation, type StorageLocation } from '@/services/storage-l
 import { appStorage } from '@/services/storage/app-storage';
 import { enqueueOfflineOperation } from '@/services/storage/offline';
 import { loadInventoryQuantityTotal } from '@/services/inventory-quantity-total';
+import { MOBILE_CANONICAL_SITE_URL } from '@/services/mobile-release-config';
+import { ScannerInventoryAuthorityError, validateScannerInventoryIdentity } from '@/services/scanner-inventory-authority';
 import {
   SCANNER_COLLECTION_QUEUE_TYPE,
   buildScannerAddPayload,
@@ -21,7 +23,7 @@ export { lookupScannerPrintings } from '@/services/scanner-printing-lookup';
 type ScannerSaveResult =
   | { ok: true; queued?: false; inventoryItemId: string }
   | { ok: true; queued: true; warning: string; inventoryItemId: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; requiresConfirmation?: boolean };
 
 type ScryfallCard = {
   id?: string;
@@ -43,6 +45,23 @@ type ScryfallCard = {
   prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null };
 };
 
+type IntelligenceCandidate = {
+  printingId?: string;
+  canonicalCardId?: string;
+  game?: 'magic' | 'pokemon';
+  name?: string;
+  setCode?: string | null;
+  setName?: string | null;
+  collectorNumber?: string | null;
+  language?: string | null;
+  finishes?: string[];
+  imageUrl?: string | null;
+  score?: number;
+  providerIds?: Record<string, string | number>;
+  prices?: Array<{ market?: number | null; source?: string }>;
+  provenance?: string[];
+};
+
 export async function searchScannerPrintings(query: string, online = true): Promise<ScannerRecognitionResult> {
   const cleanQuery = query.trim();
   if (cleanQuery.length < 2) return { ok: true, candidates: [], assisted: false };
@@ -54,16 +73,11 @@ export async function searchScannerPrintings(query: string, online = true): Prom
       : { ok: false, reason: 'Manual search needs internet unless a recent cached candidate matches.', offline: true };
   }
   try {
-    const url = `https://api.scryfall.com/cards/search?${new URLSearchParams({
-      q: `!"${cleanQuery.replaceAll('"', '')}" game:paper`,
-      unique: 'prints',
-      order: 'released',
-      dir: 'desc',
-    }).toString()}`;
-    const response = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'TradingDocksMobile/1.0 scanner-foundation' } });
+    const url = `${MOBILE_CANONICAL_SITE_URL}/api/card-intelligence/search?${new URLSearchParams({ q: cleanQuery, game: 'magic', limit: '12' }).toString()}`;
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!response.ok) return { ok: false, reason: 'No matching Magic card printings were found.' };
-    const payload = await response.json() as { data?: ScryfallCard[] };
-    const candidates = (payload.data ?? []).slice(0, 12).map(cardToCandidate).filter((candidate): candidate is ScannerCardCandidate => Boolean(candidate));
+    const payload = await response.json() as { candidates?: IntelligenceCandidate[] };
+    const candidates = (payload.candidates ?? []).slice(0, 12).map(intelligenceToCandidate).filter((candidate): candidate is ScannerCardCandidate => Boolean(candidate));
     await saveRecentScannerCandidates(candidates);
     return { ok: true, candidates, assisted: false };
   } catch (error) {
@@ -72,6 +86,35 @@ export async function searchScannerPrintings(query: string, online = true): Prom
       ? { ok: true, candidates: cached, assisted: false, warning: 'Search failed. Showing recent cached candidates.' }
       : { ok: false, reason: error instanceof Error ? error.message : 'Card search is unavailable.', offline: true };
   }
+}
+
+function intelligenceToCandidate(candidate: IntelligenceCandidate) {
+  const tcgtrackingId = candidate.providerIds?.tcgtracking === undefined ? null : String(candidate.providerIds.tcgtracking);
+  const tcgplayerId = Number(candidate.providerIds?.tcgplayer);
+  const market = candidate.prices?.find((price) => price.source?.startsWith('scryfall:nonfoil'))?.market ?? null;
+  const foil = candidate.prices?.find((price) => price.source?.startsWith('scryfall:foil'))?.market ?? null;
+  const etched = candidate.prices?.find((price) => price.source?.startsWith('scryfall:etched'))?.market ?? null;
+  return normalizeScannerCandidate({
+    id: candidate.printingId,
+    gameId: candidate.game,
+    providerSource: candidate.provenance?.length === 1 && ['scryfall', 'tcgplayer', 'tcgtracking'].includes(candidate.provenance[0]) ? candidate.provenance[0] as 'scryfall' | 'tcgplayer' | 'tcgtracking' : candidate.provenance?.length ? 'multiple' : null,
+    providerSources: candidate.provenance ?? [],
+    providerIds: candidate.providerIds,
+    identityAuthority: 'provider_confirmed',
+    oracleId: candidate.canonicalCardId,
+    name: candidate.name,
+    setCode: candidate.setCode,
+    setName: candidate.setName,
+    collectorNumber: candidate.collectorNumber,
+    finishes: candidate.finishes,
+    language: candidate.language,
+    imageUrl: candidate.imageUrl,
+    confidence: candidate.score ?? 0,
+    recognitionMode: 'manual_search',
+    marketPrice: { usd: market, usdFoil: foil, usdEtched: etched, source: 'scryfall', fetchedAt: null },
+    providerProductId: tcgtrackingId,
+    tcgplayerProductId: Number.isSafeInteger(tcgplayerId) && tcgplayerId > 0 ? tcgplayerId : null,
+  });
 }
 
 export async function loadScannerContext(): Promise<{ userId: string; locations: StorageLocation[]; currentTotalQuantity: number }> {
@@ -121,36 +164,52 @@ export async function saveScannerConfirmation({
   const validation = validateScannerConfirmation(confirmation, { membershipTier, currentTotalQuantity });
   if (!validation.ok) return { ok: false, error: validation.reason };
   const inventoryItemId = createId('scan');
-  const payload = buildScannerAddPayload(confirmation, inventoryItemId);
   if (!supabase) return queueScannerAdd(confirmation, inventoryItemId, 'Collection storage is offline. Scan queued for sync.');
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user || auth.user.id !== confirmation.userId) return { ok: false, error: 'Sign in again to add scanned cards.' };
+  const [{ data: auth }, { data: sessionData }] = await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()]);
+  if (!auth.user || auth.user.id !== confirmation.userId || !sessionData.session?.access_token) return { ok: false, error: 'Sign in again to add scanned cards.' };
+  let authoritativeConfirmation: ScannerConfirmation;
+  try {
+    authoritativeConfirmation = await validateScannerInventoryIdentity({
+      confirmation,
+      accessToken: sessionData.session.access_token,
+    });
+  } catch (error) {
+    if (error instanceof ScannerInventoryAuthorityError && error.offline) {
+      return queueScannerAdd(confirmation, inventoryItemId, error.message);
+    }
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'This card needs confirmation before it can be added.',
+      requiresConfirmation: true,
+    };
+  }
+  const payload = buildScannerAddPayload(authoritativeConfirmation, inventoryItemId);
   try {
     const { error } = await supabase.from('inventory_items').insert(payload);
     if (error) throw new Error(error.message);
-    if (confirmation.tradeStatus !== 'not_for_trade') {
+    if (authoritativeConfirmation.tradeStatus !== 'not_for_trade') {
       await runMobileTradeWishlistMutation({
         type: 'trade_status',
-        userId: confirmation.userId,
+        userId: authoritativeConfirmation.userId,
         inventoryItemId,
-        status: confirmation.tradeStatus,
+        status: authoritativeConfirmation.tradeStatus,
       });
     }
-    if (confirmation.addToWishlist) {
+    if (authoritativeConfirmation.addToWishlist) {
       await runMobileTradeWishlistMutation({
         type: 'wishlist_toggle',
-        userId: confirmation.userId,
-        cardName: confirmation.candidate.name,
-        setCode: confirmation.candidate.setCode,
-        condition: confirmation.condition,
-        finish: confirmation.finish,
+        userId: authoritativeConfirmation.userId,
+        cardName: authoritativeConfirmation.candidate.name,
+        setCode: authoritativeConfirmation.candidate.setCode,
+        condition: authoritativeConfirmation.condition,
+        finish: authoritativeConfirmation.finish,
         wishlisted: true,
       });
     }
-    await clearScannerDraft(confirmation.userId);
+    await clearScannerDraft(authoritativeConfirmation.userId);
     return { ok: true, inventoryItemId };
   } catch (error) {
-    return queueScannerAdd(confirmation, inventoryItemId, error instanceof Error ? error.message : 'Scanned card queued for sync.');
+    return queueScannerAdd(authoritativeConfirmation, inventoryItemId, error instanceof Error ? error.message : 'Scanned card queued for sync.');
   }
 }
 

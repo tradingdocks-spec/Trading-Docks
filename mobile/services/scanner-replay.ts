@@ -53,6 +53,7 @@ export type ScannerReplayDependencies = {
   getAuthenticatedUserId: () => Promise<string | null>;
   loadCurrentTotalQuantity: (userId: string) => Promise<number>;
   inventoryItemExists: (userId: string, inventoryItemId: string) => Promise<boolean>;
+  validatePrintingIdentity: (confirmation: ScannerConfirmation) => Promise<ScannerConfirmation>;
   insertInventoryItem: (payload: ScannerAddPayload) => Promise<void>;
   runTradeStatus: (confirmation: ScannerConfirmation, inventoryItemId: string) => Promise<void>;
   runWishlist: (confirmation: ScannerConfirmation) => Promise<void>;
@@ -232,15 +233,17 @@ async function executeScannerReplayEntry(
   }
 
   const exists = await dependencies.inventoryItemExists(entry.userId, entry.inventoryItemId);
+  let authoritativeConfirmation = entry.confirmation;
   if (!exists) {
-    await dependencies.insertInventoryItem(buildScannerAddPayload(entry.confirmation, entry.inventoryItemId));
+    authoritativeConfirmation = await dependencies.validatePrintingIdentity(entry.confirmation);
+    await dependencies.insertInventoryItem(buildScannerAddPayload(authoritativeConfirmation, entry.inventoryItemId));
   }
 
-  if (entry.confirmation.tradeStatus !== 'not_for_trade') {
-    await dependencies.runTradeStatus(entry.confirmation, entry.inventoryItemId);
+  if (authoritativeConfirmation.tradeStatus !== 'not_for_trade') {
+    await dependencies.runTradeStatus(authoritativeConfirmation, entry.inventoryItemId);
   }
-  if (entry.confirmation.addToWishlist) {
-    await dependencies.runWishlist(entry.confirmation);
+  if (authoritativeConfirmation.addToWishlist) {
+    await dependencies.runWishlist(authoritativeConfirmation);
   }
 }
 
@@ -257,6 +260,7 @@ function createScannerReplayDependencies(): ScannerReplayDependencies {
     getAuthenticatedUserId: currentUserId,
     loadCurrentTotalQuantity,
     inventoryItemExists,
+    validatePrintingIdentity: validateQueuedPrintingIdentity,
     insertInventoryItem,
     async runTradeStatus(confirmation, inventoryItemId) {
       const { runMobileTradeWishlistMutation } = await import('./trade-binder-wishlist-data.ts');
@@ -280,6 +284,25 @@ function createScannerReplayDependencies(): ScannerReplayDependencies {
       });
     },
   };
+}
+
+async function validateQueuedPrintingIdentity(confirmation: ScannerConfirmation) {
+  const { supabase } = await import('../lib/supabase.ts');
+  if (!supabase) throw scannerAuthorityError('Card identity validation is not configured. This scan needs confirmation.');
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) throw scannerAuthorityError('Sign in again to validate this queued scan.');
+  const { validateScannerInventoryIdentity } = await import('./scanner-inventory-authority.ts');
+  try {
+    return await validateScannerInventoryIdentity({ confirmation, accessToken: data.session.access_token });
+  } catch (error) {
+    throw scannerAuthorityError(error instanceof Error ? error.message : 'This queued scan needs printing confirmation.');
+  }
+}
+
+function scannerAuthorityError(message: string) {
+  const error = new Error(message) as Error & { scannerCode: ScannerReplayErrorCode };
+  error.scannerCode = 'invalid_printing';
+  return error;
 }
 
 async function currentUserId() {

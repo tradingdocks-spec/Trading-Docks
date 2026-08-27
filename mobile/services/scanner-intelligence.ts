@@ -78,6 +78,7 @@ export type FinishObservation = {
 };
 
 export type RecognitionCandidate = ScannerCardCandidate & {
+  providerSources?: string[];
   legalFinishes: CardFinish[];
   layout: string | null;
   colorIdentity: string[];

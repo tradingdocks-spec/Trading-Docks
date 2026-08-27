@@ -26,6 +26,9 @@ const candidate = normalizeScannerCandidate({
   finishes: ['foil', 'nonfoil'],
   language: 'en',
   imageUrl: 'https://cards.example/rhystic.jpg',
+  providerSource: 'scryfall',
+  providerSources: ['scryfall'],
+  providerIds: { scryfall: 'sf-rhystic' },
   confidence: 0.94,
 })!;
 
@@ -120,6 +123,26 @@ test('failed replay remains visible with retryable failed state', async () => {
   assert.equal(entry?.lastError, 'network unavailable');
 });
 
+test('queued replay validates before insert and preserves existing quantity behavior', async () => {
+  const harness = replayHarness([operationFor({ ...confirmation, quantity: 3 }, 'scan-1')]);
+  await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'collector', trigger: 'manual_retry' }, harness.deps);
+
+  assert.deepEqual(harness.events, ['validate', 'insert']);
+  assert.equal(harness.inserted[0].quantity, 3);
+});
+
+test('failed replay validation moves the intact scan to action-required review without insert', async () => {
+  const authorityError = Object.assign(new Error('Provider ID mismatch. Review this exact printing.'), { scannerCode: 'invalid_printing' });
+  const harness = replayHarness([operationFor(confirmation, 'scan-1')], { validationError: authorityError });
+  const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'collector', trigger: 'network_reconnect' }, harness.deps);
+  const entry = scannerQueuedAddFromOperation(harness.queue[0], 'user-1');
+
+  assert.equal(result.actionRequired, 1);
+  assert.equal(harness.inserted.length, 0);
+  assert.equal(entry?.syncState, 'action_required');
+  assert.equal(entry?.confirmation.candidate.id, confirmation.candidate.id);
+});
+
 test('Free-limit replay error becomes action required', async () => {
   const harness = replayHarness([operationFor({ ...confirmation, quantity: 2 }, 'scan-1')], { currentTotalQuantity: 499 });
   const result = await replayQueuedScannerAddsWithDependencies({ userId: 'user-1', membershipTier: 'free', trigger: 'manual_retry' }, harness.deps);
@@ -191,6 +214,8 @@ function replayHarness(
     currentTotalQuantity?: number;
     existingIds?: Set<string>;
     insertError?: Error;
+    validationError?: Error;
+    authoritativeConfirmation?: ScannerConfirmation;
   } = {},
 ) {
   const harness = {
@@ -198,6 +223,7 @@ function replayHarness(
     inserted: [] as Parameters<ScannerReplayDependencies['insertInventoryItem']>[0][],
     tradeStatuses: [] as string[],
     wishlistAdds: [] as string[],
+    events: [] as string[],
   };
   const existingIds = options.existingIds ?? new Set<string>();
   const deps: ScannerReplayDependencies = {
@@ -216,7 +242,13 @@ function replayHarness(
     async inventoryItemExists(_userId, inventoryItemId) {
       return existingIds.has(inventoryItemId);
     },
+    async validatePrintingIdentity(input) {
+      harness.events.push('validate');
+      if (options.validationError) throw options.validationError;
+      return options.authoritativeConfirmation ?? input;
+    },
     async insertInventoryItem(payload) {
+      harness.events.push('insert');
       if (options.insertError) throw options.insertError;
       harness.inserted.push(payload);
       existingIds.add(payload.id);

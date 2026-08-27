@@ -3,6 +3,7 @@ import {
   classifyMagicRecognition,
   MagicCatalogLookupError,
   recognizeMagicCard,
+  recognizeTradingDocksMagicSignals,
   searchScryfallMagicCatalog,
   searchScryfallMagicCatalogFuzzy,
   type MagicCatalogDiagnosticsSink,
@@ -354,6 +355,15 @@ export async function recognizeMagicStillCapture(input: {
   let latestLookupDiagnostics: MagicStillScanLookupDiagnostics | null = null;
   const localNameMatch = matchMagicCardName(prewarmMagicNameIndex(), signals.normalizedTitle);
   const localCandidates = localNameMatch.entry ? [localNameMatchToRecognitionCandidate(localNameMatch)] : [];
+  const authoritativeCandidates = input.online ? await recognizeTradingDocksMagicSignals({
+    cardName: signals.normalizedTitle,
+    ocrText: ocr.fullText,
+    ocrConfidence: signals.ocrConfidence,
+    setCode: signals.collectorInfo?.setCode,
+    collectorNumber: signals.collectorInfo?.collectorNumber,
+    language: signals.collectorInfo?.language,
+    visualCandidates: (baseMultiSignal?.visualCandidates ?? []).slice(0, 5).map((entry) => ({ printingId: entry.record.scryfallId, similarity: entry.similarity })),
+  }) : [];
   const onLookupDiagnostics: MagicCatalogDiagnosticsSink = (diagnostics) => {
     latestLookupDiagnostics = createStillLookupDiagnostics(signals, diagnostics);
     input.onLookupDiagnostics?.(latestLookupDiagnostics);
@@ -374,7 +384,7 @@ export async function recognizeMagicStillCapture(input: {
     signals.titleAlternatives,
     onLookupDiagnostics,
     input.searchCatalog ? null : searchScryfallMagicCatalogFuzzy,
-    localCandidates,
+    [...authoritativeCandidates, ...localCandidates],
   ));
   const lookupLatencyMs = Math.max(0, Date.now() - started);
   const cleanupResult = await cleanupCapture();
@@ -857,6 +867,8 @@ function localNameMatchToRecognitionCandidate(match: MagicNameMatch): Recognitio
     imageUrl: null,
     confidence: match.score,
     recognitionMode: 'assisted_capture',
+    providerSource: 'visual_index',
+    providerSources: ['visual_index'],
     marketPrice: null,
     legalFinishes: ['normal', 'foil', 'etched'],
     layout: null,
@@ -935,6 +947,8 @@ function recognitionToScannerCandidate(candidate: RecognitionCandidate) {
     imageUrl: candidate.imageUrl,
     confidence: candidate.confidence,
     recognitionMode: 'assisted_capture',
+    providerSource: candidate.providerSource,
+    providerSources: candidate.providerSources,
     marketPrice: candidate.marketPrice,
     specialPrintingLabels: candidate.specialPrintingLabels,
     scryfallMetadata: candidate.scryfallMetadata,
