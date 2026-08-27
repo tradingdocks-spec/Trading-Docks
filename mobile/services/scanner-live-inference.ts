@@ -125,35 +125,35 @@ export function scannerLiveInferenceCopy(
   if (state.stage === 'exact' && state.candidateName) {
     return {
       headline: `\u2713 ${state.candidateName}`,
-      subtitle: state.exactPrintingLabel ? `Exact printing \u2022 ${state.exactPrintingLabel}` : 'Exact printing verified',
+      subtitle: state.exactPrintingLabel ? `Verified \u2022 ${state.exactPrintingLabel}` : 'Verified exact printing',
       tone: 'success',
     };
   }
   if (state.stage === 'matching_printing' && state.candidateName) {
     return {
-      headline: 'Matching printing...',
-      subtitle: state.exactPrintingLabel ? `${state.candidateName} \u2022 ${state.exactPrintingLabel}` : state.candidateName,
+      headline: state.candidateName,
+      subtitle: state.exactPrintingLabel ? `Matching printing \u2022 ${state.exactPrintingLabel}` : 'Matching printing...',
       tone: 'warning',
     };
   }
   if (state.stage === 'likely' && state.candidateName) {
     return {
-      headline: `Likely: ${state.candidateName}`,
-      subtitle: state.exactPrintingLabel ? 'Refining printing...' : null,
+      headline: state.candidateName,
+      subtitle: state.exactPrintingLabel ? `Matching printing \u2022 ${state.exactPrintingLabel}` : 'Matching printing...',
       tone: 'info',
     };
   }
   if (state.stage === 'possible' && state.candidateName) {
     return {
       headline: `Possible match: ${state.candidateName}`,
-      subtitle: null,
+      subtitle: 'Keep scanning',
       tone: 'info',
     };
   }
   if (state.stage === 'reading') {
     return {
       headline: 'Reading...',
-      subtitle: state.route === 'continue_reading' ? 'Gathering more evidence' : null,
+      subtitle: state.route === 'continue_reading' ? 'Keep scanning' : null,
       tone: 'muted',
     };
   }
@@ -218,9 +218,14 @@ function consensusCount(history: readonly ScannerLiveInferenceSample[], candidat
 function confidenceScoreFor(sample: ScannerLiveInferenceSample) {
   const candidateScore = sample.matchScore !== null ? sample.matchScore / 100 : 0;
   const visualScore = sample.visualSimilarity ?? 0;
-  const bandScore = sample.confidenceBand === 'high' ? 1 : sample.confidenceBand === 'medium' ? 0.68 : sample.confidenceBand === 'low' ? 0.42 : 0;
+  const namedCandidate = Boolean(sample.candidateName);
+  const bandScore = namedCandidate
+    ? sample.confidenceBand === 'high' ? 1 : sample.confidenceBand === 'medium' ? 0.68 : sample.confidenceBand === 'low' ? 0.42 : 0
+    : sample.confidenceBand === 'high' ? 0.22 : sample.confidenceBand === 'medium' ? 0.14 : sample.confidenceBand === 'low' ? 0.08 : 0;
   const exactScore = sample.exactPrintingId ? 0.16 : 0;
-  return Number(Math.min(1, Math.max(candidateScore, visualScore * 0.95, bandScore + exactScore)).toFixed(3));
+  const namedBonus = namedCandidate ? 0.18 : 0;
+  const visualWeight = namedCandidate ? 0.95 : 0.08;
+  return Number(Math.min(1, Math.max(candidateScore, visualScore * visualWeight, bandScore + exactScore + namedBonus)).toFixed(3));
 }
 
 function formatPrintingLabel(setCode: string | null, collectorNumber: string | null) {

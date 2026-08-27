@@ -286,24 +286,24 @@ export async function recognizeMagicStillCapture(input: {
       ocrDurationMs: ocr.latencyMs,
       visualIndex: input.visualIndex,
     }) : null;
-    if (multiSignal?.status === 'append_identity' && multiSignal.visual?.record) {
-      const candidate = scannerCandidateFromVisualRecord(multiSignal.visual.record, multiSignal.confidence.overall / 100);
+    const visualCandidate = acceptedVisualCandidateFromFusion(multiSignal);
+    if (visualCandidate) {
       const lookupDiagnostics = createStillLookupDiagnostics(emptySignals(), {
         queryString: null,
         httpStatus: null,
         responseItemCount: 1,
         errorCode: null,
         latencyMs: 0,
-        topThreeCandidateNames: [candidate.name],
+        topThreeCandidateNames: [visualCandidate.name],
       });
       return {
         ok: true,
         ocr: { ok: true, provider: 'apple_vision', fullText: '', observations: [], latencyMs: ocr.latencyMs, orientationUsed: 'unavailable', warnings: ['OCR failed; visual fingerprint supplied identity.'] },
         signals: emptySignals(),
-        recognition: recognitionFromFusion(multiSignal, [candidate]),
-        candidates: [candidate],
-        selected: candidate,
-        confidenceLabel: confidenceLabel(recognitionFromFusion(multiSignal, [candidate])),
+        recognition: recognitionFromFusion(multiSignal, [visualCandidate]),
+        candidates: [visualCandidate],
+        selected: visualCandidate,
+        confidenceLabel: confidenceLabel(recognitionFromFusion(multiSignal, [visualCandidate])),
         mapping,
         cropDiagnostics,
         lookupLatencyMs: 0,
@@ -329,20 +329,20 @@ export async function recognizeMagicStillCapture(input: {
     const cleanupResult = await cleanupCapture();
     const lookupDiagnostics = createStillLookupDiagnostics(signals, { queryString: null, httpStatus: null, responseItemCount: 0, errorCode: 'no_title_read', latencyMs: 0, topThreeCandidateNames: [] });
     input.onLookupDiagnostics?.(lookupDiagnostics);
-    if (baseMultiSignal?.status === 'append_identity' && baseMultiSignal.visual?.record) {
-      const candidate = scannerCandidateFromVisualRecord(baseMultiSignal.visual.record, baseMultiSignal.confidence.overall / 100);
+    const visualCandidate = acceptedVisualCandidateFromFusion(baseMultiSignal);
+    if (visualCandidate) {
       return {
         ok: true,
         ocr,
         signals,
-        recognition: recognitionFromFusion(baseMultiSignal, [candidate]),
-        candidates: [candidate],
-        selected: candidate,
-        confidenceLabel: confidenceLabel(recognitionFromFusion(baseMultiSignal, [candidate])),
+        recognition: recognitionFromFusion(baseMultiSignal, [visualCandidate]),
+        candidates: [visualCandidate],
+        selected: visualCandidate,
+        confidenceLabel: confidenceLabel(recognitionFromFusion(baseMultiSignal, [visualCandidate])),
         mapping,
         cropDiagnostics,
         lookupLatencyMs: 0,
-        lookupDiagnostics: { ...lookupDiagnostics, outcome: 'success', responseItemCount: 1, topThreeCandidateNames: [candidate.name] },
+        lookupDiagnostics: { ...lookupDiagnostics, outcome: 'success', responseItemCount: 1, topThreeCandidateNames: [visualCandidate.name] },
         multiSignal: baseMultiSignal,
         cleanup: cleanupResult,
       };
@@ -410,10 +410,9 @@ export async function recognizeMagicStillCapture(input: {
     visualIndex: input.visualIndex,
     printingCandidates: cappedRecognition.candidates,
   }) : baseMultiSignal;
-  const visualCandidate = multiSignal?.visual?.record && !scannerCandidates.some((candidate) => candidate.id === multiSignal.visual?.record?.scryfallId)
-    ? scannerCandidateFromVisualRecord(multiSignal.visual.record, multiSignal.confidence.overall / 100)
-    : null;
+  const visualCandidate = acceptedVisualCandidateFromFusion(multiSignal);
   const candidates = visualCandidate && multiSignal?.status === 'append_identity'
+    && !scannerCandidates.some((candidate) => candidate.id === visualCandidate.id)
     ? [visualCandidate, ...scannerCandidates]
     : scannerCandidates;
   const lookupDiagnostics = latestLookupDiagnostics ?? createStillLookupDiagnostics(signals, {
@@ -969,6 +968,12 @@ function recognitionFromFusion(multiSignal: MultiSignalRecognitionResult, candid
       `OCR candidate: ${multiSignal.diagnostics.ocrCandidate ?? 'unavailable'}`,
     ],
   };
+}
+
+function acceptedVisualCandidateFromFusion(multiSignal: MultiSignalRecognitionResult | null | undefined): ScannerCardCandidate | null {
+  if (!multiSignal?.visual?.record || !multiSignal.identityName) return null;
+  if (multiSignal.visual.record.name !== multiSignal.identityName) return null;
+  return scannerCandidateFromVisualRecord(multiSignal.visual.record, multiSignal.confidence.overall / 100);
 }
 
 function recognitionFromEnhancedProductScan(candidates: ScannerCardCandidate[], confidenceBand: 'high' | 'medium' | 'low'): MagicRecognitionResult & { ok: true } {

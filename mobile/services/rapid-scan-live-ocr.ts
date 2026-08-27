@@ -558,17 +558,20 @@ function rapidResultFromFusion(
   id: string,
   createdAt: number,
 ): RapidScanResult {
+  const exactPrintingId = fusion.printing.selected?.id ?? null;
+  const exactSetCode = fusion.printing.selected?.setCode ?? null;
+  const exactCollectorNumber = fusion.printing.selected?.collectorNumber ?? null;
   return {
     id,
     cardName: fusion.identityName ?? 'Unrecognized card',
     oracleId: fusion.oracleId ?? '',
-    scryfallId: fusion.printing.selected?.id ?? fusion.visual?.record?.scryfallId ?? null,
+    scryfallId: exactPrintingId,
     confidenceClass: fusion.confidenceBand,
     reviewRequired: fusion.status !== 'append_identity' || fusion.printing.ambiguous,
     destination,
-    exactPrintingId: fusion.printing.selected?.id ?? fusion.visual?.record?.scryfallId ?? null,
-    setCode: fusion.printing.selected?.setCode ?? fusion.visual?.record?.setCode ?? null,
-    collectorNumber: fusion.printing.selected?.collectorNumber ?? fusion.visual?.record?.collectorNumber ?? null,
+    exactPrintingId,
+    setCode: exactSetCode,
+    collectorNumber: exactCollectorNumber,
     finish: null,
     language: fusion.printing.selected?.language ?? 'en',
     pricingState: 'not_started',

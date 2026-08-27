@@ -52,6 +52,15 @@ const goblinVisualRecords: VisualReferenceRecord[] = [{
   descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'ff00aa55ff00aa55', source: 'reference_image' },
 }];
 
+const unrelatedVisualRecords: VisualReferenceRecord[] = [{
+  oracleId: 'oracle-mycoloth',
+  scryfallId: 'sf-mycoloth',
+  name: 'Mycoloth',
+  setCode: 'ALA',
+  collectorNumber: '163',
+  descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'aaaaaaaaaaaaaaaa', source: 'reference_image' },
+}];
+
 test('live OCR request uses normalized title ROI without file or base64 input', () => {
   const request = buildLiveTitleOcrRequest(frame);
   assert.equal(request.frameId, 'frame-1');
@@ -343,6 +352,34 @@ test('Rapid Scan uses the production default visual index when no test index is 
   if (result.outcome.status !== 'added') return;
   assert.equal(result.outcome.result.cardName, 'Goblin War Strike');
   assert.ok((result.state.lastDiagnostics?.fusion?.visualIndexRecordCount ?? 0) > 10000);
+});
+
+test('Rapid Scan keeps strong OCR authoritative when visual noise points elsewhere', async () => {
+  const result = await runRapidLiveTitleOcr({
+    state: createRapidLiveOcrState(),
+    frame,
+    nameIndex: index,
+    destination: 'collection',
+    createResultId: () => 'rapid-ocr-authoritative',
+    visualIndex: buildVisualReferenceIndex(unrelatedVisualRecords),
+    vision: visionResult('aaaaaaaaaaaaaaaa'),
+    nativeProvider: async (request) => ({
+      ok: true,
+      provider: 'apple_vision',
+      frameId: request.frameId,
+      text: 'Sol Ring',
+      confidence: 96,
+      durationMs: 18,
+      roi: request.roi,
+      warnings: [],
+    }),
+  });
+
+  assert.equal(result.outcome.status, 'added');
+  if (result.outcome.status !== 'added') return;
+  assert.equal(result.outcome.result.cardName, 'Sol Ring');
+  assert.equal(result.outcome.result.exactPrintingId, null);
+  assert.equal(result.state.lastDiagnostics?.fusion?.visualCandidate, null);
 });
 
 test('new-card rearm remains driven by rapid state after live identity', () => {

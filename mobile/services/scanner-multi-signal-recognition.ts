@@ -93,6 +93,7 @@ export type MultiSignalRecognitionResult = {
     approach: RecognitionApproach;
     visualCandidate: string | null;
     visualSimilarity: number | null;
+    visualMargin: number | null;
     ocrCandidate: string | null;
     ocrScore: number | null;
     conflict: boolean;
@@ -180,6 +181,8 @@ export type ScannerMultiSignalIndexMetadata = {
 
 const VISUAL_STRONG_SIMILARITY = 0.88;
 const VISUAL_USABLE_SIMILARITY = 0.74;
+const VISUAL_NAME_MIN_SIMILARITY = 0.93;
+const VISUAL_NAME_MIN_MARGIN = 0.08;
 const OCR_HIGH_SCORE = 0.9;
 const OCR_USABLE_SCORE = 0.72;
 const MIN_FRAME_QUALITY = 0.62;
@@ -366,16 +369,17 @@ export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): Mu
   const ocrScopedOracleIds = ocrOracleScope(input.ocr);
   const visual = matchVisualDescriptor(input.visualIndex, input.descriptor, { oracleIds: ocrScopedOracleIds });
   const visualCandidates = matchVisualDescriptorTopK(input.visualIndex, input.descriptor, 5, { oracleIds: ocrScopedOracleIds });
-  const visualName = visual?.record?.name ?? null;
-  const visualOracleId = visual?.record?.oracleId ?? null;
+  const visualLead = resolveVisualLeadCandidate(visual, visualCandidates);
   const ocrName = input.ocr.match.entry?.name ?? null;
   const ocrOracleId = input.ocr.match.entry?.oracleId ?? null;
-  const visualStrong = Boolean(visual?.record && visual.similarity >= VISUAL_STRONG_SIMILARITY);
   const visualUsable = Boolean(visual?.record && visual.similarity >= VISUAL_USABLE_SIMILARITY);
   const ocrStrong = Boolean(input.ocr.match.entry && input.ocr.match.score >= OCR_HIGH_SCORE && (input.ocr.confidence ?? 0) >= 65);
   const ocrUsable = Boolean(input.ocr.match.entry && input.ocr.match.score >= OCR_USABLE_SCORE);
+  const visualAccepted = Boolean(visualLead.canName && (!ocrStrong || !input.ocr.match.entry || (ocrName && visualLead.name === ocrName)));
+  const visualName = visualAccepted ? visualLead.name : null;
+  const visualOracleId = visualAccepted ? visualLead.oracleId : null;
   const namesAgree = Boolean(visualName && ocrName && visualName === ocrName);
-  const conflict = Boolean(visualOracleId && ocrOracleId && visualOracleId !== ocrOracleId && !namesAgree && visualUsable && ocrUsable);
+  const conflict = Boolean(visualOracleId && ocrOracleId && visualOracleId !== ocrOracleId && !namesAgree && visualLead.canName && ocrStrong);
   const hasIdentityEvidence = Boolean(
     input.ocr.normalizedText?.trim().length
     || input.ocr.match.entry
@@ -397,38 +401,40 @@ export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): Mu
     decisionReason = 'Frame geometry is not usable and no identity evidence is available yet.';
   } else if (conflict) {
     status = 'review';
-    identityName = visualStrong ? visualName : ocrName;
-    oracleId = visualStrong ? visualOracleId : ocrOracleId;
+    identityName = ocrName;
+    oracleId = ocrOracleId;
     confidenceBand = 'medium';
     decisionReason = 'Visual and OCR candidates conflict; user review is required.';
-  } else if (visualStrong && ocrStrong) {
-    status = 'append_identity';
-    identityName = visualName ?? ocrName;
-    oracleId = visualOracleId ?? ocrOracleId;
-    confidenceBand = 'high';
-    decisionReason = 'Visual and OCR signals agree with high confidence.';
-  } else if (visualStrong) {
-    status = 'append_identity';
-    identityName = visualName;
-    oracleId = visualOracleId;
-    confidenceBand = 'high';
-    decisionReason = 'Visual fingerprint is strong enough to identify the card while OCR remains supporting evidence.';
-  } else if (ocrStrong && visualUsable) {
+  } else if (ocrStrong) {
     status = 'append_identity';
     identityName = ocrName;
     oracleId = ocrOracleId;
     confidenceBand = 'high';
-    decisionReason = 'OCR is strong and visual evidence supports the same identity.';
-  } else if (ocrStrong || visualUsable || ocrUsable) {
+    decisionReason = 'OCR is strong enough to identify the card while visual evidence remains supporting evidence.';
+  } else if (visualLead.canName) {
+    status = visualLead.isConfident ? 'append_identity' : 'review';
+    identityName = visualName;
+    oracleId = visualOracleId;
+    confidenceBand = visualLead.isConfident ? 'high' : 'medium';
+    decisionReason = visualLead.isConfident
+      ? 'Visual fingerprint is strong and unambiguous enough to identify the card.'
+      : 'Visual fingerprint is credible but still benefits from confirmation.';
+  } else if (ocrUsable) {
     status = 'review';
-    identityName = visualUsable ? visualName : ocrName;
-    oracleId = visualUsable ? visualOracleId : ocrOracleId;
+    identityName = ocrName;
+    oracleId = ocrOracleId;
     confidenceBand = 'medium';
     decisionReason = frameQualityUsable ? 'One identity signal is usable but not enough for automatic append.' : 'Frame quality is weak, but the identity signals are still useful for review.';
+  } else if (visualUsable) {
+    status = 'continue_scanning';
+    identityName = null;
+    oracleId = null;
+    confidenceBand = 'low';
+    decisionReason = frameQualityUsable ? 'Visual evidence is useful but not yet trustworthy enough to name the card.' : 'Frame quality is weak, but the visual signal may still improve.';
   } else if (hasIdentityEvidence) {
     status = 'continue_scanning';
-    identityName = visualName ?? ocrName;
-    oracleId = visualOracleId ?? ocrOracleId;
+    identityName = ocrName ?? visualName;
+    oracleId = ocrOracleId ?? visualOracleId;
     confidenceBand = 'low';
     decisionReason = frameQualityUsable ? 'Evidence is still accumulating.' : 'Weak frame quality is lowering confidence but not blocking recognition.';
   }
@@ -449,6 +455,7 @@ export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): Mu
       approach: 'visual_fingerprint_ocr',
       visualCandidate: visualName,
       visualSimilarity: visual?.similarity ?? null,
+      visualMargin: visualLead.margin,
       ocrCandidate: ocrName,
       ocrScore: input.ocr.match.score,
       conflict,
@@ -617,6 +624,29 @@ function fusedConfidence(input: {
     requiresConfirmation: input.status !== 'append_identity' || conflicts.length > 0,
     signals,
     conflicts,
+  };
+}
+
+function resolveVisualLeadCandidate(
+  visual: VisualMatch | null,
+  visualCandidates: readonly VisualRankedMatch[],
+): { name: string | null; oracleId: string | null; margin: number | null; canName: boolean; isConfident: boolean } {
+  if (!visual?.record) {
+    return { name: null, oracleId: null, margin: null, canName: false, isConfident: false };
+  }
+  const top = visualCandidates[0] ?? null;
+  const second = visualCandidates[1] ?? null;
+  const margin = top && second ? clamp01(top.similarity - second.similarity) : null;
+  const exactOrNearExact = visual.similarity >= 0.97;
+  const canName = exactOrNearExact
+    || (visual.similarity >= VISUAL_NAME_MIN_SIMILARITY && (margin === null || margin >= VISUAL_NAME_MIN_MARGIN));
+  const isConfident = canName && visual.similarity >= 0.96;
+  return {
+    name: canName ? visual.record.name : null,
+    oracleId: canName ? visual.record.oracleId : null,
+    margin,
+    canName,
+    isConfident,
   };
 }
 

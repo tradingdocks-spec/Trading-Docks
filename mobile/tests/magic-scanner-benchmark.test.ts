@@ -121,6 +121,31 @@ test('threshold classification distinguishes recognized, likely, ambiguous, and 
   assert.equal(classifyMagicRecognition(confidence(55, true), 0).thresholdClass, 'manual_search_required');
 });
 
+test('observed false-match regressions are represented in benchmark fixture metadata', () => {
+  const validation = validateMagicBenchmarkFixtureManifest(manifest([
+    fixture({
+      id: 'raff-security-officer-regression',
+      expectedCardName: 'Raff Security Officer',
+      expectedScryfallId: 'raff-security-officer-scryfall-id',
+      expectedSetCode: 'MSH',
+      expectedCollectorNumber: '0033',
+      localImagePath: 'C:/Users/Jerem/fixtures/private-scanner/raff-security-officer.jpg',
+      notes: 'Observed regression: scanner previously surfaced Mycoloth from low-confidence visual noise.',
+    }),
+    fixture({
+      id: 'goblin-electromancer-regression',
+      expectedCardName: 'Goblin Electromancer',
+      expectedScryfallId: 'goblin-electromancer-scryfall-id',
+      expectedSetCode: 'DDS',
+      expectedCollectorNumber: '022',
+      localImagePath: 'C:/Users/Jerem/fixtures/private-scanner/goblin-electromancer.jpg',
+      notes: 'Observed regression: scanner previously surfaced Virtue\'s Ruin from low-confidence visual noise.',
+    }),
+  ]));
+
+  assert.equal(validation.ok, true);
+});
+
 test('private fixture and benchmark output directories are excluded from Git', () => {
   const ignore = readFileSync(join(process.cwd(), '.gitignore'), 'utf8');
 
