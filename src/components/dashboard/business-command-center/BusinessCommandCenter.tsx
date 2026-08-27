@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -25,6 +25,7 @@ import type {
   BusinessCommandCenterSummary,
   BusinessDateRange,
   BusinessNextAction,
+  BusinessRevenueSeriesPoint,
 } from "@/lib/dashboard/business-command-center";
 import type {
   BusinessOpportunity,
@@ -36,6 +37,8 @@ const RANGE_OPTIONS: Array<{ value: BusinessDateRange; label: string }> = [
   { value: "today", label: "Today" },
   { value: "7d", label: "7D" },
   { value: "30d", label: "30D" },
+  { value: "90d", label: "90D" },
+  { value: "12m", label: "12M" },
   { value: "month", label: "This month" },
 ];
 
@@ -192,8 +195,10 @@ function TradingDocksBrief({ summary }: { summary: BusinessCommandCenterSummary 
 }
 
 function RevenueProfitModule({ summary }: { summary: BusinessCommandCenterSummary }) {
+  const hasProfit = summary.revenueSeries.some((point) => point.profitEstimate !== null);
+  const profitLabel = summary.profitConfidence.level === "High" ? "Profit estimate" : "Profit estimate - low confidence";
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.22)] ring-1 ring-white/[0.055]">
+    <section className="rounded-[28px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.22)] ring-1 ring-white/[0.055] lg:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300/75">Revenue & Profit</p>
@@ -204,20 +209,29 @@ function RevenueProfitModule({ summary }: { summary: BusinessCommandCenterSummar
             {summary.orderCount.toLocaleString()} orders · {summary.averageOrderValue === null ? "AOV unavailable" : `${money(summary.averageOrderValue)} AOV`}
           </p>
         </div>
-        <TrendBlock current={summary.grossSales} previous={summary.previousGrossSales} change={summary.salesChangePercent} />
+        <div className="flex flex-col items-start gap-2 rounded-2xl bg-black/15 p-4 sm:items-end">
+          <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">Current vs prior</p>
+          <TrendPill value={summary.salesChangePercent} />
+          <p className="text-xs text-slate-500">{money(summary.previousGrossSales)} prior period</p>
+        </div>
       </div>
       <div className="mt-5 grid gap-2 sm:grid-cols-4">
         <CompactMetric label="Orders" value={summary.orderCount.toLocaleString()} detail={`${summary.previousOrderCount.toLocaleString()} prior`} icon={<ShoppingBag className="h-3.5 w-3.5" />} />
         <CompactMetric label="AOV" value={summary.averageOrderValue === null ? "No data" : money(summary.averageOrderValue)} detail="Average order value" icon={<BarChart3 className="h-3.5 w-3.5" />} />
         <CompactMetric
-          label="Profit estimate"
+          label={hasProfit ? "Profit estimate" : "Profit pending"}
           value={summary.realizedProfit === null ? "Pending cost basis" : money(summary.realizedProfit)}
           detail={`${summary.profitConfidence.level} confidence`}
           icon={<CircleDollarSign className="h-3.5 w-3.5" />}
         />
         <CompactMetric label="Prior period" value={money(summary.previousGrossSales)} detail="Comparable range" icon={<Clock3 className="h-3.5 w-3.5" />} />
       </div>
-      <PeriodBars current={summary.grossSales} previous={summary.previousGrossSales} />
+      <RevenueProfitChart
+        points={summary.revenueSeries}
+        range={summary.range}
+        profitLabel={profitLabel}
+        showProfit={hasProfit}
+      />
     </section>
   );
 }
@@ -683,45 +697,169 @@ function TrendPill({ value }: { value: number | null }) {
   );
 }
 
-function TrendBlock({ current, previous, change }: { current: number; previous: number; change: number | null }) {
+function RevenueProfitChart({
+  points,
+  range,
+  profitLabel,
+  showProfit,
+}: {
+  points: BusinessRevenueSeriesPoint[];
+  range: BusinessDateRange;
+  profitLabel: string;
+  showProfit: boolean;
+}) {
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const activePoint = points.find((point) => point.key === hoveredKey) ?? points.at(-1) ?? null;
+  const maxValue = Math.max(
+    1,
+    ...points.map((point) => point.revenue),
+    ...points.map((point) => point.profitEstimate ?? 0),
+  );
+  const profitPoints = points.filter((point) => point.profitEstimate !== null);
+  const profitPath = buildLinePath(profitPoints, points, maxValue);
+  const revenuePath = buildLinePath(points, points, maxValue, "revenue");
+  const hasRevenue = points.some((point) => point.revenue > 0);
+  const axisLabels = points.filter((point) => point.axisLabel);
+
   return (
-    <div className="min-w-[180px] rounded-2xl bg-black/15 p-4">
-      <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">Current vs prior</p>
-      <div className="mt-3 flex h-16 items-end gap-2" aria-hidden="true">
-        <TrendBar value={previous} max={Math.max(current, previous, 1)} muted />
-        <TrendBar value={current} max={Math.max(current, previous, 1)} />
+    <div className="mt-5 rounded-[24px] bg-black/20 p-4 ring-1 ring-white/[0.04]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-white">Revenue trend</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            {range === "12m" ? "Monthly" : range === "90d" ? "Weekly" : "Daily"} buckets from canonical order data. Profit is only plotted when cost basis exists.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+          <span className="inline-flex items-center gap-2 rounded-full bg-cyan-300/[0.08] px-3 py-1.5 text-cyan-100"><span className="h-2 w-2 rounded-full bg-cyan-300" />Revenue</span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-300/[0.08] px-3 py-1.5 text-emerald-100"><span className="h-2 w-2 rounded-full bg-emerald-300" />{profitLabel}</span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] px-3 py-1.5 text-slate-400"><ShoppingBag className="h-3 w-3" />Orders</span>
+        </div>
       </div>
-      <p className={`mt-2 text-sm font-semibold ${deltaTone(change)}`}>{formatPercentChange(change)}</p>
+
+      <div className="relative mt-4 min-h-[310px] overflow-hidden rounded-2xl bg-[#04101a] px-3 pb-10 pt-4 ring-1 ring-white/[0.035]">
+        {hasRevenue ? (
+          <svg role="img" aria-label="Revenue and profit chart" viewBox="0 0 100 100" preserveAspectRatio="none" className="h-72 w-full overflow-visible">
+            <defs>
+              <linearGradient id="revenue-fill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="rgba(34,211,238,0.32)" />
+                <stop offset="100%" stopColor="rgba(34,211,238,0)" />
+              </linearGradient>
+            </defs>
+            {[20, 40, 60, 80].map((y) => (
+              <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="rgba(148,163,184,0.12)" strokeWidth="0.35" vectorEffect="non-scaling-stroke" />
+            ))}
+            {points.map((point, index) => {
+              const width = Math.max(1.2, 58 / Math.max(points.length, 1));
+              const x = xPosition(index, points.length);
+              const height = chartHeight(point.revenue, maxValue);
+              return (
+                <rect
+                  key={point.key}
+                  x={x - width / 2}
+                  y={90 - height}
+                  width={width}
+                  height={height}
+                  rx="0.9"
+                  fill="rgba(34,211,238,0.28)"
+                  stroke={point.key === activePoint?.key ? "rgba(103,232,249,0.9)" : "rgba(34,211,238,0.22)"}
+                  strokeWidth="0.35"
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
+            <path d={`${revenuePath} L 100 90 L 0 90 Z`} fill="url(#revenue-fill)" />
+            <path d={revenuePath} fill="none" stroke="rgb(34,211,238)" strokeWidth="1.15" vectorEffect="non-scaling-stroke" />
+            {showProfit && profitPath ? <path d={profitPath} fill="none" stroke="rgb(110,231,183)" strokeWidth="1" strokeDasharray={profitLabel.includes("low") ? "2 2" : undefined} vectorEffect="non-scaling-stroke" /> : null}
+            {points.map((point, index) => {
+              const x = xPosition(index, points.length);
+              const value = point.profitEstimate;
+              return value === null || !showProfit ? null : (
+                <circle key={`${point.key}-profit`} cx={x} cy={90 - chartHeight(value, maxValue)} r={point.key === activePoint?.key ? 1.4 : 0.9} fill="rgb(110,231,183)" vectorEffect="non-scaling-stroke" />
+              );
+            })}
+            {points.map((point, index) => {
+              const x = xPosition(index, points.length);
+              return (
+                <rect
+                  key={`${point.key}-hit`}
+                  x={Math.max(0, x - 100 / Math.max(points.length, 1) / 2)}
+                  y="0"
+                  width={100 / Math.max(points.length, 1)}
+                  height="100"
+                  fill="transparent"
+                  onMouseEnter={() => setHoveredKey(point.key)}
+                  onFocus={() => setHoveredKey(point.key)}
+                  tabIndex={0}
+                />
+              );
+            })}
+          </svg>
+        ) : (
+          <div className="flex h-72 flex-col items-center justify-center text-center">
+            <BarChart3 className="h-7 w-7 text-slate-700" />
+            <p className="mt-3 text-sm font-semibold text-white">No revenue in this range yet</p>
+            <p className="mt-1 max-w-md text-xs leading-5 text-slate-600">Connect or import orders and this panel becomes a month-aware revenue and profit chart.</p>
+          </div>
+        )}
+
+        {activePoint && hasRevenue ? (
+          <div className="absolute right-4 top-4 w-56 rounded-2xl bg-[#081824]/95 p-3 text-xs shadow-2xl ring-1 ring-cyan-300/[0.12] backdrop-blur">
+            <p className="font-semibold text-white">{activePoint.label}</p>
+            <div className="mt-2 space-y-1.5">
+              <TooltipRow label="Revenue" value={money(activePoint.revenue)} tone="cyan" />
+              <TooltipRow label="Profit estimate" value={activePoint.profitEstimate === null ? "Cost basis pending" : money(activePoint.profitEstimate)} tone="emerald" />
+              <TooltipRow label="Orders" value={activePoint.orders.toLocaleString()} />
+              <TooltipRow label="Profit coverage" value={`${Math.round(activePoint.profitCoverageRatio * 100)}%`} />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="absolute inset-x-3 bottom-3 grid" style={{ gridTemplateColumns: `repeat(${Math.max(axisLabels.length, 1)}, minmax(0, 1fr))` }}>
+          {axisLabels.map((point) => (
+            <span key={`${point.key}-axis`} className="truncate text-center text-[10px] font-medium text-slate-600">{point.axisLabel}</span>
+          ))}
+        </div>
+      </div>
+
+      {!showProfit ? (
+        <p className="mt-3 rounded-2xl bg-amber-300/[0.055] px-3 py-2 text-xs leading-5 text-amber-100/80">
+          Profit is not plotted yet because sold inventory lacks enough known cost basis. Revenue remains authoritative.
+        </p>
+      ) : null}
     </div>
   );
 }
 
-function TrendBar({ value, max, muted = false }: { value: number; max: number; muted?: boolean }) {
-  return <span className={`w-8 rounded-t-lg ${muted ? "bg-slate-700" : "bg-cyan-300"}`} style={{ height: `${Math.max(8, (value / max) * 100)}%` }} />;
+function xPosition(index: number, total: number) {
+  if (total <= 1) return 50;
+  return 4 + (index / (total - 1)) * 92;
 }
 
-function PeriodBars({ current, previous }: { current: number; previous: number }) {
-  const max = Math.max(current, previous, 1);
-  return (
-    <div className="mt-5 rounded-2xl bg-black/15 p-4">
-      <div className="grid gap-3">
-        <PeriodBar label="Current period" value={current} max={max} tone="brand" />
-        <PeriodBar label="Prior period" value={previous} max={max} tone="neutral" />
-      </div>
-    </div>
-  );
+function chartHeight(value: number, maxValue: number) {
+  return Math.max(0, Math.min(80, (value / Math.max(1, maxValue)) * 78));
 }
 
-function PeriodBar({ label, value, max, tone }: { label: string; value: number; max: number; tone: "brand" | "neutral" }) {
+function buildLinePath(
+  visiblePoints: BusinessRevenueSeriesPoint[],
+  allPoints: BusinessRevenueSeriesPoint[],
+  maxValue: number,
+  valueKey: "revenue" | "profitEstimate" = "profitEstimate",
+) {
+  if (!visiblePoints.length) return "";
+  return visiblePoints.map((point) => {
+    const index = allPoints.findIndex((candidate) => candidate.key === point.key);
+    const value = valueKey === "revenue" ? point.revenue : point.profitEstimate ?? 0;
+    return `${point === visiblePoints[0] ? "M" : "L"} ${xPosition(Math.max(0, index), allPoints.length).toFixed(2)} ${(90 - chartHeight(value, maxValue)).toFixed(2)}`;
+  }).join(" ");
+}
+
+function TooltipRow({ label, value, tone }: { label: string; value: string; tone?: "cyan" | "emerald" }) {
+  const toneClass = tone === "cyan" ? "text-cyan-200" : tone === "emerald" ? "text-emerald-200" : "text-slate-300";
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="text-slate-500">{label}</span>
-        <span className="font-semibold text-slate-200">{money(value)}</span>
-      </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.06]">
-        <div className={`h-full rounded-full ${tone === "brand" ? "bg-cyan-300" : "bg-slate-600"}`} style={{ width: `${Math.max(0, Math.min(100, (value / max) * 100))}%` }} />
-      </div>
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-slate-500">{label}</span>
+      <span className={`font-semibold ${toneClass}`}>{value}</span>
     </div>
   );
 }

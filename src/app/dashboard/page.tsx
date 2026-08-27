@@ -24,7 +24,7 @@ import {
 export const dynamic = "force-dynamic";
 
 function businessRange(value: unknown): BusinessDateRange {
-  return value === "today" || value === "7d" || value === "30d" || value === "month" || value === "week"
+  return value === "today" || value === "7d" || value === "30d" || value === "90d" || value === "12m" || value === "month" || value === "week"
     ? value
     : "7d";
 }

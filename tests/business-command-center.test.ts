@@ -257,6 +257,8 @@ test("business date range controls support today 7D 30D and this month windows",
   const today = getBusinessDateWindow("today", now);
   const sevenDays = getBusinessDateWindow("7d", now);
   const thirtyDays = getBusinessDateWindow("30d", now);
+  const ninetyDays = getBusinessDateWindow("90d", now);
+  const twelveMonths = getBusinessDateWindow("12m", now);
   const month = getBusinessDateWindow("month", now);
 
   assert.equal(today.start.getMonth(), 7);
@@ -265,10 +267,66 @@ test("business date range controls support today 7D 30D and this month windows",
   assert.equal(sevenDays.start.getDate(), 5);
   assert.equal(thirtyDays.start.getMonth(), 6);
   assert.equal(thirtyDays.start.getDate(), 13);
+  assert.equal(ninetyDays.start.getMonth(), 4);
+  assert.equal(ninetyDays.start.getDate(), 14);
+  assert.equal(twelveMonths.start.getMonth(), 8);
+  assert.equal(twelveMonths.start.getFullYear(), 2025);
+  assert.equal(twelveMonths.start.getDate(), 1);
   assert.equal(month.start.getMonth(), 7);
   assert.equal(month.start.getDate(), 1);
   assert.equal(today.end.getHours(), 23);
   assert.equal(sevenDays.end.getHours(), 23);
+});
+
+test("business summary builds truthful revenue chart series for 90D and 12M ranges", () => {
+  const ninetyDaySummary = buildBusinessCommandCenterSummary({
+    access: access({ tier: "seller" }),
+    range: "90d",
+    now: new Date("2026-08-11T16:00:00.000Z"),
+    orders: [
+      {
+        id: "order-1",
+        marketplace_id: "tcgplayer",
+        total: 120,
+        cost_of_goods: 70,
+        net_profit: 50,
+        ordered_at: "2026-06-01T12:00:00.000Z",
+        marketplace_order_items: [{ quantity: 2, match_status: "matched", inventory_item_id: "item-1" }],
+      },
+      {
+        id: "order-2",
+        marketplace_id: "tcgplayer",
+        total: 60,
+        ordered_at: "2026-08-01T12:00:00.000Z",
+        marketplace_order_items: [{ quantity: 1, match_status: "matched", inventory_item_id: "item-2" }],
+      },
+    ],
+  });
+  const twelveMonthSummary = buildBusinessCommandCenterSummary({
+    access: access({ tier: "seller" }),
+    range: "12m",
+    now: new Date("2026-08-11T16:00:00.000Z"),
+    orders: [
+      {
+        id: "order-3",
+        marketplace_id: "ebay",
+        total: 42,
+        cost_of_goods: 20,
+        net_profit: 22,
+        ordered_at: "2025-09-12T12:00:00.000Z",
+        marketplace_order_items: [{ quantity: 1, match_status: "matched", inventory_item_id: "item-3" }],
+      },
+    ],
+  });
+
+  assert.equal(ninetyDaySummary.revenueSeries.length, 13);
+  assert.equal(ninetyDaySummary.revenueSeries.reduce((sum, point) => sum + point.revenue, 0), 180);
+  assert.equal(ninetyDaySummary.revenueSeries.reduce((sum, point) => sum + (point.profitEstimate ?? 0), 0), 50);
+  assert.ok(ninetyDaySummary.revenueSeries.some((point) => point.axisLabel.includes("May")));
+  assert.equal(twelveMonthSummary.revenueSeries.length, 12);
+  assert.deepEqual(twelveMonthSummary.revenueSeries.slice(0, 4).map((point) => point.axisLabel), ["Sep", "Oct", "Nov", "Dec"]);
+  assert.equal(twelveMonthSummary.revenueSeries.reduce((sum, point) => sum + point.revenue, 0), 42);
+  assert.equal(twelveMonthSummary.revenueSeries.find((point) => point.axisLabel === "Sep")?.profitEstimate, 22);
 });
 
 test("canonical date filtering includes orders with null ordered_at and created_at fallback", () => {
@@ -396,6 +454,13 @@ test("dashboard page wires business HQ through shared business summary authority
   assert.match(component, /Marketplace matrix/);
   assert.match(component, /Today's Docks Brief/);
   assert.match(component, /Revenue & Profit/);
+  assert.match(component, /RevenueProfitChart/);
+  assert.match(component, /Revenue trend/);
+  assert.match(component, /Profit is only plotted when cost basis exists/);
+  assert.match(component, /Profit is not plotted yet/);
+  assert.match(component, /aria-label="Revenue and profit chart"/);
+  assert.match(component, /value:\s*"90d"/);
+  assert.match(component, /value:\s*"12m"/);
   assert.match(component, /Profit estimate/);
   assert.match(component, /Pending cost basis/);
   assert.match(component, /Cost basis coverage/);
