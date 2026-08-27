@@ -73,7 +73,15 @@ const TCGPLAYER_REASON_LABELS: Record<string, string> = {
   UNKNOWN_SET_CODE: "Set could not be identified",
 };
 
-export function CsvConversionEngine() {
+export function CsvConversionEngine({
+  initialDestination = "download",
+  initialLocationName = "Bulk Box 001",
+  initialLocationId = "",
+}: {
+  initialDestination?: "download" | "inventory";
+  initialLocationName?: string;
+  initialLocationId?: string;
+} = {}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const tcgplayerReferenceRef = useRef<HTMLInputElement>(null);
   const [rawText, setRawText] = useState("");
@@ -86,8 +94,9 @@ export function CsvConversionEngine() {
   const [detectedTemplate, setDetectedTemplate] = useState("Unknown / Generic");
   const [outputTemplateId, setOutputTemplateId] = useState("trading-docks");
   const [enrichedRows, setEnrichedRows] = useState<Record<number, EnrichedRow>>({});
-  const [destination, setDestination] = useState<"download" | "inventory">("download");
-  const [locationName, setLocationName] = useState("Bulk Box 001");
+  const [destination, setDestination] = useState<"download" | "inventory">(initialDestination);
+  const [locationName, setLocationName] = useState(initialLocationName);
+  const [locationId, setLocationId] = useState(initialLocationId);
   const [marketplace, setMarketplace] = useState("Unlisted");
   const [defaultCondition, setDefaultCondition] = useState("Near Mint");
   const [defaultFinish, setDefaultFinish] = useState("Nonfoil");
@@ -443,9 +452,8 @@ export function CsvConversionEngine() {
       const locations = currentSnapshot.locations as unknown as LocationRecord[];
       const items = currentSnapshot.items;
       const movements = currentSnapshot.movements;
-      let location = locations.find(
-        (item) => item.name.trim().toLowerCase() === locationName.trim().toLowerCase(),
-      );
+      let location = locations.find((item) => locationId && item.id === locationId) ??
+        locations.find((item) => item.name.trim().toLowerCase() === locationName.trim().toLowerCase());
       if (!location) {
         location = {
           id: crypto.randomUUID(),
@@ -456,6 +464,7 @@ export function CsvConversionEngine() {
           estimatedValue: 0,
         };
         locations.push(location);
+        setLocationId(location.id);
       }
       const now = new Date().toISOString();
       const newItems = validRows.map((row) => {
@@ -627,7 +636,7 @@ export function CsvConversionEngine() {
               {hasAttemptedTcgplayerMatch && missingTcgplayerSkuCount ? <div className="rounded-xl border border-amber-300/10 bg-amber-300/[.025] p-3 text-[10px] leading-5 text-amber-100/65"><strong className="text-amber-200">Review unmatched cards.</strong><span className="mt-1 block">{unresolvedTcgplayerRows.slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)}) — ${tcgplayerReasonLabel(row)}${row.tcgplayerTranslatedSetName ? ` · Set translated: ${row.tcgplayerTranslatedSetName}` : ""}`).join("; ")}</span></div> : null}
             </> : null}
           </div> : <div className="mt-4 grid gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-            <label><span className="text-[9px] font-semibold text-slate-500">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><input value={locationName} onChange={(event) => setLocationName(event.target.value)} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none" /></div></label>
+            <label><span className="text-[9px] font-semibold text-slate-500">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><input value={locationName} onChange={(event) => { setLocationName(event.target.value); setLocationId(""); }} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none" /></div></label>
             <label><span className="text-[9px] font-semibold text-slate-500">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><Store className="h-4 w-4 text-cyan-300" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-slate-300 outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
             <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save cards</button>
           </div>}

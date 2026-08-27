@@ -10,6 +10,7 @@ import {
   Boxes,
   CheckSquare2,
   Download,
+  FileUp,
   Grid3X3,
   Heart,
   ImageIcon,
@@ -18,6 +19,7 @@ import {
   List,
   MapPin,
   Move,
+  PackagePlus,
   Plus,
   Search,
   Tag,
@@ -511,6 +513,7 @@ export function CollectorWorkspace({
         totalCount={cards.length}
         onClearFilters={clearFilters}
         onExport={exportVisibleCsv}
+        onOpenStorage={() => setActiveSection("storage")}
       />
 
       <nav className="flex flex-wrap gap-2" aria-label="Collection navigation">
@@ -780,6 +783,7 @@ function InventoryCommandBar({
   totalCount,
   onClearFilters,
   onExport,
+  onOpenStorage,
 }: {
   query: string;
   onQueryChange: (value: string) => void;
@@ -789,7 +793,9 @@ function InventoryCommandBar({
   totalCount: number;
   onClearFilters: () => void;
   onExport: () => void;
+  onOpenStorage: () => void;
 }) {
+  const [addOpen, setAddOpen] = useState(false);
   return (
     <section className="rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] p-3" aria-label="Inventory command bar">
       <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto] xl:items-center">
@@ -804,9 +810,44 @@ function InventoryCommandBar({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link href="/dashboard/card-photo-scanner" className="td-button-primary min-h-11 px-3.5 text-sm"><Plus className="h-4 w-4" /> Add</Link>
+          <div className="relative">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={addOpen}
+              onClick={() => setAddOpen((current) => !current)}
+              className="td-button-primary min-h-11 px-3.5 text-sm"
+            >
+              <Plus className="h-4 w-4" /> Add
+            </button>
+            {addOpen ? (
+              <div role="menu" className="absolute right-0 top-12 z-40 w-[320px] max-w-[85vw] rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-background-primary)] p-2 shadow-2xl">
+                <TDText variant="label" tone="info" className="px-2 py-1">Add inventory</TDText>
+                <AddInventoryMenuLink icon={<FileUp className="h-4 w-4" />} title="Upload CSV" detail="Import an inventory spreadsheet" href="/dashboard/inventory/import" onSelect={() => setAddOpen(false)} />
+                <AddInventoryMenuLink icon={<PackagePlus className="h-4 w-4" />} title="Add single card" detail="Search or scan one card into Collection" href="/dashboard/card-photo-scanner?mode=single" onSelect={() => setAddOpen(false)} />
+                <AddInventoryMenuLink icon={<Search className="h-4 w-4" />} title="Scan cards" detail="Use the card image scanner workflow" href="/dashboard/card-photo-scanner" onSelect={() => setAddOpen(false)} />
+                {canUseSellerActions ? (
+                  <AddInventoryMenuLink icon={<Download className="h-4 w-4" />} title="Import marketplace inventory" detail="Bring inventory from connected channels" href="/dashboard/marketplaces" onSelect={() => setAddOpen(false)} />
+                ) : null}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setAddOpen(false);
+                    onOpenStorage();
+                  }}
+                  className="flex w-full items-start gap-3 rounded-[var(--td-radius-md)] px-2 py-2.5 text-left outline-none transition hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
+                >
+                  <MapPin className="mt-0.5 h-4 w-4 text-cyan-200" />
+                  <span>
+                    <span className="block text-sm font-black text-[var(--td-text-primary)]">Create storage location</span>
+                    <span className="mt-0.5 block text-xs font-semibold text-[var(--td-text-muted)]">Create a box, binder, page, or slot</span>
+                  </span>
+                </button>
+              </div>
+            ) : null}
+          </div>
           <Link href="/dashboard/card-photo-scanner" className="td-button-secondary min-h-11 px-3.5 text-sm"><Search className="h-4 w-4" /> Scan</Link>
-          {canUseSellerActions ? <Link href="/dashboard/tools/csv-converter" className="td-button-secondary min-h-11 px-3.5 text-sm"><Download className="h-4 w-4" /> Import</Link> : null}
           <button type="button" onClick={onExport} className="td-button-secondary min-h-11 px-3.5 text-sm"><Download className="h-4 w-4" /> Export</button>
         </div>
       </div>
@@ -816,6 +857,35 @@ function InventoryCommandBar({
         {filterCount ? <button type="button" onClick={onClearFilters} className="font-black text-cyan-300 hover:text-cyan-100">Clear filters</button> : null}
       </div>
     </section>
+  );
+}
+
+function AddInventoryMenuLink({
+  icon,
+  title,
+  detail,
+  href,
+  onSelect,
+}: {
+  icon: ReactNode;
+  title: string;
+  detail: string;
+  href: string;
+  onSelect: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      role="menuitem"
+      onClick={onSelect}
+      className="flex items-start gap-3 rounded-[var(--td-radius-md)] px-2 py-2.5 outline-none transition hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
+    >
+      <span className="mt-0.5 text-cyan-200">{icon}</span>
+      <span>
+        <span className="block text-sm font-black text-[var(--td-text-primary)]">{title}</span>
+        <span className="mt-0.5 block text-xs font-semibold text-[var(--td-text-muted)]">{detail}</span>
+      </span>
+    </Link>
   );
 }
 

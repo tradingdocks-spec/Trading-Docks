@@ -25,7 +25,7 @@ export const topbarCreateActions: TopbarCreateAction[] = [
   {
     id: "add-inventory-card",
     label: "Add inventory",
-    href: "/dashboard/purchasing-intelligence?action=add-inventory",
+    href: "/dashboard/inventory/import",
     minimum: "free",
   },
   {
