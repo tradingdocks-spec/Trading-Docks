@@ -58,7 +58,14 @@ export async function POST(request: Request) {
       p_source: "collector_workspace",
     });
     if (removeError) {
-      return NextResponse.json({ error: removeError.message, inventoryItemId: row.id }, { status: 500 });
+      console.error("Collector bulk removal RPC failed", {
+        code: removeError.code,
+        message: removeError.message,
+        details: removeError.details,
+        hint: removeError.hint,
+        inventoryItemId: row.id,
+      });
+      return bulkRemovalErrorResponse(removeError, row.id);
     }
     removedQuantity += quantity;
     removedValue += Number(row.inventory_value ?? 0) || 0;
@@ -80,4 +87,44 @@ function normalizeIds(value: unknown) {
 
 function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+type SupabaseRpcError = {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+};
+
+function bulkRemovalErrorResponse(error: SupabaseRpcError, inventoryItemId: string) {
+  if (isMissingInventoryRemovalRpcError(error)) {
+    return NextResponse.json(
+      {
+        error: "Inventory removal is temporarily unavailable in this environment.",
+        code: "inventory_removal_unavailable",
+        inventoryItemId,
+      },
+      { status: 503 },
+    );
+  }
+
+  return NextResponse.json(
+    {
+      error: "We couldn't remove these cards. Nothing was changed. Please try again.",
+      code: "inventory_removal_failed",
+      inventoryItemId,
+    },
+    { status: 500 },
+  );
+}
+
+function isMissingInventoryRemovalRpcError(error: SupabaseRpcError) {
+  const message = `${error.message ?? ""} ${error.details ?? ""} ${error.hint ?? ""}`;
+  return (
+    error.code === "PGRST202" ||
+    (
+      /remove_inventory_lot_quantity/i.test(message) &&
+      /schema cache|could not find the function|function .* does not exist/i.test(message)
+    )
+  );
 }

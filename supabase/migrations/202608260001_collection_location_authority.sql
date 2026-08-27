@@ -1,5 +1,5 @@
 -- Collection Location Authority
--- Forward-only proposal. Do not apply without production review.
+-- Forward-only deployable migration.
 -- Adds authoritative lot-level movement/removal helpers used by Collection Storage.
 
 create or replace function public.move_inventory_lot_quantity(
@@ -297,3 +297,15 @@ begin
   return jsonb_build_object('ok', true, 'sourceItemId', v_source.id, 'quantityAfter', v_after);
 end;
 $$;
+
+revoke all on function public.move_inventory_lot_quantity(text, integer, text, text, public.inventory_event_source) from public;
+revoke all on function public.remove_inventory_lot_quantity(text, integer, text, text, public.inventory_event_source) from public;
+grant execute on function public.move_inventory_lot_quantity(text, integer, text, text, public.inventory_event_source) to authenticated;
+grant execute on function public.remove_inventory_lot_quantity(text, integer, text, text, public.inventory_event_source) to authenticated;
+
+do $$
+begin
+  perform pg_notify('pgrst', 'reload schema');
+exception when others then
+  null;
+end $$;

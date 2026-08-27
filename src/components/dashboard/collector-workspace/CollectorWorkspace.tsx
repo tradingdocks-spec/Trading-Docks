@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { createPortal } from "react-dom";
 import {
   ArrowUpDown,
   Activity,
@@ -1076,10 +1077,18 @@ function BulkRemoveDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[160] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-4 pt-[12vh]" role="dialog" aria-modal="true" aria-labelledby="bulk-remove-title">
-      <section className="max-h-[calc(100dvh-16vh)] w-full max-w-lg overflow-y-auto rounded-[var(--td-radius-xl)] border border-red-300/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[160] flex items-center justify-center overflow-y-auto bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-remove-title">
+      <section className="max-h-[calc(100dvh-32px)] w-full max-w-lg overflow-y-auto rounded-[var(--td-radius-xl)] border border-red-300/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--td-radius-md)] border border-red-300/20 bg-red-300/10 text-red-200">
             <Trash2 className="h-5 w-5" />
@@ -1105,7 +1114,8 @@ function BulkRemoveDialog({
           <TDButton label="Remove from collection" variant="danger" loading={loading} onClick={onConfirm} icon={<Trash2 className="h-4 w-4" />} />
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
