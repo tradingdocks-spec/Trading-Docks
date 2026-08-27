@@ -172,6 +172,7 @@ export default function AutomaticScannerScreen() {
   const mountedRef = useRef(true);
   const activeCaptureIdRef = useRef<string | null>(null);
   const activeSearchIdRef = useRef<string | null>(null);
+  const nextRecognitionCycleRef = useRef(0);
   const autoCaptureInFlightRef = useRef(false);
   const captureStillRef = useRef<() => Promise<void>>(async () => undefined);
   const lastLiveFrameAcceptedAtRef = useRef(0);
@@ -280,6 +281,13 @@ export default function AutomaticScannerScreen() {
   const activeCameraDeviceIdRef = useRef<string | null>(null);
   const cameraIsActiveRef = useRef(false);
   const torchTransitionsRef = useRef<ScannerTorchTransition[]>([]);
+  const nextRecognitionCycleId = useCallback(() => {
+    nextRecognitionCycleRef.current += 1;
+    return `scan-${nextRecognitionCycleRef.current}`;
+  }, []);
+  const isActiveRecognitionCycle = useCallback((cycleId: string | null) => (
+    cycleId !== null && (activeCaptureIdRef.current === cycleId || activeSearchIdRef.current === cycleId)
+  ), []);
 
   const cameraAvailable = Platform.OS !== 'web' || typeof navigator !== 'undefined';
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
@@ -818,12 +826,15 @@ export default function AutomaticScannerScreen() {
     candidate: ScannerCardCandidate;
     recognition: MagicRecognitionResult | null;
     stableScanId: string;
+    recognitionCycleId: string;
     source: 'assisted_capture' | 'manual_search';
     fingerprint?: string | null;
     timing?: Partial<BatchScannerTimingSnapshot>;
     captureResolution?: { width: number; height: number } | null;
   }) => {
+    if (!isActiveRecognitionCycle(input.recognitionCycleId)) return null;
     if (!session) return null;
+    const insertionCycleId = input.recognitionCycleId;
     const startedAt = scannerNow();
     const recognitionReport = createRecognitionPipelineReport({
       detectedGame: scanGame,
@@ -895,6 +906,7 @@ export default function AutomaticScannerScreen() {
     }
     showBatchNotice({ ...batchScannerNoticeForLine(addedLine), lineId: addedLine.id });
     void Promise.resolve().then(async () => {
+      if (!isActiveRecognitionCycle(insertionCycleId) || !mountedRef.current) return;
       const pricingStartedAt = scannerNow();
       const enrichment = await runScannerParallelEnrichment({
         session: nextSession,
@@ -912,11 +924,12 @@ export default function AutomaticScannerScreen() {
               startedAt: pricingStartedAt,
               now: scannerNow,
             });
-            if (diagnosticsEnabled) setLastPricingTrace(pricing.trace);
+            if (diagnosticsEnabled && isActiveRecognitionCycle(insertionCycleId)) setLastPricingTrace(pricing.trace);
             return pricing.session;
           },
         }],
       });
+      if (!isActiveRecognitionCycle(insertionCycleId) || !mountedRef.current) return;
       setSession((latest) => {
         if (!latest) return latest;
         const currentLine = latest.lines.find((line) => line.id === addedLine.id);
@@ -946,6 +959,7 @@ export default function AutomaticScannerScreen() {
     quantity,
     resetScannerForm,
     scanGame,
+    isActiveRecognitionCycle,
     session,
     showBatchNotice,
     storageLocationId,
@@ -997,7 +1011,7 @@ export default function AutomaticScannerScreen() {
     try {
       const captureStartedAt = scannerNow();
       if (diagnosticCaptureUri) void cleanupDiagnosticCapture();
-      const captureId = createScanId();
+      const captureId = nextRecognitionCycleId();
       activeCaptureIdRef.current = captureId;
       setLastCaptureId(captureId);
       setCaptureState('capturing');
@@ -1092,6 +1106,7 @@ export default function AutomaticScannerScreen() {
           addCandidateToBatch({
             candidate: batchCandidate,
             recognition: scan.recognition,
+            recognitionCycleId: captureId,
             stableScanId: captureId,
             source: 'assisted_capture',
             fingerprint: frameLabel,
@@ -1120,11 +1135,13 @@ export default function AutomaticScannerScreen() {
         setRecognitionStage('failed');
         setError(`${scan.reason} Manual search is still available.`);
       }
+      if (activeCaptureIdRef.current !== captureId) return;
       activeCaptureIdRef.current = null;
       autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'capture_complete');
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       if (!userPausedCamera && appForegrounded) setCameraActive(true);
     } catch (captureError) {
+      if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
       activeCaptureIdRef.current = null;
       autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'capture_failed_waiting_for_removal');
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
@@ -1445,7 +1462,7 @@ export default function AutomaticScannerScreen() {
   };
 
   const runSearch = async () => {
-    const searchId = createScanId();
+    const searchId = nextRecognitionCycleId();
     const searchQuery = query.trim();
     const cacheKey = searchQuery.toLowerCase();
     activeSearchIdRef.current = searchId;
@@ -1787,11 +1804,14 @@ export default function AutomaticScannerScreen() {
             {!searching && query && !candidates.length && !error ? <TDEmptyState title="No printings yet" message="Run a search to select an exact printing." /> : null}
             {candidates.map((candidate) => (
               <Pressable key={candidate.id} accessibilityRole="button" accessibilityLabel={`Select ${candidate.name}`} accessibilityState={{ selected: selected?.id === candidate.id }} onPress={() => {
+                const manualSearchCycleId = activeSearchIdRef.current ?? nextRecognitionCycleId();
+                if (!activeSearchIdRef.current) activeSearchIdRef.current = manualSearchCycleId;
                 selectCandidate(candidate);
                 addCandidateToBatch({
                   candidate,
                   recognition: magicRecognition,
-                  stableScanId: createScanId(),
+                  recognitionCycleId: manualSearchCycleId,
+                  stableScanId: manualSearchCycleId,
                   source: 'manual_search',
                   timing: { fallbackCount: 1 },
                 });
