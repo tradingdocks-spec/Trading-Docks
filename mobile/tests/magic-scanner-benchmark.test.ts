@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import {
   calculateMagicBenchmarkMetrics,
   classifyMagicRecognition,
+  MAGIC_BENCHMARK_CATEGORIES,
   runMagicBenchmark,
   serializeMagicBenchmarkCsv,
   serializeMagicBenchmarkJson,
@@ -47,6 +49,12 @@ test('benchmark runner records top-1 and top-3 Magic scoring', async () => {
   assert.equal(report.results[0].latencyMs, 34);
   assert.equal(report.metrics.exactPrintingTop1Accuracy, 1);
   assert.equal(report.metrics.exactPrintingTop3Accuracy, 1);
+});
+
+test('benchmark categories include the off-center and partial-crop scanner cases', () => {
+  for (const category of ['off_center', 'partial_crop', 'perspective', 'title_obscured', 'blur']) {
+    assert.equal(MAGIC_BENCHMARK_CATEGORIES.includes(category as never), true, `${category} should be represented in the benchmark set`);
+  }
 });
 
 test('benchmark metrics detect false high-confidence exact-printing failures', () => {
@@ -114,11 +122,11 @@ test('threshold classification distinguishes recognized, likely, ambiguous, and 
 });
 
 test('private fixture and benchmark output directories are excluded from Git', () => {
-  const ignore = readFileSync('../.gitignore', 'utf8');
+  const ignore = readFileSync(join(process.cwd(), '.gitignore'), 'utf8');
 
-  assert.match(ignore, /mobile\/fixtures\/private-scanner\//);
-  assert.match(ignore, /mobile\/fixtures\/magic-scanner-private\//);
-  assert.match(ignore, /mobile\/benchmark-output\//);
+  assert.match(ignore, /fixtures\/private-scanner\//);
+  assert.match(ignore, /fixtures\/magic-scanner-private\//);
+  assert.match(ignore, /benchmark-output\//);
 });
 
 function manifest(fixtures: MagicBenchmarkFixtureManifest['fixtures']): MagicBenchmarkFixtureManifest {

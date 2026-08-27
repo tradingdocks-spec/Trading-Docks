@@ -54,6 +54,8 @@ import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magi
 import { deleteCapturedStill, recognizeMagicStillCapture, type CropRect, type MagicStillScanResult } from '@/services/magic-ocr-pipeline';
 import { getVisionOcrRuntimeDiagnostics, type NativeOcrRuntimeDiagnostics } from '@/modules/trading-docks-vision-ocr';
 import { loadScannerContext, loadScannerDraft, saveScannerDraft, searchScannerPrintings } from '@/services/scanner-data';
+import { createRapidLiveOcrState, runRapidLiveTitleOcr } from '@/services/rapid-scan-live-ocr';
+import { prewarmMagicNameIndex } from '@/services/magic-card-identity';
 import {
   createInterruptedScanDraft,
   resolveScannerPermissionState,
@@ -62,7 +64,9 @@ import {
   type ScannerCardCandidate,
   type ScannerPermissionState,
 } from '@/services/scanner-foundation';
+import { buildRapidMagicNameIndex, type RapidMagicNameIndex } from '@/services/rapid-scan-pipeline';
 import type { RecognitionCandidate } from '@/services/scanner-intelligence';
+import { createScannerLiveInferenceState, sampleScannerLiveInference, updateScannerLiveInference, type ScannerLiveInferenceState } from '@/services/scanner-live-inference';
 import { listScannerQueuedAdds, retryQueuedScannerAdds, type ScannerQueuedAdd } from '@/services/scanner-replay';
 import { enrichScannerSessionLinePrice, type ScannerPricingTrace } from '@/services/scanner-price-enrichment';
 import { runScannerParallelEnrichment } from '@/services/scanner-parallel-enrichment';
@@ -139,6 +143,7 @@ import {
   type ScannerVisionConfig,
   type ScannerVisionResult,
 } from '@/services/scanner-vision-engine';
+import { defaultMagicVisualReferenceIndex } from '@/services/scanner-multi-signal-recognition';
 import {
   buildPremiumResultTray,
   dominantScannerSurface,
@@ -277,12 +282,17 @@ export default function AutomaticScannerScreen() {
   const [scannerPerformanceJsonSummary, setScannerPerformanceJsonSummary] = useState<string | null>(null);
   const [lastPricingTrace, setLastPricingTrace] = useState<ScannerPricingTrace | null>(null);
   const [liveVisionResult, setLiveVisionResult] = useState<ScannerVisionResult | null>(null);
+  const [liveInference, setLiveInference] = useState<ScannerLiveInferenceState>(() => createScannerLiveInferenceState());
   const batchNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const focusReticleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraLensSwitchStartedAtRef = useRef<number | null>(null);
   const activeCameraDeviceIdRef = useRef<string | null>(null);
   const cameraIsActiveRef = useRef(false);
   const torchTransitionsRef = useRef<ScannerTorchTransition[]>([]);
+  const rapidLiveOcrStateRef = useRef(createRapidLiveOcrState());
+  const rapidLiveNameIndexRef = useRef<RapidMagicNameIndex | null>(null);
+  const lastLiveOcrAttemptAtRef = useRef(0);
+  const liveInferenceRef = useRef<ScannerLiveInferenceState>(createScannerLiveInferenceState());
   const nextRecognitionCycleId = useCallback(() => {
     nextRecognitionCycleRef.current += 1;
     return `scan-${nextRecognitionCycleRef.current}`;
@@ -563,6 +573,52 @@ export default function AutomaticScannerScreen() {
     }
     const result = visionEngineRef.current.analyzeFrame(frame);
     setLiveVisionResult(result);
+    const liveOcrEligible = cameraReady && permission === 'granted' && cameraActive && !autoCaptureInFlightRef.current;
+    const liveOcrDue = scannerNow() - lastLiveOcrAttemptAtRef.current >= 140;
+    if (liveOcrEligible && liveOcrDue) {
+      lastLiveOcrAttemptAtRef.current = scannerNow();
+      if (!rapidLiveNameIndexRef.current) {
+        const catalog = prewarmMagicNameIndex();
+        rapidLiveNameIndexRef.current = buildRapidMagicNameIndex(catalog.records.map((record) => ({
+          name: record.name,
+          oracleId: record.oracleId,
+          scryfallId: record.scryfallId,
+        })));
+      }
+      const liveFrame = frame;
+      const liveVision = result;
+      const liveNameIndex = rapidLiveNameIndexRef.current;
+      if (liveNameIndex) {
+        void runRapidLiveTitleOcr({
+          state: rapidLiveOcrStateRef.current,
+          frame: liveFrame,
+          nameIndex: liveNameIndex,
+          destination: 'collection',
+          createResultId: createScanId,
+          vision: liveVision,
+          visualIndex: defaultMagicVisualReferenceIndex(),
+          now: scannerNow,
+        }).then(({ state, outcome }) => {
+          if (!mountedRef.current) return;
+          rapidLiveOcrStateRef.current = state;
+          const diagnostics = state.lastDiagnostics;
+          if (diagnostics) {
+            const next = updateScannerLiveInference(
+              liveInferenceRef.current,
+              sampleScannerLiveInference({
+                frameId: liveFrame.id,
+                observedAt: liveFrame.capturedAt,
+                fingerprint: liveVision.detection.fingerprint ?? null,
+                outcome,
+                diagnostics,
+              }),
+            );
+            liveInferenceRef.current = next;
+            setLiveInference(next);
+          }
+        }).catch(() => undefined);
+      }
+    }
     const autoDecision = nextAppleVisionAutoCaptureRuntime(autoCaptureRuntimeRef.current, {
       autoEnabled: autoCaptureEnabled,
       cameraReady,
@@ -588,7 +644,7 @@ export default function AutomaticScannerScreen() {
       DEFAULT_SCANNER_VISION_CONFIG.thresholds,
       result.observedAt,
     ));
-  }, [autoCaptureEnabled, autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, context, guideLayout, permission, previewDimensions, scannerProcessing]);
+  }, [autoCaptureEnabled, autoScanner.duplicateProtection.awaitingCardRemoval, cameraActive, cameraReady, cameraLensSwitching, context, guideLayout, permission, previewDimensions, scannerProcessing]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -731,6 +787,10 @@ export default function AutomaticScannerScreen() {
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  useEffect(() => {
+    liveInferenceRef.current = liveInference;
+  }, [liveInference]);
 
   useEffect(() => {
     if (!context) return;
@@ -1610,6 +1670,7 @@ export default function AutomaticScannerScreen() {
         platform={Platform.OS}
         latestResultKind={failedResultTray?.kind ?? null}
         userId={context?.userId ?? 'scanner-user'}
+        liveInference={liveInference}
         onPreviewLayout={handlePreviewLayout}
         onCameraReady={handleCameraReady}
         onCameraPreviewStopped={handleCameraPreviewStopped}
@@ -1630,7 +1691,7 @@ export default function AutomaticScannerScreen() {
         hideControls={hideMainControls}
       />
 
-      <ScannerHud
+      <ScannerHudCompact
         header={scannerHeader}
         sessionName={scannerModeLabel(sessionMode)}
         topInset={insets.top}
@@ -2020,7 +2081,59 @@ export default function AutomaticScannerScreen() {
   );
 }
 
+// Kept for scanner HUD parity until the compact header path is fully deleted.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ScannerHud({
+  header,
+  sessionName,
+  topInset,
+  autoCaptureEnabled,
+  onClose,
+  onToggleAutoCapture,
+  onSettings,
+}: {
+  header: ReturnType<typeof scanner2HeaderModel>;
+  sessionName: string;
+  topInset: number;
+  autoCaptureEnabled: boolean;
+  onClose: () => void;
+  onToggleAutoCapture: () => void;
+  onSettings: () => void;
+}) {
+  return (
+    <View style={[s.topHud, { paddingTop: Math.max(topInset, 10) }]}>
+      <HeaderIconControl label="Close scanner" icon="close-outline" onPress={onClose} />
+      <Pressable accessibilityRole="button" accessibilityLabel="Open scanner settings" onPress={onSettings} style={({ pressed }) => [s.hudTextStack, pressed && s.settingsRowPressed]}>
+        <View style={s.hudLine}>
+          <TDText variant="title" numberOfLines={1} style={s.hudMode}>Scanner</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{`Session • ${header.line1.cards} cards`}</TDText>
+        </View>
+        <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionName}</TDText>
+      </Pressable>
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityLabel="Auto Scan"
+        accessibilityState={{ checked: autoCaptureEnabled }}
+        onPress={onToggleAutoCapture}
+        style={({ pressed }) => [
+          s.headerAutoToggle,
+          autoCaptureEnabled && s.headerAutoToggleOn,
+          pressed && s.settingsRowPressed,
+        ]}
+      >
+        <TDText variant="caption" style={[s.headerAutoToggleLabel, autoCaptureEnabled && s.headerAutoToggleLabelOn]}>
+          Auto
+        </TDText>
+        <TDText variant="caption" style={[s.headerAutoToggleValue, autoCaptureEnabled && s.headerAutoToggleValueOn]}>
+          {autoCaptureEnabled ? 'On' : 'Off'}
+        </TDText>
+      </Pressable>
+      <HeaderIconControl label="Open scanner settings" icon="settings-outline" onPress={onSettings} />
+    </View>
+  );
+}
+
+function ScannerHudCompact({
   header,
   sessionName,
   topInset,
@@ -2092,6 +2205,7 @@ function ScannerViewport({
   platform,
   latestResultKind,
   userId,
+  liveInference,
   onPreviewLayout,
   onCameraReady,
   onCameraPreviewStopped,
@@ -2132,6 +2246,7 @@ function ScannerViewport({
   platform: string;
   latestResultKind: PremiumResultTrayKind | null;
   userId: string;
+  liveInference: ScannerLiveInferenceState;
   onPreviewLayout: (event: LayoutChangeEvent) => void;
   onCameraReady: () => void;
   onCameraPreviewStopped: () => void;
@@ -2191,6 +2306,7 @@ function ScannerViewport({
               {focusReticle ? <FocusReticle point={focusReticle} /> : null}
             </>
           ) : null}
+          {cameraLifecycle === 'ready' ? <ScannerStatus headline={liveInference.headline} subtitle={liveInference.subtitle} tone={liveInference.tone} /> : null}
           <CameraMountTracker onMount={onCameraMounted} onUnmount={onCameraUnmounted} />
         </View>
       ) : (
@@ -2204,7 +2320,6 @@ function ScannerViewport({
         </View>
       )}
 
-      {latestResultKind !== 'failed' ? <ScannerStatus instruction={instruction} /> : null}
       <ScannerControls
         torchEnabled={torchEnabled}
         torchSupported={torchSupported}
@@ -2300,12 +2415,20 @@ function CameraMountTracker({ onMount, onUnmount }: { onMount: () => void; onUnm
   return null;
 }
 
-function ScannerStatus({ instruction }: { instruction: string }) {
+function ScannerStatus({ headline, subtitle, tone }: { headline: string; subtitle: string | null; tone: 'muted' | 'info' | 'warning' | 'success' }) {
   return (
-    <View style={s.cameraScrimTop}>
-      <TDText variant="title" style={s.guideMessage}>{instruction}</TDText>
+    <View style={[s.cameraLiveStatus, cameraLiveStatusToneStyle(tone)]}>
+      <TDText variant="small" style={s.cameraLiveHeadline} numberOfLines={1}>{headline}</TDText>
+      {subtitle ? <TDText variant="caption" tone="muted" numberOfLines={1}>{subtitle}</TDText> : null}
     </View>
   );
+}
+
+function cameraLiveStatusToneStyle(tone: 'muted' | 'info' | 'warning' | 'success') {
+  if (tone === 'success') return s.cameraLiveStatusSuccess;
+  if (tone === 'warning') return s.cameraLiveStatusWarning;
+  if (tone === 'info') return s.cameraLiveStatusInfo;
+  return s.cameraLiveStatusMuted;
 }
 
 function ScannerControls({
@@ -2704,8 +2827,12 @@ const s = StyleSheet.create({
   cameraViewportPending: { opacity: 0.02 },
   cameraViewportReady: { opacity: 1 },
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
-  cameraScrimTop: { position: 'absolute', top: '23%', left: space.lg, right: space.lg, alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, backgroundColor: color.canvas + '22', zIndex: 20 },
-  guideMessage: { textAlign: 'center' },
+  cameraLiveStatus: { position: 'absolute', left: space.md, right: space.md, bottom: 156, alignItems: 'center', gap: 2, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, borderWidth: 1, zIndex: 20 },
+  cameraLiveStatusMuted: { borderColor: color.border + '88', backgroundColor: color.canvas + '22' },
+  cameraLiveStatusInfo: { borderColor: color.info + '44', backgroundColor: color.info + '14' },
+  cameraLiveStatusWarning: { borderColor: color.warning + '44', backgroundColor: color.warning + '14' },
+  cameraLiveStatusSuccess: { borderColor: color.success + '44', backgroundColor: color.success + '14' },
+  cameraLiveHeadline: { textAlign: 'center', color: color.text },
   premiumGuide: { position: 'absolute' },
   guidePulse: { opacity: 0.96 },
   guideBracket: { position: 'absolute', top: 0, left: 0, width: 52, height: 52, borderTopWidth: 4, borderLeftWidth: 4, borderColor: color.info, borderTopLeftRadius: radius.md },

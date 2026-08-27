@@ -376,17 +376,25 @@ export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): Mu
   const ocrUsable = Boolean(input.ocr.match.entry && input.ocr.match.score >= OCR_USABLE_SCORE);
   const namesAgree = Boolean(visualName && ocrName && visualName === ocrName);
   const conflict = Boolean(visualOracleId && ocrOracleId && visualOracleId !== ocrOracleId && !namesAgree && visualUsable && ocrUsable);
-  const frameUsable = input.geometry.cardDetected && input.geometry.qualityScore >= MIN_FRAME_QUALITY && Boolean(input.geometry.normalizedCrop);
+  const hasIdentityEvidence = Boolean(
+    input.ocr.normalizedText?.trim().length
+    || input.ocr.match.entry
+    || visual?.record
+    || visualCandidates.length
+    || input.descriptor,
+  );
+  const frameUsable = Boolean(input.geometry.cardDetected || input.geometry.normalizedCrop || hasIdentityEvidence);
+  const frameQualityUsable = input.geometry.qualityScore >= MIN_FRAME_QUALITY;
 
   let status: MultiSignalDecisionStatus = 'continue_scanning';
   let identityName: string | null = null;
   let oracleId: string | null = null;
   let confidenceBand: MultiSignalConfidenceBand = 'low';
-  let decisionReason = 'Both visual and OCR evidence are below identity threshold.';
+  let decisionReason = 'Collecting more OCR and visual evidence.';
 
   if (!frameUsable) {
     status = 'reject_frame';
-    decisionReason = 'Frame geometry or quality is not suitable for recognition.';
+    decisionReason = 'Frame geometry is not usable and no identity evidence is available yet.';
   } else if (conflict) {
     status = 'review';
     identityName = visualStrong ? visualName : ocrName;
@@ -416,7 +424,13 @@ export function recognizeWithMultiSignal(input: MultiSignalRecognitionInput): Mu
     identityName = visualUsable ? visualName : ocrName;
     oracleId = visualUsable ? visualOracleId : ocrOracleId;
     confidenceBand = 'medium';
-    decisionReason = 'One identity signal is usable but not enough for automatic append.';
+    decisionReason = frameQualityUsable ? 'One identity signal is usable but not enough for automatic append.' : 'Frame quality is weak, but the identity signals are still useful for review.';
+  } else if (hasIdentityEvidence) {
+    status = 'continue_scanning';
+    identityName = visualName ?? ocrName;
+    oracleId = visualOracleId ?? ocrOracleId;
+    confidenceBand = 'low';
+    decisionReason = frameQualityUsable ? 'Evidence is still accumulating.' : 'Weak frame quality is lowering confidence but not blocking recognition.';
   }
 
   const printing = refinePrintingCandidates({ oracleId, name: identityName, candidates: input.printingCandidates ?? [], visual });

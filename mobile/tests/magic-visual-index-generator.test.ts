@@ -10,7 +10,23 @@ const fixturePgm = Buffer.from(`P5
 255
 ${String.fromCharCode(...Array.from({ length: 64 }, (_, index) => index * 4 % 256))}`, 'binary');
 
-test('catalog generator emits compact descriptor metadata without bundling fixture images', () => {
+function resolvePythonCommand() {
+  for (const candidate of ['python', 'python3', 'py']) {
+    const args = candidate === 'py' ? ['-3', '--version'] : ['--version'];
+    const result = spawnSync(candidate, args, { encoding: 'utf8' });
+    if (!result.error && result.status === 0) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+const pythonCommand = resolvePythonCommand();
+
+if (!pythonCommand) {
+  test.skip('catalog generator emits compact descriptor metadata without bundling fixture images', () => {});
+} else {
+  test('catalog generator emits compact descriptor metadata without bundling fixture images', () => {
   const temp = mkdtempSync(path.join(tmpdir(), 'td-visual-index-'));
   const imagePath = path.join(temp, 'fixture.pgm');
   const sourcePath = path.join(temp, 'cards.json');
@@ -27,7 +43,7 @@ test('catalog generator emits compact descriptor metadata without bundling fixtu
     image_uris: { small: imagePath },
   }]));
 
-  const result = spawnSync('python', [
+  const result = spawnSync(pythonCommand, [
     'scripts/generate-magic-visual-index.py',
     '--source',
     sourcePath,
@@ -46,4 +62,5 @@ test('catalog generator emits compact descriptor metadata without bundling fixtu
   assert.match(generated, /normalizationVersion/);
   assert.match(generated, /Fixture Card/);
   assert.doesNotMatch(generated, /fixture\.pgm/);
-});
+  });
+}

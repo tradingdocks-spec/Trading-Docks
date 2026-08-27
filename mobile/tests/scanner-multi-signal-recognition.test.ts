@@ -151,7 +151,7 @@ test('visual and OCR conflict routes to review instead of silently choosing a ca
   assert.match(result.confidence.conflicts[0], /Visual and OCR/);
 });
 
-test('unusable geometry rejects the frame before identity fusion', () => {
+test('weak geometry still carries identity evidence through fusion instead of hard rejection', () => {
   const index = buildVisualReferenceIndex(visualRecords);
   const result = recognizeWithMultiSignal({
     geometry: { ...goodGeometry('ff00aa55ff00aa55'), cardDetected: false, qualityScore: 0.2, normalizedCrop: null, blockers: ['NO_CARD'] },
@@ -159,6 +159,19 @@ test('unusable geometry rejects the frame before identity fusion', () => {
     visualIndex: index,
     ocr: createOcrIdentitySignal({ rawText: 'Goblin War Strike', normalizedText: 'Goblin War Strike', confidence: 95 }),
   });
+  assert.equal(result.status, 'append_identity');
+  assert.equal(result.identityName, 'Goblin War Strike');
+  assert.equal(result.diagnostics.blockers.includes('NO_CARD'), true);
+});
+
+test('purely unusable frames still reject when no identity evidence exists', () => {
+  const result = recognizeWithMultiSignal({
+    geometry: { cardDetected: false, geometryScore: 0.05, qualityScore: 0.12, perspectiveCorrected: false, normalizedCrop: null, blockers: ['NO_CARD', 'NO_NORMALIZED_CROP'] },
+    descriptor: null,
+    visualIndex: null,
+    ocr: createOcrIdentitySignal({ rawText: null, normalizedText: null, confidence: null }),
+  });
+
   assert.equal(result.status, 'reject_frame');
   assert.equal(result.diagnostics.blockers.includes('NO_CARD'), true);
 });

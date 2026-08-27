@@ -3,11 +3,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
-const root = process.cwd();
-const scanner = readFileSync(join(root, 'components', 'scanner', 'automatic-scanner-screen.tsx'), 'utf8');
-const scanTab = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
-const automaticRoute = readFileSync(join(root, 'app', 'scan', 'automatic.tsx'), 'utf8');
-const singleRoute = readFileSync(join(root, 'app', 'scan', 'single.tsx'), 'utf8');
+const scanner = readFileSync(join(process.cwd(), 'components', 'scanner', 'automatic-scanner-screen.tsx'), 'utf8');
+const scanTab = readFileSync(join(process.cwd(), 'app', '(tabs)', 'scan.tsx'), 'utf8');
+const automaticRoute = readFileSync(join(process.cwd(), 'app', 'scan', 'automatic.tsx'), 'utf8');
+const singleRoute = readFileSync(join(process.cwd(), 'app', 'scan', 'single.tsx'), 'utf8');
 
 test('production exposes one scanner entry and keeps single scan as a compatibility alias', () => {
   assert.match(scanTab, /Trading Docks Scanner/);
@@ -33,12 +32,15 @@ test('Auto ON and Auto OFF use the same still-capture recognition path', () => {
   assert.doesNotMatch(scanner, /label="Auto Capture"|label="Scan Mode"|ScannerScanMode/);
 });
 
-test('production scanner does not activate experimental visual or rapid recognizers', () => {
-  assert.doesNotMatch(scanner, /runRapidLiveTitleOcr|RapidLiveOcr|rapidLive|RapidResultTray/);
-  assert.doesNotMatch(scanner, /runMultiSignalRecognition|matchVisualDescriptor|Feature Print|pHash/);
-  assert.doesNotMatch(scanner, /vision: liveVisionResult|visualCandidate|fusedCandidate|fusion/i);
+test('production scanner uses bounded rapid live OCR while preserving still-capture fallback', () => {
+  assert.match(scanner, /runRapidLiveTitleOcr/);
+  assert.match(scanner, /createScannerLiveInferenceState|sampleScannerLiveInference|updateScannerLiveInference/);
+  assert.match(scanner, /defaultMagicVisualReferenceIndex/);
+  assert.match(scanner, /recognizeMagicStillCapture\(\{/);
+  assert.match(scanner, /ScannerStatus/);
   assert.match(scanner, /recognitionStage === 'reading_title'/);
   assert.match(scanner, /recognitionStage === 'finding_card'/);
+  assert.doesNotMatch(scanner, /runMultiSignalRecognition|matchVisualDescriptor|Feature Print/i);
 });
 
 test('scanner preserves candidate fallback, batch review, and duplicate rearm behavior', () => {

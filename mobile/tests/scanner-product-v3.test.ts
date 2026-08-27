@@ -43,7 +43,9 @@ test('unified scanner presents compact batch review UI without split scanner cop
   assert.match(automatic, /label="Capture card"/);
   assert.match(automatic, /ScannerSessionStrip/);
   assert.doesNotMatch(automatic, /Capture fallback/);
-  assert.doesNotMatch(automatic, /runRapidLiveTitleOcr/);
+  assert.match(automatic, /runRapidLiveTitleOcr/);
+  assert.match(automatic, /ScannerStatus/);
+  assert.match(automatic, /cameraLiveStatus/);
   assert.doesNotMatch(automatic, /Market \$|Offer \$/);
   assert.doesNotMatch(automatic, /Market \{compactScannerMoney|Offer \{compactScannerMoney/);
 });
