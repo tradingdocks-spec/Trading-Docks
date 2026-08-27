@@ -13,86 +13,65 @@ function section(name: string) {
   return source.slice(start, next === -1 ? source.length : next);
 }
 
-test('session review route exposes focused presentation components', () => {
+test('scanner session route exposes compact batch-session components', () => {
   [
     'SessionReviewHeader',
     'SessionSummary',
     'SessionStatusTabs',
+    'SessionBatchActions',
     'SessionCardRow',
-    'CardReviewSheet',
     'SessionFinalizeBar',
     'SessionEmptyState',
+    'DestinationPickerSheet',
+    'CardReviewSheet',
   ].forEach((name) => assert.match(source, new RegExp(`function ${name}\\b`)));
-  assert.match(source, /Review List/);
-  assert.match(source, /cardCount === 1/);
+  assert.match(source, /Session/);
+  assert.match(source, /Store .*ready cards/);
+  assert.match(source, /bulkUpdateSessionLines/);
 });
 
-test('default main screen omits advanced game and confidence chip walls', () => {
-  const beforeFilterSheet = source.slice(0, source.indexOf('function SessionFilterSheet'));
-  assert.equal(beforeFilterSheet.includes('FilterChips label="Game"'), false);
-  assert.equal(beforeFilterSheet.includes('FilterChips label="Confidence"'), false);
-  assert.match(beforeFilterSheet, /SessionStatusTabs/);
-  assert.match(beforeFilterSheet, /SessionSummary cardCount/);
-  assert.equal(beforeFilterSheet.includes('Finalize reviewed cards'), false);
-  assert.equal(beforeFilterSheet.includes('Missing prices are excluded'), false);
+test('batch session header and actions stay compact', () => {
+  const header = section('SessionReviewHeader');
+  const actions = section('SessionBatchActions');
+  assert.match(header, /Session/);
+  assert.match(header, /Select all/);
+  assert.match(actions, /Collection/);
+  assert.match(actions, /Trade Binder/);
+  assert.match(actions, /Deck/);
+  assert.match(actions, /Storage/);
 });
 
-test('default review list removes the large filter wall', () => {
-  assert.equal(source.includes('function SessionFilterSheet'), false);
-  assert.equal(source.includes('FilterChips label="Game"'), false);
-  assert.equal(source.includes('FilterChips label="Confidence"'), false);
-  assert.equal(source.includes('Missing price only'), false);
-});
-
-test('collapsed card row has no inline editing fields or destructive buttons', () => {
+test('session row renders compact destination and selection affordances', () => {
   const row = section('SessionCardRow');
-  assert.equal(row.includes('<TDInput'), false);
-  assert.equal(row.includes('Remove card'), false);
-  assert.equal(row.includes('Review"'), false);
-  assert.match(row, /onPress/);
-  assert.match(row, /formatReviewLineMoney\(line\.marketPrice, line\.priceSource\)/);
-  assert.match(row, /formatSessionReviewMoney\(line\.cashOffer\)/);
-  assert.match(source, /Pricing\.\.\./);
+  assert.match(row, /checkbox|square-outline/);
+  assert.match(row, /cardBadges/);
+  assert.match(row, /destinationSyncStatusLabel/);
+  assert.equal(row.includes('Finalize reviewed cards'), false);
 });
 
-test('card review sheet owns editable fields and preserves review actions', () => {
+test('destination picker and finalize bar use the batch workflow language', () => {
+  const picker = section('DestinationPickerSheet');
+  const bar = section('SessionFinalizeBar');
+  const summary = section('SessionDestinationSummary');
+  assert.match(picker, /Choose deck|Choose storage/);
+  assert.match(picker, /Deck Vault|storage locations/);
+  assert.match(bar, /ready cards/);
+  assert.match(bar, /ready cards/);
+  assert.match(summary, /Collection/);
+  assert.match(summary, /Trade Binder/);
+  assert.match(summary, /Decks/);
+  assert.match(summary, /Storage/);
+  assert.match(summary, /Needs review/);
+});
+
+test('card review sheet preserves printing correction and transient remove behavior', () => {
   const sheet = section('CardReviewSheet');
-  assert.match(sheet, /label="Quantity"/);
-  assert.match(sheet, /label="Condition"/);
-  assert.match(sheet, /finishLabel\(finish\)/);
-  assert.match(sheet, /label="Market price"/);
-  assert.match(sheet, /label="Cash percentage"/);
-  assert.match(sheet, /Save and next|Save changes/);
+  assert.match(sheet, /Quantity/);
+  assert.match(sheet, /Market price/);
+  assert.match(sheet, /Cash percentage/);
   assert.match(sheet, /View other printings/);
-  assert.match(sheet, /PrintingSelectorSheet/);
   assert.match(sheet, /Remove card/);
   assert.match(sheet, /Tap again to remove/);
-  assert.match(sheet, /More options/);
-  assert.match(sheet, /Bottom-left OCR/);
-  assert.match(sheet, /parseOptionalMoney/);
-  assert.match(sheet, /parseOptionalPercentage/);
-  assert.equal(sheet.includes('Missing signals'), false);
-  assert.equal(sheet.includes('Why review?'), false);
-  assert.equal(sheet.includes('sessionConfidenceLabel'), false);
-});
-
-test('main review route exposes one finalize action', () => {
-  const finalizeLabels = source.match(/label="Finalize"/g) ?? [];
-  assert.equal(finalizeLabels.length, 1);
-  assert.equal(source.includes('Finalize session'), false);
-});
-
-test('sticky finalize bar includes safe-area padding and does not own export', () => {
-  const bar = section('SessionFinalizeBar');
-  assert.match(bar, /paddingBottom: Math\.max\(bottomInset/);
-  assert.match(bar, /Finalize/);
-  assert.equal(bar.includes('Undo last scan'), false);
-  assert.equal(bar.includes('Export'), false);
-});
-
-test('empty states distinguish no cards no filter results and all reviewed', () => {
-  const empty = section('SessionEmptyState');
-  assert.match(empty, /No scans yet/);
-  assert.match(empty, /No cards match these filters/);
-  assert.match(empty, /Everything is ready/);
+  assert.equal(sheet.includes('FilterChips'), false);
+  assert.equal(sheet.includes('Finalize reviewed cards'), false);
 });

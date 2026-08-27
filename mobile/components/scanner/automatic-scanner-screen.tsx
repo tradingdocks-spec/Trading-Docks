@@ -47,6 +47,7 @@ import {
   type ContinuousScannerSession,
   type BatchScannerNoticeModel,
   type BatchScannerTimingSnapshot,
+  type ScannerSessionLine,
 } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import { recognizeMagicCard, type MagicRecognitionResult } from '@/services/magic-recognition-provider';
@@ -184,6 +185,7 @@ export default function AutomaticScannerScreen() {
   const [context, setContext] = useState<ScannerContext | null>(null);
   const [sessionMode, setSessionMode] = useState<ContinuousScannerMode>(INITIAL_SESSION_MODE);
   const [session, setSession] = useState<ContinuousScannerSession | null>(null);
+  const sessionRef = useRef<ContinuousScannerSession | null>(null);
   const [autoScanner, setAutoScanner] = useState(() => createContinuousScannerRuntime({ scanId: createScanId() }));
   const [permission, setPermission] = useState<ScannerPermissionState>('not_requested');
   const [cameraActive, setCameraActive] = useState(false);
@@ -727,6 +729,10 @@ export default function AutomaticScannerScreen() {
   }, [context, session]);
 
   useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  useEffect(() => {
     if (!context) return;
     void appStorage.setItem(scannerCameraPreferenceKey(context.userId), JSON.stringify(rawCameraDeviceId
       ? { lensMode: 'raw', rawDeviceId: rawCameraDeviceId, autoCaptureEnabled }
@@ -835,7 +841,8 @@ export default function AutomaticScannerScreen() {
     captureResolution?: { width: number; height: number } | null;
   }) => {
     if (!isActiveRecognitionCycle(input.recognitionCycleId)) return null;
-    if (!session) return null;
+    const currentSession = sessionRef.current;
+    if (!currentSession) return null;
     const insertionCycleId = input.recognitionCycleId;
     const startedAt = scannerNow();
     const recognitionReport = createRecognitionPipelineReport({
@@ -854,36 +861,43 @@ export default function AutomaticScannerScreen() {
       candidateCount: recognitionReport.topThree.length,
       confidenceState: recognitionReport.confidenceState,
     })) return null;
-    const rate = parseOptionalPercentage(purchaseRate) ?? session.offerConfig.defaultCashPercentage;
+    const rate = parseOptionalPercentage(purchaseRate) ?? currentSession.offerConfig.defaultCashPercentage;
     const candidateFinish = (input.candidate.finishes.find((candidateFinishOption) => candidateFinishOption === finish) ?? input.candidate.finishes.find((candidateFinishOption) => candidateFinishOption === 'normal' || candidateFinishOption === 'foil' || candidateFinishOption === 'etched') ?? finish) as 'normal' | 'foil' | 'etched';
-    const sessionWithRate = {
-      ...session,
-      offerConfig: { ...session.offerConfig, defaultCashPercentage: rate },
-    };
-    const effectiveStorageLocationId = sessionWithRate.defaultDestination === 'binder' ? binderLocationId : storageLocationId;
-    const nextSession: ContinuousScannerSession = addRecognitionToSession(sessionWithRate, {
-      stableScanId: input.stableScanId,
-      candidate: input.candidate,
-      recognition: recognitionReport,
-      quantity,
-      condition,
-      finish: candidateFinish,
-      language: input.candidate.language ?? language,
-      marketPrice: null,
-      priceSource: input.candidate.marketPrice ? 'pricing_pending' : null,
-      priceTimestamp: null,
-      storageLocationId: effectiveStorageLocationId,
-      binderId: sessionWithRate.defaultDestination === 'binder' ? binderLocationId : null,
-      binderPage: sessionWithRate.defaultDestination === 'binder' ? parseDestinationPage(binderPage) : null,
-      binderSlot: sessionWithRate.defaultDestination === 'binder' ? binderSlot.trim() || null : null,
-      tradeStatus,
-      destination: sessionWithRate.defaultDestination,
-      notes: recognitionReport.confidenceState === 'high_confidence'
-        ? 'Pricing and final card decisions are handled in the Review List.'
-        : 'Confirm printing. Pricing and final card decisions are handled in the Review List.',
+    let addedLine: ScannerSessionLine | null = null;
+    let nextSession: ContinuousScannerSession | null = null;
+    setSession((currentSession) => {
+      if (!currentSession) return currentSession;
+      const sessionWithRate = {
+        ...currentSession,
+        offerConfig: { ...currentSession.offerConfig, defaultCashPercentage: rate },
+      };
+      const effectiveStorageLocationId = sessionWithRate.defaultDestination === 'binder' ? binderLocationId : storageLocationId;
+      nextSession = addRecognitionToSession(sessionWithRate, {
+        stableScanId: input.stableScanId,
+        candidate: input.candidate,
+        recognition: recognitionReport,
+        quantity,
+        condition,
+        finish: candidateFinish,
+        language: input.candidate.language ?? language,
+        marketPrice: null,
+        priceSource: input.candidate.marketPrice ? 'pricing_pending' : null,
+        priceTimestamp: null,
+        storageLocationId: effectiveStorageLocationId,
+        binderId: sessionWithRate.defaultDestination === 'binder' ? binderLocationId : null,
+        binderPage: sessionWithRate.defaultDestination === 'binder' ? parseDestinationPage(binderPage) : null,
+        binderSlot: sessionWithRate.defaultDestination === 'binder' ? binderSlot.trim() || null : null,
+        tradeStatus,
+        destination: sessionWithRate.defaultDestination,
+        notes: recognitionReport.confidenceState === 'high_confidence'
+          ? 'Pricing and final card decisions are handled in the session.'
+          : 'Confirm printing. Pricing and final card decisions are handled in the session.',
+      });
+      addedLine = nextSession.lines[nextSession.lines.length - 1] ?? null;
+      sessionRef.current = nextSession;
+      return nextSession;
     });
-    const addedLine = nextSession.lines[nextSession.lines.length - 1];
-    setSession(nextSession);
+    if (!addedLine || !nextSession) return null;
     setSessionInsertionResult('inserted');
     setAutoScanner((current) => markScanResult(current, {
       printingId: input.candidate.id,
@@ -906,21 +920,24 @@ export default function AutomaticScannerScreen() {
         captureResolution: input.captureResolution ?? null,
       })));
     }
-    showBatchNotice({ ...batchScannerNoticeForLine(addedLine), lineId: addedLine.id });
+    if (!addedLine || !nextSession) return null;
+    const insertedLine = addedLine as ScannerSessionLine;
+    const insertedSession = nextSession as ContinuousScannerSession;
+    showBatchNotice({ ...batchScannerNoticeForLine(insertedLine), lineId: insertedLine.id });
     void Promise.resolve().then(async () => {
       if (!isActiveRecognitionCycle(insertionCycleId) || !mountedRef.current) return;
       const pricingStartedAt = scannerNow();
       const enrichment = await runScannerParallelEnrichment({
-        session: nextSession,
-        lineId: addedLine.id,
-        stableScanId: addedLine.stableScanId,
+        session: insertedSession,
+        lineId: insertedLine.id,
+        stableScanId: insertedLine.stableScanId,
         tasks: [{
           name: 'pricing',
           run: ({ session: enrichmentSession }) => {
             const pricing = enrichScannerSessionLinePrice({
               session: enrichmentSession,
-              lineId: addedLine.id,
-              stableScanId: addedLine.stableScanId,
+              lineId: insertedLine.id,
+              stableScanId: insertedLine.stableScanId,
               candidate: input.candidate,
               finish: candidateFinish,
               startedAt: pricingStartedAt,
@@ -934,18 +951,20 @@ export default function AutomaticScannerScreen() {
       if (!isActiveRecognitionCycle(insertionCycleId) || !mountedRef.current) return;
       setSession((latest) => {
         if (!latest) return latest;
-        const currentLine = latest.lines.find((line) => line.id === addedLine.id);
-        if (!currentLine || currentLine.stableScanId !== addedLine.stableScanId || currentLine.exactPrintingId !== input.candidate.id) return latest;
-        const enrichedLine = enrichment.session.lines.find((line) => line.id === addedLine.id);
+        const currentLine = latest.lines.find((line) => line.id === insertedLine.id);
+        if (!currentLine || currentLine.stableScanId !== insertedLine.stableScanId || currentLine.exactPrintingId !== input.candidate.id) return latest;
+        const enrichedSession = enrichment.session;
+        if (!enrichedSession) return latest;
+        const enrichedLine = enrichedSession.lines.find((line) => line.id === insertedLine.id);
         if (!enrichedLine) return latest;
         return {
           ...latest,
-          lines: latest.lines.map((line) => line.id === addedLine.id ? enrichedLine : line),
+          lines: latest.lines.map((line) => line.id === insertedLine.id ? enrichedLine : line),
         };
       });
     });
     resetScannerForm({ preserveNotice: true });
-    return addedLine;
+    return insertedLine;
   }, [
     binderLocationId,
     binderPage,
@@ -961,7 +980,6 @@ export default function AutomaticScannerScreen() {
     resetScannerForm,
     scanGame,
     isActiveRecognitionCycle,
-    session,
     showBatchNotice,
     storageLocationId,
     tradeStatus,
@@ -999,6 +1017,7 @@ export default function AutomaticScannerScreen() {
     setError(null);
     setSuccess(null);
     setSessionInsertionResult('not_attempted');
+    let captureId: string | null = null;
     if (!cameraRef.current || permission !== 'granted') {
       setCaptureState('camera_not_ready');
       setError('Camera is not ready. Grant permission or use manual search.');
@@ -1012,7 +1031,7 @@ export default function AutomaticScannerScreen() {
     try {
       const captureStartedAt = scannerNow();
       if (diagnosticCaptureUri) void cleanupDiagnosticCapture();
-      const captureId = nextRecognitionCycleId();
+      captureId = nextRecognitionCycleId();
       activeCaptureIdRef.current = captureId;
       setLastCaptureId(captureId);
       setCaptureState('capturing');
@@ -1149,7 +1168,7 @@ export default function AutomaticScannerScreen() {
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       if (!userPausedCamera && appForegrounded) setCameraActive(true);
     } catch (captureError) {
-      if (!mountedRef.current || activeCaptureIdRef.current !== captureId) return;
+      if (!mountedRef.current || !captureId || activeCaptureIdRef.current !== captureId) return;
       activeCaptureIdRef.current = null;
       autoCaptureRuntimeRef.current = markAppleVisionAutoCapturePhase(autoCaptureRuntimeRef.current, 'WAITING_FOR_REMOVAL', 'capture_failed_waiting_for_removal');
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
@@ -2024,7 +2043,7 @@ function ScannerHud({
       <Pressable accessibilityRole="button" accessibilityLabel="Open scanner settings" onPress={onSettings} style={({ pressed }) => [s.hudTextStack, pressed && s.settingsRowPressed]}>
         <View style={s.hudLine}>
           <TDText variant="title" numberOfLines={1} style={s.hudMode}>Scanner</TDText>
-          <TDText variant="caption" tone="muted" numberOfLines={1}>{header.line1.cards} scanned</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{`Session • ${header.line1.cards} cards`}</TDText>
         </View>
         <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionName}</TDText>
       </Pressable>
@@ -2133,6 +2152,7 @@ function ScannerViewport({
   hideControls: boolean;
 }) {
   const showCamera = permission === 'granted' && cameraActive && shouldScannerCameraRender(cameraLifecycle);
+  const startupState = scannerCameraStartupState(cameraLifecycle, permission, cameraReady);
   const showResume = shouldShowScannerResumeAction(cameraLifecycle);
   return (
     <View style={[s.cameraStage, { height: cameraStageHeight }]}>
@@ -2141,7 +2161,7 @@ function ScannerViewport({
           accessible
           accessibilityRole="button"
           accessibilityLabel="Scanner camera preview. Double tap or tap the card to focus."
-          style={s.cameraViewport}
+          style={[s.cameraViewport, cameraLifecycle === 'ready' ? s.cameraViewportReady : s.cameraViewportPending]}
           onLayout={onPreviewLayout}
           onTouchEnd={onPreviewFocusTap}
         >
@@ -2164,14 +2184,19 @@ function ScannerViewport({
             onSessionConfigChange={onSessionConfigChange}
             onTorchStateChange={onTorchStateChange}
           />
-          <DetectedCardOutline rectangle={detectedRectangle} tone={guidePresentation.tone} />
-          <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
-          {focusReticle ? <FocusReticle point={focusReticle} /> : null}
+          {cameraLifecycle === 'ready' ? (
+            <>
+              <DetectedCardOutline rectangle={detectedRectangle} tone={guidePresentation.tone} />
+              <ScannerGuide guideLayout={guideLayout} guidePresentation={guidePresentation} guideMotion={guideMotion} />
+              {focusReticle ? <FocusReticle point={focusReticle} /> : null}
+            </>
+          ) : null}
           <CameraMountTracker onMount={onCameraMounted} onUnmount={onCameraUnmounted} />
         </View>
       ) : (
         <View style={s.cameraEmptyState}>
           <Ionicons name={permission === 'denied' ? 'camera-outline' : 'scan-outline'} size={42} color={color.textMuted} />
+          <TDText variant="caption" tone="muted">{startupState.label}</TDText>
           <TDText variant="title">{cameraLifecycleTitle(cameraLifecycle, permission)}</TDText>
           <TDText variant="small" tone="muted" style={s.centerText}>{cameraLifecycleMessage(cameraLifecycle, permission, platform)}</TDText>
           {showResume ? <TDText variant="small" tone="muted">Use the header play control to resume.</TDText> : null}
@@ -2192,6 +2217,18 @@ function ScannerViewport({
       />
     </View>
   );
+}
+
+function scannerCameraStartupState(
+  lifecycle: Scanner2CameraLifecycleState,
+  permission: ScannerPermissionState,
+  cameraReady: boolean,
+) {
+  if (lifecycle === 'ready' && cameraReady) return { label: 'READY', tone: 'success' as const };
+  if (lifecycle === 'permission_pending' || permission !== 'granted') return { label: 'REQUESTING_PERMISSION', tone: 'warning' as const };
+  if (lifecycle === 'starting') return { label: 'STARTING_CAMERA', tone: 'info' as const };
+  if (lifecycle === 'error' || lifecycle === 'unavailable') return { label: 'ERROR', tone: 'danger' as const };
+  return { label: 'INITIALIZING', tone: 'info' as const };
 }
 
 function ScannerGuide({
@@ -2664,6 +2701,8 @@ const s = StyleSheet.create({
   compactStatInfo: { borderColor: color.info + '88' },
   cameraStage: { ...StyleSheet.absoluteFillObject, minHeight: 340, backgroundColor: '#010711', overflow: 'hidden', justifyContent: 'center', zIndex: 1 },
   cameraViewport: { flex: 1, backgroundColor: '#010711' },
+  cameraViewportPending: { opacity: 0.02 },
+  cameraViewportReady: { opacity: 1 },
   cameraEmptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg, backgroundColor: '#010711' },
   cameraScrimTop: { position: 'absolute', top: '23%', left: space.lg, right: space.lg, alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, backgroundColor: color.canvas + '22', zIndex: 20 },
   guideMessage: { textAlign: 'center' },

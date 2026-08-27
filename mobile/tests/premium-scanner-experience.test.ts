@@ -320,8 +320,8 @@ test('compact scanner session strip is one row with review on the right', () => 
 test('batch scanner review chip stays minimal on the camera surface', () => {
   const model = batchScannerReviewChipModel({ cardCount: 12, reviewCount: 2 });
   assert.equal(model.hidden, false);
-  assert.equal(model.summary, '12 scanned');
-  assert.equal(model.reviewLabel, 'Review List');
+  assert.match(model.summary, /Session\s.*12 cards/);
+  assert.equal(model.reviewLabel, 'Open session');
   assert.equal(model.tone, 'warning');
 });
 
@@ -337,13 +337,15 @@ test('batch scanner auto-add policy sends uncertain matches to review list', () 
 test('batch scanner notice stays tiny and points correction to review list', () => {
   const line = {
     cardName: 'Brainstorm',
+    setCode: 'ICE',
+    collectorNumber: '003',
     reviewStatus: 'needs_review',
   } as ScannerSessionLine;
   const notice = batchScannerNoticeForLine(line);
-  assert.equal(notice.title, 'Added for review');
+  assert.match(notice.title, /Brainstorm/);
   assert.equal(notice.tone, 'warning');
   assert.equal(notice.correctLabel, 'Correct');
-  assert.equal(notice.message.includes('Keep scanning'), true);
+  assert.match(notice.message, /ICE.*003/);
 });
 
 test('batch scanner state instruction model stays single-purpose', () => {
