@@ -22,6 +22,7 @@ import {
   Rocket,
   Percent,
   MessageSquarePlus,
+  Megaphone,
   Scale,
   Settings,
   ShoppingBag,
@@ -90,6 +91,13 @@ export const CRM_NAV: NavigationItem[] = [
     label: "Customer CRM",
     icon: ContactRound,
   },
+];
+
+export const MARKETING_NAV: NavigationItem[] = [
+  { href: "/dashboard/marketing", label: "Campaigns", icon: Megaphone },
+  { href: "/dashboard/marketing/audiences", label: "Audiences", icon: Users },
+  { href: "/dashboard/marketing/templates", label: "Templates", icon: FileBarChart2 },
+  { href: "/dashboard/marketing/suppression", label: "Suppression", icon: ShieldCheck },
 ];
 
 export const PURCHASING_NAV: NavigationSection = {
@@ -311,6 +319,9 @@ const ICON_BY_LABEL = {
   Analytics: BarChart3,
   Employees: Users,
   Customers: ContactRound,
+  Marketing: Megaphone,
+  Campaigns: Megaphone,
+  Audiences: Users,
   Operations: BriefcaseBusiness,
   "Label Studio": Tags,
   "Command Center": ShieldCheck,
@@ -372,6 +383,7 @@ function isAccessibleOrOwner(
   if (!clientAccess) return true;
   if (hasTrustedFullPlatformAccess(clientAccess)) return true;
   if (item.href === LABEL_STUDIO_ROUTE) return hasCapability(clientAccess, "label.view");
+  if (item.href.startsWith("/dashboard/marketing")) return hasCapability(clientAccess, "crm.manage");
   return true;
 }
 
@@ -404,6 +416,7 @@ export function getAccountAwareNavigationGroups(
     groups.push(
       group("purchasing", PURCHASING_NAV.label, PURCHASING_NAV.children, clientAccess),
       group("selling", SELLING_NAV.label, SELLING_NAV.children, clientAccess),
+      group("marketing", "Marketing", MARKETING_NAV, clientAccess),
       group("insights", INSIGHTS_NAV.label, INSIGHTS_NAV.children, clientAccess),
       group(
         "operations",

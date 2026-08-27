@@ -63,7 +63,7 @@ export const ROUTE_ACCESS_REGISTRY: RouteAccessRule[] = [
   { id: "analytics", pattern: /^\/dashboard\/analytics(\/|$)/, kind: "capability", capability: "analytics.view", label: "Analytics" },
   { id: "automation", pattern: /^\/dashboard\/automation(\/|$)/, kind: "capability", capability: "automation.manage", label: "Automation" },
   { id: "tools", pattern: /^\/dashboard\/(tools|tools\/csv-converter|csv-converter)(\/|$)/, kind: "capability", capability: "csv.export", label: "CSV tools" },
-  { id: "crm", pattern: /^\/dashboard\/(customers|crm)(\/|$)/, kind: "capability", capability: "crm.manage", label: "Customer CRM" },
+  { id: "crm", pattern: /^\/dashboard\/(customers|crm|marketing)(\/|$)/, kind: "capability", capability: "crm.manage", label: "CRM and Marketing" },
   { id: "business", pattern: /^\/dashboard\/business(\/|$)/, kind: "capability", capability: "businessIntelligence.view", label: "Business" },
   { id: "calendar", pattern: /^\/dashboard\/calendar(\/|$)/, kind: "capability", capability: "events.manage", label: "Calendar" },
   { id: "employees", pattern: /^\/dashboard\/employees(\/|$)/, kind: "capability", capability: "employees.manage", label: "Employees" },
