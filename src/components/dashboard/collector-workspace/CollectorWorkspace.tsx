@@ -24,6 +24,7 @@ import {
   Search,
   Tag,
   TrendingUp,
+  Trash2,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -165,6 +166,9 @@ export function CollectorWorkspace({
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [inspectedCardId, setInspectedCardId] = useState<string | null>(null);
   const [bulkMoveTarget, setBulkMoveTarget] = useState<string>("");
+  const [bulkRemoveOpen, setBulkRemoveOpen] = useState(false);
+  const [bulkRemoving, setBulkRemoving] = useState(false);
+  const [bulkRemoveError, setBulkRemoveError] = useState<string | null>(null);
   const activeRequestKey = useRef("");
 
   useEffect(() => {
@@ -288,6 +292,14 @@ export function CollectorWorkspace({
   const selectedCards = useMemo(
     () => visibleCards.filter((card) => selectedCardIds.includes(card.id)),
     [selectedCardIds, visibleCards],
+  );
+  const selectedQuantity = useMemo(
+    () => selectedCards.reduce((sum, card) => sum + card.quantityOwned, 0),
+    [selectedCards],
+  );
+  const selectedMarketValue = useMemo(
+    () => selectedCards.reduce((sum, card) => sum + (card.marketPrice.amount === null ? 0 : card.marketPrice.amount * card.quantityOwned), 0),
+    [selectedCards],
   );
 
   useEffect(() => {
@@ -436,6 +448,33 @@ export function CollectorWorkspace({
     setSelectedCardIds([]);
     setBulkMoveTarget("");
   }, [bulkMoveTarget, handleStorageAssignment, selectedCards]);
+
+  const handleBulkRemove = useCallback(async () => {
+    if (!selectedCards.length) return;
+    setBulkRemoving(true);
+    setBulkRemoveError(null);
+    try {
+      const response = await fetch("/api/collector-workspace/bulk-remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inventoryItemIds: selectedCards.map((card) => card.id),
+          operationId: globalThis.crypto?.randomUUID?.() ?? `bulk-remove-${Date.now()}`,
+          reason: "Bulk remove from collection",
+        }),
+      });
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Selected inventory could not be removed.");
+      setBulkRemoveOpen(false);
+      setSelectedCardIds([]);
+      retry();
+      reloadStorageState();
+    } catch (removeError) {
+      setBulkRemoveError(removeError instanceof Error ? removeError.message : "Selected inventory could not be removed.");
+    } finally {
+      setBulkRemoving(false);
+    }
+  }, [reloadStorageState, retry, selectedCards]);
 
   return (
     <TDScreen className="space-y-4">
@@ -604,10 +643,12 @@ export function CollectorWorkspace({
       {selectedCards.length ? (
         <BulkActionBar
           selectedCount={selectedCards.length}
+          selectedQuantity={selectedQuantity}
           locations={storageState?.summaries ?? []}
           moveTarget={bulkMoveTarget}
           onMoveTargetChange={setBulkMoveTarget}
           onMove={handleBulkMove}
+          onRemove={() => setBulkRemoveOpen(true)}
           onClear={() => setSelectedCardIds([])}
           canUseSellerActions={canUseSellerActions}
         />
@@ -767,6 +808,18 @@ export function CollectorWorkspace({
         onMoveQuantity={(quantity, locationId) => inspectedCard ? void handleQuantityMove(inspectedCard, quantity, locationId) : undefined}
         onRemoveQuantity={(quantity) => inspectedCard ? void handleQuantityRemove(inspectedCard, quantity) : undefined}
         onOpenStorage={() => setActiveSection("storage")}
+      />
+      <BulkRemoveDialog
+        open={bulkRemoveOpen}
+        selectedCount={selectedCards.length}
+        selectedQuantity={selectedQuantity}
+        selectedMarketValue={selectedMarketValue}
+        error={bulkRemoveError}
+        loading={bulkRemoving}
+        onCancel={() => {
+          if (!bulkRemoving) setBulkRemoveOpen(false);
+        }}
+        onConfirm={() => void handleBulkRemove()}
       />
       </>
       )}
@@ -959,26 +1012,30 @@ function FilterSelect({
 
 function BulkActionBar({
   selectedCount,
+  selectedQuantity,
   locations,
   moveTarget,
   canUseSellerActions,
   onMoveTargetChange,
   onMove,
+  onRemove,
   onClear,
 }: {
   selectedCount: number;
+  selectedQuantity: number;
   locations: StorageManagerState["summaries"];
   moveTarget: string;
   canUseSellerActions: boolean;
   onMoveTargetChange: (value: string) => void;
   onMove: () => void;
+  onRemove: () => void;
   onClear: () => void;
 }) {
   return (
     <section className="sticky top-3 z-20 flex flex-col gap-3 rounded-[var(--td-radius-lg)] border border-cyan-300/25 bg-[#07131d]/95 p-3 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur md:flex-row md:items-center md:justify-between" aria-label="Bulk inventory actions">
       <div className="flex items-center gap-2">
         <CheckSquare2 className="h-4 w-4 text-cyan-300" />
-        <TDText variant="small">{selectedCount.toLocaleString()} selected</TDText>
+        <TDText variant="small">{selectedCount.toLocaleString()} selected · {selectedQuantity.toLocaleString()} total units</TDText>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <select
@@ -993,9 +1050,71 @@ function BulkActionBar({
         </select>
         <TDButton label="Move" variant="secondary" size="sm" disabled={!moveTarget} onClick={onMove} icon={<Move className="h-3.5 w-3.5" />} />
         {canUseSellerActions ? <Link href="/dashboard/tools/csv-converter" className="inline-flex min-h-10 items-center justify-center rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] px-3 text-xs font-black text-[var(--td-text-secondary)]">Export selected</Link> : null}
+        <TDButton label="Remove from collection" variant="ghost" size="sm" onClick={onRemove} icon={<Trash2 className="h-3.5 w-3.5" />} />
         <TDButton label="Clear" variant="ghost" size="sm" onClick={onClear} />
       </div>
     </section>
+  );
+}
+
+function BulkRemoveDialog({
+  open,
+  selectedCount,
+  selectedQuantity,
+  selectedMarketValue,
+  error,
+  loading,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  selectedCount: number;
+  selectedQuantity: number;
+  selectedMarketValue: number;
+  error: string | null;
+  loading: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-remove-title">
+      <section className="w-full max-w-lg rounded-[var(--td-radius-xl)] border border-red-300/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--td-radius-md)] border border-red-300/20 bg-red-300/10 text-red-200">
+            <Trash2 className="h-5 w-5" />
+          </span>
+          <div>
+            <TDText id="bulk-remove-title" as="h2" variant="title">Remove {selectedCount.toLocaleString()} inventory records from your collection?</TDText>
+            <TDText tone="muted" className="mt-2">
+              These lots will no longer appear as owned inventory. Acquisition and history records are preserved where the event ledger is available.
+            </TDText>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-2 rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] p-3 sm:grid-cols-3">
+          <SummaryPill label="Records" value={selectedCount.toLocaleString()} />
+          <SummaryPill label="Quantity" value={selectedQuantity.toLocaleString()} />
+          <SummaryPill label="Est. value" value={selectedMarketValue > 0 ? currency(selectedMarketValue) : "Unavailable"} muted={selectedMarketValue <= 0} />
+        </div>
+        <div className="mt-4 rounded-[var(--td-radius-md)] border border-amber-300/15 bg-amber-300/[0.04] p-3 text-sm font-semibold leading-6 text-amber-100/80">
+          This is not recorded as a sale. Trading Docks will emit `quantity_removed`; rows reduced to zero are removed from active owned inventory by the authoritative collection mutation.
+        </div>
+        {error ? <TDErrorState title="Bulk removal failed" message={error} /> : null}
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <TDButton label="Cancel" variant="secondary" onClick={onCancel} disabled={loading} />
+          <TDButton label="Remove from collection" variant="danger" loading={loading} onClick={onConfirm} icon={<Trash2 className="h-4 w-4" />} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SummaryPill({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
+  return (
+    <div>
+      <TDText variant="caption" tone="muted">{label}</TDText>
+      <TDText variant="title" tone={muted ? "muted" : "primary"}>{value}</TDText>
+    </div>
   );
 }
 

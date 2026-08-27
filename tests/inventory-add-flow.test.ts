@@ -35,7 +35,10 @@ test("Inventory CSV import route defaults to inventory review and accepts presel
   assert.match(workspace, /initialLocationName=\{initialLocationName \|\| "Unassigned"\}/);
   assert.match(csv, /initialDestination = "download"/);
   assert.match(csv, /useState<"download" \| "inventory">\(initialDestination\)/);
-  assert.match(csv, /let location = locations\.find\(\(item\) => locationId && item\.id === locationId\)/);
+  assert.match(csv, /loadWebStorageLocationManager/);
+  assert.match(csv, /<option value="__unassigned__">Unassigned<\/option>/);
+  assert.match(csv, /location\.path\.label/);
+  assert.match(csv, /if \(locationId && !selectedLocation\) return setNotice\("Choose one of your active storage locations or use Unassigned\."\)/);
 });
 
 test("Storage location import preselects the active location without immediate mutation", () => {
@@ -48,6 +51,33 @@ test("Storage location import preselects the active location without immediate m
   assert.match(csv, /function loadCsv/);
   assert.match(csv, /setNotice\(`\$\{nextRows\.length\.toLocaleString\(\)\} rows loaded\. Review the field mapping below\.`\)/);
   assert.match(csv, /async function saveToInventory/);
+});
+
+test("CSV import can create a storage destination without losing review state", () => {
+  const csv = source("src/components/dashboard/tools/CsvConversionEngine.tsx");
+
+  assert.match(csv, /Create location/);
+  assert.match(csv, /createWebStorageLocation/);
+  assert.match(csv, /parentId: newLocationParentId \|\| null/);
+  assert.match(csv, /await refreshLocations\(result\.id\)/);
+  assert.match(csv, /setRows\(nextRows\)/);
+  assert.doesNotMatch(csv, /window\.location/);
+});
+
+test("bulk inventory removal is one server request with confirmation copy", () => {
+  const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
+  const route = source("src/app/api/collector-workspace/bulk-remove/route.ts");
+
+  assert.match(workspace, /Remove from collection/);
+  assert.match(workspace, /\/api\/collector-workspace\/bulk-remove/);
+  assert.match(workspace, /selectedQuantity/);
+  assert.match(workspace, /Acquisition and history records are preserved/);
+  assert.match(workspace, /quantity_removed/);
+  assert.match(route, /requireApiCapability\("collection\.write"\)/);
+  assert.match(route, /\.eq\("user_id", user\.id\)/);
+  assert.match(route, /rows\.length !== ids\.length/);
+  assert.match(route, /\.rpc\("remove_inventory_lot_quantity"/);
+  assert.match(route, /MAX_BULK_REMOVE_ROWS = 1000/);
 });
 
 test("Purchasing Intelligence remains an Acquire navigation surface", () => {

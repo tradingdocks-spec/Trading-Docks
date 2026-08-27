@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Boxes,
@@ -25,6 +25,11 @@ import {
   persistInventorySnapshotDiff,
   type InventoryPersistenceRecord,
 } from "@/lib/inventory-persistence";
+import {
+  createWebStorageLocation,
+  loadWebStorageLocationManager,
+} from "@/lib/storage-location-client-data";
+import type { StorageLocationType } from "@/lib/storage-location-manager";
 import {
   CANONICAL_FIELDS,
   CSV_TEMPLATES,
@@ -95,8 +100,14 @@ export function CsvConversionEngine({
   const [outputTemplateId, setOutputTemplateId] = useState("trading-docks");
   const [enrichedRows, setEnrichedRows] = useState<Record<number, EnrichedRow>>({});
   const [destination, setDestination] = useState<"download" | "inventory">(initialDestination);
-  const [locationName, setLocationName] = useState(initialLocationName);
+  const [locationName, setLocationName] = useState(initialLocationName || "Unassigned");
   const [locationId, setLocationId] = useState(initialLocationId);
+  const [availableLocations, setAvailableLocations] = useState<Array<{ id: string; name: string; type: StorageLocationType; label: string; assignedQuantity: number }>>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [showCreateLocation, setShowCreateLocation] = useState(false);
+  const [newLocationName, setNewLocationName] = useState("");
+  const [newLocationType, setNewLocationType] = useState<StorageLocationType>("box");
+  const [newLocationParentId, setNewLocationParentId] = useState("");
   const [marketplace, setMarketplace] = useState("Unlisted");
   const [defaultCondition, setDefaultCondition] = useState("Near Mint");
   const [defaultFinish, setDefaultFinish] = useState("Nonfoil");
@@ -154,6 +165,66 @@ export function CsvConversionEngine({
     );
   const allTcgplayerMatched = tcgplayerMode && validRows.length > 0 && missingTcgplayerSkuCount === 0;
   const unresolvedTcgplayerRows = validRows.filter((row) => !row.tcgplayerId.trim());
+  const selectedLocation = locationId ? availableLocations.find((location) => location.id === locationId) ?? null : null;
+  const importDestinationLabel = selectedLocation?.label ?? "Unassigned";
+
+  useEffect(() => {
+    if (destination === "inventory") void refreshLocations(locationId);
+    // Location loading intentionally follows the selected workflow/destination.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destination]);
+
+  async function refreshLocations(selectLocationId = locationId) {
+    setLocationsLoading(true);
+    try {
+      const state = await loadWebStorageLocationManager();
+      const options = state.summaries
+        .filter((location) => !location.archivedAt)
+        .map((location) => ({
+          id: location.id,
+          name: location.name,
+          type: location.type,
+          label: location.path.label,
+          assignedQuantity: location.assignedQuantity,
+        }))
+        .filter((location) => location.type !== "unknown");
+      setAvailableLocations(options);
+      const selected = selectLocationId ? options.find((location) => location.id === selectLocationId) : null;
+      if (selected) {
+        setLocationId(selected.id);
+        setLocationName(selected.label);
+      } else if (!selectLocationId) {
+        setLocationId("");
+        setLocationName("Unassigned");
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Storage locations could not be loaded.");
+    } finally {
+      setLocationsLoading(false);
+    }
+  }
+
+  async function createImportLocation() {
+    const cleanName = newLocationName.trim();
+    if (!cleanName) return setNotice("Name the storage location before creating it.");
+    setWorking(true);
+    try {
+      const result = await createWebStorageLocation({
+        name: cleanName,
+        type: newLocationType,
+        parentId: newLocationParentId || null,
+      });
+      setNewLocationName("");
+      setNewLocationParentId("");
+      setShowCreateLocation(false);
+      await refreshLocations(result.id);
+      setNotice(`${cleanName} is ready as the import destination.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Storage location could not be created.");
+    } finally {
+      setWorking(false);
+    }
+  }
 
   function loadCsv(text: string, name = "pasted-data.csv") {
     const matrix = parseCsv(text);
@@ -445,27 +516,22 @@ export function CsvConversionEngine({
 
   async function saveToInventory() {
     if (!validRows.length) return setNotice("Map a card or product name before saving.");
-    if (!locationName.trim()) return setNotice("Choose or enter a storage location.");
+    if (locationId && !selectedLocation) return setNotice("Choose one of your active storage locations or use Unassigned.");
     setWorking(true);
     try {
       const currentSnapshot = await loadInventorySnapshot();
       const locations = currentSnapshot.locations as unknown as LocationRecord[];
       const items = currentSnapshot.items;
       const movements = currentSnapshot.movements;
-      let location = locations.find((item) => locationId && item.id === locationId) ??
-        locations.find((item) => item.name.trim().toLowerCase() === locationName.trim().toLowerCase());
-      if (!location) {
-        location = {
-          id: crypto.randomUUID(),
-          name: locationName.trim(),
-          type: locationName.toLowerCase().includes("bulk") ? "chaos" : "custom",
-          description: "Created by CSV Conversion Engine",
-          itemCount: 0,
-          estimatedValue: 0,
-        };
-        locations.push(location);
-        setLocationId(location.id);
-      }
+      const location = selectedLocation ? locations.find((item) => item.id === selectedLocation.id) ?? {
+        id: selectedLocation.id,
+        name: selectedLocation.label,
+        type: selectedLocation.type === "binder" ? "binder" : selectedLocation.type === "bulk" ? "chaos" : "custom",
+        description: "Existing Trading Docks storage location",
+        itemCount: 0,
+        estimatedValue: 0,
+      } : null;
+      if (location && !locations.some((item) => item.id === location.id)) locations.push(location);
       const now = new Date().toISOString();
       const newItems = validRows.map((row) => {
         const reviewed = reviewCollectionLocationImportRow({
@@ -475,7 +541,7 @@ export function CsvConversionEngine({
           condition: row.condition,
           finish: row.finish,
           quantity: row.quantity,
-          storagePath: location.name,
+          storagePath: selectedLocation?.label ?? null,
           tcgplayerId: row.tcgplayerId,
         });
         const quantity = reviewed.quantity || 1;
@@ -486,7 +552,7 @@ export function CsvConversionEngine({
           sku: row.sku.trim() || `TD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
           category: "Single",
           quantity,
-          locationId: location!.id,
+          locationId: location?.id ?? null,
           condition: reviewed.condition,
           set: reviewed.setCode ?? row.set.trim().toUpperCase(),
           collectorNumber: reviewed.collectorNumber ?? row.collectorNumber.trim(),
@@ -497,6 +563,7 @@ export function CsvConversionEngine({
           costBasis: Math.max(0, Number.parseFloat(row.costBasis) || 0),
           unitMarketValue: price,
           value: price * quantity,
+          storagePath: selectedLocation?.label ?? "Unassigned",
           updatedAt: now,
           marketplaceListings:
             marketplace === "Unlisted"
@@ -504,12 +571,14 @@ export function CsvConversionEngine({
               : [{ platform: marketplace, status: "Active", quantity, price, updatedAt: now }],
         };
       });
-      location.itemCount += newItems.reduce((sum, item) => sum + item.quantity, 0);
-      location.estimatedValue += newItems.reduce((sum, item) => sum + item.value, 0);
+      if (location) {
+        location.itemCount += newItems.reduce((sum, item) => sum + item.quantity, 0);
+        location.estimatedValue += newItems.reduce((sum, item) => sum + item.value, 0);
+      }
       const movementRows = newItems.map((item) => ({
         id: crypto.randomUUID(),
         itemName: item.name,
-        to: location!.name,
+        to: selectedLocation?.label ?? "Unassigned",
         quantity: item.quantity,
         action: "filed",
         timestamp: now,
@@ -520,7 +589,7 @@ export function CsvConversionEngine({
         movements: [...movements, ...movementRows],
       });
       setNotice(
-        `${quantityTotal.toLocaleString()} units saved to ${location.name}${
+        `${quantityTotal.toLocaleString()} units saved to ${selectedLocation?.label ?? "Unassigned"}${
           marketplace === "Unlisted" ? "" : ` and allocated to ${marketplace}`
         }.`,
       );
@@ -635,10 +704,27 @@ export function CsvConversionEngine({
               </div>
               {hasAttemptedTcgplayerMatch && missingTcgplayerSkuCount ? <div className="rounded-xl border border-amber-300/10 bg-amber-300/[.025] p-3 text-[10px] leading-5 text-amber-100/65"><strong className="text-amber-200">Review unmatched cards.</strong><span className="mt-1 block">{unresolvedTcgplayerRows.slice(0, 5).map((row) => `${row.name} (${row.setName || row.set} ${row.collectorNumber}, ${tcgplayerCondition(row.condition, row.finish)}) — ${tcgplayerReasonLabel(row)}${row.tcgplayerTranslatedSetName ? ` · Set translated: ${row.tcgplayerTranslatedSetName}` : ""}`).join("; ")}</span></div> : null}
             </> : null}
-          </div> : <div className="mt-4 grid gap-3 rounded-2xl border border-white/[.07] bg-black/10 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-            <label><span className="text-[9px] font-semibold text-slate-500">Storage location</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><input value={locationName} onChange={(event) => { setLocationName(event.target.value); setLocationId(""); }} placeholder="Bulk Box 001" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none" /></div></label>
-            <label><span className="text-[9px] font-semibold text-slate-500">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><Store className="h-4 w-4 text-cyan-300" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-slate-300 outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
-            <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save cards</button>
+          </div> : <div className="mt-4 space-y-3 rounded-2xl border border-white/[.07] bg-black/10 p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+              <label className="flex-[1.5]"><span className="text-[9px] font-semibold text-slate-500">Import into</span><div className="mt-1.5 flex min-h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><MapPin className="h-4 w-4 text-cyan-300" /><select value={locationId || "__unassigned__"} onFocus={() => void refreshLocations(locationId)} onChange={(event) => {
+                const nextId = event.target.value === "__unassigned__" ? "" : event.target.value;
+                const next = availableLocations.find((location) => location.id === nextId);
+                setLocationId(nextId);
+                setLocationName(next?.label ?? "Unassigned");
+              }} className="min-w-0 flex-1 bg-transparent text-xs text-slate-300 outline-none"><option value="__unassigned__">Unassigned</option>{availableLocations.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></div></label>
+              <label className="flex-1"><span className="text-[9px] font-semibold text-slate-500">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-white/[.08] bg-[#050e15] px-3"><Store className="h-4 w-4 text-cyan-300" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-slate-300 outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
+              <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working || locationsLoading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save cards</button>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[10px] leading-5 text-slate-500"><strong className="text-slate-300">Destination:</strong> {importDestinationLabel}. {locationsLoading ? "Loading your storage locations..." : `${availableLocations.length.toLocaleString()} active locations available.`}</p>
+              <button type="button" onClick={() => setShowCreateLocation((value) => !value)} className="inline-flex h-9 items-center justify-center rounded-xl border border-cyan-300/15 px-3 text-[10px] font-bold text-cyan-100">{showCreateLocation ? "Cancel" : "Create location"}</button>
+            </div>
+            {showCreateLocation ? <div className="grid gap-3 rounded-2xl border border-cyan-300/10 bg-cyan-300/[.025] p-3 sm:grid-cols-[1fr_160px_1fr_auto] sm:items-end">
+              <label><span className="text-[9px] font-semibold text-slate-500">Name</span><input value={newLocationName} onChange={(event) => setNewLocationName(event.target.value)} placeholder="Bulk Box Three" className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-white outline-none" /></label>
+              <label><span className="text-[9px] font-semibold text-slate-500">Type</span><select value={newLocationType} onChange={(event) => setNewLocationType(event.target.value as StorageLocationType)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300 outline-none"><option value="area">Area</option><option value="shelf">Shelf</option><option value="box">Box</option><option value="binder">Binder</option><option value="section">Section</option><option value="slot">Slot</option><option value="bulk">Bulk</option><option value="custom">Custom</option></select></label>
+              <label><span className="text-[9px] font-semibold text-slate-500">Parent location</span><select value={newLocationParentId} onChange={(event) => setNewLocationParentId(event.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-[#050e15] px-3 text-xs text-slate-300 outline-none"><option value="">No parent</option>{availableLocations.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></label>
+              <button type="button" onClick={() => void createImportLocation()} disabled={!newLocationName.trim() || working} className="inline-flex h-10 items-center justify-center rounded-xl bg-cyan-300 px-4 text-[10px] font-bold text-[#001018] disabled:opacity-40">Create</button>
+            </div> : null}
           </div>}
         </>}
       </section>

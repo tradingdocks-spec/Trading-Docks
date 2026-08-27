@@ -47,3 +47,19 @@ test("Collector Workspace partial move and removal use authoritative lot RPCs", 
   assert.match(source, /\.rpc\("remove_inventory_lot_quantity"/);
   assert.match(source, /p_reason: mutation\.reason/);
 });
+
+test("Collector Workspace bulk removal validates ownership and reuses the lot removal RPC", () => {
+  const source = readFileSync(
+    path.join(repoRoot, "src/app/api/collector-workspace/bulk-remove/route.ts"),
+    "utf8",
+  );
+
+  assert.match(source, /requireApiCapability\("collection\.write"\)/);
+  assert.match(source, /\.from\("inventory_items"\)/);
+  assert.match(source, /\.eq\("user_id", user\.id\)/);
+  assert.match(source, /\.in\("id", ids\)/);
+  assert.match(source, /rows\.length !== ids\.length/);
+  assert.match(source, /\.rpc\("remove_inventory_lot_quantity"/);
+  assert.match(source, /p_reason: reason/);
+  assert.match(source, /eventTypes: \["quantity_removed"\]/);
+});
