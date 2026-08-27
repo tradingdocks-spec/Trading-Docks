@@ -355,8 +355,8 @@ test('batch scanner state instruction model stays single-purpose', () => {
 });
 
 test('batch scanner timing summary normalizes latency without image data', () => {
-  const timing = batchScannerTimingSummary({ captureMs: 12.3, ocrMs: 88.8, scryfallMs: 140.2, sessionWriteMs: 5, totalMs: 250.7, fallbackCount: 2 });
-  assert.deepEqual(timing, { captureMs: 12, cropMs: null, ocrMs: 89, scryfallMs: 140, sessionWriteMs: 5, totalMs: 251, fallbackCount: 2 });
+  const timing = batchScannerTimingSummary({ captureMs: 12.3, recognitionMs: 14.2, ocrMs: 88.8, scryfallMs: 140.2, sessionWriteMs: 5, totalMs: 250.7, fallbackCount: 2 });
+  assert.deepEqual(timing, { captureMs: 12, cropMs: null, recognitionMs: 14, ocrMs: 89, scryfallMs: 140, sessionWriteMs: 5, totalMs: 251, fallbackCount: 2 });
 });
 
 test('empty scanner session strip stays simplified with missing values compacted', () => {

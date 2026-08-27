@@ -255,6 +255,7 @@ export type BatchScannerNoticeModel = {
 export type BatchScannerTimingSnapshot = {
   captureMs: number | null;
   cropMs: number | null;
+  recognitionMs: number | null;
   ocrMs: number | null;
   scryfallMs: number | null;
   sessionWriteMs: number | null;
@@ -816,6 +817,7 @@ export function batchScannerTimingSummary(input: Partial<BatchScannerTimingSnaps
   return {
     captureMs: normalizeTiming(input.captureMs),
     cropMs: normalizeTiming(input.cropMs),
+    recognitionMs: normalizeTiming(input.recognitionMs),
     ocrMs: normalizeTiming(input.ocrMs),
     scryfallMs: normalizeTiming(input.scryfallMs),
     sessionWriteMs: normalizeTiming(input.sessionWriteMs),

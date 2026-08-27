@@ -11,6 +11,7 @@ export type ScannerPerformanceSample = {
   sequence: number;
   source: 'assisted_capture' | 'manual_search';
   captureMs: number | null;
+  recognitionMs: number | null;
   ocrMs: number | null;
   scryfallLookupMs: number | null;
   sessionWriteMs: number | null;
@@ -23,6 +24,7 @@ export type ScannerPerformanceSample = {
 
 export type ScannerPerformanceAverages = {
   averageScanTimeMs: number | null;
+  averageRecognitionTimeMs: number | null;
   averageOcrTimeMs: number | null;
   averageScryfallLookupTimeMs: number | null;
   averageTotalUntilSessionInsertionMs: number | null;
@@ -52,6 +54,7 @@ export function createScannerPerformanceSample(input: {
     sequence: nextSequence(input.previousSamples),
     source: input.source,
     captureMs: input.timing.captureMs,
+    recognitionMs: input.timing.recognitionMs,
     ocrMs: input.timing.ocrMs,
     scryfallLookupMs: input.timing.scryfallMs,
     sessionWriteMs: input.timing.sessionWriteMs,
@@ -79,6 +82,7 @@ export function buildScannerPerformanceReport(samples: ScannerPerformanceSample[
     historyLimit: SCANNER_PERFORMANCE_HISTORY_LIMIT,
     averages: {
       averageScanTimeMs: averageMetric(boundedSamples.map((sample) => sample.captureMs)),
+      averageRecognitionTimeMs: averageMetric(boundedSamples.map((sample) => sample.recognitionMs)),
       averageOcrTimeMs: averageMetric(boundedSamples.map((sample) => sample.ocrMs)),
       averageScryfallLookupTimeMs: averageMetric(boundedSamples.map((sample) => sample.scryfallLookupMs)),
       averageTotalUntilSessionInsertionMs: averageMetric(boundedSamples.map((sample) => sample.totalUntilSessionInsertionMs)),
@@ -100,6 +104,7 @@ export function serializeScannerBenchmarkSummary(report: ScannerPerformanceRepor
     '',
     `Samples: ${report.sampleCount}/${report.historyLimit}`,
     `Average scan time: ${formatMs(report.averages.averageScanTimeMs)}`,
+    `Average recognition time: ${formatMs(report.averages.averageRecognitionTimeMs)}`,
     `Average OCR time: ${formatMs(report.averages.averageOcrTimeMs)}`,
     `Average Scryfall lookup time: ${formatMs(report.averages.averageScryfallLookupTimeMs)}`,
     `Average total until session insertion: ${formatMs(report.averages.averageTotalUntilSessionInsertionMs)}`,
@@ -149,5 +154,6 @@ function unavailablePerformanceFields(samples: ScannerPerformanceSample[]) {
   if (samples.every((sample) => sample.cameraFps === null)) unavailable.push('camera_fps');
   if (samples.every((sample) => sample.previewResolution === null)) unavailable.push('preview_resolution');
   if (samples.every((sample) => sample.captureResolution === null)) unavailable.push('capture_resolution');
+  if (samples.every((sample) => sample.recognitionMs === null)) unavailable.push('recognition_time');
   return unavailable;
 }

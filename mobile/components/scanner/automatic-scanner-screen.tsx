@@ -468,6 +468,7 @@ export default function AutomaticScannerScreen() {
     state: scanner2State,
   });
   const showAddedOverlay = scanner2State === 'added' || scanner2State === 'remove_card';
+  const showRemovalBanner = scanner2State === 'remove_card';
   const logCameraEvent = useCallback((event: Omit<ScannerCameraRuntimeEvent, 'id'>) => {
     setCameraEvents((current) => appendScannerCameraEvent(current, event));
   }, []);
@@ -824,6 +825,7 @@ export default function AutomaticScannerScreen() {
 
   const addCandidateToBatch = useCallback((input: {
     candidate: ScannerCardCandidate;
+    candidates: ScannerCardCandidate[];
     recognition: MagicRecognitionResult | null;
     stableScanId: string;
     recognitionCycleId: string;
@@ -838,7 +840,7 @@ export default function AutomaticScannerScreen() {
     const startedAt = scannerNow();
     const recognitionReport = createRecognitionPipelineReport({
       detectedGame: scanGame,
-      candidates: [input.candidate, ...candidates.filter((candidate) => candidate.id !== input.candidate.id)],
+      candidates: [input.candidate, ...input.candidates.filter((candidate) => candidate.id !== input.candidate.id)],
       confidence: input.recognition?.ok ? input.recognition.confidence : {
         overall: Math.round(input.candidate.confidence * 100),
         threshold: 82,
@@ -948,7 +950,6 @@ export default function AutomaticScannerScreen() {
     binderLocationId,
     binderPage,
     binderSlot,
-    candidates,
     capturedFrame,
     condition,
     diagnosticsEnabled,
@@ -1029,6 +1030,7 @@ export default function AutomaticScannerScreen() {
       setAutoCaptureRuntime(autoCaptureRuntimeRef.current);
       setAutoScanner((current) => markCaptureStarted(current));
       if (scanGame === 'pokemon') {
+        const recognitionStartedAt = scannerNow();
         const preparedImage = await prepareTcgTrackingScanImage({
           imageUri: photo.uri,
           cropPixels: null,
@@ -1053,13 +1055,16 @@ export default function AutomaticScannerScreen() {
         if (batchCandidate) {
           addCandidateToBatch({
             candidate: batchCandidate,
+            candidates: pokemonScan.candidates,
             recognition: null,
+            recognitionCycleId: captureId,
             stableScanId: captureId,
             source: 'assisted_capture',
             fingerprint: frameLabel,
             captureResolution: { width: photo.width, height: photo.height },
             timing: {
               captureMs: cameraCaptureMs,
+              recognitionMs: scannerNow() - recognitionStartedAt,
               ocrMs: null,
               scryfallMs: null,
               totalMs: scannerNow() - captureStartedAt,
@@ -1069,6 +1074,7 @@ export default function AutomaticScannerScreen() {
         }
         return;
       }
+      const recognitionStartedAt = scannerNow();
       const scan = await recognizeMagicStillCapture({
         imageUri: photo.uri,
         preview: previewDimensions ?? { width: previewWidth, height: cameraStageHeight },
@@ -1105,6 +1111,7 @@ export default function AutomaticScannerScreen() {
         if (batchCandidate) {
           addCandidateToBatch({
             candidate: batchCandidate,
+            candidates: scan.candidates,
             recognition: scan.recognition,
             recognitionCycleId: captureId,
             stableScanId: captureId,
@@ -1113,6 +1120,7 @@ export default function AutomaticScannerScreen() {
             captureResolution: { width: photo.width, height: photo.height },
             timing: {
               captureMs: cameraCaptureMs,
+              recognitionMs: scannerNow() - recognitionStartedAt,
               cropMs: scan.cropDiagnostics ? null : null,
               ocrMs: scan.ocr.latencyMs,
               scryfallMs: scan.lookupLatencyMs,
@@ -1169,6 +1177,7 @@ export default function AutomaticScannerScreen() {
     query,
     recognitionStage,
     scanGame,
+    nextRecognitionCycleId,
     userPausedCamera,
   ]);
   useEffect(() => {
@@ -1639,6 +1648,13 @@ export default function AutomaticScannerScreen() {
             message={batchNotice.message}
           />
         ) : null}
+        {showRemovalBanner ? (
+          <ScannerToast
+            tone="info"
+            title="Remove card"
+            message="Swap in the next card to keep scanning."
+          />
+        ) : null}
 
         {visibleSurface === 'progress' && searching ? null : null}
         {visibleSurface === 'progress' && recognitionStage === 'reading_title' ? null : null}
@@ -1809,6 +1825,7 @@ export default function AutomaticScannerScreen() {
                 selectCandidate(candidate);
                 addCandidateToBatch({
                   candidate,
+                  candidates,
                   recognition: magicRecognition,
                   recognitionCycleId: manualSearchCycleId,
                   stableScanId: manualSearchCycleId,
@@ -1909,6 +1926,7 @@ export default function AutomaticScannerScreen() {
               <DiagnosticCell label="Lookup latency" value={magicStillScan?.lookupDiagnostics ? `${magicStillScan.lookupDiagnostics.lookupLatencyMs} ms` : 'unavailable'} />
               <DiagnosticCell label="Top three" value={magicStillScan?.lookupDiagnostics?.topThreeCandidateNames.join(' | ') || 'unavailable'} />
               <DiagnosticCell label="Avg scan" value={performanceMs(scannerPerformanceReport.averages.averageScanTimeMs)} />
+              <DiagnosticCell label="Avg recognition" value={performanceMs(scannerPerformanceReport.averages.averageRecognitionTimeMs)} />
               <DiagnosticCell label="Avg OCR" value={performanceMs(scannerPerformanceReport.averages.averageOcrTimeMs)} />
               <DiagnosticCell label="Avg Scryfall" value={performanceMs(scannerPerformanceReport.averages.averageScryfallLookupTimeMs)} />
               <DiagnosticCell label="Avg to session" value={performanceMs(scannerPerformanceReport.averages.averageTotalUntilSessionInsertionMs)} />
@@ -2470,10 +2488,10 @@ function AutoScanDiagnosticsOverlay({
         state {autoState} - rectangle {rectangleConfidence === null ? 'unavailable' : `${Math.round(rectangleConfidence * 100)}%`}
       </TDText>
       <TDText variant="caption" tone="muted">
-        frame {performanceMs(frameDeltaMs)} - capture {performanceMs(timings?.captureMs ?? null)} - OCR {performanceMs(timings?.ocrMs ?? null)}
+        frame {performanceMs(frameDeltaMs)} - capture {performanceMs(timings?.captureMs ?? null)} - recognition {performanceMs(timings?.recognitionMs ?? null)}
       </TDText>
       <TDText variant="caption" tone="muted">
-        lookup {performanceMs(timings?.scryfallMs ?? null)} - result {performanceMs(timings?.totalMs ?? null)} - rearm {awaitingRemoval ? 'waiting' : 'ready'}
+        OCR {performanceMs(timings?.ocrMs ?? null)} - lookup {performanceMs(timings?.scryfallMs ?? null)} - result {performanceMs(timings?.totalMs ?? null)} - rearm {awaitingRemoval ? 'waiting' : 'ready'}
       </TDText>
     </View>
   );
@@ -2530,7 +2548,7 @@ function cleanupDiagnostic(scan: MagicStillScanResult | null) {
 
 function scanTimingSummary(timing: BatchScannerTimingSnapshot | undefined) {
   if (!timing) return 'unavailable';
-  return `capture ${timing.captureMs ?? '?'} ms; OCR ${timing.ocrMs ?? '?'} ms; Scryfall ${timing.scryfallMs ?? '?'} ms; session ${timing.sessionWriteMs ?? '?'} ms; total ${timing.totalMs ?? '?'} ms; fallback ${timing.fallbackCount}`;
+  return `capture ${timing.captureMs ?? '?'} ms; recognition ${timing.recognitionMs ?? '?'} ms; OCR ${timing.ocrMs ?? '?'} ms; Scryfall ${timing.scryfallMs ?? '?'} ms; session ${timing.sessionWriteMs ?? '?'} ms; total ${timing.totalMs ?? '?'} ms; fallback ${timing.fallbackCount}`;
 }
 
 function performanceMs(value: number | null) {

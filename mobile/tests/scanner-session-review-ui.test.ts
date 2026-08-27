@@ -62,10 +62,11 @@ test('card review sheet owns editable fields and preserves review actions', () =
   assert.match(sheet, /finishLabel\(finish\)/);
   assert.match(sheet, /label="Market price"/);
   assert.match(sheet, /label="Cash percentage"/);
-  assert.match(sheet, /Save and mark reviewed/);
+  assert.match(sheet, /Save and next|Save changes/);
   assert.match(sheet, /View other printings/);
   assert.match(sheet, /PrintingSelectorSheet/);
   assert.match(sheet, /Remove card/);
+  assert.match(sheet, /Tap again to remove/);
   assert.match(sheet, /More options/);
   assert.match(sheet, /Bottom-left OCR/);
   assert.match(sheet, /parseOptionalMoney/);

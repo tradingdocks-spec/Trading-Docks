@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TDBadge, TDButton, TDEmptyState, TDErrorState, TDIconButton, TDInput, TDLoadingState, TDScreen, TDSegmentedControl, TDSheet, TDText } from '@/components/design-system';
@@ -353,6 +353,8 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const [printingSelectorOpen, setPrintingSelectorOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [removeArmed, setRemoveArmed] = useState(false);
+  const removeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!line) return;
@@ -362,7 +364,16 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
     setMoreOptionsOpen(false);
     setPrintingSelectorOpen(false);
     setNotice(null);
+    setRemoveArmed(false);
+    if (removeTimerRef.current) {
+      clearTimeout(removeTimerRef.current);
+      removeTimerRef.current = null;
+    }
   }, [line]);
+
+  useEffect(() => () => {
+    if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
+  }, []);
 
   if (!line) return null;
   const imageUrl = line.recognition.topCandidate?.imageUrl ?? null;
@@ -382,11 +393,18 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
     }, markReviewed);
   };
 
-  const confirmRemove = () => {
-    Alert.alert('Remove card?', 'This removes the card from this scanner session.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => onRemove(line.id) },
-    ]);
+  const handleRemovePress = () => {
+    if (removeArmed) {
+      onRemove(line.id);
+      return;
+    }
+    setRemoveArmed(true);
+    setNotice('Tap remove again to delete this card from the session.');
+    if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
+    removeTimerRef.current = setTimeout(() => {
+      setRemoveArmed(false);
+      removeTimerRef.current = null;
+    }, 1800);
   };
 
   return (
@@ -401,13 +419,18 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
                   <TDText variant="heading" numberOfLines={2}>{line.cardName}</TDText>
                   <TDText variant="small" tone="muted">{sessionGameLabel(line.game)} - {line.setCode ?? 'Set unavailable'} #{line.collectorNumber ?? '?'}</TDText>
                   <TDText variant="caption" tone="muted">{plainReviewCopy(line)}</TDText>
+                  <View style={s.reviewPills}>
+                    <TDBadge tone={line.reviewStatus === 'confirmed' ? 'success' : line.reviewStatus === 'needs_review' ? 'warning' : 'info'}>{sessionReviewStatusLabel(line.reviewStatus)}</TDBadge>
+                    <TDBadge tone="info">x{line.quantity}</TDBadge>
+                    <TDBadge tone="info">{displayFinish(String(line.finish) as never)}</TDBadge>
+                  </View>
                 </View>
               </View>
               <View style={s.detailGrid}>
                 <TDInput label="Quantity" value={quantity} keyboardType="numeric" onChangeText={setQuantity} />
-                <TDInput label="Condition" value={displayCondition(line.condition)} editable={false} />
                 <TDInput label="Market price" value={marketPrice} keyboardType="decimal-pad" placeholder={line.priceSource === 'pricing_pending' ? 'Pricing...' : '-'} onChangeText={setMarketPrice} />
                 <TDInput label="Cash percentage" value={purchasePercentage} keyboardType="numeric" onChangeText={setPurchasePercentage} />
+                <TDInput label="Condition" value={displayCondition(line.condition)} editable={false} />
               </View>
               {notice ? (
                 <View style={s.syncNotice}>
@@ -459,9 +482,9 @@ function CardReviewSheet({ visible, line, onClose, onSave, onRemove }: { visible
                   <TDInput label="Confidence evidence" value={line.recognition.conflictingSignals.join('; ') || 'No conflicts'} editable={false} />
                 </View>
               ) : null}
-              <TDButton label={line.reviewStatus === 'needs_review' ? 'Save and mark reviewed' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
-              <View style={s.destructiveZone}>
-                <TDButton label="Remove card" variant="danger" onPress={confirmRemove} />
+              <TDButton label={line.reviewStatus === 'needs_review' ? 'Save and next' : 'Save changes'} onPress={() => save(line.reviewStatus === 'needs_review')} />
+              <View style={s.compactDestructiveZone}>
+                <TDButton label={removeArmed ? 'Tap again to remove' : 'Remove card'} variant="danger" onPress={handleRemovePress} />
               </View>
             </ScrollView>
           </TDSheet>
@@ -645,7 +668,8 @@ const s = StyleSheet.create({
   offerPanel: { gap: space.xs, borderRadius: radius.md, padding: space.md, backgroundColor: color.canvasRaised },
   moreOptionsToggle: { minHeight: 48, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, paddingHorizontal: space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: color.surface },
   moreOptionsPanel: { gap: space.sm, borderRadius: radius.md, padding: space.md, backgroundColor: color.canvasRaised },
-  destructiveZone: { borderTopWidth: 1, borderTopColor: color.border, paddingTop: space.md },
+  reviewPills: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.xs },
+  compactDestructiveZone: { paddingTop: space.xs },
   finalizeBar: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 76, borderTopWidth: 1, borderTopColor: color.borderStrong, paddingHorizontal: space.md, paddingTop: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.canvas + 'F4' },
   finalizeAction: { flex: 1, gap: 2 },
 });
