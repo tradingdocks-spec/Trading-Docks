@@ -1078,8 +1078,8 @@ function BulkRemoveDialog({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-remove-title">
-      <section className="w-full max-w-lg rounded-[var(--td-radius-xl)] border border-red-300/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[160] flex items-start justify-center overflow-y-auto bg-black/60 px-4 pb-4 pt-[12vh]" role="dialog" aria-modal="true" aria-labelledby="bulk-remove-title">
+      <section className="max-h-[calc(100dvh-16vh)] w-full max-w-lg overflow-y-auto rounded-[var(--td-radius-xl)] border border-red-300/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--td-radius-md)] border border-red-300/20 bg-red-300/10 text-red-200">
             <Trash2 className="h-5 w-5" />

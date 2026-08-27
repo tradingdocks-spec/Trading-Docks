@@ -80,6 +80,17 @@ test("bulk inventory removal is one server request with confirmation copy", () =
   assert.match(route, /MAX_BULK_REMOVE_ROWS = 1000/);
 });
 
+test("bulk inventory removal dialog is fixed near the viewport top", () => {
+  const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
+
+  assert.match(workspace, /fixed inset-0/);
+  assert.match(workspace, /items-start justify-center/);
+  assert.match(workspace, /pt-\[12vh\]/);
+  assert.match(workspace, /max-h-\[calc\(100dvh-16vh\)\]/);
+  assert.match(workspace, /overflow-y-auto/);
+  assert.doesNotMatch(workspace, /grid place-items-center bg-black\/60 p-4/);
+});
+
 test("Purchasing Intelligence remains an Acquire navigation surface", () => {
   const navigation = source("src/components/dashboard/navigation.ts");
   const routeAccess = source("src/lib/platform/route-access.ts");
