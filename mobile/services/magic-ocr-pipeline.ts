@@ -288,6 +288,7 @@ export async function recognizeMagicStillCapture(input: {
     }) : null;
     const visualCandidate = acceptedVisualCandidateFromFusion(multiSignal);
     if (visualCandidate) {
+      const resolvedMultiSignal = multiSignal!;
       const lookupDiagnostics = createStillLookupDiagnostics(emptySignals(), {
         queryString: null,
         httpStatus: null,
@@ -300,10 +301,10 @@ export async function recognizeMagicStillCapture(input: {
         ok: true,
         ocr: { ok: true, provider: 'apple_vision', fullText: '', observations: [], latencyMs: ocr.latencyMs, orientationUsed: 'unavailable', warnings: ['OCR failed; visual fingerprint supplied identity.'] },
         signals: emptySignals(),
-        recognition: recognitionFromFusion(multiSignal, [visualCandidate]),
+        recognition: recognitionFromFusion(resolvedMultiSignal, [visualCandidate]),
         candidates: [visualCandidate],
         selected: visualCandidate,
-        confidenceLabel: confidenceLabel(recognitionFromFusion(multiSignal, [visualCandidate])),
+        confidenceLabel: confidenceLabel(recognitionFromFusion(resolvedMultiSignal, [visualCandidate])),
         mapping,
         cropDiagnostics,
         lookupLatencyMs: 0,
@@ -331,14 +332,15 @@ export async function recognizeMagicStillCapture(input: {
     input.onLookupDiagnostics?.(lookupDiagnostics);
     const visualCandidate = acceptedVisualCandidateFromFusion(baseMultiSignal);
     if (visualCandidate) {
+      const resolvedMultiSignal = baseMultiSignal!;
       return {
         ok: true,
         ocr,
         signals,
-        recognition: recognitionFromFusion(baseMultiSignal, [visualCandidate]),
+        recognition: recognitionFromFusion(resolvedMultiSignal, [visualCandidate]),
         candidates: [visualCandidate],
         selected: visualCandidate,
-        confidenceLabel: confidenceLabel(recognitionFromFusion(baseMultiSignal, [visualCandidate])),
+        confidenceLabel: confidenceLabel(recognitionFromFusion(resolvedMultiSignal, [visualCandidate])),
         mapping,
         cropDiagnostics,
         lookupLatencyMs: 0,
@@ -427,7 +429,7 @@ export async function recognizeMagicStillCapture(input: {
     return { ok: false, code: 'candidate_lookup_failed', reason: 'No matching card found. Try again or search manually.', ocr, mapping, cropDiagnostics, signals, lookupDiagnostics, multiSignal, cleanup: cleanupResult };
   }
   const recognitionForResult = multiSignal?.status === 'append_identity' && visualCandidate
-    ? recognitionFromFusion(multiSignal, candidates)
+    ? recognitionFromFusion(multiSignal!, candidates)
     : cappedRecognition;
   return {
     ok: true,
