@@ -7,6 +7,7 @@ import {
   normalizeLiveOcrRoi,
   rapidTitleRoiForFrame,
   rapidTitleRoiForStage,
+  rapidTitleRoiForVisionFrame,
   runRapidLiveTitleOcr,
   stopRapidLiveOcr,
   visionRoiFromTopLeftRoi,
@@ -37,6 +38,17 @@ const frame: ScannerCameraFrame = {
   source: 'vision-camera',
   previewResolution: { width: 1080, height: 1920 },
 };
+
+const detectedVision = {
+  crop: {
+    bounds: {
+      x: 160,
+      y: 220,
+      width: 640,
+      height: 860,
+    },
+  },
+} as ScannerVisionResult;
 
 const index = buildRapidMagicNameIndex([
   { name: 'Sol Ring', oracleId: 'oracle-sol-ring', scryfallId: 'sf-sol-ring' },
@@ -86,6 +98,14 @@ test('Rapid title ROI stages expand within the detected card zone', () => {
   assert.ok(upper.height > expanded.height);
   assert.ok(upper.x >= 0.18);
   assert.ok(upper.y >= 0.12);
+});
+
+test('vision-aware live OCR ROI prefers the detected card bounds over the fixed zone', () => {
+  const roi = rapidTitleRoiForVisionFrame({ ...frame, width: 1000, height: 1600 }, detectedVision, 'title_primary');
+  assert.ok(Math.abs(roi.x - 0.2112) < 0.001);
+  assert.ok(Math.abs(roi.y - 0.1670625) < 0.001);
+  assert.ok(Math.abs(roi.width - 0.5376) < 0.001);
+  assert.ok(Math.abs(roi.height - 0.059125) < 0.001);
 });
 
 test('ROI normalization clamps expanded regions into frame bounds', () => {

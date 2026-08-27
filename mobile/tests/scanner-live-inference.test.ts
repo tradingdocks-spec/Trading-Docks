@@ -158,10 +158,32 @@ test('weak ambiguous evidence stays in Reading with keep-scanning copy', () => {
   assert.equal(state.subtitle, 'Keep scanning');
 });
 
+test('warming recognition shows Preparing recognition instead of Looking', () => {
+  const state = updateScannerLiveInference(createScannerLiveInferenceState(), sample({
+    frameId: 'frame-warmup',
+    observedAt: 1000,
+    fingerprint: 'fp-warmup',
+    recognitionReady: false,
+    candidateName: null,
+    confidenceBand: 'low',
+    matchScore: null,
+    visualSimilarity: 0.12,
+    rawOcrText: 'Raff Sec',
+    normalizedOcrText: 'Raff Sec',
+    route: 'continue_reading',
+    outcomeStatus: 'retry',
+  }));
+
+  assert.equal(state.stage, 'reading');
+  assert.equal(state.headline, 'Preparing recognition...');
+  assert.equal(state.subtitle, 'Keep scanning');
+});
+
 function sample(overrides: {
   frameId: string;
   observedAt: number;
   fingerprint?: string;
+  recognitionReady?: boolean;
   candidateName: string | null;
   exactPrintingId?: string | null;
   exactPrintingLabel?: string | null;
@@ -177,6 +199,7 @@ function sample(overrides: {
     frameId: overrides.frameId,
     observedAt: overrides.observedAt,
     fingerprint: overrides.fingerprint ?? `fp-${overrides.frameId}`,
+    recognitionReady: overrides.recognitionReady ?? true,
     candidateName: overrides.candidateName,
     exactPrintingId: overrides.exactPrintingId ?? null,
     exactPrintingLabel: overrides.exactPrintingLabel ?? null,

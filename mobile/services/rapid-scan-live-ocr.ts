@@ -64,6 +64,7 @@ export type RapidLiveOcrDiagnostics = {
   catalogLoaded: boolean;
   catalogCardCount: number;
   indexReady: boolean;
+  titleRoiSource: 'detected_card' | 'fixed_zone';
   prewarmMs: number | null;
   fusion?: {
     geometryQuality: number;
@@ -159,7 +160,7 @@ export function stopRapidLiveOcr(state: RapidLiveOcrState): RapidLiveOcrState {
 }
 
 export function rapidTitleRoiForFrame(frame: Pick<ScannerCameraFrame, 'width' | 'height'>) {
-  return rapidTitleRoiForStage('title_primary', frame);
+  return rapidTitleRoiForVisionFrame(frame, null, 'title_primary');
 }
 
 export function rapidTitleRoiForStage(stage: RapidTitleRoiStage, frame: Pick<ScannerCameraFrame, 'width' | 'height'>) {
@@ -176,6 +177,28 @@ export function rapidTitleRoiForStage(stage: RapidTitleRoiStage, frame: Pick<Sca
     height: cardRelative.height * card.height,
   };
   return normalizeLiveOcrRoi(roi, frame);
+}
+
+export function rapidTitleRoiForVisionFrame(
+  frame: Pick<ScannerCameraFrame, 'width' | 'height'>,
+  vision: ScannerVisionResult | null,
+  stage: RapidTitleRoiStage = 'title_primary',
+): NativeLiveTitleOcrRequest['roi'] {
+  const bounds = vision?.crop?.bounds ?? null;
+  if (!bounds || frame.width <= 0 || frame.height <= 0) {
+    return rapidTitleRoiForStage(stage, frame);
+  }
+  const cardRelative = stage === 'title_primary'
+    ? { x: 0.08, y: 0.055, width: 0.84, height: 0.11 }
+    : stage === 'title_expanded'
+      ? { x: 0.05, y: 0.03, width: 0.9, height: 0.16 }
+      : { x: 0.04, y: 0.02, width: 0.92, height: 0.245 };
+  return normalizeLiveOcrRoi({
+    x: (bounds.x + bounds.width * cardRelative.x) / frame.width,
+    y: (bounds.y + bounds.height * cardRelative.y) / frame.height,
+    width: (bounds.width * cardRelative.width) / frame.width,
+    height: (bounds.height * cardRelative.height) / frame.height,
+  }, frame);
 }
 
 export function normalizeLiveOcrRoi(
@@ -199,7 +222,10 @@ export function visionRoiFromTopLeftRoi(roi: NativeLiveTitleOcrRequest['roi']): 
   };
 }
 
-export function buildLiveTitleOcrRequest(frame: ScannerCameraFrame, roi = rapidTitleRoiForFrame(frame)): NativeLiveTitleOcrRequest {
+export function buildLiveTitleOcrRequest(
+  frame: ScannerCameraFrame,
+  roi = rapidTitleRoiForFrame(frame),
+): NativeLiveTitleOcrRequest {
   return {
     frameId: frame.id,
     width: frame.width,
@@ -242,6 +268,7 @@ export async function runRapidLiveTitleOcr(input: {
           failureStage: 'NO_LOCAL_MATCH',
           catalogCardCount: 0,
           indexReady: false,
+          titleRoiSource: 'fixed_zone',
           prewarmMs: input.nameIndex.prewarmMs ?? null,
         }),
       },
@@ -251,7 +278,7 @@ export async function runRapidLiveTitleOcr(input: {
 
   const token = input.state.activeToken + 1;
   const startedAt = now();
-  const initialRequest = buildLiveTitleOcrRequest(input.frame, rapidTitleRoiForStage('title_primary', input.frame));
+  const initialRequest = buildLiveTitleOcrRequest(input.frame, rapidTitleRoiForVisionFrame(input.frame, input.vision ?? null, 'title_primary'));
   const validation = validateNativeLiveTitleOcrRequest(initialRequest);
   if (!validation.ok) return {
     state: incrementMetric(input.state, 'framesSkipped'),
@@ -274,7 +301,7 @@ export async function runRapidLiveTitleOcr(input: {
   let usedStage: RapidTitleRoiStage = 'title_primary';
   for (const stage of RAPID_TITLE_ROI_STAGES) {
     usedStage = stage;
-    nativeRequest = buildLiveTitleOcrRequest(input.frame, rapidTitleRoiForStage(stage, input.frame));
+    nativeRequest = buildLiveTitleOcrRequest(input.frame, rapidTitleRoiForVisionFrame(input.frame, input.vision ?? null, stage));
     nativeResult = await native(nativeRequest);
     if (nativeResult.ok && nativeResult.text.trim() && nativeResult.confidence >= 45) break;
     if (!nativeResult.ok && nativeResult.code !== 'empty_result') break;
@@ -333,6 +360,7 @@ export async function runRapidLiveTitleOcr(input: {
         ocrDurationMs: failure.durationMs,
         catalogCardCount: input.nameIndex.records.length,
         indexReady: true,
+        titleRoiSource: input.vision?.crop?.bounds ? 'detected_card' : 'fixed_zone',
         prewarmMs: input.nameIndex.prewarmMs ?? null,
       }, fusion?.activeDiagnostics),
     };
@@ -404,6 +432,7 @@ export async function runRapidLiveTitleOcr(input: {
       catalogLoaded: true,
       catalogCardCount: input.nameIndex.records.length,
       indexReady: true,
+      titleRoiSource: input.vision?.crop?.bounds ? 'detected_card' : 'fixed_zone',
       prewarmMs: input.nameIndex.prewarmMs ?? null,
       fusion: fusion?.activeDiagnostics,
     },
@@ -524,6 +553,7 @@ function diagnosticBase(
     ocrDurationMs?: number | null;
     catalogCardCount: number;
     indexReady: boolean;
+    titleRoiSource: RapidLiveOcrDiagnostics['titleRoiSource'];
     prewarmMs: number | null;
   },
   fusion?: ReturnType<typeof recognizeScannerFrameWithFusion>['activeDiagnostics'],
@@ -547,6 +577,7 @@ function diagnosticBase(
     catalogLoaded: input.catalogCardCount > 0,
     catalogCardCount: input.catalogCardCount,
     indexReady: input.indexReady,
+    titleRoiSource: input.titleRoiSource,
     prewarmMs: input.prewarmMs,
     fusion,
   };

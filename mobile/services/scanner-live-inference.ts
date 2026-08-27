@@ -7,6 +7,7 @@ export type ScannerLiveInferenceSample = {
   frameId: string;
   observedAt: number;
   fingerprint: string | null;
+  recognitionReady: boolean;
   candidateName: string | null;
   exactPrintingId: string | null;
   exactPrintingLabel: string | null;
@@ -58,6 +59,7 @@ export function sampleScannerLiveInference(input: {
   frameId: string;
   observedAt: number;
   fingerprint: string | null;
+  recognitionReady: boolean;
   outcome: RapidLiveOcrOutcome;
   diagnostics: RapidLiveOcrDiagnostics | null;
 }): ScannerLiveInferenceSample {
@@ -67,6 +69,7 @@ export function sampleScannerLiveInference(input: {
     frameId: input.frameId,
     observedAt: input.observedAt,
     fingerprint: input.fingerprint,
+    recognitionReady: input.recognitionReady,
     candidateName: result?.cardName ?? input.diagnostics?.localMatchCandidate ?? fusion?.fusedCandidate ?? null,
     exactPrintingId: result?.exactPrintingId ?? fusion?.printingCandidate ?? null,
     exactPrintingLabel: result ? formatPrintingLabel(result.setCode ?? null, result.collectorNumber ?? null) : null,
@@ -98,6 +101,7 @@ export function updateScannerLiveInference(previous: ScannerLiveInferenceState, 
     stage,
     candidateName: best.candidateName ?? sample.candidateName,
     exactPrintingLabel: best.exactPrintingLabel ?? sample.exactPrintingLabel,
+    recognitionReady: sample.recognitionReady,
     outcomeStatus: sample.outcomeStatus,
     route: sample.route,
   });
@@ -120,7 +124,7 @@ export function updateScannerLiveInference(previous: ScannerLiveInferenceState, 
 }
 
 export function scannerLiveInferenceCopy(
-  state: Pick<ScannerLiveInferenceState, 'stage' | 'candidateName' | 'exactPrintingLabel'> & { outcomeStatus?: RapidLiveOcrOutcome['status']; route?: string | null; },
+  state: Pick<ScannerLiveInferenceState, 'stage' | 'candidateName' | 'exactPrintingLabel'> & { recognitionReady?: boolean; outcomeStatus?: RapidLiveOcrOutcome['status']; route?: string | null; },
 ): { headline: string; subtitle: string | null; tone: ScannerLiveInferenceTone } {
   if (state.stage === 'exact' && state.candidateName) {
     return {
@@ -151,6 +155,13 @@ export function scannerLiveInferenceCopy(
     };
   }
   if (state.stage === 'reading') {
+    if (state.recognitionReady === false) {
+      return {
+        headline: 'Preparing recognition...',
+        subtitle: 'Keep scanning',
+        tone: 'muted',
+      };
+    }
     return {
       headline: 'Reading...',
       subtitle: state.route === 'continue_reading' ? 'Keep scanning' : null,
