@@ -260,6 +260,9 @@ export default function CameraQaScreen() {
             <TDButton label={torchEnabled ? 'Torch off' : 'Torch on'} variant="secondary" disabled={!deviceSummary?.hasTorch} onPress={() => setTorchEnabled((enabled) => !enabled)} />
             <TDButton label="Cycle cameras" variant="secondary" disabled={supportedOptions.length < 2} onPress={cycleLensMode} />
           </View>
+          <View style={styles.row}>
+            <TDButton label="Open Scanbot bakeoff" onPress={() => router.push('/dev/scanner-bakeoff')} />
+          </View>
         </TDCard>
 
         <TDCard style={styles.card}>

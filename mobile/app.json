@@ -43,6 +43,14 @@
           "launchMode": "most-recent"
         }
       ],
+      [
+        "react-native-scanbot-sdk",
+        {
+          "iOSCameraUsageDescription": "Allow Trading Docks to scan cards with the prebuilt scanner.",
+          "largeHeap": true,
+          "mavenURLs": true
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
