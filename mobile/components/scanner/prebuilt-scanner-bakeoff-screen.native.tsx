@@ -3,7 +3,7 @@ import { useCameraPermissions } from 'expo-camera';
 import { File, Paths } from 'expo-file-system';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ScanbotSDK, { SdkConfiguration, ScanbotDocumentScannerView, type DocumentDetectionResult, type ImageRef as ScanbotImageRef, type ScanbotDocumentScannerViewHandle } from 'react-native-scanbot-sdk';
@@ -11,6 +11,14 @@ import ScanbotSDK, { SdkConfiguration, ScanbotDocumentScannerView, type Document
 import { TDButton, TDCard, TDLoadingState, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { addRecognitionToSession, createContinuousScannerSession, createRecognitionPipelineReport, continuousScannerSessionKey, type ContinuousScannerSession } from '@/services/continuous-offer-scanner';
+import {
+  PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
+  PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE,
+  PREBUILT_SCANBOT_AUTO_SNAPPING_DELAY_SECONDS,
+  PREBUILT_SCANBOT_AUTO_SNAPPING_ENABLED,
+  PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY,
+  PREBUILT_SCANBOT_PHOTO_QUALITY_PRIORITIZATION,
+} from '@/services/prebuilt-scanbot-config';
 import { loadScannerContext, searchScannerPrintings } from '@/services/scanner-data';
 import { enrichScannerSessionLinePrice } from '@/services/scanner-price-enrichment';
 import { isScannerDiagnosticsEnabled } from '@/services/native-scanner-calibration';
@@ -20,6 +28,38 @@ import type { ScannerCardCandidate } from '@/services/scanner-foundation';
 
 type ScannerStage = 'initializing' | 'ready' | 'capturing' | 'processing' | 'error';
 type ScannerMode = 'bakeoff' | 'production';
+type PrebuiltScannerDiagnosticsEvent = {
+  detectionStatus?: string | null;
+  acceptedSizeScore?: number;
+  acceptedAngleScore?: number;
+  autoSnappingEnabled?: boolean;
+  autoSnappingSensitivity?: number;
+  autoSnappingDelaySeconds?: number;
+  captureStarted?: boolean;
+  captureCompleted?: boolean;
+  normalizedImageUriPresent?: boolean;
+  normalizedWidth?: number | null;
+  normalizedHeight?: number | null;
+  cardsightStarted?: boolean;
+  cardsightRequestStarted?: boolean;
+  cardsightStatus?: string | null;
+  scanbotDetectedAt?: number | null;
+  scanbotCapturedAt?: number | null;
+  scanbotNormalizedAt?: number | null;
+  cardsightStartedAt?: number | null;
+  cardsightCompletedAt?: number | null;
+};
+
+type ScannerImageArtifact = {
+  path: string | null;
+  size: { width: number; height: number };
+  bytes: number;
+};
+
+type CardsightPreviewArtifact = ScannerImageArtifact & {
+  source: 'raw' | 'cropped';
+  candidate: string | null;
+};
 
 const SCANBOT_LICENSE_KEY = process.env.EXPO_PUBLIC_SCANBOT_LICENSE_KEY?.trim() ?? '';
 
@@ -50,9 +90,12 @@ export default function PrebuiltScannerBakeoffScreen({
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkLicenseLabel, setSdkLicenseLabel] = useState<'configured' | 'trial' | 'missing'>('missing');
   const [capturedCount, setCapturedCount] = useState(0);
+  const [captureArtifacts, setCaptureArtifacts] = useState<{ raw: ScannerImageArtifact; cropped: ScannerImageArtifact | null } | null>(null);
+  const [cardsightPreview, setCardsightPreview] = useState<CardsightPreviewArtifact | null>(null);
   const lastAcceptedIdentityRef = useRef<string | null>(null);
   const lastAcceptedAtRef = useRef(0);
   const captureInFlightRef = useRef(false);
+  const lastDetectionStatusRef = useRef<string | null>(null);
 
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
   const permissionGranted = Boolean(cameraPermission?.granted);
@@ -114,20 +157,33 @@ export default function PrebuiltScannerBakeoffScreen({
     if (success) return success;
     if (mode === 'production' && error && stage === 'ready') return error;
     if (!sdkReady) return 'Preparing scanner...';
-    if (stage === 'capturing') return 'Reading card...';
-    if (stage === 'processing') return 'Checking providers...';
+    if (stage === 'capturing') return 'Capturing...';
+    if (stage === 'processing') return 'Checking card...';
     if (report) return 'Captured. Compare the provider results below.';
     if (mode === 'production') {
       if (!sessionUserId) return 'Preparing session...';
+      if (detection && detection.status !== 'NOT_ACQUIRED') return 'Card detected';
       return cameraReady ? 'Detecting card...' : 'Waiting for camera...';
     }
     return cameraReady ? 'Place the card roughly in view.' : 'Waiting for camera...';
-  }, [cameraReady, error, mode, report, sdkReady, sessionUserId, stage, success]);
+  }, [cameraReady, detection, error, mode, report, sdkReady, sessionUserId, stage, success]);
 
   const handleFrameDetectionResult = useCallback((result: DocumentDetectionResult) => {
     setCameraReady(true);
     setDetection(result);
     setStage((current) => current === 'initializing' ? 'ready' : current);
+    if (__DEV__ && result.status !== lastDetectionStatusRef.current) {
+      lastDetectionStatusRef.current = result.status;
+      logPrebuiltScannerDiagnostics({
+        detectionStatus: result.status,
+        acceptedSizeScore: PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE,
+        acceptedAngleScore: PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
+        autoSnappingEnabled: PREBUILT_SCANBOT_AUTO_SNAPPING_ENABLED,
+        autoSnappingSensitivity: PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY,
+        autoSnappingDelaySeconds: PREBUILT_SCANBOT_AUTO_SNAPPING_DELAY_SECONDS,
+        scanbotDetectedAt: Date.now(),
+      });
+    }
   }, []);
 
   const handleSnappedDocumentResult = useCallback(async (originalImage: ScanbotImageRef, documentImage?: ScanbotImageRef) => {
@@ -137,6 +193,17 @@ export default function PrebuiltScannerBakeoffScreen({
     setSuccess(null);
     setReport(null);
     setError(null);
+    setCaptureArtifacts(null);
+    setCardsightPreview(null);
+    logPrebuiltScannerDiagnostics({
+      captureStarted: true,
+      acceptedSizeScore: PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE,
+      acceptedAngleScore: PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
+      autoSnappingEnabled: PREBUILT_SCANBOT_AUTO_SNAPPING_ENABLED,
+      autoSnappingSensitivity: PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY,
+      autoSnappingDelaySeconds: PREBUILT_SCANBOT_AUTO_SNAPPING_DELAY_SECONDS,
+      scanbotCapturedAt: Date.now(),
+    });
     scannerRef.current?.freezeCamera();
     try {
       const raw = await persistImageRef(originalImage, 'scanbot-raw');
@@ -144,6 +211,16 @@ export default function PrebuiltScannerBakeoffScreen({
       if (!raw.path) {
         throw new Error('The scanner did not return a usable image.');
       }
+      setCaptureArtifacts({ raw, cropped });
+      logPrebuiltScannerDiagnostics({
+        captureCompleted: true,
+        normalizedImageUriPresent: Boolean(cropped?.path ?? raw.path),
+        normalizedWidth: cropped?.size.width ?? raw.size.width,
+        normalizedHeight: cropped?.size.height ?? raw.size.height,
+        cardsightRequestStarted: false,
+        cardsightStatus: 'pending',
+        scanbotNormalizedAt: Date.now(),
+      });
       setStage('processing');
       if (mode === 'production') {
         const productionOutcome = await runProductionScannerCapture({
@@ -151,12 +228,16 @@ export default function PrebuiltScannerBakeoffScreen({
           croppedImageUri: cropped?.path ?? null,
           rawImageSize: raw.size,
           croppedImageSize: cropped?.size ?? null,
+          rawImageBytes: raw.bytes,
+          croppedImageBytes: cropped?.bytes ?? null,
           session,
           sessionUserId,
           onSessionUpdate: setSession,
           onCapturedCountChange: setCapturedCount,
           onSuccess: setSuccess,
           onLog: logDiagnostics,
+          onPrebuiltDiagnostics: logPrebuiltScannerDiagnostics,
+          onCardsightPreview: setCardsightPreview,
           lastAcceptedIdentityRef,
           lastAcceptedAtRef,
         });
@@ -228,9 +309,11 @@ export default function PrebuiltScannerBakeoffScreen({
         <ScanbotDocumentScannerView
           ref={scannerRef}
           style={StyleSheet.absoluteFill}
-          autoSnappingEnabled
-          autoSnappingSensitivity={0.82}
-          autoSnappingDelay={0.2}
+          acceptedAngleScore={PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE}
+          acceptedSizeScore={PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE}
+          autoSnappingEnabled={PREBUILT_SCANBOT_AUTO_SNAPPING_ENABLED}
+          autoSnappingSensitivity={PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY}
+          autoSnappingDelay={PREBUILT_SCANBOT_AUTO_SNAPPING_DELAY_SECONDS}
           detectDocumentAfterSnap
           touchToFocusEnabled
           finderEnabled
@@ -238,7 +321,7 @@ export default function PrebuiltScannerBakeoffScreen({
           polygonEnabled
           cameraModule="BACK"
           cameraPreviewMode="FILL_IN"
-          photoQualityPrioritization="QUALITY"
+          photoQualityPrioritization={PREBUILT_SCANBOT_PHOTO_QUALITY_PRIORITIZATION}
           onFrameDetectionResult={handleFrameDetectionResult}
           onSnappedDocumentResult={handleSnappedDocumentResult}
           onError={(scanbotError) => {
@@ -268,19 +351,34 @@ export default function PrebuiltScannerBakeoffScreen({
                 <TDText variant="label" tone="muted">Session • {capturedCount} cards</TDText>
                 <TDText variant="small">{success ?? stageCopy}</TDText>
                 <TDText variant="caption" tone="muted">Scanbot SDK: {sdkLicenseLabel}</TDText>
-                {detection ? <TDText variant="caption" tone="muted">Detected document: {detection.status}</TDText> : null}
                 {error ? <TDText variant="caption" tone="danger">{error}</TDText> : null}
                 <View style={styles.row}>
                   <TDButton label="Open session" variant="secondary" onPress={() => router.push('/scanner-session' as never)} />
                   {onUseLegacyFallback ? <TDButton label="Use legacy scanner" variant="secondary" onPress={onUseLegacyFallback} /> : null}
                 </View>
+                {__DEV__ && diagnosticsEnabled && captureArtifacts ? (
+                  <View style={styles.devDiagnostics}>
+                    <TDText variant="caption" tone="muted">Raw capture • {captureArtifacts.raw.size.width} × {captureArtifacts.raw.size.height} • {formatBytes(captureArtifacts.raw.bytes)}</TDText>
+                    <TDText variant="caption" tone="muted">Normalized capture • {captureArtifacts.cropped ? `${captureArtifacts.cropped.size.width} × ${captureArtifacts.cropped.size.height} • ${formatBytes(captureArtifacts.cropped.bytes)}` : 'not returned'}</TDText>
+                    {cardsightPreview?.path ? (
+                      <View style={styles.previewBlock}>
+                        <TDText variant="label" tone="muted">CardSight sent • {cardsightPreview.source}</TDText>
+                        <Image source={{ uri: cardsightPreview.path }} style={styles.previewImage} resizeMode="cover" />
+                        <TDText variant="caption" tone="muted">
+                          {cardsightPreview.size.width} × {cardsightPreview.size.height} • {formatBytes(cardsightPreview.bytes)}
+                          {cardsightPreview.candidate ? ` • ${cardsightPreview.candidate}` : ''}
+                        </TDText>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
               </>
             ) : (
               <>
                 <TDText variant="label" tone="muted">Scanner status</TDText>
                 <TDText variant="small">Stage: {stage}</TDText>
                 <TDText variant="caption" tone="muted">Scanbot SDK: {sdkLicenseLabel}</TDText>
-                {detection ? <TDText variant="caption" tone="muted">Detected document: {detection.status}</TDText> : null}
+                {detection ? <TDText variant="caption" tone="muted">Card detected</TDText> : null}
                 {error ? <TDText variant="caption" tone="danger">{error}</TDText> : null}
                 <View style={styles.row}>
                   <TDButton label="Retake" variant="secondary" onPress={() => {
@@ -337,14 +435,23 @@ async function persistImageRef(imageRef: ScanbotImageRef, prefix: string) {
   const info = await imageRef.info();
   const size = info ? { width: info.width, height: info.height } : { width: 0, height: 0 };
   const directory = Paths.cache ?? Paths.document;
-  if (!directory) return { path: null, size };
+  if (!directory) return { path: null, size, bytes: 0 };
   const file = new File(directory, `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`);
   const saved = await imageRef.saveImage(file.uri);
-  return { path: saved ? file.uri : null, size };
+  if (!saved) return { path: null, size, bytes: 0 };
+  const savedInfo = file.info();
+  return { path: file.uri, size, bytes: typeof savedInfo.size === 'number' ? savedInfo.size : 0 };
 }
 
 function formatConfidence(value: number | null) {
   return value === null ? 'n/a' : value.toFixed(2);
+}
+
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function logDiagnostics(report: PrebuiltScannerBakeoffReport) {
@@ -359,22 +466,74 @@ function logDiagnostics(report: PrebuiltScannerBakeoffReport) {
   });
 }
 
+function logPrebuiltScannerDiagnostics(event: PrebuiltScannerDiagnosticsEvent) {
+  if (!__DEV__) return;
+  console.info('TD_PREBUILT_SCANNER', {
+    detectionStatus: event.detectionStatus ?? null,
+    acceptedSizeScore: event.acceptedSizeScore ?? PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE,
+    acceptedAngleScore: event.acceptedAngleScore ?? PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
+    autoSnappingEnabled: event.autoSnappingEnabled ?? PREBUILT_SCANBOT_AUTO_SNAPPING_ENABLED,
+    autoSnappingSensitivity: event.autoSnappingSensitivity ?? PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY,
+    autoSnappingDelaySeconds: event.autoSnappingDelaySeconds ?? PREBUILT_SCANBOT_AUTO_SNAPPING_DELAY_SECONDS,
+    captureStarted: event.captureStarted ?? false,
+    captureCompleted: event.captureCompleted ?? false,
+    normalizedImageUriPresent: event.normalizedImageUriPresent ?? false,
+    normalizedWidth: event.normalizedWidth ?? null,
+    normalizedHeight: event.normalizedHeight ?? null,
+    cardsightStarted: event.cardsightStarted ?? false,
+    cardsightRequestStarted: event.cardsightRequestStarted ?? false,
+    cardsightStatus: event.cardsightStatus ?? null,
+    scanbotDetectedAt: event.scanbotDetectedAt ?? null,
+    scanbotCapturedAt: event.scanbotCapturedAt ?? null,
+    scanbotNormalizedAt: event.scanbotNormalizedAt ?? null,
+    cardsightStartedAt: event.cardsightStartedAt ?? null,
+    cardsightCompletedAt: event.cardsightCompletedAt ?? null,
+  });
+}
+
 async function runProductionScannerCapture(input: {
   rawImageUri: string;
   croppedImageUri: string | null;
   rawImageSize: { width: number; height: number };
   croppedImageSize: { width: number; height: number } | null;
+  rawImageBytes: number;
+  croppedImageBytes: number | null;
   session: ContinuousScannerSession | null;
   sessionUserId: string | null;
   onSessionUpdate: (session: ContinuousScannerSession) => void;
   onCapturedCountChange: (count: number) => void;
   onSuccess: (message: string | null) => void;
   onLog: (report: PrebuiltScannerBakeoffReport) => void;
+  onPrebuiltDiagnostics: (event: PrebuiltScannerDiagnosticsEvent) => void;
+  onCardsightPreview: (preview: CardsightPreviewArtifact | null) => void;
   lastAcceptedIdentityRef: MutableRefObject<string | null>;
   lastAcceptedAtRef: MutableRefObject<number>;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
   if (!input.session || !input.sessionUserId) {
     return { ok: false, message: 'Scanner session is still preparing.' };
+  }
+  input.onPrebuiltDiagnostics({
+    cardsightStarted: true,
+    cardsightStartedAt: Date.now(),
+    cardsightStatus: 'requesting',
+  });
+  if (__DEV__) {
+    console.info('TD_SCANNER_PROVIDER', {
+      scannerEngine: 'prebuilt',
+      cardsightEnabled: true,
+      escalationStage: 'cardsight_request_start',
+      cardsightRequestStarted: true,
+      cardsightResponseStatus: 'requesting',
+      cardsightCandidate: null,
+      cardsightLatencyMs: null,
+      fallbackProvider: null,
+      rawImageWidth: input.rawImageSize.width,
+      rawImageHeight: input.rawImageSize.height,
+      rawImageBytes: input.rawImageBytes,
+      croppedImageWidth: input.croppedImageSize?.width ?? null,
+      croppedImageHeight: input.croppedImageSize?.height ?? null,
+      croppedImageBytes: input.croppedImageBytes,
+    });
   }
   const report = await runPrebuiltScannerBakeoff({
     rawImageUri: input.rawImageUri,
@@ -384,11 +543,24 @@ async function runProductionScannerCapture(input: {
     online: true,
   });
   input.onLog(report);
+  input.onPrebuiltDiagnostics({
+    cardsightCompletedAt: Date.now(),
+    cardsightStatus: report.summary.cardsight.raw.status,
+  });
 
-  const selection = await chooseProductionCandidate(report);
+  const selection = await chooseProductionCandidate(report, {
+    rawImageUri: input.rawImageUri,
+    croppedImageUri: input.croppedImageUri,
+    rawImageSize: input.rawImageSize,
+    croppedImageSize: input.croppedImageSize,
+    rawImageBytes: input.rawImageBytes,
+    croppedImageBytes: input.croppedImageBytes,
+  });
   if (!selection) {
     return { ok: false, message: 'No reliable card identity yet. Keep scanning.' };
   }
+
+  input.onCardsightPreview(selection.cardsightPreview ?? null);
 
   const confidence = Math.max(0, Math.min(100, Math.round((selection.candidate.confidence ?? selection.topConfidence ?? 0.82) * 100)));
   const recognition = createRecognitionPipelineReport({
@@ -406,8 +578,11 @@ async function runProductionScannerCapture(input: {
 
   const stableScanId = `prebuilt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const fingerprint = fingerprintProductionCandidate(selection.candidate);
+  const successMessage = selection.requiresConfirmation
+    ? `✓ ${selection.candidate.name}\nMatching printing...`
+    : `✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}`;
   if (input.lastAcceptedIdentityRef.current === fingerprint && Date.now() - input.lastAcceptedAtRef.current < 1200) {
-    input.onSuccess(`✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}`);
+    input.onSuccess(successMessage);
     setTimeout(() => {
       input.onSuccess(null);
     }, 550);
@@ -438,7 +613,7 @@ async function runProductionScannerCapture(input: {
   input.onCapturedCountChange(sessionAfterPrice.lines.length);
   input.lastAcceptedIdentityRef.current = fingerprint;
   input.lastAcceptedAtRef.current = Date.now();
-  input.onSuccess(`✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}`);
+  input.onSuccess(successMessage);
   setTimeout(() => {
     input.onSuccess(null);
   }, 550);
@@ -447,17 +622,30 @@ async function runProductionScannerCapture(input: {
       scannerEngine: 'prebuilt',
       cardsightEnabled: true,
       escalationStage: selection.provider,
+      cardsightUploadMode: selection.cardsightUploadMode,
       cardsightRequestStarted: selection.cardsightRequestStarted,
       cardsightResponseStatus: selection.cardsightResponseStatus,
       cardsightCandidate: selection.cardsightCandidate,
       cardsightLatencyMs: selection.cardsightLatencyMs,
       fallbackProvider: selection.fallbackProvider,
+      cardsightPreviewSource: selection.cardsightPreview?.source ?? null,
+      cardsightPreviewUriPresent: Boolean(selection.cardsightPreview?.path),
+      cardsightPreviewWidth: selection.cardsightPreview?.size.width ?? null,
+      cardsightPreviewHeight: selection.cardsightPreview?.size.height ?? null,
+      cardsightPreviewBytes: selection.cardsightPreview?.bytes ?? null,
     });
   }
   return { ok: true };
 }
 
-async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport): Promise<null | {
+async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport, images: {
+  rawImageUri: string;
+  croppedImageUri: string | null;
+  rawImageSize: { width: number; height: number };
+  croppedImageSize: { width: number; height: number } | null;
+  rawImageBytes: number;
+  croppedImageBytes: number | null;
+}): Promise<null | {
   candidate: ScannerCardCandidate;
   recognitionMethod: 'metadata_assisted' | 'manual_search' | 'future_visual_provider' | 'unavailable';
   requiresConfirmation: boolean;
@@ -468,9 +656,23 @@ async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport): 
   cardsightCandidate: string | null;
   cardsightLatencyMs: number | null;
   fallbackProvider: string;
+  cardsightUploadMode: 'raw' | 'cropped' | null;
+  cardsightPreview: CardsightPreviewArtifact | null;
 }> {
   const cardsight = bestProviderAttempt(report.raw.cardsight, report.cropped.cardsight);
   if (cardsight?.ok && cardsight.candidates.length) {
+    const selectedSource = cardsight === report.raw.cardsight ? 'raw' : 'cropped';
+    const preview: CardsightPreviewArtifact | null = {
+      path: selectedSource === 'raw' ? images.rawImageUri : images.croppedImageUri ?? images.rawImageUri,
+      size: selectedSource === 'raw'
+        ? images.rawImageSize
+        : images.croppedImageSize ?? images.rawImageSize,
+      bytes: selectedSource === 'raw'
+        ? images.rawImageBytes
+        : images.croppedImageBytes ?? images.rawImageBytes,
+      source: selectedSource,
+      candidate: cardsight.candidates[0]?.name ?? null,
+    };
     return {
       candidate: cardsight.candidates[0],
       recognitionMethod: 'metadata_assisted',
@@ -481,7 +683,9 @@ async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport): 
       cardsightResponseStatus: cardsight.status,
       cardsightCandidate: cardsight.candidates[0]?.name ?? null,
       cardsightLatencyMs: cardsight.latencyMs ?? null,
-      fallbackProvider: cardsight.fallbackRecommended ? 'TCGTracking' : 'cardsight',
+      fallbackProvider: 'cardsight',
+      cardsightUploadMode: selectedSource,
+      cardsightPreview: preview,
     };
   }
 
@@ -498,6 +702,8 @@ async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport): 
       cardsightCandidate: null,
       cardsightLatencyMs: null,
       fallbackProvider: 'TCGTracking',
+      cardsightUploadMode: null,
+      cardsightPreview: null,
     };
   }
 
@@ -519,6 +725,8 @@ async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport): 
     cardsightCandidate: null,
     cardsightLatencyMs: null,
     fallbackProvider: 'local',
+    cardsightUploadMode: null,
+    cardsightPreview: null,
   };
 }
 
@@ -556,4 +764,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.xs },
   results: { gap: space.sm },
   resultCard: { gap: 4, backgroundColor: '#07111DEE' },
+  devDiagnostics: { gap: space.xs, marginTop: space.sm },
+  previewBlock: { gap: space.xs, marginTop: space.xs, paddingTop: space.xs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#273244' },
+  previewImage: { width: '100%', height: 120, borderRadius: radius.md, backgroundColor: '#0D1722' },
 });
