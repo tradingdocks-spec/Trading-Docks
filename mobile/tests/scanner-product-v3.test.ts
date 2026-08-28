@@ -31,7 +31,7 @@ test('Review List count is loaded from the user-scoped scanner session', () => {
 });
 
 test('unified scanner route reuses the existing native scanner infrastructure', () => {
-  assert.match(automaticRoute, /AutomaticScannerScreen/);
+  assert.match(automaticRoute, /scanner-engine-screen/);
   assert.match(automatic, /ScannerCamera/);
   assert.match(automatic, /recognizeMagicStillCapture/);
   assert.match(automatic, /nextAppleVisionAutoCaptureRuntime/);
@@ -56,8 +56,8 @@ test('Automatic Scan keeps one visible instruction source', () => {
 });
 
 test('Single Scan route is a compatibility alias to the unified scanner', () => {
-  assert.match(single, /UnifiedScannerScreen/);
-  assert.match(single, /automatic-scanner-screen/);
+  assert.match(single, /scanner-engine-screen/);
+  assert.doesNotMatch(single, /automatic-scanner-screen/);
   assert.doesNotMatch(single, /SingleResultSheet/);
   assert.doesNotMatch(single, /recognizeMagicStillCapture/);
 });

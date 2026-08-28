@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCameraPermissions } from 'expo-camera';
 import { File, Paths } from 'expo-file-system';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,10 +10,16 @@ import ScanbotSDK, { SdkConfiguration, ScanbotDocumentScannerView, type Document
 
 import { TDButton, TDCard, TDLoadingState, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
+import { addRecognitionToSession, createContinuousScannerSession, createRecognitionPipelineReport, continuousScannerSessionKey, type ContinuousScannerSession } from '@/services/continuous-offer-scanner';
+import { loadScannerContext, searchScannerPrintings } from '@/services/scanner-data';
+import { enrichScannerSessionLinePrice } from '@/services/scanner-price-enrichment';
 import { isScannerDiagnosticsEnabled } from '@/services/native-scanner-calibration';
 import { runPrebuiltScannerBakeoff, type PrebuiltScannerBakeoffReport } from '@/services/scanner-prebuilt-bakeoff';
+import { appStorage } from '@/services/storage/app-storage';
+import type { ScannerCardCandidate } from '@/services/scanner-foundation';
 
 type ScannerStage = 'initializing' | 'ready' | 'capturing' | 'processing' | 'error';
+type ScannerMode = 'bakeoff' | 'production';
 
 const SCANBOT_LICENSE_KEY = process.env.EXPO_PUBLIC_SCANBOT_LICENSE_KEY?.trim() ?? '';
 
@@ -23,7 +29,13 @@ type ScanbotInitResult =
 
 let scanbotInitPromise: Promise<ScanbotInitResult> | null = null;
 
-export default function PrebuiltScannerBakeoffScreen() {
+export default function PrebuiltScannerBakeoffScreen({
+  mode = 'bakeoff',
+  onUseLegacyFallback,
+}: {
+  mode?: ScannerMode;
+  onUseLegacyFallback?: () => void;
+} = {}) {
   const insets = useSafeAreaInsets();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const scannerRef = useRef<ScanbotDocumentScannerViewHandle | null>(null);
@@ -31,9 +43,16 @@ export default function PrebuiltScannerBakeoffScreen() {
   const [cameraReady, setCameraReady] = useState(false);
   const [detection, setDetection] = useState<DocumentDetectionResult | null>(null);
   const [report, setReport] = useState<PrebuiltScannerBakeoffReport | null>(null);
+  const [session, setSession] = useState<ContinuousScannerSession | null>(null);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkLicenseLabel, setSdkLicenseLabel] = useState<'configured' | 'trial' | 'missing'>('missing');
+  const [capturedCount, setCapturedCount] = useState(0);
+  const lastAcceptedIdentityRef = useRef<string | null>(null);
+  const lastAcceptedAtRef = useRef(0);
+  const captureInFlightRef = useRef(false);
 
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
   const permissionGranted = Boolean(cameraPermission?.granted);
@@ -53,13 +72,57 @@ export default function PrebuiltScannerBakeoffScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (mode !== 'production') return;
+    let mounted = true;
+    void loadScannerContext().then(async (context) => {
+      if (!mounted) return;
+      setSessionUserId(context.userId);
+      const raw = await appStorage.getItem(continuousScannerSessionKey(context.userId));
+      if (!mounted) return;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as ContinuousScannerSession;
+          if (parsed.userId === context.userId) {
+            setSession(parsed);
+            setCapturedCount(parsed.lines.length);
+            return;
+          }
+        } catch {
+          // fall through to create a fresh session
+        }
+      }
+      const nextSession = createContinuousScannerSession({
+        id: `prebuilt-scanner-${context.userId}`,
+        userId: context.userId,
+        name: 'Scanner session',
+        mode: 'collection_intake',
+      });
+      setSession(nextSession);
+      setCapturedCount(0);
+    }).catch((loadError) => {
+      if (!mounted) return;
+      setError(loadError instanceof Error ? loadError.message : 'Scanner context is unavailable.');
+      setStage('error');
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [mode]);
+
   const stageCopy = useMemo(() => {
+    if (success) return success;
+    if (mode === 'production' && error && stage === 'ready') return error;
     if (!sdkReady) return 'Preparing scanner...';
     if (stage === 'capturing') return 'Reading card...';
     if (stage === 'processing') return 'Checking providers...';
     if (report) return 'Captured. Compare the provider results below.';
+    if (mode === 'production') {
+      if (!sessionUserId) return 'Preparing session...';
+      return cameraReady ? 'Detecting card...' : 'Waiting for camera...';
+    }
     return cameraReady ? 'Place the card roughly in view.' : 'Waiting for camera...';
-  }, [cameraReady, report, sdkReady, stage]);
+  }, [cameraReady, error, mode, report, sdkReady, sessionUserId, stage, success]);
 
   const handleFrameDetectionResult = useCallback((result: DocumentDetectionResult) => {
     setCameraReady(true);
@@ -68,8 +131,12 @@ export default function PrebuiltScannerBakeoffScreen() {
   }, []);
 
   const handleSnappedDocumentResult = useCallback(async (originalImage: ScanbotImageRef, documentImage?: ScanbotImageRef) => {
-    if (stage === 'processing') return;
+    if (captureInFlightRef.current || stage === 'processing') return;
+    captureInFlightRef.current = true;
     setStage('capturing');
+    setSuccess(null);
+    setReport(null);
+    setError(null);
     scannerRef.current?.freezeCamera();
     try {
       const raw = await persistImageRef(originalImage, 'scanbot-raw');
@@ -78,6 +145,29 @@ export default function PrebuiltScannerBakeoffScreen() {
         throw new Error('The scanner did not return a usable image.');
       }
       setStage('processing');
+      if (mode === 'production') {
+        const productionOutcome = await runProductionScannerCapture({
+          rawImageUri: raw.path,
+          croppedImageUri: cropped?.path ?? null,
+          rawImageSize: raw.size,
+          croppedImageSize: cropped?.size ?? null,
+          session,
+          sessionUserId,
+          onSessionUpdate: setSession,
+          onCapturedCountChange: setCapturedCount,
+          onSuccess: setSuccess,
+          onLog: logDiagnostics,
+          lastAcceptedIdentityRef,
+          lastAcceptedAtRef,
+        });
+        if (productionOutcome.ok) {
+          setStage('ready');
+          return;
+        }
+        setError(productionOutcome.message);
+        setStage('ready');
+        return;
+      }
       const nextReport = await runPrebuiltScannerBakeoff({
         rawImageUri: raw.path,
         croppedImageUri: cropped?.path ?? null,
@@ -93,16 +183,31 @@ export default function PrebuiltScannerBakeoffScreen() {
       setError(message);
       setStage('error');
     } finally {
+      captureInFlightRef.current = false;
       scannerRef.current?.unfreezeCamera();
     }
-  }, [stage]);
+  }, [mode, session, sessionUserId, stage]);
 
-  if (!diagnosticsEnabled) {
+  if (mode === 'bakeoff' && !diagnosticsEnabled) {
     return (
       <View style={styles.screenGuard}>
         <TDText variant="title">Scanner bakeoff unavailable</TDText>
         <TDText tone="muted">Enable scanner diagnostics to use the native prebuilt scanner route.</TDText>
         <TDButton label="Go back" onPress={() => router.back()} />
+      </View>
+    );
+  }
+
+  if (mode === 'production' && stage === 'error' && error) {
+    return (
+      <View style={styles.screenGuard}>
+        <Ionicons name="warning-outline" size={36} color={color.textMuted} />
+        <TDText variant="title">Scanner unavailable</TDText>
+        <TDText tone="muted">{error}</TDText>
+        <View style={styles.row}>
+          {onUseLegacyFallback ? <TDButton label="Use legacy scanner" variant="secondary" onPress={onUseLegacyFallback} /> : null}
+          <TDButton label="Go back" onPress={() => router.back()} />
+        </View>
       </View>
     );
   }
@@ -145,9 +250,9 @@ export default function PrebuiltScannerBakeoffScreen() {
         <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
           <View style={styles.topTextGroup}>
             <TDText variant="title">Trading Docks scanner</TDText>
-            <TDText tone="muted">Prebuilt Scanbot capture + CardSight bakeoff</TDText>
+            <TDText tone="muted">{mode === 'production' ? 'Scanbot auto-capture + CardSight fallback' : 'Prebuilt Scanbot capture + CardSight bakeoff'}</TDText>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close scanner bakeoff" onPress={() => router.back()} style={styles.iconButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close scanner" onPress={() => router.back()} style={styles.iconButton}>
             <Ionicons name="close-outline" size={20} color={color.text} />
           </Pressable>
         </View>
@@ -158,22 +263,38 @@ export default function PrebuiltScannerBakeoffScreen() {
 
         <View style={[styles.bottomOverlay, { paddingBottom: insets.bottom + space.sm }]}>
           <TDCard style={styles.summaryCard}>
-            <TDText variant="label" tone="muted">Scanner status</TDText>
-            <TDText variant="small">Stage: {stage}</TDText>
-            <TDText variant="caption" tone="muted">Scanbot SDK: {sdkLicenseLabel}</TDText>
-            {detection ? <TDText variant="caption" tone="muted">Detected document: {detection.status}</TDText> : null}
-            {error ? <TDText variant="caption" tone="danger">{error}</TDText> : null}
-            <View style={styles.row}>
-              <TDButton label="Retake" variant="secondary" onPress={() => {
-                setReport(null);
-                setError(null);
-                setStage('ready');
-                scannerRef.current?.unfreezeCamera();
-              }} />
-              <TDButton label="Capture now" onPress={() => scannerRef.current?.snapDocument(true)} />
-            </View>
+            {mode === 'production' ? (
+              <>
+                <TDText variant="label" tone="muted">Session • {capturedCount} cards</TDText>
+                <TDText variant="small">{success ?? stageCopy}</TDText>
+                <TDText variant="caption" tone="muted">Scanbot SDK: {sdkLicenseLabel}</TDText>
+                {detection ? <TDText variant="caption" tone="muted">Detected document: {detection.status}</TDText> : null}
+                {error ? <TDText variant="caption" tone="danger">{error}</TDText> : null}
+                <View style={styles.row}>
+                  <TDButton label="Open session" variant="secondary" onPress={() => router.push('/scanner-session' as never)} />
+                  {onUseLegacyFallback ? <TDButton label="Use legacy scanner" variant="secondary" onPress={onUseLegacyFallback} /> : null}
+                </View>
+              </>
+            ) : (
+              <>
+                <TDText variant="label" tone="muted">Scanner status</TDText>
+                <TDText variant="small">Stage: {stage}</TDText>
+                <TDText variant="caption" tone="muted">Scanbot SDK: {sdkLicenseLabel}</TDText>
+                {detection ? <TDText variant="caption" tone="muted">Detected document: {detection.status}</TDText> : null}
+                {error ? <TDText variant="caption" tone="danger">{error}</TDText> : null}
+                <View style={styles.row}>
+                  <TDButton label="Retake" variant="secondary" onPress={() => {
+                    setReport(null);
+                    setError(null);
+                    setStage('ready');
+                    scannerRef.current?.unfreezeCamera();
+                  }} />
+                  <TDButton label="Capture now" onPress={() => scannerRef.current?.snapDocument(true)} />
+                </View>
+              </>
+            )}
           </TDCard>
-          {report ? (
+          {mode === 'bakeoff' && report ? (
             <View style={styles.results}>
               <ResultCard title="Local pipeline" summary={report.summary.local} />
               <ResultCard title="CardSight" summary={report.summary.cardsight} />
@@ -236,6 +357,190 @@ function logDiagnostics(report: PrebuiltScannerBakeoffReport) {
     cardsightLatencyMs: report.summary.cardsight.raw.latencyMs ?? report.summary.cardsight.cropped.latencyMs ?? null,
     fallbackProvider: report.summary.tcgtracking.raw.topCandidate ?? report.summary.tcgtracking.cropped.topCandidate ?? 'local',
   });
+}
+
+async function runProductionScannerCapture(input: {
+  rawImageUri: string;
+  croppedImageUri: string | null;
+  rawImageSize: { width: number; height: number };
+  croppedImageSize: { width: number; height: number } | null;
+  session: ContinuousScannerSession | null;
+  sessionUserId: string | null;
+  onSessionUpdate: (session: ContinuousScannerSession) => void;
+  onCapturedCountChange: (count: number) => void;
+  onSuccess: (message: string | null) => void;
+  onLog: (report: PrebuiltScannerBakeoffReport) => void;
+  lastAcceptedIdentityRef: MutableRefObject<string | null>;
+  lastAcceptedAtRef: MutableRefObject<number>;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!input.session || !input.sessionUserId) {
+    return { ok: false, message: 'Scanner session is still preparing.' };
+  }
+  const report = await runPrebuiltScannerBakeoff({
+    rawImageUri: input.rawImageUri,
+    croppedImageUri: input.croppedImageUri,
+    rawImageSize: input.rawImageSize,
+    croppedImageSize: input.croppedImageSize,
+    online: true,
+  });
+  input.onLog(report);
+
+  const selection = await chooseProductionCandidate(report);
+  if (!selection) {
+    return { ok: false, message: 'No reliable card identity yet. Keep scanning.' };
+  }
+
+  const confidence = Math.max(0, Math.min(100, Math.round((selection.candidate.confidence ?? selection.topConfidence ?? 0.82) * 100)));
+  const recognition = createRecognitionPipelineReport({
+    detectedGame: 'magic',
+    candidates: [selection.candidate],
+    confidence: {
+      overall: confidence,
+      threshold: 82,
+      requiresConfirmation: selection.requiresConfirmation,
+      signals: [],
+      conflicts: [],
+    },
+    recognitionMethod: selection.recognitionMethod,
+  });
+
+  const stableScanId = `prebuilt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const fingerprint = fingerprintProductionCandidate(selection.candidate);
+  if (input.lastAcceptedIdentityRef.current === fingerprint && Date.now() - input.lastAcceptedAtRef.current < 1200) {
+    input.onSuccess(`✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}`);
+    setTimeout(() => {
+      input.onSuccess(null);
+    }, 550);
+    return { ok: true };
+  }
+  const nextSession = addRecognitionToSession(input.session, {
+    stableScanId,
+    candidate: selection.candidate,
+    recognition,
+    destination: input.session.defaultDestination,
+    createdAt: new Date().toISOString(),
+  }) as ContinuousScannerSession;
+  const lineId = nextSession.lines[nextSession.lines.length - 1]?.id ?? null;
+  let sessionAfterPrice: ContinuousScannerSession = nextSession;
+  if (lineId) {
+    const priceResult = enrichScannerSessionLinePrice({
+      session: nextSession,
+      lineId,
+      stableScanId,
+      candidate: selection.candidate,
+      finish: selection.candidate.finishes[0] ?? 'nonfoil',
+    });
+    sessionAfterPrice = priceResult.session;
+  }
+
+  await appStorage.setItem(continuousScannerSessionKey(input.sessionUserId), JSON.stringify(sessionAfterPrice));
+  input.onSessionUpdate(sessionAfterPrice);
+  input.onCapturedCountChange(sessionAfterPrice.lines.length);
+  input.lastAcceptedIdentityRef.current = fingerprint;
+  input.lastAcceptedAtRef.current = Date.now();
+  input.onSuccess(`✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}`);
+  setTimeout(() => {
+    input.onSuccess(null);
+  }, 550);
+  if (__DEV__) {
+    console.info('TD_SCANNER_PROVIDER', {
+      scannerEngine: 'prebuilt',
+      cardsightEnabled: true,
+      escalationStage: selection.provider,
+      cardsightRequestStarted: selection.cardsightRequestStarted,
+      cardsightResponseStatus: selection.cardsightResponseStatus,
+      cardsightCandidate: selection.cardsightCandidate,
+      cardsightLatencyMs: selection.cardsightLatencyMs,
+      fallbackProvider: selection.fallbackProvider,
+    });
+  }
+  return { ok: true };
+}
+
+async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport): Promise<null | {
+  candidate: ScannerCardCandidate;
+  recognitionMethod: 'metadata_assisted' | 'manual_search' | 'future_visual_provider' | 'unavailable';
+  requiresConfirmation: boolean;
+  topConfidence: number | null;
+  provider: 'cardsight' | 'tcgtracking' | 'local';
+  cardsightRequestStarted: boolean;
+  cardsightResponseStatus: string | null;
+  cardsightCandidate: string | null;
+  cardsightLatencyMs: number | null;
+  fallbackProvider: string;
+}> {
+  const cardsight = bestProviderAttempt(report.raw.cardsight, report.cropped.cardsight);
+  if (cardsight?.ok && cardsight.candidates.length) {
+    return {
+      candidate: cardsight.candidates[0],
+      recognitionMethod: 'metadata_assisted',
+      requiresConfirmation: cardsight.fallbackRecommended,
+      topConfidence: cardsight.topConfidence,
+      provider: 'cardsight',
+      cardsightRequestStarted: true,
+      cardsightResponseStatus: cardsight.status,
+      cardsightCandidate: cardsight.candidates[0]?.name ?? null,
+      cardsightLatencyMs: cardsight.latencyMs ?? null,
+      fallbackProvider: cardsight.fallbackRecommended ? 'TCGTracking' : 'cardsight',
+    };
+  }
+
+  const tcgtracking = bestProviderAttempt(report.raw.tcgtracking, report.cropped.tcgtracking);
+  if (tcgtracking?.ok && tcgtracking.candidates.length) {
+    return {
+      candidate: tcgtracking.candidates[0],
+      recognitionMethod: 'metadata_assisted',
+      requiresConfirmation: tcgtracking.fallbackRecommended,
+      topConfidence: tcgtracking.topConfidence,
+      provider: 'tcgtracking',
+      cardsightRequestStarted: false,
+      cardsightResponseStatus: 'fallback_to_tcgtracking',
+      cardsightCandidate: null,
+      cardsightLatencyMs: null,
+      fallbackProvider: 'TCGTracking',
+    };
+  }
+
+  const localTop = bestLocalTopCandidate(report.raw.local, report.cropped.local);
+  if (!localTop) return null;
+  const localMatches = await searchScannerPrintings(localTop.name, true);
+  const candidate = localMatches.ok
+    ? localMatches.candidates.find((entry) => entry.id === localTop.scryfallId || entry.oracleId === localTop.oracleId || entry.name === localTop.name) ?? localMatches.candidates[0] ?? null
+    : null;
+  if (!candidate) return null;
+  return {
+    candidate,
+    recognitionMethod: 'manual_search',
+    requiresConfirmation: false,
+    topConfidence: localTop.score ?? candidate.confidence ?? null,
+    provider: 'local',
+    cardsightRequestStarted: false,
+    cardsightResponseStatus: 'local_fallback',
+    cardsightCandidate: null,
+    cardsightLatencyMs: null,
+    fallbackProvider: 'local',
+  };
+}
+
+function bestProviderAttempt<T extends { ok: boolean; candidates?: ScannerCardCandidate[]; topConfidence?: number | null; fallbackRecommended?: boolean; status?: string; reason?: string; latencyMs?: number | null }>(raw: T, cropped: T) {
+  const rawScore = raw.ok && raw.candidates?.length ? (raw.topConfidence ?? raw.candidates[0]?.confidence ?? null) : null;
+  const croppedScore = cropped.ok && cropped.candidates?.length ? (cropped.topConfidence ?? cropped.candidates[0]?.confidence ?? null) : null;
+  if (rawScore === null && croppedScore === null) return raw.ok ? raw : cropped.ok ? cropped : null;
+  if (croppedScore !== null && (rawScore === null || croppedScore > rawScore + 0.02)) return cropped;
+  return raw;
+}
+
+function bestLocalTopCandidate(raw: PrebuiltScannerBakeoffReport['raw']['local'], cropped: PrebuiltScannerBakeoffReport['cropped']['local']) {
+  const rawTop = raw.engines.ocr_accurate.top1 ?? raw.engines.apple_vision_feature_print.top1 ?? raw.engines.phash_luma_8x8.top1 ?? null;
+  const croppedTop = cropped.engines.ocr_accurate.top1 ?? cropped.engines.apple_vision_feature_print.top1 ?? cropped.engines.phash_luma_8x8.top1 ?? null;
+  if (!rawTop && !croppedTop) return null;
+  if (!rawTop) return croppedTop;
+  if (!croppedTop) return rawTop;
+  return (croppedTop.score ?? 0) > (rawTop.score ?? 0) ? croppedTop : rawTop;
+}
+
+function fingerprintProductionCandidate(candidate: ScannerCardCandidate) {
+  return [candidate.id, candidate.setCode ?? '', candidate.collectorNumber ?? ''].join(':');
 }
 
 const styles = StyleSheet.create({
