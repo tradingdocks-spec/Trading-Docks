@@ -219,6 +219,6 @@ test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', 
   assert.match(decks, /DockMetric label="Value"/);
   assert.doesNotMatch(decks, /value="Soon"/);
   assert.match(profile, /DockSurface[\s\S]*Manage Membership/);
-  assert.match(singleScan, /scanner-engine-screen/);
+  assert.match(singleScan, /prebuilt-scanner-screen/);
   assert.doesNotMatch(singleScan, /SingleResultSheet/);
 });

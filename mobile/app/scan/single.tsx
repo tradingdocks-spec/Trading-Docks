@@ -1,3 +1,3 @@
-import ScannerEngineScreen from '@/components/scanner/scanner-engine-screen';
+import PrebuiltScannerScreen from '@/components/scanner/prebuilt-scanner-screen';
 
-export default ScannerEngineScreen;
+export default PrebuiltScannerScreen;

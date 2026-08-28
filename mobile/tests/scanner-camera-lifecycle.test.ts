@@ -37,7 +37,7 @@ test('unified scanner disables camera and ignores stale async work on exit', () 
   const source = readFileSync(join(root, 'components', 'scanner', 'automatic-scanner-screen.tsx'), 'utf8');
   const singleRoute = readFileSync(join(root, 'app', 'scan', 'single.tsx'), 'utf8');
 
-  assert.match(singleRoute, /scanner-engine-screen/);
+  assert.match(singleRoute, /prebuilt-scanner-screen/);
   assert.doesNotMatch(singleRoute, /automatic-scanner-screen/);
   assert.match(source, /resolveScanner2CameraLifecycle/);
   assert.match(source, /onClose=\{\(\) => router\.back\(\)\}/);

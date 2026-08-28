@@ -12,8 +12,8 @@ const singleRoute = readFileSync(join(mobileRoot, 'app', 'scan', 'single.tsx'), 
 test('production exposes one scanner entry and keeps single scan as a compatibility alias', () => {
   assert.match(scanTab, /Trading Docks Scanner/);
   assert.match(scanTab, /Open scanner/);
-  assert.match(automaticRoute, /scanner-engine-screen/);
-  assert.match(singleRoute, /scanner-engine-screen/);
+  assert.match(automaticRoute, /prebuilt-scanner-screen/);
+  assert.match(singleRoute, /prebuilt-scanner-screen/);
   assert.doesNotMatch(automaticRoute, /automatic-scanner-screen/);
   assert.doesNotMatch(singleRoute, /automatic-scanner-screen/);
   assert.doesNotMatch(scanTab, /Automatic Scan|Single Scan|Scan Mode|Capture fallback/);

@@ -19,35 +19,25 @@ import {
   PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY,
   PREBUILT_SCANBOT_PHOTO_QUALITY_PRIORITIZATION,
 } from '@/services/prebuilt-scanbot-config';
-import { loadScannerContext, searchScannerPrintings } from '@/services/scanner-data';
+import { isCardSightScannerEnabled } from '@/services/cardsight-scan-provider';
+import type { GuideCropMapping } from '@/services/magic-ocr-pipeline';
+import { loadScannerContext } from '@/services/scanner-data';
 import { enrichScannerSessionLinePrice } from '@/services/scanner-price-enrichment';
 import { isScannerDiagnosticsEnabled } from '@/services/native-scanner-calibration';
 import { runPrebuiltScannerBakeoff, type PrebuiltScannerBakeoffReport } from '@/services/scanner-prebuilt-bakeoff';
 import { appStorage } from '@/services/storage/app-storage';
 import type { ScannerCardCandidate } from '@/services/scanner-foundation';
+import { scanCardSightWithFallback, type CardSightMobileScanResult } from '@/services/cardsight-scan-provider';
 
 type ScannerStage = 'initializing' | 'ready' | 'capturing' | 'processing' | 'error';
 type ScannerMode = 'bakeoff' | 'production';
 type PrebuiltScannerDiagnosticsEvent = {
-  detectionStatus?: string | null;
-  acceptedSizeScore?: number;
-  acceptedAngleScore?: number;
-  autoSnappingEnabled?: boolean;
-  autoSnappingSensitivity?: number;
-  autoSnappingDelaySeconds?: number;
-  captureStarted?: boolean;
-  captureCompleted?: boolean;
-  normalizedImageUriPresent?: boolean;
-  normalizedWidth?: number | null;
-  normalizedHeight?: number | null;
-  cardsightStarted?: boolean;
-  cardsightRequestStarted?: boolean;
-  cardsightStatus?: string | null;
-  scanbotDetectedAt?: number | null;
-  scanbotCapturedAt?: number | null;
-  scanbotNormalizedAt?: number | null;
-  cardsightStartedAt?: number | null;
-  cardsightCompletedAt?: number | null;
+  scanbotDetected?: string | null;
+  scanbotCaptured?: string | null;
+  cardsightRequest?: string | null;
+  cardsightResult?: string | null;
+  cardIntelligenceResult?: string | null;
+  sessionAppend?: string | null;
 };
 
 type ScannerImageArtifact = {
@@ -71,10 +61,8 @@ let scanbotInitPromise: Promise<ScanbotInitResult> | null = null;
 
 export default function PrebuiltScannerBakeoffScreen({
   mode = 'bakeoff',
-  onUseLegacyFallback,
 }: {
   mode?: ScannerMode;
-  onUseLegacyFallback?: () => void;
 } = {}) {
   const insets = useSafeAreaInsets();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -174,15 +162,7 @@ export default function PrebuiltScannerBakeoffScreen({
     setStage((current) => current === 'initializing' ? 'ready' : current);
     if (__DEV__ && result.status !== lastDetectionStatusRef.current) {
       lastDetectionStatusRef.current = result.status;
-      logPrebuiltScannerDiagnostics({
-        detectionStatus: result.status,
-        acceptedSizeScore: PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE,
-        acceptedAngleScore: PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
-        autoSnappingEnabled: PREBUILT_SCANBOT_AUTO_SNAPPING_ENABLED,
-        autoSnappingSensitivity: PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY,
-        autoSnappingDelaySeconds: PREBUILT_SCANBOT_AUTO_SNAPPING_DELAY_SECONDS,
-        scanbotDetectedAt: Date.now(),
-      });
+      logPrebuiltScannerDiagnostics({ scanbotDetected: result.status });
     }
   }, []);
 
@@ -195,15 +175,7 @@ export default function PrebuiltScannerBakeoffScreen({
     setError(null);
     setCaptureArtifacts(null);
     setCardsightPreview(null);
-    logPrebuiltScannerDiagnostics({
-      captureStarted: true,
-      acceptedSizeScore: PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE,
-      acceptedAngleScore: PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
-      autoSnappingEnabled: PREBUILT_SCANBOT_AUTO_SNAPPING_ENABLED,
-      autoSnappingSensitivity: PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY,
-      autoSnappingDelaySeconds: PREBUILT_SCANBOT_AUTO_SNAPPING_DELAY_SECONDS,
-      scanbotCapturedAt: Date.now(),
-    });
+    logPrebuiltScannerDiagnostics({ scanbotCaptured: 'capturing' });
     scannerRef.current?.freezeCamera();
     try {
       const raw = await persistImageRef(originalImage, 'scanbot-raw');
@@ -212,15 +184,7 @@ export default function PrebuiltScannerBakeoffScreen({
         throw new Error('The scanner did not return a usable image.');
       }
       setCaptureArtifacts({ raw, cropped });
-      logPrebuiltScannerDiagnostics({
-        captureCompleted: true,
-        normalizedImageUriPresent: Boolean(cropped?.path ?? raw.path),
-        normalizedWidth: cropped?.size.width ?? raw.size.width,
-        normalizedHeight: cropped?.size.height ?? raw.size.height,
-        cardsightRequestStarted: false,
-        cardsightStatus: 'pending',
-        scanbotNormalizedAt: Date.now(),
-      });
+      logPrebuiltScannerDiagnostics({ scanbotCaptured: `${raw.size.width}x${raw.size.height}` });
       setStage('processing');
       if (mode === 'production') {
         const productionOutcome = await runProductionScannerCapture({
@@ -235,7 +199,6 @@ export default function PrebuiltScannerBakeoffScreen({
           onSessionUpdate: setSession,
           onCapturedCountChange: setCapturedCount,
           onSuccess: setSuccess,
-          onLog: logDiagnostics,
           onPrebuiltDiagnostics: logPrebuiltScannerDiagnostics,
           onCardsightPreview: setCardsightPreview,
           lastAcceptedIdentityRef,
@@ -249,10 +212,10 @@ export default function PrebuiltScannerBakeoffScreen({
         setStage('ready');
         return;
       }
-      const nextReport = await runPrebuiltScannerBakeoff({
-        rawImageUri: raw.path,
-        croppedImageUri: cropped?.path ?? null,
-        rawImageSize: raw.size,
+        const nextReport = await runPrebuiltScannerBakeoff({
+          rawImageUri: raw.path,
+          croppedImageUri: cropped?.path ?? null,
+          rawImageSize: raw.size,
         croppedImageSize: cropped?.size ?? null,
         online: true,
       });
@@ -285,10 +248,7 @@ export default function PrebuiltScannerBakeoffScreen({
         <Ionicons name="warning-outline" size={36} color={color.textMuted} />
         <TDText variant="title">Scanner unavailable</TDText>
         <TDText tone="muted">{error}</TDText>
-        <View style={styles.row}>
-          {onUseLegacyFallback ? <TDButton label="Use legacy scanner" variant="secondary" onPress={onUseLegacyFallback} /> : null}
-          <TDButton label="Go back" onPress={() => router.back()} />
-        </View>
+        <TDButton label="Go back" onPress={() => router.back()} />
       </View>
     );
   }
@@ -354,7 +314,6 @@ export default function PrebuiltScannerBakeoffScreen({
                 {error ? <TDText variant="caption" tone="danger">{error}</TDText> : null}
                 <View style={styles.row}>
                   <TDButton label="Open session" variant="secondary" onPress={() => router.push('/scanner-session' as never)} />
-                  {onUseLegacyFallback ? <TDButton label="Use legacy scanner" variant="secondary" onPress={onUseLegacyFallback} /> : null}
                 </View>
                 {__DEV__ && diagnosticsEnabled && captureArtifacts ? (
                   <View style={styles.devDiagnostics}>
@@ -456,38 +415,24 @@ function formatBytes(bytes: number) {
 
 function logDiagnostics(report: PrebuiltScannerBakeoffReport) {
   if (!__DEV__) return;
-  console.info('TD_SCANNER_PROVIDER', {
+  console.info('TD_SCANNER_BAKEOFF', {
     engine: 'scanbot',
     stage: 'bakeoff',
     cardsightEnabled: true,
     cardsightCandidate: report.summary.cardsight.raw.topCandidate ?? report.summary.cardsight.cropped.topCandidate ?? null,
     cardsightLatencyMs: report.summary.cardsight.raw.latencyMs ?? report.summary.cardsight.cropped.latencyMs ?? null,
-    fallbackProvider: report.summary.tcgtracking.raw.topCandidate ?? report.summary.tcgtracking.cropped.topCandidate ?? 'local',
   });
 }
 
 function logPrebuiltScannerDiagnostics(event: PrebuiltScannerDiagnosticsEvent) {
   if (!__DEV__) return;
   console.info('TD_PREBUILT_SCANNER', {
-    detectionStatus: event.detectionStatus ?? null,
-    acceptedSizeScore: event.acceptedSizeScore ?? PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE,
-    acceptedAngleScore: event.acceptedAngleScore ?? PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
-    autoSnappingEnabled: event.autoSnappingEnabled ?? PREBUILT_SCANBOT_AUTO_SNAPPING_ENABLED,
-    autoSnappingSensitivity: event.autoSnappingSensitivity ?? PREBUILT_SCANBOT_AUTO_SNAPPING_SENSITIVITY,
-    autoSnappingDelaySeconds: event.autoSnappingDelaySeconds ?? PREBUILT_SCANBOT_AUTO_SNAPPING_DELAY_SECONDS,
-    captureStarted: event.captureStarted ?? false,
-    captureCompleted: event.captureCompleted ?? false,
-    normalizedImageUriPresent: event.normalizedImageUriPresent ?? false,
-    normalizedWidth: event.normalizedWidth ?? null,
-    normalizedHeight: event.normalizedHeight ?? null,
-    cardsightStarted: event.cardsightStarted ?? false,
-    cardsightRequestStarted: event.cardsightRequestStarted ?? false,
-    cardsightStatus: event.cardsightStatus ?? null,
-    scanbotDetectedAt: event.scanbotDetectedAt ?? null,
-    scanbotCapturedAt: event.scanbotCapturedAt ?? null,
-    scanbotNormalizedAt: event.scanbotNormalizedAt ?? null,
-    cardsightStartedAt: event.cardsightStartedAt ?? null,
-    cardsightCompletedAt: event.cardsightCompletedAt ?? null,
+    scanbotDetected: event.scanbotDetected ?? null,
+    scanbotCaptured: event.scanbotCaptured ?? null,
+    cardsightRequest: event.cardsightRequest ?? null,
+    cardsightResult: event.cardsightResult ?? null,
+    cardIntelligenceResult: event.cardIntelligenceResult ?? null,
+    sessionAppend: event.sessionAppend ?? null,
   });
 }
 
@@ -503,7 +448,6 @@ async function runProductionScannerCapture(input: {
   onSessionUpdate: (session: ContinuousScannerSession) => void;
   onCapturedCountChange: (count: number) => void;
   onSuccess: (message: string | null) => void;
-  onLog: (report: PrebuiltScannerBakeoffReport) => void;
   onPrebuiltDiagnostics: (event: PrebuiltScannerDiagnosticsEvent) => void;
   onCardsightPreview: (preview: CardsightPreviewArtifact | null) => void;
   lastAcceptedIdentityRef: MutableRefObject<string | null>;
@@ -512,43 +456,34 @@ async function runProductionScannerCapture(input: {
   if (!input.session || !input.sessionUserId) {
     return { ok: false, message: 'Scanner session is still preparing.' };
   }
+  if (!isCardSightScannerEnabled()) {
+    return { ok: false, message: 'CardSight is unavailable in this build.' };
+  }
   input.onPrebuiltDiagnostics({
-    cardsightStarted: true,
-    cardsightStartedAt: Date.now(),
-    cardsightStatus: 'requesting',
+    cardsightRequest: 'started',
   });
   if (__DEV__) {
     console.info('TD_SCANNER_PROVIDER', {
-      scannerEngine: 'prebuilt',
-      cardsightEnabled: true,
-      escalationStage: 'cardsight_request_start',
-      cardsightRequestStarted: true,
-      cardsightResponseStatus: 'requesting',
-      cardsightCandidate: null,
-      cardsightLatencyMs: null,
-      fallbackProvider: null,
-      rawImageWidth: input.rawImageSize.width,
-      rawImageHeight: input.rawImageSize.height,
-      rawImageBytes: input.rawImageBytes,
-      croppedImageWidth: input.croppedImageSize?.width ?? null,
-      croppedImageHeight: input.croppedImageSize?.height ?? null,
-      croppedImageBytes: input.croppedImageBytes,
+      scanbotDetected: 'frame-detected',
+      scanbotCaptured: 'captured',
+      cardsightRequest: 'started',
     });
   }
-  const report = await runPrebuiltScannerBakeoff({
-    rawImageUri: input.rawImageUri,
-    croppedImageUri: input.croppedImageUri,
-    rawImageSize: input.rawImageSize,
-    croppedImageSize: input.croppedImageSize,
-    online: true,
-  });
-  input.onLog(report);
-  input.onPrebuiltDiagnostics({
-    cardsightCompletedAt: Date.now(),
-    cardsightStatus: report.summary.cardsight.raw.status,
-  });
-
-  const selection = await chooseProductionCandidate(report, {
+  const [rawCardsight, croppedCardsight] = await Promise.all([
+    scanCardSightWithFallback({
+      imageUri: input.rawImageUri,
+      mapping: fullImageMapping(input.rawImageSize),
+      online: true,
+      allowUnconfirmedCandidate: true,
+    }),
+    scanCardSightWithFallback({
+      imageUri: input.croppedImageUri ?? input.rawImageUri,
+      mapping: fullImageMapping(input.croppedImageSize ?? input.rawImageSize),
+      online: true,
+      allowUnconfirmedCandidate: true,
+    }),
+  ]);
+  const selection = chooseProductionCandidate(rawCardsight, croppedCardsight, {
     rawImageUri: input.rawImageUri,
     croppedImageUri: input.croppedImageUri,
     rawImageSize: input.rawImageSize,
@@ -556,8 +491,12 @@ async function runProductionScannerCapture(input: {
     rawImageBytes: input.rawImageBytes,
     croppedImageBytes: input.croppedImageBytes,
   });
+  input.onPrebuiltDiagnostics({
+    cardsightResult: bestProviderAttempt(rawCardsight, croppedCardsight)?.ok ? 'candidates' : 'retry',
+  });
   if (!selection) {
-    return { ok: false, message: 'No reliable card identity yet. Keep scanning.' };
+    input.onPrebuiltDiagnostics({ cardIntelligenceResult: 'retry' });
+    return { ok: false, message: 'Couldn’t identify card\nTry again' };
   }
 
   input.onCardsightPreview(selection.cardsightPreview ?? null);
@@ -614,54 +553,47 @@ async function runProductionScannerCapture(input: {
   input.lastAcceptedIdentityRef.current = fingerprint;
   input.lastAcceptedAtRef.current = Date.now();
   input.onSuccess(successMessage);
+  input.onPrebuiltDiagnostics({
+    cardIntelligenceResult: selection.requiresConfirmation ? 'needs_review' : 'exact',
+    sessionAppend: 'added',
+  });
   setTimeout(() => {
     input.onSuccess(null);
   }, 550);
   if (__DEV__) {
     console.info('TD_SCANNER_PROVIDER', {
-      scannerEngine: 'prebuilt',
-      cardsightEnabled: true,
-      escalationStage: selection.provider,
-      cardsightUploadMode: selection.cardsightUploadMode,
-      cardsightRequestStarted: selection.cardsightRequestStarted,
-      cardsightResponseStatus: selection.cardsightResponseStatus,
-      cardsightCandidate: selection.cardsightCandidate,
-      cardsightLatencyMs: selection.cardsightLatencyMs,
-      fallbackProvider: selection.fallbackProvider,
-      cardsightPreviewSource: selection.cardsightPreview?.source ?? null,
-      cardsightPreviewUriPresent: Boolean(selection.cardsightPreview?.path),
-      cardsightPreviewWidth: selection.cardsightPreview?.size.width ?? null,
-      cardsightPreviewHeight: selection.cardsightPreview?.size.height ?? null,
-      cardsightPreviewBytes: selection.cardsightPreview?.bytes ?? null,
+      scanbotDetected: 'frame-detected',
+      scanbotCaptured: 'captured',
+      cardsightRequest: 'completed',
+      cardsightResult: bestProviderAttempt(rawCardsight, croppedCardsight)?.ok ? 'candidates' : 'retry',
+      cardIntelligenceResult: selection.requiresConfirmation ? 'needs_review' : 'exact',
+      sessionAppend: 'added',
     });
   }
   return { ok: true };
 }
 
-async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport, images: {
+function chooseProductionCandidate(rawCardsight: CardSightMobileScanResult, croppedCardsight: CardSightMobileScanResult, images: {
   rawImageUri: string;
   croppedImageUri: string | null;
   rawImageSize: { width: number; height: number };
   croppedImageSize: { width: number; height: number } | null;
   rawImageBytes: number;
   croppedImageBytes: number | null;
-}): Promise<null | {
+}): null | {
   candidate: ScannerCardCandidate;
   recognitionMethod: 'metadata_assisted' | 'manual_search' | 'future_visual_provider' | 'unavailable';
   requiresConfirmation: boolean;
   topConfidence: number | null;
-  provider: 'cardsight' | 'tcgtracking' | 'local';
-  cardsightRequestStarted: boolean;
-  cardsightResponseStatus: string | null;
-  cardsightCandidate: string | null;
-  cardsightLatencyMs: number | null;
-  fallbackProvider: string;
-  cardsightUploadMode: 'raw' | 'cropped' | null;
+  provider: 'cardsight';
   cardsightPreview: CardsightPreviewArtifact | null;
-}> {
-  const cardsight = bestProviderAttempt(report.raw.cardsight, report.cropped.cardsight);
+} {
+  if (!isCardSightScannerEnabled()) {
+    return null;
+  }
+  const cardsight = bestProviderAttempt(rawCardsight, croppedCardsight);
   if (cardsight?.ok && cardsight.candidates.length) {
-    const selectedSource = cardsight === report.raw.cardsight ? 'raw' : 'cropped';
+    const selectedSource = cardsight === rawCardsight ? 'raw' : 'cropped';
     const preview: CardsightPreviewArtifact | null = {
       path: selectedSource === 'raw' ? images.rawImageUri : images.croppedImageUri ?? images.rawImageUri,
       size: selectedSource === 'raw'
@@ -679,55 +611,16 @@ async function chooseProductionCandidate(report: PrebuiltScannerBakeoffReport, i
       requiresConfirmation: cardsight.fallbackRecommended,
       topConfidence: cardsight.topConfidence,
       provider: 'cardsight',
-      cardsightRequestStarted: true,
-      cardsightResponseStatus: cardsight.status,
-      cardsightCandidate: cardsight.candidates[0]?.name ?? null,
-      cardsightLatencyMs: cardsight.latencyMs ?? null,
-      fallbackProvider: 'cardsight',
-      cardsightUploadMode: selectedSource,
       cardsightPreview: preview,
     };
   }
+  return null;
+}
 
-  const tcgtracking = bestProviderAttempt(report.raw.tcgtracking, report.cropped.tcgtracking);
-  if (tcgtracking?.ok && tcgtracking.candidates.length) {
-    return {
-      candidate: tcgtracking.candidates[0],
-      recognitionMethod: 'metadata_assisted',
-      requiresConfirmation: tcgtracking.fallbackRecommended,
-      topConfidence: tcgtracking.topConfidence,
-      provider: 'tcgtracking',
-      cardsightRequestStarted: false,
-      cardsightResponseStatus: 'fallback_to_tcgtracking',
-      cardsightCandidate: null,
-      cardsightLatencyMs: null,
-      fallbackProvider: 'TCGTracking',
-      cardsightUploadMode: null,
-      cardsightPreview: null,
-    };
-  }
-
-  const localTop = bestLocalTopCandidate(report.raw.local, report.cropped.local);
-  if (!localTop) return null;
-  const localMatches = await searchScannerPrintings(localTop.name, true);
-  const candidate = localMatches.ok
-    ? localMatches.candidates.find((entry) => entry.id === localTop.scryfallId || entry.oracleId === localTop.oracleId || entry.name === localTop.name) ?? localMatches.candidates[0] ?? null
-    : null;
-  if (!candidate) return null;
+function fullImageMapping(size: { width: number; height: number }) {
   return {
-    candidate,
-    recognitionMethod: 'manual_search',
-    requiresConfirmation: false,
-    topConfidence: localTop.score ?? candidate.confidence ?? null,
-    provider: 'local',
-    cardsightRequestStarted: false,
-    cardsightResponseStatus: 'local_fallback',
-    cardsightCandidate: null,
-    cardsightLatencyMs: null,
-    fallbackProvider: 'local',
-    cardsightUploadMode: null,
-    cardsightPreview: null,
-  };
+    cardCropPixels: { x: 0, y: 0, width: Math.max(1, Math.round(size.width)), height: Math.max(1, Math.round(size.height)) },
+  } as GuideCropMapping;
 }
 
 function bestProviderAttempt<T extends { ok: boolean; candidates?: ScannerCardCandidate[]; topConfidence?: number | null; fallbackRecommended?: boolean; status?: string; reason?: string; latencyMs?: number | null }>(raw: T, cropped: T) {
@@ -736,15 +629,6 @@ function bestProviderAttempt<T extends { ok: boolean; candidates?: ScannerCardCa
   if (rawScore === null && croppedScore === null) return raw.ok ? raw : cropped.ok ? cropped : null;
   if (croppedScore !== null && (rawScore === null || croppedScore > rawScore + 0.02)) return cropped;
   return raw;
-}
-
-function bestLocalTopCandidate(raw: PrebuiltScannerBakeoffReport['raw']['local'], cropped: PrebuiltScannerBakeoffReport['cropped']['local']) {
-  const rawTop = raw.engines.ocr_accurate.top1 ?? raw.engines.apple_vision_feature_print.top1 ?? raw.engines.phash_luma_8x8.top1 ?? null;
-  const croppedTop = cropped.engines.ocr_accurate.top1 ?? cropped.engines.apple_vision_feature_print.top1 ?? cropped.engines.phash_luma_8x8.top1 ?? null;
-  if (!rawTop && !croppedTop) return null;
-  if (!rawTop) return croppedTop;
-  if (!croppedTop) return rawTop;
-  return (croppedTop.score ?? 0) > (rawTop.score ?? 0) ? croppedTop : rawTop;
 }
 
 function fingerprintProductionCandidate(candidate: ScannerCardCandidate) {
