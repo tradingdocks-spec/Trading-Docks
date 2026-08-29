@@ -24,23 +24,21 @@ const printingLookupCache = new Map<string, { fetchedAt: number; candidates: Sca
 const PRINTING_LOOKUP_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export async function lookupScannerPrintings(input: {
-  name?: string | null;
   oracleId?: string | null;
   online?: boolean;
 }): Promise<ScannerRecognitionResult> {
   const online = input.online ?? true;
-  const key = input.oracleId ? `oracle:${input.oracleId}` : `name:${input.name?.trim().toLowerCase() ?? ''}`;
+  const key = input.oracleId ? `oracle:${input.oracleId}` : 'oracle:missing';
   const cached = printingLookupCache.get(key);
   if (cached && Date.now() - cached.fetchedAt <= PRINTING_LOOKUP_CACHE_TTL_MS) {
     return { ok: true, candidates: cached.candidates, assisted: false };
   }
   if (!online) return { ok: false, reason: 'Printing lookup needs internet unless this card was opened earlier in the session.', offline: true };
-  const cleanName = input.name?.trim();
-  if (!input.oracleId && (!cleanName || cleanName.length < 2)) return { ok: true, candidates: [], assisted: false };
+  if (!input.oracleId) {
+    return { ok: false, reason: 'Printing review requires a canonical card identity.' };
+  }
   try {
-    const query = input.oracleId
-      ? `oracleid:${input.oracleId} game:paper`
-      : `!"${cleanName?.replaceAll('"', '')}" game:paper`;
+    const query = `oracleid:${input.oracleId} game:paper`;
     const url = `https://api.scryfall.com/cards/search?${new URLSearchParams({
       q: query,
       unique: 'prints',

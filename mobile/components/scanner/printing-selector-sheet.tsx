@@ -36,7 +36,7 @@ export function PrintingSelectorSheet({
     if (!visible || !currentCandidate) return undefined;
     setLoading(true);
     setError(null);
-    void lookupScannerPrintings({ oracleId: currentCandidate.oracleId, name: currentCandidate.name })
+    void lookupScannerPrintings({ oracleId: currentCandidate.oracleId })
       .then((result) => {
         if (!active) return;
         if (!result.ok) {
@@ -98,7 +98,7 @@ export function PrintingSelectorSheet({
                     {candidate.imageUrl ? <Image source={{ uri: candidate.imageUrl }} style={s.image} contentFit="cover" /> : <View style={s.imageMissing}><Ionicons name="image-outline" size={20} color={color.textMuted} /></View>}
                     <View style={s.copy}>
                       <View style={s.titleRow}>
-                        <TDText variant="small" numberOfLines={2} style={s.name}>{candidate.setName ?? candidate.setCode ?? 'Set unavailable'}</TDText>
+                        <TDText variant="small" numberOfLines={2} style={s.name}>{candidate.name}</TDText>
                         {selected ? <TDBadge tone="success">Current</TDBadge> : null}
                       </View>
                       <TDText variant="caption" tone="muted" numberOfLines={1}>{candidate.setCode ?? 'SET'} #{candidate.collectorNumber ?? '?'} {releaseYear(candidate)}</TDText>

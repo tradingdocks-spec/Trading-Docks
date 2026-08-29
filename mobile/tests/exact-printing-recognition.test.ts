@@ -150,11 +150,29 @@ test('other-printings lookup caches repeated Scryfall responses', async () => {
     } as Response;
   }) as typeof fetch;
   try {
-    const first = await lookupScannerPrintings({ oracleId: 'oracle-cache', name: 'Brainstorm' });
-    const second = await lookupScannerPrintings({ oracleId: 'oracle-cache', name: 'Brainstorm' });
+    const first = await lookupScannerPrintings({ oracleId: 'oracle-cache' });
+    const second = await lookupScannerPrintings({ oracleId: 'oracle-cache' });
     assert.equal(first.ok, true);
     assert.equal(second.ok, true);
     assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test('other-printings lookup requires a canonical oracle id and never falls back to name search', async () => {
+  const previousFetch = globalThis.fetch;
+  clearScannerPrintingLookupCache();
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    throw new Error('fetch should not be called without oracle id');
+  }) as typeof fetch;
+  try {
+    const result = await lookupScannerPrintings({ online: true });
+    assert.equal(result.ok, false);
+    assert.match(result.reason, /canonical card identity/i);
+    assert.equal(calls, 0);
   } finally {
     globalThis.fetch = previousFetch;
   }
