@@ -49,6 +49,31 @@ export async function lookupScannerPrintings(input: {
     if (!response.ok) return { ok: false, reason: 'No other Scryfall printings were found.' };
     const payload = await response.json() as { data?: ScryfallCard[] };
     const candidates = (payload.data ?? []).map(cardToCandidate).filter((candidate): candidate is ScannerCardCandidate => Boolean(candidate));
+    const invalid = candidates.filter((candidate) => candidate.oracleId !== input.oracleId);
+    if (invalid.length > 0) {
+      logPrintingLookup({
+        requestedOracleId: input.oracleId,
+        queryType: 'oracle_id',
+        returnedCount: candidates.length,
+        returnedNames: candidates.map((candidate) => candidate.name),
+        returnedOracleIds: candidates.map((candidate) => candidate.oracleId).filter((value): value is string => Boolean(value)),
+      });
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('TD_PRINTING_LOOKUP_INVALID', {
+          requestedOracleId: input.oracleId,
+          invalidReturnedOracleIds: invalid.map((candidate) => candidate.oracleId),
+          returnedNames: candidates.map((candidate) => candidate.name),
+        });
+      }
+      return { ok: false, reason: 'Printing review returned mismatched card identities.' };
+    }
+    logPrintingLookup({
+      requestedOracleId: input.oracleId,
+      queryType: 'oracle_id',
+      returnedCount: candidates.length,
+      returnedNames: candidates.map((candidate) => candidate.name),
+      returnedOracleIds: candidates.map((candidate) => candidate.oracleId).filter((value): value is string => Boolean(value)),
+    });
     printingLookupCache.set(key, { fetchedAt: Date.now(), candidates });
     return { ok: true, candidates, assisted: false };
   } catch (error) {
@@ -84,6 +109,17 @@ function cardToCandidate(card: ScryfallCard) {
       layout: card.layout ?? null,
     },
   });
+}
+
+function logPrintingLookup(input: {
+  requestedOracleId: string;
+  queryType: 'oracle_id';
+  returnedCount: number;
+  returnedNames: string[];
+  returnedOracleIds: string[];
+}) {
+  if (process.env.NODE_ENV === 'production') return;
+  console.info('TD_PRINTING_LOOKUP', input);
 }
 
 function scryfallSpecialLabels(card: ScryfallCard) {

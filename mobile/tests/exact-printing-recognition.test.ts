@@ -177,3 +177,24 @@ test('other-printings lookup requires a canonical oracle id and never falls back
     globalThis.fetch = previousFetch;
   }
 });
+
+test('other-printings lookup rejects mixed oracle identities before rendering', async () => {
+  const previousFetch = globalThis.fetch;
+  clearScannerPrintingLookupCache();
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    data: [
+      { id: 'goblin-rtr', oracle_id: 'oracle-goblin', name: 'Goblin Electromancer', set: 'RTR', set_name: 'Return to Ravnica', collector_number: '173', finishes: ['nonfoil'] },
+      { id: 'goblin-dds', oracle_id: 'oracle-goblin', name: 'Goblin Electromancer', set: 'DDS', set_name: 'Duel Decks: Izzet vs. Golgari', collector_number: '022/065', finishes: ['nonfoil'] },
+      { id: 'burst-lightning', oracle_id: 'oracle-burst-lightning', name: 'Burst Lightning', set: 'ZEN', set_name: 'Zendikar', collector_number: '123', finishes: ['nonfoil'] },
+    ],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch;
+  try {
+    const result = await lookupScannerPrintings({ oracleId: 'oracle-goblin', online: true });
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.match(result.reason, /mismatched card identities/i);
+    }
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});

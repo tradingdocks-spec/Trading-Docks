@@ -1,16 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useCameraPermissions } from 'expo-camera';
 import { File, Paths } from 'expo-file-system';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 
 import ScanbotSDK, { SdkConfiguration, ScanbotDocumentScannerView, type DocumentDetectionResult, type ImageRef as ScanbotImageRef, type ScanbotDocumentScannerViewHandle } from 'react-native-scanbot-sdk';
 
-import { TDButton, TDCard, TDLoadingState, TDText } from '@/components/design-system';
+import { TDButton, TDCard, TDLoadingState, TDSessionStrip, TDSkeleton, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
-import { addRecognitionToSession, createContinuousScannerSession, createRecognitionPipelineReport, continuousScannerSessionKey, type ContinuousScannerSession } from '@/services/continuous-offer-scanner';
+import { addRecognitionToSession, createContinuousScannerSession, createRecognitionPipelineReport, continuousScannerSessionKey, scannerDestinationLabel, type ContinuousScannerSession, type ScannerSessionLine } from '@/services/continuous-offer-scanner';
+import { displayCondition, displayFinish } from '@/services/collector-workspace';
 import {
   PREBUILT_SCANBOT_ACCEPTED_ANGLE_SCORE,
   PREBUILT_SCANBOT_ACCEPTED_SIZE_SCORE,
@@ -22,12 +25,14 @@ import {
 import { isCardSightScannerEnabled } from '@/services/cardsight-scan-provider';
 import type { GuideCropMapping } from '@/services/magic-ocr-pipeline';
 import { loadScannerContext } from '@/services/scanner-data';
-import { enrichScannerSessionLinePrice } from '@/services/scanner-price-enrichment';
+import { enrichScannerSessionLinePrice, selectScryfallScannerPrice } from '@/services/scanner-price-enrichment';
 import { isScannerDiagnosticsEnabled } from '@/services/native-scanner-calibration';
 import { runPrebuiltScannerBakeoff, type PrebuiltScannerBakeoffReport } from '@/services/scanner-prebuilt-bakeoff';
 import { appStorage } from '@/services/storage/app-storage';
 import type { ScannerCardCandidate } from '@/services/scanner-foundation';
-import { scanCardSightWithFallback, type CardSightMobileScanResult } from '@/services/cardsight-scan-provider';
+import { PrintingSelectorSheet } from '@/components/scanner/printing-selector-sheet';
+import { updateScannerSessionLinePrinting } from '@/services/continuous-offer-scanner';
+import { scanCardSightImageOnce, scanCardSightWithFallback, type CardSightAttemptTrace, type CardSightMobileScanResult } from '@/services/cardsight-scan-provider';
 
 type ScannerStage = 'initializing' | 'ready' | 'capturing' | 'processing' | 'error';
 type ScannerMode = 'bakeoff' | 'production';
@@ -44,11 +49,82 @@ type ScannerImageArtifact = {
   path: string | null;
   size: { width: number; height: number };
   bytes: number;
+  mimeType: 'image/jpeg';
+  orientation: 'portrait' | 'landscape';
 };
 
 type CardsightPreviewArtifact = ScannerImageArtifact & {
   source: 'raw' | 'cropped';
   candidate: string | null;
+};
+
+type CardsightTraceSummary = {
+  authenticated: boolean;
+  imageSource: 'raw' | 'cropped';
+  width: number | null;
+  height: number | null;
+  bytes: number | null;
+  mimeType: 'image/jpeg';
+  requestStarted: boolean;
+  httpStatus: number | null;
+  latencyMs: number | null;
+};
+
+type CardsightResultSummary = {
+  httpStatus: number | null;
+  latencyMs: number | null;
+  candidateCount: number;
+  topCandidateName: string | null;
+  topCandidateSet: string | null;
+  topCandidateCollectorNumber: string | null;
+  topCandidateConfidence: number | null;
+  rawProviderConfidence: number | null;
+  parsingSucceeded: boolean;
+};
+
+type CardIntelligenceSummary = {
+  canonicalCardId: string | null;
+  printingId: string | null;
+  name: string | null;
+  setCode: string | null;
+  collectorNumber: string | null;
+  confidence: number | null;
+  requiresConfirmation: boolean;
+  accepted: boolean;
+  rejectionReason: string | null;
+};
+
+type CardsightDiagnosticsSnapshot = {
+  image: CardsightPreviewArtifact | null;
+  request: CardsightTraceSummary | null;
+  result: CardsightResultSummary | null;
+  intelligence: CardIntelligenceSummary | null;
+};
+
+type ProductionScanResult = {
+  name: string;
+  cardSightId: string | null;
+  canonicalCardId: string | null;
+  printingId: string | null;
+  imageUrl: string | null;
+  setName: string | null;
+  setCode: string | null;
+  collectorNumber: string | null;
+  rarity: string | null;
+  language: string | null;
+  finish: string | null;
+  availableFinishes: string[];
+  condition: string | null;
+  quantity: number;
+  destination: string | null;
+  marketPrice: number | null;
+  priceSource: string | null;
+  confidence: number | null;
+  oracleIdVerified: boolean;
+  exactPrintingResolved: boolean;
+  requiresPrintingReview: boolean;
+  candidate: ScannerCardCandidate;
+  sessionLineId: string | null;
 };
 
 const SCANBOT_LICENSE_KEY = process.env.EXPO_PUBLIC_SCANBOT_LICENSE_KEY?.trim() ?? '';
@@ -65,6 +141,9 @@ export default function PrebuiltScannerBakeoffScreen({
   mode?: ScannerMode;
 } = {}) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const isCompactProductionLayout = windowHeight < 720;
+  const isLargeProductionLayout = windowHeight >= 900;
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const scannerRef = useRef<ScanbotDocumentScannerViewHandle | null>(null);
   const [stage, setStage] = useState<ScannerStage>('initializing');
@@ -80,10 +159,95 @@ export default function PrebuiltScannerBakeoffScreen({
   const [capturedCount, setCapturedCount] = useState(0);
   const [captureArtifacts, setCaptureArtifacts] = useState<{ raw: ScannerImageArtifact; cropped: ScannerImageArtifact | null } | null>(null);
   const [cardsightPreview, setCardsightPreview] = useState<CardsightPreviewArtifact | null>(null);
+  const [cardsightDiagnostics, setCardsightDiagnostics] = useState<CardsightDiagnosticsSnapshot | null>(null);
+  const [cardsightProbe, setCardsightProbe] = useState<CardsightDiagnosticsSnapshot | null>(null);
+  const [productionResult, setProductionResult] = useState<ProductionScanResult | null>(null);
+  const [productionFlashVisible, setProductionFlashVisible] = useState(false);
+  const [printingSelectorCandidate, setPrintingSelectorCandidate] = useState<ScannerCardCandidate | null>(null);
+  const [printingSelectorOpen, setPrintingSelectorOpen] = useState(false);
   const lastAcceptedIdentityRef = useRef<string | null>(null);
   const lastAcceptedAtRef = useRef(0);
+  const lastSessionLineIdRef = useRef<string | null>(null);
   const captureInFlightRef = useRef(false);
   const lastDetectionStatusRef = useRef<string | null>(null);
+  const productionFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (productionFlashTimerRef.current) {
+        clearTimeout(productionFlashTimerRef.current);
+        productionFlashTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const testCurrentCardSightImage = useCallback(async () => {
+    const currentImage = cardsightPreview
+      ?? cardsightDiagnostics?.image
+      ?? (captureArtifacts ? {
+        path: captureArtifacts.cropped?.path ?? captureArtifacts.raw.path,
+        size: captureArtifacts.cropped?.path ? captureArtifacts.cropped.size : captureArtifacts.raw.size,
+        bytes: captureArtifacts.cropped?.path ? captureArtifacts.cropped.bytes : captureArtifacts.raw.bytes,
+        mimeType: 'image/jpeg' as const,
+        orientation: (captureArtifacts.cropped?.path ? captureArtifacts.cropped.size : captureArtifacts.raw.size).width >= (captureArtifacts.cropped?.path ? captureArtifacts.cropped.size : captureArtifacts.raw.size).height ? 'landscape' as const : 'portrait' as const,
+        source: captureArtifacts.cropped?.path ? 'cropped' as const : 'raw' as const,
+        candidate: null,
+      } : null);
+    if (!currentImage?.path) return;
+    setCardsightProbe(null);
+    setError(null);
+    const result = await scanCardSightImageOnce({
+      imageUri: currentImage.path,
+      mapping: fullImageMapping(currentImage.size),
+      mode: 'raw',
+      online: true,
+      allowUnconfirmedCandidate: true,
+    });
+    const topCandidate = result.ok ? result.candidates[0] ?? null : null;
+    const probeIntelligence: CardIntelligenceSummary = topCandidate
+      ? {
+        canonicalCardId: topCandidate.oracleId ?? null,
+        printingId: topCandidate.id ?? null,
+        name: topCandidate.name ?? null,
+        setCode: topCandidate.setCode ?? null,
+        collectorNumber: topCandidate.collectorNumber ?? null,
+        confidence: topCandidate.confidence ?? (result.ok ? result.topConfidence : null) ?? null,
+        requiresConfirmation: result.fallbackRecommended,
+        accepted: true,
+        rejectionReason: null,
+      }
+      : {
+        canonicalCardId: null,
+        printingId: null,
+        name: null,
+        setCode: null,
+        collectorNumber: null,
+        confidence: result.ok ? result.topConfidence ?? null : null,
+        requiresConfirmation: false,
+        accepted: false,
+        rejectionReason: result.ok ? 'CardSight did not return a candidate.' : result.reason,
+      };
+    setCardsightProbe(buildCardsightDiagnosticsSnapshot({
+      image: currentImage,
+      attempt: result,
+      intelligence: probeIntelligence,
+    }));
+  }, [captureArtifacts, cardsightDiagnostics?.image, cardsightPreview]);
+
+  const handleOpenPrintingSelector = useCallback((candidate: ScannerCardCandidate) => {
+    if (__DEV__) {
+      console.info('TD_PRINTING_IDENTITY', {
+      cardName: candidate.name,
+      cardSightId: stringId(candidate.providerIds?.cardsight),
+      canonicalCardId: candidate.oracleId ?? null,
+      oracleId: candidate.oracleId ?? null,
+      printingId: candidate.id ?? null,
+      scryfallId: stringId(candidate.providerIds?.scryfall),
+    });
+  }
+    setPrintingSelectorCandidate(candidate);
+    setPrintingSelectorOpen(true);
+  }, []);
 
   const diagnosticsEnabled = isScannerDiagnosticsEnabled();
   const permissionGranted = Boolean(cameraPermission?.granted);
@@ -156,6 +320,37 @@ export default function PrebuiltScannerBakeoffScreen({
     return cameraReady ? 'Place the card roughly in view.' : 'Waiting for camera...';
   }, [cameraReady, detection, error, mode, report, sdkReady, sessionUserId, stage, success]);
 
+  const productionSessionLine = useMemo(() => {
+    if (!productionResult?.sessionLineId || !session) return null;
+    return session.lines.find((line) => line.id === productionResult.sessionLineId) ?? null;
+  }, [productionResult, session]);
+
+  const sessionTotalMarketValue = useMemo(() => {
+    if (!session) return null;
+    const total = session.lines.reduce((sum, line) => sum + (line.marketPrice ?? 0) * line.quantity, 0);
+    return total > 0 ? total : null;
+  }, [session]);
+
+  const sessionStripSummary = useMemo(() => {
+    const parts = [`Session • ${capturedCount}`];
+    if (sessionTotalMarketValue !== null) {
+      parts.push(`$${sessionTotalMarketValue.toFixed(2)} total`);
+    }
+    return parts.join(' • ');
+  }, [capturedCount, sessionTotalMarketValue]);
+
+  const showDiagnosticsPanel = mode === 'bakeoff' && __DEV__ && diagnosticsEnabled;
+
+  useEffect(() => {
+    if (!__DEV__ || mode !== 'production' || !sdkReady) return;
+    console.info('TD_SCANNER_ENGINE', {
+      cameraEngine: 'scanbot',
+      recognitionProvider: 'cardsight',
+      legacyScannerActive: false,
+      tcgtrackingActive: false,
+    });
+  }, [mode, sdkReady]);
+
   const handleFrameDetectionResult = useCallback((result: DocumentDetectionResult) => {
     setCameraReady(true);
     setDetection(result);
@@ -173,8 +368,18 @@ export default function PrebuiltScannerBakeoffScreen({
     setSuccess(null);
     setReport(null);
     setError(null);
+    setProductionResult(null);
+    setProductionFlashVisible(false);
+    setPrintingSelectorCandidate(null);
+    setPrintingSelectorOpen(false);
     setCaptureArtifacts(null);
     setCardsightPreview(null);
+    setCardsightDiagnostics(null);
+    setCardsightProbe(null);
+    if (productionFlashTimerRef.current) {
+      clearTimeout(productionFlashTimerRef.current);
+      productionFlashTimerRef.current = null;
+    }
     logPrebuiltScannerDiagnostics({ scanbotCaptured: 'capturing' });
     scannerRef.current?.freezeCamera();
     try {
@@ -201,10 +406,21 @@ export default function PrebuiltScannerBakeoffScreen({
           onSuccess: setSuccess,
           onPrebuiltDiagnostics: logPrebuiltScannerDiagnostics,
           onCardsightPreview: setCardsightPreview,
+          onCardsightDiagnostics: setCardsightDiagnostics,
+          onProductionResult: setProductionResult,
           lastAcceptedIdentityRef,
           lastAcceptedAtRef,
         });
         if (productionOutcome.ok) {
+          lastSessionLineIdRef.current = productionOutcome.sessionLineId;
+          setProductionFlashVisible(true);
+          if (productionFlashTimerRef.current) {
+            clearTimeout(productionFlashTimerRef.current);
+          }
+          productionFlashTimerRef.current = setTimeout(() => {
+            setProductionFlashVisible(false);
+            productionFlashTimerRef.current = null;
+          }, 700);
           setStage('ready');
           return;
         }
@@ -265,7 +481,7 @@ export default function PrebuiltScannerBakeoffScreen({
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.cameraStage, { paddingTop: insets.top + space.sm, paddingBottom: insets.bottom + space.md }]}>
+      <View style={[styles.cameraStage, { paddingTop: insets.top + space.sm, paddingBottom: insets.bottom + (isCompactProductionLayout ? space.sm : space.md) }]}>
         <ScanbotDocumentScannerView
           ref={scannerRef}
           style={StyleSheet.absoluteFill}
@@ -292,47 +508,125 @@ export default function PrebuiltScannerBakeoffScreen({
 
         <View style={[styles.topBar, { paddingTop: insets.top + space.sm }]}>
           <View style={styles.topTextGroup}>
-            <TDText variant="title">Trading Docks scanner</TDText>
-            <TDText tone="muted">{mode === 'production' ? 'Scanbot auto-capture + CardSight fallback' : 'Prebuilt Scanbot capture + CardSight bakeoff'}</TDText>
+            <TDText variant="label">Scanner</TDText>
+            <View style={styles.topMetaRow}>
+              <TDText variant="caption" tone="muted" numberOfLines={1}>{mode === 'production' ? `Session • ${capturedCount}` : 'Camera QA / Scanner Diagnostics'}</TDText>
+              {mode === 'production' ? <TDText variant="caption" tone="muted" numberOfLines={1}>Auto</TDText> : null}
+            </View>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Close scanner" onPress={() => router.back()} style={styles.iconButton}>
             <Ionicons name="close-outline" size={20} color={color.text} />
           </Pressable>
         </View>
 
-        <View style={styles.centerOverlay} pointerEvents="none">
+        <View style={[styles.centerOverlay, { top: isCompactProductionLayout ? '43%' : '46%' }]} pointerEvents="none">
           {!cameraReady ? <TDLoadingState title="Preparing scanner" message={stageCopy} /> : <TDText variant="caption" tone="muted">{stageCopy}</TDText>}
         </View>
 
-        <View style={[styles.bottomOverlay, { paddingBottom: insets.bottom + space.sm }]}>
-          <TDCard style={styles.summaryCard}>
-            {mode === 'production' ? (
-              <>
-                <TDText variant="label" tone="muted">Session • {capturedCount} cards</TDText>
-                <TDText variant="small">{success ?? stageCopy}</TDText>
-                <TDText variant="caption" tone="muted">Scanbot SDK: {sdkLicenseLabel}</TDText>
-                {error ? <TDText variant="caption" tone="danger">{error}</TDText> : null}
-                <View style={styles.row}>
-                  <TDButton label="Open session" variant="secondary" onPress={() => router.push('/scanner-session' as never)} />
-                </View>
-                {__DEV__ && diagnosticsEnabled && captureArtifacts ? (
+        <View style={[styles.bottomOverlay, { paddingBottom: insets.bottom + (isCompactProductionLayout ? space.xs : space.sm) }]}>
+          {mode === 'production' ? (
+            <>
+              {productionResult ? (
+                <ProductionResultCard
+                  result={productionResult}
+                  line={productionSessionLine}
+                  visible={productionFlashVisible}
+                  compact={isCompactProductionLayout}
+                  isLarge={isLargeProductionLayout}
+                  onOtherPrintings={() => {
+                    handleOpenPrintingSelector(productionResult.candidate);
+                  }}
+                />
+              ) : null}
+              <TDSessionStrip
+                summary={sessionStripSummary}
+                actionLabel="Open"
+                onPress={() => router.push('/scanner-session' as never)}
+                bottomInset={0}
+                tone={productionResult?.requiresPrintingReview ? 'warning' : 'info'}
+                style={styles.sessionStrip}
+              />
+              {error ? <TDText variant="caption" tone="danger" style={styles.productionError}>{error}</TDText> : null}
+              {showDiagnosticsPanel && captureArtifacts ? (
                   <View style={styles.devDiagnostics}>
-                    <TDText variant="caption" tone="muted">Raw capture • {captureArtifacts.raw.size.width} × {captureArtifacts.raw.size.height} • {formatBytes(captureArtifacts.raw.bytes)}</TDText>
-                    <TDText variant="caption" tone="muted">Normalized capture • {captureArtifacts.cropped ? `${captureArtifacts.cropped.size.width} × ${captureArtifacts.cropped.size.height} • ${formatBytes(captureArtifacts.cropped.bytes)}` : 'not returned'}</TDText>
-                    {cardsightPreview?.path ? (
+                    <View style={styles.previewGrid}>
                       <View style={styles.previewBlock}>
-                        <TDText variant="label" tone="muted">CardSight sent • {cardsightPreview.source}</TDText>
-                        <Image source={{ uri: cardsightPreview.path }} style={styles.previewImage} resizeMode="cover" />
+                        <TDText variant="label" tone="muted">Raw Scanbot capture</TDText>
+                        <Image source={{ uri: captureArtifacts.raw.path ?? undefined }} style={styles.previewImage} contentFit="cover" />
                         <TDText variant="caption" tone="muted">
-                          {cardsightPreview.size.width} × {cardsightPreview.size.height} • {formatBytes(cardsightPreview.bytes)}
-                          {cardsightPreview.candidate ? ` • ${cardsightPreview.candidate}` : ''}
+                          {captureArtifacts.raw.size.width} × {captureArtifacts.raw.size.height} • {formatBytes(captureArtifacts.raw.bytes)} • {captureArtifacts.raw.mimeType} • {captureArtifacts.raw.orientation}
+                        </TDText>
+                      </View>
+                      <View style={styles.previewBlock}>
+                        <TDText variant="label" tone="muted">Normalized Scanbot capture</TDText>
+                        {captureArtifacts.cropped?.path ? (
+                          <Image source={{ uri: captureArtifacts.cropped.path }} style={styles.previewImage} contentFit="cover" />
+                        ) : (
+                          <View style={styles.previewPlaceholder}>
+                            <TDText variant="caption" tone="muted">Not returned</TDText>
+                          </View>
+                        )}
+                        <TDText variant="caption" tone="muted">
+                          {captureArtifacts.cropped ? `${captureArtifacts.cropped.size.width} × ${captureArtifacts.cropped.size.height} • ${formatBytes(captureArtifacts.cropped.bytes)} • ${captureArtifacts.cropped.mimeType} • ${captureArtifacts.cropped.orientation}` : 'not returned'}
+                        </TDText>
+                      </View>
+                    </View>
+                    {cardsightDiagnostics?.image ? (
+                      <View style={styles.previewBlock}>
+                        <TDText variant="label" tone="muted">CardSight image</TDText>
+                        <Image source={{ uri: cardsightDiagnostics.image.path ?? undefined }} style={styles.previewImage} contentFit="cover" />
+                        <TDText variant="caption" tone="muted">
+                          {cardsightDiagnostics.image.source} • {cardsightDiagnostics.image.size.width} × {cardsightDiagnostics.image.size.height} • {formatBytes(cardsightDiagnostics.image.bytes)} • {cardsightDiagnostics.image.mimeType} • {cardsightDiagnostics.image.orientation}
+                          {cardsightDiagnostics.image.candidate ? ` • ${cardsightDiagnostics.image.candidate}` : ''}
+                        </TDText>
+                      </View>
+                    ) : null}
+                    {cardsightDiagnostics ? (
+                      <View style={styles.previewBlock}>
+                        <TDText variant="label" tone="muted">CardSight request</TDText>
+                        <TDText variant="caption" tone="muted">
+                          {cardsightDiagnostics.request
+                            ? `auth=${cardsightDiagnostics.request.authenticated ? 'true' : 'false'} • source=${cardsightDiagnostics.request.imageSource} • ${cardsightDiagnostics.request.width ?? 0} × ${cardsightDiagnostics.request.height ?? 0} • ${formatBytes(cardsightDiagnostics.request.bytes ?? 0)} • ${cardsightDiagnostics.request.mimeType} • status=${cardsightDiagnostics.request.httpStatus ?? 'n/a'} • ${cardsightDiagnostics.request.latencyMs ?? 'n/a'} ms`
+                            : 'no request trace'}
+                        </TDText>
+                        <TDText variant="label" tone="muted">CardSight result</TDText>
+                        <TDText variant="caption" tone="muted">
+                          {cardsightDiagnostics.result
+                            ? `${cardsightDiagnostics.result.candidateCount} candidates • ${cardsightDiagnostics.result.topCandidateName ?? 'none'}${cardsightDiagnostics.result.topCandidateSet ? ` • ${cardsightDiagnostics.result.topCandidateSet}` : ''}${cardsightDiagnostics.result.topCandidateCollectorNumber ? ` • ${cardsightDiagnostics.result.topCandidateCollectorNumber}` : ''} • conf ${formatConfidence(cardsightDiagnostics.result.topCandidateConfidence)} • raw ${formatConfidence(cardsightDiagnostics.result.rawProviderConfidence)} • ${cardsightDiagnostics.result.parsingSucceeded ? 'parsed' : 'unparsed'}`
+                            : 'no result trace'}
+                        </TDText>
+                        <TDText variant="label" tone="muted">Card Intelligence</TDText>
+                        <TDText variant="caption" tone="muted">
+                          {cardsightDiagnostics.intelligence
+                            ? `${cardsightDiagnostics.intelligence.accepted ? 'accepted' : 'rejected'}${cardsightDiagnostics.intelligence.name ? ` • ${cardsightDiagnostics.intelligence.name}` : ''}${cardsightDiagnostics.intelligence.setCode ? ` • ${cardsightDiagnostics.intelligence.setCode}` : ''}${cardsightDiagnostics.intelligence.collectorNumber ? ` • ${cardsightDiagnostics.intelligence.collectorNumber}` : ''}${cardsightDiagnostics.intelligence.requiresConfirmation ? ' • needs review' : ''}${cardsightDiagnostics.intelligence.rejectionReason ? ` • ${cardsightDiagnostics.intelligence.rejectionReason}` : ''}`
+                            : 'no intelligence trace'}
+                        </TDText>
+                      </View>
+                    ) : null}
+                    <View style={styles.row}>
+                      <TDButton
+                        label="Test current image with CardSight"
+                        variant="secondary"
+                        onPress={() => {
+                          void testCurrentCardSightImage();
+                        }}
+                        disabled={!cardsightPreview?.path && !captureArtifacts?.raw.path}
+                      />
+                    </View>
+                    {cardsightProbe ? (
+                      <View style={styles.previewBlock}>
+                        <TDText variant="label" tone="muted">Probe result</TDText>
+                        <TDText variant="caption" tone="muted">
+                          {cardsightProbe.request
+                            ? `HTTP ${cardsightProbe.request.httpStatus ?? 'n/a'} • ${cardsightProbe.intelligence?.name ?? cardsightProbe.result?.topCandidateName ?? 'no candidate'} • conf ${formatConfidence(cardsightProbe.intelligence?.confidence ?? cardsightProbe.result?.topCandidateConfidence ?? null)} • ${cardsightProbe.request.latencyMs ?? 'n/a'} ms`
+                            : 'no probe result'}
                         </TDText>
                       </View>
                     ) : null}
                   </View>
-                ) : null}
-              </>
-            ) : (
+              ) : null}
+            </>
+          ) : (
               <>
                 <TDText variant="label" tone="muted">Scanner status</TDText>
                 <TDText variant="small">Stage: {stage}</TDText>
@@ -350,7 +644,6 @@ export default function PrebuiltScannerBakeoffScreen({
                 </View>
               </>
             )}
-          </TDCard>
           {mode === 'bakeoff' && report ? (
             <View style={styles.results}>
               <ResultCard title="Local pipeline" summary={report.summary.local} />
@@ -359,6 +652,42 @@ export default function PrebuiltScannerBakeoffScreen({
             </View>
           ) : null}
         </View>
+        <PrintingSelectorSheet
+          visible={printingSelectorOpen}
+          currentCandidate={printingSelectorCandidate}
+          currentFinish={(productionSessionLine?.finish ?? productionResult?.finish ?? 'nonfoil') as never}
+          onClose={() => {
+            setPrintingSelectorOpen(false);
+            setPrintingSelectorCandidate(null);
+          }}
+          onSelect={(candidate, finish, fallbackMessage) => {
+            if (!session || !productionResult?.sessionLineId) return;
+            const result = updateScannerSessionLinePrinting(session, productionResult.sessionLineId, candidate);
+            const selectedPrice = selectScryfallScannerPrice(candidate, finish);
+            setSession(result.session);
+            setProductionResult((current) => current ? {
+              ...current,
+              cardSightId: stringId(candidate.providerIds?.cardsight) ?? current.cardSightId,
+              printingId: candidate.id,
+              imageUrl: candidate.imageUrl ?? current.imageUrl,
+              setName: candidate.setName ?? current.setName,
+              setCode: candidate.setCode ?? current.setCode,
+              collectorNumber: candidate.collectorNumber ?? current.collectorNumber,
+              language: candidate.language ?? current.language,
+              finish,
+              availableFinishes: candidate.finishes,
+              marketPrice: selectedPrice,
+              priceSource: selectedPrice === null ? current.priceSource : 'scryfall',
+              oracleIdVerified: Boolean(candidate.identityAuthority === 'provider_confirmed' && candidate.oracleId),
+              exactPrintingResolved: true,
+              requiresPrintingReview: false,
+              candidate,
+            } : current);
+            setSuccess(fallbackMessage ? `✓ ${candidate.name}\n${fallbackMessage}` : `✓ ${candidate.name}\n${candidate.setCode ?? 'Set'} • ${candidate.collectorNumber ?? '?'}`);
+            setPrintingSelectorOpen(false);
+            setPrintingSelectorCandidate(null);
+          }}
+        />
       </View>
     </View>
   );
@@ -371,6 +700,86 @@ function ResultCard({ title, summary }: { title: string; summary: PrebuiltScanne
       <TDText variant="small">Raw: {summary.raw.topCandidate ?? 'no candidate'} ({summary.raw.status})</TDText>
       <TDText variant="small">Crop: {summary.cropped.topCandidate ?? 'no candidate'} ({summary.cropped.status})</TDText>
       <TDText variant="caption" tone="muted">Winner: {summary.winner ?? 'none'} | Conf: {formatConfidence(summary.raw.confidence)} / {formatConfidence(summary.cropped.confidence)}</TDText>
+    </TDCard>
+  );
+}
+
+function ProductionResultCard({
+  result,
+  line,
+  visible,
+  compact,
+  isLarge,
+  onOtherPrintings,
+}: {
+  result: ProductionScanResult;
+  line: ScannerSessionLine | null;
+  visible: boolean;
+  compact: boolean;
+  isLarge: boolean;
+  onOtherPrintings: () => void;
+}) {
+  const finishLabel = displayFinish((line?.finish ?? result.finish ?? 'nonfoil') as never);
+  const conditionLabel = displayCondition((line?.condition ?? result.condition ?? 'near_mint') as never);
+  const destinationLabel = line?.destination ? scannerDestinationLabel(line.destination) : result.destination ?? 'Session';
+  const marketLabel = result.exactPrintingResolved && result.marketPrice !== null ? `$${result.marketPrice.toFixed(2)}` : null;
+  if (!visible && !result.requiresPrintingReview) return null;
+  if (!visible && result.requiresPrintingReview) {
+    return (
+      <TDCard style={[styles.reviewReminder, compact && styles.reviewReminderCompact]}>
+        <View style={styles.reviewReminderCopy}>
+          <TDText variant="small" numberOfLines={1}>{result.name}</TDText>
+          <TDText variant="caption" tone="warning" numberOfLines={1}>{result.oracleIdVerified ? 'Printing needs confirmation' : 'Resolving printing information...'}</TDText>
+        </View>
+        <TDButton label={result.oracleIdVerified ? 'Other printings' : 'Resolving...'} variant="secondary" size="sm" onPress={onOtherPrintings} disabled={!result.oracleIdVerified} />
+      </TDCard>
+    );
+  }
+  return (
+    <TDCard style={[styles.productionResultCard, compact && styles.productionResultCardCompact]}>
+      <View style={[styles.productionResultHeader, compact && styles.productionResultHeaderCompact]}>
+        {result.imageUrl ? (
+          <Image
+            source={{ uri: result.imageUrl }}
+            style={[
+              styles.productionResultImage,
+              compact && styles.productionResultImageCompact,
+              isLarge && styles.productionResultImageLarge,
+            ]}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[styles.productionResultImageMissing, compact && styles.productionResultImageCompact, isLarge && styles.productionResultImageLarge]}>
+            <Ionicons name="image-outline" size={22} color={color.textMuted} />
+          </View>
+        )}
+        <View style={styles.productionResultCopy}>
+          <TDText variant="body" numberOfLines={1} style={styles.productionResultName}>{result.name}</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{`${result.setCode ?? 'SET'} • ${result.collectorNumber ?? '?'}${result.setName ? ` • ${result.setName}` : ''}`}</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{`${conditionLabel} • ${finishLabel}${destinationLabel ? ` • ${destinationLabel}` : ''}`}</TDText>
+          <View style={styles.productionPriceRow}>
+            {result.exactPrintingResolved ? (
+              marketLabel ? (
+                <TDText variant="label" style={styles.productionPriceText}>{`Market ${marketLabel}`}</TDText>
+              ) : (
+                <View style={styles.productionPriceLoading}>
+                  <TDSkeleton lines={1} style={styles.productionPriceSkeleton} />
+                </View>
+              )
+            ) : (
+              <TDText variant="caption" tone="muted" numberOfLines={1}>Price after printing confirmation</TDText>
+            )}
+          </View>
+          <TDText variant="caption" tone={result.exactPrintingResolved ? 'success' : 'warning'} numberOfLines={1}>
+            {result.exactPrintingResolved ? '✓ Added to session' : result.oracleIdVerified ? 'Printing needs confirmation' : 'Resolving printing information...'}
+          </TDText>
+        </View>
+      </View>
+      {result.requiresPrintingReview ? (
+        <View style={styles.productionResultFooter}>
+          <TDButton label={result.oracleIdVerified ? 'Other printings' : 'Resolving...'} variant="secondary" size="sm" onPress={onOtherPrintings} disabled={!result.oracleIdVerified} />
+        </View>
+      ) : null}
     </TDCard>
   );
 }
@@ -393,13 +802,15 @@ async function ensureScanbotSdkInitialized() {
 async function persistImageRef(imageRef: ScanbotImageRef, prefix: string) {
   const info = await imageRef.info();
   const size = info ? { width: info.width, height: info.height } : { width: 0, height: 0 };
+  const mimeType: 'image/jpeg' = 'image/jpeg';
+  const orientation: 'portrait' | 'landscape' = size.width >= size.height ? 'landscape' : 'portrait';
   const directory = Paths.cache ?? Paths.document;
-  if (!directory) return { path: null, size, bytes: 0 };
+  if (!directory) return { path: null, size, bytes: 0, mimeType, orientation };
   const file = new File(directory, `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`);
   const saved = await imageRef.saveImage(file.uri);
-  if (!saved) return { path: null, size, bytes: 0 };
+  if (!saved) return { path: null, size, bytes: 0, mimeType, orientation };
   const savedInfo = file.info();
-  return { path: file.uri, size, bytes: typeof savedInfo.size === 'number' ? savedInfo.size : 0 };
+  return { path: file.uri, size, bytes: typeof savedInfo.size === 'number' ? savedInfo.size : 0, mimeType, orientation };
 }
 
 function formatConfidence(value: number | null) {
@@ -436,6 +847,108 @@ function logPrebuiltScannerDiagnostics(event: PrebuiltScannerDiagnosticsEvent) {
   });
 }
 
+function buildCardsightPreviewArtifact(input: {
+  attempt: CardSightMobileScanResult | null;
+  rawImageUri: string;
+  croppedImageUri: string | null;
+  rawImageSize: { width: number; height: number };
+  croppedImageSize: { width: number; height: number } | null;
+  rawImageBytes: number;
+  croppedImageBytes: number | null;
+  candidateName: string | null;
+}): CardsightPreviewArtifact | null {
+  if (!input.attempt) return null;
+  const source = input.attempt.mode;
+  const size = source === 'raw'
+    ? input.rawImageSize
+    : input.croppedImageSize ?? input.rawImageSize;
+  const bytes = source === 'raw'
+    ? input.rawImageBytes
+    : input.croppedImageBytes ?? input.rawImageBytes;
+  return {
+    path: source === 'raw' ? input.rawImageUri : input.croppedImageUri ?? input.rawImageUri,
+    size,
+    bytes,
+    mimeType: 'image/jpeg',
+    orientation: size.width >= size.height ? 'landscape' : 'portrait',
+    source,
+    candidate: input.candidateName,
+  };
+}
+
+function cardsightTraceSummary(trace: CardSightAttemptTrace | null): CardsightTraceSummary | null {
+  if (!trace) return null;
+  return {
+    authenticated: trace.authenticated,
+    imageSource: trace.imageSource,
+    width: trace.imageWidth,
+    height: trace.imageHeight,
+    bytes: trace.imageBytes,
+    mimeType: trace.mimeType,
+    requestStarted: trace.requestStarted,
+    httpStatus: trace.httpStatus,
+    latencyMs: trace.latencyMs,
+  };
+}
+
+function cardsightResultSummary(trace: CardSightAttemptTrace | null): CardsightResultSummary | null {
+  if (!trace) return null;
+  return {
+    httpStatus: trace.httpStatus,
+    latencyMs: trace.latencyMs,
+    candidateCount: trace.candidateCount,
+    topCandidateName: trace.topCandidateName,
+    topCandidateSet: trace.topCandidateSet,
+    topCandidateCollectorNumber: trace.topCandidateCollectorNumber,
+    topCandidateConfidence: trace.topCandidateConfidence,
+    rawProviderConfidence: trace.rawProviderConfidence,
+    parsingSucceeded: trace.parsingSucceeded,
+  };
+}
+
+function selectCardsightTrace(attempt: CardSightMobileScanResult | null): CardSightAttemptTrace | null {
+  if (!attempt?.traces?.length) return null;
+  return attempt.traces.find((trace) => trace.mode === attempt.mode) ?? attempt.traces[attempt.traces.length - 1] ?? null;
+}
+
+function buildCardsightDiagnosticsSnapshot(input: {
+  image: CardsightPreviewArtifact | null;
+  attempt: CardSightMobileScanResult | null;
+  intelligence: CardIntelligenceSummary | null;
+}): CardsightDiagnosticsSnapshot {
+  const trace = selectCardsightTrace(input.attempt);
+  return {
+    image: input.image,
+    request: cardsightTraceSummary(trace),
+    result: cardsightResultSummary(trace),
+    intelligence: input.intelligence,
+  };
+}
+
+function chooseBetterAttempt(raw: CardSightMobileScanResult, cropped: CardSightMobileScanResult) {
+  const rawScore = raw.ok && raw.candidates.length ? (raw.topConfidence ?? raw.candidates[0]?.confidence ?? 0) : 0;
+  const croppedScore = cropped.ok && cropped.candidates.length ? (cropped.topConfidence ?? cropped.candidates[0]?.confidence ?? 0) : 0;
+  if (croppedScore > rawScore + 0.02) return cropped;
+  return rawScore >= croppedScore ? raw : cropped;
+}
+
+function logCardIntelligenceResult(input: CardIntelligenceSummary) {
+  if (!__DEV__) return;
+  console.info('TD_CARD_INTELLIGENCE_RESULT', input);
+}
+
+function logPrintingIdentity(input: {
+  cardName: string;
+  cardSightId: string | null;
+  canonicalCardId: string | null;
+  oracleId: string | null;
+  printingId: string | null;
+  scryfallId: string | null;
+}) {
+  if (!__DEV__) return;
+  console.info('TD_PRINTING_IDENTITY', input);
+}
+
 async function runProductionScannerCapture(input: {
   rawImageUri: string;
   croppedImageUri: string | null;
@@ -450,9 +963,12 @@ async function runProductionScannerCapture(input: {
   onSuccess: (message: string | null) => void;
   onPrebuiltDiagnostics: (event: PrebuiltScannerDiagnosticsEvent) => void;
   onCardsightPreview: (preview: CardsightPreviewArtifact | null) => void;
+  onCardsightDiagnostics: (snapshot: CardsightDiagnosticsSnapshot | null) => void;
+  onProductionResult: (result: ProductionScanResult | null) => void;
   lastAcceptedIdentityRef: MutableRefObject<string | null>;
   lastAcceptedAtRef: MutableRefObject<number>;
-}): Promise<{ ok: true } | { ok: false; message: string }> {
+}): Promise<{ ok: true; sessionLineId: string | null } | { ok: false; message: string }> {
+  const startedAt = Date.now();
   if (!input.session || !input.sessionUserId) {
     return { ok: false, message: 'Scanner session is still preparing.' };
   }
@@ -483,6 +999,8 @@ async function runProductionScannerCapture(input: {
       allowUnconfirmedCandidate: true,
     }),
   ]);
+  const chosenAttempt = chooseBetterAttempt(rawCardsight, croppedCardsight);
+  const chosenTrace = selectCardsightTrace(chosenAttempt);
   const selection = chooseProductionCandidate(rawCardsight, croppedCardsight, {
     rawImageUri: input.rawImageUri,
     croppedImageUri: input.croppedImageUri,
@@ -491,15 +1009,87 @@ async function runProductionScannerCapture(input: {
     rawImageBytes: input.rawImageBytes,
     croppedImageBytes: input.croppedImageBytes,
   });
-  input.onPrebuiltDiagnostics({
-    cardsightResult: bestProviderAttempt(rawCardsight, croppedCardsight)?.ok ? 'candidates' : 'retry',
+  const selectedImage = buildCardsightPreviewArtifact({
+    attempt: chosenAttempt,
+    rawImageUri: input.rawImageUri,
+    croppedImageUri: input.croppedImageUri,
+    rawImageSize: input.rawImageSize,
+    croppedImageSize: input.croppedImageSize,
+    rawImageBytes: input.rawImageBytes,
+    croppedImageBytes: input.croppedImageBytes,
+    candidateName: selection?.candidate.name ?? (chosenAttempt && chosenAttempt.ok ? chosenAttempt.candidates[0]?.name ?? null : null) ?? chosenTrace?.topCandidateName ?? null,
   });
+  input.onCardsightPreview(selectedImage);
+  if (selection) {
+    logPrintingIdentity({
+      cardName: selection.candidate.name,
+      cardSightId: stringId(selection.candidate.providerIds?.cardsight),
+      canonicalCardId: selection.candidate.oracleId ?? null,
+      oracleId: selection.candidate.oracleId ?? null,
+      printingId: selection.candidate.id ?? null,
+      scryfallId: stringId(selection.candidate.providerIds?.scryfall),
+    });
+  }
+  const intelligenceSummary: CardIntelligenceSummary = selection
+    ? {
+      canonicalCardId: selection.candidate.oracleId ?? null,
+      printingId: selection.candidate.id ?? null,
+      name: selection.candidate.name ?? null,
+      setCode: selection.candidate.setCode ?? null,
+      collectorNumber: selection.candidate.collectorNumber ?? null,
+      confidence: selection.candidate.confidence ?? selection.topConfidence ?? null,
+      requiresConfirmation: selection.requiresConfirmation,
+      accepted: true,
+      rejectionReason: null,
+    }
+    : {
+      canonicalCardId: null,
+      printingId: null,
+      name: null,
+      setCode: null,
+      collectorNumber: null,
+      confidence: chosenAttempt && chosenAttempt.ok ? chosenAttempt.topConfidence ?? null : null,
+      requiresConfirmation: false,
+      accepted: false,
+      rejectionReason: chosenTrace?.error ?? 'CardSight did not resolve a confident card identity.',
+    };
+  input.onCardsightDiagnostics(buildCardsightDiagnosticsSnapshot({
+    image: selectedImage,
+    attempt: chosenAttempt,
+    intelligence: intelligenceSummary,
+  }));
+  input.onPrebuiltDiagnostics({
+    cardsightResult: chosenTrace?.parsingSucceeded ? 'candidates' : 'retry',
+  });
+  let priceLatencyMs: number | null = null;
   if (!selection) {
     input.onPrebuiltDiagnostics({ cardIntelligenceResult: 'retry' });
-    return { ok: false, message: 'Couldn’t identify card\nTry again' };
+    logCardIntelligenceResult(intelligenceSummary);
+    logScannerEnrichmentTrace({
+      canonicalCardResolved: false,
+      exactPrintingResolved: false,
+      scryfallId: null,
+      imageResolved: Boolean(selectedImage?.path),
+      priceResolved: false,
+      marketPrice: null,
+      pricingLatencyMs: priceLatencyMs,
+      totalEnrichmentMs: Date.now() - startedAt,
+    });
+    if (__DEV__) {
+      console.info('TD_SCANNER_PROVIDER', {
+        scanbotDetected: 'frame-detected',
+        scanbotCaptured: 'captured',
+        cardsightRequest: 'completed',
+        cardsightResult: chosenTrace?.parsingSucceeded ? 'candidates' : 'retry',
+        cardIntelligenceResult: 'retry',
+        sessionAppend: null,
+      });
+    }
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    return { ok: false, message: 'Couldn’t identify card. Try again.' };
   }
 
-  input.onCardsightPreview(selection.cardsightPreview ?? null);
+  logCardIntelligenceResult(intelligenceSummary);
 
   const confidence = Math.max(0, Math.min(100, Math.round((selection.candidate.confidence ?? selection.topConfidence ?? 0.82) * 100)));
   const recognition = createRecognitionPipelineReport({
@@ -517,15 +1107,60 @@ async function runProductionScannerCapture(input: {
 
   const stableScanId = `prebuilt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const fingerprint = fingerprintProductionCandidate(selection.candidate);
-  const successMessage = selection.requiresConfirmation
-    ? `✓ ${selection.candidate.name}\nMatching printing...`
-    : `✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}`;
+  const exactPrintingResolved = !selection.requiresConfirmation;
+  const finish = selection.candidate.finishes[0] ?? 'nonfoil';
+  let marketPrice: number | null = null;
+  let priceSource: string | null = null;
   if (input.lastAcceptedIdentityRef.current === fingerprint && Date.now() - input.lastAcceptedAtRef.current < 1200) {
+    if (exactPrintingResolved) {
+      const previewPrice = selectScryfallScannerPrice(selection.candidate, finish);
+      marketPrice = previewPrice;
+      priceSource = previewPrice === null ? 'unavailable' : 'scryfall';
+    }
+    const successMessage = exactPrintingResolved
+      ? `✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}${marketPrice !== null ? `\n$${marketPrice.toFixed(2)}` : ''}`
+      : `✓ ${selection.candidate.name}\nPrinting needs confirmation`;
     input.onSuccess(successMessage);
+    input.onProductionResult({
+      name: selection.candidate.name,
+      cardSightId: stringId(selection.candidate.providerIds?.cardsight),
+      canonicalCardId: selection.candidate.oracleId ?? null,
+      printingId: selection.candidate.id,
+      imageUrl: selection.candidate.imageUrl ?? null,
+      setName: selection.candidate.setName ?? null,
+      setCode: selection.candidate.setCode ?? null,
+      collectorNumber: selection.candidate.collectorNumber ?? null,
+      rarity: null,
+      language: selection.candidate.language ?? null,
+      finish: selection.candidate.finishes[0] ?? null,
+      availableFinishes: selection.candidate.finishes,
+      condition: 'near_mint',
+      quantity: 1,
+      destination: scannerDestinationLabel(input.session.defaultDestination),
+      marketPrice: exactPrintingResolved ? marketPrice : null,
+      priceSource: exactPrintingResolved ? priceSource : null,
+      confidence: selection.candidate.confidence ?? selection.topConfidence ?? null,
+      oracleIdVerified: Boolean(selection.candidate.identityAuthority === 'provider_confirmed' && selection.candidate.oracleId),
+      exactPrintingResolved,
+      requiresPrintingReview: selection.requiresConfirmation,
+      candidate: selection.candidate,
+      sessionLineId: null,
+    });
+    logScannerEnrichmentTrace({
+      canonicalCardResolved: true,
+      exactPrintingResolved,
+      scryfallId: selection.candidate.id,
+      imageResolved: Boolean(selection.candidate.imageUrl),
+      priceResolved: exactPrintingResolved && marketPrice !== null,
+      marketPrice: exactPrintingResolved ? marketPrice : null,
+      pricingLatencyMs: priceLatencyMs,
+      totalEnrichmentMs: Date.now() - startedAt,
+    });
+    void Haptics.notificationAsync(selection.requiresConfirmation ? Haptics.NotificationFeedbackType.Warning : Haptics.NotificationFeedbackType.Success);
     setTimeout(() => {
       input.onSuccess(null);
-    }, 550);
-    return { ok: true };
+    }, 650);
+    return { ok: true, sessionLineId: null };
   }
   const nextSession = addRecognitionToSession(input.session, {
     stableScanId,
@@ -536,15 +1171,18 @@ async function runProductionScannerCapture(input: {
   }) as ContinuousScannerSession;
   const lineId = nextSession.lines[nextSession.lines.length - 1]?.id ?? null;
   let sessionAfterPrice: ContinuousScannerSession = nextSession;
-  if (lineId) {
+  if (lineId && exactPrintingResolved) {
     const priceResult = enrichScannerSessionLinePrice({
       session: nextSession,
       lineId,
       stableScanId,
       candidate: selection.candidate,
-      finish: selection.candidate.finishes[0] ?? 'nonfoil',
+      finish,
     });
     sessionAfterPrice = priceResult.session;
+    marketPrice = priceResult.price;
+    priceSource = priceResult.source;
+    priceLatencyMs = priceResult.trace.pricingLatencyMs;
   }
 
   await appStorage.setItem(continuousScannerSessionKey(input.sessionUserId), JSON.stringify(sessionAfterPrice));
@@ -552,25 +1190,82 @@ async function runProductionScannerCapture(input: {
   input.onCapturedCountChange(sessionAfterPrice.lines.length);
   input.lastAcceptedIdentityRef.current = fingerprint;
   input.lastAcceptedAtRef.current = Date.now();
+  const successMessage = exactPrintingResolved
+    ? `✓ ${selection.candidate.name}\n${selection.candidate.setCode ?? 'Set'} • ${selection.candidate.collectorNumber ?? '?'}${marketPrice !== null ? `\n$${marketPrice.toFixed(2)}` : ''}`
+    : `✓ ${selection.candidate.name}\nPrinting needs confirmation`;
   input.onSuccess(successMessage);
   input.onPrebuiltDiagnostics({
     cardIntelligenceResult: selection.requiresConfirmation ? 'needs_review' : 'exact',
     sessionAppend: 'added',
   });
+  input.onProductionResult({
+    name: selection.candidate.name,
+    cardSightId: stringId(selection.candidate.providerIds?.cardsight),
+    canonicalCardId: selection.candidate.oracleId ?? null,
+    printingId: selection.candidate.id,
+    imageUrl: selection.candidate.imageUrl ?? null,
+    setName: selection.candidate.setName ?? null,
+    setCode: selection.candidate.setCode ?? null,
+    collectorNumber: selection.candidate.collectorNumber ?? null,
+    rarity: null,
+    language: selection.candidate.language ?? null,
+    finish,
+    availableFinishes: selection.candidate.finishes,
+    condition: 'near_mint',
+    quantity: 1,
+    destination: scannerDestinationLabel(input.session.defaultDestination),
+    marketPrice: exactPrintingResolved ? marketPrice : null,
+    priceSource: exactPrintingResolved ? priceSource : null,
+    confidence: selection.candidate.confidence ?? selection.topConfidence ?? null,
+    oracleIdVerified: Boolean(selection.candidate.identityAuthority === 'provider_confirmed' && selection.candidate.oracleId),
+    exactPrintingResolved,
+    requiresPrintingReview: selection.requiresConfirmation,
+    candidate: selection.candidate,
+    sessionLineId: lineId,
+  });
+  logScannerEnrichmentTrace({
+    canonicalCardResolved: true,
+    exactPrintingResolved,
+    scryfallId: selection.candidate.id,
+    imageResolved: Boolean(selection.candidate.imageUrl),
+    priceResolved: exactPrintingResolved && marketPrice !== null,
+    marketPrice: exactPrintingResolved ? marketPrice : null,
+    pricingLatencyMs: priceLatencyMs,
+    totalEnrichmentMs: Date.now() - startedAt,
+  });
+  void Haptics.notificationAsync(selection.requiresConfirmation ? Haptics.NotificationFeedbackType.Warning : Haptics.NotificationFeedbackType.Success);
   setTimeout(() => {
     input.onSuccess(null);
-  }, 550);
+  }, 650);
   if (__DEV__) {
     console.info('TD_SCANNER_PROVIDER', {
       scanbotDetected: 'frame-detected',
       scanbotCaptured: 'captured',
       cardsightRequest: 'completed',
-      cardsightResult: bestProviderAttempt(rawCardsight, croppedCardsight)?.ok ? 'candidates' : 'retry',
+      cardsightResult: chosenTrace?.parsingSucceeded ? 'candidates' : 'retry',
       cardIntelligenceResult: selection.requiresConfirmation ? 'needs_review' : 'exact',
       sessionAppend: 'added',
     });
   }
-  return { ok: true };
+  return { ok: true, sessionLineId: lineId };
+}
+
+function logScannerEnrichmentTrace(input: {
+  canonicalCardResolved: boolean;
+  exactPrintingResolved: boolean;
+  scryfallId: string | null;
+  imageResolved: boolean;
+  priceResolved: boolean;
+  marketPrice: number | null;
+  pricingLatencyMs: number | null;
+  totalEnrichmentMs: number;
+}) {
+  if (!__DEV__) return;
+  console.info('TD_SCAN_ENRICHMENT', input);
+}
+
+function stringId(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 function chooseProductionCandidate(rawCardsight: CardSightMobileScanResult, croppedCardsight: CardSightMobileScanResult, images: {
@@ -592,7 +1287,12 @@ function chooseProductionCandidate(rawCardsight: CardSightMobileScanResult, crop
     return null;
   }
   const cardsight = bestProviderAttempt(rawCardsight, croppedCardsight);
-  if (cardsight?.ok && cardsight.candidates.length) {
+  if (!cardsight || !cardsight.ok || !cardsight.candidates.length) {
+    return null;
+  }
+  {
+    const verifiedCandidate = cardsight.candidates.find((candidate) => candidate.identityAuthority === 'provider_confirmed' && Boolean(candidate.oracleId)) ?? null;
+    const selectedCandidate = verifiedCandidate ?? cardsight.candidates[0];
     const selectedSource = cardsight === rawCardsight ? 'raw' : 'cropped';
     const preview: CardsightPreviewArtifact | null = {
       path: selectedSource === 'raw' ? images.rawImageUri : images.croppedImageUri ?? images.rawImageUri,
@@ -602,19 +1302,20 @@ function chooseProductionCandidate(rawCardsight: CardSightMobileScanResult, crop
       bytes: selectedSource === 'raw'
         ? images.rawImageBytes
         : images.croppedImageBytes ?? images.rawImageBytes,
+      mimeType: 'image/jpeg',
+      orientation: (selectedSource === 'raw' ? images.rawImageSize : images.croppedImageSize ?? images.rawImageSize).width >= (selectedSource === 'raw' ? images.rawImageSize : images.croppedImageSize ?? images.rawImageSize).height ? 'landscape' : 'portrait',
       source: selectedSource,
-      candidate: cardsight.candidates[0]?.name ?? null,
+      candidate: selectedCandidate?.name ?? null,
     };
     return {
-      candidate: cardsight.candidates[0],
+      candidate: selectedCandidate,
       recognitionMethod: 'metadata_assisted',
-      requiresConfirmation: cardsight.fallbackRecommended,
-      topConfidence: cardsight.topConfidence,
+      requiresConfirmation: cardsight.fallbackRecommended || !selectedCandidate.oracleId || selectedCandidate.identityAuthority !== 'provider_confirmed',
+      topConfidence: cardsight.ok ? cardsight.topConfidence : null,
       provider: 'cardsight',
       cardsightPreview: preview,
     };
   }
-  return null;
 }
 
 function fullImageMapping(size: { width: number; height: number }) {
@@ -640,15 +1341,37 @@ const styles = StyleSheet.create({
   cameraStage: { flex: 1 },
   screenGuard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, padding: space.lg, backgroundColor: '#020A12' },
   topBar: { position: 'absolute', left: 0, right: 0, top: 0, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm, paddingHorizontal: space.md },
-  topTextGroup: { flex: 1, minWidth: 0, gap: 2 },
+  topTextGroup: { flex: 1, minWidth: 0, gap: 0 },
+  topMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, marginTop: 2 },
   iconButton: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0C1520CC', borderWidth: 1, borderColor: '#273244' },
   centerOverlay: { position: 'absolute', left: space.md, right: space.md, top: '46%', alignItems: 'center', justifyContent: 'center' },
-  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, gap: space.sm, paddingHorizontal: space.md },
-  summaryCard: { gap: space.xs, backgroundColor: '#07111DDD' },
+  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, gap: space.xs, paddingHorizontal: space.md },
+  sessionStrip: { marginTop: 2 },
+  productionError: { marginTop: -space.xs, marginBottom: space.xs },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.xs },
   results: { gap: space.sm },
   resultCard: { gap: 4, backgroundColor: '#07111DEE' },
+  productionResultCard: { gap: space.sm, backgroundColor: '#07111DEE', paddingVertical: space.sm, paddingHorizontal: space.sm },
+  productionResultCardCompact: { paddingVertical: space.xs, paddingHorizontal: space.xs },
+  productionResultHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  productionResultHeaderCompact: { gap: space.xs },
+  productionResultCopy: { flex: 1, minWidth: 0, gap: 2 },
+  productionResultName: { fontWeight: '600' },
+  productionResultImage: { width: 68, height: 94, borderRadius: radius.md, backgroundColor: '#0D1722' },
+  productionResultImageCompact: { width: 56, height: 78 },
+  productionResultImageLarge: { width: 76, height: 106 },
+  productionResultImageMissing: { width: 68, height: 94, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D1722' },
+  productionPriceRow: { minHeight: 18, justifyContent: 'center', marginTop: 1 },
+  productionPriceText: { fontWeight: '700' },
+  productionPriceLoading: { width: 88, paddingVertical: 2 },
+  productionPriceSkeleton: { marginVertical: 0 },
+  productionResultFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: space.sm, flexWrap: 'wrap' },
+  reviewReminder: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, backgroundColor: '#07111DEE', paddingVertical: space.xs, paddingHorizontal: space.sm },
+  reviewReminderCompact: { paddingVertical: 6, paddingHorizontal: 10 },
+  reviewReminderCopy: { flex: 1, minWidth: 0, gap: 1 },
   devDiagnostics: { gap: space.xs, marginTop: space.sm },
+  previewGrid: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
   previewBlock: { gap: space.xs, marginTop: space.xs, paddingTop: space.xs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#273244' },
+  previewPlaceholder: { width: '100%', height: 120, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0D1722' },
   previewImage: { width: '100%', height: 120, borderRadius: radius.md, backgroundColor: '#0D1722' },
 });
