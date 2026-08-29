@@ -4,13 +4,13 @@ import { useCameraPermissions } from 'expo-camera';
 import { File, Paths } from 'expo-file-system';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
 import ScanbotSDK, { SdkConfiguration, ScanbotDocumentScannerView, type DocumentDetectionResult, type ImageRef as ScanbotImageRef, type ScanbotDocumentScannerViewHandle } from 'react-native-scanbot-sdk';
 
-import { TDButton, TDCard, TDLoadingState, TDSessionStrip, TDSkeleton, TDText } from '@/components/design-system';
+import { TDButton, TDCard, TDBadge, TDIconButton, TDSessionStrip, TDSkeleton, TDText } from '@/components/design-system';
 import { color, radius, space } from '@/design';
 import { addRecognitionToSession, createContinuousScannerSession, createRecognitionPipelineReport, continuousScannerSessionKey, scannerDestinationLabel, type ContinuousScannerSession, type ScannerSessionLine } from '@/services/continuous-offer-scanner';
 import { displayCondition, displayFinish } from '@/services/collector-workspace';
@@ -320,6 +320,26 @@ export default function PrebuiltScannerBakeoffScreen({
     return cameraReady ? 'Place the card roughly in view.' : 'Waiting for camera...';
   }, [cameraReady, detection, error, mode, report, sdkReady, sessionUserId, stage, success]);
 
+  const productionStageCopy = useMemo(() => {
+    if (success) return success;
+    if (error && stage === 'ready') return error;
+    if (!sdkReady || !cameraReady) return 'Opening camera...';
+    if (stage === 'capturing') return 'Reading...';
+    if (stage === 'processing') return 'Matching printing...';
+    if (productionResult?.exactPrintingResolved) return 'Matched';
+    if (productionResult?.requiresPrintingReview) return 'Printing review needed';
+    return 'Looking for card';
+  }, [cameraReady, error, productionResult?.exactPrintingResolved, productionResult?.requiresPrintingReview, sdkReady, stage, success]);
+
+  const productionStageTone = useMemo<'muted' | 'info' | 'warning' | 'success'>(() => {
+    if (error && stage === 'ready') return 'warning';
+    if (!sdkReady || !cameraReady) return 'info';
+    if (stage === 'capturing' || stage === 'processing') return 'info';
+    if (productionResult?.exactPrintingResolved) return 'success';
+    if (productionResult?.requiresPrintingReview) return 'warning';
+    return 'muted';
+  }, [cameraReady, error, productionResult?.exactPrintingResolved, productionResult?.requiresPrintingReview, sdkReady, stage]);
+
   const productionSessionLine = useMemo(() => {
     if (!productionResult?.sessionLineId || !session) return null;
     return session.lines.find((line) => line.id === productionResult.sessionLineId) ?? null;
@@ -331,13 +351,26 @@ export default function PrebuiltScannerBakeoffScreen({
     return total > 0 ? total : null;
   }, [session]);
 
+  const sessionProgress = useMemo(() => {
+    const totals = { ready: 0, review: 0 };
+    for (const line of session?.lines ?? []) {
+      const quantity = line.quantity ?? 1;
+      if (line.reviewStatus === 'needs_review') totals.review += quantity;
+      else totals.ready += quantity;
+    }
+    return totals;
+  }, [session]);
+
   const sessionStripSummary = useMemo(() => {
-    const parts = [`Session • ${capturedCount}`];
+    const parts = [`Session • ${capturedCount} cards`];
+    if (sessionProgress.review > 0) {
+      parts.push(`${sessionProgress.review} review`);
+    }
     if (sessionTotalMarketValue !== null) {
       parts.push(`$${sessionTotalMarketValue.toFixed(2)} total`);
     }
     return parts.join(' • ');
-  }, [capturedCount, sessionTotalMarketValue]);
+  }, [capturedCount, sessionProgress.review, sessionTotalMarketValue]);
 
   const showDiagnosticsPanel = mode === 'bakeoff' && __DEV__ && diagnosticsEnabled;
 
@@ -511,17 +544,44 @@ export default function PrebuiltScannerBakeoffScreen({
             <TDText variant="label">Scanner</TDText>
             <View style={styles.topMetaRow}>
               <TDText variant="caption" tone="muted" numberOfLines={1}>{mode === 'production' ? `Session • ${capturedCount}` : 'Camera QA / Scanner Diagnostics'}</TDText>
-              {mode === 'production' ? <TDText variant="caption" tone="muted" numberOfLines={1}>Auto</TDText> : null}
+              {mode === 'production' ? <TDBadge tone="info">Auto</TDBadge> : null}
+              {mode === 'production' && sessionTotalMarketValue !== null ? <TDBadge tone="success">${sessionTotalMarketValue.toFixed(2)}</TDBadge> : null}
             </View>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close scanner" onPress={() => router.back()} style={styles.iconButton}>
-            <Ionicons name="close-outline" size={20} color={color.text} />
-          </Pressable>
+          <View style={styles.topActions}>
+            {mode === 'production' ? (
+              <TDIconButton label="Open scanner settings" iconName="settings-outline" onPress={() => router.push('/settings' as never)} size="sm" />
+            ) : null}
+            <TDIconButton label="Close scanner" iconName="close-outline" onPress={() => router.back()} size="sm" />
+          </View>
         </View>
 
-        <View style={[styles.centerOverlay, { top: isCompactProductionLayout ? '43%' : '46%' }]} pointerEvents="none">
-          {!cameraReady ? <TDLoadingState title="Preparing scanner" message={stageCopy} /> : <TDText variant="caption" tone="muted">{stageCopy}</TDText>}
-        </View>
+        {mode === 'production' && !cameraReady ? (
+          <View style={[styles.startupOverlay, { top: isCompactProductionLayout ? '42%' : '44%' }]} pointerEvents="none">
+            <ActivityIndicator color={color.primaryBright} />
+            <TDText variant="small" tone="muted" numberOfLines={1}>Trading Docks Scanner</TDText>
+            <TDText variant="caption" tone="info" numberOfLines={1}>Preparing camera...</TDText>
+            <TDText variant="caption" tone="muted" numberOfLines={2} style={styles.startupOverlayCopy}>{stageCopy}</TDText>
+          </View>
+        ) : null}
+
+        {mode === 'production' && cameraReady ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.cameraLiveStatus,
+              productionStageTone === 'success' && styles.cameraLiveStatusSuccess,
+              productionStageTone === 'warning' && styles.cameraLiveStatusWarning,
+              productionStageTone === 'info' && styles.cameraLiveStatusInfo,
+              productionStageTone === 'muted' && styles.cameraLiveStatusMuted,
+            ]}
+          >
+            {productionStageTone === 'success' ? <Ionicons name="checkmark-circle-outline" size={16} color={color.success} /> : null}
+            {productionStageTone === 'warning' ? <Ionicons name="alert-circle-outline" size={16} color={color.warning} /> : null}
+            {(stage === 'capturing' || stage === 'processing' || (!sdkReady && !cameraReady)) ? <ActivityIndicator size="small" color={color.primaryBright} /> : null}
+            <TDText variant="caption" tone="muted" numberOfLines={1} style={styles.cameraLiveHeadline}>{productionStageCopy}</TDText>
+          </View>
+        ) : null}
 
         <View style={[styles.bottomOverlay, { paddingBottom: insets.bottom + (isCompactProductionLayout ? space.xs : space.sm) }]}>
           {mode === 'production' ? (
@@ -754,8 +814,9 @@ function ProductionResultCard({
           </View>
         )}
         <View style={styles.productionResultCopy}>
-          <TDText variant="body" numberOfLines={1} style={styles.productionResultName}>{result.name}</TDText>
-          <TDText variant="caption" tone="muted" numberOfLines={1}>{`${result.setCode ?? 'SET'} • ${result.collectorNumber ?? '?'}${result.setName ? ` • ${result.setName}` : ''}`}</TDText>
+          <TDText variant={compact ? 'small' : 'body'} numberOfLines={1} style={styles.productionResultName}>{result.name}</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{`${result.setCode ?? 'SET'} • ${result.collectorNumber ?? '?'}`}</TDText>
+          {result.setName ? <TDText variant="caption" tone="muted" numberOfLines={1}>{result.setName}</TDText> : null}
           <TDText variant="caption" tone="muted" numberOfLines={1}>{`${conditionLabel} • ${finishLabel}${destinationLabel ? ` • ${destinationLabel}` : ''}`}</TDText>
           <View style={styles.productionPriceRow}>
             {result.exactPrintingResolved ? (
@@ -1343,9 +1404,16 @@ const styles = StyleSheet.create({
   topBar: { position: 'absolute', left: 0, right: 0, top: 0, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: space.sm, paddingHorizontal: space.md },
   topTextGroup: { flex: 1, minWidth: 0, gap: 0 },
   topMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, marginTop: 2 },
-  iconButton: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0C1520CC', borderWidth: 1, borderColor: '#273244' },
-  centerOverlay: { position: 'absolute', left: space.md, right: space.md, top: '46%', alignItems: 'center', justifyContent: 'center' },
-  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, gap: space.xs, paddingHorizontal: space.md },
+  topActions: { flexDirection: 'column', alignItems: 'flex-end', gap: space.xs },
+  startupOverlay: { position: 'absolute', left: space.md, right: space.md, alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: space.md, paddingVertical: space.md, borderRadius: radius.lg, borderWidth: 1, borderColor: color.borderStrong, backgroundColor: color.canvas + 'D8' },
+  startupOverlayCopy: { textAlign: 'center' },
+  cameraLiveStatus: { position: 'absolute', left: space.md, right: space.md, bottom: 156, alignItems: 'center', gap: 2, paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: radius.md, borderWidth: 1, zIndex: 20 },
+  cameraLiveStatusMuted: { borderColor: color.border + '88', backgroundColor: color.canvas + '22' },
+  cameraLiveStatusInfo: { borderColor: color.info + '44', backgroundColor: color.info + '14' },
+  cameraLiveStatusWarning: { borderColor: color.warning + '44', backgroundColor: color.warning + '14' },
+  cameraLiveStatusSuccess: { borderColor: color.success + '44', backgroundColor: color.success + '14' },
+  cameraLiveHeadline: { textAlign: 'center', color: color.text },
+  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, gap: space.sm, paddingHorizontal: space.md },
   sessionStrip: { marginTop: 2 },
   productionError: { marginTop: -space.xs, marginBottom: space.xs },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.xs },

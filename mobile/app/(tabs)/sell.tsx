@@ -88,7 +88,7 @@ export default function DecksTab() {
               </View>
             </CollectibleHero>
 
-            <DockSurface style={s.searchDock}>
+            <DockSurface material="raisedControl" style={s.searchDock}>
               <DockRail compact accessibilityLabel="Deck Vault actions">
                 <TDButton label="New" size="sm" iconName="add-outline" onPress={() => router.push('/decks/new' as never)} />
                 <TDButton label="Import" size="sm" variant="secondary" iconName="download-outline" onPress={() => router.push('/decks/import' as never)} />
@@ -154,7 +154,7 @@ function EmptyDeckVault({ reason }: { reason: string | null }) {
     <DockTray style={s.empty}>
       <TDEmptyState
         title={reason ? 'Deck Vault unavailable' : 'No decks yet'}
-        message={reason ?? 'Create or import a deck in Headquarters. Mobile will use that same Deck Vault record.'}
+        message={reason ?? 'Create or import a deck in Headquarters. Mobile will use the same Deck Vault record.'}
         action={<TDButton label="Open Headquarters" variant="secondary" iconName="open-outline" onPress={() => router.push('/(tabs)/profile' as never)} />}
       />
     </DockTray>

@@ -159,11 +159,11 @@ export default function Collection() {
             <TDNavigationHeader
               eyebrow="Collection"
               title="Your cards"
-              subtitle="Search exact printings, condition, finish, quantity, and storage."
+              subtitle="Search exact printings, storage, and trade status."
               rightAction={staleReason ? <TDBadge tone="warning">Stale</TDBadge> : undefined}
             />
 
-            <DockSurface style={s.controlDock}>
+            <DockSurface material="raisedControl" style={s.controlDock}>
               <View style={s.searchControls}>
                 <TDInput
                   accessibilityLabel="Search collection by card name, set, collector number, or storage location"

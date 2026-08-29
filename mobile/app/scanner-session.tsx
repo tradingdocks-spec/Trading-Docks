@@ -397,7 +397,7 @@ function SessionReviewHeader({
       <TDIconButton label="Back to scanner" iconName="chevron-back" onPress={onBack} size="sm" />
       <View style={s.headerCopy}>
         <TDText variant="heading" numberOfLines={1}>Scanner session</TDText>
-        <TDText variant="small" tone="muted" numberOfLines={1}>{`Session • ${cardCount} cards`}</TDText>
+        <TDText variant="small" tone="muted" numberOfLines={1}>{`Session • ${cardCount} cards • ${readyCount} ready`}</TDText>
       </View>
       {selectedCount > 0 ? <TDBadge tone="info">{selectedCount} selected</TDBadge> : <TDBadge tone={reviewCount ? 'warning' : 'success'}>{readyCount} ready</TDBadge>}
       <View style={s.headerActions}>
@@ -599,23 +599,25 @@ function SessionCardRow({
         {selected ? <Ionicons name="checkbox" size={20} color={color.primaryBright} /> : <Ionicons name="square-outline" size={20} color={color.textMuted} />}
         {imageUrl ? <Image source={{ uri: imageUrl }} style={s.cardImage} contentFit="cover" /> : <View style={s.cardImageMissing}><Ionicons name="image-outline" size={22} color={color.textMuted} /></View>}
       </View>
-      <View style={s.cardCopy}>
-        <View style={s.cardTopLine}>
-          <TDText variant="title" numberOfLines={1} style={s.cardName}>{line.cardName}</TDText>
-          <View style={s.cardBadges}>
-            <TDBadge tone="info">{destination}</TDBadge>
-            {line.destinationSyncState !== 'local_only' ? <TDBadge tone={destinationSyncTone}>{destinationSyncStatusLabel(line.destinationSyncState)}</TDBadge> : null}
+        <View style={s.cardCopy}>
+          <View style={s.cardTopLine}>
+            <TDText variant="title" numberOfLines={1} style={s.cardName}>{line.cardName}</TDText>
+            <View style={s.cardBadges}>
+              <TDBadge tone="info">{destination}</TDBadge>
+              {line.destinationSyncState !== 'local_only' ? <TDBadge tone={destinationSyncTone}>{destinationSyncStatusLabel(line.destinationSyncState)}</TDBadge> : null}
+            </View>
+          </View>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionGameLabel(line.game)} • {line.setCode ?? 'Set unavailable'} • #{line.collectorNumber ?? '?'}</TDText>
+          <TDText variant="caption" tone="muted" numberOfLines={1}>{displayCondition(line.condition)} • {displayFinish(String(line.finish) as never)} • x{line.quantity}</TDText>
+          <View style={s.cardValues}>
+            <ValuePair label="Market" value={formatReviewLineMoney(line.marketPrice, line.priceSource)} />
+            <ValuePair label="Condition" value={displayCondition(line.condition)} />
+            <ValuePair label="Finish" value={displayFinish(String(line.finish) as never)} />
+            <ValuePair label="Status" value={sessionReviewStatusLabel(line.reviewStatus)} />
           </View>
         </View>
-        <TDText variant="caption" tone="muted" numberOfLines={1}>{sessionGameLabel(line.game)} • {line.setCode ?? 'Set unavailable'} • #{line.collectorNumber ?? '?'}</TDText>
-        <TDText variant="caption" tone="muted" numberOfLines={1}>{displayCondition(line.condition)} • {displayFinish(String(line.finish) as never)} • x{line.quantity}</TDText>
-        <View style={s.cardValues}>
-          <ValuePair label="Market" value={formatReviewLineMoney(line.marketPrice, line.priceSource)} />
-          <ValuePair label="Offer" value={formatSessionReviewMoney(line.cashOffer)} />
-          <ValuePair label="Status" value={sessionReviewStatusLabel(line.reviewStatus)} />
-        </View>
-      </View>
-    </Pressable>
+        <Ionicons name="chevron-forward" size={18} color={color.textMuted} />
+      </Pressable>
   );
 }
 
@@ -1034,13 +1036,13 @@ const s = StyleSheet.create({
   syncNotice: { borderRadius: radius.md, padding: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.info + '10' },
   reviewNext: { minHeight: 60, borderRadius: radius.lg, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surfaceFloating },
   reviewNextIcon: { width: 34, height: 34, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.info + '14' },
-  cardRow: { minHeight: 104, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: color.border },
+  cardRow: { minHeight: 98, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: color.border },
   cardRowSelected: { backgroundColor: color.primaryBright + '10' },
   pressedRow: { opacity: 0.82 },
-  cardRowLead: { width: 72, alignItems: 'flex-start', gap: 4 },
-  cardImage: { width: 48, height: 68, borderRadius: radius.sm, backgroundColor: color.surface },
-  cardImageMissing: { width: 48, height: 68, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
-  cardCopy: { flex: 1, minWidth: 0, gap: 4 },
+  cardRowLead: { width: 70, alignItems: 'flex-start', gap: 4 },
+  cardImage: { width: 50, height: 70, borderRadius: radius.sm, backgroundColor: color.surface },
+  cardImageMissing: { width: 50, height: 70, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
+  cardCopy: { flex: 1, minWidth: 0, gap: 3 },
   cardTopLine: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs },
   cardName: { flex: 1, minWidth: 0 },
   cardBadges: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 4 },
@@ -1064,7 +1066,7 @@ const s = StyleSheet.create({
   pickerRow: { minHeight: 56, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, padding: space.sm, flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: color.surface },
   bulkBar: { gap: space.xs, borderRadius: radius.lg, padding: space.sm, backgroundColor: color.canvasRaised },
   bulkBarActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  finalizeBar: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 92, borderTopWidth: 1, borderTopColor: color.borderStrong, paddingHorizontal: space.md, paddingTop: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.canvas + 'F4' },
+  finalizeBar: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 92, borderTopWidth: 1, borderTopColor: color.borderStrong, paddingHorizontal: space.md, paddingTop: space.sm, flexDirection: 'row', alignItems: 'flex-start', gap: space.sm, backgroundColor: color.surfaceFloating },
   finalizeAction: { flex: 1, gap: 4 },
   finalizeSummaryWrap: { gap: 2 },
   destinationSummary: { gap: 4 },

@@ -11,7 +11,7 @@ const single = readFileSync(join(process.cwd(), 'app', 'scan', 'single.tsx'), 'u
 test('Scan tab opens one unified scanner instead of separate production scanner modes', () => {
   assert.match(scanModes, /Trading Docks Scanner/);
   assert.match(scanModes, /describeScanLockState/);
-  assert.match(scanModes, /Place card\. Hold steady\. Review exact printing\./);
+  assert.match(scanModes, /Open the scanner, keep the camera moving, and review exact printing later\./);
   assert.match(scanModes, /Review List/);
   assert.doesNotMatch(scanModes, /Automatic Scan/);
   assert.doesNotMatch(scanModes, /Single Scan/);
