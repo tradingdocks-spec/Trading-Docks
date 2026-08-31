@@ -37,7 +37,9 @@ import {
 } from "@/lib/chaos-sort/domain";
 import {
   buildChaosSortQueue,
+  chaosSortRetryDelayMs,
   CHAOS_SORT_MAX_BATCH_SIZE,
+  CHAOS_SORT_MAX_RECOGNITION_ATTEMPTS,
   CHAOS_SORT_RECOGNITION_CONCURRENCY,
   runBoundedChaosSortQueue,
 } from "@/lib/chaos-sort/batch-queue";
@@ -60,7 +62,7 @@ type LocationRow = {
   location_type: string;
 };
 
-type FilterState = "all" | "ready" | "needs_review" | "unknown" | "failed";
+type FilterState = "all" | "ready" | "needs_review" | "unknown" | "failed" | "exceptions";
 type StagedScan = { id: string; file: File; hash: string; previewUrl: string };
 
 const BATCH_SEQUENCE_KEY = "td-chaos-sort-batch-sequence";
@@ -139,6 +141,7 @@ export function ChaosSortWorkspace() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const itemsRef = useRef<ChaosSortItem[]>([]);
   const inventoryRef = useRef<InventoryRow[]>([]);
+  const activeRecognitionJobsRef = useRef(new Set<string>());
 
   useEffect(() => {
     itemsRef.current = items;
@@ -226,6 +229,7 @@ export function ChaosSortWorkspace() {
       if (filterState === "needs_review") return item.recognitionState === "review";
       if (filterState === "failed") return item.processingState === "failed";
       if (filterState === "unknown") return item.processingState !== "failed" && item.recognitionState === "unknown";
+      if (filterState === "exceptions") return item.processingState === "failed" || (item.processingState === "ready" && (item.recognitionState === "review" || item.recognitionState === "unknown"));
       return true;
     });
   }, [filterState, items]);
@@ -298,6 +302,9 @@ export function ChaosSortWorkspace() {
 
   const processFiles = useCallback(async (files: StagedScan[]) => {
     if (!files.length) return;
+    const jobKey = files.map((file) => file.id).sort().join("|");
+    if (activeRecognitionJobsRef.current.has(jobKey)) return;
+    activeRecognitionJobsRef.current.add(jobKey);
     setError("");
     setNotice("");
     setLoadingItems(files.length);
@@ -356,15 +363,36 @@ export function ChaosSortWorkspace() {
       }
       try {
         entry.state = "processing";
-        const form = new FormData();
-        form.append("image", entry.input.file);
-        form.append("gameId", "magic");
-        form.append("surface", "chaos-sort");
-        const response = await fetch("/api/purchasing/card-photo-scan", { method: "POST", body: form });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(String(payload.error ?? payload.message ?? "Card recognition failed."));
+        let response: Response | null = null;
+        let payload: Record<string, any> = {};
+        for (let attempt = 1; attempt <= CHAOS_SORT_MAX_RECOGNITION_ATTEMPTS; attempt += 1) {
+          const form = new FormData();
+          form.append("image", entry.input.file);
+          form.append("gameId", "magic");
+          form.append("surface", "chaos-sort");
+          form.append("itemId", base.id);
+          form.append("attempt", String(attempt));
+          response = await fetch("/api/purchasing/card-photo-scan", { method: "POST", body: form });
+          payload = await response.json().catch(() => ({}));
+          if (response.ok) break;
+          if (payload.failureReason === "rate_limited" && attempt < CHAOS_SORT_MAX_RECOGNITION_ATTEMPTS) {
+            const delay = chaosSortRetryDelayMs(attempt, typeof payload.retryAfterMs === "number" ? payload.retryAfterMs : null);
+            setProgressText(`Recognition rate limited for ${base.sourceFileName}. Retrying shortly.`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            continue;
+          }
+          const failureReason = String(payload.failureReason ?? "provider");
+          const userMessage = failureReason === "quota_exhausted"
+            ? "API quota unavailable. Check the recognition provider account configuration."
+            : failureReason === "rate_limited"
+              ? "Recognition is temporarily unavailable."
+              : failureReason === "configuration"
+                ? "Recognition is not configured on the server."
+                : "Recognition could not be completed.";
+          const technicalDetail = payload.providerCode ? ` Provider code: ${String(payload.providerCode)}.` : "";
+          throw new Error(`${userMessage}${technicalDetail}`);
         }
+        if (!response?.ok) throw new Error("Recognition could not be completed.");
         const identification = payload.identification ?? {};
         const candidate = Array.isArray(payload.candidates) ? payload.candidates[0] ?? null : null;
         const cardName = String(candidate?.name ?? identification.name ?? entry.input.file.name.replace(/\.[^.]+$/, "")).trim();
@@ -431,6 +459,7 @@ export function ChaosSortWorkspace() {
       setProgressText(`Analyzed ${completed} of ${files.length} scans.`);
     });
     setLoadingItems(0);
+    activeRecognitionJobsRef.current.delete(jobKey);
   }, [batch.id, destinationLocationId, locations, updateItem]);
 
   const startBatch = useCallback(() => {
@@ -631,28 +660,9 @@ export function ChaosSortWorkspace() {
         <PageHeader
           eyebrow="Inventory / Chaos Sort"
           title="Chaos Sort"
-          description="Drop scanner photos into a review queue, resolve the cards against canonical inventory identities, sort them into physical piles, and commit the verified cards into inventory."
+          description="Scan a stack. Drop the batch. Review exceptions. Put it away."
           icon={Layers3}
         />
-
-        <section className="rounded-[22px] border border-cyan-300/[0.14] bg-[#061823] p-5 sm:p-6">
-          <div className="max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[.16em] text-cyan-300">Chaos Sort orientation</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-.04em] text-white">Tame your TCG inventory</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">Trading Docks does not require cards to be alphabetized or sorted by set, game, color, or rarity. Store cards in any physical order as long as each accepted item has an exact location.</p>
-          </div>
-          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
-            <div className="rounded-2xl border border-rose-300/[0.14] bg-rose-300/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-rose-200">Without Trading Docks</p><p className="mt-3 text-sm leading-6 text-slate-300">Dig through large boxes · manual sorting · slow pulls · lost stock · memory</p></div>
-            <div className="hidden items-center justify-center px-1 text-xl text-slate-600 lg:flex">→</div>
-            <div className="rounded-2xl border border-emerald-300/[0.14] bg-emerald-300/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-emerald-200">With Trading Docks</p><p className="mt-3 text-sm leading-6 text-slate-300">Exact physical address · smaller search area · fast picking · mixed cards are okay · scan, locate, pull, ship</p></div>
-          </div>
-          <div className="mt-4 grid gap-2 text-xs text-slate-400 sm:grid-cols-5"><span><b className="mr-1 text-cyan-300">1.</b> Drop scans</span><span><b className="mr-1 text-cyan-300">2.</b> Identify</span><span><b className="mr-1 text-cyan-300">3.</b> Review</span><span><b className="mr-1 text-cyan-300">4.</b> Assign location</span><span><b className="mr-1 text-cyan-300">5.</b> Sort → commit</span></div>
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
-          <div className="rounded-[22px] border border-white/[0.08] bg-[#06121b] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-300">Your physical model</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="font-black text-white">SHELF A</p><p className="mt-2 text-sm leading-7 text-slate-400">Box 1<br /><span className="text-cyan-200">A-1-A · A-1-B · A-1-C</span><br />Box 2<br /><span className="text-cyan-200">A-2-A · A-2-B</span></p></div><div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="font-black text-white">SHELF B</p><p className="mt-2 text-sm leading-7 text-slate-400">Box 1<br /><span className="text-cyan-200">B-1-A · B-1-B · B-1-C</span></p></div></div></div>
-          <div className="rounded-[22px] border border-amber-300/[0.15] bg-amber-300/[0.045] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-amber-200">Pro tip</p><p className="mt-3 text-sm leading-6 text-amber-50/80">Keep physical locations small enough that a card can be found quickly without traditional sorting.</p><p className="mt-3 text-xs leading-5 text-amber-100/55">Smaller locations mean fewer cards to flip through when an order arrives. This is guidance, not an enforced capacity rule.</p></div>
-        </section>
 
         {notice ? (
           <TDCard variant="outlined" className="border-emerald-300/20 bg-emerald-300/[0.04] text-emerald-100">
@@ -718,6 +728,26 @@ export function ChaosSortWorkspace() {
               </div>
             ) : null}
 
+            <div className="flex flex-col gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div><p className="text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Destination</p><p className="mt-1 text-sm font-semibold text-cyan-100">{destinationLocationLabel(destinationLocationId, locations)}</p></div>
+              <select
+                aria-label="Destination storage location"
+                value={destinationLocationId}
+                onChange={(event) => {
+                  const nextLocationId = event.target.value;
+                  const previousLabel = destinationLocationLabel(destinationLocationId, locations);
+                  setDestinationLocationId(nextLocationId);
+                  setItems((current) => current.map((item) => item.destinationLocationId === destinationLocationId || item.destinationLabel === previousLabel
+                    ? { ...item, destinationLocationId: nextLocationId || null, destinationLabel: destinationLocationLabel(nextLocationId, locations) }
+                    : item));
+                }}
+                className="min-h-11 w-full rounded-lg border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-3 text-sm text-[var(--td-text-primary)] outline-none transition focus:border-[var(--td-border-focus)] sm:max-w-sm"
+              >
+                <option value="">No destination selected</option>
+                {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+              </select>
+            </div>
+
             <div
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
@@ -768,18 +798,9 @@ export function ChaosSortWorkspace() {
 
             {items.length ? <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3"><div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.12em] text-slate-500"><span>{queueCounts.analyzed} / {items.length} analyzed</span><span>{queueCounts.needsReview + queueCounts.unknown} cards need your attention</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-cyan-300 transition-all" style={{ width: `${(queueCounts.analyzed / items.length) * 100}%` }} /></div></div> : null}
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <SummaryTile label="Identified" value={summary.identified.toString()} detail="Resolved into canonical identities" />
-              <SummaryTile label="Confirmed" value={summary.confirmed.toString()} detail="Ready for commit" />
-              <SummaryTile label="Needs review" value={summary.needsReview.toString()} detail="Uncertain or pending" />
-              <SummaryTile label="Market value" value={money(summary.estimatedMarketValue)} detail="No profit assumed" />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <SummaryTile label="Existing matches" value={summary.existingInventoryMatches.toString()} detail="Already owned" />
-              <SummaryTile label="New positions" value={summary.newInventoryPositions.toString()} detail="Will create inventory rows" />
-              <SummaryTile label="Unknown" value={summary.unknown.toString()} detail="No silent guesses" />
-              <SummaryTile label="Source images" value={summary.totalImages.toString()} detail="Batch intake count" />
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+              <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-sm"><span className="font-black text-white">{queueCounts.analyzed} / {items.length} analyzed</span><span className="font-bold text-emerald-300">{queueCounts.identified} READY</span><span className="font-bold text-amber-200">{queueCounts.needsReview} REVIEW</span><span className="font-bold text-slate-300">{queueCounts.unknown} UNKNOWN</span><span className="font-bold text-rose-300">{queueCounts.failed} FAILED</span><span className="font-bold text-cyan-200">{queueCounts.processing} PROCESSING</span></div>
+              <p className="mt-2 text-xs text-slate-500">{queueCounts.failed + queueCounts.needsReview + queueCounts.unknown} exceptions need attention before commit.</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -798,7 +819,7 @@ export function ChaosSortWorkspace() {
                   {filter === "all" ? "All" : filter === "ready" ? "Ready" : filter === "needs_review" ? "Needs Review" : filter === "failed" ? "Failed" : "Unknown"}
                 </button>
               ))}
-              {summary.needsReview + summary.unknown > 0 ? <button type="button" onClick={() => { setFilterState("needs_review"); setSelectedItemIds([]); }} className="rounded-full border border-amber-300/[0.22] bg-amber-300/[0.08] px-3 py-1.5 text-xs font-black text-amber-100">Review {summary.needsReview + summary.unknown} exceptions</button> : null}
+              {queueCounts.needsReview + queueCounts.unknown + queueCounts.failed > 0 ? <button type="button" onClick={() => { setFilterState("exceptions"); setSelectedItemIds([]); }} className="rounded-full border border-amber-300/[0.22] bg-amber-300/[0.08] px-3 py-1.5 text-xs font-black text-amber-100">Review {queueCounts.needsReview + queueCounts.unknown + queueCounts.failed} exceptions</button> : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2 text-xs">
               <span className="mr-2 text-slate-500">{selectedItemIds.length} selected</span>
@@ -838,7 +859,7 @@ export function ChaosSortWorkspace() {
                         <div className="flex flex-wrap items-center gap-2">
                           <input type="checkbox" aria-label={`Select ${item.cardName || item.sourceFileName}`} checked={selectedItemIds.includes(item.id)} onClick={(event) => event.stopPropagation()} onChange={() => setSelectedItemIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} className="h-4 w-4 accent-cyan-300" />
                         <TDBadge tone={item.processingState === "failed" || item.recognitionState === "unknown" ? "danger" : item.processingState === "processing" ? "info" : item.recognitionState === "review" ? "warning" : "success"}>
-                          {item.processingState === "processing" ? "PROCESSING" : item.processingState === "failed" ? "FAILED" : item.recognitionState === "high_confidence" ? "IDENTIFIED" : item.recognitionState === "review" ? "NEEDS REVIEW" : "UNKNOWN"}
+                          {item.processingState === "processing" ? "PROCESSING" : item.processingState === "failed" ? "FAILED" : item.recognitionState === "high_confidence" ? "READY" : item.recognitionState === "review" ? "NEEDS REVIEW" : "UNKNOWN"}
                         </TDBadge>
                         {item.humanState === "confirmed" || item.humanState === "edited" ? <TDBadge tone="neutral">{item.humanState}</TDBadge> : null}
                         <TDBadge tone="neutral">{pile}</TDBadge>
@@ -852,12 +873,7 @@ export function ChaosSortWorkspace() {
                           item.condition,
                         ].filter(Boolean).join(" · ") || item.notes || "Identity not resolved"}
                       </TDText>
-                      <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                        <span className="rounded-full border border-white/[0.06] px-2.5 py-1">Market {money(item.marketPrice)}</span>
-                        <span className="rounded-full border border-white/[0.06] px-2.5 py-1">Owned {item.existingOwnedQuantity}</span>
-                        <span className="rounded-full border border-white/[0.06] px-2.5 py-1">Conf {Math.round(item.confidence * 100)}%</span>
-                        <span className="rounded-full border border-white/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span>
-                      </div>
+                      {item.processingState === "ready" ? <div className="flex flex-wrap gap-2 text-xs text-slate-400"><span className="rounded-full border border-white/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span><span className="rounded-full border border-white/[0.06] px-2.5 py-1">Owned {item.existingOwnedQuantity}</span><span className="rounded-full border border-white/[0.06] px-2.5 py-1">Conf {Math.round(item.confidence * 100)}%</span></div> : <p className="text-xs text-slate-400">{item.notes || "Recognition did not complete."}</p>}
                       <div className="flex flex-wrap gap-2">
                         {item.processingState === "failed" ? <TDButton size="sm" variant="secondary" onClick={() => void retryRecognition([item])}>Retry recognition</TDButton> : <TDButton size="sm" variant="secondary" onClick={() => confirmItem(item.id)}>Confirm</TDButton>}
                         <TDButton size="sm" variant="secondary" onClick={() => markUnknown(item.id)}>Mark unknown</TDButton>
@@ -968,24 +984,6 @@ export function ChaosSortWorkspace() {
                   onChange={(event) => setAcquisitionCost(event.target.value)}
                   placeholder="Optional"
                 />
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Destination storage location</label>
-                  <select
-                    value={destinationLocationId}
-                    onChange={(event) => {
-                      const nextLocationId = event.target.value;
-                      const previousLabel = destinationLocationLabel(destinationLocationId, locations);
-                      setDestinationLocationId(nextLocationId);
-                      setItems((current) => current.map((item) => item.destinationLocationId === destinationLocationId || item.destinationLabel === previousLabel
-                        ? { ...item, destinationLocationId: nextLocationId || null, destinationLabel: destinationLocationLabel(nextLocationId, locations) }
-                        : item));
-                    }}
-                    className="min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-4 text-sm text-[var(--td-text-primary)] outline-none transition focus:border-[var(--td-border-focus)]"
-                  >
-                    <option value="">No destination selected</option>
-                    {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-                  </select>
-                </div>
               </div>
                 <div className="rounded-[20px] border border-cyan-300/[0.14] bg-cyan-300/[0.04] p-4">
                   <div className="flex items-center justify-between text-xs text-slate-500">
@@ -1216,6 +1214,26 @@ export function ChaosSortWorkspace() {
             </TDCard>
           </div>
         </div>
+
+        <details className="rounded-[22px] border border-white/[0.08] bg-[#06121b] p-5">
+          <summary className="cursor-pointer list-none text-sm font-black uppercase tracking-[.14em] text-cyan-200">How Chaos Sort works</summary>
+          <div className="mt-5 space-y-5">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-[-.04em] text-white">Tame your TCG inventory</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Trading Docks does not require cards to be alphabetized or sorted by set, game, color, or rarity. Store cards in any physical order as long as each accepted item has an exact location.</p>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
+              <div className="rounded-2xl border border-rose-300/[0.14] bg-rose-300/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-rose-200">Without Trading Docks</p><p className="mt-3 text-sm leading-6 text-slate-300">Dig through large boxes · manual sorting · slow pulls · lost stock · memory</p></div>
+              <div className="hidden items-center justify-center px-1 text-xl text-slate-600 lg:flex">→</div>
+              <div className="rounded-2xl border border-emerald-300/[0.14] bg-emerald-300/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-emerald-200">With Trading Docks</p><p className="mt-3 text-sm leading-6 text-slate-300">Exact physical address · smaller search area · fast picking · mixed cards are okay · scan, locate, pull, ship</p></div>
+            </div>
+            <div className="grid gap-2 text-xs text-slate-400 sm:grid-cols-5"><span><b className="mr-1 text-cyan-300">1.</b> Drop scans</span><span><b className="mr-1 text-cyan-300">2.</b> Identify</span><span><b className="mr-1 text-cyan-300">3.</b> Review</span><span><b className="mr-1 text-cyan-300">4.</b> Assign location</span><span><b className="mr-1 text-cyan-300">5.</b> Sort → commit</span></div>
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+              <div className="rounded-[22px] border border-white/[0.08] bg-white/[0.02] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-300">Your physical model</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="font-black text-white">SHELF A</p><p className="mt-2 text-sm leading-7 text-slate-400">Box 1<br /><span className="text-cyan-200">A-1-A · A-1-B · A-1-C</span><br />Box 2<br /><span className="text-cyan-200">A-2-A · A-2-B</span></p></div><div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="font-black text-white">SHELF B</p><p className="mt-2 text-sm leading-7 text-slate-400">Box 1<br /><span className="text-cyan-200">B-1-A · B-1-B · B-1-C</span></p></div></div></div>
+              <div className="rounded-[22px] border border-amber-300/[0.15] bg-amber-300/[0.045] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-amber-200">Pro tip</p><p className="mt-3 text-sm leading-6 text-amber-50/80">Keep physical locations small enough that a card can be found quickly without traditional sorting.</p><p className="mt-3 text-xs leading-5 text-amber-100/55">Smaller locations mean fewer cards to flip through when an order arrives. This is guidance, not an enforced capacity rule.</p></div>
+            </div>
+          </div>
+        </details>
       </div>
     </WorkspaceFrame>
   );

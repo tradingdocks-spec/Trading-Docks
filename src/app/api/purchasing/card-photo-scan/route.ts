@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiCapability } from "@/lib/platform/server-access";
+import { parseRetryAfterMs } from "@/lib/chaos-sort/batch-queue";
+import { classifyProviderFailure, providerFailureDetails } from "@/lib/chaos-sort/provider-errors";
 
 import type {
   CardCandidate,
@@ -32,10 +34,14 @@ const USER_AGENT = "TradingDocks/0.56 card-photo-scanner";
 const POKEMON_GAME = "pokemon";
 const VISION_TIMEOUT_MS = 30_000;
 
+type ProviderFailureReason = "configuration" | "auth" | "provider" | "timeout" | "parse" | "image_decode" | "catalog" | "quota_exhausted" | "rate_limited" | "temporarily_unavailable";
+
 class RecognitionPipelineError extends Error {
   constructor(
-    readonly reason: "configuration" | "auth" | "provider" | "timeout" | "parse" | "image_decode" | "catalog",
+    readonly reason: ProviderFailureReason,
     message: string,
+    readonly providerCode?: string | null,
+    readonly retryAfterMs?: number | null,
   ) {
     super(message);
     this.name = "RecognitionPipelineError";
@@ -161,7 +167,7 @@ function parseVisionJson(text: string): Partial<ScanIdentification> {
   return JSON.parse(fenced.slice(start, end + 1)) as Partial<ScanIdentification>;
 }
 
-async function identifyWithVision(file: File): Promise<ScanIdentification | null> {
+async function identifyWithVision(file: File, requestItemId: string, attempt: number): Promise<ScanIdentification | null> {
   if (!process.env.OPENAI_API_KEY) throw new RecognitionPipelineError("configuration", "Image recognition is not configured on the server.");
   const bytes = await file.arrayBuffer();
   if (bytes.byteLength < 16) throw new RecognitionPipelineError("image_decode", "The scanner image is empty or could not be decoded.");
@@ -171,7 +177,7 @@ async function identifyWithVision(file: File): Promise<ScanIdentification | null
   const timeout = setTimeout(() => controller.abort(), VISION_TIMEOUT_MS);
   let response: Response;
   try {
-    recognitionLog("REQUEST SENT", { provider: "openai", model: process.env.OPENAI_VISION_MODEL ?? "gpt-4.1-mini" });
+    recognitionLog("REQUEST SENT", { provider: "openai", model: process.env.OPENAI_VISION_MODEL ?? "gpt-4.1-mini", itemId: requestItemId, attempt });
     response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -211,12 +217,27 @@ async function identifyWithVision(file: File): Promise<ScanIdentification | null
     clearTimeout(timeout);
   }
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      recognitionLog("AUTH FAILURE", { provider: "openai", status: response.status });
-      throw new RecognitionPipelineError("auth", "Recognition provider authentication failed.");
+    let providerPayload: unknown = null;
+    try {
+      providerPayload = await response.clone().json();
+    } catch {
+      // The status and headers are still useful when the provider does not return JSON.
     }
-    recognitionLog("PROVIDER FAILURE", { provider: "openai", status: response.status });
-    throw new RecognitionPipelineError("provider", `Recognition provider returned HTTP ${response.status}.`);
+    const details = providerFailureDetails(providerPayload);
+    const reason = classifyProviderFailure(response.status, details);
+    const retryAfter = response.headers.get("retry-after");
+    const retryAfterMs = parseRetryAfterMs(retryAfter);
+    if (response.status === 401 || response.status === 403) {
+      recognitionLog("AUTH FAILURE", { provider: "openai", status: response.status, type: details.type, code: details.code, itemId: requestItemId, attempt });
+      throw new RecognitionPipelineError("auth", "Recognition provider authentication failed.", details.code);
+    }
+    recognitionLog("PROVIDER FAILURE", { provider: "openai", status: response.status, type: details.type, code: details.code, requestId: response.headers.get("x-request-id"), retryAfter, itemId: requestItemId, attempt });
+    throw new RecognitionPipelineError(
+      reason,
+      reason === "quota_exhausted" ? "Recognition quota is unavailable." : reason === "rate_limited" ? "Recognition is temporarily unavailable." : "Recognition provider is temporarily unavailable.",
+      details.code,
+      retryAfterMs,
+    );
   }
   let payload: {
     output_text?: string;
@@ -499,6 +520,9 @@ async function getPokemonCandidates(input: {
 export async function POST(request: Request) {
   const form = await request.formData();
   const surface = String(form.get("surface") ?? "purchasing");
+  const requestItemId = String(form.get("itemId") ?? "unknown");
+  const parsedAttempt = Number(form.get("attempt") ?? 1);
+  const attempt = Number.isFinite(parsedAttempt) ? Math.max(1, Math.floor(parsedAttempt)) : 1;
   const capability = await requireApiCapability(surface === "chaos-sort" ? "collection.write" : "buying.manage");
   if (!capability.ok) return capability.response;
   try {
@@ -563,7 +587,7 @@ export async function POST(request: Request) {
     }
 
     let recognitionMode: CardScanResponse["recognitionMode"] = "manual";
-    let identification = file ? await identifyWithVision(file) : null;
+    let identification = file ? await identifyWithVision(file, requestItemId, attempt) : null;
     if (identification) recognitionMode = "vision";
     if (!identification && manualName) {
       identification = {
@@ -602,8 +626,8 @@ export async function POST(request: Request) {
     return NextResponse.json(payload);
   } catch (error) {
     if (error instanceof RecognitionPipelineError) {
-      recognitionLog("CONFIDENCE RESULT", { status: "failed", reason: error.reason });
-      return NextResponse.json({ error: error.message, recognitionStatus: "failed", failureReason: error.reason }, { status: error.reason === "configuration" ? 503 : 502 });
+      recognitionLog("CONFIDENCE RESULT", { status: "failed", reason: error.reason, itemId: requestItemId, attempt });
+      return NextResponse.json({ error: error.message, recognitionStatus: "failed", failureReason: error.reason, providerCode: error.providerCode, retryAfterMs: error.retryAfterMs ?? null }, { status: error.reason === "configuration" || error.reason === "quota_exhausted" ? 503 : error.reason === "rate_limited" ? 429 : 502, headers: error.retryAfterMs ? { "Retry-After": String(Math.ceil(error.retryAfterMs / 1000)) } : undefined });
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Card scan failed." },

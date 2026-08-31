@@ -19,9 +19,14 @@ import {
 } from "../src/lib/orders/pick-domain.ts";
 import {
   buildChaosSortQueue,
+  claimChaosSortQueueItem,
+  chaosSortRetryDelayMs,
   CHAOS_SORT_MAX_BATCH_SIZE,
+  CHAOS_SORT_MAX_RECOGNITION_ATTEMPTS,
+  parseRetryAfterMs,
   runBoundedChaosSortQueue,
 } from "../src/lib/chaos-sort/batch-queue.ts";
+import { classifyProviderFailure, providerFailureDetails } from "../src/lib/chaos-sort/provider-errors.ts";
 
 function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {
   const now = new Date().toISOString();
@@ -190,4 +195,31 @@ test("chaos sort queues at most 100 images and keeps recognition concurrency bou
   assert.ok(peak <= 4);
   assert.equal(queue.filter((entry) => entry.state === "failed").length, 15);
   assert.equal(queue.filter((entry) => entry.state === "identified").length, 85);
+});
+
+test("a queued recognition item can only be claimed once", async () => {
+  const queue = buildChaosSortQueue(["scan-1"], (value) => value);
+  const item = queue[0];
+  if (!item) throw new Error("Expected one queued item.");
+  assert.equal(item?.state, "queued");
+  assert.equal(claimChaosSortQueueItem(item), true);
+  assert.equal(claimChaosSortQueueItem(item), false);
+  assert.equal(item.state, "processing");
+});
+
+test("retry-after and recognition backoff stay bounded", () => {
+  assert.equal(parseRetryAfterMs("2"), 2000);
+  assert.equal(parseRetryAfterMs("999"), 30_000);
+  assert.equal(parseRetryAfterMs("not-a-date"), null);
+  assert.equal(chaosSortRetryDelayMs(1), 500);
+  assert.equal(chaosSortRetryDelayMs(99), 30_000);
+  assert.equal(CHAOS_SORT_MAX_RECOGNITION_ATTEMPTS, 3);
+});
+
+test("provider 429 responses distinguish quota exhaustion from temporary rate limiting", () => {
+  const quota = providerFailureDetails({ error: { type: "insufficient_quota", code: "insufficient_quota" } });
+  const rate = providerFailureDetails({ error: { type: "invalid_request_error", code: "rate_limit_exceeded" } });
+  assert.equal(classifyProviderFailure(429, quota), "quota_exhausted");
+  assert.equal(classifyProviderFailure(429, rate), "rate_limited");
+  assert.equal(classifyProviderFailure(503, providerFailureDetails({ error: { type: "server_error" } })), "temporarily_unavailable");
 });
