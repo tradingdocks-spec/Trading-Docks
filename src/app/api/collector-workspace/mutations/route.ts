@@ -4,6 +4,7 @@ import { getMembershipPlan } from "@/lib/membership-catalog";
 import { validateCollectorMutation, type CollectorMutation } from "@/lib/collector-mutations";
 import { createClient } from "@/lib/supabase/server";
 import { resolveServerAccess } from "@/lib/identity/server-access";
+import { inventoryMutationIdempotencyKey, type InventoryEventSource } from "@/lib/inventory/events";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await executeMutation(supabase, user.id, mutation, isRecord(itemResult.data.data) ? itemResult.data.data : {});
+    await executeMutation(supabase, user.id, mutation);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Collection update failed." }, { status: 500 });
   }
@@ -64,55 +65,93 @@ async function executeMutation(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   mutation: CollectorMutation,
-  existingData: Record<string, unknown>,
 ) {
   const now = new Date().toISOString();
   if (mutation.type === "quantity") {
-    const { error } = await supabase
-      .from("inventory_items")
-      .update({ quantity: mutation.quantity, updated_at: now })
-      .eq("user_id", userId)
-      .eq("id", mutation.inventoryItemId);
-    if (error) throw new Error(error.message);
+    await applyInventoryMutation(supabase, {
+      inventoryItemId: mutation.inventoryItemId,
+      mutationType: "quantity",
+      quantity: mutation.quantity,
+      source: "collector_workspace",
+      idempotencyKey: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: "quantity",
+        value: mutation.quantity,
+        timestamp: now,
+      }),
+    });
     return;
   }
 
   if (mutation.type === "condition" || mutation.type === "finish") {
-    const { error } = await supabase
-      .from("inventory_items")
-      .update({
-        data: {
-          ...existingData,
-          [mutation.type]: mutation.type === "condition" ? mutation.condition : mutation.finish,
-        },
-        updated_at: now,
-      })
-      .eq("user_id", userId)
-      .eq("id", mutation.inventoryItemId);
-    if (error) throw new Error(error.message);
+    const nextValue = mutation.type === "condition" ? mutation.condition : mutation.finish;
+    await applyInventoryMutation(supabase, {
+      inventoryItemId: mutation.inventoryItemId,
+      mutationType: mutation.type,
+      condition: mutation.type === "condition" ? mutation.condition : null,
+      finish: mutation.type === "finish" ? mutation.finish : null,
+      source: "collector_workspace",
+      idempotencyKey: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: mutation.type,
+        value: nextValue,
+        timestamp: now,
+      }),
+    });
     return;
   }
 
   if (mutation.type === "storage") {
-    if (mutation.storageLocationId) {
-      const { data: location, error: locationError } = await supabase
-        .from("inventory_locations")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("id", mutation.storageLocationId)
-        .maybeSingle();
-      if (locationError) throw new Error(locationError.message);
-      if (!location) throw new Error("Choose one of your storage locations.");
-    }
-    const { error } = await supabase
-      .from("inventory_items")
-      .update({
-        location_id: mutation.storageLocationId,
-        data: { ...existingData, locationId: mutation.storageLocationId },
-        updated_at: now,
-      })
-      .eq("user_id", userId)
-      .eq("id", mutation.inventoryItemId);
+    await applyInventoryMutation(supabase, {
+      inventoryItemId: mutation.inventoryItemId,
+      mutationType: "storage",
+      locationId: mutation.storageLocationId,
+      source: "collector_workspace",
+      idempotencyKey: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: "storage",
+        value: mutation.storageLocationId,
+        timestamp: now,
+      }),
+    });
+    return;
+  }
+
+  if (mutation.type === "move_quantity") {
+    const { error } = await supabase.rpc("move_inventory_lot_quantity", {
+      p_inventory_item_id: mutation.inventoryItemId,
+      p_quantity: mutation.quantity,
+      p_to_location_id: mutation.storageLocationId,
+      p_idempotency_key: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: "move_quantity",
+        value: `${mutation.storageLocationId ?? "unassigned"}:${mutation.quantity}`,
+        timestamp: now,
+      }),
+      p_source: "collector_workspace",
+    });
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  if (mutation.type === "remove_quantity") {
+    const { error } = await supabase.rpc("remove_inventory_lot_quantity", {
+      p_inventory_item_id: mutation.inventoryItemId,
+      p_quantity: mutation.quantity,
+      p_reason: mutation.reason ?? "Removed from collection",
+      p_idempotency_key: inventoryMutationIdempotencyKey({
+        source: "collector_workspace",
+        inventoryItemId: mutation.inventoryItemId,
+        mutationType: "remove_quantity",
+        value: `${mutation.quantity}:${mutation.reason ?? ""}`,
+        timestamp: now,
+      }),
+      p_source: "collector_workspace",
+    });
     if (error) throw new Error(error.message);
     return;
   }
@@ -169,6 +208,32 @@ async function executeMutation(
   }
 }
 
+async function applyInventoryMutation(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: {
+    inventoryItemId: string;
+    mutationType: "quantity" | "condition" | "finish" | "storage";
+    quantity?: number | null;
+    condition?: string | null;
+    finish?: string | null;
+    locationId?: string | null;
+    idempotencyKey: string;
+    source: InventoryEventSource;
+  },
+) {
+  const { error } = await supabase.rpc("apply_collector_inventory_mutation", {
+    p_inventory_item_id: input.inventoryItemId,
+    p_mutation_type: input.mutationType,
+    p_quantity: input.quantity ?? null,
+    p_condition: input.condition ?? null,
+    p_finish: input.finish ?? null,
+    p_location_id: input.locationId ?? null,
+    p_idempotency_key: input.idempotencyKey,
+    p_source: input.source,
+  });
+  if (error) throw new Error(error.message);
+}
+
 function matchingWishlistQuery(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -183,10 +248,6 @@ function matchingWishlistQuery(
     .eq("target_finish", mutation.finish);
   query = mutation.setCode ? query.eq("set_code", mutation.setCode) : query.is("set_code", null);
   return query;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 async function totalOwnedCardQuantity(

@@ -1,6 +1,7 @@
 "use client";
 
 import { Archive, Boxes, MapPin, Plus, Star, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -22,7 +23,7 @@ import {
 } from "@/lib/storage-location-client-data";
 import {
   STORAGE_LOCATION_TYPES,
-  cardsInLocation,
+  cardsInLocationTree,
   favoriteLocationSummaries,
   recentLocationSummaries,
   searchLocationSummaries,
@@ -85,7 +86,7 @@ export function StorageLocationManager() {
   const selected = useMemo(() => summaries.find((location) => location.id === selectedId) ?? null, [selectedId, summaries]);
   const selectedIsUnassigned = selectedId === UNASSIGNED_LOCATION_ID;
   const selectedCards = useMemo(
-    () => selectedIsUnassigned && state ? state.unassignedCards : selected && state ? cardsInLocation(state.cards, selected.id) : [],
+    () => selectedIsUnassigned && state ? state.unassignedCards : selected && state ? cardsInLocationTree(state.cards, selected.id, state.locations) : [],
     [selected, selectedIsUnassigned, state],
   );
   const filteredCards = useMemo(() => {
@@ -300,6 +301,15 @@ function LocationDetail({
           </div>
           <TDText variant="heading">{title}</TDText>
           <TDText variant="small" tone="muted">{isUnassigned ? "Cards with no physical location. Assign these to make them findable later." : location?.path.label}</TDText>
+          {!isUnassigned && location ? (
+            <Link
+              href={`/dashboard/inventory/import?locationId=${encodeURIComponent(location.id)}&locationName=${encodeURIComponent(location.path.label)}`}
+              className="inline-flex min-h-10 w-fit items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-cyan-300/25 bg-cyan-300/10 px-3 text-xs font-black text-cyan-100 outline-none transition hover:border-cyan-200/50 focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Import CSV here
+            </Link>
+          ) : null}
           <div className="grid gap-2 sm:grid-cols-3">
             <MiniMetric icon={<Boxes className="h-4 w-4" />} label="Cards" value={String(cards.length)} />
             <MiniMetric icon={<Archive className="h-4 w-4" />} label="Quantity" value={String(quantity)} />

@@ -10,6 +10,10 @@ import {
   type BusinessDateRange,
   type DashboardSupabaseClient,
 } from "@/lib/dashboard/business-command-center";
+import {
+  loadPersonalCommandCenter,
+  type PersonalCommandSupabaseClient,
+} from "@/lib/dashboard/personal-command-center";
 import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -20,7 +24,7 @@ import {
 export const dynamic = "force-dynamic";
 
 function businessRange(value: unknown): BusinessDateRange {
-  return value === "today" || value === "7d" || value === "30d" || value === "month" || value === "week"
+  return value === "today" || value === "7d" || value === "30d" || value === "90d" || value === "12m" || value === "month" || value === "week"
     ? value
     : "7d";
 }
@@ -78,10 +82,16 @@ export default async function DashboardPage({
     }
   }
 
+  const personalSummary = await loadPersonalCommandCenter({
+    supabase: supabase as unknown as PersonalCommandSupabaseClient,
+    access,
+  });
+
   return (
     <ModularWorkspace
       accountType={effectivePlan}
       access={clientAccess}
+      personalSummary={personalSummary}
       inventoryModules={
         Array.isArray(preferences.inventory_modules)
           ? preferences.inventory_modules.filter(

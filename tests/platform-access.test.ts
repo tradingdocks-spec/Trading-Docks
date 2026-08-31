@@ -25,6 +25,10 @@ import { apiAccessRuleForPath, apiCapabilityDecision } from "../src/lib/platform
 import { getAccountAwareNavigationGroups } from "../src/components/dashboard/navigation.ts";
 import { resolveWorkspaceAccessFromRows } from "../src/lib/platform/workspace-resolution.ts";
 import {
+  canAccessHiddenDeckArchitect,
+  DECK_ARCHITECT_VISIBLE,
+} from "../src/lib/product-visibility.ts";
+import {
   availableDashboardLayouts,
   canUseDashboardWidget,
 } from "../src/lib/dashboard-entitlements.ts";
@@ -440,10 +444,12 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
   assert.ok(freeHrefs.includes("/dashboard/inventory"));
   assert.ok(freeHrefs.includes("/dashboard/deck-vault"));
   assert.equal(freeHrefs.includes("/dashboard/orders"), false);
+  assert.equal(freeHrefs.includes("/dashboard/deck-architect"), false);
 
   const collectorHrefs = navigationHrefsFor(collector);
   assert.ok(collectorHrefs.includes("/dashboard/collector-portfolio"));
   assert.equal(collectorHrefs.includes("/dashboard/orders"), false);
+  assert.equal(collectorHrefs.includes("/dashboard/deck-architect"), false);
 
   const sellerHrefs = navigationHrefsFor(seller);
   for (const href of [
@@ -467,6 +473,7 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
     assert.ok(sellerHrefs.includes(href), `Seller navigation missing ${href}`);
   }
   assert.equal(sellerHrefs.includes("/dashboard/employees"), false);
+  assert.equal(sellerHrefs.includes("/dashboard/deck-architect"), false);
 
   const storeHrefs = navigationHrefsFor(store);
   for (const href of [
@@ -483,6 +490,7 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
   ]) {
     assert.ok(storeHrefs.includes(href), `Store navigation missing ${href}`);
   }
+  assert.equal(storeHrefs.includes("/dashboard/deck-architect"), false);
 
   const ownerHrefs = navigationHrefsFor(owner);
   const ownerLabels = navigationLabelsFor(owner);
@@ -503,12 +511,49 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
     assert.ok(adminHrefs.includes(href), `Admin navigation missing ${href}`);
   }
   assert.ok(ownerLabels.includes("Command Center"));
+  assert.equal(ownerHrefs.includes("/dashboard/deck-architect"), false);
+  assert.equal(adminHrefs.includes("/dashboard/deck-architect"), false);
 
   assert.equal(sellerHrefs.includes("/dashboard/mission-control-preview"), false);
   assert.equal(ownerHrefs.includes("/dashboard/mission-control-preview"), false);
   assert.doesNotMatch(navigationSource, /Mission Control Preview/);
   assert.match(missionControlPreviewPage, /redirect\("\/dashboard"\)/);
   assert.doesNotMatch(missionControlPreviewPage, /orderCount:\s*284|revenue:\s*18426|profit:\s*6284/);
+});
+
+test("Deck Architect is hidden from normal navigation but remains admin-accessible directly", () => {
+  const free = access({ tier: "free" });
+  const collector = access({ tier: "collector" });
+  const seller = access({ tier: "seller" });
+  const store = access({ tier: "store", workspaceRole: "owner" });
+  const owner = access({
+    tier: "free",
+    platformRole: "owner",
+    platformRoleAuthority: "trusted",
+    workspaceRole: null,
+  });
+  const admin = access({
+    tier: "free",
+    platformRole: "admin",
+    platformRoleAuthority: "trusted",
+    workspaceRole: null,
+  });
+  const routeSource = readFileSync(path.join(repoRoot, "src/app/dashboard/deck-architect/page.tsx"), "utf8");
+  const contractSource = readFileSync(path.join(repoRoot, "src/lib/navigation/contract.ts"), "utf8");
+
+  assert.equal(DECK_ARCHITECT_VISIBLE, false);
+  for (const context of [free, collector, seller, store, owner, admin]) {
+    assert.equal(navigationHrefsFor(context).includes("/dashboard/deck-architect"), false);
+    assert.equal(navigationLabelsFor(context).includes("Deck Architect"), false);
+  }
+  assert.match(contractSource, /isDeckArchitectRoute\(item\.href\)/);
+  assert.match(contractSource, /shouldShowDeckArchitectEntry\(\)/);
+  assert.equal(canAccessHiddenDeckArchitect(free), false);
+  assert.equal(canAccessHiddenDeckArchitect(owner), true);
+  assert.equal(canAccessHiddenDeckArchitect(admin), true);
+  assert.match(routeSource, /DECK_ARCHITECT_VISIBLE/);
+  assert.match(routeSource, /canAccessHiddenDeckArchitect\(access\)/);
+  assert.match(routeSource, /redirect\("\/dashboard\/deck-vault"\)/);
 });
 
 test("account-aware dashboard navigation does not duplicate route entries", () => {

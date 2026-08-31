@@ -3,15 +3,21 @@ import test from 'node:test';
 
 import {
   buildCollectionCards,
+  buildCollectionLocationPathLabel,
   buildCollectionPageInfo,
+  buildInventoryHealth,
   buildInventorySearchFilterExpression,
   collectionRequestKey,
+  countActiveCollectionFilters,
   cursorForCollectionCard,
   decodeCollectionCursor,
   displayPrinting,
   displayStorageLocation,
   displayVariant,
+  filterLooseCollectionCards,
   filterCollectionCards,
+  isPhysicalTradeBinderCard,
+  normalizeCardFinish,
   mergeCollectionPages,
   priceLabel,
   resolveCollectionViewState,
@@ -22,6 +28,10 @@ import {
   summarizeCollectionCards,
   collectorCacheKeyForUser,
 } from '../mobile/services/collector-workspace.ts';
+import {
+  buildStorageLocationManagerState,
+  cardsInLocationTree,
+} from '../mobile/services/storage-location-manager.ts';
 
 const cards = buildCollectionCards({
   locations: [
@@ -106,6 +116,77 @@ test('storage-location display includes binder pocket details', () => {
   assert.equal(displayStorageLocation(cards[0]), 'Commander Binder › Page 4 › Slot B2');
 });
 
+test('storage-location display resolves full parent path before pocket details', () => {
+  const [card] = buildCollectionCards({
+    locations: [
+      { id: 'office', name: 'Office', location_type: 'custom', data: { name: 'Office', type: 'area' } },
+      { id: 'shelf-b', name: 'Shelf B', location_type: 'custom', data: { name: 'Shelf B', type: 'shelf', parentId: 'office' } },
+      { id: 'box-14', name: 'Box 14', location_type: 'box', data: { name: 'Box 14', type: 'box', parentId: 'shelf-b' } },
+    ],
+    items: [
+      {
+        id: 'stored-path-card',
+        card_name: 'Lightning Bolt',
+        quantity: 1,
+        location_id: 'box-14',
+        data: { name: 'Lightning Bolt', locationId: 'box-14', binderSlot: 'B3' },
+      },
+    ],
+  });
+
+  assert.equal(buildCollectionLocationPathLabel('box-14', [
+    { id: 'office', name: 'Office', location_type: 'custom', data: { name: 'Office', type: 'area' } },
+    { id: 'shelf-b', name: 'Shelf B', location_type: 'custom', data: { name: 'Shelf B', type: 'shelf', parentId: 'office' } },
+    { id: 'box-14', name: 'Box 14', location_type: 'box', data: { name: 'Box 14', type: 'box', parentId: 'shelf-b' } },
+  ]), 'Office › Shelf B › Box 14');
+  assert.equal(displayStorageLocation(card), 'Office › Shelf B › Box 14 › Slot B3');
+  assert.equal(filterCollectionCards([card], { query: 'shelf b' }).length, 1);
+});
+
+test('nonfoil is normalized as normal, not foil', () => {
+  assert.equal(normalizeCardFinish('Nonfoil'), 'normal');
+  assert.equal(normalizeCardFinish('Foil'), 'foil');
+});
+
+test('loose collection view excludes physical trade binder locations only', () => {
+  const collection = buildCollectionCards({
+    locations: [
+      { id: 'trade-binder', name: 'Trade Binder', location_type: 'binder', data: { name: 'Trade Binder', type: 'binder' } },
+      { id: 'binder-2', name: 'Commander Binder', location_type: 'binder', data: { name: 'Commander Binder', type: 'binder' } },
+    ],
+    items: [
+      { id: 'trade-copy', card_name: 'Goblin Guide', quantity: 1, location_id: 'trade-binder', data: { name: 'Goblin Guide', locationId: 'trade-binder' } },
+      { id: 'vault-copy', card_name: 'Sol Ring', quantity: 1, location_id: 'binder-2', data: { name: 'Sol Ring', locationId: 'binder-2' } },
+    ],
+  });
+
+  assert.equal(isPhysicalTradeBinderCard(collection[0]), true);
+  assert.deepEqual(filterLooseCollectionCards(collection).map((card) => card.id), ['vault-copy']);
+});
+
+test('storage browser includes child locations when a parent is selected', () => {
+  const state = buildStorageLocationManagerState({
+    userId: 'user-1',
+    rawLocations: [
+      { id: 'binder', name: 'Binder 1', location_type: 'binder', data: { name: 'Binder 1', type: 'binder' } },
+      { id: 'page-2', name: 'Page 2', location_type: 'custom', data: { name: 'Page 2', type: 'section', parentId: 'binder' } },
+      { id: 'slot-b3', name: 'Slot B3', location_type: 'custom', data: { name: 'Slot B3', type: 'slot', parentId: 'page-2' } },
+    ],
+    cards: buildCollectionCards({
+      locations: [
+        { id: 'binder', name: 'Binder 1', location_type: 'binder', data: { name: 'Binder 1', type: 'binder' } },
+        { id: 'page-2', name: 'Page 2', location_type: 'custom', data: { name: 'Page 2', type: 'section', parentId: 'binder' } },
+        { id: 'slot-b3', name: 'Slot B3', location_type: 'custom', data: { name: 'Slot B3', type: 'slot', parentId: 'page-2' } },
+      ],
+      items: [
+        { id: 'stored-copy', card_name: 'Counterspell', quantity: 2, location_id: 'slot-b3', data: { name: 'Counterspell', locationId: 'slot-b3' } },
+      ],
+    }),
+  });
+
+  assert.equal(cardsInLocationTree(state.cards, 'binder', state.locations).length, 1);
+});
+
 test('trade-binder indicator is resolved from trade status rows', () => {
   assert.equal(cards[0].tradeBinderStatus, 'available');
   assert.equal(summarizeCollectionCards(cards, 'collector').tradeBinderCount, 1);
@@ -118,6 +199,28 @@ test('collection summary reports stored and unassigned card quantities', () => {
   assert.equal(summary.unassignedCards, 1);
   assert.equal(summary.storedQuantity, 2);
   assert.equal(summary.unassignedQuantity, 501);
+});
+
+test('Inventory command center counts composable filters without treating defaults as active', () => {
+  assert.equal(countActiveCollectionFilters({ gameId: 'all', productType: 'all', condition: 'all' }), 0);
+  assert.equal(countActiveCollectionFilters({
+    query: 'sol',
+    gameId: 'magic',
+    productType: 'card',
+    condition: 'near_mint',
+    finish: 'foil',
+    storageLocationId: 'binder-1',
+  }), 6);
+});
+
+test('Inventory Health surfaces actionable loaded-record issues', () => {
+  const health = buildInventoryHealth(cards);
+
+  assert.equal(health.locatedQuantity, 2);
+  assert.equal(health.unassignedQuantity, 501);
+  assert.ok(health.score < 100);
+  assert.equal(health.issues.some((issue) => issue.id === 'unassigned' && issue.count === 501), true);
+  assert.equal(health.issues.some((issue) => issue.id === 'missing_price' && issue.count === 1), true);
 });
 
 test('wishlist indicator is resolved from wishlist rows', () => {

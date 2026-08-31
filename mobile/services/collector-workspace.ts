@@ -48,6 +48,8 @@ export type StorageLocation = {
   id: string;
   name: string;
   type: 'binder' | 'box' | 'sealed' | 'bulk' | 'custom' | 'unknown';
+  parentId?: string | null;
+  pathLabel?: string | null;
   description?: string | null;
   zone?: string | null;
   binderPage?: number | null;
@@ -75,6 +77,7 @@ export type CollectionCard = {
   tradeBinderStatus: TradeBinderStatus;
   wishlistStatus: WishlistStatus;
   marketPrice: MarketPrice;
+  costBasisKnown: boolean;
   updatedAt?: string | null;
 };
 
@@ -89,6 +92,27 @@ export type CollectionFilter = {
   storageLocationId?: string | 'all';
   tradeBinderStatus?: TradeBinderStatus | 'all' | 'tradeable';
   wishlistStatus?: WishlistStatus | 'all';
+};
+
+export type InventoryHealthIssueId =
+  | 'unassigned'
+  | 'missing_price'
+  | 'missing_cost_basis'
+  | 'unknown_condition'
+  | 'unknown_finish';
+
+export type InventoryHealthIssue = {
+  id: InventoryHealthIssueId;
+  label: string;
+  count: number;
+  severity: 'attention' | 'neutral';
+};
+
+export type InventoryHealthSummary = {
+  score: number;
+  locatedQuantity: number;
+  unassignedQuantity: number;
+  issues: InventoryHealthIssue[];
 };
 
 export type CollectionSort =
@@ -222,6 +246,7 @@ export function buildCollectionCards({
   wishlist = [],
 }: BuildCollectionInput): CollectionCard[] {
   const locationById = new Map(locations.map((location) => [location.id, location]));
+  const pathByLocationId = buildLocationPathLabels(locations);
   const tradeByItemId = new Map(
     tradeStatuses
       .filter((status) => typeof status.inventory_item_id === 'string')
@@ -236,6 +261,7 @@ export function buildCollectionCards({
       const rawLocation = locationId ? locationById.get(locationId) : undefined;
       const quantityOwned = positiveNumber(item.quantity) ?? positiveNumber(payload.quantity) ?? 0;
       const inventoryValue = numberValue(item.inventory_value) ?? numberValue(payload.value);
+      const costBasisKnown = knownCostBasisValue(payload) !== null;
       const unitMarketValue =
         positiveNumber(payload.unitMarketValue) ??
         (inventoryValue !== null && inventoryValue > 0 && quantityOwned > 0 ? inventoryValue / quantityOwned : null);
@@ -275,12 +301,14 @@ export function buildCollectionCards({
         condition,
         quantityOwned,
         storageLocation: rawLocation
-          ? buildStorageLocation(rawLocation, payload)
+          ? buildStorageLocation(rawLocation, payload, pathByLocationId.get(rawLocation.id) ?? null)
           : locationId
             ? {
                 id: locationId,
                 name: 'Storage location unavailable',
                 type: 'unknown',
+                parentId: null,
+                pathLabel: 'Storage location unavailable',
                 binderPage: numberValue(payload.binderPage),
                 binderSlot: stringValue(payload.binderSlot) || null,
               }
@@ -293,6 +321,7 @@ export function buildCollectionCards({
           source: unitMarketValue === null ? 'unavailable' : 'inventory',
           updatedAt: item.updated_at ?? stringValue(payload.updatedAt) ?? null,
         },
+        costBasisKnown,
         updatedAt: item.updated_at ?? stringValue(payload.updatedAt) ?? null,
       };
     });
@@ -315,6 +344,7 @@ export function filterCollectionCards(
         card.printing.setCode,
         card.printing.collectorNumber,
         card.storageLocation?.name,
+        card.storageLocation?.pathLabel,
       ]
         .filter(Boolean)
         .join(' '),
@@ -550,6 +580,50 @@ export function summarizeCollectionCards(
   };
 }
 
+export function countActiveCollectionFilters(filter: CollectionFilter) {
+  return [
+    filter.query?.trim() ? 'query' : null,
+    filter.gameId && filter.gameId !== 'all' ? 'gameId' : null,
+    filter.productType && filter.productType !== 'all' ? 'productType' : null,
+    filter.condition && filter.condition !== 'all' ? 'condition' : null,
+    filter.finish && filter.finish !== 'all' ? 'finish' : null,
+    filter.variant && filter.variant !== 'all' ? 'variant' : null,
+    filter.setCode && filter.setCode !== 'all' ? 'setCode' : null,
+    filter.storageLocationId && filter.storageLocationId !== 'all' ? 'storageLocationId' : null,
+    filter.tradeBinderStatus && filter.tradeBinderStatus !== 'all' ? 'tradeBinderStatus' : null,
+    filter.wishlistStatus && filter.wishlistStatus !== 'all' ? 'wishlistStatus' : null,
+  ].filter(Boolean).length;
+}
+
+export function buildInventoryHealth(cards: CollectionCard[]): InventoryHealthSummary {
+  const totalQuantity = cards.reduce((sum, card) => sum + card.quantityOwned, 0);
+  const locatedQuantity = cards
+    .filter((card) => Boolean(card.storageLocation))
+    .reduce((sum, card) => sum + card.quantityOwned, 0);
+  const unassignedQuantity = Math.max(0, totalQuantity - locatedQuantity);
+  const missingPrice = cards.filter((card) => card.marketPrice.amount === null).length;
+  const missingCostBasis = cards.filter((card) => !card.costBasisKnown).length;
+  const unknownCondition = cards.filter((card) => card.condition === 'unknown').length;
+  const unknownFinish = cards.filter((card) => card.printing.finish === 'unknown').length;
+  const weightedIssues = unassignedQuantity + missingPrice + missingCostBasis + unknownCondition + unknownFinish;
+  const score = totalQuantity <= 0 ? 100 : Math.max(0, Math.round(((totalQuantity - weightedIssues) / totalQuantity) * 100));
+
+  const issues: InventoryHealthIssue[] = [
+    { id: 'unassigned', label: 'Need storage location', count: unassignedQuantity, severity: 'attention' },
+    { id: 'missing_price', label: 'Missing market value', count: missingPrice, severity: 'neutral' },
+    { id: 'missing_cost_basis', label: 'Missing cost basis', count: missingCostBasis, severity: 'neutral' },
+    { id: 'unknown_condition', label: 'Condition unavailable', count: unknownCondition, severity: 'neutral' },
+    { id: 'unknown_finish', label: 'Finish unavailable', count: unknownFinish, severity: 'neutral' },
+  ];
+
+  return {
+    score,
+    locatedQuantity,
+    unassignedQuantity,
+    issues: issues.filter((issue) => issue.count > 0),
+  };
+}
+
 export function displayPrinting(printing: CardPrinting) {
   const setLabel = printing.setCode?.toUpperCase() ?? 'Set unavailable';
   const collectorNumber = printing.collectorNumber ? `#${printing.collectorNumber}` : 'number unavailable';
@@ -588,8 +662,9 @@ export function displayVariant(card: CollectionCard) {
 
 export function displayStorageLocation(card: CollectionCard) {
   if (!card.storageLocation) return 'Storage unavailable';
+  const base = card.storageLocation.pathLabel || card.storageLocation.name;
   return [
-    card.storageLocation.name,
+    base,
     card.storageLocation.binderPage ? `Page ${card.storageLocation.binderPage}` : '',
     card.storageLocation.binderSlot ? `Slot ${card.storageLocation.binderSlot}` : '',
   ].filter(Boolean).join(' › ');
@@ -603,6 +678,34 @@ export function priceLabel(card: CollectionCard) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(card.marketPrice.amount);
+}
+
+export function isPhysicalTradeBinderLocation(location?: StorageLocation | null) {
+  if (!location) return false;
+  const text = `${location.name} ${location.pathLabel ?? ''} ${location.type}`.toLowerCase();
+  return location.type === 'binder' && text.includes('trade');
+}
+
+export function isPhysicalTradeBinderCard(card: CollectionCard) {
+  return isPhysicalTradeBinderLocation(card.storageLocation);
+}
+
+export function filterLooseCollectionCards(cards: CollectionCard[]) {
+  return cards.filter((card) => !isPhysicalTradeBinderCard(card));
+}
+
+export function buildCollectionLotKey(card: CollectionCard) {
+  return [
+    card.gameId,
+    card.productType,
+    card.cardName.trim().toLowerCase(),
+    card.printing.scryfallId ?? '',
+    card.printing.setCode?.toLowerCase() ?? '',
+    card.printing.collectorNumber ?? '',
+    card.printing.language?.toLowerCase() ?? '',
+    card.printing.finish,
+    card.condition,
+  ].join('|');
 }
 
 export function resolveCardImageUrl({
@@ -631,24 +734,25 @@ export function resolveCardImageUrl({
 }
 
 export function normalizeCardCondition(value: unknown): CardCondition {
-  const normalized = normalizeSearchText(String(value ?? '')).replace(/\s+/g, '_');
-  if (normalized === 'nm' || normalized === 'near_mint') return 'near_mint';
-  if (normalized === 'lp' || normalized === 'lightly_played') return 'lightly_played';
-  if (normalized === 'mp' || normalized === 'moderately_played') return 'moderately_played';
-  if (normalized === 'hp' || normalized === 'heavily_played') return 'heavily_played';
+  const normalized = normalizeSearchText(String(value ?? '')).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const compact = normalized.replace(/_/g, '');
+  if (normalized === 'nm' || normalized === 'near_mint' || compact === 'nearmint') return 'near_mint';
+  if (normalized === 'lp' || normalized === 'lightly_played' || compact === 'lightplayed' || compact === 'lightlyplayed') return 'lightly_played';
+  if (normalized === 'mp' || normalized === 'moderately_played' || compact === 'modplayed' || compact === 'moderatelyplayed') return 'moderately_played';
+  if (normalized === 'hp' || normalized === 'heavily_played' || compact === 'heavyplayed' || compact === 'heavilyplayed') return 'heavily_played';
   if (normalized === 'damaged' || normalized === 'dm') return 'damaged';
   return 'unknown';
 }
 
 export function normalizeCardFinish(value: unknown): CardFinish {
   const normalized = normalizeSearchText(String(value ?? '')).replace(/[\s-]+/g, '_');
+  if (normalized === 'nonfoil' || normalized === 'non_foil' || normalized === 'normal' || normalized === 'regular') return 'normal';
   if (normalized.includes('serialized')) return 'serialized';
   if (normalized.includes('borderless')) return 'borderless';
   if (normalized.includes('extended')) return 'extended_art';
   if (normalized.includes('showcase')) return 'showcase';
   if (normalized.includes('etched')) return 'etched';
   if (normalized.includes('foil')) return 'foil';
-  if (normalized === 'normal' || normalized === 'regular') return 'normal';
   return 'unknown';
 }
 
@@ -669,17 +773,42 @@ export function normalizeTradeBinderStatus(value: unknown): TradeBinderStatus {
 function buildStorageLocation(
   rawLocation: RawInventoryLocation,
   itemPayload: Record<string, unknown>,
+  pathLabel: string | null,
 ): StorageLocation {
   const data = rawLocation.data ?? {};
   return {
     id: rawLocation.id,
     name: stringValue(data.name) || rawLocation.name || 'Unnamed location',
     type: normalizeStorageType(data.type ?? rawLocation.location_type),
+    parentId: stringValue(data.parentId) || null,
+    pathLabel,
     description: stringValue(data.description) || null,
     zone: stringValue(data.zone) || null,
     binderPage: numberValue(itemPayload.binderPage),
     binderSlot: stringValue(itemPayload.binderSlot) || null,
   };
+}
+
+export function buildCollectionLocationPathLabel(locationId: string, locations: RawInventoryLocation[], separator = ' › ') {
+  return buildLocationPathLabels(locations, separator).get(locationId) ?? null;
+}
+
+function buildLocationPathLabels(locations: RawInventoryLocation[], separator = ' › ') {
+  const byId = new Map(locations.map((location) => [location.id, location]));
+  const labels = new Map<string, string>();
+  for (const location of locations) {
+    const nodes: string[] = [];
+    const seen = new Set<string>();
+    let current: RawInventoryLocation | undefined = location;
+    while (current && !seen.has(current.id)) {
+      seen.add(current.id);
+      nodes.unshift(stringValue(current.data?.name) || current.name || 'Unnamed location');
+      const parentId = stringValue(current.data?.parentId);
+      current = parentId ? byId.get(parentId) : undefined;
+    }
+    labels.set(location.id, nodes.join(separator));
+  }
+  return labels;
 }
 
 function normalizeStorageType(value: unknown): StorageLocation['type'] {
@@ -826,6 +955,19 @@ function numberValue(value: unknown) {
 function positiveNumber(value: unknown) {
   const parsed = numberValue(value);
   return parsed !== null && parsed > 0 ? parsed : null;
+}
+
+function nonNegativeNumber(value: unknown) {
+  const parsed = numberValue(value);
+  return parsed !== null && parsed >= 0 ? parsed : null;
+}
+
+function knownCostBasisValue(payload: Record<string, unknown>) {
+  return nonNegativeNumber(payload.unitCost)
+    ?? nonNegativeNumber(payload.costBasis)
+    ?? nonNegativeNumber(payload.purchasePrice)
+    ?? nonNegativeNumber(payload.totalCost)
+    ?? nonNegativeNumber(payload.totalCostBasis);
 }
 
 function timestamp(value?: string | null) {

@@ -171,6 +171,7 @@ function collectionCard({
     storageLocation: null,
     tradeBinderStatus: 'not_for_trade',
     wishlistStatus: 'not_wishlisted',
+    costBasisKnown: false,
     marketPrice: {
       amount: price,
       currency: 'USD',

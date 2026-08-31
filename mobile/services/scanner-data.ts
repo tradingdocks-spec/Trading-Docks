@@ -185,7 +185,13 @@ export async function saveScannerConfirmation({
   }
   const payload = buildScannerAddPayload(authoritativeConfirmation, inventoryItemId);
   try {
-    const { error } = await supabase.from('inventory_items').insert(payload);
+    const { error } = await supabase.rpc('create_inventory_item_with_event', {
+      p_inventory: payload,
+      p_source: 'scanner',
+      p_idempotency_key: scannerIdempotencyKey(confirmation, inventoryItemId),
+      p_related_entity_type: 'scanner_confirmation',
+      p_related_entity_id: inventoryItemId,
+    });
     if (error) throw new Error(error.message);
     if (authoritativeConfirmation.tradeStatus !== 'not_for_trade') {
       await runMobileTradeWishlistMutation({

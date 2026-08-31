@@ -22,6 +22,7 @@ import {
   Rocket,
   Percent,
   MessageSquarePlus,
+  Megaphone,
   Scale,
   Settings,
   ShoppingBag,
@@ -45,6 +46,7 @@ import {
   type AccountType,
 } from "../../../mobile/services/platform-access.ts";
 import { LABEL_STUDIO_ROUTE } from "../../lib/label-studio/routes.ts";
+import { isDeckArchitectRoute, shouldShowDeckArchitectEntry } from "../../lib/product-visibility.ts";
 
 export type NavigationItem = {
   href: string;
@@ -89,6 +91,13 @@ export const CRM_NAV: NavigationItem[] = [
     label: "Customer CRM",
     icon: ContactRound,
   },
+];
+
+export const MARKETING_NAV: NavigationItem[] = [
+  { href: "/dashboard/marketing", label: "Campaigns", icon: Megaphone },
+  { href: "/dashboard/marketing/audiences", label: "Audiences", icon: Users },
+  { href: "/dashboard/marketing/templates", label: "Templates", icon: FileBarChart2 },
+  { href: "/dashboard/marketing/suppression", label: "Suppression", icon: ShieldCheck },
 ];
 
 export const PURCHASING_NAV: NavigationSection = {
@@ -309,6 +318,9 @@ const ICON_BY_LABEL = {
   Analytics: BarChart3,
   Employees: Users,
   Customers: ContactRound,
+  Marketing: Megaphone,
+  Campaigns: Megaphone,
+  Audiences: Users,
   Operations: BriefcaseBusiness,
   "Label Studio": Tags,
   "Command Center": ShieldCheck,
@@ -337,6 +349,7 @@ const TIER_RANK: Record<AccountType, number> = {
 const COLLECTOR_WORKSPACE_NAV: NavigationItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/inventory", label: "Collection", icon: Boxes },
+  { href: "/dashboard/inventory/inbox", label: "Inventory Inbox", icon: ClipboardList },
   { href: "/dashboard/deck-vault", label: "Deck Vault", icon: LibraryBig },
   { href: "/dashboard/collector-portfolio", label: "Portfolio", icon: Palette },
 ];
@@ -364,9 +377,11 @@ function isAccessibleOrOwner(
   item: NavigationItem,
   clientAccess?: ClientSafePlatformAccess,
 ) {
+  if (isDeckArchitectRoute(item.href)) return shouldShowDeckArchitectEntry();
   if (!clientAccess) return true;
   if (hasTrustedFullPlatformAccess(clientAccess)) return true;
   if (item.href === LABEL_STUDIO_ROUTE) return hasCapability(clientAccess, "label.view");
+  if (item.href.startsWith("/dashboard/marketing")) return hasCapability(clientAccess, "crm.manage");
   return true;
 }
 
@@ -399,6 +414,7 @@ export function getAccountAwareNavigationGroups(
     groups.push(
       group("purchasing", PURCHASING_NAV.label, PURCHASING_NAV.children, clientAccess),
       group("selling", SELLING_NAV.label, SELLING_NAV.children, clientAccess),
+      group("marketing", "Marketing", MARKETING_NAV, clientAccess),
       group("insights", INSIGHTS_NAV.label, INSIGHTS_NAV.children, clientAccess),
       group(
         "operations",

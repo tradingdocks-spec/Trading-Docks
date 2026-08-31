@@ -18,6 +18,8 @@ export type CollectorMutationType =
   | 'condition'
   | 'finish'
   | 'storage'
+  | 'move_quantity'
+  | 'remove_quantity'
   | 'trade_binder_status'
   | 'wishlist';
 
@@ -49,6 +51,22 @@ export type StorageMutation = {
   storageLocationId: string | null;
 };
 
+export type MoveQuantityMutation = {
+  type: 'move_quantity';
+  userId: string;
+  inventoryItemId: string;
+  quantity: number;
+  storageLocationId: string | null;
+};
+
+export type RemoveQuantityMutation = {
+  type: 'remove_quantity';
+  userId: string;
+  inventoryItemId: string;
+  quantity: number;
+  reason?: string | null;
+};
+
 export type TradeBinderMutation = {
   type: 'trade_binder_status';
   userId: string;
@@ -72,6 +90,8 @@ export type CollectorMutation =
   | ConditionMutation
   | FinishMutation
   | StorageMutation
+  | MoveQuantityMutation
+  | RemoveQuantityMutation
   | TradeBinderMutation
   | WishlistMutation;
 
@@ -167,6 +187,15 @@ export function validateCollectorMutation(
     }
   }
 
+  if (mutation.type === 'move_quantity' || mutation.type === 'remove_quantity') {
+    if (!Number.isInteger(mutation.quantity) || mutation.quantity <= 0) {
+      return { ok: false, code: 'invalid_quantity', reason: 'Quantity must be a whole number above zero.' };
+    }
+    if (mutation.quantity > context.currentCardQuantity) {
+      return { ok: false, code: 'invalid_quantity', reason: 'Quantity cannot exceed the selected lot.' };
+    }
+  }
+
   if (mutation.type === 'condition' && normalizeCardCondition(mutation.condition) !== mutation.condition) {
     return { ok: false, code: 'invalid_value', reason: 'Choose a supported condition.' };
   }
@@ -203,6 +232,18 @@ export function applyCollectorMutationOptimistically(
         name: 'Storage location unavailable',
         type: 'unknown',
       } : null;
+      if (mutation.type === 'move_quantity') {
+        if (mutation.quantity >= next.quantityOwned) {
+          next.storageLocation = mutation.storageLocationId ? cardsByLocation.get(mutation.storageLocationId) ?? {
+            id: mutation.storageLocationId,
+            name: 'Storage location unavailable',
+            type: 'unknown',
+          } : null;
+        } else {
+          next.quantityOwned = Math.max(0, next.quantityOwned - mutation.quantity);
+        }
+      }
+      if (mutation.type === 'remove_quantity') next.quantityOwned = Math.max(0, next.quantityOwned - mutation.quantity);
       if (mutation.type === 'trade_binder_status') next.tradeBinderStatus = mutation.status;
       if (mutation.type === 'wishlist') next.wishlistStatus = mutation.wishlisted ? 'wanted' : 'not_wishlisted';
       next.updatedAt = new Date().toISOString();

@@ -62,7 +62,8 @@ test("Purchasing Intelligence canonical route is registered in navigation and ac
   assert.match(navigation, /href: "\/dashboard\/purchasing-intelligence"/);
   assert.match(routeAccess, /purchasing-intelligence/);
   assert.match(tierAccess, /purchasing-intelligence/);
-  assert.match(createMenu, /\/dashboard\/purchasing-intelligence\?action=add-inventory/);
+  assert.doesNotMatch(createMenu, /\/dashboard\/purchasing-intelligence\?action=add-inventory/);
+  assert.match(createMenu, /\/dashboard\/inventory\/import/);
   assert.doesNotMatch(createMenu, /href: "\/dashboard\/card-photo-scanner"[\s\S]*add-inventory-card/);
 });
 

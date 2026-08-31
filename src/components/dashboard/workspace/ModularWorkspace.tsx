@@ -38,6 +38,7 @@ import {
   availableDashboardLayouts,
   canUseDashboardWidget,
 } from "@/lib/dashboard-entitlements";
+import type { PersonalCommandCenterSummary } from "@/lib/dashboard/personal-command-center";
 import type { AccountTier } from "@/lib/plan-entitlements";
 import {
   hasTrustedFullPlatformAccess,
@@ -301,11 +302,13 @@ function dashboardAccessDisplay(
 export function ModularWorkspace({
   accountType,
   access,
+  personalSummary,
   inventoryModules,
   initialLayouts,
 }: {
   accountType: string;
   access?: ClientSafePlatformAccess;
+  personalSummary?: PersonalCommandCenterSummary | null;
   inventoryModules: string[];
   initialLayouts?: unknown;
 }) {
@@ -461,7 +464,7 @@ export function ModularWorkspace({
         </div>
       </header>
 
-      <CommandCenterOverview isPersonal={isPersonal} accessLabel={display.metricLabel} />
+      <CommandCenterOverview isPersonal={isPersonal} accessLabel={display.metricLabel} summary={personalSummary} />
 
       {editing ? (
         <div className="mt-4 rounded-[20px] border border-cyan-300/[0.13] bg-cyan-400/[0.035] px-4 py-3 text-xs leading-5 text-cyan-100/75 shadow-[0_18px_60px_rgba(8,145,178,.08)]">
@@ -488,6 +491,7 @@ export function ModularWorkspace({
                 definition={definition}
                 locked={locked}
                 editing={editing}
+                personalSummary={personalSummary}
                 onDragStart={() => setDraggedId(widget.id)}
                 onRemove={() =>
                   updateWidgets(widgets.filter((item) => item.id !== widget.id))
@@ -526,25 +530,53 @@ export function ModularWorkspace({
 function CommandCenterOverview({
   isPersonal,
   accessLabel,
+  summary,
 }: {
   isPersonal: boolean;
   accessLabel: string;
+  summary?: PersonalCommandCenterSummary | null;
 }) {
   const primaryAction = isPersonal
     ? { label: "Add first card", href: "/dashboard/inventory?create=card", icon: ScanLine }
     : { label: "Connect marketplace", href: "/dashboard/marketplaces", icon: Store };
   const PrimaryIcon = primaryAction.icon;
+  const personalActions = summary?.actions.map((action) => ({
+    label: action.label,
+    href: action.href,
+    detail: action.detail,
+    icon: action.severity === "attention" ? ListChecks : ArrowRight,
+  }));
   const nextActions = isPersonal
-    ? [
-        { label: "Import cards", href: "/dashboard/inventory", detail: "Build the ownership baseline", icon: FileUp },
-        { label: "Create a deck", href: "/dashboard/deck-vault", detail: "Organize play-ready cards", icon: PackageOpen },
-        { label: "Track portfolio", href: "/dashboard/collector-portfolio", detail: "Share binders and wishlists", icon: Target },
-      ]
+    ? personalActions?.length
+      ? personalActions
+      : [
+          { label: "Import cards", href: "/dashboard/inventory", detail: "Build the ownership baseline", icon: FileUp },
+          { label: "Create a deck", href: "/dashboard/deck-vault", detail: "Organize play-ready cards", icon: PackageOpen },
+          { label: "Track portfolio", href: "/dashboard/collector-portfolio", detail: "Share binders and wishlists", icon: Target },
+        ]
     : [
         { label: "Review orders", href: "/dashboard/orders", detail: "Keep fulfillment moving", icon: ShoppingBag },
         { label: "Open Label Studio", href: "/dashboard/label-studio", detail: "Print SKU and QR labels", icon: PackageCheck },
         { label: "Check analytics", href: "/dashboard/analytics", detail: "Find pricing gaps", icon: BarChart3 },
       ];
+  const headline = summary?.headline ?? "Your operating picture starts with owned inventory.";
+  const brief = summary?.brief ?? "Trading Docks turns exact printings, storage, scans, orders, and market signals into one command surface for collectors and sellers.";
+  const trackedValue = summary?.knownMarketValue === null || summary?.knownMarketValue === undefined
+    ? "Unavailable"
+    : formatCurrency(summary.knownMarketValue);
+  const cardsTracked = summary
+    ? summary.sampleLimited
+      ? `${summary.sampledQuantity.toLocaleString()} sampled`
+      : summary.sampledQuantity.toLocaleString()
+    : "0";
+  const openActions = summary?.actions.filter((action) => action.severity === "attention").length ?? (isPersonal ? 0 : 3);
+  const signals = summary
+    ? [
+        summary.unassignedRows > 0,
+        summary.missingPriceRows > 0,
+        summary.unknownConditionRows > 0 || summary.unknownFinishRows > 0,
+      ].filter(Boolean).length
+    : 0;
 
   return (
     <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)] xl:gap-5">
@@ -556,10 +588,10 @@ function CommandCenterOverview({
               State of workspace
             </p>
             <h2 className="mt-3 max-w-2xl text-[2rem] font-semibold leading-[1.02] tracking-[-0.055em] text-white sm:text-[2.7rem]">
-              Your operating picture starts with owned inventory.
+              {headline}
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
-              Trading Docks turns exact printings, storage, scans, orders, and market signals into one command surface for collectors and sellers.
+              {brief}
             </p>
             <div className="mt-5 flex flex-wrap gap-2.5">
               <Link
@@ -580,10 +612,10 @@ function CommandCenterOverview({
           </div>
 
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2">
-            <CommandMetric label="Tracked value" value="$0" detail="No priced inventory yet" />
-            <CommandMetric label="Cards tracked" value="0" detail={accessLabel} />
-            <CommandMetric label="Open actions" value="3" detail="Suggested setup steps" />
-            <CommandMetric label="Signals" value="0" detail="Awaiting activity" />
+            <CommandMetric label="Tracked value" value={trackedValue} detail={summary?.knownPriceRows ? `${summary.knownPriceRows.toLocaleString()} priced sampled rows` : "No priced inventory yet"} />
+            <CommandMetric label="Cards tracked" value={cardsTracked} detail={summary?.totalInventoryRows ? `${summary.totalInventoryRows.toLocaleString()} inventory records · ${accessLabel}` : accessLabel} />
+            <CommandMetric label="Open actions" value={openActions.toLocaleString()} detail={openActions ? "Needs attention" : "No urgent personal actions"} />
+            <CommandMetric label="Signals" value={signals.toLocaleString()} detail={summary?.sampleLimited ? "Recent inventory sample" : "Current inventory state"} />
           </div>
         </div>
       </div>
@@ -651,6 +683,7 @@ function DashboardWidget({
   definition,
   locked,
   editing,
+  personalSummary,
   onDragStart,
   onRemove,
   onResize,
@@ -659,6 +692,7 @@ function DashboardWidget({
   definition: (typeof DEFINITIONS)[keyof typeof DEFINITIONS];
   locked: boolean;
   editing: boolean;
+  personalSummary?: PersonalCommandCenterSummary | null;
   onDragStart: () => void;
   onRemove: () => void;
   onResize: (size: Size) => void;
@@ -749,7 +783,7 @@ function DashboardWidget({
         {locked ? (
           <LockedModule definition={definition} copy={copy} />
         ) : (
-          <WidgetContent id={widget.id} copy={copy} />
+          <WidgetContent id={widget.id} copy={copy} personalSummary={personalSummary} />
         )}
       </div>
     </article>
@@ -792,12 +826,30 @@ function LockedModule({
 function WidgetContent({
   id,
   copy,
+  personalSummary,
 }: {
   id: string;
   copy: (typeof WIDGET_COPY)[keyof typeof WIDGET_COPY];
+  personalSummary?: PersonalCommandCenterSummary | null;
 }) {
-  if (id === "inventory-value") return <Metric value="$0" detail="No priced inventory yet" copy={copy} />;
-  if (id === "inventory-count") return <Metric value="0" detail="No exact printings tracked" copy={copy} />;
+  if (id === "inventory-value") {
+    return (
+      <Metric
+        value={personalSummary?.knownMarketValue === null || personalSummary?.knownMarketValue === undefined ? "Unavailable" : formatCurrency(personalSummary.knownMarketValue)}
+        detail={personalSummary?.knownPriceRows ? `${Math.round(personalSummary.priceCoveragePercent)}% sampled price coverage` : "No priced inventory yet"}
+        copy={copy}
+      />
+    );
+  }
+  if (id === "inventory-count") {
+    return (
+      <Metric
+        value={personalSummary?.totalInventoryRows ? personalSummary.totalInventoryRows.toLocaleString() : "0"}
+        detail={personalSummary?.sampledQuantity ? `${personalSummary.sampledQuantity.toLocaleString()} cards in ${personalSummary.sampleLimited ? "recent sample" : "tracked rows"}` : "No exact printings tracked"}
+        copy={copy}
+      />
+    );
+  }
   if (id === "revenue") return <Metric value="$0" detail="No synced sales yet" copy={copy} />;
   if (id === "orders") return <List rows={[]} copy={copy} />;
   if (id === "marketplaces") return <List rows={[]} copy={copy} />;
