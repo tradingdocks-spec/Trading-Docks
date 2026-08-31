@@ -44,7 +44,6 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import Link from "next/link";
 
 import { deckAnalytics } from "@/lib/deck-vault/analytics";
 import {
@@ -347,7 +346,6 @@ export function DeckDetailWorkspace({
     [cards],
   );
   const isCommander = isCommanderDeckFormat(format);
-  const shouldShowDeckArchitectEntry = isCommander;
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1214,14 +1212,6 @@ export function DeckDetailWorkspace({
               <Download className="h-4 w-4" />
               CSV
             </button>
-            {shouldShowDeckArchitectEntry ? (
-              <Link
-                href="/dashboard/deck-architect"
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-sky-300/[0.16] bg-sky-300/[0.05] px-4 text-xs font-semibold text-sky-200 transition hover:bg-sky-300/[0.1]"
-              >
-                Open in Deck Architect
-              </Link>
-            ) : null}
             <button
               type="button"
               onClick={() => setDeckActionsOpen(true)}
