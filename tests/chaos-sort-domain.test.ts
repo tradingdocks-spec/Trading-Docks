@@ -10,6 +10,13 @@ import {
   type ChaosSortBatch,
   type ChaosSortItem,
 } from "../src/lib/chaos-sort/domain.ts";
+import {
+  buildDeterministicPickTasks,
+  buildPhysicalLocationMap,
+  markPickTask,
+  pickLocationCount,
+  resolveOrderItemPhysicalLocation,
+} from "../src/lib/orders/pick-domain.ts";
 
 function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {
   const now = new Date().toISOString();
@@ -134,4 +141,30 @@ test("batch summaries count confirmed, unknown, and duplicate items", () => {
   assert.equal(summary.needsReview, 1);
   assert.equal(summary.unknown, 1);
   assert.equal(summary.duplicateInventoryPositions, 1);
+});
+
+test("physical locations resolve through the authoritative parent hierarchy", () => {
+  const locations = [
+    { id: "shelf-a", name: "Shelf A", data: {} },
+    { id: "box-2", name: "Box 2", data: { parentId: "shelf-a" } },
+    { id: "divider-b", name: "Divider A-2-B", data: { parentId: "box-2" } },
+  ];
+  const inventory = [{ id: "item-1", card_name: "Lightning Bolt", location_id: "divider-b", data: {} }];
+  const location = resolveOrderItemPhysicalLocation({ id: "line-1", title: "Lightning Bolt", quantity: 1 }, inventory, locations);
+  assert.equal(location?.pathLabel, "Shelf A › Box 2 › Divider A-2-B");
+  assert.equal(buildPhysicalLocationMap(locations).get("divider-b"), location?.pathLabel);
+  assert.equal(resolveOrderItemPhysicalLocation({ id: "line-2", title: "Counterspell", quantity: 1 }, inventory, locations), null);
+});
+
+test("pick tasks sort deterministically by physical location and preserve missing state", () => {
+  const tasks = buildDeterministicPickTasks([
+    { id: "c", title: "Lightning Bolt", quantity: 1, physicalLocation: { id: "b", name: "Divider A-2-B", pathLabel: "Shelf A › Box 2 › Divider A-2-B", sortKey: "Shelf A › Box 2 › Divider A-2-B" } },
+    { id: "a", title: "Sol Ring", quantity: 1, physicalLocation: { id: "a", name: "Divider A-1-A", pathLabel: "Shelf A › Box 1 › Divider A-1-A", sortKey: "Shelf A › Box 1 › Divider A-1-A" } },
+    { id: "u", title: "Unknown Card", quantity: 1 },
+  ]);
+  assert.deepEqual(tasks.map((task) => task.id), ["a", "c", "u"]);
+  assert.equal(pickLocationCount(tasks), 3);
+  const missing = markPickTask(tasks, "c", "missing");
+  assert.equal(missing.find((task) => task.id === "c")?.state, "missing");
+  assert.equal(tasks.find((task) => task.id === "c")?.state, "ready");
 });

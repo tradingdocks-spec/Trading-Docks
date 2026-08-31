@@ -146,12 +146,6 @@ export function ChaosSortWorkspace() {
   }, []);
 
   useEffect(() => {
-    if (!destinationLocationId && locations.length) {
-      setDestinationLocationId(locations[0].id);
-    }
-  }, [destinationLocationId, locations]);
-
-  useEffect(() => {
     const supabase = createClient();
     void (async () => {
       setLoadingInventory(true);
@@ -539,6 +533,25 @@ export function ChaosSortWorkspace() {
           icon={Layers3}
         />
 
+        <section className="rounded-[22px] border border-cyan-300/[0.14] bg-[#061823] p-5 sm:p-6">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[.16em] text-cyan-300">Chaos Sort orientation</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-[-.04em] text-white">Tame your TCG inventory</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">Trading Docks does not require cards to be alphabetized or sorted by set, game, color, or rarity. Store cards in any physical order as long as each accepted item has an exact location.</p>
+          </div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
+            <div className="rounded-2xl border border-rose-300/[0.14] bg-rose-300/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-rose-200">Without Trading Docks</p><p className="mt-3 text-sm leading-6 text-slate-300">Dig through large boxes · manual sorting · slow pulls · lost stock · memory</p></div>
+            <div className="hidden items-center justify-center px-1 text-xl text-slate-600 lg:flex">→</div>
+            <div className="rounded-2xl border border-emerald-300/[0.14] bg-emerald-300/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-emerald-200">With Trading Docks</p><p className="mt-3 text-sm leading-6 text-slate-300">Exact physical address · smaller search area · fast picking · mixed cards are okay · scan, locate, pull, ship</p></div>
+          </div>
+          <div className="mt-4 grid gap-2 text-xs text-slate-400 sm:grid-cols-5"><span><b className="mr-1 text-cyan-300">1.</b> Drop scans</span><span><b className="mr-1 text-cyan-300">2.</b> Identify</span><span><b className="mr-1 text-cyan-300">3.</b> Review</span><span><b className="mr-1 text-cyan-300">4.</b> Assign location</span><span><b className="mr-1 text-cyan-300">5.</b> Sort → commit</span></div>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+          <div className="rounded-[22px] border border-white/[0.08] bg-[#06121b] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-300">Your physical model</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="font-black text-white">SHELF A</p><p className="mt-2 text-sm leading-7 text-slate-400">Box 1<br /><span className="text-cyan-200">A-1-A · A-1-B · A-1-C</span><br />Box 2<br /><span className="text-cyan-200">A-2-A · A-2-B</span></p></div><div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="font-black text-white">SHELF B</p><p className="mt-2 text-sm leading-7 text-slate-400">Box 1<br /><span className="text-cyan-200">B-1-A · B-1-B · B-1-C</span></p></div></div></div>
+          <div className="rounded-[22px] border border-amber-300/[0.15] bg-amber-300/[0.045] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-amber-200">Pro tip</p><p className="mt-3 text-sm leading-6 text-amber-50/80">Keep physical locations small enough that a card can be found quickly without traditional sorting.</p><p className="mt-3 text-xs leading-5 text-amber-100/55">Smaller locations mean fewer cards to flip through when an order arrives. This is guidance, not an enforced capacity rule.</p></div>
+        </section>
+
         {notice ? (
           <TDCard variant="outlined" className="border-emerald-300/20 bg-emerald-300/[0.04] text-emerald-100">
             <TDText variant="small">{notice}</TDText>
@@ -835,7 +848,14 @@ export function ChaosSortWorkspace() {
                   <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Destination storage location</label>
                   <select
                     value={destinationLocationId}
-                    onChange={(event) => setDestinationLocationId(event.target.value)}
+                    onChange={(event) => {
+                      const nextLocationId = event.target.value;
+                      const previousLabel = destinationLocationLabel(destinationLocationId, locations);
+                      setDestinationLocationId(nextLocationId);
+                      setItems((current) => current.map((item) => item.destinationLocationId === destinationLocationId || item.destinationLabel === previousLabel
+                        ? { ...item, destinationLocationId: nextLocationId || null, destinationLabel: destinationLocationLabel(nextLocationId, locations) }
+                        : item));
+                    }}
                     className="min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-4 text-sm text-[var(--td-text-primary)] outline-none transition focus:border-[var(--td-border-focus)]"
                   >
                     <option value="">No destination selected</option>
@@ -843,11 +863,12 @@ export function ChaosSortWorkspace() {
                   </select>
                 </div>
               </div>
-              <div className="rounded-[20px] border border-white/[0.06] bg-white/[0.02] p-4">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>Preview</span>
-                  <span>{destinationLocationLabel(destinationLocationId, locations)}</span>
-                </div>
+                <div className="rounded-[20px] border border-cyan-300/[0.14] bg-cyan-300/[0.04] p-4">
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span>Batch destination</span>
+                  <span className="font-bold text-cyan-100">{destinationLocationLabel(destinationLocationId, locations)}</span>
+                  </div>
+                <p className="mt-2 text-xs text-slate-400">Accepted cards inherit this location. Override a single card below when it belongs somewhere else.</p>
                 <div className="mt-3 space-y-2 text-sm text-slate-300">
                   {plan.piles.map((pile) => (
                     <div key={pile.pile} className="flex items-center justify-between rounded-xl border border-white/[0.05] px-3 py-2">
@@ -880,6 +901,18 @@ export function ChaosSortWorkspace() {
                     <TDInput label="Condition" value={selectionValue(selectedItem.condition)} onChange={(event) => updateItem(selectedItem.id, { condition: event.target.value })} />
                     <TDInput label="Quantity" value={String(selectedItem.quantity)} onChange={(event) => updateItem(selectedItem.id, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })} />
                     <TDInput label="Market price" value={selectionNumber(selectedItem.marketPrice)} onChange={(event) => updateItem(selectedItem.id, { marketPrice: event.target.value ? Number(event.target.value) : null })} />
+                    <div className="space-y-2 sm:col-span-2">
+                      <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Physical destination override</label>
+                      <select
+                        value={selectedItem.destinationLocationId ?? ""}
+                        onChange={(event) => updateItem(selectedItem.id, { destinationLocationId: event.target.value || null, destinationLabel: destinationLocationLabel(event.target.value, locations) })}
+                        className="min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-4 text-sm text-[var(--td-text-primary)] outline-none transition focus:border-[var(--td-border-focus)]"
+                      >
+                        <option value="">Unassigned / pending location</option>
+                        {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+                      </select>
+                      <p className="text-xs text-slate-500">Leave unassigned when the physical destination is not known. No location is invented.</p>
+                    </div>
                     <div className="space-y-2">
                       <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Human state</label>
                       <select
