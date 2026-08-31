@@ -40,6 +40,12 @@ export const TCGTRACKING_MAGIC_GAME_ID = REGISTRY_MAGIC_GAME_ID;
 export const TCGTRACKING_POKEMON_CATEGORY_ID = REGISTRY_POKEMON_CATEGORY_ID;
 export const TCGTRACKING_POKEMON_GAME_ID = REGISTRY_POKEMON_GAME_ID;
 
+type CapturedResponse = { payload: unknown; body: string; contentType: string | null };
+
+function isCapturedResponse(value: unknown): value is CapturedResponse {
+  return Boolean(value && typeof value === "object" && "payload" in value && "body" in value);
+}
+
 const productCache = new Map<string, { expiresAt: number; product: TcgTrackingProduct | null }>();
 
 export class TcgTrackingProviderError extends Error {
@@ -49,6 +55,7 @@ export class TcgTrackingProviderError extends Error {
   method?: string;
   contentType?: string | null;
   bodyPreview?: string;
+  rawBody?: string;
 
   constructor(
     message: string,
@@ -59,6 +66,7 @@ export class TcgTrackingProviderError extends Error {
       method?: string;
       contentType?: string | null;
       bodyPreview?: string;
+      rawBody?: string;
     } = {},
   ) {
     super(message);
@@ -69,6 +77,7 @@ export class TcgTrackingProviderError extends Error {
     this.method = details.method;
     this.contentType = details.contentType;
     this.bodyPreview = details.bodyPreview;
+    this.rawBody = details.rawBody;
   }
 }
 
@@ -218,13 +227,22 @@ export class TcgTrackingClient {
     gameId?: number;
     setIds?: number[];
     limit?: 5 | 10;
+    captureResponseBody?: boolean;
   }): Promise<TcgTrackingScanResult> {
     const startedAt = Date.now();
     try {
-      const payload = await this.postScan(input);
+      const response = await this.postScan(input);
+      const payload = isCapturedResponse(response) ? response.payload : response;
       const payloadObject = asObject(payload);
       const hasCandidateList = Array.isArray(payloadObject?.results) || Array.isArray(payloadObject?.candidates);
-      if (!hasCandidateList) throw new TcgTrackingProviderError("TCGTracking returned a malformed scan response.", "/scan");
+      if (!hasCandidateList) throw new TcgTrackingProviderError(
+        "TCGTracking returned a malformed scan response.",
+        "/scan",
+        undefined,
+        isCapturedResponse(response)
+          ? { contentType: response.contentType, rawBody: response.body }
+          : {},
+      );
       const candidates = asArray(payload)
         .map(normalizeScanCandidate)
         .filter((candidate): candidate is NonNullable<typeof candidate> =>
@@ -238,6 +256,9 @@ export class TcgTrackingClient {
         setIds: normalizeNumericSetIds(input.setIds),
         candidates,
         latencyMs: Date.now() - startedAt,
+        rawResponseBody: input.captureResponseBody && isCapturedResponse(response) ? response.body : undefined,
+        responseContentType: input.captureResponseBody && isCapturedResponse(response) ? response.contentType : undefined,
+        candidatesScanned: typeof payloadObject?.candidates_scanned === "number" ? payloadObject.candidates_scanned : undefined,
       };
     } catch (error) {
       return {
@@ -248,6 +269,8 @@ export class TcgTrackingClient {
         candidates: [],
         latencyMs: Date.now() - startedAt,
         httpStatus: error instanceof TcgTrackingProviderError ? error.status : undefined,
+        rawResponseBody: input.captureResponseBody && error instanceof TcgTrackingProviderError ? error.rawBody : undefined,
+        responseContentType: input.captureResponseBody && error instanceof TcgTrackingProviderError ? error.contentType : undefined,
         error:
           error instanceof Error
             ? error.message
@@ -266,6 +289,7 @@ export class TcgTrackingClient {
     gameId?: number;
     setIds?: number[];
     limit?: 5 | 10;
+    captureResponseBody?: boolean;
   }) {
     const headers = this.headers();
     let body: BodyInit;
@@ -300,12 +324,13 @@ export class TcgTrackingClient {
       method: "POST",
       headers,
       body,
-    });
+    }, input.captureResponseBody);
   }
 
   private async requestJson(
     endpoint: string,
     init: RequestInit,
+    captureResponseBody = false,
   ): Promise<unknown> {
     let lastError: unknown;
     for (let attempt = 0; attempt <= this.retries; attempt += 1) {
@@ -339,6 +364,7 @@ export class TcgTrackingClient {
               method: init.method ?? "GET",
               contentType,
               bodyPreview,
+              rawBody: captureResponseBody ? body : undefined,
             },
           );
         }
@@ -358,11 +384,15 @@ export class TcgTrackingClient {
               method: init.method ?? "GET",
               contentType,
               bodyPreview,
+              rawBody: captureResponseBody ? body : undefined,
             },
           );
         }
+        let body = "";
         try {
-          return await response.json();
+          body = await response.text();
+          const payload = JSON.parse(body);
+          return captureResponseBody ? { payload, body, contentType } : payload;
         } catch (error) {
           throw new TcgTrackingProviderError(
             error instanceof Error
@@ -374,6 +404,7 @@ export class TcgTrackingClient {
               url: this.url(endpoint),
               method: init.method ?? "GET",
               contentType,
+              rawBody: captureResponseBody ? body : undefined,
             },
           );
         }

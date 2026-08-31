@@ -126,6 +126,9 @@ export type TcgTrackingScanResult = {
   latencyMs?: number;
   error?: string;
   httpStatus?: number;
+  rawResponseBody?: string;
+  responseContentType?: string | null;
+  candidatesScanned?: number;
   productLookupFailures?: number;
 };
 

@@ -246,6 +246,31 @@ test("TCGTracking uses the documented public scan endpoint and caches product me
   assert.equal(requests.filter((url) => url.endsWith("/products/557921")).length, 1);
 });
 
+test("TCGTracking direct diagnostic preserves documented response evidence", async () => {
+  const client = new TcgTrackingClient({
+    retries: 0,
+    fetch: async () => new Response(JSON.stringify({ success: true, game_id: 1, candidates_scanned: 17, results: [{ product_id: 123, score: 44 }] }), { status: 200, headers: { "content-type": "application/json" } }),
+  });
+  const result = await client.scanCardImage({ image: new Uint8Array([1, 2, 3]), gameId: 1, limit: 5, captureResponseBody: true });
+  assert.equal(result.httpStatus, undefined);
+  assert.equal(result.candidatesScanned, 17);
+  assert.equal(result.candidates[0]?.providerProductId, "123");
+  assert.equal(result.candidates[0]?.confidence, 0.44);
+  assert.match(result.rawResponseBody ?? "", /candidates_scanned/);
+  assert.equal(result.responseContentType, "application/json");
+});
+
+test("TCGTracking direct diagnostic preserves non-2xx provider bodies", async () => {
+  const client = new TcgTrackingClient({
+    retries: 0,
+    fetch: async () => new Response(JSON.stringify({ error: "image too large", code: "IMAGE_LIMIT" }), { status: 413, headers: { "content-type": "application/json" } }),
+  });
+  const result = await client.scanCardImage({ image: new Uint8Array([1, 2, 3]), gameId: 1, limit: 5, captureResponseBody: true });
+  assert.equal(result.status, "provider_failed");
+  assert.equal(result.httpStatus, 413);
+  assert.equal(result.rawResponseBody, '{"error":"image too large","code":"IMAGE_LIMIT"}');
+});
+
 test("TCGTracking multipart scan uses the documented fields and image contract", async () => {
   let captured: FormData | null = null;
   let capturedHeaders: Headers | undefined;
