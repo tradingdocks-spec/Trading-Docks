@@ -79,6 +79,10 @@ export const dashboardNavigation: NavigationGroup[] = [
             href: "/dashboard/inventory?view=bulk",
           },
           {
+            title: "Chaos Sort",
+            href: "/dashboard/inventory/chaos-sort",
+          },
+          {
             title: "Supplies",
             href: "/dashboard/inventory?view=supplies",
           },
@@ -121,10 +125,6 @@ export const dashboardNavigation: NavigationGroup[] = [
           {
             title: "Bulk Intake",
             href: "/dashboard/imports/bulk",
-          },
-          {
-            title: "Chaos Sort",
-            href: "/dashboard/imports/chaos-sort",
           },
           {
             title: "Set Sort",

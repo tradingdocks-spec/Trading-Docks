@@ -31,6 +31,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "admin", pattern: /^\/api\/admin(\/|$)/, kind: "admin-only", capability: "platform.admin", label: "Admin APIs" },
   { id: "billing", pattern: /^\/api\/billing\/revenuecat(\/|$)/, kind: "authenticated", label: "RevenueCat billing checkout and management" },
   { id: "scanner", pattern: /^\/api\/scanner(\/|$)/, kind: "capability", capability: "scanner.use", label: "Mobile scanner provider APIs" },
+  { id: "chaos-sort", pattern: /^\/api\/chaos-sort(\/|$)/, kind: "capability", capability: "collection.write", label: "Chaos Sort inventory commit" },
   { id: "collector-workspace", pattern: /^\/api\/collector-workspace(\/|$)/, kind: "capability", capability: "collection.write", label: "Collector Workspace mutations" },
   { id: "label-studio", pattern: /^\/api\/label-studio(\/|$)/, kind: "capability", capability: "label.view", label: "Label Studio APIs" },
   { id: "collector-portfolio", pattern: /^\/api\/collector-portfolio(\/|$)/, kind: "capability", capability: "binder.manage", label: "Collector portfolio APIs" },
