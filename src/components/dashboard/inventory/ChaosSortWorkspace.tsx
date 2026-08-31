@@ -35,6 +35,12 @@ import {
   type ChaosSortRecognitionState,
   type ChaosSortRule,
 } from "@/lib/chaos-sort/domain";
+import {
+  buildChaosSortQueue,
+  CHAOS_SORT_MAX_BATCH_SIZE,
+  CHAOS_SORT_RECOGNITION_CONCURRENCY,
+  runBoundedChaosSortQueue,
+} from "@/lib/chaos-sort/batch-queue";
 
 type InventoryRow = {
   id: string;
@@ -54,7 +60,8 @@ type LocationRow = {
   location_type: string;
 };
 
-type FilterState = "all" | "ready" | "needs_review" | "unknown";
+type FilterState = "all" | "ready" | "needs_review" | "unknown" | "failed";
+type StagedScan = { id: string; file: File; hash: string; previewUrl: string };
 
 const BATCH_SEQUENCE_KEY = "td-chaos-sort-batch-sequence";
 
@@ -110,10 +117,13 @@ export function ChaosSortWorkspace() {
   const [sequence, setSequence] = useState(1);
   const [batch, setBatch] = useState<ChaosSortBatch>(() => chaosSortBatchFromSequence(1));
   const [items, setItems] = useState<ChaosSortItem[]>([]);
+  const [stagedFiles, setStagedFiles] = useState<StagedScan[]>([]);
+  const [staging, setStaging] = useState(false);
   const [rules, setRules] = useState<ChaosSortRule[]>(() => buildDefaultChaosSortRules());
   const [locations, setLocations] = useState<LocationRow[]>([]);
   const [inventoryRows, setInventoryRows] = useState<InventoryRow[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [filterState, setFilterState] = useState<FilterState>("all");
   const [sortMode, setSortMode] = useState<"review" | "sorting">("review");
   const [sortIndex, setSortIndex] = useState(0);
@@ -176,6 +186,15 @@ export function ChaosSortWorkspace() {
   }, []);
 
   const plan = useMemo(() => buildChaosSortPlan(items, rules), [items, rules]);
+  const queueCounts = useMemo(() => ({
+    analyzed: items.filter((item) => item.processingState === "ready" || item.processingState === "failed").length,
+    processing: items.filter((item) => item.processingState === "processing").length,
+    identified: items.filter((item) => item.processingState === "ready" && item.recognitionState === "high_confidence").length,
+    needsReview: items.filter((item) => item.processingState === "ready" && item.recognitionState === "review").length,
+    unknown: items.filter((item) => item.processingState === "ready" && item.recognitionState === "unknown").length,
+    failed: items.filter((item) => item.processingState === "failed").length,
+  }), [items]);
+  const stagedDuplicateCount = useMemo(() => stagedFiles.length - new Set(stagedFiles.map((entry) => entry.hash)).size, [stagedFiles]);
   const summary = useMemo(() => {
     const liveBatch: ChaosSortBatch = {
       ...batch,
@@ -205,7 +224,8 @@ export function ChaosSortWorkspace() {
       if (item.humanState === "removed") return false;
       if (filterState === "ready") return item.recognitionState === "high_confidence" && item.humanState !== "unknown";
       if (filterState === "needs_review") return item.recognitionState === "review";
-      if (filterState === "unknown") return item.recognitionState === "unknown";
+      if (filterState === "failed") return item.processingState === "failed";
+      if (filterState === "unknown") return item.processingState !== "failed" && item.recognitionState === "unknown";
       return true;
     });
   }, [filterState, items]);
@@ -258,22 +278,38 @@ export function ChaosSortWorkspace() {
     }));
   }, []);
 
-  const handleFiles = useCallback(async (incomingFiles: FileList | File[]) => {
-    const files = Array.from(incomingFiles).filter((file) => SUPPORTED_FILE_TYPES.includes(file.type));
-    if (!files.length) {
+  const stageFiles = useCallback(async (incomingFiles: FileList | File[]) => {
+    const incoming = Array.from(incomingFiles);
+    const valid = incoming.filter((file) => SUPPORTED_FILE_TYPES.includes(file.type));
+    const invalidCount = incoming.length - valid.length;
+    if (!valid.length) {
       setError("Use JPG, JPEG, PNG, or WebP files.");
       return;
     }
+    setStaging(true);
+    setError(invalidCount ? `${invalidCount} file${invalidCount === 1 ? "" : "s"} skipped. JPG, JPEG, PNG, and WebP are supported.` : "");
+    const room = Math.max(0, CHAOS_SORT_MAX_BATCH_SIZE - stagedFiles.length);
+    const accepted = valid.slice(0, room);
+    const staged = await Promise.all(accepted.map(async (file) => ({ id: crypto.randomUUID(), file, hash: await makeChaosSortFileHash(file), previewUrl: URL.createObjectURL(file) })));
+    setStagedFiles((current) => [...current, ...staged]);
+    if (valid.length > room) setError(`Only ${CHAOS_SORT_MAX_BATCH_SIZE} scans can be staged in one batch. ${valid.length - room} additional file${valid.length - room === 1 ? "" : "s"} skipped.`);
+    setStaging(false);
+  }, [stagedFiles.length]);
+
+  const processFiles = useCallback(async (files: StagedScan[]) => {
+    if (!files.length) return;
     setError("");
     setNotice("");
     setLoadingItems(files.length);
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      const previewUrl = URL.createObjectURL(file);
-      const hash = await makeChaosSortFileHash(file);
-      const duplicate = itemsRef.current.find((item) => item.sourceFileHash === hash);
+    const queue = buildChaosSortQueue(files, (entry, index) => `${entry.hash}:${index}`);
+    const seenHashes = new Map<string, string>();
+    const baseItems = queue.map((entry) => {
+      const { file, hash, previewUrl } = entry.input;
       const id = crypto.randomUUID();
-      const base: ChaosSortItem = {
+      const duplicate = itemsRef.current.find((item) => item.sourceFileHash === hash);
+      const duplicateOfItemId = duplicate?.id ?? seenHashes.get(hash) ?? null;
+      seenHashes.set(hash, id);
+      return {
         id,
         batchId: batch.id,
         sourceFileName: file.name,
@@ -300,21 +336,28 @@ export function ChaosSortWorkspace() {
         confidence: 0,
         evidence: [],
         notes: "",
-        duplicateOfItemId: duplicate?.id ?? null,
+        duplicateOfItemId,
         sortRuleId: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      };
-
-      if (duplicate) {
-        setItems((current) => [...current, { ...base, processingState: "ready", recognitionState: duplicate.recognitionState, humanState: "unknown", notes: "Duplicate scan image." }]);
-        continue;
+      } satisfies ChaosSortItem;
+    });
+    setItems((current) => [...current, ...baseItems]);
+    let completed = 0;
+    await runBoundedChaosSortQueue(queue, async (entry) => {
+      const base = baseItems[queue.findIndex((candidate) => candidate.id === entry.id)];
+      if (!base) return;
+      if (base.duplicateOfItemId) {
+        const duplicate = itemsRef.current.find((item) => item.id === base.duplicateOfItemId) ?? baseItems.find((item) => item.id === base.duplicateOfItemId);
+        updateItem(base.id, { processingState: "ready", recognitionState: duplicate?.recognitionState ?? "review", humanState: "unknown", notes: "Duplicate scan image." });
+        completed += 1;
+        setLoadingItems(Math.max(0, files.length - completed));
+        return;
       }
-
-      setItems((current) => [...current, base]);
       try {
+        entry.state = "processing";
         const form = new FormData();
-        form.append("image", file);
+        form.append("image", entry.input.file);
         form.append("gameId", "magic");
         const response = await fetch("/api/purchasing/card-photo-scan", { method: "POST", body: form });
         const payload = await response.json().catch(() => ({}));
@@ -323,7 +366,7 @@ export function ChaosSortWorkspace() {
         }
         const identification = payload.identification ?? {};
         const candidate = Array.isArray(payload.candidates) ? payload.candidates[0] ?? null : null;
-        const cardName = String(candidate?.name ?? identification.name ?? file.name.replace(/\.[^.]+$/, "")).trim();
+        const cardName = String(candidate?.name ?? identification.name ?? entry.input.file.name.replace(/\.[^.]+$/, "")).trim();
         const setCode = typeof candidate?.setCode === "string" && candidate.setCode.trim()
           ? candidate.setCode.trim()
           : typeof identification.setCode === "string" && identification.setCode.trim()
@@ -340,15 +383,17 @@ export function ChaosSortWorkspace() {
           ? candidate.prices.find((price: { available?: boolean; value?: number | null }) => price.available && typeof price.value === "number")?.value ?? null
           : null;
         const match = resolveInventoryMatch(inventoryRef.current, locations, { cardName, setCode, collectorNumber, scryfallId: candidate?.id ?? null });
-        updateItem(id, {
+        const recognitionState = classifyChaosSortRecognition({
           processingState: "ready",
-          recognitionState: classifyChaosSortRecognition({
-            processingState: "ready",
-            confidence,
-            cardName,
-            setCode,
-            collectorNumber,
-          }),
+          confidence,
+          cardName,
+          setCode,
+          collectorNumber,
+        });
+        entry.state = recognitionState === "high_confidence" ? "identified" : recognitionState === "review" ? "needs_review" : "unknown";
+        updateItem(base.id, {
+          processingState: "ready",
+          recognitionState,
           humanState: confidence >= 0.8 ? "confirmed" : "pending",
           cardName,
           scryfallId: candidate?.id ?? null,
@@ -367,27 +412,67 @@ export function ChaosSortWorkspace() {
           sortRuleId: null,
         });
       } catch (caught) {
-        updateItem(id, {
+        entry.state = "failed";
+        updateItem(base.id, {
           processingState: "failed",
           recognitionState: "unknown",
           humanState: "unknown",
           notes: caught instanceof Error ? caught.message : "Recognition failed.",
         });
       }
-      setProgressText(`Processed ${index + 1} of ${files.length} files.`);
-    }
+      completed += 1;
+      setLoadingItems(Math.max(0, files.length - completed));
+      setProgressText(`Analyzed ${completed} of ${files.length} scans.`);
+    });
     setLoadingItems(0);
-  }, [destinationLocationId, locations, updateItem]);
+  }, [batch.id, destinationLocationId, locations, updateItem]);
+
+  const startBatch = useCallback(() => {
+    const pending = stagedFiles;
+    setStagedFiles([]);
+    void processFiles(pending);
+  }, [processFiles, stagedFiles]);
+
+  const removeStagedFile = useCallback((id: string) => {
+    setStagedFiles((current) => {
+      const removed = current.find((entry) => entry.id === id);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return current.filter((entry) => entry.id !== id);
+    });
+  }, []);
+
+  const clearStagedFiles = useCallback(() => {
+    stagedFiles.forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
+    setStagedFiles([]);
+  }, [stagedFiles]);
+
+  const retryRecognition = useCallback(async (retryItems: ChaosSortItem[]) => {
+    const candidates = retryItems.filter((item) => item.processingState === "failed" && item.sourceImageUrl);
+    const staged = await Promise.all(candidates.map(async (item) => {
+      const blob = await fetch(item.sourceImageUrl as string).then((response) => response.blob());
+      return { id: item.id, file: new File([blob], item.sourceFileName, { type: blob.type || "image/jpeg" }), hash: item.sourceFileHash, previewUrl: item.sourceImageUrl as string };
+    }).filter(Boolean));
+    const retryIds = new Set(candidates.map((item) => item.id));
+    itemsRef.current = itemsRef.current.filter((item) => !retryIds.has(item.id));
+    setItems((current) => current.filter((item) => !retryIds.has(item.id)));
+    await processFiles(staged);
+  }, [processFiles]);
 
   const confirmItem = useCallback((itemId: string) => {
     updateItem(itemId, { humanState: "confirmed" });
-  }, [updateItem]);
+    const nextException = items.find((item) => item.id !== itemId && item.humanState !== "removed" && (item.recognitionState === "review" || item.recognitionState === "unknown" || item.processingState === "failed"));
+    if (nextException) setSelectedItemId(nextException.id);
+  }, [items, updateItem]);
 
   const markUnknown = useCallback((itemId: string) => {
     updateItem(itemId, { humanState: "unknown", recognitionState: "unknown" });
-  }, [updateItem]);
+    const nextException = items.find((item) => item.id !== itemId && item.humanState !== "removed" && (item.recognitionState === "review" || item.recognitionState === "unknown" || item.processingState === "failed"));
+    if (nextException) setSelectedItemId(nextException.id);
+  }, [items, updateItem]);
 
   const removeItem = useCallback((itemId: string) => {
+    const item = itemsRef.current.find((candidate) => candidate.id === itemId);
+    if (item?.sourceImageUrl) URL.revokeObjectURL(item.sourceImageUrl);
     updateItem(itemId, { humanState: "removed", processingState: "ready" });
   }, [updateItem]);
 
@@ -430,16 +515,20 @@ export function ChaosSortWorkspace() {
     setSequence(nextSequence);
     setBatch(chaosSortBatchFromSequence(nextSequence));
     setItems([]);
+    stagedFiles.forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
+    itemsRef.current.forEach((item) => { if (item.sourceImageUrl) URL.revokeObjectURL(item.sourceImageUrl); });
+    setStagedFiles([]);
     setSelectedItemId(null);
     setFilterState("all");
     setTitle("Scanner intake batch");
     setAcquisitionCost("");
-    setDestinationLocationId(locations[0]?.id ?? "");
+    setDestinationLocationId("");
+    setSelectedItemIds([]);
     setSortMode("review");
     setSortIndex(0);
     setNotice(`Started ${createChaosSortBatchCode(nextSequence)}.`);
     setError("");
-  }, [locations, sequence]);
+  }, [locations, sequence, stagedFiles]);
 
   const commitBatch = useCallback(async () => {
     const unresolved = items.filter((item) => item.humanState !== "confirmed" && item.humanState !== "removed");
@@ -511,6 +600,13 @@ export function ChaosSortWorkspace() {
   }, []);
 
   const selectedItemPlan = selectedItem ? planById.get(selectedItem.id) ?? null : null;
+  const selectItems = useCallback((predicate: (item: ChaosSortItem) => boolean) => {
+    setSelectedItemIds(items.filter((item) => predicate(item)).map((item) => item.id));
+  }, [items]);
+  const removeSelected = useCallback(() => {
+    selectedItemIds.forEach((itemId) => removeItem(itemId));
+    setSelectedItemIds([]);
+  }, [removeItem, selectedItemIds]);
   return (
     <WorkspaceFrame>
       <div className="space-y-5 p-4 sm:p-6 lg:p-8">
@@ -593,6 +689,7 @@ export function ChaosSortWorkspace() {
                 >
                   Confirm high confidence
                 </TDButton>
+                {queueCounts.failed ? <TDButton variant="secondary" size="sm" onClick={() => void retryRecognition(items.filter((item) => item.processingState === "failed"))}>Retry Failed ({queueCounts.failed})</TDButton> : null}
                 <TDButton
                   size="sm"
                   loading={saving}
@@ -605,12 +702,22 @@ export function ChaosSortWorkspace() {
               </div>
             </div>
 
+            {stagedFiles.length ? (
+              <div className="rounded-[22px] border border-cyan-300/[0.2] bg-cyan-300/[0.045] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">Chaos Sort batch staging</p><p className="mt-1 text-lg font-semibold text-white">{stagedFiles.length} scans ready</p><p className="mt-1 text-xs text-slate-400">Destination: <span className="font-semibold text-cyan-100">{destinationLocationLabel(destinationLocationId, locations)}</span></p><p className="text-xs text-slate-400">Set the destination below, then start the entire batch. Recognition runs automatically with {CHAOS_SORT_RECOGNITION_CONCURRENCY} workers.</p></div>
+                  <div className="flex flex-wrap gap-2"><TDButton variant="ghost" size="sm" onClick={clearStagedFiles}>Clear batch</TDButton><TDButton size="sm" loading={staging} onClick={startBatch} disabled={staging}>Start Batch</TDButton></div>
+                </div>
+                <div className="mt-4 flex max-h-20 gap-2 overflow-hidden">{stagedFiles.slice(0, 18).map((entry) => <div key={entry.id} className="group relative h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-white/[0.1]"><img src={entry.previewUrl} alt="" className="h-full w-full object-cover" /><button type="button" onClick={() => removeStagedFile(entry.id)} aria-label={`Remove ${entry.file.name}`} className="absolute inset-0 hidden bg-black/65 text-xs text-white group-hover:block">×</button></div>)}{stagedFiles.length > 18 ? <span className="self-center text-xs text-slate-500">+{stagedFiles.length - 18} more</span> : null}</div>
+              </div>
+            ) : null}
+
             <div
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
                 if (event.dataTransfer.files.length) {
-                  void handleFiles(event.dataTransfer.files);
+                  void stageFiles(event.dataTransfer.files);
                 }
               }}
               className={cn(
@@ -626,7 +733,7 @@ export function ChaosSortWorkspace() {
                 className="hidden"
                 onChange={(event) => {
                   if (event.target.files?.length) {
-                    void handleFiles(event.target.files);
+                    void stageFiles(event.target.files);
                     event.target.value = "";
                   }
                 }}
@@ -637,19 +744,23 @@ export function ChaosSortWorkspace() {
                     <ScanSearch className="h-5 w-5" />
                   </div>
                   <div>
-                    <TDText variant="title">Drop scanner photos here</TDText>
+                      <TDText variant="title">Drop an entire scanner batch</TDText>
                     <TDText variant="caption" tone="muted">
-                      {progressText || "Drag a large batch in one pass. Chaos Sort keeps each image, identity decision, and review state separate."}
+                      {progressText || "Drag 50–100 card scans here. Trading Docks identifies the entire batch automatically."}
                     </TDText>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">Images: {summary.totalImages}</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">Processing: {loadingItems}</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">Duplicates: {summary.duplicateInventoryPositions}</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">{queueCounts.identified} Identified</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">{queueCounts.needsReview} Need review</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">{queueCounts.processing} Processing</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">{queueCounts.failed} Failed</span>
+                  {stagedDuplicateCount ? <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/[0.14] px-3 py-1 text-amber-200">{stagedDuplicateCount} Duplicate staged</span> : null}
                 </div>
               </div>
             </div>
+
+            {items.length ? <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3"><div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.12em] text-slate-500"><span>{queueCounts.analyzed} / {items.length} analyzed</span><span>{queueCounts.needsReview + queueCounts.unknown} cards need your attention</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-cyan-300 transition-all" style={{ width: `${(queueCounts.analyzed / items.length) * 100}%` }} /></div></div> : null}
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <SummaryTile label="Identified" value={summary.identified.toString()} detail="Resolved into canonical identities" />
@@ -666,7 +777,7 @@ export function ChaosSortWorkspace() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {(["all", "ready", "needs_review", "unknown"] as FilterState[]).map((filter) => (
+              {(["all", "ready", "needs_review", "unknown", "failed"] as FilterState[]).map((filter) => (
                 <button
                   key={filter}
                   type="button"
@@ -678,9 +789,17 @@ export function ChaosSortWorkspace() {
                       : "border-white/[0.08] bg-white/[0.02] text-slate-400 hover:text-white",
                   )}
                 >
-                  {filter === "all" ? "All" : filter === "ready" ? "Ready" : filter === "needs_review" ? "Needs Review" : "Unknown"}
+                  {filter === "all" ? "All" : filter === "ready" ? "Ready" : filter === "needs_review" ? "Needs Review" : filter === "failed" ? "Failed" : "Unknown"}
                 </button>
               ))}
+              {summary.needsReview + summary.unknown > 0 ? <button type="button" onClick={() => { setFilterState("needs_review"); setSelectedItemIds([]); }} className="rounded-full border border-amber-300/[0.22] bg-amber-300/[0.08] px-3 py-1.5 text-xs font-black text-amber-100">Review {summary.needsReview + summary.unknown} exceptions</button> : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2 text-xs">
+              <span className="mr-2 text-slate-500">{selectedItemIds.length} selected</span>
+              <button type="button" onClick={() => selectItems((item) => item.processingState === "ready" && item.recognitionState === "high_confidence")} className="rounded-lg border border-white/[0.08] px-3 py-2 font-semibold text-slate-300">Select all ready</button>
+              <button type="button" onClick={() => selectItems((item) => item.recognitionState === "review" || item.processingState === "failed")} className="rounded-lg border border-white/[0.08] px-3 py-2 font-semibold text-slate-300">Select exceptions</button>
+              <button type="button" onClick={() => selectItems(() => true)} className="rounded-lg border border-white/[0.08] px-3 py-2 font-semibold text-slate-300">Select all</button>
+              {selectedItemIds.length ? <button type="button" onClick={removeSelected} className="rounded-lg border border-rose-300/[0.18] px-3 py-2 font-semibold text-rose-200">Remove selected</button> : null}
             </div>
 
             <div className="grid gap-3">
@@ -694,7 +813,7 @@ export function ChaosSortWorkspace() {
                     type="button"
                     onClick={() => setSelectedItemId(item.id)}
                     className={cn(
-                      "group grid gap-3 rounded-[22px] border p-3 text-left transition sm:grid-cols-[160px_1fr]",
+                      "group grid gap-3 rounded-[22px] border p-3 text-left transition sm:grid-cols-[96px_1fr]",
                       isSelected
                         ? "border-cyan-300/30 bg-cyan-300/[0.06]"
                         : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.03]",
@@ -709,10 +828,11 @@ export function ChaosSortWorkspace() {
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <TDBadge tone={item.recognitionState === "high_confidence" ? "success" : item.recognitionState === "review" ? "warning" : "danger"}>
-                          {item.recognitionState.replace("_", " ")}
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input type="checkbox" aria-label={`Select ${item.cardName || item.sourceFileName}`} checked={selectedItemIds.includes(item.id)} onClick={(event) => event.stopPropagation()} onChange={() => setSelectedItemIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} className="h-4 w-4 accent-cyan-300" />
+                        <TDBadge tone={item.processingState === "failed" || item.recognitionState === "unknown" ? "danger" : item.processingState === "processing" ? "info" : item.recognitionState === "review" ? "warning" : "success"}>
+                          {item.processingState === "processing" ? "PROCESSING" : item.processingState === "failed" ? "FAILED" : item.recognitionState === "high_confidence" ? "IDENTIFIED" : item.recognitionState === "review" ? "NEEDS REVIEW" : "UNKNOWN"}
                         </TDBadge>
                         <TDBadge tone={item.humanState === "confirmed" ? "success" : item.humanState === "unknown" ? "danger" : "neutral"}>
                           {item.humanState}
@@ -735,7 +855,7 @@ export function ChaosSortWorkspace() {
                         <span className="rounded-full border border-white/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <TDButton size="sm" variant="secondary" onClick={() => confirmItem(item.id)}>Confirm</TDButton>
+                        {item.processingState === "failed" ? <TDButton size="sm" variant="secondary" onClick={() => void retryRecognition([item])}>Retry recognition</TDButton> : <TDButton size="sm" variant="secondary" onClick={() => confirmItem(item.id)}>Confirm</TDButton>}
                         <TDButton size="sm" variant="secondary" onClick={() => markUnknown(item.id)}>Mark unknown</TDButton>
                         <TDButton size="sm" variant="ghost" onClick={() => removeItem(item.id)} icon={<Trash2 className="h-4 w-4" />}>Remove</TDButton>
                       </div>

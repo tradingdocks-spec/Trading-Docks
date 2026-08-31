@@ -17,6 +17,11 @@ import {
   pickLocationCount,
   resolveOrderItemPhysicalLocation,
 } from "../src/lib/orders/pick-domain.ts";
+import {
+  buildChaosSortQueue,
+  CHAOS_SORT_MAX_BATCH_SIZE,
+  runBoundedChaosSortQueue,
+} from "../src/lib/chaos-sort/batch-queue.ts";
 
 function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {
   const now = new Date().toISOString();
@@ -167,4 +172,22 @@ test("pick tasks sort deterministically by physical location and preserve missin
   const missing = markPickTask(tasks, "c", "missing");
   assert.equal(missing.find((task) => task.id === "c")?.state, "missing");
   assert.equal(tasks.find((task) => task.id === "c")?.state, "ready");
+});
+
+test("chaos sort queues at most 100 images and keeps recognition concurrency bounded", async () => {
+  const queue = buildChaosSortQueue(Array.from({ length: 125 }, (_, index) => index), (value) => `scan-${value}`);
+  assert.equal(queue.length, CHAOS_SORT_MAX_BATCH_SIZE);
+  assert.equal(queue[0]?.state, "queued");
+  let active = 0;
+  let peak = 0;
+  await runBoundedChaosSortQueue(queue, async (entry) => {
+    entry.state = entry.input % 7 === 0 ? "failed" : "identified";
+    active += 1;
+    peak = Math.max(peak, active);
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    active -= 1;
+  }, 4);
+  assert.ok(peak <= 4);
+  assert.equal(queue.filter((entry) => entry.state === "failed").length, 15);
+  assert.equal(queue.filter((entry) => entry.state === "identified").length, 85);
 });
