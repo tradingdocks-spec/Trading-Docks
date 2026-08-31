@@ -57,7 +57,8 @@ export type CardCandidate = {
 export type CardScanResponse = {
   identification: ScanIdentification;
   candidates: CardCandidate[];
-  recognitionMode: "vision" | "manual" | "filename" | "tcgtracking";
+  recognitionMode: "vision" | "manual" | "filename" | "tcgtracking" | "ocr_catalog";
+  recognitionMethod?: "OCR_CATALOG" | "COLLECTOR_NUMBER" | "IMAGE_MATCH" | "OPENAI_FALLBACK" | "MANUAL";
   warnings: string[];
   pricingCoverage: {
     checked: number;

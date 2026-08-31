@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireApiCapability } from "@/lib/platform/server-access";
 import { parseRetryAfterMs } from "@/lib/chaos-sort/batch-queue";
 import { classifyProviderFailure, providerFailureDetails } from "@/lib/chaos-sort/provider-errors";
+import sharp from "sharp";
 
 import type {
   CardCandidate,
@@ -10,6 +11,7 @@ import type {
 } from "@/lib/card-photo-scanner/types";
 import { resolveExactProductImageUrl } from "@/lib/card-image-authority";
 import {
+  TCGTRACKING_MAGIC_GAME_ID,
   TCGTRACKING_POKEMON_CATEGORY_ID,
   TCGTRACKING_POKEMON_GAME_ID,
   createTcgTrackingClient,
@@ -33,6 +35,8 @@ const SCRYFALL = "https://api.scryfall.com";
 const USER_AGENT = "TradingDocks/0.56 card-photo-scanner";
 const POKEMON_GAME = "pokemon";
 const VISION_TIMEOUT_MS = 30_000;
+const OPENAI_FALLBACK_ENABLED = process.env.CHAOS_SORT_OPENAI_FALLBACK === "true";
+const candidateCache = new Map<string, { expiresAt: number; candidates: CardCandidate[] }>();
 
 type ProviderFailureReason = "configuration" | "auth" | "provider" | "timeout" | "parse" | "image_decode" | "catalog" | "quota_exhausted" | "rate_limited" | "temporarily_unavailable";
 
@@ -286,7 +290,66 @@ async function identifyWithVision(file: File, requestItemId: string, attempt: nu
   };
 }
 
+async function prepareDeterministicScanImage(file: File) {
+  const source = Buffer.from(await file.arrayBuffer());
+  let quality = 82;
+  let normalized = await sharp(source).rotate().resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true }).jpeg({ quality }).toBuffer();
+  while (normalized.byteLength > TCGTRACKING_SCAN_MAX_IMAGE_BYTES && quality > 45) {
+    quality -= 8;
+    normalized = await sharp(source).rotate().resize({ width: 1100, height: 1100, fit: "inside", withoutEnlargement: true }).jpeg({ quality }).toBuffer();
+  }
+  return normalized;
+}
+
+async function identifyWithDeterministicScanner(file: File) {
+  if (!process.env.TCGTRACKING_API_KEY) return { identification: null, candidates: [], configured: false };
+  const client = createTcgTrackingClient();
+  const image = await prepareDeterministicScanImage(file);
+  if (image.byteLength > TCGTRACKING_SCAN_MAX_IMAGE_BYTES) throw new RecognitionPipelineError("image_decode", "The scanner image could not be prepared for deterministic recognition.");
+  const result = await scanCardImageWithTcgTracking({ client, image, gameId: TCGTRACKING_MAGIC_GAME_ID, limit: 10 });
+  const candidates = result.candidates.map((candidate, index) => {
+    const identity = candidate.productIdentity;
+    return {
+      id: identity?.scryfallId ?? candidate.providerProductId ?? `tcgtracking:${candidate.tcgplayerProductId ?? index}`,
+      name: identity?.name ?? candidate.name ?? "Unknown card",
+      setName: identity?.setName ?? candidate.setName ?? "Set unavailable",
+      setCode: identity?.setCode ?? candidate.setCode ?? "",
+      collectorNumber: identity?.collectorNumber ?? candidate.collectorNumber ?? "",
+      language: "English",
+      finishes: [],
+      rarity: null,
+      imageUrl: identity?.imageUrl ?? candidate.imageUrl ?? null,
+      scryfallUrl: null,
+      gameId: "magic" as const,
+      provider: "tcgtracking" as const,
+      providerProductId: identity?.providerProductId ?? candidate.providerProductId ?? null,
+      tcgplayerProductId: identity?.tcgplayerProductId ?? candidate.tcgplayerProductId ?? null,
+      confidence: candidate.confidence,
+      prices: [],
+    } satisfies CardCandidate;
+  });
+  const best = candidates[0];
+  return {
+    configured: true,
+    candidates,
+    identification: best ? {
+      name: best.name,
+      setCode: best.setCode || null,
+      collectorNumber: best.collectorNumber || null,
+      language: best.language,
+      finish: "unknown",
+      confidence: best.confidence,
+      notes: ["Deterministic scanner candidate matched against Trading Docks provider identity."],
+      gameId: "magic" as const,
+      provider: "tcgtracking" as const,
+    } : null,
+  };
+}
+
 async function getCandidates(identification: ScanIdentification) {
+  const cacheKey = [identification.name, identification.setCode ?? "", identification.collectorNumber ?? ""].join("|").toLowerCase();
+  const cached = candidateCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.candidates;
   const query = new URLSearchParams({
     q: `!\"${identification.name.replaceAll('"', "")}\" game:paper`,
     unique: "prints",
@@ -304,12 +367,15 @@ async function getCandidates(identification: ScanIdentification) {
     );
     if (!fallback.ok) {
       recognitionLog("CATALOG MATCH", { name: identification.name, matches: 0 });
+      candidateCache.set(cacheKey, { expiresAt: Date.now() + 5 * 60_000, candidates: [] });
       return [];
     }
     recognitionLog("CATALOG MATCH", { name: identification.name, matches: 1, fallback: true });
     const candidate = toCandidate((await fallback.json()) as ScryfallCard, identification, 0);
     recognitionLog("PRINTING MATCH", { name: candidate.name, setCode: candidate.setCode, collectorNumber: candidate.collectorNumber, exact: candidate.setCode.toLowerCase() === identification.setCode?.toLowerCase() && candidate.collectorNumber === identification.collectorNumber });
-    return [candidate];
+    const candidates = [candidate];
+    candidateCache.set(cacheKey, { expiresAt: Date.now() + 5 * 60_000, candidates });
+    return candidates;
   }
   const payload = (await response.json()) as { data?: ScryfallCard[] };
   const cards = payload.data ?? [];
@@ -326,6 +392,7 @@ async function getCandidates(identification: ScanIdentification) {
   const candidates = cards.slice(0, 8).map((card, index) => toCandidate(card, identification, index));
   const best = candidates[0];
   if (best) recognitionLog("PRINTING MATCH", { name: best.name, setCode: best.setCode, collectorNumber: best.collectorNumber, exact: best.setCode.toLowerCase() === identification.setCode?.toLowerCase() && best.collectorNumber === identification.collectorNumber });
+  candidateCache.set(cacheKey, { expiresAt: Date.now() + 5 * 60_000, candidates });
   return candidates;
 }
 
@@ -587,8 +654,36 @@ export async function POST(request: Request) {
     }
 
     let recognitionMode: CardScanResponse["recognitionMode"] = "manual";
-    let identification = file ? await identifyWithVision(file, requestItemId, attempt) : null;
-    if (identification) recognitionMode = "vision";
+    let recognitionMethod: CardScanResponse["recognitionMethod"] = manualName ? "MANUAL" : "OCR_CATALOG";
+    let deterministicCandidates: CardCandidate[] = [];
+    let deterministicScanConfigured = false;
+    let deterministicScanFailed = false;
+    let identification = null as ScanIdentification | null;
+    if (file) {
+      try {
+        const deterministic = await identifyWithDeterministicScanner(file);
+        deterministicCandidates = deterministic.candidates;
+        deterministicScanConfigured = deterministic.configured;
+        identification = deterministic.identification;
+        if (identification) {
+          recognitionMode = "tcgtracking";
+          recognitionMethod = identification.setCode && identification.collectorNumber ? "COLLECTOR_NUMBER" : "IMAGE_MATCH";
+        }
+      } catch (error) {
+        deterministicScanFailed = true;
+        recognitionLog("PROVIDER FAILURE", { provider: "tcgtracking", itemId: requestItemId, attempt, message: error instanceof Error ? error.message : "deterministic scanner failed" });
+      }
+    }
+    if (!identification && file && OPENAI_FALLBACK_ENABLED) {
+      identification = await identifyWithVision(file, requestItemId, attempt);
+      if (identification) {
+        recognitionMode = "vision";
+        recognitionMethod = "OPENAI_FALLBACK";
+      }
+    }
+    if (!identification && deterministicScanFailed && !OPENAI_FALLBACK_ENABLED) {
+      throw new RecognitionPipelineError("provider", "Deterministic recognition is temporarily unavailable.");
+    }
     if (!identification && manualName) {
       identification = {
         name: manualName,
@@ -602,13 +697,24 @@ export async function POST(request: Request) {
         provider: "scryfall",
       };
     }
-    if (!identification) return NextResponse.json({ error: "Could not read card identity from the supplied input." }, { status: 422 });
+    if (!identification && !file) return NextResponse.json({ error: "Could not read card identity from the supplied input." }, { status: 422 });
 
-    const candidates = await getCandidates(identification);
+    const candidates = deterministicCandidates.length ? deterministicCandidates : identification ? await getCandidates(identification) : [];
     const payload: CardScanResponse = {
-      identification,
+      identification: identification ?? {
+        name: "",
+        setCode: null,
+        collectorNumber: null,
+        language: "en",
+        finish: "unknown",
+        confidence: 0,
+        notes: [deterministicScanConfigured ? "The deterministic scanner returned no reliable identity." : "No deterministic scanner is configured for this server."],
+        gameId: "magic",
+        provider: "scryfall",
+      },
       candidates,
       recognitionMode,
+      recognitionMethod,
       warnings,
       pricingCoverage: {
         checked: 5,
@@ -622,7 +728,7 @@ export async function POST(request: Request) {
         ],
       },
     };
-    recognitionLog("CONFIDENCE RESULT", { name: identification.name, confidence: identification.confidence, candidates: candidates.length });
+    recognitionLog("CONFIDENCE RESULT", { name: payload.identification.name, confidence: payload.identification.confidence, candidates: candidates.length, recognitionMethod });
     return NextResponse.json(payload);
   } catch (error) {
     if (error instanceof RecognitionPipelineError) {

@@ -395,7 +395,7 @@ export function ChaosSortWorkspace() {
         if (!response?.ok) throw new Error("Recognition could not be completed.");
         const identification = payload.identification ?? {};
         const candidate = Array.isArray(payload.candidates) ? payload.candidates[0] ?? null : null;
-        const cardName = String(candidate?.name ?? identification.name ?? entry.input.file.name.replace(/\.[^.]+$/, "")).trim();
+        const cardName = String(candidate?.name ?? identification.name ?? "").trim();
         const setCode = typeof candidate?.setCode === "string" && candidate.setCode.trim()
           ? candidate.setCode.trim()
           : typeof identification.setCode === "string" && identification.setCode.trim()
