@@ -556,6 +556,29 @@ test("Deck Architect is hidden from normal navigation but remains admin-accessib
   assert.match(routeSource, /redirect\("\/dashboard\/deck-vault"\)/);
 });
 
+test("Chaos Sort is the Collection navigation entry and has the expected active state", () => {
+  const labels = navigationLabelsFor(access({ tier: "collector" }));
+  const hrefs = navigationHrefsFor(access({ tier: "collector" }));
+  const sidebarSource = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredSidebar.tsx"), "utf8");
+  const collection = getAccountAwareNavigationGroups("collector", false, access({ tier: "collector" }))
+    .find((group) => group.id === "collector");
+
+  assert.deepEqual(collection?.items.map((item) => item.label), [
+    "Dashboard",
+    "Collection",
+    "Inventory Inbox",
+    "Chaos Sort",
+    "Deck Vault",
+    "Portfolio",
+  ]);
+  assert.ok(labels.includes("Chaos Sort"));
+  assert.ok(hrefs.includes("/dashboard/inventory/chaos-sort"));
+  assert.match(sidebarSource, /pathname === item\.href \|\| pathname\.startsWith\(`\$\{item\.href\}\/`\)/);
+  assert.match(sidebarSource, /aria-current=\{active \? "page" : undefined\}/);
+  assert.equal(labels.includes("Deck Architect"), false);
+  assert.equal(hrefs.includes("/dashboard/deck-architect"), false);
+});
+
 test("account-aware dashboard navigation does not duplicate route entries", () => {
   const contexts = [
     ["Free", access({ tier: "free" })],
