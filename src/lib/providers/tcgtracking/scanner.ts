@@ -68,7 +68,32 @@ export type TcgTrackingScannerAdapterResult = {
   rawCandidateCount?: number;
   candidateProductIds?: string[];
   productLookupFailures?: number;
+  httpStatus?: number;
 };
+
+export type TcgTrackingScanHealthStatus = "SUCCESS_MATCH" | "SUCCESS_NO_MATCH" | "HTTP_ERROR" | "INVALID_RESPONSE" | "IMAGE_ERROR";
+
+export function validateTcgTrackingScanImage(image: Blob | ArrayBuffer | Uint8Array | string) {
+  const bytes = typeof image === "string"
+    ? decodedImageBytes(image)
+    : image instanceof Blob
+      ? image.size
+      : image.byteLength;
+  return { bytes, valid: bytes > 0 && bytes <= TCGTRACKING_SCAN_MAX_IMAGE_BYTES };
+}
+
+export async function runTcgTrackingScanHealthCheck(input: {
+  client: Pick<TcgTrackingClient, "scanCardImage" | "product">;
+  image: Blob | ArrayBuffer | Uint8Array | string;
+  gameId?: number;
+}): Promise<TcgTrackingScanHealthStatus> {
+  if (!validateTcgTrackingScanImage(input.image).valid) return "IMAGE_ERROR";
+  const result = await scanCardImageWithTcgTracking({ ...input, limit: 10 });
+  if (result.status === "provider_failed") {
+    return result.error?.toLowerCase().includes("malformed") ? "INVALID_RESPONSE" : "HTTP_ERROR";
+  }
+  return result.candidates.length ? "SUCCESS_MATCH" : "SUCCESS_NO_MATCH";
+}
 
 export async function scanCardImageWithTcgTracking(input: {
   client: Pick<TcgTrackingClient, "scanCardImage" | "product">;
@@ -89,7 +114,7 @@ export async function scanCardImageWithTcgTracking(input: {
   const candidateProductIds = result.candidates.map((candidate) => candidate.providerProductId ?? String(candidate.tcgplayerProductId ?? "")).filter(Boolean);
   const enriched = await enrichScanResultWithProducts(result, input.client);
   const adapted = scannerAdapterResult(enriched);
-  return { ...adapted, rawCandidateCount, candidateProductIds, productLookupFailures: enriched.productLookupFailures ?? 0 };
+  return { ...adapted, rawCandidateCount, candidateProductIds, productLookupFailures: enriched.productLookupFailures ?? 0, httpStatus: result.httpStatus };
 }
 
 export function scannerAdapterResult(
@@ -101,6 +126,7 @@ export function scannerAdapterResult(
       candidates: [],
       latencyMs: result.latencyMs,
       error: result.error,
+      httpStatus: result.httpStatus,
       fallbackRecommended: true,
     };
   }

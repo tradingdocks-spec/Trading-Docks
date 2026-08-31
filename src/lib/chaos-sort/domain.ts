@@ -62,6 +62,10 @@ export type ChaosSortItem = {
   confidence: number;
   evidence: string[];
   notes: string;
+  recognitionStage?: "normalization" | "tcgtracking_scan" | "product_lookup" | "scryfall_verify" | "response_parse";
+  recognitionReason?: string | null;
+  recognitionHttpStatus?: number | null;
+  recognitionProviderCode?: string | null;
   duplicateOfItemId: string | null;
   sortRuleId: string | null;
   createdAt: string;

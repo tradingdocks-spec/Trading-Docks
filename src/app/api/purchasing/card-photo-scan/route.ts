@@ -21,6 +21,7 @@ import {
   decodedImageBytes,
   scanCardImageWithTcgTracking,
 } from "@/lib/providers/tcgtracking/scanner";
+import { chaosSortRecognitionMessage } from "@/lib/chaos-sort/recognition-messages";
 import {
   resolveTcgProductSkus,
   searchTcgProducts,
@@ -47,6 +48,7 @@ class RecognitionPipelineError extends Error {
     message: string,
     readonly providerCode?: string | null,
     readonly retryAfterMs?: number | null,
+    readonly httpStatus?: number | null,
   ) {
     super(message);
     this.name = "RecognitionPipelineError";
@@ -315,9 +317,9 @@ async function identifyWithDeterministicScanner(file: File, requestItemId: strin
   recognitionLog("IMAGE NORMALIZED", { itemId: requestItemId, attempt, bytes: normalized.buffer.byteLength, width: normalized.width, height: normalized.height, mimeType: "image/jpeg" });
   recognitionLog("TCGTRACKING SCAN REQUEST", { itemId: requestItemId, attempt, endpoint: "https://tcgtracking.com/tcgapi/v1/scan", gameId: TCGTRACKING_MAGIC_GAME_ID, encoding: "multipart/form-data", imageField: "image", imageBytes: normalized.buffer.byteLength, mimeType: "image/jpeg" });
   const result = await scanCardImageWithTcgTracking({ client, image: normalized.buffer, gameId: TCGTRACKING_MAGIC_GAME_ID, limit: 10 });
-  recognitionLog("TCGTRACKING SCAN RESPONSE", { itemId: requestItemId, attempt, status: result.status, rawCandidateCount: result.rawCandidateCount ?? result.candidates.length, candidateProductIds: result.candidateProductIds ?? [], providerError: result.error ?? null });
+  recognitionLog("TCGTRACKING SCAN RESPONSE", { itemId: requestItemId, attempt, status: result.status, httpStatus: result.httpStatus ?? null, rawCandidateCount: result.rawCandidateCount ?? result.candidates.length, candidateProductIds: result.candidateProductIds ?? [], providerError: result.error ?? null });
   if (result.status === "provider_failed") {
-    throw new RecognitionPipelineError(result.error?.includes("malformed") ? "malformed_provider" : "tcgtracking_scan", result.error?.includes("malformed") ? "Malformed provider response." : "TCGTracking scan failed.");
+    throw new RecognitionPipelineError(result.error?.includes("malformed") ? "malformed_provider" : "tcgtracking_scan", result.error?.includes("malformed") ? "Malformed provider response." : "TCGTracking scan failed.", null, null, result.httpStatus);
   }
   if (result.productLookupFailures && result.candidates[0] && !result.candidates[0].productIdentity) {
     throw new RecognitionPipelineError("product_lookup", "Product metadata lookup failed.");
@@ -807,10 +809,14 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof RecognitionPipelineError) {
       recognitionLog("CONFIDENCE RESULT", { status: "failed", reason: error.reason, itemId: requestItemId, attempt });
-      return NextResponse.json({ error: error.message, recognitionStatus: "failed", failureReason: error.reason, providerCode: error.providerCode, retryAfterMs: error.retryAfterMs ?? null }, { status: error.reason === "configuration" || error.reason === "quota_exhausted" ? 503 : error.reason === "rate_limited" ? 429 : 502, headers: error.retryAfterMs ? { "Retry-After": String(Math.ceil(error.retryAfterMs / 1000)) } : undefined });
+      const status = error.reason === "configuration" || error.reason === "quota_exhausted" ? 503 : error.reason === "rate_limited" ? 429 : 502;
+      const mapped = chaosSortRecognitionMessage(error.reason);
+      return NextResponse.json({ error: mapped.message, recognitionStatus: "failed", failureReason: error.reason, resolutionReason: error.reason, stage: mapped.stage, httpStatus: error.httpStatus ?? status, providerCode: error.providerCode, retryAfterMs: error.retryAfterMs ?? null }, { status, headers: error.retryAfterMs ? { "Retry-After": String(Math.ceil(error.retryAfterMs / 1000)) } : undefined });
     }
+    const mapped = chaosSortRecognitionMessage("parse");
+    recognitionLog("CONFIDENCE RESULT", { status: "failed", reason: "parse", itemId: requestItemId, attempt });
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Card scan failed." },
+      { error: mapped.message, recognitionStatus: "failed", failureReason: "parse", resolutionReason: "parse", stage: mapped.stage, httpStatus: 500 },
       { status: 500 },
     );
   }

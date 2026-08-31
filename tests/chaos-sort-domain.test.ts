@@ -28,7 +28,9 @@ import {
   runBoundedChaosSortQueue,
 } from "../src/lib/chaos-sort/batch-queue.ts";
 import { classifyProviderFailure, providerFailureDetails } from "../src/lib/chaos-sort/provider-errors.ts";
+import { chaosSortRecognitionMessage, CHAOS_SORT_RECOGNITION_REASONS } from "../src/lib/chaos-sort/recognition-messages.ts";
 import { TcgTrackingClient } from "../src/lib/providers/tcgtracking/client.ts";
+import { runTcgTrackingScanHealthCheck, validateTcgTrackingScanImage } from "../src/lib/providers/tcgtracking/scanner.ts";
 
 function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {
   const now = new Date().toISOString();
@@ -246,18 +248,24 @@ test("TCGTracking uses the documented public scan endpoint and caches product me
 
 test("TCGTracking multipart scan uses the documented fields and image contract", async () => {
   let captured: FormData | null = null;
+  let capturedHeaders: Headers | undefined;
   const client = new TcgTrackingClient({
     retries: 0,
     fetch: async (_input, init) => {
       captured = init?.body instanceof FormData ? init.body : null;
+      capturedHeaders = new Headers(init?.headers);
       return new Response(JSON.stringify({ results: [] }), { status: 200, headers: { "content-type": "application/json" } });
     },
   });
-  await client.scanCardImage({ image: new Uint8Array([1, 2, 3]), gameId: 1, limit: 10 });
+  await client.scanCardImage({ image: new Uint8Array([1, 2, 3]), gameId: 1, setIds: [2708, 2710], limit: 10 });
   assert.ok(captured);
   assert.equal(captured.get("game_id"), "1");
   assert.equal(captured.get("limit"), "10");
-  assert.ok(captured.get("image") instanceof File || captured.get("image") instanceof Blob);
+  assert.deepEqual(captured.getAll("set_ids[]"), ["2708", "2710"]);
+  const image = captured.get("image");
+  assert.ok(image instanceof File || image instanceof Blob);
+  assert.equal((image as Blob).type, "image/jpeg");
+  assert.equal(capturedHeaders?.has("content-type"), false);
   assert.equal(captured.has("hashes"), false);
 });
 
@@ -266,4 +274,28 @@ test("Chaos Sort maps verified, ambiguous, unknown, and technical outcomes disti
   assert.equal(resolveChaosSortRecognition({ confidence: 0.95, cardName: "Goblin Matron", canonicalPrintingResolved: false }), "review");
   assert.equal(resolveChaosSortRecognition({ confidence: 0, cardName: "", canonicalPrintingResolved: false }), "unknown");
   assert.equal(classifyChaosSortRecognition({ processingState: "failed", confidence: 0, cardName: "Goblin Matron", setCode: null, collectorNumber: null }), "unknown");
+});
+
+test("every technical recognition reason has an explicit non-generic UI message", () => {
+  for (const reason of CHAOS_SORT_RECOGNITION_REASONS) {
+    const mapped = chaosSortRecognitionMessage(reason);
+    assert.notEqual(mapped.message, "Recognition could not be completed.");
+    assert.ok(mapped.stage);
+  }
+  assert.notEqual(chaosSortRecognitionMessage("unexpected_reason").message, "Recognition could not be completed.");
+});
+
+test("TCGTracking health check classifies documented response, no match, HTTP, malformed, and image errors", async () => {
+  const image = new Uint8Array([1, 2, 3]);
+  const client = (response: unknown) => ({
+    scanCardImage: async () => response,
+    product: async () => null,
+  }) as never;
+  assert.equal(await runTcgTrackingScanHealthCheck({ client: client({ provider: "tcgtracking", status: "matched", candidates: [{ providerProductId: "1", confidence: 0.91 }] }), image }), "SUCCESS_MATCH");
+  assert.equal(await runTcgTrackingScanHealthCheck({ client: client({ provider: "tcgtracking", status: "unresolved", candidates: [] }), image }), "SUCCESS_NO_MATCH");
+  assert.equal(await runTcgTrackingScanHealthCheck({ client: client({ provider: "tcgtracking", status: "provider_failed", candidates: [], error: "HTTP 503" }), image }), "HTTP_ERROR");
+  assert.equal(await runTcgTrackingScanHealthCheck({ client: client({ provider: "tcgtracking", status: "provider_failed", candidates: [], error: "malformed scan response" }), image }), "INVALID_RESPONSE");
+  assert.equal(await runTcgTrackingScanHealthCheck({ client: client({ provider: "tcgtracking", status: "matched", candidates: [] }), image: new Uint8Array() }), "IMAGE_ERROR");
+  assert.equal(validateTcgTrackingScanImage(image).valid, true);
+  assert.equal(validateTcgTrackingScanImage(new Uint8Array(100_001)).valid, false);
 });

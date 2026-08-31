@@ -247,6 +247,7 @@ export class TcgTrackingClient {
         setIds: normalizeNumericSetIds(input.setIds),
         candidates: [],
         latencyMs: Date.now() - startedAt,
+        httpStatus: error instanceof TcgTrackingProviderError ? error.status : undefined,
         error:
           error instanceof Error
             ? error.message
@@ -284,11 +285,13 @@ export class TcgTrackingClient {
       const form = new FormData();
       const blob =
         input.image instanceof Blob
-          ? input.image
+          ? input.image.type === "image/jpeg"
+            ? input.image
+            : new Blob([input.image], { type: "image/jpeg" })
           : new Blob([toArrayBuffer(input.image)], { type: "image/jpeg" });
       form.set("image", blob, "card.jpg");
       form.set("game_id", String(gameId));
-      if (setIds.length) form.set("set_ids", setIds.join(","));
+      setIds.forEach((setId) => form.append("set_ids[]", String(setId)));
       form.set("limit", String(limit));
       body = form;
     }

@@ -44,6 +44,7 @@ import {
   CHAOS_SORT_RECOGNITION_CONCURRENCY,
   runBoundedChaosSortQueue,
 } from "@/lib/chaos-sort/batch-queue";
+import { chaosSortRecognitionMessage } from "@/lib/chaos-sort/recognition-messages";
 
 type InventoryRow = {
   id: string;
@@ -382,26 +383,19 @@ export function ChaosSortWorkspace() {
             await new Promise((resolve) => setTimeout(resolve, delay));
             continue;
           }
-          const failureReason = String(payload.failureReason ?? "provider");
-          const userMessage = failureReason === "quota_exhausted"
-            ? "API quota unavailable. Check the recognition provider account configuration."
-            : failureReason === "rate_limited"
-              ? "Recognition is temporarily unavailable."
-              : failureReason === "configuration"
-                ? "Recognition is not configured on the server."
-                : failureReason === "tcgtracking_scan"
-                  ? "TCGTracking scan failed."
-                  : failureReason === "product_lookup"
-                    ? "Product metadata lookup failed."
-                    : failureReason === "malformed_provider"
-                      ? "Malformed provider response."
-                      : failureReason === "image_normalization"
-                        ? "Image normalization failed."
-                : "Recognition could not be completed.";
+          const failureReason = String(payload.resolutionReason ?? payload.failureReason ?? "provider");
+          const userMessage = chaosSortRecognitionMessage(failureReason).message;
           const technicalDetail = payload.providerCode ? ` Provider code: ${String(payload.providerCode)}.` : "";
-          throw new Error(`${userMessage}${technicalDetail}`);
+          const failure = new Error(`${userMessage}${technicalDetail}`) as Error & { diagnostic?: Record<string, unknown> };
+          failure.diagnostic = { reason: failureReason, stage: payload.stage ?? chaosSortRecognitionMessage(failureReason).stage, httpStatus: payload.httpStatus ?? response?.status ?? null, providerCode: payload.providerCode ?? null };
+          throw failure;
         }
-        if (!response?.ok) throw new Error("Recognition could not be completed.");
+        if (!response?.ok) {
+          const failureReason = String(payload.resolutionReason ?? payload.failureReason ?? "provider");
+          const failure = new Error(chaosSortRecognitionMessage(failureReason).message) as Error & { diagnostic?: Record<string, unknown> };
+          failure.diagnostic = { reason: failureReason, stage: payload.stage ?? chaosSortRecognitionMessage(failureReason).stage, httpStatus: payload.httpStatus ?? response?.status ?? null, providerCode: payload.providerCode ?? null };
+          throw failure;
+        }
         const identification = payload.identification ?? {};
         const candidate = Array.isArray(payload.candidates) ? payload.candidates[0] ?? null : null;
         const cardName = String(candidate?.name ?? identification.name ?? "").trim();
@@ -447,11 +441,18 @@ export function ChaosSortWorkspace() {
         });
       } catch (caught) {
         entry.state = "failed";
+        const diagnostic = caught instanceof Error && "diagnostic" in caught
+          ? (caught as Error & { diagnostic?: Record<string, unknown> }).diagnostic
+          : undefined;
         updateItem(base.id, {
           processingState: "failed",
           recognitionState: "unknown",
           humanState: "unknown",
           notes: caught instanceof Error ? caught.message : "Recognition failed.",
+          recognitionStage: typeof diagnostic?.stage === "string" ? diagnostic.stage as ChaosSortItem["recognitionStage"] : "response_parse",
+          recognitionReason: typeof diagnostic?.reason === "string" ? diagnostic.reason : "provider",
+          recognitionHttpStatus: typeof diagnostic?.httpStatus === "number" ? diagnostic.httpStatus : null,
+          recognitionProviderCode: typeof diagnostic?.providerCode === "string" ? diagnostic.providerCode : null,
         });
       }
       completed += 1;
@@ -861,7 +862,7 @@ export function ChaosSortWorkspace() {
                         <TDBadge tone={item.processingState === "failed" || item.recognitionState === "unknown" ? "danger" : item.processingState === "processing" ? "info" : item.recognitionState === "review" ? "warning" : "success"}>
                           {item.processingState === "processing" ? "PROCESSING" : item.processingState === "failed" ? "FAILED" : item.recognitionState === "high_confidence" ? "READY" : item.recognitionState === "review" ? "NEEDS REVIEW" : "UNKNOWN"}
                         </TDBadge>
-                        {item.humanState === "confirmed" || item.humanState === "edited" ? <TDBadge tone="neutral">{item.humanState}</TDBadge> : null}
+                        {item.processingState !== "failed" && (item.humanState === "confirmed" || item.humanState === "edited") ? <TDBadge tone="neutral">{item.humanState}</TDBadge> : null}
                         <TDBadge tone="neutral">{pile}</TDBadge>
                       </div>
                       <TDText variant="title" className="truncate">{item.cardName || item.sourceFileName}</TDText>
