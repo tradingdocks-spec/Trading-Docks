@@ -318,7 +318,7 @@ export function ChaosSortWorkspace() {
         processingState: "processing",
         recognitionState: "review",
         humanState: "pending",
-        cardName: file.name.replace(/\.[^.]+$/, ""),
+        cardName: "",
         scryfallId: null,
         gameId: "magic",
         setCode: null,
@@ -359,6 +359,7 @@ export function ChaosSortWorkspace() {
         const form = new FormData();
         form.append("image", entry.input.file);
         form.append("gameId", "magic");
+        form.append("surface", "chaos-sort");
         const response = await fetch("/api/purchasing/card-photo-scan", { method: "POST", body: form });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -383,18 +384,23 @@ export function ChaosSortWorkspace() {
           ? candidate.prices.find((price: { available?: boolean; value?: number | null }) => price.available && typeof price.value === "number")?.value ?? null
           : null;
         const match = resolveInventoryMatch(inventoryRef.current, locations, { cardName, setCode, collectorNumber, scryfallId: candidate?.id ?? null });
-        const recognitionState = classifyChaosSortRecognition({
+        const machineState = classifyChaosSortRecognition({
           processingState: "ready",
           confidence,
           cardName,
           setCode,
           collectorNumber,
         });
+        const recognitionState = candidate && machineState === "high_confidence"
+          ? "high_confidence"
+          : cardName
+            ? "review"
+            : "unknown";
         entry.state = recognitionState === "high_confidence" ? "identified" : recognitionState === "review" ? "needs_review" : "unknown";
         updateItem(base.id, {
           processingState: "ready",
           recognitionState,
-          humanState: confidence >= 0.8 ? "confirmed" : "pending",
+          humanState: recognitionState === "high_confidence" ? "confirmed" : "pending",
           cardName,
           scryfallId: candidate?.id ?? null,
           setCode,
@@ -834,9 +840,7 @@ export function ChaosSortWorkspace() {
                         <TDBadge tone={item.processingState === "failed" || item.recognitionState === "unknown" ? "danger" : item.processingState === "processing" ? "info" : item.recognitionState === "review" ? "warning" : "success"}>
                           {item.processingState === "processing" ? "PROCESSING" : item.processingState === "failed" ? "FAILED" : item.recognitionState === "high_confidence" ? "IDENTIFIED" : item.recognitionState === "review" ? "NEEDS REVIEW" : "UNKNOWN"}
                         </TDBadge>
-                        <TDBadge tone={item.humanState === "confirmed" ? "success" : item.humanState === "unknown" ? "danger" : "neutral"}>
-                          {item.humanState}
-                        </TDBadge>
+                        {item.humanState === "confirmed" || item.humanState === "edited" ? <TDBadge tone="neutral">{item.humanState}</TDBadge> : null}
                         <TDBadge tone="neutral">{pile}</TDBadge>
                       </div>
                       <TDText variant="title" className="truncate">{item.cardName || item.sourceFileName}</TDText>
@@ -846,7 +850,7 @@ export function ChaosSortWorkspace() {
                           item.collectorNumber,
                           item.finish,
                           item.condition,
-                        ].filter(Boolean).join(" · ") || "Identity still resolving"}
+                        ].filter(Boolean).join(" · ") || item.notes || "Identity not resolved"}
                       </TDText>
                       <div className="flex flex-wrap gap-2 text-xs text-slate-400">
                         <span className="rounded-full border border-white/[0.06] px-2.5 py-1">Market {money(item.marketPrice)}</span>
