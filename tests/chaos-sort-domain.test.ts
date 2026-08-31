@@ -301,6 +301,13 @@ test("Chaos Sort maps verified, ambiguous, unknown, and technical outcomes disti
   assert.equal(classifyChaosSortRecognition({ processingState: "failed", confidence: 0, cardName: "Goblin Matron", setCode: null, collectorNumber: null }), "unknown");
 });
 
+test("HTTP 200 scanner outcomes stay semantic instead of becoming FAILED", () => {
+  assert.equal(resolveChaosSortRecognition({ confidence: 0.44, cardName: "", canonicalPrintingResolved: false }), "unknown");
+  assert.equal(resolveChaosSortRecognition({ confidence: 0.44, cardName: "Goblin Matron", canonicalPrintingResolved: false }), "review");
+  assert.equal(resolveChaosSortRecognition({ confidence: 0.72, cardName: "Goblin Matron", canonicalPrintingResolved: false }), "review");
+  assert.equal(resolveChaosSortRecognition({ confidence: 0.95, cardName: "Goblin Matron", canonicalPrintingResolved: true }), "high_confidence");
+});
+
 test("every technical recognition reason has an explicit non-generic UI message", () => {
   for (const reason of CHAOS_SORT_RECOGNITION_REASONS) {
     const mapped = chaosSortRecognitionMessage(reason);

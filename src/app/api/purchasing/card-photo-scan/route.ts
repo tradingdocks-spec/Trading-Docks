@@ -321,8 +321,8 @@ async function identifyWithDeterministicScanner(file: File, requestItemId: strin
   if (result.status === "provider_failed") {
     throw new RecognitionPipelineError(result.error?.includes("malformed") ? "malformed_provider" : "tcgtracking_scan", result.error?.includes("malformed") ? "Malformed provider response." : "TCGTracking scan failed.", null, null, result.httpStatus);
   }
-  if (result.productLookupFailures && result.candidates[0] && !result.candidates[0].productIdentity) {
-    throw new RecognitionPipelineError("product_lookup", "Product metadata lookup failed.");
+  if (result.productLookupFailures) {
+    recognitionLog("PRODUCT LOOKUP", { itemId: requestItemId, attempt, status: "partial", failures: result.productLookupFailures, candidatesPreserved: result.candidates.length });
   }
   const candidates = result.candidates.map((candidate, index) => {
     const identity = candidate.productIdentity;
@@ -702,7 +702,7 @@ export async function POST(request: Request) {
     let recognitionMethod: CardScanResponse["recognitionMethod"] = manualName ? "MANUAL" : "OCR_CATALOG";
     let deterministicCandidates: CardCandidate[] = [];
     let deterministicScanConfigured = false;
-    let deterministicScanFailed = false;
+    let deterministicScanFailure: RecognitionPipelineError | null = null;
     let identification = null as ScanIdentification | null;
     if (file) {
       try {
@@ -715,7 +715,9 @@ export async function POST(request: Request) {
           recognitionMethod = identification.setCode && identification.collectorNumber ? "COLLECTOR_NUMBER" : "IMAGE_MATCH";
         }
       } catch (error) {
-        deterministicScanFailed = true;
+        deterministicScanFailure = error instanceof RecognitionPipelineError
+          ? error
+          : new RecognitionPipelineError("tcgtracking_scan", "TCGTracking scan failed.");
         recognitionLog("PROVIDER FAILURE", { provider: "tcgtracking", itemId: requestItemId, attempt, message: error instanceof Error ? error.message : "deterministic scanner failed" });
       }
     }
@@ -726,8 +728,8 @@ export async function POST(request: Request) {
         recognitionMethod = "OPENAI_FALLBACK";
       }
     }
-    if (!identification && deterministicScanFailed && !OPENAI_FALLBACK_ENABLED) {
-      throw new RecognitionPipelineError("provider", "Deterministic recognition is temporarily unavailable.");
+    if (!identification && deterministicScanFailure && !OPENAI_FALLBACK_ENABLED) {
+      throw deterministicScanFailure;
     }
     if (!identification && manualName) {
       identification = {
