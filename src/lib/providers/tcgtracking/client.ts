@@ -222,6 +222,9 @@ export class TcgTrackingClient {
     const startedAt = Date.now();
     try {
       const payload = await this.postScan(input);
+      const payloadObject = asObject(payload);
+      const hasCandidateList = Array.isArray(payloadObject?.results) || Array.isArray(payloadObject?.candidates);
+      if (!hasCandidateList) throw new TcgTrackingProviderError("TCGTracking returned a malformed scan response.", "/scan");
       const candidates = asArray(payload)
         .map(normalizeScanCandidate)
         .filter((candidate): candidate is NonNullable<typeof candidate> =>

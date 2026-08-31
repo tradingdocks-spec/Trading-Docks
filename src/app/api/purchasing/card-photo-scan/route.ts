@@ -39,7 +39,7 @@ const OPENAI_FALLBACK_ENABLED = process.env.CHAOS_SORT_OPENAI_FALLBACK === "true
 const candidateCache = new Map<string, { expiresAt: number; candidates: CardCandidate[] }>();
 const scryfallPrintingCache = new Map<string, { expiresAt: number; candidate: CardCandidate | null }>();
 
-type ProviderFailureReason = "configuration" | "auth" | "provider" | "timeout" | "parse" | "image_decode" | "catalog" | "quota_exhausted" | "rate_limited" | "temporarily_unavailable";
+type ProviderFailureReason = "configuration" | "auth" | "provider" | "timeout" | "parse" | "image_decode" | "catalog" | "quota_exhausted" | "rate_limited" | "temporarily_unavailable" | "tcgtracking_scan" | "product_lookup" | "malformed_provider" | "image_normalization";
 
 class RecognitionPipelineError extends Error {
   constructor(
@@ -299,14 +299,29 @@ async function prepareDeterministicScanImage(file: File) {
     quality -= 8;
     normalized = await sharp(source).rotate().resize({ width: 1100, height: 1100, fit: "inside", withoutEnlargement: true }).jpeg({ quality }).toBuffer();
   }
-  return normalized;
+  const metadata = await sharp(normalized).metadata();
+  return { buffer: normalized, width: metadata.width ?? null, height: metadata.height ?? null };
 }
 
-async function identifyWithDeterministicScanner(file: File) {
+async function identifyWithDeterministicScanner(file: File, requestItemId: string, attempt: number) {
   const client = createTcgTrackingClient();
-  const image = await prepareDeterministicScanImage(file);
-  if (image.byteLength > TCGTRACKING_SCAN_MAX_IMAGE_BYTES) throw new RecognitionPipelineError("image_decode", "The scanner image could not be prepared for deterministic recognition.");
-  const result = await scanCardImageWithTcgTracking({ client, image, gameId: TCGTRACKING_MAGIC_GAME_ID, limit: 10 });
+  let normalized: Awaited<ReturnType<typeof prepareDeterministicScanImage>>;
+  try {
+    normalized = await prepareDeterministicScanImage(file);
+  } catch {
+    throw new RecognitionPipelineError("image_normalization", "Image normalization failed.");
+  }
+  if (normalized.buffer.byteLength > TCGTRACKING_SCAN_MAX_IMAGE_BYTES) throw new RecognitionPipelineError("image_normalization", "Image normalization failed.");
+  recognitionLog("IMAGE NORMALIZED", { itemId: requestItemId, attempt, bytes: normalized.buffer.byteLength, width: normalized.width, height: normalized.height, mimeType: "image/jpeg" });
+  recognitionLog("TCGTRACKING SCAN REQUEST", { itemId: requestItemId, attempt, endpoint: "https://tcgtracking.com/tcgapi/v1/scan", gameId: TCGTRACKING_MAGIC_GAME_ID, encoding: "multipart/form-data", imageField: "image", imageBytes: normalized.buffer.byteLength, mimeType: "image/jpeg" });
+  const result = await scanCardImageWithTcgTracking({ client, image: normalized.buffer, gameId: TCGTRACKING_MAGIC_GAME_ID, limit: 10 });
+  recognitionLog("TCGTRACKING SCAN RESPONSE", { itemId: requestItemId, attempt, status: result.status, rawCandidateCount: result.rawCandidateCount ?? result.candidates.length, candidateProductIds: result.candidateProductIds ?? [], providerError: result.error ?? null });
+  if (result.status === "provider_failed") {
+    throw new RecognitionPipelineError(result.error?.includes("malformed") ? "malformed_provider" : "tcgtracking_scan", result.error?.includes("malformed") ? "Malformed provider response." : "TCGTracking scan failed.");
+  }
+  if (result.productLookupFailures && result.candidates[0] && !result.candidates[0].productIdentity) {
+    throw new RecognitionPipelineError("product_lookup", "Product metadata lookup failed.");
+  }
   const candidates = result.candidates.map((candidate, index) => {
     const identity = candidate.productIdentity;
     return {
@@ -329,6 +344,8 @@ async function identifyWithDeterministicScanner(file: File) {
     } satisfies CardCandidate;
   });
   const best = candidates[0];
+  recognitionLog("TCGTRACKING CANDIDATE", { itemId: requestItemId, attempt, selectedCandidate: best?.id ?? null, candidateCount: candidates.length });
+  if (best?.providerProductId) recognitionLog("PRODUCT LOOKUP", { itemId: requestItemId, attempt, productId: best.providerProductId, status: best.name !== "Unknown card" ? "success" : "failed", name: best.name, setCode: best.setCode || null, collectorNumber: best.collectorNumber || null, scryfallId: best.id.match(/^[0-9a-f-]{36}$/i) ? best.id : null });
   return {
     configured: true,
     candidates,
@@ -350,8 +367,11 @@ async function getCandidates(identification: ScanIdentification) {
   const cacheKey = [identification.name, identification.setCode ?? "", identification.collectorNumber ?? ""].join("|").toLowerCase();
   const cached = candidateCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.candidates;
+  const queryParts = [`!\"${identification.name.replaceAll('"', "")}\"`, "game:paper"];
+  if (identification.setCode) queryParts.push(`set:${identification.setCode.replace(/[^a-z0-9]/gi, "")}`);
+  if (identification.collectorNumber) queryParts.push(`cn:${identification.collectorNumber.replace(/[^a-z0-9/★]/gi, "")}`);
   const query = new URLSearchParams({
-    q: `!\"${identification.name.replaceAll('"', "")}\" game:paper`,
+    q: queryParts.join(" "),
     unique: "prints",
     order: "released",
     dir: "desc",
@@ -396,19 +416,25 @@ async function getCandidates(identification: ScanIdentification) {
   return candidates;
 }
 
-async function verifyScryfallPrinting(id: string, identification: ScanIdentification) {
+async function verifyScryfallPrinting(id: string, identification: ScanIdentification, requestItemId: string, attempt: number) {
   const cached = scryfallPrintingCache.get(id);
-  if (cached && cached.expiresAt > Date.now()) return cached.candidate;
+  if (cached && cached.expiresAt > Date.now()) {
+    recognitionLog("SCRYFALL VERIFICATION", { itemId: requestItemId, attempt, scryfallId: id, status: cached.candidate ? "cached_success" : "cached_failed" });
+    return cached.candidate;
+  }
   try {
     const response = await fetch(`${SCRYFALL}/cards/${encodeURIComponent(id)}`, { headers: { "User-Agent": USER_AGENT, Accept: "application/json" }, next: { revalidate: 86400 } });
     if (!response.ok) {
+      recognitionLog("SCRYFALL VERIFICATION", { itemId: requestItemId, attempt, scryfallId: id, status: "failed", httpStatus: response.status });
       scryfallPrintingCache.set(id, { expiresAt: Date.now() + 5 * 60_000, candidate: null });
       return null;
     }
     const candidate = toCandidate((await response.json()) as ScryfallCard, identification, 0);
+    recognitionLog("SCRYFALL VERIFICATION", { itemId: requestItemId, attempt, scryfallId: id, status: candidate ? "success" : "failed" });
     scryfallPrintingCache.set(id, { expiresAt: Date.now() + 24 * 60 * 60_000, candidate });
     return candidate;
   } catch {
+    recognitionLog("SCRYFALL VERIFICATION", { itemId: requestItemId, attempt, scryfallId: id, status: "failed" });
     return null;
   }
 }
@@ -678,7 +704,7 @@ export async function POST(request: Request) {
     let identification = null as ScanIdentification | null;
     if (file) {
       try {
-        const deterministic = await identifyWithDeterministicScanner(file);
+        const deterministic = await identifyWithDeterministicScanner(file, requestItemId, attempt);
         deterministicCandidates = deterministic.candidates;
         deterministicScanConfigured = deterministic.configured;
         identification = deterministic.identification;
@@ -721,7 +747,7 @@ export async function POST(request: Request) {
     if (identification && candidates.length) {
       const top = candidates[0];
       const verified = top?.id && /^[0-9a-f-]{36}$/i.test(top.id)
-        ? await verifyScryfallPrinting(top.id, identification)
+        ? await verifyScryfallPrinting(top.id, identification, requestItemId, attempt)
         : null;
       if (verified) {
         candidates = [verified, ...candidates.filter((candidate) => candidate.id !== verified.id)];
@@ -775,6 +801,7 @@ export async function POST(request: Request) {
         ],
       },
     };
+    recognitionLog("FINAL RESOLUTION", { itemId: requestItemId, attempt, state: canonicalPrintingResolved ? "READY" : candidates.length ? "NEEDS_REVIEW" : "UNKNOWN", reason: canonicalPrintingResolved ? "Exact Scryfall/catalog printing verified." : candidates.length ? "Card candidate found but exact printing is not verified." : "TCGTracking returned no match." });
     recognitionLog("CONFIDENCE RESULT", { name: payload.identification.name, confidence: payload.identification.confidence, candidates: candidates.length, recognitionMethod });
     return NextResponse.json(payload);
   } catch (error) {

@@ -231,6 +231,16 @@ export function classifyChaosSortRecognition(input: {
   return "unknown" as const;
 }
 
+export function resolveChaosSortRecognition(input: {
+  confidence: number;
+  cardName: string;
+  canonicalPrintingResolved: boolean;
+}): ChaosSortRecognitionState {
+  if (!input.cardName.trim()) return "unknown";
+  if (!input.canonicalPrintingResolved) return "review";
+  return input.confidence >= 0.8 ? "high_confidence" : input.confidence >= 0.45 ? "review" : "unknown";
+}
+
 export function makeChaosSortFileHash(file: File): Promise<string> {
   return file.arrayBuffer().then(async (buffer) => {
     const digest = await crypto.subtle.digest("SHA-256", buffer);

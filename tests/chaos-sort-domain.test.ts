@@ -6,6 +6,7 @@ import {
   buildDefaultChaosSortRules,
   classifyChaosSortRecognition,
   createChaosSortBatchCode,
+  resolveChaosSortRecognition,
   summarizeChaosSortBatch,
   type ChaosSortBatch,
   type ChaosSortItem,
@@ -241,4 +242,28 @@ test("TCGTracking uses the documented public scan endpoint and caches product me
   await client.product("557921");
   await client.product("557921");
   assert.equal(requests.filter((url) => url.endsWith("/products/557921")).length, 1);
+});
+
+test("TCGTracking multipart scan uses the documented fields and image contract", async () => {
+  let captured: FormData | null = null;
+  const client = new TcgTrackingClient({
+    retries: 0,
+    fetch: async (_input, init) => {
+      captured = init?.body instanceof FormData ? init.body : null;
+      return new Response(JSON.stringify({ results: [] }), { status: 200, headers: { "content-type": "application/json" } });
+    },
+  });
+  await client.scanCardImage({ image: new Uint8Array([1, 2, 3]), gameId: 1, limit: 10 });
+  assert.ok(captured);
+  assert.equal(captured.get("game_id"), "1");
+  assert.equal(captured.get("limit"), "10");
+  assert.ok(captured.get("image") instanceof File || captured.get("image") instanceof Blob);
+  assert.equal(captured.has("hashes"), false);
+});
+
+test("Chaos Sort maps verified, ambiguous, unknown, and technical outcomes distinctly", () => {
+  assert.equal(resolveChaosSortRecognition({ confidence: 0.95, cardName: "Goblin Matron", canonicalPrintingResolved: true }), "high_confidence");
+  assert.equal(resolveChaosSortRecognition({ confidence: 0.95, cardName: "Goblin Matron", canonicalPrintingResolved: false }), "review");
+  assert.equal(resolveChaosSortRecognition({ confidence: 0, cardName: "", canonicalPrintingResolved: false }), "unknown");
+  assert.equal(classifyChaosSortRecognition({ processingState: "failed", confidence: 0, cardName: "Goblin Matron", setCode: null, collectorNumber: null }), "unknown");
 });

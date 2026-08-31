@@ -125,6 +125,7 @@ export type TcgTrackingScanResult = {
   candidates: TcgTrackingScanCandidate[];
   latencyMs?: number;
   error?: string;
+  productLookupFailures?: number;
 };
 
 export type TradingDocksProductIdentity = {

@@ -29,6 +29,7 @@ import {
   classifyChaosSortRecognition,
   createChaosSortBatchCode,
   makeChaosSortFileHash,
+  resolveChaosSortRecognition,
   summarizeChaosSortBatch,
   type ChaosSortBatch,
   type ChaosSortItem,
@@ -388,6 +389,14 @@ export function ChaosSortWorkspace() {
               ? "Recognition is temporarily unavailable."
               : failureReason === "configuration"
                 ? "Recognition is not configured on the server."
+                : failureReason === "tcgtracking_scan"
+                  ? "TCGTracking scan failed."
+                  : failureReason === "product_lookup"
+                    ? "Product metadata lookup failed."
+                    : failureReason === "malformed_provider"
+                      ? "Malformed provider response."
+                      : failureReason === "image_normalization"
+                        ? "Image normalization failed."
                 : "Recognition could not be completed.";
           const technicalDetail = payload.providerCode ? ` Provider code: ${String(payload.providerCode)}.` : "";
           throw new Error(`${userMessage}${technicalDetail}`);
@@ -412,18 +421,9 @@ export function ChaosSortWorkspace() {
           ? candidate.prices.find((price: { available?: boolean; value?: number | null }) => price.available && typeof price.value === "number")?.value ?? null
           : null;
         const match = resolveInventoryMatch(inventoryRef.current, locations, { cardName, setCode, collectorNumber, scryfallId: candidate?.id ?? null });
-        const machineState = classifyChaosSortRecognition({
-          processingState: "ready",
-          confidence,
-          cardName,
-          setCode,
-          collectorNumber,
-        });
-        const recognitionState = candidate && payload.canonicalPrintingResolved === true && machineState === "high_confidence"
-          ? "high_confidence"
-          : cardName
-            ? "review"
-            : "unknown";
+        const recognitionState = candidate
+          ? resolveChaosSortRecognition({ confidence, cardName, canonicalPrintingResolved: payload.canonicalPrintingResolved === true })
+          : "unknown";
         entry.state = recognitionState === "high_confidence" ? "identified" : recognitionState === "review" ? "needs_review" : "unknown";
         updateItem(base.id, {
           processingState: "ready",

@@ -65,6 +65,9 @@ export type TcgTrackingScannerAdapterResult = {
   topConfidence?: number;
   confidenceBand?: TcgTrackingConfidenceBand;
   fallbackRecommended: boolean;
+  rawCandidateCount?: number;
+  candidateProductIds?: string[];
+  productLookupFailures?: number;
 };
 
 export async function scanCardImageWithTcgTracking(input: {
@@ -82,7 +85,11 @@ export async function scanCardImageWithTcgTracking(input: {
     setIds: input.setIds,
     limit: input.limit,
   });
-  return scannerAdapterResult(await enrichScanResultWithProducts(result, input.client));
+  const rawCandidateCount = result.candidates.length;
+  const candidateProductIds = result.candidates.map((candidate) => candidate.providerProductId ?? String(candidate.tcgplayerProductId ?? "")).filter(Boolean);
+  const enriched = await enrichScanResultWithProducts(result, input.client);
+  const adapted = scannerAdapterResult(enriched);
+  return { ...adapted, rawCandidateCount, candidateProductIds, productLookupFailures: enriched.productLookupFailures ?? 0 };
 }
 
 export function scannerAdapterResult(
@@ -191,14 +198,20 @@ export async function enrichScanResultWithProducts(
   client: Pick<TcgTrackingClient, "product">,
 ): Promise<TcgTrackingScanResult> {
   if (result.status !== "matched" || !result.candidates.length) return result;
+  let productLookupFailures = 0;
   const enriched = await Promise.all(
     result.candidates.slice(0, TCGTRACKING_SCAN_MAX_LIMIT).map(async (candidate) => {
       const productId = candidate.providerProductId ?? candidate.tcgplayerProductId?.toString();
       if (!productId) return candidate;
       try {
         const product = await client.product(productId);
-        return product ? mergeProductIdentity(candidate, product) : candidate;
+        if (!product) {
+          productLookupFailures += 1;
+          return candidate;
+        }
+        return mergeProductIdentity(candidate, product);
       } catch {
+        productLookupFailures += 1;
         return candidate;
       }
     }),
@@ -206,6 +219,7 @@ export async function enrichScanResultWithProducts(
   return {
     ...result,
     candidates: enriched.sort((left, right) => right.confidence - left.confidence),
+    productLookupFailures,
   };
 }
 
