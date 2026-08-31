@@ -419,7 +419,7 @@ export function ChaosSortWorkspace() {
           setCode,
           collectorNumber,
         });
-        const recognitionState = candidate && machineState === "high_confidence"
+        const recognitionState = candidate && payload.canonicalPrintingResolved === true && machineState === "high_confidence"
           ? "high_confidence"
           : cardName
             ? "review"

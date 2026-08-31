@@ -30,7 +30,7 @@ import {
 } from "../../multi-tcg/registry.ts";
 
 export const TCGTRACKING_BASE_URL =
-  "https://openapi.tcgtracking.com/v1";
+  "https://tcgtracking.com/tcgapi/v1";
 export const TCGTRACKING_SCAN_BASE_URL =
   "https://tcgtracking.com/tcgapi/v1";
 export const TCGTRACKING_DEFAULT_TIMEOUT_MS = 8000;
@@ -39,6 +39,8 @@ export const TCGTRACKING_MAGIC_CATEGORY_ID = REGISTRY_MAGIC_CATEGORY_ID;
 export const TCGTRACKING_MAGIC_GAME_ID = REGISTRY_MAGIC_GAME_ID;
 export const TCGTRACKING_POKEMON_CATEGORY_ID = REGISTRY_POKEMON_CATEGORY_ID;
 export const TCGTRACKING_POKEMON_GAME_ID = REGISTRY_POKEMON_GAME_ID;
+
+const productCache = new Map<string, { expiresAt: number; product: TcgTrackingProduct | null }>();
 
 export class TcgTrackingProviderError extends Error {
   status?: number;
@@ -183,11 +185,16 @@ export class TcgTrackingClient {
   }
 
   async product(productId: string): Promise<TcgTrackingProduct | null> {
+    const cacheKey = `${this.baseUrl}|${productId.trim()}`;
+    const cached = productCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.product;
     const payload = await this.getJson(
       `/products/${encodePath(productId)}`,
     );
     const object = asObject(payload);
-    return normalizeProduct(object?.product ?? payload, "unknown");
+    const product = normalizeProduct(object?.product ?? payload, "unknown");
+    productCache.set(cacheKey, { expiresAt: Date.now() + 24 * 60 * 60_000, product });
+    return product;
   }
 
   async search(

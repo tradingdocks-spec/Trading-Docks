@@ -59,6 +59,17 @@ export type CardScanResponse = {
   candidates: CardCandidate[];
   recognitionMode: "vision" | "manual" | "filename" | "tcgtracking" | "ocr_catalog";
   recognitionMethod?: "OCR_CATALOG" | "COLLECTOR_NUMBER" | "IMAGE_MATCH" | "OPENAI_FALLBACK" | "MANUAL";
+  canonicalPrintingResolved?: boolean;
+  recognitionEvidence?: {
+    recognitionMethod: string;
+    tcgTrackingProductId?: string | null;
+    tcgTrackingConfidence?: number | null;
+    candidateCount: number;
+    scryfallId?: string | null;
+    setCode?: string | null;
+    collectorNumber?: string | null;
+    resolutionReason: string;
+  };
   warnings: string[];
   pricingCoverage: {
     checked: number;

@@ -27,6 +27,7 @@ import {
   runBoundedChaosSortQueue,
 } from "../src/lib/chaos-sort/batch-queue.ts";
 import { classifyProviderFailure, providerFailureDetails } from "../src/lib/chaos-sort/provider-errors.ts";
+import { TcgTrackingClient } from "../src/lib/providers/tcgtracking/client.ts";
 
 function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {
   const now = new Date().toISOString();
@@ -222,4 +223,22 @@ test("provider 429 responses distinguish quota exhaustion from temporary rate li
   assert.equal(classifyProviderFailure(429, quota), "quota_exhausted");
   assert.equal(classifyProviderFailure(429, rate), "rate_limited");
   assert.equal(classifyProviderFailure(503, providerFailureDetails({ error: { type: "server_error" } })), "temporarily_unavailable");
+});
+
+test("TCGTracking uses the documented public scan endpoint and caches product metadata", async () => {
+  const requests: string[] = [];
+  const client = new TcgTrackingClient({
+    fetch: async (input) => {
+      const url = String(input);
+      requests.push(url);
+      if (url.endsWith("/scan")) return new Response(JSON.stringify({ results: [{ product_id: 557921, score: 91 }] }), { status: 200, headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ id: 557921, name: "Llanowar Elves", clean_name: "Llanowar Elves", set_abbr: "FDN", number: "227", scryfall_id: "6a0b230b-0000-0000-0000-000000000000" }), { status: 200, headers: { "content-type": "application/json" } });
+    },
+  });
+  const scan = await client.scanCardImage({ image: new Uint8Array([1, 2, 3]), gameId: 1, limit: 10 });
+  assert.equal(scan.candidates[0]?.providerProductId, "557921");
+  assert.match(requests[0] ?? "", /https:\/\/tcgtracking\.com\/tcgapi\/v1\/scan$/);
+  await client.product("557921");
+  await client.product("557921");
+  assert.equal(requests.filter((url) => url.endsWith("/products/557921")).length, 1);
 });

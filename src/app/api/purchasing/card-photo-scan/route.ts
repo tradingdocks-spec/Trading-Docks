@@ -37,6 +37,7 @@ const POKEMON_GAME = "pokemon";
 const VISION_TIMEOUT_MS = 30_000;
 const OPENAI_FALLBACK_ENABLED = process.env.CHAOS_SORT_OPENAI_FALLBACK === "true";
 const candidateCache = new Map<string, { expiresAt: number; candidates: CardCandidate[] }>();
+const scryfallPrintingCache = new Map<string, { expiresAt: number; candidate: CardCandidate | null }>();
 
 type ProviderFailureReason = "configuration" | "auth" | "provider" | "timeout" | "parse" | "image_decode" | "catalog" | "quota_exhausted" | "rate_limited" | "temporarily_unavailable";
 
@@ -302,7 +303,6 @@ async function prepareDeterministicScanImage(file: File) {
 }
 
 async function identifyWithDeterministicScanner(file: File) {
-  if (!process.env.TCGTRACKING_API_KEY) return { identification: null, candidates: [], configured: false };
   const client = createTcgTrackingClient();
   const image = await prepareDeterministicScanImage(file);
   if (image.byteLength > TCGTRACKING_SCAN_MAX_IMAGE_BYTES) throw new RecognitionPipelineError("image_decode", "The scanner image could not be prepared for deterministic recognition.");
@@ -394,6 +394,23 @@ async function getCandidates(identification: ScanIdentification) {
   if (best) recognitionLog("PRINTING MATCH", { name: best.name, setCode: best.setCode, collectorNumber: best.collectorNumber, exact: best.setCode.toLowerCase() === identification.setCode?.toLowerCase() && best.collectorNumber === identification.collectorNumber });
   candidateCache.set(cacheKey, { expiresAt: Date.now() + 5 * 60_000, candidates });
   return candidates;
+}
+
+async function verifyScryfallPrinting(id: string, identification: ScanIdentification) {
+  const cached = scryfallPrintingCache.get(id);
+  if (cached && cached.expiresAt > Date.now()) return cached.candidate;
+  try {
+    const response = await fetch(`${SCRYFALL}/cards/${encodeURIComponent(id)}`, { headers: { "User-Agent": USER_AGENT, Accept: "application/json" }, next: { revalidate: 86400 } });
+    if (!response.ok) {
+      scryfallPrintingCache.set(id, { expiresAt: Date.now() + 5 * 60_000, candidate: null });
+      return null;
+    }
+    const candidate = toCandidate((await response.json()) as ScryfallCard, identification, 0);
+    scryfallPrintingCache.set(id, { expiresAt: Date.now() + 24 * 60 * 60_000, candidate });
+    return candidate;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeGameId(value: FormDataEntryValue | null) {
@@ -699,22 +716,52 @@ export async function POST(request: Request) {
     }
     if (!identification && !file) return NextResponse.json({ error: "Could not read card identity from the supplied input." }, { status: 422 });
 
-    const candidates = deterministicCandidates.length ? deterministicCandidates : identification ? await getCandidates(identification) : [];
+    let candidates = deterministicCandidates.length ? deterministicCandidates : identification ? await getCandidates(identification) : [];
+    let canonicalPrintingResolved = false;
+    if (identification && candidates.length) {
+      const top = candidates[0];
+      const verified = top?.id && /^[0-9a-f-]{36}$/i.test(top.id)
+        ? await verifyScryfallPrinting(top.id, identification)
+        : null;
+      if (verified) {
+        candidates = [verified, ...candidates.filter((candidate) => candidate.id !== verified.id)];
+        canonicalPrintingResolved = true;
+      } else if (identification.setCode && identification.collectorNumber) {
+        const catalogCandidates = await getCandidates(identification);
+        const exact = catalogCandidates.find((candidate) => candidate.setCode.toLowerCase() === identification.setCode?.toLowerCase() && candidate.collectorNumber === identification.collectorNumber);
+        if (exact) {
+          candidates = [exact, ...candidates.filter((candidate) => candidate.id !== exact.id)];
+          canonicalPrintingResolved = true;
+        }
+      }
+    }
+    const responseIdentification = identification ?? {
+      name: "",
+      setCode: null,
+      collectorNumber: null,
+      language: "en",
+      finish: "unknown",
+      confidence: 0,
+      notes: [deterministicScanConfigured ? "The deterministic scanner returned no reliable identity." : "No deterministic scanner is configured for this server."],
+      gameId: "magic" as const,
+      provider: "scryfall" as const,
+    };
     const payload: CardScanResponse = {
-      identification: identification ?? {
-        name: "",
-        setCode: null,
-        collectorNumber: null,
-        language: "en",
-        finish: "unknown",
-        confidence: 0,
-        notes: [deterministicScanConfigured ? "The deterministic scanner returned no reliable identity." : "No deterministic scanner is configured for this server."],
-        gameId: "magic",
-        provider: "scryfall",
-      },
+      identification: responseIdentification,
       candidates,
       recognitionMode,
       recognitionMethod,
+      canonicalPrintingResolved,
+      recognitionEvidence: {
+        recognitionMethod,
+        tcgTrackingProductId: candidates[0]?.providerProductId ?? null,
+        tcgTrackingConfidence: recognitionMethod === "IMAGE_MATCH" || recognitionMethod === "COLLECTOR_NUMBER" ? candidates[0]?.confidence ?? null : null,
+        candidateCount: candidates.length,
+        scryfallId: candidates[0]?.provider === "scryfall" ? candidates[0].id : null,
+        setCode: responseIdentification.setCode ?? null,
+        collectorNumber: responseIdentification.collectorNumber ?? null,
+        resolutionReason: canonicalPrintingResolved ? "Exact Scryfall/catalog printing verified." : candidates.length ? "Candidate identity returned; exact printing needs review." : "No reliable card match found.",
+      },
       warnings,
       pricingCoverage: {
         checked: 5,
