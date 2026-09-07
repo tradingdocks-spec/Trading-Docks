@@ -481,6 +481,7 @@ export function ChaosSortWorkspace() {
         const quantity = Math.max(1, Number.parseInt(csvValue(values, "quantity", "qty", "count") || "1", 10) || 1);
         const setCode = csvValue(values, "set", "set_code", "set code") || null;
         const collectorNumber = csvValue(values, "collector number", "collector_number", "number") || null;
+        const scryfallId = csvValue(values, "scryfall id", "scryfall_id", "scryfallid") || null;
         const condition = csvValue(values, "condition") || "NM";
         const finish = csvValue(values, "finish", "printing") || "nonfoil";
         const now = new Date().toISOString();
@@ -495,7 +496,7 @@ export function ChaosSortWorkspace() {
           recognitionState: cardName && setCode && collectorNumber ? "high_confidence" : "review",
           humanState: cardName && setCode && collectorNumber ? "confirmed" : "pending",
           cardName,
-          scryfallId: null,
+          scryfallId,
           gameId: csvValue(values, "game", "game_id") || "magic",
           setCode,
           collectorNumber,
@@ -519,9 +520,38 @@ export function ChaosSortWorkspace() {
         } satisfies ChaosSortItem;
       }).filter((item) => item.cardName || item.notes.includes("missing a card name"));
       if (!imported.length) throw new Error("No card rows were found in the CSV.");
-      setItems((current) => [...current, ...imported]);
-      setSelectedItemId(imported[0].id);
-      setNotice(`Loaded ${imported.length} CSV row${imported.length === 1 ? "" : "s"} into review.`);
+      const identified = await Promise.all(imported.map(async (item) => {
+        if (!item.scryfallId) return item;
+        try {
+          const response = await fetch(`/api/card-intelligence/printing/${encodeURIComponent(item.scryfallId)}`);
+          if (!response.ok) return item;
+          const printing = await response.json() as {
+            imageUrl?: string | null;
+            name?: string | null;
+            setCode?: string | null;
+            collectorNumber?: string | null;
+            rarity?: string | null;
+            prices?: Array<{ market?: number | null }>;
+          };
+          const marketPrice = printing.prices?.find((price) => typeof price.market === "number")?.market ?? item.marketPrice;
+          return {
+            ...item,
+            sourceImageUrl: printing.imageUrl ?? null,
+            cardName: printing.name || item.cardName,
+            setCode: printing.setCode || item.setCode,
+            collectorNumber: printing.collectorNumber || item.collectorNumber,
+            rarity: printing.rarity || item.rarity,
+            marketPrice,
+            notes: printing.imageUrl ? "Imported from CSV and matched to Scryfall." : item.notes,
+          };
+        } catch {
+          return item;
+        }
+      }));
+      setItems((current) => [...current, ...identified]);
+      setSelectedItemId(identified[0].id);
+      const imageCount = identified.filter((item) => item.sourceImageUrl).length;
+      setNotice(`Loaded ${identified.length} CSV row${identified.length === 1 ? "" : "s"}${imageCount ? ` with ${imageCount} Scryfall image${imageCount === 1 ? "" : "s"}` : ""} into review.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The CSV could not be read.");
     }
