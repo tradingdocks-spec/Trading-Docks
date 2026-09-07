@@ -28,6 +28,7 @@ import {
   buildDefaultChaosSortRules,
   classifyChaosSortRecognition,
   createChaosSortBatchCode,
+  getChaosSortBatchProgress,
   makeChaosSortFileHash,
   summarizeChaosSortBatch,
   type ChaosSortBatch,
@@ -138,6 +139,7 @@ export function ChaosSortWorkspace() {
   const [acquisitionCost, setAcquisitionCost] = useState("");
   const [destinationLocationId, setDestinationLocationId] = useState("");
   const [title, setTitle] = useState("Scanner intake batch");
+  const [targetBatchSize] = useState(100);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const itemsRef = useRef<ChaosSortItem[]>([]);
   const inventoryRef = useRef<InventoryRow[]>([]);
@@ -218,6 +220,7 @@ export function ChaosSortWorkspace() {
     };
     return summarizeChaosSortBatch(liveBatch);
   }, [acquisitionCost, batch, destinationLocationId, items, locations, rules, title]);
+  const batchProgress = useMemo(() => getChaosSortBatchProgress(items.length, targetBatchSize), [items.length, targetBatchSize]);
 
   const planById = useMemo(() => new Map(plan.items.map((entry) => [entry.itemId, entry])), [plan.items]);
   const selectedItem = items.find((item) => item.id === selectedItemId) ?? items[0] ?? null;
@@ -677,6 +680,24 @@ export function ChaosSortWorkspace() {
         {loadingInventory && !items.length ? (
           <TDLoadingState title="Loading inventory context" message="Fetching storage locations and owned inventory for canonical matching." />
         ) : null}
+
+        <section className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.035] p-4 sm:p-5" aria-label="Active Chaos Sort batch progress">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[.14em] text-cyan-200">Active batch</p>
+              <p className="mt-1 text-xl font-semibold text-white">{batch.batchCode}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-semibold tabular-nums text-white">{batchProgress.label}</p>
+              <p className="mt-1 text-xs text-slate-400">
+                {batchProgress.state === "target_reached" ? "Target reached — finish when the physical bundle is ready." : batchProgress.state === "over_target" ? "Above target — close when convenient." : "Target is guidance, not a hard limit."}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/30" role="progressbar" aria-valuemin={0} aria-valuemax={targetBatchSize} aria-valuenow={Math.min(items.length, targetBatchSize)} aria-label={`${items.length} of approximately ${targetBatchSize} cards`}>
+            <div className={cn("h-full rounded-full transition-all", batchProgress.state === "over_target" ? "bg-amber-300" : "bg-cyan-300")} style={{ width: `${batchProgress.ratio * 100}%` }} />
+          </div>
+        </section>
 
         <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
           <TDCard variant="floating" className="space-y-4">
