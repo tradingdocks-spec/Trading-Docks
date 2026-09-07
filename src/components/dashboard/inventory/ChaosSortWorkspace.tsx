@@ -964,13 +964,13 @@ export function ChaosSortWorkspace() {
                     type="button"
                     onClick={() => setSelectedItemId(item.id)}
                     className={cn(
-                      "group grid gap-3 rounded-[22px] border p-3 text-left transition sm:grid-cols-[96px_1fr]",
+                      "group grid gap-3 rounded-2xl border p-3 text-left transition sm:grid-cols-[96px_1fr]",
                       isSelected
                         ? "border-cyan-300/30 bg-cyan-300/[0.06]"
                         : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.03]",
                     )}
                   >
-                    <div className="overflow-hidden rounded-[18px] border border-white/[0.06] bg-[#07131f]">
+                    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#07131f]">
                       {item.sourceImageUrl ? (
                         <img src={item.sourceImageUrl} alt={item.cardName || item.sourceFileName} className="aspect-[0.72] w-full object-cover" />
                       ) : (
