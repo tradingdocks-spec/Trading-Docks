@@ -130,6 +130,14 @@ begin
     raise exception 'Destination location is invalid';
   end if;
 
+  -- Establish the parent row before inserting physical positions. The
+  -- positions table has a foreign key to chaos_sort_batches(id), so the
+  -- parent must exist before the item loop starts.
+  insert into public.chaos_sort_batches (id, user_id, session_id, batch_code, title, status, status_v2, source_count, confirmed_count, destination_location_id, destination_label, initial_quantity, current_quantity, updated_at)
+  values (batch_id, actor, session_id, coalesce(batch_payload->>'batchCode', batch_id::text), coalesce(batch_payload->>'title', 'Chaos Sort batch'), 'committing', 'OPEN', 0, 0, location_id, coalesce(batch_payload->>'destinationLabel', location_id), 0, 0, now())
+  on conflict (id) do update set session_id = excluded.session_id, destination_location_id = excluded.destination_location_id,
+    destination_label = excluded.destination_label, updated_at = now();
+
   for item in select value from jsonb_array_elements(payload->'items')
   loop
     if coalesce(item->>'humanState', '') not in ('confirmed', 'edited')
@@ -167,9 +175,10 @@ begin
     if existing_identity then increased_identities := increased_identities + 1; else new_positions := new_positions + 1; end if;
   end loop;
 
-  insert into public.chaos_sort_batches (id, user_id, session_id, batch_code, title, status, status_v2, source_count, confirmed_count, destination_location_id, destination_label, initial_quantity, current_quantity, updated_at, completed_at, closed_at)
-  values (batch_id, actor, session_id, coalesce(batch_payload->>'batchCode', batch_id::text), coalesce(batch_payload->>'title', 'Chaos Sort batch'), 'committed', 'CLOSED', committed, committed, location_id, coalesce(batch_payload->>'destinationLabel', location_id), committed, committed, now(), now(), now())
-  on conflict (id) do update set status = 'committed', status_v2 = 'CLOSED', initial_quantity = excluded.initial_quantity, current_quantity = excluded.current_quantity, confirmed_count = excluded.confirmed_count, updated_at = now(), completed_at = now(), closed_at = now();
+  update public.chaos_sort_batches set status = 'committed', status_v2 = 'CLOSED', source_count = committed,
+    initial_quantity = committed, current_quantity = committed, confirmed_count = committed,
+    updated_at = now(), completed_at = now(), closed_at = now()
+    where id = batch_id and user_id = actor;
 
   return jsonb_build_object('ok', true, 'replayed', false, 'batchId', batch_id, 'sessionId', session_id,
     'committedCount', committed, 'initialQuantity', committed, 'newPositions', new_positions, 'increasedIdentities', increased_identities,

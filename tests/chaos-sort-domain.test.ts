@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   buildChaosSortPlan,
@@ -31,6 +32,14 @@ import {
   runBoundedChaosSortQueue,
 } from "../src/lib/chaos-sort/batch-queue.ts";
 import { classifyProviderFailure, providerFailureDetails } from "../src/lib/chaos-sort/provider-errors.ts";
+
+test("chaos sort commit creates its batch parent before physical positions", () => {
+  const migration = readFileSync("supabase/migrations/202609070002_fix_chaos_sort_commit_order.sql", "utf8");
+  const parentInsert = migration.indexOf("insert into public.chaos_sort_batches");
+  const positionInsert = migration.indexOf("insert into public.chaos_sort_inventory_positions");
+  assert.ok(parentInsert >= 0);
+  assert.ok(positionInsert > parentInsert);
+});
 
 function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {
   const now = new Date().toISOString();
