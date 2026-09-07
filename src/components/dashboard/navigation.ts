@@ -423,6 +423,7 @@ export function getAccountAwareNavigationGroups(
     : isOwner;
   const groups: Array<AccountAwareNavigationGroup | null> = [
     group("collector", "Collection", COLLECTOR_WORKSPACE_NAV, clientAccess),
+    group("chaos-sort", CHAOS_SORT_NAV.label, CHAOS_SORT_NAV.children, clientAccess),
   ];
 
   if (isAtLeast(effectiveTier, "seller")) {
