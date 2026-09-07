@@ -1018,7 +1018,7 @@ export function ChaosSortWorkspace() {
             </div>
           </TDCard>
 
-          <div className="grid gap-5 xl:grid-cols-2">
+          <div className="space-y-5">
             <details open className="group">
               <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
                 <span>Physical sort mode</span>
@@ -1228,7 +1228,7 @@ export function ChaosSortWorkspace() {
             </TDCard>
             </details>
 
-            <details open className="group xl:col-span-2">
+            <details open className="group">
               <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
                 <span>Sorting rules</span>
                 <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
