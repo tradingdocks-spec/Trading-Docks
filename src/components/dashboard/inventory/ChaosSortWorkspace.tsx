@@ -970,7 +970,7 @@ export function ChaosSortWorkspace() {
                         : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.03]",
                     )}
                   >
-                    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#07131f]">
+                    <div className="self-start overflow-hidden rounded-xl border border-white/[0.06] bg-[#07131f]">
                       {item.sourceImageUrl ? (
                         <img src={item.sourceImageUrl} alt={item.cardName || item.sourceFileName} className="aspect-[0.72] w-full object-cover" />
                       ) : (
