@@ -107,6 +107,11 @@ test("inventory event ledger uses existing text inventory/location keys safely",
   assert.doesNotMatch(migration, /location_id uuid/);
 });
 
+test("inventory event workspace lookup does not aggregate UUIDs with unsupported min()", () => {
+  assert.match(migration, /array_agg\(wm\.workspace_id\)/);
+  assert.doesNotMatch(migration, /min\(wm\.workspace_id\)/);
+});
+
 test("inventory event ledger is append-only for normal authenticated users", () => {
   assert.match(migration, /revoke all on public\.inventory_events from authenticated/);
   assert.match(migration, /grant select on public\.inventory_events to authenticated/);
