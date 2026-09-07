@@ -80,6 +80,12 @@ test("bulk inventory removal is one server request with confirmation copy", () =
   assert.match(route, /MAX_BULK_REMOVE_ROWS = 1000/);
 });
 
+test("inventory workspace hides ledger rows after their quantity reaches zero", () => {
+  const clientData = source("src/lib/collector-workspace-client-data.ts");
+
+  assert.match(clientData, /let next = query\.gt\("quantity", 0\)/);
+});
+
 test("bulk inventory removal dialog is fixed in the viewport center", () => {
   const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
 
