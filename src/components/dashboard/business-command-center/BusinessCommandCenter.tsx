@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import styles from "./BusinessCommandCenter.module.css";
 import { useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
-  Boxes,
   CheckCircle2,
   CircleDollarSign,
   Clock3,
@@ -52,13 +52,13 @@ export function BusinessCommandCenter({
   const hasActivity = summary.grossSales > 0 || summary.orderCount > 0;
 
   return (
-    <main className="min-h-screen bg-[#020911] px-4 py-4 text-white sm:px-6 lg:px-8 lg:py-6">
+    <main className={`${styles.dashboard} min-h-screen bg-[#020911] px-4 py-4 text-white sm:px-6 lg:px-8 lg:py-6`}>
       <div className="mx-auto max-w-[1560px] space-y-4">
-        <section className="rounded-[26px] bg-[#071520] px-5 py-4 shadow-[0_22px_80px_rgba(0,0,0,.3)] ring-1 ring-white/[0.055] sm:px-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        <section className="rounded-2xl bg-[#071520] px-5 py-4 ring-1 ring-white/[0.055] sm:px-6">
+          <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full bg-cyan-300/[0.08] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-200">
+                <span className="inline-flex items-center gap-2 rounded-full bg-cyan-300/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-200">
                   <Store className="h-3.5 w-3.5" />
                   Trading Docks HQ
                 </span>
@@ -71,16 +71,15 @@ export function BusinessCommandCenter({
               </div>
 
               <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-2">
-                <h1 className="max-w-5xl text-2xl font-semibold leading-tight tracking-[-0.03em] text-white sm:text-4xl">
+                <h1 className="max-w-4xl text-2xl font-semibold leading-snug tracking-[-0.03em] text-white lg:text-3xl">
                   {summary.executiveBrief.headline}
                 </h1>
-                <TrendPill value={summary.salesChangePercent} />
               </div>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
                 {summary.executiveBrief.metricsLine}
               </p>
               {summary.executiveBrief.explanation ? (
-                <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-500">
+                <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
                   {summary.executiveBrief.explanation}
                 </p>
               ) : null}
@@ -153,16 +152,16 @@ export function BusinessCommandCenter({
 
 function DateRangeControls({ active }: { active: BusinessDateRange }) {
   return (
-    <nav aria-label="Business dashboard date range" className="flex rounded-2xl bg-black/20 p-1 ring-1 ring-white/[0.06]">
+    <nav aria-label="Business dashboard date range" className="grid w-full grid-cols-3 gap-1 rounded-xl bg-black/20 p-1 ring-1 ring-white/[0.06] sm:flex sm:w-fit sm:shrink-0">
       {RANGE_OPTIONS.map((option) => (
         <Link
           key={option.value}
           href={`/dashboard?range=${option.value}`}
           aria-current={active === option.value ? "page" : undefined}
-          className={`flex h-9 items-center rounded-xl px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-300/45 ${
+          className={`flex min-h-11 items-center justify-center whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-300/45 ${
             active === option.value
-              ? "bg-cyan-300 text-slate-950"
-              : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-200"
+              ? `bg-cyan-300 ${styles.primaryLink}`
+              : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
           }`}
         >
           {option.label}
@@ -174,18 +173,18 @@ function DateRangeControls({ active }: { active: BusinessDateRange }) {
 
 function TradingDocksBrief({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.22)] ring-1 ring-white/[0.055]">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300/75">Today's Docks Brief</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-300/75">{"Today's Docks Brief"}</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-white">Operating intelligence</h2>
         </div>
         <Radar className="h-5 w-5 text-cyan-300" />
       </div>
-      <p className="mt-4 max-w-5xl text-sm leading-7 text-slate-300">
+      <p className="mt-3 max-w-5xl text-sm leading-6 text-slate-300">
         {summary.docksBrief}
       </p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <CoveragePill label="Inventory attribution" value={summary.inventoryAttribution.coveragePercent} />
         <CoveragePill label="Cost-basis confidence" value={summary.profitConfidence.coveragePercent} />
         <CoveragePill label="Inventory value coverage" value={summary.inventoryCapital.coveragePercent} />
@@ -198,24 +197,24 @@ function RevenueProfitModule({ summary }: { summary: BusinessCommandCenterSummar
   const hasProfit = summary.revenueSeries.some((point) => point.profitEstimate !== null);
   const profitLabel = summary.profitConfidence.level === "High" ? "Profit estimate" : "Profit estimate - low confidence";
   return (
-    <section className="rounded-[28px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.22)] ring-1 ring-white/[0.055] lg:p-6">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055] lg:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300/75">Revenue & Profit</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-300/75">Revenue & Profit</p>
           <p className="mt-2 text-5xl font-semibold tracking-[-0.05em] text-white [font-variant-numeric:tabular-nums]">
             {money(summary.grossSales)}
           </p>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-slate-400">
             {summary.orderCount.toLocaleString()} orders · {summary.averageOrderValue === null ? "AOV unavailable" : `${money(summary.averageOrderValue)} AOV`}
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 rounded-2xl bg-black/15 p-4 sm:items-end">
-          <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">Current vs prior</p>
+          <p className="text-[11px] font-semibold tracking-wide text-slate-400">Current vs prior</p>
           <TrendPill value={summary.salesChangePercent} />
-          <p className="text-xs text-slate-500">{money(summary.previousGrossSales)} prior period</p>
+          <p className="text-xs text-slate-400">{money(summary.previousGrossSales)} prior period</p>
         </div>
       </div>
-      <div className="mt-5 grid gap-2 sm:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 gap-3 2xl:grid-cols-4">
         <CompactMetric label="Orders" value={summary.orderCount.toLocaleString()} detail={`${summary.previousOrderCount.toLocaleString()} prior`} icon={<ShoppingBag className="h-3.5 w-3.5" />} />
         <CompactMetric label="AOV" value={summary.averageOrderValue === null ? "No data" : money(summary.averageOrderValue)} detail="Average order value" icon={<BarChart3 className="h-3.5 w-3.5" />} />
         <CompactMetric
@@ -238,13 +237,13 @@ function RevenueProfitModule({ summary }: { summary: BusinessCommandCenterSummar
 
 function ProfitConfidenceModule({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">Profit Confidence</p>
-      <div className="mt-3 flex items-end justify-between gap-4">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Profit Confidence</p>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-3xl font-semibold text-white">{summary.profitConfidence.level}</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">{summary.profitConfidence.reason}</p>
-          <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-600">
+          <p className="mt-1 text-xs leading-5 text-slate-400">{summary.profitConfidence.reason}</p>
+          <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
             Cost basis coverage · {summary.profitKnownUnits.toLocaleString()} / {summary.profitTotalUnits.toLocaleString()} sold units
           </p>
         </div>
@@ -257,12 +256,12 @@ function ProfitConfidenceModule({ summary }: { summary: BusinessCommandCenterSum
 
 function InventoryAttributionModule({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">Inventory Attribution</p>
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Inventory Attribution</p>
       <div className="mt-3 flex items-end justify-between gap-4">
         <div>
           <p className="text-3xl font-semibold text-white">{Math.round(summary.inventoryAttribution.coveragePercent)}% matched</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">{summary.inventoryAttribution.reason}</p>
+          <p className="mt-1 text-xs leading-5 text-slate-400">{summary.inventoryAttribution.reason}</p>
         </div>
         <Link href="/dashboard/orders" className="shrink-0 rounded-xl bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-cyan-300/[0.08] hover:text-cyan-100">
           Match items
@@ -275,10 +274,10 @@ function InventoryAttributionModule({ summary }: { summary: BusinessCommandCente
 
 function TradingDocksSignals({ signals }: { signals: TradingDocksSignal[] }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.22)] ring-1 ring-white/[0.055]">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300/75">Trading Docks Signals</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-300/75">Trading Docks Signals</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-white">What the business is telling you</h2>
         </div>
         <LineChart className="h-5 w-5 text-cyan-300" />
@@ -292,11 +291,11 @@ function TradingDocksSignals({ signals }: { signals: TradingDocksSignal[] }) {
                   <PriorityBadge priority={signal.priority} />
                   <p className="text-sm font-semibold text-white">{signal.title}</p>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-slate-500">{signal.description}</p>
+                <p className="mt-2 text-xs leading-5 text-slate-400">{signal.description}</p>
               </div>
               <p className="text-lg font-semibold text-cyan-100 [font-variant-numeric:tabular-nums]">{signal.metric}</p>
             </div>
-            <p className="mt-2 text-xs text-slate-600">{signal.impact}</p>
+            <p className="mt-2 text-xs text-slate-400">{signal.impact}</p>
           </Link>
         )) : (
           <EmptyPanel title="No supported signals yet" detail="Signals appear only when real orders, inventory, listings, syncs, or pricing reviews provide enough evidence." />
@@ -313,10 +312,10 @@ function FulfillmentModule({ summary }: { summary: BusinessCommandCenterSummary 
   const reviewCount = summary.listingIssues;
   const readyToPack = Math.max(0, summary.openFulfillmentCount - matchingCount - reviewCount);
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-amber-300/75">Fulfillment</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-300/75">Fulfillment</p>
           <h2 className="mt-1 text-lg font-semibold text-white">{summary.openFulfillmentCount.toLocaleString()} orders need action</h2>
         </div>
         <p className="text-sm font-semibold text-emerald-300">{Math.round(percent)}% clear</p>
@@ -327,7 +326,7 @@ function FulfillmentModule({ summary }: { summary: BusinessCommandCenterSummary 
         <MiniStat label="Need matching" value={matchingCount} />
         <MiniStat label="Require review" value={reviewCount} />
       </div>
-      <Link href="/dashboard/orders" className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-100">
+      <Link href="/dashboard/orders" className={`${styles.primaryLink} mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-100`}>
         Review fulfillment
         <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -337,10 +336,10 @@ function FulfillmentModule({ summary }: { summary: BusinessCommandCenterSummary 
 
 function InventoryCapitalModule({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">Inventory Capital</p>
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Inventory Capital</p>
       <p className="mt-3 text-3xl font-semibold text-white">{money(summary.inventoryCapital.totalValue)}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">
+      <p className="mt-1 text-xs leading-5 text-slate-400">
         {Math.round(summary.inventoryCapital.coveragePercent)}% of sampled inventory rows have value coverage.
       </p>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -363,10 +362,10 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
   const rows = connected.length ? connected : channels.slice(0, 2);
 
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.22)] ring-1 ring-white/[0.055]">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300/75">Channel Performance 2.0</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-300/75">Channel Performance 2.0</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-white">Marketplace matrix</h2>
         </div>
         {disconnectedCount > 0 ? (
@@ -378,7 +377,7 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-2xl bg-black/15">
-        <div className="grid min-w-[820px] grid-cols-[minmax(120px,1.2fr)_1fr_.8fr_.8fr_.8fr_.9fr_92px] gap-3 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">
+        <div className="grid min-w-[820px] grid-cols-[minmax(120px,1.2fr)_1fr_.8fr_.8fr_.8fr_.9fr_92px] gap-3 px-4 py-3 text-[11px] font-semibold tracking-wide text-slate-400">
           <span>Channel</span>
           <span>Sales</span>
           <span>Orders</span>
@@ -395,7 +394,7 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
             <span className="text-slate-400 [font-variant-numeric:tabular-nums]">{channel.averageOrderValue === null ? "—" : money(channel.averageOrderValue)}</span>
             <span className="text-slate-400 [font-variant-numeric:tabular-nums]">{channel.connected ? `${Math.round(channel.revenueSharePercent)}%` : "—"}</span>
             <span className={deltaTone(channel.salesChangePercent)}>{formatPercentChange(channel.salesChangePercent)}</span>
-            <span className={channel.connected ? "text-emerald-300" : "text-slate-600"}>{channel.connected ? "Active" : "Not connected"}</span>
+            <span className={channel.connected ? "text-emerald-300" : "text-slate-400"}>{channel.connected ? "Active" : "Not connected"}</span>
             {channel.connected ? (
               <div className="col-span-7">
                 <ProgressBar value={channel.revenueSharePercent} tone="brand" compact />
@@ -405,7 +404,7 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
         ))}
       </div>
       {disconnectedCount > 0 ? (
-        <p className="mt-3 text-xs text-slate-600">
+        <p className="mt-3 text-xs text-slate-400">
           {disconnectedCount.toLocaleString()} supported {disconnectedCount === 1 ? "channel is" : "channels are"} not connected. Disconnected channels stay neutral until configured.
         </p>
       ) : null}
@@ -415,11 +414,11 @@ function ChannelPerformance({ channels }: { channels: BusinessChannelSummary[] }
 
 function WhatChanged({ deltas }: { deltas: PeriodDelta[] }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">What Changed</p>
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">What Changed</p>
       <div className="mt-4 space-y-2">
         {deltas.map((item) => (
-          <div key={item.id} className="flex items-center justify-between gap-4 rounded-2xl bg-black/15 px-3 py-2.5">
+          <div key={item.id} className="flex items-center justify-between gap-4 border-l-2 border-cyan-300/20 px-3 py-1.5">
             <span className="text-sm font-semibold text-slate-200">{item.label}</span>
             <span className={`text-sm font-semibold [font-variant-numeric:tabular-nums] ${deltaTone(item.delta)}`}>
               {formatDelta(item)}
@@ -433,10 +432,10 @@ function WhatChanged({ deltas }: { deltas: PeriodDelta[] }) {
 
 function OpportunityFeed({ opportunities }: { opportunities: BusinessOpportunity[] }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300/75">Opportunity Feed</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-300/75">Opportunity Feed</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-white">Where to act next</h2>
         </div>
         <Link href="/dashboard/market-intelligence" className="text-xs font-semibold text-slate-400 transition hover:text-cyan-200">View all opportunities</Link>
@@ -448,7 +447,7 @@ function OpportunityFeed({ opportunities }: { opportunities: BusinessOpportunity
             <div className="mt-2 flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-white">{item.title}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">{item.detail}</p>
               </div>
               <p className="shrink-0 text-lg font-semibold text-white">{item.metric}</p>
             </div>
@@ -461,16 +460,16 @@ function OpportunityFeed({ opportunities }: { opportunities: BusinessOpportunity
 
 function ActivityFeed({ summary }: { summary: BusinessCommandCenterSummary }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">Business Activity</p>
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Business Activity</p>
       <div className="mt-4 space-y-2">
         {summary.activityFeed.length ? summary.activityFeed.map((event) => (
           <div key={event.id} className="rounded-2xl bg-black/15 p-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-slate-200">{event.label}</p>
-              <p className="text-[11px] text-slate-600">{shortDate(event.occurredAt)}</p>
+              <p className="text-[11px] text-slate-400">{shortDate(event.occurredAt)}</p>
             </div>
-            <p className="mt-1 text-xs text-slate-500">{event.detail}</p>
+            <p className="mt-1 text-xs text-slate-400">{event.detail}</p>
           </div>
         )) : <EmptyPanel title="No reliable activity stream" detail="Activity appears when orders or marketplace sync events have meaningful timestamps." />}
       </div>
@@ -481,23 +480,23 @@ function ActivityFeed({ summary }: { summary: BusinessCommandCenterSummary }) {
 function PriorityAction({ action }: { action: BusinessNextAction | null }) {
   if (!action) {
     return (
-      <article className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">Next best action</p>
+      <article className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Next best action</p>
         <p className="mt-3 text-lg font-semibold text-white">Business systems are quiet.</p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">No urgent order, sync, listing, or store actions are waiting right now.</p>
+        <p className="mt-2 text-sm leading-6 text-slate-400">No urgent order, sync, listing, or store actions are waiting right now.</p>
       </article>
     );
   }
 
   return (
-    <article className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
+    <article className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">Next best action</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Next best action</p>
         <SeverityDot severity={action.severity} />
       </div>
       <p className="mt-3 text-xl font-semibold tracking-[-0.02em] text-white">{action.label}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{action.detail}</p>
-      <Link href={action.href} className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-100">
+      <p className="mt-2 text-sm leading-6 text-slate-400">{action.detail}</p>
+      <Link href={action.href} className={`${styles.primaryLink} mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-100`}>
         Open workflow
         <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -507,18 +506,18 @@ function PriorityAction({ action }: { action: BusinessNextAction | null }) {
 
 function OnboardingGuidance({ connectedChannelCount }: { connectedChannelCount: number }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.2)] ring-1 ring-white/[0.055]">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-cyan-300/75">Activation path</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-300/75">Activation path</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-white">
             {connectedChannelCount ? "Waiting for first imported order." : "Connect real sales data to activate HQ."}
           </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
             Trading Docks does not fill this surface with demo revenue. Once orders arrive, this page switches from setup guidance to operational intelligence.
           </p>
         </div>
-        <Link href="/dashboard/marketplaces" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-100">
+        <Link href="/dashboard/marketplaces" className={`${styles.primaryLink} inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-100`}>
           Connect another channel
           <ArrowRight className="h-4 w-4" />
         </Link>
@@ -545,10 +544,10 @@ function ActionSection({
   tone: "attention" | "neutral";
 }) {
   return (
-    <section className="rounded-[24px] bg-[#06141e] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
+    <section className="rounded-2xl bg-[#06141e] p-5 ring-1 ring-white/[0.055]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className={`text-[10px] font-bold uppercase tracking-[0.15em] ${tone === "attention" ? "text-amber-300/80" : "text-slate-500"}`}>{eyebrow}</p>
+          <p className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${tone === "attention" ? "text-amber-300/80" : "text-slate-400"}`}>{eyebrow}</p>
           <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-white">{title}</h2>
         </div>
         <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${tone === "attention" ? "bg-amber-300/[0.08] text-amber-200" : "bg-white/[0.04] text-slate-400"}`}>
@@ -571,7 +570,7 @@ function ActionRow({ action }: { action: BusinessNextAction }) {
       <SeverityDot severity={action.severity} />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-slate-200 group-hover:text-white">{action.label}</span>
-        <span className="mt-1 block text-xs leading-5 text-slate-600">{action.detail}</span>
+        <span className="mt-1 block text-xs leading-5 text-slate-400">{action.detail}</span>
       </span>
       <ArrowRight className="h-4 w-4 shrink-0 text-slate-700 transition group-hover:text-cyan-200" />
     </Link>
@@ -603,11 +602,11 @@ function CompactMetric({
   return (
     <div className="rounded-2xl bg-black/15 p-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</p>
+        <p className="text-[11px] font-semibold tracking-wide text-slate-400">{label}</p>
         <span className="text-cyan-300/80">{icon}</span>
       </div>
       <p className="mt-2 text-lg font-semibold text-white [font-variant-numeric:tabular-nums]">{value}</p>
-      {detail ? <p className="mt-0.5 text-[11px] text-slate-600">{detail}</p> : null}
+      {detail ? <p className="mt-0.5 text-[11px] text-slate-400">{detail}</p> : null}
     </div>
   );
 }
@@ -624,13 +623,13 @@ function StoreMetric({
   icon: ReactNode;
 }) {
   return (
-    <article className="rounded-[20px] bg-[#06141e] p-4 shadow-[0_18px_60px_rgba(0,0,0,.18)] ring-1 ring-white/[0.055]">
+    <article className="rounded-[20px] bg-[#06141e] p-4 ring-1 ring-white/[0.055]">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</p>
+        <p className="text-[11px] font-semibold tracking-wide text-slate-400">{label}</p>
         <span className="text-slate-400">{icon}</span>
       </div>
       <p className="mt-3 text-2xl font-semibold text-white [font-variant-numeric:tabular-nums]">{value}</p>
-      <p className="mt-1 text-xs text-slate-600">{detail}</p>
+      <p className="mt-1 text-xs text-slate-400">{detail}</p>
     </article>
   );
 }
@@ -638,7 +637,7 @@ function StoreMetric({
 function MiniStat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl bg-black/15 p-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</p>
+      <p className="text-[11px] font-semibold tracking-wide text-slate-400">{label}</p>
       <p className="mt-2 text-lg font-semibold text-white [font-variant-numeric:tabular-nums]">{typeof value === "number" ? value.toLocaleString() : value}</p>
     </div>
   );
@@ -648,7 +647,7 @@ function EmptyPanel({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="rounded-2xl bg-black/15 p-4">
       <p className="text-sm font-semibold text-white">{title}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-600">{detail}</p>
+      <p className="mt-1 text-xs leading-5 text-slate-400">{detail}</p>
     </div>
   );
 }
@@ -722,12 +721,12 @@ function RevenueProfitChart({
   const axisLabels = points.filter((point) => point.axisLabel);
 
   return (
-    <div className="mt-5 rounded-[24px] bg-black/20 p-4 ring-1 ring-white/[0.04]">
+    <div className="mt-5 rounded-2xl bg-black/20 p-4 ring-1 ring-white/[0.04]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-white">Revenue trend</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            {range === "12m" ? "Monthly" : range === "90d" ? "Weekly" : "Daily"} buckets from canonical order data. Profit is only plotted when cost basis exists.
+          <p className="mt-1 text-xs leading-5 text-slate-400">
+            {range === "12m" ? "Monthly" : range === "90d" ? "Weekly" : "Daily"} revenue. Profit is only plotted when cost basis exists.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
@@ -799,12 +798,12 @@ function RevenueProfitChart({
           <div className="flex h-72 flex-col items-center justify-center text-center">
             <BarChart3 className="h-7 w-7 text-slate-700" />
             <p className="mt-3 text-sm font-semibold text-white">No revenue in this range yet</p>
-            <p className="mt-1 max-w-md text-xs leading-5 text-slate-600">Connect or import orders and this panel becomes a month-aware revenue and profit chart.</p>
+            <p className="mt-1 max-w-md text-xs leading-5 text-slate-400">Connect or import orders and this panel becomes a month-aware revenue and profit chart.</p>
           </div>
         )}
 
         {activePoint && hasRevenue ? (
-          <div className="absolute right-4 top-4 w-56 rounded-2xl bg-[#081824]/95 p-3 text-xs shadow-2xl ring-1 ring-cyan-300/[0.12] backdrop-blur">
+          <div className="relative mt-3 w-full sm:absolute sm:right-4 sm:top-4 sm:mt-0 sm:w-56 rounded-2xl bg-[#081824]/95 p-3 text-xs shadow-2xl ring-1 ring-cyan-300/[0.12] backdrop-blur">
             <p className="font-semibold text-white">{activePoint.label}</p>
             <div className="mt-2 space-y-1.5">
               <TooltipRow label="Revenue" value={money(activePoint.revenue)} tone="cyan" />
@@ -817,7 +816,7 @@ function RevenueProfitChart({
 
         <div className="absolute inset-x-3 bottom-3 grid" style={{ gridTemplateColumns: `repeat(${Math.max(axisLabels.length, 1)}, minmax(0, 1fr))` }}>
           {axisLabels.map((point) => (
-            <span key={`${point.key}-axis`} className="truncate text-center text-[10px] font-medium text-slate-600">{point.axisLabel}</span>
+            <span key={`${point.key}-axis`} className="truncate text-center text-[10px] font-medium text-slate-400">{point.axisLabel}</span>
           ))}
         </div>
       </div>
@@ -858,7 +857,7 @@ function TooltipRow({ label, value, tone }: { label: string; value: string; tone
   const toneClass = tone === "cyan" ? "text-cyan-200" : tone === "emerald" ? "text-emerald-200" : "text-slate-300";
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-slate-500">{label}</span>
+      <span className="text-slate-400">{label}</span>
       <span className={`font-semibold ${toneClass}`}>{value}</span>
     </div>
   );
@@ -867,7 +866,7 @@ function TooltipRow({ label, value, tone }: { label: string; value: string; tone
 function CoveragePill({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl bg-black/15 px-3 py-2">
-      <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</p>
+      <p className="text-[11px] font-semibold tracking-wide text-slate-400">{label}</p>
       <p className="mt-1 text-sm font-semibold text-slate-100">{Math.round(value)}%</p>
     </div>
   );
@@ -906,7 +905,7 @@ function formatPercentChange(value: number | null) {
 }
 
 function deltaTone(value: number | null) {
-  if (value === null || value === 0) return "text-slate-500";
+  if (value === null || value === 0) return "text-slate-400";
   return value > 0 ? "text-emerald-300" : "text-rose-300";
 }
 
