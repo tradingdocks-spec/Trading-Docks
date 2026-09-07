@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CloudUpload,
+  FileSpreadsheet,
   Layers3,
   PackageCheck,
   Play,
@@ -23,6 +24,7 @@ import { PageHeader } from "@/components/dashboard/common/PageHeader";
 import { WorkspaceFrame } from "@/components/dashboard/common/WorkspaceFrame";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { csvValue, parseSimpleCsv } from "@/lib/csv-simple";
 import {
   buildChaosSortPlan,
   buildDefaultChaosSortRules,
@@ -143,6 +145,7 @@ export function ChaosSortWorkspace() {
   const [locationQrValue, setLocationQrValue] = useState("");
   const [committedBatchId, setCommittedBatchId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
   const itemsRef = useRef<ChaosSortItem[]>([]);
   const inventoryRef = useRef<InventoryRow[]>([]);
   const activeRecognitionJobsRef = useRef(new Set<string>());
@@ -469,6 +472,61 @@ export function ChaosSortWorkspace() {
     activeRecognitionJobsRef.current.delete(jobKey);
   }, [batch.id, destinationLocationId, locations, updateItem]);
 
+  const importCsv = useCallback(async (file: File) => {
+    setError("");
+    try {
+      const rows = parseSimpleCsv(await file.text());
+      const imported = rows.map(({ values, sourceRow }) => {
+        const cardName = csvValue(values, "name", "card_name", "card name", "product name", "title");
+        const quantity = Math.max(1, Number.parseInt(csvValue(values, "quantity", "qty", "count") || "1", 10) || 1);
+        const setCode = csvValue(values, "set", "set_code", "set code") || null;
+        const collectorNumber = csvValue(values, "collector number", "collector_number", "number") || null;
+        const condition = csvValue(values, "condition") || "NM";
+        const finish = csvValue(values, "finish", "printing") || "nonfoil";
+        const now = new Date().toISOString();
+        const id = crypto.randomUUID();
+        return {
+          id,
+          batchId: batch.id,
+          sourceFileName: file.name,
+          sourceFileHash: `csv:${file.name}:${sourceRow}`,
+          sourceImageUrl: null,
+          processingState: "ready",
+          recognitionState: cardName && setCode && collectorNumber ? "high_confidence" : "review",
+          humanState: cardName && setCode && collectorNumber ? "confirmed" : "pending",
+          cardName,
+          scryfallId: null,
+          gameId: csvValue(values, "game", "game_id") || "magic",
+          setCode,
+          collectorNumber,
+          rarity: csvValue(values, "rarity") || null,
+          finish,
+          condition,
+          quantity,
+          marketPrice: Number.parseFloat(csvValue(values, "market", "market price", "price") || "") || null,
+          existingOwnedQuantity: 0,
+          destinationLocationId: destinationLocationId || null,
+          destinationLabel: destinationLocationLabel(destinationLocationId, locations),
+          sortPile: "review",
+          sortPass: 1,
+          confidence: cardName && setCode && collectorNumber ? 1 : 0.4,
+          evidence: [`CSV row ${sourceRow}`],
+          notes: cardName ? "Imported from CSV." : `CSV row ${sourceRow} is missing a card name.`,
+          duplicateOfItemId: null,
+          sortRuleId: null,
+          createdAt: now,
+          updatedAt: now,
+        } satisfies ChaosSortItem;
+      }).filter((item) => item.cardName || item.notes.includes("missing a card name"));
+      if (!imported.length) throw new Error("No card rows were found in the CSV.");
+      setItems((current) => [...current, ...imported]);
+      setSelectedItemId(imported[0].id);
+      setNotice(`Loaded ${imported.length} CSV row${imported.length === 1 ? "" : "s"} into review.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The CSV could not be read.");
+    }
+  }, [batch.id, destinationLocationId, locations]);
+
   const startBatch = useCallback(() => {
     const pending = stagedFiles;
     setStagedFiles([]);
@@ -723,6 +781,9 @@ export function ChaosSortWorkspace() {
                 >
                   Add images
                 </TDButton>
+                <TDButton variant="secondary" size="sm" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={() => csvInputRef.current?.click()}>
+                  Add CSV
+                </TDButton>
                 <TDButton
                   variant="secondary"
                   size="sm"
@@ -782,9 +843,11 @@ export function ChaosSortWorkspace() {
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
-                if (event.dataTransfer.files.length) {
-                  void stageFiles(event.dataTransfer.files);
-                }
+                const files = Array.from(event.dataTransfer.files);
+                const csv = files.find((file) => file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv");
+                const images = files.filter((file) => SUPPORTED_FILE_TYPES.includes(file.type));
+                if (csv) void importCsv(csv);
+                if (images.length) void stageFiles(images);
               }}
               className={cn(
                 "rounded-[24px] border border-dashed p-6 transition",
@@ -804,15 +867,16 @@ export function ChaosSortWorkspace() {
                   }
                 }}
               />
+              <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.target.value = ""; }} />
               <div className="flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
                     <ScanSearch className="h-5 w-5" />
                   </div>
                   <div>
-                      <TDText variant="title">Drop an entire scanner batch</TDText>
+                      <TDText variant="title">Drop card photos or a CSV batch</TDText>
                     <TDText variant="caption" tone="muted">
-                      {progressText || "Drag 50–100 card scans here. Trading Docks identifies the entire batch automatically."}
+                      {progressText || "Drag card photos or a CSV with Name, Set, Collector Number, Quantity, Condition, and Finish."}
                     </TDText>
                   </div>
                 </div>
