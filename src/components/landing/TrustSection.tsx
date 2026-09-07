@@ -5,7 +5,7 @@ const items = [
   ["Encrypted credentials", "Marketplace API keys are encrypted on the server—not kept in browser storage.", KeyRound],
   ["Workspace-scoped data", "Inventory, orders, customers, and credentials remain tied to the correct account.", Database],
   ["Preview-first automation", "Potential inventory changes can be reviewed before they affect live records.", ShieldCheck],
-  ["Built for teams", "Store workspaces add employee, vendor, tournament, and operational controls.", Users],
+  ["Store workflows", "Explore store operations in the plan comparison. Employee accounts are not yet available.", Users],
   ["Fast by design", "Modern Next.js infrastructure keeps the workspace responsive as your operation grows.", Zap],
 ] as const;
 

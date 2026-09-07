@@ -52,9 +52,9 @@ const plans: Plan[] = [
     id: "store",
     name: "Store",
     motion: "Operate",
-    audience: "Store teams",
-    description: "Shared buying profiles, approvals, customer summaries, staff, and operations.",
-    annualNote: "Employee capacity pending configuration",
+    audience: "Store operators",
+    description: "Buying profiles, approvals, customer summaries, inventory, and store operations.",
+    annualNote: "Employee accounts not yet available",
   },
 ];
 
@@ -68,7 +68,7 @@ const comparisonRows = [
   { label: "CSV/email export", values: ["No", "No", "Yes", "Yes"] },
   { label: "Business intelligence", values: ["No", "No", "Seller view", "Store view"] },
   { label: "Store operations", values: ["No", "No", "No", "Yes"] },
-  { label: "Employee accounts", values: ["No", "No", "No", "Configurable"] },
+  { label: "Employee accounts", values: ["No", "No", "No", "Not yet available"] },
 ];
 
 function formatPrice(value: number) {
@@ -103,13 +103,14 @@ export function TieredPlanComparison({
   publicView?: boolean;
 }) {
   const [billing, setBilling] = useState<BillingCycle>("monthly");
+  const Container = publicView ? "main" : "div";
 
   return (
-    <div className="min-h-full bg-[#03080d] px-5 py-8 text-white sm:px-8 lg:px-12">
+    <Container className="min-h-full bg-[#03080d] px-5 py-8 text-white sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1480px]">
         <Link
           href={publicView ? "/" : "/dashboard"}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-cyan-200"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-cyan-200"
         >
           <ArrowLeft className="h-4 w-4" />
           {publicView ? "Back to Trading Docks" : "Back to Dashboard"}
@@ -119,26 +120,27 @@ export function TieredPlanComparison({
           <div className="max-w-3xl">
             <p className="text-sm font-medium text-cyan-200">Pricing</p>
             <h1 className="mt-4 text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-6xl">
-              Choose by workflow, not by a feature-card wall.
+              Choose the plan that fits your collection.
             </h1>
-            <p className="mt-5 text-base leading-8 text-slate-500">
+            <p className="mt-5 text-base leading-8 text-slate-400">
               Trading Docks progresses from collection organization to market
-              understanding, selling operations, and store management. Billing
-              changes the workspace surface; platform authority remains separate.
+              understanding, selling operations, and store management. Compare
+              the included tools and choose monthly or annual billing.
             </p>
           </div>
 
-          <div className="flex w-fit items-center border border-white/[0.1] p-1">
+          <div className="flex w-fit items-center border border-white/[0.1] p-1" role="group" aria-label="Billing cycle">
             {(["monthly", "annual"] as const).map((cycle) => (
               <button
                 key={cycle}
                 type="button"
                 onClick={() => setBilling(cycle)}
+                aria-pressed={billing === cycle}
                 className={[
                   "h-10 px-4 text-sm font-semibold capitalize transition",
                   billing === cycle
                     ? "bg-cyan-300 text-[#01131a]"
-                    : "text-slate-500 hover:text-white",
+                    : "text-slate-400 hover:text-white",
                 ].join(" ")}
               >
                 {cycle}
@@ -161,7 +163,7 @@ export function TieredPlanComparison({
                 className="border-b border-white/[0.08] py-7 lg:border-b-0 lg:border-r lg:px-6 lg:last:border-r-0"
               >
                 <div className="flex min-h-6 items-center justify-between gap-4">
-                  <span className="text-xs text-slate-600">
+                  <span className="text-xs text-slate-400">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   {plan.recommended ? (
@@ -174,18 +176,18 @@ export function TieredPlanComparison({
                 <h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
                   {plan.name}
                 </h2>
-                <p className="mt-1 text-sm text-slate-600">{plan.audience}</p>
+                <p className="mt-1 text-sm text-slate-400">{plan.audience}</p>
                 <div className="mt-7">
                   <span className="text-4xl font-semibold tracking-[-0.05em]">
                     {displayPrice(plan, billing)}
                   </span>
-                  <span className="ml-2 text-sm text-slate-600">/ month</span>
+                  <span className="ml-2 text-sm text-slate-400">/ month</span>
                 </div>
-                <p className="mt-2 text-xs text-slate-600">{billingDetail(plan, billing)}</p>
+                <p className="mt-2 text-xs text-slate-400">{billingDetail(plan, billing)}</p>
                 <p className="mt-5 min-h-[96px] text-sm leading-6 text-slate-400">
                   {plan.description}
                 </p>
-                <p className="mt-3 text-xs leading-5 text-slate-600">{plan.annualNote}</p>
+                <p className="mt-3 text-xs leading-5 text-slate-400">{plan.annualNote}</p>
 
                 {publicView ? (
                   <Link
@@ -230,18 +232,18 @@ export function TieredPlanComparison({
           })}
         </section>
 
-        <section className="grid gap-8 py-10 lg:grid-cols-[300px_1fr]">
+        <section className="grid min-w-0 gap-8 py-10 lg:grid-cols-[300px_minmax(0,1fr)]">
           <div>
             <p className="text-sm font-semibold text-white">Capability matrix</p>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Compact by design. The important question is what workflow becomes
-              available at each stage.
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Compare the tools and limits included with each plan.
             </p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="min-w-0 overflow-x-auto" role="region" aria-label="Full plan comparison" tabIndex={0}>
             <table className="w-full min-w-[860px] border-collapse text-left">
+              <caption className="sr-only">Plan features and limits.</caption>
               <thead>
-                <tr className="border-b border-white/[0.08] text-xs text-slate-600">
+                <tr className="border-b border-white/[0.08] text-xs text-slate-400">
                   <th className="py-3 pr-6 font-medium">Capability</th>
                   {plans.map((plan) => (
                     <th key={plan.id} className="px-4 py-3 font-medium">
@@ -258,7 +260,7 @@ export function TieredPlanComparison({
                   >
                     <td className="py-4 pr-6 font-medium text-slate-300">{row.label}</td>
                     {row.values.map((value, index) => (
-                      <td key={`${row.label}-${plans[index].id}`} className="px-4 py-4 leading-6 text-slate-500">
+                      <td key={`${row.label}-${plans[index].id}`} className="px-4 py-4 leading-6 text-slate-400">
                         {value}
                       </td>
                     ))}
@@ -273,15 +275,15 @@ export function TieredPlanComparison({
           {[
             ["No surprise fees", "Clear plan limits and straightforward monthly or annual billing."],
             ["Upgrade without rebuilding", "Your workspace history, inventory, and account identity stay intact."],
-            ["Owner access stays separate", "Platform Owner/Admin authority is not faked as a commercial subscription."],
+            ["Employee accounts", "Employee access is not yet available. Store pricing does not include active employee seats."],
           ].map(([title, copy]) => (
             <div key={title} className="border-l border-white/[0.08] pl-4">
               <h3 className="text-sm font-semibold text-white">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{copy}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">{copy}</p>
             </div>
           ))}
         </section>
       </div>
-    </div>
+    </Container>
   );
 }

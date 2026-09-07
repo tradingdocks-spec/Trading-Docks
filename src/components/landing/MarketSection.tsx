@@ -1,51 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, RefreshCw } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowRight } from "lucide-react";
 
 type GameId = "magic" | "pokemon" | "pokemon-japan" | "lorcana" | "one-piece";
 type MarketMode = "trending" | "movers" | "volume" | "opportunities";
 
 type MarketCard = {
   id: string;
-  game: GameId;
   name: string;
-  subtitle: string;
   setName: string;
   setCode: string;
   collectorNumber: string;
-  image: string;
   marketPrice: number;
-  lowPrice: number;
   change24h: number;
   change7d: number;
-  inventoryOwned: number;
-  potentialRevenue: number;
   demand: "High" | "Medium" | "Low";
   volumeScore: number;
   opportunityScore: number;
-  sparkline: number[];
   source: string;
-  dataQuality: "live" | "reference" | "fallback";
-  signal: "gainer" | "loser" | "volume" | "opportunity";
 };
 
-type GameStatus = {
-  game: GameId;
-  label: string;
-  source: string;
-  dataQuality: "live" | "reference" | "fallback";
-  cardCount: number;
+// Deliberately illustrative: never presented as provider quotes or live prices.
+const SAMPLE_NAMES: Record<GameId, string[]> = {
+  magic: ["Sample mythic", "Sample rare", "Sample uncommon"],
+  pokemon: ["Sample illustration rare", "Sample ultra rare", "Sample holo"],
+  "pokemon-japan": ["Sample Japanese illustration rare", "Sample Japanese ultra rare", "Sample Japanese holo"],
+  lorcana: ["Sample enchanted", "Sample legendary", "Sample super rare"],
+  "one-piece": ["Sample alternate art", "Sample secret rare", "Sample super rare"],
 };
 
-type ApiResponse = {
-  updatedAt: string;
-  refreshSeconds: number;
-  games: Record<GameId, MarketCard[]>;
-  status: Record<GameId, GameStatus>;
-};
-
+function sampleCards(game: GameId): MarketCard[] {
+  return SAMPLE_NAMES[game].map((name, index) => ({
+    id: `${game}-sample-${index}`, name, setName: "Example set", setCode: "DEMO",
+    collectorNumber: String(index + 1).padStart(3, "0"),
+    marketPrice: [24, 12, 3][index], change24h: [2, -1, 0.5][index],
+    change7d: [8, -4, 2][index], demand: index === 0 ? "High" : "Medium",
+    volumeScore: [80, 60, 95][index], opportunityScore: [65, 85, 40][index],
+    source: "Illustrative sample",
+  }));
+}
 const GAME_TABS: Array<{ id: GameId; label: string; shortLabel: string }> = [
   { id: "magic", label: "Magic: The Gathering", shortLabel: "Magic" },
   { id: "pokemon", label: "Pokemon", shortLabel: "Pokemon" },
@@ -64,38 +59,12 @@ const MODES: Array<{ id: MarketMode; label: string; description: string }> = [
 export function MarketSection() {
   const [activeGame, setActiveGame] = useState<GameId>("magic");
   const [activeMode, setActiveMode] = useState<MarketMode>("trending");
-  const [payload, setPayload] = useState<ApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
-
-  async function load(manual = false) {
-    manual ? setRefreshing(true) : setLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/multi-game-market", { cache: "force-cache" });
-      if (!response.ok) throw new Error(`Market feed returned ${response.status}.`);
-      const nextPayload = (await response.json()) as ApiResponse;
-      setPayload(nextPayload);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Market feed unavailable.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
-
-  useEffect(() => {
-    void load(false);
-  }, []);
 
   const selectedGame = GAME_TABS.find((game) => game.id === activeGame) ?? GAME_TABS[0];
   const selectedMode = MODES.find((mode) => mode.id === activeMode) ?? MODES[0];
-  const status = payload?.status?.[activeGame];
   const cards = useMemo(
-    () => rankCards(payload?.games?.[activeGame] ?? [], activeMode),
-    [activeGame, activeMode, payload],
+    () => rankCards(sampleCards(activeGame), activeMode),
+    [activeGame, activeMode],
   );
   const primaryCard = cards[0] ?? null;
 
@@ -110,23 +79,15 @@ export function MarketSection() {
           <div className="min-w-0">
             <p className="text-sm font-medium text-cyan-200">Market intelligence</p>
             <h2 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-5xl">
-              Product movement, not a fake stock ticker.
+              See market signals in context.
             </h2>
-            <p className="mt-5 text-sm leading-7 text-slate-500">
-              The market view keeps source quality visible and turns price
-              movement into inventory decisions: buy, hold, reprice, list, or
-              investigate.
+            <p className="mt-5 text-sm leading-7 text-slate-400">
+              Explore a sample market snapshot. All products, prices, changes,
+              and demand scores below are illustrative examples, not current
+              market quotes or buying recommendations.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => load(true)}
-                className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-white/[0.12] px-4 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/35 hover:text-white"
-              >
-                <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-                Refresh feed
-              </button>
               <Link
                 href="/dashboard/market-intelligence"
                 className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-cyan-300 px-4 text-sm font-semibold text-[#01131a] transition hover:bg-cyan-200"
@@ -146,11 +107,12 @@ export function MarketSection() {
                       key={game.id}
                       type="button"
                       onClick={() => setActiveGame(game.id)}
+                      aria-pressed={activeGame === game.id}
                       className={[
                         "h-9 border px-3 text-sm transition",
                         activeGame === game.id
                           ? "border-cyan-300/40 text-white"
-                          : "border-white/[0.09] text-slate-500 hover:text-slate-200",
+                          : "border-white/[0.09] text-slate-400 hover:text-slate-200",
                       ].join(" ")}
                     >
                       {game.shortLabel}
@@ -163,11 +125,12 @@ export function MarketSection() {
                       key={mode.id}
                       type="button"
                       onClick={() => setActiveMode(mode.id)}
+                      aria-pressed={activeMode === mode.id}
                       className={[
                         "h-9 border px-3 text-sm transition",
                         activeMode === mode.id
                           ? "border-cyan-300/40 text-cyan-200"
-                          : "border-white/[0.09] text-slate-500 hover:text-slate-200",
+                          : "border-white/[0.09] text-slate-400 hover:text-slate-200",
                       ].join(" ")}
                     >
                       {mode.label}
@@ -178,30 +141,24 @@ export function MarketSection() {
 
               <div className="py-5 lg:pl-6">
                 <p className="text-sm font-semibold text-white">{selectedGame.label}</p>
-                <p className="mt-1 text-xs text-slate-600">{selectedMode.description}</p>
+                <p className="mt-1 text-xs text-slate-400">{selectedMode.description}</p>
                 <div className="mt-4 grid gap-2 text-xs">
-                  <StatusRow label="Source" value={status?.source ?? (loading ? "Connecting" : "Unavailable")} />
-                  <StatusRow label="Quality" value={status?.dataQuality ?? "fallback"} />
-                  <StatusRow label="Updated" value={formatUpdated(payload?.updatedAt)} />
+                  <StatusRow label="Source" value="Illustrative sample" />
+                  <StatusRow label="Prices" value="Demo values in USD" />
+                  <StatusRow label="Availability" value="Interactive preview" />
                 </div>
               </div>
             </div>
 
-            {error ? (
-              <div className="border-b border-white/[0.08] py-5 text-sm text-rose-300">
-                {error}
-              </div>
-            ) : null}
-
             <div className="grid min-w-0 gap-8 py-8 lg:grid-cols-[280px_1fr]">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white">Lead signal</p>
+                <p className="text-sm font-semibold text-white">Sample lead signal</p>
                 {primaryCard ? (
                   <div className="mt-5 border-y border-white/[0.08] py-5">
                     <p className="text-2xl font-semibold tracking-[-0.035em] text-white">
                       {primaryCard.name}
                     </p>
-                    <p className="mt-2 text-sm text-slate-600">
+                    <p className="mt-2 text-sm text-slate-400">
                       {primaryCard.setName} #{primaryCard.collectorNumber}
                     </p>
                     <div className="mt-5 grid grid-cols-2 gap-4">
@@ -212,16 +169,17 @@ export function MarketSection() {
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-5 border-y border-white/[0.08] py-5 text-sm leading-6 text-slate-600">
-                    {loading ? "Connecting to market feed." : "No market signal available for this selection."}
+                  <p className="mt-5 border-y border-white/[0.08] py-5 text-sm leading-6 text-slate-400">
+                    No sample available for this selection.
                   </p>
                 )}
               </div>
 
-              <div className="min-w-0 overflow-x-auto">
+              <div className="min-w-0 overflow-x-auto" role="region" aria-label="Sample market comparison" tabIndex={0}>
                 <table className="w-full min-w-[860px] border-collapse text-left">
+                  <caption className="sr-only">Illustrative market data. All values are examples.</caption>
                   <thead>
-                    <tr className="border-b border-white/[0.08] text-xs text-slate-600">
+                    <tr className="border-b border-white/[0.08] text-xs text-slate-400">
                       <th className="py-3 pr-6 font-medium">Product</th>
                       <th className="px-4 py-3 font-medium">Market</th>
                       <th className="px-4 py-3 font-medium">24h</th>
@@ -235,24 +193,17 @@ export function MarketSection() {
                       <tr key={card.id} className="border-b border-white/[0.055] last:border-b-0">
                         <td className="py-4 pr-6">
                           <p className="text-sm font-semibold text-slate-200">{card.name}</p>
-                          <p className="mt-1 text-xs text-slate-600">
+                          <p className="mt-1 text-xs text-slate-400">
                             {card.setCode} #{card.collectorNumber}
                           </p>
                         </td>
                         <td className="px-4 py-4 text-sm text-slate-400">{currency(card.marketPrice)}</td>
                         <td className={movementClass(card.change24h)}>{signedPercent(card.change24h)}</td>
                         <td className={movementClass(card.change7d)}>{signedPercent(card.change7d)}</td>
-                        <td className="px-4 py-4 text-sm text-slate-500">{card.demand}</td>
-                        <td className="px-4 py-4 text-sm text-slate-500">{card.source}</td>
+                        <td className="px-4 py-4 text-sm text-slate-400">{card.demand}</td>
+                        <td className="px-4 py-4 text-sm text-slate-400">{card.source}</td>
                       </tr>
                     ))}
-                    {loading && !cards.length ? (
-                      <tr>
-                        <td className="py-8 text-sm text-slate-600" colSpan={6}>
-                          Loading market intelligence.
-                        </td>
-                      </tr>
-                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -276,7 +227,7 @@ function rankCards(cards: MarketCard[], mode: MarketMode) {
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <span className="text-slate-700">{label}</span>
+      <span className="text-slate-400">{label}</span>
       <span className="text-slate-400">{value}</span>
     </div>
   );
@@ -285,7 +236,7 @@ function StatusRow({ label, value }: { label: string; value: string }) {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-slate-700">{label}</p>
+      <p className="text-xs text-slate-400">{label}</p>
       <p className="mt-1 text-sm font-semibold text-slate-200">{value}</p>
     </div>
   );
@@ -294,7 +245,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function movementClass(value: number) {
   return [
     "px-4 py-4 text-sm font-semibold",
-    value > 0 ? "text-emerald-300" : value < 0 ? "text-rose-300" : "text-slate-500",
+    value > 0 ? "text-emerald-300" : value < 0 ? "text-rose-300" : "text-slate-400",
   ].join(" ");
 }
 
@@ -308,12 +259,4 @@ function currency(value: number) {
 
 function signedPercent(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
-}
-
-function formatUpdated(value: string | undefined) {
-  if (!value) return "Pending";
-  return new Date(value).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }

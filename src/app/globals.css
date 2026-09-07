@@ -87,9 +87,11 @@ select option:disabled {
   color: #64748b;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 ::selection {
@@ -223,6 +225,9 @@ a {
   box-shadow: 0 0 0 3px rgba(85, 199, 255, 0.08);
 }
 
+/* Preserve native overlay scrollbars on touch devices. A forced scrollbar
+   width reduces the visual viewport in mobile WebKit. */
+@media (hover: hover) and (pointer: fine) {
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -239,6 +244,7 @@ a {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.4);
+}
 }
 
 /* Navigation motion stays subordinate to the product. The transition preserves

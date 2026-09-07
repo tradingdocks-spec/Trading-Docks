@@ -37,7 +37,7 @@ const PLAN_POSITIONING: Record<MembershipTier, Omit<PublicPlan, "id">> = {
   store: {
     audience: "Store operators",
     motion: "Operate",
-    bestFor: "Shared workflows, approvals, employees, sessions, inventory, and operations.",
+    bestFor: "Buying profiles, approvals, customer summaries, inventory, and store operations.",
     cta: "Choose Store",
   },
 };
@@ -88,7 +88,7 @@ const COMPARISON_ROWS: Array<{
       free: "Not included",
       collector: "Not included",
       seller: "Solo operation",
-      store: "Employee accounts pending configuration",
+      store: "Employee accounts not yet available",
     },
   },
 ];
@@ -108,7 +108,7 @@ function formatAnnualPrice(tier: MembershipTier) {
 }
 
 function signupHref(tier: MembershipTier) {
-  return `/sign-up?plan=${tier}`;
+  return tier === "free" ? "/sign-up" : `/sign-up?plan=${tier}&billing=monthly`;
 }
 
 export function PricingSection() {
@@ -124,12 +124,12 @@ export function PricingSection() {
           <div>
             <p className="text-sm font-medium text-cyan-200">Plans</p>
             <h2 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-5xl">
-              A workspace that grows by function, not decoration.
+              Find the plan for your collection.
             </h2>
-            <p className="mt-5 text-sm leading-7 text-slate-500">
+            <p className="mt-5 text-sm leading-7 text-slate-400">
               Trading Docks plans progress through the real lifecycle:
               organize the collection, understand value, sell inventory, then
-              operate a team.
+              manage store operations.
             </p>
           </div>
 
@@ -141,7 +141,7 @@ export function PricingSection() {
                   className="border-b border-white/[0.08] py-6 md:border-b-0 md:border-r md:px-5 md:last:border-r-0"
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-xs text-slate-600">
+                    <span className="text-xs text-slate-400">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     {plan.recommended ? (
@@ -154,14 +154,14 @@ export function PricingSection() {
                   <h3 className="mt-1 text-2xl font-semibold tracking-[-0.035em] text-white">
                     {MEMBERSHIP_PLANS[plan.id].name}
                   </h3>
-                  <p className="mt-1 text-sm text-slate-600">{plan.audience}</p>
+                  <p className="mt-1 text-sm text-slate-400">{plan.audience}</p>
                   <div className="mt-6">
                     <span className="text-3xl font-semibold tracking-[-0.045em]">
                       {formatMonthlyPrice(plan.id)}
                     </span>
-                    <span className="ml-2 text-sm text-slate-600">/ month</span>
+                    <span className="ml-2 text-sm text-slate-400">/ month</span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-600">{formatAnnualPrice(plan.id)}</p>
+                  <p className="mt-2 text-xs text-slate-400">{formatAnnualPrice(plan.id)}</p>
                   <p className="mt-5 min-h-[84px] text-sm leading-6 text-slate-400">
                     {plan.bestFor}
                   </p>
@@ -181,10 +181,11 @@ export function PricingSection() {
               ))}
             </div>
 
-            <div className="mt-8 overflow-x-auto">
+            <div className="mt-8 overflow-x-auto" role="region" aria-label="Homepage plan comparison" tabIndex={0}>
               <table className="w-full min-w-[860px] border-collapse text-left">
+                <caption className="sr-only">Compare Free, Collector, Seller, and Store plans.</caption>
                 <thead>
-                  <tr className="border-b border-white/[0.08] text-xs text-slate-600">
+                  <tr className="border-b border-white/[0.08] text-xs text-slate-400">
                     <th className="py-3 pr-6 font-medium">Capability</th>
                     {plans.map((plan) => (
                       <th key={plan.id} className="px-4 py-3 font-medium">
@@ -201,7 +202,7 @@ export function PricingSection() {
                     >
                       <td className="py-4 pr-6 font-medium text-slate-300">{row.label}</td>
                       {plans.map((plan) => (
-                        <td key={plan.id} className="px-4 py-4 leading-6 text-slate-500">
+                        <td key={plan.id} className="px-4 py-4 leading-6 text-slate-400">
                           {row.values[plan.id]}
                         </td>
                       ))}
@@ -212,10 +213,10 @@ export function PricingSection() {
             </div>
 
             <div className="mt-8 flex flex-col justify-between gap-4 border-t border-white/[0.08] pt-6 sm:flex-row sm:items-center">
-              <p className="max-w-2xl text-sm leading-6 text-slate-500">
+              <p className="max-w-2xl text-sm leading-6 text-slate-400">
                 Seller is recommended for users who buy and sell weekly. Store
-                is for shared operations; employee capacity remains configurable
-                rather than an invented fixed seat count.
+                adds store workflows. Employee accounts are not yet available
+                and are not included as an active benefit.
               </p>
               <Link
                 href="/pricing"
