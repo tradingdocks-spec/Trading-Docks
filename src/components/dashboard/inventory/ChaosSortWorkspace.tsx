@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CloudUpload,
+  ChevronDown,
   FileSpreadsheet,
   Layers3,
   PackageCheck,
@@ -792,7 +793,7 @@ export function ChaosSortWorkspace() {
           </div>
         </section>
 
-        <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-5">
           <TDCard variant="floating" className="space-y-4">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-2">
@@ -1017,7 +1018,12 @@ export function ChaosSortWorkspace() {
             </div>
           </TDCard>
 
-          <div className="space-y-5">
+          <div className="grid gap-5 xl:grid-cols-2">
+            <details open className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
+                <span>Physical sort mode</span>
+                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+              </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1081,7 +1087,13 @@ export function ChaosSortWorkspace() {
                 )}
               </div>
             </TDCard>
+            </details>
 
+            <details open className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
+                <span>Batch summary</span>
+                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+              </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1127,7 +1139,13 @@ export function ChaosSortWorkspace() {
                 </div>
               </div>
             </TDCard>
+            </details>
 
+            <details open className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
+                <span>Review inspector</span>
+                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+              </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1208,7 +1226,13 @@ export function ChaosSortWorkspace() {
                 <TDLoadingState title="No item selected" message="Upload a batch, then pick a card to inspect it." />
               )}
             </TDCard>
+            </details>
 
+            <details open className="group xl:col-span-2">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
+                <span>Sorting rules</span>
+                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+              </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1338,6 +1362,7 @@ export function ChaosSortWorkspace() {
                 ))}
               </div>
             </TDCard>
+            </details>
           </div>
         </div>
 
