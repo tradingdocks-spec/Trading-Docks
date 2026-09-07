@@ -964,13 +964,13 @@ export function ChaosSortWorkspace() {
                     type="button"
                     onClick={() => setSelectedItemId(item.id)}
                     className={cn(
-                      "group grid gap-3 rounded-2xl border p-3 text-left transition sm:grid-cols-[96px_1fr]",
+                      "group grid gap-4 rounded-2xl border p-3 text-left transition sm:grid-cols-[104px_minmax(0,1fr)]",
                       isSelected
                         ? "border-cyan-300/30 bg-cyan-300/[0.06]"
                         : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.03]",
                     )}
                   >
-                    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#07131f]">
+                    <div className="self-start overflow-hidden rounded-xl border border-white/[0.06] bg-[#07131f]">
                       {item.sourceImageUrl ? (
                         <img src={item.sourceImageUrl} alt={item.cardName || item.sourceFileName} className="aspect-[0.72] w-full object-cover" />
                       ) : (
@@ -979,7 +979,8 @@ export function ChaosSortWorkspace() {
                         </div>
                       )}
                     </div>
-                      <div className="min-w-0 space-y-2">
+                      <div className="min-w-0 space-y-2 sm:flex sm:items-center sm:justify-between sm:gap-6">
+                        <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <input type="checkbox" aria-label={`Select ${item.cardName || item.sourceFileName}`} checked={selectedItemIds.includes(item.id)} onClick={(event) => event.stopPropagation()} onChange={() => setSelectedItemIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} className="h-4 w-4 accent-cyan-300" />
                         <TDBadge tone={item.processingState === "failed" || item.recognitionState === "unknown" ? "danger" : item.processingState === "processing" ? "info" : item.recognitionState === "review" ? "warning" : "success"}>
@@ -998,7 +999,8 @@ export function ChaosSortWorkspace() {
                         ].filter(Boolean).join(" · ") || item.notes || "Identity not resolved"}
                       </TDText>
                       {item.processingState === "ready" ? <div className="flex flex-wrap gap-2 text-xs text-slate-400"><span className="rounded-full border border-white/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span><span className="rounded-full border border-white/[0.06] px-2.5 py-1">Owned {item.existingOwnedQuantity}</span><span className="rounded-full border border-white/[0.06] px-2.5 py-1">Conf {Math.round(item.confidence * 100)}%</span></div> : <p className="text-xs text-slate-400">{item.notes || "Recognition did not complete."}</p>}
-                      <div className="flex flex-wrap gap-2">
+                        </div>
+                      <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-[280px]">
                         {item.processingState === "failed" ? <TDButton size="sm" variant="secondary" onClick={() => void retryRecognition([item])}>Retry recognition</TDButton> : <TDButton size="sm" variant="secondary" onClick={() => confirmItem(item.id)}>Confirm</TDButton>}
                         <TDButton size="sm" variant="secondary" onClick={() => markUnknown(item.id)}>Mark unknown</TDButton>
                         <TDButton size="sm" variant="ghost" onClick={() => removeItem(item.id)} icon={<Trash2 className="h-4 w-4" />}>Remove</TDButton>
