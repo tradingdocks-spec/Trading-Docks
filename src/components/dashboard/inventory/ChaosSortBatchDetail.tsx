@@ -20,6 +20,7 @@ export function ChaosSortBatchDetail({ data }: { data: ChaosSortBatchDetailData 
   const [qr, setQr] = useState("");
   const [notice, setNotice] = useState("");
   const [picking, setPicking] = useState<string | null>(null);
+  const [retired, setRetired] = useState(false);
   const filtered = useMemo(() => data.positions.filter((position) => `${position.card_name} ${position.set_code ?? ""} ${position.collector_number ?? ""}`.toLowerCase().includes(query.toLowerCase().trim())), [data.positions, query]);
   useEffect(() => { void QRCode.toDataURL(typeof window === "undefined" ? "" : window.location.href, { width: 220, margin: 1 }).then(setQr); }, []);
 
@@ -31,6 +32,15 @@ export function ChaosSortBatchDetail({ data }: { data: ChaosSortBatchDetailData 
     setNotice(response.ok ? "Picked one copy and recorded the inventory event." : String(result.error ?? "Pick failed."));
   }
 
+  async function retireBatch() {
+    if (data.batch.current_quantity > 0 || retired) return;
+    if (!window.confirm(`Retire ${data.batch.batch_code}? This keeps its history but removes it from active batch work.`)) return;
+    const response = await fetch("/api/chaos-sort/retire", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ batchId: data.batch.id }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) { setNotice(String(result.error ?? "Batch could not be retired.")); return; }
+    setRetired(true); setNotice("Batch retired. Its history and inventory events remain available.");
+  }
+
   return <main className="batch-page min-h-screen bg-[var(--td-background-primary)] p-4 text-white sm:p-6 lg:p-8">
     <div className="mx-auto max-w-6xl space-y-6">
       <Link href="/dashboard/inventory/chaos-sort" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white"><ArrowLeft className="h-4 w-4" />Back to Chaos Sort</Link>
@@ -38,7 +48,7 @@ export function ChaosSortBatchDetail({ data }: { data: ChaosSortBatchDetailData 
         <div className="rounded-2xl border border-white/10 bg-[#071520] p-5 sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-cyan-300">Physical batch</p><h1 className="mt-2 text-4xl font-semibold tracking-tight">{data.batch.batch_code}</h1><p className="mt-2 text-sm text-slate-400">{data.batch.title}</p></div><span className="rounded-full bg-emerald-300/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-emerald-200">{data.batch.status_v2}</span></div>
           <div className="mt-6 grid gap-4 sm:grid-cols-4"><Stat label="Remaining" value={String(data.batch.current_quantity)} /><Stat label="Initial" value={String(data.batch.initial_quantity)} /><Stat label="Location" value={data.batch.destination_label || "Unassigned"} /><Stat label="Session" value={data.session?.session_code ?? "—"} /></div>
-          <div className="mt-5 flex flex-wrap gap-2"><button type="button" onClick={() => window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-bold text-slate-950"><Printer className="h-4 w-4" />Reprint label</button><span className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/10 px-4 text-sm text-slate-300"><MapPin className="h-4 w-4" />{data.batch.destination_label}</span></div>
+          <div className="mt-5 flex flex-wrap gap-2"><button type="button" onClick={() => window.print()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-bold text-slate-950"><Printer className="h-4 w-4" />Reprint label</button><span className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/10 px-4 text-sm text-slate-300"><MapPin className="h-4 w-4" />{data.batch.destination_label}</span><button type="button" disabled={data.batch.current_quantity > 0 || retired} onClick={() => void retireBatch()} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-rose-300/20 px-4 text-sm font-semibold text-rose-200 disabled:cursor-not-allowed disabled:opacity-40">{retired ? "Retired" : "Remove batch"}</button></div>
           {notice ? <p className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-3 text-sm text-cyan-100">{notice}</p> : null}
         </div>
         <aside className="label-sheet rounded-2xl border border-white/10 bg-white p-4 text-center text-slate-950"><p className="text-[10px] font-black uppercase tracking-[.2em]">Trading Docks</p><p className="mt-3 text-2xl font-black tracking-tight">{data.batch.batch_code}</p>{qr ? <img src={qr} alt={`QR code for ${data.batch.batch_code}`} className="mx-auto mt-3 h-32 w-32" /> : <div className="mx-auto mt-3 h-32 w-32 animate-pulse bg-slate-200" />}<p className="mt-3 text-sm font-bold">{data.batch.destination_label}</p><p className="mt-1 text-xs">{data.batch.current_quantity} / {data.batch.initial_quantity} cards</p><p className="mt-1 text-[10px] uppercase tracking-wide">{new Date(data.batch.created_at).toLocaleDateString()}</p></aside>

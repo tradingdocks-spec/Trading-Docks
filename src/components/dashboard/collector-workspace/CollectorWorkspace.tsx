@@ -351,6 +351,7 @@ export function CollectorWorkspace({
 
   const handleQuantityRemove = useCallback(async (card: CollectionCard, quantity: number) => {
     if (!storageState) return;
+    if (!window.confirm(`Remove ${quantity} ${quantity === 1 ? "copy" : "copies"} of ${card.cardName} from inventory? This records a quantity removal and cannot be undone from this screen.`)) return;
     setStoragePendingCardId(card.id);
     setStorageError(null);
     try {
@@ -880,6 +881,9 @@ function InventoryCommandBar({
                 <AddInventoryMenuLink icon={<FileUp className="h-4 w-4" />} title="Upload CSV" detail="Import an inventory spreadsheet" href="/dashboard/inventory/import" onSelect={() => setAddOpen(false)} />
                 <AddInventoryMenuLink icon={<PackagePlus className="h-4 w-4" />} title="Add single card" detail="Search or scan one card into Collection" href="/dashboard/card-photo-scanner?mode=single" onSelect={() => setAddOpen(false)} />
                 <AddInventoryMenuLink icon={<Search className="h-4 w-4" />} title="Scan cards" detail="Use the card image scanner workflow" href="/dashboard/card-photo-scanner" onSelect={() => setAddOpen(false)} />
+                <div className="my-2 border-t border-white/[0.07]" />
+                <TDText variant="label" tone="info" className="px-2 py-1">Chaos Sort</TDText>
+                <AddInventoryMenuLink icon={<Layers3 className="h-4 w-4" />} title="Start Chaos Sort" detail="Batch intake, locations, labels, and picking" href="/dashboard/inventory/chaos-sort" onSelect={() => setAddOpen(false)} />
                 {canUseSellerActions ? (
                   <AddInventoryMenuLink icon={<Download className="h-4 w-4" />} title="Import marketplace inventory" detail="Bring inventory from connected channels" href="/dashboard/marketplaces" onSelect={() => setAddOpen(false)} />
                 ) : null}
