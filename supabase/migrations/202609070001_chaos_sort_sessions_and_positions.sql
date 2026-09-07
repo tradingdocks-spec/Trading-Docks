@@ -218,3 +218,26 @@ $$;
 
 revoke all on function public.pick_chaos_sort_position(text, integer) from public, anon;
 grant execute on function public.pick_chaos_sort_position(text, integer) to authenticated;
+
+create or replace function public.retire_chaos_sort_batch(target_batch_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  actor uuid := auth.uid();
+  remaining integer;
+begin
+  if actor is null then raise exception 'Authentication required'; end if;
+  select current_quantity into remaining from public.chaos_sort_batches where id = target_batch_id and user_id = actor for update;
+  if remaining is null then raise exception 'Batch not found'; end if;
+  if remaining > 0 then raise exception 'A batch can only be retired after its inventory is depleted'; end if;
+  update public.chaos_sort_batches set status_v2 = 'RETIRED', status = 'committed', updated_at = now() where id = target_batch_id and user_id = actor;
+  update public.chaos_sort_inventory_positions set status = 'retired', updated_at = now() where batch_id = target_batch_id and user_id = actor;
+  return jsonb_build_object('ok', true, 'batchId', target_batch_id, 'status', 'RETIRED');
+end;
+$$;
+
+revoke all on function public.retire_chaos_sort_batch(uuid) from public, anon;
+grant execute on function public.retire_chaos_sort_batch(uuid) to authenticated;

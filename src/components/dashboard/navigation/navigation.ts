@@ -135,6 +135,16 @@ export const dashboardNavigation: NavigationGroup[] = [
     ],
   },
   {
+    title: "Chaos Sort",
+    items: [
+      {
+        title: "Chaos Sort",
+        href: "/dashboard/inventory/chaos-sort",
+        icon: Layers3,
+      },
+    ],
+  },
+  {
     title: "Commerce",
     items: [
       {
