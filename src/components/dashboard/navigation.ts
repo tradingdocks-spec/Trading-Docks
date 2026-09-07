@@ -14,6 +14,7 @@ import {
   Gem,
   History,
   LayoutDashboard,
+  Layers3,
   LibraryBig,
   PackageCheck,
   PackageOpen,
@@ -92,6 +93,20 @@ export const CRM_NAV: NavigationItem[] = [
     icon: ContactRound,
   },
 ];
+
+export const CHAOS_SORT_NAV: NavigationSection = {
+  id: "chaos-sort",
+  label: "Chaos Sort",
+  icon: Layers3,
+  href: "/dashboard/inventory/chaos-sort",
+  children: [
+    {
+      href: "/dashboard/inventory/chaos-sort",
+      label: "Chaos Sort",
+      icon: Layers3,
+    },
+  ],
+};
 
 export const MARKETING_NAV: NavigationItem[] = [
   { href: "/dashboard/marketing", label: "Campaigns", icon: Megaphone },
