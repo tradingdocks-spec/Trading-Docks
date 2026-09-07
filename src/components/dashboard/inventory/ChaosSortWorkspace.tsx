@@ -1026,7 +1026,7 @@ export function ChaosSortWorkspace() {
               </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="sr-only">
                   <TDText variant="title">Physical sort mode</TDText>
                   <TDText variant="caption" tone="muted">Desktop-friendly pile navigation with large targets and keyboard shortcuts.</TDText>
                 </div>
@@ -1096,7 +1096,7 @@ export function ChaosSortWorkspace() {
               </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="sr-only">
                   <TDText variant="title">Batch summary</TDText>
                   <TDText variant="caption" tone="muted">Shows exactly what the commit will write.</TDText>
                 </div>
@@ -1148,7 +1148,7 @@ export function ChaosSortWorkspace() {
               </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="sr-only">
                   <TDText variant="title">Review inspector</TDText>
                   <TDText variant="caption" tone="muted">Fast edits for card, printing, finish, and condition.</TDText>
                 </div>
@@ -1235,7 +1235,7 @@ export function ChaosSortWorkspace() {
               </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <div>
+                <div className="sr-only">
                   <TDText variant="title">Sorting rules</TDText>
                   <TDText variant="caption" tone="muted">Defaults are editable and can be tuned per batch.</TDText>
                 </div>
