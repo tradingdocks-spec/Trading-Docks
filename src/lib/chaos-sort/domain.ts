@@ -89,6 +89,82 @@ export type ChaosSortBatch = {
   rules: ChaosSortRule[];
 };
 
+export const CHAOS_SORT_DEFAULT_TARGET_SIZE = 100;
+export const CHAOS_SORT_MIN_TARGET_SIZE = 20;
+export const CHAOS_SORT_MAX_TARGET_SIZE = 500;
+
+export type ChaosSortSessionStatus = "draft" | "active" | "completed" | "failed";
+
+export type ChaosSortSession = {
+  id: string;
+  sessionCode: string;
+  source: string;
+  reference: string | null;
+  game: string;
+  defaultCondition: string | null;
+  defaultLocationId: string | null;
+  targetBatchSize: number;
+  status: ChaosSortSessionStatus;
+  startedAt: string;
+  completedAt: string | null;
+};
+
+export type ChaosSortBatchProgress = {
+  count: number;
+  target: number;
+  ratio: number;
+  state: "empty" | "scanning" | "target_reached" | "over_target";
+  label: string;
+};
+
+export function normalizeChaosSortTargetSize(value: number | null | undefined) {
+  const target = Number.isFinite(value) ? Math.floor(value as number) : CHAOS_SORT_DEFAULT_TARGET_SIZE;
+  return Math.min(CHAOS_SORT_MAX_TARGET_SIZE, Math.max(CHAOS_SORT_MIN_TARGET_SIZE, target));
+}
+
+export function createChaosSortSession(input: {
+  sequence: number;
+  source: string;
+  reference?: string | null;
+  game?: string;
+  defaultCondition?: string | null;
+  defaultLocationId?: string | null;
+  targetBatchSize?: number;
+  now?: string;
+}): ChaosSortSession {
+  const now = input.now ?? new Date().toISOString();
+  return {
+    id: `chaos-session-${input.sequence}`,
+    sessionCode: `CS-SESSION-${String(Math.max(0, Math.floor(input.sequence))).padStart(6, "0")}`,
+    source: input.source.trim() || "Other",
+    reference: input.reference?.trim() || null,
+    game: input.game?.trim() || "mixed",
+    defaultCondition: input.defaultCondition?.trim() || null,
+    defaultLocationId: input.defaultLocationId || null,
+    targetBatchSize: normalizeChaosSortTargetSize(input.targetBatchSize),
+    status: "active",
+    startedAt: now,
+    completedAt: null,
+  };
+}
+
+export function getChaosSortBatchProgress(count: number, targetBatchSize = CHAOS_SORT_DEFAULT_TARGET_SIZE): ChaosSortBatchProgress {
+  const target = normalizeChaosSortTargetSize(targetBatchSize);
+  const safeCount = Math.max(0, Math.floor(count));
+  const state = safeCount === 0 ? "empty" : safeCount < target ? "scanning" : safeCount === target ? "target_reached" : "over_target";
+  return {
+    count: safeCount,
+    target,
+    ratio: Math.min(1, safeCount / target),
+    state,
+    label: `${safeCount} / ~${target} cards`,
+  };
+}
+
+export function canCloseChaosSortBatch(items: ChaosSortItem[]) {
+  return items.every((item) => item.humanState === "confirmed" || item.humanState === "removed");
+}
+
 export type ChaosSortPileSummary = {
   pile: ChaosSortPile;
   label: string;

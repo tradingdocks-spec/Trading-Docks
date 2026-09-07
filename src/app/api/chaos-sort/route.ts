@@ -76,25 +76,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Chaos Sort requires at least one reviewed item before commit." }, { status: 400 });
   }
 
-  const auditResult = await recordBatchAudit(capability.supabase as SupabaseClientLike, userId, payload);
-  const inventoryResult = await commitInventory(capability.supabase as SupabaseClientLike, userId, payload);
-
-  if (!inventoryResult.ok) {
-    return NextResponse.json(
-      {
-        error: inventoryResult.error,
-        auditSchemaAvailable: auditResult.schemaAvailable,
-      },
-      { status: 500 },
-    );
+  const { data, error } = await (capability.supabase as unknown as {
+    rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error?: { message?: string; code?: string } | null }>;
+  }).rpc("commit_chaos_sort_batch", { payload });
+  if (error) {
+    return NextResponse.json({ ok: false, error: error.message ?? "Chaos Sort batch commit failed." }, { status: 409 });
   }
-
-  return NextResponse.json({
-    ok: true,
-    batchId: payload.batch.id,
-    committedCount: inventoryResult.committedCount,
-    auditSchemaAvailable: auditResult.schemaAvailable,
-  });
+  return NextResponse.json(data ?? { ok: true, batchId: payload.batch.id });
 }
 
 async function recordBatchAudit(

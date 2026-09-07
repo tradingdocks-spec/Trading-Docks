@@ -7,6 +7,10 @@ import {
   classifyChaosSortRecognition,
   createChaosSortBatchCode,
   summarizeChaosSortBatch,
+  canCloseChaosSortBatch,
+  createChaosSortSession,
+  getChaosSortBatchProgress,
+  normalizeChaosSortTargetSize,
   type ChaosSortBatch,
   type ChaosSortItem,
 } from "../src/lib/chaos-sort/domain.ts";
@@ -68,6 +72,47 @@ function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {
 test("chaos sort batch codes stay stable and readable", () => {
   assert.equal(createChaosSortBatchCode(1), "CS-000001");
   assert.equal(createChaosSortBatchCode(123), "CS-000123");
+});
+
+test("chaos sort sessions keep intake provenance and normalize the batch target", () => {
+  const session = createChaosSortSession({
+    sequence: 184,
+    source: " Collection Purchase ",
+    reference: "PO-184",
+    game: "mixed",
+    defaultCondition: "NM",
+    targetBatchSize: 101.9,
+    now: "2026-09-07T12:00:00.000Z",
+  });
+
+  assert.equal(session.sessionCode, "CS-SESSION-000184");
+  assert.equal(session.source, "Collection Purchase");
+  assert.equal(session.reference, "PO-184");
+  assert.equal(session.targetBatchSize, 101);
+  assert.equal(session.status, "active");
+  assert.equal(normalizeChaosSortTargetSize(1), 20);
+  assert.equal(normalizeChaosSortTargetSize(900), 500);
+});
+
+test("chaos sort progress treats target as guidance instead of a hard limit", () => {
+  assert.deepEqual(getChaosSortBatchProgress(0, 100), {
+    count: 0,
+    target: 100,
+    ratio: 0,
+    state: "empty",
+    label: "0 / ~100 cards",
+  });
+  assert.equal(getChaosSortBatchProgress(100, 100).state, "target_reached");
+  assert.equal(getChaosSortBatchProgress(108, 100).state, "over_target");
+  assert.equal(getChaosSortBatchProgress(108, 100).ratio, 1);
+});
+
+test("chaos sort cannot close while an item remains unresolved", () => {
+  const pending = item({ humanState: "pending" });
+  const confirmed = item({ humanState: "confirmed" });
+  const removed = item({ humanState: "removed" });
+  assert.equal(canCloseChaosSortBatch([pending]), false);
+  assert.equal(canCloseChaosSortBatch([confirmed, removed]), true);
 });
 
 test("recognition confidence maps to review states", () => {
