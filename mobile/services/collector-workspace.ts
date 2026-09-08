@@ -66,6 +66,7 @@ export type MarketPrice = {
 export type CollectionCard = {
   id: string;
   cardName: string;
+  batchCode?: string | null;
   game?: string | null;
   gameId: string;
   gameLabel: string;
@@ -267,6 +268,7 @@ export function buildCollectionCards({
         (inventoryValue !== null && inventoryValue > 0 && quantityOwned > 0 ? inventoryValue / quantityOwned : null);
       const productType = normalizeProductType(item.product_type ?? payload.productType ?? payload.product_type);
       const cardName = stringValue(payload.name) || item.card_name || (productType === 'sealed' ? 'Unnamed sealed product' : 'Unnamed card');
+      const batchCode = stringValue(payload.batchCode) || stringValue(payload.batch_code) || null;
       const gameId = normalizeCollectionGameId(item.game_id ?? payload.gameId ?? payload.game_id ?? payload.game);
       const gameLabel = collectionGameLabel(gameId, payload.gameLabel ?? payload.game ?? item.provider_category_id);
       const condition = normalizeCardCondition(payload.condition);
@@ -293,6 +295,7 @@ export function buildCollectionCards({
       return {
         id: item.id,
         cardName,
+        batchCode,
         game: gameLabel,
         gameId,
         gameLabel,

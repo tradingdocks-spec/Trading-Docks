@@ -1444,14 +1444,17 @@ function StorageCell({
         )}
       >
         <MapPin className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">{assigned ? displayStorageLocation(card) : "Assign storage"}</span>
+        <span className="min-w-0 truncate">
+          <span className="block truncate">{assigned ? displayStorageLocation(card) : "Assign storage"}</span>
+          {card.batchCode ? <span className="mt-0.5 block truncate text-[10px] font-semibold text-cyan-200/75">Batch {card.batchCode}</span> : null}
+        </span>
       </button>
 
       {open ? (
         <div className="absolute left-0 top-11 z-30 w-[320px] max-w-[80vw] rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-background-primary)] p-3 shadow-2xl">
           <TDText variant="label" tone="info">Storage location</TDText>
           <TDText variant="title" className="mt-1">{assigned ? card.storageLocation?.name : "Unassigned"}</TDText>
-          {assigned ? <TDText variant="caption" tone="muted">{displayStorageLocation(card)}</TDText> : <TDText variant="caption" tone="muted">Assign this card to an existing physical location.</TDText>}
+          {assigned ? <TDText variant="caption" tone="muted">{displayStorageLocation(card)}{card.batchCode ? ` · Batch ${card.batchCode}` : ""}</TDText> : <TDText variant="caption" tone="muted">Assign this card to an existing physical location.</TDText>}
 
           <div className="mt-3 max-h-52 space-y-1 overflow-y-auto pr-1">
             {locations.length ? locations.map((location) => (
@@ -1669,6 +1672,7 @@ function InventoryInspector({
           <InspectorRow label="Gain/loss" value="Requires cost basis" muted />
           <InspectorRow label="Listing state" value={canUseSellerActions ? "No linked listing data" : "Seller feature"} muted />
           <InspectorRow label="Storage" value={displayStorageLocation(card)} muted={!card.storageLocation} />
+          {card.batchCode ? <InspectorRow label="Chaos Sort batch" value={card.batchCode} /> : null}
         </div>
       </div>
 
