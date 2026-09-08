@@ -8,7 +8,7 @@ import { PageHeader } from "../common/PageHeader";
 import { WorkspaceFrame } from "../common/WorkspaceFrame";
 import styles from "../styles.module.css";
 
-type Employee = { id: string; full_name: string; email: string | null; job_title: string | null; employment_status: string };
+type Employee = { id: string; full_name: string; email: string | null; job_title: string | null; employment_status: string; account_status: "uninvited" | "invited" | "active" | "suspended" };
 
 export function EmployeesWorkspace() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -21,7 +21,7 @@ export function EmployeesWorkspace() {
   async function load() {
     try {
       const { supabase, workspaceId } = await getActiveWorkspaceContext();
-      const { data, error: loadError } = await supabase.from("workspace_employees").select("id,full_name,email,job_title,employment_status").eq("workspace_id", workspaceId).order("full_name");
+      const { data, error: loadError } = await supabase.from("workspace_employees").select("id,full_name,email,job_title,employment_status,account_status").eq("workspace_id", workspaceId).order("full_name");
       if (loadError) throw loadError;
       setEmployees((data ?? []) as Employee[]);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Employees could not be loaded."); }
@@ -32,9 +32,9 @@ export function EmployeesWorkspace() {
   async function addEmployee(event: React.FormEvent) {
     event.preventDefault(); setSaving(true); setError("");
     try {
-      const { supabase, workspaceId, userId } = await getActiveWorkspaceContext();
-      const { error: saveError } = await supabase.from("workspace_employees").insert({ workspace_id: workspaceId, created_by: userId, full_name: form.full_name.trim(), email: form.email.trim() || null, job_title: form.job_title.trim() || null });
-      if (saveError) throw saveError;
+      const response = await fetch("/api/workspace/employees/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fullName: form.full_name, email: form.email, jobTitle: form.job_title }) });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Employee invitation could not be sent.");
       setForm({ full_name: "", email: "", job_title: "" }); setOpen(false); await load();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Employee could not be saved."); }
     finally { setSaving(false); }
@@ -57,8 +57,8 @@ export function EmployeesWorkspace() {
     </div>
     <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
       <div className="flex items-center justify-between"><div><p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Workspace directory</p><h2 className="mt-2 text-lg font-semibold text-white">Store team</h2></div><span className="text-[10px] text-emerald-300">Cloud saved</span></div>
-      {loading ? <Loader2 className="mx-auto my-12 h-5 w-5 animate-spin text-cyan-300" /> : employees.length ? <div className="mt-5 divide-y divide-white/[0.05]">{employees.map((employee) => <div key={employee.id} className="flex items-center justify-between gap-4 py-4"><div><p className="text-sm font-semibold text-white">{employee.full_name}</p><p className="mt-1 text-xs text-slate-500">{employee.job_title || "Team member"}{employee.email ? ` · ${employee.email}` : ""}</p></div><button type="button" aria-label={`Remove ${employee.full_name}`} onClick={() => void removeEmployee(employee.id)} className="rounded-lg p-2 text-slate-600 transition hover:bg-rose-400/10 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button></div>)}</div> : <button type="button" onClick={() => setOpen(true)} className="mt-5 w-full rounded-2xl border border-dashed border-white/[0.08] py-10 text-xs text-slate-500 hover:border-cyan-300/20 hover:text-cyan-200">Add your first employee</button>}
+      {loading ? <Loader2 className="mx-auto my-12 h-5 w-5 animate-spin text-cyan-300" /> : employees.length ? <div className="mt-5 divide-y divide-white/[0.05]">{employees.map((employee) => <div key={employee.id} className="flex items-center justify-between gap-4 py-4"><div><p className="text-sm font-semibold text-white">{employee.full_name}</p><p className="mt-1 text-xs text-slate-500">{employee.job_title || "Team member"}{employee.email ? ` · ${employee.email}` : ""}</p><span className="mt-2 inline-flex rounded-full border border-white/[0.08] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">{employee.account_status === "invited" ? "Invitation sent" : employee.account_status}</span></div><button type="button" aria-label={`Remove ${employee.full_name}`} onClick={() => void removeEmployee(employee.id)} className="rounded-lg p-2 text-slate-600 transition hover:bg-rose-400/10 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button></div>)}</div> : <button type="button" onClick={() => setOpen(true)} className="mt-5 w-full rounded-2xl border border-dashed border-white/[0.08] py-10 text-xs text-slate-500 hover:border-cyan-300/20 hover:text-cyan-200">Add your first employee</button>}
     </section>
-    {open ? <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"><form onSubmit={addEmployee} className={`${styles.glassPanel} w-full max-w-md rounded-[26px] p-6`}><div className="flex items-center justify-between"><h2 className="text-xl font-semibold text-white">Add employee</h2><button type="button" onClick={() => setOpen(false)}><X className="h-5 w-5 text-slate-500" /></button></div><div className="mt-5 space-y-3"><input required value={form.full_name} onChange={(e) => setForm({...form, full_name:e.target.value})} placeholder="Full name" className="workspace-input w-full" /><input type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="Email" className="workspace-input w-full" /><input value={form.job_title} onChange={(e) => setForm({...form, job_title:e.target.value})} placeholder="Job title" className="workspace-input w-full" /></div><button disabled={saving} className="mt-5 h-11 w-full rounded-xl bg-cyan-400 text-sm font-semibold text-slate-950 disabled:opacity-50">{saving ? "Saving…" : "Save employee"}</button></form></div> : null}
+    {open ? <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"><form onSubmit={addEmployee} className={`${styles.glassPanel} w-full max-w-md rounded-[26px] p-6`}><div className="flex items-center justify-between"><div><h2 className="text-xl font-semibold text-white">Invite employee</h2><p className="mt-1 text-xs text-slate-500">They will receive a secure account invitation for this store.</p></div><button type="button" onClick={() => setOpen(false)}><X className="h-5 w-5 text-slate-500" /></button></div><div className="mt-5 space-y-3"><input required value={form.full_name} onChange={(e) => setForm({...form, full_name:e.target.value})} placeholder="Full name" className="workspace-input w-full" /><input required type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="Email" className="workspace-input w-full" /><input value={form.job_title} onChange={(e) => setForm({...form, job_title:e.target.value})} placeholder="Job title" className="workspace-input w-full" /></div><button disabled={saving} className="mt-5 h-11 w-full rounded-xl bg-cyan-400 text-sm font-semibold text-slate-950 disabled:opacity-50">{saving ? "Sending invitation…" : "Create and invite"}</button></form></div> : null}
   </WorkspaceFrame>;
 }
