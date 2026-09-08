@@ -53,7 +53,10 @@ export async function loadInventorySnapshot(): Promise<InventorySnapshot> {
       if (error) throw new Error(`Inventory storage is unavailable: ${error.message}`);
       return ((data ?? []) as InventoryDataRow[])
         .map((row) => mergeDatabaseFields(collection, row))
-        .filter(isInventoryRecord);
+        .filter(isInventoryRecord)
+        // Zero-quantity lots remain in the ledger for history, but are no
+        // longer active inventory and must not appear in inventory/search.
+        .filter((record) => collection !== "items" || Number(record.quantity ?? 0) > 0);
     }),
   );
 
@@ -72,7 +75,8 @@ async function loadChaosSortBatchCodes(supabase: ReturnType<typeof createClient>
       supabase
         .from("chaos_sort_inventory_positions")
         .select("item_id,batch_id")
-        .eq("user_id", userId),
+        .eq("user_id", userId)
+        .gt("quantity", 0),
       supabase
         .from("chaos_sort_batches")
         .select("id,batch_code")
