@@ -268,7 +268,7 @@ test("dashboard design foundation uses Trading Docks workflow language", () => {
   assert.match(globals, /\.td-button-primary/);
   assert.match(audit, /TCG intelligence and operations system/);
   assert.match(audit, /Do not fabricate business, collection, order, price, or marketplace data/);
-  assert.match(navigation, /label:\s*"Collection"/);
+  assert.match(navigation, /label:\s*"Inventory"/);
   assert.match(navigation, /label:\s*"Acquire"/);
   assert.match(navigation, /label:\s*"Sell"/);
   assert.match(navigation, /label:\s*"Intelligence"/);

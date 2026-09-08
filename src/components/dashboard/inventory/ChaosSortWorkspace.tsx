@@ -68,6 +68,16 @@ type LocationRow = {
 
 type FilterState = "all" | "ready" | "needs_review" | "unknown" | "failed" | "exceptions";
 type StagedScan = { id: string; file: File; hash: string; previewUrl: string };
+type BatchHistoryRow = {
+  id: string;
+  batch_code: string;
+  status: string;
+  status_v2: string | null;
+  current_quantity: number;
+  initial_quantity: number;
+  destination_label: string | null;
+  created_at: string;
+};
 
 const BATCH_SEQUENCE_KEY = "td-chaos-sort-batch-sequence";
 
@@ -135,6 +145,7 @@ export function ChaosSortWorkspace() {
   const [sortIndex, setSortIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [loadingInventory, setLoadingInventory] = useState(true);
+  const [batchHistory, setBatchHistory] = useState<BatchHistoryRow[]>([]);
   const [loadingItems, setLoadingItems] = useState(0);
   const [progressText, setProgressText] = useState("");
   const [notice, setNotice] = useState("");
@@ -193,6 +204,18 @@ export function ChaosSortWorkspace() {
       } finally {
         setLoadingInventory(false);
       }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    void (async () => {
+      const { data } = await supabase
+        .from("chaos_sort_batches")
+        .select("id,batch_code,status,status_v2,current_quantity,initial_quantity,destination_label,created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setBatchHistory((data ?? []) as BatchHistoryRow[]);
     })();
   }, []);
 
@@ -771,6 +794,23 @@ export function ChaosSortWorkspace() {
             <TDText variant="small">{error}</TDText>
           </TDCard>
         ) : null}
+        <section className="rounded-2xl border border-white/10 bg-[#071520] p-4 sm:p-5" aria-label="Chaos Sort batch history">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[.14em] text-cyan-200">Batch history</p>
+              <p className="mt-1 text-sm text-slate-400">Reopen a committed batch to reprint its label.</p>
+            </div>
+            <span className="text-xs text-slate-500">{batchHistory.length} saved {batchHistory.length === 1 ? "batch" : "batches"}</span>
+          </div>
+          {batchHistory.length ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead className="text-[10px] font-bold uppercase tracking-[.12em] text-slate-500"><tr><th className="px-3 py-2">Batch</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Location</th><th className="px-3 py-2">Cards</th><th className="px-3 py-2">Created</th><th className="px-3 py-2" /></tr></thead>
+                <tbody>{batchHistory.map((entry) => <tr key={entry.id} className="border-t border-white/5"><td className="px-3 py-3 font-semibold text-white">{entry.batch_code}</td><td className="px-3 py-3"><TDBadge tone={entry.status_v2 === "CLOSED" || entry.status === "committed" ? "success" : "neutral"}>{entry.status_v2 ?? entry.status}</TDBadge></td><td className="px-3 py-3 text-slate-400">{entry.destination_label || "Unassigned"}</td><td className="px-3 py-3 tabular-nums text-slate-300">{entry.current_quantity} / {entry.initial_quantity}</td><td className="px-3 py-3 text-slate-400">{new Date(entry.created_at).toLocaleDateString()}</td><td className="px-3 py-3 text-right"><Link href={`/dashboard/inventory/batches/${entry.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/20 px-3 text-xs font-bold text-cyan-100 hover:bg-cyan-300/10">Reprint label</Link></td></tr>)}</tbody>
+              </table>
+            </div>
+          ) : <p className="mt-4 rounded-xl border border-dashed border-white/10 px-3 py-5 text-center text-sm text-slate-500">No committed batches yet.</p>}
+        </section>
         {loadingInventory && !items.length ? (
           <TDLoadingState title="Loading inventory context" message="Fetching storage locations and owned inventory for canonical matching." />
         ) : null}
