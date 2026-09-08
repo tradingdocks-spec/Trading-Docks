@@ -268,16 +268,15 @@ async function diagnoseUnresolved(
   // cannot silently select a card from another set.
   if (productInSet.length === 0 && normalizedCollectorNumber) {
     const byCollector = await fetchCandidates(client, {
-      normalized_set_name: normalizedSetName,
       normalized_collector_number: normalizedCollectorNumber,
     }, 50);
-    productInSet = byCollector.filter((row) => compactProductName(row.product_name) === compactProductName(input.productName));
+    productInSet = byCollector.filter((row) => cardNamesEquivalent(row.product_name, input.productName));
   }
 
   if (productInSet.length === 0) {
     const bySet = await fetchCandidates(client, { normalized_set_name: normalizedSetName }, 500);
     productInSet = bySet.filter((row) =>
-      compactProductName(row.product_name) === compactProductName(input.productName)
+      cardNamesEquivalent(row.product_name, input.productName)
       && (!normalizedCollectorNumber || collectorNumbersEquivalent(row.collector_number, input.collectorNumber)),
     );
   }
@@ -291,6 +290,21 @@ async function diagnoseUnresolved(
     : productInSet;
 
   if (normalizedCollectorNumber && printingCandidates.length === 0) {
+    // Some TCGplayer exports omit a collector suffix or use a different
+    // numbering scheme for otherwise unique products. Accept that case only
+    // when the set, card name, finish, and condition identify one SKU.
+    const uniqueVariant = productInSet
+      .filter((row) => normalizeSetName(row.finish) === normalizedFinish)
+      .filter((row) => normalizeSetName(row.condition) === normalizedCondition);
+    if (uniqueVariant.length === 1) {
+      const [row] = uniqueVariant;
+      return {
+        status: "matched",
+        row,
+        tcgplayerId: row.tcgplayer_id,
+        diagnostics: { ...diagnostics, collectorNumber: row.collector_number ?? input.collectorNumber },
+      };
+    }
     return unresolved("COLLECTOR_NUMBER_MISMATCH", `Product was found in ${setName}, but collector number ${input.collectorNumber} did not match a TCGplayer catalog printing.`, diagnostics);
   }
 
@@ -327,6 +341,20 @@ async function diagnoseUnresolved(
 
 function compactProductName(value: unknown) {
   return normalizeProductName(value).replace(/[^a-z0-9]/g, "");
+}
+
+function cardNamesEquivalent(left: unknown, right: unknown) {
+  const leftVariants = nameVariants(left);
+  const rightVariants = nameVariants(right);
+  return leftVariants.some((value) => rightVariants.includes(value));
+}
+
+function nameVariants(value: unknown) {
+  const text = String(value ?? "");
+  return [...new Set([
+    compactProductName(text),
+    ...text.split("//").map((face) => compactProductName(face)),
+  ].filter(Boolean))];
 }
 
 function collectorNumbersEquivalent(left: unknown, right: unknown) {

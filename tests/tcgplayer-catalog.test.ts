@@ -799,7 +799,7 @@ test("catalog resolver translates Scryfall set codes before exact TCGplayer matc
   assert.equal(one.status === "matched" ? one.diagnostics.translatedSetName : null, "Phyrexia: All Will Be One");
 });
 
-test("catalog resolver reports unavailable finish and collector-number mismatches without guessing", async () => {
+test("catalog resolver reports unavailable finishes and safely resolves unique collector mismatches", async () => {
   const rows: TcgplayerMagicCatalogRecord[] = [
     mappedRecord(700056, "Starter Commander Decks", "Laboratory Drudge", "56", "Lightly Played"),
     mappedRecord(111075, "Phyrexia: All Will Be One", "Unctus, Grand Metatect", "75", "Lightly Played Foil"),
@@ -823,8 +823,8 @@ test("catalog resolver reports unavailable finish and collector-number mismatche
     condition: "Lightly Played",
     finish: "foil",
   });
-  assert.equal(collectorMismatch.status, "unresolved");
-  assert.equal(collectorMismatch.status === "unresolved" ? collectorMismatch.reasonCode : null, "COLLECTOR_NUMBER_MISMATCH");
+  assert.equal(collectorMismatch.status, "matched");
+  assert.equal(collectorMismatch.status === "matched" ? collectorMismatch.tcgplayerId : null, 111075);
 });
 
 test("catalog resolver tolerates ManaBox punctuation and catalog collector markers safely", async () => {
