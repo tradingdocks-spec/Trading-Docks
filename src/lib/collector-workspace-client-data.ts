@@ -262,7 +262,9 @@ async function loadRelatedFilterIds(userId: string, filter?: CollectionFilter) {
 }
 
 function applyInventoryFilters(query: InventoryQuery, filter: CollectionFilter | undefined, related: Awaited<ReturnType<typeof loadRelatedFilterIds>>) {
-  let next = query;
+  // Zero-quantity rows remain in the ledger-backed table for history, but are
+  // no longer active owned inventory and must not appear in this workspace.
+  let next = query.gt("quantity", 0);
   const cleanQuery = filter?.query?.trim();
   if (cleanQuery) {
     const pattern = `%${cleanQuery.replace(/[%_]/g, "")}%`;

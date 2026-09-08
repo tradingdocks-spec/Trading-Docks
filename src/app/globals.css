@@ -105,6 +105,21 @@ a {
     var(--td-background-primary);
 }
 
+/* Inventory is a dense operating surface; reserve the heaviest weight for
+   primary totals and keep controls and table rows calm and readable. */
+.inventory-workspace .font-black {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.inventory-workspace :is(button, a, input, select, textarea) {
+  letter-spacing: normal;
+}
+
+.inventory-workspace table thead {
+  letter-spacing: 0.08em;
+}
+
 .td-page-shell::before {
   content: "";
   position: absolute;

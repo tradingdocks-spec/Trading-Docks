@@ -479,7 +479,7 @@ export function CollectorWorkspace({
   }, [reloadStorageState, retry, selectedCards]);
 
   return (
-    <TDScreen className="space-y-4">
+    <TDScreen className="inventory-workspace space-y-4">
       <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-3xl">
           <TDText variant="label" tone="info">Inventory command center</TDText>
@@ -1092,7 +1092,7 @@ function BulkRemoveDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-[160] flex items-center justify-center overflow-y-auto bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-remove-title">
-      <section className="max-h-[calc(100dvh-32px)] w-full max-w-lg overflow-y-auto rounded-[var(--td-radius-xl)] border border-red-300/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
+      <section className="inventory-workspace max-h-[calc(100dvh-32px)] w-full max-w-lg overflow-y-auto rounded-[var(--td-radius-xl)] border border-red-300/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--td-radius-md)] border border-red-300/20 bg-red-300/10 text-red-200">
             <Trash2 className="h-5 w-5" />

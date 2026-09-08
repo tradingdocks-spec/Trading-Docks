@@ -172,7 +172,10 @@ stable
 security definer
 set search_path = public
 as $$
-  select case when count(*) = 1 then min(wm.workspace_id) else null end
+  select case
+    when count(*) = 1 then (array_agg(wm.workspace_id))[1]
+    else null
+  end
   from public.workspace_members wm
   where wm.user_id = p_user_id
     and wm.role in ('owner', 'admin', 'manager', 'member');
