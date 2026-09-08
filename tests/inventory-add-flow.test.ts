@@ -91,6 +91,16 @@ test("inventory workspace hides ledger rows after their quantity reaches zero", 
   assert.match(batchPage, /\.gt\("quantity", 0\)/);
 });
 
+test("storage locations can remove a binder card through the audited quantity mutation", () => {
+  const manager = source("src/components/dashboard/collector-workspace/StorageLocationManager.tsx");
+  const clientData = source("src/lib/storage-location-client-data.ts");
+
+  assert.match(manager, /Remove from collection/);
+  assert.match(manager, /type: "remove_quantity"/);
+  assert.match(manager, /Removed from storage location/);
+  assert.match(clientData, /\.gt\("quantity", 0\)/);
+});
+
 test("bulk inventory removal dialog is fixed in the viewport center", () => {
   const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
 

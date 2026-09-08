@@ -30,6 +30,7 @@ export async function loadWebStorageLocationManager() {
       .from("inventory_items")
       .select("id, card_name, sku, location_id, scryfall_id, set_code, collector_number, quantity, inventory_value, updated_at, data")
       .eq("user_id", userId)
+      .gt("quantity", 0)
       .order("updated_at", { ascending: false })
       .limit(500),
   ]);
