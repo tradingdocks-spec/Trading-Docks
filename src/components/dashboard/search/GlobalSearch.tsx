@@ -57,6 +57,7 @@ type SearchableInventoryItem = {
   listingStatus?: string;
   listingId?: string;
   sku?: string;
+  batchCode?: string;
 };
 
 type CardPlacement = {
@@ -150,9 +151,10 @@ function locationLabel(item: SearchableInventoryItem, location?: LocationRecord)
           ? "Binder · Pocket not assigned"
           : "Stored inventory";
 
+  const batchDetail = item.batchCode ? `Batch ${item.batchCode}` : "";
   return {
     name: location?.name ?? "Unassigned inventory",
-    detail: pocket,
+    detail: batchDetail ? `${batchDetail} · ${pocket}` : pocket,
     type: location?.type ?? "unassigned",
   };
 }
@@ -303,6 +305,7 @@ export function GlobalSearch() {
           placement.collectorNumber,
           placement.locationName,
           placement.condition,
+          placement.locationDetail,
         ]
           .filter(Boolean)
           .join(" "),

@@ -14,7 +14,18 @@ export type InventorySnapshot = {
 type InventoryCollection = keyof InventorySnapshot;
 
 type InventoryDataRow = {
+  id: string;
   data: unknown;
+  name?: string | null;
+  card_name?: string | null;
+  location_id?: string | null;
+  location_type?: string | null;
+  sku?: string | null;
+  scryfall_id?: string | null;
+  set_code?: string | null;
+  collector_number?: string | null;
+  quantity?: number | null;
+  inventory_value?: number | null;
 };
 
 const TABLES: Record<InventoryCollection, string> = {
@@ -37,16 +48,43 @@ export async function loadInventorySnapshot(): Promise<InventorySnapshot> {
     (Object.keys(TABLES) as InventoryCollection[]).map(async (collection) => {
       const { data, error } = await supabase
         .from(TABLES[collection])
-        .select("data")
+        .select("*")
         .eq("user_id", user.id);
       if (error) throw new Error(`Inventory storage is unavailable: ${error.message}`);
       return ((data ?? []) as InventoryDataRow[])
-        .map((row) => row.data)
+        .map((row) => mergeDatabaseFields(collection, row))
         .filter(isInventoryRecord);
     }),
   );
 
   return { locations, items, movements };
+}
+
+function mergeDatabaseFields(collection: InventoryCollection, row: InventoryDataRow) {
+  const record = isInventoryRecord(row.data) ? row.data : { id: row.id };
+  if (collection === "locations") {
+    return {
+      ...record,
+      id: record.id || row.id,
+      name: record.name || row.name || "",
+      type: record.type || row.location_type || "custom",
+    };
+  }
+  if (collection === "items") {
+    return {
+      ...record,
+      id: record.id || row.id,
+      name: record.name || row.card_name || "",
+      sku: record.sku || row.sku || "",
+      locationId: record.locationId || row.location_id || "",
+      scryfallId: record.scryfallId || row.scryfall_id || "",
+      set: record.set || row.set_code || "",
+      collectorNumber: record.collectorNumber || row.collector_number || "",
+      quantity: typeof record.quantity === "number" ? record.quantity : row.quantity ?? 0,
+      value: typeof record.value === "number" ? record.value : row.inventory_value ?? 0,
+    };
+  }
+  return { ...record, id: record.id || row.id };
 }
 
 export async function persistInventorySnapshotDiff(
