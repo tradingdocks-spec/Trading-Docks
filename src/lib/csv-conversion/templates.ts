@@ -202,6 +202,12 @@ export function outputForTemplate(rows: CanonicalRow[], templateId: string) {
 }
 
 function outputValue(row: CanonicalRow, key: CanonicalKey, templateId: string, header: string) {
+  if (templateId === "tcgplayer" && header === "TCG Marketplace Price") {
+    // TCGplayer requires a listing price even when its market-price field is
+    // unavailable. Prefer the market price, then the lowest available seller
+    // price so matched rows remain importable without inventing a value.
+    return row.marketPrice || row.lowPrice || row.directLowPrice || "";
+  }
   const value = row[key] ?? "";
   if (key === "finish") {
     const normalizedFinish = value.trim().toLowerCase();
