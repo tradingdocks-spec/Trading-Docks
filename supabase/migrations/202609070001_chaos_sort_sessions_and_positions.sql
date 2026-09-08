@@ -134,7 +134,7 @@ begin
   -- positions table has a foreign key to chaos_sort_batches(id), so the
   -- parent must exist before the item loop starts.
   insert into public.chaos_sort_batches (id, user_id, session_id, batch_code, title, status, status_v2, source_count, confirmed_count, destination_location_id, destination_label, initial_quantity, current_quantity, updated_at)
-  values (batch_id, actor, session_id, coalesce(batch_payload->>'batchCode', batch_id::text), coalesce(batch_payload->>'title', 'Chaos Sort batch'), 'committing', 'OPEN', 0, 0, location_id, coalesce(batch_payload->>'destinationLabel', location_id), 0, 0, now())
+  values (batch_id, actor, session_id, coalesce(batch_payload->>'batchCode', batch_id::text), coalesce(batch_payload->>'title', 'Chaos Sort batch'), 'sorting', 'ACTIVE', 0, 0, location_id, coalesce(batch_payload->>'destinationLabel', location_id), 0, 0, now())
   on conflict (id) do update set session_id = excluded.session_id, destination_location_id = excluded.destination_location_id,
     destination_label = excluded.destination_label, updated_at = now();
 
