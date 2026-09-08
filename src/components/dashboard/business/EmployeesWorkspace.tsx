@@ -21,9 +21,17 @@ export function EmployeesWorkspace() {
   async function load() {
     try {
       const { supabase, workspaceId } = await getActiveWorkspaceContext();
-      const { data, error: loadError } = await supabase.from("workspace_employees").select("id,full_name,email,job_title,employment_status,account_status").eq("workspace_id", workspaceId).order("full_name");
-      if (loadError) throw loadError;
-      setEmployees((data ?? []) as Employee[]);
+      const baseColumns = "id,full_name,email,job_title,employment_status";
+      const withAccountStatus = await supabase.from("workspace_employees").select(`${baseColumns},account_status`).eq("workspace_id", workspaceId).order("full_name");
+      if (!withAccountStatus.error) {
+        setEmployees((withAccountStatus.data ?? []) as Employee[]);
+      } else if (/account_status|schema cache|column/i.test(withAccountStatus.error.message ?? "")) {
+        const legacy = await supabase.from("workspace_employees").select(baseColumns).eq("workspace_id", workspaceId).order("full_name");
+        if (legacy.error) throw legacy.error;
+        setEmployees(((legacy.data ?? []) as Omit<Employee, "account_status">[]).map((employee) => ({ ...employee, account_status: "uninvited" })));
+      } else {
+        throw withAccountStatus.error;
+      }
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Employees could not be loaded."); }
     finally { setLoading(false); }
   }
