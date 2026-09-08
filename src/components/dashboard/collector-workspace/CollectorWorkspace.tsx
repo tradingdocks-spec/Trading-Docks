@@ -680,10 +680,10 @@ export function CollectorWorkspace({
         ) : (
           <>
           <div className="hidden overflow-hidden rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] md:block">
-            <table className="w-full min-w-[1080px]">
+            <table className="w-full min-w-[980px]">
               <thead>
-                <tr className="sticky top-0 bg-[var(--td-background-primary)] text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">
-                  <th className="w-10 px-4 py-3 text-left">
+                <tr className="sticky top-0 bg-[var(--td-background-primary)] text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--td-text-muted)]">
+                  <th className="w-10 px-3 py-3 text-left">
                     <input
                       type="checkbox"
                       aria-label="Select all visible inventory"
@@ -692,22 +692,21 @@ export function CollectorWorkspace({
                       className="accent-cyan-300"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left">Card</th>
-                  <th className="px-4 py-3 text-left">Set</th>
-                  <th className="px-4 py-3 text-left">Finish / condition</th>
-                  <th className="px-4 py-3 text-right">Qty</th>
-                  <th className="px-4 py-3 text-right">Cost basis</th>
-                  <th className="px-4 py-3 text-right">Market value</th>
-                  <th className="px-4 py-3 text-right">Gain/loss</th>
-                  <th className="px-4 py-3 text-left">Location</th>
-                  <th className="px-4 py-3 text-left">Listing status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-3 py-3 text-left">Card</th>
+                  <th className="px-3 py-3 text-left">Set</th>
+                  <th className="px-3 py-3 text-left">Finish / condition</th>
+                  <th className="px-3 py-3 text-right">Qty</th>
+                  <th className="px-3 py-3 text-right">Cost basis</th>
+                  <th className="px-3 py-3 text-right">Market value</th>
+                  <th className="px-3 py-3 text-right">Gain/loss</th>
+                  <th className="px-3 py-3 text-left">Location</th>
+                  <th className="px-3 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleCards.map((card) => (
                   <tr key={card.id} className="border-t border-[var(--td-border-default)] transition hover:bg-white/[0.025]">
-                    <td className="px-4 py-3 align-middle">
+                    <td className="px-3 py-3 align-middle">
                       <input
                         type="checkbox"
                         aria-label={`Select ${card.cardName}`}
@@ -716,25 +715,25 @@ export function CollectorWorkspace({
                         className="accent-cyan-300"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3">
                       <button type="button" onClick={() => setInspectedCardId(card.id)} className="flex min-w-0 items-center gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
                         <CardThumb card={card} />
                         <span className="min-w-0">
-                          <span className="block truncate font-black text-[var(--td-text-primary)]">{card.cardName}</span>
+                          <span className="block truncate text-sm font-semibold leading-5 text-[var(--td-text-primary)]">{card.cardName}</span>
                           <span className="mt-1 flex flex-wrap gap-1.5">
-                            <TDBadge tone={card.gameId === "pokemon" ? "accent" : "neutral"}>{displayGameBadge(card.gameId)}</TDBadge>
-                            <TDBadge tone="neutral">{card.productType === "sealed" ? "Sealed" : "Single"}</TDBadge>
+                            <TDBadge className="text-[10px]" tone={card.gameId === "pokemon" ? "accent" : "neutral"}>{displayGameBadge(card.gameId)}</TDBadge>
+                            <TDBadge className="text-[10px]" tone="neutral">{card.productType === "sealed" ? "Sealed" : "Single"}</TDBadge>
                           </span>
                         </span>
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--td-text-secondary)]">{displayPrinting(card.printing)}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--td-text-secondary)]">{displayFinish(card.printing.finish)} / {displayCondition(card.condition)}</td>
-                    <td className="px-4 py-3 text-right font-black">{card.quantityOwned}</td>
-                    <td className="px-4 py-3 text-right text-sm font-black text-[var(--td-text-muted)]">Not connected</td>
-                    <td className={cn("px-4 py-3 text-right font-black", card.marketPrice.amount === null && "text-[var(--td-text-muted)]")}>{rowMarketValueLabel(card)}</td>
-                    <td className="px-4 py-3 text-right text-sm font-black text-[var(--td-text-muted)]">Requires cost</td>
-                    <td className="px-4 py-3 text-sm text-[var(--td-text-secondary)]">
+                    <td className="px-3 py-3 text-[13px] leading-5 text-[var(--td-text-secondary)]">{displayPrinting(card.printing)}</td>
+                    <td className="px-3 py-3 text-[13px] leading-5 text-[var(--td-text-secondary)]">{displayFinish(card.printing.finish)} / {displayCondition(card.condition)}</td>
+                    <td className="px-3 py-3 text-right text-sm font-semibold tabular-nums">{card.quantityOwned}</td>
+                    <td className="px-3 py-3 text-right text-[13px] font-medium text-[var(--td-text-muted)]">Not connected</td>
+                    <td className={cn("px-3 py-3 text-right text-sm font-semibold tabular-nums", card.marketPrice.amount === null && "text-[var(--td-text-muted)]")}>{rowMarketValueLabel(card)}</td>
+                    <td className="px-3 py-3 text-right text-[13px] font-medium text-[var(--td-text-muted)]">Requires cost</td>
+                    <td className="px-3 py-3 text-[13px] leading-5 text-[var(--td-text-secondary)]">
                       <StorageCell
                         card={card}
                         storageState={storageState}
@@ -744,10 +743,7 @@ export function CollectorWorkspace({
                         onAssign={(locationId) => void handleStorageAssignment(card, locationId)}
                       />
                     </td>
-                    <td className="px-4 py-3">
-                      <StatusBadges card={card} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-3 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <TDButton label="Inspect" variant="ghost" size="sm" onClick={() => setInspectedCardId(card.id)} />
                         <Link href={`/dashboard/cards/${encodeURIComponent(card.id)}`} className="inline-flex min-h-10 items-center justify-center rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] px-3 text-xs font-black text-[var(--td-text-secondary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
@@ -1561,7 +1557,6 @@ function CollectionCardTile({
         <TDText variant="caption" tone="muted">{displayPrinting(card.printing)}</TDText>
         <TDBadge tone={card.gameId === "pokemon" ? "accent" : "neutral"}>{displayGameBadge(card.gameId)}</TDBadge>
         <TDText variant="caption" tone="secondary">{displayStorageLocation(card)}</TDText>
-        <StatusBadges card={card} />
         <div className="mt-auto flex items-center justify-between gap-3">
           <TDBadge tone="info">x{card.quantityOwned}</TDBadge>
           <TDText variant="small" tone={card.marketPrice.amount === null ? "muted" : "primary"}>{priceLabel(card)}</TDText>
@@ -1725,19 +1720,6 @@ function InspectorRow({ label, value, muted = false }: { label: string; value: s
     <div className="flex items-start justify-between gap-3 border-b border-[var(--td-border-default)] pb-2 last:border-b-0">
       <TDText variant="caption" tone="muted">{label}</TDText>
       <TDText variant="small" tone={muted ? "muted" : "primary"} className="text-right">{value}</TDText>
-    </div>
-  );
-}
-
-function StatusBadges({ card }: { card: CollectionCard }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      <TDBadge tone={card.tradeBinderStatus === "not_for_trade" ? "neutral" : "success"}>
-        {card.tradeBinderStatus === "not_for_trade" ? "Not for trade" : "Trade binder"}
-      </TDBadge>
-      <TDBadge tone={card.wishlistStatus === "wanted" ? "accent" : "neutral"}>
-        {card.wishlistStatus === "wanted" ? "Wishlist" : "Not wishlisted"}
-      </TDBadge>
     </div>
   );
 }
