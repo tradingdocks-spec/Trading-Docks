@@ -779,17 +779,20 @@ function matchTcgplayerReference(
 ): Partial<CanonicalRow> {
   if (!referenceRows.length || !row.name.trim()) return {};
   const desiredCondition = tcgplayerCondition(row.condition, row.finish);
-  const candidates = referenceRows.filter((reference) => {
-    const nameMatches = normalizedLookup(reference["Product Name"]) === normalizedLookup(row.name);
-    const numberMatches =
-      normalizedLookup(reference.Number) === normalizedLookup(row.collectorNumber);
-    const setMatches =
-      !row.setName.trim() ||
-      normalizedLookup(reference["Set Name"]) === normalizedLookup(row.setName);
+  const identityCandidates = referenceRows.filter((reference) => {
+    const nameMatches = compactLookup(reference["Product Name"]) === compactLookup(row.name);
+    const numberMatches = collectorNumbersEquivalent(reference.Number, row.collectorNumber);
     const conditionMatches =
       normalizedLookup(reference.Condition) === normalizedLookup(desiredCondition);
-    return nameMatches && numberMatches && setMatches && conditionMatches;
+    return nameMatches && numberMatches && conditionMatches;
   });
+  const setCandidates = identityCandidates.filter((reference) =>
+    !row.setName.trim() || normalizedLookup(reference["Set Name"]) === normalizedLookup(row.setName),
+  );
+  // Set names differ between Scryfall/ManaBox and TCGplayer (for example
+  // Fallout naming). Accept a set-name translation only when the full
+  // name/collector/condition identity is unique in the reference export.
+  const candidates = setCandidates.length ? setCandidates : identityCandidates.length === 1 ? identityCandidates : [];
   if (candidates.length !== 1) return {};
   const reference = candidates[0];
   return {
@@ -817,6 +820,19 @@ function tcgplayerCondition(condition: string, finish: string) {
 }
 function normalizedLookup(value = "") {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+function compactLookup(value = "") {
+  return normalizedLookup(value).replace(/^(the|a|an)/, "");
+}
+function collectorNumbersEquivalent(left = "", right = "") {
+  const a = normalizedLookup(left);
+  const b = normalizedLookup(right);
+  if (!a || !b) return a === b;
+  if (a === b) return true;
+  const numeric = (value: string) => value.replace(/[★*]+$/, "");
+  const numericA = numeric(a);
+  const numericB = numeric(b);
+  return /^\d+$/.test(numericA) && /^\d+$/.test(numericB) && Number(numericA) === Number(numericB);
 }
 function normalizeFinish(value: string) {
   const clean = value.trim().toLowerCase();
