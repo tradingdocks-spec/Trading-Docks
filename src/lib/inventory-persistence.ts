@@ -82,6 +82,12 @@ function mergeDatabaseFields(collection: InventoryCollection, row: InventoryData
       collectorNumber: record.collectorNumber || row.collector_number || "",
       quantity: typeof record.quantity === "number" ? record.quantity : row.quantity ?? 0,
       value: typeof record.value === "number" ? record.value : row.inventory_value ?? 0,
+      batchCode: record.batchCode || record.batch_code || "",
+      imageUrl:
+        record.imageUrl ||
+        (record.scryfallId || row.scryfall_id
+          ? `/api/scryfall-image/${encodeURIComponent(String(record.scryfallId || row.scryfall_id))}`
+          : ""),
     };
   }
   return { ...record, id: record.id || row.id };
