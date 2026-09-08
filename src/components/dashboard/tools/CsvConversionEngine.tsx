@@ -787,7 +787,7 @@ function matchTcgplayerReference(
     return nameMatches && numberMatches && conditionMatches;
   });
   const setCandidates = identityCandidates.filter((reference) =>
-    !row.setName.trim() || normalizedLookup(reference["Set Name"]) === normalizedLookup(row.setName),
+    !row.setName.trim() || setNamesEquivalent(reference["Set Name"], row.setName),
   );
   // Set names differ between Scryfall/ManaBox and TCGplayer (for example
   // Fallout naming). Accept a set-name translation only when the full
@@ -822,7 +822,14 @@ function normalizedLookup(value = "") {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 function compactLookup(value = "") {
-  return normalizedLookup(value).replace(/^(the|a|an)/, "");
+  const base = value.trim().toLowerCase()
+    .replace(/\s*\/\/.*$/, "")
+    .replace(/\s*\([^)]*\)\s*$/, "");
+  return normalizedLookup(base).replace(/^(the|a|an)/, "");
+}
+function setNamesEquivalent(left = "", right = "") {
+  const normalizeSet = (value: string) => normalizedLookup(value.replace(/\s*\([^)]*\)\s*$/, ""));
+  return normalizeSet(left) === normalizeSet(right);
 }
 function collectorNumbersEquivalent(left = "", right = "") {
   const a = normalizedLookup(left);
