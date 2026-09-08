@@ -119,6 +119,7 @@ export function CsvConversionEngine({
   const [showBridgeHelp, setShowBridgeHelp] = useState(false);
   const [tcgplayerReferenceName, setTcgplayerReferenceName] = useState("");
   const [tcgplayerReferenceRows, setTcgplayerReferenceRows] = useState<CsvRow[]>([]);
+  const autoTcgplayerMatchKeyRef = useRef("");
 
   const converted = useMemo(() => {
     const normalized = rows.flatMap((sourceRow) => {
@@ -514,6 +515,14 @@ export function CsvConversionEngine({
     }
   }
 
+  useEffect(() => {
+    if (!tcgplayerMode || !validRows.length || working || hasAttemptedTcgplayerMatch) return;
+    const matchKey = `${fileName}:${validRows.length}:${validRows.map((row) => `${row.name}|${row.set}|${row.setName}|${row.collectorNumber}|${row.condition}|${row.finish}`).join("\u001f")}`;
+    if (autoTcgplayerMatchKeyRef.current === matchKey) return;
+    autoTcgplayerMatchKeyRef.current = matchKey;
+    void resolveExactTcgplayerIds();
+  }, [fileName, hasAttemptedTcgplayerMatch, resolveExactTcgplayerIds, tcgplayerMode, validRows, working]);
+
   async function saveToInventory() {
     if (!validRows.length) return setNotice("Map a card or product name before saving.");
     if (locationId && !selectedLocation) return setNotice("Choose one of your active storage locations or use Unassigned.");
@@ -695,8 +704,8 @@ export function CsvConversionEngine({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-[9px] font-bold uppercase tracking-[.2em] text-cyan-200/70">Step 2</p>
-                    <h3 className="mt-1 text-sm font-semibold text-white">{allTcgplayerMatched ? `All ${validRows.length.toLocaleString()} cards matched` : hasAttemptedTcgplayerMatch ? `${missingTcgplayerSkuCount.toLocaleString()} cards need review` : "Match to TCGplayer"}</h3>
-                    <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-400">{allTcgplayerMatched ? "Your cards have been matched to the correct TCGplayer printing, condition, and finish." : hasAttemptedTcgplayerMatch ? "Review the unmatched rows below, adjust set, number, condition, or finish, then match again." : "Use the Trading Docks catalog to attach exact TCGplayer IDs before downloading."}</p>
+                    <h3 className="mt-1 text-sm font-semibold text-white">{allTcgplayerMatched ? `All ${validRows.length.toLocaleString()} cards matched` : hasAttemptedTcgplayerMatch ? `${missingTcgplayerSkuCount.toLocaleString()} cards need review` : working ? "Preparing cards for TCGplayer" : "Prepare for TCGplayer"}</h3>
+                    <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-400">{allTcgplayerMatched ? "Your cards have been matched to the correct TCGplayer printing, condition, and finish." : hasAttemptedTcgplayerMatch ? "Review the unmatched rows below, adjust set, number, condition, or finish, then match again." : "Trading Docks automatically detects the incoming CSV and matches exact TCGplayer IDs. No ManaBox conversion or reference spreadsheet is required."}</p>
                   </div>
                   {allTcgplayerMatched ? <button type="button" onClick={downloadConverted} disabled={!validRows.length} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40"><Download className="h-4 w-4" />Download TCGplayer CSV</button> : <button type="button" onClick={() => void resolveExactTcgplayerIds()} disabled={!validRows.length || working} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-xs font-bold text-[#001018] disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}Match to TCGplayer</button>}
                 </div>
