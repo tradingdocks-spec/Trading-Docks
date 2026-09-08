@@ -861,11 +861,11 @@ function normalizeFinishValue(value: string, fallback: string) {
   const clean = value.trim().toLowerCase();
   if (!clean) return fallback;
   if (clean.includes("etched")) return "Etched";
-  if (["1", "true", "yes", "foil", "premium"].includes(clean) || clean.includes("foil")) {
-    return "Foil";
-  }
   if (["0", "false", "no", "normal", "regular", "nonfoil", "non-foil"].includes(clean)) {
     return "Nonfoil";
+  }
+  if (["1", "true", "yes", "foil", "premium"].includes(clean) || clean.includes("foil")) {
+    return "Foil";
   }
   return value.trim();
 }

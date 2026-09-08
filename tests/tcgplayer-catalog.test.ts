@@ -986,6 +986,15 @@ test("CSV converter presents a clean TCGplayer match and download workflow", () 
   assert.doesNotMatch(converter, /Download ManaBox bridge instead/);
 });
 
+test("CSV converter keeps Nonfoil distinct from Foil during normalization", () => {
+  const converter = readFileSync(path.join(repoRoot, "src/components/dashboard/tools/CsvConversionEngine.tsx"), "utf8");
+  const nonfoilGuard = converter.indexOf('["0", "false", "no", "normal", "regular", "nonfoil", "non-foil"]');
+  const foilGuard = converter.indexOf('["1", "true", "yes", "foil", "premium"]');
+  assert.ok(nonfoilGuard >= 0, "Nonfoil aliases must be explicit");
+  assert.ok(foilGuard >= 0, "Foil aliases must be explicit");
+  assert.ok(nonfoilGuard < foilGuard, "Nonfoil must be checked before the broad foil substring match");
+});
+
 test("admin catalog UI requires storage verification before importing all parts", () => {
   const source = readFileSync(path.join(repoRoot, "src/components/dashboard/admin/catalog/TcgplayerCatalogManager.tsx"), "utf8");
   assert.match(source, /storage-verify/);
