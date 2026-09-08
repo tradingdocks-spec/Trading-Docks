@@ -255,17 +255,39 @@ async function diagnoseUnresolved(
   const normalizedSetName = normalizeSetName(setName);
   const normalizedProductName = normalizeProductName(input.productName);
   const normalizedCollectorNumber = normalizeCollectorNumber(input.collectorNumber);
-  const productInSet = await fetchCandidates(client, {
+  let productInSet = await fetchCandidates(client, {
     normalized_set_name: normalizedSetName,
     normalized_product_name: normalizedProductName,
   }, 8);
+
+  // ManaBox preserves the Scryfall display spelling while TCGplayer often
+  // stores a compact product name (for example `C.A.M.P.` vs `CAMP`). When
+  // the indexed exact name misses, use the set and collector number as a
+  // bounded second lookup, then compare a compact identity locally. This is
+  // deliberately constrained to one set and one printing identity so it
+  // cannot silently select a card from another set.
+  if (productInSet.length === 0 && normalizedCollectorNumber) {
+    const byCollector = await fetchCandidates(client, {
+      normalized_set_name: normalizedSetName,
+      normalized_collector_number: normalizedCollectorNumber,
+    }, 50);
+    productInSet = byCollector.filter((row) => compactProductName(row.product_name) === compactProductName(input.productName));
+  }
+
+  if (productInSet.length === 0) {
+    const bySet = await fetchCandidates(client, { normalized_set_name: normalizedSetName }, 500);
+    productInSet = bySet.filter((row) =>
+      compactProductName(row.product_name) === compactProductName(input.productName)
+      && (!normalizedCollectorNumber || collectorNumbersEquivalent(row.collector_number, input.collectorNumber)),
+    );
+  }
 
   if (productInSet.length === 0) {
     return unresolved("SET_MAPPED_NO_PRODUCT", `Set translated to ${setName}, but the product was not found in the TCGplayer catalog for that set.`, diagnostics);
   }
 
   const printingCandidates = normalizedCollectorNumber
-    ? productInSet.filter((row: TcgplayerCatalogVariant) => normalizeCollectorNumber(row.collector_number) === normalizedCollectorNumber)
+    ? productInSet.filter((row: TcgplayerCatalogVariant) => collectorNumbersEquivalent(row.collector_number, input.collectorNumber))
     : productInSet;
 
   if (normalizedCollectorNumber && printingCandidates.length === 0) {
@@ -278,11 +300,50 @@ async function diagnoseUnresolved(
   }
 
   const conditionCandidates = finishCandidates.filter((row: TcgplayerCatalogVariant) => normalizeSetName(row.condition) === normalizedCondition);
+  if (conditionCandidates.length === 1) {
+    const [row] = conditionCandidates;
+    return {
+      status: "matched",
+      row,
+      tcgplayerId: row.tcgplayer_id,
+      diagnostics,
+    };
+  }
+  if (conditionCandidates.length > 1) {
+    return {
+      status: "ambiguous",
+      candidates: conditionCandidates,
+      reason: "Multiple TCGplayer SKUs matched the normalized card identity; choose the exact printing.",
+      reasonCode: "AMBIGUOUS_PRINTING",
+      diagnostics,
+    };
+  }
   if (conditionCandidates.length === 0) {
     return unresolved("CONDITION_NOT_AVAILABLE", "Printing and finish were found, but the requested condition is not available in the TCGplayer catalog.", diagnostics);
   }
 
   return unresolved("PRINTING_NOT_FOUND", "No exact TCGplayer condition and finish SKU matched this source printing.", diagnostics);
+}
+
+function compactProductName(value: unknown) {
+  return normalizeProductName(value).replace(/[^a-z0-9]/g, "");
+}
+
+function collectorNumbersEquivalent(left: unknown, right: unknown) {
+  const a = normalizeCollectorNumber(left);
+  const b = normalizeCollectorNumber(right);
+  if (!a || !b) return a === b;
+  if (a === b) return true;
+
+  // Catalog exports occasionally append a foil/variant marker (for example
+  // `391★`) or a leading hash. Only treat those as equivalent when both
+  // values reduce to the same numeric collector number; lettered variants
+  // such as `12a` and `12b` remain distinct.
+  const numeric = (value: string) => value.replace(/^#/, "").replace(/[★*]+$/, "");
+  const numericA = numeric(a);
+  const numericB = numeric(b);
+  return /^\d+$/.test(numericA) && /^\d+$/.test(numericB)
+    && Number.parseInt(numericA, 10) === Number.parseInt(numericB, 10);
 }
 
 async function fetchCandidates(

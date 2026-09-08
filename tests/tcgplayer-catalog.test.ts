@@ -827,6 +827,40 @@ test("catalog resolver reports unavailable finish and collector-number mismatche
   assert.equal(collectorMismatch.status === "unresolved" ? collectorMismatch.reasonCode : null, "COLLECTOR_NUMBER_MISMATCH");
 });
 
+test("catalog resolver tolerates ManaBox punctuation and catalog collector markers safely", async () => {
+  const rows: TcgplayerMagicCatalogRecord[] = [
+    mappedRecord(900129, "Fallout", "CAMP", "129", "Moderately Played"),
+    mappedRecord(900391, "Innistrad: Midnight Hunt", "Join the Dance", "391★", "Moderately Played"),
+  ];
+  const client = new FakeResolverClient(rows);
+  const identities = [
+    { code: "pip", name: "Fallout" },
+    { code: "mid", name: "Innistrad: Midnight Hunt" },
+  ];
+
+  const camp = await resolveTcgplayerVariant(client, {
+    productName: "C.A.M.P.",
+    setCode: "pip",
+    collectorNumber: "129",
+    condition: "Moderately Played",
+    finish: "normal",
+    setIdentities: identities,
+  });
+  assert.equal(camp.status, "matched");
+  assert.equal(camp.status === "matched" ? camp.tcgplayerId : null, 900129);
+
+  const join = await resolveTcgplayerVariant(client, {
+    productName: "Join the Dance",
+    setCode: "mid",
+    collectorNumber: "391",
+    condition: "Moderately Played",
+    finish: "normal",
+    setIdentities: identities,
+  });
+  assert.equal(join.status, "matched");
+  assert.equal(join.status === "matched" ? join.tcgplayerId : null, 900391);
+});
+
 test("catalog resolver reports unknown sets missing products and ambiguous printings", async () => {
   const rows: TcgplayerMagicCatalogRecord[] = [
     mappedRecord(1, "Modern Horizons", "Duplicate Card", "1", "Near Mint"),
