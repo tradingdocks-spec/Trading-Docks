@@ -82,8 +82,13 @@ test("bulk inventory removal is one server request with confirmation copy", () =
 
 test("inventory workspace hides ledger rows after their quantity reaches zero", () => {
   const clientData = source("src/lib/collector-workspace-client-data.ts");
+  const inventoryPersistence = source("src/lib/inventory-persistence.ts");
+  const batchPage = source("src/app/dashboard/inventory/batches/[batchId]/page.tsx");
 
   assert.match(clientData, /let next = query\.gt\("quantity", 0\)/);
+  assert.match(inventoryPersistence, /collection !== "items" \|\| Number\(record\.quantity \?\? 0\) > 0/);
+  assert.match(inventoryPersistence, /\.gt\("quantity", 0\)/);
+  assert.match(batchPage, /\.gt\("quantity", 0\)/);
 });
 
 test("bulk inventory removal dialog is fixed in the viewport center", () => {
