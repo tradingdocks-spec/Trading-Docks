@@ -447,7 +447,7 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
   assert.equal(freeHrefs.includes("/dashboard/deck-architect"), false);
 
   const collectorHrefs = navigationHrefsFor(collector);
-  assert.ok(collectorHrefs.includes("/dashboard/collector-portfolio"));
+  assert.equal(collectorHrefs.includes("/dashboard/collector-portfolio"), false);
   assert.equal(collectorHrefs.includes("/dashboard/orders"), false);
   assert.equal(collectorHrefs.includes("/dashboard/deck-architect"), false);
 
