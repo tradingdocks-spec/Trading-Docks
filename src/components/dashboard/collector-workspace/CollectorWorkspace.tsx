@@ -719,11 +719,7 @@ export function CollectorWorkspace({
                       <button type="button" onClick={() => setInspectedCardId(card.id)} className="flex min-w-0 items-center gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
                         <CardThumb card={card} />
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold leading-5 text-[var(--td-text-primary)]">{card.cardName}</span>
-                          <span className="mt-1 flex flex-wrap gap-1.5">
-                            <TDBadge className="text-[10px]" tone={card.gameId === "pokemon" ? "accent" : "neutral"}>{displayGameBadge(card.gameId)}</TDBadge>
-                            <TDBadge className="text-[10px]" tone="neutral">{card.productType === "sealed" ? "Sealed" : "Single"}</TDBadge>
-                          </span>
+                          <span className="block text-lg font-semibold leading-6 text-[var(--td-text-primary)]">{card.cardName}</span>
                         </span>
                       </button>
                     </td>
@@ -1584,7 +1580,7 @@ function MobileInventoryCard({
         <button type="button" onClick={onInspect} className="grid grid-cols-[48px_1fr] gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
           <CardThumb card={card} size="lg" />
           <span className="min-w-0">
-            <span className="block truncate text-sm font-black text-[var(--td-text-primary)]">{card.cardName}</span>
+            <span className="block text-base font-semibold leading-6 text-[var(--td-text-primary)]">{card.cardName}</span>
             <span className="mt-1 block text-xs font-semibold text-[var(--td-text-muted)]">{displayPrinting(card.printing)} · {displayCondition(card.condition)}</span>
             <span className="mt-1 block truncate text-xs font-semibold text-[var(--td-text-secondary)]">{displayStorageLocation(card)}</span>
           </span>
