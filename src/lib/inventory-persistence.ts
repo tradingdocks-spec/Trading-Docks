@@ -57,7 +57,41 @@ export async function loadInventorySnapshot(): Promise<InventorySnapshot> {
     }),
   );
 
-  return { locations, items, movements };
+  const batchByItem = await loadChaosSortBatchCodes(supabase, user.id);
+  const itemsWithBatchCodes = items.map((item) => ({
+    ...item,
+    batchCode: item.batchCode || batchByItem.get(item.id) || "",
+  }));
+
+  return { locations, items: itemsWithBatchCodes, movements };
+}
+
+async function loadChaosSortBatchCodes(supabase: ReturnType<typeof createClient>, userId: string) {
+  try {
+    const [{ data: positions, error: positionsError }, { data: batches, error: batchesError }] = await Promise.all([
+      supabase
+        .from("chaos_sort_inventory_positions")
+        .select("item_id,batch_id")
+        .eq("user_id", userId),
+      supabase
+        .from("chaos_sort_batches")
+        .select("id,batch_code")
+        .eq("user_id", userId),
+    ]);
+    if (positionsError || batchesError) return new Map<string, string>();
+
+    const batchCodes = new Map(
+      (batches ?? []).map((batch: { id: string; batch_code: string | null }) => [String(batch.id), String(batch.batch_code ?? "")]),
+    );
+    return new Map(
+      (positions ?? [])
+        .filter((position: { item_id: string | null; batch_id: string }) => position.item_id && batchCodes.get(String(position.batch_id)))
+        .map((position: { item_id: string | null; batch_id: string }) => [String(position.item_id), batchCodes.get(String(position.batch_id)) ?? ""]),
+    );
+  } catch {
+    // Older deployments may not have the Chaos Sort position tables yet.
+    return new Map<string, string>();
+  }
 }
 
 function mergeDatabaseFields(collection: InventoryCollection, row: InventoryDataRow) {
