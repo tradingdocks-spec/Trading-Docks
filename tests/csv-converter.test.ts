@@ -8,6 +8,16 @@ import {
   parseCsv,
   unsupportedExportIssues,
 } from "../src/lib/csv-converter.ts";
+import { outputForTemplate, type CanonicalRow } from "../src/lib/csv-conversion/templates.ts";
+
+function canonicalPriceRow(overrides: Partial<CanonicalRow> = {}) {
+  return {
+    marketPrice: "",
+    lowPrice: "1.76",
+    directLowPrice: "",
+    ...overrides,
+  } as CanonicalRow;
+}
 
 test("CSV converter keeps Magic rows on the existing TCGplayer export path", () => {
   const rows = normalizeRows(parseCsv([
@@ -43,4 +53,15 @@ test("CSV converter rejects sealed inventory for card export formats", () => {
   assert.equal(rows[0].productType, "sealed");
   assert.equal(blockingIssues(rows, "tcgplayer"), 1);
   assert.throws(() => exportCsv(rows, "tcgplayer"), /sealed inventory/);
+});
+
+test("TCGplayer export fills required marketplace price from the lowest available price", () => {
+  const output = outputForTemplate([canonicalPriceRow()], "tcgplayer");
+  const marketplacePriceIndex = output.headers.indexOf("TCG Marketplace Price");
+  assert.equal(output.values[0][marketplacePriceIndex], "1.76");
+  assert.equal(
+    outputForTemplate([canonicalPriceRow({ marketPrice: "2.10" })], "tcgplayer")
+      .values[0][marketplacePriceIndex],
+    "2.10",
+  );
 });
