@@ -91,6 +91,16 @@ test("inventory workspace hides ledger rows after their quantity reaches zero", 
   assert.match(batchPage, /\.gt\("quantity", 0\)/);
 });
 
+test("collection table omits listing status and uses compact readable typography", () => {
+  const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
+
+  assert.doesNotMatch(workspace, />Listing status<\/th>/);
+  assert.doesNotMatch(workspace, /<StatusBadges card=\{card\} \/>/);
+  assert.match(workspace, /min-w-\[980px\]/);
+  assert.match(workspace, /text-\[10px\] font-bold uppercase tracking-\[0\.08em\]/);
+  assert.match(workspace, /text-sm font-semibold leading-5 text-\[var\(--td-text-primary\)\]/);
+});
+
 test("storage locations can remove a binder card through the audited quantity mutation", () => {
   const manager = source("src/components/dashboard/collector-workspace/StorageLocationManager.tsx");
   const clientData = source("src/lib/storage-location-client-data.ts");
