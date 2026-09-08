@@ -222,6 +222,8 @@ export function ChaosSortWorkspace() {
   const plan = useMemo(() => buildChaosSortPlan(items, rules), [items, rules]);
   const queueCounts = useMemo(() => ({
     analyzed: items.filter((item) => item.processingState === "ready" || item.processingState === "failed").length,
+    analyzedCards: items.filter((item) => item.processingState === "ready" || item.processingState === "failed").reduce((sum, item) => sum + item.quantity, 0),
+    totalCards: items.reduce((sum, item) => sum + item.quantity, 0),
     processing: items.filter((item) => item.processingState === "processing").length,
     identified: items.filter((item) => item.processingState === "ready" && item.recognitionState === "high_confidence").length,
     needsReview: items.filter((item) => item.processingState === "ready" && item.recognitionState === "review").length,
@@ -961,10 +963,10 @@ export function ChaosSortWorkspace() {
               </div>
             </div>
 
-            {items.length ? <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3"><div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.12em] text-slate-500"><span>{queueCounts.analyzed} / {items.length} analyzed</span><span>{queueCounts.needsReview + queueCounts.unknown} cards need your attention</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-cyan-300 transition-all" style={{ width: `${(queueCounts.analyzed / items.length) * 100}%` }} /></div></div> : null}
+            {items.length ? <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3"><div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.12em] text-slate-500"><span>{queueCounts.analyzed} / {items.length} line items analyzed · {queueCounts.analyzedCards} / {queueCounts.totalCards} cards</span><span>{queueCounts.needsReview + queueCounts.unknown} line items need your attention</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-cyan-300 transition-all" style={{ width: `${(queueCounts.analyzed / items.length) * 100}%` }} /></div></div> : null}
 
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
-              <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-sm"><span className="font-black text-white">{queueCounts.analyzed} / {items.length} analyzed</span><span className="font-bold text-emerald-300">{queueCounts.identified} READY</span><span className="font-bold text-amber-200">{queueCounts.needsReview} REVIEW</span><span className="font-bold text-slate-300">{queueCounts.unknown} UNKNOWN</span><span className="font-bold text-rose-300">{queueCounts.failed} FAILED</span><span className="font-bold text-cyan-200">{queueCounts.processing} PROCESSING</span></div>
+              <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-sm"><span className="font-black text-white">{queueCounts.analyzed} / {items.length} line items · {queueCounts.totalCards} cards</span><span className="font-bold text-emerald-300">{queueCounts.identified} READY</span><span className="font-bold text-amber-200">{queueCounts.needsReview} REVIEW</span><span className="font-bold text-slate-300">{queueCounts.unknown} UNKNOWN</span><span className="font-bold text-rose-300">{queueCounts.failed} FAILED</span><span className="font-bold text-cyan-200">{queueCounts.processing} PROCESSING</span></div>
               <p className="mt-2 text-xs text-slate-500">{queueCounts.failed + queueCounts.needsReview + queueCounts.unknown} exceptions need attention before commit.</p>
             </div>
 
@@ -1039,7 +1041,7 @@ export function ChaosSortWorkspace() {
                           item.condition,
                         ].filter(Boolean).join(" · ") || item.notes || "Identity not resolved"}
                       </TDText>
-                      {item.processingState === "ready" ? <div className="flex flex-wrap gap-2 text-xs text-slate-400"><span className="rounded-full border border-white/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span><span className="rounded-full border border-white/[0.06] px-2.5 py-1">Owned {item.existingOwnedQuantity}</span><span className="rounded-full border border-white/[0.06] px-2.5 py-1">Conf {Math.round(item.confidence * 100)}%</span></div> : <p className="text-xs text-slate-400">{item.notes || "Recognition did not complete."}</p>}
+                      {item.processingState === "ready" ? <div className="flex flex-wrap gap-2 text-xs text-slate-400"><span className="rounded-full border border-white/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span>{item.quantity > 1 ? <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 text-cyan-100">Qty {item.quantity}</span> : null}<span className="rounded-full border border-white/[0.06] px-2.5 py-1">Owned {item.existingOwnedQuantity}</span><span className="rounded-full border border-white/[0.06] px-2.5 py-1">Conf {Math.round(item.confidence * 100)}%</span></div> : <p className="text-xs text-slate-400">{item.notes || "Recognition did not complete."}</p>}
                         </div>
                       <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-[280px]">
                         {item.processingState === "failed" ? <TDButton size="sm" variant="secondary" onClick={() => void retryRecognition([item])}>Retry recognition</TDButton> : <TDButton size="sm" variant="secondary" onClick={() => confirmItem(item.id)}>Confirm</TDButton>}
