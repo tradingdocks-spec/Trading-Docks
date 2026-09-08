@@ -267,10 +267,13 @@ async function diagnoseUnresolved(
   // deliberately constrained to one set and one printing identity so it
   // cannot silently select a card from another set.
   if (productInSet.length === 0 && normalizedCollectorNumber) {
-    const byCollector = await fetchCandidates(client, {
-      normalized_collector_number: normalizedCollectorNumber,
-    }, 50);
-    productInSet = byCollector.filter((row) => cardNamesEquivalent(row.product_name, input.productName));
+    const byCardIdentity = (await Promise.all(nameLookupVariants(input.productName).map((normalizedName) =>
+      fetchCandidates(client, {
+        normalized_product_name: normalizedName,
+        normalized_collector_number: normalizedCollectorNumber,
+      }, 50),
+    ))).flat();
+    productInSet = uniqueCatalogRows(byCardIdentity).filter((row) => cardNamesEquivalent(row.product_name, input.productName));
   }
 
   if (productInSet.length === 0) {
@@ -355,6 +358,18 @@ function nameVariants(value: unknown) {
     compactProductName(text),
     ...text.split("//").map((face) => compactProductName(face)),
   ].filter(Boolean))];
+}
+
+function nameLookupVariants(value: unknown) {
+  const text = String(value ?? "");
+  return [...new Set([
+    normalizeProductName(text),
+    ...text.split("//").map((face) => normalizeProductName(face)),
+  ].filter(Boolean))];
+}
+
+function uniqueCatalogRows(rows: TcgplayerCatalogVariant[]) {
+  return [...new Map(rows.map((row) => [row.tcgplayer_id, row])).values()];
 }
 
 function collectorNumbersEquivalent(left: unknown, right: unknown) {
