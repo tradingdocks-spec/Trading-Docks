@@ -39,7 +39,11 @@ export async function POST(request: Request) {
     job_title: jobTitle || null,
     account_status: "uninvited",
   }).select("id").single();
-  if (employeeError || !employee) return NextResponse.json({ ok: false, error: employeeError?.message ?? "Employee could not be created." }, { status: 400 });
+  if (employeeError || !employee) {
+    const message = employeeError?.message ?? "Employee could not be created.";
+    const migrationRequired = /account_status|workspace_members_role_check|column .* does not exist|schema cache/i.test(message);
+    return NextResponse.json({ ok: false, error: migrationRequired ? "Employee invitations are not enabled in this deployment yet. Apply the employee account migration, then retry." : message }, { status: migrationRequired ? 503 : 400 });
+  }
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName, employee_workspace_id: workspaceId, employee_record_id: employee.id },
