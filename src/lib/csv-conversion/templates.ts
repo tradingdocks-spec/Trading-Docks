@@ -191,13 +191,14 @@ export function mappingForTemplate(headers: string[], selected?: CsvTemplate) {
   return mapped;
 }
 
-export function outputForTemplate(rows: CanonicalRow[], templateId: string) {
+export function outputForTemplate(rows: Array<CanonicalRow & { tcgplayerPrinting?: Pick<CanonicalRow, "name" | "setName" | "collectorNumber"> }>, templateId: string) {
   const selected = CSV_TEMPLATES.find((item) => item.id === templateId) ?? CSV_TEMPLATES.at(-1)!;
   return {
     headers: selected.headers,
-    values: rows.map((row) =>
-      selected.columns.map(([header, key]) => outputValue(row, key, selected.id, header)),
-    ),
+    values: rows.map((source) => {
+      const row = selected.id === "tcgplayer" ? { ...source, ...source.tcgplayerPrinting } : source;
+      return selected.columns.map(([header, key]) => outputValue(row, key, selected.id, header));
+    }),
   };
 }
 
