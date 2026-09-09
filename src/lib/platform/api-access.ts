@@ -30,6 +30,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "public-card-intelligence", pattern: /^\/api\/card-intelligence(\/|$)/, kind: "public", label: "Rate-limited card intelligence lookup" },
   { id: "admin", pattern: /^\/api\/admin(\/|$)/, kind: "admin-only", capability: "platform.admin", label: "Admin APIs" },
   { id: "billing", pattern: /^\/api\/billing\/revenuecat(\/|$)/, kind: "authenticated", label: "RevenueCat billing checkout and management" },
+  { id: "employee-invitation", pattern: /^\/api\/workspace\/employees\/invite\/?$/, kind: "authenticated", label: "Employee invitation; workspace manager role enforced by handler" },
   { id: "scanner", pattern: /^\/api\/scanner(\/|$)/, kind: "capability", capability: "scanner.use", label: "Mobile scanner provider APIs" },
   { id: "chaos-sort", pattern: /^\/api\/chaos-sort(\/|$)/, kind: "capability", capability: "collection.write", label: "Chaos Sort inventory commit" },
   { id: "collector-workspace", pattern: /^\/api\/collector-workspace(\/|$)/, kind: "capability", capability: "collection.write", label: "Collector Workspace mutations" },
