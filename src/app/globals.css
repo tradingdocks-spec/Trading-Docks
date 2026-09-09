@@ -85,21 +85,6 @@ select option:disabled {
     var(--td-background-primary);
 }
 
-/* Inventory is a dense operating surface; reserve the heaviest weight for
-   primary totals and keep controls and table rows calm and readable. */
-.inventory-workspace .font-black {
-  font-weight: 650;
-  letter-spacing: -0.01em;
-}
-
-.inventory-workspace :is(button, a, input, select, textarea) {
-  letter-spacing: normal;
-}
-
-.inventory-workspace table thead {
-  letter-spacing: 0.08em;
-}
-
 .td-page-shell::before {
   content: "";
   position: absolute;
@@ -164,17 +149,32 @@ select option:disabled {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--td-action-primary) 72%, white 28%);
   border-radius: var(--td-radius-sm);
   background: var(--td-action-primary);
   color: var(--td-on-accent);
   font-size: 0.75rem;
   font-weight: 700;
-  transition: background-color 160ms ease, transform 160ms ease;
+  box-shadow: 0 10px 28px rgb(var(--td-accent-rgb) / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.18);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .td-button-primary:hover {
   background: var(--td-action-primary-hover);
+  border-color: var(--td-action-primary-hover);
   transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgb(var(--td-accent-rgb) / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+.td-button-primary:active {
+  background: var(--td-action-primary-pressed);
+  border-color: var(--td-action-primary-pressed);
+  transform: translateY(0);
+}
+
+.td-button-primary:focus-visible {
+  outline: 2px solid var(--td-border-focus);
+  outline-offset: 3px;
 }
 
 .td-button-secondary {
@@ -196,26 +196,6 @@ select option:disabled {
   border-color: rgb(var(--td-accent-rgb)/0.22);
   background: rgb(var(--td-accent-rgb)/0.045);
   color: var(--td-text-primary);
-}
-
-.td-input {
-  border: 1px solid var(--td-border-subtle);
-  border-radius: var(--td-radius-sm);
-  background: var(--td-surface-default);
-  padding-inline: 0.75rem;
-  color: var(--td-text-primary);
-  outline: none;
-  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
-}
-
-.td-input::placeholder {
-  color: var(--td-text-faint);
-}
-
-.td-input:focus {
-  border-color: rgb(var(--td-accent-rgb) / .44);
-  background: var(--td-surface-elevated);
-  box-shadow: 0 0 0 3px rgb(var(--td-accent-rgb) / .08);
 }
 
 /* Preserve native overlay scrollbars on touch devices. A forced scrollbar
@@ -1111,3 +1091,4 @@ html {
     @apply w-full rounded-xl border border-td-ink/[0.08] bg-td-canvas px-3 py-3 text-xs text-td-primary outline-none transition placeholder:text-td-muted focus:border-td-accent/30 focus:ring-2 focus:ring-td-accent/10;
   }
 }
+
