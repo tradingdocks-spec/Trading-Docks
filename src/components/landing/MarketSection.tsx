@@ -1,51 +1,55 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, RefreshCw } from "lucide-react";
+import Image from "next/image";
+import { useMemo, useState } from "react";
+import { ArrowRight } from "lucide-react";
 
 type GameId = "magic" | "pokemon" | "pokemon-japan" | "lorcana" | "one-piece";
 type MarketMode = "trending" | "movers" | "volume" | "opportunities";
 
 type MarketCard = {
   id: string;
-  game: GameId;
   name: string;
-  subtitle: string;
   setName: string;
   setCode: string;
   collectorNumber: string;
-  image: string;
   marketPrice: number;
-  lowPrice: number;
   change24h: number;
   change7d: number;
-  inventoryOwned: number;
-  potentialRevenue: number;
   demand: "High" | "Medium" | "Low";
   volumeScore: number;
   opportunityScore: number;
-  sparkline: number[];
   source: string;
-  dataQuality: "live" | "reference" | "fallback";
-  signal: "gainer" | "loser" | "volume" | "opportunity";
+  image?: string;
 };
 
-type GameStatus = {
-  game: GameId;
-  label: string;
-  source: string;
-  dataQuality: "live" | "reference" | "fallback";
-  cardCount: number;
+// Deliberately illustrative: never presented as provider quotes or live prices.
+const SAMPLE_NAMES: Record<GameId, string[]> = {
+  magic: ["Mox Amber", "Cavern of Souls", "The One Ring"],
+  pokemon: ["Pikachu ex", "Charizard ex", "Mew ex"],
+  "pokemon-japan": ["Pikachu ex", "Charizard ex", "Mew ex"],
+  lorcana: ["Elsa — Spirit of Winter", "Stitch — Rock Star", "Mickey Mouse — Brave Little Tailor"],
+  "one-piece": ["Monkey.D.Luffy", "Roronoa Zoro", "Nami"],
 };
 
-type ApiResponse = {
-  updatedAt: string;
-  refreshSeconds: number;
-  games: Record<GameId, MarketCard[]>;
-  status: Record<GameId, GameStatus>;
+const SAMPLE_ART: Record<string, string> = {
+  "Mox Amber": "https://cards.scryfall.io/small/front/6/6/66024e69-ad60-4c9a-a0ca-da138d33ad80.jpg",
+  "Cavern of Souls": "https://cards.scryfall.io/small/front/4/9/49dbdabc-9b82-476d-8efc-63d33f1f13ab.jpg",
+  "The One Ring": "https://cards.scryfall.io/small/front/4/5/4536e6da-4b9d-4d67-a3fb-b3f1e3e1d664.jpg",
 };
 
+function sampleCards(game: GameId): MarketCard[] {
+  return SAMPLE_NAMES[game].map((name, index) => ({
+    id: `${game}-sample-${index}`, name, setName: "Example set", setCode: "DEMO",
+    collectorNumber: String(index + 1).padStart(3, "0"),
+    marketPrice: [24, 12, 3][index], change24h: [2, -1, 0.5][index],
+    change7d: [8, -4, 2][index], demand: index === 0 ? "High" : "Medium",
+    volumeScore: [80, 60, 95][index], opportunityScore: [65, 85, 40][index],
+    source: "Illustrative sample",
+    image: SAMPLE_ART[name],
+  }));
+}
 const GAME_TABS: Array<{ id: GameId; label: string; shortLabel: string }> = [
   { id: "magic", label: "Magic: The Gathering", shortLabel: "Magic" },
   { id: "pokemon", label: "Pokemon", shortLabel: "Pokemon" },
@@ -64,72 +68,37 @@ const MODES: Array<{ id: MarketMode; label: string; description: string }> = [
 export function MarketSection() {
   const [activeGame, setActiveGame] = useState<GameId>("magic");
   const [activeMode, setActiveMode] = useState<MarketMode>("trending");
-  const [payload, setPayload] = useState<ApiResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
-
-  async function load(manual = false) {
-    manual ? setRefreshing(true) : setLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/multi-game-market", { cache: "force-cache" });
-      if (!response.ok) throw new Error(`Market feed returned ${response.status}.`);
-      const nextPayload = (await response.json()) as ApiResponse;
-      setPayload(nextPayload);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Market feed unavailable.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
-
-  useEffect(() => {
-    void load(false);
-  }, []);
 
   const selectedGame = GAME_TABS.find((game) => game.id === activeGame) ?? GAME_TABS[0];
   const selectedMode = MODES.find((mode) => mode.id === activeMode) ?? MODES[0];
-  const status = payload?.status?.[activeGame];
   const cards = useMemo(
-    () => rankCards(payload?.games?.[activeGame] ?? [], activeMode),
-    [activeGame, activeMode, payload],
+    () => rankCards(sampleCards(activeGame), activeMode),
+    [activeGame, activeMode],
   );
   const primaryCard = cards[0] ?? null;
 
   return (
     <section
       id="market"
-      data-td-reveal
-      className="relative z-10 border-y border-white/[0.06] bg-[#03080d] px-5 py-16 text-white sm:px-8 sm:py-20 lg:px-12"
+      className="relative z-10 border-y border-td-ink/[0.06] bg-td-surface px-5 py-14 text-td-primary sm:px-8 sm:py-16 lg:px-12"
     >
-      <div className="mx-auto max-w-[1480px]">
-        <div className="grid min-w-0 gap-10 lg:grid-cols-[360px_1fr]">
+      <div className="mx-auto max-w-[1240px]">
+        <div className="grid min-w-0 gap-8">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-cyan-200">Market intelligence</p>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-td-accent-text">03 / Market intelligence</p>
             <h2 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-5xl">
-              Product movement, not a fake stock ticker.
+              See market signals in context.
             </h2>
-            <p className="mt-5 text-sm leading-7 text-slate-500">
-              The market view keeps source quality visible and turns price
-              movement into inventory decisions: buy, hold, reprice, list, or
-              investigate.
+            <p className="mt-5 max-w-2xl text-sm leading-7 text-td-secondary">
+              Explore a sample market snapshot. All products, prices, changes,
+              and demand scores below are illustrative examples, not current
+              market quotes or buying recommendations.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => load(true)}
-                className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-white/[0.12] px-4 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/35 hover:text-white"
-              >
-                <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-                Refresh feed
-              </button>
               <Link
                 href="/dashboard/market-intelligence"
-                className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-cyan-300 px-4 text-sm font-semibold text-[#01131a] transition hover:bg-cyan-200"
+                className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-td-accent px-4 text-sm font-semibold text-td-on-accent transition hover:bg-td-accent-hover"
               >
                 Open Market Center
                 <ArrowRight className="h-4 w-4" />
@@ -138,19 +107,20 @@ export function MarketSection() {
           </div>
 
           <div className="min-w-0">
-            <div className="grid min-w-0 border-y border-white/[0.08] lg:grid-cols-[1fr_260px]">
-              <div className="border-b border-white/[0.08] py-5 lg:border-b-0 lg:border-r lg:pr-6">
+            <div className="grid min-w-0 border-y border-td-ink/[0.08] lg:grid-cols-[1fr_260px]">
+              <div className="border-b border-td-ink/[0.08] py-5 lg:border-b-0 lg:border-r lg:pr-6">
                 <div className="flex flex-wrap gap-2">
                   {GAME_TABS.map((game) => (
                     <button
                       key={game.id}
                       type="button"
                       onClick={() => setActiveGame(game.id)}
+                      aria-pressed={activeGame === game.id}
                       className={[
                         "h-9 border px-3 text-sm transition",
                         activeGame === game.id
-                          ? "border-cyan-300/40 text-white"
-                          : "border-white/[0.09] text-slate-500 hover:text-slate-200",
+                          ? "border-td-accent/40 text-td-primary"
+                          : "border-td-ink/[0.09] text-td-secondary hover:text-td-primary",
                       ].join(" ")}
                     >
                       {game.shortLabel}
@@ -163,11 +133,12 @@ export function MarketSection() {
                       key={mode.id}
                       type="button"
                       onClick={() => setActiveMode(mode.id)}
+                      aria-pressed={activeMode === mode.id}
                       className={[
                         "h-9 border px-3 text-sm transition",
                         activeMode === mode.id
-                          ? "border-cyan-300/40 text-cyan-200"
-                          : "border-white/[0.09] text-slate-500 hover:text-slate-200",
+                          ? "border-td-accent/40 text-td-accent-text"
+                          : "border-td-ink/[0.09] text-td-secondary hover:text-td-primary",
                       ].join(" ")}
                     >
                       {mode.label}
@@ -177,51 +148,49 @@ export function MarketSection() {
               </div>
 
               <div className="py-5 lg:pl-6">
-                <p className="text-sm font-semibold text-white">{selectedGame.label}</p>
-                <p className="mt-1 text-xs text-slate-600">{selectedMode.description}</p>
+                <p className="text-sm font-semibold text-td-primary">{selectedGame.label}</p>
+                <p className="mt-1 text-xs text-td-secondary">{selectedMode.description}</p>
                 <div className="mt-4 grid gap-2 text-xs">
-                  <StatusRow label="Source" value={status?.source ?? (loading ? "Connecting" : "Unavailable")} />
-                  <StatusRow label="Quality" value={status?.dataQuality ?? "fallback"} />
-                  <StatusRow label="Updated" value={formatUpdated(payload?.updatedAt)} />
+                  <StatusRow label="Source" value="Illustrative sample" />
+                  <StatusRow label="Prices" value="Demo values in USD" />
+                  <StatusRow label="Availability" value="Interactive preview" />
                 </div>
               </div>
             </div>
 
-            {error ? (
-              <div className="border-b border-white/[0.08] py-5 text-sm text-rose-300">
-                {error}
-              </div>
-            ) : null}
-
             <div className="grid min-w-0 gap-8 py-8 lg:grid-cols-[280px_1fr]">
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white">Lead signal</p>
+                <p className="text-sm font-semibold text-td-primary">Sample lead signal</p>
                 {primaryCard ? (
-                  <div className="mt-5 border-y border-white/[0.08] py-5">
-                    <p className="text-2xl font-semibold tracking-[-0.035em] text-white">
+                  <div className="mt-5 border-y border-td-ink/[0.08] py-5">
+                    <CardArtwork card={primaryCard} featured />
+                    <p className="text-2xl font-semibold tracking-[-0.035em] text-td-primary">
                       {primaryCard.name}
                     </p>
-                    <p className="mt-2 text-sm text-slate-600">
+                    <p className="mt-2 text-sm text-td-secondary">
                       {primaryCard.setName} #{primaryCard.collectorNumber}
                     </p>
                     <div className="mt-5 grid grid-cols-2 gap-4">
-                      <Metric label="Market" value={currency(primaryCard.marketPrice)} />
+                      <Metric label="Market · demo" value={currency(primaryCard.marketPrice)} />
+                      <Metric label="24H move" value={signedPercent(primaryCard.change24h)} />
                       <Metric label="7D move" value={signedPercent(primaryCard.change7d)} />
                       <Metric label="Demand" value={primaryCard.demand} />
                       <Metric label="Opportunity" value={`${primaryCard.opportunityScore}/100`} />
                     </div>
+                    <div className="mt-5 flex items-center justify-between border-t border-td-ink/[0.08] pt-4"><span className="text-xs text-td-secondary">Suggested action</span><span className="rounded-full border border-td-accent/30 bg-td-accent/[0.08] px-3 py-1.5 text-xs font-semibold text-td-accent-text">{primaryCard.opportunityScore > 70 ? "REPRICE" : "HOLD"}</span></div>
                   </div>
                 ) : (
-                  <p className="mt-5 border-y border-white/[0.08] py-5 text-sm leading-6 text-slate-600">
-                    {loading ? "Connecting to market feed." : "No market signal available for this selection."}
+                  <p className="mt-5 border-y border-td-ink/[0.08] py-5 text-sm leading-6 text-td-secondary">
+                    No sample available for this selection.
                   </p>
                 )}
               </div>
 
-              <div className="min-w-0 overflow-x-auto">
+              <div className="min-w-0 overflow-x-auto" role="region" aria-label="Sample market comparison" tabIndex={0}>
                 <table className="w-full min-w-[860px] border-collapse text-left">
+                  <caption className="sr-only">Illustrative market data. All values are examples.</caption>
                   <thead>
-                    <tr className="border-b border-white/[0.08] text-xs text-slate-600">
+                    <tr className="border-b border-td-ink/[0.08] text-xs text-td-secondary">
                       <th className="py-3 pr-6 font-medium">Product</th>
                       <th className="px-4 py-3 font-medium">Market</th>
                       <th className="px-4 py-3 font-medium">24h</th>
@@ -232,27 +201,20 @@ export function MarketSection() {
                   </thead>
                   <tbody>
                     {cards.slice(0, 8).map((card) => (
-                      <tr key={card.id} className="border-b border-white/[0.055] last:border-b-0">
+                      <tr key={card.id} className="border-b border-td-ink/[0.055] last:border-b-0">
                         <td className="py-4 pr-6">
-                          <p className="text-sm font-semibold text-slate-200">{card.name}</p>
-                          <p className="mt-1 text-xs text-slate-600">
+                          <div className="flex items-center gap-3"><CardArtwork card={card} /><div><p className="text-sm font-semibold text-td-primary">{card.name}</p>
+                          <p className="mt-1 text-xs text-td-secondary">
                             {card.setCode} #{card.collectorNumber}
-                          </p>
+                          </p></div></div>
                         </td>
-                        <td className="px-4 py-4 text-sm text-slate-400">{currency(card.marketPrice)}</td>
+                        <td className="px-4 py-4 text-sm text-td-secondary">{currency(card.marketPrice)}</td>
                         <td className={movementClass(card.change24h)}>{signedPercent(card.change24h)}</td>
                         <td className={movementClass(card.change7d)}>{signedPercent(card.change7d)}</td>
-                        <td className="px-4 py-4 text-sm text-slate-500">{card.demand}</td>
-                        <td className="px-4 py-4 text-sm text-slate-500">{card.source}</td>
+                        <td className="px-4 py-4 text-sm text-td-secondary">{card.demand}</td>
+                        <td className="px-4 py-4 text-sm text-td-secondary">{card.source}</td>
                       </tr>
                     ))}
-                    {loading && !cards.length ? (
-                      <tr>
-                        <td className="py-8 text-sm text-slate-600" colSpan={6}>
-                          Loading market intelligence.
-                        </td>
-                      </tr>
-                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -276,8 +238,8 @@ function rankCards(cards: MarketCard[], mode: MarketMode) {
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <span className="text-slate-700">{label}</span>
-      <span className="text-slate-400">{value}</span>
+      <span className="text-td-secondary">{label}</span>
+      <span className="text-td-secondary">{value}</span>
     </div>
   );
 }
@@ -285,16 +247,23 @@ function StatusRow({ label, value }: { label: string; value: string }) {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-slate-700">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-200">{value}</p>
+      <p className="text-xs text-td-secondary">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-td-primary">{value}</p>
     </div>
   );
+}
+
+function CardArtwork({ card, featured = false }: { card: MarketCard; featured?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  return <div className={`${featured ? "relative mb-5 h-56 w-40" : "relative h-12 w-9 shrink-0"} overflow-hidden rounded-md border border-td-ink/[0.12] bg-td-ink/[0.06]`}>
+    {card.image && !failed ? <Image src={card.image} alt={`${card.name} card artwork`} fill sizes={featured ? "160px" : "36px"} className="object-cover" onError={() => setFailed(true)} /> : <div className="grid h-full w-full place-items-center bg-gradient-to-br from-td-accent/30 to-td-ink/[0.08] text-xs font-bold text-td-accent-text" aria-label={`${card.name} artwork unavailable`}>{card.name.slice(0, 2).toUpperCase()}</div>}
+  </div>;
 }
 
 function movementClass(value: number) {
   return [
     "px-4 py-4 text-sm font-semibold",
-    value > 0 ? "text-emerald-300" : value < 0 ? "text-rose-300" : "text-slate-500",
+    value > 0 ? "text-td-success" : value < 0 ? "text-td-danger" : "text-td-secondary",
   ].join(" ");
 }
 
@@ -308,12 +277,4 @@ function currency(value: number) {
 
 function signedPercent(value: number) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
-}
-
-function formatUpdated(value: string | undefined) {
-  if (!value) return "Pending";
-  return new Date(value).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
