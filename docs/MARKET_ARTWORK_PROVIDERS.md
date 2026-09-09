@@ -54,6 +54,7 @@ Existing Scryfall patterns remain. Non-Magic images use the same-origin Next ima
 - `src/lib/card-artwork/verified-demo-artwork.ts`: generated exact-printing metadata and verification evidence.
 - `scripts/verify-demo-market-artwork.mjs`: explicit metadata/image verification refresh.
 - `next.config.ts`: four exact image hosts.
+- `package.json` and `package-lock.json`: Next.js / eslint-config-next 16.3.4 and Sharp 0.35.4. The production audit exposed existing image-processing security advisories during PR validation; these versions resolve the blocker. See [Next.js AVIF advisory](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4) and [Sharp advisory](https://github.com/advisories/GHSA-rgj7-g3m4-5g8c).
 - `tests/market-artwork.test.ts`: all games, missing/empty images, unknown identities, Japanese language, invalid hosts and featured/layout guards.
 - `tests/e2e/market-artwork.spec.ts` and `playwright.market.config.ts`: actual homepage rendering, all game/signal/viewport combinations, controlled network failure and recovery.
 - `src/lib/platform/api-access.ts`: classify the existing employee-invitation endpoint as authenticated, with workspace-manager enforcement documented in its handler. This repairs two pre-existing full-suite failures without changing the handler.
@@ -62,8 +63,9 @@ Existing Scryfall patterns remain. Non-Magic images use the same-origin Next ima
 
 ## Validation
 
+- `npm run check`: passed, including zero production dependency vulnerabilities.
 - `npm run typecheck`: passed.
-- `npm run lint`: passed with 0 errors and 491 existing warnings.
+- `npm run lint`: passed with 0 errors and 494 warnings (491 before the security update).
 - `npm test`: all 663 tests passed.
 - `npm run build`: passed.
 - `npx playwright test --config playwright.market.config.ts`: all six browser tests passed; 100 combinations of five games, four signal modes and widths 1728, 1440, 1024, 430 and 390.
