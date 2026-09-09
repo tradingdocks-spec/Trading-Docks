@@ -7,22 +7,24 @@ export function Hero() {
   return (
     <section className={styles.hero}>
       <div className={styles.heroCopy}>
-        <p className={styles.eyebrow}>The operating system for your cards</p>
+        <p className={styles.eyebrow}>The operating system for TCG inventory</p>
         <h1>
-          Follow every card
+          Every card.
           <br />
-          from <span>scan to sale.</span>
+          Every move.
+          <br />
+          <span>One system.</span>
         </h1>
         <p className={styles.heroDescription}>
-          Know what it is, what it’s worth, and exactly where it is. One
-          workspace for trading-card collectors, sellers, and stores.
+          Scan, identify, value, organize, list, sell, and track every card
+          through one connected record.
         </p>
         <div className={styles.actions}>
           <Link href="/sign-up?plan=free" className={styles.primary}>
-            Create your free account <ArrowRight size={16} />
+            Start free <ArrowRight size={16} />
           </Link>
           <a href="#experience" className={styles.textLink}>
-            See how it works <ArrowRight size={15} />
+            Explore the workspace <ArrowRight size={15} />
           </a>
         </div>
         <p className={styles.heroFine}>

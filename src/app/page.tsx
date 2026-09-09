@@ -4,11 +4,8 @@ import { Header } from "@/components/landing/Header";
 import { Hero } from "@/components/landing/Hero";
 import { MarketSection } from "@/components/landing/MarketSection";
 import { PricingSection } from "@/components/landing/PricingSection";
-import {
-  LifecycleStory,
-  ConfidenceSection,
-  HomepageClosing,
-} from "@/components/landing/LifecycleStory";
+import { ConfidenceSection, HomepageClosing } from "@/components/landing/LifecycleStory";
+import { FlagshipSections } from "@/components/landing/FlagshipSections";
 import styles from "@/components/landing/Homepage.module.css";
 import { hasSupabasePublicConfig } from "@/lib/supabase/proxy-routing";
 import { createClient } from "@/lib/supabase/server";
@@ -28,7 +25,7 @@ export default async function HomePage() {
     <main data-landing-version="lifecycle-2026-09" className={styles.page}>
       <Header />
       <Hero />
-      <LifecycleStory />
+      <FlagshipSections />
       <MarketSection />
       <ConfidenceSection />
       <PricingSection />
