@@ -232,7 +232,7 @@ test("public market sample renders without a provider request and live API remai
   const marketSection = readFileSync(path.join(repoRoot, "src/components/landing/MarketSection.tsx"), "utf8");
   const marketRoute = readFileSync(path.join(repoRoot, "src/app/api/multi-game-market/route.ts"), "utf8");
 
-  assert.match(marketSection, /sampleCards\(activeGame\)/);
+  assert.match(marketSection, /useDemoMarketTicks\(game, regionRef, paused\)/);
   assert.match(marketSection, /Illustrative sample/);
   assert.doesNotMatch(marketSection, /fetch\(|useEffect|Connecting|Loading market/);
   assert.doesNotMatch(marketSection, /cache: "no-store"/);

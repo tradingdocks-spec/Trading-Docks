@@ -59,10 +59,18 @@ export function artworkLayoutIssues(cards: MarketCard[], mode: "normal" | "previ
 }
 
 export function sampleCards(game: ArtworkGame): MarketCard[] {
+  // Fictional opening quotes, not provider pricing. Each game has its own demo market.
+  const openingPrices: Record<ArtworkGame, number[]> = {
+    magic: [24.16, 12.48, 82.73, 31.92, 47.18],
+    pokemon: [242.63, 173.46, 39.84],
+    "pokemon-japan": [2.87, 5.64, 8.23],
+    lorcana: [17.86, 8.42, 13.71],
+    "one-piece": [7.63, 3.18, 11.24],
+  };
   return VERIFIED_DEMO_ARTWORK.filter((card) => card.game === game).map((identity, index) => {
     const card: MarketCard = {
       ...identity, ...resolveDemoCardArtwork(identity), id: `${game}-${identity.providerId}`,
-      marketPrice: [24, 12, 82, 31, 47][index], change24h: [2, -1, 0.5, -0.82, 1.34][index], change7d: [8, -4, 2, -3.2, 6.4][index],
+      marketPrice: openingPrices[game][index], change24h: [1.74, -0.82, 0.57, -1.36, 1.34][index], change7d: [6.43, -4.17, 2.38, -3.21, 5.82][index],
       demand: index === 0 || index === 4 ? "High" : "Medium", volumeScore: [80, 60, 95, 72, 86][index], opportunityScore: [65, 85, 40, 78, 70][index],
       source: "Illustrative sample", suggestedAction: index === 1 || index === 3 ? "REPRICE" : index === 2 ? "HOLD" : index === 4 ? "LIST" : "REVIEW",
     };

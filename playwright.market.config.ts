@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: "market-artwork.spec.ts",
+  testMatch: ["market-artwork.spec.ts", "market-preview.spec.ts"],
   workers: 1,
   timeout: 180_000,
   use: { baseURL: "http://localhost:4186", browserName: "chromium" },
