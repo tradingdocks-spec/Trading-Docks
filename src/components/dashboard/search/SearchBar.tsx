@@ -412,8 +412,8 @@ export function SearchBar({
       <div
         className={`group relative flex items-center rounded-xl border transition-all duration-200 ${
           open
-            ? "border-cyan-300/30 bg-[#08131a] shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_14px_40px_rgba(0,0,0,0.24),0_0_30px_rgba(34,211,238,0.06)]"
-            : "border-white/[0.08] bg-white/[0.025] hover:border-white/[0.13] hover:bg-white/[0.035]"
+            ? "border-td-accent/30 bg-td-surface shadow-[0_0_0_1px_rgb(var(--td-accent-rgb)/0.06),0_14px_40px_rgb(var(--td-shadow-rgb)/calc(0.24*var(--td-shadow-strength))),0_0_30px_rgb(var(--td-accent-rgb)/0.06)]"
+            : "border-td-ink/[0.08] bg-td-ink/[0.025] hover:border-td-ink/[0.13] hover:bg-td-ink/[0.035]"
         } ${
           compact ? "h-9" : "h-10"
         }`}
@@ -421,8 +421,8 @@ export function SearchBar({
         <Search
           className={`ml-3 h-4 w-4 shrink-0 transition-colors ${
             open
-              ? "text-cyan-300"
-              : "text-slate-600 group-hover:text-slate-400"
+              ? "text-td-accent-text"
+              : "text-td-muted group-hover:text-td-secondary"
           }`}
         />
 
@@ -439,7 +439,7 @@ export function SearchBar({
           aria-label="Search Trading Docks"
           aria-expanded={open}
           aria-controls="dashboard-search-results"
-          className="h-full min-w-0 flex-1 bg-transparent px-3 text-[11px] text-white outline-none placeholder:text-slate-600"
+          className="h-full min-w-0 flex-1 bg-transparent px-3 text-[11px] text-td-primary outline-none placeholder:text-td-muted"
         />
 
         {query ? (
@@ -447,12 +447,12 @@ export function SearchBar({
             type="button"
             onClick={clearQuery}
             aria-label="Clear search"
-            className="mr-1.5 flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white/[0.05] hover:text-white"
+            className="mr-1.5 flex h-7 w-7 items-center justify-center rounded-lg text-td-muted transition hover:bg-td-ink/[0.05] hover:text-td-primary"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         ) : (
-          <div className="mr-2 hidden items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.035] px-1.5 py-1 text-[8px] font-medium text-slate-600 sm:flex">
+          <div className="mr-2 hidden items-center gap-1 rounded-md border border-td-ink/[0.08] bg-td-ink/[0.035] px-1.5 py-1 text-[11px] font-medium text-td-muted sm:flex">
             <Command className="h-2.5 w-2.5" />
             K
           </div>
@@ -462,26 +462,26 @@ export function SearchBar({
       {open ? (
         <div
           id="dashboard-search-results"
-          className="absolute left-0 right-0 top-[calc(100%+10px)] z-[80] overflow-hidden rounded-2xl border border-white/[0.1] bg-[#071017]/98 shadow-[0_28px_90px_rgba(0,0,0,0.58),0_0_45px_rgba(34,211,238,0.08)] backdrop-blur-2xl"
+          className="absolute left-0 right-0 top-[calc(100%+10px)] z-[80] overflow-hidden rounded-2xl border border-td-ink/[0.1] bg-td-surface/98 shadow-[0_28px_90px_rgb(var(--td-shadow-rgb)/calc(0.58*var(--td-shadow-strength))),0_0_45px_rgb(var(--td-accent-rgb)/0.08)] backdrop-blur-2xl"
         >
-          <div className="border-b border-white/[0.07] px-4 py-3">
+          <div className="border-b border-td-ink/[0.07] px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold text-white">
+                <p className="text-[11px] font-semibold text-td-primary">
                   Search Trading Docks
                 </p>
 
-                <p className="mt-0.5 text-[9px] text-slate-600">
+                <p className="mt-0.5 text-[11px] text-td-muted">
                   Inventory, navigation, orders, and actions
                 </p>
               </div>
 
-              <div className="hidden items-center gap-1.5 text-[8px] text-slate-600 sm:flex">
-                <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5">
+              <div className="hidden items-center gap-1.5 text-[11px] text-td-muted sm:flex">
+                <span className="rounded border border-td-ink/[0.08] bg-td-ink/[0.03] px-1.5 py-0.5">
                   ↑↓
                 </span>
                 Navigate
-                <span className="ml-1 rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5">
+                <span className="ml-1 rounded border border-td-ink/[0.08] bg-td-ink/[0.03] px-1.5 py-0.5">
                   Enter
                 </span>
                 Open
@@ -491,7 +491,7 @@ export function SearchBar({
 
           <div className="search-results-scrollbar max-h-[440px] overflow-y-auto p-2">
             {!query ? (
-              <div className="mb-2 flex items-center gap-2 px-2 py-1 text-[9px] text-slate-600">
+              <div className="mb-2 flex items-center gap-2 px-2 py-1 text-[11px] text-td-muted">
                 <History className="h-3 w-3" />
                 Suggested destinations
               </div>
@@ -501,7 +501,7 @@ export function SearchBar({
               <div className="space-y-3">
                 {groupedResults.map((group) => (
                   <div key={group.category}>
-                    <p className="px-2 pb-1.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                    <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-td-muted">
                       {group.category}
                     </p>
 
@@ -524,15 +524,15 @@ export function SearchBar({
                             onClick={closeSearch}
                             className={`group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition ${
                               active
-                                ? "border-cyan-300/20 bg-cyan-400/[0.07] shadow-[0_0_22px_rgba(34,211,238,0.05)]"
-                                : "border-transparent hover:border-white/[0.06] hover:bg-white/[0.03]"
+                                ? "border-td-accent/20 bg-td-accent/[0.07] shadow-[0_0_22px_rgb(var(--td-accent-rgb)/0.05)]"
+                                : "border-transparent hover:border-td-ink/[0.06] hover:bg-td-ink/[0.03]"
                             }`}
                           >
                             <div
                               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
                                 active
-                                  ? "border-cyan-300/25 bg-cyan-400/10 text-cyan-300"
-                                  : "border-white/[0.07] bg-white/[0.025] text-slate-600 group-hover:text-slate-400"
+                                  ? "border-td-accent/25 bg-td-accent/10 text-td-accent-text"
+                                  : "border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted group-hover:text-td-secondary"
                               }`}
                             >
                               <Icon className="h-4 w-4" />
@@ -543,30 +543,30 @@ export function SearchBar({
                                 <p
                                   className={`truncate text-[11px] font-medium ${
                                     active
-                                      ? "text-cyan-100"
-                                      : "text-slate-200"
+                                      ? "text-td-accent-text"
+                                      : "text-td-primary"
                                   }`}
                                 >
                                   {result.title}
                                 </p>
 
                                 {result.badge ? (
-                                  <span className="shrink-0 rounded-full border border-cyan-300/15 bg-cyan-400/[0.07] px-2 py-0.5 text-[8px] text-cyan-300">
+                                  <span className="shrink-0 rounded-full border border-td-accent/15 bg-td-accent/[0.07] px-2 py-0.5 text-[11px] text-td-accent-text">
                                     {result.badge}
                                   </span>
                                 ) : null}
                               </div>
 
-                              <p className="mt-0.5 truncate text-[9px] text-slate-600">
+                              <p className="mt-0.5 truncate text-[11px] text-td-muted">
                                 {result.description}
                               </p>
                             </div>
 
                             <span
-                              className={`text-[9px] transition ${
+                              className={`text-[11px] transition ${
                                 active
-                                  ? "translate-x-0 text-cyan-300 opacity-100"
-                                  : "-translate-x-1 text-slate-700 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+                                  ? "translate-x-0 text-td-accent-text opacity-100"
+                                  : "-translate-x-1 text-td-muted opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
                               }`}
                             >
                               Open
@@ -580,15 +580,15 @@ export function SearchBar({
               </div>
             ) : (
               <div className="flex min-h-[190px] flex-col items-center justify-center px-6 text-center">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.025] text-slate-600">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.025] text-td-muted">
                   <Search className="h-4 w-4" />
                 </div>
 
-                <p className="mt-3 text-[11px] font-medium text-slate-300">
+                <p className="mt-3 text-[11px] font-medium text-td-secondary">
                   No results found
                 </p>
 
-                <p className="mt-1 max-w-[270px] text-[9px] leading-4 text-slate-600">
+                <p className="mt-1 max-w-[270px] text-[11px] leading-4 text-td-muted">
                   Try searching for an inventory category,
                   marketplace, order, binder, or storage location.
                 </p>
@@ -596,8 +596,8 @@ export function SearchBar({
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-white/[0.07] px-4 py-2.5">
-            <p className="text-[8px] text-slate-600">
+          <div className="flex items-center justify-between border-t border-td-ink/[0.07] px-4 py-2.5">
+            <p className="text-[11px] text-td-muted">
               Search will expand to individual cards, SKUs, orders,
               and customers when those records are connected.
             </p>
@@ -605,7 +605,7 @@ export function SearchBar({
             <button
               type="button"
               onClick={closeSearch}
-              className="ml-4 shrink-0 text-[8px] font-medium text-slate-600 transition hover:text-slate-300"
+              className="ml-4 shrink-0 text-[11px] font-medium text-td-muted transition hover:text-td-secondary"
             >
               Esc to close
             </button>
@@ -616,7 +616,7 @@ export function SearchBar({
       <style jsx global>{`
         .search-results-scrollbar {
           scrollbar-width: thin;
-          scrollbar-color: rgba(148, 163, 184, 0.14)
+          scrollbar-color: rgb(var(--td-accent-rgb)/0.14)
             transparent;
         }
 
@@ -630,11 +630,11 @@ export function SearchBar({
 
         .search-results-scrollbar::-webkit-scrollbar-thumb {
           border-radius: 999px;
-          background: rgba(148, 163, 184, 0.12);
+          background: rgb(var(--td-accent-rgb)/0.12);
         }
 
         .search-results-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(34, 211, 238, 0.2);
+          background: rgb(var(--td-accent-rgb)/0.2);
         }
       `}</style>
     </div>

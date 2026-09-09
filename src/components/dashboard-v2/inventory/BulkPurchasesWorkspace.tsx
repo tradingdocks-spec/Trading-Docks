@@ -152,16 +152,16 @@ export function BulkPurchasesWorkspace() {
       />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Link href="/dashboard/inventory" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 text-[10px] font-semibold text-slate-400 hover:text-white">
+        <Link href="/dashboard/inventory" className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.02] px-3 text-[11px] font-semibold text-td-secondary hover:text-td-primary">
           <ArrowLeft className="h-3.5 w-3.5" /> Inventory
         </Link>
-        <button type="button" onClick={() => setImportOpen(true)} disabled={!purchases.length} className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-cyan-400/[0.05] px-3 text-[10px] font-semibold text-cyan-100 disabled:opacity-40">
+        <button type="button" onClick={() => setImportOpen(true)} disabled={!purchases.length} className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-accent/[0.16] bg-td-accent/[0.05] px-3 text-[11px] font-semibold text-td-accent-text disabled:opacity-40">
           <Upload className="h-3.5 w-3.5" /> Import cards to a purchase
         </button>
-        <span className="ml-auto text-[10px] text-slate-600">Simple view · Advanced accounting stays optional</span>
+        <span className="ml-auto text-[11px] text-td-muted">Simple view · Advanced accounting stays optional</span>
       </div>
 
-      {error ? <div className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/[0.05] px-4 py-3 text-xs text-amber-100">{error}</div> : null}
+      {error ? <div className="mt-4 rounded-2xl border border-td-warning/20 bg-td-warning/[0.05] px-4 py-3 text-xs text-td-warning">{error}</div> : null}
 
       <section className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={CircleDollarSign} label="Total invested" value={money.format(totals.invested)} detail={`${purchases.length} purchases`} tone="cyan" />
@@ -171,15 +171,15 @@ export function BulkPurchasesWorkspace() {
       </section>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,.9fr)]">
-        <section className="rounded-[24px] border border-white/[0.07] bg-[#07131d]/92 p-4 sm:p-5">
+        <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface/92 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.17em] text-cyan-300">Bulk purchases</p>
-              <h2 className="mt-1 text-lg font-semibold text-white">Acquisition performance</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-td-accent-text">Bulk purchases</p>
+              <h2 className="mt-1 text-lg font-semibold text-td-primary">Acquisition performance</h2>
             </div>
-            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/15 px-3 sm:ml-auto sm:max-w-xs">
-              <Search className="h-3.5 w-3.5 text-slate-600" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search purchase or source" className="min-w-0 flex-1 bg-transparent text-[10px] text-white outline-none placeholder:text-slate-700" />
+            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-black/15 px-3 sm:ml-auto sm:max-w-xs">
+              <Search className="h-3.5 w-3.5 text-td-muted" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search purchase or source" className="min-w-0 flex-1 bg-transparent text-[11px] text-td-primary outline-none placeholder:text-td-muted" />
             </label>
           </div>
           <div className="mt-4 space-y-2">
@@ -189,17 +189,17 @@ export function BulkPurchasesWorkspace() {
               const stats = statsByPurchase.get(purchase.id)!;
               const investment = Number(purchase.purchase_cost) + Number(purchase.additional_expenses);
               return (
-                <button key={purchase.id} type="button" onClick={() => setSelectedId(purchase.id)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedId === purchase.id ? "border-cyan-300/25 bg-cyan-400/[0.055]" : "border-white/[0.06] bg-black/[0.08] hover:border-cyan-300/15"}`}>
+                <button key={purchase.id} type="button" onClick={() => setSelectedId(purchase.id)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedId === purchase.id ? "border-td-accent/25 bg-td-accent/[0.055]" : "border-td-ink/[0.06] bg-black/[0.08] hover:border-td-accent/15"}`}>
                   <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-400/[0.05] text-cyan-300"><Boxes className="h-4 w-4" /></span>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-accent/15 bg-td-accent/[0.05] text-td-accent-text"><Boxes className="h-4 w-4" /></span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-white">{purchase.name}</p>
+                        <p className="truncate text-sm font-semibold text-td-primary">{purchase.name}</p>
                         <Status value={purchase.status} />
                       </div>
-                      <p className="mt-1 text-[10px] text-slate-600">{purchase.source || "No source added"} · {formatDate(purchase.purchased_at)}</p>
+                      <p className="mt-1 text-[11px] text-td-muted">{purchase.source || "No source added"} · {formatDate(purchase.purchased_at)}</p>
                     </div>
-                    <ArrowRight className="mt-2 h-4 w-4 text-slate-700" />
+                    <ArrowRight className="mt-2 h-4 w-4 text-td-muted" />
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-2">
                     <Tiny label="Paid" value={money.format(investment)} />
@@ -207,8 +207,8 @@ export function BulkPurchasesWorkspace() {
                     <Tiny label="Projected profit" value={money.format(stats.projectedProfit)} positive={stats.projectedProfit >= 0} />
                   </div>
                   <div className="mt-3">
-                    <div className="flex justify-between text-[8px] font-semibold text-slate-600"><span>{whole.format(stats.scannedCards)} of {whole.format(purchase.estimated_card_count)} cards scanned</span><span>{purchase.estimated_card_count ? Math.min(100, Math.round(stats.scannedCards / purchase.estimated_card_count * 100)) : 0}%</span></div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.05]"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-400" style={{ width: `${purchase.estimated_card_count ? Math.min(100, stats.scannedCards / purchase.estimated_card_count * 100) : 0}%` }} /></div>
+                    <div className="flex justify-between text-[11px] font-semibold text-td-muted"><span>{whole.format(stats.scannedCards)} of {whole.format(purchase.estimated_card_count)} cards scanned</span><span>{purchase.estimated_card_count ? Math.min(100, Math.round(stats.scannedCards / purchase.estimated_card_count * 100)) : 0}%</span></div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-td-ink/[0.05]"><div className="h-full rounded-full bg-gradient-to-r from-td-accent to-td-accent" style={{ width: `${purchase.estimated_card_count ? Math.min(100, stats.scannedCards / purchase.estimated_card_count * 100) : 0}%` }} /></div>
                   </div>
                 </button>
               );
@@ -221,23 +221,23 @@ export function BulkPurchasesWorkspace() {
 
       {createOpen ? <CreatePurchaseModal onClose={() => setCreateOpen(false)} onCreated={(purchase) => { setPurchases((current) => [purchase, ...current]); setSelectedId(purchase.id); setCreateOpen(false); setNotice("Bulk purchase created. Add cards whenever you are ready."); }} /> : null}
       {importOpen ? <ImportCardsModal purchases={purchases} initialPurchaseId={selectedId} onClose={() => setImportOpen(false)} onImported={(message) => { setImportOpen(false); setNotice(message); void load(); }} /> : null}
-      {notice ? <div className="fixed bottom-20 right-5 z-[160] flex max-w-sm items-center gap-2 rounded-xl border border-emerald-300/20 bg-[#071b18]/95 px-4 py-3 text-[10px] font-semibold text-emerald-100 shadow-2xl"><Check className="h-4 w-4 text-emerald-300" />{notice}</div> : null}
+      {notice ? <div className="fixed bottom-20 right-5 z-[160] flex max-w-sm items-center gap-2 rounded-xl border border-td-success/20 bg-td-surface/95 px-4 py-3 text-[11px] font-semibold text-td-success shadow-2xl"><Check className="h-4 w-4 text-td-success" />{notice}</div> : null}
     </WorkspaceFrame>
   );
 }
 
 function PurchaseDetail({ purchase, stats, items, onImport }: { purchase: Purchase | null; stats: PurchaseStats | null; items: LinkedItem[]; onImport: () => void }) {
-  if (!purchase || !stats) return <section className="flex min-h-[430px] items-center justify-center rounded-[24px] border border-dashed border-white/[0.08] bg-white/[0.015] p-8 text-center"><div><ReceiptText className="mx-auto h-7 w-7 text-slate-700" /><p className="mt-3 text-sm font-semibold text-slate-300">Select a purchase</p><p className="mt-1 text-[10px] text-slate-600">Its progress and profit story will appear here.</p></div></section>;
+  if (!purchase || !stats) return <section className="flex min-h-[430px] items-center justify-center rounded-[24px] border border-dashed border-td-ink/[0.08] bg-td-ink/[0.015] p-8 text-center"><div><ReceiptText className="mx-auto h-7 w-7 text-td-muted" /><p className="mt-3 text-sm font-semibold text-td-secondary">Select a purchase</p><p className="mt-1 text-[11px] text-td-muted">Its progress and profit story will appear here.</p></div></section>;
   const investment = Number(purchase.purchase_cost) + Number(purchase.additional_expenses);
-  return <section className="rounded-[24px] border border-white/[0.07] bg-[#07131d]/92 p-5">
+  return <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface/92 p-5">
     <div className="flex items-start justify-between gap-3">
-      <div><p className="text-[9px] font-semibold uppercase tracking-[0.17em] text-violet-300">Purchase detail</p><h2 className="mt-1 text-xl font-semibold text-white">{purchase.name}</h2><p className="mt-1 text-[10px] text-slate-600">{purchase.source || "Source not recorded"} · {formatDate(purchase.purchased_at)}</p></div>
+      <div><p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-td-violet">Purchase detail</p><h2 className="mt-1 text-xl font-semibold text-td-primary">{purchase.name}</h2><p className="mt-1 text-[11px] text-td-muted">{purchase.source || "Source not recorded"} · {formatDate(purchase.purchased_at)}</p></div>
       <Status value={purchase.status} />
     </div>
-    <div className="mt-5 rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.045] p-4">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300">Projected total profit</p>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-white">{money.format(stats.projectedProfit)}</p>
-      <p className="mt-2 text-[10px] leading-5 text-slate-500">Actual sales + remaining scanned value − purchase cost, expenses, selling fees, and shipping.</p>
+    <div className="mt-5 rounded-2xl border border-td-success/15 bg-td-success/[0.045] p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-success">Projected total profit</p>
+      <p className="mt-2 text-3xl font-semibold tracking-tight text-td-primary">{money.format(stats.projectedProfit)}</p>
+      <p className="mt-2 text-[11px] leading-5 text-td-muted">Actual sales + remaining scanned value − purchase cost, expenses, selling fees, and shipping.</p>
     </div>
     <div className="mt-3 grid grid-cols-2 gap-2">
       <Tiny label="Total invested" value={money.format(investment)} />
@@ -245,15 +245,15 @@ function PurchaseDetail({ purchase, stats, items, onImport }: { purchase: Purcha
       <Tiny label="Sales revenue" value={money.format(stats.revenue)} />
       <Tiny label="Cash position" value={money.format(stats.cashPosition)} positive={stats.cashPosition >= 0} />
     </div>
-    <div className="mt-4 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
-      <div className="flex items-center justify-between"><p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-slate-500">Break-even progress</p><p className="text-xs font-semibold text-cyan-200">{Math.round(stats.recovery)}%</p></div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.05]"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ width: `${Math.min(100, stats.recovery)}%` }} /></div>
-      <p className="mt-2 text-[9px] text-slate-600">{money.format(Math.max(0, investment - stats.revenue + stats.fees))} in net sales remaining to recover the purchase.</p>
+    <div className="mt-4 rounded-2xl border border-td-ink/[0.06] bg-black/10 p-4">
+      <div className="flex items-center justify-between"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Break-even progress</p><p className="text-xs font-semibold text-td-accent-text">{Math.round(stats.recovery)}%</p></div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-td-ink/[0.05]"><div className="h-full rounded-full bg-gradient-to-r from-td-accent to-td-success" style={{ width: `${Math.min(100, stats.recovery)}%` }} /></div>
+      <p className="mt-2 text-[11px] text-td-muted">{money.format(Math.max(0, investment - stats.revenue + stats.fees))} in net sales remaining to recover the purchase.</p>
     </div>
-    <div className="mt-4 flex items-center justify-between"><div><p className="text-[9px] font-semibold uppercase tracking-[0.13em] text-slate-500">Linked inventory</p><p className="mt-1 text-xs text-slate-300">{whole.format(stats.scannedCards)} cards · {items.length} inventory rows</p></div><button type="button" onClick={onImport} className="inline-flex h-9 items-center gap-2 rounded-xl border border-cyan-300/15 bg-cyan-400/[0.05] px-3 text-[9px] font-semibold text-cyan-100"><Upload className="h-3.5 w-3.5" /> Add cards</button></div>
+    <div className="mt-4 flex items-center justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Linked inventory</p><p className="mt-1 text-xs text-td-secondary">{whole.format(stats.scannedCards)} cards · {items.length} inventory rows</p></div><button type="button" onClick={onImport} className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-accent/15 bg-td-accent/[0.05] px-3 text-[11px] font-semibold text-td-accent-text"><Upload className="h-3.5 w-3.5" /> Add cards</button></div>
     <div className="mt-3 max-h-48 space-y-1 overflow-y-auto">
-      {items.slice(0, 12).map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/[0.05] bg-black/[0.08] px-3 py-2 text-[9px]"><span className="min-w-0 truncate text-slate-300">{item.card_name}</span><span className="ml-3 shrink-0 text-slate-600">{item.quantity} · {money.format(Number(item.inventory_value))}</span></div>)}
-      {!items.length ? <p className="rounded-xl border border-dashed border-white/[0.07] px-3 py-5 text-center text-[9px] text-slate-600">No cards linked yet.</p> : null}
+      {items.slice(0, 12).map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-td-ink/[0.05] bg-black/[0.08] px-3 py-2 text-[11px]"><span className="min-w-0 truncate text-td-secondary">{item.card_name}</span><span className="ml-3 shrink-0 text-td-muted">{item.quantity} · {money.format(Number(item.inventory_value))}</span></div>)}
+      {!items.length ? <p className="rounded-xl border border-dashed border-td-ink/[0.07] px-3 py-5 text-center text-[11px] text-td-muted">No cards linked yet.</p> : null}
     </div>
   </section>;
 }
@@ -283,10 +283,10 @@ function CreatePurchaseModal({ onClose, onCreated }: { onClose: () => void; onCr
         <Field label="Purchase date" type="date" value={form.purchased_at} onChange={(v) => set("purchased_at", v)} />
         <Select label="Purchase type" value={form.purchase_type} onChange={(v) => set("purchase_type", v)} options={[["collection","Collection"],["bulk_lot","Bulk lot"],["card_show","Card show"],["store_buy","Store buy"],["trade","Trade"],["other","Other"]]} />
       </div>
-      <button type="button" onClick={() => setAdvanced((v) => !v)} className="mt-4 flex h-9 items-center gap-2 text-[10px] font-semibold text-slate-500 hover:text-slate-200"><ChevronDown className={`h-3.5 w-3.5 transition ${advanced ? "rotate-180" : ""}`} /> Advanced details</button>
-      {advanced ? <div className="grid gap-3 rounded-2xl border border-white/[0.06] bg-black/10 p-4 sm:grid-cols-2"><Field label="Additional expenses" type="number" value={form.additional_expenses} onChange={(v) => set("additional_expenses", v)} /><Field label="Payment method" value={form.payment_method} onChange={(v) => set("payment_method", v)} /><Select label="Cost basis" value={form.cost_basis_method} onChange={(v) => set("cost_basis_method", v)} options={[["proportional","Proportional by value (recommended)"],["average","Average per card"],["manual","Manual"]]} /><Field label="Notes" value={form.notes} onChange={(v) => set("notes", v)} /></div> : null}
-      {error ? <p className="mt-3 text-[10px] text-red-300">{error}</p> : null}
-      <div className="mt-5 flex gap-2"><button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-400">Cancel</button><button disabled={saving || !form.name || !form.purchase_cost} className="h-11 flex-[1.4] rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 text-[10px] font-bold text-[#001018] disabled:opacity-45">{saving ? "Creating…" : "Create purchase"}</button></div>
+      <button type="button" onClick={() => setAdvanced((v) => !v)} className="mt-4 flex h-9 items-center gap-2 text-[11px] font-semibold text-td-muted hover:text-td-primary"><ChevronDown className={`h-3.5 w-3.5 transition ${advanced ? "rotate-180" : ""}`} /> Advanced details</button>
+      {advanced ? <div className="grid gap-3 rounded-2xl border border-td-ink/[0.06] bg-black/10 p-4 sm:grid-cols-2"><Field label="Additional expenses" type="number" value={form.additional_expenses} onChange={(v) => set("additional_expenses", v)} /><Field label="Payment method" value={form.payment_method} onChange={(v) => set("payment_method", v)} /><Select label="Cost basis" value={form.cost_basis_method} onChange={(v) => set("cost_basis_method", v)} options={[["proportional","Proportional by value (recommended)"],["average","Average per card"],["manual","Manual"]]} /><Field label="Notes" value={form.notes} onChange={(v) => set("notes", v)} /></div> : null}
+      {error ? <p className="mt-3 text-[11px] text-td-danger">{error}</p> : null}
+      <div className="mt-5 flex gap-2"><button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-td-ink/[0.08] text-[11px] font-semibold text-td-secondary">Cancel</button><button disabled={saving || !form.name || !form.purchase_cost} className="h-11 flex-[1.4] rounded-xl bg-gradient-to-b from-td-accent to-td-accent text-[11px] font-bold text-td-on-accent disabled:opacity-45">{saving ? "Creating…" : "Create purchase"}</button></div>
     </form>
   </Modal>;
 }
@@ -329,23 +329,23 @@ function ImportCardsModal({ purchases, initialPurchaseId, onClose, onImported }:
   const totalValue = rows.reduce((sum, row) => sum + Number(findValue(row, ["market price","tcg market price","price","value","low price"]) || 0) * Number(findValue(row, ["quantity","total quantity","add to quantity","qty"]) || 1), 0);
   return <Modal title="Import cards to a purchase" subtitle="Choose the purchase once. Every imported inventory row will stay connected to it." onClose={onClose}>
     <Select label="Which purchase did these cards come from?" value={purchaseId} onChange={setPurchaseId} options={purchases.map((p) => [p.id, p.name])} />
-    <button type="button" onClick={() => inputRef.current?.click()} className="mt-4 flex w-full flex-col items-center rounded-2xl border border-dashed border-cyan-300/20 bg-cyan-400/[0.025] px-5 py-8 text-center"><FileSpreadsheet className="h-7 w-7 text-cyan-300" /><span className="mt-3 text-xs font-semibold text-white">{fileName || "Choose inventory CSV"}</span><span className="mt-1 text-[9px] text-slate-600">Card name, quantity, set, condition, and market value are detected automatically.</span></button>
+    <button type="button" onClick={() => inputRef.current?.click()} className="mt-4 flex w-full flex-col items-center rounded-2xl border border-dashed border-td-accent/20 bg-td-accent/[0.025] px-5 py-8 text-center"><FileSpreadsheet className="h-7 w-7 text-td-accent-text" /><span className="mt-3 text-xs font-semibold text-td-primary">{fileName || "Choose inventory CSV"}</span><span className="mt-1 text-[11px] text-td-muted">Card name, quantity, set, condition, and market value are detected automatically.</span></button>
     <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => choose(e.target.files?.[0])} />
     {rows.length ? <div className="mt-4 grid grid-cols-3 gap-2"><Tiny label="Rows detected" value={whole.format(rows.length)} /><Tiny label="Cards" value={whole.format(rows.reduce((s,r) => s + Number(findValue(r,["quantity","total quantity","add to quantity","qty"]) || 1),0))} /><Tiny label="Scanned value" value={money.format(totalValue)} /></div> : null}
-    {error ? <p className="mt-3 text-[10px] text-red-300">{error}</p> : null}
-    <div className="mt-5 flex gap-2"><button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-400">Cancel</button><button type="button" onClick={importRows} disabled={saving || !rows.length || !purchaseId} className="h-11 flex-[1.4] rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 text-[10px] font-bold text-[#001018] disabled:opacity-45">{saving ? "Importing…" : "Import and link cards"}</button></div>
+    {error ? <p className="mt-3 text-[11px] text-td-danger">{error}</p> : null}
+    <div className="mt-5 flex gap-2"><button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-td-ink/[0.08] text-[11px] font-semibold text-td-secondary">Cancel</button><button type="button" onClick={importRows} disabled={saving || !rows.length || !purchaseId} className="h-11 flex-[1.4] rounded-xl bg-gradient-to-b from-td-accent to-td-accent text-[11px] font-bold text-td-on-accent disabled:opacity-45">{saving ? "Importing…" : "Import and link cards"}</button></div>
   </Modal>;
 }
 
 function Modal({ title, subtitle, onClose, children }: { title: string; subtitle: string; onClose: () => void; children: React.ReactNode }) {
-  return <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto bg-[#01070c]/88 p-3 backdrop-blur-xl" role="dialog" aria-modal="true"><div className="my-auto w-full max-w-2xl rounded-[26px] border border-white/[0.09] bg-[#091721] p-5 shadow-[0_30px_120px_rgba(0,0,0,.75)] sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[9px] font-semibold uppercase tracking-[0.17em] text-cyan-300">Guided workflow</p><h2 className="mt-2 text-xl font-semibold text-white">{title}</h2><p className="mt-1 text-[10px] leading-5 text-slate-500">{subtitle}</p></div><button type="button" onClick={onClose} aria-label="Close" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 hover:text-white"><X className="h-4 w-4" /></button></div><div className="mt-5">{children}</div></div></div>;
+  return <div className="fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto bg-td-canvas/88 p-3 backdrop-blur-xl" role="dialog" aria-modal="true"><div className="my-auto w-full max-w-2xl rounded-[26px] border border-td-ink/[0.09] bg-td-surface p-5 shadow-[0_30px_120px_rgb(var(--td-shadow-rgb)/calc(.75*var(--td-shadow-strength)))] sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-td-accent-text">Guided workflow</p><h2 className="mt-2 text-xl font-semibold text-td-primary">{title}</h2><p className="mt-1 text-[11px] leading-5 text-td-muted">{subtitle}</p></div><button type="button" onClick={onClose} aria-label="Close" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-muted hover:text-td-primary"><X className="h-4 w-4" /></button></div><div className="mt-5">{children}</div></div></div>;
 }
-function Field({ label, value, onChange, placeholder, type="text", required=false, wide=false }: { label:string; value:string; onChange:(v:string)=>void; placeholder?:string; type?:string; required?:boolean; wide?:boolean }) { return <label className={wide ? "sm:col-span-2" : ""}><span className="mb-1.5 block text-[9px] font-semibold text-slate-500">{label}{required ? " *" : ""}</span><input required={required} type={type} min={type==="number" ? "0" : undefined} step={type==="number" ? "0.01" : undefined} value={value} onChange={(e)=>onChange(e.target.value)} placeholder={placeholder} className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#050f17] px-3 text-[11px] text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30" /></label>; }
-function Select({ label, value, onChange, options }: { label:string; value:string; onChange:(v:string)=>void; options:string[][] }) { return <label><span className="mb-1.5 block text-[9px] font-semibold text-slate-500">{label}</span><select value={value} onChange={(e)=>onChange(e.target.value)} className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#050f17] px-3 text-[10px] text-slate-200 outline-none">{options.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>; }
-function Metric({ icon:Icon,label,value,detail,tone }: { icon:React.ComponentType<{className?:string}>; label:string; value:string; detail:string; tone:string }) { const colors:Record<string,string>={cyan:"text-cyan-300 border-cyan-300/15 bg-cyan-400/[0.05]",violet:"text-violet-300 border-violet-300/15 bg-violet-400/[0.05]",emerald:"text-emerald-300 border-emerald-300/15 bg-emerald-400/[0.05]",amber:"text-amber-300 border-amber-300/15 bg-amber-400/[0.05]"}; return <div className="rounded-2xl border border-white/[0.07] bg-[#07131d]/92 p-4"><span className={`flex h-9 w-9 items-center justify-center rounded-xl border ${colors[tone]}`}><Icon className="h-4 w-4" /></span><p className="mt-4 text-[9px] font-semibold uppercase tracking-[0.13em] text-slate-600">{label}</p><p className="mt-1 text-xl font-semibold text-white">{value}</p><p className="mt-1 text-[9px] text-slate-700">{detail}</p></div>; }
-function Tiny({label,value,positive}:{label:string;value:string;positive?:boolean}) { return <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] px-3 py-2.5"><p className="text-[8px] uppercase tracking-[0.1em] text-slate-700">{label}</p><p className={`mt-1 truncate text-[11px] font-semibold ${positive === undefined ? "text-slate-300" : positive ? "text-emerald-300" : "text-red-300"}`}>{value}</p></div>; }
-function Status({value}:{value:Purchase["status"]}) { const labels={unsorted:"Unsorted",scanning:"Scanning",listed:"Listed",completed:"Completed"}; return <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.025] px-2 py-1 text-[8px] font-semibold text-slate-400">{labels[value]}</span>; }
-function Empty({title,body}:{title:string;body:string}) { return <div className="rounded-2xl border border-dashed border-white/[0.07] px-4 py-12 text-center"><Sparkles className="mx-auto h-5 w-5 text-slate-700" /><p className="mt-3 text-xs font-semibold text-slate-400">{title}</p><p className="mt-1 text-[9px] text-slate-700">{body}</p></div>; }
+function Field({ label, value, onChange, placeholder, type="text", required=false, wide=false }: { label:string; value:string; onChange:(v:string)=>void; placeholder?:string; type?:string; required?:boolean; wide?:boolean }) { return <label className={wide ? "sm:col-span-2" : ""}><span className="mb-1.5 block text-[11px] font-semibold text-td-muted">{label}{required ? " *" : ""}</span><input required={required} type={type} min={type==="number" ? "0" : undefined} step={type==="number" ? "0.01" : undefined} value={value} onChange={(e)=>onChange(e.target.value)} placeholder={placeholder} className="h-11 w-full rounded-xl border border-td-ink/[0.08] bg-td-surface px-3 text-[11px] text-td-primary outline-none placeholder:text-td-muted focus:border-td-accent/30" /></label>; }
+function Select({ label, value, onChange, options }: { label:string; value:string; onChange:(v:string)=>void; options:string[][] }) { return <label><span className="mb-1.5 block text-[11px] font-semibold text-td-muted">{label}</span><select value={value} onChange={(e)=>onChange(e.target.value)} className="h-11 w-full rounded-xl border border-td-ink/[0.08] bg-td-surface px-3 text-[11px] text-td-primary outline-none">{options.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>; }
+function Metric({ icon:Icon,label,value,detail,tone }: { icon:React.ComponentType<{className?:string}>; label:string; value:string; detail:string; tone:string }) { const colors:Record<string,string>={cyan:"text-td-accent-text border-td-accent/15 bg-td-accent/[0.05]",violet:"text-td-violet border-td-violet/15 bg-td-violet/[0.05]",emerald:"text-td-success border-td-success/15 bg-td-success/[0.05]",amber:"text-td-warning border-td-warning/15 bg-td-warning/[0.05]"}; return <div className="rounded-2xl border border-td-ink/[0.07] bg-td-surface/92 p-4"><span className={`flex h-9 w-9 items-center justify-center rounded-xl border ${colors[tone]}`}><Icon className="h-4 w-4" /></span><p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">{label}</p><p className="mt-1 text-xl font-semibold text-td-primary">{value}</p><p className="mt-1 text-[11px] text-td-muted">{detail}</p></div>; }
+function Tiny({label,value,positive}:{label:string;value:string;positive?:boolean}) { return <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] px-3 py-2.5"><p className="text-[11px] uppercase tracking-[0.1em] text-td-muted">{label}</p><p className={`mt-1 truncate text-[11px] font-semibold ${positive === undefined ? "text-td-secondary" : positive ? "text-td-success" : "text-td-danger"}`}>{value}</p></div>; }
+function Status({value}:{value:Purchase["status"]}) { const labels={unsorted:"Unsorted",scanning:"Scanning",listed:"Listed",completed:"Completed"}; return <span className="shrink-0 rounded-full border border-td-ink/[0.08] bg-td-ink/[0.025] px-2 py-1 text-[11px] font-semibold text-td-secondary">{labels[value]}</span>; }
+function Empty({title,body}:{title:string;body:string}) { return <div className="rounded-2xl border border-dashed border-td-ink/[0.07] px-4 py-12 text-center"><Sparkles className="mx-auto h-5 w-5 text-td-muted" /><p className="mt-3 text-xs font-semibold text-td-secondary">{title}</p><p className="mt-1 text-[11px] text-td-muted">{body}</p></div>; }
 function formatDate(value:string) { return new Date(`${value}T12:00:00`).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }
 function findValue(row:Record<string,string>, names:string[]) { for(const name of names){const key=Object.keys(row).find(k=>k.trim().toLowerCase()===name);if(key && row[key] !== undefined)return row[key].replace(/[$,]/g,"").trim();} return ""; }
 function parseCsv(text:string) { const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/).filter(Boolean); if(lines.length<2)return []; const parse=(line:string)=>{const out:string[]=[];let current="",quoted=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){current+='"';i++;}else if(c==='"'){quoted=!quoted;}else if(c===","&&!quoted){out.push(current);current="";}else current+=c;}out.push(current);return out;}; const headers=parse(lines[0]); return lines.slice(1).map(line=>Object.fromEntries(parse(line).map((value,index)=>[headers[index]||`column_${index}`,value]))).filter(row=>Object.values(row).some(Boolean)); }

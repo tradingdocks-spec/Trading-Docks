@@ -115,19 +115,19 @@ export function ModularDashboard() {
       <DashboardBackground />
 
       <div className="relative mx-auto w-full max-w-[1700px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-        <header className="rounded-[28px] border border-cyan-300/[0.12] bg-[#06131d]/86 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.3),0_0_70px_rgba(34,211,238,0.035)] backdrop-blur-2xl sm:p-6">
+        <header className="rounded-[28px] border border-td-accent/[0.12] bg-td-surface/86 p-5 shadow-[0_28px_90px_rgb(var(--td-shadow-rgb)/calc(0.3*var(--td-shadow-strength))),0_0_70px_rgb(var(--td-accent-rgb)/0.035)] backdrop-blur-2xl sm:p-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.13] bg-cyan-400/[0.04] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.17em] text-cyan-200">
-                <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-td-accent/[0.13] bg-td-accent/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.17em] text-td-accent-text">
+                <Sparkles className="h-3.5 w-3.5 text-td-accent-text" />
                 Modular operating system
               </div>
 
-              <h1 className="mt-4 text-3xl font-semibold tracking-[-0.045em] text-white sm:text-4xl">
+              <h1 className="mt-4 text-3xl font-semibold tracking-[-0.045em] text-td-primary sm:text-4xl">
                 Your workspace, built around how you work.
               </h1>
 
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500">
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-td-muted">
                 Add, remove, resize, and reorder modules. Switch layouts for
                 different workflows without leaving the dashboard.
               </p>
@@ -142,8 +142,8 @@ export function ModularDashboard() {
                 className={[
                   "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
                   editing
-                    ? "border-cyan-300/[0.18] bg-cyan-400/[0.08] text-cyan-100"
-                    : "border-white/[0.075] bg-white/[0.025] text-slate-400 hover:border-cyan-300/[0.14] hover:text-cyan-200",
+                    ? "border-td-accent/[0.18] bg-td-accent/[0.08] text-td-accent-text"
+                    : "border-td-ink/[0.075] bg-td-ink/[0.025] text-td-secondary hover:border-td-accent/[0.14] hover:text-td-accent-text",
                 ].join(" ")}
               >
                 <PanelsTopLeft className="h-4 w-4" />
@@ -153,7 +153,7 @@ export function ModularDashboard() {
               <button
                 type="button"
                 onClick={() => setDrawerOpen(true)}
-                className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.075] bg-white/[0.025] px-4 text-xs font-semibold text-slate-400 transition hover:border-cyan-300/[0.14] hover:text-cyan-200"
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-td-ink/[0.075] bg-td-ink/[0.025] px-4 text-xs font-semibold text-td-secondary transition hover:border-td-accent/[0.14] hover:text-td-accent-text"
               >
                 <Plus className="h-4 w-4" />
                 Customize Dashboard
@@ -162,7 +162,7 @@ export function ModularDashboard() {
               <button
                 type="button"
                 onClick={saveLayouts}
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-4 text-xs font-semibold text-[#001018] shadow-[0_14px_32px_rgba(6,182,212,0.2),inset_0_1px_0_rgba(255,255,255,0.62)] transition hover:-translate-y-0.5"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent px-4 text-xs font-semibold text-td-on-accent shadow-[0_14px_32px_rgb(var(--td-accent-rgb)/0.2),inset_0_1px_0_rgb(var(--td-ink-rgb)/0.62)] transition hover:-translate-y-0.5"
               >
                 {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
                 {saved ? "Saved" : "Save layout"}
@@ -170,7 +170,7 @@ export function ModularDashboard() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 border-t border-white/[0.06] pt-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mt-6 flex flex-col gap-3 border-t border-td-ink/[0.06] pt-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
               {LAYOUT_LABELS.map(([id, label]) => (
                 <button
@@ -180,8 +180,8 @@ export function ModularDashboard() {
                   className={[
                     "inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition",
                     layoutId === id
-                      ? "border-cyan-300/[0.17] bg-cyan-400/[0.07] text-white shadow-[0_0_24px_rgba(34,211,238,0.045)]"
-                      : "border-transparent text-slate-600 hover:border-white/[0.06] hover:bg-white/[0.02] hover:text-slate-300",
+                      ? "border-td-accent/[0.17] bg-td-accent/[0.07] text-td-primary shadow-[0_0_24px_rgb(var(--td-accent-rgb)/0.045)]"
+                      : "border-transparent text-td-muted hover:border-td-ink/[0.06] hover:bg-td-ink/[0.02] hover:text-td-secondary",
                   ].join(" ")}
                 >
                   {id === "home" ? <LayoutDashboard className="h-3.5 w-3.5" /> : null}
@@ -190,9 +190,9 @@ export function ModularDashboard() {
               ))}
             </div>
 
-            <div className="flex items-center gap-3 text-[10px] text-slate-600">
+            <div className="flex items-center gap-3 text-[11px] text-td-muted">
               <span className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.72)]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-td-success shadow-[0_0_8px_rgb(var(--td-accent-rgb)/0.72)]" />
                 Live data
               </span>
               <span>{widgets.length} modules</span>
@@ -235,13 +235,13 @@ export function ModularDashboard() {
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="col-span-12 flex min-h-[300px] flex-col items-center justify-center rounded-[26px] border border-dashed border-cyan-300/[0.12] bg-cyan-400/[0.018] text-center"
+              className="col-span-12 flex min-h-[300px] flex-col items-center justify-center rounded-[26px] border border-dashed border-td-accent/[0.12] bg-td-accent/[0.018] text-center"
             >
-              <Settings2 className="h-7 w-7 text-cyan-300/65" />
-              <p className="mt-4 text-sm font-semibold text-slate-300">
+              <Settings2 className="h-7 w-7 text-td-accent-text/65" />
+              <p className="mt-4 text-sm font-semibold text-td-secondary">
                 This layout is empty
               </p>
-              <p className="mt-2 text-xs text-slate-600">
+              <p className="mt-2 text-xs text-td-muted">
                 Add widgets to create your workspace.
               </p>
             </button>
@@ -302,13 +302,13 @@ function PlanSelector({
       <select
         value={plan}
         onChange={(event) => onChange(event.target.value as AccountPlan)}
-        className="h-11 appearance-none rounded-xl border border-white/[0.075] bg-white/[0.025] pl-4 pr-9 text-xs font-semibold capitalize text-slate-400 outline-none transition hover:border-cyan-300/[0.14]"
+        className="h-11 appearance-none rounded-xl border border-td-ink/[0.075] bg-td-ink/[0.025] pl-4 pr-9 text-xs font-semibold capitalize text-td-secondary outline-none transition hover:border-td-accent/[0.14]"
       >
         <option value="starter">Starter plan</option>
         <option value="pro">Pro plan</option>
         <option value="business">Business plan</option>
       </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-700" />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
     </label>
   );
 }
@@ -316,13 +316,13 @@ function PlanSelector({
 function DashboardBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute left-[5%] top-[-100px] h-[520px] w-[520px] rounded-full bg-cyan-400/[0.04] blur-[175px]" />
-      <div className="absolute right-[3%] top-[28%] h-[460px] w-[460px] rounded-full bg-blue-500/[0.025] blur-[180px]" />
+      <div className="absolute left-[5%] top-[-100px] h-[520px] w-[520px] rounded-full bg-td-accent/[0.04] blur-[175px]" />
+      <div className="absolute right-[3%] top-[28%] h-[460px] w-[460px] rounded-full bg-td-accent/[0.025] blur-[180px]" />
       <div
         className="absolute inset-0 opacity-[0.12]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(103,232,249,0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(103,232,249,0.022) 1px, transparent 1px)",
+            "linear-gradient(rgb(var(--td-accent-rgb)/0.022) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--td-accent-rgb)/0.022) 1px, transparent 1px)",
           backgroundSize: "58px 58px",
           maskImage: "linear-gradient(to bottom, black, transparent 80%)",
         }}

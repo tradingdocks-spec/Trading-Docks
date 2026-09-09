@@ -9,10 +9,10 @@
 
 .dashboard .primaryLink {
   /* Keep cyan actions legible despite the global unlayered anchor reset. */
-  color: #020617;
+  color: var(--td-on-accent);
 }
 
 .dashboard a:focus-visible {
-  outline: 2px solid #67e8f9;
+  outline: 2px solid var(--td-accent-text);
   outline-offset: 3px;
 }

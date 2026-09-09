@@ -352,13 +352,13 @@ export function ReportsWorkspace() {
                 type="button"
                 onClick={() => setActiveCategory(category.id)}
                 className={[
-                  "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-[9px] font-semibold transition",
+                  "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-[11px] font-semibold transition",
                   active
-                    ? "border-cyan-300/[0.18] bg-cyan-400/[0.075] text-cyan-100"
-                    : "border-transparent text-slate-600 hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-slate-300",
+                    ? "border-td-accent/[0.18] bg-td-accent/[0.075] text-td-accent-text"
+                    : "border-transparent text-td-muted hover:border-td-ink/[0.06] hover:bg-td-ink/[0.025] hover:text-td-secondary",
                 ].join(" ")}
               >
-                <Icon className={active ? "h-3.5 w-3.5 text-cyan-300" : "h-3.5 w-3.5"} />
+                <Icon className={active ? "h-3.5 w-3.5 text-td-accent-text" : "h-3.5 w-3.5"} />
                 {category.label}
               </button>
             );
@@ -408,8 +408,8 @@ export function ReportsWorkspace() {
       />
 
       {toast ? (
-        <div className="fixed bottom-5 right-5 z-[120] flex items-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-[#06131d]/96 px-4 py-3 text-[10px] font-semibold text-cyan-100 shadow-[0_18px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl">
-          <Check className="h-4 w-4 text-emerald-300" />
+        <div className="fixed bottom-5 right-5 z-[120] flex items-center gap-2 rounded-xl border border-td-accent/[0.16] bg-td-surface/96 px-4 py-3 text-[11px] font-semibold text-td-accent-text shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.4*var(--td-shadow-strength)))] backdrop-blur-xl">
+          <Check className="h-4 w-4 text-td-success" />
           {toast}
         </div>
       ) : null}
@@ -438,11 +438,11 @@ function OverviewDashboard({
         <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
                 Revenue and profit
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-white">Business performance</h2>
-              <p className="mt-1 text-[10px] text-slate-600">
+              <h2 className="mt-2 text-lg font-semibold text-td-primary">Business performance</h2>
+              <p className="mt-1 text-[11px] text-td-muted">
                 Gross revenue and net profit across the selected period.
               </p>
             </div>
@@ -451,7 +451,7 @@ function OverviewDashboard({
               <select
                 value={period}
                 onChange={(event) => setPeriod(event.target.value)}
-                className="h-10 appearance-none rounded-xl border border-white/[0.07] bg-[#07141e] pl-3 pr-9 text-[9px] font-semibold text-slate-400"
+                className="h-10 appearance-none rounded-xl border border-td-ink/[0.07] bg-td-surface pl-3 pr-9 text-[11px] font-semibold text-td-secondary"
               >
                 <option>Last 30 days</option>
                 <option>Last 90 days</option>
@@ -459,7 +459,7 @@ function OverviewDashboard({
                 <option>Last year</option>
                 <option>All time</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-700" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
             </label>
           </div>
 
@@ -468,12 +468,12 @@ function OverviewDashboard({
 
         <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-300/[0.12] bg-violet-400/[0.05] text-violet-300">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-violet/[0.12] bg-td-violet/[0.05] text-td-violet">
               <BrainCircuit className="h-4 w-4" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-white">AI Insights</p>
-              <p className="mt-0.5 text-[8px] uppercase tracking-[0.14em] text-slate-700">
+              <p className="text-sm font-semibold text-td-primary">AI Insights</p>
+              <p className="mt-0.5 text-[11px] uppercase tracking-[0.14em] text-td-muted">
                 Decision support
               </p>
             </div>
@@ -508,16 +508,16 @@ function OverviewDashboard({
         <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
                 Marketplace performance
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-white">Channel profitability</h2>
+              <h2 className="mt-2 text-lg font-semibold text-td-primary">Channel profitability</h2>
             </div>
 
             <button
               type="button"
               onClick={() => onExport("Excel", "Marketplace Performance")}
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 text-[9px] font-semibold text-slate-400"
+              className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-3 text-[11px] font-semibold text-td-secondary"
             >
               <Download className="h-3.5 w-3.5" />
               Export
@@ -527,7 +527,7 @@ function OverviewDashboard({
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[720px] text-left">
               <thead>
-                <tr className="border-b border-white/[0.06] text-[8px] uppercase tracking-[0.14em] text-slate-700">
+                <tr className="border-b border-td-ink/[0.06] text-[11px] uppercase tracking-[0.14em] text-td-muted">
                   <th className="px-3 py-3">Marketplace</th>
                   <th className="px-3 py-3">Gross sales</th>
                   <th className="px-3 py-3">Fees</th>
@@ -538,12 +538,12 @@ function OverviewDashboard({
               </thead>
               <tbody>
                 {MARKETPLACE_ROWS.map((row) => (
-                  <tr key={row.channel} className="border-b border-white/[0.045] text-[10px] text-slate-500">
-                    <td className="px-3 py-4 font-semibold text-slate-200">{row.channel}</td>
+                  <tr key={row.channel} className="border-b border-td-ink/[0.045] text-[11px] text-td-muted">
+                    <td className="px-3 py-4 font-semibold text-td-primary">{row.channel}</td>
                     <td className="px-3 py-4">{currency(row.gross)}</td>
-                    <td className="px-3 py-4 text-rose-300/75">-{currency(row.fees)}</td>
-                    <td className="px-3 py-4 text-amber-300/75">-{currency(row.shipping)}</td>
-                    <td className="px-3 py-4 font-semibold text-emerald-300">{currency(row.net)}</td>
+                    <td className="px-3 py-4 text-td-danger/75">-{currency(row.fees)}</td>
+                    <td className="px-3 py-4 text-td-warning/75">-{currency(row.shipping)}</td>
+                    <td className="px-3 py-4 font-semibold text-td-success">{currency(row.net)}</td>
                     <td className="px-3 py-4">{row.orders.toLocaleString("en-US")}</td>
                   </tr>
                 ))}
@@ -555,16 +555,16 @@ function OverviewDashboard({
         <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
                 Saved reports
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-white">One-click reporting</h2>
+              <h2 className="mt-2 text-lg font-semibold text-td-primary">One-click reporting</h2>
             </div>
 
             <button
               type="button"
               onClick={onOpenBuilder}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/[0.14] bg-cyan-400/[0.05] text-cyan-300"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-accent/[0.14] bg-td-accent/[0.05] text-td-accent-text"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -576,9 +576,9 @@ function OverviewDashboard({
                 key={report.id}
                 type="button"
                 onClick={() => onRun(report)}
-                className="flex w-full items-center gap-3 rounded-xl border border-white/[0.055] bg-black/[0.08] px-3.5 py-3 text-left transition hover:border-cyan-300/[0.12]"
+                className="flex w-full items-center gap-3 rounded-xl border border-td-ink/[0.055] bg-black/[0.08] px-3.5 py-3 text-left transition hover:border-td-accent/[0.12]"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.04] text-cyan-300">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.04] text-td-accent-text">
                   {report.format === "PDF" ? (
                     <FileText className="h-4 w-4" />
                   ) : report.format === "JSON" ? (
@@ -589,15 +589,15 @@ function OverviewDashboard({
                 </span>
 
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[10px] font-semibold text-slate-300">
+                  <span className="block truncate text-[11px] font-semibold text-td-secondary">
                     {report.name}
                   </span>
-                  <span className="mt-1 block text-[8px] text-slate-600">
+                  <span className="mt-1 block text-[11px] text-td-muted">
                     {report.cadence} · {report.format}
                   </span>
                 </span>
 
-                <Download className="h-3.5 w-3.5 text-slate-700" />
+                <Download className="h-3.5 w-3.5 text-td-muted" />
               </button>
             ))}
           </div>
@@ -607,11 +607,11 @@ function OverviewDashboard({
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
               Export center
             </p>
-            <h2 className="mt-2 text-lg font-semibold text-white">Download your business data</h2>
-            <p className="mt-1 text-[10px] text-slate-600">
+            <h2 className="mt-2 text-lg font-semibold text-td-primary">Download your business data</h2>
+            <p className="mt-1 text-[11px] text-td-muted">
               Export the current executive report in the format your accountant, insurer, or team needs.
             </p>
           </div>
@@ -622,7 +622,7 @@ function OverviewDashboard({
                 key={format}
                 type="button"
                 onClick={() => onExport(format)}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 text-[9px] font-semibold text-slate-400 transition hover:border-cyan-300/[0.14] hover:text-cyan-200"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-3 text-[11px] font-semibold text-td-secondary transition hover:border-td-accent/[0.14] hover:text-td-accent-text"
               >
                 {format === "PDF" ? (
                   <FileText className="h-3.5 w-3.5" />
@@ -667,28 +667,28 @@ function ReportLibrary({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.05] text-td-accent-text">
               <CategoryIcon className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
                 Report library
               </p>
-              <h2 className="mt-1 text-xl font-semibold text-white">{category?.label}</h2>
+              <h2 className="mt-1 text-xl font-semibold text-td-primary">{category?.label}</h2>
             </div>
           </div>
-          <p className="mt-3 text-[10px] leading-5 text-slate-600">
+          <p className="mt-3 text-[11px] leading-5 text-td-muted">
             Select a report to generate it, adjust filters, or export the underlying data.
           </p>
         </div>
 
-        <label className="flex h-10 w-full items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 lg:max-w-[330px]">
-          <Search className="h-3.5 w-3.5 text-slate-700" />
+        <label className="flex h-10 w-full items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-3 lg:max-w-[330px]">
+          <Search className="h-3.5 w-3.5 text-td-muted" />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search reports..."
-            className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-300 outline-none placeholder:text-slate-700"
+            className="min-w-0 flex-1 bg-transparent text-[11px] text-td-secondary outline-none placeholder:text-td-muted"
           />
         </label>
       </div>
@@ -700,23 +700,23 @@ function ReportLibrary({
           return (
             <article
               key={report.title}
-              className="group rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4 transition hover:-translate-y-0.5 hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.018]"
+              className="group rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4 transition hover:-translate-y-0.5 hover:border-td-accent/[0.14] hover:bg-td-accent/[0.018]"
             >
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.04] text-cyan-300">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.04] text-td-accent-text">
                   <Icon className="h-4.5 w-4.5" />
                 </span>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-xs font-semibold text-slate-200">{report.title}</h3>
+                    <h3 className="text-xs font-semibold text-td-primary">{report.title}</h3>
                     {report.badge ? (
-                      <span className="rounded-full border border-violet-300/[0.1] bg-violet-400/[0.04] px-2 py-0.5 text-[6px] font-semibold uppercase tracking-[0.1em] text-violet-300">
+                      <span className="rounded-full border border-td-violet/[0.1] bg-td-violet/[0.04] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-violet">
                         {report.badge}
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-2 text-[9px] leading-4 text-slate-600">{report.description}</p>
+                  <p className="mt-2 text-[11px] leading-4 text-td-muted">{report.description}</p>
                 </div>
               </div>
 
@@ -724,7 +724,7 @@ function ReportLibrary({
                 <button
                   type="button"
                   onClick={() => onExport("PDF", report.title)}
-                  className="inline-flex h-8 flex-1 items-center justify-center gap-2 rounded-lg border border-cyan-300/[0.12] bg-cyan-400/[0.045] text-[8px] font-semibold text-cyan-200"
+                  className="inline-flex h-8 flex-1 items-center justify-center gap-2 rounded-lg border border-td-accent/[0.12] bg-td-accent/[0.045] text-[11px] font-semibold text-td-accent-text"
                 >
                   <FileText className="h-3 w-3" />
                   Generate
@@ -732,7 +732,7 @@ function ReportLibrary({
                 <button
                   type="button"
                   onClick={() => onExport("Excel", report.title)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-600 hover:text-cyan-300"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.02] text-td-muted hover:text-td-accent-text"
                 >
                   <Download className="h-3.5 w-3.5" />
                 </button>
@@ -743,9 +743,9 @@ function ReportLibrary({
       </div>
 
       {!reports.length ? (
-        <div className="mt-6 rounded-2xl border border-dashed border-white/[0.07] bg-white/[0.015] px-4 py-12 text-center">
-          <Search className="mx-auto h-5 w-5 text-slate-700" />
-          <p className="mt-3 text-xs font-semibold text-slate-400">No reports found</p>
+        <div className="mt-6 rounded-2xl border border-dashed border-td-ink/[0.07] bg-td-ink/[0.015] px-4 py-12 text-center">
+          <Search className="mx-auto h-5 w-5 text-td-muted" />
+          <p className="mt-3 text-xs font-semibold text-td-secondary">No reports found</p>
         </div>
       ) : null}
     </section>
@@ -764,25 +764,25 @@ function RevenueChart() {
   const area = `${line} L ${points[points.length - 1].x} 196 L ${points[0].x} 196 Z`;
 
   return (
-    <div className="relative mt-5 h-[250px] overflow-hidden rounded-2xl border border-white/[0.055] bg-[#02090f]">
+    <div className="relative mt-5 h-[250px] overflow-hidden rounded-2xl border border-td-ink/[0.055] bg-td-canvas">
       <svg viewBox="0 0 760 220" preserveAspectRatio="none" className="h-full w-full">
         <defs>
           <linearGradient id="bi-revenue-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(34 211 238)" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="rgb(34 211 238)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--td-action-primary)" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="var(--td-action-primary)" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="bi-revenue-line" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="rgb(103 232 249)" />
-            <stop offset="100%" stopColor="rgb(56 189 248)" />
+            <stop offset="0%" stopColor="var(--td-accent-text)" />
+            <stop offset="100%" stopColor="var(--td-action-primary)" />
           </linearGradient>
         </defs>
 
         {[55, 100, 145].map((y) => (
-          <line key={y} x1="18" x2="742" y1={y} y2={y} stroke="rgba(148,163,184,0.07)" strokeDasharray="4 8" />
+          <line key={y} x1="18" x2="742" y1={y} y2={y} stroke="rgb(var(--td-accent-rgb)/0.07)" strokeDasharray="4 8" />
         ))}
 
         <path d={area} fill="url(#bi-revenue-area)" />
-        <path d={line} fill="none" stroke="rgba(34,211,238,0.18)" strokeWidth="10" strokeLinecap="round" />
+        <path d={line} fill="none" stroke="rgb(var(--td-accent-rgb)/0.18)" strokeWidth="10" strokeLinecap="round" />
         <path d={line} fill="none" stroke="url(#bi-revenue-line)" strokeWidth="3" strokeLinecap="round" />
 
         {points.map((point, index) => (
@@ -791,7 +791,7 @@ function RevenueChart() {
             x={point.x}
             y="212"
             textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}
-            fill="rgb(100 116 139)"
+            fill="var(--td-text-muted)"
             fontSize="9"
             fontWeight="600"
           >
@@ -801,8 +801,8 @@ function RevenueChart() {
       </svg>
 
       <div className="absolute left-4 top-4">
-        <p className="text-2xl font-semibold tracking-[-0.04em] text-white">$482,114</p>
-        <p className="mt-1 text-[9px] font-semibold text-emerald-300">+$62,418 · 14.8%</p>
+        <p className="text-2xl font-semibold tracking-[-0.04em] text-td-primary">$482,114</p>
+        <p className="mt-1 text-[11px] font-semibold text-td-success">+$62,418 · 14.8%</p>
       </div>
     </div>
   );
@@ -819,18 +819,18 @@ function InsightCard({
 }) {
   const dot =
     type === "positive"
-      ? "bg-emerald-300"
+      ? "bg-td-success"
       : type === "warning"
-        ? "bg-amber-300"
-        : "bg-cyan-300";
+        ? "bg-td-warning"
+        : "bg-td-accent";
 
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] px-3.5 py-3">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] px-3.5 py-3">
       <div className="flex items-start gap-2.5">
         <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
         <div>
-          <p className="text-[10px] font-semibold text-slate-300">{title}</p>
-          <p className="mt-1.5 text-[8px] leading-4 text-slate-600">{detail}</p>
+          <p className="text-[11px] font-semibold text-td-secondary">{title}</p>
+          <p className="mt-1.5 text-[11px] leading-4 text-td-muted">{detail}</p>
         </div>
       </div>
     </div>
@@ -868,17 +868,17 @@ function ReportBuilder({
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/72 p-4 backdrop-blur-md">
       <button type="button" onClick={onClose} className="absolute inset-0" aria-label="Close report builder" />
 
-      <div className="relative z-10 max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-[28px] border border-cyan-300/[0.14] bg-[#06131d]/98 p-5 shadow-[0_38px_120px_rgba(0,0,0,0.55)] sm:p-6">
+      <div className="relative z-10 max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-[28px] border border-td-accent/[0.14] bg-td-surface/98 p-5 shadow-[0_38px_120px_rgb(var(--td-shadow-rgb)/calc(0.55*var(--td-shadow-strength)))] sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-300/[0.12] bg-violet-400/[0.04] px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.16em] text-violet-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-td-violet/[0.12] bg-td-violet/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-td-violet">
               <Sparkles className="h-3.5 w-3.5" />
               Visual report builder
             </div>
-            <h2 className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-white">
+            <h2 className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-td-primary">
               Create a reusable report
             </h2>
-            <p className="mt-2 text-[10px] leading-5 text-slate-600">
+            <p className="mt-2 text-[11px] leading-5 text-td-muted">
               Choose the period, marketplaces, measurements, and export format.
             </p>
           </div>
@@ -886,18 +886,18 @@ function ReportBuilder({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
-          <section className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
+          <section className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4">
             <BuilderLabel icon={FileText} label="Report details" />
 
             <label className="mt-4 block">
-              <span className="mb-2 block text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
                 Report name
               </span>
               <input
@@ -908,7 +908,7 @@ function ReportBuilder({
             </label>
 
             <label className="mt-4 block">
-              <span className="mb-2 block text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
                 Date range
               </span>
               <select
@@ -926,7 +926,7 @@ function ReportBuilder({
             </label>
 
             <div className="mt-4">
-              <span className="mb-2 block text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
                 Output format
               </span>
               <div className="grid grid-cols-4 gap-2">
@@ -936,10 +936,10 @@ function ReportBuilder({
                     type="button"
                     onClick={() => setBuilder((current) => ({ ...current, format }))}
                     className={[
-                      "h-9 rounded-lg border text-[8px] font-semibold",
+                      "h-9 rounded-lg border text-[11px] font-semibold",
                       builder.format === format
-                        ? "border-cyan-300/[0.17] bg-cyan-400/[0.07] text-cyan-200"
-                        : "border-white/[0.06] bg-white/[0.02] text-slate-600",
+                        ? "border-td-accent/[0.17] bg-td-accent/[0.07] text-td-accent-text"
+                        : "border-td-ink/[0.06] bg-td-ink/[0.02] text-td-muted",
                     ].join(" ")}
                   >
                     {format}
@@ -949,7 +949,7 @@ function ReportBuilder({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
+          <section className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4">
             <BuilderLabel icon={Store} label="Marketplaces" />
             <div className="mt-4 grid grid-cols-2 gap-2">
               {["TCGplayer", "eBay", "Shopify", "Mana Pool", "Whatnot", "Direct"].map((marketplace) => (
@@ -963,7 +963,7 @@ function ReportBuilder({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4 lg:col-span-2">
+          <section className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4 lg:col-span-2">
             <BuilderLabel icon={Filter} label="Include in report" />
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {[
@@ -995,14 +995,14 @@ function ReportBuilder({
           <button
             type="button"
             onClick={() => onSave(builder)}
-            className="h-11 rounded-xl border border-white/[0.075] bg-white/[0.025] px-5 text-[10px] font-semibold text-slate-400"
+            className="h-11 rounded-xl border border-td-ink/[0.075] bg-td-ink/[0.025] px-5 text-[11px] font-semibold text-td-secondary"
           >
             Save template
           </button>
           <button
             type="button"
             onClick={() => onGenerate(builder)}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-5 text-[10px] font-semibold text-[#001018]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent px-5 text-[11px] font-semibold text-td-on-accent"
           >
             <Download className="h-4 w-4" />
             Generate report
@@ -1014,16 +1014,16 @@ function ReportBuilder({
             height: 42px;
             width: 100%;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.075);
-            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgb(var(--td-ink-rgb)/0.075);
+            background: rgb(var(--td-ink-rgb)/0.025);
             padding: 0 12px;
-            color: rgb(226 232 240);
+            color: var(--td-text-secondary);
             font-size: 11px;
             outline: none;
           }
           .report-builder-input:focus {
-            border-color: rgba(103, 232, 249, 0.24);
-            box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.045);
+            border-color: rgb(var(--td-accent-rgb)/0.24);
+            box-shadow: 0 0 0 4px rgb(var(--td-accent-rgb)/0.045);
           }
         `}</style>
       </div>
@@ -1040,8 +1040,8 @@ function BuilderLabel({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <Icon className="h-3.5 w-3.5 text-cyan-300" />
-      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+      <Icon className="h-3.5 w-3.5 text-td-accent-text" />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-muted">
         {label}
       </p>
     </div>
@@ -1062,18 +1062,18 @@ function ToggleOption({
       type="button"
       onClick={onClick}
       className={[
-        "flex h-10 items-center gap-2 rounded-xl border px-3 text-left text-[9px] font-semibold transition",
+        "flex h-10 items-center gap-2 rounded-xl border px-3 text-left text-[11px] font-semibold transition",
         checked
-          ? "border-cyan-300/[0.14] bg-cyan-400/[0.055] text-cyan-100"
-          : "border-white/[0.055] bg-white/[0.018] text-slate-600",
+          ? "border-td-accent/[0.14] bg-td-accent/[0.055] text-td-accent-text"
+          : "border-td-ink/[0.055] bg-td-ink/[0.018] text-td-muted",
       ].join(" ")}
     >
       <span
         className={[
           "flex h-4 w-4 items-center justify-center rounded border",
           checked
-            ? "border-cyan-300/30 bg-cyan-400/[0.1] text-cyan-200"
-            : "border-white/[0.08]",
+            ? "border-td-accent/30 bg-td-accent/[0.1] text-td-accent-text"
+            : "border-td-ink/[0.08]",
         ].join(" ")}
       >
         {checked ? <Check className="h-3 w-3" /> : null}

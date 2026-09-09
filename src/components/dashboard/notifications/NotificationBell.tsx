@@ -57,19 +57,19 @@ function icon(type: NotificationType) {
 function color(type: NotificationType) {
   switch (type) {
     case "sale":
-      return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+      return "text-td-success bg-td-success/10 border-td-success/20";
 
     case "success":
-      return "text-cyan-300 bg-cyan-500/10 border-cyan-500/20";
+      return "text-td-accent-text bg-td-accent/10 border-td-accent/20";
 
     case "inventory":
-      return "text-indigo-300 bg-indigo-500/10 border-indigo-500/20";
+      return "text-td-violet bg-td-violet/10 border-td-violet/20";
 
     case "warning":
-      return "text-amber-300 bg-amber-500/10 border-amber-500/20";
+      return "text-td-warning bg-td-warning/10 border-td-warning/20";
 
     case "error":
-      return "text-red-300 bg-red-500/10 border-red-500/20";
+      return "text-td-danger bg-td-danger/10 border-td-danger/20";
   }
 }
 
@@ -115,15 +115,15 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
           setOpen(!open);
           setConfirmClear(false);
         }}
-        className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] transition-all duration-200 hover:border-cyan-400/20 hover:bg-cyan-400/[0.04]"
+        className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.03] transition-all duration-200 hover:border-td-accent/20 hover:bg-td-accent/[0.04]"
       >
-        <Bell className="h-4 w-4 text-slate-400 transition group-hover:text-cyan-300" />
+        <Bell className="h-4 w-4 text-td-secondary transition group-hover:text-td-accent-text" />
 
         {unread > 0 && (
           <>
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-cyan-400" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-td-accent" />
 
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-cyan-400 px-1 text-[9px] font-semibold text-slate-900">
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-td-accent px-1 text-[11px] font-semibold text-td-on-accent">
               {unread}
             </span>
           </>
@@ -131,25 +131,25 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
       </button>
 
       <div
-        className={`absolute right-0 top-[calc(100%+10px)] z-50 w-[390px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#071017]/98 shadow-[0_30px_90px_rgba(0,0,0,0.55),0_0_50px_rgba(34,211,238,0.08)] backdrop-blur-2xl transition-all duration-200 ${
+        className={`absolute right-0 top-[calc(100%+10px)] z-50 w-[390px] overflow-hidden rounded-2xl border border-td-ink/[0.08] bg-td-surface/98 shadow-[0_30px_90px_rgb(var(--td-shadow-rgb)/calc(0.55*var(--td-shadow-strength))),0_0_50px_rgb(var(--td-accent-rgb)/0.08)] backdrop-blur-2xl transition-all duration-200 ${
           open
             ? "translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-2 opacity-0"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-td-ink/[0.06] px-5 py-4">
           <div>
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-td-primary">
               Notifications
             </p>
 
-            <p className="mt-1 text-[10px] text-slate-500">
+            <p className="mt-1 text-[11px] text-td-muted">
               Orders, inventory, sync, automation and system
               activity
             </p>
           </div>
 
-          <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[9px] font-semibold text-cyan-300">
+          <div className="rounded-full border border-td-accent/20 bg-td-accent/10 px-2 py-1 text-[11px] font-semibold text-td-accent-text">
             {unread} New
           </div>
         </div>
@@ -157,9 +157,9 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
         <div className="max-h-[430px] overflow-y-auto">
           {notifications.length === 0 ? (
             <div className="flex min-h-48 flex-col items-center justify-center px-6 py-10 text-center">
-              <CheckCircle2 className="h-7 w-7 text-cyan-300/70" />
-              <p className="mt-3 text-xs font-semibold text-white">You&apos;re all caught up</p>
-              <p className="mt-1 text-[10px] leading-5 text-slate-500">
+              <CheckCircle2 className="h-7 w-7 text-td-accent-text/70" />
+              <p className="mt-3 text-xs font-semibold text-td-primary">You&apos;re all caught up</p>
+              <p className="mt-1 text-[11px] leading-5 text-td-muted">
                 New account and workspace activity will appear here.
               </p>
             </div>
@@ -175,7 +175,7 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
                   setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, unread: false } : item));
                   setOpen(false);
                 }}
-                className="group flex gap-3 border-b border-white/[0.05] px-5 py-4 transition hover:bg-white/[0.025]"
+                className="group flex gap-3 border-b border-td-ink/[0.05] px-5 py-4 transition hover:bg-td-ink/[0.025]"
               >
                 <div
                   className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${color(
@@ -187,22 +187,22 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[11px] font-semibold text-white">
+                    <p className="text-[11px] font-semibold text-td-primary">
                       {notification.title}
                     </p>
 
                     <div className="flex items-center gap-2">
                       {notification.unread && (
-                        <span className="h-2 w-2 rounded-full bg-cyan-400" />
+                        <span className="h-2 w-2 rounded-full bg-td-accent" />
                       )}
 
-                      <span className="text-[9px] text-slate-500">
+                      <span className="text-[11px] text-td-muted">
                         {notification.time}
                       </span>
                     </div>
                   </div>
 
-                  <p className="mt-1 text-[10px] leading-5 text-slate-500">
+                  <p className="mt-1 text-[11px] leading-5 text-td-muted">
                     {notification.description}
                   </p>
                 </div>
@@ -211,34 +211,34 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
           })}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-td-ink/[0.06] px-5 py-3">
           <div className="flex items-center gap-4">
             <button
               type="button"
               disabled={notifications.length === 0 || unread === 0}
               onClick={() => setNotifications((current) => current.map((item) => ({ ...item, unread: false })))}
-              className="text-[10px] font-medium text-cyan-300 transition hover:text-cyan-200 disabled:cursor-not-allowed disabled:text-slate-700"
+              className="text-[11px] font-medium text-td-accent-text transition hover:text-td-accent-text disabled:cursor-not-allowed disabled:text-td-muted"
             >
               Mark all as read
             </button>
 
             {confirmClear ? (
-              <span className="flex items-center gap-2 text-[10px]">
-                <span className="text-slate-500">Clear everything?</span>
+              <span className="flex items-center gap-2 text-[11px]">
+                <span className="text-td-muted">Clear everything?</span>
                 <button
                   type="button"
                   onClick={() => {
                     setNotifications([]);
                     setConfirmClear(false);
                   }}
-                  className="font-semibold text-red-300 transition hover:text-red-200"
+                  className="font-semibold text-td-danger transition hover:text-td-danger"
                 >
                   Yes, clear
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="text-slate-400 transition hover:text-white"
+                  className="text-td-secondary transition hover:text-td-primary"
                 >
                   Cancel
                 </button>
@@ -248,7 +248,7 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
                 type="button"
                 disabled={notifications.length === 0}
                 onClick={() => setConfirmClear(true)}
-                className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 transition hover:text-red-300 disabled:cursor-not-allowed disabled:text-slate-700"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-td-muted transition hover:text-td-danger disabled:cursor-not-allowed disabled:text-td-muted"
               >
                 <Trash2 className="h-3 w-3" />
                 Clear all
@@ -258,7 +258,7 @@ export function NotificationBell({ plan }: { plan: AccountTier }) {
 
           <Link
             href="/dashboard?panel=notifications"
-            className="flex items-center gap-1 text-[10px] font-medium text-slate-400 transition hover:text-white"
+            className="flex items-center gap-1 text-[11px] font-medium text-td-secondary transition hover:text-td-primary"
           >
             View All
 

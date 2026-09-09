@@ -62,17 +62,17 @@ const actions = [
 
 export function QuickActions() {
   return (
-    <section className="rounded-[28px] border border-white/[0.085] bg-[#06121b]/82 p-5 shadow-[0_26px_85px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-6">
+    <section className="rounded-[28px] border border-td-ink/[0.085] bg-td-surface/82 p-5 shadow-[0_26px_85px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength)))] backdrop-blur-2xl sm:p-6">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
           Workspace
         </p>
 
-        <h2 className="mt-2 text-lg font-semibold text-white">
+        <h2 className="mt-2 text-lg font-semibold text-td-primary">
           Quick actions
         </h2>
 
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-td-muted">
           Jump directly into your most common workflows.
         </p>
       </div>
@@ -86,14 +86,14 @@ export function QuickActions() {
             <Link
               key={action.title}
               href={action.href}
-              className="group relative min-h-[140px] overflow-hidden rounded-[20px] border border-white/[0.07] bg-black/[0.12] p-4 transition duration-400 hover:-translate-y-1 hover:border-blue-300/[0.18] hover:bg-white/[0.025] hover:shadow-[0_18px_45px_rgba(0,0,0,0.28)]"
+              className="group relative min-h-[140px] overflow-hidden rounded-[20px] border border-td-ink/[0.07] bg-black/[0.12] p-4 transition duration-400 hover:-translate-y-1 hover:border-td-accent/[0.18] hover:bg-td-ink/[0.025] hover:shadow-[0_18px_45px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength)))]"
             >
               <div
                 className={[
                   "pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full blur-[55px] transition duration-500",
                   isViolet
-                    ? "bg-violet-500/[0.045] group-hover:bg-violet-500/[0.09]"
-                    : "bg-blue-400/[0.045] group-hover:bg-blue-400/[0.09]",
+                    ? "bg-td-violet/[0.045] group-hover:bg-td-violet/[0.09]"
+                    : "bg-td-accent/[0.045] group-hover:bg-td-accent/[0.09]",
                 ].join(" ")}
               />
 
@@ -102,21 +102,21 @@ export function QuickActions() {
                   className={[
                     "flex h-10 w-10 items-center justify-center rounded-2xl border transition duration-300 group-hover:-translate-y-0.5 group-hover:scale-105",
                     isViolet
-                      ? "border-violet-300/[0.14] bg-violet-500/[0.07] text-violet-300 group-hover:border-violet-300/30 group-hover:bg-violet-500/[0.12]"
-                      : "border-blue-300/[0.14] bg-blue-400/[0.07] text-blue-300 group-hover:border-blue-300/30 group-hover:bg-blue-400/[0.12]",
+                      ? "border-td-violet/[0.14] bg-td-violet/[0.07] text-td-violet group-hover:border-td-violet/30 group-hover:bg-td-violet/[0.12]"
+                      : "border-td-accent/[0.14] bg-td-accent/[0.07] text-td-accent-text group-hover:border-td-accent/30 group-hover:bg-td-accent/[0.12]",
                   ].join(" ")}
                 >
                   <Icon className="h-4.5 w-4.5" />
                 </div>
 
-                <ArrowUpRight className="h-4 w-4 text-slate-700 transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-blue-300" />
+                <ArrowUpRight className="h-4 w-4 text-td-muted transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-td-accent-text" />
               </div>
 
-              <h3 className="relative mt-5 text-sm font-semibold text-slate-200 transition group-hover:text-white">
+              <h3 className="relative mt-5 text-sm font-semibold text-td-primary transition group-hover:text-td-primary">
                 {action.title}
               </h3>
 
-              <p className="relative mt-2 text-xs leading-5 text-slate-600 transition group-hover:text-slate-500">
+              <p className="relative mt-2 text-xs leading-5 text-td-muted transition group-hover:text-td-muted">
                 {action.description}
               </p>
             </Link>

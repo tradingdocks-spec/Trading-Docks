@@ -48,14 +48,14 @@ export function RevenueCatWebPurchaseButton({
         disabled={loading}
         className={`inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition disabled:cursor-wait disabled:opacity-70 ${
           featured
-            ? "bg-gradient-to-b from-cyan-300 to-sky-500 text-[#001018] hover:brightness-110"
-            : "border border-white/[0.1] bg-white/[0.04] text-slate-100 group-hover:border-cyan-300 group-hover:bg-cyan-300 group-hover:text-[#001018] group-hover:shadow-[0_10px_30px_rgba(34,211,238,0.18)]"
+            ? "bg-gradient-to-b from-td-accent to-td-accent text-td-on-accent hover:brightness-110"
+            : "border border-td-ink/[0.1] bg-td-ink/[0.04] text-td-on-accent group-hover:border-td-accent group-hover:bg-td-accent group-hover:text-td-on-accent group-hover:shadow-[0_10px_30px_rgb(var(--td-accent-rgb)/0.18)]"
         }`}
       >
         {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
         {loading ? "Opening RevenueCat checkout..." : label}
       </button>
-      {error ? <p className="mt-2 text-center text-xs text-rose-300">{error}</p> : null}
+      {error ? <p className="mt-2 text-center text-xs text-td-danger">{error}</p> : null}
     </div>
   );
 }

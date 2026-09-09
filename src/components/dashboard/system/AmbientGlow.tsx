@@ -21,119 +21,119 @@ type ToneStyle = {
 const toneStyles: Record<SystemTone, ToneStyle> = {
   default: {
     topGlow:
-      "from-cyan-400/[0.10] via-sky-400/[0.035] to-transparent",
+      "from-td-accent/[0.10] via-td-accent/[0.035] to-transparent",
     centerGlow:
-      "bg-cyan-400/[0.025]",
+      "bg-td-accent/[0.025]",
     edgeGlow:
-      "via-cyan-300/35",
+      "via-td-accent/35",
     progress:
-      "from-cyan-400 via-sky-300 to-cyan-400",
+      "from-td-accent via-td-accent to-td-accent",
     pulse:
-      "bg-cyan-300/25",
+      "bg-td-accent/25",
   },
 
   saving: {
     topGlow:
-      "from-blue-400/[0.13] via-cyan-400/[0.04] to-transparent",
+      "from-td-accent/[0.13] via-td-accent/[0.04] to-transparent",
     centerGlow:
-      "bg-blue-400/[0.035]",
+      "bg-td-accent/[0.035]",
     edgeGlow:
-      "via-blue-300/50",
+      "via-td-accent/50",
     progress:
-      "from-blue-500 via-cyan-300 to-blue-400",
+      "from-td-accent via-td-accent to-td-accent",
     pulse:
-      "bg-blue-300/30",
+      "bg-td-accent/30",
   },
 
   syncing: {
     topGlow:
-      "from-amber-400/[0.13] via-orange-400/[0.035] to-transparent",
+      "from-td-warning/[0.13] via-td-warning/[0.035] to-transparent",
     centerGlow:
-      "bg-amber-400/[0.03]",
+      "bg-td-warning/[0.03]",
     edgeGlow:
-      "via-amber-300/50",
+      "via-td-warning/50",
     progress:
-      "from-amber-500 via-yellow-300 to-orange-400",
+      "from-td-warning via-td-warning to-td-warning",
     pulse:
-      "bg-amber-300/30",
+      "bg-td-warning/30",
   },
 
   importing: {
     topGlow:
-      "from-emerald-400/[0.14] via-teal-400/[0.04] to-transparent",
+      "from-td-success/[0.14] via-td-accent/[0.04] to-transparent",
     centerGlow:
-      "bg-emerald-400/[0.035]",
+      "bg-td-success/[0.035]",
     edgeGlow:
-      "via-emerald-300/50",
+      "via-td-success/50",
     progress:
-      "from-emerald-500 via-teal-300 to-emerald-400",
+      "from-td-success via-td-accent to-td-success",
     pulse:
-      "bg-emerald-300/30",
+      "bg-td-success/30",
   },
 
   processing: {
     topGlow:
-      "from-violet-400/[0.14] via-fuchsia-400/[0.035] to-transparent",
+      "from-td-violet/[0.14] via-fuchsia-400/[0.035] to-transparent",
     centerGlow:
-      "bg-violet-400/[0.035]",
+      "bg-td-violet/[0.035]",
     edgeGlow:
-      "via-violet-300/50",
+      "via-td-violet/50",
     progress:
-      "from-violet-500 via-fuchsia-300 to-indigo-400",
+      "from-td-violet via-fuchsia-300 to-td-violet",
     pulse:
-      "bg-violet-300/30",
+      "bg-td-violet/30",
   },
 
   success: {
     topGlow:
-      "from-emerald-400/[0.15] via-cyan-400/[0.04] to-transparent",
+      "from-td-success/[0.15] via-td-accent/[0.04] to-transparent",
     centerGlow:
-      "bg-emerald-400/[0.04]",
+      "bg-td-success/[0.04]",
     edgeGlow:
-      "via-emerald-300/60",
+      "via-td-success/60",
     progress:
-      "from-emerald-500 via-cyan-300 to-emerald-400",
+      "from-td-success via-td-accent to-td-success",
     pulse:
-      "bg-emerald-300/35",
+      "bg-td-success/35",
   },
 
   warning: {
     topGlow:
-      "from-orange-400/[0.16] via-amber-400/[0.045] to-transparent",
+      "from-td-warning/[0.16] via-td-warning/[0.045] to-transparent",
     centerGlow:
-      "bg-orange-400/[0.04]",
+      "bg-td-warning/[0.04]",
     edgeGlow:
-      "via-orange-300/60",
+      "via-td-warning/60",
     progress:
-      "from-orange-500 via-amber-300 to-orange-400",
+      "from-td-warning via-td-warning to-td-warning",
     pulse:
-      "bg-orange-300/35",
+      "bg-td-warning/35",
   },
 
   offline: {
     topGlow:
-      "from-rose-500/[0.18] via-red-500/[0.045] to-transparent",
+      "from-td-danger/[0.18] via-td-danger/[0.045] to-transparent",
     centerGlow:
-      "bg-rose-500/[0.045]",
+      "bg-td-danger/[0.045]",
     edgeGlow:
-      "via-rose-300/65",
+      "via-td-danger/65",
     progress:
-      "from-rose-600 via-red-300 to-rose-500",
+      "from-td-danger via-td-danger to-td-danger",
     pulse:
-      "bg-rose-300/40",
+      "bg-td-danger/40",
   },
 
   critical: {
     topGlow:
-      "from-red-600/[0.22] via-rose-500/[0.055] to-transparent",
+      "from-td-danger/[0.22] via-td-danger/[0.055] to-transparent",
     centerGlow:
-      "bg-red-500/[0.055]",
+      "bg-td-danger/[0.055]",
     edgeGlow:
-      "via-red-300/75",
+      "via-td-danger/75",
     progress:
-      "from-red-600 via-rose-300 to-red-500",
+      "from-td-danger via-td-danger to-td-danger",
     pulse:
-      "bg-red-300/45",
+      "bg-td-danger/45",
   },
 };
 

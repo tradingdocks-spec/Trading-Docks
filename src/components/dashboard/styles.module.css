@@ -3,8 +3,8 @@
   min-height: 100%;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.012), transparent 220px),
-    #02070b;
+    linear-gradient(180deg, rgb(var(--td-ink-rgb)/0.012), transparent 220px),
+    var(--td-background-primary);
 }
 
 .appBackground::before {
@@ -13,7 +13,7 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(51, 151, 255, 0.055), transparent 36%),
+    linear-gradient(90deg, rgb(var(--td-accent-rgb)/0.055), transparent 36%),
     linear-gradient(180deg, rgba(199, 138, 59, 0.022), transparent 30%);
   mask-image: linear-gradient(to bottom, black, transparent 56%);
 }
@@ -25,23 +25,23 @@
   pointer-events: none;
   opacity: 0.05;
   background-image:
-    linear-gradient(rgba(177, 189, 201, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(177, 189, 201, 0.018) 1px, transparent 1px);
+    linear-gradient(rgb(var(--td-accent-rgb)/0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--td-accent-rgb)/0.018) 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: linear-gradient(to bottom, black, transparent 66%);
 }
 
 .glassPanel {
-  border: 1px solid rgba(177, 189, 201, 0.12);
+  border: 1px solid rgb(var(--td-accent-rgb)/0.12);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 42%),
-    rgba(8, 19, 28, 0.88);
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.18);
+    linear-gradient(180deg, rgb(var(--td-ink-rgb)/0.018), transparent 42%),
+    rgb(var(--td-surface-rgb)/0.88);
+  box-shadow: 0 14px 44px rgb(var(--td-shadow-rgb)/calc(0.18*var(--td-shadow-strength)));
   backdrop-filter: blur(14px);
 }
 
 .glassPanel:hover {
-  border-color: rgba(85, 199, 255, 0.18);
+  border-color: rgb(var(--td-accent-rgb)/0.18);
 }
 
 .metricCard {
@@ -65,7 +65,7 @@
   width: 9rem;
   height: 9rem;
   border-radius: 999px;
-  background: rgba(51, 151, 255, 0.026);
+  background: rgb(var(--td-accent-rgb)/0.026);
   filter: blur(44px);
   pointer-events: none;
 }
@@ -129,8 +129,8 @@
   }
 
   .glassPanel {
-    background: rgba(7, 17, 25, 0.94);
-    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.2);
+    background: rgb(var(--td-surface-rgb)/0.94);
+    box-shadow: 0 10px 34px rgb(var(--td-shadow-rgb)/calc(0.2*var(--td-shadow-strength)));
     backdrop-filter: blur(12px);
   }
 

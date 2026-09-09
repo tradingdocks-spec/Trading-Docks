@@ -360,25 +360,25 @@ export function ModularWorkspace({
 
   return (
     <WorkspaceFrame>
-      <header className="relative overflow-hidden rounded-[24px] border border-white/[0.075] bg-[linear-gradient(145deg,rgba(7,20,31,.94),rgba(3,10,17,.98))] p-4 shadow-[0_24px_90px_rgba(0,0,0,.28)] sm:rounded-[30px] sm:p-5">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
+      <header className="relative overflow-hidden rounded-[24px] border border-td-ink/[0.075] bg-[linear-gradient(145deg,rgb(var(--td-surface-rgb)/.94),rgb(var(--td-surface-rgb)/.98))] p-4 shadow-[0_24px_90px_rgb(var(--td-shadow-rgb)/calc(.28*var(--td-shadow-strength)))] sm:rounded-[30px] sm:p-5">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-td-accent/40 to-transparent" />
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.14] bg-cyan-400/[0.045] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-200">
-                <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-td-accent/[0.14] bg-td-accent/[0.045] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-td-accent-text">
+                <Sparkles className="h-3.5 w-3.5 text-td-accent-text" />
                 Command center
               </span>
-              <span className="rounded-full border border-white/[0.075] bg-white/[0.025] px-3 py-1.5 text-[10px] font-semibold capitalize text-slate-400">
+              <span className="rounded-full border border-td-ink/[0.075] bg-td-ink/[0.025] px-3 py-1.5 text-[11px] font-semibold capitalize text-td-secondary">
                 {display.badge}
               </span>
             </div>
 
             <div className="mt-3 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:gap-3">
-              <h1 className="text-[1.65rem] font-semibold leading-[1.03] tracking-[-0.05em] text-white sm:text-[2.1rem]">
+              <h1 className="text-[1.65rem] font-semibold leading-[1.03] tracking-[-0.05em] text-td-primary sm:text-[2.1rem]">
                 Trading Docks HQ
               </h1>
-              <p className="pb-1 text-xs font-medium text-slate-500 sm:text-sm">
+              <p className="pb-1 text-xs font-medium text-td-muted sm:text-sm">
                 {inventoryModules.length > 0
                   ? `${inventoryModules.length} inventory modules enabled`
                   : "Ready for your first inventory signal"}
@@ -393,8 +393,8 @@ export function ModularWorkspace({
               className={[
                 "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border px-2 text-[11px] font-semibold transition sm:gap-2 sm:px-4 sm:text-xs",
                 editing
-                  ? "border-cyan-300/[0.18] bg-cyan-400/[0.08] text-cyan-100"
-                  : "border-white/[0.075] bg-white/[0.025] text-slate-400 hover:border-cyan-300/[0.14] hover:text-white",
+                  ? "border-td-accent/[0.18] bg-td-accent/[0.08] text-td-accent-text"
+                  : "border-td-ink/[0.075] bg-td-ink/[0.025] text-td-secondary hover:border-td-accent/[0.14] hover:text-td-primary",
               ].join(" ")}
             >
               <PanelsTopLeft className="h-4 w-4" />
@@ -404,7 +404,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-white/[0.075] bg-white/[0.025] px-2 text-[11px] font-semibold text-slate-400 transition hover:border-cyan-300/[0.14] hover:text-white sm:gap-2 sm:px-4 sm:text-xs"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-td-ink/[0.075] bg-td-ink/[0.025] px-2 text-[11px] font-semibold text-td-secondary transition hover:border-td-accent/[0.14] hover:text-td-primary sm:gap-2 sm:px-4 sm:text-xs"
             >
               <Settings2 className="h-4 w-4" />
               Customize
@@ -413,7 +413,7 @@ export function ModularWorkspace({
             <button
               type="button"
               onClick={save}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 px-2 text-[11px] font-bold text-[#001018] shadow-[0_14px_34px_rgba(8,145,178,.18)] transition hover:from-cyan-200 hover:to-sky-400 sm:gap-2 sm:px-4 sm:text-xs"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent px-2 text-[11px] font-bold text-td-on-accent shadow-[0_14px_34px_rgb(var(--td-accent-rgb)/.18)] transition hover:from-td-accent hover:to-td-accent sm:gap-2 sm:px-4 sm:text-xs"
             >
               {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
               {saved ? "Saved" : "Save layout"}
@@ -421,12 +421,12 @@ export function ModularWorkspace({
           </div>
         </div>
 
-        <div className="relative mt-4 flex flex-col gap-3 border-t border-white/[0.06] pt-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative mt-4 flex flex-col gap-3 border-t border-td-ink/[0.06] pt-4 lg:flex-row lg:items-center lg:justify-between">
           <select
             value={layoutId}
             onChange={(event) => setLayoutId(event.target.value as LayoutId)}
             aria-label="Choose dashboard layout"
-            className="h-11 w-full rounded-xl border border-white/[0.09] bg-[#071722] px-3 text-sm font-semibold text-white outline-none sm:hidden"
+            className="h-11 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm font-semibold text-td-primary outline-none sm:hidden"
           >
             {LAYOUTS.filter(
               ([id]) => availableLayouts.has(id),
@@ -445,8 +445,8 @@ export function ModularWorkspace({
                 className={[
                   "inline-flex h-9 items-center gap-2 rounded-xl border px-3.5 text-xs font-semibold transition",
                   layoutId === id
-                    ? "border-cyan-300/[0.17] bg-cyan-400/[0.07] text-white"
-                    : "border-transparent text-slate-500 hover:bg-white/[0.025] hover:text-slate-300",
+                    ? "border-td-accent/[0.17] bg-td-accent/[0.07] text-td-primary"
+                    : "border-transparent text-td-muted hover:bg-td-ink/[0.025] hover:text-td-secondary",
                 ].join(" ")}
               >
                 {id === "home" ? <LayoutDashboard className="h-3.5 w-3.5" /> : null}
@@ -455,7 +455,7 @@ export function ModularWorkspace({
             ))}
           </div>
 
-          <div className="flex items-center gap-3 px-0.5 text-[10px] font-medium text-slate-500">
+          <div className="flex items-center gap-3 px-0.5 text-[11px] font-medium text-td-muted">
             <span>{widgets.length} visible modules</span>
             <span className="capitalize">
               {display.summary}
@@ -467,8 +467,8 @@ export function ModularWorkspace({
       <CommandCenterOverview isPersonal={isPersonal} accessLabel={display.metricLabel} summary={personalSummary} />
 
       {editing ? (
-        <div className="mt-4 rounded-[20px] border border-cyan-300/[0.13] bg-cyan-400/[0.035] px-4 py-3 text-xs leading-5 text-cyan-100/75 shadow-[0_18px_60px_rgba(8,145,178,.08)]">
-          <span className="font-semibold text-cyan-100">Layout builder active.</span>{" "}
+        <div className="mt-4 rounded-[20px] border border-td-accent/[0.13] bg-td-accent/[0.035] px-4 py-3 text-xs leading-5 text-td-accent-text/75 shadow-[0_18px_60px_rgb(var(--td-accent-rgb)/.08)]">
+          <span className="font-semibold text-td-accent-text">Layout builder active.</span>{" "}
           Drag modules by the handle, resize them, or remove modules from this view. Save when the command center feels right.
         </div>
       ) : null}
@@ -580,30 +580,30 @@ function CommandCenterOverview({
 
   return (
     <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)] xl:gap-5">
-      <div className="relative overflow-hidden rounded-[28px] border border-cyan-300/[0.12] bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,.12),transparent_34%),linear-gradient(145deg,rgba(8,27,40,.94),rgba(3,12,20,.98))] p-5 shadow-[0_28px_90px_rgba(0,0,0,.32)] sm:p-6">
-        <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-cyan-300/[0.08] blur-[70px]" />
+      <div className="relative overflow-hidden rounded-[28px] border border-td-accent/[0.12] bg-[radial-gradient(circle_at_12%_0%,rgb(var(--td-accent-rgb)/.12),transparent_34%),linear-gradient(145deg,rgb(var(--td-surface-rgb)/.94),rgb(var(--td-surface-rgb)/.98))] p-5 shadow-[0_28px_90px_rgb(var(--td-shadow-rgb)/calc(.32*var(--td-shadow-strength)))] sm:p-6">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-td-accent/[0.08] blur-[70px]" />
         <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-end">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200/80">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-td-accent-text/80">
               State of workspace
             </p>
-            <h2 className="mt-3 max-w-2xl text-[2rem] font-semibold leading-[1.02] tracking-[-0.055em] text-white sm:text-[2.7rem]">
+            <h2 className="mt-3 max-w-2xl text-[2rem] font-semibold leading-[1.02] tracking-[-0.055em] text-td-primary sm:text-[2.7rem]">
               {headline}
             </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
+            <p className="mt-3 max-w-xl text-sm leading-6 text-td-secondary">
               {brief}
             </p>
             <div className="mt-5 flex flex-wrap gap-2.5">
               <Link
                 href={primaryAction.href}
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-[#001018] shadow-[0_16px_40px_rgba(34,211,238,.2)] transition hover:bg-cyan-200"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent shadow-[0_16px_40px_rgb(var(--td-accent-rgb)/.2)] transition hover:bg-td-accent-hover"
               >
                 <PrimaryIcon className="h-4 w-4" />
                 {primaryAction.label}
               </Link>
               <Link
                 href="/dashboard/plans"
-                className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/[0.18] hover:text-white"
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.03] px-4 text-xs font-semibold text-td-secondary transition hover:border-td-accent/[0.18] hover:text-td-primary"
               >
                 Compare workspace power
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -620,13 +620,13 @@ function CommandCenterOverview({
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-white/[0.075] bg-white/[0.025] p-4 shadow-[0_20px_70px_rgba(0,0,0,.24)] sm:p-5">
+      <div className="rounded-[28px] border border-td-ink/[0.075] bg-td-ink/[0.025] p-4 shadow-[0_20px_70px_rgb(var(--td-shadow-rgb)/calc(.24*var(--td-shadow-strength)))] sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Next best actions</p>
-            <h2 className="mt-1 text-base font-semibold tracking-[-0.025em] text-white">Build the signal chain</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-td-muted">Next best actions</p>
+            <h2 className="mt-1 text-base font-semibold tracking-[-0.025em] text-td-primary">Build the signal chain</h2>
           </div>
-          <span className="rounded-full border border-emerald-300/[0.14] bg-emerald-300/[0.055] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-200">
+          <span className="rounded-full border border-td-success/[0.14] bg-td-success/[0.055] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-td-success">
             Live
           </span>
         </div>
@@ -638,19 +638,19 @@ function CommandCenterOverview({
               <Link
                 key={action.href}
                 href={action.href}
-                className="group flex min-h-16 items-center gap-3 rounded-2xl border border-white/[0.055] bg-black/[0.12] px-3.5 py-3 transition hover:border-cyan-300/[0.16] hover:bg-cyan-400/[0.025]"
+                className="group flex min-h-16 items-center gap-3 rounded-2xl border border-td-ink/[0.055] bg-black/[0.12] px-3.5 py-3 transition hover:border-td-accent/[0.16] hover:bg-td-accent/[0.025]"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.045] text-cyan-300">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.045] text-td-accent-text">
                   <Icon className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 text-sm font-semibold text-slate-100">
-                    <span className="text-[10px] text-slate-600">0{index + 1}</span>
+                  <span className="flex items-center gap-2 text-sm font-semibold text-td-primary">
+                    <span className="text-[11px] text-td-muted">0{index + 1}</span>
                     {action.label}
                   </span>
-                  <span className="mt-1 block text-xs text-slate-500">{action.detail}</span>
+                  <span className="mt-1 block text-xs text-td-muted">{action.detail}</span>
                 </span>
-                <ArrowUpRight className="h-4 w-4 text-slate-600 transition group-hover:text-cyan-300" />
+                <ArrowUpRight className="h-4 w-4 text-td-muted transition group-hover:text-td-accent-text" />
               </Link>
             );
           })}
@@ -670,10 +670,10 @@ function CommandMetric({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-black/[0.16] p-3.5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.045em] text-white">{value}</p>
-      <p className="mt-1 text-[10px] leading-4 text-slate-500">{detail}</p>
+    <div className="rounded-2xl border border-td-ink/[0.07] bg-black/[0.16] p-3.5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.045em] text-td-primary">{value}</p>
+      <p className="mt-1 text-[11px] leading-4 text-td-muted">{detail}</p>
     </div>
   );
 }
@@ -724,8 +724,8 @@ function DashboardWidget({
         span,
         mobileDensity,
         "group rounded-[22px] sm:min-h-[180px] sm:rounded-[26px] sm:p-5",
-        locked ? "bg-amber-300/[0.018]" : "",
-        editing ? "ring-1 ring-cyan-300/[0.14]" : "",
+        locked ? "bg-td-warning/[0.018]" : "",
+        editing ? "ring-1 ring-td-accent/[0.14]" : "",
       ].join(" ")}
     >
       <header className="relative flex items-start gap-3">
@@ -733,24 +733,24 @@ function DashboardWidget({
           <button
             type="button"
             aria-label={`Drag ${definition.title}`}
-            className="flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.045] text-cyan-200"
+            className="flex h-9 w-9 shrink-0 cursor-grab items-center justify-center rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.045] text-td-accent-text"
           >
             <GripVertical className="h-4 w-4" />
           </button>
         ) : null}
 
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300 shadow-[0_12px_30px_rgba(34,211,238,.08)]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-td-accent/[0.12] bg-td-accent/[0.05] text-td-accent-text shadow-[0_12px_30px_rgb(var(--td-accent-rgb)/.08)]">
           <Icon className="h-4 w-4" />
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">
             {copy.eyebrow}
           </p>
-          <h2 className="mt-1 truncate text-[14px] font-semibold tracking-[-0.018em] text-white sm:text-base">
+          <h2 className="mt-1 truncate text-[14px] font-semibold tracking-[-0.018em] text-td-primary sm:text-base">
             {definition.title}
           </h2>
-          <p className="mt-1 text-[11px] leading-4 text-slate-500">
+          <p className="mt-1 text-[11px] leading-4 text-td-muted">
             {copy.description}
           </p>
         </div>
@@ -761,7 +761,7 @@ function DashboardWidget({
               value={widget.size}
               onChange={(event) => onResize(event.target.value as Size)}
               aria-label={`Resize ${definition.title}`}
-              className="h-9 rounded-xl border border-white/[0.075] bg-[#07141e] px-2 text-[10px] capitalize text-slate-300 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35"
+              className="h-9 rounded-xl border border-td-ink/[0.075] bg-td-surface px-2 text-[11px] capitalize text-td-secondary outline-none focus-visible:ring-2 focus-visible:ring-td-accent/35"
             >
               <option value="small">Small</option>
               <option value="medium">Medium</option>
@@ -771,7 +771,7 @@ function DashboardWidget({
               type="button"
               onClick={onRemove}
               aria-label={`Remove ${definition.title}`}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.075] bg-white/[0.025] text-slate-500 transition hover:border-red-300/[0.18] hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/35"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.075] bg-td-ink/[0.025] text-td-muted transition hover:border-td-danger/[0.18] hover:text-td-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-danger/35"
             >
               <X className="h-4 w-4" />
             </button>
@@ -798,23 +798,23 @@ function LockedModule({
   copy: (typeof WIDGET_COPY)[keyof typeof WIDGET_COPY];
 }) {
   return (
-    <div className="rounded-2xl border border-amber-300/[0.1] bg-[linear-gradient(145deg,rgba(251,191,36,.045),rgba(0,0,0,.08))] p-4">
+    <div className="rounded-2xl border border-td-warning/[0.1] bg-[linear-gradient(145deg,rgba(251,191,36,.045),rgb(var(--td-shadow-rgb)/calc(.08*var(--td-shadow-strength))))] p-4">
       <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-300/[0.12] bg-amber-300/[0.055] text-amber-200">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-warning/[0.12] bg-td-warning/[0.055] text-td-warning">
           <LockKeyhole className="h-4 w-4" />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-amber-100">
+          <p className="text-xs font-semibold text-td-warning">
             Unlock {definition.title}
           </p>
-          <p className="mt-1.5 text-[11px] leading-5 text-amber-100/55">
+          <p className="mt-1.5 text-[11px] leading-5 text-td-warning/55">
             {copy.preview ?? copy.description}
           </p>
         </div>
       </div>
       <Link
         href="/dashboard/plans"
-        className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl bg-amber-300 px-3.5 text-[11px] font-bold text-[#1b1300] transition hover:bg-amber-200"
+        className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl bg-td-warning px-3.5 text-[11px] font-bold text-td-on-accent transition hover:bg-td-warning"
       >
         View {definition.plan} access
         <ArrowRight className="h-3.5 w-3.5" />
@@ -875,8 +875,8 @@ function Metric({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-[2rem] font-semibold tracking-[-0.055em] text-white sm:text-[2.25rem]">{value}</p>
-        <p className="mt-2 text-xs leading-5 text-slate-500">{detail}</p>
+        <p className="text-[2rem] font-semibold tracking-[-0.055em] text-td-primary sm:text-[2.25rem]">{value}</p>
+        <p className="mt-2 text-xs leading-5 text-td-muted">{detail}</p>
       </div>
       <PremiumEmptyState copy={copy} compact />
     </div>
@@ -898,9 +898,9 @@ function List({
       {rows.map((row) => (
         <div
           key={row}
-          className="rounded-xl border border-white/[0.055] bg-black/[0.08] px-3.5 py-3 text-[10px] text-slate-400"
+          className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] px-3.5 py-3 text-[11px] text-td-secondary"
         >
-          <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-emerald-300" />
+          <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-td-success" />
           {row}
         </div>
       ))}
@@ -918,18 +918,18 @@ function PremiumEmptyState({
   return (
     <div
       className={[
-        "rounded-2xl border border-white/[0.065] bg-black/[0.12] text-left",
+        "rounded-2xl border border-td-ink/[0.065] bg-black/[0.12] text-left",
         compact ? "p-3.5" : "p-4 sm:p-5",
       ].join(" ")}
     >
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.55)]" />
+        <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-td-accent shadow-[0_0_14px_rgb(var(--td-accent-rgb)/.55)]" />
         <div>
-          <p className="text-xs font-semibold text-slate-200">{copy.emptyTitle}</p>
-          <p className="mt-1.5 text-[11px] leading-5 text-slate-500">{copy.emptyDetail}</p>
+          <p className="text-xs font-semibold text-td-primary">{copy.emptyTitle}</p>
+          <p className="mt-1.5 text-[11px] leading-5 text-td-muted">{copy.emptyDetail}</p>
           <Link
             href={copy.actionHref}
-            className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-cyan-300 transition hover:text-cyan-200"
+            className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold text-td-accent-text transition hover:text-td-accent-text"
           >
             {copy.actionLabel}
             <ArrowRight className="h-3.5 w-3.5" />
@@ -1055,18 +1055,18 @@ function CollectionGrowth() {
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-2xl font-semibold tracking-[-0.04em] text-white">
+          <p className="text-2xl font-semibold tracking-[-0.04em] text-td-primary">
             {formatCurrency(latestValue)}
           </p>
-          <div className="mt-1.5 flex items-center gap-2 text-[10px]">
-            <span className="font-semibold text-emerald-300">
+          <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+            <span className="font-semibold text-td-success">
               +{formatCurrency(change)} ({percentage.toFixed(1)}%)
             </span>
-            <span className="text-slate-600">during {range}</span>
+            <span className="text-td-muted">during {range}</span>
           </div>
         </div>
 
-        <div className="grid w-full grid-cols-5 items-center rounded-xl border border-white/[0.065] bg-black/[0.12] p-1 sm:inline-flex sm:w-fit">
+        <div className="grid w-full grid-cols-5 items-center rounded-xl border border-td-ink/[0.065] bg-black/[0.12] p-1 sm:inline-flex sm:w-fit">
           {(["7D", "30D", "90D", "1Y", "ALL"] as const).map((option) => (
             <button
               key={option}
@@ -1076,10 +1076,10 @@ function CollectionGrowth() {
                 setHoveredIndex(null);
               }}
               className={[
-                "h-8 rounded-lg px-2 text-[9px] font-semibold transition sm:h-7 sm:px-2.5 sm:text-[8px]",
+                "h-8 rounded-lg px-2 text-[11px] font-semibold transition sm:h-7 sm:px-2.5 sm:text-[11px]",
                 range === option
-                  ? "bg-cyan-400/[0.1] text-cyan-100 shadow-[inset_0_0_0_1px_rgba(103,232,249,0.12)]"
-                  : "text-slate-600 hover:text-slate-300",
+                  ? "bg-td-accent/[0.1] text-td-accent-text shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/0.12)]"
+                  : "text-td-muted hover:text-td-secondary",
               ].join(" ")}
             >
               {option}
@@ -1092,9 +1092,9 @@ function CollectionGrowth() {
         ref={chartRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={() => setHoveredIndex(null)}
-        className="relative mt-3.5 h-[152px] overflow-hidden rounded-2xl border border-white/[0.055] bg-[#02090f] px-1 sm:mt-4 sm:h-[220px]"
+        className="relative mt-3.5 h-[152px] overflow-hidden rounded-2xl border border-td-ink/[0.055] bg-td-canvas px-1 sm:mt-4 sm:h-[220px]"
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_14%,rgba(34,211,238,0.08),transparent_34%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_14%,rgb(var(--td-accent-rgb)/0.08),transparent_34%)]" />
 
         <svg
           viewBox={`0 0 ${width} ${height}`}
@@ -1105,15 +1105,15 @@ function CollectionGrowth() {
         >
           <defs>
             <linearGradient id="collection-area-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgb(34 211 238)" stopOpacity="0.34" />
-              <stop offset="58%" stopColor="rgb(8 145 178)" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="rgb(6 182 212)" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--td-action-primary)" stopOpacity="0.34" />
+              <stop offset="58%" stopColor="var(--td-action-primary)" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="var(--td-action-primary)" stopOpacity="0" />
             </linearGradient>
 
             <linearGradient id="collection-line-gradient" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="rgb(103 232 249)" />
-              <stop offset="55%" stopColor="rgb(34 211 238)" />
-              <stop offset="100%" stopColor="rgb(125 211 252)" />
+              <stop offset="0%" stopColor="var(--td-accent-text)" />
+              <stop offset="55%" stopColor="var(--td-action-primary)" />
+              <stop offset="100%" stopColor="var(--td-accent-text)" />
             </linearGradient>
 
             <filter id="collection-line-glow" x="-20%" y="-60%" width="140%" height="220%">
@@ -1136,7 +1136,7 @@ function CollectionGrowth() {
               x2={width - paddingX}
               y1={paddingTop + chartHeight * ratio}
               y2={paddingTop + chartHeight * ratio}
-              stroke="rgba(148,163,184,0.07)"
+              stroke="rgb(var(--td-accent-rgb)/0.07)"
               strokeDasharray="4 8"
             />
           ))}
@@ -1151,7 +1151,7 @@ function CollectionGrowth() {
             <path
               d={linePath}
               fill="none"
-              stroke="rgba(34,211,238,0.18)"
+              stroke="rgb(var(--td-accent-rgb)/0.18)"
               strokeWidth="9"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -1178,7 +1178,7 @@ function CollectionGrowth() {
                   x2={activePoint.x}
                   y1={paddingTop}
                   y2={height - paddingBottom}
-                  stroke="rgba(103,232,249,0.2)"
+                  stroke="rgb(var(--td-accent-rgb)/0.2)"
                   strokeDasharray="3 5"
                   vectorEffect="non-scaling-stroke"
                 />
@@ -1186,13 +1186,13 @@ function CollectionGrowth() {
                   cx={activePoint.x}
                   cy={activePoint.y}
                   r="8"
-                  fill="rgba(34,211,238,0.18)"
+                  fill="rgb(var(--td-accent-rgb)/0.18)"
                 />
                 <circle
                   cx={activePoint.x}
                   cy={activePoint.y}
                   r="4"
-                  fill="rgb(165 243 252)"
+                  fill="var(--td-accent-text)"
                   stroke="rgb(6 19 29)"
                   strokeWidth="2"
                   vectorEffect="non-scaling-stroke"
@@ -1214,7 +1214,7 @@ function CollectionGrowth() {
             return showLabel ? (
               <span
                 key={`${range}-${point.label}`}
-                className="absolute whitespace-nowrap text-[10px] font-medium leading-none tracking-normal text-slate-500"
+                className="absolute whitespace-nowrap text-[11px] font-medium leading-none tracking-normal text-td-muted"
                 style={{
                   left: `${(point.x / width) * 100}%`,
                   transform:
@@ -1233,15 +1233,15 @@ function CollectionGrowth() {
 
         {hoveredIndex !== null ? (
           <div
-            className="pointer-events-none absolute top-3 z-20 min-w-[118px] -translate-x-1/2 rounded-xl border border-cyan-300/[0.14] bg-[#06131d]/96 px-3 py-2.5 shadow-[0_16px_42px_rgba(0,0,0,0.38),0_0_26px_rgba(34,211,238,0.05)] backdrop-blur-xl"
+            className="pointer-events-none absolute top-3 z-20 min-w-[118px] -translate-x-1/2 rounded-xl border border-td-accent/[0.14] bg-td-surface/96 px-3 py-2.5 shadow-[0_16px_42px_rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength))),0_0_26px_rgb(var(--td-accent-rgb)/0.05)] backdrop-blur-xl"
             style={{
               left: `${Math.min(Math.max((activePoint.x / width) * 100, 12), 88)}%`,
             }}
           >
-            <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
               {activePoint.label}
             </p>
-            <p className="mt-1 text-xs font-semibold text-white">
+            <p className="mt-1 text-xs font-semibold text-td-primary">
               {formatCurrency(activePoint.value)}
             </p>
           </div>
@@ -1326,12 +1326,12 @@ function MiniCalendar() {
   return (
     <div>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold text-white sm:text-sm">
+        <p className="text-xs font-semibold text-td-primary sm:text-sm">
           {monthLabel}
         </p>
         <Link
           href="/dashboard/calendar"
-          className="inline-flex min-h-8 items-center rounded-lg px-2 text-[10px] font-semibold text-cyan-300 transition hover:bg-cyan-300/[0.06]"
+          className="inline-flex min-h-8 items-center rounded-lg px-2 text-[11px] font-semibold text-td-accent-text transition hover:bg-td-accent/[0.06]"
         >
           Open calendar
         </Link>
@@ -1339,21 +1339,21 @@ function MiniCalendar() {
 
       <Link
         href="/dashboard/calendar"
-        className="group flex min-h-[104px] items-center justify-between gap-4 rounded-2xl border border-white/[0.065] bg-black/[0.1] p-4 transition hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.025] sm:hidden"
+        className="group flex min-h-[104px] items-center justify-between gap-4 rounded-2xl border border-td-ink/[0.065] bg-black/[0.1] p-4 transition hover:border-td-accent/[0.14] hover:bg-td-accent/[0.025] sm:hidden"
       >
         <span className="flex min-w-0 items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.055]">
-            <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-300/75">
+          <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.055]">
+            <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-td-accent-text/75">
               {now.toLocaleString("en-US", { month: "short" })}
             </span>
-            <span className="mt-0.5 text-lg font-semibold leading-none text-white">{now.getDate()}</span>
+            <span className="mt-0.5 text-lg font-semibold leading-none text-td-primary">{now.getDate()}</span>
           </span>
           <span className="min-w-0">
-            <span className="block text-xs font-semibold text-white">Your schedule is clear</span>
-            <span className="mt-1 block text-[10px] leading-4 text-slate-500">No upcoming events. Tap to plan your next task.</span>
+            <span className="block text-xs font-semibold text-td-primary">Your schedule is clear</span>
+            <span className="mt-1 block text-[11px] leading-4 text-td-muted">No upcoming events. Tap to plan your next task.</span>
           </span>
         </span>
-        <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:text-cyan-300" />
+        <ArrowUpRight className="h-4 w-4 shrink-0 text-td-muted transition group-hover:text-td-accent-text" />
       </Link>
 
       <div className="hidden grid-cols-7 gap-1 sm:grid">
@@ -1361,13 +1361,13 @@ function MiniCalendar() {
           <Link
             key={day}
             href="/dashboard/calendar"
-            className="min-h-[38px] rounded-md border border-white/[0.045] bg-black/[0.07] p-1 text-left"
+            className="min-h-[38px] rounded-md border border-td-ink/[0.045] bg-black/[0.07] p-1 text-left"
           >
-            <span className="text-[7px] text-slate-600">{day}</span>
+            <span className="text-[11px] text-td-muted">{day}</span>
           </Link>
         ))}
       </div>
-      <p className="mt-3 hidden text-center text-[9px] text-slate-600 sm:block">No events scheduled</p>
+      <p className="mt-3 hidden text-center text-[11px] text-td-muted sm:block">No events scheduled</p>
     </div>
   );
 }
@@ -1400,13 +1400,13 @@ function CustomizeDrawer({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
       />
 
-      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[440px] flex-col border-l border-white/[0.075] bg-[#030c13]/98 shadow-[-28px_0_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-5">
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[440px] flex-col border-l border-td-ink/[0.075] bg-td-canvas/98 shadow-[-28px_0_90px_rgb(var(--td-shadow-rgb)/calc(0.45*var(--td-shadow-strength)))] backdrop-blur-2xl">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-td-accent/35 to-transparent" />
+        <div className="flex items-center justify-between border-b border-td-ink/[0.06] px-5 py-5">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">Dashboard builder</p>
-            <p className="mt-1 text-base font-semibold tracking-[-0.025em] text-white">Customize your command center</p>
-            <p className="mt-1 text-[10px] text-slate-600">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-td-accent-text">Dashboard builder</p>
+            <p className="mt-1 text-base font-semibold tracking-[-0.025em] text-td-primary">Customize your command center</p>
+            <p className="mt-1 text-[11px] text-td-muted">
               Add modules for your {plan} workspace, then drag the active view into shape.
             </p>
           </div>
@@ -1414,16 +1414,16 @@ function CustomizeDrawer({
             type="button"
             onClick={onClose}
             aria-label="Close customize dashboard"
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted transition hover:text-td-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/35"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="overflow-y-auto p-5">
-          <div className="mb-5 rounded-2xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-4">
-            <p className="text-xs font-semibold text-cyan-100">Active modules: {widgets.length}</p>
-            <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
+          <div className="mb-5 rounded-2xl border border-td-accent/[0.1] bg-td-accent/[0.025] p-4">
+            <p className="text-xs font-semibold text-td-accent-text">Active modules: {widgets.length}</p>
+            <p className="mt-1.5 text-[11px] leading-5 text-td-muted">
               Locked previews stay visible only as compact upgrade rails. Removing a module changes layout only, not access.
             </p>
           </div>
@@ -1440,21 +1440,21 @@ function CustomizeDrawer({
                 type="button"
                 onClick={() => onToggle(id)}
                 className={[
-                  "group flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35",
+                  "group flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/35",
                   enabled
-                    ? "border-cyan-300/[0.18] bg-cyan-400/[0.055]"
-                    : "border-white/[0.055] bg-white/[0.018] hover:border-cyan-300/[0.12] hover:bg-white/[0.028]",
+                    ? "border-td-accent/[0.18] bg-td-accent/[0.055]"
+                    : "border-td-ink/[0.055] bg-td-ink/[0.018] hover:border-td-accent/[0.12] hover:bg-td-ink/[0.028]",
                 ].join(" ")}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.04] text-cyan-300">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.04] text-td-accent-text">
                   <Icon className="h-4 w-4" />
                 </span>
 
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[11px] font-semibold text-slate-200">
+                  <span className="block text-[11px] font-semibold text-td-primary">
                     {definition.title}
                   </span>
-                  <span className="mt-1 block text-[9px] leading-4 text-slate-600">
+                  <span className="mt-1 block text-[11px] leading-4 text-td-muted">
                     {copy.eyebrow} - {definition.plan} access
                   </span>
                 </span>
@@ -1462,8 +1462,8 @@ function CustomizeDrawer({
                 <span className={[
                   "flex h-7 w-7 items-center justify-center rounded-lg border",
                   enabled
-                    ? "border-cyan-300/[0.18] bg-cyan-400/[0.08] text-cyan-300"
-                    : "border-white/[0.06] bg-white/[0.02] text-slate-700 group-hover:text-slate-400",
+                    ? "border-td-accent/[0.18] bg-td-accent/[0.08] text-td-accent-text"
+                    : "border-td-ink/[0.06] bg-td-ink/[0.02] text-td-muted group-hover:text-td-secondary",
                 ].join(" ")}>
                   {enabled ? <Check className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
                 </span>

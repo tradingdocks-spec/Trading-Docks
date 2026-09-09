@@ -36,11 +36,11 @@ type CalendarEvent = {
 };
 
 const TYPE_CONFIG = {
-  order: { label: "Supply order", icon: PackageCheck, className: "border-cyan-300/15 bg-cyan-400/[0.055] text-cyan-200" },
-  delivery: { label: "Delivery", icon: Truck, className: "border-blue-300/15 bg-blue-400/[0.055] text-blue-200" },
-  event: { label: "Event", icon: CalendarDays, className: "border-violet-300/15 bg-violet-400/[0.055] text-violet-200" },
-  shift: { label: "Employee shift", icon: Users, className: "border-emerald-300/15 bg-emerald-400/[0.055] text-emerald-200" },
-  payroll: { label: "Payroll", icon: CreditCard, className: "border-amber-300/15 bg-amber-400/[0.055] text-amber-200" },
+  order: { label: "Supply order", icon: PackageCheck, className: "border-td-accent/15 bg-td-accent/[0.055] text-td-accent-text" },
+  delivery: { label: "Delivery", icon: Truck, className: "border-td-accent/15 bg-td-accent/[0.055] text-td-accent-text" },
+  event: { label: "Event", icon: CalendarDays, className: "border-td-violet/15 bg-td-violet/[0.055] text-td-violet" },
+  shift: { label: "Employee shift", icon: Users, className: "border-td-success/15 bg-td-success/[0.055] text-td-success" },
+  payroll: { label: "Payroll", icon: CreditCard, className: "border-td-warning/15 bg-td-warning/[0.055] text-td-warning" },
 } satisfies Record<EventType, { label: string; icon: typeof CalendarDays; className: string }>;
 
 export function CalendarWorkspace() {
@@ -105,10 +105,10 @@ export function CalendarWorkspace() {
             </button>
 
             <div className="text-center">
-              <p className="text-lg font-semibold text-white">
+              <p className="text-lg font-semibold text-td-primary">
                 {viewDate.toLocaleString("en-US", { month: "long", year: "numeric" })}
               </p>
-              <p className="mt-1 text-[9px] text-slate-600">Click a date to review or add activities</p>
+              <p className="mt-1 text-[11px] text-td-muted">Click a date to review or add activities</p>
             </div>
 
             <button type="button" onClick={() => setViewDate((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))} className="calendar-nav">
@@ -127,7 +127,7 @@ export function CalendarWorkspace() {
 
           <div className="mt-4 grid grid-cols-7 gap-2">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div key={day} className="py-2 text-center text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+              <div key={day} className="py-2 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
                 {day}
               </div>
             ))}
@@ -145,15 +145,15 @@ export function CalendarWorkspace() {
                   className={[
                     "min-h-[108px] rounded-xl border p-2 text-left transition",
                     day.inCurrentMonth
-                      ? "border-white/[0.055] bg-black/[0.08] hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.025]"
+                      ? "border-td-ink/[0.055] bg-black/[0.08] hover:border-td-accent/[0.14] hover:bg-td-accent/[0.025]"
                       : "border-transparent bg-black/[0.025] opacity-30",
-                    selected ? "border-cyan-300/[0.2] bg-cyan-400/[0.05]" : "",
+                    selected ? "border-td-accent/[0.2] bg-td-accent/[0.05]" : "",
                   ].join(" ")}
                 >
-                  <span className="text-[9px] font-semibold text-slate-600">{day.date.getDate()}</span>
+                  <span className="text-[11px] font-semibold text-td-muted">{day.date.getDate()}</span>
                   <span className="mt-1.5 block space-y-1">
                     {dayEvents.slice(0, 3).map((event) => (
-                      <span key={event.id} className={`block truncate rounded-md border px-1.5 py-1 text-[6px] ${TYPE_CONFIG[event.type].className}`}>
+                      <span key={event.id} className={`block truncate rounded-md border px-1.5 py-1 text-[11px] ${TYPE_CONFIG[event.type].className}`}>
                         {event.startTime} · {event.title}
                       </span>
                     ))}
@@ -165,10 +165,10 @@ export function CalendarWorkspace() {
         </section>
 
         <aside className={`${styles.glassPanel} rounded-[26px] p-5`}>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
             Selected date
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-white">{formatDate(selectedDate)}</h2>
+          <h2 className="mt-2 text-lg font-semibold text-td-primary">{formatDate(selectedDate)}</h2>
 
           <div className="mt-5 space-y-3">
             {selectedEvents.length ? (
@@ -176,10 +176,10 @@ export function CalendarWorkspace() {
                 <EventCard key={event.id} event={event} onRemove={() => setEvents((current) => current.filter((item) => item.id !== event.id))} />
               ))
             ) : (
-              <button type="button" onClick={() => setModalOpen(true)} className="w-full rounded-2xl border border-dashed border-white/[0.07] bg-white/[0.015] px-4 py-8 text-center">
-                <CalendarDays className="mx-auto h-5 w-5 text-slate-700" />
-                <p className="mt-3 text-xs font-semibold text-slate-400">Nothing scheduled</p>
-                <p className="mt-2 text-[10px] text-cyan-300">Add an activity</p>
+              <button type="button" onClick={() => setModalOpen(true)} className="w-full rounded-2xl border border-dashed border-td-ink/[0.07] bg-td-ink/[0.015] px-4 py-8 text-center">
+                <CalendarDays className="mx-auto h-5 w-5 text-td-muted" />
+                <p className="mt-3 text-xs font-semibold text-td-secondary">Nothing scheduled</p>
+                <p className="mt-2 text-[11px] text-td-accent-text">Add an activity</p>
               </button>
             )}
           </div>
@@ -205,24 +205,24 @@ export function CalendarWorkspace() {
           align-items: center;
           justify-content: center;
           border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.07);
-          background: rgba(255, 255, 255, 0.025);
-          color: rgb(100 116 139);
+          border: 1px solid rgb(var(--td-ink-rgb)/0.07);
+          background: rgb(var(--td-ink-rgb)/0.025);
+          color: var(--td-text-muted);
         }
         .calendar-input {
           height: 42px;
           width: 100%;
           border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.075);
-          background: rgba(255, 255, 255, 0.025);
+          border: 1px solid rgb(var(--td-ink-rgb)/0.075);
+          background: rgb(var(--td-ink-rgb)/0.025);
           padding: 0 12px;
-          color: rgb(226 232 240);
+          color: var(--td-text-secondary);
           font-size: 12px;
           outline: none;
         }
         .calendar-input:focus {
-          border-color: rgba(103, 232, 249, 0.24);
-          box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.045);
+          border-color: rgb(var(--td-accent-rgb)/0.24);
+          box-shadow: 0 0 0 4px rgb(var(--td-accent-rgb)/0.045);
         }
       `}</style>
     </WorkspaceFrame>
@@ -235,8 +235,8 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
       type="button"
       onClick={onClick}
       className={[
-        "h-9 rounded-xl border px-3 text-[9px] font-semibold",
-        active ? "border-cyan-300/[0.17] bg-cyan-400/[0.07] text-cyan-100" : "border-white/[0.06] bg-white/[0.018] text-slate-600",
+        "h-9 rounded-xl border px-3 text-[11px] font-semibold",
+        active ? "border-td-accent/[0.17] bg-td-accent/[0.07] text-td-accent-text" : "border-td-ink/[0.06] bg-td-ink/[0.018] text-td-muted",
       ].join(" ")}
     >
       {children}
@@ -249,20 +249,20 @@ function EventCard({ event, onRemove }: { event: CalendarEvent; onRemove: () => 
   const Icon = config.icon;
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
+    <div className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4">
       <div className="flex items-start gap-3">
         <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${config.className}`}>
           <Icon className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-slate-200">{event.title}</p>
-          <p className="mt-1 flex items-center gap-1.5 text-[9px] text-slate-600">
+          <p className="text-xs font-semibold text-td-primary">{event.title}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-[11px] text-td-muted">
             <Clock3 className="h-3 w-3" />
             {event.startTime}{event.endTime ? `–${event.endTime}` : ""}
           </p>
-          {event.assignee ? <p className="mt-1 text-[9px] text-slate-600">Assigned to {event.assignee}</p> : null}
+          {event.assignee ? <p className="mt-1 text-[11px] text-td-muted">Assigned to {event.assignee}</p> : null}
         </div>
-        <button type="button" onClick={onRemove} className="text-slate-700 hover:text-red-300">
+        <button type="button" onClick={onRemove} className="text-td-muted hover:text-td-danger">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -311,14 +311,14 @@ function ScheduleModal({
           });
           setTitle("");
         }}
-        className="relative z-10 w-full max-w-[560px] rounded-[28px] border border-cyan-300/[0.14] bg-[#06131d]/98 p-6"
+        className="relative z-10 w-full max-w-[560px] rounded-[28px] border border-td-accent/[0.14] bg-td-surface/98 p-6"
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-lg font-semibold text-white">Schedule activity</p>
-            <p className="mt-1 text-[10px] text-slate-600">Orders, deliveries, events, shifts, or payroll.</p>
+            <p className="text-lg font-semibold text-td-primary">Schedule activity</p>
+            <p className="mt-1 text-[11px] text-td-muted">Orders, deliveries, events, shifts, or payroll.</p>
           </div>
-          <button type="button" onClick={onClose} className="text-slate-500"><X className="h-4 w-4" /></button>
+          <button type="button" onClick={onClose} className="text-td-muted"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -344,12 +344,12 @@ function ScheduleModal({
           </Field>
         </div>
 
-        <label className="mt-4 flex items-center gap-2 text-[10px] text-slate-500">
+        <label className="mt-4 flex items-center gap-2 text-[11px] text-td-muted">
           <input type="checkbox" checked={recurring} onChange={(event) => setRecurring(event.target.checked)} />
           Repeat this activity
         </label>
 
-        <button type="submit" className="mt-6 h-11 w-full rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 text-xs font-semibold text-[#001018]">
+        <button type="submit" className="mt-6 h-11 w-full rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent text-xs font-semibold text-td-on-accent">
           Add to calendar
         </button>
       </form>
@@ -358,7 +358,7 @@ function ScheduleModal({
 }
 
 function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
-  return <label className={className}><span className="mb-2 block text-[9px] text-slate-500">{label}</span>{children}</label>;
+  return <label className={className}><span className="mb-2 block text-[11px] text-td-muted">{label}</span>{children}</label>;
 }
 
 function buildMonthGrid(viewDate: Date) {

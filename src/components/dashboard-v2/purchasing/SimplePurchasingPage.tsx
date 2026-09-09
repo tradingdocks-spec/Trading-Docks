@@ -71,19 +71,19 @@ export function SimplePurchasingPage({
   const Icon = config.icon;
 
   return (
-    <main className="min-h-screen bg-[#020b12] px-5 py-7 text-white sm:px-8 lg:px-10">
+    <main className="min-h-screen bg-td-canvas px-5 py-7 text-td-primary sm:px-8 lg:px-10">
       <div className="mx-auto max-w-[1450px]">
-        <header className="rounded-[28px] border border-cyan-300/[0.11] bg-[#06141f] p-6 sm:p-8">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.04] text-cyan-300">
+        <header className="rounded-[28px] border border-td-accent/[0.11] bg-td-surface p-6 sm:p-8">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.04] text-td-accent-text">
             <Icon className="h-5 w-5" />
           </div>
-          <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+          <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
             {config.eyebrow}
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-[-0.045em]">
             {config.title}
           </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-td-muted">
             {config.detail}
           </p>
         </header>
@@ -92,29 +92,29 @@ export function SimplePurchasingPage({
           {config.cards.map(([title, value]) => (
             <div
               key={title}
-              className="rounded-[22px] border border-white/[0.07] bg-[#06141f] p-5"
+              className="rounded-[22px] border border-td-ink/[0.07] bg-td-surface p-5"
             >
-              <p className="text-[8px] uppercase tracking-[0.12em] text-slate-700">
+              <p className="text-[11px] uppercase tracking-[0.12em] text-td-muted">
                 {title}
               </p>
-              <p className="mt-3 text-lg font-semibold text-slate-200">
+              <p className="mt-3 text-lg font-semibold text-td-primary">
                 {value}
               </p>
             </div>
           ))}
         </section>
 
-        <section className="mt-5 rounded-[24px] border border-dashed border-white/[0.08] bg-[#06141f] px-6 py-20 text-center">
-          <p className="text-sm font-semibold text-slate-400">
+        <section className="mt-5 rounded-[24px] border border-dashed border-td-ink/[0.08] bg-td-surface px-6 py-20 text-center">
+          <p className="text-sm font-semibold text-td-secondary">
             Purchasing workspace activity
           </p>
-          <p className="mx-auto mt-2 max-w-xl text-[9px] leading-5 text-slate-700">
+          <p className="mx-auto mt-2 max-w-xl text-[11px] leading-5 text-td-muted">
             Purchasing records, rules, recommendations, and history belong in the
             same workspace data model.
           </p>
           <Link
             href="/dashboard/purchasing"
-            className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.13] bg-cyan-400/[0.04] px-4 text-[9px] font-semibold text-cyan-200"
+            className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl border border-td-accent/[0.13] bg-td-accent/[0.04] px-4 text-[11px] font-semibold text-td-accent-text"
           >
             Back to Purchasing
             <ArrowRight className="h-3.5 w-3.5" />

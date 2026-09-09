@@ -90,16 +90,16 @@ export function Sidebar({
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/[0.07] bg-[#050b10]/95 shadow-[20px_0_70px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-[transform,width] duration-300 lg:static lg:z-20 lg:translate-x-0 ${sidebarWidth} ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-td-ink/[0.07] bg-td-canvas/95 shadow-[20px_0_70px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength)))] backdrop-blur-2xl transition-[transform,width] duration-300 lg:static lg:z-20 lg:translate-x-0 ${sidebarWidth} ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-400/[0.05] to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-td-accent/[0.05] to-transparent"
         />
 
-        <div className="relative flex h-16 shrink-0 items-center border-b border-white/[0.07] px-4">
+        <div className="relative flex h-16 shrink-0 items-center border-b border-td-ink/[0.07] px-4">
           <Link
             href="/dashboard"
             onClick={onMobileClose}
@@ -109,17 +109,17 @@ export function Sidebar({
                 : "gap-3"
             }`}
           >
-            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/[0.08] shadow-[0_0_24px_rgba(34,211,238,0.08)]">
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-accent/20 bg-td-accent/[0.08] shadow-[0_0_24px_rgb(var(--td-accent-rgb)/0.08)]">
               <TradingDocksMark className="h-7 w-7" />
             </div>
 
             {!collapsed ? (
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold tracking-[-0.02em] text-white">
+                <p className="truncate text-sm font-semibold tracking-[-0.02em] text-td-primary">
                   Trading Docks
                 </p>
 
-                <p className="mt-0.5 truncate text-[9px] text-slate-600">
+                <p className="mt-0.5 truncate text-[11px] text-td-muted">
                   Inventory workspace
                 </p>
               </div>
@@ -127,35 +127,35 @@ export function Sidebar({
           </Link>
         </div>
 
-        <div className="relative shrink-0 border-b border-white/[0.07] p-3">
+        <div className="relative shrink-0 border-b border-td-ink/[0.07] p-3">
           <button
             type="button"
-            className={`group flex w-full items-center rounded-xl border border-white/[0.08] bg-white/[0.025] transition hover:border-cyan-400/20 hover:bg-cyan-400/[0.04] ${
+            className={`group flex w-full items-center rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] transition hover:border-td-accent/20 hover:bg-td-accent/[0.04] ${
               collapsed
                 ? "h-11 justify-center px-0"
                 : "min-h-14 gap-3 px-3 py-2"
             }`}
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-400/[0.08] text-xs font-semibold text-cyan-200">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-td-accent/20 bg-td-accent/[0.08] text-xs font-semibold text-td-accent-text">
               TD
             </div>
 
             {!collapsed ? (
               <>
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="truncate text-[11px] font-semibold text-white">
+                  <p className="truncate text-[11px] font-semibold text-td-primary">
                     Trading Docks LLC
                   </p>
 
-                  <p className="mt-0.5 truncate text-[9px] text-slate-600">
+                  <p className="mt-0.5 truncate text-[11px] text-td-muted">
                     Seller workspace
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-0.5">
-                  <span className="h-1 w-1 rounded-full bg-slate-600" />
-                  <span className="h-1 w-1 rounded-full bg-slate-600" />
-                  <span className="h-1 w-1 rounded-full bg-slate-600" />
+                  <span className="h-1 w-1 rounded-full bg-td-raised" />
+                  <span className="h-1 w-1 rounded-full bg-td-raised" />
+                  <span className="h-1 w-1 rounded-full bg-td-raised" />
                 </div>
               </>
             ) : null}
@@ -176,9 +176,9 @@ export function Sidebar({
           </div>
         </nav>
 
-        <div className="relative shrink-0 border-t border-white/[0.07] p-3">
+        <div className="relative shrink-0 border-t border-td-ink/[0.07] p-3">
           <div
-            className={`rounded-2xl border border-white/[0.08] bg-white/[0.025] ${
+            className={`rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.025] ${
               collapsed ? "p-1.5" : "p-2"
             }`}
           >
@@ -186,13 +186,13 @@ export function Sidebar({
               href="/dashboard/settings"
               onClick={onMobileClose}
               title={collapsed ? "Settings" : undefined}
-              className={`group flex min-h-10 items-center rounded-xl text-slate-500 transition hover:bg-white/[0.04] hover:text-white ${
+              className={`group flex min-h-10 items-center rounded-xl text-td-muted transition hover:bg-td-ink/[0.04] hover:text-td-primary ${
                 collapsed
                   ? "justify-center"
                   : "gap-3 px-2.5"
               }`}
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg group-hover:text-cyan-300">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg group-hover:text-td-accent-text">
                 <Settings className="h-4 w-4" />
               </span>
 
@@ -206,7 +206,7 @@ export function Sidebar({
             <button
               type="button"
               title={collapsed ? "Sign out" : undefined}
-              className={`group flex min-h-10 w-full items-center rounded-xl text-slate-500 transition hover:bg-red-400/[0.05] hover:text-red-300 ${
+              className={`group flex min-h-10 w-full items-center rounded-xl text-td-muted transition hover:bg-td-danger/[0.05] hover:text-td-danger ${
                 collapsed
                   ? "justify-center"
                   : "gap-3 px-2.5"
@@ -230,7 +230,7 @@ export function Sidebar({
             aria-label={
               collapsed ? "Expand sidebar" : "Collapse sidebar"
             }
-            className="absolute -right-3 top-1/2 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#0a131a] text-slate-500 shadow-lg transition hover:border-cyan-400/30 hover:text-cyan-300 lg:flex"
+            className="absolute -right-3 top-1/2 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-td-ink/10 bg-td-surface text-td-muted shadow-lg transition hover:border-td-accent/30 hover:text-td-accent-text lg:flex"
           >
             {collapsed ? (
               <ChevronsRight className="h-3.5 w-3.5" />
@@ -244,7 +244,7 @@ export function Sidebar({
       <style jsx global>{`
         .sidebar-scrollbar {
           scrollbar-width: thin;
-          scrollbar-color: rgba(148, 163, 184, 0.14)
+          scrollbar-color: rgb(var(--td-accent-rgb)/0.14)
             transparent;
         }
 
@@ -258,11 +258,11 @@ export function Sidebar({
 
         .sidebar-scrollbar::-webkit-scrollbar-thumb {
           border-radius: 999px;
-          background: rgba(148, 163, 184, 0.12);
+          background: rgb(var(--td-accent-rgb)/0.12);
         }
 
         .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(34, 211, 238, 0.2);
+          background: rgb(var(--td-accent-rgb)/0.2);
         }
       `}</style>
     </>

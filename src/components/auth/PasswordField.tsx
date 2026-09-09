@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { Eye, EyeOff } from "lucide-react";
 
 type PasswordFieldProps = {
@@ -22,6 +23,7 @@ export function PasswordField({
   placeholder = "Enter your password",
   showMinLengthRequirement = false,
 }: PasswordFieldProps) {
+  const hydrated = useHydrated();
   const [visible, setVisible] = useState(false);
   const [value, setValue] = useState("");
   const minLengthMet = minLength == null || value.length >= minLength;
@@ -39,14 +41,15 @@ export function PasswordField({
           placeholder={placeholder}
           aria-describedby={describedBy}
           onChange={(event) => setValue(event.currentTarget.value)}
-          className="h-10 w-full rounded-lg border border-white/15 bg-white/[0.045] px-3.5 pr-11 text-sm text-white outline-none transition placeholder:text-slate-500 hover:border-white/25 focus:border-cyan-400/60 focus:bg-cyan-400/[0.045] focus:ring-4 focus:ring-cyan-400/10"
+          className="h-10 w-full rounded-lg border border-td-ink/15 bg-td-ink/[0.045] px-3.5 pr-11 text-sm text-td-primary outline-none transition placeholder:text-td-muted hover:border-td-ink/25 focus:border-td-accent/60 focus:bg-td-accent/[0.045] focus:ring-4 focus:ring-td-accent/10"
         />
         <button
           type="button"
+          disabled={!hydrated}
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-slate-400 transition hover:text-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-300"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-lg text-td-secondary transition hover:text-td-accent-text focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-td-accent"
         >
           {visible ? (
             <EyeOff aria-hidden="true" className="h-4 w-4" />
@@ -59,14 +62,14 @@ export function PasswordField({
       {showMinLengthRequirement && minLength ? (
         <p
           id={describedBy}
-          className={`mt-1.5 flex items-center gap-1.5 text-[10px] ${
-            minLengthMet ? "text-emerald-300/80" : "text-slate-500"
+          className={`mt-1.5 flex items-center gap-1.5 text-[11px] ${
+            minLengthMet ? "text-td-success/80" : "text-td-muted"
           }`}
         >
           <span
             aria-hidden="true"
             className={`h-1.5 w-1.5 rounded-full ${
-              minLengthMet ? "bg-emerald-300" : "bg-slate-600"
+              minLengthMet ? "bg-td-success" : "bg-td-raised"
             }`}
           />
           8+ characters

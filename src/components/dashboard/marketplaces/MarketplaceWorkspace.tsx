@@ -679,21 +679,21 @@ export function MarketplaceWorkspace() {
 
   return (
     <div className="mx-auto w-full max-w-[1640px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-[28px] border border-cyan-300/15 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,.1),transparent_34%),#06131d] p-6 shadow-[0_30px_90px_rgba(0,0,0,.3)] sm:p-8">
+      <section className="overflow-hidden rounded-[28px] border border-td-accent/15 bg-[radial-gradient(circle_at_top_right,rgb(var(--td-accent-rgb)/.1),transparent_34%),var(--td-surface-default)] p-6 shadow-[0_30px_90px_rgb(var(--td-shadow-rgb)/calc(.3*var(--td-shadow-strength)))] sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-cyan-300">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-td-accent-text">
               <ShieldCheck className="h-4 w-4" />
               Seller & Store workspace
             </div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">Marketplace Integration Center</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-td-primary">Marketplace Integration Center</h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-td-secondary">
               Use approved APIs where available, semi-sync files where they are not, and guided tracking everywhere else—without storing marketplace passwords.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/[.08] bg-black/15 px-4 py-3">
-            <p className="text-[9px] font-bold uppercase tracking-[.16em] text-slate-600">Connector coverage</p>
-            <p className="mt-1 text-lg font-semibold text-white">{marketplaces.length} channels</p>
+          <div className="rounded-2xl border border-td-ink/[.08] bg-black/15 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-[.16em] text-td-muted">Connector coverage</p>
+            <p className="mt-1 text-lg font-semibold text-td-primary">{marketplaces.length} channels</p>
           </div>
         </div>
       </section>
@@ -706,19 +706,19 @@ export function MarketplaceWorkspace() {
       </section>
 
       {!databaseReady ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-300/15 bg-amber-300/[.04] p-4 text-amber-100">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
-          <div><p className="text-xs font-semibold">Marketplace database setup required</p><p className="mt-1 text-[11px] text-amber-100/55">Apply the included Supabase migration, then refresh this page.</p></div>
+        <div className="flex items-start gap-3 rounded-2xl border border-td-warning/15 bg-td-warning/[.04] p-4 text-td-warning">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-td-warning" />
+          <div><p className="text-xs font-semibold">Marketplace database setup required</p><p className="mt-1 text-[11px] text-td-warning/55">Apply the included Supabase migration, then refresh this page.</p></div>
         </div>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/[.07] bg-[#06121b] p-2">
+      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-td-ink/[.07] bg-td-surface p-2">
         {([
           ["connections", Store, "Connections"],
           ["semi-sync", FileSpreadsheet, "TCGplayer Semi-Sync"],
           ["email", Mail, "Email Tracking"],
         ] as const).map(([id, Icon, label]) => (
-          <button key={id} type="button" onClick={() => setActiveView(id)} className={`flex min-h-11 items-center justify-center gap-2 rounded-xl text-[11px] font-semibold transition ${activeView === id ? "border border-cyan-300/15 bg-cyan-300/[.065] text-cyan-100" : "text-slate-500 hover:bg-white/[.025] hover:text-slate-300"}`}>
+          <button key={id} type="button" onClick={() => setActiveView(id)} className={`flex min-h-11 items-center justify-center gap-2 rounded-xl text-[11px] font-semibold transition ${activeView === id ? "border border-td-accent/15 bg-td-accent/[.065] text-td-accent-text" : "text-td-muted hover:bg-td-ink/[.025] hover:text-td-secondary"}`}>
             <Icon className="h-4 w-4" /> {label}
           </button>
         ))}
@@ -726,11 +726,11 @@ export function MarketplaceWorkspace() {
 
       {activeView === "connections" ? (
         <>
-          <label className="flex h-11 items-center gap-2 rounded-2xl border border-white/[.07] bg-[#06121b] px-4">
-            <Search className="h-4 w-4 text-slate-600" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search marketplaces, games, or connection types…" className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-700" />
+          <label className="flex h-11 items-center gap-2 rounded-2xl border border-td-ink/[.07] bg-td-surface px-4">
+            <Search className="h-4 w-4 text-td-muted" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search marketplaces, games, or connection types…" className="min-w-0 flex-1 bg-transparent text-xs text-td-primary outline-none placeholder:text-td-muted" />
           </label>
-          {loading ? <div className="flex min-h-48 items-center justify-center gap-2 text-xs text-slate-500"><Loader2 className="h-4 w-4 animate-spin text-cyan-300" />Loading marketplace settings…</div> : (
+          {loading ? <div className="flex min-h-48 items-center justify-center gap-2 text-xs text-td-muted"><Loader2 className="h-4 w-4 animate-spin text-td-accent-text" />Loading marketplace settings…</div> : (
             <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filtered.map((marketplace) => {
                 const connection = connections.find((item) => item.marketplace_id === marketplace.id);
@@ -744,19 +744,19 @@ export function MarketplaceWorkspace() {
                   (connection?.status === "attention" ||
                     connection?.status === "setup_required");
                 return (
-                  <article key={marketplace.id} className="rounded-[22px] border border-white/[.08] bg-[#07141e]/90 p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/20">
+                  <article key={marketplace.id} className="rounded-[22px] border border-td-ink/[.08] bg-td-surface/90 p-5 transition hover:-translate-y-0.5 hover:border-td-accent/20">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/15 bg-cyan-400/[.06]"><Store className="h-5 w-5 text-cyan-300" /></div>
-                      {isConnected ? <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/20 bg-emerald-400/[.05] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-emerald-200"><Check className="h-3 w-3" />Connected</span> : null}
-                      {!isConnected && needsAttention ? <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/20 bg-amber-400/[.05] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-amber-200"><AlertTriangle className="h-3 w-3" />Setup required</span> : null}
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-td-accent/15 bg-td-accent/[.06]"><Store className="h-5 w-5 text-td-accent-text" /></div>
+                      {isConnected ? <span className="inline-flex items-center gap-1.5 rounded-full border border-td-success/20 bg-td-success/[.05] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-td-success"><Check className="h-3 w-3" />Connected</span> : null}
+                      {!isConnected && needsAttention ? <span className="inline-flex items-center gap-1.5 rounded-full border border-td-warning/20 bg-td-warning/[.05] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-td-warning"><AlertTriangle className="h-3 w-3" />Setup required</span> : null}
                     </div>
-                    <h2 className="mt-5 text-lg font-semibold text-white">{marketplace.name}</h2>
-                    <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-cyan-300/80">{marketplace.games}</p>
-                    <p className="mt-3 min-h-12 text-xs leading-5 text-slate-500">{marketplace.description}</p>
+                    <h2 className="mt-5 text-lg font-semibold text-td-primary">{marketplace.name}</h2>
+                    <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-td-accent-text/80">{marketplace.games}</p>
+                    <p className="mt-3 min-h-12 text-xs leading-5 text-td-muted">{marketplace.description}</p>
                     <div className="mt-4 flex flex-wrap gap-1.5">
-                      {marketplace.methods.map((item) => <span key={item} className="rounded-lg border border-white/[.07] bg-white/[.025] px-2 py-1 text-[9px] text-slate-500">{METHOD_LABELS[item]}</span>)}
+                      {marketplace.methods.map((item) => <span key={item} className="rounded-lg border border-td-ink/[.07] bg-td-ink/[.025] px-2 py-1 text-[11px] text-td-muted">{METHOD_LABELS[item]}</span>)}
                     </div>
-                    <button type="button" onClick={() => openSetup(marketplace)} className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/15 bg-cyan-400/[.045] text-xs font-semibold text-cyan-200 transition hover:border-cyan-300/30 hover:bg-cyan-400/[.08]">
+                    <button type="button" onClick={() => openSetup(marketplace)} className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-accent/15 bg-td-accent/[.045] text-xs font-semibold text-td-accent-text transition hover:border-td-accent/30 hover:bg-td-accent/[.08]">
                       <Settings2 className="h-3.5 w-3.5" />{connection ? "Manage connection" : "Start setup"}
                     </button>
                   </article>
@@ -769,19 +769,19 @@ export function MarketplaceWorkspace() {
 
       {activeView === "semi-sync" ? (
         <section className="grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
-          <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">TCGplayer semi-sync</p>
-            <h2 className="mt-2 text-xl font-semibold text-white">Review a seller export</h2>
-            <p className="mt-2 text-xs leading-5 text-slate-500">Trading Docks reads the file you select, identifies inventory or order data, and stages it for review. Nothing is changed on TCGplayer automatically.</p>
+          <div className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-6">
+            <p className="text-[11px] font-bold uppercase tracking-[.18em] text-td-accent-text">TCGplayer semi-sync</p>
+            <h2 className="mt-2 text-xl font-semibold text-td-primary">Review a seller export</h2>
+            <p className="mt-2 text-xs leading-5 text-td-muted">Trading Docks reads the file you select, identifies inventory or order data, and stages it for review. Nothing is changed on TCGplayer automatically.</p>
             <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void inspectCsv(file); }} />
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-5 flex min-h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-300/20 bg-cyan-300/[.025] text-cyan-100 transition hover:bg-cyan-300/[.05]">
-              <Upload className="h-6 w-6 text-cyan-300" /><span className="mt-3 text-xs font-semibold">Choose TCGplayer CSV</span><span className="mt-1 text-[10px] text-slate-600">Inventory or order export</span>
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-5 flex min-h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-td-accent/20 bg-td-accent/[.025] text-td-accent-text transition hover:bg-td-accent/[.05]">
+              <Upload className="h-6 w-6 text-td-accent-text" /><span className="mt-3 text-xs font-semibold">Choose TCGplayer CSV</span><span className="mt-1 text-[11px] text-td-muted">Inventory or order export</span>
             </button>
             {csvPreview ? (
-              <div className="mt-4 rounded-2xl border border-white/[.08] bg-black/15 p-4">
-                <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold text-white">{csvPreview.name}</p><p className="mt-1 text-[10px] text-slate-500">{csvPreview.rows.toLocaleString("en-US")} rows · Detected as {csvPreview.kind}</p></div><Check className="h-4 w-4 text-emerald-300" /></div>
-                <div className="mt-3 flex flex-wrap gap-1.5">{csvPreview.headers.map((header) => <span key={header} className="rounded-lg border border-white/[.07] px-2 py-1 text-[9px] text-slate-500">{header || "Unnamed"}</span>)}</div>
-                <button type="button" disabled={saving || !databaseReady} onClick={() => void recordSemiSync()} className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}Stage for mapping</button>
+              <div className="mt-4 rounded-2xl border border-td-ink/[.08] bg-black/15 p-4">
+                <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold text-td-primary">{csvPreview.name}</p><p className="mt-1 text-[11px] text-td-muted">{csvPreview.rows.toLocaleString("en-US")} rows · Detected as {csvPreview.kind}</p></div><Check className="h-4 w-4 text-td-success" /></div>
+                <div className="mt-3 flex flex-wrap gap-1.5">{csvPreview.headers.map((header) => <span key={header} className="rounded-lg border border-td-ink/[.07] px-2 py-1 text-[11px] text-td-muted">{header || "Unnamed"}</span>)}</div>
+                <button type="button" disabled={saving || !databaseReady} onClick={() => void recordSemiSync()} className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}Stage for mapping</button>
               </div>
             ) : null}
           </div>
@@ -806,24 +806,24 @@ export function MarketplaceWorkspace() {
         />
       ) : null}
 
-      {notice ? <div role="status" className="fixed bottom-5 right-5 z-[180] max-w-sm rounded-2xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs font-medium leading-5 text-cyan-100 shadow-2xl">{notice}</div> : null}
+      {notice ? <div role="status" className="fixed bottom-5 right-5 z-[180] max-w-sm rounded-2xl border border-td-accent/15 bg-td-surface px-4 py-3 text-xs font-medium leading-5 text-td-accent-text shadow-2xl">{notice}</div> : null}
 
       {selected ? (
         <div className="fixed inset-0 z-[170] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[26px] border border-white/[.1] bg-[#06131d] shadow-2xl">
-            <div className="flex items-start justify-between border-b border-white/[.07] p-5 sm:p-6"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">Connection setup</p><h2 className="mt-2 text-xl font-semibold text-white">{selected.name}</h2><p className="mt-1 text-xs text-slate-500">{selected.games}</p></div><button type="button" onClick={() => setSelected(null)} className="rounded-xl border border-white/[.08] p-2 text-slate-500 hover:text-white"><X className="h-4 w-4" /></button></div>
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[26px] border border-td-ink/[.1] bg-td-surface shadow-2xl">
+            <div className="flex items-start justify-between border-b border-td-ink/[.07] p-5 sm:p-6"><div><p className="text-[11px] font-bold uppercase tracking-[.18em] text-td-accent-text">Connection setup</p><h2 className="mt-2 text-xl font-semibold text-td-primary">{selected.name}</h2><p className="mt-1 text-xs text-td-muted">{selected.games}</p></div><button type="button" onClick={() => setSelected(null)} className="rounded-xl border border-td-ink/[.08] p-2 text-td-muted hover:text-td-primary"><X className="h-4 w-4" /></button></div>
             <div className="space-y-5 p-5 sm:p-6">
-              <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">Choose connection method</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{selected.methods.map((item) => <button key={item} type="button" onClick={() => setMethod(item)} className={`flex items-center justify-between rounded-xl border p-3 text-left text-xs font-semibold transition ${method === item ? "border-cyan-300/25 bg-cyan-300/[.065] text-cyan-100" : "border-white/[.07] bg-black/10 text-slate-500"}`}><span>{METHOD_LABELS[item]}</span>{method === item ? <Check className="h-4 w-4 text-cyan-300" /> : null}</button>)}</div></div>
+              <div><p className="text-[11px] font-bold uppercase tracking-[.16em] text-td-muted">Choose connection method</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{selected.methods.map((item) => <button key={item} type="button" onClick={() => setMethod(item)} className={`flex items-center justify-between rounded-xl border p-3 text-left text-xs font-semibold transition ${method === item ? "border-td-accent/25 bg-td-accent/[.065] text-td-accent-text" : "border-td-ink/[.07] bg-black/10 text-td-muted"}`}><span>{METHOD_LABELS[item]}</span>{method === item ? <Check className="h-4 w-4 text-td-accent-text" /> : null}</button>)}</div></div>
               <SetupGuide title={`${selected.name} setup`} steps={selected.setup} compact />
               {selected.id === "mana-pool" && method === "api" ? (
-                <div className="rounded-[22px] border border-violet-300/15 bg-gradient-to-b from-violet-300/[.05] to-transparent p-4">
+                <div className="rounded-[22px] border border-td-violet/15 bg-gradient-to-b from-td-violet/[.05] to-transparent p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[.16em] text-violet-300">Mana Pool API setup</p>
-                      <h3 className="mt-2 text-base font-semibold text-white">Connect your seller account in four steps</h3>
-                      <p className="mt-1 max-w-xl text-[10px] leading-5 text-slate-500">Generate the key inside Mana Pool, then securely save it in Trading Docks. Your marketplace password is never requested.</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[.16em] text-td-violet">Mana Pool API setup</p>
+                      <h3 className="mt-2 text-base font-semibold text-td-primary">Connect your seller account in four steps</h3>
+                      <p className="mt-1 max-w-xl text-[11px] leading-5 text-td-muted">Generate the key inside Mana Pool, then securely save it in Trading Docks. Your marketplace password is never requested.</p>
                     </div>
-                    <a href="https://manapool.com/seller/integrations/manapool-api" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-400 px-4 text-[10px] font-bold text-[#080312] hover:bg-violet-300">Open Mana Pool settings <ExternalLink className="h-3.5 w-3.5" /></a>
+                    <a href="https://manapool.com/seller/integrations/manapool-api" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-td-violet px-4 text-[11px] font-bold text-td-on-accent hover:bg-td-violet">Open Mana Pool settings <ExternalLink className="h-3.5 w-3.5" /></a>
                   </div>
                   <div className="mt-4 grid gap-2 sm:grid-cols-4">
                     {[
@@ -832,25 +832,25 @@ export function MarketplaceWorkspace() {
                       ["3", "Paste securely", "Enter it in the encrypted field below."],
                       ["4", "Save & test", "Start read-only before enabling automation."],
                     ].map(([number, title, detail]) => (
-                      <div key={number} className="rounded-xl border border-white/[.07] bg-black/[.14] p-3">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-300/[.11] text-[9px] font-bold text-violet-300">{number}</span>
-                        <p className="mt-2 text-[9px] font-semibold text-white">{title}</p>
-                        <p className="mt-1 text-[8px] leading-4 text-slate-600">{detail}</p>
+                      <div key={number} className="rounded-xl border border-td-ink/[.07] bg-black/[.14] p-3">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-td-violet/[.11] text-[11px] font-bold text-td-violet">{number}</span>
+                        <p className="mt-2 text-[11px] font-semibold text-td-primary">{title}</p>
+                        <p className="mt-1 text-[11px] leading-4 text-td-muted">{detail}</p>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-300/12 bg-emerald-300/[.03] p-3">
-                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-                    <p className="text-[9px] leading-4 text-emerald-100/60">Trading Docks stores the key through the existing encrypted marketplace-credential system. It is not saved in browser storage or committed to GitHub.</p>
+                  <div className="mt-4 flex items-start gap-2 rounded-xl border border-td-success/12 bg-td-success/[.03] p-3">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-td-success" />
+                    <p className="text-[11px] leading-4 text-td-success/60">Trading Docks stores the key through the existing encrypted marketplace-credential system. It is not saved in browser storage or committed to GitHub.</p>
                   </div>
-                  <div className="mt-4 rounded-2xl border border-white/[.08] bg-black/[.16] p-4">
+                  <div className="mt-4 rounded-2xl border border-td-ink/[.08] bg-black/[.16] p-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-xs font-semibold text-white">Save your Mana Pool API key</p>
-                        <p className="mt-1 text-[9px] leading-4 text-slate-600">Paste the complete seller API key generated by Mana Pool. After saving, Trading Docks displays only the last four characters.</p>
+                        <p className="text-xs font-semibold text-td-primary">Save your Mana Pool API key</p>
+                        <p className="mt-1 text-[11px] leading-4 text-td-muted">Paste the complete seller API key generated by Mana Pool. After saving, Trading Docks displays only the last four characters.</p>
                       </div>
                       {savedCredentials["mana-pool"]?.saved ? (
-                        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[.04] px-3 py-1.5 text-[8px] font-semibold text-emerald-300">
+                        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-td-success/15 bg-td-success/[.04] px-3 py-1.5 text-[11px] font-semibold text-td-success">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           Key saved{savedCredentials["mana-pool"]?.lastFour ? ` · ••••${savedCredentials["mana-pool"].lastFour}` : ""}
                         </span>
@@ -858,9 +858,9 @@ export function MarketplaceWorkspace() {
                     </div>
 
                     <label className="mt-4 block">
-                      <span className="text-[9px] font-bold uppercase tracking-[.14em] text-slate-600">Mana Pool seller API key</span>
+                      <span className="text-[11px] font-bold uppercase tracking-[.14em] text-td-muted">Mana Pool seller API key</span>
                       <div className="relative mt-2">
-                        <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-violet-300" />
+                        <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-td-violet" />
                         <input
                           type="password"
                           autoComplete="new-password"
@@ -881,31 +881,31 @@ export function MarketplaceWorkspace() {
                             }))
                           }
                           placeholder="Paste the key from Mana Pool"
-                          className="h-12 w-full rounded-xl border border-white/[.08] bg-[#030c17] pl-10 pr-3 text-sm text-white outline-none placeholder:text-slate-700 focus:border-violet-300/35 read-only:cursor-default read-only:text-emerald-200/80"
+                          className="h-12 w-full rounded-xl border border-td-ink/[.08] bg-td-surface pl-10 pr-3 text-sm text-td-primary outline-none placeholder:text-td-muted focus:border-td-violet/35 read-only:cursor-default read-only:text-td-success/80"
                         />
                       </div>
                     </label>
 
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-blue-300/12 bg-blue-300/[.03] p-3">
-                      <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
-                      <p className="text-[9px] leading-4 text-blue-100/55">Your key is encrypted on the server. Trading Docks never asks for your Mana Pool password and never stores this key in browser storage.</p>
+                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-td-accent/12 bg-td-accent/[.03] p-3">
+                      <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-td-accent-text" />
+                      <p className="text-[11px] leading-4 text-td-accent-text/55">Your key is encrypted on the server. Trading Docks never asks for your Mana Pool password and never stores this key in browser storage.</p>
                     </div>
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[.035] p-3">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-                      <p className="text-[9px] leading-4 text-emerald-100/60">
-                        <strong className="text-emerald-100">Self-service connection:</strong>{" "}
+                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-td-success/15 bg-td-success/[.035] p-3">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-td-success" />
+                      <p className="text-[11px] leading-4 text-td-success/60">
+                        <strong className="text-td-success">Self-service connection:</strong>{" "}
                         Your seller API key connects this workspace directly to Mana Pool. No Trading Docks administrator activation is required.
                       </p>
                     </div>
 
                     {savedCredentials["mana-pool"]?.saved ? (
-                      <div className="mt-4 flex items-start gap-3 rounded-2xl border border-emerald-300/15 bg-emerald-300/[.035] p-4">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                      <div className="mt-4 flex items-start gap-3 rounded-2xl border border-td-success/15 bg-td-success/[.035] p-4">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-td-success" />
                         <div>
-                          <p className="text-[10px] font-semibold text-emerald-100">
+                          <p className="text-[11px] font-semibold text-td-success">
                             Mana Pool connection active
                           </p>
-                          <p className="mt-1 text-[9px] leading-4 text-emerald-100/55">
+                          <p className="mt-1 text-[11px] leading-4 text-td-success/55">
                             This seller API key is connected to the current workspace. No Trading Docks administrator approval is required.
                           </p>
                         </div>
@@ -920,7 +920,7 @@ export function MarketplaceWorkspace() {
                             type="button"
                             disabled={manaPoolImporting || !databaseReady}
                             onClick={() => void importManaPool()}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-400 text-xs font-bold text-[#080312] hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-45"
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-violet text-xs font-bold text-td-on-accent hover:bg-td-violet disabled:cursor-not-allowed disabled:opacity-45"
                           >
                             {manaPoolImporting ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -943,9 +943,9 @@ export function MarketplaceWorkspace() {
                                 apiToken: "",
                               }));
                             }}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[.08] bg-white/[.025] text-xs font-bold text-slate-300 hover:bg-white/[.05]"
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-ink/[.025] text-xs font-bold text-td-secondary hover:bg-td-ink/[.05]"
                           >
-                            <KeyRound className="h-4 w-4 text-violet-300" />
+                            <KeyRound className="h-4 w-4 text-td-violet" />
                             Replace saved key
                           </button>
                         </>
@@ -959,7 +959,7 @@ export function MarketplaceWorkspace() {
                               !(credentials.apiToken ?? "").trim()
                             }
                             onClick={() => void saveCredentials()}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-400 text-xs font-bold text-[#080312] hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-45 sm:col-span-2"
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-violet text-xs font-bold text-td-on-accent hover:bg-td-violet disabled:cursor-not-allowed disabled:opacity-45 sm:col-span-2"
                           >
                             {saving ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -983,7 +983,7 @@ export function MarketplaceWorkspace() {
                                   apiToken: "",
                                 }));
                               }}
-                              className="h-10 rounded-xl border border-white/[.08] bg-white/[.025] text-[10px] font-semibold text-slate-500 sm:col-span-2"
+                              className="h-10 rounded-xl border border-td-ink/[.08] bg-td-ink/[.025] text-[11px] font-semibold text-td-muted sm:col-span-2"
                             >
                               Cancel replacement
                             </button>
@@ -993,23 +993,23 @@ export function MarketplaceWorkspace() {
                     </div>
 
                     {!databaseReady ? (
-                      <p className="mt-2 text-center text-[9px] leading-4 text-amber-300/70">Marketplace credential storage is not ready. Run the marketplace credential Supabase migration first.</p>
+                      <p className="mt-2 text-center text-[11px] leading-4 text-td-warning/70">Marketplace credential storage is not ready. Run the marketplace credential Supabase migration first.</p>
                     ) : null}
                   </div>
                 </div>
               ) : null}
 
               {method === "api" && selected.id !== "mana-pool" ? (
-                <div className="space-y-4 rounded-[22px] border border-cyan-300/12 bg-cyan-300/[.025] p-4">
+                <div className="space-y-4 rounded-[22px] border border-td-accent/12 bg-td-accent/[.025] p-4">
                   <div className="flex items-start gap-3">
-                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-td-success" />
                     <div>
-                      <p className="text-xs font-semibold text-cyan-100">
+                      <p className="text-xs font-semibold text-td-accent-text">
                         {selected.id === "mana-pool"
                           ? "Secure seller API connection"
                           : "Secure platform connection"}
                       </p>
-                      <p className="mt-1 text-[10px] leading-5 text-slate-500">
+                      <p className="mt-1 text-[11px] leading-5 text-td-muted">
                         {selected.id === "mana-pool"
                           ? "Use the API key generated inside your own Mana Pool seller account. Trading Docks encrypts it on the server and never asks for your Mana Pool password."
                           : "Trading Docks manages marketplace application credentials. You will never be asked for a Client Secret, API key, RuName, encryption key, or marketplace password here."}
@@ -1018,21 +1018,21 @@ export function MarketplaceWorkspace() {
                   </div>
                   {selected.id === "ebay" ? (
                     <>
-                      <div className="rounded-xl border border-white/[.07] bg-black/15 p-3">
-                        <p className="text-[10px] font-semibold text-slate-200">Your eBay seller account</p>
-                        <p className="mt-1 text-[9px] leading-4 text-slate-600">eBay will open its own secure sign-in page. Approval connects only this Trading Docks account and keeps every store’s listings and tokens separate.</p>
+                      <div className="rounded-xl border border-td-ink/[.07] bg-black/15 p-3">
+                        <p className="text-[11px] font-semibold text-td-primary">Your eBay seller account</p>
+                        <p className="mt-1 text-[11px] leading-4 text-td-muted">eBay will open its own secure sign-in page. Approval connects only this Trading Docks account and keeps every store’s listings and tokens separate.</p>
                       </div>
-                      <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/[.07] text-xs font-bold text-emerald-100 hover:bg-emerald-300/[.12]">
+                      <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-td-success/20 bg-td-success/[.07] text-xs font-bold text-td-success hover:bg-td-success/[.12]">
                         <Link2 className="h-4 w-4" />{connections.some((item) => item.marketplace_id === "ebay" && item.status === "ready") ? "Reconnect eBay account" : "Connect eBay account"}
                       </a>
                       {connections.some((item) => item.marketplace_id === "ebay" && item.status === "ready") ? (
-                        <a href="/dashboard/marketplaces/ebay" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 hover:bg-cyan-200">
+                        <a href="/dashboard/marketplaces/ebay" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent hover:bg-td-accent-hover">
                           <RefreshCw className="h-4 w-4" />Open Import & Reconciliation
                         </a>
                       ) : null}
                     </>
                   ) : (
-                    <div className="rounded-xl border border-amber-300/12 bg-amber-300/[.03] p-3 text-[10px] leading-5 text-amber-100/55">This connection will become available here after the Trading Docks administrator activates the platform integration. No developer setup will be required from your store.</div>
+                    <div className="rounded-xl border border-td-warning/12 bg-td-warning/[.03] p-3 text-[11px] leading-5 text-td-warning/55">This connection will become available here after the Trading Docks administrator activates the platform integration. No developer setup will be required from your store.</div>
                   )}
                 </div>
               ) : null}
@@ -1040,21 +1040,21 @@ export function MarketplaceWorkspace() {
                 if (!selected) return null;
                 const legacySelected = selected;
                 return false && method === "api" ? (
-                <div className="space-y-4 rounded-[22px] border border-cyan-300/12 bg-cyan-300/[.025] p-4">
+                <div className="space-y-4 rounded-[22px] border border-td-accent/12 bg-td-accent/[.025] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold text-cyan-100">Your developer credentials</p>
-                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Create credentials in your own marketplace account, then enter them here. Never enter your marketplace password.</p>
+                      <p className="text-xs font-semibold text-td-accent-text">Your developer credentials</p>
+                      <p className="mt-1 text-[11px] leading-4 text-td-muted">Create credentials in your own marketplace account, then enter them here. Never enter your marketplace password.</p>
                     </div>
                     {selected!.officialUrl ? (
-                      <a href={selected!.officialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/15 px-2.5 py-2 text-[9px] font-semibold text-cyan-200 hover:bg-cyan-300/[.06]">
+                      <a href={selected!.officialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-td-accent/15 px-2.5 py-2 text-[11px] font-semibold text-td-accent-text hover:bg-td-accent/[.06]">
                         Official setup <ExternalLink className="h-3 w-3" />
                       </a>
                     ) : null}
                   </div>
                   {legacySelected.callbackSlug ? (
                     <div>
-                      <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[.14em] text-slate-600">OAuth callback URL</p>
+                      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-td-muted">OAuth callback URL</p>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -1062,26 +1062,26 @@ export function MarketplaceWorkspace() {
                           value={`${MARKETPLACE_CALLBACK_ORIGIN}/api/marketplaces/${legacySelected.callbackSlug}/callback`}
                           onFocus={(event) => event.currentTarget.select()}
                           aria-label={`${legacySelected.name} OAuth callback URL`}
-                          className="min-w-0 flex-1 rounded-xl border border-white/[.07] bg-black/20 px-3 py-2.5 font-mono text-[10px] text-slate-300 outline-none focus:border-cyan-300/30"
+                          className="min-w-0 flex-1 rounded-xl border border-td-ink/[.07] bg-black/20 px-3 py-2.5 font-mono text-[11px] text-td-secondary outline-none focus:border-td-accent/30"
                         />
-                        <button type="button" onClick={() => void copyCallbackUrl()} className="rounded-xl border border-white/[.08] px-3 text-slate-400 hover:text-white" aria-label="Copy callback URL"><Copy className="h-4 w-4" /></button>
+                        <button type="button" onClick={() => void copyCallbackUrl()} className="rounded-xl border border-td-ink/[.08] px-3 text-td-secondary hover:text-td-primary" aria-label="Copy callback URL"><Copy className="h-4 w-4" /></button>
                       </div>
-                      <p className="mt-1.5 text-[9px] leading-4 text-slate-600">This address is generated by Trading Docks. Select it or use the copy button, then paste it into the marketplace app’s redirect/callback setting.</p>
+                      <p className="mt-1.5 text-[11px] leading-4 text-td-muted">This address is generated by Trading Docks. Select it or use the copy button, then paste it into the marketplace app’s redirect/callback setting.</p>
                     </div>
                   ) : null}
                   {legacySelected.credentialFields?.length ? (
                     <div className="space-y-3">
                       {checkingCredentials ? (
-                        <div className="flex items-center gap-2 rounded-xl border border-white/[.07] bg-black/15 px-3 py-2.5 text-[10px] text-slate-500">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-300" />
+                        <div className="flex items-center gap-2 rounded-xl border border-td-ink/[.07] bg-black/15 px-3 py-2.5 text-[11px] text-td-muted">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-td-accent-text" />
                           Checking saved credentials…
                         </div>
                       ) : savedCredentials[legacySelected.id]?.saved ? (
-                        <div className="flex items-start gap-3 rounded-xl border border-emerald-300/15 bg-emerald-300/[.04] px-3 py-3">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                        <div className="flex items-start gap-3 rounded-xl border border-td-success/15 bg-td-success/[.04] px-3 py-3">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-td-success" />
                           <div>
-                            <p className="text-[11px] font-semibold text-emerald-100">Credentials saved</p>
-                            <p className="mt-1 text-[9px] leading-4 text-emerald-100/55">
+                            <p className="text-[11px] font-semibold text-td-success">Credentials saved</p>
+                            <p className="mt-1 text-[11px] leading-4 text-td-success/55">
                               They remain encrypted on the server. Leave this form alone unless you need to replace them.
                             </p>
                           </div>
@@ -1091,7 +1091,7 @@ export function MarketplaceWorkspace() {
                         <div className="grid gap-3 sm:grid-cols-2">
                           {legacySelected.credentialFields!.map((field) => (
                             <label key={field.key} className="block">
-                              <span className="text-[10px] font-semibold text-slate-300">{field.label}</span>
+                              <span className="text-[11px] font-semibold text-td-secondary">{field.label}</span>
                               <input
                                 type={field.secret ? "password" : "text"}
                                 value={credentials[field.key] ?? ""}
@@ -1102,34 +1102,34 @@ export function MarketplaceWorkspace() {
                                     : field.placeholder
                                 }
                                 autoComplete="off"
-                                className="mt-1.5 h-10 w-full rounded-xl border border-white/[.08] bg-black/20 px-3 text-xs text-white outline-none placeholder:text-slate-700 focus:border-cyan-300/30"
+                                className="mt-1.5 h-10 w-full rounded-xl border border-td-ink/[.08] bg-black/20 px-3 text-xs text-td-primary outline-none placeholder:text-td-muted focus:border-td-accent/30"
                               />
-                              <span className="mt-1 block text-[9px] leading-4 text-slate-600">{field.help}</span>
+                              <span className="mt-1 block text-[11px] leading-4 text-td-muted">{field.help}</span>
                             </label>
                           ))}
                         </div>
                       ) : null}
                     </div>
                   ) : (
-                    <div className="flex gap-3 rounded-2xl border border-amber-300/12 bg-amber-300/[.03] p-4"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><p className="text-[11px] leading-5 text-amber-100/55">This marketplace does not currently publish a supported self-service API credential flow. Choose CSV, email, or guided manual tracking.</p></div>
+                    <div className="flex gap-3 rounded-2xl border border-td-warning/12 bg-td-warning/[.03] p-4"><KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-td-warning" /><p className="text-[11px] leading-5 text-td-warning/55">This marketplace does not currently publish a supported self-service API credential flow. Choose CSV, email, or guided manual tracking.</p></div>
                   )}
-                  <div className="flex gap-2 rounded-xl border border-emerald-300/10 bg-emerald-300/[.025] p-3 text-[10px] leading-4 text-emerald-100/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />Secrets are encrypted on the server with AES-256-GCM. The page receives only masked confirmation after saving.</div>
+                  <div className="flex gap-2 rounded-xl border border-td-success/10 bg-td-success/[.025] p-3 text-[11px] leading-4 text-td-success/55"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-td-success" />Secrets are encrypted on the server with AES-256-GCM. The page receives only masked confirmation after saving.</div>
                   {savedCredentials[legacySelected.id]?.saved && !editingCredentials[legacySelected.id] ? (
-                    <button type="button" onClick={() => setEditingCredentials((current) => ({ ...current, [legacySelected.id]: true }))} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/15 text-xs font-bold text-cyan-100 hover:bg-cyan-300/[.06]">
+                    <button type="button" onClick={() => setEditingCredentials((current) => ({ ...current, [legacySelected.id]: true }))} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-td-accent/15 text-xs font-bold text-td-accent-text hover:bg-td-accent/[.06]">
                       <KeyRound className="h-4 w-4" />Replace saved credentials
                     </button>
                   ) : (
-                    <button type="button" disabled={saving || !databaseReady || !legacySelected.credentialFields?.length} onClick={() => void saveCredentials()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{savedCredentials[legacySelected.id]?.saved ? "Save replacement credentials" : "Encrypt & save credentials"}</button>
+                    <button type="button" disabled={saving || !databaseReady || !legacySelected.credentialFields?.length} onClick={() => void saveCredentials()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{savedCredentials[legacySelected.id]?.saved ? "Save replacement credentials" : "Encrypt & save credentials"}</button>
                   )}
                   {legacySelected.id === "ebay" && savedCredentials.ebay?.saved ? (
-                    <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/[.07] text-xs font-bold text-emerald-100 hover:bg-emerald-300/[.12]">
+                    <a href="/api/marketplaces/ebay/authorize" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-td-success/20 bg-td-success/[.07] text-xs font-bold text-td-success hover:bg-td-success/[.12]">
                       <Link2 className="h-4 w-4" />{connections.some((item) => item.marketplace_id === "ebay" && item.status === "ready") ? "Reconnect eBay account" : "Authorize eBay read-only access"}
                     </a>
                   ) : null}
                 </div>
                 ) : null;
               })()}
-              {method !== "api" ? <button type="button" disabled={saving || !databaseReady} onClick={() => void continueSetup()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{method === "email" ? "Open email setup" : method === "csv" && selected.id === "tcgplayer" ? "Open CSV importer" : "Save connection plan"}</button> : null}
+              {method !== "api" ? <button type="button" disabled={saving || !databaseReady} onClick={() => void continueSetup()} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent disabled:cursor-not-allowed disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}{method === "email" ? "Open email setup" : method === "csv" && selected.id === "tcgplayer" ? "Open CSV importer" : "Save connection plan"}</button> : null}
             </div>
           </div>
         </div>
@@ -1146,15 +1146,15 @@ function HealthCard({ icon: Icon, label, value, detail, tone }: {
   tone: "cyan" | "emerald" | "amber";
 }) {
   const colors = tone === "emerald"
-    ? "border-emerald-300/12 bg-emerald-300/[.025] text-emerald-300"
+    ? "border-td-success/12 bg-td-success/[.025] text-td-success"
     : tone === "amber"
-      ? "border-amber-300/12 bg-amber-300/[.025] text-amber-300"
-      : "border-cyan-300/12 bg-cyan-300/[.025] text-cyan-300";
-  return <article className={`rounded-[20px] border p-4 ${colors}`}><div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.15em]"><Icon className="h-3.5 w-3.5" />{label}</div><p className="mt-3 text-lg font-semibold text-white">{value}</p><p className="mt-1 text-[10px] text-slate-500">{detail}</p></article>;
+      ? "border-td-warning/12 bg-td-warning/[.025] text-td-warning"
+      : "border-td-accent/12 bg-td-accent/[.025] text-td-accent-text";
+  return <article className={`rounded-[20px] border p-4 ${colors}`}><div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.15em]"><Icon className="h-3.5 w-3.5" />{label}</div><p className="mt-3 text-lg font-semibold text-td-primary">{value}</p><p className="mt-1 text-[11px] text-td-muted">{detail}</p></article>;
 }
 
 function SetupGuide({ title, steps, compact = false }: { title: string; steps: readonly string[]; compact?: boolean }) {
-  return <div className={`rounded-[24px] border border-white/[.08] bg-[#07141e] ${compact ? "p-4" : "p-6"}`}><p className="text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">{title}</p><div className="mt-4 space-y-3">{steps.map((step, index) => <div key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[.05] text-[9px] font-bold text-cyan-200">{index + 1}</span><p className="pt-0.5 text-[11px] leading-5 text-slate-500">{step}</p></div>)}</div></div>;
+  return <div className={`rounded-[24px] border border-td-ink/[.08] bg-td-surface ${compact ? "p-4" : "p-6"}`}><p className="text-[11px] font-bold uppercase tracking-[.18em] text-td-accent-text">{title}</p><div className="mt-4 space-y-3">{steps.map((step, index) => <div key={step} className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-td-accent/15 bg-td-accent/[.05] text-[11px] font-bold text-td-accent-text">{index + 1}</span><p className="pt-0.5 text-[11px] leading-5 text-td-muted">{step}</p></div>)}</div></div>;
 }
 
 function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, step, setStep, importAddress, importAddressStatus, setImportAddressStatus, emailProcessing, setEmailProcessing, onNotice }: {
@@ -1235,71 +1235,71 @@ function EmailImportSetup({ provider, setProvider, marketplace, setMarketplace, 
   }
 
   return <section className="space-y-5">
-    <div className="overflow-hidden rounded-[26px] border border-cyan-300/15 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,.09),transparent_38%),#07141e] p-6 sm:p-7">
+    <div className="overflow-hidden rounded-[26px] border border-td-accent/15 bg-[radial-gradient(circle_at_top_right,rgb(var(--td-accent-rgb)/.09),transparent_38%),var(--td-surface-default)] p-6 sm:p-7">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.17em] text-cyan-300"><Sparkles className="h-4 w-4" />Automatic order import by email</div>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">Forward order emails. We organize the rest.</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-400">Trading Docks gives this workspace one private email address. You tell Gmail or Outlook to forward only marketplace order messages to it. We then identify the order, prevent duplicates, and send uncertain cards to review.</p>
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.17em] text-td-accent-text"><Sparkles className="h-4 w-4" />Automatic order import by email</div>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-td-primary">Forward order emails. We organize the rest.</h2>
+          <p className="mt-3 text-sm leading-6 text-td-secondary">Trading Docks gives this workspace one private email address. You tell Gmail or Outlook to forward only marketplace order messages to it. We then identify the order, prevent duplicates, and send uncertain cards to review.</p>
         </div>
-        <div className={`shrink-0 rounded-2xl border px-4 py-3 ${importAddressStatus === "active" ? "border-emerald-300/15 bg-emerald-300/[.04]" : "border-amber-300/15 bg-amber-300/[.04]"}`}>
-          <p className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.14em] ${importAddressStatus === "active" ? "text-emerald-200" : "text-amber-200"}`}>{importAddressStatus === "active" ? <ShieldCheck className="h-3.5 w-3.5" /> : <RefreshCw className="h-3.5 w-3.5" />}{importAddressStatus === "active" ? "Receiving active" : "Verification pending"}</p>
-          <p className={`mt-1 max-w-[240px] text-[10px] leading-4 ${importAddressStatus === "active" ? "text-emerald-100/55" : "text-amber-100/55"}`}>{importAddressStatus === "active" ? "TCGplayer order emails are connected and will continue importing for this workspace." : "Complete one forwarded-message check before sending live orders."}</p>
+        <div className={`shrink-0 rounded-2xl border px-4 py-3 ${importAddressStatus === "active" ? "border-td-success/15 bg-td-success/[.04]" : "border-td-warning/15 bg-td-warning/[.04]"}`}>
+          <p className={`flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.14em] ${importAddressStatus === "active" ? "text-td-success" : "text-td-warning"}`}>{importAddressStatus === "active" ? <ShieldCheck className="h-3.5 w-3.5" /> : <RefreshCw className="h-3.5 w-3.5" />}{importAddressStatus === "active" ? "Receiving active" : "Verification pending"}</p>
+          <p className={`mt-1 max-w-[240px] text-[11px] leading-4 ${importAddressStatus === "active" ? "text-td-success/55" : "text-td-warning/55"}`}>{importAddressStatus === "active" ? "TCGplayer order emails are connected and will continue importing for this workspace." : "Complete one forwarded-message check before sending live orders."}</p>
         </div>
       </div>
-      <div className="mt-6 grid gap-3 md:grid-cols-3">{steps.map((item, index) => <button key={item.title} type="button" onClick={() => setStep(index + 1)} className={`rounded-2xl border p-4 text-left transition ${step === index + 1 ? "border-cyan-300/25 bg-cyan-300/[.06]" : "border-white/[.07] bg-black/10 hover:border-white/[.12]"}`}><div className="flex items-center gap-3"><span className={`grid h-7 w-7 place-items-center rounded-lg text-[10px] font-bold ${step === index + 1 ? "bg-cyan-300 text-slate-950" : "bg-white/[.05] text-slate-500"}`}>{index + 1}</span><p className="text-xs font-semibold text-white">{item.title}</p></div><p className="mt-3 text-[10px] leading-5 text-slate-500">{item.detail}</p></button>)}</div>
+      <div className="mt-6 grid gap-3 md:grid-cols-3">{steps.map((item, index) => <button key={item.title} type="button" onClick={() => setStep(index + 1)} className={`rounded-2xl border p-4 text-left transition ${step === index + 1 ? "border-td-accent/25 bg-td-accent/[.06]" : "border-td-ink/[.07] bg-black/10 hover:border-td-ink/[.12]"}`}><div className="flex items-center gap-3"><span className={`grid h-7 w-7 place-items-center rounded-lg text-[11px] font-bold ${step === index + 1 ? "bg-td-accent text-td-on-accent" : "bg-td-ink/[.05] text-td-muted"}`}>{index + 1}</span><p className="text-xs font-semibold text-td-primary">{item.title}</p></div><p className="mt-3 text-[11px] leading-5 text-td-muted">{item.detail}</p></button>)}</div>
     </div>
 
     <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
-      <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5 sm:p-6">
+      <div className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5 sm:p-6">
         {step === 1 ? <>
-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-cyan-300">Step 1 of 3</p>
-          <h3 className="mt-2 text-lg font-semibold text-white">Where do your order emails arrive?</h3>
-          <p className="mt-2 text-xs leading-5 text-slate-500">Choose the email service you personally open to read new-order messages. This is not asking which marketplace you sell on.</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">{(["gmail", "outlook"] as const).map((item) => <button key={item} type="button" onClick={() => setProvider(item)} className={`flex items-center gap-3 rounded-2xl border p-4 text-left ${provider === item ? "border-cyan-300/25 bg-cyan-300/[.06]" : "border-white/[.07] bg-black/10"}`}><Mail className={`h-5 w-5 ${provider === item ? "text-cyan-300" : "text-slate-600"}`} /><div><p className="text-xs font-semibold text-white">{item === "gmail" ? "Gmail" : "Outlook / Microsoft"}</p><p className="mt-1 text-[9px] text-slate-600">I read my order emails here</p></div>{provider === item ? <Check className="ml-auto h-4 w-4 text-cyan-300" /> : null}</button>)}</div>
-          <h3 className="mt-6 text-sm font-semibold text-white">Which orders should we look for first?</h3>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">{emailMarketplaces.map((item) => <button key={item.id} type="button" onClick={() => setMarketplace(item.id)} className={`rounded-xl border px-3 py-3 text-xs font-semibold ${marketplace === item.id ? "border-cyan-300/25 bg-cyan-300/[.06] text-cyan-100" : "border-white/[.07] text-slate-500"}`}>{item.name}</button>)}</div>
-          <button type="button" onClick={() => setStep(2)} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950">Show my {provider === "gmail" ? "Gmail" : "Outlook"} instructions <ArrowRight className="h-4 w-4" /></button>
+          <p className="text-[11px] font-bold uppercase tracking-[.16em] text-td-accent-text">Step 1 of 3</p>
+          <h3 className="mt-2 text-lg font-semibold text-td-primary">Where do your order emails arrive?</h3>
+          <p className="mt-2 text-xs leading-5 text-td-muted">Choose the email service you personally open to read new-order messages. This is not asking which marketplace you sell on.</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">{(["gmail", "outlook"] as const).map((item) => <button key={item} type="button" onClick={() => setProvider(item)} className={`flex items-center gap-3 rounded-2xl border p-4 text-left ${provider === item ? "border-td-accent/25 bg-td-accent/[.06]" : "border-td-ink/[.07] bg-black/10"}`}><Mail className={`h-5 w-5 ${provider === item ? "text-td-accent-text" : "text-td-muted"}`} /><div><p className="text-xs font-semibold text-td-primary">{item === "gmail" ? "Gmail" : "Outlook / Microsoft"}</p><p className="mt-1 text-[11px] text-td-muted">I read my order emails here</p></div>{provider === item ? <Check className="ml-auto h-4 w-4 text-td-accent-text" /> : null}</button>)}</div>
+          <h3 className="mt-6 text-sm font-semibold text-td-primary">Which orders should we look for first?</h3>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">{emailMarketplaces.map((item) => <button key={item.id} type="button" onClick={() => setMarketplace(item.id)} className={`rounded-xl border px-3 py-3 text-xs font-semibold ${marketplace === item.id ? "border-td-accent/25 bg-td-accent/[.06] text-td-accent-text" : "border-td-ink/[.07] text-td-muted"}`}>{item.name}</button>)}</div>
+          <button type="button" onClick={() => setStep(2)} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent">Show my {provider === "gmail" ? "Gmail" : "Outlook"} instructions <ArrowRight className="h-4 w-4" /></button>
         </> : null}
 
         {step === 2 ? <>
-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-cyan-300">Step 2 of 3 · {provider === "gmail" ? "Gmail" : "Outlook"}</p>
-          <h3 className="mt-2 text-lg font-semibold text-white">Follow these steps one at a time</h3>
-          <p className="mt-2 text-xs leading-5 text-slate-500">Keep Trading Docks open in this tab. Open your email in a second tab, then return here after each step if you need help.</p>
-          <div className="mt-5 space-y-3">{instructions.map((item, index) => <div key={item} className="flex gap-3 rounded-2xl border border-white/[.065] bg-black/10 p-4"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-cyan-300/[.08] text-[10px] font-bold text-cyan-200">{index + 1}</span><p className="text-[11px] leading-5 text-slate-300">{item}</p></div>)}</div>
-          <div className="mt-5 flex gap-2"><button type="button" onClick={() => setStep(1)} className="h-11 rounded-xl border border-white/[.08] px-4 text-xs font-semibold text-slate-400">Back</button><button type="button" onClick={() => setStep(3)} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950">I finished the email steps <ArrowRight className="h-4 w-4" /></button></div>
+          <p className="text-[11px] font-bold uppercase tracking-[.16em] text-td-accent-text">Step 2 of 3 · {provider === "gmail" ? "Gmail" : "Outlook"}</p>
+          <h3 className="mt-2 text-lg font-semibold text-td-primary">Follow these steps one at a time</h3>
+          <p className="mt-2 text-xs leading-5 text-td-muted">Keep Trading Docks open in this tab. Open your email in a second tab, then return here after each step if you need help.</p>
+          <div className="mt-5 space-y-3">{instructions.map((item, index) => <div key={item} className="flex gap-3 rounded-2xl border border-td-ink/[.065] bg-black/10 p-4"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-td-accent/[.08] text-[11px] font-bold text-td-accent-text">{index + 1}</span><p className="text-[11px] leading-5 text-td-secondary">{item}</p></div>)}</div>
+          <div className="mt-5 flex gap-2"><button type="button" onClick={() => setStep(1)} className="h-11 rounded-xl border border-td-ink/[.08] px-4 text-xs font-semibold text-td-secondary">Back</button><button type="button" onClick={() => setStep(3)} className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent">I finished the email steps <ArrowRight className="h-4 w-4" /></button></div>
         </> : null}
 
         {step === 3 ? <>
-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-cyan-300">Step 3 of 3</p>
-          <h3 className="mt-2 text-lg font-semibold text-white">Verify your first forwarded order</h3>
-          <p className="mt-2 text-xs leading-5 text-slate-500">After email receiving is activated, Trading Docks will wait for one {marketplaceName} message. We will show exactly what was recognized before any inventory is changed.</p>
-          <div className={`mt-5 rounded-2xl border p-5 text-center ${importAddressStatus === "active" ? "border-emerald-300/14 bg-emerald-300/[.035]" : "border-amber-300/14 bg-amber-300/[.035]"}`}>
-            {importAddressStatus === "active" ? <ShieldCheck className="mx-auto h-6 w-6 text-emerald-300" /> : <RefreshCw className="mx-auto h-6 w-6 text-amber-300" />}
-            <p className={`mt-3 text-sm font-semibold ${importAddressStatus === "active" ? "text-emerald-100" : "text-amber-100"}`}>{importAddressStatus === "active" ? "Email receiving is active" : "Waiting for the first forwarded message"}</p>
-            <p className={`mx-auto mt-2 max-w-md text-[10px] leading-5 ${importAddressStatus === "active" ? "text-emerald-100/55" : "text-amber-100/55"}`}>{importAddressStatus === "active" ? "Trading Docks can receive and process supported marketplace order emails. Use the button below to import any stored TCGplayer messages." : "Forward the verification message or a test message, then check again."}</p>
-            <button type="button" disabled={emailProcessing} onClick={() => void checkAndImportOrders()} className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-blue-500 px-4 text-[10px] font-bold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{emailProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}{emailProcessing ? "Processing…" : "Check & import orders"}</button>
+          <p className="text-[11px] font-bold uppercase tracking-[.16em] text-td-accent-text">Step 3 of 3</p>
+          <h3 className="mt-2 text-lg font-semibold text-td-primary">Verify your first forwarded order</h3>
+          <p className="mt-2 text-xs leading-5 text-td-muted">After email receiving is activated, Trading Docks will wait for one {marketplaceName} message. We will show exactly what was recognized before any inventory is changed.</p>
+          <div className={`mt-5 rounded-2xl border p-5 text-center ${importAddressStatus === "active" ? "border-td-success/14 bg-td-success/[.035]" : "border-td-warning/14 bg-td-warning/[.035]"}`}>
+            {importAddressStatus === "active" ? <ShieldCheck className="mx-auto h-6 w-6 text-td-success" /> : <RefreshCw className="mx-auto h-6 w-6 text-td-warning" />}
+            <p className={`mt-3 text-sm font-semibold ${importAddressStatus === "active" ? "text-td-success" : "text-td-warning"}`}>{importAddressStatus === "active" ? "Email receiving is active" : "Waiting for the first forwarded message"}</p>
+            <p className={`mx-auto mt-2 max-w-md text-[11px] leading-5 ${importAddressStatus === "active" ? "text-td-success/55" : "text-td-warning/55"}`}>{importAddressStatus === "active" ? "Trading Docks can receive and process supported marketplace order emails. Use the button below to import any stored TCGplayer messages." : "Forward the verification message or a test message, then check again."}</p>
+            <button type="button" disabled={emailProcessing} onClick={() => void checkAndImportOrders()} className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-b from-td-accent to-td-accent px-4 text-[11px] font-bold text-td-on-accent disabled:cursor-not-allowed disabled:opacity-50">{emailProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}{emailProcessing ? "Processing…" : "Check & import orders"}</button>
           </div>
-          <button type="button" onClick={() => setStep(2)} className="mt-4 h-10 rounded-xl border border-white/[.08] px-4 text-xs font-semibold text-slate-400">Back to instructions</button>
+          <button type="button" onClick={() => setStep(2)} className="mt-4 h-10 rounded-xl border border-td-ink/[.08] px-4 text-xs font-semibold text-td-secondary">Back to instructions</button>
         </> : null}
       </div>
 
       <aside className="space-y-4">
-        <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5">
-          <p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">Your workspace’s private address</p>
-          <div className="mt-3 flex gap-2"><input readOnly value={importAddress} onFocus={(event) => event.currentTarget.select()} className="min-w-0 flex-1 rounded-xl border border-white/[.08] bg-black/20 px-3 font-mono text-[10px] text-slate-300 outline-none" /><button type="button" onClick={() => void copyAddress()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-cyan-300/15 text-cyan-300 hover:bg-cyan-300/[.05]" aria-label="Copy private import address"><Copy className="h-4 w-4" /></button></div>
-          <div className={`mt-3 flex items-start gap-2 rounded-xl border p-3 ${importAddressStatus === "active" ? "border-emerald-300/12 bg-emerald-300/[.03]" : "border-blue-300/12 bg-blue-300/[.03]"}`}>
-            {importAddressStatus === "active" ? <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" /> : <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />}
-            <p className={`text-[9px] leading-4 ${importAddressStatus === "active" ? "text-emerald-100/60" : "text-blue-100/60"}`}>
-              <strong className={importAddressStatus === "active" ? "text-emerald-100" : "text-blue-100"}>
+        <div className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[.16em] text-td-muted">Your workspace’s private address</p>
+          <div className="mt-3 flex gap-2"><input readOnly value={importAddress} onFocus={(event) => event.currentTarget.select()} className="min-w-0 flex-1 rounded-xl border border-td-ink/[.08] bg-black/20 px-3 font-mono text-[11px] text-td-secondary outline-none" /><button type="button" onClick={() => void copyAddress()} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-td-accent/15 text-td-accent-text hover:bg-td-accent/[.05]" aria-label="Copy private import address"><Copy className="h-4 w-4" /></button></div>
+          <div className={`mt-3 flex items-start gap-2 rounded-xl border p-3 ${importAddressStatus === "active" ? "border-td-success/12 bg-td-success/[.03]" : "border-td-accent/12 bg-td-accent/[.03]"}`}>
+            {importAddressStatus === "active" ? <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-td-success" /> : <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-td-accent-text" />}
+            <p className={`text-[11px] leading-4 ${importAddressStatus === "active" ? "text-td-success/60" : "text-td-accent-text/60"}`}>
+              <strong className={importAddressStatus === "active" ? "text-td-success" : "text-td-accent-text"}>
                 {importAddressStatus === "active" ? "Permanent address active:" : "Permanent workspace address:"}
               </strong>{" "}
               This address is stored with the workspace and will not change unless an administrator explicitly rotates it.
             </p>
           </div>
         </div>
-        <div className="rounded-[24px] border border-emerald-300/10 bg-emerald-300/[.025] p-5"><div className="flex items-start gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" /><div><h3 className="text-sm font-semibold text-emerald-100">We do not open your inbox</h3><p className="mt-2 text-[11px] leading-5 text-emerald-100/55">You forward only marketplace order emails. Trading Docks never receives your Gmail or Outlook password and cannot read personal messages left in your mailbox.</p></div></div></div>
-        <div className="rounded-[24px] border border-white/[.08] bg-[#07141e] p-5"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-600">What happens to an order?</p><div className="mt-4 space-y-3">{[[Inbox, "Email arrives", "Only forwarded messages reach Trading Docks."], [MousePointerClick, "Order is recognized", "We extract the order number, items, quantity, and price."], [ShieldCheck, "You stay in control", "Uncertain cards go to review before inventory changes."]].map(([Icon, title, detail]) => { const StepIcon = Icon as typeof Inbox; return <div key={String(title)} className="flex gap-3"><div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-cyan-300/[.05]"><StepIcon className="h-4 w-4 text-cyan-300" /></div><div><p className="text-[11px] font-semibold text-slate-200">{String(title)}</p><p className="mt-1 text-[9px] leading-4 text-slate-600">{String(detail)}</p></div></div>; })}</div></div>
+        <div className="rounded-[24px] border border-td-success/10 bg-td-success/[.025] p-5"><div className="flex items-start gap-3"><LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-td-success" /><div><h3 className="text-sm font-semibold text-td-success">We do not open your inbox</h3><p className="mt-2 text-[11px] leading-5 text-td-success/55">You forward only marketplace order emails. Trading Docks never receives your Gmail or Outlook password and cannot read personal messages left in your mailbox.</p></div></div></div>
+        <div className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5"><p className="text-[11px] font-bold uppercase tracking-[.16em] text-td-muted">What happens to an order?</p><div className="mt-4 space-y-3">{[[Inbox, "Email arrives", "Only forwarded messages reach Trading Docks."], [MousePointerClick, "Order is recognized", "We extract the order number, items, quantity, and price."], [ShieldCheck, "You stay in control", "Uncertain cards go to review before inventory changes."]].map(([Icon, title, detail]) => { const StepIcon = Icon as typeof Inbox; return <div key={String(title)} className="flex gap-3"><div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-td-accent/[.05]"><StepIcon className="h-4 w-4 text-td-accent-text" /></div><div><p className="text-[11px] font-semibold text-td-primary">{String(title)}</p><p className="mt-1 text-[11px] leading-4 text-td-muted">{String(detail)}</p></div></div>; })}</div></div>
       </aside>
     </div>
   </section>;

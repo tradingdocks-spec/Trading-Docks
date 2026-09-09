@@ -192,15 +192,15 @@ export function SettingsCenter({
   const activeItem = NAV_ITEMS.find((item) => item.id === active) ?? NAV_ITEMS[0];
 
   return (
-    <div className="mt-4 grid overflow-hidden rounded-[28px] border border-white/[0.08] bg-[#06121a]/95 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:mt-7 xl:min-h-[760px] xl:grid-cols-[286px_minmax(0,1fr)]">
-      <aside className="border-b border-white/[0.07] bg-[#081822]/90 p-3 sm:p-4 xl:border-b-0 xl:border-r">
+    <div className="mt-4 grid overflow-hidden rounded-[28px] border border-td-ink/[0.08] bg-td-surface/95 shadow-[0_28px_90px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength)))] sm:mt-7 xl:min-h-[760px] xl:grid-cols-[286px_minmax(0,1fr)]">
+      <aside className="border-b border-td-ink/[0.07] bg-td-surface/90 p-3 sm:p-4 xl:border-b-0 xl:border-r">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-td-muted" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Find a setting"
-            className="h-11 w-full rounded-xl border border-white/[0.07] bg-black/15 pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/30"
+            className="h-11 w-full rounded-xl border border-td-ink/[0.07] bg-black/15 pl-10 pr-3 text-sm text-td-primary outline-none transition placeholder:text-td-muted focus:border-td-accent/30"
           />
         </div>
         <div className="relative mt-3 sm:hidden">
@@ -208,16 +208,16 @@ export function SettingsCenter({
             value={active}
             onChange={(event) => setActive(event.target.value as SectionId)}
             aria-label="Choose a settings section"
-            className="h-12 w-full appearance-none rounded-xl border border-cyan-300/[0.16] bg-cyan-300/[0.07] px-4 pr-10 text-sm font-semibold text-white outline-none focus:border-cyan-300/40"
+            className="h-12 w-full appearance-none rounded-xl border border-td-accent/[0.16] bg-td-accent/[0.07] px-4 pr-10 text-sm font-semibold text-td-primary outline-none focus:border-td-accent/40"
           >
             {visibleNav.map((item) => (
-              <option key={item.id} value={item.id} className="bg-[#081822] text-white">
+              <option key={item.id} value={item.id} className="bg-td-surface text-td-primary">
                 {item.label} — {item.description}
               </option>
             ))}
           </select>
-          <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-cyan-300" />
-          <p className="mt-2 px-1 text-[10px] text-slate-500">
+          <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-td-accent-text" />
+          <p className="mt-2 px-1 text-[11px] text-td-muted">
             All settings sections are available from this menu.
           </p>
         </div>
@@ -232,21 +232,21 @@ export function SettingsCenter({
                 onClick={() => setActive(item.id)}
                 className={`group flex min-h-14 items-center gap-2.5 rounded-xl px-3 text-left transition ${
                   active === item.id
-                    ? "border border-cyan-300/[0.16] bg-cyan-300/[0.08] text-white"
-                    : "border border-transparent text-slate-400 hover:bg-white/[0.035] hover:text-slate-200"
+                    ? "border border-td-accent/[0.16] bg-td-accent/[0.08] text-td-primary"
+                    : "border border-transparent text-td-secondary hover:bg-td-ink/[0.035] hover:text-td-primary"
                 }`}
               >
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active === item.id ? "bg-cyan-300/10 text-cyan-300" : "bg-white/[0.035] text-slate-500"}`}>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active === item.id ? "bg-td-accent/10 text-td-accent-text" : "bg-td-ink/[0.035] text-td-muted"}`}>
                   <Icon className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2 text-xs font-semibold">
                     {item.label}
-                    {locked ? <LockKeyhole className="h-3 w-3 text-amber-300" /> : null}
+                    {locked ? <LockKeyhole className="h-3 w-3 text-td-warning" /> : null}
                   </span>
-                  <span className="mt-0.5 block truncate text-[9px] text-slate-600 sm:text-[10px]">{item.description}</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-td-muted sm:text-[11px]">{item.description}</span>
                 </span>
-                <ChevronRight className="hidden h-3.5 w-3.5 text-slate-700 xl:block" />
+                <ChevronRight className="hidden h-3.5 w-3.5 text-td-muted xl:block" />
               </button>
             );
           })}
@@ -254,25 +254,25 @@ export function SettingsCenter({
       </aside>
 
       <main className="min-w-0 p-4 sm:p-7 lg:p-9">
-        <div className="flex flex-col gap-4 border-b border-white/[0.07] pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-td-ink/[0.07] pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300/80">Settings / {activeItem.label}</div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">{activeItem.label}</h2>
-            <p className="mt-1 text-sm text-slate-500">{activeItem.description}</p>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-td-accent-text/80">Settings / {activeItem.label}</div>
+            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-td-primary">{activeItem.label}</h2>
+            <p className="mt-1 text-sm text-td-muted">{activeItem.description}</p>
           </div>
           {active !== "overview" && active !== "billing" && active !== "integrations" && active !== "team" && active !== "data" ? (
             <button
               type="button"
               onClick={persist}
               disabled={pending}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-semibold text-[#001018] transition hover:brightness-110 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-semibold text-td-on-accent transition hover:brightness-110 disabled:opacity-60"
             >
               {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
               {pending ? "Saving…" : saved ? "Saved" : "Save changes"}
             </button>
           ) : null}
         </div>
-        {error ? <div className="mt-5 rounded-xl border border-rose-300/20 bg-rose-400/[0.07] px-4 py-3 text-xs text-rose-200">{error}</div> : null}
+        {error ? <div className="mt-5 rounded-xl border border-td-danger/20 bg-td-danger/[0.07] px-4 py-3 text-xs text-td-danger">{error}</div> : null}
 
         <div className="mt-5 sm:mt-7">
           {active === "overview" && <Overview planName={planName} subscription={subscription} onOpen={setActive} />}
@@ -308,14 +308,14 @@ function Overview({ planName, subscription, onOpen }: { planName: string; subscr
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <button key={card.label} type="button" onClick={() => onOpen(card.target)} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/[0.18] hover:bg-white/[0.04]">
+            <button key={card.label} type="button" onClick={() => onOpen(card.target)} className="rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.025] p-4 text-left transition hover:-translate-y-0.5 hover:border-td-accent/[0.18] hover:bg-td-ink/[0.04]">
               <div className="flex items-start justify-between">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-300/[0.07] text-cyan-300"><Icon className="h-4 w-4" /></span>
-                <ChevronRight className="h-4 w-4 text-slate-700" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-td-accent/[0.07] text-td-accent-text"><Icon className="h-4 w-4" /></span>
+                <ChevronRight className="h-4 w-4 text-td-muted" />
               </div>
-              <div className="mt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600">{card.label}</div>
-              <div className="mt-1 text-lg font-semibold text-white">{card.value}</div>
-              <div className="mt-1 text-xs text-slate-500">{card.detail}</div>
+              <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-td-muted">{card.label}</div>
+              <div className="mt-1 text-lg font-semibold text-td-primary">{card.value}</div>
+              <div className="mt-1 text-xs text-td-muted">{card.detail}</div>
             </button>
           );
         })}
@@ -327,9 +327,9 @@ function Overview({ planName, subscription, onOpen }: { planName: string; subscr
             ["Choose inventory defaults", "Speed up imports and collection intake", "inventory"],
             ["Set CSV conversion rules", "Make every conversion consistent", "csv"],
           ].map(([title, detail, target], index) => (
-            <button key={title} type="button" onClick={() => onOpen(target as SectionId)} className="flex gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 text-left transition hover:border-cyan-300/20">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-300/10 text-xs font-semibold text-cyan-300">{index + 1}</span>
-              <span><span className="block text-xs font-semibold text-slate-200">{title}</span><span className="mt-1 block text-[11px] leading-5 text-slate-600">{detail}</span></span>
+            <button key={title} type="button" onClick={() => onOpen(target as SectionId)} className="flex gap-3 rounded-xl border border-td-ink/[0.06] bg-black/10 p-4 text-left transition hover:border-td-accent/20">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-td-accent/10 text-xs font-semibold text-td-accent-text">{index + 1}</span>
+              <span><span className="block text-xs font-semibold text-td-primary">{title}</span><span className="mt-1 block text-[11px] leading-5 text-td-muted">{detail}</span></span>
             </button>
           ))}
         </div>
@@ -359,15 +359,15 @@ function WorkspaceSettings({ settings, update }: SettingsProps) {
 
 function BillingSettings({ planName, subscription }: { planName: string; subscription: { status: string; billingCycle: string; renewalDate: string | null; cancelAtPeriodEnd: boolean } | null }) {
   return <div className="space-y-5">
-    <div className="relative overflow-hidden rounded-2xl border border-cyan-300/[0.15] bg-gradient-to-br from-cyan-300/[0.09] via-[#081a24] to-[#07121a] p-6">
-      <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
+    <div className="relative overflow-hidden rounded-2xl border border-td-accent/[0.15] bg-gradient-to-br from-td-accent/[0.09] via-td-surface to-td-surface p-6">
+      <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-td-accent/10 blur-3xl" />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div><div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Current membership</div><h3 className="mt-2 text-3xl font-semibold text-white">{planName}</h3><p className="mt-2 text-sm text-slate-400">{subscription ? `${subscription.status} · ${subscription.billingCycle} billing${subscription.renewalDate ? ` · ${subscription.cancelAtPeriodEnd ? "Ends" : "Renews"} ${subscription.renewalDate}` : ""}` : "No paid subscription is connected."}</p></div>
-        {subscription ? <RevenueCatBillingManagementButton /> : <a href="/dashboard/plans" className="inline-flex h-11 items-center justify-center rounded-xl bg-cyan-300 px-5 text-sm font-semibold text-[#001018]">Compare plans</a>}
+        <div><div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">Current membership</div><h3 className="mt-2 text-3xl font-semibold text-td-primary">{planName}</h3><p className="mt-2 text-sm text-td-secondary">{subscription ? `${subscription.status} · ${subscription.billingCycle} billing${subscription.renewalDate ? ` · ${subscription.cancelAtPeriodEnd ? "Ends" : "Renews"} ${subscription.renewalDate}` : ""}` : "No paid subscription is connected."}</p></div>
+        {subscription ? <RevenueCatBillingManagementButton /> : <a href="/dashboard/plans" className="inline-flex h-11 items-center justify-center rounded-xl bg-td-accent px-5 text-sm font-semibold text-td-on-accent">Compare plans</a>}
       </div>
     </div>
     <Panel title="Billing controls" description="Securely managed through RevenueCat.">
-      <div className="grid gap-3 sm:grid-cols-3">{["Payment methods", "Invoices & receipts", "Change or cancel plan"].map((item) => <div key={item} className="rounded-xl border border-white/[0.06] bg-black/10 p-4 text-xs font-medium text-slate-300">{item}</div>)}</div>
+      <div className="grid gap-3 sm:grid-cols-3">{["Payment methods", "Invoices & receipts", "Change or cancel plan"].map((item) => <div key={item} className="rounded-xl border border-td-ink/[0.06] bg-black/10 p-4 text-xs font-medium text-td-secondary">{item}</div>)}</div>
     </Panel>
   </div>;
 }
@@ -382,10 +382,10 @@ function Integrations() {
     ["Scryfall", "Card identity and printing verification", "Connected"],
   ];
   return <div className="grid gap-4 md:grid-cols-2">
-    {connections.map(([name, detail, tier]) => <div key={name} className="flex items-center gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-black/15 text-cyan-300"><Globe2 className="h-5 w-5" /></span>
-      <span className="min-w-0 flex-1"><span className="flex items-center gap-2 text-sm font-semibold text-white">{name}<span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[9px] font-medium text-slate-500">{tier}</span></span><span className="mt-1 block text-[11px] text-slate-500">{detail}</span></span>
-      <button type="button" className={`rounded-lg px-3 py-2 text-[10px] font-semibold ${tier === "Connected" ? "bg-emerald-300/10 text-emerald-300" : "border border-white/[0.08] text-slate-300 hover:border-cyan-300/25"}`}>{tier === "Connected" ? "Active" : "Connect"}</button>
+    {connections.map(([name, detail, tier]) => <div key={name} className="flex items-center gap-4 rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.025] p-4">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.06] bg-black/15 text-td-accent-text"><Globe2 className="h-5 w-5" /></span>
+      <span className="min-w-0 flex-1"><span className="flex items-center gap-2 text-sm font-semibold text-td-primary">{name}<span className="rounded-full bg-td-ink/[0.05] px-2 py-0.5 text-[11px] font-medium text-td-muted">{tier}</span></span><span className="mt-1 block text-[11px] text-td-muted">{detail}</span></span>
+      <button type="button" className={`rounded-lg px-3 py-2 text-[11px] font-semibold ${tier === "Connected" ? "bg-td-success/10 text-td-success" : "border border-td-ink/[0.08] text-td-secondary hover:border-td-accent/25"}`}>{tier === "Connected" ? "Active" : "Connect"}</button>
     </div>)}
   </div>;
 }
@@ -431,8 +431,8 @@ function SellingSettings({ settings, update }: SettingsProps) {
 function StorageSettings({ settings, update }: SettingsProps) {
   return <div className="space-y-5">
     <Panel title="Default intake location" description="New cards will begin here unless you choose another location."><Field label="Location"><Input value={settings.storageLocation as string} onChange={(v) => update("storageLocation", v)} /></Field></Panel>
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{["Bulk Box 001", "Trade Binder", "Unsorted Inventory"].map((name, index) => <div key={name} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4"><div className="flex items-center justify-between"><Database className="h-4 w-4 text-cyan-300" /><span className="text-[9px] uppercase tracking-[0.15em] text-slate-600">{index === 2 ? "Default" : "Active"}</span></div><div className="mt-4 text-sm font-semibold text-white">{name}</div><div className="mt-1 text-[11px] text-slate-500">Ready for inventory</div></div>)}</div>
-    <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.05] px-4 text-xs font-semibold text-cyan-200">+ Create storage location</button>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{["Bulk Box 001", "Trade Binder", "Unsorted Inventory"].map((name, index) => <div key={name} className="rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.025] p-4"><div className="flex items-center justify-between"><Database className="h-4 w-4 text-td-accent-text" /><span className="text-[11px] uppercase tracking-[0.15em] text-td-muted">{index === 2 ? "Default" : "Active"}</span></div><div className="mt-4 text-sm font-semibold text-td-primary">{name}</div><div className="mt-1 text-[11px] text-td-muted">Ready for inventory</div></div>)}</div>
+    <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-accent/20 bg-td-accent/[0.05] px-4 text-xs font-semibold text-td-accent-text">+ Create storage location</button>
   </div>;
 }
 
@@ -450,7 +450,7 @@ function NotificationSettings({ settings, update }: SettingsProps) {
 
 function TeamSettings({ locked }: { locked: boolean }) {
   if (locked) return <LockedFeature title="Team management is included with Store" detail="Invite employees, assign operational roles, protect financial information, and review team activity." />;
-  return <div className="space-y-5"><Panel title="Team members" description="Invite people and control what each role can access."><div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-black/10 p-4"><div><div className="text-sm font-semibold text-white">You</div><div className="mt-1 text-[11px] text-slate-500">Owner · Full access</div></div><span className="rounded-full bg-cyan-300/10 px-3 py-1 text-[10px] font-semibold text-cyan-300">Owner</span></div></Panel><button type="button" className="inline-flex h-10 items-center rounded-xl bg-cyan-300 px-4 text-xs font-semibold text-[#001018]">Invite team member</button></div>;
+  return <div className="space-y-5"><Panel title="Team members" description="Invite people and control what each role can access."><div className="flex items-center justify-between rounded-xl border border-td-ink/[0.06] bg-black/10 p-4"><div><div className="text-sm font-semibold text-td-primary">You</div><div className="mt-1 text-[11px] text-td-muted">Owner · Full access</div></div><span className="rounded-full bg-td-accent/10 px-3 py-1 text-[11px] font-semibold text-td-accent-text">Owner</span></div></Panel><button type="button" className="inline-flex h-10 items-center rounded-xl bg-td-accent px-4 text-xs font-semibold text-td-on-accent">Invite team member</button></div>;
 }
 
 function SecuritySettings() {
@@ -459,7 +459,7 @@ function SecuritySettings() {
     ["Active sessions", "Review devices currently signed into this account", "Review"],
     ["Password", "Update your password through your sign-in provider", "Change"],
     ["Connected applications", "Review services that can access Trading Docks", "Review"],
-  ].map(([title, detail, action]) => <div key={title} className="flex flex-col gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 sm:flex-row sm:items-center"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-300/[0.07] text-emerald-300"><KeyRound className="h-4 w-4" /></span><span className="flex-1"><span className="block text-sm font-semibold text-white">{title}</span><span className="mt-1 block text-[11px] text-slate-500">{detail}</span></span><button type="button" className="h-9 rounded-lg border border-white/[0.08] px-3 text-[10px] font-semibold text-slate-300">{action}</button></div>)}</div>;
+  ].map(([title, detail, action]) => <div key={title} className="flex flex-col gap-4 rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.025] p-5 sm:flex-row sm:items-center"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-td-success/[0.07] text-td-success"><KeyRound className="h-4 w-4" /></span><span className="flex-1"><span className="block text-sm font-semibold text-td-primary">{title}</span><span className="mt-1 block text-[11px] text-td-muted">{detail}</span></span><button type="button" className="h-9 rounded-lg border border-td-ink/[0.08] px-3 text-[11px] font-semibold text-td-secondary">{action}</button></div>)}</div>;
 }
 
 function DataSettings({ email }: { email: string }) {
@@ -484,15 +484,15 @@ function DataSettings({ email }: { email: string }) {
           />
         </div>
       </Panel>
-      <div className="rounded-2xl border border-rose-300/[0.14] bg-rose-400/[0.035] p-5">
-        <div className="text-sm font-semibold text-rose-200">Danger zone</div>
-        <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
+      <div className="rounded-2xl border border-td-danger/[0.14] bg-td-danger/[0.035] p-5">
+        <div className="text-sm font-semibold text-td-danger">Danger zone</div>
+        <p className="mt-2 max-w-2xl text-xs leading-5 text-td-muted">
           Account deletion is support-assisted during beta so identity, workspace ownership, billing, and legally
           retained records can be reviewed before removal.
         </p>
         <a
           href={deletionRequestHref}
-          className="mt-4 inline-flex h-9 items-center rounded-lg border border-rose-300/20 px-3 text-[10px] font-semibold text-rose-200 transition hover:border-rose-300/35 hover:bg-rose-300/[0.06]"
+          className="mt-4 inline-flex h-9 items-center rounded-lg border border-td-danger/20 px-3 text-[11px] font-semibold text-td-danger transition hover:border-td-danger/35 hover:bg-td-danger/[0.06]"
         >
           Request account deletion
         </a>
@@ -519,17 +519,17 @@ function AppearanceSettings({ settings, update }: SettingsProps) {
 type SettingsProps = { settings: SettingsData; update: (key: string, value: string | boolean | number) => void };
 
 function Panel({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
-  return <section className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5"><div className="mb-5"><h3 className="text-sm font-semibold text-white">{title}</h3>{description ? <p className="mt-1 text-[11px] leading-5 text-slate-500">{description}</p> : null}</div>{children}</section>;
+  return <section className="rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.025] p-5"><div className="mb-5"><h3 className="text-sm font-semibold text-td-primary">{title}</h3>{description ? <p className="mt-1 text-[11px] leading-5 text-td-muted">{description}</p> : null}</div>{children}</section>;
 }
 function FormGrid({ children }: { children: React.ReactNode }) { return <div className="grid gap-5 md:grid-cols-2">{children}</div>; }
-function Field({ label, hint, wide, children }: { label: string; hint?: string; wide?: boolean; children: React.ReactNode }) { return <label className={wide ? "md:col-span-2" : ""}><span className="mb-2 flex items-center justify-between text-[11px] font-semibold text-slate-300"><span>{label}</span>{hint ? <span className="font-normal text-slate-600">{hint}</span> : null}</span>{children}</label>; }
-function Input({ value, onChange, placeholder, disabled }: { value: string; onChange?: (value: string) => void; placeholder?: string; disabled?: boolean }) { return <input value={value} onChange={(e) => onChange?.(e.target.value)} placeholder={placeholder} disabled={disabled} className="h-11 w-full rounded-xl border border-white/[0.08] bg-black/15 px-3.5 text-sm text-white outline-none transition placeholder:text-slate-700 focus:border-cyan-300/30 disabled:cursor-not-allowed disabled:text-slate-600" />; }
-function NumberInput({ value, onChange, step = 1 }: { value: number; onChange: (value: number) => void; step?: number }) { return <input type="number" min="0" step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-11 w-full rounded-xl border border-white/[0.08] bg-black/15 px-3.5 text-sm text-white outline-none focus:border-cyan-300/30" />; }
-function Select({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: string[] }) { return <select value={value} onChange={(e) => onChange(e.target.value)} className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#071821] px-3.5 text-sm text-white outline-none focus:border-cyan-300/30">{options.map((option) => <option key={option}>{option}</option>)}</select>; }
-function InlineToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) { return <button type="button" onClick={() => onChange(!checked)} className="flex w-full items-center justify-between rounded-xl border border-white/[0.07] bg-black/10 px-4 py-3 text-left text-xs text-slate-300"><span>{label}</span><span className={`relative h-6 w-11 rounded-full transition ${checked ? "bg-cyan-300" : "bg-slate-800"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${checked ? "left-6" : "left-1"}`} /></span></button>; }
-function ToggleList({ items, settings, update }: { items: string[][] } & SettingsProps) { return <div className="divide-y divide-white/[0.06]">{items.map(([title, detail, key]) => <div key={key} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-slate-200">{title}</span><span className="mt-1 block text-[11px] leading-5 text-slate-600">{detail}</span></span><InlineToggle label="" checked={settings[key] as boolean} onChange={(v) => update(key, v)} /></div>)}</div>; }
-function UploadPlaceholder() { return <button type="button" className="flex w-full items-center gap-3 rounded-xl border border-dashed border-white/[0.12] bg-black/10 p-4 text-left"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] text-slate-500"><Store className="h-4 w-4" /></span><span><span className="block text-xs font-semibold text-slate-300">Upload your logo</span><span className="mt-1 block text-[10px] text-slate-600">PNG, JPG or WebP · Recommended 512 × 512</span></span></button>; }
-function LockedFeature({ title, detail }: { title: string; detail: string }) { return <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-amber-300/[0.13] bg-amber-300/[0.025] p-8 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-300/[0.08] text-amber-300"><LockKeyhole className="h-6 w-6" /></span><h3 className="mt-5 text-lg font-semibold text-white">{title}</h3><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">{detail}</p><a href="/dashboard/plans" className="mt-6 inline-flex h-10 items-center rounded-xl bg-amber-300 px-4 text-xs font-semibold text-[#171100]">View Store plan</a></div>; }
+function Field({ label, hint, wide, children }: { label: string; hint?: string; wide?: boolean; children: React.ReactNode }) { return <label className={wide ? "md:col-span-2" : ""}><span className="mb-2 flex items-center justify-between text-[11px] font-semibold text-td-secondary"><span>{label}</span>{hint ? <span className="font-normal text-td-muted">{hint}</span> : null}</span>{children}</label>; }
+function Input({ value, onChange, placeholder, disabled }: { value: string; onChange?: (value: string) => void; placeholder?: string; disabled?: boolean }) { return <input value={value} onChange={(e) => onChange?.(e.target.value)} placeholder={placeholder} disabled={disabled} className="h-11 w-full rounded-xl border border-td-ink/[0.08] bg-black/15 px-3.5 text-sm text-td-primary outline-none transition placeholder:text-td-muted focus:border-td-accent/30 disabled:cursor-not-allowed disabled:text-td-muted" />; }
+function NumberInput({ value, onChange, step = 1 }: { value: number; onChange: (value: number) => void; step?: number }) { return <input type="number" min="0" step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-11 w-full rounded-xl border border-td-ink/[0.08] bg-black/15 px-3.5 text-sm text-td-primary outline-none focus:border-td-accent/30" />; }
+function Select({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: string[] }) { return <select value={value} onChange={(e) => onChange(e.target.value)} className="h-11 w-full rounded-xl border border-td-ink/[0.08] bg-td-surface px-3.5 text-sm text-td-primary outline-none focus:border-td-accent/30">{options.map((option) => <option key={option}>{option}</option>)}</select>; }
+function InlineToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) { return <button type="button" onClick={() => onChange(!checked)} className="flex w-full items-center justify-between rounded-xl border border-td-ink/[0.07] bg-black/10 px-4 py-3 text-left text-xs text-td-secondary"><span>{label}</span><span className={`relative h-6 w-11 rounded-full transition ${checked ? "bg-td-accent" : "bg-td-surface"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${checked ? "left-6" : "left-1"}`} /></span></button>; }
+function ToggleList({ items, settings, update }: { items: string[][] } & SettingsProps) { return <div className="divide-y divide-td-ink/[0.06]">{items.map(([title, detail, key]) => <div key={key} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"><span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-td-primary">{title}</span><span className="mt-1 block text-[11px] leading-5 text-td-muted">{detail}</span></span><InlineToggle label="" checked={settings[key] as boolean} onChange={(v) => update(key, v)} /></div>)}</div>; }
+function UploadPlaceholder() { return <button type="button" className="flex w-full items-center gap-3 rounded-xl border border-dashed border-td-ink/[0.12] bg-black/10 p-4 text-left"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-td-ink/[0.04] text-td-muted"><Store className="h-4 w-4" /></span><span><span className="block text-xs font-semibold text-td-secondary">Upload your logo</span><span className="mt-1 block text-[11px] text-td-muted">PNG, JPG or WebP · Recommended 512 × 512</span></span></button>; }
+function LockedFeature({ title, detail }: { title: string; detail: string }) { return <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-td-warning/[0.13] bg-td-warning/[0.025] p-8 text-center"><span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-td-warning/[0.08] text-td-warning"><LockKeyhole className="h-6 w-6" /></span><h3 className="mt-5 text-lg font-semibold text-td-primary">{title}</h3><p className="mt-2 max-w-md text-sm leading-6 text-td-muted">{detail}</p><a href="/dashboard/plans" className="mt-6 inline-flex h-10 items-center rounded-xl bg-td-warning px-4 text-xs font-semibold text-td-on-accent">View Store plan</a></div>; }
 function ActionCard({
   icon: Icon,
   title,
@@ -545,24 +545,24 @@ function ActionCard({
 }) {
   const content = (
     <>
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-300/[0.07] text-cyan-300">
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-td-accent/[0.07] text-td-accent-text">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-xs font-semibold text-slate-200">{title}</span>
-        <span className="mt-1 block text-[10px] leading-4 text-slate-600">{detail}</span>
+        <span className="block text-xs font-semibold text-td-primary">{title}</span>
+        <span className="mt-1 block text-[11px] leading-4 text-td-muted">{detail}</span>
       </span>
       {status ? (
-        <span className="rounded-full border border-white/[0.08] bg-white/[0.035] px-2 py-1 text-[9px] font-semibold text-slate-400">
+        <span className="rounded-full border border-td-ink/[0.08] bg-td-ink/[0.035] px-2 py-1 text-[11px] font-semibold text-td-secondary">
           {status}
         </span>
       ) : null}
     </>
   );
-  const className = "flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/10 p-4 text-left";
+  const className = "flex items-center gap-3 rounded-xl border border-td-ink/[0.06] bg-black/10 p-4 text-left";
 
   return href ? (
-    <a href={href} className={`${className} transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.035]`}>
+    <a href={href} className={`${className} transition hover:border-td-accent/20 hover:bg-td-accent/[0.035]`}>
       {content}
     </a>
   ) : (

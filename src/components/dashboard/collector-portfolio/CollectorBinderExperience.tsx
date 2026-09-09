@@ -65,34 +65,34 @@ export function CollectorBinderExperience({
   }, [pageCount, view]);
 
   return (
-    <main className={`min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,.15),transparent_30%),radial-gradient(circle_at_top_left,rgba(34,211,238,.09),transparent_32%),#020911] text-white ${focusMode ? "p-2" : "px-4 py-5 sm:px-6 lg:px-8"}`}>
+    <main className={`min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,.15),transparent_30%),radial-gradient(circle_at_top_left,rgb(var(--td-accent-rgb)/.09),transparent_32%),var(--td-surface-default)] text-td-primary ${focusMode ? "p-2" : "px-4 py-5 sm:px-6 lg:px-8"}`}>
       <div className="mx-auto max-w-[1800px]">
         {!focusMode ? (
           <>
-            <header className="relative overflow-hidden rounded-[28px] border border-violet-300/[0.15] bg-[linear-gradient(135deg,#0b1e2c,#071522_52%,#160d28)] p-5 shadow-[0_30px_100px_rgba(0,0,0,.42)] sm:p-6">
+            <header className="relative overflow-hidden rounded-[28px] border border-td-violet/[0.15] bg-[linear-gradient(135deg,var(--td-surface-default),var(--td-surface-default)_52%,var(--td-surface-default))] p-5 shadow-[0_30px_100px_rgb(var(--td-shadow-rgb)/calc(.42*var(--td-shadow-strength)))] sm:p-6">
               <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full blur-[110px]" style={{ backgroundColor: `${binder.accent_color}2c` }} />
               <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex items-center gap-4">
-                  <Link href="/dashboard/collector-portfolio" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-black/15 text-slate-400 transition hover:text-white"><ArrowLeft className="h-4 w-4" /></Link>
+                  <Link href="/dashboard/collector-portfolio" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.09] bg-black/15 text-td-secondary transition hover:text-td-primary"><ArrowLeft className="h-4 w-4" /></Link>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.17em] text-cyan-300"><Palette className="h-3.5 w-3.5" /> Collector Portfolio</span>
-                      {binder.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/[0.15] bg-amber-300/[0.05] px-2 py-1 text-[8px] font-semibold text-amber-200"><Star className="h-3 w-3 fill-amber-300" /> Featured</span> : null}
+                      <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.17em] text-td-accent-text"><Palette className="h-3.5 w-3.5" /> Collector Portfolio</span>
+                      {binder.is_featured ? <span className="inline-flex items-center gap-1 rounded-full border border-td-warning/[0.15] bg-td-warning/[0.05] px-2 py-1 text-[11px] font-semibold text-td-warning"><Star className="h-3 w-3 fill-td-warning" /> Featured</span> : null}
                     </div>
                     <h1 className="mt-2 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">{binder.title}</h1>
-                    <p className="mt-1 text-[10px] text-slate-500">@{profile.username} · {binder.cardCount} cards · {money(binder.estimatedValue)}</p>
+                    <p className="mt-1 text-[11px] text-td-muted">@{profile.username} · {binder.cardCount} cards · {money(binder.estimatedValue)}</p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex rounded-xl border border-white/[0.08] bg-black/20 p-1">
+                  <div className="flex rounded-xl border border-td-ink/[0.08] bg-black/20 p-1">
                     <ViewButton active={view === "spread"} onClick={() => setView("spread")} icon={Layers3} label="Spread" />
                     <ViewButton active={view === "flipbook"} onClick={() => setView("flipbook")} icon={BookOpen} label="Flipbook" />
                     <ViewButton active={view === "gallery"} onClick={() => setView("gallery")} icon={Grid3X3} label="Gallery" />
                   </div>
-                  <button onClick={() => setShowValues((current) => !current)} className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-[10px] font-semibold transition ${showValues ? "border-emerald-300/[0.18] bg-emerald-300/[0.06] text-emerald-200" : "border-white/[0.08] bg-black/15 text-slate-500"}`}><Eye className="h-4 w-4" /> Values</button>
-                  <Link href="/dashboard/collector-portfolio?tab=showcase" className="inline-flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-3.5 text-[10px] font-bold text-[#031319]"><Share2 className="h-4 w-4" /> Share</Link>
-                  <button onClick={() => setFocusMode(true)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-black/15 text-slate-400 transition hover:text-white" title="Focus mode"><Maximize2 className="h-4 w-4" /></button>
+                  <button onClick={() => setShowValues((current) => !current)} className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-[11px] font-semibold transition ${showValues ? "border-td-success/[0.18] bg-td-success/[0.06] text-td-success" : "border-td-ink/[0.08] bg-black/15 text-td-muted"}`}><Eye className="h-4 w-4" /> Values</button>
+                  <Link href="/dashboard/collector-portfolio?tab=showcase" className="inline-flex h-10 items-center gap-2 rounded-xl bg-td-accent px-3.5 text-[11px] font-bold text-td-on-accent"><Share2 className="h-4 w-4" /> Share</Link>
+                  <button onClick={() => setFocusMode(true)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-ink/[0.08] bg-black/15 text-td-secondary transition hover:text-td-primary" title="Focus mode"><Maximize2 className="h-4 w-4" /></button>
                 </div>
               </div>
             </header>
@@ -106,8 +106,8 @@ export function CollectorBinderExperience({
           </>
         ) : null}
 
-        <section className={`${focusMode ? "" : "mt-4"} relative overflow-hidden rounded-[30px] border border-violet-300/[0.14] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.11),transparent_34%),linear-gradient(145deg,#120d20,#07131d_50%,#0c1722)] shadow-[0_38px_130px_rgba(0,0,0,.52)]`}>
-          <div className="pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/45 to-transparent" />
+        <section className={`${focusMode ? "" : "mt-4"} relative overflow-hidden rounded-[30px] border border-td-violet/[0.14] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.11),transparent_34%),linear-gradient(145deg,var(--td-surface-default),var(--td-surface-default)_50%,var(--td-surface-default))] shadow-[0_38px_130px_rgb(var(--td-shadow-rgb)/calc(.52*var(--td-shadow-strength)))]`}>
+          <div className="pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-td-violet/45 to-transparent" />
 
           {view === "gallery" ? (
             <Gallery pages={pageSummaries} onOpen={(nextPage) => { setPage(nextPage); setView("spread"); }} showValues={showValues} />
@@ -115,12 +115,12 @@ export function CollectorBinderExperience({
             <div className="grid min-h-[720px] xl:grid-cols-[1fr_320px]">
               <div className="relative flex min-w-0 flex-col p-4 sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
-                  <button onClick={() => setPage((current) => Math.max(1, current - (view === "spread" ? 2 : 1)))} disabled={page <= 1} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/15 px-3 text-[10px] font-semibold text-slate-300 disabled:opacity-30"><ChevronLeft className="h-4 w-4" /> Previous</button>
+                  <button onClick={() => setPage((current) => Math.max(1, current - (view === "spread" ? 2 : 1)))} disabled={page <= 1} className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-black/15 px-3 text-[11px] font-semibold text-td-secondary disabled:opacity-30"><ChevronLeft className="h-4 w-4" /> Previous</button>
                   <div className="text-center">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">{view === "spread" ? "Binder spread" : "Interactive flipbook"}</p>
-                    <p className="mt-1 text-[10px] text-slate-600">{view === "spread" ? `Pages ${leftPage}–${rightPage}` : `Page ${page}`} of {pageCount}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-accent-text">{view === "spread" ? "Binder spread" : "Interactive flipbook"}</p>
+                    <p className="mt-1 text-[11px] text-td-muted">{view === "spread" ? `Pages ${leftPage}–${rightPage}` : `Page ${page}`} of {pageCount}</p>
                   </div>
-                  <button onClick={() => setPage((current) => Math.min(pageCount, current + (view === "spread" ? 2 : 1)))} disabled={page >= pageCount} className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/15 px-3 text-[10px] font-semibold text-slate-300 disabled:opacity-30">Next <ChevronRight className="h-4 w-4" /></button>
+                  <button onClick={() => setPage((current) => Math.min(pageCount, current + (view === "spread" ? 2 : 1)))} disabled={page >= pageCount} className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-black/15 px-3 text-[11px] font-semibold text-td-secondary disabled:opacity-30">Next <ChevronRight className="h-4 w-4" /></button>
                 </div>
 
                 {view === "spread" ? (
@@ -139,31 +139,31 @@ export function CollectorBinderExperience({
 
                 <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
                   {pageSummaries.map((summary) => (
-                    <button key={summary.page} onClick={() => setPage(summary.page)} className={`h-1.5 min-w-8 flex-1 rounded-full transition ${summary.page === page || (view === "spread" && (summary.page === leftPage || summary.page === rightPage)) ? "bg-cyan-300" : summary.cards.length ? "bg-violet-300/35 hover:bg-violet-300/60" : "bg-white/[0.06]"}`} title={`Page ${summary.page}`} />
+                    <button key={summary.page} onClick={() => setPage(summary.page)} className={`h-1.5 min-w-8 flex-1 rounded-full transition ${summary.page === page || (view === "spread" && (summary.page === leftPage || summary.page === rightPage)) ? "bg-td-accent" : summary.cards.length ? "bg-td-violet/35 hover:bg-td-violet/60" : "bg-td-ink/[0.06]"}`} title={`Page ${summary.page}`} />
                   ))}
                 </div>
               </div>
 
-              <aside className="border-t border-white/[0.07] bg-black/15 p-5 xl:border-l xl:border-t-0">
+              <aside className="border-t border-td-ink/[0.07] bg-black/15 p-5 xl:border-l xl:border-t-0">
                 {selectedCard ? (
                   <div className="sticky top-5">
-                    <p className="text-[8px] font-bold uppercase tracking-[0.17em] text-cyan-300">Card spotlight</p>
-                    {selectedCard.imageUrl ? <img src={selectedCard.imageUrl} alt={selectedCard.name} className="mt-4 aspect-[.716] w-full rounded-[18px] object-cover shadow-[0_24px_65px_rgba(0,0,0,.46)]" /> : null}
-                    <h2 className="mt-4 text-xl font-semibold text-white">{selectedCard.name}</h2>
-                    <p className="mt-1 text-[10px] text-slate-600">{[selectedCard.set, selectedCard.condition, selectedCard.finish].filter(Boolean).join(" · ")}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-accent-text">Card spotlight</p>
+                    {selectedCard.imageUrl ? <img src={selectedCard.imageUrl} alt={selectedCard.name} className="mt-4 aspect-[.716] w-full rounded-[18px] object-cover shadow-[0_24px_65px_rgb(var(--td-shadow-rgb)/calc(.46*var(--td-shadow-strength)))]" /> : null}
+                    <h2 className="mt-4 text-xl font-semibold text-td-primary">{selectedCard.name}</h2>
+                    <p className="mt-1 text-[11px] text-td-muted">{[selectedCard.set, selectedCard.condition, selectedCard.finish].filter(Boolean).join(" · ")}</p>
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Summary label="Quantity" value={String(selectedCard.quantity)} />
                       <Summary label="Value" value={showValues ? money(selectedCard.value) : "Hidden"} accent={showValues} />
                     </div>
-                    <p className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 text-[9px] leading-5 text-slate-500">
+                    <p className="mt-4 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-3 text-[11px] leading-5 text-td-muted">
                       Page {selectedCard.binderPage ?? "—"} · Pocket {selectedCard.binderSlot ?? "—"}
                     </p>
                   </div>
                 ) : (
                   <div className="flex h-full min-h-[420px] flex-col items-center justify-center text-center">
-                    <Sparkles className="h-7 w-7 text-slate-700" />
-                    <p className="mt-4 text-sm font-semibold text-slate-400">Select a card</p>
-                    <p className="mt-2 text-[10px] text-slate-700">Card details will appear here without covering the binder.</p>
+                    <Sparkles className="h-7 w-7 text-td-muted" />
+                    <p className="mt-4 text-sm font-semibold text-td-secondary">Select a card</p>
+                    <p className="mt-2 text-[11px] text-td-muted">Card details will appear here without covering the binder.</p>
                   </div>
                 )}
               </aside>
@@ -171,7 +171,7 @@ export function CollectorBinderExperience({
           )}
 
           {focusMode ? (
-            <button onClick={() => setFocusMode(false)} className="absolute right-4 top-4 z-40 inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.10] bg-black/65 px-3 text-[10px] font-semibold text-white backdrop-blur"><List className="h-4 w-4" /> Exit focus</button>
+            <button onClick={() => setFocusMode(false)} className="absolute right-4 top-4 z-40 inline-flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.10] bg-black/65 px-3 text-[11px] font-semibold text-white backdrop-blur"><List className="h-4 w-4" /> Exit focus</button>
           ) : null}
         </section>
       </div>
@@ -202,19 +202,19 @@ function PortfolioPage({
     .sort((a, b) => (a.binderSlot ?? "").localeCompare(b.binderSlot ?? ""));
 
   return (
-    <article className={`relative flex min-h-[620px] flex-col overflow-hidden rounded-[26px] border border-violet-300/[0.15] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.13),transparent_36%),linear-gradient(145deg,#171126,#0b151f_55%,#101121)] p-4 shadow-[inset_0_0_90px_rgba(0,0,0,.32),0_24px_70px_rgba(0,0,0,.36)] ${side === "left" ? "lg:rounded-r-[18px]" : side === "right" ? "lg:rounded-l-[18px]" : ""}`}>
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/45 to-transparent" />
+    <article className={`relative flex min-h-[620px] flex-col overflow-hidden rounded-[26px] border border-td-violet/[0.15] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.13),transparent_36%),linear-gradient(145deg,var(--td-surface-default),var(--td-surface-default)_55%,var(--td-surface-default))] p-4 shadow-[inset_0_0_90px_rgb(var(--td-shadow-rgb)/calc(.32*var(--td-shadow-strength))),0_24px_70px_rgb(var(--td-shadow-rgb)/calc(.36*var(--td-shadow-strength)))] ${side === "left" ? "lg:rounded-r-[18px]" : side === "right" ? "lg:rounded-l-[18px]" : ""}`}>
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-td-violet/45 to-transparent" />
       <div className="mb-4 flex items-center justify-between">
-        <div><p className="text-[8px] font-bold uppercase tracking-[0.17em] text-violet-200">Physical page</p><p className="mt-1 text-sm font-semibold text-white">Page {page}</p></div>
-        <span className="rounded-lg border border-white/[0.07] bg-black/15 px-2 py-1 text-[8px] text-slate-600">{cards.length}/{count}</span>
+        <div><p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-violet">Physical page</p><p className="mt-1 text-sm font-semibold text-td-primary">Page {page}</p></div>
+        <span className="rounded-lg border border-td-ink/[0.07] bg-black/15 px-2 py-1 text-[11px] text-td-muted">{cards.length}/{count}</span>
       </div>
       <div className="grid flex-1 gap-2.5" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
         {Array.from({ length: count }, (_, index) => {
           const card = cards[index];
           return (
-            <button key={card?.id ?? index} onClick={() => card && onSelect(card.id)} className={`group relative min-h-0 overflow-hidden rounded-xl border bg-black/25 text-left transition duration-300 ${card?.id === selectedCardId ? "border-cyan-200 shadow-[0_0_0_3px_rgba(34,211,238,.10),0_0_28px_rgba(34,211,238,.13)]" : "border-white/[0.07] hover:-translate-y-1 hover:border-violet-300/35"}`}>
-              {card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]" /> : <span className="flex h-full min-h-[150px] items-center justify-center text-slate-800"><BookOpen className="h-5 w-5" /></span>}
-              {card && showValues ? <span className="absolute bottom-2 right-2 rounded-md bg-black/75 px-1.5 py-1 text-[7px] font-semibold text-emerald-300 backdrop-blur">{money(card.value)}</span> : null}
+            <button key={card?.id ?? index} onClick={() => card && onSelect(card.id)} className={`group relative min-h-0 overflow-hidden rounded-xl border bg-black/25 text-left transition duration-300 ${card?.id === selectedCardId ? "border-td-accent shadow-[0_0_0_3px_rgb(var(--td-accent-rgb)/.10),0_0_28px_rgb(var(--td-accent-rgb)/.13)]" : "border-td-ink/[0.07] hover:-translate-y-1 hover:border-td-violet/35"}`}>
+              {card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]" /> : <span className="flex h-full min-h-[150px] items-center justify-center text-td-on-accent"><BookOpen className="h-5 w-5" /></span>}
+              {card && showValues ? <span className="absolute bottom-2 right-2 rounded-md bg-black/75 px-1.5 py-1 text-[11px] font-semibold text-td-success backdrop-blur">{money(card.value)}</span> : null}
             </button>
           );
         })}
@@ -234,17 +234,17 @@ function Gallery({
 }) {
   return (
     <div className="p-5 sm:p-7">
-      <div><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-cyan-300">Binder gallery</p><h2 className="mt-2 text-2xl font-semibold text-white">Jump to any page.</h2></div>
+      <div><p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-accent-text">Binder gallery</p><h2 className="mt-2 text-2xl font-semibold text-td-primary">Jump to any page.</h2></div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {pages.map((summary) => (
-          <button key={summary.page} onClick={() => onOpen(summary.page)} className="group rounded-[22px] border border-white/[0.08] bg-black/15 p-3 text-left transition hover:-translate-y-1 hover:border-violet-300/30">
-            <div className="grid aspect-[1.4] grid-cols-3 gap-1.5 overflow-hidden rounded-[15px] bg-[linear-gradient(145deg,#171126,#0b151f)] p-2">
+          <button key={summary.page} onClick={() => onOpen(summary.page)} className="group rounded-[22px] border border-td-ink/[0.08] bg-black/15 p-3 text-left transition hover:-translate-y-1 hover:border-td-violet/30">
+            <div className="grid aspect-[1.4] grid-cols-3 gap-1.5 overflow-hidden rounded-[15px] bg-[linear-gradient(145deg,var(--td-surface-default),var(--td-surface-default))] p-2">
               {Array.from({ length: 9 }, (_, index) => {
                 const card = summary.cards[index];
-                return <div key={card?.id ?? index} className="overflow-hidden rounded border border-white/[0.05] bg-black/25">{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" /> : null}</div>;
+                return <div key={card?.id ?? index} className="overflow-hidden rounded border border-td-ink/[0.05] bg-black/25">{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" /> : null}</div>;
               })}
             </div>
-            <div className="mt-3 flex items-center justify-between"><div><p className="text-[11px] font-semibold text-white">Page {summary.page}</p><p className="mt-1 text-[9px] text-slate-600">{summary.cards.length} cards</p></div>{showValues ? <span className="text-[10px] font-semibold text-emerald-300">{money(summary.value)}</span> : null}</div>
+            <div className="mt-3 flex items-center justify-between"><div><p className="text-[11px] font-semibold text-td-primary">Page {summary.page}</p><p className="mt-1 text-[11px] text-td-muted">{summary.cards.length} cards</p></div>{showValues ? <span className="text-[11px] font-semibold text-td-success">{money(summary.value)}</span> : null}</div>
           </button>
         ))}
       </div>
@@ -253,11 +253,11 @@ function Gallery({
 }
 
 function ViewButton({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: typeof BookOpen; label: string }) {
-  return <button onClick={onClick} className={`inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-[9px] font-semibold transition ${active ? "bg-violet-300 text-[#18092b]" : "text-slate-600 hover:text-white"}`}><Icon className="h-3.5 w-3.5" /> {label}</button>;
+  return <button onClick={onClick} className={`inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-[11px] font-semibold transition ${active ? "bg-td-violet text-td-on-accent" : "text-td-muted hover:text-td-primary"}`}><Icon className="h-3.5 w-3.5" /> {label}</button>;
 }
 
 function Summary({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
-  return <div className="rounded-xl border border-white/[0.07] bg-black/20 px-3 py-3"><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-700">{label}</p><p className={`mt-1 text-sm font-semibold ${accent ? "text-emerald-300" : "text-white"}`}>{value}</p></div>;
+  return <div className="rounded-xl border border-td-ink/[0.07] bg-black/20 px-3 py-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{label}</p><p className={`mt-1 text-sm font-semibold ${accent ? "text-td-success" : "text-td-primary"}`}>{value}</p></div>;
 }
 
 function money(value: number) {

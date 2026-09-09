@@ -255,7 +255,7 @@ function OptionGroup<T extends string>({
               aria-pressed={selected}
               disabled={pending || selected}
               onClick={() => onSelect(option)}
-              className={`min-h-10 rounded-full border px-3 text-xs font-black outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] disabled:opacity-70 ${selected ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-50" : "border-[var(--td-border-default)] text-[var(--td-text-muted)]"}`}
+              className={`min-h-10 rounded-full border px-3 text-xs font-black outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] disabled:opacity-70 ${selected ? "border-td-accent/50 bg-td-accent/15 text-td-accent-text" : "border-[var(--td-border-default)] text-[var(--td-text-muted)]"}`}
             >
               {display(option)}
             </button>

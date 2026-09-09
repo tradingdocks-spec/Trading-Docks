@@ -67,18 +67,18 @@ function FeatureCard({
   description,
 }: FeatureCardProps) {
   return (
-    <div className="feature-card group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] px-3.5 py-3 transition duration-500 hover:-translate-y-1 hover:border-blue-300/30 hover:bg-blue-400/[0.055] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_16px_34px_rgba(0,0,0,0.18),0_0_24px_rgba(59,130,246,0.04)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(103,232,249,0.08),transparent_30%)] opacity-0 transition duration-500 group-hover:opacity-100" />
+    <div className="feature-card group relative overflow-hidden rounded-xl border border-td-ink/10 bg-td-ink/[0.035] px-3.5 py-3 transition duration-500 hover:-translate-y-1 hover:border-td-accent/30 hover:bg-td-accent/[0.055] hover:shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/0.04),0_16px_34px_rgb(var(--td-shadow-rgb)/calc(0.18*var(--td-shadow-strength))),0_0_24px_rgb(var(--td-accent-rgb)/0.04)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgb(var(--td-accent-rgb)/0.08),transparent_30%)] opacity-0 transition duration-500 group-hover:opacity-100" />
 
       <div className="relative flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-blue-400/20 bg-blue-400/10 text-blue-300 transition duration-500 group-hover:-translate-y-0.5 group-hover:border-blue-300/40 group-hover:bg-blue-400/15 group-hover:text-blue-200">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-td-accent/20 bg-td-accent/10 text-td-accent-text transition duration-500 group-hover:-translate-y-0.5 group-hover:border-td-accent/40 group-hover:bg-td-accent/15 group-hover:text-td-accent-text">
           {icon}
         </div>
 
         <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-white">{title}</h3>
+          <h3 className="text-xs font-semibold text-td-primary">{title}</h3>
 
-          <p className="mt-1 truncate text-[10px] text-slate-400 tracking-[0.02em]">
+          <p className="mt-1 truncate text-[11px] text-td-secondary tracking-[0.02em]">
             {description}
           </p>
         </div>
@@ -94,23 +94,23 @@ function Metric({
   icon,
 }: MetricProps) {
   return (
-    <div className="metric-card rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-2">
+    <div className="metric-card rounded-lg border border-td-ink/10 bg-td-ink/[0.035] px-2.5 py-2">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[7px] font-medium uppercase tracking-[0.14em] text-slate-500">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-td-muted">
             {label}
           </p>
 
-          <p className="mt-1 text-xs font-semibold text-white">
+          <p className="mt-1 text-xs font-semibold text-td-primary">
             {value}
           </p>
 
-          <p className="mt-0.5 truncate text-[8px] text-slate-600">
+          <p className="mt-0.5 truncate text-[11px] text-td-muted">
             {detail}
           </p>
         </div>
 
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-400/10 text-blue-300">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-td-accent/10 text-td-accent-text">
           {icon}
         </div>
       </div>
@@ -127,23 +127,23 @@ function FloatingModule({
 }: FloatingModuleProps) {
   return (
     <div
-      className={`absolute z-30 hidden min-w-[145px] rounded-xl border border-blue-300/20 bg-[#09141c]/90 p-2.5 shadow-[0_18px_45px_rgba(0,0,0,0.45),0_0_28px_rgba(59,130,246,0.08)] backdrop-blur-xl xl:block ${className}`}
+      className={`absolute z-30 hidden min-w-[145px] rounded-xl border border-td-accent/20 bg-td-surface/90 p-2.5 shadow-[0_18px_45px_rgb(var(--td-shadow-rgb)/calc(0.45*var(--td-shadow-strength))),0_0_28px_rgb(var(--td-accent-rgb)/0.08)] backdrop-blur-xl xl:block ${className}`}
     >
       <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-400/10 text-blue-300">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-td-accent/10 text-td-accent-text">
           {icon}
         </div>
 
         <div className="min-w-0">
-          <p className="text-[6px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-muted">
             {eyebrow}
           </p>
 
-          <p className="mt-0.5 text-[10px] font-semibold text-white">
+          <p className="mt-0.5 text-[11px] font-semibold text-td-primary">
             {title}
           </p>
 
-          <p className="mt-0.5 text-[7px] text-slate-500">
+          <p className="mt-0.5 text-[11px] text-td-muted">
             {detail}
           </p>
         </div>
@@ -164,15 +164,15 @@ function LiveActivityTicker() {
   return (
     <div className="mt-3 flex h-5 items-center overflow-visible">
       <span className="status-indicator relative mr-2 flex h-2.5 w-2.5 shrink-0 items-center justify-center">
-        <span className="status-halo absolute h-3.5 w-3.5 rounded-full bg-emerald-400/20 blur-[5px]" />
-        <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-300" />
+        <span className="status-halo absolute h-3.5 w-3.5 rounded-full bg-td-success/20 blur-[5px]" />
+        <span className="relative h-1.5 w-1.5 rounded-full bg-td-success" />
       </span>
 
       <div className="relative h-4 flex-1 overflow-hidden">
         {updates.map((update, index) => (
           <span
             key={update}
-            className="live-activity-item absolute inset-0 flex items-center text-[9px] font-medium text-slate-500"
+            className="live-activity-item absolute inset-0 flex items-center text-[11px] font-medium text-td-muted"
             style={{ animationDelay: `${index * 3}s` }}
           >
             {update}
@@ -187,8 +187,8 @@ function PortfolioChart() {
   return (
     <div className="relative mt-2 h-[68px] overflow-hidden">
       <div className="absolute inset-0">
-        <div className="absolute inset-x-0 top-1/3 border-t border-dashed border-white/[0.05]" />
-        <div className="absolute inset-x-0 top-2/3 border-t border-dashed border-white/[0.05]" />
+        <div className="absolute inset-x-0 top-1/3 border-t border-dashed border-td-ink/[0.05]" />
+        <div className="absolute inset-x-0 top-2/3 border-t border-dashed border-td-ink/[0.05]" />
       </div>
 
       <svg
@@ -207,19 +207,19 @@ function PortfolioChart() {
           >
             <stop
               offset="0%"
-              stopColor="rgb(34 211 238)"
+              stopColor="var(--td-action-primary)"
               stopOpacity="0.34"
             />
 
             <stop
               offset="58%"
-              stopColor="rgb(34 211 238)"
+              stopColor="var(--td-action-primary)"
               stopOpacity="0.08"
             />
 
             <stop
               offset="100%"
-              stopColor="rgb(34 211 238)"
+              stopColor="var(--td-action-primary)"
               stopOpacity="0"
             />
           </linearGradient>
@@ -231,9 +231,9 @@ function PortfolioChart() {
             x2="1"
             y2="0"
           >
-            <stop offset="0%" stopColor="rgb(103 232 249)" />
-            <stop offset="55%" stopColor="rgb(34 211 238)" />
-            <stop offset="100%" stopColor="rgb(56 189 248)" />
+            <stop offset="0%" stopColor="var(--td-accent-text)" />
+            <stop offset="55%" stopColor="var(--td-action-primary)" />
+            <stop offset="100%" stopColor="var(--td-action-primary)" />
           </linearGradient>
 
           <filter id="signInChartGlow">
@@ -283,7 +283,7 @@ function PortfolioChart() {
           cx="600"
           cy="22"
           r="7"
-          fill="rgb(165 243 252)"
+          fill="var(--td-accent-text)"
           className="chart-point"
         />
 
@@ -291,13 +291,13 @@ function PortfolioChart() {
           cx="600"
           cy="22"
           r="15"
-          fill="rgb(34 211 238)"
+          fill="var(--td-action-primary)"
           opacity="0.14"
           className="chart-pulse"
         />
       </svg>
 
-      <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[6px] font-medium uppercase tracking-[0.1em] text-slate-700">
+      <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[11px] font-medium uppercase tracking-[0.1em] text-td-muted">
         <span>Jan</span>
         <span>Mar</span>
         <span>May</span>
@@ -315,7 +315,7 @@ export default async function SignInPage({
   const { error, success, next } = await searchParams;
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#03080c] text-white lg:h-screen lg:min-h-0 lg:overflow-hidden">
+    <main className="relative min-h-screen overflow-x-hidden bg-td-canvas text-td-primary">
       <style>{`
         @keyframes ambientGlow {
           0%, 100% {
@@ -371,13 +371,13 @@ export default async function SignInPage({
 
         @keyframes cardGlow {
           0%, 100% {
-            border-color: rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.035);
+            border-color: rgb(var(--td-ink-rgb)/0.1);
+            background: rgb(var(--td-ink-rgb)/0.035);
           }
 
           50% {
-            border-color: rgba(34, 211, 238, 0.22);
-            background: rgba(34, 211, 238, 0.05);
+            border-color: rgb(var(--td-accent-rgb)/0.22);
+            background: rgb(var(--td-accent-rgb)/0.05);
           }
         }
 
@@ -439,14 +439,14 @@ export default async function SignInPage({
         @keyframes securePulse {
           0%, 100% {
             box-shadow:
-              0 0 0 0 rgba(34, 211, 238, 0),
-              0 8px 24px rgba(6, 182, 212, 0.07);
+              0 0 0 0 rgb(var(--td-accent-rgb)/0),
+              0 8px 24px rgb(var(--td-accent-rgb)/0.07);
           }
 
           50% {
             box-shadow:
-              0 0 0 7px rgba(34, 211, 238, 0.025),
-              0 12px 30px rgba(6, 182, 212, 0.14);
+              0 0 0 7px rgb(var(--td-accent-rgb)/0.025),
+              0 12px 30px rgb(var(--td-accent-rgb)/0.14);
           }
         }
 
@@ -543,7 +543,7 @@ export default async function SignInPage({
           background: linear-gradient(
             105deg,
             transparent,
-            rgba(255, 255, 255, 0.48),
+            rgb(var(--td-ink-rgb)/0.48),
             transparent
           );
           filter: blur(8px);
@@ -558,8 +558,8 @@ export default async function SignInPage({
           height: 3px;
           width: 3px;
           border-radius: 999px;
-          background: rgba(103, 232, 249, 0.75);
-          box-shadow: 0 0 12px rgba(34, 211, 238, 0.42);
+          background: rgb(var(--td-accent-rgb)/0.75);
+          box-shadow: 0 0 12px rgb(var(--td-accent-rgb)/0.42);
           pointer-events: none;
         }
 
@@ -583,8 +583,8 @@ export default async function SignInPage({
 
         .data-streams {
           background-image:
-            linear-gradient(90deg, transparent 0 48%, rgba(103,232,249,0.08) 50%, transparent 52%),
-            linear-gradient(90deg, transparent 0 48%, rgba(59,130,246,0.05) 50%, transparent 52%);
+            linear-gradient(90deg, transparent 0 48%, rgb(var(--td-accent-rgb)/0.08) 50%, transparent 52%),
+            linear-gradient(90deg, transparent 0 48%, rgb(var(--td-accent-rgb)/0.05) 50%, transparent 52%);
           background-size: 72px 1px, 96px 1px;
           background-repeat: repeat-x;
           animation: streamFlow 20s linear infinite alternate;
@@ -744,19 +744,6 @@ export default async function SignInPage({
           animation: securePulse 4s ease-in-out infinite;
         }
 
-        @media (max-height: 850px) and (min-width: 1024px) {
-          .desktop-scale {
-            transform: scale(0.9);
-            transform-origin: center;
-          }
-        }
-
-        @media (max-height: 760px) and (min-width: 1024px) {
-          .desktop-scale {
-            transform: scale(0.82);
-          }
-        }
-
         @media (prefers-reduced-motion: reduce) {
           .ambient-glow,
           .dashboard-float,
@@ -812,25 +799,25 @@ export default async function SignInPage({
         className="pointer-events-none absolute inset-0 opacity-[0.1]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(148,163,184,0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.14) 1px, transparent 1px)",
+            "linear-gradient(rgb(var(--td-accent-rgb)/0.14) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--td-accent-rgb)/0.14) 1px, transparent 1px)",
           backgroundSize: "54px 54px",
         }}
       />
 
       <div
         aria-hidden="true"
-        className="ambient-glow pointer-events-none absolute -left-44 -top-52 h-[620px] w-[620px] rounded-full bg-blue-500/[0.12] blur-[165px]"
+        className="ambient-glow pointer-events-none absolute -left-44 -top-52 h-[620px] w-[620px] rounded-full bg-td-accent/[0.12] blur-[165px]"
       />
 
       <div
         aria-hidden="true"
-        className="ambient-glow pointer-events-none absolute -bottom-56 right-[-110px] h-[620px] w-[620px] rounded-full bg-blue-500/[0.08] blur-[185px]"
+        className="ambient-glow pointer-events-none absolute -bottom-56 right-[-110px] h-[620px] w-[620px] rounded-full bg-td-accent/[0.08] blur-[185px]"
         style={{ animationDelay: "-4s" }}
       />
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-[53%] top-1/2 hidden h-[70%] w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-blue-300/10 to-transparent lg:block"
+        className="pointer-events-none absolute left-[53%] top-1/2 hidden h-[70%] w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-td-accent/10 to-transparent lg:block"
       />
 
       <div
@@ -842,8 +829,8 @@ export default async function SignInPage({
       <span aria-hidden="true" className="signature-dot-two hidden lg:block" />
       <span aria-hidden="true" className="signature-dot-three hidden lg:block" />
 
-      <div className="desktop-scale relative mx-auto grid min-h-screen w-full max-w-[1360px] grid-cols-1 px-5 py-7 sm:px-8 lg:h-screen lg:min-h-0 lg:grid-cols-[1.12fr_0.88fr] lg:items-center lg:gap-12 lg:px-8 lg:py-4 xl:gap-16">
-        <section className="hidden h-full min-h-0 items-center lg:flex">
+      <div className="relative mx-auto grid min-h-screen w-full max-w-[1360px] grid-cols-1 px-5 py-7 sm:px-8 lg:grid-cols-[1.12fr_0.88fr] lg:items-center lg:gap-12 lg:px-8 lg:py-16 xl:gap-16">
+        <section className="hidden items-center lg:flex">
           <div className="w-full max-w-[640px]">
             <div className="flex items-center gap-3">
               <Link
@@ -852,7 +839,7 @@ export default async function SignInPage({
                 className="group inline-flex items-center gap-3"
               >
                 <span className="relative flex h-[60px] w-[60px] shrink-0 items-center justify-center">
-                  <span className="absolute inset-1 rounded-[20px] bg-blue-400/[0.15] blur-xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
+                  <span className="absolute inset-1 rounded-[20px] bg-td-accent/[0.15] blur-xl transition duration-500 group-hover:bg-td-accent/[0.24]" />
 
                   <Image
                     src="/trading-docks-mark.png"
@@ -866,35 +853,35 @@ export default async function SignInPage({
                 </span>
 
                 <span className="flex flex-col">
-                  <span className="text-[15px] font-semibold tracking-[-0.025em] text-white">
+                  <span className="text-[15px] font-semibold tracking-[-0.025em] text-td-primary">
                     Trading Docks
                   </span>
 
-                  <span className="mt-0.5 text-[7px] font-medium uppercase tracking-[0.24em] text-slate-600">
+                  <span className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.24em] text-td-muted">
                     Collectibles OS
                   </span>
                 </span>
               </Link>
 
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 backdrop-blur-md">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-400/10 text-blue-300">
+              <div className="inline-flex items-center gap-2 rounded-full border border-td-ink/10 bg-td-ink/[0.045] px-3 py-1.5 backdrop-blur-md">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-td-accent/10 text-td-accent-text">
                   <Layers3 className="h-2.5 w-2.5" />
                 </span>
 
-                <span className="text-[9px] font-medium text-slate-300">
+                <span className="text-[11px] font-medium text-td-secondary">
                   Built for collectors, sellers, and stores
                 </span>
               </div>
             </div>
 
-            <h1 className="mt-4 max-w-[630px] text-[clamp(2.45rem,3.8vw,3.8rem)] font-semibold leading-[0.96] tracking-[-0.058em] text-white">
+            <h1 className="mt-4 max-w-[630px] text-[clamp(2.45rem,3.8vw,3.8rem)] font-semibold leading-[0.96] tracking-[-0.058em] text-td-primary">
               Run your collectibles business
-              <span className="mt-3 block bg-gradient-to-r from-cyan-200 via-blue-400 to-blue-600 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(59,130,246,0.05)]">
+              <span className="mt-3 block bg-gradient-to-r from-td-accent via-td-accent to-td-accent bg-clip-text text-transparent drop-shadow-[0_0_18px_rgb(var(--td-accent-rgb)/0.05)]">
                 from one place.
               </span>
             </h1>
 
-            <p className="mt-3 max-w-[610px] text-xs leading-5 text-slate-400 xl:text-sm">
+            <p className="mt-3 max-w-[610px] text-xs leading-5 text-td-secondary xl:text-sm">
               Track singles, sealed products, graded cards, binders, supplies,
               bulk inventory, listings, sales, pricing, and exact storage
               locations from one complete inventory and operations platform.
@@ -931,7 +918,7 @@ export default async function SignInPage({
             <div className="relative mt-3">
               <div
                 aria-hidden="true"
-                className="ambient-glow pointer-events-none absolute -inset-24 rounded-[72px] bg-blue-500/[0.09] blur-[125px]"
+                className="ambient-glow pointer-events-none absolute -inset-24 rounded-[72px] bg-td-accent/[0.09] blur-[125px]"
               />
 
               <FloatingModule
@@ -958,19 +945,19 @@ export default async function SignInPage({
                 icon={<Search className="h-3.5 w-3.5" />}
               />
 
-              <div className="dashboard-float relative scale-[1.055] overflow-hidden rounded-[20px] border border-blue-300/20 bg-white/[0.04] p-1 shadow-[0_24px_75px_rgba(0,0,0,0.5),0_0_45px_rgba(59,130,246,0.09)] backdrop-blur-xl">
+              <div className="dashboard-float relative scale-[1.055] overflow-hidden rounded-[20px] border border-td-accent/20 bg-td-ink/[0.04] p-1 shadow-[0_24px_75px_rgb(var(--td-shadow-rgb)/calc(0.5*var(--td-shadow-strength))),0_0_45px_rgb(var(--td-accent-rgb)/0.09)] backdrop-blur-xl">
                 <div className="dashboard-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.018] to-transparent blur-[10px]" />
 
-                <div className="relative overflow-hidden rounded-[16px] border border-white/[0.08] bg-[#071017]/95 px-3 py-2.5">
+                <div className="relative overflow-hidden rounded-[16px] border border-td-ink/[0.08] bg-td-surface/95 px-3 py-2.5">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-[7px] font-medium uppercase tracking-[0.16em] text-slate-500">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-td-muted">
                           Inventory workspace
                         </p>
 
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/10 bg-emerald-300/[0.035] px-2 py-0.5 text-[6px] font-semibold text-emerald-300">
-                          <span className="h-1 w-1 rounded-full bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.8)]" />
+                        <span className="inline-flex items-center gap-1 rounded-full border border-td-success/10 bg-td-success/[0.035] px-2 py-0.5 text-[11px] font-semibold text-td-success">
+                          <span className="h-1 w-1 rounded-full bg-td-success shadow-[0_0_7px_rgb(var(--td-accent-rgb)/0.8)]" />
                           Last sync
                           <span className="relative inline-block h-2.5 min-w-[46px] overflow-hidden align-middle">
                             <span className="sync-time sync-time-one absolute inset-0">Just now</span>
@@ -980,15 +967,15 @@ export default async function SignInPage({
                         </span>
                       </div>
 
-                      <p className="mt-0.5 text-sm font-semibold text-white">
+                      <p className="mt-0.5 text-sm font-semibold text-td-primary">
                         Business overview
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.035] px-2.5 py-1.5">
-                      <Search className="h-2.5 w-2.5 text-blue-300" />
+                    <div className="flex items-center gap-2 rounded-md border border-td-ink/10 bg-td-ink/[0.035] px-2.5 py-1.5">
+                      <Search className="h-2.5 w-2.5 text-td-accent-text" />
 
-                      <span className="text-[7px] text-slate-500">
+                      <span className="text-[11px] text-td-muted">
                         Find any card
                       </span>
                     </div>
@@ -1039,19 +1026,19 @@ export default async function SignInPage({
                   </div>
 
                   <div className="mt-2.5 grid grid-cols-[1.12fr_0.88fr] gap-2">
-                    <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2.5">
+                    <div className="rounded-lg border border-td-ink/10 bg-td-ink/[0.025] p-2.5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-[7px] font-medium uppercase tracking-[0.14em] text-slate-500">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-td-muted">
                             Inventory value
                           </p>
 
-                          <p className="mt-0.5 text-xs font-semibold text-white">
+                          <p className="mt-0.5 text-xs font-semibold text-td-primary">
                             Portfolio growth
                           </p>
                         </div>
 
-                        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-1.5 py-0.5 text-[7px] font-semibold text-emerald-300">
+                        <span className="rounded-full border border-td-success/20 bg-td-success/10 px-1.5 py-0.5 text-[11px] font-semibold text-td-success">
                           +18.2%
                         </span>
                       </div>
@@ -1059,19 +1046,19 @@ export default async function SignInPage({
                       <PortfolioChart />
                     </div>
 
-                    <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2.5">
+                    <div className="rounded-lg border border-td-ink/10 bg-td-ink/[0.025] p-2.5">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-[7px] font-medium uppercase tracking-[0.14em] text-slate-500">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-td-muted">
                             Live activity
                           </p>
 
-                          <p className="mt-0.5 text-xs font-semibold text-white">
+                          <p className="mt-0.5 text-xs font-semibold text-td-primary">
                             Recent updates
                           </p>
                         </div>
 
-                        <Zap className="h-3 w-3 text-blue-300" />
+                        <Zap className="h-3 w-3 text-td-accent-text" />
                       </div>
 
                       <div className="mt-1.5 space-y-1.5">
@@ -1082,18 +1069,18 @@ export default async function SignInPage({
                         ].map(([title, detail]) => (
                           <div
                             key={title}
-                            className="flex items-center gap-1.5 border-b border-white/[0.06] pb-1.5 last:border-b-0 last:pb-0"
+                            className="flex items-center gap-1.5 border-b border-td-ink/[0.06] pb-1.5 last:border-b-0 last:pb-0"
                           >
-                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-td-success/20 bg-td-success/10 text-td-success">
                               <Check className="h-2.5 w-2.5" />
                             </div>
 
                             <div className="min-w-0">
-                              <p className="truncate text-[8px] font-semibold text-white">
+                              <p className="truncate text-[11px] font-semibold text-td-primary">
                                 {title}
                               </p>
 
-                              <p className="truncate text-[7px] text-slate-600">
+                              <p className="truncate text-[11px] text-td-muted">
                                 {detail}
                               </p>
                             </div>
@@ -1106,15 +1093,15 @@ export default async function SignInPage({
               </div>
             </div>
 
-            <div className="mt-2.5 flex items-center gap-3 text-[8px] text-slate-600">
+            <div className="mt-2.5 flex items-center gap-3 text-[11px] text-td-muted">
               <span>© 2026 Trading Docks</span>
-              <span className="h-1 w-1 rounded-full bg-slate-700" />
+              <span className="h-1 w-1 rounded-full bg-td-surface" />
               <span>Collectibles inventory and operations</span>
             </div>
           </div>
         </section>
 
-        <section className="flex w-full items-center justify-center lg:h-full lg:min-h-0 lg:-translate-x-5">
+        <section className="flex w-full items-center justify-center lg:-translate-x-5">
           <div className="w-full max-w-[410px]">
             <Link
               href="/"
@@ -1122,7 +1109,7 @@ export default async function SignInPage({
               className="group mb-6 flex items-center justify-center gap-3 lg:hidden"
             >
               <span className="relative flex h-[60px] w-[60px] shrink-0 items-center justify-center">
-                <span className="absolute inset-1 rounded-[20px] bg-blue-400/[0.15] blur-xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
+                <span className="absolute inset-1 rounded-[20px] bg-td-accent/[0.15] blur-xl transition duration-500 group-hover:bg-td-accent/[0.24]" />
 
                 <Image
                   src="/trading-docks-mark.png"
@@ -1136,11 +1123,11 @@ export default async function SignInPage({
               </span>
 
               <span className="flex flex-col text-left">
-                <span className="text-base font-semibold tracking-[-0.025em] text-white">
+                <span className="text-base font-semibold tracking-[-0.025em] text-td-primary">
                   Trading Docks
                 </span>
 
-                <span className="mt-0.5 text-[8px] font-medium uppercase tracking-[0.24em] text-slate-600">
+                <span className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.24em] text-td-muted">
                   Collectibles OS
                 </span>
               </span>
@@ -1149,35 +1136,35 @@ export default async function SignInPage({
             <div className="form-float relative">
               <div
                 aria-hidden="true"
-                className="ambient-glow pointer-events-none absolute -inset-9 rounded-[50px] bg-blue-500/[0.11] blur-[65px]"
+                className="ambient-glow pointer-events-none absolute -inset-9 rounded-[50px] bg-td-accent/[0.11] blur-[65px]"
               />
 
-              <div className="relative overflow-hidden rounded-[26px] border border-blue-300/20 bg-white/[0.04] p-1 shadow-[0_30px_90px_rgba(0,0,0,0.55),0_0_50px_rgba(59,130,246,0.09)] backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-[26px] border border-td-accent/20 bg-td-ink/[0.04] p-1 shadow-[0_30px_90px_rgb(var(--td-shadow-rgb)/calc(0.55*var(--td-shadow-strength))),0_0_50px_rgb(var(--td-accent-rgb)/0.09)] backdrop-blur-2xl">
                 <div className="dashboard-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.015] to-transparent blur-[10px]" />
 
-                <div className="relative overflow-hidden rounded-[21px] border border-white/[0.08] bg-[#071017]/95 px-6 py-5">
+                <div className="relative overflow-hidden rounded-[21px] border border-td-ink/[0.08] bg-td-surface/95 px-6 py-5">
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-blue-400/[0.08] blur-3xl"
+                    className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-td-accent/[0.08] blur-3xl"
                   />
 
                   <div className="relative">
                     <div className="flex items-center justify-between">
-                      <div className="secure-icon flex h-9 w-9 items-center justify-center rounded-xl border border-blue-400/25 bg-blue-400/10 text-blue-300">
+                      <div className="secure-icon flex h-9 w-9 items-center justify-center rounded-xl border border-td-accent/25 bg-td-accent/10 text-td-accent-text">
                         <LockKeyhole className="h-4 w-4" />
                       </div>
 
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[8px] font-medium text-slate-400">
-                        <ShieldCheck className="h-2.5 w-2.5 text-blue-300" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-td-ink/10 bg-td-ink/[0.035] px-2.5 py-1 text-[11px] font-medium text-td-secondary">
+                        <ShieldCheck className="h-2.5 w-2.5 text-td-accent-text" />
                         Secure access
                       </span>
                     </div>
 
-                    <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">
+                    <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-td-primary">
                       Welcome back
                     </h2>
 
-                    <p className="mt-1.5 text-xs leading-5 text-slate-400">
+                    <p className="mt-1.5 text-xs leading-5 text-td-secondary">
                       Sign in to manage your collection, inventory, sorting,
                       storage locations, marketplace listings, and business
                       activity.
@@ -1186,7 +1173,7 @@ export default async function SignInPage({
                     {error ? (
                       <div
                         role="alert"
-                        className="mt-3 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-200"
+                        className="mt-3 rounded-lg border border-td-danger/20 bg-td-danger/10 px-3 py-2 text-xs text-td-danger"
                       >
                         {error}
                       </div>
@@ -1195,7 +1182,7 @@ export default async function SignInPage({
                     {success ? (
                       <div
                         role="status"
-                        className="mt-3 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-200"
+                        className="mt-3 rounded-lg border border-td-success/20 bg-td-success/10 px-3 py-2 text-xs text-td-success"
                       >
                         {success}
                       </div>
@@ -1205,7 +1192,7 @@ export default async function SignInPage({
                       <input name="next" type="hidden" value={next ?? ""} />
                       <button
                         type="submit"
-                        className="flex h-11 w-full items-center justify-center gap-3 rounded-[12px] border border-white/15 bg-white px-4 text-xs font-semibold text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-white/15"
+                        className="flex h-11 w-full items-center justify-center gap-3 rounded-[12px] border border-td-ink/15 bg-white px-4 text-xs font-semibold text-[#1d302b] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#edf1eb] focus:outline-none focus:ring-4 focus:ring-td-accent/30"
                       >
                         <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24">
                           <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.55h3.24c1.9-1.75 2.98-4.33 2.98-7.42Z" />
@@ -1219,7 +1206,7 @@ export default async function SignInPage({
 
                     <div className="my-4 flex items-center gap-3">
                       <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
-                      <span className="text-[9px] uppercase tracking-[0.18em] text-slate-500">
+                      <span className="text-[11px] uppercase tracking-[0.18em] text-td-muted">
                         or use email
                       </span>
                       <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" />
@@ -1233,14 +1220,14 @@ export default async function SignInPage({
                         <div className="mb-1 flex items-center justify-between">
                           <label
                             htmlFor="password"
-                            className="text-[10px] font-medium text-slate-200"
+                            className="text-[11px] font-medium text-td-primary"
                           >
                             Password
                           </label>
 
                           <Link
                             href="/forgot-password"
-                            className="text-[10px] font-medium text-blue-300 transition hover:text-blue-200"
+                            className="text-[11px] font-medium text-td-accent-text transition hover:text-td-accent-text"
                           >
                             Forgot password?
                           </Link>
@@ -1251,7 +1238,7 @@ export default async function SignInPage({
 
                       <button
                         type="submit"
-                        className="premium-cta group flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-cyan-300 via-blue-400 to-blue-600 px-4 text-xs font-semibold text-slate-950 shadow-[0_14px_32px_rgba(37,99,235,0.26),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(3,105,161,0.3)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_40px_rgba(37,99,235,0.34),inset_0_1px_0_rgba(255,255,255,0.72)] focus:outline-none focus:ring-4 focus:ring-blue-400/20"
+                        className="premium-cta group flex h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-gradient-to-b from-td-accent via-td-accent to-td-accent px-4 text-xs font-semibold text-td-on-accent shadow-[0_14px_32px_rgb(var(--td-accent-rgb)/0.26),inset_0_1px_0_rgb(var(--td-ink-rgb)/0.68),inset_0_-1px_0_rgb(var(--td-accent-rgb)/0.3)] transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_40px_rgb(var(--td-accent-rgb)/0.34),inset_0_1px_0_rgb(var(--td-ink-rgb)/0.72)] focus:outline-none focus:ring-4 focus:ring-td-accent/20"
                       >
                         Sign in
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
@@ -1261,7 +1248,7 @@ export default async function SignInPage({
                     <div className="my-4 flex items-center gap-3">
                       <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
 
-                      <span className="text-[9px] text-slate-500">
+                      <span className="text-[11px] text-td-muted">
                         New to Trading Docks?
                       </span>
 
@@ -1270,13 +1257,13 @@ export default async function SignInPage({
 
                     <Link
                       href="/sign-up"
-                      className="flex h-10 w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.035] text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:border-blue-400/30 hover:bg-blue-400/[0.07]"
+                      className="flex h-10 w-full items-center justify-center rounded-lg border border-td-ink/10 bg-td-ink/[0.035] text-xs font-semibold text-td-primary transition hover:-translate-y-0.5 hover:border-td-accent/30 hover:bg-td-accent/[0.07]"
                     >
                       Create your free account
                     </Link>
 
-                    <div className="mt-4 flex items-center justify-center gap-2 text-[9px] text-slate-400">
-                      <Check className="h-3 w-3 text-blue-400" />
+                    <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-td-secondary">
+                      <Check className="h-3 w-3 text-td-accent-text" />
                       Authentication securely powered by Supabase
                     </div>
                   </div>
@@ -1284,7 +1271,7 @@ export default async function SignInPage({
               </div>
             </div>
 
-            <p className="mt-4 text-center text-[9px] text-slate-600 lg:hidden">
+            <p className="mt-4 text-center text-[11px] text-td-muted lg:hidden">
               © 2026 Trading Docks
             </p>
           </div>

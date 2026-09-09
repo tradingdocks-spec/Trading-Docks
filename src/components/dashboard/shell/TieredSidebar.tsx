@@ -131,13 +131,13 @@ export function TieredSidebar({
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-white/[0.06] bg-[#02080d]/[0.985] shadow-[18px_0_54px_rgba(0,0,0,.34)] backdrop-blur-xl transition-[width,transform] duration-300 xl:w-auto",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-td-ink/[0.06] bg-td-canvas/[0.985] shadow-[18px_0_54px_rgb(var(--td-shadow-rgb)/calc(.34*var(--td-shadow-strength)))] backdrop-blur-xl transition-[width,transform] duration-300 xl:w-auto",
           collapsed ? "xl:w-[76px]" : "xl:w-[264px]",
           mobileOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0",
         ].join(" ")}
       >
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-blue-300/[.11] to-transparent" />
+          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-td-accent/[.11] to-transparent" />
         </div>
 
         <SidebarBrand collapsed={collapsed} onCloseMobile={onCloseMobile} />
@@ -192,7 +192,7 @@ function SidebarBrand({
         onClick={onCloseMobile}
         aria-label="Trading Docks dashboard"
         className={[
-          "group flex min-w-0 flex-1 items-center rounded-[13px] transition hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/45",
+          "group flex min-w-0 flex-1 items-center rounded-[13px] transition hover:bg-td-ink/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
           collapsed ? "justify-center px-1 py-2" : "gap-3 px-2 py-2",
         ].join(" ")}
       >
@@ -210,10 +210,10 @@ function SidebarBrand({
 
         {!collapsed ? (
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold tracking-[-0.025em] text-white">
+            <span className="block truncate text-sm font-semibold tracking-[-0.025em] text-td-primary">
               Trading Docks
             </span>
-            <span className="mt-0.5 block text-[10px] uppercase tracking-[0.18em] text-slate-600">
+            <span className="mt-0.5 block text-[11px] uppercase tracking-[0.18em] text-td-muted">
               TCG Intelligence OS
             </span>
           </span>
@@ -224,7 +224,7 @@ function SidebarBrand({
         type="button"
         onClick={onCloseMobile}
         aria-label="Close navigation"
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-white/[0.04] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/45 xl:hidden"
+        className="flex h-9 w-9 items-center justify-center rounded-xl text-td-muted transition hover:bg-td-ink/[0.04] hover:text-td-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45 xl:hidden"
       >
         <X className="h-4 w-4" />
       </button>
@@ -305,10 +305,10 @@ function SectionHeader({
       onClick={onToggle}
       aria-expanded={open}
       className={[
-        "mb-1.5 flex h-8 w-full items-center justify-between rounded-[9px] px-3 text-left text-[10px] font-bold uppercase tracking-[0.16em] outline-none transition focus-visible:ring-2 focus-visible:ring-blue-300/45",
+        "mb-1.5 flex h-8 w-full items-center justify-between rounded-[9px] px-3 text-left text-[11px] font-bold uppercase tracking-[0.16em] outline-none transition focus-visible:ring-2 focus-visible:ring-td-accent/45",
         active
-          ? "bg-blue-400/[0.045] text-blue-100"
-          : "text-slate-600 hover:bg-white/[0.035] hover:text-slate-300",
+          ? "bg-td-accent/[0.045] text-td-accent-text"
+          : "text-td-muted hover:bg-td-ink/[0.035] hover:text-td-secondary",
       ].join(" ")}
     >
       <span className="truncate">{label}</span>
@@ -352,15 +352,15 @@ function NavigationRow({
       title={collapsed ? item.label : undefined}
       aria-current={active ? "page" : undefined}
       className={[
-        "group relative flex min-h-10 items-center rounded-[11px] outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-blue-300/45",
+        "group relative flex min-h-10 items-center rounded-[11px] outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-td-accent/45",
         collapsed ? "justify-center px-0" : "gap-3 px-3",
         active
-          ? "bg-blue-400/[0.09] text-white shadow-[inset_0_0_0_1px_rgba(96,165,250,.09)]"
-          : "text-slate-400 hover:bg-white/[0.035] hover:text-white",
+          ? "bg-td-accent/[0.09] text-td-primary shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/.09)]"
+          : "text-td-secondary hover:bg-td-ink/[0.035] hover:text-td-primary",
       ].join(" ")}
     >
       {active ? (
-        <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-blue-300" />
+        <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-td-accent" />
       ) : null}
 
       {allowed ? (
@@ -368,12 +368,12 @@ function NavigationRow({
           className={[
             "h-[17px] w-[17px] shrink-0 transition",
             active
-              ? "text-blue-100"
-              : "text-blue-300/65 group-hover:text-blue-200",
+              ? "text-td-accent-text"
+              : "text-td-accent-text/65 group-hover:text-td-accent-text",
           ].join(" ")}
         />
       ) : (
-        <LockKeyhole className="h-[17px] w-[17px] shrink-0 text-blue-300/55" />
+        <LockKeyhole className="h-[17px] w-[17px] shrink-0 text-td-accent-text/55" />
       )}
 
       {!collapsed ? (
@@ -382,7 +382,7 @@ function NavigationRow({
             {item.label}
           </span>
           {!allowed ? (
-            <span className="rounded-[7px] border border-blue-300/[0.11] bg-blue-400/[0.035] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-200/65">
+            <span className="rounded-[7px] border border-td-accent/[0.11] bg-td-accent/[0.035] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-td-accent-text/65">
               {requiredPlan ?? "Upgrade"}
             </span>
           ) : null}
@@ -418,11 +418,11 @@ function WorkspaceFooter({
 
   if (collapsed) {
     return (
-      <div className="relative border-t border-white/[0.055] p-2.5">
+      <div className="relative border-t border-td-ink/[0.055] p-2.5">
         <div className="flex flex-col items-center gap-2">
           <div
             title={userName}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-300/20 bg-blue-400/[0.08] text-xs font-semibold text-blue-100"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-accent/20 bg-td-accent/[0.08] text-xs font-semibold text-td-accent-text"
           >
             {initials}
           </div>
@@ -431,7 +431,7 @@ function WorkspaceFooter({
             onClick={onToggle}
             title="Expand navigation"
             aria-label="Expand navigation"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 transition hover:bg-white/[0.04] hover:text-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/45"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-td-muted transition hover:bg-td-ink/[0.04] hover:text-td-accent-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -441,28 +441,28 @@ function WorkspaceFooter({
   }
 
   return (
-    <div className="relative border-t border-white/[0.055] p-3">
-      <div className="rounded-[17px] bg-white/[0.022] p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,.055)]">
+    <div className="relative border-t border-td-ink/[0.055] p-3">
+      <div className="rounded-[17px] bg-td-ink/[0.022] p-3 shadow-[inset_0_0_0_1px_rgb(var(--td-ink-rgb)/.055)]">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-300/20 bg-blue-400/[0.08] text-xs font-semibold text-blue-100">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-accent/20 bg-td-accent/[0.08] text-xs font-semibold text-td-accent-text">
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-semibold capitalize text-slate-100">
+            <p className="truncate text-[13px] font-semibold capitalize text-td-primary">
               {userName}
             </p>
-            <p className="mt-0.5 text-[11px] capitalize text-slate-600">
+            <p className="mt-0.5 text-[11px] capitalize text-td-muted">
               {plan === "store" ? "Store workspace" : `${plan} workspace`}
             </p>
           </div>
           {isOwner ? (
-            <span className="rounded-full border border-amber-300/15 bg-amber-300/[0.055] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-200">
+            <span className="rounded-full border border-td-warning/15 bg-td-warning/[0.055] px-2 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-td-warning">
               Owner
             </span>
           ) : null}
         </div>
 
-        <div className="mt-3 grid grid-cols-4 gap-1 border-t border-white/[0.055] pt-2">
+        <div className="mt-3 grid grid-cols-4 gap-1 border-t border-td-ink/[0.055] pt-2">
           <FooterAction
             href="/dashboard/settings"
             label="Settings"
@@ -490,7 +490,7 @@ function WorkspaceFooter({
               type="submit"
               title="Sign out"
               aria-label="Sign out"
-              className="flex h-9 w-full items-center justify-center rounded-lg text-slate-600 transition hover:bg-red-400/[0.055] hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/45"
+              className="flex h-9 w-full items-center justify-center rounded-lg text-td-muted transition hover:bg-td-danger/[0.055] hover:text-td-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-danger/45"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -501,7 +501,7 @@ function WorkspaceFooter({
             onClick={onToggle}
             title="Collapse navigation"
             aria-label="Collapse navigation"
-            className="flex h-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white/[0.04] hover:text-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/45"
+            className="flex h-9 items-center justify-center rounded-lg text-td-muted transition hover:bg-td-ink/[0.04] hover:text-td-accent-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -532,10 +532,10 @@ function FooterAction({
       aria-label={label}
       aria-current={active ? "page" : undefined}
       className={[
-        "flex h-9 items-center justify-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/45",
+        "flex h-9 items-center justify-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
         active
-          ? "bg-blue-400/[0.09] text-cyan-200"
-          : "text-slate-600 hover:bg-white/[0.04] hover:text-blue-200",
+          ? "bg-td-accent/[0.09] text-td-accent-text"
+          : "text-td-muted hover:bg-td-ink/[0.04] hover:text-td-accent-text",
       ].join(" ")}
     >
       {children}

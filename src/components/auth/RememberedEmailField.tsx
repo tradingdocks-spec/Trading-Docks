@@ -96,7 +96,7 @@ export function RememberedEmailField() {
       <div>
         <label
           htmlFor="email"
-          className="mb-1 block text-[10px] font-medium text-slate-200"
+          className="mb-1 block text-[11px] font-medium text-td-primary"
         >
           Email address
         </label>
@@ -113,11 +113,11 @@ export function RememberedEmailField() {
           onBlur={(event) => updateEmail(event.target.value)}
           placeholder="you@example.com"
           suppressHydrationWarning
-          className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] px-3.5 text-xs text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-cyan-400/50 focus:bg-cyan-400/[0.035] focus:ring-4 focus:ring-cyan-400/10"
+          className="h-10 w-full rounded-lg border border-td-ink/10 bg-td-ink/[0.035] px-3.5 text-xs text-td-primary outline-none transition placeholder:text-td-muted hover:border-td-ink/20 focus:border-td-accent/50 focus:bg-td-accent/[0.035] focus:ring-4 focus:ring-td-accent/10"
         />
       </div>
 
-      <label className="flex min-h-9 cursor-pointer select-none items-center gap-2.5 rounded-lg px-1 text-[10px] text-slate-300 transition hover:text-white">
+      <label className="flex min-h-9 cursor-pointer select-none items-center gap-2.5 rounded-lg px-1 text-[11px] text-td-secondary transition hover:text-td-primary">
         <input
           name="rememberMe"
           type="checkbox"
@@ -127,7 +127,7 @@ export function RememberedEmailField() {
         />
         <span
           aria-hidden="true"
-          className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-white/20 bg-white/[0.035] text-transparent transition peer-checked:border-cyan-300/60 peer-checked:bg-cyan-300 peer-checked:text-slate-950 peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-300/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[#07151f]"
+          className="flex h-4 w-4 shrink-0 items-center justify-center rounded border border-td-ink/20 bg-td-ink/[0.035] text-transparent transition peer-checked:border-td-accent/60 peer-checked:bg-td-accent peer-checked:text-td-on-accent peer-focus-visible:ring-2 peer-focus-visible:ring-td-accent/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-td-canvas"
         >
           <Check className="h-3 w-3 stroke-[3]" />
         </span>

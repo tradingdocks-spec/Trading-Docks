@@ -25,7 +25,7 @@ export function SidebarGroup({
   return (
     <section>
       {!collapsed && group.title ? (
-        <p className="mb-1 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-700">
+        <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-td-muted">
           {group.title}
         </p>
       ) : null}
@@ -66,12 +66,12 @@ function SidebarNavigationItem({
 
   const content = (
     <>
-      <Icon className={isActive ? "h-4 w-4 text-cyan-300" : "h-4 w-4"} />
+      <Icon className={isActive ? "h-4 w-4 text-td-accent-text" : "h-4 w-4"} />
       {!collapsed ? (
         <>
           <span className="min-w-0 flex-1 truncate">{item.title}</span>
           {item.badge ? (
-            <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[8px]">
+            <span className="rounded bg-td-ink/[0.05] px-1.5 py-0.5 text-[11px]">
               {item.badge}
             </span>
           ) : null}
@@ -91,8 +91,8 @@ function SidebarNavigationItem({
     collapsed ? "justify-center px-0" : "gap-3 px-3"
   } ${
     isActive
-      ? "bg-cyan-400/[0.07] text-white"
-      : "text-slate-500 hover:bg-white/[0.035] hover:text-slate-200"
+      ? "bg-td-accent/[0.07] text-td-primary"
+      : "text-td-muted hover:bg-td-ink/[0.035] hover:text-td-primary"
   }`;
 
   return (
@@ -112,7 +112,7 @@ function SidebarNavigationItem({
       )}
 
       {hasChildren && expanded && !collapsed ? (
-        <div className="ml-7 mt-1 space-y-1 border-l border-white/[0.06] pl-3">
+        <div className="ml-7 mt-1 space-y-1 border-l border-td-ink/[0.06] pl-3">
           {item.children?.map((child) => {
             const childActive =
               pathname === child.href || pathname.startsWith(`${child.href}/`);
@@ -121,15 +121,15 @@ function SidebarNavigationItem({
               <Link
                 key={child.href}
                 href={child.href}
-                className={`flex min-h-8 items-center rounded-lg px-2 text-[10px] transition ${
+                className={`flex min-h-8 items-center rounded-lg px-2 text-[11px] transition ${
                   childActive
-                    ? "bg-cyan-400/[0.06] text-cyan-200"
-                    : "text-slate-600 hover:bg-white/[0.03] hover:text-slate-300"
+                    ? "bg-td-accent/[0.06] text-td-accent-text"
+                    : "text-td-muted hover:bg-td-ink/[0.03] hover:text-td-secondary"
                 }`}
               >
                 <span className="min-w-0 flex-1 truncate">{child.title}</span>
                 {child.badge ? (
-                  <span className="ml-2 text-[8px] text-slate-600">
+                  <span className="ml-2 text-[11px] text-td-muted">
                     {child.badge}
                   </span>
                 ) : null}

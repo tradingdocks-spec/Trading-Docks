@@ -768,7 +768,7 @@ export function ChaosSortWorkspace() {
     <WorkspaceFrame>
       <div className="space-y-5 p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <Link href="/dashboard/inventory" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 transition hover:text-white">
+          <Link href="/dashboard/inventory" className="inline-flex items-center gap-2 text-sm font-semibold text-td-secondary transition hover:text-td-primary">
             <ArrowLeft className="h-4 w-4" />
             Back to Inventory
           </Link>
@@ -787,51 +787,51 @@ export function ChaosSortWorkspace() {
         />
 
         {notice ? (
-          <TDCard variant="outlined" className="border-emerald-300/20 bg-emerald-300/[0.04] text-emerald-100">
-            <div className="flex flex-wrap items-center justify-between gap-3"><TDText variant="small">{notice}</TDText>{committedBatchId ? <Link href={`/dashboard/inventory/batches/${committedBatchId}`} className="inline-flex min-h-9 items-center rounded-lg bg-emerald-300 px-3 text-xs font-bold text-slate-950">Open batch & print label</Link> : null}</div>
+          <TDCard variant="outlined" className="border-td-success/20 bg-td-success/[0.04] text-td-success">
+            <div className="flex flex-wrap items-center justify-between gap-3"><TDText variant="small">{notice}</TDText>{committedBatchId ? <Link href={`/dashboard/inventory/batches/${committedBatchId}`} className="inline-flex min-h-9 items-center rounded-lg bg-td-success px-3 text-xs font-bold text-td-on-accent">Open batch & print label</Link> : null}</div>
           </TDCard>
         ) : null}
         {error ? (
-          <TDCard variant="outlined" className="border-red-300/20 bg-red-300/[0.04] text-red-100">
+          <TDCard variant="outlined" className="border-td-danger/20 bg-td-danger/[0.04] text-td-danger">
             <TDText variant="small">{error}</TDText>
           </TDCard>
         ) : null}
-        <section className="rounded-2xl border border-white/10 bg-[#071520] p-4 sm:p-5" aria-label="Chaos Sort batch history">
+        <section className="rounded-2xl border border-td-ink/10 bg-td-surface p-4 sm:p-5" aria-label="Chaos Sort batch history">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[.14em] text-cyan-200">Batch history</p>
-              <p className="mt-1 text-sm text-slate-400">Reopen a committed batch to reprint its label.</p>
+              <p className="text-[11px] font-black uppercase tracking-[.14em] text-td-accent-text">Batch history</p>
+              <p className="mt-1 text-sm text-td-secondary">Reopen a committed batch to reprint its label.</p>
             </div>
-            <span className="text-xs text-slate-500">{batchHistory.length} saved {batchHistory.length === 1 ? "batch" : "batches"}</span>
+            <span className="text-xs text-td-muted">{batchHistory.length} saved {batchHistory.length === 1 ? "batch" : "batches"}</span>
           </div>
           {batchHistory.length ? (
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[680px] text-left text-sm">
-                <thead className="text-[10px] font-bold uppercase tracking-[.12em] text-slate-500"><tr><th className="px-3 py-2">Batch</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Location</th><th className="px-3 py-2">Cards</th><th className="px-3 py-2">Created</th><th className="px-3 py-2" /></tr></thead>
-                <tbody>{batchHistory.map((entry) => <tr key={entry.id} className="border-t border-white/5"><td className="px-3 py-3 font-semibold text-white">{entry.batch_code}</td><td className="px-3 py-3"><TDBadge tone={entry.status_v2 === "CLOSED" || entry.status === "committed" ? "success" : "neutral"}>{entry.status_v2 ?? entry.status}</TDBadge></td><td className="px-3 py-3 text-slate-400">{entry.destination_label || "Unassigned"}</td><td className="px-3 py-3 tabular-nums text-slate-300">{entry.current_quantity} / {entry.initial_quantity}</td><td className="px-3 py-3 text-slate-400">{new Date(entry.created_at).toLocaleDateString()}</td><td className="px-3 py-3 text-right"><Link href={`/dashboard/inventory/batches/${entry.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-cyan-300/20 px-3 text-xs font-bold text-cyan-100 hover:bg-cyan-300/10">Reprint label</Link></td></tr>)}</tbody>
+                <thead className="text-[11px] font-bold uppercase tracking-[.12em] text-td-muted"><tr><th className="px-3 py-2">Batch</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Location</th><th className="px-3 py-2">Cards</th><th className="px-3 py-2">Created</th><th className="px-3 py-2" /></tr></thead>
+                <tbody>{batchHistory.map((entry) => <tr key={entry.id} className="border-t border-td-ink/5"><td className="px-3 py-3 font-semibold text-td-primary">{entry.batch_code}</td><td className="px-3 py-3"><TDBadge tone={entry.status_v2 === "CLOSED" || entry.status === "committed" ? "success" : "neutral"}>{entry.status_v2 ?? entry.status}</TDBadge></td><td className="px-3 py-3 text-td-secondary">{entry.destination_label || "Unassigned"}</td><td className="px-3 py-3 tabular-nums text-td-secondary">{entry.current_quantity} / {entry.initial_quantity}</td><td className="px-3 py-3 text-td-secondary">{new Date(entry.created_at).toLocaleDateString()}</td><td className="px-3 py-3 text-right"><Link href={`/dashboard/inventory/batches/${entry.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-td-accent/20 px-3 text-xs font-bold text-td-accent-text hover:bg-td-accent/10">Reprint label</Link></td></tr>)}</tbody>
               </table>
             </div>
-          ) : <p className="mt-4 rounded-xl border border-dashed border-white/10 px-3 py-5 text-center text-sm text-slate-500">No committed batches yet.</p>}
+          ) : <p className="mt-4 rounded-xl border border-dashed border-td-ink/10 px-3 py-5 text-center text-sm text-td-muted">No committed batches yet.</p>}
         </section>
         {loadingInventory && !items.length ? (
           <TDLoadingState title="Loading inventory context" message="Fetching storage locations and owned inventory for canonical matching." />
         ) : null}
 
-        <section className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.035] p-4 sm:p-5" aria-label="Active Chaos Sort batch progress">
+        <section className="rounded-2xl border border-td-accent/15 bg-td-accent/[0.035] p-4 sm:p-5" aria-label="Active Chaos Sort batch progress">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[.14em] text-cyan-200">Active batch</p>
-              <p className="mt-1 text-xl font-semibold text-white">{batch.batchCode}</p>
+              <p className="text-[11px] font-black uppercase tracking-[.14em] text-td-accent-text">Active batch</p>
+              <p className="mt-1 text-xl font-semibold text-td-primary">{batch.batchCode}</p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-semibold tabular-nums text-white">{batchProgress.label}</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="text-lg font-semibold tabular-nums text-td-primary">{batchProgress.label}</p>
+              <p className="mt-1 text-xs text-td-secondary">
                 {batchProgress.state === "target_reached" ? "Target reached — finish when the physical bundle is ready." : batchProgress.state === "over_target" ? "Above target — close when convenient." : "Target is guidance, not a hard limit."}
               </p>
             </div>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/30" role="progressbar" aria-valuemin={0} aria-valuemax={targetBatchSize} aria-valuenow={Math.min(items.length, targetBatchSize)} aria-label={`${items.length} of approximately ${targetBatchSize} cards`}>
-            <div className={cn("h-full rounded-full transition-all", batchProgress.state === "over_target" ? "bg-amber-300" : "bg-cyan-300")} style={{ width: `${batchProgress.ratio * 100}%` }} />
+            <div className={cn("h-full rounded-full transition-all", batchProgress.state === "over_target" ? "bg-td-warning" : "bg-td-accent")} style={{ width: `${batchProgress.ratio * 100}%` }} />
           </div>
         </section>
 
@@ -879,17 +879,17 @@ export function ChaosSortWorkspace() {
             </div>
 
             {stagedFiles.length ? (
-              <div className="rounded-[22px] border border-cyan-300/[0.2] bg-cyan-300/[0.045] p-4">
+              <div className="rounded-[22px] border border-td-accent/[0.2] bg-td-accent/[0.045] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-200">Chaos Sort batch staging</p><p className="mt-1 text-lg font-semibold text-white">{stagedFiles.length} scans ready</p><p className="mt-1 text-xs text-slate-400">Destination: <span className="font-semibold text-cyan-100">{destinationLocationLabel(destinationLocationId, locations)}</span></p><p className="text-xs text-slate-400">Set the destination below, then start the entire batch. Recognition runs automatically with {CHAOS_SORT_RECOGNITION_CONCURRENCY} workers.</p></div>
+                  <div><p className="text-xs font-black uppercase tracking-[.16em] text-td-accent-text">Chaos Sort batch staging</p><p className="mt-1 text-lg font-semibold text-td-primary">{stagedFiles.length} scans ready</p><p className="mt-1 text-xs text-td-secondary">Destination: <span className="font-semibold text-td-accent-text">{destinationLocationLabel(destinationLocationId, locations)}</span></p><p className="text-xs text-td-secondary">Set the destination below, then start the entire batch. Recognition runs automatically with {CHAOS_SORT_RECOGNITION_CONCURRENCY} workers.</p></div>
                   <div className="flex flex-wrap gap-2"><TDButton variant="ghost" size="sm" onClick={clearStagedFiles}>Clear batch</TDButton><TDButton size="sm" loading={staging} onClick={startBatch} disabled={staging}>Start Batch</TDButton></div>
                 </div>
-                <div className="mt-4 flex max-h-20 gap-2 overflow-hidden">{stagedFiles.slice(0, 18).map((entry) => <div key={entry.id} className="group relative h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-white/[0.1]"><img src={entry.previewUrl} alt="" className="h-full w-full object-cover" /><button type="button" onClick={() => removeStagedFile(entry.id)} aria-label={`Remove ${entry.file.name}`} className="absolute inset-0 hidden bg-black/65 text-xs text-white group-hover:block">×</button></div>)}{stagedFiles.length > 18 ? <span className="self-center text-xs text-slate-500">+{stagedFiles.length - 18} more</span> : null}</div>
+                <div className="mt-4 flex max-h-20 gap-2 overflow-hidden">{stagedFiles.slice(0, 18).map((entry) => <div key={entry.id} className="group relative h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-td-ink/[0.1]"><img src={entry.previewUrl} alt="" className="h-full w-full object-cover" /><button type="button" onClick={() => removeStagedFile(entry.id)} aria-label={`Remove ${entry.file.name}`} className="absolute inset-0 hidden bg-black/65 text-xs text-white group-hover:block">×</button></div>)}{stagedFiles.length > 18 ? <span className="self-center text-xs text-td-muted">+{stagedFiles.length - 18} more</span> : null}</div>
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div><p className="text-[11px] font-black uppercase tracking-[.12em] text-slate-500">Destination</p><p className="mt-1 text-sm font-semibold text-cyan-100">{destinationLocationLabel(destinationLocationId, locations)}</p></div>
+            <div className="flex flex-col gap-2 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div><p className="text-[11px] font-black uppercase tracking-[.12em] text-td-muted">Destination</p><p className="mt-1 text-sm font-semibold text-td-accent-text">{destinationLocationLabel(destinationLocationId, locations)}</p></div>
               <select
                 aria-label="Destination storage location"
                 value={destinationLocationId}
@@ -908,7 +908,7 @@ export function ChaosSortWorkspace() {
               </select>
               <div className="flex w-full gap-2 sm:max-w-sm">
                 <input aria-label="Location QR value" value={locationQrValue} onChange={(event) => setLocationQrValue(event.target.value)} placeholder="Scan QR: TDLOC:…" className="min-h-11 min-w-0 flex-1 rounded-lg border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] px-3 text-sm text-[var(--td-text-primary)] outline-none focus:border-[var(--td-border-focus)]" />
-                <button type="button" className="rounded-lg border border-cyan-300/20 px-3 text-xs font-bold text-cyan-100" onClick={() => { const id = locationQrValue.trim().replace(/^TDLOC:/i, ""); if (locations.some((location) => location.id === id)) { setDestinationLocationId(id); setLocationQrValue(""); } else { setError("That location QR is not available in this workspace."); } }}>Assign</button>
+                <button type="button" className="rounded-lg border border-td-accent/20 px-3 text-xs font-bold text-td-accent-text" onClick={() => { const id = locationQrValue.trim().replace(/^TDLOC:/i, ""); if (locations.some((location) => location.id === id)) { setDestinationLocationId(id); setLocationQrValue(""); } else { setError("That location QR is not available in this workspace."); } }}>Assign</button>
               </div>
             </div>
 
@@ -924,7 +924,7 @@ export function ChaosSortWorkspace() {
               }}
               className={cn(
                 "rounded-[24px] border border-dashed p-6 transition",
-                "border-cyan-300/20 bg-cyan-300/[0.04] hover:border-cyan-300/35 hover:bg-cyan-300/[0.06]",
+                "border-td-accent/20 bg-td-accent/[0.04] hover:border-td-accent/35 hover:bg-td-accent/[0.06]",
               )}
             >
               <input
@@ -943,7 +943,7 @@ export function ChaosSortWorkspace() {
               <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importCsv(file); event.target.value = ""; }} />
               <div className="flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-td-accent/20 bg-td-accent/10 text-td-accent-text">
                     <ScanSearch className="h-5 w-5" />
                   </div>
                   <div>
@@ -953,21 +953,21 @@ export function ChaosSortWorkspace() {
                     </TDText>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">{queueCounts.identified} Identified</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">{queueCounts.needsReview} Need review</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">{queueCounts.processing} Processing</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] px-3 py-1">{queueCounts.failed} Failed</span>
-                  {stagedDuplicateCount ? <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/[0.14] px-3 py-1 text-amber-200">{stagedDuplicateCount} Duplicate staged</span> : null}
+                <div className="flex flex-wrap gap-2 text-xs text-td-secondary">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-td-ink/[0.06] px-3 py-1">{queueCounts.identified} Identified</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-td-ink/[0.06] px-3 py-1">{queueCounts.needsReview} Need review</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-td-ink/[0.06] px-3 py-1">{queueCounts.processing} Processing</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-td-ink/[0.06] px-3 py-1">{queueCounts.failed} Failed</span>
+                  {stagedDuplicateCount ? <span className="inline-flex items-center gap-1 rounded-full border border-td-warning/[0.14] px-3 py-1 text-td-warning">{stagedDuplicateCount} Duplicate staged</span> : null}
                 </div>
               </div>
             </div>
 
-            {items.length ? <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3"><div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.12em] text-slate-500"><span>{queueCounts.analyzed} / {items.length} line items analyzed · {queueCounts.analyzedCards} / {queueCounts.totalCards} cards</span><span>{queueCounts.needsReview + queueCounts.unknown} line items need your attention</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-cyan-300 transition-all" style={{ width: `${(queueCounts.analyzed / items.length) * 100}%` }} /></div></div> : null}
+            {items.length ? <div className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-3"><div className="flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-[.12em] text-td-muted"><span>{queueCounts.analyzed} / {items.length} line items analyzed · {queueCounts.analyzedCards} / {queueCounts.totalCards} cards</span><span>{queueCounts.needsReview + queueCounts.unknown} line items need your attention</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30"><div className="h-full rounded-full bg-td-accent transition-all" style={{ width: `${(queueCounts.analyzed / items.length) * 100}%` }} /></div></div> : null}
 
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
-              <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-sm"><span className="font-black text-white">{queueCounts.analyzed} / {items.length} line items · {queueCounts.totalCards} cards</span><span className="font-bold text-emerald-300">{queueCounts.identified} READY</span><span className="font-bold text-amber-200">{queueCounts.needsReview} REVIEW</span><span className="font-bold text-slate-300">{queueCounts.unknown} UNKNOWN</span><span className="font-bold text-rose-300">{queueCounts.failed} FAILED</span><span className="font-bold text-cyan-200">{queueCounts.processing} PROCESSING</span></div>
-              <p className="mt-2 text-xs text-slate-500">{queueCounts.failed + queueCounts.needsReview + queueCounts.unknown} exceptions need attention before commit.</p>
+            <div className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-3">
+              <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-sm"><span className="font-black text-td-primary">{queueCounts.analyzed} / {items.length} line items · {queueCounts.totalCards} cards</span><span className="font-bold text-td-success">{queueCounts.identified} READY</span><span className="font-bold text-td-warning">{queueCounts.needsReview} REVIEW</span><span className="font-bold text-td-secondary">{queueCounts.unknown} UNKNOWN</span><span className="font-bold text-td-danger">{queueCounts.failed} FAILED</span><span className="font-bold text-td-accent-text">{queueCounts.processing} PROCESSING</span></div>
+              <p className="mt-2 text-xs text-td-muted">{queueCounts.failed + queueCounts.needsReview + queueCounts.unknown} exceptions need attention before commit.</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -979,21 +979,21 @@ export function ChaosSortWorkspace() {
                   className={cn(
                     "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                     filterState === filter
-                      ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100"
-                      : "border-white/[0.08] bg-white/[0.02] text-slate-400 hover:text-white",
+                      ? "border-td-accent/30 bg-td-accent/10 text-td-accent-text"
+                      : "border-td-ink/[0.08] bg-td-ink/[0.02] text-td-secondary hover:text-td-primary",
                   )}
                 >
                   {filter === "all" ? "All" : filter === "ready" ? "Ready" : filter === "needs_review" ? "Needs Review" : filter === "failed" ? "Failed" : "Unknown"}
                 </button>
               ))}
-              {queueCounts.needsReview + queueCounts.unknown + queueCounts.failed > 0 ? <button type="button" onClick={() => { setFilterState("exceptions"); setSelectedItemIds([]); }} className="rounded-full border border-amber-300/[0.22] bg-amber-300/[0.08] px-3 py-1.5 text-xs font-black text-amber-100">Review {queueCounts.needsReview + queueCounts.unknown + queueCounts.failed} exceptions</button> : null}
+              {queueCounts.needsReview + queueCounts.unknown + queueCounts.failed > 0 ? <button type="button" onClick={() => { setFilterState("exceptions"); setSelectedItemIds([]); }} className="rounded-full border border-td-warning/[0.22] bg-td-warning/[0.08] px-3 py-1.5 text-xs font-black text-td-warning">Review {queueCounts.needsReview + queueCounts.unknown + queueCounts.failed} exceptions</button> : null}
             </div>
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2 text-xs">
-              <span className="mr-2 text-slate-500">{selectedItemIds.length} selected</span>
-              <button type="button" onClick={() => selectItems((item) => item.processingState === "ready" && item.recognitionState === "high_confidence")} className="rounded-lg border border-white/[0.08] px-3 py-2 font-semibold text-slate-300">Select all ready</button>
-              <button type="button" onClick={() => selectItems((item) => item.recognitionState === "review" || item.processingState === "failed")} className="rounded-lg border border-white/[0.08] px-3 py-2 font-semibold text-slate-300">Select exceptions</button>
-              <button type="button" onClick={() => selectItems(() => true)} className="rounded-lg border border-white/[0.08] px-3 py-2 font-semibold text-slate-300">Select all</button>
-              {selectedItemIds.length ? <button type="button" onClick={removeSelected} className="rounded-lg border border-rose-300/[0.18] px-3 py-2 font-semibold text-rose-200">Remove selected</button> : null}
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] p-2 text-xs">
+              <span className="mr-2 text-td-muted">{selectedItemIds.length} selected</span>
+              <button type="button" onClick={() => selectItems((item) => item.processingState === "ready" && item.recognitionState === "high_confidence")} className="rounded-lg border border-td-ink/[0.08] px-3 py-2 font-semibold text-td-secondary">Select all ready</button>
+              <button type="button" onClick={() => selectItems((item) => item.recognitionState === "review" || item.processingState === "failed")} className="rounded-lg border border-td-ink/[0.08] px-3 py-2 font-semibold text-td-secondary">Select exceptions</button>
+              <button type="button" onClick={() => selectItems(() => true)} className="rounded-lg border border-td-ink/[0.08] px-3 py-2 font-semibold text-td-secondary">Select all</button>
+              {selectedItemIds.length ? <button type="button" onClick={removeSelected} className="rounded-lg border border-td-danger/[0.18] px-3 py-2 font-semibold text-td-danger">Remove selected</button> : null}
             </div>
 
             <div className="grid gap-3">
@@ -1009,15 +1009,15 @@ export function ChaosSortWorkspace() {
                     className={cn(
                       "group grid gap-4 rounded-2xl border p-3 text-left transition sm:grid-cols-[104px_minmax(0,1fr)]",
                       isSelected
-                        ? "border-cyan-300/30 bg-cyan-300/[0.06]"
-                        : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.03]",
+                        ? "border-td-accent/30 bg-td-accent/[0.06]"
+                        : "border-td-ink/[0.06] bg-td-ink/[0.02] hover:border-td-ink/[0.12] hover:bg-td-ink/[0.03]",
                     )}
                   >
-                    <div className="self-start overflow-hidden rounded-xl border border-white/[0.06] bg-[#07131f]">
+                    <div className="self-start overflow-hidden rounded-xl border border-td-ink/[0.06] bg-td-surface">
                       {item.sourceImageUrl ? (
                         <img src={item.sourceImageUrl} alt={item.cardName || item.sourceFileName} className="aspect-[0.72] w-full object-cover" />
                       ) : (
-                        <div className="flex aspect-[0.72] items-center justify-center text-slate-700">
+                        <div className="flex aspect-[0.72] items-center justify-center text-td-muted">
                           <ShieldAlert className="h-8 w-8" />
                         </div>
                       )}
@@ -1025,7 +1025,7 @@ export function ChaosSortWorkspace() {
                       <div className="min-w-0 space-y-2 sm:flex sm:items-center sm:justify-between sm:gap-6">
                         <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <input type="checkbox" aria-label={`Select ${item.cardName || item.sourceFileName}`} checked={selectedItemIds.includes(item.id)} onClick={(event) => event.stopPropagation()} onChange={() => setSelectedItemIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} className="h-4 w-4 accent-cyan-300" />
+                          <input type="checkbox" aria-label={`Select ${item.cardName || item.sourceFileName}`} checked={selectedItemIds.includes(item.id)} onClick={(event) => event.stopPropagation()} onChange={() => setSelectedItemIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} className="h-4 w-4 accent-td-accent" />
                         <TDBadge tone={item.processingState === "failed" || item.recognitionState === "unknown" ? "danger" : item.processingState === "processing" ? "info" : item.recognitionState === "review" ? "warning" : "success"}>
                           {item.processingState === "processing" ? "PROCESSING" : item.processingState === "failed" ? "FAILED" : item.recognitionState === "high_confidence" ? "READY" : item.recognitionState === "review" ? "NEEDS REVIEW" : "UNKNOWN"}
                         </TDBadge>
@@ -1041,7 +1041,7 @@ export function ChaosSortWorkspace() {
                           item.condition,
                         ].filter(Boolean).join(" · ") || item.notes || "Identity not resolved"}
                       </TDText>
-                      {item.processingState === "ready" ? <div className="flex flex-wrap gap-2 text-xs text-slate-400"><span className="rounded-full border border-white/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span>{item.quantity > 1 ? <span className="rounded-full border border-cyan-300/20 bg-cyan-300/[0.06] px-2.5 py-1 text-cyan-100">Qty {item.quantity}</span> : null}<span className="rounded-full border border-white/[0.06] px-2.5 py-1">Owned {item.existingOwnedQuantity}</span><span className="rounded-full border border-white/[0.06] px-2.5 py-1">Conf {Math.round(item.confidence * 100)}%</span></div> : <p className="text-xs text-slate-400">{item.notes || "Recognition did not complete."}</p>}
+                      {item.processingState === "ready" ? <div className="flex flex-wrap gap-2 text-xs text-td-secondary"><span className="rounded-full border border-td-ink/[0.06] px-2.5 py-1">{entry?.label ?? "Review"}</span>{item.quantity > 1 ? <span className="rounded-full border border-td-accent/20 bg-td-accent/[0.06] px-2.5 py-1 text-td-accent-text">Qty {item.quantity}</span> : null}<span className="rounded-full border border-td-ink/[0.06] px-2.5 py-1">Owned {item.existingOwnedQuantity}</span><span className="rounded-full border border-td-ink/[0.06] px-2.5 py-1">Conf {Math.round(item.confidence * 100)}%</span></div> : <p className="text-xs text-td-secondary">{item.notes || "Recognition did not complete."}</p>}
                         </div>
                       <div className="flex shrink-0 flex-wrap gap-2 sm:max-w-[280px]">
                         {item.processingState === "failed" ? <TDButton size="sm" variant="secondary" onClick={() => void retryRecognition([item])}>Retry recognition</TDButton> : <TDButton size="sm" variant="secondary" onClick={() => confirmItem(item.id)}>Confirm</TDButton>}
@@ -1062,9 +1062,9 @@ export function ChaosSortWorkspace() {
 
           <div className="space-y-5">
             <details open className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-td-ink/[0.08] bg-td-surface px-4 py-3 text-sm font-semibold text-td-primary transition hover:border-td-accent/20 [&::-webkit-details-marker]:hidden">
                 <span>Physical sort mode</span>
-                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-td-muted transition-transform group-open:rotate-180" />
               </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
@@ -1082,15 +1082,15 @@ export function ChaosSortWorkspace() {
                   Start Sorting
                 </TDButton>
               </div>
-              <div className="rounded-[22px] border border-white/[0.06] bg-[#07131e] p-4">
+              <div className="rounded-[22px] border border-td-ink/[0.06] bg-td-surface p-4">
                 {sortMode === "sorting" && currentSortItem ? (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center justify-between text-xs text-td-muted">
                       <span>Card {sortIndex + 1} / {sortableItems.length}</span>
                       <span>Pile {currentSortEntry?.label ?? "Review"}</span>
                     </div>
                     <div className="grid gap-4 md:grid-cols-[240px_1fr]">
-                      <div className="overflow-hidden rounded-[20px] border border-white/[0.08] bg-black">
+                      <div className="overflow-hidden rounded-[20px] border border-td-ink/[0.08] bg-black">
                         <img
                           src={currentSortItem.sourceImageUrl ?? ""}
                           alt={currentSortItem.cardName}
@@ -1104,7 +1104,7 @@ export function ChaosSortWorkspace() {
                             {currentSortItem.setCode ?? "Unknown set"} · {currentSortItem.collectorNumber ?? "?"} · {currentSortItem.finish ?? "finish unknown"}
                           </TDText>
                         </div>
-                        <div className="rounded-[20px] border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
+                        <div className="rounded-[20px] border border-td-accent/20 bg-td-accent/[0.06] p-4">
                           <TDText variant="label" tone="info">Sort destination</TDText>
                           <TDText as="h3" variant="display" className="mt-1">{currentSortEntry?.label ?? "Review"}</TDText>
                           <TDText variant="caption" tone="muted" className="mt-2">
@@ -1120,7 +1120,7 @@ export function ChaosSortWorkspace() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2 text-sm text-slate-500">
+                  <div className="space-y-2 text-sm text-td-muted">
                     <TDText variant="title">Sorting is ready when you are</TDText>
                     <TDText tone="muted">
                       The first pass groups cards into premium, value, bulk, foil, review, and unknown piles. Once this batch is confirmed, move into the physical sort lane and keep keyboard flow moving fast.
@@ -1132,9 +1132,9 @@ export function ChaosSortWorkspace() {
             </details>
 
             <details open className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-td-ink/[0.08] bg-td-surface px-4 py-3 text-sm font-semibold text-td-primary transition hover:border-td-accent/20 [&::-webkit-details-marker]:hidden">
                 <span>Batch summary</span>
-                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-td-muted transition-transform group-open:rotate-180" />
               </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
@@ -1165,17 +1165,17 @@ export function ChaosSortWorkspace() {
                   placeholder="Optional"
                 />
               </div>
-                <div className="rounded-[20px] border border-cyan-300/[0.14] bg-cyan-300/[0.04] p-4">
-                  <div className="flex items-center justify-between text-xs text-slate-500">
+                <div className="rounded-[20px] border border-td-accent/[0.14] bg-td-accent/[0.04] p-4">
+                  <div className="flex items-center justify-between text-xs text-td-muted">
                   <span>Batch destination</span>
-                  <span className="font-bold text-cyan-100">{destinationLocationLabel(destinationLocationId, locations)}</span>
+                  <span className="font-bold text-td-accent-text">{destinationLocationLabel(destinationLocationId, locations)}</span>
                   </div>
-                <p className="mt-2 text-xs text-slate-400">Accepted cards inherit this location. Override a single card below when it belongs somewhere else.</p>
-                <div className="mt-3 space-y-2 text-sm text-slate-300">
+                <p className="mt-2 text-xs text-td-secondary">Accepted cards inherit this location. Override a single card below when it belongs somewhere else.</p>
+                <div className="mt-3 space-y-2 text-sm text-td-secondary">
                   {plan.piles.map((pile) => (
-                    <div key={pile.pile} className="flex items-center justify-between rounded-xl border border-white/[0.05] px-3 py-2">
+                    <div key={pile.pile} className="flex items-center justify-between rounded-xl border border-td-ink/[0.05] px-3 py-2">
                       <span>{pile.label}</span>
-                      <span className="text-xs text-slate-500">{pile.count} cards · {money(pile.marketValue)}</span>
+                      <span className="text-xs text-td-muted">{pile.count} cards · {money(pile.marketValue)}</span>
                     </div>
                   ))}
                 </div>
@@ -1184,9 +1184,9 @@ export function ChaosSortWorkspace() {
             </details>
 
             <details open className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-td-ink/[0.08] bg-td-surface px-4 py-3 text-sm font-semibold text-td-primary transition hover:border-td-accent/20 [&::-webkit-details-marker]:hidden">
                 <span>Review inspector</span>
-                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-td-muted transition-transform group-open:rotate-180" />
               </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
@@ -1198,7 +1198,7 @@ export function ChaosSortWorkspace() {
               </div>
               {selectedItem ? (
                 <div className="space-y-4">
-                  <div className="overflow-hidden rounded-[22px] border border-white/[0.06] bg-black">
+                  <div className="overflow-hidden rounded-[22px] border border-td-ink/[0.06] bg-black">
                     <img src={selectedItem.sourceImageUrl ?? ""} alt={selectedItem.cardName} className="aspect-[0.72] w-full object-cover" />
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -1219,7 +1219,7 @@ export function ChaosSortWorkspace() {
                         <option value="">Unassigned / pending location</option>
                         {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
                       </select>
-                      <p className="text-xs text-slate-500">Leave unassigned when the physical destination is not known. No location is invented.</p>
+                      <p className="text-xs text-td-muted">Leave unassigned when the physical destination is not known. No location is invented.</p>
                     </div>
                     <div className="space-y-2">
                       <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-[var(--td-text-muted)]">Human state</label>
@@ -1249,7 +1249,7 @@ export function ChaosSortWorkspace() {
                     <TDButton variant="secondary" size="sm" onClick={() => markUnknown(selectedItem.id)}>Mark unknown</TDButton>
                     <TDButton variant="ghost" size="sm" onClick={() => removeItem(selectedItem.id)} icon={<Trash2 className="h-4 w-4" />}>Remove</TDButton>
                   </div>
-                  <div className="rounded-[18px] border border-white/[0.06] bg-white/[0.02] p-4 text-xs text-slate-400">
+                  <div className="rounded-[18px] border border-td-ink/[0.06] bg-td-ink/[0.02] p-4 text-xs text-td-secondary">
                     <div className="flex items-center justify-between gap-3">
                       <span>Recognition</span>
                       <span>{selectedItem.recognitionState}</span>
@@ -1271,9 +1271,9 @@ export function ChaosSortWorkspace() {
             </details>
 
             <details open className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-white/[0.08] bg-[#06121b] px-4 py-3 text-sm font-semibold text-white transition hover:border-cyan-300/20 [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-td-ink/[0.08] bg-td-surface px-4 py-3 text-sm font-semibold text-td-primary transition hover:border-td-accent/20 [&::-webkit-details-marker]:hidden">
                 <span>Sorting rules</span>
-                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
+                <ChevronDown className="h-4 w-4 text-td-muted transition-transform group-open:rotate-180" />
               </summary>
             <TDCard variant="floating" className="space-y-4">
               <div className="flex items-center justify-between gap-3">
@@ -1287,14 +1287,14 @@ export function ChaosSortWorkspace() {
               </div>
               <div className="space-y-3">
                 {rules.map((rule) => (
-                  <div key={rule.id} className="rounded-[20px] border border-white/[0.06] bg-white/[0.02] p-4">
+                  <div key={rule.id} className="rounded-[20px] border border-td-ink/[0.06] bg-td-ink/[0.02] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
                           checked={rule.enabled}
                           onChange={(event) => updateRule(rule.id, { enabled: event.target.checked })}
-                          className="h-4 w-4 rounded border-white/20 bg-transparent"
+                          className="h-4 w-4 rounded border-td-ink/20 bg-transparent"
                         />
                         <TDInput
                           value={rule.label}
@@ -1408,22 +1408,22 @@ export function ChaosSortWorkspace() {
           </div>
         </div>
 
-        <details className="rounded-[22px] border border-white/[0.08] bg-[#06121b] p-5">
-          <summary className="cursor-pointer list-none text-sm font-black uppercase tracking-[.14em] text-cyan-200">How Chaos Sort works</summary>
+        <details className="rounded-[22px] border border-td-ink/[0.08] bg-td-surface p-5">
+          <summary className="cursor-pointer list-none text-sm font-black uppercase tracking-[.14em] text-td-accent-text">How Chaos Sort works</summary>
           <div className="mt-5 space-y-5">
             <div>
-              <h2 className="text-2xl font-semibold tracking-[-.04em] text-white">Tame your TCG inventory</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Trading Docks does not require cards to be alphabetized or sorted by set, game, color, or rarity. Store cards in any physical order as long as each accepted item has an exact location.</p>
+              <h2 className="text-2xl font-semibold tracking-[-.04em] text-td-primary">Tame your TCG inventory</h2>
+              <p className="mt-2 text-sm leading-6 text-td-secondary">Trading Docks does not require cards to be alphabetized or sorted by set, game, color, or rarity. Store cards in any physical order as long as each accepted item has an exact location.</p>
             </div>
             <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
-              <div className="rounded-2xl border border-rose-300/[0.14] bg-rose-300/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-rose-200">Without Trading Docks</p><p className="mt-3 text-sm leading-6 text-slate-300">Dig through large boxes · manual sorting · slow pulls · lost stock · memory</p></div>
-              <div className="hidden items-center justify-center px-1 text-xl text-slate-600 lg:flex">→</div>
-              <div className="rounded-2xl border border-emerald-300/[0.14] bg-emerald-300/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-emerald-200">With Trading Docks</p><p className="mt-3 text-sm leading-6 text-slate-300">Exact physical address · smaller search area · fast picking · mixed cards are okay · scan, locate, pull, ship</p></div>
+              <div className="rounded-2xl border border-td-danger/[0.14] bg-td-danger/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-td-danger">Without Trading Docks</p><p className="mt-3 text-sm leading-6 text-td-secondary">Dig through large boxes · manual sorting · slow pulls · lost stock · memory</p></div>
+              <div className="hidden items-center justify-center px-1 text-xl text-td-muted lg:flex">→</div>
+              <div className="rounded-2xl border border-td-success/[0.14] bg-td-success/[0.035] p-4"><p className="text-[11px] font-black uppercase tracking-[.16em] text-td-success">With Trading Docks</p><p className="mt-3 text-sm leading-6 text-td-secondary">Exact physical address · smaller search area · fast picking · mixed cards are okay · scan, locate, pull, ship</p></div>
             </div>
-            <div className="grid gap-2 text-xs text-slate-400 sm:grid-cols-5"><span><b className="mr-1 text-cyan-300">1.</b> Drop scans</span><span><b className="mr-1 text-cyan-300">2.</b> Identify</span><span><b className="mr-1 text-cyan-300">3.</b> Review</span><span><b className="mr-1 text-cyan-300">4.</b> Assign location</span><span><b className="mr-1 text-cyan-300">5.</b> Sort → commit</span></div>
+            <div className="grid gap-2 text-xs text-td-secondary sm:grid-cols-5"><span><b className="mr-1 text-td-accent-text">1.</b> Drop scans</span><span><b className="mr-1 text-td-accent-text">2.</b> Identify</span><span><b className="mr-1 text-td-accent-text">3.</b> Review</span><span><b className="mr-1 text-td-accent-text">4.</b> Assign location</span><span><b className="mr-1 text-td-accent-text">5.</b> Sort → commit</span></div>
             <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
-              <div className="rounded-[22px] border border-white/[0.08] bg-white/[0.02] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-cyan-300">Your physical model</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="font-black text-white">SHELF A</p><p className="mt-2 text-sm leading-7 text-slate-400">Box 1<br /><span className="text-cyan-200">A-1-A · A-1-B · A-1-C</span><br />Box 2<br /><span className="text-cyan-200">A-2-A · A-2-B</span></p></div><div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4"><p className="font-black text-white">SHELF B</p><p className="mt-2 text-sm leading-7 text-slate-400">Box 1<br /><span className="text-cyan-200">B-1-A · B-1-B · B-1-C</span></p></div></div></div>
-              <div className="rounded-[22px] border border-amber-300/[0.15] bg-amber-300/[0.045] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-amber-200">Pro tip</p><p className="mt-3 text-sm leading-6 text-amber-50/80">Keep physical locations small enough that a card can be found quickly without traditional sorting.</p><p className="mt-3 text-xs leading-5 text-amber-100/55">Smaller locations mean fewer cards to flip through when an order arrives. This is guidance, not an enforced capacity rule.</p></div>
+              <div className="rounded-[22px] border border-td-ink/[0.08] bg-td-ink/[0.02] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-td-accent-text">Your physical model</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-4"><p className="font-black text-td-primary">SHELF A</p><p className="mt-2 text-sm leading-7 text-td-secondary">Box 1<br /><span className="text-td-accent-text">A-1-A · A-1-B · A-1-C</span><br />Box 2<br /><span className="text-td-accent-text">A-2-A · A-2-B</span></p></div><div className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-4"><p className="font-black text-td-primary">SHELF B</p><p className="mt-2 text-sm leading-7 text-td-secondary">Box 1<br /><span className="text-td-accent-text">B-1-A · B-1-B · B-1-C</span></p></div></div></div>
+              <div className="rounded-[22px] border border-td-warning/[0.15] bg-td-warning/[0.045] p-5"><p className="text-xs font-black uppercase tracking-[.16em] text-td-warning">Pro tip</p><p className="mt-3 text-sm leading-6 text-td-warning/80">Keep physical locations small enough that a card can be found quickly without traditional sorting.</p><p className="mt-3 text-xs leading-5 text-td-warning/55">Smaller locations mean fewer cards to flip through when an order arrives. This is guidance, not an enforced capacity rule.</p></div>
             </div>
           </div>
         </details>
@@ -1434,10 +1434,10 @@ export function ChaosSortWorkspace() {
 
 function SummaryTile({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div className="rounded-[18px] border border-white/[0.06] bg-white/[0.02] p-4">
-      <p className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">{value}</p>
-      <p className="mt-2 text-xs leading-5 text-slate-500">{detail}</p>
+    <div className="rounded-[18px] border border-td-ink/[0.06] bg-td-ink/[0.02] p-4">
+      <p className="text-[11px] font-black uppercase tracking-[0.1em] text-td-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-td-primary">{value}</p>
+      <p className="mt-2 text-xs leading-5 text-td-muted">{detail}</p>
     </div>
   );
 }

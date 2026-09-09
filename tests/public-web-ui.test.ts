@@ -228,11 +228,13 @@ test("homepage defensive auth redirect is safe when public Supabase config is ab
   assert.match(homePage, /redirect\("\/dashboard"\)/);
 });
 
-test("public multi-game market feed is not forced through a no-store waterfall", () => {
+test("public market sample renders without a provider request and live API remains cached", () => {
   const marketSection = readFileSync(path.join(repoRoot, "src/components/landing/MarketSection.tsx"), "utf8");
   const marketRoute = readFileSync(path.join(repoRoot, "src/app/api/multi-game-market/route.ts"), "utf8");
 
-  assert.match(marketSection, /fetch\("\/api\/multi-game-market", \{ cache: "force-cache" \}\)/);
+  assert.match(marketSection, /sampleCards\(activeGame\)/);
+  assert.match(marketSection, /Illustrative sample/);
+  assert.doesNotMatch(marketSection, /fetch\(|useEffect|Connecting|Loading market/);
   assert.doesNotMatch(marketSection, /cache: "no-store"/);
   assert.match(marketRoute, /public, max-age=60, s-maxage=\$\{MARKET_REFRESH_SECONDS\}/);
 });
@@ -263,7 +265,8 @@ test("dashboard design foundation uses Trading Docks workflow language", () => {
   const mobileNav = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/MobileBottomNav.tsx"), "utf8");
   const topbar = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/Topbar.tsx"), "utf8");
 
-  assert.match(globals, /--td-accent-warm/);
+  assert.match(globals, /@import "\.\/theme\.css"/);
+  assert.match(readFileSync(path.join(repoRoot, "src/app/theme.css"), "utf8"), /--td-accent-warm/);
   assert.match(globals, /\.td-panel-strong/);
   assert.match(globals, /\.td-button-primary/);
   assert.match(audit, /TCG intelligence and operations system/);
@@ -316,9 +319,10 @@ test("public redesign removes generic SaaS hero and pricing-card architecture", 
   const header = readFileSync(path.join(repoRoot, "src/components/landing/Header.tsx"), "utf8");
   const footer = readFileSync(path.join(repoRoot, "src/components/landing/Footer.tsx"), "utf8");
 
-  assert.match(hero, /CARD_LIFECYCLE/);
-  assert.match(hero, /Follow every card from scan to sale/);
-  assert.match(hero, /operating snapshot/);
+  assert.match(hero, /CardJourney/);
+  assert.match(hero, /Follow every card/);
+  assert.match(hero, /scan to sale/);
+  assert.match(hero, /Create your free account/);
   assert.doesNotMatch(hero, /DashboardPreview/);
   assert.doesNotMatch(hero, /rounded-full bg-blue|orbitField|floating dashboard/i);
 
@@ -329,7 +333,7 @@ test("public redesign removes generic SaaS hero and pricing-card architecture", 
   assert.match(pricing, /COMPARISON_ROWS/);
   assert.doesNotMatch(pricing, /PricingCard|Most popular|bg-gradient-to|Sparkles/);
 
-  assert.match(planComparison, /Choose by workflow/);
+  assert.match(planComparison, /Choose the plan that fits your collection/);
   assert.match(planComparison, /Capability matrix/);
   assert.doesNotMatch(planComparison, /min-h-\[680px\]|What's included|rounded-\[28px\]/);
 
@@ -398,7 +402,7 @@ test("remaining homepage sections use the unified Trading Docks product language
   assert.match(ecosystem, /Catalog identity stays separate from owned inventory/);
   assert.match(plans, /Organize, understand, sell, operate/);
   assert.match(plans, /MEMBERSHIP_PLANS/);
-  assert.match(market, /Product movement, not a fake stock ticker/);
+  assert.match(market, /See market signals in context/);
   assert.match(market, /rankCards/);
 
   for (const source of [experience, features, workflow, ecosystem, plans, market]) {

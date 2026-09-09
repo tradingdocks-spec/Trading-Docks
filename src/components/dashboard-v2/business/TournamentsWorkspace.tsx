@@ -33,15 +33,15 @@ export function TournamentsWorkspace() {
             ["Pokémon League", "August 12 · 5:30 PM", "14 / 24 players"],
             ["Commander Night", "August 14 · 6:00 PM", "12 pods planned"],
           ].map(([title, date, registration]) => (
-            <div key={title} className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
+            <div key={title} className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-white">{title}</p>
-                  <p className="mt-2 text-[10px] text-slate-500">{date}</p>
+                  <p className="text-sm font-semibold text-td-primary">{title}</p>
+                  <p className="mt-2 text-[11px] text-td-muted">{date}</p>
                 </div>
-                <Trophy className="h-4 w-4 text-cyan-300" />
+                <Trophy className="h-4 w-4 text-td-accent-text" />
               </div>
-              <p className="mt-4 text-[9px] text-cyan-300">{registration}</p>
+              <p className="mt-4 text-[11px] text-td-accent-text">{registration}</p>
             </div>
           ))}
         </div>

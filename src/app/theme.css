@@ -1,0 +1,244 @@
+/* Trading Docks: semantic colors shared by every web surface. */
+:root,
+[data-theme="dark"] {
+  --td-color-scheme: dark;
+  --td-brand-blue-rgb: 0 112 255;
+  --td-heading-start: #7beaff;
+  --td-heading-end: #379dff;
+  --background: #0a101b;
+  --foreground: #eff6ff;
+  --td-background-primary: #0a101b;
+  --td-background-secondary: #0e1726;
+  --td-surface-default: #121e30;
+  --td-surface-elevated: #1a2a40;
+  --td-surface-floating: #233750;
+  --td-text-primary: #eff6ff;
+  --td-text-secondary: #b9cae1;
+  --td-text-muted: #92aac7;
+  --td-text-faint: #839bb9;
+  --td-border-default: #304762;
+  --td-border-strong: #506b8b;
+  --td-border-subtle: #a9c9f01f;
+  --td-action-primary: #35cafa;
+  --td-action-primary-hover: #80e1ff;
+  --td-action-primary-pressed: #18afe3;
+  --td-accent-text: #77ddff;
+  --td-on-accent: #061526;
+  --td-border-focus: #35cafa;
+  --td-success: #84d6af;
+  --td-warning: #e0b67a;
+  --td-danger: #f69aa5;
+  --td-information: #35cafa;
+  --td-violet: #bfb0e6;
+  --td-pink: #e6abd0;
+  --td-accent-warm: #e0b67a;
+  --td-ink-rgb: 239 246 255;
+  --td-surface-rgb: 18 30 48;
+  --td-base-rgb: 10 16 27;
+  --td-accent-rgb: 53 202 250;
+  --td-scrim: rgb(0 0 0 / 0.62);
+  --td-shadow-rgb: 0 0 0;
+  --td-shadow-strength: 1;
+  --td-elevation-raised: 0 8px 28px #0003;
+  --td-elevation-floating: 0 18px 48px #0005;
+  --td-elevation-overlay: 0 30px 80px #0007;
+}
+[data-theme="light"] {
+  --td-color-scheme: light;
+  --td-heading-start: #00749e;
+  --td-heading-end: #0054d0;
+  --background: #f3f7fd;
+  --foreground: #14243b;
+  --td-background-primary: #f3f7fd;
+  --td-background-secondary: #eaf1fb;
+  --td-surface-default: #ffffff;
+  --td-surface-elevated: #e7effa;
+  --td-surface-floating: #dbe7f7;
+  --td-text-primary: #14243b;
+  --td-text-secondary: #405978;
+  --td-text-muted: #536985;
+  --td-text-faint: #607895;
+  --td-border-default: #c4d3e7;
+  --td-border-strong: #92abc9;
+  --td-border-subtle: #214a7a26;
+  --td-action-primary: #0065d9;
+  --td-action-primary-hover: #0055ba;
+  --td-action-primary-pressed: #00469c;
+  --td-accent-text: #005bbb;
+  --td-on-accent: #ffffff;
+  --td-border-focus: #0065d9;
+  --td-success: #21734c;
+  --td-warning: #8c5a1b;
+  --td-danger: #b43449;
+  --td-information: #0065d9;
+  --td-violet: #70519d;
+  --td-pink: #96396f;
+  --td-accent-warm: #8c5a1b;
+  --td-ink-rgb: 20 36 59;
+  --td-surface-rgb: 255 255 255;
+  --td-base-rgb: 243 247 253;
+  --td-accent-rgb: 0 101 217;
+  --td-scrim: rgb(10 25 48 / 0.38);
+  --td-shadow-rgb: 14 52 102;
+  --td-shadow-strength: 0.18;
+  --td-elevation-raised: 0 8px 28px #0e346610;
+  --td-elevation-floating: 0 18px 48px #0e346620;
+  --td-elevation-overlay: 0 30px 80px #0e346630;
+}
+@theme inline {
+  --color-td-canvas: var(--td-background-primary);
+  --color-td-surface: var(--td-surface-default);
+  --color-td-raised: var(--td-surface-elevated);
+  --color-td-primary: var(--td-text-primary);
+  --color-td-secondary: var(--td-text-secondary);
+  --color-td-muted: var(--td-text-muted);
+  --color-td-on-accent: var(--td-on-accent);
+  --color-td-ink: var(--td-text-primary);
+  --color-td-line: var(--td-border-default);
+  --color-td-accent: var(--td-action-primary);
+  --color-td-accent-hover: var(--td-action-primary-hover);
+  --color-td-accent-text: var(--td-accent-text);
+  --color-td-success: var(--td-success);
+  --color-td-warning: var(--td-warning);
+  --color-td-danger: var(--td-danger);
+  --color-td-violet: var(--td-violet);
+  --color-td-pink: var(--td-pink);
+}
+html {
+  background: var(--background);
+  color-scheme: var(--td-color-scheme);
+}
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+select,
+select option,
+select optgroup {
+  color-scheme: var(--td-color-scheme);
+  background-color: var(--td-surface-default);
+  color: var(--td-text-primary);
+}
+select option:checked {
+  background: var(--td-action-primary);
+  color: var(--td-on-accent);
+}
+select option:disabled {
+  color: var(--td-text-muted);
+}
+input,
+textarea,
+select {
+  caret-color: var(--td-accent-text);
+  accent-color: var(--td-action-primary);
+}
+::selection {
+  background: var(--td-action-primary);
+  color: var(--td-on-accent);
+}
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--td-border-focus);
+  outline-offset: 3px;
+}
+.td-panel {
+  background: var(--td-surface-default);
+}
+.td-panel-strong {
+  background: var(--td-surface-elevated);
+  border-color: var(--td-border-default);
+}
+.td-button-primary {
+  color: var(--td-on-accent);
+}
+.td-theme-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0 9px;
+  color: var(--td-text-secondary);
+  background: var(--td-surface-default);
+  border: 1px solid var(--td-border-default);
+  border-radius: 8px;
+}
+.td-theme-switch select {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  width: 78px;
+  font-size: 12px;
+  color: var(--td-text-primary);
+  cursor: pointer;
+}
+.td-theme-switch:focus-within {
+  outline: 2px solid var(--td-border-focus);
+  outline-offset: 3px;
+}
+.td-theme-switch select:focus {
+  outline: none;
+}
+.td-theme-light-icon {
+  display: none;
+}
+[data-theme="light"] .td-theme-light-icon {
+  display: block;
+}
+[data-theme="light"] .td-theme-dark-icon {
+  display: none;
+}
+.td-theme-corner {
+  position: fixed;
+  top: 16px;
+  right: 18px;
+  z-index: 70;
+}
+@media (max-width: 639px) {
+  .td-theme-switch {
+    width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+  .td-theme-switch select {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .td-theme-corner {
+    top: 12px;
+    right: 12px;
+  }
+}
+/* Physical labels and QR codes are paper artifacts in either screen theme. */
+[data-print-surface] {
+  --td-text-primary: #101010;
+  --td-text-secondary: #303030;
+  --td-text-muted: #555;
+  --td-on-accent: #101010;
+  --td-background-primary: #101010;
+  background: #fff;
+  color: #101010;
+  color-scheme: light;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.td-button-primary:disabled,
+.td-button-secondary:disabled,
+.td-button-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

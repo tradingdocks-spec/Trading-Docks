@@ -217,7 +217,7 @@ function MatchCard({ match, compact = false }: { match: State["matches"][number]
 }
 
 function TabButton({ label, icon, active, onClick }: { label: string; icon: React.ReactNode; active: boolean; onClick: () => void }) {
-  return <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`inline-flex min-h-11 items-center gap-2 rounded-[var(--td-radius-md)] border px-3 text-sm font-black outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] ${active ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100" : "border-[var(--td-border-default)] text-[var(--td-text-muted)]"}`}>{icon}{label}</button>;
+  return <button type="button" role="tab" aria-selected={active} onClick={onClick} className={`inline-flex min-h-11 items-center gap-2 rounded-[var(--td-radius-md)] border px-3 text-sm font-black outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] ${active ? "border-td-accent/40 bg-td-accent/10 text-td-accent-text" : "border-[var(--td-border-default)] text-[var(--td-text-muted)]"}`}>{icon}{label}</button>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

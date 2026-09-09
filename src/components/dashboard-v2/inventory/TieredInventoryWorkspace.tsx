@@ -193,27 +193,27 @@ const TYPE_CONFIG: Record<
   chaos: {
     label: "Chaos Sort",
     icon: Layers3,
-    className: "border-cyan-300/[0.14] bg-cyan-400/[0.05] text-cyan-200",
+    className: "border-td-accent/[0.14] bg-td-accent/[0.05] text-td-accent-text",
   },
   binder: {
     label: "Binders",
     icon: LibraryBig,
-    className: "border-violet-300/[0.14] bg-violet-400/[0.05] text-violet-200",
+    className: "border-td-violet/[0.14] bg-td-violet/[0.05] text-td-violet",
   },
   "sealed-local": {
     label: "Local Sealed",
     icon: Store,
-    className: "border-emerald-300/[0.14] bg-emerald-400/[0.05] text-emerald-200",
+    className: "border-td-success/[0.14] bg-td-success/[0.05] text-td-success",
   },
   "sealed-warehouse": {
     label: "Warehouse Sealed",
     icon: Warehouse,
-    className: "border-amber-300/[0.14] bg-amber-400/[0.05] text-amber-200",
+    className: "border-td-warning/[0.14] bg-td-warning/[0.05] text-td-warning",
   },
   custom: {
     label: "Custom",
     icon: FolderKanban,
-    className: "border-blue-300/[0.14] bg-blue-400/[0.05] text-blue-200",
+    className: "border-td-accent/[0.14] bg-td-accent/[0.05] text-td-accent-text",
   },
 };
 
@@ -1062,7 +1062,7 @@ export function TieredInventoryWorkspace({
           <button
             type="button"
             onClick={() => setHeroCollapsed(true)}
-            className="absolute right-4 top-4 rounded-lg border border-white/[0.08] bg-black/20 px-3 py-2 text-[9px] font-semibold text-slate-500 transition hover:text-slate-200"
+            className="absolute right-4 top-4 rounded-lg border border-td-ink/[0.08] bg-black/20 px-3 py-2 text-[11px] font-semibold text-td-muted transition hover:text-td-primary"
           >
             Collapse intro
           </button>
@@ -1071,9 +1071,9 @@ export function TieredInventoryWorkspace({
         <button
           type="button"
           onClick={() => setHeroCollapsed(false)}
-          className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 text-[9px] font-semibold text-slate-500 hover:text-slate-200"
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.02] px-3 text-[11px] font-semibold text-td-muted hover:text-td-primary"
         >
-          <Boxes className="h-3.5 w-3.5 text-cyan-300" />
+          <Boxes className="h-3.5 w-3.5 text-td-accent-text" />
           Show Inventory overview
         </button>
       )}
@@ -1082,18 +1082,18 @@ export function TieredInventoryWorkspace({
         <button
           type="button"
           onClick={() => setPutAwayOpen(true)}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300/[0.18] bg-amber-300/[0.055] px-4 text-[10px] font-semibold text-amber-100 transition hover:border-amber-300/35 hover:bg-amber-300/[0.09]"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-td-warning/[0.18] bg-td-warning/[0.055] px-4 text-[11px] font-semibold text-td-warning transition hover:border-td-warning/35 hover:bg-td-warning/[0.09]"
         >
-          <PackageOpen className="h-4 w-4 text-amber-300" />
+          <PackageOpen className="h-4 w-4 text-td-warning" />
           Put Away
-          <span className="min-w-5 rounded-md bg-amber-300 px-1.5 py-0.5 text-center text-[8px] font-black text-[#211505]">
+          <span className="min-w-5 rounded-md bg-td-warning px-1.5 py-0.5 text-center text-[11px] font-black text-td-on-accent">
             {putAwayItems.length}
           </span>
         </button>
         <button
           type="button"
           onClick={() => setFileModalOpen(true)}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-bold text-[#001018] shadow-[0_10px_30px_rgba(34,211,238,0.13)]"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-td-accent to-td-accent px-4 text-[11px] font-bold text-td-on-accent shadow-[0_10px_30px_rgb(var(--td-accent-rgb)/0.13)]"
         >
           <Plus className="h-4 w-4" />
           File inventory
@@ -1166,11 +1166,11 @@ export function TieredInventoryWorkspace({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-xl border border-white/[0.07] bg-black/20 p-1">
+              <div className="flex rounded-xl border border-td-ink/[0.07] bg-black/20 p-1">
               <button
                 type="button"
                 onClick={() => setViewMode("visual")}
-                className={`flex h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-medium tracking-[-0.01em] transition ${viewMode === "visual" ? "bg-cyan-400/10 text-cyan-100" : "text-slate-500 hover:text-slate-300"}`}
+                className={`flex h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-medium tracking-[-0.01em] transition ${viewMode === "visual" ? "bg-td-accent/10 text-td-accent-text" : "text-td-muted hover:text-td-secondary"}`}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
                 Visual Map
@@ -1178,7 +1178,7 @@ export function TieredInventoryWorkspace({
               <button
                 type="button"
                 onClick={() => setViewMode("operations")}
-                className={`flex h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-medium tracking-[-0.01em] transition ${viewMode === "operations" ? "bg-cyan-400/10 text-cyan-100" : "text-slate-500 hover:text-slate-300"}`}
+                className={`flex h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3.5 text-xs font-medium tracking-[-0.01em] transition ${viewMode === "operations" ? "bg-td-accent/10 text-td-accent-text" : "text-td-muted hover:text-td-secondary"}`}
               >
                 <List className="h-3.5 w-3.5" />
                 Operations
@@ -1189,7 +1189,7 @@ export function TieredInventoryWorkspace({
                 <select
                   value={activeType}
                   onChange={(event) => setActiveType(event.target.value as LocationType | "all")}
-                  className="inventory-location-select h-11 min-w-[190px] appearance-none rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 pr-9 text-[10px] font-semibold text-slate-200 outline-none focus:border-cyan-300/25"
+                  className="inventory-location-select h-11 min-w-[190px] appearance-none rounded-xl border border-td-ink/[0.08] bg-td-surface px-3.5 pr-9 text-[11px] font-semibold text-td-primary outline-none focus:border-td-accent/25"
                 >
                   <option value="all">All locations ({locations.length})</option>
                   {(Object.keys(TYPE_CONFIG) as LocationType[]).map((type) => (
@@ -1198,30 +1198,30 @@ export function TieredInventoryWorkspace({
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
               </label>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-            <label className="flex h-11 min-w-0 items-center gap-3 rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 focus-within:border-cyan-300/25 sm:w-[300px]">
-              <Search className="h-4 w-4 shrink-0 text-cyan-300/70" />
+            <label className="flex h-11 min-w-0 items-center gap-3 rounded-xl border border-td-ink/[0.08] bg-td-surface px-3.5 focus-within:border-td-accent/25 sm:w-[300px]">
+              <Search className="h-4 w-4 shrink-0 text-td-accent-text/70" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search storage locations..."
-                className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-200 outline-none placeholder:text-slate-600"
+                className="min-w-0 flex-1 bg-transparent text-[11px] text-td-primary outline-none placeholder:text-td-muted"
               />
             </label>
-            <div className="flex h-11 rounded-xl border border-white/[0.08] bg-[#06131d] p-1">
-              <button type="button" onClick={() => setLocationDisplay("cards")} className={`flex items-center gap-1.5 rounded-lg px-3 text-[9px] font-semibold transition ${locationDisplay === "cards" ? "bg-cyan-400/10 text-cyan-100" : "text-slate-500 hover:text-slate-300"}`}><LayoutGrid className="h-3.5 w-3.5" /> Cards</button>
-              <button type="button" onClick={() => setLocationDisplay("list")} className={`flex items-center gap-1.5 rounded-lg px-3 text-[9px] font-semibold transition ${locationDisplay === "list" ? "bg-cyan-400/10 text-cyan-100" : "text-slate-500 hover:text-slate-300"}`}><List className="h-3.5 w-3.5" /> List</button>
+            <div className="flex h-11 rounded-xl border border-td-ink/[0.08] bg-td-surface p-1">
+              <button type="button" onClick={() => setLocationDisplay("cards")} className={`flex items-center gap-1.5 rounded-lg px-3 text-[11px] font-semibold transition ${locationDisplay === "cards" ? "bg-td-accent/10 text-td-accent-text" : "text-td-muted hover:text-td-secondary"}`}><LayoutGrid className="h-3.5 w-3.5" /> Cards</button>
+              <button type="button" onClick={() => setLocationDisplay("list")} className={`flex items-center gap-1.5 rounded-lg px-3 text-[11px] font-semibold transition ${locationDisplay === "list" ? "bg-td-accent/10 text-td-accent-text" : "text-td-muted hover:text-td-secondary"}`}><List className="h-3.5 w-3.5" /> List</button>
             </div>
             <label className="relative">
               <span className="sr-only">Sort locations</span>
               <select
                 value={locationSort}
                 onChange={(event) => setLocationSort(event.target.value as typeof locationSort)}
-                className="inventory-location-select h-11 appearance-none rounded-xl border border-white/[0.08] bg-[#06131d] px-3.5 pr-9 text-[9px] font-semibold text-slate-300 outline-none focus:border-cyan-300/25"
+                className="inventory-location-select h-11 appearance-none rounded-xl border border-td-ink/[0.08] bg-td-surface px-3.5 pr-9 text-[11px] font-semibold text-td-secondary outline-none focus:border-td-accent/25"
               >
                 <option value="name">Sort: Name</option>
                 <option value="type">Sort: Type</option>
@@ -1230,7 +1230,7 @@ export function TieredInventoryWorkspace({
                 <option value="value">Sort: Value</option>
                 <option value="updated">Sort: Recently added</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
             </label>
 
             <button
@@ -1239,7 +1239,7 @@ export function TieredInventoryWorkspace({
                 setEditingLocation(null);
                 setLocationModalOpen(true);
               }}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 to-sky-500 px-4 text-[10px] font-bold text-[#001018] shadow-[0_10px_30px_rgba(34,211,238,0.13)]"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-td-accent to-td-accent px-4 text-[11px] font-bold text-td-on-accent shadow-[0_10px_30px_rgb(var(--td-accent-rgb)/0.13)]"
             >
               <Plus className="h-3.5 w-3.5" />
               Add location
@@ -1247,7 +1247,7 @@ export function TieredInventoryWorkspace({
           </div>
         </div>
 
-          <div className="flex flex-wrap gap-2 border-t border-white/[0.055] pt-3">
+          <div className="flex flex-wrap gap-2 border-t border-td-ink/[0.055] pt-3">
             <TypeButton active={activeType === "all"} label={`All ${locations.length}`} icon={FolderKanban} onClick={() => setActiveType("all")} />
             {(Object.keys(TYPE_CONFIG) as LocationType[]).map((type) => (
               <TypeButton
@@ -1261,10 +1261,10 @@ export function TieredInventoryWorkspace({
             <button
               type="button"
               onClick={() => setShowUnconfiguredOnly((current) => !current)}
-              className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-[9px] font-semibold transition ${
+              className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-[11px] font-semibold transition ${
                 showUnconfiguredOnly
-                  ? "border-amber-300/20 bg-amber-300/[0.07] text-amber-100"
-                  : "border-transparent text-slate-600 hover:border-white/[0.06] hover:text-slate-300"
+                  ? "border-td-warning/20 bg-td-warning/[0.07] text-td-warning"
+                  : "border-transparent text-td-muted hover:border-td-ink/[0.06] hover:text-td-secondary"
               }`}
             >
               <Settings2 className="h-3.5 w-3.5" />
@@ -1276,22 +1276,22 @@ export function TieredInventoryWorkspace({
 
       <div className="mt-5">
         <section className={`${styles.glassPanel} min-w-0 rounded-[26px] p-5`}>
-          <div className="flex flex-col gap-3 border-b border-white/[0.06] pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3 border-b border-td-ink/[0.06] pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
                 Main Warehouse / All Zones
               </p>
-              <h2 className="mt-2 text-lg font-semibold text-white">
+              <h2 className="mt-2 text-lg font-semibold text-td-primary">
                 Storage map
               </h2>
-              <p className="mt-1 text-[9px] text-slate-600">
+              <p className="mt-1 text-[11px] text-td-muted">
                 Click any location to open its inventory. Names, capacity, organization, and type are editable.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-[8px] font-medium text-slate-500">
-              <span className="h-2 w-2 rounded-full bg-cyan-300" /> Available
-              <span className="ml-2 h-2 w-2 rounded-full bg-amber-300" /> Near capacity
-              <span className="ml-2 h-2 w-2 rounded-full bg-red-400" /> Critical
+            <div className="flex items-center gap-2 text-[11px] font-medium text-td-muted">
+              <span className="h-2 w-2 rounded-full bg-td-accent" /> Available
+              <span className="ml-2 h-2 w-2 rounded-full bg-td-warning" /> Near capacity
+              <span className="ml-2 h-2 w-2 rounded-full bg-td-danger" /> Critical
             </div>
           </div>
 
@@ -1317,11 +1317,11 @@ export function TieredInventoryWorkspace({
             ))}
           </div>
           {!visibleLocations.length ? (
-            <div className="mt-5 rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015] px-5 py-14 text-center">
-              <Warehouse className="mx-auto h-7 w-7 text-slate-700" />
-              <p className="mt-4 text-sm font-semibold text-slate-300">Build your physical inventory map</p>
-              <p className="mx-auto mt-2 max-w-md text-[10px] leading-5 text-slate-600">Create a box, binder, shelf, display case, or custom location. You can rename it and change capacity at any time.</p>
-              <button type="button" onClick={() => { setEditingLocation(null); setLocationModalOpen(true); }} className="mt-5 rounded-xl bg-cyan-400 px-4 py-2.5 text-[10px] font-bold text-[#001018]">Create first location</button>
+            <div className="mt-5 rounded-2xl border border-dashed border-td-ink/[0.08] bg-td-ink/[0.015] px-5 py-14 text-center">
+              <Warehouse className="mx-auto h-7 w-7 text-td-muted" />
+              <p className="mt-4 text-sm font-semibold text-td-secondary">Build your physical inventory map</p>
+              <p className="mx-auto mt-2 max-w-md text-[11px] leading-5 text-td-muted">Create a box, binder, shelf, display case, or custom location. You can rename it and change capacity at any time.</p>
+              <button type="button" onClick={() => { setEditingLocation(null); setLocationModalOpen(true); }} className="mt-5 rounded-xl bg-td-accent px-4 py-2.5 text-[11px] font-bold text-td-on-accent">Create first location</button>
             </div>
           ) : null}
         </section>
@@ -1329,7 +1329,7 @@ export function TieredInventoryWorkspace({
         <section className="hidden">
           {selectedLocation ? (
             <>
-              <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-5">
+              <div className="flex items-start justify-between gap-4 border-b border-td-ink/[0.06] pb-5">
                 <div className="flex items-start gap-3">
                   <span
                     className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${TYPE_CONFIG[selectedLocation.type].className}`}
@@ -1341,11 +1341,11 @@ export function TieredInventoryWorkspace({
                   </span>
 
                   <div>
-                    <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-300">{selectedLocation.zone || "Main Warehouse"}</p>
-                    <p className="text-lg font-semibold text-white">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">{selectedLocation.zone || "Main Warehouse"}</p>
+                    <p className="text-lg font-semibold text-td-primary">
                       {selectedLocation.name}
                     </p>
-                    <p className="mt-1 max-w-2xl text-[10px] leading-5 text-slate-600">
+                    <p className="mt-1 max-w-2xl text-[11px] leading-5 text-td-muted">
                       {selectedLocation.description}
                     </p>
                   </div>
@@ -1358,7 +1358,7 @@ export function TieredInventoryWorkspace({
                     setLocationModalOpen(true);
                   }}
                   aria-label="Edit location"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] text-slate-400 hover:border-cyan-300/20 hover:text-cyan-200"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] text-td-secondary hover:border-td-accent/20 hover:text-td-accent-text"
                 >
                   <Edit3 className="h-3.5 w-3.5" />
                 </button>
@@ -1385,26 +1385,26 @@ export function TieredInventoryWorkspace({
               </div>
 
               {selectedLocation.capacity ? (
-                <div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
-                  <div className="flex items-center justify-between text-[9px]">
-                    <span className="font-semibold text-slate-300">Capacity</span>
-                    <span className="text-slate-500">{selectedLocation.itemCount.toLocaleString("en-US")} / {selectedLocation.capacity.toLocaleString("en-US")} {selectedLocation.capacityUnit || "cards"}</span>
+                <div className="mt-5 rounded-2xl border border-td-ink/[0.06] bg-black/10 p-4">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-td-secondary">Capacity</span>
+                    <span className="text-td-muted">{selectedLocation.itemCount.toLocaleString("en-US")} / {selectedLocation.capacity.toLocaleString("en-US")} {selectedLocation.capacityUnit || "cards"}</span>
                   </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.05]">
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-td-ink/[0.05]">
                     <div className={`h-full rounded-full ${capacityTone(selectedLocation)}`} style={{ width: `${capacityPercent(selectedLocation)}%` }} />
                   </div>
                 </div>
               ) : null}
 
               <div className="mt-5 flex gap-2">
-                <button type="button" onClick={() => setFileModalOpen(true)} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-cyan-400 text-[9px] font-bold text-[#001018]"><Plus className="h-3.5 w-3.5" /> File here</button>
-                <button type="button" onClick={() => notify("QR label is queued for the printing phase.")} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] text-[9px] font-semibold text-slate-300"><Tag className="h-3.5 w-3.5" /> QR label</button>
+                <button type="button" onClick={() => setFileModalOpen(true)} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-td-accent text-[11px] font-bold text-td-on-accent"><Plus className="h-3.5 w-3.5" /> File here</button>
+                <button type="button" onClick={() => notify("QR label is queued for the printing phase.")} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] text-[11px] font-semibold text-td-secondary"><Tag className="h-3.5 w-3.5" /> QR label</button>
               </div>
 
-              <div className="mt-5 max-h-[360px] overflow-auto rounded-2xl border border-white/[0.06]">
+              <div className="mt-5 max-h-[360px] overflow-auto rounded-2xl border border-td-ink/[0.06]">
                 <table className="w-full min-w-[820px] text-left">
                   <thead>
-                    <tr className="border-b border-white/[0.06] text-[8px] uppercase tracking-[0.14em] text-slate-700">
+                    <tr className="border-b border-td-ink/[0.06] text-[11px] uppercase tracking-[0.14em] text-td-muted">
                       <th className="px-3 py-3">Inventory</th>
                       <th className="px-3 py-3">SKU</th>
                       <th className="px-3 py-3">Category</th>
@@ -1429,15 +1429,15 @@ export function TieredInventoryWorkspace({
               </div>
 
               {!selectedItems.length ? (
-                <div className="mt-5 rounded-2xl border border-dashed border-white/[0.07] bg-white/[0.015] px-4 py-10 text-center">
-                  <PackageCheck className="mx-auto h-5 w-5 text-slate-700" />
-                  <p className="mt-3 text-xs font-semibold text-slate-400">
+                <div className="mt-5 rounded-2xl border border-dashed border-td-ink/[0.07] bg-td-ink/[0.015] px-4 py-10 text-center">
+                  <PackageCheck className="mx-auto h-5 w-5 text-td-muted" />
+                  <p className="mt-3 text-xs font-semibold text-td-secondary">
                     No item records in this location
                   </p>
                   <button
                     type="button"
                     onClick={() => setFileModalOpen(true)}
-                    className="mt-3 text-[10px] font-semibold text-cyan-300"
+                    className="mt-3 text-[11px] font-semibold text-td-accent-text"
                   >
                     File inventory here
                   </button>
@@ -1562,8 +1562,8 @@ export function TieredInventoryWorkspace({
       ) : null}
 
       {toast ? (
-        <div className="fixed bottom-5 right-5 z-[140] flex items-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-[#06131d]/96 px-4 py-3 text-[10px] font-semibold text-cyan-100 shadow-[0_18px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl">
-          <Check className="h-4 w-4 text-emerald-300" />
+        <div className="fixed bottom-5 right-5 z-[140] flex items-center gap-2 rounded-xl border border-td-accent/[0.16] bg-td-surface/96 px-4 py-3 text-[11px] font-semibold text-td-accent-text shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.4*var(--td-shadow-strength)))] backdrop-blur-xl">
+          <Check className="h-4 w-4 text-td-success" />
           {toast}
         </div>
       ) : null}
@@ -1587,13 +1587,13 @@ function TypeButton({
       type="button"
       onClick={onClick}
       className={[
-        "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-[9px] font-semibold transition",
+        "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-[11px] font-semibold transition",
         active
-          ? "border-cyan-300/[0.18] bg-cyan-400/[0.075] text-cyan-100"
-          : "border-transparent text-slate-600 hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-slate-300",
+          ? "border-td-accent/[0.18] bg-td-accent/[0.075] text-td-accent-text"
+          : "border-transparent text-td-muted hover:border-td-ink/[0.06] hover:bg-td-ink/[0.025] hover:text-td-secondary",
       ].join(" ")}
     >
-      <Icon className={active ? "h-3.5 w-3.5 text-cyan-300" : "h-3.5 w-3.5"} />
+      <Icon className={active ? "h-3.5 w-3.5 text-td-accent-text" : "h-3.5 w-3.5"} />
       {label}
     </button>
   );
@@ -1623,23 +1623,23 @@ function InventoryOperationsSummary({
   business: boolean;
 }) {
   const actionItems = [
-    ["Ready for put-away", actions.putAway, PackageOpen, "text-amber-300"],
-    ["Ready to list", actions.readyToList, Store, "text-cyan-300"],
-    ["Pricing needed", actions.pricing, CircleDollarSign, "text-violet-300"],
-    ["Listing errors", actions.listingErrors, AlertTriangle, "text-red-300"],
-    ["Over-allocated", actions.allocation, ShieldAlert, "text-red-300"],
-    ["Missing location", actions.missingLocation, MapPin, "text-amber-300"],
+    ["Ready for put-away", actions.putAway, PackageOpen, "text-td-warning"],
+    ["Ready to list", actions.readyToList, Store, "text-td-accent-text"],
+    ["Pricing needed", actions.pricing, CircleDollarSign, "text-td-violet"],
+    ["Listing errors", actions.listingErrors, AlertTriangle, "text-td-danger"],
+    ["Over-allocated", actions.allocation, ShieldAlert, "text-td-danger"],
+    ["Missing location", actions.missingLocation, MapPin, "text-td-warning"],
   ] as const;
   return (
     <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
       <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Sales channel inventory</p>
-            <h2 className="mt-2 text-lg font-semibold text-white">Where inventory is committed</h2>
-            <p className="mt-1 text-[9px] text-slate-600">Select a channel to focus the operational view.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">Sales channel inventory</p>
+            <h2 className="mt-2 text-lg font-semibold text-td-primary">Where inventory is committed</h2>
+            <p className="mt-1 text-[11px] text-td-muted">Select a channel to focus the operational view.</p>
           </div>
-          <Store className="h-4 w-4 text-cyan-300" />
+          <Store className="h-4 w-4 text-td-accent-text" />
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           <ChannelSummaryButton
@@ -1664,24 +1664,24 @@ function InventoryOperationsSummary({
       <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300">Needs attention</p>
-            <h2 className="mt-2 text-lg font-semibold text-white">Inventory action queue</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-warning">Needs attention</p>
+            <h2 className="mt-2 text-lg font-semibold text-td-primary">Inventory action queue</h2>
           </div>
-          <ClipboardCheck className="h-4 w-4 text-amber-300" />
+          <ClipboardCheck className="h-4 w-4 text-td-warning" />
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2">
           {actionItems.map(([label, count, Icon, tone]) => (
-            <button key={label} type="button" className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-black/[0.08] p-3 text-left transition hover:border-cyan-300/15">
+            <button key={label} type="button" className="flex items-center gap-3 rounded-xl border border-td-ink/[0.06] bg-black/[0.08] p-3 text-left transition hover:border-td-accent/15">
               <Icon className={`h-4 w-4 shrink-0 ${tone}`} />
               <span className="min-w-0">
-                <span className="block text-sm font-semibold text-slate-200">{count}</span>
-                <span className="block truncate text-[8px] text-slate-600">{label}</span>
+                <span className="block text-sm font-semibold text-td-primary">{count}</span>
+                <span className="block truncate text-[11px] text-td-muted">{label}</span>
               </span>
             </button>
           ))}
         </div>
         {!business ? (
-          <p className="mt-3 flex items-center gap-2 text-[8px] text-slate-600">
+          <p className="mt-3 flex items-center gap-2 text-[11px] text-td-muted">
             <LockKeyhole className="h-3 w-3" /> Aging, profit alerts, and team assignments are available on Business.
           </p>
         ) : null}
@@ -1709,14 +1709,14 @@ function ChannelSummaryButton({
       onClick={onClick}
       className={`rounded-xl border p-3 text-left transition ${
         active
-          ? "border-cyan-300/25 bg-cyan-400/[0.07]"
-          : "border-white/[0.06] bg-black/[0.08] hover:border-cyan-300/15"
+          ? "border-td-accent/25 bg-td-accent/[0.07]"
+          : "border-td-ink/[0.06] bg-black/[0.08] hover:border-td-accent/15"
       }`}
     >
-      <span className="text-[9px] font-semibold text-slate-300">{label}</span>
+      <span className="text-[11px] font-semibold text-td-secondary">{label}</span>
       <span className="mt-2 flex items-end justify-between gap-2">
-        <span className="text-lg font-semibold text-white">{units.toLocaleString("en-US")}</span>
-        <span className="text-[8px] text-slate-600">{value ? currency(value) : "units"}</span>
+        <span className="text-lg font-semibold text-td-primary">{units.toLocaleString("en-US")}</span>
+        <span className="text-[11px] text-td-muted">{value ? currency(value) : "units"}</span>
       </span>
     </button>
   );
@@ -1757,11 +1757,11 @@ function BusinessInventoryInsights({
         <div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-violet-300">Business saved views</p>
-              <h2 className="mt-2 text-lg font-semibold text-white">Focus the warehouse in one click</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-violet">Business saved views</p>
+              <h2 className="mt-2 text-lg font-semibold text-td-primary">Focus the warehouse in one click</h2>
             </div>
             {activeView !== "all" ? (
-              <button type="button" onClick={() => onViewChange("all")} className="text-[9px] font-semibold text-cyan-300">Clear view</button>
+              <button type="button" onClick={() => onViewChange("all")} className="text-[11px] font-semibold text-td-accent-text">Clear view</button>
             ) : null}
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -1770,10 +1770,10 @@ function BusinessInventoryInsights({
                 key={view.id}
                 type="button"
                 onClick={() => onViewChange(activeView === view.id ? "all" : view.id)}
-                className={`h-9 rounded-xl border px-3 text-[9px] font-semibold transition ${
+                className={`h-9 rounded-xl border px-3 text-[11px] font-semibold transition ${
                   activeView === view.id
-                    ? "border-violet-300/25 bg-violet-400/[0.08] text-violet-100"
-                    : "border-white/[0.06] text-slate-500 hover:border-violet-300/15 hover:text-slate-200"
+                    ? "border-td-violet/25 bg-td-violet/[0.08] text-td-violet"
+                    : "border-td-ink/[0.06] text-td-muted hover:border-td-violet/15 hover:text-td-primary"
                 }`}
               >
                 {view.label}
@@ -1784,11 +1784,11 @@ function BusinessInventoryInsights({
         <div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300">Inventory aging</p>
-              <h2 className="mt-2 text-lg font-semibold text-white">Time since last inventory update</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-warning">Inventory aging</p>
+              <h2 className="mt-2 text-lg font-semibold text-td-primary">Time since last inventory update</h2>
             </div>
             {activeAge !== "all" ? (
-              <button type="button" onClick={() => onAgeChange("all")} className="text-[9px] font-semibold text-cyan-300">Clear age</button>
+              <button type="button" onClick={() => onAgeChange("all")} className="text-[11px] font-semibold text-td-accent-text">Clear age</button>
             ) : null}
           </div>
           <div className="mt-4 grid grid-cols-5 gap-2">
@@ -1799,12 +1799,12 @@ function BusinessInventoryInsights({
                 onClick={() => onAgeChange(activeAge === bucket ? "all" : bucket)}
                 className={`rounded-xl border px-2 py-3 text-center transition ${
                   activeAge === bucket
-                    ? "border-amber-300/25 bg-amber-400/[0.07]"
-                    : "border-white/[0.06] bg-black/[0.08] hover:border-amber-300/15"
+                    ? "border-td-warning/25 bg-td-warning/[0.07]"
+                    : "border-td-ink/[0.06] bg-black/[0.08] hover:border-td-warning/15"
                 }`}
               >
-                <span className="block text-sm font-semibold text-slate-200">{agingCounts[bucket]}</span>
-                <span className="mt-1 block text-[7px] text-slate-600">{bucket} days</span>
+                <span className="block text-sm font-semibold text-td-primary">{agingCounts[bucket]}</span>
+                <span className="mt-1 block text-[11px] text-td-muted">{bucket} days</span>
               </button>
             ))}
           </div>
@@ -1829,29 +1829,29 @@ function ConfirmDeleteDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[180] flex items-center justify-center bg-[#01070c]/78 p-5 backdrop-blur-sm"
+      className="fixed inset-0 z-[180] flex items-center justify-center bg-td-canvas/78 p-5 backdrop-blur-sm"
       role="presentation"
       onMouseDown={(event) => event.target === event.currentTarget && onCancel()}
     >
       <div
-        className="w-full max-w-md rounded-[24px] border border-red-300/[0.15] bg-[#091721] p-6 shadow-[0_28px_100px_rgba(0,0,0,0.72)]"
+        className="w-full max-w-md rounded-[24px] border border-td-danger/[0.15] bg-td-surface p-6 shadow-[0_28px_100px_rgb(var(--td-shadow-rgb)/calc(0.72*var(--td-shadow-strength)))]"
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
       >
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-300/15 bg-red-400/[0.07] text-red-300">
+        <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-td-danger/15 bg-td-danger/[0.07] text-td-danger">
           <Trash2 className="h-5 w-5" />
         </span>
-        <h3 className="mt-5 text-lg font-semibold text-slate-100">{title}</h3>
-        <p className="mt-2 text-[10px] leading-5 text-slate-500">{description}</p>
-        <div className="mt-4 rounded-xl border border-red-300/10 bg-red-400/[0.035] px-3 py-2.5 text-[9px] leading-4 text-red-100/75">
+        <h3 className="mt-5 text-lg font-semibold text-td-primary">{title}</h3>
+        <p className="mt-2 text-[11px] leading-5 text-td-muted">{description}</p>
+        <div className="mt-4 rounded-xl border border-td-danger/10 bg-td-danger/[0.035] px-3 py-2.5 text-[11px] leading-4 text-td-danger/75">
           If you only need to refile a card, use the Put-Away Queue instead.
         </div>
         <div className="mt-6 flex gap-2">
-          <button type="button" onClick={onCancel} className="h-11 flex-1 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-400">
+          <button type="button" onClick={onCancel} className="h-11 flex-1 rounded-xl border border-td-ink/[0.08] text-[11px] font-semibold text-td-secondary">
             Cancel
           </button>
-          <button type="button" onClick={onConfirm} className="h-11 flex-[1.35] rounded-xl bg-red-400 text-[10px] font-bold text-[#260707] shadow-[0_10px_28px_rgba(248,113,113,0.16)]">
+          <button type="button" onClick={onConfirm} className="h-11 flex-[1.35] rounded-xl bg-td-danger text-[11px] font-bold text-td-on-accent shadow-[0_10px_28px_rgba(248,113,113,0.16)]">
             {confirmLabel}
           </button>
         </div>
@@ -1914,17 +1914,17 @@ function LocationCard({
         "group relative overflow-hidden rounded-2xl border transition duration-200",
         compact ? "p-3.5" : "flex min-h-[310px] flex-col p-4",
         selected
-          ? "border-cyan-300/30 bg-cyan-400/[0.055] shadow-[0_18px_50px_rgba(6,182,212,0.07)]"
-          : "border-white/[0.07] bg-black/[0.10] hover:-translate-y-0.5 hover:border-cyan-300/[0.16]",
+          ? "border-td-accent/30 bg-td-accent/[0.055] shadow-[0_18px_50px_rgb(var(--td-accent-rgb)/0.07)]"
+          : "border-td-ink/[0.07] bg-black/[0.10] hover:-translate-y-0.5 hover:border-td-accent/[0.16]",
       ].join(" ")}
     >
-      {!compact ? <div className={`absolute inset-x-0 top-0 h-0.5 ${isCritical ? "bg-red-400" : isWarning ? "bg-amber-300" : "bg-cyan-300/60"}`} /> : null}
+      {!compact ? <div className={`absolute inset-x-0 top-0 h-0.5 ${isCritical ? "bg-td-danger" : isWarning ? "bg-td-warning" : "bg-td-accent/60"}`} /> : null}
       <div className="flex items-start gap-3">
         <button
           type="button"
           onClick={onSelect}
           aria-label={`Open ${location.name} contents`}
-          className="flex min-w-0 flex-1 items-start gap-3 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/40"
+          className="flex min-w-0 flex-1 items-start gap-3 rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-td-accent/40"
         >
           <span
             className={`flex shrink-0 items-center justify-center rounded-2xl border ${compact ? "h-10 w-10" : "h-16 w-16"} ${config.className}`}
@@ -1933,17 +1933,17 @@ function LocationCard({
           </span>
 
           <span className="min-w-0 flex-1">
-            <span className="block text-[8px] font-semibold uppercase tracking-[0.15em] text-slate-600">
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.15em] text-td-muted">
               {location.zone || "Main Warehouse"}
             </span>
-            <span className={`mt-1 block font-semibold leading-5 text-slate-100 ${compact ? "truncate text-[11px]" : "line-clamp-2 min-h-10 text-sm"}`}>
+            <span className={`mt-1 block font-semibold leading-5 text-td-primary ${compact ? "truncate text-[11px]" : "line-clamp-2 min-h-10 text-sm"}`}>
               {location.name}
             </span>
-            <span className="mt-1 block text-[8px] text-slate-500">
+            <span className="mt-1 block text-[11px] text-td-muted">
               {location.itemCount.toLocaleString("en-US")} units ·{" "}
               {currency(location.estimatedValue)}
             </span>
-            {!compact ? <span className="mt-1.5 block text-[8px] font-medium text-slate-600">{typeDetail}</span> : null}
+            {!compact ? <span className="mt-1.5 block text-[11px] font-medium text-td-muted">{typeDetail}</span> : null}
           </span>
         </button>
 
@@ -1952,7 +1952,7 @@ function LocationCard({
             type="button"
             onClick={onEdit}
             aria-label={`Edit ${location.name}`}
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.055] bg-white/[0.018] text-slate-600 opacity-70 hover:text-cyan-300 group-hover:opacity-100"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-td-ink/[0.055] bg-td-ink/[0.018] text-td-muted opacity-70 hover:text-td-accent-text group-hover:opacity-100"
           >
             <Edit3 className="h-3 w-3" />
           </button>
@@ -1960,7 +1960,7 @@ function LocationCard({
             type="button"
             onClick={onDelete}
             aria-label={`Delete ${location.name}`}
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.055] bg-white/[0.018] text-slate-600 opacity-70 hover:text-red-300 group-hover:opacity-100"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-td-ink/[0.055] bg-td-ink/[0.018] text-td-muted opacity-70 hover:text-td-danger group-hover:opacity-100"
           >
             <Trash2 className="h-3 w-3" />
           </button>
@@ -1969,25 +1969,25 @@ function LocationCard({
 
       {!compact ? (
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] px-3 py-2.5">
-            <p className="text-[7px] uppercase tracking-[0.14em] text-slate-700">Organized by</p>
+          <div className="rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.018] px-3 py-2.5">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-td-muted">Organized by</p>
             {location.organization ? (
-              <p className="mt-1.5 truncate text-[9px] font-semibold text-slate-400">{location.organization}</p>
+              <p className="mt-1.5 truncate text-[11px] font-semibold text-td-secondary">{location.organization}</p>
             ) : (
-              <button type="button" onClick={onEdit} className="mt-1.5 text-[9px] font-semibold text-cyan-300/80 hover:text-cyan-200">Set method</button>
+              <button type="button" onClick={onEdit} className="mt-1.5 text-[11px] font-semibold text-td-accent-text/80 hover:text-td-accent-text">Set method</button>
             )}
           </div>
-          <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] px-3 py-2.5">
-            <p className="text-[7px] uppercase tracking-[0.14em] text-slate-700">Available / listed</p>
-            <p className="mt-1.5 text-[9px] font-semibold text-slate-400">{Math.max(0, location.itemCount - listedUnits)} / {listedUnits}</p>
+          <div className="rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.018] px-3 py-2.5">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-td-muted">Available / listed</p>
+            <p className="mt-1.5 text-[11px] font-semibold text-td-secondary">{Math.max(0, location.itemCount - listedUnits)} / {listedUnits}</p>
           </div>
-          <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] px-3 py-2.5">
-            <p className="text-[7px] uppercase tracking-[0.14em] text-slate-700">Cost basis</p>
-            <p className="mt-1.5 text-[9px] font-semibold text-slate-400">{currency(costBasis)}</p>
+          <div className="rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.018] px-3 py-2.5">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-td-muted">Cost basis</p>
+            <p className="mt-1.5 text-[11px] font-semibold text-td-secondary">{currency(costBasis)}</p>
           </div>
-          <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] px-3 py-2.5">
-            <p className="text-[7px] uppercase tracking-[0.14em] text-slate-700">Unique items</p>
-            <p className="mt-1.5 text-[9px] font-semibold text-slate-400">{items.length} · {lastActivity || "No activity"}</p>
+          <div className="rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.018] px-3 py-2.5">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-td-muted">Unique items</p>
+            <p className="mt-1.5 text-[11px] font-semibold text-td-secondary">{items.length} · {lastActivity || "No activity"}</p>
           </div>
         </div>
       ) : null}
@@ -1995,11 +1995,11 @@ function LocationCard({
       <div className={compact ? "mt-3" : "mt-4 min-h-[39px]"}>
         {location.capacity ? (
           <>
-          <div className="mb-2 flex items-center justify-between text-[8px]">
-            <span className="text-slate-600">Capacity</span>
-            <span className="font-semibold text-slate-400">{location.itemCount.toLocaleString("en-US")} / {location.capacity.toLocaleString("en-US")} · {capacity}%</span>
+          <div className="mb-2 flex items-center justify-between text-[11px]">
+            <span className="text-td-muted">Capacity</span>
+            <span className="font-semibold text-td-secondary">{location.itemCount.toLocaleString("en-US")} / {location.capacity.toLocaleString("en-US")} · {capacity}%</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.04]">
+          <div className="h-1.5 overflow-hidden rounded-full bg-td-ink/[0.04]">
             <div
               className={`h-full rounded-full ${capacityTone(location)}`}
               style={{ width: `${capacity}%` }}
@@ -2007,9 +2007,9 @@ function LocationCard({
           </div>
           </>
         ) : (
-          <div className="flex h-full items-center justify-between rounded-lg border border-dashed border-white/[0.07] px-2.5 py-2 text-[8px]">
-            <span className="text-slate-600">Capacity not configured</span>
-            {editable ? <button type="button" onClick={onEdit} className="font-semibold text-cyan-300/80 hover:text-cyan-200">Set capacity</button> : null}
+          <div className="flex h-full items-center justify-between rounded-lg border border-dashed border-td-ink/[0.07] px-2.5 py-2 text-[11px]">
+            <span className="text-td-muted">Capacity not configured</span>
+            {editable ? <button type="button" onClick={onEdit} className="font-semibold text-td-accent-text/80 hover:text-td-accent-text">Set capacity</button> : null}
           </div>
         )}
       </div>
@@ -2018,7 +2018,7 @@ function LocationCard({
         <button
           type="button"
           onClick={onSelect}
-          className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.045] px-3 py-2.5 text-[10px] font-semibold text-cyan-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/[0.08]"
+          className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.045] px-3 py-2.5 text-[11px] font-semibold text-td-accent-text transition hover:border-td-accent/25 hover:bg-td-accent/[0.08]"
         >
           <FolderOpen className="h-3.5 w-3.5" />
           Open contents
@@ -2035,9 +2035,9 @@ function capacityPercent(location: LocationRecord) {
 
 function capacityTone(location: LocationRecord) {
   const percent = capacityPercent(location);
-  if (percent >= (location.criticalThreshold ?? 95)) return "bg-gradient-to-r from-red-500 to-rose-300";
-  if (percent >= (location.warningThreshold ?? 80)) return "bg-gradient-to-r from-amber-500 to-yellow-300";
-  return "bg-gradient-to-r from-cyan-500 to-cyan-300";
+  if (percent >= (location.criticalThreshold ?? 95)) return "bg-gradient-to-r from-td-danger to-td-danger";
+  if (percent >= (location.warningThreshold ?? 80)) return "bg-gradient-to-r from-td-warning to-td-warning";
+  return "bg-gradient-to-r from-td-accent to-td-accent";
 }
 
 function CompactMetric({
@@ -2048,11 +2048,11 @@ function CompactMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] px-3.5 py-3">
-      <p className="text-[8px] uppercase tracking-[0.13em] text-slate-700">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] px-3.5 py-3">
+      <p className="text-[11px] uppercase tracking-[0.13em] text-td-muted">
         {label}
       </p>
-      <p className="mt-2 text-sm font-semibold text-slate-200">{value}</p>
+      <p className="mt-2 text-sm font-semibold text-td-primary">{value}</p>
     </div>
   );
 }
@@ -2067,17 +2067,17 @@ function InventoryRow({
   onMove: (locationId: string) => void;
 }) {
   return (
-    <tr className="border-b border-white/[0.045] text-[10px] text-slate-500">
+    <tr className="border-b border-td-ink/[0.045] text-[11px] text-td-muted">
       <td className="px-3 py-4">
-        <p className="font-semibold text-slate-200">{item.name}</p>
-        <p className="mt-1 text-[8px] text-slate-700">
+        <p className="font-semibold text-td-primary">{item.name}</p>
+        <p className="mt-1 text-[11px] text-td-muted">
           {[item.set, item.condition].filter(Boolean).join(" · ")}
         </p>
       </td>
       <td className="px-3 py-4">{item.sku}</td>
       <td className="px-3 py-4">{item.category}</td>
       <td className="px-3 py-4">{item.quantity}</td>
-      <td className="px-3 py-4 font-semibold text-emerald-300">
+      <td className="px-3 py-4 font-semibold text-td-success">
         {currency(item.value)}
       </td>
       <td className="px-3 py-4">
@@ -2085,7 +2085,7 @@ function InventoryRow({
           <select
             value={item.locationId}
             onChange={(event) => onMove(event.target.value)}
-            className="h-9 w-full appearance-none rounded-xl border border-white/[0.06] bg-[#07141e] pl-3 pr-8 text-[8px] text-slate-500"
+            className="h-9 w-full appearance-none rounded-xl border border-td-ink/[0.06] bg-td-surface pl-3 pr-8 text-[11px] text-td-muted"
           >
             {locations.map((location) => (
               <option key={location.id} value={location.id}>
@@ -2093,7 +2093,7 @@ function InventoryRow({
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-700" />
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
         </label>
       </td>
     </tr>
@@ -2242,72 +2242,72 @@ function LocationContentsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[120] flex bg-[#01070c]/88 p-2 backdrop-blur-xl sm:p-5" role="dialog" aria-modal="true" aria-label={`${location.name} inventory explorer`}>
-      <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#07131d] shadow-[0_30px_120px_rgba(0,0,0,0.75)]">
-        <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-white/[0.065] px-5 py-4 sm:px-6">
-          <button type="button" onClick={onClose} className="flex h-10 items-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-cyan-400/[0.045] px-3 text-[10px] font-semibold text-cyan-100 transition hover:border-cyan-300/30 hover:bg-cyan-400/[0.08]">
+    <div className="fixed inset-0 z-[120] flex bg-td-canvas/88 p-2 backdrop-blur-xl sm:p-5" role="dialog" aria-modal="true" aria-label={`${location.name} inventory explorer`}>
+      <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col overflow-hidden rounded-[24px] border border-td-ink/[0.09] bg-td-surface shadow-[0_30px_120px_rgb(var(--td-shadow-rgb)/calc(0.75*var(--td-shadow-strength)))]">
+        <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-td-ink/[0.065] px-5 py-4 sm:px-6">
+          <button type="button" onClick={onClose} className="flex h-10 items-center gap-2 rounded-xl border border-td-accent/[0.16] bg-td-accent/[0.045] px-3 text-[11px] font-semibold text-td-accent-text transition hover:border-td-accent/30 hover:bg-td-accent/[0.08]">
             <ArrowLeft className="h-3.5 w-3.5" /> Return to Inventory
           </button>
           <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${config.className}`}><Icon className="h-5 w-5" /></span>
           <div className="min-w-0">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-cyan-300">{location.zone || "Main Warehouse"} · {config.label}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">{location.zone || "Main Warehouse"} · {config.label}</p>
             <div className="mt-1 flex items-baseline gap-3">
-              <h2 className="truncate text-lg font-semibold text-slate-100">{location.name}</h2>
-              <span className="hidden text-[10px] text-slate-500 sm:inline">{items.reduce((sum, item) => sum + item.quantity, 0).toLocaleString("en-US")} units · {currency(items.reduce((sum, item) => sum + item.value, 0))}</span>
+              <h2 className="truncate text-lg font-semibold text-td-primary">{location.name}</h2>
+              <span className="hidden text-[11px] text-td-muted sm:inline">{items.reduce((sum, item) => sum + item.quantity, 0).toLocaleString("en-US")} units · {currency(items.reduce((sum, item) => sum + item.value, 0))}</span>
             </div>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <button type="button" onClick={onEdit} className="hidden h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[10px] font-semibold text-slate-300 sm:flex"><Edit3 className="h-3.5 w-3.5" /> Edit location</button>
-            <button type="button" onClick={() => onDeleteLocation(location)} className="hidden h-9 items-center gap-2 rounded-xl border border-red-300/[0.12] bg-red-400/[0.025] px-3 text-[10px] font-semibold text-red-200 transition hover:border-red-300/25 hover:bg-red-400/[0.07] sm:flex">
+            <button type="button" onClick={onEdit} className="hidden h-9 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] px-3 text-[11px] font-semibold text-td-secondary sm:flex"><Edit3 className="h-3.5 w-3.5" /> Edit location</button>
+            <button type="button" onClick={() => onDeleteLocation(location)} className="hidden h-9 items-center gap-2 rounded-xl border border-td-danger/[0.12] bg-td-danger/[0.025] px-3 text-[11px] font-semibold text-td-danger transition hover:border-td-danger/25 hover:bg-td-danger/[0.07] sm:flex">
               <Trash2 className="h-3.5 w-3.5" /> Delete box
             </button>
-            <button type="button" onClick={onFile} className="flex h-9 items-center gap-2 rounded-xl bg-cyan-400 px-3 text-[10px] font-bold text-[#001018]"><Plus className="h-3.5 w-3.5" /> File here</button>
-            <button type="button" onClick={onClose} aria-label="Close inventory explorer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 hover:text-slate-100"><X className="h-4 w-4" /></button>
+            <button type="button" onClick={onFile} className="flex h-9 items-center gap-2 rounded-xl bg-td-accent px-3 text-[11px] font-bold text-td-on-accent"><Plus className="h-3.5 w-3.5" /> File here</button>
+            <button type="button" onClick={onClose} aria-label="Close inventory explorer" className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-muted hover:text-td-primary"><X className="h-4 w-4" /></button>
           </div>
         </header>
 
-        <div className="shrink-0 border-b border-white/[0.055] bg-[#081721] px-5 py-4 sm:px-6">
+        <div className="shrink-0 border-b border-td-ink/[0.055] bg-td-surface px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-3 xl:flex-row">
-            <label className="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-xl border border-white/[0.09] bg-[#050e15] px-3.5 focus-within:border-cyan-300/30 focus-within:ring-2 focus-within:ring-cyan-300/[0.06]">
-              <Search className="h-4 w-4 shrink-0 text-cyan-300/70" />
-              <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Search card name, set, collector number, SKU, condition…" className="min-w-0 flex-1 bg-transparent text-xs text-slate-200 outline-none placeholder:text-slate-600" />
-              {query ? <button type="button" onClick={() => setQuery("")} className="text-slate-600 hover:text-slate-300"><X className="h-3.5 w-3.5" /></button> : <span className="hidden rounded-md border border-white/[0.07] px-2 py-1 text-[8px] text-slate-600 sm:block">Fast search</span>}
+            <label className="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-xl border border-td-ink/[0.09] bg-td-canvas px-3.5 focus-within:border-td-accent/30 focus-within:ring-2 focus-within:ring-td-accent/[0.06]">
+              <Search className="h-4 w-4 shrink-0 text-td-accent-text/70" />
+              <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Search card name, set, collector number, SKU, condition…" className="min-w-0 flex-1 bg-transparent text-xs text-td-primary outline-none placeholder:text-td-muted" />
+              {query ? <button type="button" onClick={() => setQuery("")} className="text-td-muted hover:text-td-secondary"><X className="h-3.5 w-3.5" /></button> : <span className="hidden rounded-md border border-td-ink/[0.07] px-2 py-1 text-[11px] text-td-muted sm:block">Fast search</span>}
             </label>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setShowFilters((value) => !value)} className={`flex h-11 items-center gap-2 rounded-xl border px-3.5 text-[10px] font-semibold ${showFilters || hasFilters ? "border-cyan-300/20 bg-cyan-400/[0.07] text-cyan-200" : "border-white/[0.08] text-slate-400"}`}><SlidersHorizontal className="h-3.5 w-3.5" /> Filters {hasFilters ? "•" : ""}</button>
+              <button type="button" onClick={() => setShowFilters((value) => !value)} className={`flex h-11 items-center gap-2 rounded-xl border px-3.5 text-[11px] font-semibold ${showFilters || hasFilters ? "border-td-accent/20 bg-td-accent/[0.07] text-td-accent-text" : "border-td-ink/[0.08] text-td-secondary"}`}><SlidersHorizontal className="h-3.5 w-3.5" /> Filters {hasFilters ? "•" : ""}</button>
               <label className="relative min-w-[180px] flex-1 sm:flex-none">
-                <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="inventory-location-select h-11 w-full appearance-none rounded-xl border border-white/[0.08] bg-[#07141e] pl-3 pr-8 text-[10px] text-slate-300 outline-none">
+                <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="inventory-location-select h-11 w-full appearance-none rounded-xl border border-td-ink/[0.08] bg-td-surface pl-3 pr-8 text-[11px] text-td-secondary outline-none">
                   <option value="name-asc">Name: A–Z</option><option value="name-desc">Name: Z–A</option><option value="set">Set, then name</option><option value="quantity-desc">Highest quantity</option><option value="value-desc">Highest value</option><option value="recent">Recently updated</option>
-                </select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-600" />
+                </select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
               </label>
-              <button type="button" onClick={() => setShowImages((value) => !value)} className={`flex h-11 items-center gap-2 rounded-xl border px-3.5 text-[10px] font-semibold ${showImages ? "border-violet-300/20 bg-violet-400/[0.07] text-violet-200" : "border-white/[0.08] text-slate-400"}`}><LayoutGrid className="h-3.5 w-3.5" /> Card art</button>
+              <button type="button" onClick={() => setShowImages((value) => !value)} className={`flex h-11 items-center gap-2 rounded-xl border px-3.5 text-[11px] font-semibold ${showImages ? "border-td-violet/20 bg-td-violet/[0.07] text-td-violet" : "border-td-ink/[0.08] text-td-secondary"}`}><LayoutGrid className="h-3.5 w-3.5" /> Card art</button>
             </div>
           </div>
           {showFilters ? (
-            <div className="mt-3 grid gap-2 rounded-xl border border-white/[0.06] bg-black/10 p-3 sm:grid-cols-3 xl:grid-cols-[1fr_1fr_1fr_auto]">
+            <div className="mt-3 grid gap-2 rounded-xl border border-td-ink/[0.06] bg-black/10 p-3 sm:grid-cols-3 xl:grid-cols-[1fr_1fr_1fr_auto]">
               <ExplorerSelect label="Category" value={category} onChange={(value) => { setCategory(value); setPage(1); }} options={categoryOptions} />
               <ExplorerSelect label="Condition" value={condition} onChange={(value) => { setCondition(value); setPage(1); }} options={conditionOptions} />
               <ExplorerSelect label="Finish" value={finish} onChange={(value) => { setFinish(value); setPage(1); }} options={finishOptions} />
-              <button type="button" onClick={resetFilters} disabled={!hasFilters} className="h-10 rounded-xl border border-white/[0.07] px-4 text-[10px] font-semibold text-slate-400 disabled:cursor-not-allowed disabled:opacity-35">Clear filters</button>
+              <button type="button" onClick={resetFilters} disabled={!hasFilters} className="h-10 rounded-xl border border-td-ink/[0.07] px-4 text-[11px] font-semibold text-td-secondary disabled:cursor-not-allowed disabled:opacity-35">Clear filters</button>
             </div>
           ) : null}
-          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[9px]">
-            <span className="font-semibold text-slate-300">{filteredItems.length.toLocaleString("en-US")} records</span>
-            <span className="text-slate-600">{filteredItems.reduce((sum, item) => sum + item.quantity, 0).toLocaleString("en-US")} matching units</span>
-            <span className="text-slate-600">{currency(filteredItems.reduce((sum, item) => sum + item.value, 0))} matching value</span>
-            {hasFilters ? <span className="text-cyan-300">Filtered from {items.length.toLocaleString("en-US")}</span> : null}
+          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px]">
+            <span className="font-semibold text-td-secondary">{filteredItems.length.toLocaleString("en-US")} records</span>
+            <span className="text-td-muted">{filteredItems.reduce((sum, item) => sum + item.quantity, 0).toLocaleString("en-US")} matching units</span>
+            <span className="text-td-muted">{currency(filteredItems.reduce((sum, item) => sum + item.value, 0))} matching value</span>
+            {hasFilters ? <span className="text-td-accent-text">Filtered from {items.length.toLocaleString("en-US")}</span> : null}
           </div>
         </div>
 
         {selectedIds.length ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-cyan-300/[0.12] bg-cyan-400/[0.045] px-5 py-3 sm:px-6">
-            <CheckSquare2 className="h-4 w-4 text-cyan-300" /><span className="text-[10px] font-semibold text-cyan-100">{selectedIds.length} selected</span>
+          <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-td-accent/[0.12] bg-td-accent/[0.045] px-5 py-3 sm:px-6">
+            <CheckSquare2 className="h-4 w-4 text-td-accent-text" /><span className="text-[11px] font-semibold text-td-accent-text">{selectedIds.length} selected</span>
             <label className="relative ml-auto min-w-[210px]">
-              <select value={bulkDestination} onChange={(event) => setBulkDestination(event.target.value)} className="inventory-location-select h-9 w-full appearance-none rounded-xl border border-white/[0.08] bg-[#07141e] pl-3 pr-8 text-[9px] text-slate-300"><option value="">Choose destination…</option>{locations.filter((destination) => destination.id !== location.id).map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-600" />
+              <select value={bulkDestination} onChange={(event) => setBulkDestination(event.target.value)} className="inventory-location-select h-9 w-full appearance-none rounded-xl border border-td-ink/[0.08] bg-td-surface pl-3 pr-8 text-[11px] text-td-secondary"><option value="">Choose destination…</option>{locations.filter((destination) => destination.id !== location.id).map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
             </label>
-            <button type="button" onClick={moveSelected} disabled={!bulkDestination} className="h-9 rounded-xl bg-cyan-400 px-4 text-[9px] font-bold text-[#001018] disabled:opacity-40">Move selected</button>
-            <button type="button" onClick={() => setSelectedIds([])} className="h-9 px-2 text-[9px] text-slate-500">Cancel</button>
+            <button type="button" onClick={moveSelected} disabled={!bulkDestination} className="h-9 rounded-xl bg-td-accent px-4 text-[11px] font-bold text-td-on-accent disabled:opacity-40">Move selected</button>
+            <button type="button" onClick={() => setSelectedIds([])} className="h-9 px-2 text-[11px] text-td-muted">Cancel</button>
           </div>
         ) : null}
 
@@ -2315,9 +2315,9 @@ function LocationContentsModal({
           <div className="flex min-h-0 flex-1">
             <div className="min-w-0 flex-1 overflow-auto">
               <table className="w-full min-w-[980px] border-collapse text-left">
-                <thead className="sticky top-0 z-10 bg-[#0a1923] text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600 shadow-[0_1px_0_rgba(255,255,255,0.06)]">
+                <thead className="sticky top-0 z-10 bg-td-surface text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted shadow-[0_1px_0_rgb(var(--td-ink-rgb)/0.06)]">
                   <tr>
-                    <th className="w-11 px-4 py-3"><input type="checkbox" checked={allVisibleSelected} onChange={() => setSelectedIds((current) => allVisibleSelected ? current.filter((id) => !pageItems.some((item) => item.id === id)) : [...new Set([...current, ...pageItems.map((item) => item.id)])])} className="accent-cyan-400" aria-label="Select visible records" /></th>
+                    <th className="w-11 px-4 py-3"><input type="checkbox" checked={allVisibleSelected} onChange={() => setSelectedIds((current) => allVisibleSelected ? current.filter((id) => !pageItems.some((item) => item.id === id)) : [...new Set([...current, ...pageItems.map((item) => item.id)])])} className="accent-td-accent" aria-label="Select visible records" /></th>
                     {showImages ? <th className="w-12 px-2 py-3">Art</th> : null}
                     <th className="px-3 py-3">Card / Product</th><th className="px-3 py-3">Set / No.</th><th className="px-3 py-3">Condition</th><th className="px-3 py-3">Finish</th><th className="px-3 py-3 text-right">Qty</th><th className="px-3 py-3 text-right">Unit value</th><th className="px-3 py-3 text-right">Total</th><th className="px-4 py-3">Actions</th>
                   </tr>
@@ -2326,14 +2326,14 @@ function LocationContentsModal({
                   {pageItems.map((item) => {
                     const unitValue = item.unitMarketValue ?? (item.quantity ? item.value / item.quantity : item.value);
                     return (
-                      <tr key={item.id} onClick={() => setFocusedItemId(item.id)} className={`group cursor-pointer border-b border-white/[0.04] text-[10px] transition hover:bg-cyan-400/[0.03] ${focusedItemId === item.id ? "bg-cyan-400/[0.045]" : ""}`}>
-                        <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelected(item.id)} className="accent-cyan-400" aria-label={`Select ${item.name}`} /></td>
-                        {showImages ? <td className="px-2 py-2"><span className="flex h-10 w-8 items-center justify-center overflow-hidden rounded border border-white/[0.07] bg-white/[0.02]">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <PackageCheck className="h-3.5 w-3.5 text-slate-700" />}</span></td> : null}
-                        <td className="max-w-[270px] px-3 py-2.5"><p className="truncate font-semibold text-slate-200">{item.name}</p><p className="mt-0.5 truncate text-[8px] text-slate-700">SKU {item.sku}</p></td>
-                        <td className="px-3 py-2.5 text-slate-500">{item.set || "—"}{item.collectorNumber ? <span className="text-slate-700"> · #{item.collectorNumber}</span> : null}</td>
-                        <td className="px-3 py-2.5 text-slate-400">{item.condition || "—"}</td><td className="px-3 py-2.5 text-slate-400">{item.finish || "—"}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-slate-200">{item.quantity.toLocaleString("en-US")}</td><td className="px-3 py-2.5 text-right text-slate-500">{currency(unitValue)}</td><td className="px-3 py-2.5 text-right font-semibold text-emerald-300">{currency(item.value)}</td>
-                        <td className="px-4 py-2.5"><button type="button" onClick={(event) => { event.stopPropagation(); setFocusedItemId(item.id); }} className="rounded-lg border border-white/[0.06] px-2.5 py-1.5 text-[8px] font-semibold text-slate-500 hover:border-cyan-300/20 hover:text-cyan-200">Details</button></td>
+                      <tr key={item.id} onClick={() => setFocusedItemId(item.id)} className={`group cursor-pointer border-b border-td-ink/[0.04] text-[11px] transition hover:bg-td-accent/[0.03] ${focusedItemId === item.id ? "bg-td-accent/[0.045]" : ""}`}>
+                        <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelected(item.id)} className="accent-td-accent" aria-label={`Select ${item.name}`} /></td>
+                        {showImages ? <td className="px-2 py-2"><span className="flex h-10 w-8 items-center justify-center overflow-hidden rounded border border-td-ink/[0.07] bg-td-ink/[0.02]">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <PackageCheck className="h-3.5 w-3.5 text-td-muted" />}</span></td> : null}
+                        <td className="max-w-[270px] px-3 py-2.5"><p className="truncate font-semibold text-td-primary">{item.name}</p><p className="mt-0.5 truncate text-[11px] text-td-muted">SKU {item.sku}</p></td>
+                        <td className="px-3 py-2.5 text-td-muted">{item.set || "—"}{item.collectorNumber ? <span className="text-td-muted"> · #{item.collectorNumber}</span> : null}</td>
+                        <td className="px-3 py-2.5 text-td-secondary">{item.condition || "—"}</td><td className="px-3 py-2.5 text-td-secondary">{item.finish || "—"}</td>
+                        <td className="px-3 py-2.5 text-right font-semibold text-td-primary">{item.quantity.toLocaleString("en-US")}</td><td className="px-3 py-2.5 text-right text-td-muted">{currency(unitValue)}</td><td className="px-3 py-2.5 text-right font-semibold text-td-success">{currency(item.value)}</td>
+                        <td className="px-4 py-2.5"><button type="button" onClick={(event) => { event.stopPropagation(); setFocusedItemId(item.id); }} className="rounded-lg border border-td-ink/[0.06] px-2.5 py-1.5 text-[11px] font-semibold text-td-muted hover:border-td-accent/20 hover:text-td-accent-text">Details</button></td>
                       </tr>
                     );
                   })}
@@ -2341,32 +2341,32 @@ function LocationContentsModal({
               </table>
             </div>
             {focusedItem ? (
-              <aside className="hidden w-[310px] shrink-0 overflow-y-auto border-l border-white/[0.06] bg-[#081721] p-5 xl:block">
-                <div className="flex items-start justify-between gap-3"><p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-cyan-300">Inventory detail</p><button type="button" onClick={() => setFocusedItemId("")} className="text-slate-600 hover:text-slate-300"><X className="h-3.5 w-3.5" /></button></div>
-                <div className="mx-auto mt-5 flex h-[210px] w-[150px] items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-black/20">{focusedItem.imageUrl ? <img src={focusedItem.imageUrl} alt="" className="h-full w-full object-cover" /> : <PackageCheck className="h-8 w-8 text-slate-700" />}</div>
-                <h3 className="mt-5 text-base font-semibold text-slate-100">{focusedItem.name}</h3>
-                <p className="mt-1 text-[10px] text-slate-500">{[focusedItem.set, focusedItem.collectorNumber ? `#${focusedItem.collectorNumber}` : "", focusedItem.condition, focusedItem.finish].filter(Boolean).join(" · ")}</p>
+              <aside className="hidden w-[310px] shrink-0 overflow-y-auto border-l border-td-ink/[0.06] bg-td-surface p-5 xl:block">
+                <div className="flex items-start justify-between gap-3"><p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-accent-text">Inventory detail</p><button type="button" onClick={() => setFocusedItemId("")} className="text-td-muted hover:text-td-secondary"><X className="h-3.5 w-3.5" /></button></div>
+                <div className="mx-auto mt-5 flex h-[210px] w-[150px] items-center justify-center overflow-hidden rounded-xl border border-td-ink/[0.08] bg-black/20">{focusedItem.imageUrl ? <img src={focusedItem.imageUrl} alt="" className="h-full w-full object-cover" /> : <PackageCheck className="h-8 w-8 text-td-muted" />}</div>
+                <h3 className="mt-5 text-base font-semibold text-td-primary">{focusedItem.name}</h3>
+                <p className="mt-1 text-[11px] text-td-muted">{[focusedItem.set, focusedItem.collectorNumber ? `#${focusedItem.collectorNumber}` : "", focusedItem.condition, focusedItem.finish].filter(Boolean).join(" · ")}</p>
                 <div className="mt-5 grid grid-cols-2 gap-2"><CompactMetric label="Quantity" value={focusedItem.quantity.toLocaleString("en-US")} /><CompactMetric label="Total value" value={currency(focusedItem.value)} /></div>
-                <p className="mt-5 text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600">Move this inventory</p>
-                <label className="relative mt-2 block"><select value={focusedItem.locationId} onChange={(event) => onMove(focusedItem.id, event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-white/[0.08] bg-[#07141e] pl-3 pr-8 text-[9px] text-slate-300">{locations.map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-600" /></label>
-                <div className="mt-5 rounded-xl border border-white/[0.06] bg-black/10 p-3"><p className="text-[8px] uppercase tracking-[0.12em] text-slate-700">Physical path</p><p className="mt-2 text-[10px] font-semibold text-slate-300">{location.zone || "Main Warehouse"} <span className="text-slate-700">→</span> {location.name}</p></div>
-                <button type="button" onClick={() => onDeleteItem(focusedItem)} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-red-300/[0.12] bg-red-400/[0.025] text-[9px] font-semibold text-red-200 transition hover:border-red-300/25 hover:bg-red-400/[0.07]">
+                <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Move this inventory</p>
+                <label className="relative mt-2 block"><select value={focusedItem.locationId} onChange={(event) => onMove(focusedItem.id, event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-td-ink/[0.08] bg-td-surface pl-3 pr-8 text-[11px] text-td-secondary">{locations.map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" /></label>
+                <div className="mt-5 rounded-xl border border-td-ink/[0.06] bg-black/10 p-3"><p className="text-[11px] uppercase tracking-[0.12em] text-td-muted">Physical path</p><p className="mt-2 text-[11px] font-semibold text-td-secondary">{location.zone || "Main Warehouse"} <span className="text-td-muted">→</span> {location.name}</p></div>
+                <button type="button" onClick={() => onDeleteItem(focusedItem)} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-danger/[0.12] bg-td-danger/[0.025] text-[11px] font-semibold text-td-danger transition hover:border-td-danger/25 hover:bg-td-danger/[0.07]">
                   <Trash2 className="h-3.5 w-3.5" /> Delete from Inventory
                 </button>
               </aside>
             ) : null}
           </div>
         ) : (
-        <div className="mt-5 rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.015] px-5 py-14 text-center">
-          <FolderOpen className="mx-auto h-7 w-7 text-slate-700" />
-          <p className="mt-4 text-sm font-semibold text-slate-300">
+        <div className="mt-5 rounded-2xl border border-dashed border-td-ink/[0.08] bg-td-ink/[0.015] px-5 py-14 text-center">
+          <FolderOpen className="mx-auto h-7 w-7 text-td-muted" />
+          <p className="mt-4 text-sm font-semibold text-td-secondary">
             {items.length ? "No matching inventory" : "This location is empty"}
           </p>
-          <p className="mx-auto mt-2 max-w-sm text-[10px] leading-5 text-slate-600">
+          <p className="mx-auto mt-2 max-w-sm text-[11px] leading-5 text-td-muted">
             {items.length ? "Try a different card name, SKU, set, or condition." : "File cards or products here and they will appear in this contents view."}
           </p>
           {!items.length ? (
-            <button type="button" onClick={onFile} className="mt-4 rounded-xl bg-cyan-400 px-4 py-2.5 text-[10px] font-bold text-[#001018]">
+            <button type="button" onClick={onFile} className="mt-4 rounded-xl bg-td-accent px-4 py-2.5 text-[11px] font-bold text-td-on-accent">
               File first item
             </button>
           ) : null}
@@ -2374,16 +2374,16 @@ function LocationContentsModal({
       )}
 
         {filteredItems.length ? (
-          <footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-white/[0.06] bg-[#081721] px-5 py-3 sm:px-6">
-            <p className="text-[9px] text-slate-600">Showing {((safePage - 1) * pageSize + 1).toLocaleString("en-US")}–{Math.min(safePage * pageSize, filteredItems.length).toLocaleString("en-US")} of {filteredItems.length.toLocaleString("en-US")}</p>
-            <label className="relative ml-auto"><select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="inventory-location-select h-8 appearance-none rounded-lg border border-white/[0.07] bg-[#07141e] pl-2.5 pr-7 text-[8px] text-slate-400"><option value={50}>50 per page</option><option value={100}>100 per page</option></select><ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-700" /></label>
-            <div className="flex items-center gap-2"><button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={safePage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500 disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button><span className="min-w-[72px] text-center text-[9px] font-semibold text-slate-400">Page {safePage} of {totalPages}</span><button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={safePage === totalPages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500 disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button></div>
+          <footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-td-ink/[0.06] bg-td-surface px-5 py-3 sm:px-6">
+            <p className="text-[11px] text-td-muted">Showing {((safePage - 1) * pageSize + 1).toLocaleString("en-US")}–{Math.min(safePage * pageSize, filteredItems.length).toLocaleString("en-US")} of {filteredItems.length.toLocaleString("en-US")}</p>
+            <label className="relative ml-auto"><select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="inventory-location-select h-8 appearance-none rounded-lg border border-td-ink/[0.07] bg-td-surface pl-2.5 pr-7 text-[11px] text-td-secondary"><option value={50}>50 per page</option><option value={100}>100 per page</option></select><ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" /></label>
+            <div className="flex items-center gap-2"><button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={safePage === 1} className="flex h-8 w-8 items-center justify-center rounded-lg border border-td-ink/[0.07] text-td-muted disabled:opacity-30"><ChevronLeft className="h-3.5 w-3.5" /></button><span className="min-w-[72px] text-center text-[11px] font-semibold text-td-secondary">Page {safePage} of {totalPages}</span><button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={safePage === totalPages} className="flex h-8 w-8 items-center justify-center rounded-lg border border-td-ink/[0.07] text-td-muted disabled:opacity-30"><ChevronRight className="h-3.5 w-3.5" /></button></div>
           </footer>
         ) : null}
       </div>
       <style jsx global>{`
-        select.inventory-location-select { color-scheme: dark; }
-        select.inventory-location-select option { background: #0b1822; color: #e2e8f0; }
+        select.inventory-location-select { color-scheme: var(--td-color-scheme); }
+        select.inventory-location-select option { background: var(--td-surface-default); color: var(--td-text-primary); }
       `}</style>
     </div>
   );
@@ -2547,24 +2547,24 @@ function VirtualBinderModal({
   const usedPercent = Math.min(100, pageCount * slotsPerPage ? (occupied / (pageCount * slotsPerPage)) * 100 : 0);
 
   return (
-    <div className="fixed inset-0 z-[120] bg-[#01070c]/94 p-1.5 backdrop-blur-xl sm:p-3" role="dialog" aria-modal="true" aria-label={`${location.name} virtual binder`}>
-      <div className="relative mx-auto flex h-full w-full max-w-[1820px] flex-col overflow-hidden rounded-[28px] border border-violet-300/[0.14] bg-[#04101a] shadow-[0_42px_160px_rgba(0,0,0,.84)]">
-        <header className="relative shrink-0 overflow-hidden border-b border-white/[0.065] bg-[radial-gradient(circle_at_78%_0%,rgba(139,92,246,.15),transparent_36%),linear-gradient(100deg,#071b28,#06131d_48%,#120b20)] px-3 py-3 sm:px-5">
-          <div className="pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/45 to-transparent" />
+    <div className="fixed inset-0 z-[120] bg-td-canvas/94 p-1.5 backdrop-blur-xl sm:p-3" role="dialog" aria-modal="true" aria-label={`${location.name} virtual binder`}>
+      <div className="relative mx-auto flex h-full w-full max-w-[1820px] flex-col overflow-hidden rounded-[28px] border border-td-violet/[0.14] bg-td-surface shadow-[0_42px_160px_rgb(var(--td-shadow-rgb)/calc(.84*var(--td-shadow-strength)))]">
+        <header className="relative shrink-0 overflow-hidden border-b border-td-ink/[0.065] bg-[radial-gradient(circle_at_78%_0%,rgba(139,92,246,.15),transparent_36%),linear-gradient(100deg,var(--td-surface-default),var(--td-surface-default)_48%,var(--td-surface-default))] px-3 py-3 sm:px-5">
+          <div className="pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-td-violet/45 to-transparent" />
           <div className="relative flex items-center gap-3">
-            <button type="button" onClick={onClose} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-white/[0.09] bg-black/15 px-3 text-[10px] font-semibold text-slate-300 transition hover:border-cyan-300/25 hover:text-white">
+            <button type="button" onClick={onClose} className="flex h-10 shrink-0 items-center gap-2 rounded-xl border border-td-ink/[0.09] bg-black/15 px-3 text-[11px] font-semibold text-td-secondary transition hover:border-td-accent/25 hover:text-td-primary">
               <ArrowLeft className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Inventory</span>
             </button>
 
-            <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-violet-300/[0.18] bg-violet-400/[0.07] text-violet-200 sm:flex"><BookOpen className="h-5 w-5" /></span>
+            <span className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-td-violet/[0.18] bg-td-violet/[0.07] text-td-violet sm:flex"><BookOpen className="h-5 w-5" /></span>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[8px] font-bold uppercase tracking-[0.19em] text-cyan-300">Binder Studio</p>
-                <span className="hidden items-center gap-1 text-[8px] font-semibold text-emerald-300/80 md:flex"><Check className="h-3 w-3" /> Autosaved</span>
+                <p className="text-[11px] font-bold uppercase tracking-[0.19em] text-td-accent-text">Binder Studio</p>
+                <span className="hidden items-center gap-1 text-[11px] font-semibold text-td-success/80 md:flex"><Check className="h-3 w-3" /> Autosaved</span>
               </div>
-              <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.025em] text-white">{location.name}</h2>
-              <p className="text-[8px] text-slate-600">{columns} × {rows} pockets · {pageCount} pages · {occupied} cards placed</p>
+              <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.025em] text-td-primary">{location.name}</h2>
+              <p className="text-[11px] text-td-muted">{columns} × {rows} pockets · {pageCount} pages · {occupied} cards placed</p>
             </div>
 
             <div className="ml-auto hidden items-center gap-2 xl:flex">
@@ -2574,80 +2574,80 @@ function VirtualBinderModal({
             </div>
 
             <div className="ml-auto flex items-center gap-2 xl:ml-2">
-              <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="hidden h-10 items-center gap-2 rounded-xl border border-violet-300/[0.22] bg-violet-400/[0.07] px-3 text-[9px] font-semibold text-violet-100 transition hover:border-violet-300/40 hover:bg-violet-400/[0.12] md:flex"><Sparkles className="h-3.5 w-3.5" /> Portfolio View</Link>
-              <button type="button" onClick={() => setShowcaseOpen(true)} className="flex h-10 items-center gap-2 rounded-xl bg-cyan-300 px-3 text-[9px] font-bold text-[#031319] shadow-[0_10px_26px_rgba(34,211,238,.13)]"><Share2 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Share</span></button>
-              <button type="button" onClick={() => setSettingsOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.09] bg-black/15 text-slate-400 transition hover:text-white"><Settings2 className="h-4 w-4" /></button>
+              <Link href={`/dashboard/collector-portfolio/binder/${location.id}`} className="hidden h-10 items-center gap-2 rounded-xl border border-td-violet/[0.22] bg-td-violet/[0.07] px-3 text-[11px] font-semibold text-td-violet transition hover:border-td-violet/40 hover:bg-td-violet/[0.12] md:flex"><Sparkles className="h-3.5 w-3.5" /> Portfolio View</Link>
+              <button type="button" onClick={() => setShowcaseOpen(true)} className="flex h-10 items-center gap-2 rounded-xl bg-td-accent px-3 text-[11px] font-bold text-td-on-accent shadow-[0_10px_26px_rgb(var(--td-accent-rgb)/.13)]"><Share2 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Share</span></button>
+              <button type="button" onClick={() => setSettingsOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-ink/[0.09] bg-black/15 text-td-secondary transition hover:text-td-primary"><Settings2 className="h-4 w-4" /></button>
             </div>
           </div>
         </header>
 
-        <div className="shrink-0 border-b border-white/[0.055] bg-[#06131d]/94 px-3 py-2.5 sm:px-5">
+        <div className="shrink-0 border-b border-td-ink/[0.055] bg-td-surface/94 px-3 py-2.5 sm:px-5">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/[0.075] bg-black/20 px-3">
-              <Search className="h-4 w-4 text-slate-600" />
-              <input value={query} onChange={(event) => { setQuery(event.target.value); setMatchIndex(0); }} onKeyDown={(event) => { if (event.key === "Enter" && matches.length) jumpToItem(matches[matchIndex] ?? matches[0]); }} placeholder="Search this binder by card, set, pocket, condition…" className="min-w-0 flex-1 bg-transparent text-[10px] text-white outline-none placeholder:text-slate-700" />
-              {query ? <button type="button" onClick={() => { setQuery(""); setJumpMessage(""); }} className="text-slate-600 hover:text-white"><X className="h-3.5 w-3.5" /></button> : null}
+            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-td-ink/[0.075] bg-black/20 px-3">
+              <Search className="h-4 w-4 text-td-muted" />
+              <input value={query} onChange={(event) => { setQuery(event.target.value); setMatchIndex(0); }} onKeyDown={(event) => { if (event.key === "Enter" && matches.length) jumpToItem(matches[matchIndex] ?? matches[0]); }} placeholder="Search this binder by card, set, pocket, condition…" className="min-w-0 flex-1 bg-transparent text-[11px] text-td-primary outline-none placeholder:text-td-muted" />
+              {query ? <button type="button" onClick={() => { setQuery(""); setJumpMessage(""); }} className="text-td-muted hover:text-td-primary"><X className="h-3.5 w-3.5" /></button> : null}
             </label>
 
             <div className="flex items-center gap-2 overflow-x-auto">
-              <div className="flex rounded-xl border border-white/[0.075] bg-black/20 p-1">
+              <div className="flex rounded-xl border border-td-ink/[0.075] bg-black/20 p-1">
                 {([
                   ["single", "Page", Grid3X3],
                   ["spread", "Spread", BookOpen],
                   ["index", "Index", List],
                 ] as const).map(([value, label, Icon]) => (
-                  <button key={value} type="button" onClick={() => setBinderView(value)} className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[8px] font-semibold transition ${binderView === value ? "bg-violet-300 text-[#18092b]" : "text-slate-600 hover:text-white"}`}>
+                  <button key={value} type="button" onClick={() => setBinderView(value)} className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-semibold transition ${binderView === value ? "bg-td-violet text-td-on-accent" : "text-td-muted hover:text-td-primary"}`}>
                     <Icon className="h-3.5 w-3.5" /> {label}
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={onOpenPutAway} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-amber-300/[0.14] bg-amber-300/[0.035] px-3 text-[9px] font-semibold text-amber-100"><PackageOpen className="h-3.5 w-3.5" /> Put Away <span className="rounded-md bg-amber-300 px-1.5 py-0.5 text-[7px] font-black text-[#211505]">{putAwayCount}</span></button>
-              <button type="button" onClick={onFile} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.035] px-3 text-[9px] font-semibold text-cyan-100"><Plus className="h-3.5 w-3.5" /> Add Card</button>
+              <button type="button" onClick={onOpenPutAway} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-td-warning/[0.14] bg-td-warning/[0.035] px-3 text-[11px] font-semibold text-td-warning"><PackageOpen className="h-3.5 w-3.5" /> Put Away <span className="rounded-md bg-td-warning px-1.5 py-0.5 text-[11px] font-black text-td-on-accent">{putAwayCount}</span></button>
+              <button type="button" onClick={onFile} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border border-td-accent/[0.14] bg-td-accent/[0.035] px-3 text-[11px] font-semibold text-td-accent-text"><Plus className="h-3.5 w-3.5" /> Add Card</button>
             </div>
           </div>
 
           {query && matches.length ? (
-            <div className="mt-2 flex items-center gap-2 overflow-x-auto rounded-xl border border-cyan-300/[0.08] bg-cyan-300/[0.025] px-2 py-1.5">
-              <span className="shrink-0 text-[8px] font-semibold text-cyan-200">{matches.length} result{matches.length === 1 ? "" : "s"}</span>
-              <button type="button" onClick={() => cycleMatch(-1)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500"><ChevronLeft className="h-3 w-3" /></button>
-              <button type="button" onClick={() => cycleMatch(1)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500"><ChevronRight className="h-3 w-3" /></button>
-              {matches.slice(0, 8).map((item) => <button key={item.id} type="button" onClick={() => jumpToItem(item)} className="shrink-0 rounded-lg border border-white/[0.07] bg-black/15 px-2.5 py-1.5 text-[8px] font-semibold text-slate-400 hover:border-cyan-300/20 hover:text-cyan-100">{item.name}</button>)}
+            <div className="mt-2 flex items-center gap-2 overflow-x-auto rounded-xl border border-td-accent/[0.08] bg-td-accent/[0.025] px-2 py-1.5">
+              <span className="shrink-0 text-[11px] font-semibold text-td-accent-text">{matches.length} result{matches.length === 1 ? "" : "s"}</span>
+              <button type="button" onClick={() => cycleMatch(-1)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-td-ink/[0.07] text-td-muted"><ChevronLeft className="h-3 w-3" /></button>
+              <button type="button" onClick={() => cycleMatch(1)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-td-ink/[0.07] text-td-muted"><ChevronRight className="h-3 w-3" /></button>
+              {matches.slice(0, 8).map((item) => <button key={item.id} type="button" onClick={() => jumpToItem(item)} className="shrink-0 rounded-lg border border-td-ink/[0.07] bg-black/15 px-2.5 py-1.5 text-[11px] font-semibold text-td-secondary hover:border-td-accent/20 hover:text-td-accent-text">{item.name}</button>)}
             </div>
           ) : null}
         </div>
 
         <div className="grid min-h-0 flex-1 lg:grid-cols-[180px_minmax(0,1fr)] 2xl:grid-cols-[200px_minmax(0,1fr)_310px]">
-          <aside className="hidden min-h-0 border-r border-white/[0.055] bg-[#05111a]/92 p-3 lg:flex lg:flex-col">
-            <div className="rounded-2xl border border-white/[0.07] bg-black/15 p-3">
-              <p className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-600">Binder capacity</p>
-              <div className="mt-3 flex items-end justify-between"><span className="text-xl font-semibold text-white">{Math.round(usedPercent)}%</span><span className="text-[8px] text-slate-700">{occupied}/{pageCount * slotsPerPage}</span></div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.05]"><div className="h-full rounded-full bg-gradient-to-r from-violet-300 to-cyan-300" style={{ width: `${usedPercent}%` }} /></div>
+          <aside className="hidden min-h-0 border-r border-td-ink/[0.055] bg-td-surface/92 p-3 lg:flex lg:flex-col">
+            <div className="rounded-2xl border border-td-ink/[0.07] bg-black/15 p-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-td-muted">Binder capacity</p>
+              <div className="mt-3 flex items-end justify-between"><span className="text-xl font-semibold text-td-primary">{Math.round(usedPercent)}%</span><span className="text-[11px] text-td-muted">{occupied}/{pageCount * slotsPerPage}</span></div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-td-ink/[0.05]"><div className="h-full rounded-full bg-gradient-to-r from-td-violet to-td-accent" style={{ width: `${usedPercent}%` }} /></div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between px-1"><p className="text-[8px] font-bold uppercase tracking-[0.16em] text-slate-600">Pages</p><span className="text-[8px] text-slate-700">{pageCount}</span></div>
+            <div className="mt-4 flex items-center justify-between px-1"><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">Pages</p><span className="text-[11px] text-td-muted">{pageCount}</span></div>
             <div className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
               {Array.from({ length: pageCount }, (_, index) => {
                 const pageNumber = index + 1;
                 const count = items.filter((item) => item.binderPage === pageNumber).length;
                 const active = binderView === "spread" ? pageNumber === spreadLeft || pageNumber === spreadRight : pageNumber === page;
-                return <button key={pageNumber} type="button" onClick={() => setPage(pageNumber)} className={`flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition ${active ? "border-violet-300/25 bg-violet-400/[0.08]" : "border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]"}`}><span className={`flex h-7 w-7 items-center justify-center rounded-lg text-[8px] font-bold ${active ? "bg-violet-300 text-[#18092b]" : "bg-white/[0.04] text-slate-600"}`}>{pageNumber}</span><span className="min-w-0 flex-1"><span className={`block text-[9px] font-semibold ${active ? "text-violet-100" : "text-slate-500"}`}>Page {pageNumber}</span><span className="mt-0.5 block text-[7px] text-slate-700">{count}/{slotsPerPage} pockets</span></span></button>;
+                return <button key={pageNumber} type="button" onClick={() => setPage(pageNumber)} className={`flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition ${active ? "border-td-violet/25 bg-td-violet/[0.08]" : "border-transparent hover:border-td-ink/[0.06] hover:bg-td-ink/[0.025]"}`}><span className={`flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-bold ${active ? "bg-td-violet text-td-on-accent" : "bg-td-ink/[0.04] text-td-muted"}`}>{pageNumber}</span><span className="min-w-0 flex-1"><span className={`block text-[11px] font-semibold ${active ? "text-td-violet" : "text-td-muted"}`}>Page {pageNumber}</span><span className="mt-0.5 block text-[11px] text-td-muted">{count}/{slotsPerPage} pockets</span></span></button>;
               })}
             </div>
           </aside>
 
-          <section className="min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(34,211,238,.035),transparent_30%)] p-3 sm:p-4 lg:p-5">
+          <section className="min-h-0 overflow-y-auto bg-[radial-gradient(circle_at_top,rgb(var(--td-accent-rgb)/.035),transparent_30%)] p-3 sm:p-4 lg:p-5">
             <div className="mx-auto max-w-[1320px]">
               <div className="mb-3 flex items-center justify-between">
-                <button type="button" onClick={() => setPage((current) => Math.max(1, current - (binderView === "spread" ? 2 : 1)))} disabled={page <= 1} className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.07] bg-black/15 px-3 text-[8px] font-semibold text-slate-400 disabled:opacity-25"><ChevronLeft className="h-3.5 w-3.5" /> Previous</button>
-                <div className="text-center"><p className="text-[8px] font-bold uppercase tracking-[0.17em] text-cyan-300">{binderView === "index" ? "Binder index" : binderView === "spread" ? "Physical binder spread" : "Physical binder page"}</p><p className="mt-1 text-[9px] text-slate-600">{binderView === "spread" ? `Pages ${spreadLeft}–${spreadRight}` : `Page ${page}`} of {pageCount}</p></div>
-                <button type="button" onClick={() => setPage((current) => Math.min(pageCount, current + (binderView === "spread" ? 2 : 1)))} disabled={page >= pageCount} className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.07] bg-black/15 px-3 text-[8px] font-semibold text-slate-400 disabled:opacity-25">Next <ChevronRight className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setPage((current) => Math.max(1, current - (binderView === "spread" ? 2 : 1)))} disabled={page <= 1} className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-black/15 px-3 text-[11px] font-semibold text-td-secondary disabled:opacity-25"><ChevronLeft className="h-3.5 w-3.5" /> Previous</button>
+                <div className="text-center"><p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-accent-text">{binderView === "index" ? "Binder index" : binderView === "spread" ? "Physical binder spread" : "Physical binder page"}</p><p className="mt-1 text-[11px] text-td-muted">{binderView === "spread" ? `Pages ${spreadLeft}–${spreadRight}` : `Page ${page}`} of {pageCount}</p></div>
+                <button type="button" onClick={() => setPage((current) => Math.min(pageCount, current + (binderView === "spread" ? 2 : 1)))} disabled={page >= pageCount} className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-black/15 px-3 text-[11px] font-semibold text-td-secondary disabled:opacity-25">Next <ChevronRight className="h-3.5 w-3.5" /></button>
               </div>
 
               {binderView === "index" ? (
-                <div className="overflow-hidden rounded-[24px] border border-white/[0.075] bg-[#06131d]/88">
-                  <div className="grid grid-cols-[70px_minmax(0,1fr)_90px_100px] border-b border-white/[0.06] bg-white/[0.025] px-4 py-3 text-[8px] font-bold uppercase tracking-[0.13em] text-slate-600"><span>Pocket</span><span>Card</span><span>Qty</span><span>Value</span></div>
-                  <div className="divide-y divide-white/[0.05]">
-                    {[...items].sort((a,b) => (a.binderPage ?? 999) - (b.binderPage ?? 999) || (a.binderSlot ?? "").localeCompare(b.binderSlot ?? "")).map((item) => <button key={item.id} type="button" onClick={() => jumpToItem(item)} className={`grid w-full grid-cols-[70px_minmax(0,1fr)_90px_100px] items-center px-4 py-3 text-left transition hover:bg-cyan-300/[0.025] ${item.id === selectedItemId ? "bg-cyan-300/[0.045]" : ""}`}><span className="text-[9px] font-semibold text-cyan-200">{item.binderPage ? `P${item.binderPage} · ${item.binderSlot}` : "—"}</span><span className="flex min-w-0 items-center gap-3">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-10 w-7 rounded object-cover" /> : null}<span className="min-w-0"><span className="block truncate text-[10px] font-semibold text-white">{item.name}</span><span className="mt-1 block truncate text-[8px] text-slate-600">{[item.set,item.condition,item.finish].filter(Boolean).join(" · ")}</span></span></span><span className="text-[9px] text-slate-400">{item.quantity}</span><span className="text-[9px] font-semibold text-emerald-300">{currency(item.value)}</span></button>)}
+                <div className="overflow-hidden rounded-[24px] border border-td-ink/[0.075] bg-td-surface/88">
+                  <div className="grid grid-cols-[70px_minmax(0,1fr)_90px_100px] border-b border-td-ink/[0.06] bg-td-ink/[0.025] px-4 py-3 text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted"><span>Pocket</span><span>Card</span><span>Qty</span><span>Value</span></div>
+                  <div className="divide-y divide-td-ink/[0.05]">
+                    {[...items].sort((a,b) => (a.binderPage ?? 999) - (b.binderPage ?? 999) || (a.binderSlot ?? "").localeCompare(b.binderSlot ?? "")).map((item) => <button key={item.id} type="button" onClick={() => jumpToItem(item)} className={`grid w-full grid-cols-[70px_minmax(0,1fr)_90px_100px] items-center px-4 py-3 text-left transition hover:bg-td-accent/[0.025] ${item.id === selectedItemId ? "bg-td-accent/[0.045]" : ""}`}><span className="text-[11px] font-semibold text-td-accent-text">{item.binderPage ? `P${item.binderPage} · ${item.binderSlot}` : "—"}</span><span className="flex min-w-0 items-center gap-3">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-10 w-7 rounded object-cover" /> : null}<span className="min-w-0"><span className="block truncate text-[11px] font-semibold text-td-primary">{item.name}</span><span className="mt-1 block truncate text-[11px] text-td-muted">{[item.set,item.condition,item.finish].filter(Boolean).join(" · ")}</span></span></span><span className="text-[11px] text-td-secondary">{item.quantity}</span><span className="text-[11px] font-semibold text-td-success">{currency(item.value)}</span></button>)}
                   </div>
                 </div>
               ) : binderView === "spread" ? (
@@ -2664,39 +2664,39 @@ function VirtualBinderModal({
             </div>
           </section>
 
-          <aside className="hidden min-h-0 border-l border-white/[0.055] bg-[#05111a]/94 p-4 2xl:block">
+          <aside className="hidden min-h-0 border-l border-td-ink/[0.055] bg-td-surface/94 p-4 2xl:block">
             {inspectorItem ? (
               <div className="sticky top-0">
-                <div className="flex items-center justify-between"><p className="text-[8px] font-bold uppercase tracking-[0.17em] text-cyan-300">Live inspector</p><button type="button" onClick={() => openCardDetails(inspectorItem)} className="text-[8px] font-semibold text-violet-300 hover:text-violet-200">Full details</button></div>
-                {inspectorItem.imageUrl ? <img src={inspectorItem.imageUrl} alt={inspectorItem.name} className="mt-3 aspect-[.716] w-full rounded-[18px] object-contain shadow-[0_24px_64px_rgba(0,0,0,.48)]" /> : <div className="mt-3 flex aspect-[.716] items-center justify-center rounded-[18px] border border-white/[0.07] bg-black/20"><LibraryBig className="h-10 w-10 text-slate-700" /></div>}
-                <h3 className="mt-4 text-lg font-semibold text-white">{inspectorItem.name}</h3>
-                <p className="mt-1 text-[9px] text-slate-600">{[inspectorItem.set,inspectorItem.condition,inspectorItem.finish].filter(Boolean).join(" · ")}</p>
+                <div className="flex items-center justify-between"><p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-accent-text">Live inspector</p><button type="button" onClick={() => openCardDetails(inspectorItem)} className="text-[11px] font-semibold text-td-violet hover:text-td-violet">Full details</button></div>
+                {inspectorItem.imageUrl ? <img src={inspectorItem.imageUrl} alt={inspectorItem.name} className="mt-3 aspect-[.716] w-full rounded-[18px] object-contain shadow-[0_24px_64px_rgb(var(--td-shadow-rgb)/calc(.48*var(--td-shadow-strength)))]" /> : <div className="mt-3 flex aspect-[.716] items-center justify-center rounded-[18px] border border-td-ink/[0.07] bg-black/20"><LibraryBig className="h-10 w-10 text-td-muted" /></div>}
+                <h3 className="mt-4 text-lg font-semibold text-td-primary">{inspectorItem.name}</h3>
+                <p className="mt-1 text-[11px] text-td-muted">{[inspectorItem.set,inspectorItem.condition,inspectorItem.finish].filter(Boolean).join(" · ")}</p>
                 <div className="mt-4 grid grid-cols-2 gap-2"><CompactMetric label="Quantity" value={String(inspectorItem.quantity)} /><CompactMetric label="Value" value={currency(inspectorItem.value)} /><CompactMetric label="Page" value={String(inspectorItem.binderPage ?? "—")} /><CompactMetric label="Pocket" value={inspectorItem.binderSlot ?? "—"} /></div>
                 <div className="mt-4 space-y-2">
-                  <button type="button" onClick={() => openCardDetails(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.14] bg-cyan-300/[0.035] text-[9px] font-semibold text-cyan-100"><Eye className="h-3.5 w-3.5" /> Inspect card</button>
-                  <button type="button" onClick={() => setMoveCandidate(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-violet-300/[0.14] bg-violet-300/[0.035] text-[9px] font-semibold text-violet-100"><Move className="h-3.5 w-3.5" /> Move card</button>
-                  <button type="button" onClick={() => setRemoveCandidate(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-rose-300/[0.13] bg-rose-300/[0.025] text-[9px] font-semibold text-rose-200"><Trash2 className="h-3.5 w-3.5" /> Send to Put-Away</button>
+                  <button type="button" onClick={() => openCardDetails(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-accent/[0.14] bg-td-accent/[0.035] text-[11px] font-semibold text-td-accent-text"><Eye className="h-3.5 w-3.5" /> Inspect card</button>
+                  <button type="button" onClick={() => setMoveCandidate(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-violet/[0.14] bg-td-violet/[0.035] text-[11px] font-semibold text-td-violet"><Move className="h-3.5 w-3.5" /> Move card</button>
+                  <button type="button" onClick={() => setRemoveCandidate(inspectorItem)} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-danger/[0.13] bg-td-danger/[0.025] text-[11px] font-semibold text-td-danger"><Trash2 className="h-3.5 w-3.5" /> Send to Put-Away</button>
                 </div>
               </div>
             ) : (
-              <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-7 w-7 text-slate-700" /><p className="mt-4 text-sm font-semibold text-slate-400">Select a card</p><p className="mt-2 text-[9px] leading-5 text-slate-700">The permanent inspector keeps card details visible without covering your binder.</p></div>
+              <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-7 w-7 text-td-muted" /><p className="mt-4 text-sm font-semibold text-td-secondary">Select a card</p><p className="mt-2 text-[11px] leading-5 text-td-muted">The permanent inspector keeps card details visible without covering your binder.</p></div>
             )}
           </aside>
         </div>
 
-        <footer className="flex shrink-0 items-center gap-3 border-t border-white/[0.055] bg-[#06131d]/96 px-3 py-2 sm:px-5">
+        <footer className="flex shrink-0 items-center gap-3 border-t border-td-ink/[0.055] bg-td-surface/96 px-3 py-2 sm:px-5">
           <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
-            {jumpMessage ? <span className="shrink-0 rounded-lg border border-cyan-300/[0.10] bg-cyan-300/[0.025] px-2.5 py-1.5 text-[8px] font-semibold text-cyan-100">{jumpMessage}</span> : <span className="text-[8px] text-slate-700">Drag cards between pockets. Right-click or use the inspector for actions.</span>}
-            {recentlyRemoved ? <button type="button" onClick={undoRemoveFromBinder} className="shrink-0 rounded-lg border border-emerald-300/[0.12] bg-emerald-300/[0.035] px-2.5 py-1.5 text-[8px] font-semibold text-emerald-200">Undo Put-Away</button> : null}
+            {jumpMessage ? <span className="shrink-0 rounded-lg border border-td-accent/[0.10] bg-td-accent/[0.025] px-2.5 py-1.5 text-[11px] font-semibold text-td-accent-text">{jumpMessage}</span> : <span className="text-[11px] text-td-muted">Drag cards between pockets. Right-click or use the inspector for actions.</span>}
+            {recentlyRemoved ? <button type="button" onClick={undoRemoveFromBinder} className="shrink-0 rounded-lg border border-td-success/[0.12] bg-td-success/[0.035] px-2.5 py-1.5 text-[11px] font-semibold text-td-success">Undo Put-Away</button> : null}
           </div>
-          <span className="hidden text-[8px] text-slate-700 md:block">Page {binderView === "spread" ? `${spreadLeft}–${spreadRight}` : page} · {currency(totalValue)}</span>
+          <span className="hidden text-[11px] text-td-muted md:block">Page {binderView === "spread" ? `${spreadLeft}–${spreadRight}` : page} · {currency(totalValue)}</span>
         </footer>
 
         {contextMenu ? (
-          <div className="fixed z-[150] w-52 overflow-hidden rounded-xl border border-white/[0.10] bg-[#081721] p-1.5 shadow-[0_22px_70px_rgba(0,0,0,.65)]" style={{ left: Math.min(contextMenu.x, window.innerWidth - 220), top: Math.min(contextMenu.y, window.innerHeight - 230) }}>
-            <button type="button" onClick={() => openCardDetails(contextMenu.item)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[9px] font-semibold text-slate-300 hover:bg-white/[0.05]"><Eye className="h-3.5 w-3.5" /> Inspect card</button>
-            <button type="button" onClick={() => { setMoveCandidate(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[9px] font-semibold text-slate-300 hover:bg-white/[0.05]"><Move className="h-3.5 w-3.5" /> Move card</button>
-            <button type="button" onClick={() => { setRemoveCandidate(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[9px] font-semibold text-rose-200 hover:bg-rose-300/[0.05]"><Trash2 className="h-3.5 w-3.5" /> Send to Put-Away</button>
+          <div className="fixed z-[150] w-52 overflow-hidden rounded-xl border border-td-ink/[0.10] bg-td-surface p-1.5 shadow-[0_22px_70px_rgb(var(--td-shadow-rgb)/calc(.65*var(--td-shadow-strength)))]" style={{ left: Math.min(contextMenu.x, window.innerWidth - 220), top: Math.min(contextMenu.y, window.innerHeight - 230) }}>
+            <button type="button" onClick={() => openCardDetails(contextMenu.item)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold text-td-secondary hover:bg-td-ink/[0.05]"><Eye className="h-3.5 w-3.5" /> Inspect card</button>
+            <button type="button" onClick={() => { setMoveCandidate(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold text-td-secondary hover:bg-td-ink/[0.05]"><Move className="h-3.5 w-3.5" /> Move card</button>
+            <button type="button" onClick={() => { setRemoveCandidate(contextMenu.item); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold text-td-danger hover:bg-td-danger/[0.05]"><Trash2 className="h-3.5 w-3.5" /> Send to Put-Away</button>
           </div>
         ) : null}
 
@@ -2705,11 +2705,11 @@ function VirtualBinderModal({
 
         {removeCandidate ? (
           <div className="absolute inset-0 z-[145] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && setRemoveCandidate(null)}>
-            <div className="w-full max-w-[440px] rounded-[24px] border border-rose-300/[0.16] bg-[#081721] p-5 shadow-[0_28px_90px_rgba(0,0,0,.72)]">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-rose-300/[0.14] bg-rose-300/[0.04] text-rose-200"><Trash2 className="h-5 w-5" /></div>
-              <h3 className="mt-4 text-lg font-semibold text-white">Send this card to Put-Away?</h3>
-              <p className="mt-2 text-[10px] leading-5 text-slate-500">{removeCandidate.name} will leave this binder pocket, but the inventory record will be retained.</p>
-              <div className="mt-5 flex gap-2"><button type="button" onClick={() => setRemoveCandidate(null)} className="h-11 flex-1 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-400">Cancel</button><button type="button" onClick={confirmRemoveFromBinder} className="h-11 flex-[1.35] rounded-xl bg-rose-300 text-[10px] font-bold text-[#250710]">Send to Put-Away</button></div>
+            <div className="w-full max-w-[440px] rounded-[24px] border border-td-danger/[0.16] bg-td-surface p-5 shadow-[0_28px_90px_rgb(var(--td-shadow-rgb)/calc(.72*var(--td-shadow-strength)))]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-td-danger/[0.14] bg-td-danger/[0.04] text-td-danger"><Trash2 className="h-5 w-5" /></div>
+              <h3 className="mt-4 text-lg font-semibold text-td-primary">Send this card to Put-Away?</h3>
+              <p className="mt-2 text-[11px] leading-5 text-td-muted">{removeCandidate.name} will leave this binder pocket, but the inventory record will be retained.</p>
+              <div className="mt-5 flex gap-2"><button type="button" onClick={() => setRemoveCandidate(null)} className="h-11 flex-1 rounded-xl border border-td-ink/[0.08] text-[11px] font-semibold text-td-secondary">Cancel</button><button type="button" onClick={confirmRemoveFromBinder} className="h-11 flex-[1.35] rounded-xl bg-td-danger text-[11px] font-bold text-td-on-accent">Send to Put-Away</button></div>
             </div>
           </div>
         ) : null}
@@ -2933,46 +2933,46 @@ function BinderShowcaseStudio({
   }
 
   return (
-    <div className="absolute inset-0 z-[96] flex items-center justify-center bg-[#01070c]/82 p-4 backdrop-blur-xl" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section className="grid max-h-[94dvh] w-full max-w-[1180px] overflow-hidden rounded-[30px] border border-violet-300/[0.18] bg-[#07131d] shadow-[0_38px_140px_rgba(0,0,0,.78)] lg:grid-cols-[1.08fr_.92fr]">
+    <div className="absolute inset-0 z-[96] flex items-center justify-center bg-td-canvas/82 p-4 backdrop-blur-xl" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="grid max-h-[94dvh] w-full max-w-[1180px] overflow-hidden rounded-[30px] border border-td-violet/[0.18] bg-td-surface shadow-[0_38px_140px_rgb(var(--td-shadow-rgb)/calc(.78*var(--td-shadow-strength)))] lg:grid-cols-[1.08fr_.92fr]">
         <div className="min-h-0 overflow-y-auto p-5 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/[0.18] bg-violet-400/[0.07] px-3 py-2 text-[9px] font-semibold text-violet-100"><Sparkles className="h-3.5 w-3.5 text-violet-300" /> Binder Showcase Studio</span>
-              <h3 className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-white">Turn your binder into content.</h3>
-              <p className="mt-2 max-w-xl text-[11px] leading-6 text-slate-500">Create a public trade page, export an Instagram-ready graphic, or copy a polished Discord post.</p>
+              <span className="inline-flex items-center gap-2 rounded-full border border-td-violet/[0.18] bg-td-violet/[0.07] px-3 py-2 text-[11px] font-semibold text-td-violet"><Sparkles className="h-3.5 w-3.5 text-td-violet" /> Binder Showcase Studio</span>
+              <h3 className="mt-4 text-2xl font-semibold tracking-[-0.035em] text-td-primary">Turn your binder into content.</h3>
+              <p className="mt-2 max-w-xl text-[11px] leading-6 text-td-muted">Create a public trade page, export an Instagram-ready graphic, or copy a polished Discord post.</p>
             </div>
-            <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 transition hover:text-white"><X className="h-4 w-4" /></button>
+            <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-muted transition hover:text-td-primary"><X className="h-4 w-4" /></button>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl border border-white/[0.07] bg-black/15 p-1.5">
-            <button type="button" onClick={() => setMode("showcase")} className={`rounded-xl px-4 py-3 text-[10px] font-semibold transition ${mode === "showcase" ? "bg-cyan-300 text-[#031319]" : "text-slate-500 hover:text-slate-200"}`}>Collection showcase</button>
-            <button type="button" onClick={() => setMode("trade")} className={`rounded-xl px-4 py-3 text-[10px] font-semibold transition ${mode === "trade" ? "bg-violet-300 text-[#15072a]" : "text-slate-500 hover:text-slate-200"}`}>Trade binder</button>
+          <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl border border-td-ink/[0.07] bg-black/15 p-1.5">
+            <button type="button" onClick={() => setMode("showcase")} className={`rounded-xl px-4 py-3 text-[11px] font-semibold transition ${mode === "showcase" ? "bg-td-accent text-td-on-accent" : "text-td-muted hover:text-td-primary"}`}>Collection showcase</button>
+            <button type="button" onClick={() => setMode("trade")} className={`rounded-xl px-4 py-3 text-[11px] font-semibold transition ${mode === "trade" ? "bg-td-violet text-td-on-accent" : "text-td-muted hover:text-td-primary"}`}>Trade binder</button>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
+          <div className="mt-4 rounded-2xl border border-td-ink/[0.07] bg-black/10 p-4">
             <div className="flex items-center justify-between gap-4">
-              <div><p className="text-[10px] font-semibold text-slate-200">Cards in graphic</p><p className="mt-1 text-[9px] text-slate-600">Choose the density that best fits your post.</p></div>
-              <span className="rounded-lg border border-cyan-300/[0.12] bg-cyan-300/[0.04] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-[0.13em] text-cyan-200">Instagram 4:5</span>
+              <div><p className="text-[11px] font-semibold text-td-primary">Cards in graphic</p><p className="mt-1 text-[11px] text-td-muted">Choose the density that best fits your post.</p></div>
+              <span className="rounded-lg border border-td-accent/[0.12] bg-td-accent/[0.04] px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-td-accent-text">Instagram 4:5</span>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
-              {([6, 9, 12] as const).map((count) => <button key={count} type="button" onClick={() => setCardCount(count)} disabled={cards.length < count} className={`rounded-xl border px-3 py-2.5 text-[10px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${cardCount === count ? "border-cyan-300/35 bg-cyan-300/[0.10] text-cyan-100" : "border-white/[0.07] text-slate-500 hover:border-white/[0.14] hover:text-slate-200"}`}>{count} cards</button>)}
+              {([6, 9, 12] as const).map((count) => <button key={count} type="button" onClick={() => setCardCount(count)} disabled={cards.length < count} className={`rounded-xl border px-3 py-2.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-30 ${cardCount === count ? "border-td-accent/35 bg-td-accent/[0.10] text-td-accent-text" : "border-td-ink/[0.07] text-td-muted hover:border-td-ink/[0.14] hover:text-td-primary"}`}>{count} cards</button>)}
             </div>
-            {cards.length < 9 ? <p className="mt-3 text-[8px] leading-4 text-slate-600">Add more cards to this binder to unlock the 9- and 12-card layouts.</p> : null}
-            <div className="mt-4 border-t border-white/[0.07] pt-4">
-              <label className="text-[9px] font-semibold text-slate-400">Export title</label>
-              <input value={exportTitle} onChange={(event) => setExportTitle(event.target.value)} maxLength={34} className="mt-2 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-[10px] text-white outline-none transition placeholder:text-slate-700 focus:border-cyan-300/30" placeholder="Name this collection" />
+            {cards.length < 9 ? <p className="mt-3 text-[11px] leading-4 text-td-muted">Add more cards to this binder to unlock the 9- and 12-card layouts.</p> : null}
+            <div className="mt-4 border-t border-td-ink/[0.07] pt-4">
+              <label className="text-[11px] font-semibold text-td-secondary">Export title</label>
+              <input value={exportTitle} onChange={(event) => setExportTitle(event.target.value)} maxLength={34} className="mt-2 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 text-[11px] text-td-primary outline-none transition placeholder:text-td-muted focus:border-td-accent/30" placeholder="Name this collection" />
               <div className="mt-3 grid grid-cols-2 gap-2">
-                {(["editorial", "gallery"] as const).map((style) => <button key={style} type="button" onClick={() => setExportStyle(style)} className={`rounded-xl border px-3 py-2.5 text-[9px] font-semibold capitalize transition ${exportStyle === style ? "border-cyan-300/30 bg-cyan-300/[0.08] text-cyan-100" : "border-white/[0.07] text-slate-600"}`}>{style}</button>)}
+                {(["editorial", "gallery"] as const).map((style) => <button key={style} type="button" onClick={() => setExportStyle(style)} className={`rounded-xl border px-3 py-2.5 text-[11px] font-semibold capitalize transition ${exportStyle === style ? "border-td-accent/30 bg-td-accent/[0.08] text-td-accent-text" : "border-td-ink/[0.07] text-td-muted"}`}>{style}</button>)}
               </div>
               <div className="mt-3 flex gap-2">
-                {(["harbor", "midnight", "carbon"] as const).map((theme) => <button key={theme} type="button" aria-label={`${theme} color theme`} onClick={() => setExportTheme(theme)} className={`h-8 flex-1 rounded-lg border transition ${exportTheme === theme ? "border-white/50 ring-2 ring-cyan-300/20" : "border-white/[0.08]"}`} style={{ background: theme === "harbor" ? "linear-gradient(135deg,#0c3546,#07101b)" : theme === "midnight" ? "linear-gradient(135deg,#28204b,#090a15)" : "linear-gradient(135deg,#343a40,#090b0e)" }} />)}
+                {(["harbor", "midnight", "carbon"] as const).map((theme) => <button key={theme} type="button" aria-label={`${theme} color theme`} onClick={() => setExportTheme(theme)} className={`h-8 flex-1 rounded-lg border transition ${exportTheme === theme ? "border-td-ink/50 ring-2 ring-td-accent/20" : "border-td-ink/[0.08]"}`} style={{ background: theme === "harbor" ? "linear-gradient(135deg,#0c3546,#07101b)" : theme === "midnight" ? "linear-gradient(135deg,#28204b,#090a15)" : "linear-gradient(135deg,#343a40,#090b0e)" }} />)}
               </div>
             </div>
           </div>
 
-          <button type="button" onClick={openShareStudio} className="mt-6 flex w-full items-center justify-between rounded-2xl border border-violet-300/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgba(34,211,238,.06))] p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300/40">
-            <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-300 text-[#18092b]"><Share2 className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold text-white">Share this binder</p><p className="mt-1 text-[9px] text-slate-500">Use the same Share Studio for a page, spread, entire binder, or portfolio.</p></div></div><ChevronRight className="h-4 w-4 text-violet-200" />
+          <button type="button" onClick={openShareStudio} className="mt-6 flex w-full items-center justify-between rounded-2xl border border-td-violet/[0.22] bg-[linear-gradient(135deg,rgba(139,92,246,.13),rgb(var(--td-accent-rgb)/.06))] p-4 text-left transition hover:-translate-y-0.5 hover:border-td-violet/40">
+            <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-td-violet text-td-on-accent"><Share2 className="h-5 w-5" /></span><div><p className="text-[11px] font-semibold text-td-primary">Share this binder</p><p className="mt-1 text-[11px] text-td-muted">Use the same Share Studio for a page, spread, entire binder, or portfolio.</p></div></div><ChevronRight className="h-4 w-4 text-td-violet" />
           </button>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -2980,15 +2980,15 @@ function BinderShowcaseStudio({
             <ShowcaseAction icon={MessageCircle} title="Copy Discord post" description="Caption, collection stats, and trade language." onClick={copyPost} />
           </div>
 
-          {status ? <div className="mt-4 rounded-xl border border-cyan-300/[0.12] bg-cyan-300/[0.035] px-4 py-3 text-[9px] font-semibold text-cyan-100">{status}</div> : null}
+          {status ? <div className="mt-4 rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.035] px-4 py-3 text-[11px] font-semibold text-td-accent-text">{status}</div> : null}
         </div>
 
-        <div className="relative min-h-[560px] overflow-hidden border-t border-white/[0.07] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.18),transparent_38%),linear-gradient(160deg,#0b1b2a,#08111e_55%,#150b24)] p-5 lg:border-l lg:border-t-0 sm:p-7">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/[0.12] blur-3xl" />
+        <div className="relative min-h-[560px] overflow-hidden border-t border-td-ink/[0.07] bg-[radial-gradient(circle_at_top,rgba(139,92,246,.18),transparent_38%),linear-gradient(160deg,var(--td-surface-default),var(--td-surface-default)_55%,var(--td-surface-default))] p-5 lg:border-l lg:border-t-0 sm:p-7">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-td-accent/[0.12] blur-3xl" />
           <div className="relative">
-            <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-cyan-300">Live social preview</p>
-            <h4 className="mt-2 text-2xl font-semibold text-white">{exportTitle.trim() || location.name}</h4>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-violet-200">{mode === "trade" ? "Trade binder" : "Collection showcase"}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-td-accent-text">Live social preview</p>
+            <h4 className="mt-2 text-2xl font-semibold text-td-primary">{exportTitle.trim() || location.name}</h4>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.13em] text-td-violet">{mode === "trade" ? "Trade binder" : "Collection showcase"}</p>
             <div className="mt-5 grid grid-cols-3 gap-2">
               <ShowcaseMetric label="Cards" value={totalCards.toLocaleString("en-US")} />
               <ShowcaseMetric label="Value" value={currency(totalValue)} accent />
@@ -2997,10 +2997,10 @@ function BinderShowcaseStudio({
             <div className={`mt-5 grid gap-2 ${cardCount === 12 ? "grid-cols-4" : "grid-cols-3"}`}>
               {Array.from({ length: cardCount }, (_, index) => {
                 const card = previewCards[index];
-                return <div key={card?.id ?? index} className={`group relative aspect-[.716] overflow-hidden border bg-black/25 shadow-[0_14px_32px_rgba(0,0,0,.32)] ${index === 0 ? "rounded-xl border-cyan-300/45 shadow-[0_14px_34px_rgba(34,211,238,.10)]" : "rounded-lg border-white/[0.09]"}`}>{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-slate-700"><Plus className="h-5 w-5" /></div>}{card ? <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/75 px-1.5 py-1 text-[6px] font-bold text-cyan-200">P{card.binderPage} · {card.binderSlot}</span> : null}</div>;
+                return <div key={card?.id ?? index} className={`group relative aspect-[.716] overflow-hidden border bg-black/25 shadow-[0_14px_32px_rgb(var(--td-shadow-rgb)/calc(.32*var(--td-shadow-strength)))] ${index === 0 ? "rounded-xl border-td-accent/45 shadow-[0_14px_34px_rgb(var(--td-accent-rgb)/.10)]" : "rounded-lg border-td-ink/[0.09]"}`}>{card?.imageUrl ? <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-td-muted"><Plus className="h-5 w-5" /></div>}{card ? <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/75 px-1.5 py-1 text-[11px] font-bold text-td-accent-text">P{card.binderPage} · {card.binderSlot}</span> : null}</div>;
               })}
             </div>
-            <div className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4 backdrop-blur"><p className="text-[10px] leading-5 text-slate-300">{caption}</p><div className="mt-4 flex items-center justify-between"><span className="inline-flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-600"><MessageCircle className="h-3.5 w-3.5" /> Social-ready</span><span className="text-[8px] text-slate-700">Page {page} · {binderView}</span></div></div>
+            <div className="mt-5 rounded-2xl border border-td-ink/[0.08] bg-black/20 p-4 backdrop-blur"><p className="text-[11px] leading-5 text-td-secondary">{caption}</p><div className="mt-4 flex items-center justify-between"><span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-td-muted"><MessageCircle className="h-3.5 w-3.5" /> Social-ready</span><span className="text-[11px] text-td-muted">Page {page} · {binderView}</span></div></div>
           </div>
         </div>
       </section>
@@ -3009,11 +3009,11 @@ function BinderShowcaseStudio({
 }
 
 function ShowcaseAction({ icon: Icon, title, description, onClick, loading = false }: { icon: typeof Share2; title: string; description: string; onClick: () => void | Promise<void>; loading?: boolean }) {
-  return <button type="button" onClick={() => void onClick()} disabled={loading} className="group rounded-2xl border border-white/[0.075] bg-black/[0.12] p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/[0.22] hover:bg-cyan-300/[0.035] disabled:opacity-60"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-300/[0.045] text-cyan-200">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}</span><p className="mt-3 text-[11px] font-semibold text-slate-100">{title}</p><p className="mt-1 text-[9px] leading-4 text-slate-600">{description}</p></button>;
+  return <button type="button" onClick={() => void onClick()} disabled={loading} className="group rounded-2xl border border-td-ink/[0.075] bg-black/[0.12] p-4 text-left transition hover:-translate-y-0.5 hover:border-td-accent/[0.22] hover:bg-td-accent/[0.035] disabled:opacity-60"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.045] text-td-accent-text">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}</span><p className="mt-3 text-[11px] font-semibold text-td-primary">{title}</p><p className="mt-1 text-[11px] leading-4 text-td-muted">{description}</p></button>;
 }
 
 function ShowcaseMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
-  return <div className="rounded-xl border border-white/[0.08] bg-black/20 px-3 py-3"><p className="text-[7px] font-bold uppercase tracking-[0.14em] text-slate-600">{label}</p><p className={`mt-1 text-[12px] font-semibold ${accent ? "text-emerald-300" : "text-slate-100"}`}>{value}</p></div>;
+  return <div className="rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 py-3"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">{label}</p><p className={`mt-1 text-[12px] font-semibold ${accent ? "text-td-success" : "text-td-primary"}`}>{value}</p></div>;
 }
 
 
@@ -3050,29 +3050,29 @@ function BinderSettingsPanel({
   const used = items.filter((item) => item.binderPage && item.binderSlot).length;
 
   return (
-    <div className="absolute inset-0 z-50 flex justify-end bg-[#01070c]/72 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="flex h-full w-full max-w-[460px] flex-col border-l border-cyan-300/[0.12] bg-[#081721] shadow-[-28px_0_90px_rgba(0,0,0,0.48)]" role="dialog" aria-modal="true" aria-label="Binder settings">
-        <div className="flex items-start gap-3 border-b border-white/[0.07] px-6 py-5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.15] bg-cyan-300/[0.05] text-cyan-300"><Settings2 className="h-4 w-4" /></span>
+    <div className="absolute inset-0 z-50 flex justify-end bg-td-canvas/72 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <aside className="flex h-full w-full max-w-[460px] flex-col border-l border-td-accent/[0.12] bg-td-surface shadow-[-28px_0_90px_rgb(var(--td-shadow-rgb)/calc(0.48*var(--td-shadow-strength)))]" role="dialog" aria-modal="true" aria-label="Binder settings">
+        <div className="flex items-start gap-3 border-b border-td-ink/[0.07] px-6 py-5">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-accent/[0.15] bg-td-accent/[0.05] text-td-accent-text"><Settings2 className="h-4 w-4" /></span>
           <div className="min-w-0 flex-1">
-            <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Binder configuration</p>
-            <h3 className="mt-1 text-lg font-semibold text-slate-100">Page & pocket settings</h3>
-            <p className="mt-1 text-[9px] leading-4 text-slate-600">Match the digital binder to the physical one on your shelf.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">Binder configuration</p>
+            <h3 className="mt-1 text-lg font-semibold text-td-primary">Page & pocket settings</h3>
+            <p className="mt-1 text-[11px] leading-4 text-td-muted">Match the digital binder to the physical one on your shelf.</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close binder settings" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] text-slate-500 hover:text-slate-100"><X className="h-4 w-4" /></button>
+          <button type="button" onClick={onClose} aria-label="Close binder settings" className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.07] text-td-muted hover:text-td-primary"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-slate-600">Pocket layout</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-muted">Pocket layout</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {presets.map((preset) => {
               const active = columns === preset.columns && rows === preset.rows;
               return (
-                <button key={preset.detail} type="button" onClick={() => { setColumns(preset.columns); setRows(preset.rows); }} className={`rounded-2xl border p-3 text-left transition ${active ? "border-cyan-300/35 bg-cyan-400/[0.09] shadow-[0_0_0_2px_rgba(34,211,238,0.05)]" : "border-white/[0.07] bg-white/[0.018] hover:border-cyan-300/20"}`}>
-                  <span className={`text-[9px] font-semibold ${active ? "text-cyan-200" : "text-slate-400"}`}>{preset.label}</span>
-                  <span className="mt-1 block text-lg font-semibold text-slate-100">{preset.detail}</span>
+                <button key={preset.detail} type="button" onClick={() => { setColumns(preset.columns); setRows(preset.rows); }} className={`rounded-2xl border p-3 text-left transition ${active ? "border-td-accent/35 bg-td-accent/[0.09] shadow-[0_0_0_2px_rgb(var(--td-accent-rgb)/0.05)]" : "border-td-ink/[0.07] bg-td-ink/[0.018] hover:border-td-accent/20"}`}>
+                  <span className={`text-[11px] font-semibold ${active ? "text-td-accent-text" : "text-td-secondary"}`}>{preset.label}</span>
+                  <span className="mt-1 block text-lg font-semibold text-td-primary">{preset.detail}</span>
                   <span className="mt-2 grid gap-1" style={{ gridTemplateColumns: `repeat(${preset.columns}, minmax(0, 1fr))` }}>
-                    {Array.from({ length: Math.min(preset.columns * preset.rows, 16) }, (_, index) => <i key={index} className={`h-2 rounded-[2px] ${active ? "bg-cyan-300/35" : "bg-white/[0.07]"}`} />)}
+                    {Array.from({ length: Math.min(preset.columns * preset.rows, 16) }, (_, index) => <i key={index} className={`h-2 rounded-[2px] ${active ? "bg-td-accent/35" : "bg-td-ink/[0.07]"}`} />)}
                   </span>
                 </button>
               );
@@ -3085,32 +3085,32 @@ function BinderSettingsPanel({
             <BinderNumberField label="Pages" value={pages} min={1} max={500} onChange={setPages} />
           </div>
 
-          <label className="mt-4 flex items-center justify-between rounded-2xl border border-white/[0.07] bg-black/10 px-4 py-3">
-            <span><span className="block text-[10px] font-semibold text-slate-300">Double-sided pages</span><span className="mt-1 block text-[8px] text-slate-600">Track both faces of each physical sheet.</span></span>
-            <input type="checkbox" checked={doubleSided} onChange={(event) => setDoubleSided(event.target.checked)} className="h-4 w-4 accent-cyan-400" />
+          <label className="mt-4 flex items-center justify-between rounded-2xl border border-td-ink/[0.07] bg-black/10 px-4 py-3">
+            <span><span className="block text-[11px] font-semibold text-td-secondary">Double-sided pages</span><span className="mt-1 block text-[11px] text-td-muted">Track both faces of each physical sheet.</span></span>
+            <input type="checkbox" checked={doubleSided} onChange={(event) => setDoubleSided(event.target.checked)} className="h-4 w-4 accent-td-accent" />
           </label>
 
-          <div className="mt-5 overflow-hidden rounded-2xl border border-cyan-300/[0.1] bg-[linear-gradient(135deg,rgba(34,211,238,0.055),rgba(34,211,238,0.055))]">
-            <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
+          <div className="mt-5 overflow-hidden rounded-2xl border border-td-accent/[0.1] bg-[linear-gradient(135deg,rgb(var(--td-accent-rgb)/0.055),rgb(var(--td-accent-rgb)/0.055))]">
+            <div className="grid grid-cols-3 divide-x divide-td-ink/[0.06]">
               <BinderSettingMetric label="Total pockets" value={capacity.toLocaleString("en-US")} />
               <BinderSettingMetric label="Used" value={used.toLocaleString("en-US")} />
               <BinderSettingMetric label="Available" value={Math.max(0, capacity - used).toLocaleString("en-US")} />
             </div>
-            <div className="h-1 bg-white/[0.045]"><div className="h-full bg-gradient-to-r from-cyan-300 to-cyan-300" style={{ width: `${Math.min(100, capacity ? (used / capacity) * 100 : 0)}%` }} /></div>
+            <div className="h-1 bg-td-ink/[0.045]"><div className="h-full bg-gradient-to-r from-td-accent to-td-accent" style={{ width: `${Math.min(100, capacity ? (used / capacity) * 100 : 0)}%` }} /></div>
           </div>
 
           {incompatible.length ? (
-            <div className="mt-4 rounded-2xl border border-amber-300/[0.18] bg-amber-300/[0.045] p-4">
-              <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" /><div><p className="text-[10px] font-semibold text-amber-200">This size would displace {incompatible.length} card{incompatible.length === 1 ? "" : "s"}</p><p className="mt-1 text-[8px] leading-4 text-slate-500">Move those cards into pockets that exist in the new layout before downsizing. Nothing will be silently unassigned.</p></div></div>
+            <div className="mt-4 rounded-2xl border border-td-warning/[0.18] bg-td-warning/[0.045] p-4">
+              <div className="flex gap-3"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-td-warning" /><div><p className="text-[11px] font-semibold text-td-warning">This size would displace {incompatible.length} card{incompatible.length === 1 ? "" : "s"}</p><p className="mt-1 text-[11px] leading-4 text-td-muted">Move those cards into pockets that exist in the new layout before downsizing. Nothing will be silently unassigned.</p></div></div>
             </div>
           ) : null}
         </div>
 
-        <div className="border-t border-white/[0.07] bg-[#07131d] px-6 py-4">
-          <button type="button" onClick={onAdvancedEdit} className="mb-3 text-[9px] font-semibold text-slate-500 transition hover:text-cyan-200">Advanced binder details</button>
+        <div className="border-t border-td-ink/[0.07] bg-td-surface px-6 py-4">
+          <button type="button" onClick={onAdvancedEdit} className="mb-3 text-[11px] font-semibold text-td-muted transition hover:text-td-accent-text">Advanced binder details</button>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-400">Cancel</button>
-            <button type="button" disabled={Boolean(incompatible.length)} onClick={() => onSave({ binderColumns: columns, binderRows: rows, binderPages: pages, binderDoubleSided: doubleSided, capacity, capacityUnit: "slots" })} className="h-11 flex-[1.35] rounded-xl bg-gradient-to-r from-cyan-300 via-sky-300 to-cyan-300 text-[10px] font-bold text-[#031018] shadow-[0_10px_28px_rgba(34,211,238,0.12)] disabled:cursor-not-allowed disabled:opacity-35">Save binder size</button>
+            <button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-td-ink/[0.08] text-[11px] font-semibold text-td-secondary">Cancel</button>
+            <button type="button" disabled={Boolean(incompatible.length)} onClick={() => onSave({ binderColumns: columns, binderRows: rows, binderPages: pages, binderDoubleSided: doubleSided, capacity, capacityUnit: "slots" })} className="h-11 flex-[1.35] rounded-xl bg-gradient-to-r from-td-accent via-td-accent to-td-accent text-[11px] font-bold text-td-on-accent shadow-[0_10px_28px_rgb(var(--td-accent-rgb)/0.12)] disabled:cursor-not-allowed disabled:opacity-35">Save binder size</button>
           </div>
         </div>
       </aside>
@@ -3121,25 +3121,25 @@ function BinderSettingsPanel({
 function BinderNumberField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
   return (
     <label>
-      <span className="text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600">{label}</span>
-      <input type="number" min={min} max={max} value={value} onChange={(event) => onChange(Math.min(max, Math.max(min, Number(event.target.value) || min)))} className="mt-2 h-11 w-full rounded-xl border border-white/[0.08] bg-[#050e15] px-3 text-sm font-semibold text-slate-200 outline-none focus:border-cyan-300/30" />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">{label}</span>
+      <input type="number" min={min} max={max} value={value} onChange={(event) => onChange(Math.min(max, Math.max(min, Number(event.target.value) || min)))} className="mt-2 h-11 w-full rounded-xl border border-td-ink/[0.08] bg-td-canvas px-3 text-sm font-semibold text-td-primary outline-none focus:border-td-accent/30" />
     </label>
   );
 }
 
 function BinderSettingMetric({ label, value }: { label: string; value: string }) {
-  return <div className="px-3 py-4 text-center"><p className="text-[7px] font-semibold uppercase tracking-[0.13em] text-slate-600">{label}</p><p className="mt-1.5 text-sm font-semibold text-slate-100">{value}</p></div>;
+  return <div className="px-3 py-4 text-center"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">{label}</p><p className="mt-1.5 text-sm font-semibold text-td-primary">{value}</p></div>;
 }
 
 function BinderPageSurface({ page, columns, slots, items, selectedItemId, onSelect, onMove, onRemove, onContextMenu, rightPage = false }: { page: number; columns: number; slots: string[]; items: InventoryItem[]; selectedItemId: string; onSelect: (id: string) => void; onMove: (itemId: string, page: number, slot: string) => void; onRemove: (item: InventoryItem) => void; onContextMenu: (item: InventoryItem, x: number, y: number) => void; rightPage?: boolean }) {
   return (
-    <section className="group/page relative overflow-hidden rounded-[28px] border border-violet-300/[0.16] bg-[radial-gradient(circle_at_12%_0%,rgba(139,92,246,.15),transparent_34%),radial-gradient(circle_at_88%_0%,rgba(34,211,238,.11),transparent_34%),linear-gradient(145deg,#171126,#0b151f_52%,#111325)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.06),inset_0_0_100px_rgba(0,0,0,.30),0_30px_90px_rgba(0,0,0,.38)] transition duration-300 hover:border-violet-300/[0.26] sm:p-5">
+    <section className="group/page relative overflow-hidden rounded-[28px] border border-td-violet/[0.16] bg-[radial-gradient(circle_at_12%_0%,rgba(139,92,246,.15),transparent_34%),radial-gradient(circle_at_88%_0%,rgb(var(--td-accent-rgb)/.11),transparent_34%),linear-gradient(145deg,var(--td-surface-default),var(--td-surface-default)_52%,var(--td-surface-default))] p-4 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.06),inset_0_0_100px_rgb(var(--td-shadow-rgb)/calc(.30*var(--td-shadow-strength))),0_30px_90px_rgb(var(--td-shadow-rgb)/calc(.38*var(--td-shadow-strength)))] transition duration-300 hover:border-td-violet/[0.26] sm:p-5">
       <div className={`pointer-events-none absolute inset-y-6 ${rightPage ? "left-0" : "right-0"} w-4 bg-gradient-to-${rightPage ? "r" : "l"} from-black/30 to-transparent`} />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/50 to-transparent" />
-      <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-cyan-400/[0.08] blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-td-violet/50 to-transparent" />
+      <div className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-td-accent/[0.08] blur-3xl" />
       <div className="mb-3 flex items-center justify-between px-1">
-        <div><p className="text-[8px] font-bold uppercase tracking-[0.18em] text-cyan-300/70">{rightPage ? "Right page" : "Physical page"}</p><p className="mt-1 text-sm font-semibold text-slate-200">Page {page}</p></div>
-        <span className="rounded-lg border border-white/[0.06] bg-black/15 px-2.5 py-1.5 text-[8px] font-semibold text-slate-600">{slots.length} pockets</span>
+        <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-td-accent-text/70">{rightPage ? "Right page" : "Physical page"}</p><p className="mt-1 text-sm font-semibold text-td-primary">Page {page}</p></div>
+        <span className="rounded-lg border border-td-ink/[0.06] bg-black/15 px-2.5 py-1.5 text-[11px] font-semibold text-td-muted">{slots.length} pockets</span>
       </div>
       <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
         {slots.map((slot) => {
@@ -3147,18 +3147,18 @@ function BinderPageSurface({ page, columns, slots, items, selectedItemId, onSele
           return <BinderPocket key={slot} slot={slot} item={item} highlighted={item?.id === selectedItemId} onSelect={() => item && onSelect(item.id)} onDropItem={(itemId) => onMove(itemId, page, slot)} onRemove={() => item && onRemove(item)} onContextMenu={(x, y) => item && onContextMenu(item, x, y)} />;
         })}
       </div>
-      <p className="mt-4 text-center text-[8px] font-semibold uppercase tracking-[0.2em] text-slate-700">{page}</p>
+      <p className="mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-td-muted">{page}</p>
     </section>
   );
 }
 
 function BinderPocket({ slot, item, highlighted, onSelect, onDropItem, onRemove, onContextMenu }: { slot: string; item?: InventoryItem; highlighted: boolean; onSelect: () => void; onDropItem: (itemId: string) => void; onRemove: () => void; onContextMenu: (x: number, y: number) => void }) {
   return (
-    <div data-binder-pocket={item ? "occupied" : "empty"} role="button" tabIndex={0} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(); }} onContextMenu={(event) => { if (!item) return; event.preventDefault(); event.stopPropagation(); onContextMenu(event.clientX, event.clientY); }} draggable={Boolean(item)} onDragStart={(event) => item && event.dataTransfer.setData("text/plain", item.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const id = event.dataTransfer.getData("text/plain"); if (id) onDropItem(id); }} className={`group relative flex aspect-[0.70] min-h-[200px] cursor-pointer flex-col overflow-hidden rounded-[16px] border bg-black/25 p-2 pb-11 text-left transition duration-300 ${highlighted ? "border-cyan-200 shadow-[0_0_0_3px_rgba(34,211,238,.13),0_0_38px_rgba(34,211,238,.22)]" : "border-white/[0.09] hover:-translate-y-1 hover:scale-[1.01] hover:border-violet-300/40 hover:shadow-[0_22px_44px_rgba(0,0,0,.40),0_0_30px_rgba(139,92,246,.10)]"}`}>
-      <span className="pointer-events-none absolute inset-1.5 rounded-[12px] border border-white/[0.06] bg-gradient-to-br from-white/[0.065] via-transparent to-black/10" /><span className="pointer-events-none absolute -left-1/2 top-0 z-30 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent opacity-0 blur-sm transition duration-700 group-hover:left-[120%] group-hover:opacity-100" />
+    <div data-binder-pocket={item ? "occupied" : "empty"} role="button" tabIndex={0} onClick={onSelect} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(); }} onContextMenu={(event) => { if (!item) return; event.preventDefault(); event.stopPropagation(); onContextMenu(event.clientX, event.clientY); }} draggable={Boolean(item)} onDragStart={(event) => item && event.dataTransfer.setData("text/plain", item.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const id = event.dataTransfer.getData("text/plain"); if (id) onDropItem(id); }} className={`group relative flex aspect-[0.70] min-h-[200px] cursor-pointer flex-col overflow-hidden rounded-[16px] border bg-black/25 p-2 pb-11 text-left transition duration-300 ${highlighted ? "border-td-accent shadow-[0_0_0_3px_rgb(var(--td-accent-rgb)/.13),0_0_38px_rgb(var(--td-accent-rgb)/.22)]" : "border-td-ink/[0.09] hover:-translate-y-1 hover:scale-[1.01] hover:border-td-violet/40 hover:shadow-[0_22px_44px_rgb(var(--td-shadow-rgb)/calc(.40*var(--td-shadow-strength))),0_0_30px_rgba(139,92,246,.10)]"}`}>
+      <span className="pointer-events-none absolute inset-1.5 rounded-[12px] border border-td-ink/[0.06] bg-gradient-to-br from-white/[0.065] via-transparent to-black/10" /><span className="pointer-events-none absolute -left-1/2 top-0 z-30 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.09] to-transparent opacity-0 blur-sm transition duration-700 group-hover:left-[120%] group-hover:opacity-100" />
       <span className="pointer-events-none absolute inset-x-3 top-2 z-20 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-      {item ? <>{item.imageUrl ? <img src={item.imageUrl} alt={item.name} draggable={false} onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); onContextMenu(event.clientX, event.clientY); }} className="relative z-10 h-full w-full select-none rounded-[10px] object-contain shadow-[0_12px_28px_rgba(0,0,0,.48)] transition duration-300 group-hover:scale-[1.025] group-hover:brightness-110" /> : <span className="relative z-10 flex flex-1 items-center justify-center"><LibraryBig className="h-8 w-8 text-cyan-300/30" /></span>}<span className="absolute left-3 top-3 z-30 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-1 text-[7px] font-semibold text-slate-300 opacity-0 backdrop-blur transition group-hover:opacity-100">{item.condition || "—"} · {item.finish || "—"}</span><div className="absolute inset-x-2 bottom-2 z-40 flex h-9 items-center gap-2 rounded-lg border border-white/[0.1] bg-[#070d14]/96 px-1.5 shadow-[0_-8px_22px_rgba(0,0,0,0.38)] backdrop-blur"><span className="rounded-md bg-cyan-300 px-1.5 py-1 text-[8px] font-black text-[#031319]">{slot}</span><span className="min-w-0 flex-1 truncate text-[9px] font-semibold text-slate-100">{item.name}</span><button type="button" onClick={(event) => { event.stopPropagation(); const rect = event.currentTarget.getBoundingClientRect(); onContextMenu(rect.right, rect.bottom + 6); }} aria-label={`Open actions for ${item.name}`} title="Card actions" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.1] text-slate-300 transition hover:border-cyan-300/35 hover:bg-cyan-400/15 hover:text-cyan-100"><EllipsisVertical className="h-3.5 w-3.5" /></button></div></> : <span className="relative z-10 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-cyan-300/15 bg-cyan-400/[0.025] text-slate-500 transition group-hover:border-cyan-300/30 group-hover:bg-cyan-400/[0.035] group-hover:text-cyan-200"><span className="absolute left-3 top-3 rounded-md border border-white/[0.07] px-1.5 py-1 text-[8px] font-bold text-slate-500">{slot}</span><span className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-current"><Plus className="h-5 w-5" /></span><span className="mt-3 text-[9px] font-semibold">Add card</span></span>}
-      {item ? <Move className="absolute bottom-12 right-3 z-30 h-3.5 w-3.5 text-white opacity-0 drop-shadow transition group-hover:opacity-70" /> : null}
+      {item ? <>{item.imageUrl ? <img src={item.imageUrl} alt={item.name} draggable={false} onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); onContextMenu(event.clientX, event.clientY); }} className="relative z-10 h-full w-full select-none rounded-[10px] object-contain shadow-[0_12px_28px_rgb(var(--td-shadow-rgb)/calc(.48*var(--td-shadow-strength)))] transition duration-300 group-hover:scale-[1.025] group-hover:brightness-110" /> : <span className="relative z-10 flex flex-1 items-center justify-center"><LibraryBig className="h-8 w-8 text-td-accent-text/30" /></span>}<span className="absolute left-3 top-3 z-30 flex items-center gap-1 rounded-md bg-black/75 px-1.5 py-1 text-[11px] font-semibold text-white opacity-0 backdrop-blur transition group-hover:opacity-100">{item.condition || "—"} · {item.finish || "—"}</span><div className="absolute inset-x-2 bottom-2 z-40 flex h-9 items-center gap-2 rounded-lg border border-td-ink/[0.1] bg-td-canvas/96 px-1.5 shadow-[0_-8px_22px_rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength)))] backdrop-blur"><span className="rounded-md bg-td-accent px-1.5 py-1 text-[11px] font-black text-td-on-accent">{slot}</span><span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-td-primary">{item.name}</span><button type="button" onClick={(event) => { event.stopPropagation(); const rect = event.currentTarget.getBoundingClientRect(); onContextMenu(rect.right, rect.bottom + 6); }} aria-label={`Open actions for ${item.name}`} title="Card actions" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-td-ink/[0.1] text-td-secondary transition hover:border-td-accent/35 hover:bg-td-accent/15 hover:text-td-accent-text"><EllipsisVertical className="h-3.5 w-3.5" /></button></div></> : <span className="relative z-10 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-td-accent/15 bg-td-accent/[0.025] text-td-muted transition group-hover:border-td-accent/30 group-hover:bg-td-accent/[0.035] group-hover:text-td-accent-text"><span className="absolute left-3 top-3 rounded-md border border-td-ink/[0.07] px-1.5 py-1 text-[11px] font-bold text-td-muted">{slot}</span><span className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-current"><Plus className="h-5 w-5" /></span><span className="mt-3 text-[11px] font-semibold">Add card</span></span>}
+      {item ? <Move className="absolute bottom-12 right-3 z-30 h-3.5 w-3.5 text-td-primary opacity-0 drop-shadow transition group-hover:opacity-70" /> : null}
     </div>
   );
 }
@@ -3218,16 +3218,16 @@ function BinderCardDetail({
 
   return (
     <div className="absolute inset-0 z-[84] bg-black/45 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-cyan-300/15 bg-[#081721] shadow-[-24px_0_80px_rgba(0,0,0,0.55)]">
-        <header className="flex items-start justify-between border-b border-white/[0.06] p-5"><div><p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-300">Card details</p><h3 className="mt-1 text-lg font-semibold text-slate-100">{item.name}</h3><p className="mt-1 text-[9px] text-slate-500">{[item.set, item.collectorNumber ? `#${item.collectorNumber}` : "", item.condition, item.finish].filter(Boolean).join(" · ")}</p></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 hover:text-white"><X className="h-4 w-4" /></button></header>
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-td-accent/15 bg-td-surface shadow-[-24px_0_80px_rgb(var(--td-shadow-rgb)/calc(0.55*var(--td-shadow-strength)))]">
+        <header className="flex items-start justify-between border-b border-td-ink/[0.06] p-5"><div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">Card details</p><h3 className="mt-1 text-lg font-semibold text-td-primary">{item.name}</h3><p className="mt-1 text-[11px] text-td-muted">{[item.set, item.collectorNumber ? `#${item.collectorNumber}` : "", item.condition, item.finish].filter(Boolean).join(" · ")}</p></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-muted hover:text-td-primary"><X className="h-4 w-4" /></button></header>
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
-          <div className="mx-auto flex aspect-[0.716] w-full max-w-[270px] items-center justify-center overflow-hidden rounded-2xl border border-white/[0.08] bg-black/25 shadow-2xl">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" /> : <LibraryBig className="h-12 w-12 text-cyan-300/30" />}</div>
+          <div className="mx-auto flex aspect-[0.716] w-full max-w-[270px] items-center justify-center overflow-hidden rounded-2xl border border-td-ink/[0.08] bg-black/25 shadow-2xl">{item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-full w-full object-contain" /> : <LibraryBig className="h-12 w-12 text-td-accent-text/30" />}</div>
           <div className="mt-5 grid grid-cols-2 gap-2"><CompactMetric label="Market value" value={currency(item.value)} /><CompactMetric label="Pocket" value={item.binderPage && item.binderSlot ? `P${item.binderPage} · ${item.binderSlot}` : "Unassigned"} /></div>
-          <Link href={`/dashboard/sell-optimizer?card=${encodeURIComponent(item.name)}`} className="mt-3 flex items-center justify-between rounded-xl border border-cyan-300/15 bg-cyan-400/[0.045] px-4 py-3 transition hover:border-cyan-300/30 hover:bg-cyan-400/[0.08]"><span><span className="block text-[10px] font-semibold text-cyan-200">Compare buylist offers</span><span className="mt-1 block text-[9px] text-slate-500">Check verified cash offers for this exact printing</span></span><ArrowRightLeft className="h-4 w-4 text-cyan-300" /></Link>
-          <div className="mt-4 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.025] p-3">
+          <Link href={`/dashboard/sell-optimizer?card=${encodeURIComponent(item.name)}`} className="mt-3 flex items-center justify-between rounded-xl border border-td-accent/15 bg-td-accent/[0.045] px-4 py-3 transition hover:border-td-accent/30 hover:bg-td-accent/[0.08]"><span><span className="block text-[11px] font-semibold text-td-accent-text">Compare buylist offers</span><span className="mt-1 block text-[11px] text-td-muted">Check verified cash offers for this exact printing</span></span><ArrowRightLeft className="h-4 w-4 text-td-accent-text" /></Link>
+          <div className="mt-4 rounded-xl border border-td-accent/10 bg-td-accent/[0.025] p-3">
             <div className="flex items-end justify-between gap-4">
               <label className="min-w-0 flex-1">
-                <span className="text-[8px] font-semibold uppercase tracking-[0.13em] text-cyan-300">Owned quantity</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-accent-text">Owned quantity</span>
                 <input
                   aria-label="Owned inventory quantity"
                   type="number"
@@ -3238,26 +3238,26 @@ function BinderCardDetail({
                     const unitValue = item.unitMarketValue ?? (item.quantity > 0 ? item.value / item.quantity : item.value);
                     onUpdate({ quantity, value: unitValue * quantity });
                   }}
-                  className="mt-2 h-10 w-full rounded-lg border border-white/[0.09] bg-[#050e15] px-3 text-sm font-semibold text-white outline-none focus:border-cyan-300/35"
+                  className="mt-2 h-10 w-full rounded-lg border border-td-ink/[0.09] bg-td-canvas px-3 text-sm font-semibold text-td-primary outline-none focus:border-td-accent/35"
                 />
               </label>
               <div className="flex gap-2">
-                <button type="button" onClick={() => { const quantity = Math.max(activeListedQuantity, item.quantity - 1); const unitValue = item.unitMarketValue ?? (item.quantity > 0 ? item.value / item.quantity : item.value); onUpdate({ quantity, value: unitValue * quantity }); }} className="h-10 w-10 rounded-lg border border-white/[0.09] text-lg text-slate-300 hover:border-cyan-300/25 hover:text-cyan-200">−</button>
-                <button type="button" onClick={() => { const quantity = item.quantity + 1; const unitValue = item.unitMarketValue ?? (item.quantity > 0 ? item.value / item.quantity : item.value); onUpdate({ quantity, value: unitValue * quantity }); }} className="h-10 w-10 rounded-lg border border-white/[0.09] text-lg text-slate-300 hover:border-cyan-300/25 hover:text-cyan-200">+</button>
+                <button type="button" onClick={() => { const quantity = Math.max(activeListedQuantity, item.quantity - 1); const unitValue = item.unitMarketValue ?? (item.quantity > 0 ? item.value / item.quantity : item.value); onUpdate({ quantity, value: unitValue * quantity }); }} className="h-10 w-10 rounded-lg border border-td-ink/[0.09] text-lg text-td-secondary hover:border-td-accent/25 hover:text-td-accent-text">−</button>
+                <button type="button" onClick={() => { const quantity = item.quantity + 1; const unitValue = item.unitMarketValue ?? (item.quantity > 0 ? item.value / item.quantity : item.value); onUpdate({ quantity, value: unitValue * quantity }); }} className="h-10 w-10 rounded-lg border border-td-ink/[0.09] text-lg text-td-secondary hover:border-td-accent/25 hover:text-td-accent-text">+</button>
               </div>
             </div>
-            <p className="mt-2 text-[9px] text-slate-600">Quantity cannot be reduced below the number assigned to active listings.</p>
+            <p className="mt-2 text-[11px] text-td-muted">Quantity cannot be reduced below the number assigned to active listings.</p>
           </div>
-          <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/10 p-3"><p className="text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600">Inventory path</p><p className="mt-2 text-[11px] font-semibold text-slate-300">{location.name} <span className="text-slate-600">→</span> {item.binderPage && item.binderSlot ? `Page ${item.binderPage} → ${item.binderSlot}` : "Unassigned"}</p></div>
-          <section className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
+          <div className="mt-4 rounded-xl border border-td-ink/[0.06] bg-black/10 p-3"><p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Inventory path</p><p className="mt-2 text-[11px] font-semibold text-td-secondary">{location.name} <span className="text-td-muted">→</span> {item.binderPage && item.binderSlot ? `Page ${item.binderPage} → ${item.binderSlot}` : "Unassigned"}</p></div>
+          <section className="mt-4 rounded-2xl border border-td-ink/[0.07] bg-black/10 p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-300">Marketplace listings</p>
-                <p className="mt-1 text-[11px] leading-5 text-slate-500">Assign quantities by sales channel.</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-accent-text">Marketplace listings</p>
+                <p className="mt-1 text-[11px] leading-5 text-td-muted">Assign quantities by sales channel.</p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-100">{availableQuantity}</p>
-                <p className="text-[9px] text-slate-600">available of {item.quantity}</p>
+                <p className="text-sm font-semibold text-td-primary">{availableQuantity}</p>
+                <p className="text-[11px] text-td-muted">available of {item.quantity}</p>
               </div>
             </div>
 
@@ -3268,7 +3268,7 @@ function BinderCardDetail({
                 ))}
               </div>
             ) : (
-              <div className="mt-3 rounded-xl border border-dashed border-white/[0.08] px-3 py-3 text-[10px] text-slate-600">
+              <div className="mt-3 rounded-xl border border-dashed border-td-ink/[0.08] px-3 py-3 text-[11px] text-td-muted">
                 Not listed on any marketplace.
               </div>
             )}
@@ -3303,17 +3303,17 @@ function BinderCardDetail({
               })}
             </div>
             {activeListedQuantity > item.quantity ? (
-              <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-300/20 bg-red-400/[0.06] px-3 py-2.5 text-[10px] leading-4 text-red-200">
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-td-danger/20 bg-td-danger/[0.06] px-3 py-2.5 text-[11px] leading-4 text-td-danger">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 Active listings exceed physical quantity by {activeListedQuantity - item.quantity}. Reduce a channel quantity before publishing.
               </div>
             ) : null}
           </section>
           <div className="mt-5 grid gap-2">
-            <button type="button" onClick={onMove} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-cyan-300 text-sm font-semibold tracking-[-0.01em] text-[#031018]"><ArrowRightLeft className="h-4 w-4" /> Move card or change location</button>
-            <a href={`https://edhrec.com/cards/${edhrecSlug}`} target="_blank" rel="noreferrer" className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.08] text-sm font-semibold tracking-[-0.01em] text-slate-300 hover:border-cyan-300/25 hover:text-cyan-200"><ExternalLink className="h-4 w-4" /> View on EDHREC</a>
-            <button type="button" onClick={onRemove} className="mt-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-300/15 text-sm font-semibold tracking-[-0.01em] text-amber-200 hover:bg-amber-400/[0.07]"><PackageOpen className="h-4 w-4" /> Send to Put-Away Queue</button>
-            <button type="button" onClick={onDelete} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-red-300/[0.12] bg-red-400/[0.025] text-sm font-semibold tracking-[-0.01em] text-red-200 transition hover:border-red-300/25 hover:bg-red-400/[0.07]"><Trash2 className="h-4 w-4" /> Delete from Inventory</button>
+            <button type="button" onClick={onMove} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-td-accent to-td-accent text-sm font-semibold tracking-[-0.01em] text-td-on-accent"><ArrowRightLeft className="h-4 w-4" /> Move card or change location</button>
+            <a href={`https://edhrec.com/cards/${edhrecSlug}`} target="_blank" rel="noreferrer" className="flex h-11 items-center justify-center gap-2 rounded-xl border border-td-ink/[0.08] text-sm font-semibold tracking-[-0.01em] text-td-secondary hover:border-td-accent/25 hover:text-td-accent-text"><ExternalLink className="h-4 w-4" /> View on EDHREC</a>
+            <button type="button" onClick={onRemove} className="mt-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-td-warning/15 text-sm font-semibold tracking-[-0.01em] text-td-warning hover:bg-td-warning/[0.07]"><PackageOpen className="h-4 w-4" /> Send to Put-Away Queue</button>
+            <button type="button" onClick={onDelete} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-td-danger/[0.12] bg-td-danger/[0.025] text-sm font-semibold tracking-[-0.01em] text-td-danger transition hover:border-td-danger/25 hover:bg-td-danger/[0.07]"><Trash2 className="h-4 w-4" /> Delete from Inventory</button>
           </div>
         </div>
       </aside>
@@ -3332,15 +3332,15 @@ const MARKETPLACE_PLATFORMS: MarketplacePlatform[] = [
 function MarketplaceBadge({ listing }: { listing: MarketplaceListing }) {
   const tone =
     listing.status === "Active"
-      ? "border-emerald-300/20 bg-emerald-400/[0.08] text-emerald-200"
+      ? "border-td-success/20 bg-td-success/[0.08] text-td-success"
       : listing.status === "Error"
-        ? "border-red-300/20 bg-red-400/[0.08] text-red-200"
+        ? "border-td-danger/20 bg-td-danger/[0.08] text-td-danger"
         : listing.status === "Draft" || listing.status === "Paused"
-          ? "border-amber-300/20 bg-amber-400/[0.08] text-amber-200"
-          : "border-sky-300/20 bg-sky-400/[0.08] text-sky-200";
+          ? "border-td-warning/20 bg-td-warning/[0.08] text-td-warning"
+          : "border-td-accent/20 bg-td-accent/[0.08] text-td-accent-text";
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[10px] font-semibold ${tone}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold ${tone}`}>
       <span>{listing.platform}</span>
       <span className="opacity-65">·</span>
       <span>{listing.quantity}</span>
@@ -3363,7 +3363,7 @@ function MarketplaceListingRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_74px_92px] items-center gap-2 rounded-xl border border-white/[0.06] bg-[#07131d]/70 p-2">
+    <div className="grid grid-cols-[minmax(0,1fr)_74px_92px] items-center gap-2 rounded-xl border border-td-ink/[0.06] bg-td-surface/70 p-2">
       <label className="flex min-w-0 items-center gap-2.5">
         <input
           type="checkbox"
@@ -3373,9 +3373,9 @@ function MarketplaceListingRow({
               ? onUpdate({ status: "Draft", quantity: Math.min(1, maximumQuantity) })
               : onRemove()
           }
-          className="h-4 w-4 shrink-0 accent-cyan-400"
+          className="h-4 w-4 shrink-0 accent-td-accent"
         />
-        <span className="truncate text-[11px] font-semibold text-slate-200">{platform}</span>
+        <span className="truncate text-[11px] font-semibold text-td-primary">{platform}</span>
       </label>
       <input
         aria-label={`${platform} listed quantity`}
@@ -3393,7 +3393,7 @@ function MarketplaceListingRow({
             ),
           })
         }
-        className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#050e15] px-2 text-center text-[11px] font-semibold text-slate-200 outline-none disabled:opacity-30"
+        className="h-9 w-full rounded-lg border border-td-ink/[0.08] bg-td-canvas px-2 text-center text-[11px] font-semibold text-td-primary outline-none disabled:opacity-30"
       />
       <select
         aria-label={`${platform} listing status`}
@@ -3402,7 +3402,7 @@ function MarketplaceListingRow({
         onChange={(event) =>
           onUpdate({ status: event.target.value as MarketplaceListingStatus })
         }
-        className="inventory-location-select h-9 w-full rounded-lg border border-white/[0.08] bg-[#050e15] px-2 text-[10px] font-semibold text-slate-200 outline-none disabled:opacity-30"
+        className="inventory-location-select h-9 w-full rounded-lg border border-td-ink/[0.08] bg-td-canvas px-2 text-[11px] font-semibold text-td-primary outline-none disabled:opacity-30"
       >
         {(["Draft", "Active", "Paused", "Sold", "Ended", "Error"] as MarketplaceListingStatus[]).map(
           (status) => <option key={status}>{status}</option>,
@@ -3424,12 +3424,12 @@ function MoveCardPanel({ item, currentLocation, locations, allItems, onClose, on
   const occupiedSlots = new Set(allItems.filter((candidate) => candidate.id !== item.id && candidate.locationId === destination.id && candidate.binderPage === targetPage && candidate.binderSlot).map((candidate) => candidate.binderSlot));
   const canMove = destination.type !== "binder" || Boolean(targetSlot && !occupiedSlots.has(targetSlot));
   return (
-    <div className="absolute inset-0 z-[92] flex items-center justify-center bg-[#01070c]/75 p-4 backdrop-blur-md" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="max-h-[calc(100dvh-32px)] w-full max-w-xl overflow-y-auto overscroll-contain rounded-[24px] border border-cyan-300/15 bg-[#091822] p-6 shadow-[0_30px_110px_rgba(0,0,0,0.7)]">
-        <div className="flex items-start justify-between"><div><p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-cyan-300">Move inventory</p><h3 className="mt-1 text-lg font-semibold text-slate-100">{item.name}</h3><p className="mt-1 text-[9px] text-slate-500">Choose another binder, a precise pocket, or any inventory location.</p></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 hover:text-white"><X className="h-4 w-4" /></button></div>
-        <label className="mt-5 block"><span className="text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600">Destination</span><span className="relative mt-2 block"><select value={destinationId} onChange={(event) => { setDestinationId(event.target.value); setTargetPage(1); setTargetSlot(""); }} className="inventory-location-select h-11 w-full appearance-none rounded-xl border border-white/[0.09] bg-[#050e15] px-3 pr-9 text-[10px] font-semibold text-slate-200 outline-none focus:border-cyan-300/30">{locations.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name} · {TYPE_CONFIG[candidate.type].label}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" /></span></label>
-        {destination.type === "binder" ? <div className="mt-4 rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.025] p-4"><div className="flex items-end gap-3"><label className="flex-1"><span className="text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600">Page</span><input type="number" min={1} max={destinationPages} value={targetPage} onChange={(event) => { setTargetPage(Math.min(destinationPages, Math.max(1, Number(event.target.value) || 1))); setTargetSlot(""); }} className="mt-2 h-10 w-full rounded-xl border border-white/[0.08] bg-[#050e15] px-3 text-[10px] text-slate-200 outline-none" /></label><p className="pb-3 text-[9px] text-slate-600">of {destinationPages}</p></div><p className="mt-4 text-[8px] font-semibold uppercase tracking-[0.13em] text-slate-600">Available pocket</p><div className="mt-2 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(destinationColumns, 5)}, minmax(0, 1fr))` }}>{destinationSlots.map((slot) => { const unavailable = occupiedSlots.has(slot); return <button key={slot} type="button" disabled={unavailable} onClick={() => setTargetSlot(slot)} className={`h-10 rounded-xl border text-[9px] font-bold transition ${targetSlot === slot ? "border-cyan-200 bg-cyan-300 text-[#031319]" : unavailable ? "cursor-not-allowed border-white/[0.04] bg-black/10 text-slate-700 line-through" : "border-white/[0.08] text-slate-400 hover:border-cyan-300/25 hover:text-cyan-200"}`}>{slot}</button>; })}</div><p className="mt-3 text-[8px] text-slate-600">Occupied pockets are unavailable. Choose an open pocket to complete the move.</p></div> : <div className="mt-4 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.025] p-4 text-[9px] leading-5 text-slate-500">This card will leave its binder pocket and move to <span className="font-semibold text-cyan-200">{destination.name}</span>. Its inventory history and value remain intact.</div>}
-        <div className="mt-6 flex gap-2"><button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-white/[0.08] text-[10px] font-semibold text-slate-400">Cancel</button><button type="button" disabled={!canMove} onClick={() => onMove(destination.id, destination.type === "binder" ? targetPage : undefined, destination.type === "binder" ? targetSlot : undefined)} className="h-11 flex-[1.35] rounded-xl bg-gradient-to-r from-cyan-300 to-cyan-300 text-[10px] font-bold text-[#031018] disabled:cursor-not-allowed disabled:opacity-35">Move card</button></div>
+    <div className="absolute inset-0 z-[92] flex items-center justify-center bg-td-canvas/75 p-4 backdrop-blur-md" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="max-h-[calc(100dvh-32px)] w-full max-w-xl overflow-y-auto overscroll-contain rounded-[24px] border border-td-accent/15 bg-td-surface p-6 shadow-[0_30px_110px_rgb(var(--td-shadow-rgb)/calc(0.7*var(--td-shadow-strength)))]">
+        <div className="flex items-start justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">Move inventory</p><h3 className="mt-1 text-lg font-semibold text-td-primary">{item.name}</h3><p className="mt-1 text-[11px] text-td-muted">Choose another binder, a precise pocket, or any inventory location.</p></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-muted hover:text-td-primary"><X className="h-4 w-4" /></button></div>
+        <label className="mt-5 block"><span className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Destination</span><span className="relative mt-2 block"><select value={destinationId} onChange={(event) => { setDestinationId(event.target.value); setTargetPage(1); setTargetSlot(""); }} className="inventory-location-select h-11 w-full appearance-none rounded-xl border border-td-ink/[0.09] bg-td-canvas px-3 pr-9 text-[11px] font-semibold text-td-primary outline-none focus:border-td-accent/30">{locations.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name} · {TYPE_CONFIG[candidate.type].label}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" /></span></label>
+        {destination.type === "binder" ? <div className="mt-4 rounded-2xl border border-td-accent/10 bg-td-accent/[0.025] p-4"><div className="flex items-end gap-3"><label className="flex-1"><span className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Page</span><input type="number" min={1} max={destinationPages} value={targetPage} onChange={(event) => { setTargetPage(Math.min(destinationPages, Math.max(1, Number(event.target.value) || 1))); setTargetSlot(""); }} className="mt-2 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-td-canvas px-3 text-[11px] text-td-primary outline-none" /></label><p className="pb-3 text-[11px] text-td-muted">of {destinationPages}</p></div><p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Available pocket</p><div className="mt-2 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(destinationColumns, 5)}, minmax(0, 1fr))` }}>{destinationSlots.map((slot) => { const unavailable = occupiedSlots.has(slot); return <button key={slot} type="button" disabled={unavailable} onClick={() => setTargetSlot(slot)} className={`h-10 rounded-xl border text-[11px] font-bold transition ${targetSlot === slot ? "border-td-accent bg-td-accent text-td-on-accent" : unavailable ? "cursor-not-allowed border-td-ink/[0.04] bg-black/10 text-td-muted line-through" : "border-td-ink/[0.08] text-td-secondary hover:border-td-accent/25 hover:text-td-accent-text"}`}>{slot}</button>; })}</div><p className="mt-3 text-[11px] text-td-muted">Occupied pockets are unavailable. Choose an open pocket to complete the move.</p></div> : <div className="mt-4 rounded-xl border border-td-accent/10 bg-td-accent/[0.025] p-4 text-[11px] leading-5 text-td-muted">This card will leave its binder pocket and move to <span className="font-semibold text-td-accent-text">{destination.name}</span>. Its inventory history and value remain intact.</div>}
+        <div className="mt-6 flex gap-2"><button type="button" onClick={onClose} className="h-11 flex-1 rounded-xl border border-td-ink/[0.08] text-[11px] font-semibold text-td-secondary">Cancel</button><button type="button" disabled={!canMove} onClick={() => onMove(destination.id, destination.type === "binder" ? targetPage : undefined, destination.type === "binder" ? targetSlot : undefined)} className="h-11 flex-[1.35] rounded-xl bg-gradient-to-r from-td-accent to-td-accent text-[11px] font-bold text-td-on-accent disabled:cursor-not-allowed disabled:opacity-35">Move card</button></div>
       </div>
     </div>
   );
@@ -3488,20 +3488,20 @@ function PutAwayDrawer({
 
   return (
     <div className="fixed inset-0 z-[170] bg-black/55 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[560px] flex-col border-l border-amber-300/[0.15] bg-[#07151e] shadow-[-28px_0_100px_rgba(0,0,0,0.65)]">
-        <header className="border-b border-white/[0.065] p-5 sm:p-6">
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-[560px] flex-col border-l border-td-warning/[0.15] bg-td-surface shadow-[-28px_0_100px_rgb(var(--td-shadow-rgb)/calc(0.65*var(--td-shadow-strength)))]">
+        <header className="border-b border-td-ink/[0.065] p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-300/15 bg-amber-300/[0.07] text-amber-300"><PackageOpen className="h-5 w-5" /></span>
-              <div><p className="text-[9px] font-semibold uppercase tracking-[0.17em] text-amber-300">Inventory workflow</p><h2 className="mt-1 text-xl font-semibold text-slate-100">Put-Away Queue</h2><p className="mt-1 text-[10px] leading-4 text-slate-400">Cards waiting for their next physical location.</p></div>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-td-warning/15 bg-td-warning/[0.07] text-td-warning"><PackageOpen className="h-5 w-5" /></span>
+              <div><p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-td-warning">Inventory workflow</p><h2 className="mt-1 text-xl font-semibold text-td-primary">Put-Away Queue</h2><p className="mt-1 text-[11px] leading-4 text-td-secondary">Cards waiting for their next physical location.</p></div>
             </div>
-            <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] text-slate-500 hover:text-white"><X className="h-4 w-4" /></button>
+            <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.08] text-td-muted hover:text-td-primary"><X className="h-4 w-4" /></button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <CompactMetric label="Waiting to file" value={items.length.toLocaleString("en-US")} />
             <CompactMetric label="Queued value" value={currency(items.reduce((sum, item) => sum + item.value, 0))} />
           </div>
-          <label className="mt-4 flex h-11 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#040d13] px-3 focus-within:border-amber-300/30"><Search className="h-3.5 w-3.5 text-amber-300/80" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search queued cards…" className="min-w-0 flex-1 bg-transparent text-[11px] text-slate-200 outline-none placeholder:text-slate-500" /></label>
+          <label className="mt-4 flex h-11 items-center gap-2 rounded-xl border border-td-ink/[0.09] bg-td-canvas px-3 focus-within:border-td-warning/30"><Search className="h-3.5 w-3.5 text-td-warning/80" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search queued cards…" className="min-w-0 flex-1 bg-transparent text-[11px] text-td-primary outline-none placeholder:text-td-muted" /></label>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {([
               ["all", "All"],
@@ -3513,25 +3513,25 @@ function PutAwayDrawer({
                 key={value}
                 type="button"
                 onClick={() => setQueueFilter(value)}
-                className={`rounded-lg border px-3 py-2 text-[9px] font-semibold transition ${queueFilter === value ? "border-amber-300/30 bg-amber-300/[0.09] text-amber-100" : "border-white/[0.07] text-slate-500 hover:border-white/[0.12] hover:text-slate-300"}`}
+                className={`rounded-lg border px-3 py-2 text-[11px] font-semibold transition ${queueFilter === value ? "border-td-warning/30 bg-td-warning/[0.09] text-td-warning" : "border-td-ink/[0.07] text-td-muted hover:border-td-ink/[0.12] hover:text-td-secondary"}`}
               >
                 {label}
               </button>
             ))}
           </div>
           {items[0]?.putAwayOrigin ? (
-            <button type="button" onClick={() => onUndo(items[0])} className="mt-3 inline-flex items-center gap-1.5 text-[9px] font-semibold text-slate-400 transition hover:text-amber-200"><RotateCcw className="h-3 w-3" /> Undo last move</button>
+            <button type="button" onClick={() => onUndo(items[0])} className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold text-td-secondary transition hover:text-td-warning"><RotateCcw className="h-3 w-3" /> Undo last move</button>
           ) : null}
         </header>
 
         {selectedIds.length ? (
-          <div className="border-b border-amber-300/10 bg-amber-300/[0.025] p-4">
-            <div className="flex items-center justify-between"><p className="text-[9px] font-semibold text-amber-100">{selectedIds.length} selected · {currency(selectedValue)}</p><button type="button" onClick={() => setSelectedIds([])} className="text-[8px] font-semibold text-slate-500 hover:text-slate-300">Clear</button></div>
+          <div className="border-b border-td-warning/10 bg-td-warning/[0.025] p-4">
+            <div className="flex items-center justify-between"><p className="text-[11px] font-semibold text-td-warning">{selectedIds.length} selected · {currency(selectedValue)}</p><button type="button" onClick={() => setSelectedIds([])} className="text-[11px] font-semibold text-td-muted hover:text-td-secondary">Clear</button></div>
             <div className="mt-3 flex gap-2">
-              <label className="relative min-w-0 flex-1"><select value={bulkDestination} onChange={(event) => setBulkDestination(event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-white/[0.08] bg-[#050e15] px-3 pr-8 text-[9px] text-slate-300"><option value="">Choose destination…</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-600" /></label>
-              <button type="button" disabled={!bulkDestination} onClick={fileSelected} className="h-10 rounded-xl bg-amber-300 px-4 text-[9px] font-bold text-[#211505] disabled:opacity-35">File selected</button>
+              <label className="relative min-w-0 flex-1"><select value={bulkDestination} onChange={(event) => setBulkDestination(event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-td-ink/[0.08] bg-td-canvas px-3 pr-8 text-[11px] text-td-secondary"><option value="">Choose destination…</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" /></label>
+              <button type="button" disabled={!bulkDestination} onClick={fileSelected} className="h-10 rounded-xl bg-td-warning px-4 text-[11px] font-bold text-td-on-accent disabled:opacity-35">File selected</button>
             </div>
-            <p className="mt-2 text-[8px] text-slate-600">Binder destinations use the first available pockets and safely stop if capacity is reached.</p>
+            <p className="mt-2 text-[11px] text-td-muted">Binder destinations use the first available pockets and safely stop if capacity is reached.</p>
           </div>
         ) : null}
 
@@ -3541,26 +3541,26 @@ function PutAwayDrawer({
               const selected = selectedIds.includes(item.id);
               const origin = originFor(item);
               return (
-                <div key={item.id} className={`grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-3 rounded-2xl border p-3 transition sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] ${selected ? "border-amber-300/30 bg-amber-300/[0.055]" : "border-white/[0.075] bg-black/10 hover:border-amber-300/18"}`}>
-                  <button type="button" onClick={() => setSelectedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} aria-label={`${selected ? "Deselect" : "Select"} ${item.name}`} className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${selected ? "border-amber-300 bg-amber-300 text-[#211505]" : "border-white/[0.09] text-slate-600"}`}>{selected ? <Check className="h-3.5 w-3.5" /> : <CheckSquare2 className="h-3.5 w-3.5" />}</button>
-                  <div className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.07] bg-black/20">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <LibraryBig className="h-4 w-4 text-cyan-300/30" />}</div>
-                  <div className="min-w-0"><p className="truncate text-[11px] font-semibold text-slate-100">{item.name}</p><p className="mt-1 truncate text-[9px] text-slate-500">{origin ? `From ${origin.name}${item.putAwayOrigin?.binderPage ? ` · P${item.putAwayOrigin.binderPage} · ${item.putAwayOrigin.binderSlot}` : ""}` : "Awaiting placement"}</p><p className="mt-1 text-[10px] font-semibold text-emerald-300">{currency(item.value)}</p></div>
+                <div key={item.id} className={`grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-3 rounded-2xl border p-3 transition sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] ${selected ? "border-td-warning/30 bg-td-warning/[0.055]" : "border-td-ink/[0.075] bg-black/10 hover:border-td-warning/18"}`}>
+                  <button type="button" onClick={() => setSelectedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} aria-label={`${selected ? "Deselect" : "Select"} ${item.name}`} className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${selected ? "border-td-warning bg-td-warning text-td-on-accent" : "border-td-ink/[0.09] text-td-muted"}`}>{selected ? <Check className="h-3.5 w-3.5" /> : <CheckSquare2 className="h-3.5 w-3.5" />}</button>
+                  <div className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-td-ink/[0.07] bg-black/20">{item.imageUrl ? <img src={item.imageUrl} alt="" className="h-full w-full object-cover" /> : <LibraryBig className="h-4 w-4 text-td-accent-text/30" />}</div>
+                  <div className="min-w-0"><p className="truncate text-[11px] font-semibold text-td-primary">{item.name}</p><p className="mt-1 truncate text-[11px] text-td-muted">{origin ? `From ${origin.name}${item.putAwayOrigin?.binderPage ? ` · P${item.putAwayOrigin.binderPage} · ${item.putAwayOrigin.binderSlot}` : ""}` : "Awaiting placement"}</p><p className="mt-1 text-[11px] font-semibold text-td-success">{currency(item.value)}</p></div>
                   <div className="col-span-3 flex items-center justify-end gap-2 sm:col-span-1">
                     <button
                       type="button"
                       onClick={() => onDelete(item)}
                       aria-label={`Delete ${item.name} from inventory`}
                       title="Delete from inventory"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-300/15 text-red-300/80 transition hover:border-red-300/35 hover:bg-red-400/[0.08] hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/40"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-danger/15 text-td-danger/80 transition hover:border-td-danger/35 hover:bg-td-danger/[0.08] hover:text-td-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-danger/40"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
-                    <button type="button" onClick={() => setFilingItem(item)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.055] px-3.5 text-[9px] font-semibold text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.09]"><ArrowRightLeft className="h-3 w-3" /> Choose location</button>
+                    <button type="button" onClick={() => setFilingItem(item)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-td-accent/20 bg-td-accent/[0.055] px-3.5 text-[11px] font-semibold text-td-accent-text transition hover:border-td-accent/35 hover:bg-td-accent/[0.09]"><ArrowRightLeft className="h-3 w-3" /> Choose location</button>
                   </div>
                 </div>
               );
             })}
-          </div> : <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center"><span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-300/12 bg-emerald-300/[0.035] text-emerald-300"><PackageCheck className="h-7 w-7" /></span><h3 className="mt-5 text-sm font-semibold text-slate-200">{items.length ? "No matching cards" : "Everything is put away"}</h3><p className="mt-2 max-w-xs text-[10px] leading-5 text-slate-600">{items.length ? "Try another card name, set, or condition." : "Cards removed from binders will wait here safely until you file them somewhere else."}</p></div>}
+          </div> : <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center"><span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-td-success/12 bg-td-success/[0.035] text-td-success"><PackageCheck className="h-7 w-7" /></span><h3 className="mt-5 text-sm font-semibold text-td-primary">{items.length ? "No matching cards" : "Everything is put away"}</h3><p className="mt-2 max-w-xs text-[11px] leading-5 text-td-muted">{items.length ? "Try another card name, set, or condition." : "Cards removed from binders will wait here safely until you file them somewhere else."}</p></div>}
         </div>
       </aside>
       {filingItem && locations.length ? (
@@ -3585,7 +3585,7 @@ function PutAwayDrawer({
 }
 
 function BinderStat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
-  return <div className="min-w-[92px] rounded-xl border border-white/[0.06] bg-black/15 px-3 py-2"><p className="text-[7px] font-semibold uppercase tracking-[0.14em] text-slate-600">{label}</p><p className={`mt-1 text-xs font-semibold ${accent ? "text-emerald-300" : "text-slate-200"}`}>{value}</p></div>;
+  return <div className="min-w-[92px] rounded-xl border border-td-ink/[0.06] bg-black/15 px-3 py-2"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-muted">{label}</p><p className={`mt-1 text-xs font-semibold ${accent ? "text-td-success" : "text-td-primary"}`}>{value}</p></div>;
 }
 
 function slotLabel(index: number, columns: number) {
@@ -3694,12 +3694,12 @@ function ExplorerSelect({
 }) {
   return (
     <label className="relative">
-      <span className="pointer-events-none absolute left-3 top-1.5 z-10 text-[7px] font-semibold uppercase tracking-[0.12em] text-slate-700">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-white/[0.07] bg-[#07141e] pb-1 pl-3 pr-8 pt-4 text-[9px] text-slate-300 outline-none">
+      <span className="pointer-events-none absolute left-3 top-1.5 z-10 text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="inventory-location-select h-10 w-full appearance-none rounded-xl border border-td-ink/[0.07] bg-td-surface pb-1 pl-3 pr-8 pt-4 text-[11px] text-td-secondary outline-none">
         <option value="all">All {label.toLowerCase()}s</option>
         {options.map((option) => <option key={option} value={option}>{option}</option>)}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-600" />
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
     </label>
   );
 }
@@ -3715,13 +3715,13 @@ function DuplicateCenter({
 }) {
   if (!groups.length) {
     return (
-      <section className={`${styles.glassPanel} flex items-center gap-3 rounded-2xl border border-emerald-300/10 px-4 py-3`}>
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-400/[0.07] text-emerald-300">
+      <section className={`${styles.glassPanel} flex items-center gap-3 rounded-2xl border border-td-success/10 px-4 py-3`}>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-td-success/[0.07] text-td-success">
           <Check className="h-4 w-4" />
         </span>
         <div>
-          <p className="text-[10px] font-semibold text-emerald-100">No duplicate locations detected</p>
-          <p className="mt-0.5 text-[8px] text-slate-600">Every matching inventory record is currently filed in one physical location.</p>
+          <p className="text-[11px] font-semibold text-td-success">No duplicate locations detected</p>
+          <p className="mt-0.5 text-[11px] text-td-muted">Every matching inventory record is currently filed in one physical location.</p>
         </div>
       </section>
     );
@@ -3730,19 +3730,19 @@ function DuplicateCenter({
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-warning">
             Duplicate Location Center
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-white">
+          <h2 className="mt-2 text-lg font-semibold text-td-primary">
             Inventory stored in multiple places
           </h2>
-          <p className="mt-1 text-[9px] text-slate-600">
+          <p className="mt-1 text-[11px] text-td-muted">
             Review matching items and decide whether the locations should remain
             separate.
           </p>
         </div>
 
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/[0.12] bg-amber-400/[0.04] text-amber-300">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-warning/[0.12] bg-td-warning/[0.04] text-td-warning">
           <ShieldAlert className="h-4 w-4" />
         </span>
       </div>
@@ -3751,12 +3751,12 @@ function DuplicateCenter({
         {groups.slice(0, 4).map((group) => (
           <div
             key={normalizeInventoryKey(group[0])}
-            className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4"
+            className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4"
           >
-            <p className="text-xs font-semibold text-slate-200">
+            <p className="text-xs font-semibold text-td-primary">
               {group[0].name}
             </p>
-            <p className="mt-1 text-[8px] text-slate-600">{group[0].sku}</p>
+            <p className="mt-1 text-[11px] text-td-muted">{group[0].sku}</p>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {group.map((item) => {
@@ -3769,7 +3769,7 @@ function DuplicateCenter({
                     key={item.id}
                     type="button"
                     onClick={() => onSelectLocation(item.locationId)}
-                    className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5 text-[8px] text-slate-500 hover:border-cyan-300/[0.12] hover:text-cyan-200"
+                    className="rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.02] px-2.5 py-1.5 text-[11px] text-td-muted hover:border-td-accent/[0.12] hover:text-td-accent-text"
                   >
                     {location?.name} · {item.quantity}
                   </button>
@@ -3789,31 +3789,31 @@ function MovementHistory({ movements, business }: { movements: Movement[]; busin
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
             Inventory History
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-white">
+          <h2 className="mt-2 text-lg font-semibold text-td-primary">
             Recent location activity
           </h2>
         </div>
-        <History className="h-4 w-4 text-cyan-300" />
+        <History className="h-4 w-4 text-td-accent-text" />
       </div>
 
       <div className="mt-5 space-y-2.5">
         {movements.slice(0, 7).map((movement) => (
           <div
             key={movement.id}
-            className="flex items-start gap-3 rounded-xl border border-white/[0.055] bg-black/[0.08] px-3.5 py-3"
+            className="flex items-start gap-3 rounded-xl border border-td-ink/[0.055] bg-black/[0.08] px-3.5 py-3"
           >
-            <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/[0.1] bg-cyan-400/[0.04] text-cyan-300">
+            <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-td-accent/[0.1] bg-td-accent/[0.04] text-td-accent-text">
               <ArrowRightLeft className="h-3 w-3" />
             </span>
 
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold text-slate-300">
+              <p className="text-[11px] font-semibold text-td-secondary">
                 {movement.itemName}
               </p>
-              <p className="mt-1 text-[8px] leading-4 text-slate-600">
+              <p className="mt-1 text-[11px] leading-4 text-td-muted">
                 {movement.action === "renamed"
                   ? `${movement.from} renamed to ${movement.to}`
                   : movement.from
@@ -3822,7 +3822,7 @@ function MovementHistory({ movements, business }: { movements: Movement[]; busin
               </p>
             </div>
 
-            <span className="text-[7px] text-slate-700">
+            <span className="text-[11px] text-td-muted">
               {movement.timestamp}
             </span>
             {business ? (
@@ -3830,7 +3830,7 @@ function MovementHistory({ movements, business }: { movements: Movement[]; busin
                 type="button"
                 title="Undo recent reversible action"
                 aria-label={`Undo ${movement.itemName} activity`}
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.06] text-slate-600 transition hover:text-cyan-300"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-td-ink/[0.06] text-td-muted transition hover:text-td-accent-text"
               >
                 <RotateCcw className="h-3 w-3" />
               </button>
@@ -3838,7 +3838,7 @@ function MovementHistory({ movements, business }: { movements: Movement[]; busin
           </div>
         ))}
         {!movements.length ? (
-          <div className="rounded-xl border border-dashed border-white/[0.07] px-4 py-8 text-center text-[9px] text-slate-600">
+          <div className="rounded-xl border border-dashed border-td-ink/[0.07] px-4 py-8 text-center text-[11px] text-td-muted">
             Activity will appear after inventory is filed, moved, listed, adjusted, or sold.
           </div>
         ) : null}
@@ -3890,10 +3890,10 @@ function InventoryIdeasPanel() {
   return (
     <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
       <div>
-        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
           Future Inventory Intelligence
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-white">
+        <h2 className="mt-2 text-lg font-semibold text-td-primary">
           High-value features for the next phases
         </h2>
       </div>
@@ -3905,15 +3905,15 @@ function InventoryIdeasPanel() {
           return (
             <div
               key={idea.title}
-              className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4"
+              className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.04] text-cyan-300">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.04] text-td-accent-text">
                 <Icon className="h-4 w-4" />
               </span>
-              <p className="mt-4 text-xs font-semibold text-slate-200">
+              <p className="mt-4 text-xs font-semibold text-td-primary">
                 {idea.title}
               </p>
-              <p className="mt-2 text-[9px] leading-4 text-slate-600">
+              <p className="mt-2 text-[11px] leading-4 text-td-muted">
                 {idea.detail}
               </p>
             </div>
@@ -4053,26 +4053,26 @@ function LocationModal({
           </Field>
 
           {type === "binder" ? (
-            <div className="sm:col-span-2 rounded-2xl border border-cyan-300/[0.13] bg-cyan-400/[0.035] p-4">
+            <div className="sm:col-span-2 rounded-2xl border border-td-accent/[0.13] bg-td-accent/[0.035] p-4">
               <div className="flex items-start gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/[0.14] bg-cyan-400/[0.07] text-cyan-300"><BookOpen className="h-4 w-4" /></span>
-                <div><p className="text-[10px] font-semibold text-cyan-200">Virtual page setup</p><p className="mt-1 text-[8px] leading-4 text-slate-600">Match the digital pockets to your physical binder. Every position receives a searchable page and slot address.</p></div>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-accent/[0.14] bg-td-accent/[0.07] text-td-accent-text"><BookOpen className="h-4 w-4" /></span>
+                <div><p className="text-[11px] font-semibold text-td-accent-text">Virtual page setup</p><p className="mt-1 text-[11px] leading-4 text-td-muted">Match the digital pockets to your physical binder. Every position receives a searchable page and slot address.</p></div>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3">
                 <Field label="Columns"><select value={binderColumns} onChange={(event) => setBinderColumns(event.target.value)} className="inventory-input"><option value="3">3 columns</option><option value="4">4 columns</option><option value="5">5 columns</option><option value="6">6 columns</option></select></Field>
                 <Field label="Rows"><select value={binderRows} onChange={(event) => setBinderRows(event.target.value)} className="inventory-input"><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option></select></Field>
                 <Field label="Physical pages"><input type="number" min="1" max="500" value={binderPages} onChange={(event) => setBinderPages(event.target.value)} className="inventory-input" /></Field>
               </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-black/10 px-3 py-2.5">
-                <label className="flex items-center gap-2 text-[9px] text-slate-400"><input type="checkbox" checked={binderDoubleSided} onChange={(event) => setBinderDoubleSided(event.target.checked)} className="accent-cyan-400" /> Double-sided physical pages</label>
-                <span className="text-[9px] font-semibold text-cyan-300">{(Number(binderColumns) * Number(binderRows) * Number(binderPages)).toLocaleString("en-US")} searchable pockets</span>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-td-ink/[0.06] bg-black/10 px-3 py-2.5">
+                <label className="flex items-center gap-2 text-[11px] text-td-secondary"><input type="checkbox" checked={binderDoubleSided} onChange={(event) => setBinderDoubleSided(event.target.checked)} className="accent-td-accent" /> Double-sided physical pages</label>
+                <span className="text-[11px] font-semibold text-td-accent-text">{(Number(binderColumns) * Number(binderRows) * Number(binderPages)).toLocaleString("en-US")} searchable pockets</span>
               </div>
             </div>
           ) : null}
 
           <Field label="Total capacity">
             {type === "binder" ? (
-              <div className="inventory-input flex items-center text-slate-400">
+              <div className="inventory-input flex items-center text-td-secondary">
                 {(Number(binderColumns) * Number(binderRows) * Number(binderPages)).toLocaleString("en-US")} pockets · calculated automatically
               </div>
             ) : (
@@ -4088,11 +4088,11 @@ function LocationModal({
                 {(type === "chaos" || type === "custom") ? (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {[400, 800, 1000, 3200, 5000].map((preset) => (
-                      <button key={preset} type="button" onClick={() => setCapacity(String(preset))} className={`rounded-lg border px-2 py-1 text-[8px] font-semibold transition ${capacity === String(preset) ? "border-cyan-300/25 bg-cyan-400/[0.08] text-cyan-200" : "border-white/[0.07] text-slate-600 hover:text-slate-300"}`}>
+                      <button key={preset} type="button" onClick={() => setCapacity(String(preset))} className={`rounded-lg border px-2 py-1 text-[11px] font-semibold transition ${capacity === String(preset) ? "border-td-accent/25 bg-td-accent/[0.08] text-td-accent-text" : "border-td-ink/[0.07] text-td-muted hover:text-td-secondary"}`}>
                         {preset.toLocaleString("en-US")}
                       </button>
                     ))}
-                    {capacity ? <button type="button" onClick={() => setCapacity("")} className="rounded-lg px-2 py-1 text-[8px] font-semibold text-slate-600 hover:text-red-300">Clear</button> : null}
+                    {capacity ? <button type="button" onClick={() => setCapacity("")} className="rounded-lg px-2 py-1 text-[11px] font-semibold text-td-muted hover:text-td-danger">Clear</button> : null}
                   </div>
                 ) : null}
               </>
@@ -4120,14 +4120,14 @@ function LocationModal({
           <Field label="Capacity warning">
             <div className="relative">
               <input type="number" min="1" max="100" value={warningThreshold} onChange={(event) => setWarningThreshold(event.target.value)} className="inventory-input pr-9" />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-td-muted">%</span>
             </div>
           </Field>
 
           <Field label="Capacity critical">
             <div className="relative">
               <input type="number" min="1" max="100" value={criticalThreshold} onChange={(event) => setCriticalThreshold(event.target.value)} className="inventory-input pr-9" />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500">%</span>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-td-muted">%</span>
             </div>
           </Field>
 
@@ -4143,7 +4143,7 @@ function LocationModal({
 
         <button
           type="submit"
-          className="mt-6 h-11 w-full rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 text-xs font-semibold text-[#001018]"
+          className="mt-6 h-11 w-full rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent text-xs font-semibold text-td-on-accent"
         >
           {location ? "Save location" : "Create location"}
         </button>
@@ -4268,7 +4268,7 @@ function FileInventoryModal({
           )}
 
           {category === "Single" && selectedPrinting && (
-            <div className="flex gap-4 rounded-[20px] border border-emerald-300/20 bg-emerald-400/[0.05] p-4">
+            <div className="flex gap-4 rounded-[20px] border border-td-success/20 bg-td-success/[0.05] p-4">
               {selectedPrinting.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -4278,23 +4278,23 @@ function FileInventoryModal({
                 />
               )}
               <div className="min-w-0">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-emerald-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-success">
                   Exact printing selected
                 </p>
-                <p className="mt-2 text-sm font-semibold text-white">
+                <p className="mt-2 text-sm font-semibold text-td-primary">
                   {selectedPrinting.name}
                 </p>
-                <p className="mt-1 text-[10px] text-slate-400">
+                <p className="mt-1 text-[11px] text-td-secondary">
                   {selectedPrinting.setName} · {selectedPrinting.setCode} #
                   {selectedPrinting.collectorNumber}
                 </p>
-                <p className="mt-1 text-[10px] text-slate-400">
+                <p className="mt-1 text-[11px] text-td-secondary">
                   {selectedPrinting.finish} · {selectedPrinting.treatment}
                 </p>
                 <button
                   type="button"
                   onClick={() => setSelectedPrinting(null)}
-                  className="mt-3 text-[9px] font-semibold text-cyan-300 hover:text-cyan-100"
+                  className="mt-3 text-[11px] font-semibold text-td-accent-text hover:text-td-accent-text"
                 >
                   Choose a different printing
                 </button>
@@ -4445,10 +4445,10 @@ function FileInventoryModal({
           </FormSection>
         </div>
 
-        <div className="mt-5 rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.035] px-3.5 py-3">
+        <div className="mt-5 rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.035] px-3.5 py-3">
           <div className="flex items-start gap-2.5">
-            <Copy className="mt-0.5 h-3.5 w-3.5 text-cyan-300" />
-            <p className="text-[8px] leading-4 text-slate-500">
+            <Copy className="mt-0.5 h-3.5 w-3.5 text-td-accent-text" />
+            <p className="text-[11px] leading-4 text-td-muted">
               Trading Docks will check whether this exact SKU already exists in
               another location and ask whether you want to combine it.
             </p>
@@ -4463,7 +4463,7 @@ function FileInventoryModal({
             !locationId ||
             (category === "Single" && !selectedPrinting)
           }
-          className="mt-6 h-11 w-full rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 text-xs font-semibold text-[#001018]"
+          className="mt-6 h-11 w-full rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent text-xs font-semibold text-td-on-accent"
         >
           {locations.length === 0
             ? "Create a storage location first"
@@ -4501,22 +4501,22 @@ function DuplicateWarningModal({
           warning
         />
 
-        <div className="mt-6 rounded-2xl border border-amber-300/[0.13] bg-amber-400/[0.035] p-4">
+        <div className="mt-6 rounded-2xl border border-td-warning/[0.13] bg-td-warning/[0.035] p-4">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/[0.14] bg-amber-400/[0.05] text-amber-300">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-warning/[0.14] bg-td-warning/[0.05] text-td-warning">
               <AlertTriangle className="h-4 w-4" />
             </span>
 
             <div>
-              <p className="text-sm font-semibold text-white">
+              <p className="text-sm font-semibold text-td-primary">
                 {pendingItem.name}
               </p>
-              <p className="mt-1 text-[9px] text-slate-600">
+              <p className="mt-1 text-[11px] text-td-muted">
                 SKU: {pendingItem.sku}
               </p>
-              <p className="mt-4 text-[10px] leading-5 text-slate-400">
+              <p className="mt-4 text-[11px] leading-5 text-td-secondary">
                 There are already {match.item.quantity} units stored in{" "}
-                <span className="font-semibold text-amber-200">
+                <span className="font-semibold text-td-warning">
                   {match.location.name}
                 </span>
                 .
@@ -4529,12 +4529,12 @@ function DuplicateWarningModal({
           <button
             type="button"
             onClick={onKeepSeparate}
-            className="rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-4 text-left"
+            className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-4 py-4 text-left"
           >
-            <p className="text-xs font-semibold text-slate-200">
+            <p className="text-xs font-semibold text-td-primary">
               Keep both locations
             </p>
-            <p className="mt-2 text-[8px] leading-4 text-slate-600">
+            <p className="mt-2 text-[11px] leading-4 text-td-muted">
               File the new quantity in the selected destination and keep both
               records separate.
             </p>
@@ -4543,12 +4543,12 @@ function DuplicateWarningModal({
           <button
             type="button"
             onClick={onCombine}
-            className="rounded-xl border border-cyan-300/[0.15] bg-cyan-400/[0.05] px-4 py-4 text-left"
+            className="rounded-xl border border-td-accent/[0.15] bg-td-accent/[0.05] px-4 py-4 text-left"
           >
-            <p className="text-xs font-semibold text-cyan-100">
+            <p className="text-xs font-semibold text-td-accent-text">
               Combine into {match.location.name}
             </p>
-            <p className="mt-2 text-[8px] leading-4 text-slate-500">
+            <p className="mt-2 text-[11px] leading-4 text-td-muted">
               Add the new quantity to the existing inventory record and use one
               storage location.
             </p>
@@ -4599,7 +4599,7 @@ function ModalFrame({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        className={`relative z-10 max-h-[calc(100dvh-2rem)] w-full ${wide ? "max-w-[980px]" : "max-w-[720px]"} overflow-y-auto overscroll-contain rounded-[28px] border border-cyan-300/[0.14] bg-[#06131d]/98 p-5 shadow-[0_38px_120px_rgba(0,0,0,0.55)] sm:max-h-[calc(100dvh-3rem)] sm:p-7`}
+        className={`relative z-10 max-h-[calc(100dvh-2rem)] w-full ${wide ? "max-w-[980px]" : "max-w-[720px]"} overflow-y-auto overscroll-contain rounded-[28px] border border-td-accent/[0.14] bg-td-surface/98 p-5 shadow-[0_38px_120px_rgb(var(--td-shadow-rgb)/calc(0.55*var(--td-shadow-strength)))] sm:max-h-[calc(100dvh-3rem)] sm:p-7`}
       >
         {children}
 
@@ -4608,18 +4608,18 @@ function ModalFrame({
             height: 44px;
             width: 100%;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.075);
-            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgb(var(--td-ink-rgb)/0.075);
+            background: rgb(var(--td-ink-rgb)/0.025);
             padding: 0 13px;
-            color: rgb(226 232 240);
+            color: var(--td-text-secondary);
             font-size: 12px;
             outline: none;
             transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
           }
 
           .inventory-input:focus {
-            border-color: rgba(103, 232, 249, 0.24);
-            box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.045);
+            border-color: rgb(var(--td-accent-rgb)/0.24);
+            box-shadow: 0 0 0 4px rgb(var(--td-accent-rgb)/0.045);
           }
 
           .inventory-input:disabled {
@@ -4627,28 +4627,28 @@ function ModalFrame({
           }
 
           select.inventory-input {
-            color-scheme: dark;
+            color-scheme: var(--td-color-scheme);
             cursor: pointer;
           }
 
           select.inventory-input option,
           select.inventory-input optgroup {
-            background-color: #0b1822;
-            color: #e2e8f0;
+            background-color: var(--td-surface-default);
+            color: var(--td-text-primary);
           }
 
           select.inventory-input option:checked {
-            background: #164e63 linear-gradient(0deg, #164e63 0%, #164e63 100%);
-            color: #ecfeff;
+            background: var(--td-action-primary) linear-gradient(0deg, var(--td-action-primary) 0%, var(--td-action-primary) 100%);
+            color: var(--td-text-primary);
           }
 
           select.inventory-input option:disabled {
-            color: #64748b;
+            color: var(--td-text-secondary);
           }
 
           .inventory-readonly {
-            color: rgb(148 163 184);
-            background: rgba(255, 255, 255, 0.015);
+            color: var(--td-text-muted);
+            background: rgb(var(--td-ink-rgb)/0.015);
           }
 
           .inventory-money-input {
@@ -4661,7 +4661,7 @@ function ModalFrame({
             top: 50%;
             z-index: 1;
             transform: translateY(-50%);
-            color: rgb(100 116 139);
+            color: var(--td-text-muted);
             font-size: 12px;
           }
 
@@ -4691,19 +4691,19 @@ function ModalHeader({
       <div>
         <p
           className={[
-            "text-[8px] font-semibold uppercase tracking-[0.17em]",
-            warning ? "text-amber-300" : "text-cyan-300",
+            "text-[11px] font-semibold uppercase tracking-[0.17em]",
+            warning ? "text-td-warning" : "text-td-accent-text",
           ].join(" ")}
         >
           {eyebrow}
         </p>
-        <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-white">{title}</h2>
+        <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-td-primary">{title}</h2>
       </div>
 
       <button
         type="button"
         onClick={onClose}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted"
       >
         <X className="h-4 w-4" />
       </button>
@@ -4722,7 +4722,7 @@ function Field({
 }) {
   return (
     <label className={className}>
-      <span className="mb-2 block text-[9px] font-semibold uppercase tracking-[0.13em] text-slate-500">
+      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">
         {label}
       </span>
       {children}
@@ -4742,14 +4742,14 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[20px] border border-white/[0.065] bg-white/[0.018] p-4 sm:p-5">
-      <div className="mb-4 flex items-start gap-3 border-b border-white/[0.055] pb-4">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/15 bg-cyan-300/[0.07] text-[10px] font-semibold text-cyan-200">
+    <section className="rounded-[20px] border border-td-ink/[0.065] bg-td-ink/[0.018] p-4 sm:p-5">
+      <div className="mb-4 flex items-start gap-3 border-b border-td-ink/[0.055] pb-4">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-td-accent/15 bg-td-accent/[0.07] text-[11px] font-semibold text-td-accent-text">
           {step}
         </span>
         <div>
-          <h3 className="text-[12px] font-semibold text-slate-200">{title}</h3>
-          <p className="mt-1 text-[9px] leading-4 text-slate-600">{description}</p>
+          <h3 className="text-[12px] font-semibold text-td-primary">{title}</h3>
+          <p className="mt-1 text-[11px] leading-4 text-td-muted">{description}</p>
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">{children}</div>
