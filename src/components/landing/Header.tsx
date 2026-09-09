@@ -5,7 +5,6 @@ import { type MouseEvent, useEffect, useRef, useState } from "react";
 
 import { TransitionLink } from "@/components/navigation/PolishedNavigation";
 import { BrandMark } from "./BrandMark";
-import styles from "./SignatureHero.module.css";
 import { ThemePicker } from "@/components/theme/ThemeProvider";
 
 const PRODUCT_NAV = [
@@ -105,7 +104,7 @@ export function Header() {
           </TransitionLink>
           <TransitionLink
             href="/sign-up?plan=free"
-            className={`${styles.primaryButton} group inline-flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-td-accent px-4 text-sm font-semibold text-td-on-accent transition hover:bg-td-accent`}
+            className="td-button-primary group inline-flex h-10 shrink-0 items-center gap-2 rounded-[10px] px-4 text-sm"
           >
             <span className="relative z-10">Start free</span>
             <ArrowRight className="relative z-10 h-4 w-4" />
@@ -158,7 +157,7 @@ export function Header() {
             </TransitionLink>
             <TransitionLink
               href="/sign-up?plan=free"
-              className="inline-flex h-[48px] items-center justify-center gap-2 rounded-[10px] bg-td-accent text-sm font-semibold text-td-on-accent"
+              className="td-button-primary inline-flex h-[48px] items-center justify-center gap-2 rounded-[10px] px-4 text-sm"
             >
               Start free
               <ArrowRight className="h-4 w-4" />
