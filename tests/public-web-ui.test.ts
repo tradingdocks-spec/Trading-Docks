@@ -320,9 +320,9 @@ test("public redesign removes generic SaaS hero and pricing-card architecture", 
   const footer = readFileSync(path.join(repoRoot, "src/components/landing/Footer.tsx"), "utf8");
 
   assert.match(hero, /CardJourney/);
-  assert.match(hero, /Follow every card/);
-  assert.match(hero, /scan to sale/);
-  assert.match(hero, /Create your free account/);
+  assert.match(hero, /Every card\./);
+  assert.match(hero, /One system\./);
+  assert.match(hero, /Start free/);
   assert.doesNotMatch(hero, /DashboardPreview/);
   assert.doesNotMatch(hero, /rounded-full bg-blue|orbitField|floating dashboard/i);
 
