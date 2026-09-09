@@ -50,18 +50,18 @@ function FeatureCard({
   description,
 }: FeatureCardProps) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.032] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-blue-300/25 hover:bg-blue-400/[0.05]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(103,232,249,0.08),transparent_30%)] opacity-0 transition duration-500 group-hover:opacity-100" />
+    <div className="group relative overflow-hidden rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.032] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-td-accent/25 hover:bg-td-accent/[0.05]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgb(var(--td-accent-rgb)/0.08),transparent_30%)] opacity-0 transition duration-500 group-hover:opacity-100" />
 
       <div className="relative flex gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-400/20 bg-blue-400/10 text-blue-300 transition duration-300 group-hover:border-blue-300/35 group-hover:bg-blue-400/15 group-hover:text-blue-200">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-accent/20 bg-td-accent/10 text-td-accent-text transition duration-300 group-hover:border-td-accent/35 group-hover:bg-td-accent/15 group-hover:text-td-accent-text">
           {icon}
         </div>
 
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold tracking-[-0.01em] text-white">{title}</h3>
+          <h3 className="text-sm font-semibold tracking-[-0.01em] text-td-primary">{title}</h3>
 
-          <p className="mt-1.5 text-xs leading-5 text-slate-500">
+          <p className="mt-1.5 text-xs leading-5 text-td-muted">
             {description}
           </p>
         </div>
@@ -93,21 +93,21 @@ function SetupPreview() {
   ];
 
   return (
-    <div className="relative mt-6 overflow-hidden rounded-[22px] border border-blue-300/16 bg-white/[0.035] p-1 shadow-[0_24px_75px_rgba(0,0,0,0.42),0_0_34px_rgba(59,130,246,0.055)] backdrop-blur-xl">
-      <div className="relative overflow-hidden rounded-[18px] border border-white/[0.07] bg-[#071017]/95 p-5">
+    <div className="relative mt-6 overflow-hidden rounded-[22px] border border-td-accent/16 bg-td-ink/[0.035] p-1 shadow-[0_24px_75px_rgb(var(--td-shadow-rgb)/calc(0.42*var(--td-shadow-strength))),0_0_34px_rgb(var(--td-accent-rgb)/0.055)] backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-[18px] border border-td-ink/[0.07] bg-td-surface/95 p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-blue-300/70">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text/70">
               Workspace setup
             </p>
 
-            <h2 className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-white">
+            <h2 className="mt-1.5 text-lg font-semibold tracking-[-0.03em] text-td-primary">
               Ready in minutes
             </h2>
           </div>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/12 bg-emerald-300/[0.045] px-2.5 py-1 text-[9px] font-semibold text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-td-success/12 bg-td-success/[0.045] px-2.5 py-1 text-[11px] font-semibold text-td-success">
+            <span className="h-1.5 w-1.5 rounded-full bg-td-success" />
             No credit card
           </span>
         </div>
@@ -118,30 +118,30 @@ function SetupPreview() {
               {index < steps.length - 1 ? (
                 <span
                   aria-hidden="true"
-                  className="absolute left-5 top-10 h-5 w-px bg-white/10"
+                  className="absolute left-5 top-10 h-5 w-px bg-td-ink/10"
                 />
               ) : null}
 
               <div
                 className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
                   step.active
-                    ? "border-blue-300/35 bg-blue-400/14 text-blue-200"
-                    : "border-white/10 bg-white/[0.035] text-slate-500"
+                    ? "border-td-accent/35 bg-td-accent/14 text-td-accent-text"
+                    : "border-td-ink/10 bg-td-ink/[0.035] text-td-muted"
                 }`}
               >
                 {step.icon}
               </div>
 
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white">{step.title}</p>
-                <p className="mt-0.5 text-xs text-slate-500">{step.detail}</p>
+                <p className="text-sm font-semibold text-td-primary">{step.title}</p>
+                <p className="mt-0.5 text-xs text-td-muted">{step.detail}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-          <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-blue-500 to-cyan-300 shadow-[0_0_14px_rgba(59,130,246,0.32)]" />
+        <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-td-ink/[0.06]">
+          <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-td-accent to-td-accent shadow-[0_0_14px_rgb(var(--td-accent-rgb)/0.32)]" />
         </div>
       </div>
     </div>
@@ -160,7 +160,7 @@ export default async function SignUpPage({
     billing === "monthly" || billing === "annual" ? billing : "";
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#03080c] text-white lg:h-screen lg:min-h-0 lg:overflow-hidden">
+    <main className="relative min-h-screen overflow-x-hidden bg-td-canvas text-td-primary lg:h-screen lg:min-h-0 lg:overflow-hidden">
       <style>{`
         @keyframes ambientGlow {
           0%, 100% {
@@ -228,14 +228,14 @@ export default async function SignUpPage({
         @keyframes iconPulse {
           0%, 100% {
             box-shadow:
-              0 0 0 0 rgba(34, 211, 238, 0),
-              0 8px 24px rgba(6, 182, 212, 0.07);
+              0 0 0 0 rgb(var(--td-accent-rgb)/0),
+              0 8px 24px rgb(var(--td-accent-rgb)/0.07);
           }
 
           50% {
             box-shadow:
-              0 0 0 7px rgba(34, 211, 238, 0.025),
-              0 12px 30px rgba(6, 182, 212, 0.14);
+              0 0 0 7px rgb(var(--td-accent-rgb)/0.025),
+              0 12px 30px rgb(var(--td-accent-rgb)/0.14);
           }
         }
 
@@ -368,7 +368,7 @@ export default async function SignUpPage({
           background: linear-gradient(
             105deg,
             transparent,
-            rgba(255, 255, 255, 0.48),
+            rgb(var(--td-ink-rgb)/0.48),
             transparent
           );
           filter: blur(8px);
@@ -474,7 +474,7 @@ export default async function SignUpPage({
         className="pointer-events-none absolute inset-0 opacity-[0.1]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(148,163,184,0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.14) 1px, transparent 1px)",
+            "linear-gradient(rgb(var(--td-accent-rgb)/0.14) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--td-accent-rgb)/0.14) 1px, transparent 1px)",
           backgroundSize: "54px 54px",
         }}
       />
@@ -482,18 +482,18 @@ export default async function SignUpPage({
       {/* Ambient glow */}
       <div
         aria-hidden="true"
-        className="ambient-glow pointer-events-none absolute -left-44 -top-52 h-[620px] w-[620px] rounded-full bg-blue-500/[0.12] blur-[165px]"
+        className="ambient-glow pointer-events-none absolute -left-44 -top-52 h-[620px] w-[620px] rounded-full bg-td-accent/[0.12] blur-[165px]"
       />
 
       <div
         aria-hidden="true"
-        className="ambient-glow pointer-events-none absolute -bottom-56 right-[-110px] h-[620px] w-[620px] rounded-full bg-blue-500/[0.08] blur-[185px]"
+        className="ambient-glow pointer-events-none absolute -bottom-56 right-[-110px] h-[620px] w-[620px] rounded-full bg-td-accent/[0.08] blur-[185px]"
         style={{ animationDelay: "-4s" }}
       />
 
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-[53%] top-1/2 hidden h-[70%] w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-blue-300/10 to-transparent lg:block"
+        className="pointer-events-none absolute left-[53%] top-1/2 hidden h-[70%] w-px -translate-y-1/2 bg-gradient-to-b from-transparent via-td-accent/10 to-transparent lg:block"
       />
 
       <div className="desktop-scale relative mx-auto grid min-h-screen w-full max-w-[1360px] grid-cols-1 px-5 py-7 sm:px-8 lg:h-screen lg:min-h-0 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:gap-12 lg:px-8 lg:py-4 xl:gap-16">
@@ -507,7 +507,7 @@ export default async function SignUpPage({
                 className="group inline-flex items-center gap-3"
               >
                 <span className="relative flex h-[60px] w-[60px] shrink-0 items-center justify-center">
-                  <span className="absolute inset-1 rounded-[20px] bg-blue-400/[0.15] blur-xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
+                  <span className="absolute inset-1 rounded-[20px] bg-td-accent/[0.15] blur-xl transition duration-500 group-hover:bg-td-accent/[0.24]" />
 
                   <Image
                     src="/trading-docks-mark.png"
@@ -521,35 +521,35 @@ export default async function SignUpPage({
                 </span>
 
                 <span className="flex flex-col">
-                  <span className="text-[15px] font-semibold tracking-[-0.025em] text-white">
+                  <span className="text-[15px] font-semibold tracking-[-0.025em] text-td-primary">
                     Trading Docks
                   </span>
 
-                  <span className="mt-0.5 text-[7px] font-medium uppercase tracking-[0.24em] text-slate-600">
+                  <span className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.24em] text-td-muted">
                     Collectibles OS
                   </span>
                 </span>
               </Link>
 
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 backdrop-blur-md">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-400/10 text-blue-300">
+              <div className="inline-flex items-center gap-2 rounded-full border border-td-ink/10 bg-td-ink/[0.045] px-3 py-1.5 backdrop-blur-md">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-td-accent/10 text-td-accent-text">
                   <Layers3 className="h-2.5 w-2.5" />
                 </span>
 
-                <span className="text-[9px] font-medium text-slate-300">
+                <span className="text-[11px] font-medium text-td-secondary">
                   Built for collectors, sellers, and stores
                 </span>
               </div>
             </div>
 
-            <h1 className="mt-6 max-w-[630px] text-[clamp(2.55rem,3.8vw,3.85rem)] font-semibold leading-[0.96] tracking-[-0.058em] text-white">
+            <h1 className="mt-6 max-w-[630px] text-[clamp(2.55rem,3.8vw,3.85rem)] font-semibold leading-[0.96] tracking-[-0.058em] text-td-primary">
               Collect, sell, and grow
-              <span className="mt-3 block bg-gradient-to-r from-cyan-200 via-blue-400 to-blue-600 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(59,130,246,0.05)]">
+              <span className="mt-3 block bg-gradient-to-r from-td-accent via-td-accent to-td-accent bg-clip-text text-transparent drop-shadow-[0_0_18px_rgb(var(--td-accent-rgb)/0.05)]">
                 from one workspace.
               </span>
             </h1>
 
-            <p className="mt-4 max-w-[560px] text-sm leading-6 text-slate-400">
+            <p className="mt-4 max-w-[560px] text-sm leading-6 text-td-secondary">
               Organize your collection, track value, manage inventory, and
               unlock selling tools when you&apos;re ready.
             </p>
@@ -576,9 +576,9 @@ export default async function SignUpPage({
 
             <SetupPreview />
 
-            <div className="mt-3 flex items-center gap-3 text-[8px] text-slate-600">
+            <div className="mt-3 flex items-center gap-3 text-[11px] text-td-muted">
               <span>© 2026 Trading Docks</span>
-              <span className="h-1 w-1 rounded-full bg-slate-700" />
+              <span className="h-1 w-1 rounded-full bg-td-surface" />
               <span>Collectibles inventory and operations</span>
             </div>
           </div>
@@ -593,7 +593,7 @@ export default async function SignUpPage({
               className="group mb-6 flex items-center justify-center gap-3 lg:hidden"
             >
               <span className="relative flex h-[60px] w-[60px] shrink-0 items-center justify-center">
-                <span className="absolute inset-1 rounded-[20px] bg-blue-400/[0.15] blur-xl transition duration-500 group-hover:bg-blue-300/[0.24]" />
+                <span className="absolute inset-1 rounded-[20px] bg-td-accent/[0.15] blur-xl transition duration-500 group-hover:bg-td-accent/[0.24]" />
 
                 <Image
                   src="/trading-docks-mark.png"
@@ -607,11 +607,11 @@ export default async function SignUpPage({
               </span>
 
               <span className="flex flex-col text-left">
-                <span className="text-base font-semibold tracking-[-0.025em] text-white">
+                <span className="text-base font-semibold tracking-[-0.025em] text-td-primary">
                   Trading Docks
                 </span>
 
-                <span className="mt-0.5 text-[8px] font-medium uppercase tracking-[0.24em] text-slate-600">
+                <span className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.24em] text-td-muted">
                   Collectibles OS
                 </span>
               </span>
@@ -620,42 +620,42 @@ export default async function SignUpPage({
             <div className="panel-float relative">
               <div
                 aria-hidden="true"
-                className="ambient-glow pointer-events-none absolute -inset-9 rounded-[50px] bg-blue-500/[0.11] blur-[65px]"
+                className="ambient-glow pointer-events-none absolute -inset-9 rounded-[50px] bg-td-accent/[0.11] blur-[65px]"
               />
 
-              <div className="relative overflow-hidden rounded-[26px] border border-blue-300/16 bg-white/[0.045] p-1 shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_38px_rgba(59,130,246,0.06)] backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-[26px] border border-td-accent/16 bg-td-ink/[0.045] p-1 shadow-[0_30px_90px_rgb(var(--td-shadow-rgb)/calc(0.52*var(--td-shadow-strength))),0_0_38px_rgb(var(--td-accent-rgb)/0.06)] backdrop-blur-2xl">
                 <div className="panel-sweep pointer-events-none absolute -inset-y-8 left-0 z-20 w-28 bg-gradient-to-r from-transparent via-white/[0.015] to-transparent blur-[10px]" />
 
-                <div className="relative overflow-hidden rounded-[21px] border border-white/[0.08] bg-[#071017]/95 px-6 py-5">
+                <div className="relative overflow-hidden rounded-[21px] border border-td-ink/[0.08] bg-td-surface/95 px-6 py-5">
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-blue-400/[0.08] blur-3xl"
+                    className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-td-accent/[0.08] blur-3xl"
                   />
 
                   <div className="relative">
                     <div className="flex items-center justify-between">
-                      <div className="signup-icon flex h-9 w-9 items-center justify-center rounded-xl border border-blue-400/25 bg-blue-400/10 text-blue-300">
+                      <div className="signup-icon flex h-9 w-9 items-center justify-center rounded-xl border border-td-accent/25 bg-td-accent/10 text-td-accent-text">
                         <UserRound className="h-4 w-4" />
                       </div>
 
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[8px] font-medium text-slate-400">
-                        <ShieldCheck className="h-2.5 w-2.5 text-blue-300" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-td-ink/10 bg-td-ink/[0.035] px-2.5 py-1 text-[11px] font-medium text-td-secondary">
+                        <ShieldCheck className="h-2.5 w-2.5 text-td-accent-text" />
                         Secure registration
                       </span>
                     </div>
 
-                    <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">
+                    <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-td-primary">
                       Create your Trading Docks account
                     </h2>
 
-                    <p className="mt-1.5 text-xs leading-5 text-slate-400">
+                    <p className="mt-1.5 text-xs leading-5 text-td-secondary">
                       Your workspace takes less than a minute to set up.
                     </p>
 
                     {error ? (
                       <div
                         role="alert"
-                        className="mt-3 rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-2 text-xs text-red-200"
+                        className="mt-3 rounded-lg border border-td-danger/20 bg-td-danger/10 px-3 py-2 text-xs text-td-danger"
                       >
                         {error}
                       </div>
@@ -664,7 +664,7 @@ export default async function SignUpPage({
                     {success ? (
                       <div
                         role="status"
-                        className="mt-3 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2.5 text-xs leading-5 text-emerald-200"
+                        className="mt-3 rounded-lg border border-td-success/20 bg-td-success/10 px-3 py-2.5 text-xs leading-5 text-td-success"
                       >
                         <div className="flex items-start gap-2">
                           <CircleCheck className="mt-0.5 h-4 w-4 shrink-0" />
@@ -680,13 +680,13 @@ export default async function SignUpPage({
                         <div>
                           <label
                             htmlFor="name"
-                            className="mb-1 block text-[10px] font-medium text-slate-200"
+                            className="mb-1 block text-[11px] font-medium text-td-primary"
                           >
                             Full name
                           </label>
 
                           <div className="relative">
-                            <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
+                            <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
 
                             <input
                               id="name"
@@ -695,7 +695,7 @@ export default async function SignUpPage({
                               autoComplete="name"
                               required
                               placeholder="Your name"
-                              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-sm text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-blue-400/50 focus:bg-blue-400/[0.035] focus:ring-4 focus:ring-blue-400/10"
+                              className="h-10 w-full rounded-lg border border-td-ink/10 bg-td-ink/[0.035] pl-10 pr-3.5 text-sm text-td-primary outline-none transition placeholder:text-td-muted hover:border-td-ink/20 focus:border-td-accent/50 focus:bg-td-accent/[0.035] focus:ring-4 focus:ring-td-accent/10"
                             />
                           </div>
                         </div>
@@ -703,13 +703,13 @@ export default async function SignUpPage({
                         <div>
                           <label
                             htmlFor="email"
-                            className="mb-1 block text-[10px] font-medium text-slate-200"
+                            className="mb-1 block text-[11px] font-medium text-td-primary"
                           >
                             Email address
                           </label>
 
                           <div className="relative">
-                            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
+                            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
 
                             <input
                               id="email"
@@ -719,7 +719,7 @@ export default async function SignUpPage({
                               defaultValue={email ?? ""}
                               required
                               placeholder="you@example.com"
-                              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-10 pr-3.5 text-sm text-white outline-none transition placeholder:text-slate-600 hover:border-white/20 focus:border-blue-400/50 focus:bg-blue-400/[0.035] focus:ring-4 focus:ring-blue-400/10"
+                              className="h-10 w-full rounded-lg border border-td-ink/10 bg-td-ink/[0.035] pl-10 pr-3.5 text-sm text-td-primary outline-none transition placeholder:text-td-muted hover:border-td-ink/20 focus:border-td-accent/50 focus:bg-td-accent/[0.035] focus:ring-4 focus:ring-td-accent/10"
                             />
                           </div>
                         </div>
@@ -727,13 +727,13 @@ export default async function SignUpPage({
                         <div>
                           <label
                             htmlFor="password"
-                            className="mb-1 block text-[10px] font-medium text-slate-200"
+                            className="mb-1 block text-[11px] font-medium text-td-primary"
                           >
                             Password
                           </label>
 
                           <div className="relative">
-                            <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
+                            <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
 
                             <div className="[&_input]:pl-10">
                               <PasswordField
@@ -750,13 +750,13 @@ export default async function SignUpPage({
                         <div>
                           <label
                             htmlFor="confirmPassword"
-                            className="mb-1 block text-[10px] font-medium text-slate-200"
+                            className="mb-1 block text-[11px] font-medium text-td-primary"
                           >
                             Confirm password
                           </label>
 
                           <div className="relative">
-                            <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-600" />
+                            <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-td-muted" />
 
                             <div className="[&_input]:pl-10">
                               <PasswordField
@@ -770,26 +770,26 @@ export default async function SignUpPage({
                           </div>
                         </div>
 
-                        <label className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] p-3 text-xs leading-5 text-slate-400">
+                        <label className="flex items-start gap-3 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] p-3 text-xs leading-5 text-td-secondary">
                           <input
                             name="terms"
                             type="checkbox"
                             required
-                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/[0.035] accent-blue-400"
+                            className="mt-0.5 h-4 w-4 shrink-0 rounded border-td-ink/20 bg-td-ink/[0.035] accent-td-accent"
                           />
 
                           <span>
                             I agree to the{" "}
                             <Link
                               href="/terms"
-                              className="font-medium text-blue-300 transition hover:text-blue-200"
+                              className="font-medium text-td-accent-text transition hover:text-td-accent-text"
                             >
                               Terms of Service
                             </Link>{" "}
                             and{" "}
                             <Link
                               href="/privacy"
-                              className="font-medium text-blue-300 transition hover:text-blue-200"
+                              className="font-medium text-td-accent-text transition hover:text-td-accent-text"
                             >
                               Privacy Policy
                             </Link>
@@ -799,33 +799,33 @@ export default async function SignUpPage({
 
                         <SignUpSubmitButton />
 
-                        <p className="text-center text-[10px] font-medium text-slate-500">
+                        <p className="text-center text-[11px] font-medium text-td-muted">
                           No credit card required
                         </p>
                       </form>
                     ) : (
                       <Link
                         href="/sign-in"
-                        className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-300 px-4 text-xs font-semibold text-slate-950 shadow-[0_10px_26px_rgba(37,99,235,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(37,99,235,0.36)]"
+                        className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-td-accent via-td-accent to-td-accent px-4 text-xs font-semibold text-td-on-accent shadow-[0_10px_26px_rgb(var(--td-accent-rgb)/0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgb(var(--td-accent-rgb)/0.36)]"
                       >
                         Continue to sign in
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
                     )}
 
-                    <div className="my-4 flex items-center justify-center gap-1.5 text-xs text-slate-500">
+                    <div className="my-4 flex items-center justify-center gap-1.5 text-xs text-td-muted">
                       <span>Already have an account?</span>
 
                       <Link
                         href="/sign-in"
-                        className="font-semibold text-blue-300 transition hover:text-blue-200 focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-cyan-300/70"
+                        className="font-semibold text-td-accent-text transition hover:text-td-accent-text focus:outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-td-accent/70"
                       >
                         Sign in
                       </Link>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-500">
-                      <Check className="h-3 w-3 text-blue-400" />
+                    <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-td-muted">
+                      <Check className="h-3 w-3 text-td-accent-text" />
                       Account security powered by Supabase
                     </div>
                   </div>
@@ -833,7 +833,7 @@ export default async function SignUpPage({
               </div>
             </div>
 
-            <p className="mt-4 text-center text-[9px] text-slate-600 lg:hidden">
+            <p className="mt-4 text-center text-[11px] text-td-muted lg:hidden">
               © 2026 Trading Docks
             </p>
           </div>

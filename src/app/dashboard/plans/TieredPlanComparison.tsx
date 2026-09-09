@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useHydrated } from "@/hooks/use-hydrated";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
@@ -52,9 +53,9 @@ const plans: Plan[] = [
     id: "store",
     name: "Store",
     motion: "Operate",
-    audience: "Store teams",
-    description: "Shared buying profiles, approvals, customer summaries, staff, and operations.",
-    annualNote: "Employee capacity pending configuration",
+    audience: "Store operators",
+    description: "Buying profiles, approvals, customer summaries, inventory, and store operations.",
+    annualNote: "Employee accounts not yet available",
   },
 ];
 
@@ -68,7 +69,7 @@ const comparisonRows = [
   { label: "CSV/email export", values: ["No", "No", "Yes", "Yes"] },
   { label: "Business intelligence", values: ["No", "No", "Seller view", "Store view"] },
   { label: "Store operations", values: ["No", "No", "No", "Yes"] },
-  { label: "Employee accounts", values: ["No", "No", "No", "Configurable"] },
+  { label: "Employee accounts", values: ["No", "No", "No", "Not yet available"] },
 ];
 
 function formatPrice(value: number) {
@@ -102,43 +103,47 @@ export function TieredPlanComparison({
   currentPlan: AccountTier | null;
   publicView?: boolean;
 }) {
+  const hydrated = useHydrated();
   const [billing, setBilling] = useState<BillingCycle>("monthly");
+  const Container = publicView ? "main" : "div";
 
   return (
-    <div className="min-h-full bg-[#03080d] px-5 py-8 text-white sm:px-8 lg:px-12">
+    <Container className="min-h-full bg-td-canvas px-5 py-8 text-td-primary sm:px-8 lg:px-12">
       <div className="mx-auto max-w-[1480px]">
         <Link
           href={publicView ? "/" : "/dashboard"}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-cyan-200"
+          className="inline-flex items-center gap-2 text-sm font-medium text-td-secondary transition hover:text-td-accent-text"
         >
           <ArrowLeft className="h-4 w-4" />
           {publicView ? "Back to Trading Docks" : "Back to Dashboard"}
         </Link>
 
-        <header className="grid gap-8 border-b border-white/[0.08] py-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <header className="grid gap-8 border-b border-td-ink/[0.08] py-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div className="max-w-3xl">
-            <p className="text-sm font-medium text-cyan-200">Pricing</p>
+            <p className="text-sm font-medium text-td-accent-text">Pricing</p>
             <h1 className="mt-4 text-5xl font-semibold leading-[0.98] tracking-[-0.055em] sm:text-6xl">
-              Choose by workflow, not by a feature-card wall.
+              Choose the plan that fits your collection.
             </h1>
-            <p className="mt-5 text-base leading-8 text-slate-500">
+            <p className="mt-5 text-base leading-8 text-td-secondary">
               Trading Docks progresses from collection organization to market
-              understanding, selling operations, and store management. Billing
-              changes the workspace surface; platform authority remains separate.
+              understanding, selling operations, and store management. Compare
+              the included tools and choose monthly or annual billing.
             </p>
           </div>
 
-          <div className="flex w-fit items-center border border-white/[0.1] p-1">
+          <div className="flex w-fit items-center border border-td-ink/[0.1] p-1" role="group" aria-label="Billing cycle">
             {(["monthly", "annual"] as const).map((cycle) => (
               <button
                 key={cycle}
                 type="button"
+                disabled={!hydrated}
                 onClick={() => setBilling(cycle)}
+                aria-pressed={billing === cycle}
                 className={[
                   "h-10 px-4 text-sm font-semibold capitalize transition",
                   billing === cycle
-                    ? "bg-cyan-300 text-[#01131a]"
-                    : "text-slate-500 hover:text-white",
+                    ? "bg-td-accent text-td-on-accent"
+                    : "text-td-secondary hover:text-td-primary",
                 ].join(" ")}
               >
                 {cycle}
@@ -147,7 +152,7 @@ export function TieredPlanComparison({
           </div>
         </header>
 
-        <section className="grid border-b border-white/[0.08] lg:grid-cols-4">
+        <section className="grid border-b border-td-ink/[0.08] lg:grid-cols-4">
           {plans.map((plan, index) => {
             const isCurrent = !publicView && plan.id === currentPlan;
             const revenueCatPlan =
@@ -158,34 +163,34 @@ export function TieredPlanComparison({
             return (
               <article
                 key={plan.id}
-                className="border-b border-white/[0.08] py-7 lg:border-b-0 lg:border-r lg:px-6 lg:last:border-r-0"
+                className="border-b border-td-ink/[0.08] py-7 lg:border-b-0 lg:border-r lg:px-6 lg:last:border-r-0"
               >
                 <div className="flex min-h-6 items-center justify-between gap-4">
-                  <span className="text-xs text-slate-600">
+                  <span className="text-xs text-td-secondary">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   {plan.recommended ? (
-                    <span className="text-xs font-semibold text-cyan-200">
+                    <span className="text-xs font-semibold text-td-accent-text">
                       Seller recommendation
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-5 text-sm font-semibold text-slate-400">{plan.motion}</p>
+                <p className="mt-5 text-sm font-semibold text-td-secondary">{plan.motion}</p>
                 <h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">
                   {plan.name}
                 </h2>
-                <p className="mt-1 text-sm text-slate-600">{plan.audience}</p>
+                <p className="mt-1 text-sm text-td-secondary">{plan.audience}</p>
                 <div className="mt-7">
                   <span className="text-4xl font-semibold tracking-[-0.05em]">
                     {displayPrice(plan, billing)}
                   </span>
-                  <span className="ml-2 text-sm text-slate-600">/ month</span>
+                  <span className="ml-2 text-sm text-td-secondary">/ month</span>
                 </div>
-                <p className="mt-2 text-xs text-slate-600">{billingDetail(plan, billing)}</p>
-                <p className="mt-5 min-h-[96px] text-sm leading-6 text-slate-400">
+                <p className="mt-2 text-xs text-td-secondary">{billingDetail(plan, billing)}</p>
+                <p className="mt-5 min-h-[96px] text-sm leading-6 text-td-secondary">
                   {plan.description}
                 </p>
-                <p className="mt-3 text-xs leading-5 text-slate-600">{plan.annualNote}</p>
+                <p className="mt-3 text-xs leading-5 text-td-secondary">{plan.annualNote}</p>
 
                 {publicView ? (
                   <Link
@@ -197,8 +202,8 @@ export function TieredPlanComparison({
                     className={[
                       "mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-semibold transition",
                       plan.recommended
-                        ? "bg-cyan-300 text-[#01131a] hover:bg-cyan-200"
-                        : "border border-white/[0.12] text-slate-200 hover:border-cyan-200/35 hover:text-white",
+                        ? "bg-td-accent text-td-on-accent hover:bg-td-accent-hover"
+                        : "border border-td-ink/[0.12] text-td-primary hover:border-td-accent/35 hover:text-td-primary",
                     ].join(" ")}
                   >
                     {planAction(plan, currentPlan, publicView)}
@@ -208,7 +213,7 @@ export function TieredPlanComparison({
                   <Link
                     href={currentPlan !== "free" ? "/dashboard/settings" : "/dashboard"}
                     aria-current={isCurrent ? "true" : undefined}
-                    className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-white/[0.12] px-4 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/35 hover:text-white"
+                    className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-td-ink/[0.12] px-4 text-sm font-semibold text-td-primary transition hover:border-td-accent/35 hover:text-td-primary"
                   >
                     {currentPlan !== "free" && !isCurrent
                       ? "Change in billing portal"
@@ -230,18 +235,18 @@ export function TieredPlanComparison({
           })}
         </section>
 
-        <section className="grid gap-8 py-10 lg:grid-cols-[300px_1fr]">
+        <section className="grid min-w-0 gap-8 py-10 lg:grid-cols-[300px_minmax(0,1fr)]">
           <div>
-            <p className="text-sm font-semibold text-white">Capability matrix</p>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Compact by design. The important question is what workflow becomes
-              available at each stage.
+            <p className="text-sm font-semibold text-td-primary">Capability matrix</p>
+            <p className="mt-3 text-sm leading-6 text-td-secondary">
+              Compare the tools and limits included with each plan.
             </p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="min-w-0 overflow-x-auto" role="region" aria-label="Full plan comparison" tabIndex={0}>
             <table className="w-full min-w-[860px] border-collapse text-left">
+              <caption className="sr-only">Plan features and limits.</caption>
               <thead>
-                <tr className="border-b border-white/[0.08] text-xs text-slate-600">
+                <tr className="border-b border-td-ink/[0.08] text-xs text-td-secondary">
                   <th className="py-3 pr-6 font-medium">Capability</th>
                   {plans.map((plan) => (
                     <th key={plan.id} className="px-4 py-3 font-medium">
@@ -254,11 +259,11 @@ export function TieredPlanComparison({
                 {comparisonRows.map((row) => (
                   <tr
                     key={row.label}
-                    className="border-b border-white/[0.055] text-sm last:border-b-0"
+                    className="border-b border-td-ink/[0.055] text-sm last:border-b-0"
                   >
-                    <td className="py-4 pr-6 font-medium text-slate-300">{row.label}</td>
+                    <td className="py-4 pr-6 font-medium text-td-secondary">{row.label}</td>
                     {row.values.map((value, index) => (
-                      <td key={`${row.label}-${plans[index].id}`} className="px-4 py-4 leading-6 text-slate-500">
+                      <td key={`${row.label}-${plans[index].id}`} className="px-4 py-4 leading-6 text-td-secondary">
                         {value}
                       </td>
                     ))}
@@ -269,19 +274,19 @@ export function TieredPlanComparison({
           </div>
         </section>
 
-        <section className="grid gap-4 border-t border-white/[0.08] py-8 md:grid-cols-3">
+        <section className="grid gap-4 border-t border-td-ink/[0.08] py-8 md:grid-cols-3">
           {[
             ["No surprise fees", "Clear plan limits and straightforward monthly or annual billing."],
             ["Upgrade without rebuilding", "Your workspace history, inventory, and account identity stay intact."],
-            ["Owner access stays separate", "Platform Owner/Admin authority is not faked as a commercial subscription."],
+            ["Employee accounts", "Employee access is not yet available. Store pricing does not include active employee seats."],
           ].map(([title, copy]) => (
-            <div key={title} className="border-l border-white/[0.08] pl-4">
-              <h3 className="text-sm font-semibold text-white">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{copy}</p>
+            <div key={title} className="border-l border-td-ink/[0.08] pl-4">
+              <h3 className="text-sm font-semibold text-td-primary">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-td-secondary">{copy}</p>
             </div>
           ))}
         </section>
       </div>
-    </div>
+    </Container>
   );
 }

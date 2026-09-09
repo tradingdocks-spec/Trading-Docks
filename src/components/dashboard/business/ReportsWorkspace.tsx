@@ -34,9 +34,9 @@ export function ReportsWorkspace() {
       </div>
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-8 text-center`}>
-        <LineChart className="mx-auto h-8 w-8 text-cyan-300/70" />
-        <h2 className="mt-4 text-lg font-semibold text-white">No report data yet</h2>
-        <p className="mx-auto mt-2 max-w-xl text-xs leading-6 text-slate-600">
+        <LineChart className="mx-auto h-8 w-8 text-td-accent-text/70" />
+        <h2 className="mt-4 text-lg font-semibold text-td-primary">No report data yet</h2>
+        <p className="mx-auto mt-2 max-w-xl text-xs leading-6 text-td-muted">
           Reports will appear after this account records inventory, purchases,
           sales, expenses, payouts, employees, or other business activity.
         </p>

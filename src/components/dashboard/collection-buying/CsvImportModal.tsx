@@ -140,16 +140,16 @@ export function CsvImportModal({
         aria-label="Close CSV importer"
       />
 
-      <div className="relative z-10 max-h-[92vh] w-full max-w-[940px] overflow-y-auto rounded-[28px] border border-cyan-300/[0.14] bg-[#06131d]/98 p-5 shadow-[0_38px_120px_rgba(0,0,0,0.62)] sm:p-6">
+      <div className="relative z-10 max-h-[92vh] w-full max-w-[940px] overflow-y-auto rounded-[28px] border border-td-accent/[0.14] bg-td-surface/98 p-5 shadow-[0_38px_120px_rgb(var(--td-shadow-rgb)/calc(0.62*var(--td-shadow-strength)))] sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[8px] font-semibold uppercase tracking-[0.17em] text-cyan-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-td-accent-text">
               Large Collection Import
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-white">
+            <h2 className="mt-2 text-xl font-semibold text-td-primary">
               Import collection CSV
             </h2>
-            <p className="mt-2 text-[9px] leading-4 text-slate-600">
+            <p className="mt-2 text-[11px] leading-4 text-td-muted">
               Supports generic CSV files and common exports from TCGplayer,
               ManaBox, Dragon Shield, Delver Lens, and similar collection apps.
             </p>
@@ -158,7 +158,7 @@ export function CsvImportModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted"
           >
             <X className="h-4 w-4" />
           </button>
@@ -189,17 +189,17 @@ export function CsvImportModal({
           className={[
             "mt-6 flex w-full flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-10 transition",
             isDragging
-              ? "border-cyan-300/40 bg-cyan-400/[0.06]"
-              : "border-white/[0.09] bg-black/[0.09] hover:border-cyan-300/[0.2]",
+              ? "border-td-accent/40 bg-td-accent/[0.06]"
+              : "border-td-ink/[0.09] bg-black/[0.09] hover:border-td-accent/[0.2]",
           ].join(" ")}
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/[0.12] bg-cyan-400/[0.04] text-cyan-300">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-td-accent/[0.12] bg-td-accent/[0.04] text-td-accent-text">
             <Upload className="h-5 w-5" />
           </span>
-          <p className="mt-4 text-xs font-semibold text-slate-300">
+          <p className="mt-4 text-xs font-semibold text-td-secondary">
             {filename || "Drop a CSV here or choose a file"}
           </p>
-          <p className="mt-1 text-[8px] text-slate-700">
+          <p className="mt-1 text-[11px] text-td-muted">
             Hundreds or thousands of card rows can be imported.
           </p>
         </button>
@@ -207,7 +207,7 @@ export function CsvImportModal({
         {headers.length ? (
           <>
             <div className="mt-6">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-violet-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-violet">
                 Column mapping
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -266,10 +266,10 @@ export function CsvImportModal({
               </div>
             </div>
 
-            <div className="mt-6 overflow-x-auto rounded-2xl border border-white/[0.06]">
+            <div className="mt-6 overflow-x-auto rounded-2xl border border-td-ink/[0.06]">
               <table className="w-full min-w-[720px] text-left">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-[8px] uppercase tracking-[0.12em] text-slate-700">
+                  <tr className="border-b border-td-ink/[0.06] text-[11px] uppercase tracking-[0.12em] text-td-muted">
                     <th className="px-3 py-3">Card</th>
                     <th className="px-3 py-3">Qty</th>
                     <th className="px-3 py-3">Set</th>
@@ -282,9 +282,9 @@ export function CsvImportModal({
                   {mappedPreview.map((row, index) => (
                     <tr
                       key={`${row.name}-${index}`}
-                      className="border-b border-white/[0.045] text-[9px] text-slate-500"
+                      className="border-b border-td-ink/[0.045] text-[11px] text-td-muted"
                     >
-                      <td className="px-3 py-3 font-semibold text-slate-300">
+                      <td className="px-3 py-3 font-semibold text-td-secondary">
                         {row.name || "—"}
                       </td>
                       <td className="px-3 py-3">{row.quantity}</td>
@@ -302,7 +302,7 @@ export function CsvImportModal({
               </table>
             </div>
 
-            <div className="mt-4 flex items-center justify-between text-[8px] text-slate-700">
+            <div className="mt-4 flex items-center justify-between text-[11px] text-td-muted">
               <span>{records.length.toLocaleString("en-US")} CSV rows detected</span>
               <span>Showing the first {Math.min(5, records.length)}</span>
             </div>
@@ -310,7 +310,7 @@ export function CsvImportModal({
         ) : null}
 
         {error ? (
-          <div className="mt-5 rounded-xl border border-red-300/[0.13] bg-red-400/[0.04] px-4 py-3 text-[9px] text-red-200">
+          <div className="mt-5 rounded-xl border border-td-danger/[0.13] bg-td-danger/[0.04] px-4 py-3 text-[11px] text-td-danger">
             {error}
           </div>
         ) : null}
@@ -319,7 +319,7 @@ export function CsvImportModal({
           type="button"
           disabled={!records.length || !mapping.name || isImporting}
           onClick={importRows}
-          className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 text-[10px] font-semibold text-[#001018] disabled:cursor-not-allowed disabled:opacity-45"
+          className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent text-[11px] font-semibold text-td-on-accent disabled:cursor-not-allowed disabled:opacity-45"
         >
           {isImporting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -331,8 +331,8 @@ export function CsvImportModal({
             : `Import ${records.length.toLocaleString("en-US")} cards`}
         </button>
 
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-cyan-300/[0.09] bg-cyan-400/[0.025] px-3 py-3 text-[8px] leading-4 text-slate-600">
-          <Check className="mt-0.5 h-3 w-3 shrink-0 text-emerald-300" />
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-td-accent/[0.09] bg-td-accent/[0.025] px-3 py-3 text-[11px] leading-4 text-td-muted">
+          <Check className="mt-0.5 h-3 w-3 shrink-0 text-td-success" />
           Exact set and collector-number columns provide the strongest printing
           match. Staff can still change any row using the printing dropdown
           after import.
@@ -357,14 +357,14 @@ function MappingSelect({
 }) {
   return (
     <label>
-      <span className="mb-2 block text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
         {label}
-        {required ? <span className="ml-1 text-cyan-300">*</span> : null}
+        {required ? <span className="ml-1 text-td-accent-text">*</span> : null}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-xl border border-white/[0.065] bg-[#07141e] px-3 text-[9px] text-slate-400 outline-none"
+        className="h-10 w-full rounded-xl border border-td-ink/[0.065] bg-td-surface px-3 text-[11px] text-td-secondary outline-none"
       >
         <option value="">Not included</option>
         {headers.map((header) => (

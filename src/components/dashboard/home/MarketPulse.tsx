@@ -189,24 +189,24 @@ export function MarketPulse() {
   }, []);
 
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-white/[0.085] bg-[#06121b]/82 p-5 shadow-[0_26px_85px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(59,130,246,0.055),transparent_26%),radial-gradient(circle_at_90%_15%,rgba(139,92,246,0.035),transparent_30%)]" />
+    <section className="relative overflow-hidden rounded-[28px] border border-td-ink/[0.085] bg-td-surface/82 p-5 shadow-[0_26px_85px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength)))] backdrop-blur-2xl sm:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgb(var(--td-accent-rgb)/0.055),transparent_26%),radial-gradient(circle_at_90%_15%,rgba(139,92,246,0.035),transparent_30%)]" />
 
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_9px_rgba(110,231,183,0.8)]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-td-success shadow-[0_0_9px_rgb(var(--td-accent-rgb)/0.8)]" />
 
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
               Market Pulse
             </p>
           </div>
 
-          <h2 className="mt-2 text-lg font-semibold text-white">
+          <h2 className="mt-2 text-lg font-semibold text-td-primary">
             Top price movers
           </h2>
 
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-td-muted">
             Current prices from Scryfall with selected market
             movement indicators.
           </p>
@@ -215,7 +215,7 @@ export function MarketPulse() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-xs font-medium text-slate-300 transition duration-300 hover:border-blue-300/20 hover:bg-blue-400/[0.04] hover:text-white"
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] px-3 text-xs font-medium text-td-secondary transition duration-300 hover:border-td-accent/20 hover:bg-td-accent/[0.04] hover:text-td-primary"
           >
             Magic: The Gathering
           </button>
@@ -223,7 +223,7 @@ export function MarketPulse() {
           <button
             type="button"
             aria-label="Open market settings"
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] text-slate-500 transition duration-300 hover:rotate-12 hover:border-blue-300/25 hover:bg-blue-400/[0.06] hover:text-blue-300"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] text-td-muted transition duration-300 hover:rotate-12 hover:border-td-accent/25 hover:bg-td-accent/[0.06] hover:text-td-accent-text"
           >
             <Settings2 className="h-4 w-4" />
           </button>
@@ -232,14 +232,14 @@ export function MarketPulse() {
 
       <div className="relative mt-6">
         {isLoading ? (
-          <div className="flex min-h-[195px] items-center justify-center gap-3 text-sm text-slate-500">
-            <LoaderCircle className="h-5 w-5 animate-spin text-blue-300" />
+          <div className="flex min-h-[195px] items-center justify-center gap-3 text-sm text-td-muted">
+            <LoaderCircle className="h-5 w-5 animate-spin text-td-accent-text" />
             Loading market data…
           </div>
         ) : null}
 
         {!isLoading && hasError ? (
-          <div className="flex min-h-[195px] items-center justify-center text-sm text-rose-300">
+          <div className="flex min-h-[195px] items-center justify-center text-sm text-td-danger">
             Market data could not be loaded. Refresh the page to
             try again.
           </div>
@@ -273,15 +273,15 @@ function MarketCardItem({
       href={card.scryfallUrl}
       target="_blank"
       rel="noreferrer"
-      className="market-card group relative min-h-[210px] overflow-hidden rounded-[22px] border border-white/[0.075] bg-black/[0.13] p-4 transition duration-500 hover:-translate-y-1.5 hover:border-blue-300/[0.22] hover:bg-blue-400/[0.025] hover:shadow-[0_22px_55px_rgba(0,0,0,0.32),0_0_30px_rgba(59,130,246,0.06)]"
+      className="market-card group relative min-h-[210px] overflow-hidden rounded-[22px] border border-td-ink/[0.075] bg-black/[0.13] p-4 transition duration-500 hover:-translate-y-1.5 hover:border-td-accent/[0.22] hover:bg-td-accent/[0.025] hover:shadow-[0_22px_55px_rgb(var(--td-shadow-rgb)/calc(0.32*var(--td-shadow-strength))),0_0_30px_rgb(var(--td-accent-rgb)/0.06)]"
       style={{
         animationDelay: `${index * 80}ms`,
       }}
     >
-      <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-400/[0.045] blur-[55px] transition duration-500 group-hover:bg-blue-400/[0.09]" />
+      <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-td-accent/[0.045] blur-[55px] transition duration-500 group-hover:bg-td-accent/[0.09]" />
 
       <div className="relative flex gap-3">
-        <div className="h-[82px] w-[59px] shrink-0 overflow-hidden rounded-lg border border-white/[0.12] bg-[#07121b] shadow-[0_10px_25px_rgba(0,0,0,0.35)] transition duration-500 group-hover:-translate-y-1 group-hover:scale-[1.04] group-hover:border-blue-300/30">
+        <div className="h-[82px] w-[59px] shrink-0 overflow-hidden rounded-lg border border-td-ink/[0.12] bg-td-surface shadow-[0_10px_25px_rgb(var(--td-shadow-rgb)/calc(0.35*var(--td-shadow-strength)))] transition duration-500 group-hover:-translate-y-1 group-hover:scale-[1.04] group-hover:border-td-accent/30">
           {card.imageUrl ? (
             <img
               src={card.imageUrl}
@@ -293,19 +293,19 @@ function MarketCardItem({
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-100">
+          <p className="truncate text-sm font-semibold text-td-primary">
             {card.name}
           </p>
 
-          <p className="mt-1 truncate text-[10px] text-slate-600">
+          <p className="mt-1 truncate text-[11px] text-td-muted">
             {card.setName}
           </p>
 
-          <p className="mt-3 text-lg font-semibold tracking-tight text-white">
+          <p className="mt-3 text-lg font-semibold tracking-tight text-td-primary">
             {PRICE_FORMATTER.format(card.currentPrice)}
           </p>
 
-          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-300">
+          <div className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-td-success">
             <TrendingUp className="h-3 w-3" />
             +{card.change.toFixed(2)}%
           </div>
@@ -316,23 +316,23 @@ function MarketCardItem({
         <Sparkline values={card.sparkline} />
       </div>
 
-      <div className="mt-3 flex items-center justify-between border-t border-white/[0.055] pt-3">
+      <div className="mt-3 flex items-center justify-between border-t border-td-ink/[0.055] pt-3">
         <div>
-          <p className="text-[9px] uppercase tracking-[0.12em] text-slate-700">
+          <p className="text-[11px] uppercase tracking-[0.12em] text-td-muted">
             Previous
           </p>
 
-          <p className="mt-1 text-[11px] font-medium text-slate-400">
+          <p className="mt-1 text-[11px] font-medium text-td-secondary">
             {PRICE_FORMATTER.format(card.previousPrice)}
           </p>
         </div>
 
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02] text-slate-600 transition group-hover:border-blue-300/20 group-hover:bg-blue-400/[0.06] group-hover:text-blue-300">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] text-td-muted transition group-hover:border-td-accent/20 group-hover:bg-td-accent/[0.06] group-hover:text-td-accent-text">
           <ArrowUpRight className="h-4 w-4" />
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-300/0 to-transparent transition duration-500 group-hover:via-blue-300/45" />
+      <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-td-accent/0 to-transparent transition duration-500 group-hover:via-td-accent/45" />
     </a>
   );
 }
@@ -371,13 +371,13 @@ function Sparkline({ values }: { values: number[] }) {
         >
           <stop
             offset="0%"
-            stopColor="rgb(34 211 238)"
+            stopColor="var(--td-action-primary)"
             stopOpacity="0.22"
           />
 
           <stop
             offset="100%"
-            stopColor="rgb(34 211 238)"
+            stopColor="var(--td-action-primary)"
             stopOpacity="0"
           />
         </linearGradient>
@@ -400,7 +400,7 @@ function Sparkline({ values }: { values: number[] }) {
       <polyline
         points={points}
         fill="none"
-        stroke="rgb(103 232 249)"
+        stroke="var(--td-accent-text)"
         strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"

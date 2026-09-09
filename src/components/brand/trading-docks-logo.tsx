@@ -20,7 +20,7 @@ export function TradingDocksLogo({
       height={128}
       priority
       sizes="64px"
-      className={`h-16 w-16 object-contain drop-shadow-[0_0_16px_rgba(59,130,246,0.16)] ${className}`}
+      className={`h-16 w-16 object-contain drop-shadow-[0_0_16px_rgb(var(--td-accent-rgb)/0.16)] ${className}`}
     />
   ) : (
     <Image
@@ -30,7 +30,7 @@ export function TradingDocksLogo({
       height={247}
       priority
       sizes="370px"
-      className={`h-[82px] w-auto max-w-[370px] object-contain object-left drop-shadow-[0_0_18px_rgba(59,130,246,0.1)] ${className}`}
+      className={`h-[82px] w-auto max-w-[370px] object-contain object-left drop-shadow-[0_0_18px_rgb(var(--td-accent-rgb)/0.1)] ${className}`}
     />
   );
 

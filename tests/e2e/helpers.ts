@@ -7,9 +7,6 @@ export type PageErrorMonitor = {
 
 const BENIGN_CONSOLE_PATTERNS: RegExp[] = [
   /favicon/i,
-  ...(!process.env.PLAYWRIGHT_BASE_URL
-    ? [/Failed to load resource: SSL connect error/i]
-    : []),
 ];
 
 export const PUBLIC_ROUTES = [

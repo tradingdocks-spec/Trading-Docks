@@ -13,10 +13,10 @@
     linear-gradient(
       118deg,
       transparent 28%,
-      rgba(207, 250, 254, 0.012) 38%,
-      rgba(207, 250, 254, 0.035) 46%,
-      rgba(165, 243, 252, 0.06) 50%,
-      rgba(103, 232, 249, 0.025) 55%,
+      rgb(var(--td-ink-rgb)/0.012) 38%,
+      rgb(var(--td-ink-rgb)/0.035) 46%,
+      rgb(var(--td-accent-rgb)/0.06) 50%,
+      rgb(var(--td-accent-rgb)/0.025) 55%,
       transparent 68%
     );
   filter: blur(18px);
@@ -46,10 +46,10 @@
     linear-gradient(
       120deg,
       transparent 30%,
-      rgba(224, 252, 255, 0.018) 39%,
-      rgba(207, 250, 254, 0.045) 47%,
-      rgba(165, 243, 252, 0.075) 51%,
-      rgba(103, 232, 249, 0.028) 57%,
+      rgb(var(--td-ink-rgb)/0.018) 39%,
+      rgb(var(--td-ink-rgb)/0.045) 47%,
+      rgb(var(--td-accent-rgb)/0.075) 51%,
+      rgb(var(--td-accent-rgb)/0.028) 57%,
       transparent 70%
     );
   filter: blur(22px);
@@ -67,8 +67,8 @@
   pointer-events: none;
   border-radius: inherit;
   background:
-    radial-gradient(circle at 18% 0%, rgba(103, 232, 249, 0.055), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 26%);
+    radial-gradient(circle at 18% 0%, rgb(var(--td-accent-rgb)/0.055), transparent 28%),
+    linear-gradient(180deg, rgb(var(--td-ink-rgb)/0.018), transparent 26%);
 }
 
 .dashboardContent {
@@ -96,7 +96,7 @@
   background: linear-gradient(
     105deg,
     transparent,
-    rgba(255, 255, 255, 0.34),
+    rgb(var(--td-ink-rgb)/0.34),
     transparent
   );
   filter: blur(10px);
@@ -117,11 +117,11 @@
 }
 
 .edgeGlow:hover {
-  border-color: rgba(103, 232, 249, 0.16);
-  background-color: rgba(103, 232, 249, 0.022);
+  border-color: rgb(var(--td-accent-rgb)/0.16);
+  background-color: rgb(var(--td-accent-rgb)/0.022);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.018),
-    0 14px 38px rgba(0, 0, 0, 0.16);
+    inset 0 1px 0 rgb(var(--td-ink-rgb)/0.018),
+    0 14px 38px rgb(var(--td-shadow-rgb)/calc(0.16*var(--td-shadow-strength)));
   transform: translateY(-1px);
 }
 

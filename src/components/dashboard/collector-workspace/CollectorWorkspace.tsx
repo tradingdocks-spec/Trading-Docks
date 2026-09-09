@@ -497,7 +497,7 @@ export function CollectorWorkspace({
             <Layers3 className="h-4 w-4" />
             Portfolio
           </Link>
-          <Link href="/dashboard/inventory/inbox" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-amber-300/15 bg-amber-300/[0.045] px-3.5 text-sm font-black text-amber-100 outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
+          <Link href="/dashboard/inventory/inbox" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--td-radius-md)] border border-td-warning/15 bg-td-warning/[0.045] px-3.5 text-sm font-black text-td-warning outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
             <AlertTriangle className="h-4 w-4" />
             Inbox
           </Link>
@@ -610,12 +610,12 @@ export function CollectorWorkspace({
               className={cn(
                 "rounded-[var(--td-radius-md)] border px-3.5 py-2.5 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]",
                 inventoryType === option.value
-                  ? "border-cyan-300/35 bg-cyan-300/10 text-cyan-100"
+                  ? "border-td-accent/35 bg-td-accent/10 text-td-accent-text"
                   : "border-[var(--td-border-default)] bg-[var(--td-background-secondary)] text-[var(--td-text-secondary)] hover:text-[var(--td-text-primary)]",
               )}
             >
               <span className="block text-sm font-black">{option.label}</span>
-              <span className="block text-[10px] font-semibold text-[var(--td-text-muted)]">{option.detail}</span>
+              <span className="block text-[11px] font-semibold text-[var(--td-text-muted)]">{option.detail}</span>
             </button>
           ))}
         </div>
@@ -682,14 +682,14 @@ export function CollectorWorkspace({
           <div className="hidden overflow-hidden rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] md:block">
             <table className="w-full min-w-[980px]">
               <thead>
-                <tr className="sticky top-0 bg-[var(--td-background-primary)] text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--td-text-muted)]">
+                <tr className="sticky top-0 bg-[var(--td-background-primary)] text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--td-text-muted)]">
                   <th className="w-10 px-3 py-3 text-left">
                     <input
                       type="checkbox"
                       aria-label="Select all visible inventory"
                       checked={visibleCards.length > 0 && selectedCards.length === visibleCards.length}
                       onChange={(event) => setSelectedCardIds(event.target.checked ? visibleCards.map((card) => card.id) : [])}
-                      className="accent-cyan-300"
+                      className="accent-td-accent"
                     />
                   </th>
                   <th className="px-3 py-3 text-left">Card</th>
@@ -705,14 +705,14 @@ export function CollectorWorkspace({
               </thead>
               <tbody>
                 {visibleCards.map((card) => (
-                  <tr key={card.id} className="border-t border-[var(--td-border-default)] transition hover:bg-white/[0.025]">
+                  <tr key={card.id} className="border-t border-[var(--td-border-default)] transition hover:bg-td-ink/[0.025]">
                     <td className="px-3 py-3 align-middle">
                       <input
                         type="checkbox"
                         aria-label={`Select ${card.cardName}`}
                         checked={selectedCardIds.includes(card.id)}
                         onChange={(event) => setSelectedCardIds((current) => toggleSelection(current, card.id, event.target.checked))}
-                        className="accent-cyan-300"
+                        className="accent-td-accent"
                       />
                     </td>
                     <td className="px-3 py-3">
@@ -853,7 +853,7 @@ function InventoryCommandBar({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Search inventory..."
-            className="min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] pl-11 pr-4 text-sm font-semibold text-[var(--td-text-primary)] outline-none transition placeholder:text-[var(--td-text-muted)] focus:border-[var(--td-border-focus)] focus:ring-2 focus:ring-[rgba(102,217,255,0.18)]"
+            className="min-h-12 w-full rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] pl-11 pr-4 text-sm font-semibold text-[var(--td-text-primary)] outline-none transition placeholder:text-[var(--td-text-muted)] focus:border-[var(--td-border-focus)] focus:ring-2 focus:ring-[rgb(var(--td-accent-rgb)/0.18)]"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -873,7 +873,7 @@ function InventoryCommandBar({
                 <AddInventoryMenuLink icon={<FileUp className="h-4 w-4" />} title="Upload CSV" detail="Import an inventory spreadsheet" href="/dashboard/inventory/import" onSelect={() => setAddOpen(false)} />
                 <AddInventoryMenuLink icon={<PackagePlus className="h-4 w-4" />} title="Add single card" detail="Search or scan one card into Collection" href="/dashboard/card-photo-scanner?mode=single" onSelect={() => setAddOpen(false)} />
                 <AddInventoryMenuLink icon={<Search className="h-4 w-4" />} title="Scan cards" detail="Use the card image scanner workflow" href="/dashboard/card-photo-scanner" onSelect={() => setAddOpen(false)} />
-                <div className="my-2 border-t border-white/[0.07]" />
+                <div className="my-2 border-t border-td-ink/[0.07]" />
                 <TDText variant="label" tone="info" className="px-2 py-1">Chaos Sort</TDText>
                 <AddInventoryMenuLink icon={<Layers3 className="h-4 w-4" />} title="Start Chaos Sort" detail="Batch intake, locations, labels, and picking" href="/dashboard/inventory/chaos-sort" onSelect={() => setAddOpen(false)} />
                 {canUseSellerActions ? (
@@ -886,9 +886,9 @@ function InventoryCommandBar({
                     setAddOpen(false);
                     onOpenStorage();
                   }}
-                  className="flex w-full items-start gap-3 rounded-[var(--td-radius-md)] px-2 py-2.5 text-left outline-none transition hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
+                  className="flex w-full items-start gap-3 rounded-[var(--td-radius-md)] px-2 py-2.5 text-left outline-none transition hover:bg-td-ink/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
                 >
-                  <MapPin className="mt-0.5 h-4 w-4 text-cyan-200" />
+                  <MapPin className="mt-0.5 h-4 w-4 text-td-accent-text" />
                   <span>
                     <span className="block text-sm font-black text-[var(--td-text-primary)]">Create storage location</span>
                     <span className="mt-0.5 block text-xs font-semibold text-[var(--td-text-muted)]">Create a box, binder, page, or slot</span>
@@ -904,7 +904,7 @@ function InventoryCommandBar({
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[var(--td-text-muted)]">
         <span>{resultCount.toLocaleString()} shown / {totalCount.toLocaleString()} loaded</span>
         <span>{filterCount ? `${filterCount} filter${filterCount === 1 ? "" : "s"} active` : "No filters active"}</span>
-        {filterCount ? <button type="button" onClick={onClearFilters} className="font-black text-cyan-300 hover:text-cyan-100">Clear filters</button> : null}
+        {filterCount ? <button type="button" onClick={onClearFilters} className="font-black text-td-accent-text hover:text-td-accent-text">Clear filters</button> : null}
       </div>
     </section>
   );
@@ -928,9 +928,9 @@ function AddInventoryMenuLink({
       href={href}
       role="menuitem"
       onClick={onSelect}
-      className="flex items-start gap-3 rounded-[var(--td-radius-md)] px-2 py-2.5 outline-none transition hover:bg-white/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
+      className="flex items-start gap-3 rounded-[var(--td-radius-md)] px-2 py-2.5 outline-none transition hover:bg-td-ink/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]"
     >
-      <span className="mt-0.5 text-cyan-200">{icon}</span>
+      <span className="mt-0.5 text-td-accent-text">{icon}</span>
       <span>
         <span className="block text-sm font-black text-[var(--td-text-primary)]">{title}</span>
         <span className="mt-0.5 block text-xs font-semibold text-[var(--td-text-muted)]">{detail}</span>
@@ -951,7 +951,7 @@ function InventoryHealthStrip({
   return (
     <section className="grid gap-3 rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] p-3 lg:grid-cols-[220px_1fr]" aria-label="Inventory Health">
       <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--td-radius-md)] border border-emerald-300/20 bg-emerald-300/10 text-lg font-black text-emerald-200">{health.score}%</span>
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[var(--td-radius-md)] border border-td-success/20 bg-td-success/10 text-lg font-black text-td-success">{health.score}%</span>
         <div>
           <TDText variant="label" tone="muted">Inventory Health</TDText>
           <TDText variant="caption" tone="muted">{health.locatedQuantity.toLocaleString()} / {totalQuantity.toLocaleString()} located</TDText>
@@ -967,7 +967,7 @@ function InventoryHealthStrip({
               className={cn(
                 "rounded-[var(--td-radius-md)] border px-3 py-2 text-left text-xs font-black outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]",
                 issue.severity === "attention"
-                  ? "border-amber-300/25 bg-amber-300/10 text-amber-100 hover:border-amber-200/45"
+                  ? "border-td-warning/25 bg-td-warning/10 text-td-warning hover:border-td-warning/45"
                   : "border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] text-[var(--td-text-secondary)] hover:text-[var(--td-text-primary)]",
               )}
             >
@@ -1029,9 +1029,9 @@ function BulkActionBar({
   onClear: () => void;
 }) {
   return (
-    <section className="sticky top-3 z-20 flex flex-col gap-3 rounded-[var(--td-radius-lg)] border border-cyan-300/25 bg-[#07131d]/95 p-3 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur md:flex-row md:items-center md:justify-between" aria-label="Bulk inventory actions">
+    <section className="sticky top-3 z-20 flex flex-col gap-3 rounded-[var(--td-radius-lg)] border border-td-accent/25 bg-td-surface/95 p-3 shadow-[0_18px_60px_rgb(var(--td-shadow-rgb)/calc(0.35*var(--td-shadow-strength)))] backdrop-blur md:flex-row md:items-center md:justify-between" aria-label="Bulk inventory actions">
       <div className="flex items-center gap-2">
-        <CheckSquare2 className="h-4 w-4 text-cyan-300" />
+        <CheckSquare2 className="h-4 w-4 text-td-accent-text" />
         <TDText variant="small">{selectedCount.toLocaleString()} selected · {selectedQuantity.toLocaleString()} total units</TDText>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -1084,9 +1084,9 @@ function BulkRemoveDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-[160] flex items-center justify-center overflow-y-auto bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="bulk-remove-title">
-      <section className="inventory-workspace max-h-[calc(100dvh-32px)] w-full max-w-lg overflow-y-auto rounded-[var(--td-radius-xl)] border border-red-300/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
+      <section className="inventory-workspace max-h-[calc(100dvh-32px)] w-full max-w-lg overflow-y-auto rounded-[var(--td-radius-xl)] border border-td-danger/20 bg-[var(--td-background-primary)] p-5 shadow-2xl">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--td-radius-md)] border border-red-300/20 bg-red-300/10 text-red-200">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--td-radius-md)] border border-td-danger/20 bg-td-danger/10 text-td-danger">
             <Trash2 className="h-5 w-5" />
           </span>
           <div>
@@ -1101,7 +1101,7 @@ function BulkRemoveDialog({
           <SummaryPill label="Quantity" value={selectedQuantity.toLocaleString()} />
           <SummaryPill label="Est. value" value={selectedMarketValue > 0 ? currency(selectedMarketValue) : "Unavailable"} muted={selectedMarketValue <= 0} />
         </div>
-        <div className="mt-4 rounded-[var(--td-radius-md)] border border-amber-300/15 bg-amber-300/[0.04] p-3 text-sm font-semibold leading-6 text-amber-100/80">
+        <div className="mt-4 rounded-[var(--td-radius-md)] border border-td-warning/15 bg-td-warning/[0.04] p-3 text-sm font-semibold leading-6 text-td-warning/80">
           This is not recorded as a sale. Trading Docks will emit `quantity_removed`; rows reduced to zero are removed from active owned inventory by the authoritative collection mutation.
         </div>
         {error ? <TDErrorState title="Bulk removal failed" message={error} /> : null}
@@ -1133,7 +1133,7 @@ function SectionTab({ label, selected, onClick }: { label: string; selected: boo
       className={cn(
         "min-h-11 rounded-full border px-4 text-sm font-black outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]",
         selected
-          ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100"
+          ? "border-td-accent/40 bg-td-accent/10 text-td-accent-text"
           : "border-[var(--td-border-default)] bg-[var(--td-background-secondary)] text-[var(--td-text-secondary)] hover:text-[var(--td-text-primary)]",
       )}
     >
@@ -1366,7 +1366,7 @@ function MiniOverviewMetric({ icon, label, value, muted = false }: { icon: React
 function QuickAction({ label, detail, icon, onClick }: { label: string; detail: string; icon: ReactNode; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] p-4 text-left outline-none transition hover:border-[var(--td-border-focus)] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
-      <div className="flex items-center gap-2 text-cyan-200">{icon}<span className="text-sm font-black">{label}</span></div>
+      <div className="flex items-center gap-2 text-td-accent-text">{icon}<span className="text-sm font-black">{label}</span></div>
       <TDText variant="caption" tone="muted" className="mt-2">{detail}</TDText>
     </button>
   );
@@ -1431,14 +1431,14 @@ function StorageCell({
         className={cn(
           "inline-flex min-h-10 max-w-[260px] items-center gap-2 rounded-[var(--td-radius-sm)] border px-3 text-left text-xs font-black outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]",
           assigned
-            ? "border-cyan-300/25 bg-cyan-300/10 text-cyan-100 hover:border-cyan-200/50"
-            : "border-amber-300/25 bg-amber-300/10 text-amber-100 hover:border-amber-200/50",
+            ? "border-td-accent/25 bg-td-accent/10 text-td-accent-text hover:border-td-accent/50"
+            : "border-td-warning/25 bg-td-warning/10 text-td-warning hover:border-td-warning/50",
         )}
       >
         <MapPin className="h-3.5 w-3.5 shrink-0" />
         <span className="min-w-0 truncate">
           <span className="block truncate">{assigned ? displayStorageLocation(card) : "Assign storage"}</span>
-          {card.batchCode ? <span className="mt-0.5 block truncate text-[10px] font-semibold text-cyan-200/75">Batch {card.batchCode}</span> : null}
+          {card.batchCode ? <span className="mt-0.5 block truncate text-[11px] font-semibold text-td-accent-text/75">Batch {card.batchCode}</span> : null}
         </span>
       </button>
 
@@ -1458,7 +1458,7 @@ function StorageCell({
                 className="flex w-full items-center justify-between gap-3 rounded-[var(--td-radius-sm)] border border-transparent px-2 py-2 text-left text-xs font-bold text-[var(--td-text-secondary)] outline-none transition hover:border-[var(--td-border-focus)] hover:text-[var(--td-text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <span className="truncate">{location.path.label}</span>
-                <span className="shrink-0 text-[10px] text-[var(--td-text-muted)]">{location.assignedQuantity}</span>
+                <span className="shrink-0 text-[11px] text-[var(--td-text-muted)]">{location.assignedQuantity}</span>
               </button>
             )) : <TDText variant="caption" tone="muted">No storage locations yet. Open Storage to create one.</TDText>}
           </div>
@@ -1476,7 +1476,7 @@ function StorageCell({
 function SummaryMetric({ icon, label, value, muted = false }: { icon: ReactNode; label: string; value: string; muted?: boolean }) {
   return (
     <TDCard className="flex items-center gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--td-radius-sm)] border border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--td-radius-sm)] border border-td-accent/20 bg-td-accent/10 text-td-accent-text">
         {icon}
       </span>
       <div className="min-w-0">
@@ -1496,7 +1496,7 @@ function FilterButton({ label, selected, onClick }: { label: string; selected: b
       className={cn(
         "min-h-12 rounded-[var(--td-radius-md)] border px-4 text-sm font-black outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]",
         selected
-          ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100"
+          ? "border-td-accent/40 bg-td-accent/10 text-td-accent-text"
           : "border-[var(--td-border-default)] bg-[var(--td-background-secondary)] text-[var(--td-text-secondary)]",
       )}
     >
@@ -1508,10 +1508,10 @@ function FilterButton({ label, selected, onClick }: { label: string; selected: b
 function ViewToggle({ mode, onChange }: { mode: DisplayMode; onChange: (mode: DisplayMode) => void }) {
   return (
     <div className="flex overflow-hidden rounded-[var(--td-radius-md)] border border-[var(--td-border-default)]" role="group" aria-label="Collection view mode">
-      <button type="button" aria-pressed={mode === "list"} aria-label="List view" onClick={() => onChange("list")} className={cn("flex h-12 w-12 items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]", mode === "list" ? "bg-cyan-300/10 text-cyan-100" : "text-[var(--td-text-muted)]")}>
+      <button type="button" aria-pressed={mode === "list"} aria-label="List view" onClick={() => onChange("list")} className={cn("flex h-12 w-12 items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]", mode === "list" ? "bg-td-accent/10 text-td-accent-text" : "text-[var(--td-text-muted)]")}>
         <List className="h-4 w-4" />
       </button>
-      <button type="button" aria-pressed={mode === "grid"} aria-label="Grid view" onClick={() => onChange("grid")} className={cn("flex h-12 w-12 items-center justify-center border-l border-[var(--td-border-default)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]", mode === "grid" ? "bg-cyan-300/10 text-cyan-100" : "text-[var(--td-text-muted)]")}>
+      <button type="button" aria-pressed={mode === "grid"} aria-label="Grid view" onClick={() => onChange("grid")} className={cn("flex h-12 w-12 items-center justify-center border-l border-[var(--td-border-default)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]", mode === "grid" ? "bg-td-accent/10 text-td-accent-text" : "text-[var(--td-text-muted)]")}>
         <Grid3X3 className="h-4 w-4" />
       </button>
     </div>
@@ -1532,7 +1532,7 @@ function CollectionCardTile({
   return (
     <TDCard className="flex h-full flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <input type="checkbox" aria-label={`Select ${card.cardName}`} checked={selected} onChange={(event) => onSelect(event.target.checked)} className="accent-cyan-300" />
+        <input type="checkbox" aria-label={`Select ${card.cardName}`} checked={selected} onChange={(event) => onSelect(event.target.checked)} className="accent-td-accent" />
         <TDButton label="Inspect" variant="ghost" size="sm" onClick={onInspect} />
       </div>
       <button type="button" onClick={onInspect} className="aspect-[0.72] overflow-hidden rounded-[var(--td-radius-md)] border border-[var(--td-border-default)] bg-[var(--td-background-secondary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
@@ -1576,7 +1576,7 @@ function MobileInventoryCard({
   return (
     <article className="rounded-[var(--td-radius-lg)] border border-[var(--td-border-default)] bg-[var(--td-surface-elevated)] p-3">
       <div className="grid grid-cols-[auto_1fr_auto] gap-3">
-        <input type="checkbox" aria-label={`Select ${card.cardName}`} checked={selected} onChange={(event) => onSelect(event.target.checked)} className="mt-4 accent-cyan-300" />
+        <input type="checkbox" aria-label={`Select ${card.cardName}`} checked={selected} onChange={(event) => onSelect(event.target.checked)} className="mt-4 accent-td-accent" />
         <button type="button" onClick={onInspect} className="grid grid-cols-[48px_1fr] gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)]">
           <CardThumb card={card} size="lg" />
           <span className="min-w-0">
@@ -1688,7 +1688,7 @@ function InventoryInspector({
               type="button"
               disabled={pending || location.id === card.storageLocation?.id}
               onClick={() => parsedQuantity >= card.quantityOwned ? onMove(location.id) : onMoveQuantity(parsedQuantity, location.id)}
-              className="flex items-center justify-between gap-3 rounded-[var(--td-radius-sm)] px-2 py-2 text-left text-xs font-bold text-[var(--td-text-secondary)] outline-none transition hover:bg-white/[0.035] hover:text-[var(--td-text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] disabled:opacity-45"
+              className="flex items-center justify-between gap-3 rounded-[var(--td-radius-sm)] px-2 py-2 text-left text-xs font-bold text-[var(--td-text-secondary)] outline-none transition hover:bg-td-ink/[0.035] hover:text-[var(--td-text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--td-border-focus)] disabled:opacity-45"
             >
               <span className="truncate">{location.path.label}</span>
               <span>{location.assignedQuantity}</span>

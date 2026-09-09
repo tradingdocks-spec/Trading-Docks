@@ -29,12 +29,12 @@ export function RevenueCatBillingManagementButton() {
         type="button"
         onClick={openPortal}
         disabled={loading}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-sm font-semibold text-[#001018] transition hover:brightness-110 disabled:opacity-70"
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-sm font-semibold text-td-on-accent transition hover:brightness-110 disabled:opacity-70"
       >
         {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
         {loading ? "Opening..." : "Manage subscription"}
       </button>
-      {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
+      {error ? <p className="mt-2 text-xs text-td-danger">{error}</p> : null}
     </div>
   );
 }

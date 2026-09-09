@@ -206,14 +206,14 @@ export function SellerLaunchCenter({
   }
 
   return (
-    <main className="min-h-screen bg-[#020a12] px-4 py-6 text-white sm:px-6 lg:px-10 lg:py-9">
+    <main className="min-h-screen bg-td-canvas px-4 py-6 text-td-primary sm:px-6 lg:px-10 lg:py-9">
       <div className="mx-auto max-w-[1500px]">
-        <section className="relative overflow-hidden rounded-[30px] border border-blue-300/[0.15] bg-gradient-to-br from-[#0a1c2b] via-[#071522] to-[#04101a] p-5 shadow-[0_34px_120px_rgba(0,0,0,.42)] sm:p-8">
-          <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-blue-500/[0.14] blur-[110px]" />
+        <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.15] bg-gradient-to-br from-td-raised via-td-surface to-td-surface p-5 shadow-[0_34px_120px_rgb(var(--td-shadow-rgb)/calc(.42*var(--td-shadow-strength)))] sm:p-8">
+          <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-td-accent/[0.14] blur-[110px]" />
 
           <div className="relative grid gap-8 xl:grid-cols-[1fr_390px] xl:items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.18] bg-cyan-300/[0.06] px-3 py-2 text-xs font-semibold text-cyan-200">
+              <div className="inline-flex items-center gap-2 rounded-full border border-td-accent/[0.18] bg-td-accent/[0.06] px-3 py-2 text-xs font-semibold text-td-accent-text">
                 <Rocket className="h-4 w-4" />
                 Automatic Seller Readiness
               </div>
@@ -222,7 +222,7 @@ export function SellerLaunchCenter({
                 Trading Docks now verifies your core seller setup.
               </h1>
 
-              <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base sm:leading-8">
+              <p className="mt-5 max-w-3xl text-sm leading-7 text-td-secondary sm:text-base sm:leading-8">
                 Inventory, marketplace connections, orders, customers, and sync
                 activity are checked from your real workspace data instead of
                 relying on manual checklist claims.
@@ -244,13 +244,13 @@ export function SellerLaunchCenter({
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-white/[0.08] bg-black/[0.16] p-5">
+            <div className="rounded-[24px] border border-td-ink/[0.08] bg-black/[0.16] p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-td-muted">
                     Verified readiness
                   </p>
-                  <p className="mt-2 text-4xl font-bold tracking-[-0.05em] text-white [font-variant-numeric:tabular-nums]">
+                  <p className="mt-2 text-4xl font-bold tracking-[-0.05em] text-td-primary [font-variant-numeric:tabular-nums]">
                     {score}%
                   </p>
                 </div>
@@ -258,8 +258,8 @@ export function SellerLaunchCenter({
                   className={[
                     "flex h-12 w-12 items-center justify-center rounded-2xl border",
                     ready
-                      ? "border-emerald-300/[0.18] bg-emerald-300/[0.07] text-emerald-300"
-                      : "border-blue-300/[0.16] bg-blue-400/[0.06] text-blue-300",
+                      ? "border-td-success/[0.18] bg-td-success/[0.07] text-td-success"
+                      : "border-td-accent/[0.16] bg-td-accent/[0.06] text-td-accent-text",
                   ].join(" ")}
                 >
                   {ready ? (
@@ -270,31 +270,31 @@ export function SellerLaunchCenter({
                 </span>
               </div>
 
-              <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/[0.055]">
+              <div className="mt-5 h-2 overflow-hidden rounded-full bg-td-ink/[0.055]">
                 <span
-                  className="block h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-300 transition-[width] duration-500"
+                  className="block h-full rounded-full bg-gradient-to-r from-td-accent to-td-accent transition-[width] duration-500"
                   style={{ width: `${score}%` }}
                 />
               </div>
 
-              <p className="mt-3 text-[11px] text-slate-600">
+              <p className="mt-3 text-[11px] text-td-muted">
                 Checked {new Date(snapshot.generatedAt).toLocaleString()}
               </p>
 
               {nextStep ? (
                 <Link
                   href={nextStep.href}
-                  className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-blue-300/[0.12] bg-blue-400/[0.04] px-4 py-3 transition hover:border-cyan-300/[0.22] hover:bg-blue-400/[0.07]"
+                  className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-td-accent/[0.12] bg-td-accent/[0.04] px-4 py-3 transition hover:border-td-accent/[0.22] hover:bg-td-accent/[0.07]"
                 >
                   <span>
-                    <span className="block text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-600">
+                    <span className="block text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">
                       Best next action
                     </span>
-                    <span className="mt-1 block text-sm font-semibold text-white">
+                    <span className="mt-1 block text-sm font-semibold text-td-primary">
                       {nextStep.title}
                     </span>
                   </span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-cyan-300" />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-td-accent-text" />
                 </Link>
               ) : null}
             </div>
@@ -311,8 +311,8 @@ export function SellerLaunchCenter({
                 className={[
                   "rounded-[24px] border p-5 transition duration-300",
                   step.complete
-                    ? "border-emerald-300/[0.15] bg-emerald-300/[0.035]"
-                    : "border-white/[0.075] bg-[#071522]",
+                    ? "border-td-success/[0.15] bg-td-success/[0.035]"
+                    : "border-td-ink/[0.075] bg-td-surface",
                 ].join(" ")}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -320,8 +320,8 @@ export function SellerLaunchCenter({
                     className={[
                       "flex h-11 w-11 items-center justify-center rounded-2xl border",
                       step.complete
-                        ? "border-emerald-300/[0.16] bg-emerald-300/[0.06] text-emerald-300"
-                        : "border-blue-300/[0.12] bg-blue-400/[0.05] text-blue-300",
+                        ? "border-td-success/[0.16] bg-td-success/[0.06] text-td-success"
+                        : "border-td-accent/[0.12] bg-td-accent/[0.05] text-td-accent-text",
                     ].join(" ")}
                   >
                     {step.complete ? (
@@ -332,22 +332,22 @@ export function SellerLaunchCenter({
                   </span>
 
                   <div className="flex flex-wrap justify-end gap-1.5">
-                    <span className="rounded-full border border-white/[0.07] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600">
+                    <span className="rounded-full border border-td-ink/[0.07] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                       {step.required ? "Required" : "Recommended"}
                     </span>
-                    <span className="rounded-full border border-blue-300/[0.1] bg-blue-400/[0.03] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-blue-200/65">
+                    <span className="rounded-full border border-td-accent/[0.1] bg-td-accent/[0.03] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-accent-text/65">
                       {step.automatic ? "Auto verified" : "Manual"}
                     </span>
                   </div>
                 </div>
 
-                <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300/75">
+                <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-td-accent-text/75">
                   {String(index + 1).padStart(2, "0")} · {step.phase}
                 </p>
-                <h2 className="mt-2 text-lg font-semibold tracking-[-0.025em] text-white">
+                <h2 className="mt-2 text-lg font-semibold tracking-[-0.025em] text-td-primary">
                   {step.title}
                 </h2>
-                <p className="mt-3 text-sm leading-6 text-slate-500">
+                <p className="mt-3 text-sm leading-6 text-td-muted">
                   {step.description}
                 </p>
 
@@ -355,8 +355,8 @@ export function SellerLaunchCenter({
                   className={[
                     "mt-4 rounded-xl border px-3 py-2.5 text-xs font-medium",
                     step.complete
-                      ? "border-emerald-300/[0.11] bg-emerald-300/[0.035] text-emerald-200"
-                      : "border-white/[0.06] bg-black/[0.11] text-slate-600",
+                      ? "border-td-success/[0.11] bg-td-success/[0.035] text-td-success"
+                      : "border-td-ink/[0.06] bg-black/[0.11] text-td-muted",
                   ].join(" ")}
                 >
                   {step.evidence}
@@ -365,7 +365,7 @@ export function SellerLaunchCenter({
                 <div className="mt-5 flex items-center gap-2">
                   <Link
                     href={step.href}
-                    className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-blue-300/[0.13] bg-blue-400/[0.045] px-3 text-xs font-semibold text-blue-100"
+                    className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-td-accent/[0.13] bg-td-accent/[0.045] px-3 text-xs font-semibold text-td-accent-text"
                   >
                     {step.action}
                     <ArrowRight className="h-3.5 w-3.5" />
@@ -378,8 +378,8 @@ export function SellerLaunchCenter({
                       className={[
                         "inline-flex h-10 items-center justify-center rounded-xl px-3 text-xs font-semibold",
                         step.complete
-                          ? "bg-emerald-300/[0.09] text-emerald-200"
-                          : "border border-white/[0.08] bg-white/[0.025] text-slate-400",
+                          ? "bg-td-success/[0.09] text-td-success"
+                          : "border border-td-ink/[0.08] bg-td-ink/[0.025] text-td-secondary",
                       ].join(" ")}
                     >
                       {step.complete ? "Confirmed" : "Confirm"}
@@ -424,11 +424,11 @@ function StatusPill({ label, good }: { label: string; good: boolean }) {
       className={[
         "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold",
         good
-          ? "border-emerald-300/[0.14] bg-emerald-300/[0.045] text-emerald-200"
-          : "border-blue-300/[0.12] bg-blue-400/[0.035] text-blue-200/80",
+          ? "border-td-success/[0.14] bg-td-success/[0.045] text-td-success"
+          : "border-td-accent/[0.12] bg-td-accent/[0.035] text-td-accent-text/80",
       ].join(" ")}
     >
-      <span className={good ? "h-1.5 w-1.5 rounded-full bg-emerald-300" : "h-1.5 w-1.5 rounded-full bg-blue-300"} />
+      <span className={good ? "h-1.5 w-1.5 rounded-full bg-td-success" : "h-1.5 w-1.5 rounded-full bg-td-accent"} />
       {label}
     </span>
   );
@@ -444,14 +444,14 @@ function SummaryCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="rounded-[22px] border border-white/[0.075] bg-[#071522] p-4">
+    <div className="rounded-[22px] border border-td-ink/[0.075] bg-td-surface p-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[0.11em] text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-[0.11em] text-td-muted">
           {label}
         </p>
-        <Icon className="h-4 w-4 text-blue-300/70" />
+        <Icon className="h-4 w-4 text-td-accent-text/70" />
       </div>
-      <p className="mt-4 text-2xl font-bold tracking-[-0.035em] text-white [font-variant-numeric:tabular-nums]">
+      <p className="mt-4 text-2xl font-bold tracking-[-0.035em] text-td-primary [font-variant-numeric:tabular-nums]">
         {value}
       </p>
     </div>

@@ -421,18 +421,18 @@ export function DeckArchitectWorkspace({
   }
 
   return (
-    <main className="min-h-screen bg-[#020912] px-4 py-4 text-white sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-td-canvas px-4 py-4 text-td-primary sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1520px]">
         {snapshot.error ? <LoadError message={snapshot.error} /> : null}
 
-        <header className="border-y border-white/[0.08] py-3">
+        <header className="border-y border-td-ink/[0.08] py-3">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">Trading Docks</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-td-accent-text">Trading Docks</p>
               <h1 className="mt-1 text-3xl font-semibold leading-none tracking-[-0.045em] sm:text-4xl">
                 Deck Architect
               </h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-td-secondary">
                 Choose a format and commander, set the build intent, then generate a reviewable deck shell.
               </p>
             </div>
@@ -443,22 +443,22 @@ export function DeckArchitectWorkspace({
         {!workflowId ? (
           <section className="mt-6 grid gap-4 lg:grid-cols-4">
             {PRIMARY_WORKFLOWS.map((workflow) => {
-              const className = "group min-h-[210px] rounded-[18px] bg-[#06131f] p-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_18px_54px_rgba(0,0,0,.18)] transition hover:-translate-y-0.5 hover:bg-[#071827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45";
+              const className = "group min-h-[210px] rounded-[18px] bg-td-surface p-5 text-left shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045),0_18px_54px_rgb(var(--td-shadow-rgb)/calc(.18*var(--td-shadow-strength)))] transition hover:-translate-y-0.5 hover:bg-td-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45";
               const content = (
                 <div className="flex h-full flex-col">
-                  <p className="text-lg font-semibold tracking-[-0.025em] text-white">{workflow.title}</p>
+                  <p className="text-lg font-semibold tracking-[-0.025em] text-td-primary">{workflow.title}</p>
                   {workflow.id === "collection" ? (
-                    <p className="mt-3 text-sm font-semibold text-cyan-200">
+                    <p className="mt-3 text-sm font-semibold text-td-accent-text">
                       {snapshot.totalOwnedQuantity.toLocaleString("en-US")} cards currently tracked
                     </p>
                   ) : null}
                   {workflow.id === "improve" ? (
-                    <p className="mt-3 text-sm font-semibold text-cyan-200">
+                    <p className="mt-3 text-sm font-semibold text-td-accent-text">
                       {savedDecks.length ? `${savedDecks.length} recent Deck Vault decks available` : "Open Deck Vault to import or save a deck"}
                     </p>
                   ) : null}
-                  <p className="mt-3 flex-1 text-sm leading-6 text-slate-400">{workflow.description}</p>
-                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300">
+                  <p className="mt-3 flex-1 text-sm leading-6 text-td-secondary">{workflow.description}</p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-td-accent-text">
                     {workflow.action}
                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                   </span>
@@ -657,19 +657,19 @@ export function DeckArchitectWorkspace({
 
 function CollectionSummary({ snapshot }: { snapshot: DeckArchitectCollectionSnapshot }) {
   return (
-    <section className="min-w-[280px] rounded-[14px] bg-[#06131f] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+    <section className="min-w-[280px] rounded-[14px] bg-td-surface px-4 py-3 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
       <div className="flex items-center justify-between gap-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Collection snapshot</p>
-          <p className="mt-1 text-sm font-semibold text-white">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-td-muted">Collection snapshot</p>
+          <p className="mt-1 text-sm font-semibold text-td-primary">
             {snapshot.totalOwnedQuantity.toLocaleString("en-US")} cards
-            <span className="mx-2 text-slate-600">/</span>
+            <span className="mx-2 text-td-muted">/</span>
             {snapshot.totalRows.toLocaleString("en-US")} printings
-            <span className="mx-2 text-slate-600">/</span>
+            <span className="mx-2 text-td-muted">/</span>
             {snapshot.commanderCandidates.length.toLocaleString("en-US")} commanders
           </p>
         </div>
-        <Link href="/dashboard/inventory" className="text-xs font-semibold text-cyan-300 hover:text-cyan-100">
+        <Link href="/dashboard/inventory" className="text-xs font-semibold text-td-accent-text hover:text-td-accent-text">
           Open
         </Link>
       </div>
@@ -694,18 +694,18 @@ function DiscoverWorkspace({
 
   return (
     <section className="space-y-5">
-      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.2)]">
+      <div className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045),0_20px_70px_rgb(var(--td-shadow-rgb)/calc(.2*var(--td-shadow-strength)))]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-cyan-300">What Can I Build?</p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-[-0.05em] text-white">Collection opportunities</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            <p className="text-sm font-semibold text-td-accent-text">What Can I Build?</p>
+            <h2 className="mt-1 text-3xl font-semibold tracking-[-0.05em] text-td-primary">Collection opportunities</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-td-muted">
               Ranked from deterministic archetype profiles, owned quantities, missing-card cost, and legality validation.
             </p>
           </div>
           <div className="rounded-[14px] bg-black/20 px-4 py-3">
-            <p className="text-xs font-semibold text-slate-200">{provider.name}</p>
-            <p className="mt-1 text-xs text-slate-500">Trading Docks support matrix</p>
+            <p className="text-xs font-semibold text-td-primary">{provider.name}</p>
+            <p className="mt-1 text-xs text-td-muted">Trading Docks support matrix</p>
           </div>
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -729,11 +729,11 @@ function DiscoverWorkspace({
         />
       )}
 
-      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-        <p className="text-sm font-semibold text-white">Current support</p>
+      <div className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
+        <p className="text-sm font-semibold text-td-primary">Current support</p>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {limitations.map((item) => (
-            <p key={item} className="rounded-[12px] bg-black/20 p-3 text-xs leading-5 text-slate-500">
+            <p key={item} className="rounded-[12px] bg-black/20 p-3 text-xs leading-5 text-td-muted">
               {item}
             </p>
           ))}
@@ -756,22 +756,22 @@ function OpportunityCard({
       ? "Nearly complete"
       : "Worth considering";
   const categoryClass = opportunity.category === "ready-now"
-    ? "text-emerald-200"
+    ? "text-td-success"
     : opportunity.category === "nearly-complete"
-      ? "text-cyan-200"
-      : "text-slate-300";
+      ? "text-td-accent-text"
+      : "text-td-secondary";
   const missing = opportunity.missingCards ?? [];
   const substitutions = opportunity.ownedSubstitutions ?? [];
 
   return (
-    <article className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+    <article className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${categoryClass}`}>{category}</p>
-          <h3 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-white">{opportunity.name}</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">{opportunity.disclosure}</p>
+          <h3 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-td-primary">{opportunity.name}</h3>
+          <p className="mt-2 text-sm leading-6 text-td-muted">{opportunity.disclosure}</p>
         </div>
-        <p className="rounded-full bg-black/25 px-3 py-1 text-xs font-semibold text-slate-300">
+        <p className="rounded-full bg-black/25 px-3 py-1 text-xs font-semibold text-td-secondary">
           {getFormatProfile(opportunity.formatId).name}
         </p>
       </div>
@@ -787,16 +787,16 @@ function OpportunityCard({
         {missing.slice(0, 3).map((match) => (
           <div key={match.requirement.id} className="flex items-center justify-between gap-3 rounded-[12px] bg-black/20 p-3">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">{match.requirement.name}</p>
-              <p className="mt-1 text-xs text-slate-500">Need {match.missingQuantity} / {primaryRoleLabel(match.requirement.roles)}</p>
+              <p className="truncate text-sm font-semibold text-td-primary">{match.requirement.name}</p>
+              <p className="mt-1 text-xs text-td-muted">Need {match.missingQuantity} / {primaryRoleLabel(match.requirement.roles)}</p>
             </div>
-            <p className="text-xs font-semibold text-slate-300">
+            <p className="text-xs font-semibold text-td-secondary">
               {match.estimatedMissingValue === null ? "Price unavailable" : `$${match.estimatedMissingValue.toFixed(2)}`}
             </p>
           </div>
         ))}
         {substitutions[0] ? (
-          <p className="rounded-[12px] bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-100/80">
+          <p className="rounded-[12px] bg-td-accent/10 p-3 text-xs leading-5 text-td-accent-text/80">
             Owned substitute: {substitutions[0].ownedCard.name} for {substitutions[0].missingCardName}
           </p>
         ) : null}
@@ -805,11 +805,11 @@ function OpportunityCard({
         <button
           type="button"
           onClick={() => onChooseFormat(opportunity.formatId)}
-          className="rounded-[12px] bg-cyan-300 px-4 py-2 text-sm font-semibold text-[#02131b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+          className="rounded-[12px] bg-td-accent px-4 py-2 text-sm font-semibold text-td-on-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
         >
           Build in this format
         </button>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-td-muted">
           Confidence: {opportunity.confidence ?? "medium"}
         </p>
       </div>
@@ -848,30 +848,30 @@ function SetupPanel({
         : "budget";
 
   return (
-    <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+    <section className="rounded-[18px] bg-td-surface p-4 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-base font-semibold tracking-[-0.02em] text-white">{selectedWorkflow?.title}</p>
-          <p className="mt-1 truncate text-sm text-slate-400">{selectedWorkflow?.description}</p>
+          <p className="text-base font-semibold tracking-[-0.02em] text-td-primary">{selectedWorkflow?.title}</p>
+          <p className="mt-1 truncate text-sm text-td-secondary">{selectedWorkflow?.description}</p>
         </div>
         <button
           type="button"
           onClick={() => setWorkflowId(null)}
-          className="shrink-0 rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.1] hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+          className="shrink-0 rounded-full bg-td-ink/[0.06] px-3 py-1.5 text-xs font-semibold text-td-secondary transition hover:bg-td-ink/[0.1] hover:text-td-accent-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
         >
           Change
         </button>
       </div>
 
       <label className="mt-4 block rounded-[14px] bg-black/20 p-3">
-        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Format</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-td-muted">Format</span>
         <select
           value={formatId}
           onChange={(event) => setFormatId(event.target.value as DeckArchitectFormatId)}
-          className="mt-2 h-10 w-full rounded-[10px] border border-white/[0.08] bg-[#071827] px-3 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/50"
+          className="mt-2 h-10 w-full rounded-[10px] border border-td-ink/[0.08] bg-td-surface px-3 text-sm font-semibold text-td-primary outline-none transition focus:border-td-accent/50"
         >
           {INITIAL_DECK_ARCHITECT_FORMATS.filter((id) => id !== "custom" && id !== "brawl").map((id) => (
-            <option key={id} value={id} className="bg-[#06131f] text-white">
+            <option key={id} value={id} className="bg-td-surface text-td-primary">
               {getFormatProfile(id).name}
             </option>
           ))}
@@ -931,7 +931,7 @@ function PreferenceGroup({
 }) {
   return (
     <div className="mt-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{title}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-td-muted">{title}</p>
       <div className={["mt-2 grid gap-2", columns === 3 ? "grid-cols-3" : "grid-cols-2"].join(" ")}>
         {options.map((option) => {
           const selected = option.id === selectedId;
@@ -941,12 +941,12 @@ function PreferenceGroup({
               type="button"
               onClick={() => onSelect(option.id)}
               className={[
-                "min-h-[66px] rounded-[12px] px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-                selected ? "bg-cyan-300/[0.12] text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 text-slate-300 hover:bg-white/[0.055]",
+                "min-h-[66px] rounded-[12px] px-3 py-2 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+                selected ? "bg-td-accent/[0.12] text-td-primary shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/.24)]" : "bg-black/20 text-td-secondary hover:bg-td-ink/[0.055]",
               ].join(" ")}
             >
               <span className="block text-xs font-semibold leading-4 sm:text-sm">{option.label}</span>
-              <span className="mt-0.5 block text-[11px] leading-4 text-slate-500">{option.description}</span>
+              <span className="mt-0.5 block text-[11px] leading-4 text-td-muted">{option.description}</span>
             </button>
           );
         })}
@@ -993,26 +993,26 @@ function CommanderPicker({
 
   if (selectedCommander && !changing) {
     return (
-      <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+      <section className="rounded-[18px] bg-td-surface p-4 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Selected commander</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-td-muted">Selected commander</p>
           <button
             type="button"
             onClick={() => setChanging(true)}
-            className="rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-cyan-200 transition hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+            className="rounded-full bg-td-ink/[0.06] px-3 py-1.5 text-xs font-semibold text-td-accent-text transition hover:bg-td-ink/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
           >
             Change commander
           </button>
         </div>
-        <div className="mt-3 flex gap-4 rounded-[16px] bg-black/25 p-3 shadow-[inset_0_0_0_1px_rgba(103,232,249,.08)]">
+        <div className="mt-3 flex gap-4 rounded-[16px] bg-black/25 p-3 shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/.08)]">
           <CardThumb card={selectedCommander} size="large" />
           <div className="min-w-0 flex-1">
-            <p className="text-xl font-semibold leading-6 tracking-[-0.035em] text-white">{selectedCommander.name}</p>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
+            <p className="text-xl font-semibold leading-6 tracking-[-0.035em] text-td-primary">{selectedCommander.name}</p>
+            <p className="mt-1 text-sm leading-6 text-td-secondary">
               {selectedCommander.colorIdentity?.length ? `${colorIdentityLabel(selectedCommander.colorIdentity)} / ` : ""}
               {selectedCommander.typeLine ?? "Commander"}
             </p>
-            <p className={["mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", selectedIsPotential ? "bg-amber-300/10 text-amber-100" : "bg-emerald-300/10 text-emerald-200"].join(" ")}>
+            <p className={["mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold", selectedIsPotential ? "bg-td-warning/10 text-td-warning" : "bg-td-success/10 text-td-success"].join(" ")}>
               {selectedIsPotential ? "Not currently in your collection" : `Owned ${selectedCommander.quantityOwned}`}
             </p>
           </div>
@@ -1022,9 +1022,9 @@ function CommanderPicker({
   }
 
   return (
-    <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+    <section className="rounded-[18px] bg-td-surface p-4 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Choose commander</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-td-muted">Choose commander</p>
         <div className="flex items-center gap-2">
           {selectedCommander ? (
             <button
@@ -1033,7 +1033,7 @@ function CommanderPicker({
                 onClearCommander();
                 setChanging(false);
               }}
-              className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-semibold text-slate-400 hover:text-cyan-100"
+              className="rounded-full bg-td-ink/[0.06] px-3 py-1 text-[11px] font-semibold text-td-secondary hover:text-td-accent-text"
             >
               Clear
             </button>
@@ -1049,7 +1049,7 @@ function CommanderPicker({
               }}
               className={[
                 "rounded-full px-3 py-1 text-[11px] font-semibold capitalize transition",
-                mode === item ? "bg-cyan-300 text-[#02131b]" : "text-slate-500 hover:text-slate-200",
+                mode === item ? "bg-td-accent text-td-on-accent" : "text-td-muted hover:text-td-primary",
               ].join(" ")}
             >
               {item}
@@ -1059,7 +1059,7 @@ function CommanderPicker({
         </div>
       </div>
       <label className="mt-3 flex h-10 items-center gap-2 rounded-[12px] bg-black/25 px-3">
-        <Search className="h-4 w-4 text-slate-500" />
+        <Search className="h-4 w-4 text-td-muted" />
         <input
           value={search}
           onChange={(event) => {
@@ -1067,22 +1067,22 @@ function CommanderPicker({
             if (mode === "potential") void onSearchPotentialCommanders(event.target.value);
           }}
           placeholder={mode === "owned" ? "Search owned commanders" : "Search supported catalog"}
-          className="min-w-0 flex-1 bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-600"
+          className="min-w-0 flex-1 bg-transparent text-sm text-td-primary outline-none placeholder:text-td-muted"
         />
       </label>
       {mode === "potential" ? (
-        <p className="mt-2 text-xs leading-5 text-slate-500">
+        <p className="mt-2 text-xs leading-5 text-td-muted">
           Potential commanders are not treated as owned and will appear in the missing-card summary.
         </p>
       ) : null}
       {potentialCommanderError && mode === "potential" ? (
-        <p className="mt-2 rounded-[10px] bg-rose-400/10 px-3 py-2 text-xs text-rose-100" role="alert">
+        <p className="mt-2 rounded-[10px] bg-td-danger/10 px-3 py-2 text-xs text-td-danger" role="alert">
           {potentialCommanderError}
         </p>
       ) : null}
       <div className="mt-3 space-y-2">
         {potentialCommanderLoading && mode === "potential" ? (
-          <div className="rounded-[14px] bg-black/20 p-4 text-sm text-slate-400">Searching supported catalog...</div>
+          <div className="rounded-[14px] bg-black/20 p-4 text-sm text-td-secondary">Searching supported catalog...</div>
         ) : null}
         {visibleCommanders.length ? visibleCommanders.map((card) => {
           const selected = card.inventoryId === selectedCommanderId;
@@ -1102,45 +1102,45 @@ function CommanderPicker({
               data-match-category={searchMatch?.category}
               data-relevance-score={searchMatch?.score}
               className={[
-                "flex w-full items-start gap-3 rounded-[14px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-                selected ? "bg-cyan-300/10" : "bg-black/20 hover:bg-white/[0.045]",
+                "flex w-full items-start gap-3 rounded-[14px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+                selected ? "bg-td-accent/10" : "bg-black/20 hover:bg-td-ink/[0.045]",
               ].join(" ")}
             >
               <CardThumb card={card} size={mode === "potential" ? "medium" : "small"} />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-5 text-white">{card.name}</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                <span className="block text-sm font-semibold leading-5 text-td-primary">{card.name}</span>
+                <span className="mt-1 block text-xs leading-5 text-td-muted">
                   {card.quantityOwned > 0 ? `Owned ${card.quantityOwned}` : "Commander not owned"}{card.setCode ? ` / ${card.setCode.toUpperCase()}` : ""}
                 </span>
                 {card.colorIdentity?.length ? (
                   <span className="mt-2 inline-flex items-center gap-1" aria-label={`Color identity ${card.colorIdentity.join(", ")}`}>
                     {card.colorIdentity.map((color) => (
-                      <span key={color} className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-white/[0.08] text-[9px] font-semibold text-slate-200">
+                      <span key={color} className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-td-ink/[0.08] text-[11px] font-semibold text-td-primary">
                         {color}
                       </span>
                     ))}
                   </span>
                 ) : null}
                 {strategy ? (
-                  <span className="mt-2 block text-xs leading-5 text-cyan-200/80">
+                  <span className="mt-2 block text-xs leading-5 text-td-accent-text/80">
                     {strategy.label} / {strategy.confidence} confidence
                   </span>
                 ) : null}
                 {searchMatch ? (
-                  <span className="mt-1 block text-[11px] leading-4 text-slate-600">
+                  <span className="mt-1 block text-[11px] leading-4 text-td-muted">
                     {searchMatch.category.replace("-", " ")} match
                   </span>
                 ) : null}
               </span>
-              {selected ? <Check className="h-4 w-4 text-cyan-200" /> : <ChevronRight className="h-4 w-4 text-slate-600" />}
+              {selected ? <Check className="h-4 w-4 text-td-accent-text" /> : <ChevronRight className="h-4 w-4 text-td-muted" />}
             </button>
           );
         }) : !potentialCommanderLoading ? (
           <div className="rounded-[14px] bg-black/20 p-4">
-            <p className="text-sm font-semibold text-slate-100">
+            <p className="text-sm font-semibold text-td-primary">
               {mode === "owned" ? "No commanders found yet" : search.trim() ? `No commanders found for "${search.trim()}"` : "Search for a commander"}
             </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="mt-2 text-sm leading-6 text-td-muted">
               {mode === "owned"
                 ? "Deck Architect could not find an eligible commander in your current collection."
                 : search.trim()
@@ -1148,7 +1148,7 @@ function CommanderPicker({
                   : "Build around a commander from the supported catalog even if it is not in your collection yet."}
             </p>
             {mode === "owned" ? <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/dashboard/inventory" className="rounded-[10px] bg-cyan-300 px-3 py-2 text-xs font-semibold text-[#02131b]">
+              <Link href="/dashboard/inventory" className="rounded-[10px] bg-td-accent px-3 py-2 text-xs font-semibold text-td-on-accent">
                 Add cards
               </Link>
             </div> : null}
@@ -1173,9 +1173,9 @@ function StrategyPicker({
   const [customOpen, setCustomOpen] = useState(selectedStrategyId !== "auto" && selectedStrategyId !== null);
   const balancedFit = fits[0] ?? null;
   return (
-    <section className="rounded-[18px] bg-[#06131f] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <p className="text-sm font-semibold text-white">Strategy</p>
-      <p className="mt-1 text-sm leading-6 text-slate-400">
+    <section className="rounded-[18px] bg-td-surface p-4 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
+      <p className="text-sm font-semibold text-td-primary">Strategy</p>
+      <p className="mt-1 text-sm leading-6 text-td-secondary">
         Choose how much direction Deck Architect should apply to {commander.name}.
       </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
@@ -1186,12 +1186,12 @@ function StrategyPicker({
             setSelectedStrategyId("auto");
           }}
           className={[
-            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-            selectedStrategyId === "auto" || selectedStrategyId === null ? "bg-cyan-300/[0.12] shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 hover:bg-white/[0.055]",
+            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+            selectedStrategyId === "auto" || selectedStrategyId === null ? "bg-td-accent/[0.12] shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/.24)]" : "bg-black/20 hover:bg-td-ink/[0.055]",
           ].join(" ")}
         >
-          <span className="block text-sm font-semibold text-white">Architect for me</span>
-          <span className="mt-1 block text-xs leading-5 text-slate-500">Pick the best fit.</span>
+          <span className="block text-sm font-semibold text-td-primary">Architect for me</span>
+          <span className="mt-1 block text-xs leading-5 text-td-muted">Pick the best fit.</span>
         </button>
         <button
           type="button"
@@ -1200,12 +1200,12 @@ function StrategyPicker({
             setSelectedStrategyId(balancedFit?.strategy.id ?? "auto");
           }}
           className={[
-            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-            balancedFit && selectedStrategyId === balancedFit.strategy.id && !customOpen ? "bg-cyan-300/[0.12] shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 hover:bg-white/[0.055]",
+            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+            balancedFit && selectedStrategyId === balancedFit.strategy.id && !customOpen ? "bg-td-accent/[0.12] shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/.24)]" : "bg-black/20 hover:bg-td-ink/[0.055]",
           ].join(" ")}
         >
-          <span className="block text-sm font-semibold text-white">Balanced</span>
-          <span className="mt-1 block text-xs leading-5 text-slate-500">{balancedFit?.strategy.label ?? "General shell"}</span>
+          <span className="block text-sm font-semibold text-td-primary">Balanced</span>
+          <span className="mt-1 block text-xs leading-5 text-td-muted">{balancedFit?.strategy.label ?? "General shell"}</span>
         </button>
         <button
           type="button"
@@ -1214,12 +1214,12 @@ function StrategyPicker({
             setSelectedStrategyId(balancedFit?.strategy.id ?? "auto");
           }}
           className={[
-            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-            customOpen ? "bg-cyan-300/[0.12] shadow-[inset_0_0_0_1px_rgba(103,232,249,.24)]" : "bg-black/20 hover:bg-white/[0.055]",
+            "rounded-[12px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+            customOpen ? "bg-td-accent/[0.12] shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/.24)]" : "bg-black/20 hover:bg-td-ink/[0.055]",
           ].join(" ")}
         >
-          <span className="block text-sm font-semibold text-white">Custom</span>
-          <span className="mt-1 block text-xs leading-5 text-slate-500">Tune strategy.</span>
+          <span className="block text-sm font-semibold text-td-primary">Custom</span>
+          <span className="mt-1 block text-xs leading-5 text-td-muted">Tune strategy.</span>
         </button>
       </div>
       {customOpen ? (
@@ -1239,23 +1239,23 @@ function StrategyPicker({
               type="button"
               onClick={() => setSelectedStrategyId(fit.strategy.id)}
               className={[
-                "w-full rounded-[14px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-                selected ? "bg-cyan-300/10" : "bg-black/20 hover:bg-white/[0.045]",
+                "w-full rounded-[14px] p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+                selected ? "bg-td-accent/10" : "bg-black/20 hover:bg-td-ink/[0.045]",
               ].join(" ")}
             >
               <span className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-white">{fit.strategy.label}</span>
-                <span className="text-xs font-semibold text-cyan-200">{fit.fit} fit</span>
+                <span className="text-sm font-semibold text-td-primary">{fit.strategy.label}</span>
+                <span className="text-xs font-semibold text-td-accent-text">{fit.fit} fit</span>
               </span>
-              <span className="mt-1 block text-xs leading-5 text-slate-500">{fit.strategy.summary}</span>
+              <span className="mt-1 block text-xs leading-5 text-td-muted">{fit.strategy.summary}</span>
               <span className="mt-2 flex flex-wrap gap-1.5">
                 {tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-white/[0.06] px-2 py-1 text-[10px] font-semibold text-slate-300">
+                  <span key={tag} className="rounded-full bg-td-ink/[0.06] px-2 py-1 text-[11px] font-semibold text-td-secondary">
                     {tag}
                   </span>
                 ))}
               </span>
-              <span className="mt-2 block text-[11px] leading-4 text-slate-600">
+              <span className="mt-2 block text-[11px] leading-4 text-td-muted">
                 {fit.ownedSupportCount} supporting cards owned / {fit.missingCoreCards.length} core gaps
               </span>
             </button>
@@ -1327,7 +1327,7 @@ function PreBuildState({
           <button
             type="button"
             onClick={() => setFormatId("casual60")}
-            className="rounded-[12px] bg-cyan-300 px-4 py-2 text-sm font-semibold text-[#02131b]"
+            className="rounded-[12px] bg-td-accent px-4 py-2 text-sm font-semibold text-td-on-accent"
           >
             Choose another format
           </button>
@@ -1375,7 +1375,7 @@ function PreBuildState({
           <button
             type="button"
             onClick={onBuild}
-            className="inline-flex items-center gap-2 rounded-[12px] bg-cyan-300 px-5 py-3 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+            className="inline-flex items-center gap-2 rounded-[12px] bg-td-accent px-5 py-3 text-sm font-semibold text-td-on-accent transition hover:bg-td-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
           >
             Try again
             <ArrowRight className="h-4 w-4" />
@@ -1389,9 +1389,9 @@ function PreBuildState({
     <div className="flex flex-col items-start gap-4">
       {intentId === "budget" ? (
         <div className="w-full rounded-[16px] bg-black/25 p-4 text-left">
-          <p className="text-sm font-semibold text-slate-200">Budget Mode</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Budget applies only to missing cards. Owned expensive cards remain eligible; unknown prices are excluded in strict budget builds.</p>
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Max individual missing-card price</p>
+          <p className="text-sm font-semibold text-td-primary">Budget Mode</p>
+          <p className="mt-1 text-xs leading-5 text-td-muted">Budget applies only to missing cards. Owned expensive cards remain eligible; unknown prices are excluded in strict budget builds.</p>
+          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-td-muted">Max individual missing-card price</p>
           <div className="mt-3 grid grid-cols-4 gap-2">
             {[100, 200, 500, 1000, 2500].map((value) => (
               <button
@@ -1399,15 +1399,15 @@ function PreBuildState({
                 type="button"
                 onClick={() => setBudgetCents(value)}
                 className={[
-                  "h-9 rounded-[10px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-                  budgetCents === value ? "bg-cyan-300 text-[#02131b]" : "bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]",
+                  "h-9 rounded-[10px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+                  budgetCents === value ? "bg-td-accent text-td-on-accent" : "bg-td-ink/[0.06] text-td-secondary hover:bg-td-ink/[0.1]",
                 ].join(" ")}
               >
                 ${(value / 100).toFixed(0)}
               </button>
             ))}
           </div>
-          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Total missing-card budget</p>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-td-muted">Total missing-card budget</p>
           <div className="mt-3 grid grid-cols-4 gap-2">
             {[2500, 5000, 10000, 20000].map((value) => (
               <button
@@ -1415,8 +1415,8 @@ function PreBuildState({
                 type="button"
                 onClick={() => setTotalBudgetCents(value)}
                 className={[
-                  "h-9 rounded-[10px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-                  totalBudgetCents === value ? "bg-cyan-300 text-[#02131b]" : "bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]",
+                  "h-9 rounded-[10px] text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+                  totalBudgetCents === value ? "bg-td-accent text-td-on-accent" : "bg-td-ink/[0.06] text-td-secondary hover:bg-td-ink/[0.1]",
                 ].join(" ")}
               >
                 ${(value / 100).toFixed(0)}
@@ -1428,7 +1428,7 @@ function PreBuildState({
       <button
         type="button"
         onClick={onBuild}
-        className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-cyan-300 px-5 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+        className="inline-flex h-11 items-center gap-2 rounded-[12px] bg-td-accent px-5 text-sm font-semibold text-td-on-accent transition hover:bg-td-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
       >
         Architect Deck
         <ArrowRight className="h-4 w-4" />
@@ -1481,7 +1481,7 @@ function DeckPreviewState({
   tone?: "neutral" | "attention";
 }) {
   return (
-    <section className="min-h-[360px] rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.2)]">
+    <section className="min-h-[360px] rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045),0_20px_70px_rgb(var(--td-shadow-rgb)/calc(.2*var(--td-shadow-strength)))]">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         {selectedCommander ? (
           <div className="rounded-[18px] bg-black/25 p-2">
@@ -1489,11 +1489,11 @@ function DeckPreviewState({
           </div>
         ) : null}
         <div className="min-w-0 flex-1">
-          <p className={["text-sm font-semibold", tone === "attention" ? "text-amber-100" : "text-cyan-300"].join(" ")}>
+          <p className={["text-sm font-semibold", tone === "attention" ? "text-td-warning" : "text-td-accent-text"].join(" ")}>
             Commander workspace
           </p>
-          <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.045em] text-white sm:text-3xl">{title}</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">{body}</p>
+          <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.045em] text-td-primary sm:text-3xl">{title}</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-td-secondary sm:text-base">{body}</p>
 
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             <Detail label="Commander" value={selectedCommander?.name ?? "Not selected"} />
@@ -1501,7 +1501,7 @@ function DeckPreviewState({
             <Detail label="Strategy" value={selectedStrategyLabel ?? "Architect for me"} />
           </div>
           {selectedCommander && selectedCommander.quantityOwned <= 0 ? (
-            <p className="mt-4 rounded-[12px] bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+            <p className="mt-4 rounded-[12px] bg-td-warning/10 px-3 py-2 text-sm text-td-warning">
               Not currently in your collection. Deck Architect can still build with suggested purchases unless Card source is Collection only.
             </p>
           ) : null}
@@ -1591,16 +1591,16 @@ function ActiveDeckWorkspace({
 
   return (
     <section className="min-w-0">
-      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045),0_20px_70px_rgba(0,0,0,.2)]">
+      <div className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045),0_20px_70px_rgb(var(--td-shadow-rgb)/calc(.2*var(--td-shadow-strength)))]">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="flex min-w-0 gap-4">
             {selectedCommander ? <CardThumb card={selectedCommander} size="large" /> : null}
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-cyan-300">
+              <p className="text-sm font-semibold text-td-accent-text">
                 {statusLabel} / {formatName} / {selectedStrategyLabel ? `${selectedStrategyLabel} / ` : ""}{intentLabel}
               </p>
-              <h2 className="mt-1 truncate text-3xl font-semibold tracking-[-0.05em] text-white">{deckName}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              <h2 className="mt-1 truncate text-3xl font-semibold tracking-[-0.05em] text-td-primary">{deckName}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-td-muted">
                 {isCompleteWorkingDeck
                   ? "Working deck plan assembled from your build intent, collection, and missing-card gaps. Review every change before saving to Deck Vault."
                   : generationFailure ?? "Draft shell assembled from available card data. Change build settings or choose another strategy before saving to Deck Vault."}
@@ -1620,8 +1620,8 @@ function ActiveDeckWorkspace({
               type="button"
               onClick={() => setViewMode(mode)}
               className={[
-                "h-9 rounded-full px-4 text-sm font-semibold capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-                viewMode === mode ? "bg-cyan-300 text-[#02131b]" : "bg-black/25 text-slate-300 hover:bg-white/[0.06]",
+                "h-9 rounded-full px-4 text-sm font-semibold capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+                viewMode === mode ? "bg-td-accent text-td-on-accent" : "bg-black/25 text-td-secondary hover:bg-td-ink/[0.06]",
               ].join(" ")}
             >
               {mode}
@@ -1630,7 +1630,7 @@ function ActiveDeckWorkspace({
           <button
             type="button"
             onClick={onChangeBuildSettings}
-            className="h-9 rounded-full bg-white/[0.06] px-4 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+            className="h-9 rounded-full bg-td-ink/[0.06] px-4 text-sm font-semibold text-td-secondary transition hover:bg-td-ink/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
           >
             Change build settings
           </button>
@@ -1638,7 +1638,7 @@ function ActiveDeckWorkspace({
             type="button"
             onClick={() => void onOpenInBuilder()}
             disabled={!ownership.length || builderStatus === "saving" || generationStatus === "draft_shell" || generationStatus === "failed"}
-            className="ml-auto inline-flex h-9 items-center gap-2 rounded-full bg-cyan-300 px-4 text-sm font-semibold text-[#02131b] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-50"
+            className="ml-auto inline-flex h-9 items-center gap-2 rounded-full bg-td-accent px-4 text-sm font-semibold text-td-on-accent transition hover:bg-td-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {builderStatus === "saving" ? "Saving..." : "Open in Deck Builder"}
             <ArrowRight className="h-4 w-4" />
@@ -1647,14 +1647,14 @@ function ActiveDeckWorkspace({
         {generationWarnings.length ? (
           <div className="mt-3 space-y-2">
             {generationWarnings.map((warning) => (
-              <p key={warning} className="rounded-[12px] bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+              <p key={warning} className="rounded-[12px] bg-td-warning/10 px-3 py-2 text-sm text-td-warning">
                 {warning}
               </p>
             ))}
           </div>
         ) : null}
         {builderStatus === "error" ? (
-          <p className="mt-3 rounded-[12px] bg-rose-400/10 px-3 py-2 text-sm text-rose-100" role="alert">
+          <p className="mt-3 rounded-[12px] bg-td-danger/10 px-3 py-2 text-sm text-td-danger" role="alert">
             {builderError}
           </p>
         ) : null}
@@ -1718,19 +1718,19 @@ function DeckStructure({
   setSelectedCardId: (id: string) => void;
 }) {
   return (
-    <section className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+    <section className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-lg font-semibold tracking-[-0.025em] text-white">Deck Structure</p>
-          <p className="mt-1 text-sm text-slate-500">Cards are grouped by their primary role in the current plan.</p>
+          <p className="text-lg font-semibold tracking-[-0.025em] text-td-primary">Deck Structure</p>
+          <p className="mt-1 text-sm text-td-muted">Cards are grouped by their primary role in the current plan.</p>
         </div>
       </div>
       <div className="mt-5 space-y-5">
         {grouped.map(([role, matches]) => (
           <div key={role}>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold capitalize text-slate-200">{role.replace("-", " ")}</p>
-              <p className="text-xs text-slate-600">{matches.length} cards</p>
+              <p className="text-sm font-semibold capitalize text-td-primary">{role.replace("-", " ")}</p>
+              <p className="text-xs text-td-muted">{matches.length} cards</p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {matches.slice(0, 10).map((match) => (
@@ -1738,12 +1738,12 @@ function DeckStructure({
                   key={match.requirement.id}
                   type="button"
                   onClick={() => setSelectedCardId(match.requirement.id)}
-                  className="group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45"
+                  className="group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45"
                 >
-                  <div className="overflow-hidden rounded-[15px] bg-black/25 shadow-[0_16px_34px_rgba(0,0,0,.24)] transition group-hover:-translate-y-0.5 group-hover:bg-white/[0.045]">
+                  <div className="overflow-hidden rounded-[15px] bg-black/25 shadow-[0_16px_34px_rgb(var(--td-shadow-rgb)/calc(.24*var(--td-shadow-strength)))] transition group-hover:-translate-y-0.5 group-hover:bg-td-ink/[0.045]">
                     <CardImage card={match.requirement} />
                   </div>
-                  <p className="mt-2 truncate text-xs font-semibold text-white">{match.requirement.name}</p>
+                  <p className="mt-2 truncate text-xs font-semibold text-td-primary">{match.requirement.name}</p>
                   <OwnershipPill match={match} />
                 </button>
               ))}
@@ -1771,26 +1771,26 @@ function SideRail({
       <InfoPanel title="Buildability" icon={<Layers3 className="h-4 w-4" />}>
         {buildability ? (
           <>
-            <p className="text-4xl font-semibold tracking-[-0.055em] text-white">{buildability.score}%</p>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="text-4xl font-semibold tracking-[-0.055em] text-td-primary">{buildability.score}%</p>
+            <p className="mt-2 text-sm text-td-muted">
               {buildability.ownedCards} / {buildability.requiredCards} cards available
             </p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-td-muted">
               {buildability.missingCards} missing
             </p>
-            <p className="mt-3 text-sm font-semibold text-slate-200">
+            <p className="mt-3 text-sm font-semibold text-td-primary">
               Estimated completion: {totalKnownMissingCost === null ? "Price unavailable" : `$${totalKnownMissingCost.toFixed(2)}`}
             </p>
           </>
         ) : (
-          <p className="text-sm leading-6 text-slate-500">Choose or build a deck to see how much of it you already own.</p>
+          <p className="text-sm leading-6 text-td-muted">Choose or build a deck to see how much of it you already own.</p>
         )}
       </InfoPanel>
 
       <InfoPanel title="Deck Health" icon={<ShieldCheck className="h-4 w-4" />}>
         {health ? (
           <>
-            <p className="text-4xl font-semibold tracking-[-0.055em] text-white">{health.overall}</p>
+            <p className="text-4xl font-semibold tracking-[-0.055em] text-td-primary">{health.overall}</p>
             <div className="mt-4 space-y-3">
               {Object.entries(health.categories).filter(([key]) => key !== "overall").map(([label, value]) => (
                 <HealthRow key={label} label={label} value={value} />
@@ -1798,30 +1798,30 @@ function SideRail({
             </div>
           </>
         ) : (
-          <p className="text-sm leading-6 text-slate-500">Choose or build a deck to analyze its balance, consistency, and interaction.</p>
+          <p className="text-sm leading-6 text-td-muted">Choose or build a deck to analyze its balance, consistency, and interaction.</p>
         )}
       </InfoPanel>
 
       <InfoPanel title="Missing Cards" icon={<BookOpen className="h-4 w-4" />}>
         {missing.length ? (
           <div className="space-y-3">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-td-muted">
               {missing.length} cards missing. Estimated completion: {totalKnownMissingCost === null ? "Price unavailable" : `$${totalKnownMissingCost.toFixed(2)}`}
             </p>
             {missing.slice(0, 4).map((match) => (
               <div key={match.requirement.id} className="rounded-[12px] bg-black/20 p-3">
-                <p className="text-sm font-semibold text-white">{match.requirement.name}</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="text-sm font-semibold text-td-primary">{match.requirement.name}</p>
+                <p className="mt-1 text-xs text-td-muted">
                   Need {match.requirement.requiredQuantity} / Owned {match.ownedQuantity}
                 </p>
-                <p className="mt-2 text-xs text-slate-300">
+                <p className="mt-2 text-xs text-td-secondary">
                   {match.estimatedMissingValue === null ? "Price unavailable" : `$${match.estimatedMissingValue.toFixed(2)}`}
                 </p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm leading-6 text-slate-500">You already own every card in this working plan.</p>
+          <p className="text-sm leading-6 text-td-muted">You already own every card in this working plan.</p>
         )}
       </InfoPanel>
     </aside>
@@ -1846,11 +1846,11 @@ function CardWorkspace({
   toggleMustInclude: (id: string) => void;
 }) {
   return (
-    <section className="mt-5 rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+    <section className="mt-5 rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-lg font-semibold tracking-[-0.025em] text-white">Card Workspace</p>
-          <p className="mt-1 text-sm text-slate-500">Review ownership, roles, prices, locks, and must-include choices.</p>
+          <p className="text-lg font-semibold tracking-[-0.025em] text-td-primary">Card Workspace</p>
+          <p className="mt-1 text-sm text-td-muted">Review ownership, roles, prices, locks, and must-include choices.</p>
         </div>
       </div>
       <div className="mt-5 overflow-hidden rounded-[16px] bg-black/20">
@@ -1860,19 +1860,19 @@ function CardWorkspace({
             <div
               key={match.requirement.id}
               className={[
-                "grid gap-3 border-b border-white/[0.06] p-3 last:border-b-0 md:grid-cols-[52px_minmax(0,1fr)_120px_120px_120px] md:items-center",
-                selected ? "bg-cyan-300/[0.055]" : "",
+                "grid gap-3 border-b border-td-ink/[0.06] p-3 last:border-b-0 md:grid-cols-[52px_minmax(0,1fr)_120px_120px_120px] md:items-center",
+                selected ? "bg-td-accent/[0.055]" : "",
               ].join(" ")}
             >
-              <button type="button" onClick={() => setSelectedCardId(match.requirement.id)} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+              <button type="button" onClick={() => setSelectedCardId(match.requirement.id)} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45">
                 <CardThumb card={match.requirement} size="small" />
               </button>
-              <button type="button" onClick={() => setSelectedCardId(match.requirement.id)} className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
-                <p className="truncate text-sm font-semibold text-white">{match.requirement.name}</p>
-                <p className="mt-1 truncate text-xs text-slate-500">{match.requirement.typeLine ?? "Card type unavailable"}</p>
+              <button type="button" onClick={() => setSelectedCardId(match.requirement.id)} className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45">
+                <p className="truncate text-sm font-semibold text-td-primary">{match.requirement.name}</p>
+                <p className="mt-1 truncate text-xs text-td-muted">{match.requirement.typeLine ?? "Card type unavailable"}</p>
               </button>
               <OwnershipPill match={match} />
-              <p className="text-sm text-slate-300">{match.requirement.estimatedPrice == null ? "Price unavailable" : `$${match.requirement.estimatedPrice.toFixed(2)}`}</p>
+              <p className="text-sm text-td-secondary">{match.requirement.estimatedPrice == null ? "Price unavailable" : `$${match.requirement.estimatedPrice.toFixed(2)}`}</p>
               <div className="flex gap-2">
                 <IconToggle
                   active={lockedCards.has(match.requirement.id)}
@@ -1916,15 +1916,15 @@ function DeckIntelligence({
   return (
     <section className="mt-5 space-y-5">
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+        <div className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-lg font-semibold tracking-[-0.025em] text-white">Brew With Deck Architect</p>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+              <p className="text-lg font-semibold tracking-[-0.025em] text-td-primary">Brew With Deck Architect</p>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-td-muted">
                 Describe the direction. Deck Architect translates it into structured constraints, then validation decides what can safely change.
               </p>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-200">
+            <span className="inline-flex items-center gap-2 rounded-full bg-td-accent/10 px-3 py-1 text-xs font-semibold text-td-accent-text">
               <Brain className="h-3.5 w-3.5" />
               AI proposes / Trading Docks validates
             </span>
@@ -1935,7 +1935,7 @@ function DeckIntelligence({
               value={brewPrompt}
               onChange={(event) => setBrewPrompt(event.target.value)}
               rows={3}
-              className="w-full resize-none rounded-[16px] bg-black/25 p-4 text-sm leading-6 text-slate-100 outline-none ring-1 ring-white/[0.06] transition placeholder:text-slate-600 focus:ring-cyan-300/45"
+              className="w-full resize-none rounded-[16px] bg-black/25 p-4 text-sm leading-6 text-td-primary outline-none ring-1 ring-td-ink/[0.06] transition placeholder:text-td-muted focus:ring-td-accent/45"
               placeholder="Example: Make this more resilient, cut expensive staples, avoid infinite combos, and use more cards I own."
             />
           </label>
@@ -1944,31 +1944,31 @@ function DeckIntelligence({
               { label: "Review mode", detail: "Enter a goal to generate structured constraints.", confidence: "medium" as const },
             ]).slice(0, 3).map((constraint) => (
               <div key={constraint.label} className="rounded-[14px] bg-black/20 p-3">
-                <p className="text-sm font-semibold text-white">{constraint.label}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{constraint.detail}</p>
-                <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-200">{constraint.confidence} confidence</p>
+                <p className="text-sm font-semibold text-td-primary">{constraint.label}</p>
+                <p className="mt-1 text-xs leading-5 text-td-muted">{constraint.detail}</p>
+                <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text">{constraint.confidence} confidence</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-          <p className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Shuffle className="h-4 w-4 text-cyan-300" />
+        <div className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
+          <p className="flex items-center gap-2 text-sm font-semibold text-td-primary">
+            <Shuffle className="h-4 w-4 text-td-accent-text" />
             Surprise Me
           </p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <p className="mt-2 text-sm leading-6 text-td-muted">
             Less typical directions hiding in the current card pool.
           </p>
           <div className="mt-4 space-y-3">
             {brewAnalysis?.surpriseDirections.length ? brewAnalysis.surpriseDirections.slice(0, 3).map((idea) => (
               <div key={idea.id} className="rounded-[14px] bg-black/20 p-3">
-                <p className="text-sm font-semibold text-white">{idea.name}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{idea.signals?.[0]?.detail ?? idea.disclosure}</p>
-                <p className="mt-2 text-xs font-semibold text-cyan-200">{idea.buildability.score}% collection fit</p>
+                <p className="text-sm font-semibold text-td-primary">{idea.name}</p>
+                <p className="mt-1 text-xs leading-5 text-td-muted">{idea.signals?.[0]?.detail ?? idea.disclosure}</p>
+                <p className="mt-2 text-xs font-semibold text-td-accent-text">{idea.buildability.score}% collection fit</p>
               </div>
             )) : (
-              <p className="rounded-[14px] bg-black/20 p-3 text-sm leading-6 text-slate-500">
+              <p className="rounded-[14px] bg-black/20 p-3 text-sm leading-6 text-td-muted">
                 Add more cards with rules text to reveal collection-specific brewing directions.
               </p>
             )}
@@ -1977,9 +1977,9 @@ function DeckIntelligence({
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-        <p className="text-lg font-semibold tracking-[-0.025em] text-white">Deck Intelligence</p>
-        <p className="mt-1 text-sm text-slate-500">Recommendations stay reviewable. Deck Architect never mutates a deck silently.</p>
+        <div className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
+        <p className="text-lg font-semibold tracking-[-0.025em] text-td-primary">Deck Intelligence</p>
+        <p className="mt-1 text-sm text-td-muted">Recommendations stay reviewable. Deck Architect never mutates a deck silently.</p>
         <div className="mt-5 space-y-3">
           {issues.length ? issues.map((issue) => (
             <IntelligenceItem
@@ -2017,9 +2017,9 @@ function DeckIntelligence({
           ))}
         </div>
       </div>
-      <div className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-        <p className="flex items-center gap-2 text-sm font-semibold text-white">
-          <Wand2 className="h-4 w-4 text-cyan-300" />
+      <div className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
+        <p className="flex items-center gap-2 text-sm font-semibold text-td-primary">
+          <Wand2 className="h-4 w-4 text-td-accent-text" />
           Recommended Change
         </p>
         {recommendations[0]?.adds[0] ? (
@@ -2034,20 +2034,20 @@ function DeckIntelligence({
               name={recommendations[0].adds[0].name}
               note={recommendations[0].adds[0].additionalCost === null ? "Price unavailable" : `$${recommendations[0].adds[0].additionalCost.toFixed(2)} estimated`}
             />
-            <p className="text-sm leading-6 text-slate-500">
+            <p className="text-sm leading-6 text-td-muted">
               Why: {recommendations[0].adds[0].reason}
             </p>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="rounded-[12px] bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-400" disabled>
+              <button type="button" className="rounded-[12px] bg-td-ink/[0.06] px-4 py-2 text-sm font-semibold text-td-secondary" disabled>
                 Apply after review unavailable
               </button>
-              <button type="button" className="rounded-[12px] bg-black/25 px-4 py-2 text-sm font-semibold text-slate-300">
+              <button type="button" className="rounded-[12px] bg-black/25 px-4 py-2 text-sm font-semibold text-td-secondary">
                 Dismiss
               </button>
             </div>
           </div>
         ) : (
-          <p className="mt-4 text-sm leading-6 text-slate-500">Build or select a deck with missing cards to receive recommendations.</p>
+          <p className="mt-4 text-sm leading-6 text-td-muted">Build or select a deck with missing cards to receive recommendations.</p>
         )}
       </div>
       </div>
@@ -2056,35 +2056,35 @@ function DeckIntelligence({
         <IntelligencePanel title="Hidden Synergy" icon={<Sparkles className="h-4 w-4" />}>
           {brewAnalysis?.hiddenSynergies.length ? brewAnalysis.hiddenSynergies.map((cluster) => (
             <div key={cluster.id} className="rounded-[14px] bg-black/20 p-3">
-              <p className="text-sm font-semibold text-white">{cluster.title}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">{cluster.summary}</p>
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className="text-sm font-semibold text-td-primary">{cluster.title}</p>
+              <p className="mt-1 text-xs leading-5 text-td-muted">{cluster.summary}</p>
+              <p className="mt-2 text-[11px] text-td-secondary">
                 {cluster.resources.join(" + ")} into {cluster.payoffs.join(" + ")}
               </p>
             </div>
-          )) : <p className="text-sm leading-6 text-slate-500">No strong hidden synergy cluster is visible yet.</p>}
+          )) : <p className="text-sm leading-6 text-td-muted">No strong hidden synergy cluster is visible yet.</p>}
         </IntelligencePanel>
 
         <IntelligencePanel title="Role Compression" icon={<Layers3 className="h-4 w-4" />}>
           {brewAnalysis?.roleCompression.length ? brewAnalysis.roleCompression.slice(0, 4).map((item) => (
             <div key={item.cardName} className="rounded-[14px] bg-black/20 p-3">
-              <p className="text-sm font-semibold text-white">{item.cardName}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">{item.explanation}</p>
-              <p className="mt-2 text-[11px] font-semibold text-cyan-200">{item.owned ? "Owned" : "Missing"}</p>
+              <p className="text-sm font-semibold text-td-primary">{item.cardName}</p>
+              <p className="mt-1 text-xs leading-5 text-td-muted">{item.explanation}</p>
+              <p className="mt-2 text-[11px] font-semibold text-td-accent-text">{item.owned ? "Owned" : "Missing"}</p>
             </div>
-          )) : <p className="text-sm leading-6 text-slate-500">No multi-role cards stand out in this plan yet.</p>}
+          )) : <p className="text-sm leading-6 text-td-muted">No multi-role cards stand out in this plan yet.</p>}
         </IntelligencePanel>
 
         <IntelligencePanel title="What If / Fork Deck" icon={<GitFork className="h-4 w-4" />}>
           {brewAnalysis?.proposals.length ? brewAnalysis.proposals.slice(0, 3).map((proposal) => (
             <div key={proposal.id} className="rounded-[14px] bg-black/20 p-3">
-              <p className="text-sm font-semibold text-white">{proposal.title}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">{proposal.explanation}</p>
-              <p className={["mt-2 text-[11px] font-semibold", proposal.validation.valid ? "text-emerald-200" : "text-amber-200"].join(" ")}>
+              <p className="text-sm font-semibold text-td-primary">{proposal.title}</p>
+              <p className="mt-1 text-xs leading-5 text-td-muted">{proposal.explanation}</p>
+              <p className={["mt-2 text-[11px] font-semibold", proposal.validation.valid ? "text-td-success" : "text-td-warning"].join(" ")}>
                 {proposal.validation.valid ? "Validator approved proposal shape" : "Needs review before saving"}
               </p>
             </div>
-          )) : <p className="text-sm leading-6 text-slate-500">Enter a brew goal to generate a fork proposal.</p>}
+          )) : <p className="text-sm leading-6 text-td-muted">Enter a brew goal to generate a fork proposal.</p>}
         </IntelligencePanel>
       </div>
 
@@ -2093,18 +2093,18 @@ function DeckIntelligence({
           <div className="grid gap-3 sm:grid-cols-2">
             {brewAnalysis?.personality.explanations.map((item) => (
               <HealthRow key={item.dimension} label={item.label} value={brewAnalysis.personality.dimensions[item.dimension]} />
-            )) ?? <p className="text-sm leading-6 text-slate-500">Build a deck to calculate personality signals.</p>}
+            )) ?? <p className="text-sm leading-6 text-td-muted">Build a deck to calculate personality signals.</p>}
           </div>
         </IntelligencePanel>
 
         <IntelligencePanel title="Strategy Overload" icon={<ShieldCheck className="h-4 w-4" />}>
-          <p className="text-sm leading-6 text-slate-500">
+          <p className="text-sm leading-6 text-td-muted">
             {brewAnalysis?.strategyOverload.recommendation ?? "Build a deck to check for overloaded strategy packages."}
           </p>
           {brewAnalysis?.strategyOverload.themes.length ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {brewAnalysis.strategyOverload.themes.map((theme) => (
-                <span key={theme} className="rounded-full bg-white/[0.06] px-2 py-1 text-[11px] font-semibold text-slate-300">
+                <span key={theme} className="rounded-full bg-td-ink/[0.06] px-2 py-1 text-[11px] font-semibold text-td-secondary">
                   {theme}
                 </span>
               ))}
@@ -2134,10 +2134,10 @@ function CardDetailDrawer({
   const card = match.requirement;
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/45 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={`${card.name} details`}>
-      <div className="flex h-full w-full max-w-[460px] flex-col overflow-hidden rounded-[22px] bg-[#06131f] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/[0.08] p-4">
-          <p className="text-sm font-semibold text-white">Card details</p>
-          <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+      <div className="flex h-full w-full max-w-[460px] flex-col overflow-hidden rounded-[22px] bg-td-surface shadow-2xl">
+        <div className="flex items-center justify-between border-b border-td-ink/[0.08] p-4">
+          <p className="text-sm font-semibold text-td-primary">Card details</p>
+          <button type="button" onClick={onClose} className="rounded-full p-2 text-td-secondary hover:bg-td-ink/[0.06] hover:text-td-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -2145,9 +2145,9 @@ function CardDetailDrawer({
           <div className="mx-auto max-w-[280px] overflow-hidden rounded-[18px] bg-black/25">
             <CardImage card={card} />
           </div>
-          <h3 className="mt-5 text-2xl font-semibold tracking-[-0.04em] text-white">{card.name}</h3>
-          <p className="mt-2 text-sm text-slate-500">{card.typeLine ?? "Card type unavailable"}</p>
-          {card.oracleText ? <p className="mt-4 whitespace-pre-line text-sm leading-6 text-slate-300">{card.oracleText}</p> : null}
+          <h3 className="mt-5 text-2xl font-semibold tracking-[-0.04em] text-td-primary">{card.name}</h3>
+          <p className="mt-2 text-sm text-td-muted">{card.typeLine ?? "Card type unavailable"}</p>
+          {card.oracleText ? <p className="mt-4 whitespace-pre-line text-sm leading-6 text-td-secondary">{card.oracleText}</p> : null}
           <dl className="mt-5 grid grid-cols-2 gap-3">
             <Detail label="Required" value={String(card.requiredQuantity)} />
             <Detail label="Owned" value={String(match.ownedQuantity)} />
@@ -2155,19 +2155,19 @@ function CardDetailDrawer({
             <Detail label="Price" value={card.estimatedPrice == null ? "Price unavailable" : `$${card.estimatedPrice.toFixed(2)}`} />
           </dl>
           <div className="mt-5 grid gap-3">
-            <button type="button" onClick={toggleLocked} className="flex items-center justify-between rounded-[14px] bg-black/20 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+            <button type="button" onClick={toggleLocked} className="flex items-center justify-between rounded-[14px] bg-black/20 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45">
               <span>
-                <span className="block text-sm font-semibold text-white">Lock</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">Deck Architect cannot remove this card during optimization.</span>
+                <span className="block text-sm font-semibold text-td-primary">Lock</span>
+                <span className="mt-1 block text-xs leading-5 text-td-muted">Deck Architect cannot remove this card during optimization.</span>
               </span>
-              <span className={locked ? "text-cyan-300" : "text-slate-600"}><Lock className="h-4 w-4" /></span>
+              <span className={locked ? "text-td-accent-text" : "text-td-muted"}><Lock className="h-4 w-4" /></span>
             </button>
-            <button type="button" onClick={toggleMustInclude} className="flex items-center justify-between rounded-[14px] bg-black/20 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45">
+            <button type="button" onClick={toggleMustInclude} className="flex items-center justify-between rounded-[14px] bg-black/20 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45">
               <span>
-                <span className="block text-sm font-semibold text-white">Must Include</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">Deck Architect should preserve this card in rebuilds.</span>
+                <span className="block text-sm font-semibold text-td-primary">Must Include</span>
+                <span className="mt-1 block text-xs leading-5 text-td-muted">Deck Architect should preserve this card in rebuilds.</span>
               </span>
-              <span className={mustInclude ? "text-cyan-300" : "text-slate-600"}><Star className="h-4 w-4" /></span>
+              <span className={mustInclude ? "text-td-accent-text" : "text-td-muted"}><Star className="h-4 w-4" /></span>
             </button>
           </div>
         </div>
@@ -2196,7 +2196,7 @@ function primaryRoleForRequirement(requirement: DeckRequirement): DeckArchitectR
 function CardThumb({ card, size }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri">; size: "small" | "medium" | "large" | "preview" }) {
   const classes = size === "preview" ? "h-44 w-32" : size === "large" ? "h-28 w-20" : size === "medium" ? "h-20 w-14" : "h-16 w-12";
   return (
-    <div className={`${classes} shrink-0 overflow-hidden rounded-[12px] bg-slate-900 shadow-[0_10px_24px_rgba(0,0,0,.2)]`}>
+    <div className={`${classes} shrink-0 overflow-hidden rounded-[12px] bg-td-canvas shadow-[0_10px_24px_rgb(var(--td-shadow-rgb)/calc(.2*var(--td-shadow-strength)))]`}>
       <CardImage card={card} />
     </div>
   );
@@ -2205,9 +2205,9 @@ function CardThumb({ card, size }: { card: Pick<CollectionGraphCard | DeckRequir
 function CardImage({ card }: { card: Pick<CollectionGraphCard | DeckRequirement, "name" | "imageUri"> }) {
   if (!card.imageUri) {
     return (
-      <div className="flex aspect-[63/88] h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_18%,rgba(34,211,238,.18),transparent_34%),linear-gradient(180deg,#132236,#050b14)] p-3 text-center">
-        <span className="text-[10px] font-semibold leading-4 text-slate-200">{card.name}</span>
-        <span className="mt-2 text-[9px] font-medium uppercase tracking-[0.12em] text-slate-500">Art unavailable</span>
+      <div className="flex aspect-[63/88] h-full w-full flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_18%,rgb(var(--td-accent-rgb)/.18),transparent_34%),linear-gradient(180deg,var(--td-surface-default),var(--td-surface-default))] p-3 text-center">
+        <span className="text-[11px] font-semibold leading-4 text-td-primary">{card.name}</span>
+        <span className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-td-muted">Art unavailable</span>
       </div>
     );
   }
@@ -2224,7 +2224,7 @@ function CardImage({ card }: { card: Pick<CollectionGraphCard | DeckRequirement,
 function OwnershipPill({ match }: { match: OwnershipMatch }) {
   if (match.status === "owned") {
     return (
-      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-300/10 px-2 py-1 text-[11px] font-semibold text-emerald-200">
+      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-td-success/10 px-2 py-1 text-[11px] font-semibold text-td-success">
         <Check className="h-3 w-3" />
         Owned
       </span>
@@ -2232,13 +2232,13 @@ function OwnershipPill({ match }: { match: OwnershipMatch }) {
   }
   if (match.status === "partial") {
     return (
-      <span className="mt-2 inline-flex rounded-full bg-amber-300/10 px-2 py-1 text-[11px] font-semibold text-amber-200">
+      <span className="mt-2 inline-flex rounded-full bg-td-warning/10 px-2 py-1 text-[11px] font-semibold text-td-warning">
         {match.ownedQuantity} / {match.requirement.requiredQuantity} owned
       </span>
     );
   }
   return (
-    <span className="mt-2 inline-flex rounded-full bg-slate-500/10 px-2 py-1 text-[11px] font-semibold text-slate-300">
+    <span className="mt-2 inline-flex rounded-full bg-td-raised/10 px-2 py-1 text-[11px] font-semibold text-td-secondary">
       Missing
     </span>
   );
@@ -2247,17 +2247,17 @@ function OwnershipPill({ match }: { match: OwnershipMatch }) {
 function HeaderMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[14px] bg-black/20 p-3">
-      <p className="text-[11px] text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold tracking-[-0.035em] text-white">{value}</p>
+      <p className="text-[11px] text-td-muted">{label}</p>
+      <p className="mt-1 text-lg font-semibold tracking-[-0.035em] text-td-primary">{value}</p>
     </div>
   );
 }
 
 function InfoPanel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
-        <span className="text-cyan-300">{icon}</span>
+    <section className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-td-primary">
+        <span className="text-td-accent-text">{icon}</span>
         {title}
       </div>
       {children}
@@ -2270,31 +2270,31 @@ function HealthRow({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-4">
-        <p className="text-xs capitalize text-slate-400">{readable}</p>
-        <p className="text-sm font-semibold text-slate-200">{value}</p>
+        <p className="text-xs capitalize text-td-secondary">{readable}</p>
+        <p className="text-sm font-semibold text-td-primary">{value}</p>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/30">
-        <span className="block h-full rounded-full bg-cyan-300" style={{ width: `${value}%` }} />
+        <span className="block h-full rounded-full bg-td-accent" style={{ width: `${value}%` }} />
       </div>
     </div>
   );
 }
 
 function IntelligenceItem({ title, body, tone }: { title: string; body: string; tone: "good" | "attention" | "neutral" }) {
-  const color = tone === "good" ? "text-emerald-200" : tone === "attention" ? "text-amber-200" : "text-slate-200";
+  const color = tone === "good" ? "text-td-success" : tone === "attention" ? "text-td-warning" : "text-td-primary";
   return (
     <div className="rounded-[16px] bg-black/20 p-4">
       <p className={`text-sm font-semibold ${color}`}>{title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
+      <p className="mt-2 text-sm leading-6 text-td-muted">{body}</p>
     </div>
   );
 }
 
 function IntelligencePanel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-[20px] bg-[#06131f] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
-      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
-        <span className="text-cyan-300">{icon}</span>
+    <section className="rounded-[20px] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-td-primary">
+        <span className="text-td-accent-text">{icon}</span>
         {title}
       </div>
       <div className="space-y-3">{children}</div>
@@ -2305,9 +2305,9 @@ function IntelligencePanel({ title, icon, children }: { title: string; icon: Rea
 function SwapRow({ label, name, note }: { label: string; name: string; note: string }) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-white">{name}</p>
-      <p className="mt-1 text-xs text-slate-500">{note}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-td-primary">{name}</p>
+      <p className="mt-1 text-xs text-td-muted">{note}</p>
     </div>
   );
 }
@@ -2320,8 +2320,8 @@ function IconToggle({ active, label, onClick, icon }: { active: boolean; label: 
       aria-label={label}
       onClick={onClick}
       className={[
-        "flex h-9 w-9 items-center justify-center rounded-[10px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45",
-        active ? "bg-cyan-300/15 text-cyan-200" : "bg-black/25 text-slate-500 hover:text-slate-200",
+        "flex h-9 w-9 items-center justify-center rounded-[10px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-td-accent/45",
+        active ? "bg-td-accent/15 text-td-accent-text" : "bg-black/25 text-td-muted hover:text-td-primary",
       ].join(" ")}
     >
       {icon}
@@ -2331,11 +2331,11 @@ function IconToggle({ active, label, onClick, icon }: { active: boolean; label: 
 
 function CenteredState({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
-    <section className="flex min-h-[520px] items-center justify-center rounded-[20px] bg-[#06131f] p-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,.045)]">
+    <section className="flex min-h-[520px] items-center justify-center rounded-[20px] bg-td-surface p-8 text-center shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.045)]">
       <div className="max-w-md">
-        <Sparkles className="mx-auto h-8 w-8 text-cyan-300" />
-        <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-white">{title}</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-500">{body}</p>
+        <Sparkles className="mx-auto h-8 w-8 text-td-accent-text" />
+        <h2 className="mt-4 text-2xl font-semibold tracking-[-0.04em] text-td-primary">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-td-muted">{body}</p>
         {action ? <div className="mt-5">{action}</div> : null}
       </div>
     </section>
@@ -2344,7 +2344,7 @@ function CenteredState({ title, body, action }: { title: string; body: string; a
 
 function LinkButton({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="inline-flex rounded-[12px] bg-cyan-300 px-4 py-2 text-sm font-semibold text-[#02131b]">
+    <Link href={href} className="inline-flex rounded-[12px] bg-td-accent px-4 py-2 text-sm font-semibold text-td-on-accent">
       {children}
     </Link>
   );
@@ -2353,17 +2353,17 @@ function LinkButton({ href, children }: { href: string; children: ReactNode }) {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[12px] bg-black/20 p-3">
-      <dt className="text-[11px] text-slate-500">{label}</dt>
-      <dd className="mt-1 text-sm font-semibold text-slate-200">{value}</dd>
+      <dt className="text-[11px] text-td-muted">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-td-primary">{value}</dd>
     </div>
   );
 }
 
 function LoadError({ message }: { message: string }) {
   return (
-    <div className="mb-5 rounded-[18px] border border-amber-300/20 bg-amber-300/10 px-5 py-4">
-      <p className="text-sm font-semibold text-amber-100">Deck Architect could not load your collection.</p>
-      <p className="mt-1 text-sm text-amber-100/75">{message}</p>
+    <div className="mb-5 rounded-[18px] border border-td-warning/20 bg-td-warning/10 px-5 py-4">
+      <p className="text-sm font-semibold text-td-warning">Deck Architect could not load your collection.</p>
+      <p className="mt-1 text-sm text-td-warning/75">{message}</p>
     </div>
   );
 }

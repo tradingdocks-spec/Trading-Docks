@@ -61,7 +61,7 @@ export function CardPreviewPortal({
 
   return createPortal(
     <div
-      className="fixed z-[500] overflow-hidden rounded-[22px] border border-cyan-300/[0.2] bg-[#06131d]/98 shadow-[0_30px_100px_rgba(0,0,0,0.82)] backdrop-blur-xl"
+      className="fixed z-[500] overflow-hidden rounded-[22px] border border-td-accent/[0.2] bg-td-surface/98 shadow-[0_30px_100px_rgb(var(--td-shadow-rgb)/calc(0.82*var(--td-shadow-strength)))] backdrop-blur-xl"
       style={{
         left: position.left,
         top: position.top,
@@ -73,7 +73,7 @@ export function CardPreviewPortal({
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-black/45 text-slate-400 hover:text-white"
+        className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-lg border border-td-ink/[0.08] bg-black/45 text-td-secondary hover:text-td-primary"
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -86,15 +86,15 @@ export function CardPreviewPortal({
         />
 
         <div className="min-w-0 flex-1 py-1">
-          <p className="pr-7 text-sm font-semibold text-white">{card.name}</p>
-          <p className="mt-1 text-[9px] leading-4 text-slate-500">
+          <p className="pr-7 text-sm font-semibold text-td-primary">{card.name}</p>
+          <p className="mt-1 text-[11px] leading-4 text-td-muted">
             {card.set_name}
           </p>
-          <p className="text-[8px] text-slate-700">
+          <p className="text-[11px] text-td-muted">
             {card.set.toUpperCase()} #{card.collector_number}
           </p>
 
-          <div className="mt-4 space-y-2 rounded-xl border border-white/[0.06] bg-black/[0.14] p-3">
+          <div className="mt-4 space-y-2 rounded-xl border border-td-ink/[0.06] bg-black/[0.14] p-3">
             <PreviewRow label="Market" value={currency(item.unitMarket)} />
             <PreviewRow
               label="Adjusted"
@@ -120,11 +120,11 @@ export function CardPreviewPortal({
 
           <div className="mt-3 flex flex-wrap gap-1.5">
             {card.reserved ? (
-              <span className="rounded-md border border-amber-300/[0.15] bg-amber-400/[0.05] px-2 py-1 text-[7px] text-amber-200">
+              <span className="rounded-md border border-td-warning/[0.15] bg-td-warning/[0.05] px-2 py-1 text-[11px] text-td-warning">
                 Reserved List
               </span>
             ) : null}
-            <span className="inline-flex items-center gap-1 rounded-md border border-cyan-300/[0.13] bg-cyan-400/[0.04] px-2 py-1 text-[7px] text-cyan-200">
+            <span className="inline-flex items-center gap-1 rounded-md border border-td-accent/[0.13] bg-td-accent/[0.04] px-2 py-1 text-[11px] text-td-accent-text">
               <ShieldCheck className="h-2.5 w-2.5" />
               Verify printing
             </span>
@@ -135,7 +135,7 @@ export function CardPreviewPortal({
               href={card.purchase_uris.tcgplayer}
               target="_blank"
               rel="noreferrer"
-              className="pointer-events-auto mt-4 inline-flex items-center gap-1.5 text-[8px] font-semibold text-cyan-300 hover:text-cyan-100"
+              className="pointer-events-auto mt-4 inline-flex items-center gap-1.5 text-[11px] font-semibold text-td-accent-text hover:text-td-accent-text"
             >
               View market listing
               <ExternalLink className="h-3 w-3" />
@@ -158,13 +158,13 @@ function PreviewRow({
   accent?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-[8px]">
-      <span className="text-slate-600">{label}</span>
+    <div className="flex items-center justify-between gap-3 text-[11px]">
+      <span className="text-td-muted">{label}</span>
       <span
         className={
           accent
-            ? "truncate font-semibold text-emerald-300"
-            : "truncate font-semibold text-slate-300"
+            ? "truncate font-semibold text-td-success"
+            : "truncate font-semibold text-td-secondary"
         }
       >
         {value}

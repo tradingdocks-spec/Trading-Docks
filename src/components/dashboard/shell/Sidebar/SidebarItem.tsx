@@ -41,12 +41,12 @@ export function SidebarItem({
           ? "mx-auto w-10 justify-center px-0"
           : "w-full gap-3 px-3",
         isActive
-          ? "border-blue-300/[0.12] bg-blue-400/[0.075] text-white shadow-[0_0_26px_rgba(59,130,246,0.045)]"
-          : "border-transparent text-slate-500 hover:border-white/[0.05] hover:bg-white/[0.035] hover:text-slate-200",
+          ? "border-td-accent/[0.12] bg-td-accent/[0.075] text-td-primary shadow-[0_0_26px_rgb(var(--td-accent-rgb)/0.045)]"
+          : "border-transparent text-td-muted hover:border-td-ink/[0.05] hover:bg-td-ink/[0.035] hover:text-td-primary",
       ].join(" ")}
     >
       {isActive ? (
-        <span className="absolute -left-px top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-blue-300 shadow-[0_0_12px_rgba(103,232,249,0.8)]" />
+        <span className="absolute -left-px top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-full bg-td-accent shadow-[0_0_12px_rgb(var(--td-accent-rgb)/0.8)]" />
       ) : null}
 
       <Icon
@@ -54,8 +54,8 @@ export function SidebarItem({
         className={[
           "h-[17px] w-[17px] shrink-0 transition-colors",
           isActive
-            ? "text-blue-300"
-            : "text-slate-600 group-hover:text-slate-300",
+            ? "text-td-accent-text"
+            : "text-td-muted group-hover:text-td-secondary",
         ].join(" ")}
       />
 
@@ -66,7 +66,7 @@ export function SidebarItem({
           </span>
 
           {badge !== undefined ? (
-            <span className="rounded-md border border-white/[0.06] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+            <span className="rounded-md border border-td-ink/[0.06] bg-td-ink/[0.04] px-1.5 py-0.5 text-[11px] font-medium text-td-muted">
               {badge}
             </span>
           ) : null}
@@ -74,7 +74,7 @@ export function SidebarItem({
       ) : null}
 
       {collapsed ? (
-        <span className="pointer-events-none absolute left-[calc(100%+12px)] z-50 whitespace-nowrap rounded-lg border border-white/[0.08] bg-[#0b141b] px-2.5 py-1.5 text-xs font-medium text-slate-200 opacity-0 shadow-2xl transition-all duration-150 group-hover:opacity-100">
+        <span className="pointer-events-none absolute left-[calc(100%+12px)] z-50 whitespace-nowrap rounded-lg border border-td-ink/[0.08] bg-td-surface px-2.5 py-1.5 text-xs font-medium text-td-primary opacity-0 shadow-2xl transition-all duration-150 group-hover:opacity-100">
           {label}
         </span>
       ) : null}

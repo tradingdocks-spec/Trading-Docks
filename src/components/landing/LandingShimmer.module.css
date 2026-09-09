@@ -15,9 +15,9 @@
       115deg,
       transparent 0%,
       transparent 38%,
-      rgba(165, 243, 252, 0.02) 44%,
-      rgba(207, 250, 254, 0.18) 49%,
-      rgba(103, 232, 249, 0.08) 53%,
+      rgb(var(--td-accent-rgb)/0.02) 44%,
+      rgb(var(--td-ink-rgb)/0.18) 49%,
+      rgb(var(--td-accent-rgb)/0.08) 53%,
       transparent 59%,
       transparent 100%
     );
@@ -34,8 +34,8 @@
   pointer-events: none;
   border-radius: inherit;
   background:
-    radial-gradient(circle at 14% 0%, rgba(103, 232, 249, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 24%);
+    radial-gradient(circle at 14% 0%, rgb(var(--td-accent-rgb)/0.08), transparent 28%),
+    linear-gradient(180deg, rgb(var(--td-ink-rgb)/0.025), transparent 24%);
   opacity: 0.8;
 }
 
@@ -64,7 +64,7 @@
   background: linear-gradient(
     105deg,
     transparent,
-    rgba(255, 255, 255, 0.62),
+    rgb(var(--td-ink-rgb)/0.62),
     transparent
   );
   transform: translate3d(-220%, 0, 0) rotate(12deg);
@@ -88,7 +88,7 @@
   background: linear-gradient(
     120deg,
     transparent 15%,
-    rgba(103, 232, 249, 0.055) 48%,
+    rgb(var(--td-accent-rgb)/0.055) 48%,
     transparent 78%
   );
   opacity: 0;

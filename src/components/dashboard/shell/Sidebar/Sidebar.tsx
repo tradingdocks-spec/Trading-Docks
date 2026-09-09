@@ -66,24 +66,24 @@ export function Sidebar({
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden border-r border-white/[0.055] bg-[#020b12]/96 shadow-[22px_0_70px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-300",
+          "fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden border-r border-td-ink/[0.055] bg-td-canvas/96 shadow-[22px_0_70px_rgb(var(--td-shadow-rgb)/calc(0.22*var(--td-shadow-strength)))] backdrop-blur-2xl transition-all duration-300",
           collapsed ? "w-[88px]" : "w-[252px]",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         ].join(" ")}
       >
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-blue-400/[0.055] blur-[110px]" />
-          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-blue-300/[0.13] to-transparent" />
+          <div className="absolute -left-24 -top-20 h-72 w-72 rounded-full bg-td-accent/[0.055] blur-[110px]" />
+          <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-td-accent/[0.13] to-transparent" />
         </div>
 
-        <div className="relative flex h-[72px] items-center border-b border-white/[0.055] px-3">
+        <div className="relative flex h-[72px] items-center border-b border-td-ink/[0.055] px-3">
           <Link
             href="/dashboard"
             onClick={onCloseMobile}
-            className="group flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-white/[0.025]"
+            className="group flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-td-ink/[0.025]"
           >
             <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">
-              <span className="absolute inset-1 rounded-2xl bg-blue-400/[0.12] blur-xl transition group-hover:bg-blue-300/[0.2]" />
+              <span className="absolute inset-1 rounded-2xl bg-td-accent/[0.12] blur-xl transition group-hover:bg-td-accent/[0.2]" />
               <Image
                 src="/trading-docks-mark.png"
                 alt=""
@@ -97,10 +97,10 @@ export function Sidebar({
 
             {!collapsed ? (
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold tracking-[-0.025em] text-white">
+                <span className="block truncate text-sm font-semibold tracking-[-0.025em] text-td-primary">
                   Trading Docks
                 </span>
-                <span className="mt-0.5 block text-[7px] uppercase tracking-[0.24em] text-slate-600">
+                <span className="mt-0.5 block text-[11px] uppercase tracking-[0.24em] text-td-muted">
                   Collectibles OS
                 </span>
               </span>
@@ -110,7 +110,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onCloseMobile}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500 lg:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted lg:hidden"
           >
             <X className="h-4 w-4" />
           </button>
@@ -120,7 +120,7 @@ export function Sidebar({
           {groups.map((group, groupIndex) => (
             <div key={group.label ?? "main"}>
               {group.label && !collapsed ? (
-                <p className="mb-3 px-3 text-[9px] font-semibold uppercase tracking-[0.22em] text-slate-700">
+                <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-td-muted">
                   {group.label}
                 </p>
               ) : null}
@@ -142,14 +142,14 @@ export function Sidebar({
                         "group relative flex h-11 items-center overflow-hidden rounded-xl border transition duration-300",
                         collapsed ? "justify-center px-0" : "gap-3 px-3",
                         active
-                          ? "border-blue-300/[0.2] bg-blue-400/[0.07] text-white shadow-[0_0_28px_rgba(59,130,246,0.055),inset_0_1px_rgba(255,255,255,0.025)]"
-                          : "border-transparent text-slate-500 hover:border-white/[0.065] hover:bg-white/[0.025] hover:text-slate-200",
+                          ? "border-td-accent/[0.2] bg-td-accent/[0.07] text-td-primary shadow-[0_0_28px_rgb(var(--td-accent-rgb)/0.055),inset_0_1px_rgb(var(--td-ink-rgb)/0.025)]"
+                          : "border-transparent text-td-muted hover:border-td-ink/[0.065] hover:bg-td-ink/[0.025] hover:text-td-primary",
                       ].join(" ")}
                     >
                       {active ? (
                         <>
-                          <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-blue-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
-                          <span className="absolute left-0 top-1/2 h-8 w-20 -translate-y-1/2 rounded-full bg-blue-400/[0.08] blur-xl" />
+                          <span className="absolute inset-y-2 left-0 w-[2px] rounded-r-full bg-td-accent shadow-[0_0_10px_rgb(var(--td-accent-rgb)/0.8)]" />
+                          <span className="absolute left-0 top-1/2 h-8 w-20 -translate-y-1/2 rounded-full bg-td-accent/[0.08] blur-xl" />
                         </>
                       ) : null}
 
@@ -157,8 +157,8 @@ export function Sidebar({
                         className={[
                           "relative z-10 h-4 w-4 shrink-0 transition",
                           active
-                            ? "text-blue-300"
-                            : "text-slate-600 group-hover:text-blue-300/80",
+                            ? "text-td-accent-text"
+                            : "text-td-muted group-hover:text-td-accent-text/80",
                         ].join(" ")}
                       />
 
@@ -179,40 +179,40 @@ export function Sidebar({
           ))}
         </nav>
 
-        <div className="relative border-t border-white/[0.055] p-3">
+        <div className="relative border-t border-td-ink/[0.055] p-3">
           <Link
             href="/dashboard/settings"
             className={[
-              "flex h-11 items-center rounded-xl border border-transparent text-slate-500 transition hover:border-white/[0.06] hover:bg-white/[0.025] hover:text-white",
+              "flex h-11 items-center rounded-xl border border-transparent text-td-muted transition hover:border-td-ink/[0.06] hover:bg-td-ink/[0.025] hover:text-td-primary",
               collapsed ? "justify-center" : "gap-3 px-3",
             ].join(" ")}
           >
-            <Settings className="h-4 w-4 text-slate-600" />
+            <Settings className="h-4 w-4 text-td-muted" />
             {!collapsed ? <span className="text-sm font-medium">Settings</span> : null}
           </Link>
 
           <div
             className={[
-              "mt-3 flex items-center rounded-2xl border border-white/[0.07] bg-white/[0.018] p-2.5",
+              "mt-3 flex items-center rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.018] p-2.5",
               collapsed ? "justify-center" : "gap-3",
             ].join(" ")}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-blue-300/20 bg-blue-400/[0.08] text-xs font-semibold text-blue-200 shadow-[0_0_20px_rgba(59,130,246,0.09)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-accent/20 bg-td-accent/[0.08] text-xs font-semibold text-td-accent-text shadow-[0_0_20px_rgb(var(--td-accent-rgb)/0.09)]">
               JR
             </div>
 
             {!collapsed ? (
               <>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-slate-200">Jeremy</p>
-                  <p className="mt-0.5 text-[9px] text-slate-600">Seller workspace</p>
+                  <p className="truncate text-xs font-semibold text-td-primary">Jeremy</p>
+                  <p className="mt-0.5 text-[11px] text-td-muted">Seller workspace</p>
                 </div>
 
                 <button
                   type="button"
                   aria-label="Collapse sidebar"
                   onClick={onToggleCollapsed}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.018] text-slate-600 transition hover:border-blue-300/20 hover:text-blue-300"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.018] text-td-muted transition hover:border-td-accent/20 hover:text-td-accent-text"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </button>

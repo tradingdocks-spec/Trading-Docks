@@ -170,21 +170,21 @@ export function PrintingSelector({
   }
 
   return (
-    <div className="sm:col-span-2 rounded-[20px] border border-cyan-300/20 bg-gradient-to-b from-cyan-400/[0.055] to-cyan-400/[0.025] p-4 sm:p-5">
+    <div className="sm:col-span-2 rounded-[20px] border border-td-accent/20 bg-gradient-to-b from-td-accent/[0.055] to-td-accent/[0.025] p-4 sm:p-5">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-300/10 text-cyan-200">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-td-accent/20 bg-td-accent/10 text-td-accent-text">
           <Search className="h-3.5 w-3.5" />
         </span>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">
         1. Search Magic cards
         </p>
       </div>
-      <p className="mt-2 text-[10px] leading-5 text-slate-500">
+      <p className="mt-2 text-[11px] leading-5 text-td-muted">
         Type at least two letters, choose the card name, then select its exact printing and finish.
       </p>
       <div className="relative mt-3">
-        <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-11 items-center justify-center border-r border-cyan-300/10">
-          <Search className="h-4 w-4 text-cyan-300" />
+        <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-11 items-center justify-center border-r border-td-accent/10">
+          <Search className="h-4 w-4 text-td-accent-text" />
         </span>
         <input
           value={value}
@@ -201,23 +201,23 @@ export function PrintingSelector({
           }}
           placeholder="Try: Cyclonic Rift"
           autoComplete="off"
-          className="inventory-input !h-12 !pl-14 !pr-11 !text-[12px] !border-cyan-300/25 !bg-[#071925]"
+          className="inventory-input !h-12 !pl-14 !pr-11 !text-[12px] !border-td-accent/25 !bg-td-surface"
           autoFocus
         />
         {loadingNames && (
-          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-cyan-300" />
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-td-accent-text" />
         )}
         {suggestions.length > 0 && (
-          <div className="absolute z-[160] mt-1 w-full overflow-hidden rounded-xl border border-cyan-300/25 bg-[#07131e] shadow-2xl">
+          <div className="absolute z-[160] mt-1 w-full overflow-hidden rounded-xl border border-td-accent/25 bg-td-surface shadow-2xl">
             {suggestions.map((name) => (
               <button
                 key={name}
                 type="button"
                 onClick={() => void chooseCard(name)}
-                className="flex w-full items-center justify-between border-b border-white/[0.05] px-3.5 py-3 text-left text-[11px] text-slate-200 last:border-0 hover:bg-cyan-400/10"
+                className="flex w-full items-center justify-between border-b border-td-ink/[0.05] px-3.5 py-3 text-left text-[11px] text-td-primary last:border-0 hover:bg-td-accent/10"
               >
                 <span>{name}</span>
-                <span className="text-[8px] font-semibold uppercase tracking-wide text-cyan-300">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-td-accent-text">
                   View all printings
                 </span>
               </button>
@@ -225,7 +225,7 @@ export function PrintingSelector({
           </div>
         )}
       </div>
-      {error && !browserOpen && <p className="mt-2 text-[9px] text-rose-300">{error}</p>}
+      {error && !browserOpen && <p className="mt-2 text-[11px] text-td-danger">{error}</p>}
 
       {browserOpen && (
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/85 p-3 backdrop-blur-md sm:p-6">
@@ -235,28 +235,28 @@ export function PrintingSelector({
             onClick={() => setBrowserOpen(false)}
             aria-label="Close printing browser"
           />
-          <div className="relative z-10 flex max-h-[94vh] w-full max-w-[1000px] flex-col overflow-hidden rounded-[24px] border border-cyan-300/25 bg-[#07131e] shadow-[0_40px_140px_rgba(0,0,0,.75)]">
-            <div className="flex items-start justify-between border-b border-white/[0.07] px-5 py-4">
+          <div className="relative z-10 flex max-h-[94vh] w-full max-w-[1000px] flex-col overflow-hidden rounded-[24px] border border-td-accent/25 bg-td-surface shadow-[0_40px_140px_rgb(var(--td-shadow-rgb)/calc(.75*var(--td-shadow-strength)))]">
+            <div className="flex items-start justify-between border-b border-td-ink/[0.07] px-5 py-4">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.17em] text-cyan-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-td-accent-text">
                   2. Choose exact printing
                 </p>
-                <h3 className="mt-1 text-xl font-semibold text-white">{value}</h3>
-                <p className="mt-1 text-[9px] text-slate-500">
+                <h3 className="mt-1 text-xl font-semibold text-td-primary">{value}</h3>
+                <p className="mt-1 text-[11px] text-td-muted">
                   Each version below has its own set, artwork, collector number, price, and finishes.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setBrowserOpen(false)}
-                className="rounded-xl border border-white/[0.08] p-2 text-slate-400 hover:text-white"
+                className="rounded-xl border border-td-ink/[0.08] p-2 text-td-secondary hover:text-td-primary"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="border-b border-white/[0.07] px-5 py-3">
+            <div className="border-b border-td-ink/[0.07] px-5 py-3">
               <div className="relative">
-                <SlidersHorizontal className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-600" />
+                <SlidersHorizontal className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-td-muted" />
                 <input
                   value={setFilter}
                   onChange={(event) => setSetFilter(event.target.value)}
@@ -265,20 +265,20 @@ export function PrintingSelector({
                 />
               </div>
               {!loadingPrintings && (
-                <p className="mt-2 text-[8px] text-slate-500">
+                <p className="mt-2 text-[11px] text-td-muted">
                   Showing {visiblePrintings.length} of {printings.length} printings
                 </p>
               )}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
               {loadingPrintings && (
-                <div className="flex min-h-72 items-center justify-center gap-2 text-[10px] text-slate-400">
-                  <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />
+                <div className="flex min-h-72 items-center justify-center gap-2 text-[11px] text-td-secondary">
+                  <Loader2 className="h-5 w-5 animate-spin text-td-accent-text" />
                   Loading every printing…
                 </div>
               )}
               {error && !loadingPrintings && (
-                <div className="rounded-xl border border-rose-300/20 bg-rose-400/[0.05] p-4 text-[10px] text-rose-200">
+                <div className="rounded-xl border border-td-danger/20 bg-td-danger/[0.05] p-4 text-[11px] text-td-danger">
                   {error}
                 </div>
               )}
@@ -290,7 +290,7 @@ export function PrintingSelector({
                     return (
                       <article
                         key={card.id}
-                        className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]"
+                        className="overflow-hidden rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.025]"
                       >
                         <div className="bg-black/25 p-3">
                           {image ? (
@@ -301,19 +301,19 @@ export function PrintingSelector({
                               className="mx-auto aspect-[488/680] w-full max-w-56 rounded-xl object-cover shadow-xl"
                             />
                           ) : (
-                            <div className="mx-auto flex aspect-[488/680] w-full max-w-56 items-center justify-center rounded-xl bg-slate-900">
-                              <ImageIcon className="h-8 w-8 text-slate-700" />
+                            <div className="mx-auto flex aspect-[488/680] w-full max-w-56 items-center justify-center rounded-xl bg-td-canvas">
+                              <ImageIcon className="h-8 w-8 text-td-muted" />
                             </div>
                           )}
                         </div>
                         <div className="p-4">
-                          <h4 className="text-sm font-semibold text-slate-100">{card.set_name}</h4>
-                          <p className="mt-1 text-[9px] text-slate-500">
+                          <h4 className="text-sm font-semibold text-td-primary">{card.set_name}</h4>
+                          <p className="mt-1 text-[11px] text-td-muted">
                             {card.set.toUpperCase()} #{card.collector_number} ·{" "}
                             {card.released_at?.slice(0, 4) ?? "—"} · {titleCase(card.rarity)}
                           </p>
                           {treatments[0] !== "Traditional" && (
-                            <p className="mt-2 text-[8px] font-medium text-fuchsia-300">
+                            <p className="mt-2 text-[11px] font-medium text-fuchsia-300">
                               {treatments.join(" · ")}
                             </p>
                           )}
@@ -323,10 +323,10 @@ export function PrintingSelector({
                                 key={entry}
                                 type="button"
                                 onClick={() => selectPrinting(card, entry)}
-                                className="rounded-lg bg-gradient-to-b from-violet-500 to-purple-700 px-3 py-2.5 text-[9px] font-semibold text-white shadow hover:brightness-110"
+                                className="rounded-lg bg-gradient-to-b from-td-violet to-td-violet px-3 py-2.5 text-[11px] font-semibold text-td-primary shadow hover:brightness-110"
                               >
                                 Select {entry}
-                                <span className="ml-1.5 text-violet-100">
+                                <span className="ml-1.5 text-td-violet">
                                   ${priceFor(card, entry).toFixed(2)}
                                 </span>
                               </button>
@@ -337,7 +337,7 @@ export function PrintingSelector({
                     );
                   })}
                   {visiblePrintings.length === 0 && (
-                    <p className="col-span-full py-16 text-center text-[10px] text-slate-500">
+                    <p className="col-span-full py-16 text-center text-[11px] text-td-muted">
                       No printings match that filter.
                     </p>
                   )}

@@ -107,8 +107,8 @@ export function QuickCreate({
         aria-expanded={open}
         className={`group relative flex items-center justify-center overflow-hidden rounded-xl border transition-all duration-200 ${
           open
-            ? "border-cyan-300/35 bg-cyan-400/[0.11] text-cyan-100 shadow-[0_0_0_1px_rgba(34,211,238,0.06),0_10px_30px_rgba(0,0,0,0.25),0_0_28px_rgba(34,211,238,0.11)]"
-            : "border-cyan-300/20 bg-gradient-to-b from-cyan-400/[0.12] to-cyan-400/[0.06] text-cyan-100 shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_24px_rgba(34,211,238,0.06)] hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-400/[0.13] hover:shadow-[0_12px_32px_rgba(0,0,0,0.3),0_0_30px_rgba(34,211,238,0.12)]"
+            ? "border-td-accent/35 bg-td-accent/[0.11] text-td-accent-text shadow-[0_0_0_1px_rgb(var(--td-accent-rgb)/0.06),0_10px_30px_rgb(var(--td-shadow-rgb)/calc(0.25*var(--td-shadow-strength))),0_0_28px_rgb(var(--td-accent-rgb)/0.11)]"
+            : "border-td-accent/20 bg-gradient-to-b from-td-accent/[0.12] to-td-accent/[0.06] text-td-accent-text shadow-[0_8px_24px_rgb(var(--td-shadow-rgb)/calc(0.22*var(--td-shadow-strength))),0_0_24px_rgb(var(--td-accent-rgb)/0.06)] hover:-translate-y-0.5 hover:border-td-accent/35 hover:bg-td-accent/[0.13] hover:shadow-[0_12px_32px_rgb(var(--td-shadow-rgb)/calc(0.3*var(--td-shadow-strength))),0_0_30px_rgb(var(--td-accent-rgb)/0.12)]"
         } ${
           compact
             ? "h-10 w-10"
@@ -117,7 +117,7 @@ export function QuickCreate({
       >
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/50 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-td-accent/50 to-transparent"
         />
 
         <span
@@ -150,7 +150,7 @@ export function QuickCreate({
             </span>
 
             <ChevronDown
-              className={`relative h-3.5 w-3.5 text-cyan-200/70 transition-transform duration-200 ${
+              className={`relative h-3.5 w-3.5 text-td-accent-text/70 transition-transform duration-200 ${
                 open ? "rotate-180" : ""
               }`}
             />

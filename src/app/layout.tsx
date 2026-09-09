@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { SignInEntrance } from "@/components/auth/SignInEntrance";
 import { RouteEntrance } from "@/components/navigation/PolishedNavigation";
 import "./globals.css";
+import { ThemeProvider, ThemeCorner } from "@/components/theme/ThemeProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.tradingdocks.com"),
@@ -53,7 +54,10 @@ export const metadata: Metadata = {
 
 
 export const viewport: Viewport = {
-  themeColor: "#07121F",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0a101b" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f7fd" },
+  ],
 };
 
 type RootLayoutProps = Readonly<{
@@ -64,10 +68,13 @@ export default function RootLayout({
   children,
 }: RootLayoutProps) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-[#03080c] font-sans antialiased">
-        <SignInEntrance />
-        <RouteEntrance>{children}</RouteEntrance>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen bg-td-canvas font-sans antialiased">
+        <ThemeProvider>
+          <ThemeCorner />
+          <SignInEntrance />
+          <RouteEntrance>{children}</RouteEntrance>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -48,30 +48,30 @@ export default async function CollectionPurchaseDetailPage({
   const rows = Array.isArray(items) ? items.map(objectRecord) : [];
 
   return (
-    <main className="min-h-screen bg-[#05070b] px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-td-canvas px-4 py-6 text-td-primary sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <Link href="/dashboard/collection-buying" className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-cyan-100">
+        <Link href="/dashboard/collection-buying" className="inline-flex items-center gap-2 text-sm font-semibold text-td-accent-text hover:text-td-accent-text">
           <ArrowLeft className="h-4 w-4" />
           Back to Collection Intake
         </Link>
 
-        <header className="mt-5 rounded-[22px] border border-white/[0.08] bg-white/[0.04] p-5">
+        <header className="mt-5 rounded-[22px] border border-td-ink/[0.08] bg-td-ink/[0.04] p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-200">
+              <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-td-accent-text">
                 <ClipboardCheck className="h-4 w-4" />
                 Completed collection purchase
               </p>
-              <h1 className="mt-3 text-2xl font-black text-slate-50 sm:text-3xl">
+              <h1 className="mt-3 text-2xl font-black text-td-primary sm:text-3xl">
                 {text(purchaseRow.seller_name) || "Walk-in collection"}
               </h1>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-td-secondary">
                 Completed {text(purchaseRow.completed_at) ? new Date(text(purchaseRow.completed_at)).toLocaleString() : "recently"}. Realized resale ROI is not shown until downstream sales exist.
               </p>
             </div>
-            <div className="rounded-2xl bg-cyan-300/[0.08] px-5 py-4 text-right">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-cyan-200">Paid</p>
-              <p className="mt-1 text-3xl font-black text-slate-50">{money(purchaseRow.purchase_amount)}</p>
+            <div className="rounded-2xl bg-td-accent/[0.08] px-5 py-4 text-right">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-td-accent-text">Paid</p>
+              <p className="mt-1 text-3xl font-black text-td-primary">{money(purchaseRow.purchase_amount)}</p>
             </div>
           </div>
         </header>
@@ -83,9 +83,9 @@ export default async function CollectionPurchaseDetailPage({
           <Metric label="Lines / cards" value={`${purchaseRow.unique_lines ?? 0} / ${purchaseRow.total_quantity ?? 0}`} />
         </section>
 
-        <section className="mt-5 overflow-x-auto rounded-[22px] border border-white/[0.08] bg-white/[0.04]">
+        <section className="mt-5 overflow-x-auto rounded-[22px] border border-td-ink/[0.08] bg-td-ink/[0.04]">
           <table className="min-w-[920px] w-full border-collapse text-left">
-            <thead className="bg-white/[0.04] text-[10px] uppercase tracking-[0.12em] text-slate-400">
+            <thead className="bg-td-ink/[0.04] text-[11px] uppercase tracking-[0.12em] text-td-secondary">
               <tr>
                 <th className="px-4 py-3">Card</th>
                 <th className="px-4 py-3">Printing</th>
@@ -95,27 +95,27 @@ export default async function CollectionPurchaseDetailPage({
                 <th className="px-4 py-3">Inventory link</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.05]">
+            <tbody className="divide-y divide-td-ink/[0.05]">
               {rows.map((item) => (
                 <tr key={text(item.id)}>
                   <td className="px-4 py-3">
-                    <p className="font-bold text-slate-100">{text(item.card_name) || "Unknown item"}</p>
-                    <p className="mt-1 text-xs text-slate-500">{text(item.condition) || "Unknown condition"} / {text(item.finish) || "Unknown finish"} / {text(item.language) || "English"}</p>
+                    <p className="font-bold text-td-primary">{text(item.card_name) || "Unknown item"}</p>
+                    <p className="mt-1 text-xs text-td-muted">{text(item.condition) || "Unknown condition"} / {text(item.finish) || "Unknown finish"} / {text(item.language) || "English"}</p>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">{text(item.set_code) || "n/a"} #{text(item.collector_number) || "n/a"}</td>
+                  <td className="px-4 py-3 text-sm text-td-secondary">{text(item.set_code) || "n/a"} #{text(item.collector_number) || "n/a"}</td>
                   <td className="px-4 py-3 text-sm font-bold">{String(item.quantity ?? 0)}</td>
                   <td className="px-4 py-3 text-sm">{money(item.unit_market_value)}</td>
                   <td className="px-4 py-3 text-sm">
                     <p>{money(item.allocated_total_cost)}</p>
-                    <p className="text-xs text-slate-500">{money(item.allocated_unit_cost)} / unit</p>
+                    <p className="text-xs text-td-muted">{money(item.allocated_unit_cost)} / unit</p>
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {text(item.inventory_item_id) ? (
-                      <Link href={`/dashboard/cards/${encodeURIComponent(text(item.inventory_item_id))}`} className="font-semibold text-cyan-200 hover:text-cyan-100">
+                      <Link href={`/dashboard/cards/${encodeURIComponent(text(item.inventory_item_id))}`} className="font-semibold text-td-accent-text hover:text-td-accent-text">
                         Open inventory row
                       </Link>
                     ) : (
-                      <span className="text-slate-500">Not linked</span>
+                      <span className="text-td-muted">Not linked</span>
                     )}
                   </td>
                 </tr>
@@ -130,9 +130,9 @@ export default async function CollectionPurchaseDetailPage({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[18px] border border-white/[0.08] bg-white/[0.04] p-4">
-      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-2 text-lg font-black text-slate-50">{value}</p>
+    <div className="rounded-[18px] border border-td-ink/[0.08] bg-td-ink/[0.04] p-4">
+      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-td-muted">{label}</p>
+      <p className="mt-2 text-lg font-black text-td-primary">{value}</p>
     </div>
   );
 }

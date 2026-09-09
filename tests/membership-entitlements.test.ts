@@ -116,7 +116,7 @@ test("public pricing uses canonical membership catalog and signup routes", () =>
   const source = readFileSync("src/components/landing/PricingSection.tsx", "utf8");
 
   assert.match(source, /MEMBERSHIP_PLANS/);
-  assert.match(source, /`\/sign-up\?plan=\$\{tier\}`/);
+  assert.match(source, /`\/sign-up\?plan=\$\{tier\}&billing=monthly`/);
   assert.doesNotMatch(source, /\/signup\?plan=/);
   assert.doesNotMatch(source, /price:\s*"\$(12|39|99)"/);
   assert.doesNotMatch(source, /decks:\s*"10"/);

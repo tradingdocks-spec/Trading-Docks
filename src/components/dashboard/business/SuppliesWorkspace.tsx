@@ -26,7 +26,7 @@ export function SuppliesWorkspace() {
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
         <div className="space-y-3">
-          <p className="py-10 text-center text-xs text-slate-600">No supply items have been added.</p>
+          <p className="py-10 text-center text-xs text-td-muted">No supply items have been added.</p>
         </div>
       </section>
     </WorkspaceFrame>

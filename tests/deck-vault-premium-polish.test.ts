@@ -224,7 +224,7 @@ test("Deck Detail keeps Commander-only actions format gated through shared helpe
 test("Deck Detail touch and keyboard paths select cards without relying on hover", () => {
   assert.match(deckDetailWorkspace, /onClick=\{onSelect\}/);
   assert.match(deckDetailWorkspace, /onFocus=\{onPreview\}/);
-  assert.match(deckDetailWorkspace, /focus-visible:ring-2 focus-visible:ring-cyan-300\/50/);
+  assert.match(deckDetailWorkspace, /focus-visible:ring-2 focus-visible:ring-td-accent\/50/);
   assert.match(deckDetailWorkspace, /onSelect=\{selectCard\}/);
   assert.match(deckDetailWorkspace, /onPreview=\{previewCard\}/);
 });

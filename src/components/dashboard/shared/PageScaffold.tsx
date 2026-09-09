@@ -66,7 +66,7 @@ export function PageScaffold({
           <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat) => (
               <article key={stat.label} className="td-panel p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--td-text-faint)]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--td-text-faint)]">
                   {stat.label}
                 </p>
                 <p className="mt-2 text-xl font-semibold tracking-[-0.02em] text-[var(--td-text-primary)]">
@@ -81,7 +81,7 @@ export function PageScaffold({
         <section className="grid gap-4 xl:grid-cols-[1.3fr_0.9fr]">
           <div className="td-panel p-5">
             <p className="td-kicker">Decision surface</p>
-            <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-white">
+            <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-td-primary">
               No trend data yet
             </h2>
             <p className="td-body mt-2">
@@ -96,10 +96,10 @@ export function PageScaffold({
               ].map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-3 rounded-[13px] border border-white/[0.06] bg-white/[0.018] px-3 py-2.5"
+                  className="flex items-center gap-3 rounded-[13px] border border-td-ink/[0.06] bg-td-ink/[0.018] px-3 py-2.5"
                 >
                   <CircleDot className="h-3.5 w-3.5 text-[var(--td-information)]" />
-                  <span className="text-xs font-medium text-slate-300">{item}</span>
+                  <span className="text-xs font-medium text-td-secondary">{item}</span>
                 </div>
               ))}
             </div>
@@ -107,15 +107,15 @@ export function PageScaffold({
 
           <div className="td-panel p-5">
             <p className="td-kicker">Activity</p>
-            <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-white">
+            <h2 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-td-primary">
               No recent activity
             </h2>
             <p className="td-body mt-2">
               This account&apos;s updates will appear here after real records are created, changed, imported, or synced.
             </p>
-            <div className="mt-5 rounded-[13px] border border-dashed border-white/[0.08] bg-black/[0.1] px-4 py-6">
-              <p className="text-xs font-semibold text-slate-300">Waiting for workspace records activity</p>
-              <p className="mt-1 text-xs leading-5 text-slate-600">
+            <div className="mt-5 rounded-[13px] border border-dashed border-td-ink/[0.08] bg-black/[0.1] px-4 py-6">
+              <p className="text-xs font-semibold text-td-secondary">Waiting for workspace records activity</p>
+              <p className="mt-1 text-xs leading-5 text-td-muted">
                 Empty states remain quiet until the underlying workflow has data to evaluate.
               </p>
             </div>

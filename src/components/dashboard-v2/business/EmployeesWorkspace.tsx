@@ -34,10 +34,10 @@ export function EmployeesWorkspace() {
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">Team schedule</p>
-            <h2 className="mt-2 text-lg font-semibold text-white">Current week</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">Team schedule</p>
+            <h2 className="mt-2 text-lg font-semibold text-td-primary">Current week</h2>
           </div>
-          <button className="rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 py-2 text-[10px] text-slate-400">
+          <button className="rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-4 py-2 text-[11px] text-td-secondary">
             Approve time cards
           </button>
         </div>
@@ -45,7 +45,7 @@ export function EmployeesWorkspace() {
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[720px] text-left">
             <thead>
-              <tr className="border-b border-white/[0.06] text-[8px] uppercase tracking-[0.16em] text-slate-700">
+              <tr className="border-b border-td-ink/[0.06] text-[11px] uppercase tracking-[0.16em] text-td-muted">
                 <th className="px-3 py-3">Employee</th>
                 <th className="px-3 py-3">Role</th>
                 <th className="px-3 py-3">Today's shift</th>
@@ -55,12 +55,12 @@ export function EmployeesWorkspace() {
             </thead>
             <tbody>
               {employees.map(([name, role, shift, hours]) => (
-                <tr key={name} className="border-b border-white/[0.045] text-xs text-slate-400">
-                  <td className="px-3 py-4 font-semibold text-slate-200">{name}</td>
+                <tr key={name} className="border-b border-td-ink/[0.045] text-xs text-td-secondary">
+                  <td className="px-3 py-4 font-semibold text-td-primary">{name}</td>
                   <td className="px-3 py-4">{role}</td>
                   <td className="px-3 py-4">{shift}</td>
                   <td className="px-3 py-4">{hours}</td>
-                  <td className="px-3 py-4"><span className="rounded-full bg-emerald-400/[0.06] px-2 py-1 text-[8px] text-emerald-300">Clocked in</span></td>
+                  <td className="px-3 py-4"><span className="rounded-full bg-td-success/[0.06] px-2 py-1 text-[11px] text-td-success">Clocked in</span></td>
                 </tr>
               ))}
             </tbody>

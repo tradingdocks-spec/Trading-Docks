@@ -415,33 +415,33 @@ export default function CardPriceTicker() {
           grid-template-columns: 154px minmax(0, 1fr) 54px;
           min-height: 84px;
           overflow: hidden;
-          border: 1px solid rgba(34, 211, 238, 0.18);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.18);
           border-radius: 22px;
           background:
             radial-gradient(
               circle at 15% 0%,
-              rgba(34, 211, 238, 0.055),
+              rgb(var(--td-accent-rgb)/0.055),
               transparent 31%
             ),
             linear-gradient(
               135deg,
-              rgba(6, 18, 29, 0.96),
-              rgba(3, 12, 21, 0.97)
+              rgb(var(--td-surface-rgb)/0.96),
+              rgb(var(--td-surface-rgb)/0.97)
             );
           box-shadow:
-            0 22px 70px rgba(0, 0, 0, 0.3),
-            inset 0 1px rgba(255, 255, 255, 0.025);
+            0 22px 70px rgb(var(--td-shadow-rgb)/calc(0.3*var(--td-shadow-strength))),
+            inset 0 1px rgb(var(--td-ink-rgb)/0.025);
           transition:
             border-color 300ms ease,
             box-shadow 300ms ease;
         }
 
         .ticker-shell:hover {
-          border-color: rgba(103, 232, 249, 0.3);
+          border-color: rgb(var(--td-accent-rgb)/0.3);
           box-shadow:
-            0 25px 80px rgba(0, 0, 0, 0.36),
-            0 0 35px rgba(34, 211, 238, 0.05),
-            inset 0 1px rgba(255, 255, 255, 0.035);
+            0 25px 80px rgb(var(--td-shadow-rgb)/calc(0.36*var(--td-shadow-strength))),
+            0 0 35px rgb(var(--td-accent-rgb)/0.05),
+            inset 0 1px rgb(var(--td-ink-rgb)/0.035);
         }
 
         .ticker-shell::before {
@@ -452,7 +452,7 @@ export default function CardPriceTicker() {
           content: "";
           background: linear-gradient(
             90deg,
-            rgba(34, 211, 238, 0.035),
+            rgb(var(--td-accent-rgb)/0.035),
             transparent 26%,
             transparent 75%,
             rgba(139, 92, 246, 0.025)
@@ -469,7 +469,7 @@ export default function CardPriceTicker() {
           background: linear-gradient(
             90deg,
             transparent,
-            rgba(103, 232, 249, 0.46),
+            rgb(var(--td-accent-rgb)/0.46),
             transparent
           );
         }
@@ -482,8 +482,8 @@ export default function CardPriceTicker() {
           justify-content: center;
           gap: 8px;
           padding: 15px 16px 15px 20px;
-          border-right: 1px solid rgba(255, 255, 255, 0.065);
-          background: rgba(3, 13, 22, 0.92);
+          border-right: 1px solid rgb(var(--td-ink-rgb)/0.065);
+          background: rgb(var(--td-surface-rgb)/0.92);
         }
 
         .ticker-eyebrow {
@@ -505,9 +505,9 @@ export default function CardPriceTicker() {
         .ticker-game-label {
           width: fit-content;
           padding: 4px 8px;
-          border: 1px solid rgba(103, 232, 249, 0.15);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.15);
           border-radius: 7px;
-          background: rgba(34, 211, 238, 0.05);
+          background: rgb(var(--td-accent-rgb)/0.05);
           color: rgb(165, 243, 252);
           font-size: 9px;
           font-weight: 700;
@@ -544,7 +544,7 @@ export default function CardPriceTicker() {
           min-width: 248px;
           gap: 11px;
           padding: 11px 15px;
-          border-right: 1px solid rgba(255, 255, 255, 0.055);
+          border-right: 1px solid rgb(var(--td-ink-rgb)/0.055);
           color: inherit;
           text-decoration: none;
           transition:
@@ -554,10 +554,10 @@ export default function CardPriceTicker() {
 
         .ticker-item:hover {
           z-index: 6;
-          background: rgba(34, 211, 238, 0.05);
+          background: rgb(var(--td-accent-rgb)/0.05);
           box-shadow:
-            inset 0 -1px rgba(103, 232, 249, 0.14),
-            0 0 32px rgba(34, 211, 238, 0.05);
+            inset 0 -1px rgb(var(--td-accent-rgb)/0.14),
+            0 0 32px rgb(var(--td-accent-rgb)/0.05);
         }
 
         .ticker-card-image-frame {
@@ -565,10 +565,10 @@ export default function CardPriceTicker() {
           width: 38px;
           height: 53px;
           overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.14);
+          border: 1px solid rgb(var(--td-ink-rgb)/0.14);
           border-radius: 6px;
           background: rgb(7, 17, 26);
-          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.38);
+          box-shadow: 0 8px 18px rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength)));
           transition:
             transform 280ms ease,
             border-color 280ms ease,
@@ -577,10 +577,10 @@ export default function CardPriceTicker() {
 
         .ticker-item:hover .ticker-card-image-frame {
           transform: translateY(-2px) scale(1.06);
-          border-color: rgba(103, 232, 249, 0.4);
+          border-color: rgb(var(--td-accent-rgb)/0.4);
           box-shadow:
-            0 12px 26px rgba(0, 0, 0, 0.48),
-            0 0 18px rgba(34, 211, 238, 0.12);
+            0 12px 26px rgb(var(--td-shadow-rgb)/calc(0.48*var(--td-shadow-strength))),
+            0 0 18px rgb(var(--td-accent-rgb)/0.12);
         }
 
         .ticker-card-image {
@@ -645,12 +645,12 @@ export default function CardPriceTicker() {
           width: 190px;
           padding: 13px;
           visibility: hidden;
-          border: 1px solid rgba(103, 232, 249, 0.2);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.2);
           border-radius: 14px;
-          background: rgba(5, 16, 25, 0.98);
+          background: rgb(var(--td-surface-rgb)/0.98);
           box-shadow:
-            0 22px 60px rgba(0, 0, 0, 0.5),
-            0 0 28px rgba(34, 211, 238, 0.07);
+            0 22px 60px rgb(var(--td-shadow-rgb)/calc(0.5*var(--td-shadow-strength))),
+            0 0 28px rgb(var(--td-accent-rgb)/0.07);
           opacity: 0;
           transform: translateY(6px);
           transition:
@@ -727,9 +727,9 @@ export default function CardPriceTicker() {
           justify-content: center;
           align-self: center;
           justify-self: center;
-          border: 1px solid rgba(103, 232, 249, 0.17);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.17);
           border-radius: 12px;
-          background: rgba(34, 211, 238, 0.055);
+          background: rgb(var(--td-accent-rgb)/0.055);
           color: rgb(148, 163, 184);
           cursor: pointer;
           transition:
@@ -742,10 +742,10 @@ export default function CardPriceTicker() {
 
         .ticker-settings-button:hover {
           transform: translateY(-1px) rotate(12deg);
-          border-color: rgba(103, 232, 249, 0.38);
-          background: rgba(34, 211, 238, 0.1);
+          border-color: rgb(var(--td-accent-rgb)/0.38);
+          background: rgb(var(--td-accent-rgb)/0.1);
           color: rgb(103, 232, 249);
-          box-shadow: 0 0 24px rgba(34, 211, 238, 0.11);
+          box-shadow: 0 0 24px rgb(var(--td-accent-rgb)/0.11);
         }
 
         .ticker-settings-button svg {
@@ -784,7 +784,7 @@ export default function CardPriceTicker() {
           position: fixed;
           inset: 0;
           z-index: 90;
-          background: rgba(1, 6, 11, 0.48);
+          background: rgb(var(--td-surface-rgb)/0.48);
           backdrop-filter: blur(5px);
         }
 
@@ -795,18 +795,18 @@ export default function CardPriceTicker() {
           z-index: 100;
           width: min(360px, calc(100vw - 32px));
           overflow: hidden;
-          border: 1px solid rgba(103, 232, 249, 0.23);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.23);
           border-radius: 20px;
           background:
             radial-gradient(
               circle at 100% 0%,
-              rgba(34, 211, 238, 0.07),
+              rgb(var(--td-accent-rgb)/0.07),
               transparent 32%
             ),
-            rgba(5, 16, 26, 0.98);
+            rgb(var(--td-surface-rgb)/0.98);
           box-shadow:
-            0 30px 100px rgba(0, 0, 0, 0.65),
-            0 0 40px rgba(34, 211, 238, 0.06);
+            0 30px 100px rgb(var(--td-shadow-rgb)/calc(0.65*var(--td-shadow-strength))),
+            0 0 40px rgb(var(--td-accent-rgb)/0.06);
           animation: trading-docks-ticker-enter 220ms ease-out
             both;
         }
@@ -816,7 +816,7 @@ export default function CardPriceTicker() {
           align-items: flex-start;
           justify-content: space-between;
           padding: 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.065);
+          border-bottom: 1px solid rgb(var(--td-ink-rgb)/0.065);
         }
 
         .ticker-settings-header h2 {
@@ -839,16 +839,16 @@ export default function CardPriceTicker() {
           height: 31px;
           align-items: center;
           justify-content: center;
-          border: 1px solid rgba(255, 255, 255, 0.075);
+          border: 1px solid rgb(var(--td-ink-rgb)/0.075);
           border-radius: 9px;
-          background: rgba(255, 255, 255, 0.025);
+          background: rgb(var(--td-ink-rgb)/0.025);
           color: rgb(100, 116, 139);
           cursor: pointer;
           transition: 200ms ease;
         }
 
         .ticker-close-button:hover {
-          border-color: rgba(103, 232, 249, 0.2);
+          border-color: rgb(var(--td-accent-rgb)/0.2);
           color: rgb(226, 232, 240);
         }
 
@@ -868,7 +868,7 @@ export default function CardPriceTicker() {
           gap: 11px;
           padding: 12px 0;
           border: 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid rgb(var(--td-ink-rgb)/0.05);
           background: transparent;
           color: inherit;
           text-align: left;
@@ -889,9 +889,9 @@ export default function CardPriceTicker() {
           height: 30px;
           align-items: center;
           justify-content: center;
-          border: 1px solid rgba(103, 232, 249, 0.12);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.12);
           border-radius: 9px;
-          background: rgba(34, 211, 238, 0.04);
+          background: rgb(var(--td-accent-rgb)/0.04);
           color: rgb(165, 243, 252);
           font-size: 8px;
           font-weight: 750;
@@ -918,14 +918,14 @@ export default function CardPriceTicker() {
           height: 18px;
           align-items: center;
           justify-content: center;
-          border: 1px solid rgba(100, 116, 139, 0.35);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.35);
           border-radius: 5px;
-          background: rgba(255, 255, 255, 0.02);
+          background: rgb(var(--td-ink-rgb)/0.02);
           color: transparent;
         }
 
         .ticker-game-checkbox-active {
-          border-color: rgba(34, 211, 238, 0.5);
+          border-color: rgb(var(--td-accent-rgb)/0.5);
           background: rgb(34, 211, 238);
           color: rgb(2, 12, 19);
         }
@@ -968,9 +968,9 @@ export default function CardPriceTicker() {
           justify-content: center;
           gap: 8px;
           margin-top: 20px;
-          border: 1px solid rgba(103, 232, 249, 0.25);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.25);
           border-radius: 12px;
-          background: rgba(34, 211, 238, 0.08);
+          background: rgb(var(--td-accent-rgb)/0.08);
           color: rgb(207, 250, 254);
           cursor: pointer;
           font-size: 11px;
@@ -980,9 +980,9 @@ export default function CardPriceTicker() {
 
         .ticker-save-button:hover {
           transform: translateY(-1px);
-          border-color: rgba(103, 232, 249, 0.43);
-          background: rgba(34, 211, 238, 0.14);
-          box-shadow: 0 0 24px rgba(34, 211, 238, 0.08);
+          border-color: rgb(var(--td-accent-rgb)/0.43);
+          background: rgb(var(--td-accent-rgb)/0.14);
+          box-shadow: 0 0 24px rgb(var(--td-accent-rgb)/0.08);
         }
 
         .ticker-save-button svg {
