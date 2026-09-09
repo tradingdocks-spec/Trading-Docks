@@ -22,6 +22,7 @@ type MarketCard = {
   opportunityScore: number;
   source: string;
   image?: string;
+  game: GameId;
 };
 
 // Deliberately illustrative: never presented as provider quotes or live prices.
@@ -41,13 +42,14 @@ const SAMPLE_ART: Record<string, string> = {
 
 function sampleCards(game: GameId): MarketCard[] {
   return SAMPLE_NAMES[game].map((name, index) => ({
-    id: `${game}-sample-${index}`, name, setName: "Example set", setCode: "DEMO",
+    id: `${game}-sample-${index}`, name, setName: game === "magic" ? ["The Brothers' War", "The Lost Caverns of Ixalan", "The Lord of the Rings: Tales of Middle-earth"][index] : "Demo catalog set", setCode: game === "magic" ? ["BRO", "LCI", "LTR"][index] : "DEMO",
     collectorNumber: String(index + 1).padStart(3, "0"),
     marketPrice: [24, 12, 3][index], change24h: [2, -1, 0.5][index],
     change7d: [8, -4, 2][index], demand: index === 0 ? "High" : "Medium",
     volumeScore: [80, 60, 95][index], opportunityScore: [65, 85, 40][index],
     source: "Illustrative sample",
     image: SAMPLE_ART[name],
+    game,
   }));
 }
 const GAME_TABS: Array<{ id: GameId; label: string; shortLabel: string }> = [
@@ -163,7 +165,7 @@ export function MarketSection() {
                 <p className="text-sm font-semibold text-td-primary">Sample lead signal</p>
                 {primaryCard ? (
                   <div className="mt-5 border-y border-td-ink/[0.08] py-5">
-                    <CardArtwork card={primaryCard} featured />
+                    <MarketCardArtwork card={primaryCard} variant="featured" />
                     <p className="text-2xl font-semibold tracking-[-0.035em] text-td-primary">
                       {primaryCard.name}
                     </p>
@@ -203,7 +205,7 @@ export function MarketSection() {
                     {cards.slice(0, 8).map((card) => (
                       <tr key={card.id} className="border-b border-td-ink/[0.055] last:border-b-0">
                         <td className="py-4 pr-6">
-                          <div className="flex items-center gap-3"><CardArtwork card={card} /><div><p className="text-sm font-semibold text-td-primary">{card.name}</p>
+                          <div className="flex items-center gap-3"><MarketCardArtwork card={card} variant="thumbnail" /><div><p className="text-sm font-semibold text-td-primary">{card.name}</p>
                           <p className="mt-1 text-xs text-td-secondary">
                             {card.setCode} #{card.collectorNumber}
                           </p></div></div>
@@ -253,10 +255,11 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CardArtwork({ card, featured = false }: { card: MarketCard; featured?: boolean }) {
+function MarketCardArtwork({ card, variant }: { card: MarketCard; variant: "featured" | "thumbnail" }) {
   const [failed, setFailed] = useState(false);
-  return <div className={`${featured ? "relative mb-5 h-56 w-40" : "relative h-12 w-9 shrink-0"} overflow-hidden rounded-md border border-td-ink/[0.12] bg-td-ink/[0.06]`}>
-    {card.image && !failed ? <Image src={card.image} alt={`${card.name} card artwork`} fill sizes={featured ? "160px" : "36px"} className="object-cover" onError={() => setFailed(true)} /> : <div className="grid h-full w-full place-items-center bg-gradient-to-br from-td-accent/30 to-td-ink/[0.08] text-xs font-bold text-td-accent-text" aria-label={`${card.name} artwork unavailable`}>{card.name.slice(0, 2).toUpperCase()}</div>}
+  const featured = variant === "featured";
+  return <div className={`${featured ? "relative mb-5 aspect-[5/7] w-40" : "relative h-12 w-9 shrink-0"} overflow-hidden rounded-md border border-td-ink/[0.12] bg-td-ink/[0.06]`}>
+    {card.image && !failed ? <Image src={card.image} alt={`${card.name} card artwork`} fill sizes={featured ? "160px" : "36px"} className="object-cover" onError={() => setFailed(true)} /> : <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-[linear-gradient(145deg,rgb(var(--td-brand-blue-rgb)/.34),rgb(var(--td-surface-rgb)/.96)_60%)] p-3 text-td-primary" aria-label={`${card.name} artwork unavailable`}><span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">{GAME_TABS.find((game) => game.id === card.game)?.shortLabel ?? "TCG"}</span><span className={`${featured ? "text-lg" : "text-[8px]"} font-semibold leading-tight`}>{card.name}</span><span className="text-[8px] uppercase tracking-[0.12em] text-td-muted">Artwork unavailable</span><i className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-td-accent/20 blur-2xl" /></div>}
   </div>;
 }
 
