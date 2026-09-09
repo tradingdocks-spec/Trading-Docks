@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 
@@ -20,15 +21,22 @@ type MarketCard = {
   volumeScore: number;
   opportunityScore: number;
   source: string;
+  image?: string;
 };
 
 // Deliberately illustrative: never presented as provider quotes or live prices.
 const SAMPLE_NAMES: Record<GameId, string[]> = {
-  magic: ["Sample mythic", "Sample rare", "Sample uncommon"],
-  pokemon: ["Sample illustration rare", "Sample ultra rare", "Sample holo"],
-  "pokemon-japan": ["Sample Japanese illustration rare", "Sample Japanese ultra rare", "Sample Japanese holo"],
-  lorcana: ["Sample enchanted", "Sample legendary", "Sample super rare"],
-  "one-piece": ["Sample alternate art", "Sample secret rare", "Sample super rare"],
+  magic: ["Mox Amber", "Cavern of Souls", "The One Ring"],
+  pokemon: ["Pikachu ex", "Charizard ex", "Mew ex"],
+  "pokemon-japan": ["Pikachu ex", "Charizard ex", "Mew ex"],
+  lorcana: ["Elsa — Spirit of Winter", "Stitch — Rock Star", "Mickey Mouse — Brave Little Tailor"],
+  "one-piece": ["Monkey.D.Luffy", "Roronoa Zoro", "Nami"],
+};
+
+const SAMPLE_ART: Record<string, string> = {
+  "Mox Amber": "https://cards.scryfall.io/small/front/6/6/66024e69-ad60-4c9a-a0ca-da138d33ad80.jpg",
+  "Cavern of Souls": "https://cards.scryfall.io/small/front/4/9/49dbdabc-9b82-476d-8efc-63d33f1f13ab.jpg",
+  "The One Ring": "https://cards.scryfall.io/small/front/4/5/4536e6da-4b9d-4d67-a3fb-b3f1e3e1d664.jpg",
 };
 
 function sampleCards(game: GameId): MarketCard[] {
@@ -39,6 +47,7 @@ function sampleCards(game: GameId): MarketCard[] {
     change7d: [8, -4, 2][index], demand: index === 0 ? "High" : "Medium",
     volumeScore: [80, 60, 95][index], opportunityScore: [65, 85, 40][index],
     source: "Illustrative sample",
+    image: SAMPLE_ART[name],
   }));
 }
 const GAME_TABS: Array<{ id: GameId; label: string; shortLabel: string }> = [
@@ -154,6 +163,7 @@ export function MarketSection() {
                 <p className="text-sm font-semibold text-td-primary">Sample lead signal</p>
                 {primaryCard ? (
                   <div className="mt-5 border-y border-td-ink/[0.08] py-5">
+                    <CardArtwork card={primaryCard} featured />
                     <p className="text-2xl font-semibold tracking-[-0.035em] text-td-primary">
                       {primaryCard.name}
                     </p>
@@ -161,11 +171,13 @@ export function MarketSection() {
                       {primaryCard.setName} #{primaryCard.collectorNumber}
                     </p>
                     <div className="mt-5 grid grid-cols-2 gap-4">
-                      <Metric label="Market" value={currency(primaryCard.marketPrice)} />
+                      <Metric label="Market · demo" value={currency(primaryCard.marketPrice)} />
+                      <Metric label="24H move" value={signedPercent(primaryCard.change24h)} />
                       <Metric label="7D move" value={signedPercent(primaryCard.change7d)} />
                       <Metric label="Demand" value={primaryCard.demand} />
                       <Metric label="Opportunity" value={`${primaryCard.opportunityScore}/100`} />
                     </div>
+                    <div className="mt-5 flex items-center justify-between border-t border-td-ink/[0.08] pt-4"><span className="text-xs text-td-secondary">Suggested action</span><span className="rounded-full border border-td-accent/30 bg-td-accent/[0.08] px-3 py-1.5 text-xs font-semibold text-td-accent-text">{primaryCard.opportunityScore > 70 ? "REPRICE" : "HOLD"}</span></div>
                   </div>
                 ) : (
                   <p className="mt-5 border-y border-td-ink/[0.08] py-5 text-sm leading-6 text-td-secondary">
@@ -191,10 +203,10 @@ export function MarketSection() {
                     {cards.slice(0, 8).map((card) => (
                       <tr key={card.id} className="border-b border-td-ink/[0.055] last:border-b-0">
                         <td className="py-4 pr-6">
-                          <p className="text-sm font-semibold text-td-primary">{card.name}</p>
+                          <div className="flex items-center gap-3"><CardArtwork card={card} /><div><p className="text-sm font-semibold text-td-primary">{card.name}</p>
                           <p className="mt-1 text-xs text-td-secondary">
                             {card.setCode} #{card.collectorNumber}
-                          </p>
+                          </p></div></div>
                         </td>
                         <td className="px-4 py-4 text-sm text-td-secondary">{currency(card.marketPrice)}</td>
                         <td className={movementClass(card.change24h)}>{signedPercent(card.change24h)}</td>
@@ -239,6 +251,13 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm font-semibold text-td-primary">{value}</p>
     </div>
   );
+}
+
+function CardArtwork({ card, featured = false }: { card: MarketCard; featured?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  return <div className={`${featured ? "relative mb-5 h-56 w-40" : "relative h-12 w-9 shrink-0"} overflow-hidden rounded-md border border-td-ink/[0.12] bg-td-ink/[0.06]`}>
+    {card.image && !failed ? <Image src={card.image} alt={`${card.name} card artwork`} fill sizes={featured ? "160px" : "36px"} className="object-cover" onError={() => setFailed(true)} /> : <div className="grid h-full w-full place-items-center bg-gradient-to-br from-td-accent/30 to-td-ink/[0.08] text-xs font-bold text-td-accent-text" aria-label={`${card.name} artwork unavailable`}>{card.name.slice(0, 2).toUpperCase()}</div>}
+  </div>;
 }
 
 function movementClass(value: number) {
