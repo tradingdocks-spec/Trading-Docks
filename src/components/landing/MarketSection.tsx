@@ -24,6 +24,9 @@ type MarketCard = {
   image?: string;
   game: GameId;
   suggestedAction: "REPRICE" | "HOLD" | "LIST" | "REVIEW";
+  imageUrl?: string;
+  imageSource: "scryfall" | "placeholder";
+  hasVerifiedArtwork: boolean;
 };
 
 // Deliberately illustrative: never presented as provider quotes or live prices.
@@ -39,12 +42,12 @@ const SAMPLE_ART: Record<string, string> = {
   "Mox Amber": "https://cards.scryfall.io/small/front/6/6/66024e69-ad60-4c9a-a0ca-da138d33ad80.jpg",
   "Lightning Greaves": "https://cards.scryfall.io/normal/front/b/6/b61634ae-05be-4b56-8ebb-9d4ade902e42.jpg",
   "Rhystic Study": "https://cards.scryfall.io/normal/front/9/f/9f37c5b6-a59c-45cd-9a99-e9357fe9ea1b.jpg",
-  "Cavern of Souls": "https://cards.scryfall.io/small/front/4/9/49dbdabc-9b82-476d-8efc-63d33f1f13ab.jpg",
-  "The One Ring": "https://cards.scryfall.io/small/front/4/5/4536e6da-4b9d-4d67-a3fb-b3f1e3e1d664.jpg",
+  "Cavern of Souls": "https://cards.scryfall.io/normal/front/3/a/3aad15a2-8a1b-4460-9b06-e85863081878.jpg",
+  "The One Ring": "https://cards.scryfall.io/normal/front/d/5/d5806e68-1054-458e-866d-1f2470f682b2.jpg",
 };
 
 function sampleCards(game: GameId): MarketCard[] {
-  return SAMPLE_NAMES[game].map((name, index) => ({
+  const cards: MarketCard[] = SAMPLE_NAMES[game].map((name, index) => ({
     id: `${game}-sample-${index}`, name, setName: game === "magic" ? ["The Brothers' War", "Marvel Super Heroes Commander", "The Lord of the Rings: Tales of Middle-earth", "Jumpstart 2022", "The Lost Caverns of Ixalan"][index] : "Demo catalog set", setCode: game === "magic" ? ["BRO", "M3C", "LTR", "J22", "LCI"][index] : "DEMO",
     collectorNumber: game === "magic" ? ["179", "202", "246", "114", "357"][index] : String(index + 1).padStart(3, "0"),
     marketPrice: [24, 12, 82, 31, 47][index] ?? 0, change24h: [2, -1, 0.5, -0.82, 1.34][index] ?? 0,
@@ -52,9 +55,20 @@ function sampleCards(game: GameId): MarketCard[] {
     volumeScore: [80, 60, 95, 72, 86][index] ?? 50, opportunityScore: [65, 85, 40, 78, 70][index] ?? 50,
     source: "Illustrative sample",
     image: SAMPLE_ART[name],
+    imageUrl: SAMPLE_ART[name],
+    imageSource: SAMPLE_ART[name] ? "scryfall" : "placeholder",
+    hasVerifiedArtwork: game === "magic" && Boolean(SAMPLE_ART[name]),
     game,
     suggestedAction: index === 1 || index === 3 ? "REPRICE" : index === 2 ? "HOLD" : index === 4 ? "LIST" : "REVIEW",
-  }));
+  } as MarketCard));
+  if (process.env.NODE_ENV !== "production") {
+    cards.forEach((card) => {
+      if (!card.imageUrl && card.imageUrl === "") console.warn(`[Market Intelligence] Empty imageUrl for ${card.name}.`);
+      if (card.game === "magic" && !card.imageUrl) console.warn(`[Market Intelligence] Magic card ${card.name} is missing verified Scryfall artwork.`);
+      if (card.imageUrl && !card.imageUrl.startsWith("https://cards.scryfall.io/")) console.warn(`[Market Intelligence] Unsupported artwork host for ${card.name}.`);
+    });
+  }
+  return cards;
 }
 const GAME_TABS: Array<{ id: GameId; label: string; shortLabel: string }> = [
   { id: "magic", label: "Magic: The Gathering", shortLabel: "Magic" },
@@ -81,7 +95,7 @@ export function MarketSection() {
     () => rankCards(sampleCards(activeGame), activeMode),
     [activeGame, activeMode],
   );
-  const primaryCard = cards[0] ?? null;
+  const primaryCard = cards.find((card) => card.hasVerifiedArtwork) ?? cards[0] ?? null;
 
   return (
     <section
@@ -263,7 +277,7 @@ function MarketCardArtwork({ card, variant }: { card: MarketCard; variant: "feat
   const [failed, setFailed] = useState(false);
   const featured = variant === "featured";
   return <div className={`${featured ? "relative mb-5 aspect-[5/7] w-40" : "relative h-12 w-9 shrink-0"} overflow-hidden rounded-md border border-td-ink/[0.12] bg-td-ink/[0.06]`}>
-    {card.image && !failed ? <Image src={card.image} alt={`${card.name} card artwork`} fill sizes={featured ? "160px" : "36px"} className="object-cover" onError={() => setFailed(true)} /> : <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-[linear-gradient(145deg,rgb(var(--td-brand-blue-rgb)/.34),rgb(var(--td-surface-rgb)/.96)_60%)] p-3 text-td-primary" aria-label={`${card.name} artwork unavailable`}><span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">{GAME_TABS.find((game) => game.id === card.game)?.shortLabel ?? "TCG"}</span><span className={`${featured ? "text-lg" : "text-[8px]"} font-semibold leading-tight`}>{card.name}</span><span className="text-[8px] uppercase tracking-[0.12em] text-td-muted">Artwork unavailable</span><i className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-td-accent/20 blur-2xl" /></div>}
+    {card.imageUrl && !failed ? <Image src={card.imageUrl} alt={`${card.name} card artwork`} fill sizes={featured ? "160px" : "36px"} className="object-cover" onError={() => setFailed(true)} /> : <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-[linear-gradient(145deg,rgb(var(--td-brand-blue-rgb)/.34),rgb(var(--td-surface-rgb)/.96)_60%)] p-3 text-td-primary" aria-label={`${card.name} demo preview`}><span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-td-accent-text">{GAME_TABS.find((game) => game.id === card.game)?.shortLabel ?? "TCG"}</span><span className={`${featured ? "text-lg" : "text-[8px]"} font-semibold leading-tight`}>{card.name}</span><span className="text-[8px] uppercase tracking-[0.12em] text-td-muted">Trading Docks sample card</span><i className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-td-accent/20 blur-2xl" /></div>}
   </div>;
 }
 
