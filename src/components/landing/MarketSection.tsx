@@ -23,11 +23,12 @@ type MarketCard = {
   source: string;
   image?: string;
   game: GameId;
+  suggestedAction: "REPRICE" | "HOLD" | "LIST" | "REVIEW";
 };
 
 // Deliberately illustrative: never presented as provider quotes or live prices.
 const SAMPLE_NAMES: Record<GameId, string[]> = {
-  magic: ["Mox Amber", "Cavern of Souls", "The One Ring"],
+  magic: ["Mox Amber", "Lightning Greaves", "The One Ring", "Rhystic Study", "Cavern of Souls"],
   pokemon: ["Pikachu ex", "Charizard ex", "Mew ex"],
   "pokemon-japan": ["Pikachu ex", "Charizard ex", "Mew ex"],
   lorcana: ["Elsa — Spirit of Winter", "Stitch — Rock Star", "Mickey Mouse — Brave Little Tailor"],
@@ -36,20 +37,23 @@ const SAMPLE_NAMES: Record<GameId, string[]> = {
 
 const SAMPLE_ART: Record<string, string> = {
   "Mox Amber": "https://cards.scryfall.io/small/front/6/6/66024e69-ad60-4c9a-a0ca-da138d33ad80.jpg",
+  "Lightning Greaves": "https://cards.scryfall.io/normal/front/b/6/b61634ae-05be-4b56-8ebb-9d4ade902e42.jpg",
+  "Rhystic Study": "https://cards.scryfall.io/normal/front/9/f/9f37c5b6-a59c-45cd-9a99-e9357fe9ea1b.jpg",
   "Cavern of Souls": "https://cards.scryfall.io/small/front/4/9/49dbdabc-9b82-476d-8efc-63d33f1f13ab.jpg",
   "The One Ring": "https://cards.scryfall.io/small/front/4/5/4536e6da-4b9d-4d67-a3fb-b3f1e3e1d664.jpg",
 };
 
 function sampleCards(game: GameId): MarketCard[] {
   return SAMPLE_NAMES[game].map((name, index) => ({
-    id: `${game}-sample-${index}`, name, setName: game === "magic" ? ["The Brothers' War", "The Lost Caverns of Ixalan", "The Lord of the Rings: Tales of Middle-earth"][index] : "Demo catalog set", setCode: game === "magic" ? ["BRO", "LCI", "LTR"][index] : "DEMO",
-    collectorNumber: String(index + 1).padStart(3, "0"),
-    marketPrice: [24, 12, 3][index], change24h: [2, -1, 0.5][index],
-    change7d: [8, -4, 2][index], demand: index === 0 ? "High" : "Medium",
-    volumeScore: [80, 60, 95][index], opportunityScore: [65, 85, 40][index],
+    id: `${game}-sample-${index}`, name, setName: game === "magic" ? ["The Brothers' War", "Marvel Super Heroes Commander", "The Lord of the Rings: Tales of Middle-earth", "Jumpstart 2022", "The Lost Caverns of Ixalan"][index] : "Demo catalog set", setCode: game === "magic" ? ["BRO", "M3C", "LTR", "J22", "LCI"][index] : "DEMO",
+    collectorNumber: game === "magic" ? ["179", "202", "246", "114", "357"][index] : String(index + 1).padStart(3, "0"),
+    marketPrice: [24, 12, 82, 31, 47][index] ?? 0, change24h: [2, -1, 0.5, -0.82, 1.34][index] ?? 0,
+    change7d: [8, -4, 2, -3.2, 6.4][index] ?? 0, demand: index === 0 ? "High" : index === 4 ? "High" : "Medium",
+    volumeScore: [80, 60, 95, 72, 86][index] ?? 50, opportunityScore: [65, 85, 40, 78, 70][index] ?? 50,
     source: "Illustrative sample",
     image: SAMPLE_ART[name],
     game,
+    suggestedAction: index === 1 || index === 3 ? "REPRICE" : index === 2 ? "HOLD" : index === 4 ? "LIST" : "REVIEW",
   }));
 }
 const GAME_TABS: Array<{ id: GameId; label: string; shortLabel: string }> = [
@@ -179,7 +183,7 @@ export function MarketSection() {
                       <Metric label="Demand" value={primaryCard.demand} />
                       <Metric label="Opportunity" value={`${primaryCard.opportunityScore}/100`} />
                     </div>
-                    <div className="mt-5 flex items-center justify-between border-t border-td-ink/[0.08] pt-4"><span className="text-xs text-td-secondary">Suggested action</span><span className="rounded-full border border-td-accent/30 bg-td-accent/[0.08] px-3 py-1.5 text-xs font-semibold text-td-accent-text">{primaryCard.opportunityScore > 70 ? "REPRICE" : "HOLD"}</span></div>
+                    <div className="mt-5 flex items-center justify-between border-t border-td-ink/[0.08] pt-4"><span className="text-xs text-td-secondary">Suggested action</span><span className="rounded-full border border-td-accent/30 bg-td-accent/[0.08] px-3 py-1.5 text-xs font-semibold text-td-accent-text">{primaryCard.suggestedAction}</span></div>
                   </div>
                 ) : (
                   <p className="mt-5 border-y border-td-ink/[0.08] py-5 text-sm leading-6 text-td-secondary">
