@@ -20,7 +20,7 @@ export function Hero() {
           through one connected record.
         </p>
         <div className={styles.actions}>
-          <Link href="/sign-up?plan=free" className={styles.primary}>
+          <Link href="/sign-up?plan=free" className={`${styles.primary} td-button-primary h-12 px-5 text-sm`}>
             Start free <ArrowRight size={16} />
           </Link>
           <a href="#experience" className={styles.textLink}>
