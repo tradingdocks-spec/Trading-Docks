@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { CANONICAL_FIELDS, outputForTemplate, type CanonicalRow } from "../src/lib/csv-conversion/templates.ts";
 
 import {
   blockingIssues,
@@ -8,7 +9,6 @@ import {
   parseCsv,
   unsupportedExportIssues,
 } from "../src/lib/csv-converter.ts";
-import { outputForTemplate, type CanonicalRow } from "../src/lib/csv-conversion/templates.ts";
 
 function canonicalPriceRow(overrides: Partial<CanonicalRow> = {}) {
   return {
@@ -18,6 +18,17 @@ function canonicalPriceRow(overrides: Partial<CanonicalRow> = {}) {
     ...overrides,
   } as CanonicalRow;
 }
+
+test("review exporter uses catalog printing fields only for TCGplayer and retains compound import identity", () => {
+  const base = Object.fromEntries(CANONICAL_FIELDS.map(({ key }) => [key, ""])) as CanonicalRow;
+  const row = { ...base, name: "Belfry Spirit", set: "plst", setName: "The List", collectorNumber: "GK2-29", tcgplayerId: "900030", tcgplayerPrinting: { name: "Belfry Spirit", setName: "The List Reprints", collectorNumber: "029/133" } };
+  const tcg = outputForTemplate([row], "tcgplayer");
+  assert.equal(tcg.values[0][tcg.headers.indexOf("Number")], "029/133");
+  assert.equal(tcg.values[0][tcg.headers.indexOf("Set Name")], "The List Reprints");
+  const manabox = outputForTemplate([row], "manabox");
+  assert.equal(manabox.values[0][manabox.headers.indexOf("Collector number")], "GK2-29");
+  assert.equal(row.collectorNumber, "GK2-29");
+});
 
 test("CSV converter keeps Magic rows on the existing TCGplayer export path", () => {
   const rows = normalizeRows(parseCsv([

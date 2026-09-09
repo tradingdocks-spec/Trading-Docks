@@ -1,0 +1,182 @@
+{
+  "description": "Public Scryfall and TCGCSV printing metadata captured 2026-09-08. Test catalog SKU rows are synthetic, not a private catalog snapshot.",
+  "fixtures": [
+    [
+      "Darkblast",
+      "plst",
+      "GK1-51",
+      203631
+    ],
+    [
+      "Aerial Responder",
+      "plst",
+      "E01-2",
+      581243
+    ],
+    [
+      "Knight of Meadowgrain",
+      "plst",
+      "DDG-5",
+      582404
+    ],
+    [
+      "Belfry Spirit",
+      "plst",
+      "GK2-29",
+      222432
+    ],
+    [
+      "Azorius Herald",
+      "gk2",
+      "2",
+      184794
+    ]
+  ],
+  "responses": {
+    "https://api.scryfall.com/cards/plst/GK1-51": {
+      "id": "075fc4cb-49ac-4488-a24d-bc687f027182",
+      "name": "Darkblast",
+      "set": "plst",
+      "collector_number": "GK1-51",
+      "tcgplayer_id": 203631
+    },
+    "https://api.scryfall.com/cards/gk1/51": {
+      "id": "6a01bf1a-5868-4338-bf16-c35437e9bc2f",
+      "name": "Darkblast",
+      "set": "gk1",
+      "collector_number": "51",
+      "tcgplayer_id": 177366
+    },
+    "https://api.scryfall.com/cards/plst/E01-2": {
+      "id": "7ddbca9a-f447-4ba7-be75-9137958142a5",
+      "name": "Aerial Responder",
+      "set": "plst",
+      "collector_number": "E01-2",
+      "tcgplayer_id": 581243
+    },
+    "https://api.scryfall.com/cards/e01/2": {
+      "id": "19ef8a30-11e2-4f6e-a38c-3a2694d88d1c",
+      "name": "Aerial Responder",
+      "set": "e01",
+      "collector_number": "2",
+      "tcgplayer_id": 132296
+    },
+    "https://api.scryfall.com/cards/plst/DDG-5": {
+      "id": "c39738a1-5cd2-445a-9a49-4518395984d1",
+      "name": "Knight of Meadowgrain",
+      "set": "plst",
+      "collector_number": "DDG-5",
+      "tcgplayer_id": 582404
+    },
+    "https://api.scryfall.com/cards/ddg/5": {
+      "id": "6156d61c-640e-4e8c-bd2f-838dfef0c885",
+      "name": "Knight of Meadowgrain",
+      "set": "ddg",
+      "collector_number": "5",
+      "tcgplayer_id": 46816
+    },
+    "https://api.scryfall.com/cards/plst/GK2-29": {
+      "id": "c1f5854d-63cf-419f-990c-6f473e181a68",
+      "name": "Belfry Spirit",
+      "set": "plst",
+      "collector_number": "GK2-29",
+      "tcgplayer_id": 222432
+    },
+    "https://api.scryfall.com/cards/gk2/29": {
+      "id": "f2d2a19b-169a-456f-9fbc-7820aa2ada20",
+      "name": "Belfry Spirit",
+      "set": "gk2",
+      "collector_number": "29",
+      "tcgplayer_id": 184816
+    },
+    "https://api.scryfall.com/cards/gk2/2": {
+      "id": "525dcef8-a5dc-49ca-819b-296611f70e63",
+      "name": "Azorius Herald",
+      "set": "gk2",
+      "collector_number": "2",
+      "tcgplayer_id": 184794
+    },
+    "https://tcgcsv.com/tcgplayer/1/groups": {
+      "results": [
+        {
+          "groupId": 2388,
+          "name": "Ravnica Allegiance: Guild Kits",
+          "abbreviation": "GK2"
+        },
+        {
+          "groupId": 2715,
+          "name": "The List Reprints",
+          "abbreviation": "LIST"
+        }
+      ]
+    },
+    "https://tcgcsv.com/tcgplayer/1/2388/products": {
+      "results": [
+        {
+          "productId": 184794,
+          "name": "Azorius Herald",
+          "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/184794_200w.jpg",
+          "extendedData": [
+            {
+              "name": "Number",
+              "displayName": "#",
+              "value": "2"
+            }
+          ]
+        }
+      ]
+    },
+    "https://tcgcsv.com/tcgplayer/1/2715/products": {
+      "results": [
+        {
+          "productId": 203631,
+          "name": "Darkblast",
+          "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/203631_200w.jpg",
+          "extendedData": [
+            {
+              "name": "Number",
+              "displayName": "#",
+              "value": "51"
+            }
+          ]
+        },
+        {
+          "productId": 222432,
+          "name": "Belfry Spirit",
+          "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/222432_200w.jpg",
+          "extendedData": [
+            {
+              "name": "Number",
+              "displayName": "#",
+              "value": "029/133"
+            }
+          ]
+        },
+        {
+          "productId": 581243,
+          "name": "Aerial Responder",
+          "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/581243_200w.jpg",
+          "extendedData": [
+            {
+              "name": "Number",
+              "displayName": "#",
+              "value": "002/106"
+            }
+          ]
+        },
+        {
+          "productId": 582404,
+          "name": "Knight of Meadowgrain",
+          "imageUrl": "https://tcgplayer-cdn.tcgplayer.com/product/582404_200w.jpg",
+          "extendedData": [
+            {
+              "name": "Number",
+              "displayName": "#",
+              "value": "5"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

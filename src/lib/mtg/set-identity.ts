@@ -13,6 +13,11 @@ export type MtgSetIdentityMatch =
 const SCRYFALL_SETS_URL = "https://api.scryfall.com/sets";
 
 const FALLBACK_SET_IDENTITIES: MtgSetIdentity[] = [
+  { code: "plst", name: "The List Reprints", aliases: ["The List", "LIST"] },
+  { code: "gk1", name: "Guilds of Ravnica: Guild Kits", aliases: ["GR1"] },
+  { code: "gk2", name: "Ravnica Allegiance: Guild Kits" },
+  { code: "e01", name: "Archenemy: Nicol Bolas" },
+  { code: "ddg", name: "Duel Decks: Knights vs. Dragons" },
   { code: "mh1", name: "Modern Horizons" },
   { code: "scd", name: "Starter Commander Decks" },
   { code: "one", name: "Phyrexia: All Will Be One", aliases: ["All Will Be One"] },

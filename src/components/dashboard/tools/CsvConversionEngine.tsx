@@ -46,6 +46,9 @@ type EnrichedRow = Partial<CanonicalRow> & {
   tcgplayerResolveReason?: string;
   tcgplayerResolveReasonCode?: string;
   tcgplayerTranslatedSetName?: string;
+  tcgplayerSourceSetCode?: string;
+  tcgplayerSourceCollectorNumber?: string;
+  tcgplayerPrinting?: { name: string; setName: string; collectorNumber: string };
 };
 type LocationRecord = {
   id: string;
@@ -73,7 +76,8 @@ const TCGPLAYER_REASON_LABELS: Record<string, string> = {
   FINISH_NOT_FOUND: "Finish was not found",
   PRINTING_NOT_FOUND: "Printing was not found",
   SET_NOT_FOUND: "Set could not be identified",
-  SET_MAPPED_NO_PRODUCT: "Set matched, card was not found",
+  SET_MAPPED_NO_PRODUCT: "SET_MAPPED_NO_PRODUCT",
+  PLST_COMPOUND_COLLECTOR_UNRESOLVED: "PLST_COMPOUND_COLLECTOR_UNRESOLVED",
   SKU_NOT_FOUND: "Exact TCGplayer SKU was not found",
   UNKNOWN_SET_CODE: "Set could not be identified",
 };
@@ -377,9 +381,11 @@ export function CsvConversionEngine({
         matched += 1;
         next[index] = {
           tcgplayerProductId: result.tcgplayerProductId ?? "",
-          name: result.productName ?? converted[index]?.name ?? "",
-          setName: result.setName ?? converted[index]?.setName ?? "",
-          collectorNumber: result.collectorNumber ?? converted[index]?.collectorNumber ?? "",
+          tcgplayerPrinting: {
+            name: result.productName ?? converted[index]?.name ?? "",
+            setName: result.setName ?? converted[index]?.setName ?? "",
+            collectorNumber: result.collectorNumber ?? converted[index]?.collectorNumber ?? "",
+          },
           rarity: result.rarity ?? converted[index]?.rarity ?? "",
           imageUrl: result.imageUrl ?? converted[index]?.imageUrl ?? "",
           productLine: result.productLine ?? "Magic",
@@ -424,6 +430,9 @@ export function CsvConversionEngine({
               collectorNumber: row.collectorNumber,
               condition: row.condition,
               finish: row.finish,
+              tcgplayerId: row.tcgplayerId,
+              tcgplayerProductId: row.tcgplayerProductId,
+              scryfallId: row.scryfallId,
             })),
           }),
         });
@@ -436,6 +445,8 @@ export function CsvConversionEngine({
             diagnostics?: {
               sourceSet?: string | null;
               translatedSetName?: string | null;
+              sourceSetCode?: string;
+              sourceCollectorNumber?: string;
             };
             tcgplayerId?: string;
             productLine?: string;
@@ -464,10 +475,12 @@ export function CsvConversionEngine({
               ...(next[rowIndex] ?? {}),
               tcgplayerId: result.tcgplayerId ?? "",
               productLine: result.productLine ?? "Magic",
-              setName: result.setName ?? converted[rowIndex]?.setName ?? "",
-              name: result.productName ?? converted[rowIndex]?.name ?? "",
+              tcgplayerPrinting: {
+                setName: result.setName ?? converted[rowIndex]?.setName ?? "",
+                name: result.productName ?? converted[rowIndex]?.name ?? "",
+                collectorNumber: result.collectorNumber ?? converted[rowIndex]?.collectorNumber ?? "",
+              },
               title: result.title ?? converted[rowIndex]?.title ?? "",
-              collectorNumber: result.collectorNumber ?? converted[rowIndex]?.collectorNumber ?? "",
               rarity: result.rarity ?? converted[rowIndex]?.rarity ?? "",
               condition: finish === "Foil" && result.condition ? `${result.condition} Foil` : result.condition ?? converted[rowIndex]?.condition ?? "",
               finish,
@@ -478,6 +491,8 @@ export function CsvConversionEngine({
               tcgplayerResolveReason: "",
               tcgplayerResolveReasonCode: "",
               tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
+              tcgplayerSourceSetCode: result.diagnostics?.sourceSetCode,
+              tcgplayerSourceCollectorNumber: result.diagnostics?.sourceCollectorNumber,
             };
           } else if (result.status === "ambiguous") {
             ambiguous += 1;
@@ -485,9 +500,13 @@ export function CsvConversionEngine({
             unresolvedReasons.set(reasonCode, (unresolvedReasons.get(reasonCode) ?? 0) + 1);
             next[rowIndex] = {
               ...(next[rowIndex] ?? {}),
+              tcgplayerId: "",
+              tcgplayerPrinting: undefined,
               tcgplayerResolveReason: result.reason ?? "Multiple TCGplayer variants matched.",
               tcgplayerResolveReasonCode: reasonCode,
               tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
+              tcgplayerSourceSetCode: result.diagnostics?.sourceSetCode,
+              tcgplayerSourceCollectorNumber: result.diagnostics?.sourceCollectorNumber,
             };
           } else {
             unresolved += 1;
@@ -495,9 +514,13 @@ export function CsvConversionEngine({
             unresolvedReasons.set(reasonCode, (unresolvedReasons.get(reasonCode) ?? 0) + 1);
             next[rowIndex] = {
               ...(next[rowIndex] ?? {}),
+              tcgplayerId: "",
+              tcgplayerPrinting: undefined,
               tcgplayerResolveReason: result.reason ?? "No exact TCGplayer SKU matched.",
               tcgplayerResolveReasonCode: reasonCode,
               tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
+              tcgplayerSourceSetCode: result.diagnostics?.sourceSetCode,
+              tcgplayerSourceCollectorNumber: result.diagnostics?.sourceCollectorNumber,
             };
           }
         });
@@ -755,8 +778,9 @@ function formatReasonSummary(reasons: Map<string, number>) {
     .map(([reason, count]) => `${reason}: ${count.toLocaleString()}`)
     .join(" · ");
 }
-function tcgplayerReasonLabel(row: Pick<EnrichedRow, "tcgplayerResolveReason" | "tcgplayerResolveReasonCode">) {
+function tcgplayerReasonLabel(row: Pick<EnrichedRow, "tcgplayerResolveReason" | "tcgplayerResolveReasonCode" | "tcgplayerSourceSetCode" | "tcgplayerSourceCollectorNumber">) {
   const code = row.tcgplayerResolveReasonCode?.trim();
+  if (code === "PLST_COMPOUND_COLLECTOR_UNRESOLVED") return `${code} (${row.tcgplayerSourceSetCode?.toUpperCase() ?? "?"} #${row.tcgplayerSourceCollectorNumber ?? "?"})`;
   if (code && TCGPLAYER_REASON_LABELS[code]) return TCGPLAYER_REASON_LABELS[code];
   return row.tcgplayerResolveReason?.trim() || "Needs review";
 }
