@@ -61,6 +61,7 @@ export function DiscordIntegrationPage({
   canSend,
   queryError,
   connected = false,
+  prefill,
 }: {
   integration: Integration;
   channels: Channel[];
@@ -70,17 +71,18 @@ export function DiscordIntegrationPage({
   canSend: boolean;
   queryError: string | null;
   connected?: boolean;
+  prefill?: { type?: AnnouncementType; title?: string; body?: string; link?: string; tournamentId?: string };
 }) {
   const [channels, setChannels] = useState(initialChannels);
   const [logs, setLogs] = useState(initialLogs);
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [dismissedQueryError, setDismissedQueryError] = useState(false);
-  const [type, setType] = useState<AnnouncementType>("general");
-  const [title, setTitle] = useState(templates.general.title);
-  const [body, setBody] = useState(templates.general.body);
+  const [type, setType] = useState<AnnouncementType>(prefill?.type ?? "general");
+  const [title, setTitle] = useState(prefill?.title ?? templates[prefill?.type ?? "general"].title);
+  const [body, setBody] = useState(prefill?.body ?? templates[prefill?.type ?? "general"].body);
   const [selectedChannel, setSelectedChannel] = useState(() => initialChannels.find((channel) => channel.enabled && channel.can_send)?.id ?? "");
-  const [link, setLink] = useState("");
+  const [link, setLink] = useState(prefill?.link ?? "");
   const [inventory, setInventory] = useState<InventoryCard[]>([]);
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
 
@@ -147,7 +149,7 @@ export function DiscordIntegrationPage({
     }
     setBusy("send"); setFeedback(null);
     try {
-      await requestJson("/api/integrations/discord/messages", { method: "POST", body: JSON.stringify({ bindingId: selectedChannel, type, title, body, link, featuredCards: previewCards }) });
+      await requestJson("/api/integrations/discord/messages", { method: "POST", body: JSON.stringify({ bindingId: selectedChannel, type, title, body, link, featuredCards: previewCards, tournamentId: prefill?.tournamentId }) });
       setFeedback(`Sent to #${channel.channel_name}`);
       setLogs((current) => [{ id: `local-${Date.now()}`, channel_name: channel.channel_name, announcement_type: type, title, status: "sent", sent_at: new Date().toISOString(), error_summary: null }, ...current]);
     } catch (error) { setFeedback(error instanceof Error ? error.message : "Message could not be sent."); }

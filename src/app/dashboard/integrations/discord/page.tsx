@@ -5,9 +5,11 @@ export const dynamic = "force-dynamic";
 
 export default async function DiscordIntegrationRoute({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
+  const type = typeof params.type === "string" && ["general", "tournament", "deal", "new_arrival", "restock", "showcase", "buylist", "test"].includes(params.type) ? params.type as "general" | "tournament" | "deal" | "new_arrival" | "restock" | "showcase" | "buylist" | "test" : undefined;
+  const prefill = { type, title: typeof params.title === "string" ? params.title : undefined, body: typeof params.body === "string" ? params.body : undefined, link: typeof params.link === "string" ? params.link : undefined, tournamentId: typeof params.tournamentId === "string" ? params.tournamentId : undefined };
   const actor = await resolveDiscordActor();
   if (!actor.user || !actor.workspaceId) {
-    return <DiscordIntegrationPage integration={null} channels={[]} logs={[]} showcase={null} canManage={false} canSend={false} queryError={typeof params.error === "string" ? params.error : null} />;
+    return <DiscordIntegrationPage integration={null} channels={[]} logs={[]} showcase={null} canManage={false} canSend={false} queryError={typeof params.error === "string" ? params.error : null} prefill={prefill} />;
   }
   const [{ data: integrations }, { data: channels }, { data: logs }, { data: showcase }] = await Promise.all([
     actor.supabase.from("discord_integrations").select("id,guild_id,guild_name,guild_icon_url,status,connected_at,disconnected_at").eq("workspace_id", actor.workspaceId).order("updated_at", { ascending: false }).limit(1),
@@ -26,6 +28,7 @@ export default async function DiscordIntegrationRoute({ searchParams }: { search
       canSend={canSendDiscord(actor.role)}
       queryError={typeof params.error === "string" ? params.error : null}
       connected={params.connected === "1"}
+      prefill={prefill}
     />
   );
 }

@@ -33,6 +33,7 @@ export const ROUTE_ACCESS_REGISTRY: RouteAccessRule[] = [
   { id: "auth", pattern: /^\/(sign-in|sign-up|forgot-password|update-password|auth\/callback|onboarding)\/?$/, kind: "public", label: "Authentication" },
   { id: "collector-profile-public", pattern: /^\/collectors(\/|$)/, kind: "public", label: "Public collector profile" },
   { id: "share", pattern: /^\/share\/(binder|portfolio)(\/|$)/, kind: "public", label: "Shared collection link" },
+  { id: "public-tournament", pattern: /^\/events\/[^/]+\/?$/, kind: "public", label: "Public tournament registration" },
   { id: "dashboard", pattern: /^\/dashboard\/?$/, kind: "authenticated", label: "Dashboard" },
   { id: "showcase", pattern: /^\/dashboard\/showcase(\/|$)/, kind: "authenticated", label: "Showcase" },
   { id: "integrations", pattern: /^\/dashboard\/integrations(\/|$)/, kind: "authenticated", label: "Integrations" },
