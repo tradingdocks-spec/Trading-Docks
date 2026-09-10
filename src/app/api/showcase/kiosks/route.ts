@@ -18,7 +18,7 @@ function logDatabaseFailure(operation: string, context: { userId: string | null;
 
 function databaseFailure(error: DatabaseError, context: { userId: string | null; workspaceId: string | null; table: string }) {
   logDatabaseFailure("create_pairing_code", context, error);
-  if (error.code === "42P01" || error.code === "42703") {
+  if (error.code === "42P01" || error.code === "42703" || error.code === "PGRST204" || error.code === "PGRST205" || error.code === "PGRST202") {
     return NextResponse.json({ error: "PAIRING_CODE_CREATE_FAILED", message: "Kiosk pairing database migration is not available." }, { status: 503 });
   }
   if (error.code === "42501") {
