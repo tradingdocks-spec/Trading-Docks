@@ -21,10 +21,25 @@ create index if not exists tournaments_public_listing_idx
   on public.tournaments(slug, status, public_registration_enabled, starts_at);
 
 alter table public.tournaments alter column slug set not null;
-alter table public.tournaments add constraint tournaments_max_players_check
-  check (max_players is null or max_players > 0);
-alter table public.tournaments add constraint tournaments_entry_fee_check
-  check (entry_fee is null or entry_fee >= 0);
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'tournaments_max_players_check'
+      and conrelid = 'public.tournaments'::regclass
+  ) then
+    alter table public.tournaments add constraint tournaments_max_players_check
+      check (max_players is null or max_players > 0);
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'tournaments_entry_fee_check'
+      and conrelid = 'public.tournaments'::regclass
+  ) then
+    alter table public.tournaments add constraint tournaments_entry_fee_check
+      check (entry_fee is null or entry_fee >= 0);
+  end if;
+end $$;
 
 create table if not exists public.tournament_registrations (
   id uuid primary key default gen_random_uuid(),
@@ -153,7 +168,8 @@ begin
 end;
 $$;
 
-create or replace function public.cancel_tournament_registration(target_registration_id uuid)
+drop function if exists public.cancel_tournament_registration(uuid);
+create or replace function public.cancel_tournament_registration(target_registration_id uuid, target_tournament_id uuid)
 returns uuid
 language plpgsql
 security definer
@@ -166,6 +182,7 @@ declare
 begin
   select * into registration_row from public.tournament_registrations where id = target_registration_id for update;
   if not found then raise exception using message = 'Registration not found.'; end if;
+  if registration_row.tournament_id <> target_tournament_id then raise exception using message = 'Registration does not belong to this tournament.'; end if;
   if not public.can_manage_workspace(registration_row.workspace_id) then raise exception using message = 'Not authorized.'; end if;
   select * into tournament_row from public.tournaments where id = registration_row.tournament_id for update;
 
@@ -189,7 +206,8 @@ begin
 end;
 $$;
 
-create or replace function public.update_tournament_registration_status(target_registration_id uuid, next_status text)
+drop function if exists public.update_tournament_registration_status(uuid, text);
+create or replace function public.update_tournament_registration_status(target_registration_id uuid, target_tournament_id uuid, next_status text)
 returns void
 language plpgsql
 security definer
@@ -197,10 +215,12 @@ set search_path = ''
 as $$
 declare
   registration_workspace uuid;
+  registration_tournament uuid;
 begin
   if next_status not in ('registered', 'checked_in', 'no_show') then raise exception using message = 'Invalid registration status.'; end if;
-  select workspace_id into registration_workspace from public.tournament_registrations where id = target_registration_id;
+  select workspace_id, tournament_id into registration_workspace, registration_tournament from public.tournament_registrations where id = target_registration_id;
   if registration_workspace is null or not public.is_workspace_tournament_staff(registration_workspace) then raise exception using message = 'Not authorized.'; end if;
+  if registration_tournament <> target_tournament_id then raise exception using message = 'Registration does not belong to this tournament.'; end if;
   update public.tournament_registrations
   set status = next_status, checked_in_at = case when next_status = 'checked_in' then now() else null end, updated_at = now()
   where id = target_registration_id;
@@ -211,10 +231,10 @@ revoke all on public.tournament_registrations from anon;
 grant select, insert, update, delete on public.tournament_registrations to authenticated;
 revoke all on function public.register_for_tournament(text, text, text, text, text, text, text) from public;
 grant execute on function public.register_for_tournament(text, text, text, text, text, text, text) to anon, authenticated;
-revoke all on function public.cancel_tournament_registration(uuid) from public;
-grant execute on function public.cancel_tournament_registration(uuid) to authenticated;
-revoke all on function public.update_tournament_registration_status(uuid, text) from public;
-grant execute on function public.update_tournament_registration_status(uuid, text) to authenticated;
+revoke all on function public.cancel_tournament_registration(uuid, uuid) from public;
+grant execute on function public.cancel_tournament_registration(uuid, uuid) to authenticated;
+revoke all on function public.update_tournament_registration_status(uuid, uuid, text) from public;
+grant execute on function public.update_tournament_registration_status(uuid, uuid, text) to authenticated;
 grant select on public.tournaments to anon;
 
 alter table public.discord_message_log add column if not exists tournament_id uuid references public.tournaments(id) on delete set null;

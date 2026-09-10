@@ -19,11 +19,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const action = typeof body?.action === "string" ? body.action : "";
   const registrationId = typeof body?.registrationId === "string" ? body.registrationId : "";
   if (action === "cancel") {
-    const { error } = await actor.supabase.rpc("cancel_tournament_registration", { target_registration_id: registrationId });
+    const { error } = await actor.supabase.rpc("cancel_tournament_registration", { target_registration_id: registrationId, target_tournament_id: id });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   } else if (["check_in", "undo_check_in", "no_show"].includes(action)) {
     const nextStatus = action === "check_in" ? "checked_in" : action === "undo_check_in" ? "registered" : "no_show";
-    const { error } = await actor.supabase.rpc("update_tournament_registration_status", { target_registration_id: registrationId, next_status: nextStatus });
+    const { error } = await actor.supabase.rpc("update_tournament_registration_status", { target_registration_id: registrationId, target_tournament_id: id, next_status: nextStatus });
     if (error) return NextResponse.json({ error: "Registration status could not be updated." }, { status: 400 });
   } else if (action === "add") {
     const playerName = typeof body?.playerName === "string" ? body.playerName.trim().slice(0, 120) : "";

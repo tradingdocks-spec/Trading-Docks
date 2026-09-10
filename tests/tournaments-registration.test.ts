@@ -16,6 +16,8 @@ test("tournament registration migration is additive and race-safe", () => {
   assert.match(migration, /for update/);
   assert.match(migration, /register_for_tournament/);
   assert.match(migration, /cancel_tournament_registration/);
+  assert.match(migration, /target_tournament_id uuid/);
+  assert.match(migration, /tournaments_max_players_check/);
   assert.match(migration, /public_registration_enabled/);
   assert.match(migration, /waitlist_enabled/);
   assert.match(migration, /is_workspace_tournament_staff/);
@@ -41,6 +43,7 @@ test("tournament detail reuses the Discord composer with canonical tournament id
   const route = read("src/app/api/integrations/discord/messages/route.ts");
   assert.match(detail, /dashboard\/integrations\/discord/);
   assert.match(detail, /tournamentId/);
+  assert.match(detail, /NEXT_PUBLIC_SITE_URL/);
   assert.match(discord, /prefill/);
   assert.match(discord, /tournamentId: prefill\?\.tournamentId/);
   assert.match(route, /tournament_id: tournamentId/);
