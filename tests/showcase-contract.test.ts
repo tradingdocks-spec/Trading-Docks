@@ -44,6 +44,9 @@ test("owner pairing generation is secure and separate from public consumption", 
   assert.match(ownerKioskRoute, /expiresAt/);
   assert.match(ownerKioskRoute, /workspace admin access required/i);
   assert.match(ownerKioskRoute, /pairingCode/);
+  assert.match(ownerKioskRoute, /PAIRING_CODE_CREATE_FAILED/);
+  assert.match(ownerKioskRoute, /showcase_kiosk_pairing_codes/);
+  assert.match(ownerKioskRoute, /create_pairing_code/);
   assert.match(pairRoute, /action !== "consume"/);
 });
 
