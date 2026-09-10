@@ -80,6 +80,37 @@ test("bulk inventory removal is one server request with confirmation copy", () =
   assert.match(route, /MAX_BULK_REMOVE_ROWS = 1000/);
 });
 
+test("inventory workspace hides ledger rows after their quantity reaches zero", () => {
+  const clientData = source("src/lib/collector-workspace-client-data.ts");
+  const inventoryPersistence = source("src/lib/inventory-persistence.ts");
+  const batchPage = source("src/app/dashboard/inventory/batches/[batchId]/page.tsx");
+
+  assert.match(clientData, /let next = query\.gt\("quantity", 0\)/);
+  assert.match(inventoryPersistence, /collection !== "items" \|\| Number\(record\.quantity \?\? 0\) > 0/);
+  assert.match(inventoryPersistence, /\.gt\("quantity", 0\)/);
+  assert.match(batchPage, /\.gt\("quantity", 0\)/);
+});
+
+test("collection table omits listing status and uses readable typography", () => {
+  const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
+
+  assert.doesNotMatch(workspace, />Listing status<\/th>/);
+  assert.doesNotMatch(workspace, /<StatusBadges card=\{card\} \/>/);
+  assert.match(workspace, /min-w-\[980px\]/);
+  assert.match(workspace, /text-\[11px\] font-bold uppercase tracking-\[0\.08em\]/);
+  assert.match(workspace, /text-lg font-semibold leading-6 text-\[var\(--td-text-primary\)\]/);
+});
+
+test("storage locations can remove a binder card through the audited quantity mutation", () => {
+  const manager = source("src/components/dashboard/collector-workspace/StorageLocationManager.tsx");
+  const clientData = source("src/lib/storage-location-client-data.ts");
+
+  assert.match(manager, /Remove from collection/);
+  assert.match(manager, /type: "remove_quantity"/);
+  assert.match(manager, /Removed from storage location/);
+  assert.match(clientData, /\.gt\("quantity", 0\)/);
+});
+
 test("bulk inventory removal dialog is fixed in the viewport center", () => {
   const workspace = source("src/components/dashboard/collector-workspace/CollectorWorkspace.tsx");
 

@@ -1,7 +1,11 @@
 import Link from "next/link";
+import styles from "./Homepage.module.css";
 import { ArrowRight } from "lucide-react";
 
-import { MEMBERSHIP_PLANS, type MembershipTier } from "@/lib/membership-catalog";
+import {
+  MEMBERSHIP_PLANS,
+  type MembershipTier,
+} from "@/lib/membership-catalog";
 
 type PublicPlan = {
   id: MembershipTier;
@@ -24,20 +28,23 @@ const PLAN_POSITIONING: Record<MembershipTier, Omit<PublicPlan, "id">> = {
   collector: {
     audience: "Serious collectors",
     motion: "Understand",
-    bestFor: "Unlimited collection, value history, storage, binder, wishlist, and signals.",
+    bestFor:
+      "Unlimited collection, value history, storage, binder, wishlist, and signals.",
     cta: "Choose Collector",
   },
   seller: {
     audience: "Online sellers",
     motion: "Sell",
-    bestFor: "Deal Desk, buying sessions, sealed evaluation, exports, and full web workspace.",
+    bestFor:
+      "Deal Desk, buying sessions, sealed evaluation, exports, and full web workspace.",
     cta: "Choose Seller",
     recommended: true,
   },
   store: {
     audience: "Store operators",
     motion: "Operate",
-    bestFor: "Shared workflows, approvals, employees, sessions, inventory, and operations.",
+    bestFor:
+      "Buying profiles, approvals, customer summaries, inventory, and store operations.",
     cta: "Choose Store",
   },
 };
@@ -88,7 +95,7 @@ const COMPARISON_ROWS: Array<{
       free: "Not included",
       collector: "Not included",
       seller: "Solo operation",
-      store: "Employee accounts pending configuration",
+      store: "Employee accounts not yet available",
     },
   },
 ];
@@ -108,7 +115,7 @@ function formatAnnualPrice(tier: MembershipTier) {
 }
 
 function signupHref(tier: MembershipTier) {
-  return `/sign-up?plan=${tier}`;
+  return tier === "free" ? "/sign-up" : `/sign-up?plan=${tier}&billing=monthly`;
 }
 
 export function PricingSection() {
@@ -117,61 +124,73 @@ export function PricingSection() {
   return (
     <section
       id="pricing"
-      className="relative border-y border-white/[0.06] bg-[#03080d] px-5 py-16 text-white sm:px-8 sm:py-20 lg:px-12"
+      className="relative border-y border-td-ink/[0.06] bg-td-surface px-5 py-16 text-td-primary sm:px-8 sm:py-20 lg:px-12"
     >
-      <div className="mx-auto max-w-[1480px]">
-        <div className="grid gap-10 lg:grid-cols-[360px_1fr]">
+      <div className="mx-auto max-w-[1240px]">
+        <div className="grid gap-10">
           <div>
-            <p className="text-sm font-medium text-cyan-200">Plans</p>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-td-accent-text">
+              Plans for every stage
+            </p>
             <h2 className="mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] sm:text-5xl">
-              A workspace that grows by function, not decoration.
+              Start free. Grow when you’re ready.
             </h2>
-            <p className="mt-5 text-sm leading-7 text-slate-500">
-              Trading Docks plans progress through the real lifecycle:
-              organize the collection, understand value, sell inventory, then
-              operate a team.
+            <p className="mt-5 text-sm leading-7 text-td-secondary">
+              Organize your first 500 cards for free. Add collection
+              intelligence, selling tools, or store operations when you need
+              them.
             </p>
           </div>
 
           <div className="min-w-0">
-            <div className="grid border-y border-white/[0.08] md:grid-cols-4">
+            <div className={styles.planGrid}>
               {plans.map((plan, index) => (
                 <article
                   key={plan.id}
-                  className="border-b border-white/[0.08] py-6 md:border-b-0 md:border-r md:px-5 md:last:border-r-0"
+                  data-recommended={plan.recommended || undefined}
+                  data-free={plan.id === "free" || undefined}
+                  className={styles.planCard}
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-xs text-slate-600">
+                    <span className="text-xs text-td-secondary">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     {plan.recommended ? (
-                      <span className="text-xs font-semibold text-cyan-200">
+                      <span className="text-[11px] font-semibold text-td-accent-text">
                         Recommended for sellers
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-5 text-sm font-semibold text-slate-400">{plan.motion}</p>
-                  <h3 className="mt-1 text-2xl font-semibold tracking-[-0.035em] text-white">
+                  <p className="mt-5 text-sm font-semibold text-td-secondary">
+                    {plan.motion}
+                  </p>
+                  <h3 className="mt-1 text-2xl font-semibold tracking-[-0.035em] text-td-primary">
                     {MEMBERSHIP_PLANS[plan.id].name}
                   </h3>
-                  <p className="mt-1 text-sm text-slate-600">{plan.audience}</p>
+                  <p className="mt-1 text-sm text-td-secondary">
+                    {plan.audience}
+                  </p>
                   <div className="mt-6">
                     <span className="text-3xl font-semibold tracking-[-0.045em]">
                       {formatMonthlyPrice(plan.id)}
                     </span>
-                    <span className="ml-2 text-sm text-slate-600">/ month</span>
+                    <span className="ml-2 text-sm text-td-secondary">
+                      / month
+                    </span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-600">{formatAnnualPrice(plan.id)}</p>
-                  <p className="mt-5 min-h-[84px] text-sm leading-6 text-slate-400">
+                  <p className="mt-2 text-xs text-td-secondary">
+                    {formatAnnualPrice(plan.id)}
+                  </p>
+                  <p className="mb-6 mt-5 sm:min-h-[84px] text-sm leading-6 text-td-secondary">
                     {plan.bestFor}
                   </p>
                   <Link
                     href={signupHref(plan.id)}
                     className={[
-                      "mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-semibold transition",
-                      plan.recommended
-                        ? "bg-cyan-300 text-[#01131a] hover:bg-cyan-200"
-                        : "border border-white/[0.12] text-slate-200 hover:border-cyan-200/35 hover:text-white",
+                      "mt-auto inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition",
+                      plan.id === "free"
+                        ? "bg-td-accent text-td-on-accent hover:bg-td-accent"
+                        : "border border-td-ink/[0.12] text-td-primary hover:border-td-accent/35 hover:text-td-primary",
                     ].join(" ")}
                   >
                     {plan.cta}
@@ -181,45 +200,62 @@ export function PricingSection() {
               ))}
             </div>
 
-            <div className="mt-8 overflow-x-auto">
-              <table className="w-full min-w-[860px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-white/[0.08] text-xs text-slate-600">
-                    <th className="py-3 pr-6 font-medium">Capability</th>
-                    {plans.map((plan) => (
-                      <th key={plan.id} className="px-4 py-3 font-medium">
-                        {MEMBERSHIP_PLANS[plan.id].name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARISON_ROWS.map((row) => (
-                    <tr
-                      key={row.label}
-                      className="border-b border-white/[0.055] text-sm last:border-b-0"
-                    >
-                      <td className="py-4 pr-6 font-medium text-slate-300">{row.label}</td>
+            <details className="mt-7">
+              <summary className="w-fit cursor-pointer py-3 text-sm font-medium text-td-primary">
+                Compare plan capabilities
+              </summary>
+              <div
+                className="mt-4 overflow-x-auto"
+                role="region"
+                aria-label="Homepage plan comparison"
+                tabIndex={0}
+              >
+                <table className="w-full min-w-[860px] border-collapse text-left">
+                  <caption className="sr-only">
+                    Compare Free, Collector, Seller, and Store plans.
+                  </caption>
+                  <thead>
+                    <tr className="border-b border-td-ink/[0.08] text-xs text-td-secondary">
+                      <th className="py-3 pr-6 font-medium">Capability</th>
                       {plans.map((plan) => (
-                        <td key={plan.id} className="px-4 py-4 leading-6 text-slate-500">
-                          {row.values[plan.id]}
-                        </td>
+                        <th key={plan.id} className="px-4 py-3 font-medium">
+                          {MEMBERSHIP_PLANS[plan.id].name}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-8 flex flex-col justify-between gap-4 border-t border-white/[0.08] pt-6 sm:flex-row sm:items-center">
-              <p className="max-w-2xl text-sm leading-6 text-slate-500">
+                  </thead>
+                  <tbody>
+                    {COMPARISON_ROWS.map((row) => (
+                      <tr
+                        key={row.label}
+                        className="border-b border-td-ink/[0.055] text-sm last:border-b-0"
+                      >
+                        <td className="py-4 pr-6 font-medium text-td-secondary">
+                          {row.label}
+                        </td>
+                        {plans.map((plan) => (
+                          <td
+                            key={plan.id}
+                            className="px-4 py-4 leading-6 text-td-secondary"
+                          >
+                            {row.values[plan.id]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+            <div className="mt-5 flex flex-col justify-between gap-4 border-t border-td-ink/[0.08] pt-6 sm:flex-row sm:items-center">
+              <p className="max-w-2xl text-sm leading-6 text-td-secondary">
                 Seller is recommended for users who buy and sell weekly. Store
-                is for shared operations; employee capacity remains configurable
-                rather than an invented fixed seat count.
+                adds store workflows. Employee accounts are not yet available
+                and are not included as an active benefit.
               </p>
               <Link
                 href="/pricing"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-white/[0.12] px-4 text-sm font-semibold text-slate-200 transition hover:border-cyan-200/35 hover:text-white"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-td-ink/[0.12] px-4 text-sm font-semibold text-td-primary transition hover:border-td-accent/35 hover:text-td-primary"
               >
                 Full comparison
                 <ArrowRight className="h-4 w-4" />

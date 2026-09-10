@@ -33,16 +33,16 @@ export function SuppliesWorkspace() {
             ["Penny Sleeves", "3,200 remaining", 68, "Healthy"],
             ["Top Loaders", "410 remaining", 28, "Reorder 1,000"],
           ].map(([name, remaining, level, recommendation]) => (
-            <div key={name as string} className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
+            <div key={name as string} className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-200">{name as string}</p>
-                  <p className="mt-1 text-[9px] text-slate-600">{remaining as string}</p>
+                  <p className="text-xs font-semibold text-td-primary">{name as string}</p>
+                  <p className="mt-1 text-[11px] text-td-muted">{remaining as string}</p>
                 </div>
-                <span className="text-[9px] font-semibold text-cyan-300">{recommendation as string}</span>
+                <span className="text-[11px] font-semibold text-td-accent-text">{recommendation as string}</span>
               </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.04]">
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-300" style={{ width: `${level}%` }} />
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-td-ink/[0.04]">
+                <div className="h-full rounded-full bg-gradient-to-r from-td-accent to-td-accent" style={{ width: `${level}%` }} />
               </div>
             </div>
           ))}

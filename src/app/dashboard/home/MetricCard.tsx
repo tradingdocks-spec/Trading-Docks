@@ -17,27 +17,27 @@ type MetricCardProps = {
 
 const glowClasses = {
   cyan: {
-    border: "border-cyan-400/15",
-    bg: "bg-cyan-400/[0.05]",
-    icon: "text-cyan-300",
-    glow: "shadow-[0_0_40px_rgba(34,211,238,0.08)]",
+    border: "border-td-accent/15",
+    bg: "bg-td-accent/[0.05]",
+    icon: "text-td-accent-text",
+    glow: "shadow-[0_0_40px_rgb(var(--td-accent-rgb)/0.08)]",
   },
   emerald: {
-    border: "border-emerald-400/15",
-    bg: "bg-emerald-400/[0.05]",
-    icon: "text-emerald-300",
-    glow: "shadow-[0_0_40px_rgba(16,185,129,0.08)]",
+    border: "border-td-success/15",
+    bg: "bg-td-success/[0.05]",
+    icon: "text-td-success",
+    glow: "shadow-[0_0_40px_rgb(var(--td-accent-rgb)/0.08)]",
   },
   purple: {
-    border: "border-violet-400/15",
-    bg: "bg-violet-400/[0.05]",
-    icon: "text-violet-300",
+    border: "border-td-violet/15",
+    bg: "bg-td-violet/[0.05]",
+    icon: "text-td-violet",
     glow: "shadow-[0_0_40px_rgba(139,92,246,0.08)]",
   },
   orange: {
-    border: "border-orange-400/15",
-    bg: "bg-orange-400/[0.05]",
-    icon: "text-orange-300",
+    border: "border-td-warning/15",
+    bg: "bg-td-warning/[0.05]",
+    icon: "text-td-warning",
     glow: "shadow-[0_0_40px_rgba(251,146,60,0.08)]",
   },
 };
@@ -58,32 +58,32 @@ export function MetricCard({
     <div
       className={[
         "group relative overflow-hidden rounded-3xl",
-        "border border-white/[0.06]",
-        "bg-white/[0.025]",
+        "border border-td-ink/[0.06]",
+        "bg-td-ink/[0.025]",
         "p-6",
         "transition-all duration-300",
         "hover:-translate-y-1",
-        "hover:border-cyan-400/15",
-        "hover:bg-white/[0.04]",
+        "hover:border-td-accent/15",
+        "hover:bg-td-ink/[0.04]",
         colors.glow,
       ].join(" ")}
     >
       <div className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-        <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-cyan-400/[0.05] blur-3xl" />
+        <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-td-accent/[0.05] blur-3xl" />
       </div>
 
       <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+          <p className="text-xs uppercase tracking-[0.18em] text-td-muted">
             {title}
           </p>
 
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-td-primary">
             {value}
           </h2>
 
           {subtitle && (
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-td-muted">
               {subtitle}
             </p>
           )}
@@ -109,22 +109,22 @@ export function MetricCard({
       {trend !== undefined && (
         <div className="mt-8 flex items-center gap-2">
           {positive ? (
-            <ArrowUpRight className="h-4 w-4 text-emerald-300" />
+            <ArrowUpRight className="h-4 w-4 text-td-success" />
           ) : (
-            <ArrowDownRight className="h-4 w-4 text-rose-300" />
+            <ArrowDownRight className="h-4 w-4 text-td-danger" />
           )}
 
           <span
             className={
               positive
-                ? "text-sm font-medium text-emerald-300"
-                : "text-sm font-medium text-rose-300"
+                ? "text-sm font-medium text-td-success"
+                : "text-sm font-medium text-td-danger"
             }
           >
             {Math.abs(trend)}%
           </span>
 
-          <span className="text-sm text-slate-600">
+          <span className="text-sm text-td-muted">
             vs last month
           </span>
         </div>

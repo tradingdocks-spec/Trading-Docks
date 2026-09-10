@@ -13,10 +13,10 @@
     linear-gradient(
       118deg,
       transparent 28%,
-      rgba(207, 250, 254, 0.012) 38%,
-      rgba(207, 250, 254, 0.035) 46%,
-      rgba(165, 243, 252, 0.06) 50%,
-      rgba(103, 232, 249, 0.025) 55%,
+      rgb(var(--td-ink-rgb)/0.012) 38%,
+      rgb(var(--td-ink-rgb)/0.035) 46%,
+      rgb(var(--td-accent-rgb)/0.06) 50%,
+      rgb(var(--td-accent-rgb)/0.025) 55%,
       transparent 68%
     );
   filter: blur(18px);
@@ -33,7 +33,7 @@
 
 .headlineGlow {
   position: relative;
-  filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.05));
+  filter: drop-shadow(0 0 16px rgb(var(--td-accent-rgb)/0.05));
 }
 
 .dashboardFloat {
@@ -57,10 +57,10 @@
     linear-gradient(
       120deg,
       transparent 30%,
-      rgba(224, 252, 255, 0.018) 39%,
-      rgba(207, 250, 254, 0.045) 47%,
-      rgba(165, 243, 252, 0.075) 51%,
-      rgba(103, 232, 249, 0.028) 57%,
+      rgb(var(--td-ink-rgb)/0.018) 39%,
+      rgb(var(--td-ink-rgb)/0.045) 47%,
+      rgb(var(--td-accent-rgb)/0.075) 51%,
+      rgb(var(--td-accent-rgb)/0.028) 57%,
       transparent 70%
     );
   filter: blur(22px);
@@ -78,8 +78,8 @@
   pointer-events: none;
   border-radius: inherit;
   background:
-    radial-gradient(circle at 18% 0%, rgba(103, 232, 249, 0.055), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 26%);
+    radial-gradient(circle at 18% 0%, rgb(var(--td-accent-rgb)/0.055), transparent 28%),
+    linear-gradient(180deg, rgb(var(--td-ink-rgb)/0.018), transparent 26%);
 }
 
 .dashboardContent {
@@ -107,7 +107,7 @@
   background: linear-gradient(
     105deg,
     transparent,
-    rgba(255, 255, 255, 0.52),
+    rgb(var(--td-ink-rgb)/0.52),
     transparent
   );
   filter: blur(11px);
@@ -128,11 +128,11 @@
 }
 
 .edgeGlow:hover {
-  border-color: rgba(103, 232, 249, 0.16);
-  background-color: rgba(103, 232, 249, 0.022);
+  border-color: rgb(var(--td-accent-rgb)/0.16);
+  background-color: rgb(var(--td-accent-rgb)/0.022);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.018),
-    0 14px 38px rgba(0, 0, 0, 0.16);
+    inset 0 1px 0 rgb(var(--td-ink-rgb)/0.018),
+    0 14px 38px rgb(var(--td-shadow-rgb)/calc(0.16*var(--td-shadow-strength)));
   transform: translateY(-1px);
 }
 
@@ -144,7 +144,7 @@
   border: 1px solid transparent;
   border-radius: 11px;
   padding: 0 15px;
-  color: rgb(148 163 184);
+  color: var(--td-text-muted);
   font-size: 14px;
   font-weight: 500;
   transition:
@@ -160,14 +160,14 @@
   right: 14px;
   bottom: 4px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgb(103 232 249), transparent);
+  background: linear-gradient(90deg, transparent, var(--td-accent-text), transparent);
   transform: scaleX(0);
   transition: transform 250ms ease;
 }
 
 .navItem:hover {
   color: white;
-  background: rgba(255, 255, 255, 0.025);
+  background: rgb(var(--td-ink-rgb)/0.025);
 }
 
 .navItem:hover::after {
@@ -176,8 +176,8 @@
 
 .navItemActive {
   color: white;
-  border-color: rgba(103, 232, 249, 0.09);
-  background: rgba(103, 232, 249, 0.025);
+  border-color: rgb(var(--td-accent-rgb)/0.09);
+  background: rgb(var(--td-accent-rgb)/0.025);
 }
 
 .signatureGrid {
@@ -187,8 +187,8 @@
   pointer-events: none;
   opacity: 0.2;
   background-image:
-    linear-gradient(rgba(103, 232, 249, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(103, 232, 249, 0.028) 1px, transparent 1px);
+    linear-gradient(rgb(var(--td-accent-rgb)/0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--td-accent-rgb)/0.028) 1px, transparent 1px);
   background-size: 62px 62px;
   mask-image: linear-gradient(to bottom, black, transparent 82%);
   transform: perspective(800px) rotateX(72deg) translateY(20%);
@@ -211,13 +211,13 @@
   position: absolute;
   inset: 8%;
   border-radius: 50%;
-  border: 1px solid rgba(103, 232, 249, 0.06);
+  border: 1px solid rgb(var(--td-accent-rgb)/0.06);
   transform: rotate(-12deg);
 }
 
 .orbitRingTwo {
   inset: 20%;
-  border-color: rgba(59, 130, 246, 0.05);
+  border-color: rgb(var(--td-accent-rgb)/0.05);
   transform: rotate(18deg);
 }
 
@@ -228,8 +228,8 @@
   width: 4px;
   height: 4px;
   border-radius: 999px;
-  background: rgba(103, 232, 249, 0.75);
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.4);
+  background: rgb(var(--td-accent-rgb)/0.75);
+  box-shadow: 0 0 12px rgb(var(--td-accent-rgb)/0.4);
 }
 
 .orbitDotOne {
@@ -266,7 +266,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 72% 34%, rgba(103, 232, 249, 0.07), transparent 30%);
+  background: radial-gradient(circle at 72% 34%, rgb(var(--td-accent-rgb)/0.07), transparent 30%);
   opacity: 0;
   animation: chartGlowPulse 26s ease-in-out infinite;
 }
@@ -279,7 +279,7 @@
   width: 18%;
   height: 2px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(207, 250, 254, 0.9), transparent);
+  background: linear-gradient(90deg, transparent, rgb(var(--td-ink-rgb)/0.9), transparent);
   filter: blur(1px);
   opacity: 0;
   transform: rotate(-2deg);
@@ -549,11 +549,11 @@
 @keyframes statusPulse {
   0%, 100% {
     opacity: .72;
-    box-shadow: 0 0 8px rgba(110,231,183,.58);
+    box-shadow: 0 0 8px rgb(var(--td-accent-rgb)/.58);
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 18px rgba(110,231,183,.95);
+    box-shadow: 0 0 18px rgb(var(--td-accent-rgb)/.95);
   }
 }
 
@@ -578,7 +578,7 @@
   }
 
   .headlineGlow {
-    text-shadow: 0 0 30px rgba(96,165,250,.12);
+    text-shadow: 0 0 30px rgb(var(--td-accent-rgb)/.12);
   }
 
   .heroGlass,

@@ -10,8 +10,8 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 10% 0%, rgba(34, 211, 238, 0.055), transparent 31%),
-    radial-gradient(circle at 90% 32%, rgba(59, 130, 246, 0.03), transparent 32%);
+    radial-gradient(circle at 10% 0%, rgb(var(--td-accent-rgb)/0.055), transparent 31%),
+    radial-gradient(circle at 90% 32%, rgb(var(--td-accent-rgb)/0.03), transparent 32%);
 }
 
 .appBackground::after {
@@ -21,21 +21,21 @@
   pointer-events: none;
   opacity: 0.12;
   background-image:
-    linear-gradient(rgba(103, 232, 249, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(103, 232, 249, 0.022) 1px, transparent 1px);
+    linear-gradient(rgb(var(--td-accent-rgb)/0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--td-accent-rgb)/0.022) 1px, transparent 1px);
   background-size: 58px 58px;
   mask-image: linear-gradient(to bottom, black, transparent 84%);
 }
 
 .glassPanel {
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(6, 18, 27, 0.82);
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgb(var(--td-ink-rgb)/0.07);
+  background: rgb(var(--td-surface-rgb)/0.82);
+  box-shadow: 0 18px 55px rgb(var(--td-shadow-rgb)/calc(0.18*var(--td-shadow-strength)));
   backdrop-filter: blur(24px);
 }
 
 .glassPanel:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgb(var(--td-ink-rgb)/0.12);
 }
 
 .metricCard {
@@ -59,7 +59,7 @@
   width: 9rem;
   height: 9rem;
   border-radius: 999px;
-  background: rgba(34, 211, 238, 0.045);
+  background: rgb(var(--td-accent-rgb)/0.045);
   filter: blur(52px);
   pointer-events: none;
 }

@@ -36,6 +36,7 @@ export const ROUTE_ACCESS_REGISTRY: RouteAccessRule[] = [
   { id: "dashboard", pattern: /^\/dashboard\/?$/, kind: "authenticated", label: "Dashboard" },
   { id: "showcase", pattern: /^\/dashboard\/showcase(\/|$)/, kind: "authenticated", label: "Showcase" },
   { id: "dashboard-plans", pattern: /^\/dashboard\/(plans|billing\/success)(\/|$)/, kind: "authenticated", label: "Plans and billing" },
+  { id: "dashboard-chaos-sort-redirect", pattern: /^\/dashboard\/imports\/chaos-sort\/?$/, kind: "authenticated", label: "Chaos Sort redirect" },
   { id: "card-workspace", pattern: /^\/dashboard\/cards(\/|$)/, kind: "capability", capability: "collection.read", label: "Card Workspace" },
   { id: "inventory", pattern: /^\/dashboard\/inventory(\/|$)/, kind: "capability", capability: "collection.read", label: "Inventory" },
   { id: "label-studio", pattern: /^\/dashboard\/label-studio(\/|$)/, kind: "capability", capability: "label.view", label: "Label Studio" },

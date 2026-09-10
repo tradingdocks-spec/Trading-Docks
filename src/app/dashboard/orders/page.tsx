@@ -5,6 +5,7 @@ import {
 } from "@/lib/orders/order-repository";
 import { resolvePlatformAccessForUser } from "@/lib/platform/server-access";
 import { createClient } from "@/lib/supabase/server";
+import { resolveOrderItemPhysicalLocation } from "@/lib/orders/pick-domain";
 
 export default async function OrdersPage() {
   const supabase = await createClient();
@@ -42,6 +43,17 @@ export default async function OrdersPage() {
     ]);
 
     orders = orderResult.orders as unknown as OrderRecord[];
+    const [{ data: inventoryRows }, { data: locationRows }] = await Promise.all([
+      supabase.from("inventory_items").select("id,card_name,set_code,collector_number,location_id,quantity,data").eq("user_id", user.id).limit(5000),
+      supabase.from("inventory_locations").select("id,name,location_type,data").eq("user_id", user.id).limit(500),
+    ]);
+    orders = orders.map((order) => ({
+      ...order,
+      marketplace_order_items: (order.marketplace_order_items ?? []).map((item) => ({
+        ...item,
+        physical_location: resolveOrderItemPhysicalLocation(item, inventoryRows ?? [], locationRows ?? []),
+      })),
+    }));
 
     const readyConnectionIds = (connectionData ?? [])
       .map((connection) => connection.marketplace_id?.toLowerCase())

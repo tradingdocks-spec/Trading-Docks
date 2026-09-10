@@ -61,7 +61,7 @@ export function LegacyAccountDataCleanup({
 
   if (!ready) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#020b12] text-sm text-slate-500">
+      <main className="flex min-h-screen items-center justify-center bg-td-canvas text-sm text-td-muted">
         Preparing your empty workspace…
       </main>
     );

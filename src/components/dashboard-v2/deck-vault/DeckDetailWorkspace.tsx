@@ -61,8 +61,8 @@ const DeckShowcaseStudio = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="fixed inset-0 z-[100] grid place-items-center bg-[#01070c]/92 backdrop-blur-xl">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-300/20 border-t-cyan-300" />
+      <div className="fixed inset-0 z-[100] grid place-items-center bg-td-canvas/92 backdrop-blur-xl">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-td-accent/20 border-t-cyan-300" />
       </div>
     ),
   },
@@ -136,12 +136,12 @@ async function loadOwnedCollection() {
 }
 
 const manaStyles: Record<ManaColor, string> = {
-  W: "bg-amber-100",
-  U: "bg-sky-400",
-  B: "bg-violet-700",
-  R: "bg-rose-500",
-  G: "bg-emerald-500",
-  C: "bg-slate-500",
+  W: "bg-td-warning",
+  U: "bg-td-accent",
+  B: "bg-td-violet",
+  R: "bg-td-danger",
+  G: "bg-td-success",
+  C: "bg-td-raised",
 };
 
 function displayCommanderColors(
@@ -685,7 +685,7 @@ export function DeckDetailWorkspace({
   }, [mainDeckCards, grouping]);
 
   return (
-    <main className="min-h-screen bg-[#020912] px-5 py-7 text-white sm:px-8 lg:px-10">
+    <main className="min-h-screen bg-td-canvas px-5 py-7 text-td-primary sm:px-8 lg:px-10">
       <div className="mx-auto max-w-[1540px]">
         <DeckHero
           deck={deck}
@@ -709,7 +709,7 @@ export function DeckDetailWorkspace({
           selectCommander={selectCommander}
         />
 
-        <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#06131f] p-2">
+        <nav className="mt-5 flex gap-2 overflow-x-auto rounded-2xl border border-td-ink/[0.06] bg-td-surface p-2">
           {[
             "Overview",
             "Cards",
@@ -726,10 +726,10 @@ export function DeckDetailWorkspace({
               type="button"
               onClick={() => setTab(item)}
               className={[
-                "h-10 rounded-xl px-4 text-[9px] font-semibold transition",
+                "h-10 rounded-xl px-4 text-[11px] font-semibold transition",
                 tab === item
-                  ? "bg-sky-300 text-[#00121c]"
-                  : "text-slate-600 hover:bg-white/[0.025] hover:text-slate-300",
+                  ? "bg-td-accent text-td-on-accent"
+                  : "text-td-muted hover:bg-td-ink/[0.025] hover:text-td-secondary",
               ].join(" ")}
             >
               {item}
@@ -846,7 +846,7 @@ function DeckHero({
 
   return (
     <>
-      <header className="relative min-h-[300px] overflow-hidden rounded-[30px] border border-sky-300/[0.12] bg-[#06131f]">
+      <header className="relative min-h-[300px] overflow-hidden rounded-[30px] border border-td-accent/[0.12] bg-td-surface">
         {commanderArt && isCommander ? (
           <>
 <img
@@ -856,14 +856,14 @@ function DeckHero({
               alt=""
               className="absolute inset-0 h-full w-full object-cover object-center opacity-55"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#030b13] via-[#030b13]/90 to-[#030b13]/15" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#030b13] via-transparent to-black/15" />
+            <div className="absolute inset-0 bg-gradient-to-r from-td-canvas via-td-canvas/90 to-td-canvas/15" />
+            <div className="absolute inset-0 bg-gradient-to-t from-td-canvas via-transparent to-black/15" />
           </>
         ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_25%,rgba(56,189,248,0.15),transparent_35%),radial-gradient(circle_at_35%_85%,rgba(139,92,246,0.12),transparent_38%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_25%,rgb(var(--td-accent-rgb)/0.15),transparent_35%),radial-gradient(circle_at_35%_85%,rgba(139,92,246,0.12),transparent_38%)]" />
         )}
 
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-100 via-sky-400 via-violet-700 via-rose-500 to-emerald-500 opacity-80" />
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-td-warning via-td-accent via-td-violet via-td-danger to-td-success opacity-80" />
 
         <div className="relative flex min-h-[300px] flex-col justify-end gap-6 p-6 sm:p-8 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex items-end gap-5">
@@ -873,7 +873,7 @@ function DeckHero({
                 decoding="async"
                 src={commanderImage}
                 alt={commanderName || "Commander"}
-                className="hidden h-[184px] w-[132px] rounded-2xl border border-white/[0.12] object-cover shadow-2xl sm:block"
+                className="hidden h-[184px] w-[132px] rounded-2xl border border-td-ink/[0.12] object-cover shadow-2xl sm:block"
               />
             ) : null}
 
@@ -890,7 +890,7 @@ function DeckHero({
                 }
                 size="lg"
               />
-              <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+              <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
                 {format} · {deck.theme}
               </p>
               {editingName ? (
@@ -901,12 +901,12 @@ function DeckHero({
                       setDraftName(deckName);
                       setEditingName(false);
                     }
-                  }} className="h-14 min-w-0 flex-1 rounded-xl border border-sky-300/30 bg-[#03101a]/90 px-4 text-2xl font-semibold text-white outline-none sm:text-3xl" />
-                  <button type="button" onClick={commitName} className="flex h-12 items-center rounded-xl bg-sky-300 px-4 text-sm font-semibold text-[#00121c]">Save</button>
+                  }} className="h-14 min-w-0 flex-1 rounded-xl border border-td-accent/30 bg-td-surface/90 px-4 text-2xl font-semibold text-td-primary outline-none sm:text-3xl" />
+                  <button type="button" onClick={commitName} className="flex h-12 items-center rounded-xl bg-td-accent px-4 text-sm font-semibold text-td-on-accent">Save</button>
                   <button type="button" onClick={() => {
                     setDraftName(deckName);
                     setEditingName(false);
-                  }} className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 text-slate-300" aria-label="Cancel rename"><X className="h-4 w-4" /></button>
+                  }} className="flex h-12 w-12 items-center justify-center rounded-xl border border-td-ink/10 text-td-secondary" aria-label="Cancel rename"><X className="h-4 w-4" /></button>
                 </div>
               ) : (
                 <div className="mt-2 flex items-center gap-3">
@@ -916,12 +916,12 @@ function DeckHero({
                   <button type="button" onClick={() => {
                     setDraftName(deckName);
                     setEditingName(true);
-                  }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-slate-300 transition hover:border-sky-300/30 hover:text-sky-200" aria-label="Rename deck" title="Rename deck">
+                  }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-ink/10 bg-black/20 text-td-secondary transition hover:border-td-accent/30 hover:text-td-accent-text" aria-label="Rename deck" title="Rename deck">
                     <Pencil className="h-4 w-4" />
                   </button>
                 </div>
               )}
-              <p className="mt-3 text-sm text-slate-400">
+              <p className="mt-3 text-sm text-td-secondary">
                 {isCommander && commanderName
                   ? `Commander: ${commanderName}`
                   : `${format} constructed deck`}
@@ -931,7 +931,7 @@ function DeckHero({
                 <button
                   type="button"
                   onClick={() => setCommanderPickerOpen(true)}
-                  className="mt-4 h-10 rounded-xl border border-cyan-300/[0.18] bg-cyan-400/[0.045] px-4 text-[9px] font-semibold text-cyan-200 transition hover:border-cyan-200/40 hover:bg-cyan-400/[0.08]"
+                  className="mt-4 h-10 rounded-xl border border-td-accent/[0.18] bg-td-accent/[0.045] px-4 text-[11px] font-semibold text-td-accent-text transition hover:border-td-accent/40 hover:bg-td-accent/[0.08]"
                 >
                   Change Commander
                 </button>
@@ -941,7 +941,7 @@ function DeckHero({
 
           <div>
             <label className="block">
-              <span className="text-[7px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
                 View as format
               </span>
               <select
@@ -951,7 +951,7 @@ function DeckHero({
                     event.target.value as DeckFormat,
                   )
                 }
-                className="mt-2 h-11 w-full min-w-[190px] rounded-xl border border-white/[0.1] bg-[#06131f]/90 px-3 text-[10px] font-semibold text-white outline-none backdrop-blur"
+                className="mt-2 h-11 w-full min-w-[190px] rounded-xl border border-td-ink/[0.1] bg-td-surface/90 px-3 text-[11px] font-semibold text-td-primary outline-none backdrop-blur"
               >
                 {FORMATS.map((item) => (
                   <option key={item}>{item}</option>
@@ -983,10 +983,10 @@ function DeckHero({
 
       {commanderPickerOpen ? (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <section className="max-h-[82vh] w-full max-w-3xl overflow-hidden rounded-[26px] border border-cyan-300/[0.16] bg-[#06131f] shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
-            <div className="flex items-center justify-between border-b border-white/[0.06] p-5">
+          <section className="max-h-[82vh] w-full max-w-3xl overflow-hidden rounded-[26px] border border-td-accent/[0.16] bg-td-surface shadow-[0_30px_100px_rgb(var(--td-shadow-rgb)/calc(0.65*var(--td-shadow-strength)))]">
+            <div className="flex items-center justify-between border-b border-td-ink/[0.06] p-5">
               <div>
-                <p className="text-[8px] font-semibold uppercase tracking-[0.15em] text-cyan-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-accent-text">
                   Change Commander
                 </p>
                 <h2 className="mt-2 text-xl font-semibold">
@@ -996,22 +996,22 @@ function DeckHero({
               <button
                 type="button"
                 onClick={() => setCommanderPickerOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] text-slate-500 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.07] text-td-muted hover:text-td-primary"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="p-5">
-              <label className="flex h-12 items-center gap-3 rounded-xl border border-white/[0.08] bg-black/[0.14] px-4">
-                <Search className="h-4 w-4 text-slate-700" />
+              <label className="flex h-12 items-center gap-3 rounded-xl border border-td-ink/[0.08] bg-black/[0.14] px-4">
+                <Search className="h-4 w-4 text-td-muted" />
                 <input
                   value={commanderQuery}
                   onChange={(event) =>
                     setCommanderQuery(event.target.value)
                   }
                   placeholder="Search commanders..."
-                  className="min-w-0 flex-1 bg-transparent text-[10px] text-white outline-none placeholder:text-slate-700"
+                  className="min-w-0 flex-1 bg-transparent text-[11px] text-td-primary outline-none placeholder:text-td-muted"
                 />
               </label>
 
@@ -1021,7 +1021,7 @@ function DeckHero({
                     key={result.id}
                     type="button"
                     onClick={() => selectCommander(result)}
-                    className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-3 text-left transition hover:border-cyan-300/[0.18] hover:bg-cyan-400/[0.025]"
+                    className="flex items-center gap-3 rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-3 text-left transition hover:border-td-accent/[0.18] hover:bg-td-accent/[0.025]"
                   >
                     {result.image ? (
 <img
@@ -1033,10 +1033,10 @@ function DeckHero({
                       />
                     ) : null}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold text-white">
+                      <p className="text-[11px] font-semibold text-td-primary">
                         {result.name}
                       </p>
-                      <p className="mt-1 text-[7px] text-slate-600">
+                      <p className="mt-1 text-[11px] text-td-muted">
                         {result.typeLine}
                       </p>
                       <div className="mt-3">
@@ -1050,12 +1050,12 @@ function DeckHero({
                         />
                       </div>
                     </div>
-                    <Check className="h-4 w-4 shrink-0 text-cyan-300" />
+                    <Check className="h-4 w-4 shrink-0 text-td-accent-text" />
                   </button>
                 ))}
 
                 {commanderSearching ? (
-                  <p className="col-span-full py-10 text-center text-[9px] text-slate-600">
+                  <p className="col-span-full py-10 text-center text-[11px] text-td-muted">
                     Searching commanders...
                   </p>
                 ) : null}
@@ -1063,7 +1063,7 @@ function DeckHero({
                 {!commanderSearching &&
                 commanderQuery.trim().length >= 2 &&
                 !commanderResults.length ? (
-                  <p className="col-span-full py-10 text-center text-[9px] text-slate-600">
+                  <p className="col-span-full py-10 text-center text-[11px] text-td-muted">
                     No matching commanders found.
                   </p>
                 ) : null}
@@ -1379,24 +1379,24 @@ function CardsWorkspace({
 
   return (
     <section className="mt-5 space-y-5">
-      <section className="sticky top-3 z-40 overflow-hidden rounded-[24px] border border-cyan-300/[0.11] bg-[#04101a]/95 shadow-[0_24px_70px_rgba(0,0,0,0.38)] backdrop-blur-xl">
-        <div className="flex flex-col gap-4 border-b border-white/[0.055] px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
+      <section className="sticky top-3 z-40 overflow-hidden rounded-[24px] border border-td-accent/[0.11] bg-td-surface/95 shadow-[0_24px_70px_rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength)))] backdrop-blur-xl">
+        <div className="flex flex-col gap-4 border-b border-td-ink/[0.055] px-5 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.13em] text-cyan-300">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.13em] text-td-accent-text">
                 Command Deck Editor
               </p>
-              <span className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[11px] text-slate-400">
+              <span className="rounded-full border border-td-ink/[0.06] bg-td-ink/[0.02] px-2.5 py-1 text-[11px] text-td-secondary">
                 {mainDeckCount} cards
               </span>
-              <span className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[11px] text-slate-400">
+              <span className="rounded-full border border-td-ink/[0.06] bg-td-ink/[0.02] px-2.5 py-1 text-[11px] text-td-secondary">
                 {uniqueCardCount} unique
               </span>
-              <span className="rounded-full border border-emerald-300/[0.1] bg-emerald-400/[0.025] px-2.5 py-1 text-[11px] text-emerald-200">
+              <span className="rounded-full border border-td-success/[0.1] bg-td-success/[0.025] px-2.5 py-1 text-[11px] text-td-success">
                 ${mainDeckValue.toFixed(2)}
               </span>
             </div>
-            <p className="mt-2 text-[13px] text-slate-500">
+            <p className="mt-2 text-[13px] text-td-muted">
               One workspace for table editing, visual review, roles, filters, and live card inspection.
             </p>
           </div>
@@ -1405,7 +1405,7 @@ function CardsWorkspace({
             <button
               type="button"
               onClick={() => setShowcaseOpen(true)}
-              className="flex h-10 items-center gap-2 rounded-xl border border-cyan-200/30 bg-gradient-to-r from-cyan-300 to-sky-400 px-4 text-[12px] font-bold text-[#00121c] shadow-[0_0_30px_rgba(34,211,238,0.14)] transition hover:brightness-110"
+              className="flex h-10 items-center gap-2 rounded-xl border border-td-accent/30 bg-gradient-to-r from-td-accent to-td-accent px-4 text-[12px] font-bold text-td-on-accent shadow-[0_0_30px_rgb(var(--td-accent-rgb)/0.14)] transition hover:brightness-110"
             >
               <Share2 className="h-4 w-4" />
               Show Off Your Deck
@@ -1456,8 +1456,8 @@ function CardsWorkspace({
                   className={[
                     "flex h-10 items-center gap-2 rounded-xl border px-3.5 text-[12px] font-semibold transition",
                     view === mode.value
-                      ? "border-cyan-200/25 bg-cyan-300 text-[#00121c]"
-                      : "border-white/[0.07] bg-white/[0.015] text-slate-400 hover:border-cyan-300/[0.14] hover:text-cyan-200",
+                      ? "border-td-accent/25 bg-td-accent text-td-on-accent"
+                      : "border-td-ink/[0.07] bg-td-ink/[0.015] text-td-secondary hover:border-td-accent/[0.14] hover:text-td-accent-text",
                   ].join(" ")}
                 >
                   <Icon className="h-4 w-4" />
@@ -1469,15 +1469,15 @@ function CardsWorkspace({
         </div>
 
         <div className="grid gap-3 px-5 py-4 lg:grid-cols-[minmax(260px,1fr)_180px_160px_auto]">
-          <label className="flex h-11 items-center gap-3 rounded-xl border border-white/[0.075] bg-black/[0.15] px-3">
-            <Search className="h-4 w-4 text-slate-600" />
+          <label className="flex h-11 items-center gap-3 rounded-xl border border-td-ink/[0.075] bg-black/[0.15] px-3">
+            <Search className="h-4 w-4 text-td-muted" />
             <input
               value={search}
               onChange={(event) =>
                 setSearch(event.target.value)
               }
               placeholder="Search card, type, or role..."
-              className="min-w-0 flex-1 bg-transparent text-[13px] text-white outline-none placeholder:text-slate-700"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-td-primary outline-none placeholder:text-td-muted"
             />
           </label>
 
@@ -1486,7 +1486,7 @@ function CardsWorkspace({
             onChange={(event) =>
               setTypeFilter(event.target.value)
             }
-            className="h-11 rounded-xl border border-white/[0.075] bg-[#06131f] px-3 text-[12px] text-slate-300 outline-none"
+            className="h-11 rounded-xl border border-td-ink/[0.075] bg-td-surface px-3 text-[12px] text-td-secondary outline-none"
           >
             {typeOptions.map((option) => (
               <option key={option}>
@@ -1505,7 +1505,7 @@ function CardsWorkspace({
                   | "missing",
               )
             }
-            className="h-11 rounded-xl border border-white/[0.075] bg-[#06131f] px-3 text-[12px] text-slate-300 outline-none"
+            className="h-11 rounded-xl border border-td-ink/[0.075] bg-td-surface px-3 text-[12px] text-td-secondary outline-none"
           >
             <option value="all">
               All ownership
@@ -1524,7 +1524,7 @@ function CardsWorkspace({
               onClick={() =>
                 setCommanderPickerOpen(true)
               }
-              className="h-11 rounded-xl border border-violet-300/[0.15] bg-violet-400/[0.035] px-4 text-[12px] font-semibold text-violet-200"
+              className="h-11 rounded-xl border border-td-violet/[0.15] bg-td-violet/[0.035] px-4 text-[12px] font-semibold text-td-violet"
             >
               Change Commander
             </button> : null}
@@ -1532,7 +1532,7 @@ function CardsWorkspace({
               <button
                 type="button"
                 onClick={removeSelected}
-                className="h-11 rounded-xl border border-rose-300/[0.15] bg-rose-400/[0.04] px-4 text-[12px] font-semibold text-rose-200"
+                className="h-11 rounded-xl border border-td-danger/[0.15] bg-td-danger/[0.04] px-4 text-[12px] font-semibold text-td-danger"
               >
                 Delete {selectedIds.length}
               </button>
@@ -1544,15 +1544,15 @@ function CardsWorkspace({
       <div className="grid gap-5 xl:grid-cols-[230px_minmax(0,1fr)_310px]">
         <aside className="space-y-4 xl:sticky xl:top-[190px] xl:self-start">
           {isCommander && commanderCard ? (
-            <section className="overflow-hidden rounded-[22px] border border-violet-300/[0.12] bg-[#06131f] shadow-[0_22px_60px_rgba(0,0,0,0.26)]">
-              <div className="border-b border-white/[0.055] px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-violet-300">
+            <section className="overflow-hidden rounded-[22px] border border-td-violet/[0.12] bg-td-surface shadow-[0_22px_60px_rgb(var(--td-shadow-rgb)/calc(0.26*var(--td-shadow-strength)))]">
+              <div className="border-b border-td-ink/[0.055] px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-violet">
                   Commander
                 </p>
               </div>
 
               <div className="p-4">
-                <div className="mx-auto w-full max-w-[190px] overflow-hidden rounded-[18px] border border-white/[0.1] bg-black/30 shadow-[0_18px_50px_rgba(0,0,0,0.38),0_0_24px_rgba(139,92,246,0.10)]">
+                <div className="mx-auto w-full max-w-[190px] overflow-hidden rounded-[18px] border border-td-ink/[0.1] bg-black/30 shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength))),0_0_24px_rgba(139,92,246,0.10)]">
                   <img
                     src={
                       commanderCard.image ||
@@ -1566,7 +1566,7 @@ function CardsWorkspace({
                   />
                 </div>
 
-                <p className="mt-4 text-center text-[14px] font-semibold leading-5 text-white">
+                <p className="mt-4 text-center text-[14px] font-semibold leading-5 text-td-primary">
                   {commanderCard.name}
                 </p>
 
@@ -1582,7 +1582,7 @@ function CardsWorkspace({
                   onClick={() =>
                     setCommanderPickerOpen(true)
                   }
-                  className="mt-4 h-10 w-full rounded-xl border border-violet-300/[0.14] bg-violet-400/[0.04] text-[12px] font-semibold text-violet-100 transition hover:border-violet-200/30 hover:bg-violet-400/[0.07]"
+                  className="mt-4 h-10 w-full rounded-xl border border-td-violet/[0.14] bg-td-violet/[0.04] text-[12px] font-semibold text-td-violet transition hover:border-td-violet/30 hover:bg-td-violet/[0.07]"
                 >
                   Change Commander
                 </button>
@@ -1590,8 +1590,8 @@ function CardsWorkspace({
             </section>
           ) : null}
 
-          <section className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+          <section className="rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-4">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-td-muted">
               Deck Explorer
             </p>
             <div className="mt-3 space-y-1.5">
@@ -1619,8 +1619,8 @@ function CardsWorkspace({
             </div>
           </section>
 
-          <section className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+          <section className="rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-4">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-td-muted">
               Quick Add Basics
             </p>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
@@ -1652,7 +1652,7 @@ function CardsWorkspace({
                   onClick={() =>
                     void addBasicLand(land.name)
                   }
-                  className="flex min-w-0 items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.012] px-2.5 py-2 text-[11px] text-slate-400 transition hover:border-cyan-300/[0.14] hover:text-cyan-200"
+                  className="flex min-w-0 items-center gap-2 rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.012] px-2.5 py-2 text-[11px] text-td-secondary transition hover:border-td-accent/[0.14] hover:text-td-accent-text"
                 >
                   <ManaSymbols
                     colors={[land.color]}
@@ -1669,8 +1669,8 @@ function CardsWorkspace({
 
         <main className="min-w-0">
           {searchResults.length ? (
-            <section className="mb-4 rounded-[22px] border border-cyan-300/[0.11] bg-[#06131f] p-4">
-              <p className="text-[12px] font-semibold text-cyan-200">
+            <section className="mb-4 rounded-[22px] border border-td-accent/[0.11] bg-td-surface p-4">
+              <p className="text-[12px] font-semibold text-td-accent-text">
                 Add cards
               </p>
               <div className="mt-3 grid max-h-[260px] gap-2 overflow-y-auto sm:grid-cols-2">
@@ -1681,7 +1681,7 @@ function CardsWorkspace({
                     onClick={() =>
                       addCard(result)
                     }
-                    className="flex items-center gap-3 rounded-xl border border-white/[0.055] bg-white/[0.015] p-2 text-left transition hover:border-cyan-300/[0.16]"
+                    className="flex items-center gap-3 rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.015] p-2 text-left transition hover:border-td-accent/[0.16]"
                   >
                     {result.image ? (
 <img
@@ -1693,44 +1693,44 @@ function CardsWorkspace({
                       />
                     ) : null}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-white">
+                      <p className="text-[13px] font-semibold text-td-primary">
                         {result.name}
                       </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[11px] text-td-muted">
                         {result.setName} · $
                         {result.price.toFixed(2)}
                       </p>
                     </div>
-                    <Plus className="h-4 w-4 text-cyan-300" />
+                    <Plus className="h-4 w-4 text-td-accent-text" />
                   </button>
                 ))}
               </div>
             </section>
           ) : searching ? (
-            <p className="mb-4 rounded-xl border border-white/[0.05] bg-[#06131f] p-4 text-[12px] text-slate-500">
+            <p className="mb-4 rounded-xl border border-td-ink/[0.05] bg-td-surface p-4 text-[12px] text-td-muted">
               Searching Scryfall...
             </p>
           ) : null}
 
           {view === "table" ? (
-            <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06131f]">
-              <div className="flex items-center justify-between border-b border-white/[0.055] px-5 py-4">
+            <section className="overflow-hidden rounded-[24px] border border-td-ink/[0.07] bg-td-surface">
+              <div className="flex items-center justify-between border-b border-td-ink/[0.055] px-5 py-4">
                 <div>
-                  <p className="text-[17px] font-semibold text-white">
+                  <p className="text-[17px] font-semibold text-td-primary">
                     Entire Deck List
                   </p>
-                  <p className="mt-1 text-[12px] text-slate-500">
+                  <p className="mt-1 text-[12px] text-td-muted">
                     {filteredCards.length} unique cards shown · compact desktop table
                   </p>
                 </div>
-                <span className="text-[12px] text-slate-500">
+                <span className="text-[12px] text-td-muted">
                   {owned} owned · {missing} missing
                 </span>
               </div>
 
               <div className="max-h-[calc(100vh-255px)] overflow-y-auto overflow-x-hidden">
                 <table className="w-full table-fixed border-collapse text-left">
-                  <thead className="sticky top-0 z-20 bg-[#071824] shadow-[0_1px_0_rgba(255,255,255,0.07)]">
+                  <thead className="sticky top-0 z-20 bg-td-surface shadow-[0_1px_0_rgb(var(--td-ink-rgb)/0.07)]">
                     <tr>
                       <th className="w-10 px-3 py-3">
                         <input
@@ -1768,7 +1768,7 @@ function CardsWorkspace({
                           changeSort("quantity")
                         }
                       />
-                      <th className="w-[46%] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+                      <th className="w-[46%] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                         Card
                       </th>
                       <TableHeading
@@ -1804,7 +1804,7 @@ function CardsWorkspace({
                           changeSort("price")
                         }
                       />
-                      <th className="w-28 px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+                      <th className="w-28 px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                         Status
                       </th>
                     </tr>
@@ -1838,7 +1838,7 @@ function CardsWorkspace({
           ) : null}
 
           {view === "grid" ? (
-            <section className="rounded-[24px] border border-white/[0.07] bg-[#06131f] p-5">
+            <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-4">
                 {filteredCards.map((card) => (
                   <div
@@ -1879,14 +1879,14 @@ function CardsWorkspace({
               {roleGroups.map((group) => (
                 <section
                   key={group.role}
-                  className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4"
+                  className="rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-4"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[16px] font-semibold text-white">
+                      <p className="text-[16px] font-semibold text-td-primary">
                         {group.role}
                       </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-[11px] text-td-muted">
                         {group.cards.reduce(
                           (sum, card) =>
                             sum + card.quantity,
@@ -1895,7 +1895,7 @@ function CardsWorkspace({
                         cards
                       </p>
                     </div>
-                    <span className="rounded-full border border-cyan-300/[0.1] bg-cyan-400/[0.03] px-2.5 py-1 text-[11px] text-cyan-200">
+                    <span className="rounded-full border border-td-accent/[0.1] bg-td-accent/[0.03] px-2.5 py-1 text-[11px] text-td-accent-text">
                       {group.cards.length} unique
                     </span>
                   </div>
@@ -1922,18 +1922,18 @@ function CardsWorkspace({
               {summaryByType.map((entry) => (
                 <div
                   key={entry.type}
-                  className="rounded-[22px] border border-white/[0.065] bg-[#06131f] p-5"
+                  className="rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-5"
                 >
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-cyan-300">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-td-accent-text">
                     {entry.type}
                   </p>
-                  <p className="mt-3 text-3xl font-semibold text-white">
+                  <p className="mt-3 text-3xl font-semibold text-td-primary">
                     {entry.copies}
                   </p>
-                  <p className="mt-2 text-[12px] text-slate-500">
+                  <p className="mt-2 text-[12px] text-td-muted">
                     {entry.unique} unique cards
                   </p>
-                  <p className="mt-4 text-[14px] font-semibold text-emerald-200">
+                  <p className="mt-4 text-[14px] font-semibold text-td-success">
                     ${entry.value.toFixed(2)}
                   </p>
                 </div>
@@ -1943,7 +1943,7 @@ function CardsWorkspace({
         </main>
 
         <aside className="xl:sticky xl:top-[190px] xl:self-start">
-          <section className="overflow-hidden rounded-[24px] border border-cyan-300/[0.1] bg-[#06131f]">
+          <section className="overflow-hidden rounded-[24px] border border-td-accent/[0.1] bg-td-surface">
             {selectedCard ? (
               <>
                 <div className="relative aspect-[1.55] overflow-hidden">
@@ -1957,16 +1957,16 @@ function CardsWorkspace({
                     alt=""
                     className="h-full w-full object-cover opacity-75"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#06131f] via-[#06131f]/25 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-td-surface via-td-surface/25 to-transparent" />
                 </div>
                 <div className="-mt-8 relative p-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-300">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text">
                     Card Inspector
                   </p>
-                  <h3 className="mt-2 text-[18px] font-semibold leading-6 text-white">
+                  <h3 className="mt-2 text-[18px] font-semibold leading-6 text-td-primary">
                     {selectedCard.name}
                   </h3>
-                  <p className="mt-2 text-[12px] leading-5 text-slate-500">
+                  <p className="mt-2 text-[12px] leading-5 text-td-muted">
                     {selectedCard.typeLine}
                   </p>
 
@@ -2026,16 +2026,16 @@ function CardsWorkspace({
               </>
             ) : (
               <div className="p-6 text-center">
-                <Eye className="mx-auto h-6 w-6 text-slate-700" />
-                <p className="mt-3 text-[13px] text-slate-500">
+                <Eye className="mx-auto h-6 w-6 text-td-muted" />
+                <p className="mt-3 text-[13px] text-td-muted">
                   Select a card to inspect it.
                 </p>
               </div>
             )}
           </section>
 
-          <section className="mt-4 rounded-[22px] border border-white/[0.065] bg-[#06131f] p-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+          <section className="mt-4 rounded-[22px] border border-td-ink/[0.065] bg-td-surface p-4">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.11em] text-td-muted">
               Live Deck Health
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -2119,18 +2119,18 @@ function DeckColumnsView({
   onSelect: (id: string) => void;
 }) {
   return (
-    <section className="rounded-[24px] border border-white/[0.07] bg-[#06131f] p-5">
+    <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
       <div className="columns-1 gap-4 md:columns-2 2xl:columns-3">
         {groupedDeckCards(cards).map((group) => (
           <section
             key={group.type}
-            className="mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/[0.065] bg-[#081824]"
+            className="mb-4 inline-block w-full break-inside-avoid overflow-hidden rounded-2xl border border-td-ink/[0.065] bg-td-surface"
           >
-            <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-cyan-200">
+            <div className="flex items-center justify-between border-b border-td-ink/[0.06] px-4 py-3">
+              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-td-accent-text">
                 {group.type}
               </p>
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-td-muted">
                 {group.cards.reduce((total, card) => total + card.quantity, 0)}
               </span>
             </div>
@@ -2140,16 +2140,16 @@ function DeckColumnsView({
                   key={card.id}
                   type="button"
                   onClick={() => onSelect(card.id)}
-                  className="group flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-cyan-300/[0.045]"
+                  className="group flex w-full items-center gap-3 px-4 py-2 text-left transition hover:bg-td-accent/[0.045]"
                 >
-                  <span className="w-5 text-[11px] font-bold text-slate-600">
+                  <span className="w-5 text-[11px] font-bold text-td-muted">
                     {card.quantity}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-300 group-hover:text-cyan-100">
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-td-secondary group-hover:text-td-accent-text">
                     {card.name}
                   </span>
                   <ManaSymbols colors={card.colors} size="sm" />
-                  <span className="text-[10px] text-slate-600">
+                  <span className="text-[11px] text-td-muted">
                     ${card.price.toFixed(2)}
                   </span>
                 </button>
@@ -2170,26 +2170,26 @@ function DeckStacksView({
   onSelect: (id: string) => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-[24px] border border-cyan-300/[0.09] bg-[radial-gradient(circle_at_top,#0c2635_0,#06131f_42%,#030b12_100%)] p-5">
+    <section className="overflow-hidden rounded-[24px] border border-td-accent/[0.09] bg-[radial-gradient(circle_at_top,var(--td-surface-default)_0,var(--td-surface-default)_42%,var(--td-surface-default)_100%)] p-5">
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <p className="text-[17px] font-semibold text-white">Tabletop Stacks</p>
-          <p className="mt-1 text-[12px] text-slate-500">
+          <p className="text-[17px] font-semibold text-td-primary">Tabletop Stacks</p>
+          <p className="mt-1 text-[12px] text-td-muted">
             A physical, artwork-forward view of the complete deck.
           </p>
         </div>
-        <span className="rounded-full border border-cyan-300/10 bg-cyan-300/[0.04] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-200">
+        <span className="rounded-full border border-td-accent/10 bg-td-accent/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text">
           Trading Docks display
         </span>
       </div>
       <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
         {groupedDeckCards(cards).map((group) => (
           <section key={group.type} className="min-w-0">
-            <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2">
-              <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-300">
+            <div className="mb-3 flex items-center justify-between border-b border-td-ink/[0.07] pb-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-secondary">
                 {group.type}
               </p>
-              <span className="text-[10px] text-slate-600">
+              <span className="text-[11px] text-td-muted">
                 {group.cards.reduce((total, card) => total + card.quantity, 0)}
               </span>
             </div>
@@ -2202,7 +2202,7 @@ function DeckStacksView({
                   className="group relative block w-full text-left transition hover:z-20 hover:-translate-y-2"
                   style={{ zIndex: group.cards.length - index }}
                 >
-                  <div className="relative aspect-[1.9] overflow-hidden rounded-xl border border-white/10 bg-[#071824] shadow-[0_-8px_18px_rgba(0,0,0,0.3)]">
+                  <div className="relative aspect-[1.9] overflow-hidden rounded-xl border border-td-ink/10 bg-td-surface shadow-[0_-8px_18px_rgb(var(--td-shadow-rgb)/calc(0.3*var(--td-shadow-strength)))]">
 <img
                       loading="lazy"
                       decoding="async"
@@ -2217,13 +2217,13 @@ function DeckStacksView({
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/25 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-3">
                       <div className="min-w-0">
-                        <p className="truncate text-[12px] font-semibold text-white">{card.name}</p>
-                        <p className="mt-0.5 text-[9px] uppercase tracking-[0.1em] text-slate-400">
+                        <p className="truncate text-[12px] font-semibold text-td-primary">{card.name}</p>
+                        <p className="mt-0.5 text-[11px] uppercase tracking-[0.1em] text-td-secondary">
                           {card.setCode || group.type}
                         </p>
                       </div>
                       {card.quantity > 1 ? (
-                        <span className="ml-2 rounded-full bg-cyan-300 px-2 py-1 text-[10px] font-black text-[#00131d]">
+                        <span className="ml-2 rounded-full bg-td-accent px-2 py-1 text-[11px] font-black text-td-on-accent">
                           ×{card.quantity}
                         </span>
                       ) : null}
@@ -2257,8 +2257,8 @@ function ExplorerRow({
       className={[
         "flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition",
         active
-          ? "border-cyan-300/[0.16] bg-cyan-400/[0.04] text-cyan-100"
-          : "border-transparent text-slate-500 hover:border-white/[0.055] hover:bg-white/[0.015] hover:text-slate-300",
+          ? "border-td-accent/[0.16] bg-td-accent/[0.04] text-td-accent-text"
+          : "border-transparent text-td-muted hover:border-td-ink/[0.055] hover:bg-td-ink/[0.015] hover:text-td-secondary",
       ].join(" ")}
     >
       <span className="text-[12px] font-medium">
@@ -2292,8 +2292,8 @@ function TableHeading({
         className={[
           "text-[11px] font-semibold uppercase tracking-[0.1em]",
           active
-            ? "text-cyan-200"
-            : "text-slate-500",
+            ? "text-td-accent-text"
+            : "text-td-muted",
         ].join(" ")}
       >
         {label}
@@ -2396,10 +2396,10 @@ function DeckTableRow({
     <tr
       onClick={onSelect}
       className={[
-        "cursor-pointer border-b border-white/[0.04] transition last:border-b-0",
+        "cursor-pointer border-b border-td-ink/[0.04] transition last:border-b-0",
         selected
-          ? "bg-cyan-400/[0.045]"
-          : "hover:bg-white/[0.018]",
+          ? "bg-td-accent/[0.045]"
+          : "hover:bg-td-ink/[0.018]",
       ].join(" ")}
     >
       <td
@@ -2416,13 +2416,13 @@ function DeckTableRow({
         />
       </td>
 
-      <td className="px-3 py-2.5 text-[13px] font-semibold text-cyan-200">
+      <td className="px-3 py-2.5 text-[13px] font-semibold text-td-accent-text">
         {card.quantity}
       </td>
 
       <td className="min-w-0 px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-white/[0.06] bg-slate-950">
+          <div className="h-12 w-9 shrink-0 overflow-hidden rounded-md border border-td-ink/[0.06] bg-td-canvas">
             {!imageFailed ? (
               <img
                 src={imageSource}
@@ -2462,10 +2462,10 @@ function DeckTableRow({
               className="group/name max-w-full text-left"
               aria-describedby={`preview-${card.id}`}
             >
-              <p className="truncate text-[14px] font-semibold text-white underline decoration-transparent underline-offset-4 transition group-hover/name:text-cyan-200 group-hover/name:decoration-cyan-300/40">
+              <p className="truncate text-[14px] font-semibold text-td-primary underline decoration-transparent underline-offset-4 transition group-hover/name:text-td-accent-text group-hover/name:decoration-cyan-300/40">
                 {card.name}
               </p>
-              <p className="mt-1 truncate text-[11px] text-slate-500">
+              <p className="mt-1 truncate text-[11px] text-td-muted">
                 {card.category} · {card.typeLine}
               </p>
             </button>
@@ -2478,9 +2478,9 @@ function DeckTableRow({
                   top: previewPosition.top,
                   left: previewPosition.left,
                 }}
-                className="pointer-events-none fixed z-[120] w-[260px] rounded-[22px] border border-cyan-300/[0.16] bg-[#04101a]/98 p-3 shadow-[0_28px_90px_rgba(0,0,0,0.62),0_0_34px_rgba(34,211,238,0.12)] backdrop-blur-xl"
+                className="pointer-events-none fixed z-[120] w-[260px] rounded-[22px] border border-td-accent/[0.16] bg-td-surface/98 p-3 shadow-[0_28px_90px_rgb(var(--td-shadow-rgb)/calc(0.62*var(--td-shadow-strength))),0_0_34px_rgb(var(--td-accent-rgb)/0.12)] backdrop-blur-xl"
               >
-                <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30">
+                <div className="overflow-hidden rounded-2xl border border-td-ink/[0.08] bg-black/30">
                   {!imageFailed ? (
 <img
                       loading="lazy"
@@ -2490,7 +2490,7 @@ function DeckTableRow({
                       className="aspect-[0.715] w-full object-cover"
                     />
                   ) : (
-                    <div className="flex aspect-[0.715] items-center justify-center p-5 text-center text-[12px] text-slate-500">
+                    <div className="flex aspect-[0.715] items-center justify-center p-5 text-center text-[12px] text-td-muted">
                       Card image unavailable
                     </div>
                   )}
@@ -2499,25 +2499,25 @@ function DeckTableRow({
                 <div className="px-1 pb-1 pt-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[15px] font-semibold leading-5 text-white">
+                      <p className="text-[15px] font-semibold leading-5 text-td-primary">
                         {card.name}
                       </p>
-                      <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                      <p className="mt-1 text-[11px] leading-4 text-td-muted">
                         {card.typeLine}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-lg border border-cyan-300/[0.12] bg-cyan-400/[0.035] px-2 py-1 text-[11px] font-semibold text-cyan-200">
+                    <span className="shrink-0 rounded-lg border border-td-accent/[0.12] bg-td-accent/[0.035] px-2 py-1 text-[11px] font-semibold text-td-accent-text">
                       MV {card.manaValue}
                     </span>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-white/[0.055] pt-3">
-                    <span className="text-[11px] text-slate-500">
+                  <div className="mt-3 flex items-center justify-between border-t border-td-ink/[0.055] pt-3">
+                    <span className="text-[11px] text-td-muted">
                       {card.quantity === 1
                         ? "Single copy"
                         : `${card.quantity} copies`}
                     </span>
-                    <span className="text-[13px] font-semibold text-emerald-200">
+                    <span className="text-[13px] font-semibold text-td-success">
                       ${card.price.toFixed(2)}
                     </span>
                   </div>
@@ -2528,30 +2528,30 @@ function DeckTableRow({
         </div>
       </td>
 
-      <td className="hidden truncate px-3 py-2.5 text-[12px] text-slate-400 2xl:table-cell">
+      <td className="hidden truncate px-3 py-2.5 text-[12px] text-td-secondary 2xl:table-cell">
         {card.typeLine}
       </td>
 
-      <td className="px-3 py-2.5 text-[13px] text-slate-300">
+      <td className="px-3 py-2.5 text-[13px] text-td-secondary">
         {card.manaValue}
       </td>
 
-      <td className="px-3 py-2.5 text-[13px] font-semibold text-emerald-200">
+      <td className="px-3 py-2.5 text-[13px] font-semibold text-td-success">
         ${card.price.toFixed(2)}
       </td>
 
       <td className="px-3 py-2.5">
         <div className="flex flex-wrap gap-1.5">
           {card.owned ? (
-            <span className="rounded-full border border-emerald-300/[0.1] bg-emerald-400/[0.025] px-2 py-1 text-[10px] text-emerald-200">
+            <span className="rounded-full border border-td-success/[0.1] bg-td-success/[0.025] px-2 py-1 text-[11px] text-td-success">
               Owned {Math.min(card.quantity, card.ownedQuantity ?? card.quantity)}/{card.quantity}
             </span>
           ) : (card.ownedQuantity ?? 0) > 0 ? (
-            <span className="rounded-full border border-amber-300/[0.12] bg-amber-400/[0.035] px-2 py-1 text-[10px] text-amber-100">
+            <span className="rounded-full border border-td-warning/[0.12] bg-td-warning/[0.035] px-2 py-1 text-[11px] text-td-warning">
               Partial {Math.min(card.quantity, card.ownedQuantity ?? 0)}/{card.quantity}
             </span>
           ) : (
-            <span className="rounded-full border border-amber-300/[0.1] bg-amber-400/[0.025] px-2 py-1 text-[10px] text-amber-200">
+            <span className="rounded-full border border-td-warning/[0.1] bg-td-warning/[0.025] px-2 py-1 text-[11px] text-td-warning">
               Missing
             </span>
           )}
@@ -2560,7 +2560,7 @@ function DeckTableRow({
           card.legalityStatus !== "legal" ? (
             <span
               title={card.legalityMessage}
-              className="rounded-full border border-rose-300/30 bg-rose-500/15 px-2 py-1 text-[10px] font-semibold text-rose-100"
+              className="rounded-full border border-td-danger/30 bg-td-danger/15 px-2 py-1 text-[11px] font-semibold text-td-danger"
             >
               {card.legalityStatus === "banned"
                 ? "Banned"
@@ -2568,7 +2568,7 @@ function DeckTableRow({
             </span>
           ) : null}
           {card.gameChanger ? (
-            <span className="rounded-full border border-violet-300/[0.12] bg-violet-400/[0.035] px-2 py-1 text-[10px] text-violet-200">
+            <span className="rounded-full border border-td-violet/[0.12] bg-td-violet/[0.035] px-2 py-1 text-[11px] text-td-violet">
               Game Changer
             </span>
           ) : null}
@@ -2592,12 +2592,12 @@ function OwnershipLocations({ card }: { card: DeckCard }) {
   const ownedQuantity = card.ownedQuantity ?? 0;
 
   return (
-    <div className="mt-4 rounded-xl border border-white/[0.065] bg-black/[0.14] p-3">
+    <div className="mt-4 rounded-xl border border-td-ink/[0.065] bg-black/[0.14] p-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
           Collection locations
         </p>
-        <span className="text-[10px] font-semibold text-cyan-200">
+        <span className="text-[11px] font-semibold text-td-accent-text">
           {ownedQuantity} owned
         </span>
       </div>
@@ -2606,14 +2606,14 @@ function OwnershipLocations({ card }: { card: DeckCard }) {
           {matches.map((match) => (
             <div
               key={match.inventoryId}
-              className="flex items-start gap-2 rounded-lg border border-white/[0.05] bg-white/[0.018] px-2.5 py-2"
+              className="flex items-start gap-2 rounded-lg border border-td-ink/[0.05] bg-td-ink/[0.018] px-2.5 py-2"
             >
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" />
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-td-violet" />
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-slate-200">
+                <p className="text-[11px] font-semibold text-td-primary">
                   {inventoryLocationLabel(match)}
                 </p>
-                <p className="mt-0.5 text-[10px] text-slate-500">
+                <p className="mt-0.5 text-[11px] text-td-muted">
                   {match.quantity} {match.quantity === 1 ? "copy" : "copies"}
                   {match.condition ? ` · ${match.condition}` : ""}
                   {match.printing ? ` · ${match.printing}` : ""}
@@ -2623,7 +2623,7 @@ function OwnershipLocations({ card }: { card: DeckCard }) {
           ))}
         </div>
       ) : (
-        <p className="mt-2 text-[11px] leading-4 text-slate-600">
+        <p className="mt-2 text-[11px] leading-4 text-td-muted">
           No matching physical copy was found in a binder, bulk box, or other inventory location.
         </p>
       )}
@@ -2653,7 +2653,7 @@ function RoleCardPreview({
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="flex w-full items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.012] p-2 text-left transition hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.025]"
+        className="flex w-full items-center gap-3 rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.012] p-2 text-left transition hover:border-td-accent/[0.14] hover:bg-td-accent/[0.025]"
       >
 <img
           loading="lazy"
@@ -2663,10 +2663,10 @@ function RoleCardPreview({
           className="h-14 w-10 rounded-md object-cover"
         />
         <div className="min-w-0">
-          <p className="truncate text-[12px] font-semibold text-white">
+          <p className="truncate text-[12px] font-semibold text-td-primary">
             {card.name}
           </p>
-          <p className="mt-1 text-[10px] text-slate-500">
+          <p className="mt-1 text-[11px] text-td-muted">
             {card.quantity}{" "}
             {card.quantity === 1
               ? "copy"
@@ -2678,7 +2678,7 @@ function RoleCardPreview({
       {open ? (
         <div
           role="tooltip"
-          className="pointer-events-none absolute left-full top-1/2 z-[80] ml-4 w-[220px] -translate-y-1/2 rounded-[20px] border border-cyan-300/[0.14] bg-[#04101a]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,0.58),0_0_28px_rgba(34,211,238,0.10)] backdrop-blur-xl"
+          className="pointer-events-none absolute left-full top-1/2 z-[80] ml-4 w-[220px] -translate-y-1/2 rounded-[20px] border border-td-accent/[0.14] bg-td-surface/98 p-3 shadow-[0_24px_70px_rgb(var(--td-shadow-rgb)/calc(0.58*var(--td-shadow-strength))),0_0_28px_rgb(var(--td-accent-rgb)/0.10)] backdrop-blur-xl"
         >
 <img
             loading="lazy"
@@ -2687,14 +2687,14 @@ function RoleCardPreview({
             alt={card.name}
             className="aspect-[0.715] w-full rounded-2xl object-cover"
           />
-          <p className="mt-3 text-[14px] font-semibold text-white">
+          <p className="mt-3 text-[14px] font-semibold text-td-primary">
             {card.name}
           </p>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-td-muted">
               MV {card.manaValue}
             </span>
-            <span className="text-[12px] font-semibold text-emerald-200">
+            <span className="text-[12px] font-semibold text-td-success">
               ${card.price.toFixed(2)}
             </span>
           </div>
@@ -2730,10 +2730,10 @@ function InspectorAction({
   const className = [
     "flex h-11 w-full appearance-none items-center justify-center rounded-xl border px-4 text-center text-[13px] font-semibold leading-none tracking-normal transition",
     tone === "cyan"
-      ? "border-cyan-300/[0.12] bg-cyan-400/[0.035] text-cyan-200 hover:border-cyan-200/30 hover:bg-cyan-400/[0.07]"
+      ? "border-td-accent/[0.12] bg-td-accent/[0.035] text-td-accent-text hover:border-td-accent/30 hover:bg-td-accent/[0.07]"
       : tone === "violet"
-        ? "border-violet-300/[0.12] bg-violet-400/[0.035] text-violet-200 hover:border-violet-200/30 hover:bg-violet-400/[0.07]"
-        : "border-rose-300/[0.12] bg-rose-400/[0.035] text-rose-200 hover:border-rose-200/30 hover:bg-rose-400/[0.07]",
+        ? "border-td-violet/[0.12] bg-td-violet/[0.035] text-td-violet hover:border-td-violet/30 hover:bg-td-violet/[0.07]"
+        : "border-td-danger/[0.12] bg-td-danger/[0.035] text-td-danger hover:border-td-danger/30 hover:bg-td-danger/[0.07]",
   ].join(" ");
 
   const sharedStyle = {
@@ -2776,11 +2776,11 @@ function CurveMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-white/[0.015] p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-slate-600">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.015] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-td-muted">
         {label}
       </p>
-      <p className="mt-2 text-[16px] font-semibold text-white">
+      <p className="mt-2 text-[16px] font-semibold text-td-primary">
         {value}
       </p>
     </div>
@@ -2795,11 +2795,11 @@ function InspectorMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.09em] text-slate-600">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-td-muted">
         {label}
       </p>
-      <p className="mt-1.5 text-[14px] font-semibold text-slate-100">
+      <p className="mt-1.5 text-[14px] font-semibold text-td-primary">
         {value}
       </p>
     </div>
@@ -2907,10 +2907,10 @@ function DeckCardTile({
 
   const glowClass =
     banned || formatIllegal || duplicateViolation
-      ? "group-hover:shadow-[0_0_0_1px_rgba(244,63,94,0.8),0_0_34px_rgba(244,63,94,0.5),0_18px_50px_rgba(0,0,0,0.5)]"
+      ? "group-hover:shadow-[0_0_0_1px_rgba(244,63,94,0.8),0_0_34px_rgba(244,63,94,0.5),0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.5*var(--td-shadow-strength)))]"
       : card.gameChanger
-        ? "group-hover:shadow-[0_0_0_1px_rgba(250,204,21,0.58),0_0_26px_rgba(250,204,21,0.28),0_18px_50px_rgba(0,0,0,0.5)]"
-        : "group-hover:shadow-[0_0_0_1px_rgba(34,211,238,0.58),0_0_18px_rgba(34,211,238,0.28),0_0_34px_rgba(139,92,246,0.16),0_18px_50px_rgba(0,0,0,0.5)]";
+        ? "group-hover:shadow-[0_0_0_1px_rgba(250,204,21,0.58),0_0_26px_rgba(250,204,21,0.28),0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.5*var(--td-shadow-strength)))]"
+        : "group-hover:shadow-[0_0_0_1px_rgb(var(--td-accent-rgb)/0.58),0_0_18px_rgb(var(--td-accent-rgb)/0.28),0_0_34px_rgba(139,92,246,0.16),0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.5*var(--td-shadow-strength)))]";
 
   return (
     <article
@@ -2918,10 +2918,10 @@ function DeckCardTile({
         "group relative isolate overflow-visible rounded-2xl border bg-black/[0.12] transition duration-300 hover:z-50 hover:-translate-y-3",
         glowClass,
         banned || formatIllegal || duplicateViolation
-          ? "border-rose-400/[0.55]"
+          ? "border-td-danger/[0.55]"
           : card.gameChanger
-            ? "border-amber-300/[0.22]"
-            : "border-white/[0.07]",
+            ? "border-td-warning/[0.22]"
+            : "border-td-ink/[0.07]",
         standalone
           ? "shadow-[0_20px_50px_rgba(76,29,149,0.22)]"
           : "",
@@ -2929,7 +2929,7 @@ function DeckCardTile({
     >
       <div
         className={[
-          "relative aspect-[0.715] overflow-hidden rounded-t-2xl bg-[#020617] transition duration-300 ease-out",
+          "relative aspect-[0.715] overflow-hidden rounded-t-2xl bg-td-surface transition duration-300 ease-out",
           standalone
             ? ""
             : "origin-bottom group-hover:scale-[1.28] group-hover:rounded-2xl",
@@ -2944,25 +2944,25 @@ function DeckCardTile({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-950 to-sky-950/30 p-4 text-center">
-            <span className="text-[9px] font-semibold text-slate-400">
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-td-canvas to-td-accent/30 p-4 text-center">
+            <span className="text-[11px] font-semibold text-td-secondary">
               {card.name}
             </span>
           </div>
         )}
 
         {issueLabel && !standalone ? (
-          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-rose-600/92 p-4 text-center opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-td-danger/92 p-4 text-center opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
             <div>
-              <AlertTriangle className="mx-auto h-7 w-7 text-white" />
-              <p className="mt-3 text-[12px] font-black uppercase tracking-[0.08em] text-white">
+              <AlertTriangle className="mx-auto h-7 w-7 text-td-primary" />
+              <p className="mt-3 text-[12px] font-black uppercase tracking-[0.08em] text-td-primary">
                 {banned
                   ? "Banned in this format"
                   : formatIllegal
                     ? "Illegal in this format"
                     : "Deck construction error"}
               </p>
-              <p className="mt-2 text-[11px] leading-4 text-rose-50">
+              <p className="mt-2 text-[11px] leading-4 text-td-danger">
                 {issueLabel}
               </p>
             </div>
@@ -2980,7 +2980,7 @@ function DeckCardTile({
               }}
               aria-label={`Remove ${card.name} from deck`}
               title="Remove from deck"
-              className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/75 text-slate-300 opacity-0 shadow-lg backdrop-blur transition hover:border-rose-300/30 hover:bg-rose-950/90 hover:text-rose-200 group-hover:opacity-100"
+              className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-full border border-td-ink/15 bg-black/75 text-white opacity-0 shadow-lg backdrop-blur transition hover:border-td-danger/30 hover:bg-td-danger/90 hover:text-td-danger group-hover:opacity-100"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -2988,7 +2988,7 @@ function DeckCardTile({
         ) : null}
 
         {card.gameChanger ? (
-          <div className="absolute left-2 top-2 z-20 flex items-center gap-1 rounded-lg border border-amber-100/35 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 px-2 py-1.5 text-[6px] font-black uppercase tracking-[0.08em] text-amber-950 shadow-[0_0_20px_rgba(250,204,21,0.42)]">
+          <div className="absolute left-2 top-2 z-20 flex items-center gap-1 rounded-lg border border-td-warning/35 bg-gradient-to-r from-td-warning via-td-warning to-td-warning px-2 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-td-warning shadow-[0_0_20px_rgba(250,204,21,0.42)]">
             <Sparkles className="h-3 w-3" />
             Game Changer
           </div>
@@ -2996,10 +2996,10 @@ function DeckCardTile({
 
         {!standalone ? (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent px-3 pb-3 pt-10 opacity-0 transition group-hover:opacity-100">
-            <p className="text-center text-[8px] font-semibold text-white">
+            <p className="text-center text-[11px] font-semibold text-td-primary">
               {card.name}
             </p>
-            <p className="mt-1 text-center text-[7px] font-semibold text-cyan-200">
+            <p className="mt-1 text-center text-[11px] font-semibold text-td-accent-text">
               ${card.price.toFixed(2)}
             </p>
           </div>
@@ -3007,8 +3007,8 @@ function DeckCardTile({
       </div>
 
       {!standalone ? (
-        <div className="rounded-b-2xl border-t border-white/[0.045] bg-[linear-gradient(180deg,rgba(255,255,255,0.012),rgba(0,0,0,0.06))] px-2.5 py-2.5">
-          <p className="line-clamp-2 min-h-7 text-center text-[8px] font-semibold leading-3.5 text-white">
+        <div className="rounded-b-2xl border-t border-td-ink/[0.045] bg-[linear-gradient(180deg,rgb(var(--td-ink-rgb)/0.012),rgb(var(--td-shadow-rgb)/calc(0.06*var(--td-shadow-strength))))] px-2.5 py-2.5">
+          <p className="line-clamp-2 min-h-7 text-center text-[11px] font-semibold leading-3.5 text-td-primary">
             {card.name}
           </p>
 
@@ -3016,16 +3016,16 @@ function DeckCardTile({
             {card.quantity > 1 || basicLand ? (
               <span
                 className={[
-                  "rounded-md border px-2 py-1 text-[7px] font-semibold",
+                  "rounded-md border px-2 py-1 text-[11px] font-semibold",
                   duplicateViolation
-                    ? "border-rose-300/20 bg-rose-400/[0.08] text-rose-200"
-                    : "border-cyan-300/[0.12] bg-cyan-400/[0.035] text-cyan-200",
+                    ? "border-td-danger/20 bg-td-danger/[0.08] text-td-danger"
+                    : "border-td-accent/[0.12] bg-td-accent/[0.035] text-td-accent-text",
                 ].join(" ")}
               >
                 {card.quantity} copies
               </span>
             ) : (
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-td-muted">
                 Single copy
               </span>
             )}
@@ -3043,11 +3043,11 @@ function BuilderMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] p-3">
-      <p className="text-[6px] uppercase tracking-[0.1em] text-slate-700">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] p-3">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-td-muted">
         {label}
       </p>
-      <p className="mt-1 text-sm font-semibold text-slate-200">
+      <p className="mt-1 text-sm font-semibold text-td-primary">
         {value}
       </p>
     </div>
@@ -3064,10 +3064,10 @@ function DoctorNote({
   return (
     <div
       className={[
-        "rounded-xl border p-3 text-[8px] leading-4",
+        "rounded-xl border p-3 text-[11px] leading-4",
         tone === "good"
-          ? "border-emerald-300/[0.1] bg-emerald-400/[0.025] text-emerald-200"
-          : "border-amber-300/[0.1] bg-amber-400/[0.025] text-amber-200",
+          ? "border-td-success/[0.1] bg-td-success/[0.025] text-td-success"
+          : "border-td-warning/[0.1] bg-td-warning/[0.025] text-td-warning",
       ].join(" ")}
     >
       {text}
@@ -3095,7 +3095,7 @@ function DeckCardRow({
 
   return (
     <div className="flex items-center gap-3 py-3">
-      <div className="h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-white/[0.06] bg-slate-950">
+      <div className="h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-td-ink/[0.06] bg-td-canvas">
         {!imageFailed ? (
           <img
             src={imageSource}
@@ -3107,33 +3107,33 @@ function DeckCardRow({
         ) : null}
       </div>
 
-      <span className="w-8 text-center text-[9px] font-semibold text-sky-300">
+      <span className="w-8 text-center text-[11px] font-semibold text-td-accent-text">
         {card.quantity}
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold text-white">
+        <p className="text-[11px] font-semibold text-td-primary">
           {card.name}
         </p>
-        <p className="mt-1 text-[7px] text-slate-600">
+        <p className="mt-1 text-[11px] text-td-muted">
           {card.typeLine}
         </p>
       </div>
 
       {card.gameChanger ? (
-        <span className="rounded-lg border border-violet-300/[0.12] bg-violet-400/[0.035] px-2 py-1 text-[6px] font-semibold text-violet-200">
+        <span className="rounded-lg border border-td-violet/[0.12] bg-td-violet/[0.035] px-2 py-1 text-[11px] font-semibold text-td-violet">
           Game Changer
         </span>
       ) : null}
 
-      <span className="text-[8px] text-slate-500">
+      <span className="text-[11px] text-td-muted">
         ${card.price.toFixed(2)}
       </span>
 
       <button
         type="button"
         onClick={() => removeCard(card.id)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300/[0.1] text-rose-300"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-td-danger/[0.1] text-td-danger"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -3163,17 +3163,17 @@ function IntelligenceWorkspace({
 
   return (
     <section className="mt-6 space-y-5">
-      <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/[0.13] bg-[#06131f] p-7">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgba(34,211,238,0.12),transparent_35%),radial-gradient(circle_at_90%_10%,rgba(139,92,246,0.10),transparent_32%)]" />
+      <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.13] bg-td-surface p-7">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_0%,rgb(var(--td-accent-rgb)/0.12),transparent_35%),radial-gradient(circle_at_90%_10%,rgba(139,92,246,0.10),transparent_32%)]" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-accent-text">
               Live Deck Intelligence
             </p>
-            <h2 className="mt-3 text-3xl font-semibold text-white">
+            <h2 className="mt-3 text-3xl font-semibold text-td-primary">
               {format} Validation Center
             </h2>
-            <p className="mt-3 max-w-3xl text-[14px] leading-6 text-slate-400">
+            <p className="mt-3 max-w-3xl text-[14px] leading-6 text-td-secondary">
               Format legality, copy limits, deck size, command-zone compatibility,
               token requirements, and inventory readiness update as the deck changes.
             </p>
@@ -3182,17 +3182,17 @@ function IntelligenceWorkspace({
           <div className={[
             "rounded-2xl border px-5 py-4 text-center",
             report?.valid
-              ? "border-emerald-300/[0.14] bg-emerald-400/[0.035]"
-              : "border-rose-300/[0.18] bg-rose-400/[0.045]",
+              ? "border-td-success/[0.14] bg-td-success/[0.035]"
+              : "border-td-danger/[0.18] bg-td-danger/[0.045]",
           ].join(" ")}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
               Deck Status
             </p>
             <p className={[
               "mt-2 text-2xl font-semibold",
               report?.valid
-                ? "text-emerald-200"
-                : "text-rose-200",
+                ? "text-td-success"
+                : "text-td-danger",
             ].join(" ")}>
               {loading
                 ? "Checking…"
@@ -3225,11 +3225,11 @@ function IntelligenceWorkspace({
         />
       </div>
 
-      <section className="rounded-[28px] border border-white/[0.07] bg-[#06131f] p-6">
-        <h3 className="text-[20px] font-semibold text-white">
+      <section className="rounded-[28px] border border-td-ink/[0.07] bg-td-surface p-6">
+        <h3 className="text-[20px] font-semibold text-td-primary">
           Validation Results
         </h3>
-        <p className="mt-2 text-[13px] text-slate-500">
+        <p className="mt-2 text-[13px] text-td-muted">
           Illegal cards receive a bright red hover overlay in Grid View and a status badge in Table View.
         </p>
 
@@ -3241,22 +3241,22 @@ function IntelligenceWorkspace({
                 className={[
                   "rounded-2xl border p-4",
                   issue.severity === "error"
-                    ? "border-rose-300/[0.16] bg-rose-400/[0.035]"
-                    : "border-amber-300/[0.13] bg-amber-400/[0.03]",
+                    ? "border-td-danger/[0.16] bg-td-danger/[0.035]"
+                    : "border-td-warning/[0.13] bg-td-warning/[0.03]",
                 ].join(" ")}
               >
                 <div className="flex items-start gap-3">
                   <AlertTriangle className={[
                     "mt-0.5 h-5 w-5 shrink-0",
                     issue.severity === "error"
-                      ? "text-rose-300"
-                      : "text-amber-300",
+                      ? "text-td-danger"
+                      : "text-td-warning",
                   ].join(" ")} />
                   <div>
-                    <p className="text-[14px] font-semibold text-white">
+                    <p className="text-[14px] font-semibold text-td-primary">
                       {issue.cardName ?? "Deck construction"}
                     </p>
-                    <p className="mt-2 text-[13px] leading-5 text-slate-400">
+                    <p className="mt-2 text-[13px] leading-5 text-td-secondary">
                       {issue.message}
                     </p>
                   </div>
@@ -3264,7 +3264,7 @@ function IntelligenceWorkspace({
               </div>
             ))
           ) : (
-            <div className="col-span-full rounded-2xl border border-emerald-300/[0.12] bg-emerald-400/[0.025] p-5 text-[14px] text-emerald-200">
+            <div className="col-span-full rounded-2xl border border-td-success/[0.12] bg-td-success/[0.025] p-5 text-[14px] text-td-success">
               No format or command-zone issues were detected.
             </div>
           )}
@@ -3366,35 +3366,35 @@ function TokenWorkspace({
 
   return (
     <section className="mt-6 space-y-5">
-      <section className="rounded-[26px] border border-violet-300/[0.12] bg-[#06131f] p-6">
+      <section className="rounded-[26px] border border-td-violet/[0.12] bg-td-surface p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-violet">
               Token Intelligence
             </p>
-            <h2 className="mt-3 text-[28px] font-semibold text-white">
+            <h2 className="mt-3 text-[28px] font-semibold text-td-primary">
               Complete token kit
             </h2>
-            <p className="mt-2 max-w-3xl text-[14px] leading-6 text-slate-400">
+            <p className="mt-2 max-w-3xl text-[14px] leading-6 text-td-secondary">
               Only genuine token types enter the physical token kit. Multipliers,
               payoffs, copiers, and token consumers are classified separately.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-violet-300/[0.12] bg-violet-400/[0.035] px-5 py-4 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <div className="rounded-2xl border border-td-violet/[0.12] bg-td-violet/[0.035] px-5 py-4 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                 Unique tokens
               </p>
-              <p className="mt-1 text-3xl font-semibold text-violet-200">
+              <p className="mt-1 text-3xl font-semibold text-td-violet">
                 {tokens.length}
               </p>
             </div>
-            <div className="rounded-2xl border border-cyan-300/[0.12] bg-cyan-400/[0.035] px-5 py-4 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <div className="rounded-2xl border border-td-accent/[0.12] bg-td-accent/[0.035] px-5 py-4 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                 Support cards
               </p>
-              <p className="mt-1 text-3xl font-semibold text-cyan-200">
+              <p className="mt-1 text-3xl font-semibold text-td-accent-text">
                 {support.length}
               </p>
             </div>
@@ -3403,17 +3403,17 @@ function TokenWorkspace({
       </section>
 
       {loading ? (
-        <div className="rounded-2xl border border-white/[0.06] bg-[#06131f] p-6 text-[14px] text-slate-500">
+        <div className="rounded-2xl border border-td-ink/[0.06] bg-td-surface p-6 text-[14px] text-td-muted">
           Classifying token producers and support cards…
         </div>
       ) : (
         <>
-          <section className="rounded-[26px] border border-white/[0.07] bg-[#06131f] p-5">
+          <section className="rounded-[26px] border border-td-ink/[0.07] bg-td-surface p-5">
             <div>
-              <p className="text-[18px] font-semibold text-white">
+              <p className="text-[18px] font-semibold text-td-primary">
                 Required Token Kit
               </p>
-              <p className="mt-1 text-[12px] text-slate-500">
+              <p className="mt-1 text-[12px] text-td-muted">
                 Bring one physical card for each unique token below. Use dice or counters for additional copies.
               </p>
             </div>
@@ -3423,9 +3423,9 @@ function TokenWorkspace({
                 {tokens.map((token) => (
                   <article
                     key={token.name}
-                    className="group overflow-hidden rounded-[22px] border border-white/[0.07] bg-black/[0.09] transition duration-200 hover:-translate-y-0.5 hover:border-violet-300/[0.16] hover:shadow-[0_18px_50px_rgba(0,0,0,0.28),0_0_24px_rgba(139,92,246,0.08)]"
+                    className="group overflow-hidden rounded-[22px] border border-td-ink/[0.07] bg-black/[0.09] transition duration-200 hover:-translate-y-0.5 hover:border-td-violet/[0.16] hover:shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength))),0_0_24px_rgba(139,92,246,0.08)]"
                   >
-                    <div className="relative aspect-[1.55] overflow-hidden bg-violet-400/[0.03]">
+                    <div className="relative aspect-[1.55] overflow-hidden bg-td-violet/[0.03]">
                       {token.image ? (
                         <img
                           src={token.image}
@@ -3436,25 +3436,25 @@ function TokenWorkspace({
                       ) : (
                         <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.08),transparent_70%)]">
                           <div className="text-center">
-                            <Sparkles className="mx-auto h-7 w-7 text-violet-300" />
-                            <p className="mt-3 text-[12px] font-semibold text-violet-100">
+                            <Sparkles className="mx-auto h-7 w-7 text-td-violet" />
+                            <p className="mt-3 text-[12px] font-semibold text-td-violet">
                               {token.name}
                             </p>
                           </div>
                         </div>
                       )}
 
-                      <div className="absolute left-3 top-3 rounded-full border border-white/[0.12] bg-[#03101a]/88 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-100 backdrop-blur">
+                      <div className="absolute left-3 top-3 rounded-full border border-td-ink/[0.12] bg-td-surface/88 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-violet backdrop-blur">
                         Required Token
                       </div>
                     </div>
 
                     <div className="p-4">
-                      <h3 className="text-[17px] font-semibold text-white">
+                      <h3 className="text-[17px] font-semibold text-td-primary">
                         {token.name}
                       </h3>
 
-                      <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600">
+                      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
                         Created by
                       </p>
 
@@ -3463,7 +3463,7 @@ function TokenWorkspace({
                           (name) => (
                             <span
                               key={name}
-                              className="rounded-full border border-white/[0.06] bg-white/[0.015] px-2.5 py-1.5 text-[10px] leading-4 text-slate-400"
+                              className="rounded-full border border-td-ink/[0.06] bg-td-ink/[0.015] px-2.5 py-1.5 text-[11px] leading-4 text-td-secondary"
                             >
                               {name}
                             </span>
@@ -3475,7 +3475,7 @@ function TokenWorkspace({
                 ))}
               </div>
             ) : (
-              <div className="mt-5 rounded-2xl border border-white/[0.06] bg-black/[0.08] p-5 text-[13px] text-slate-500">
+              <div className="mt-5 rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-5 text-[13px] text-td-muted">
                 No genuine token-producing effects were detected in the current list.
               </div>
             )}
@@ -3489,13 +3489,13 @@ function TokenWorkspace({
             .map((group) => (
               <section
                 key={group.role}
-                className="rounded-[26px] border border-white/[0.07] bg-[#06131f] p-5"
+                className="rounded-[26px] border border-td-ink/[0.07] bg-td-surface p-5"
               >
                 <div>
-                  <p className="text-[18px] font-semibold text-white">
+                  <p className="text-[18px] font-semibold text-td-primary">
                     {group.title}
                   </p>
-                  <p className="mt-1 text-[12px] text-slate-500">
+                  <p className="mt-1 text-[12px] text-td-muted">
                     {group.description}
                   </p>
                 </div>
@@ -3504,17 +3504,17 @@ function TokenWorkspace({
                   {group.cards.map((card) => (
                     <article
                       key={`${group.role}-${card.cardName}`}
-                      className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4"
+                      className="rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-[14px] font-semibold text-white">
+                        <p className="text-[14px] font-semibold text-td-primary">
                           {card.cardName}
                         </p>
-                        <span className="rounded-full border border-cyan-300/[0.1] bg-cyan-400/[0.025] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-cyan-200">
+                        <span className="rounded-full border border-td-accent/[0.1] bg-td-accent/[0.025] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-accent-text">
                           {card.role}
                         </span>
                       </div>
-                      <p className="mt-2 text-[12px] leading-5 text-slate-500">
+                      <p className="mt-2 text-[12px] leading-5 text-td-muted">
                         {card.explanation}
                       </p>
                     </article>
@@ -3545,14 +3545,14 @@ function OwnershipIntelligenceWorkspace({
 
   return (
     <section className="mt-6 space-y-5">
-      <section className="rounded-[30px] border border-emerald-300/[0.11] bg-[#06131f] p-7">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">
+      <section className="rounded-[30px] border border-td-success/[0.11] bg-td-surface p-7">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-td-success">
           Inventory Intelligence
         </p>
-        <h2 className="mt-3 text-3xl font-semibold text-white">
+        <h2 className="mt-3 text-3xl font-semibold text-td-primary">
           Know what you own, where it is, and where it is listed.
         </h2>
-        <p className="mt-3 max-w-4xl text-[14px] leading-6 text-slate-400">
+        <p className="mt-3 max-w-4xl text-[14px] leading-6 text-td-secondary">
           Matches the deck against Trading Docks inventory data, including physical
           location, condition, printing, marketplace, listing ID, and reservation state.
         </p>
@@ -3579,16 +3579,16 @@ function OwnershipIntelligenceWorkspace({
         />
       </div>
 
-      <section className="overflow-hidden rounded-[26px] border border-white/[0.07] bg-[#06131f]">
-        <div className="border-b border-white/[0.055] px-5 py-4">
-          <h3 className="text-[18px] font-semibold text-white">
+      <section className="overflow-hidden rounded-[26px] border border-td-ink/[0.07] bg-td-surface">
+        <div className="border-b border-td-ink/[0.055] px-5 py-4">
+          <h3 className="text-[18px] font-semibold text-td-primary">
             Ownership Map
           </h3>
         </div>
 
-        <div className="divide-y divide-white/[0.045]">
+        <div className="divide-y divide-td-ink/[0.045]">
           {loading ? (
-            <p className="p-5 text-[13px] text-slate-500">
+            <p className="p-5 text-[13px] text-td-muted">
               Checking inventory…
             </p>
           ) : rows.map((row) => (
@@ -3597,22 +3597,22 @@ function OwnershipIntelligenceWorkspace({
               className="grid gap-3 px-5 py-4 lg:grid-cols-[minmax(180px,1fr)_100px_100px_2fr]"
             >
               <div>
-                <p className="text-[14px] font-semibold text-white">
+                <p className="text-[14px] font-semibold text-td-primary">
                   {row.cardName}
                 </p>
-                <p className="mt-1 text-[11px] text-slate-500">
+                <p className="mt-1 text-[11px] text-td-muted">
                   Need {row.required}
                 </p>
               </div>
               <p className={[
                 "text-[13px] font-semibold",
                 row.owned >= row.required
-                  ? "text-emerald-200"
-                  : "text-amber-200",
+                  ? "text-td-success"
+                  : "text-td-warning",
               ].join(" ")}>
                 {row.owned} owned
               </p>
-              <p className="text-[13px] text-slate-400">
+              <p className="text-[13px] text-td-secondary">
                 {row.matches.length} locations
               </p>
               <div className="flex flex-wrap gap-2">
@@ -3622,7 +3622,7 @@ function OwnershipIntelligenceWorkspace({
                     match={match}
                   />
                 )) : (
-                  <span className="rounded-full border border-amber-300/[0.1] bg-amber-400/[0.025] px-3 py-1.5 text-[11px] text-amber-200">
+                  <span className="rounded-full border border-td-warning/[0.1] bg-td-warning/[0.025] px-3 py-1.5 text-[11px] text-td-warning">
                     Not found in inventory
                   </span>
                 )}
@@ -3641,8 +3641,8 @@ function InventoryMatchChip({
   match: InventoryMatch;
 }) {
   return (
-    <span className="rounded-xl border border-white/[0.065] bg-white/[0.015] px-3 py-2 text-[11px] text-slate-400">
-      <strong className="text-slate-200">
+    <span className="rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.015] px-3 py-2 text-[11px] text-td-secondary">
+      <strong className="text-td-primary">
         {match.quantity}×
       </strong>{" "}
       {match.location} · {match.condition}
@@ -3668,10 +3668,10 @@ function IntelligenceMetric({
   tone: "cyan" | "rose" | "amber" | "emerald";
 }) {
   const tones = {
-    cyan: "border-cyan-300/[0.11] bg-cyan-400/[0.025] text-cyan-200",
-    rose: "border-rose-300/[0.12] bg-rose-400/[0.03] text-rose-200",
-    amber: "border-amber-300/[0.11] bg-amber-400/[0.025] text-amber-200",
-    emerald: "border-emerald-300/[0.11] bg-emerald-400/[0.025] text-emerald-200",
+    cyan: "border-td-accent/[0.11] bg-td-accent/[0.025] text-td-accent-text",
+    rose: "border-td-danger/[0.12] bg-td-danger/[0.03] text-td-danger",
+    amber: "border-td-warning/[0.11] bg-td-warning/[0.025] text-td-warning",
+    emerald: "border-td-success/[0.11] bg-td-success/[0.025] text-td-success",
   }[tone];
 
   return (
@@ -3682,7 +3682,7 @@ function IntelligenceMetric({
       <p className="text-[11px] font-semibold uppercase tracking-[0.1em] opacity-75">
         {label}
       </p>
-      <p className="mt-2 text-3xl font-semibold text-white">
+      <p className="mt-2 text-3xl font-semibold text-td-primary">
         {value}
       </p>
       <p className="mt-2 text-[12px] opacity-70">
@@ -3774,25 +3774,25 @@ function AnalyticsWorkspace({
 
   return (
     <section className="mt-6 space-y-6">
-      <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/[0.12] bg-[#06131f] p-6 shadow-[0_30px_90px_rgba(0,0,0,0.28)] sm:p-7">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.10),transparent_33%),radial-gradient(circle_at_82%_20%,rgba(139,92,246,0.09),transparent_30%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(56,189,248,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.018)_1px,transparent_1px)] bg-[size:34px_34px]" />
+      <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.12] bg-td-surface p-6 shadow-[0_30px_90px_rgb(var(--td-shadow-rgb)/calc(0.28*var(--td-shadow-strength)))] sm:p-7">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgb(var(--td-accent-rgb)/0.10),transparent_33%),radial-gradient(circle_at_82%_20%,rgba(139,92,246,0.09),transparent_30%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgb(var(--td-accent-rgb)/0.018)_1px,transparent_1px),linear-gradient(90deg,rgb(var(--td-accent-rgb)/0.018)_1px,transparent_1px)] bg-[size:34px_34px]" />
 
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <span className="rounded-full border border-cyan-300/[0.16] bg-cyan-400/[0.05] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-cyan-200">
+              <span className="rounded-full border border-td-accent/[0.16] bg-td-accent/[0.05] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-td-accent-text">
                 Deck Intelligence
               </span>
-              <span className="text-[12px] text-slate-500">
+              <span className="text-[12px] text-td-muted">
                 Live analysis
               </span>
             </div>
 
-            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
+            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-td-primary sm:text-4xl">
               {commanderName || deck.name}
             </h1>
-            <p className="mt-3 max-w-3xl text-[14px] leading-6 text-slate-400">
+            <p className="mt-3 max-w-3xl text-[14px] leading-6 text-td-secondary">
               A format-aware view of deck health, color balance, collection readiness,
               power level, and the highest-impact improvements available right now.
             </p>
@@ -3833,25 +3833,25 @@ function AnalyticsWorkspace({
         commanderName={commanderName}
       />
 
-      <section className="rounded-[28px] border border-emerald-300/[0.11] bg-[#06131f] p-6">
+      <section className="rounded-[28px] border border-td-success/[0.11] bg-td-surface p-6">
         <div className="grid gap-6 xl:grid-cols-[190px_minmax(0,1fr)] xl:items-center">
-          <div className="rounded-2xl border border-emerald-300/[0.12] bg-emerald-400/[0.03] p-5 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
+          <div className="rounded-2xl border border-td-success/[0.12] bg-td-success/[0.03] p-5 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-success">
               Deck Readiness
             </p>
-            <p className="mt-3 text-5xl font-semibold text-white">
+            <p className="mt-3 text-5xl font-semibold text-td-primary">
               {readinessScore}%
             </p>
-            <p className="mt-2 text-[12px] text-slate-500">
+            <p className="mt-2 text-[12px] text-td-muted">
               Ready for the deck box
             </p>
           </div>
 
           <div>
-            <h2 className="text-[20px] font-semibold text-white">
+            <h2 className="text-[20px] font-semibold text-td-primary">
               Pre-game readiness checklist
             </h2>
-            <p className="mt-2 text-[13px] leading-5 text-slate-500">
+            <p className="mt-2 text-[13px] leading-5 text-td-muted">
               Combines legality, ownership, token preparation, and deck health into one actionable status.
             </p>
 
@@ -3908,7 +3908,7 @@ function AnalyticsWorkspace({
               subtitle="Nonland cards grouped by mana value"
             >
               <div className="mt-6">
-                <div className="flex h-40 items-end gap-3 rounded-2xl border border-white/[0.045] bg-black/[0.08] px-4 pt-4">
+                <div className="flex h-40 items-end gap-3 rounded-2xl border border-td-ink/[0.045] bg-black/[0.08] px-4 pt-4">
                   {analytics.manaCurve.map((item) => {
                     const max = Math.max(
                       ...analytics.manaCurve.map(
@@ -3926,14 +3926,14 @@ function AnalyticsWorkspace({
                         key={item.label}
                         className="group flex flex-1 flex-col items-center justify-end gap-2"
                       >
-                        <span className="text-[12px] font-semibold text-slate-200">
+                        <span className="text-[12px] font-semibold text-td-primary">
                           {item.value}
                         </span>
                         <div
-                          className="w-full max-w-[44px] rounded-t-xl border border-cyan-200/[0.1] bg-gradient-to-t from-sky-700 via-sky-500 to-cyan-300 shadow-[0_0_20px_rgba(56,189,248,0.10)] transition duration-300 group-hover:shadow-[0_0_30px_rgba(56,189,248,0.26)]"
+                          className="w-full max-w-[44px] rounded-t-xl border border-td-accent/[0.1] bg-gradient-to-t from-td-accent via-td-accent to-td-accent shadow-[0_0_20px_rgb(var(--td-accent-rgb)/0.10)] transition duration-300 group-hover:shadow-[0_0_30px_rgb(var(--td-accent-rgb)/0.26)]"
                           style={{ height }}
                         />
-                        <span className="pb-2 text-[11px] text-slate-500">
+                        <span className="pb-2 text-[11px] text-td-muted">
                           {item.label}
                         </span>
                       </div>
@@ -4024,20 +4024,20 @@ function AnalyticsWorkspace({
             </Panel>
           </div>
 
-          <section className="rounded-[28px] border border-white/[0.07] bg-[#06131f] p-6">
+          <section className="rounded-[28px] border border-td-ink/[0.07] bg-td-surface p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[18px] font-semibold text-white">
+                <p className="text-[18px] font-semibold text-td-primary">
                   Current Deck List
                 </p>
-                <p className="mt-1 text-[13px] text-slate-500">
+                <p className="mt-1 text-[13px] text-td-muted">
                   Preview the current construction or return to the full editor.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={openCards}
-                className="h-11 rounded-xl bg-gradient-to-r from-cyan-300 to-sky-300 px-5 text-[13px] font-semibold text-[#00121c] shadow-[0_0_24px_rgba(34,211,238,0.14)] transition hover:brightness-110"
+                className="h-11 rounded-xl bg-gradient-to-r from-td-accent to-td-accent px-5 text-[13px] font-semibold text-td-on-accent shadow-[0_0_24px_rgb(var(--td-accent-rgb)/0.14)] transition hover:brightness-110"
               >
                 Open Deck Editor
               </button>
@@ -4047,7 +4047,7 @@ function AnalyticsWorkspace({
               {mainDeckCards.slice(0, 8).map((card) => (
                 <div
                   key={card.id}
-                  className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-3 transition hover:border-cyan-300/[0.13]"
+                  className="flex items-center gap-3 rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-3 transition hover:border-td-accent/[0.13]"
                 >
                   {card.image ? (
 <img
@@ -4059,10 +4059,10 @@ function AnalyticsWorkspace({
                     />
                   ) : null}
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-white">
+                    <p className="truncate text-[13px] font-semibold text-td-primary">
                       {card.name}
                     </p>
-                    <p className="mt-1 text-[11px] text-slate-500">
+                    <p className="mt-1 text-[11px] text-td-muted">
                       {card.quantity === 1
                         ? "Single copy"
                         : `${card.quantity} copies`}
@@ -4075,33 +4075,33 @@ function AnalyticsWorkspace({
         </div>
 
         <aside className="space-y-6 xl:sticky xl:top-5 xl:self-start">
-          <section className="rounded-[28px] border border-violet-300/[0.12] bg-[#06131f] p-6">
+          <section className="rounded-[28px] border border-td-violet/[0.12] bg-td-surface p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/[0.15] bg-violet-400/[0.05]">
-                <BrainCircuit className="h-5 w-5 text-violet-200" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-td-violet/[0.15] bg-td-violet/[0.05]">
+                <BrainCircuit className="h-5 w-5 text-td-violet" />
               </div>
               <div>
-                <p className="text-[18px] font-semibold text-white">
+                <p className="text-[18px] font-semibold text-td-primary">
                   AI Deck Review
                 </p>
-                <p className="mt-1 text-[12px] text-slate-500">
+                <p className="mt-1 text-[12px] text-td-muted">
                   Format-aware strategic profile
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-violet-300/[0.11] bg-violet-400/[0.025] p-5 text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+            <div className="mt-6 rounded-2xl border border-td-violet/[0.11] bg-td-violet/[0.025] p-5 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
                 {isCommander
                   ? "Commander Bracket"
                   : "Deck Health"}
               </p>
-              <p className="mt-2 text-5xl font-semibold text-violet-200">
+              <p className="mt-2 text-5xl font-semibold text-td-violet">
                 {isCommander
                   ? bracket.bracket
                   : Math.round(healthScore)}
               </p>
-              <p className="mt-2 text-[14px] font-semibold text-violet-300">
+              <p className="mt-2 text-[14px] font-semibold text-td-violet">
                 {isCommander
                   ? bracket.name
                   : `${format} Review`}
@@ -4129,14 +4129,14 @@ function AnalyticsWorkspace({
 
             {isCommander && bracket.gameChangers.length ? (
               <div className="mt-5">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-amber-200">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-td-warning">
                   Game Changers
                 </p>
                 <div className="mt-3 space-y-2">
                   {bracket.gameChangers.map((name) => (
                     <div
                       key={name}
-                      className="rounded-xl border border-amber-300/[0.1] bg-amber-400/[0.025] px-4 py-3 text-[13px] text-amber-100"
+                      className="rounded-xl border border-td-warning/[0.1] bg-td-warning/[0.025] px-4 py-3 text-[13px] text-td-warning"
                     >
                       {name}
                     </div>
@@ -4149,7 +4149,7 @@ function AnalyticsWorkspace({
               {bracket.reasons.map((reason) => (
                 <p
                   key={reason}
-                  className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-4 text-[13px] leading-5 text-slate-400"
+                  className="rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.015] p-4 text-[13px] leading-5 text-td-secondary"
                 >
                   {reason}
                 </p>
@@ -4157,11 +4157,11 @@ function AnalyticsWorkspace({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-emerald-300/[0.1] bg-[#06131f] p-6">
-            <p className="text-[18px] font-semibold text-white">
+          <section className="rounded-[28px] border border-td-success/[0.1] bg-td-surface p-6">
+            <p className="text-[18px] font-semibold text-td-primary">
               Collection Status
             </p>
-            <p className="mt-1 text-[12px] text-slate-500">
+            <p className="mt-1 text-[12px] text-td-muted">
               Completion, acquisition, and upgrade readiness
             </p>
 
@@ -4191,7 +4191,7 @@ function AnalyticsWorkspace({
               />
             </div>
 
-            <button className="mt-5 h-12 w-full rounded-xl bg-gradient-to-r from-emerald-300 to-teal-300 text-[13px] font-semibold text-[#00140d] transition hover:brightness-110">
+            <button className="mt-5 h-12 w-full rounded-xl bg-gradient-to-r from-td-success to-td-accent text-[13px] font-semibold text-td-on-accent transition hover:brightness-110">
               Create Want List
             </button>
           </section>
@@ -4231,7 +4231,7 @@ function ManaSymbols({
           key={color}
           title={`${manaName(color)} mana`}
           className={[
-            "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-slate-950 shadow-[0_2px_8px_rgba(0,0,0,0.38)]",
+            "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-td-ink/15 bg-td-canvas shadow-[0_2px_8px_rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength)))]",
             wrapperSize,
           ].join(" ")}
         >
@@ -4326,16 +4326,16 @@ function ColorDemandPie({
 
   return (
     <div className="min-w-0 space-y-5">
-      <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.055] bg-black/[0.08] px-4 py-3">
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-td-ink/[0.055] bg-black/[0.08] px-4 py-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-500">Demand profile</p>
-          <p className="mt-1 text-[13px] text-slate-300">Relative color presence across the deck</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-td-muted">Demand profile</p>
+          <p className="mt-1 text-[13px] text-td-secondary">Relative color presence across the deck</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2 rounded-xl border border-emerald-300/[0.12] bg-emerald-400/[0.035] px-3 py-2">
+        <div className="flex shrink-0 items-center gap-2 rounded-xl border border-td-success/[0.12] bg-td-success/[0.035] px-3 py-2">
           <ManaSymbols colors={[highestDemand.color]} size="sm" />
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-300/70">Highest</p>
-            <p className="text-[12px] font-semibold text-white">{manaName(highestDemand.color)}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-success/70">Highest</p>
+            <p className="text-[12px] font-semibold text-td-primary">{manaName(highestDemand.color)}</p>
           </div>
         </div>
       </div>
@@ -4360,8 +4360,8 @@ function ColorDemandPie({
                   "group grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition duration-300",
                   activeColor ===
                   entry.color
-                    ? "border-white/[0.12] bg-white/[0.035] shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
-                    : "border-white/[0.055] bg-white/[0.015]",
+                    ? "border-td-ink/[0.12] bg-td-ink/[0.035] shadow-[0_12px_30px_rgb(var(--td-shadow-rgb)/calc(0.18*var(--td-shadow-strength)))]"
+                    : "border-td-ink/[0.055] bg-td-ink/[0.015]",
                 ].join(" ")}
               >
                 <ManaSymbols
@@ -4371,15 +4371,15 @@ function ColorDemandPie({
 
                 <div className="min-w-0">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-[13px] font-semibold text-white">{manaName(entry.color)}</p>
-                    <p className="text-[11px] font-medium text-slate-400">{entry.count} {entry.count === 1 ? "card" : "cards"}</p>
+                    <p className="truncate text-[13px] font-semibold text-td-primary">{manaName(entry.color)}</p>
+                    <p className="text-[11px] font-medium text-td-secondary">{entry.count} {entry.count === 1 ? "card" : "cards"}</p>
                   </div>
-                  <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/[0.055]">
+                  <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-td-ink/[0.055]">
                     <div className="h-full rounded-full transition-all duration-500 group-hover:brightness-110" style={{ width: `${relativeWidth}%`, background: `linear-gradient(90deg, ${palette[entry.color]}99, ${palette[entry.color]})`, boxShadow: `0 0 18px ${palette[entry.color]}33` }} />
                   </div>
                 </div>
 
-                <span className="min-w-[48px] shrink-0 rounded-lg border border-white/[0.065] bg-black/[0.12] px-2 py-1.5 text-center text-[13px] font-semibold text-slate-100">
+                <span className="min-w-[48px] shrink-0 rounded-lg border border-td-ink/[0.065] bg-black/[0.12] px-2 py-1.5 text-center text-[13px] font-semibold text-td-primary">
                   {percentage.toFixed(0)}%
                 </span>
               </button>
@@ -4387,9 +4387,9 @@ function ColorDemandPie({
           })}
       </div>
 
-      <div className="flex items-center justify-between gap-4 border-t border-white/[0.055] pt-4 text-[11px] text-slate-500">
+      <div className="flex items-center justify-between gap-4 border-t border-td-ink/[0.055] pt-4 text-[11px] text-td-muted">
         <span>Percentages include multicolor cards in each matching color.</span>
-        <span className="shrink-0 font-semibold text-slate-300">{total} color matches</span>
+        <span className="shrink-0 font-semibold text-td-secondary">{total} color matches</span>
       </div>
     </div>
   );
@@ -4493,26 +4493,26 @@ function DeckDoctorRecommendations({
   ]);
 
   return (
-    <section className="relative overflow-hidden rounded-[30px] border border-cyan-300/[0.14] bg-[#06131f] p-6 shadow-[0_28px_80px_rgba(0,0,0,0.24)] sm:p-7">
+    <section className="relative overflow-hidden rounded-[30px] border border-td-accent/[0.14] bg-td-surface p-6 shadow-[0_28px_80px_rgb(var(--td-shadow-rgb)/calc(0.24*var(--td-shadow-strength)))] sm:p-7">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-300/[0.15] bg-violet-400/[0.05]">
-            <BrainCircuit className="h-5 w-5 text-violet-200" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-violet/[0.15] bg-td-violet/[0.05]">
+            <BrainCircuit className="h-5 w-5 text-td-violet" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-[20px] font-semibold text-white">
+              <h2 className="text-[20px] font-semibold text-td-primary">
                 AI Deck Doctor
               </h2>
               {report ? (
-                <span className="rounded-full border border-cyan-300/[0.12] bg-cyan-400/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-cyan-200">
+                <span className="rounded-full border border-td-accent/[0.12] bg-td-accent/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-accent-text">
                   {report.analysisMode === "ai"
                     ? "AI + Scryfall"
                     : "Rules + Scryfall"}
                 </span>
               ) : null}
             </div>
-            <p className="mt-2 max-w-3xl text-[13px] leading-5 text-slate-400">
+            <p className="mt-2 max-w-3xl text-[13px] leading-5 text-td-secondary">
               Detects structural gaps, hard-validates every candidate against format and commander
               color identity, then ranks by deck role, strategy synergy, curve fit, and EDHREC popularity.
             </p>
@@ -4523,14 +4523,14 @@ function DeckDoctorRecommendations({
           type="button"
           onClick={() => void runReview()}
           disabled={loading}
-          className="h-11 rounded-xl border border-cyan-300/[0.18] bg-cyan-400/[0.05] px-5 text-[13px] font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.09] disabled:cursor-wait disabled:opacity-50"
+          className="h-11 rounded-xl border border-td-accent/[0.18] bg-td-accent/[0.05] px-5 text-[13px] font-semibold text-td-accent-text transition hover:bg-td-accent/[0.09] disabled:cursor-wait disabled:opacity-50"
         >
           {loading ? "Analyzing…" : "Run New Review"}
         </button>
       </div>
 
       {error ? (
-        <div className="mt-5 rounded-xl border border-rose-300/[0.12] bg-rose-400/[0.035] p-4 text-[13px] text-rose-200">
+        <div className="mt-5 rounded-xl border border-td-danger/[0.12] bg-td-danger/[0.035] p-4 text-[13px] text-td-danger">
           {error}
         </div>
       ) : null}
@@ -4540,7 +4540,7 @@ function DeckDoctorRecommendations({
           {Array.from({ length: 3 }).map((_, index) => (
             <div
               key={index}
-              className="h-36 animate-pulse rounded-2xl border border-white/[0.05] bg-white/[0.02]"
+              className="h-36 animate-pulse rounded-2xl border border-td-ink/[0.05] bg-td-ink/[0.02]"
             />
           ))}
         </div>
@@ -4549,23 +4549,23 @@ function DeckDoctorRecommendations({
       {report ? (
         <>
           <div className="mt-5 grid gap-3 sm:grid-cols-[150px_1fr]">
-            <div className="flex min-h-32 flex-col items-center justify-center rounded-2xl border border-violet-300/[0.11] bg-violet-400/[0.025] text-center">
-              <p className="text-4xl font-semibold text-violet-200">
+            <div className="flex min-h-32 flex-col items-center justify-center rounded-2xl border border-td-violet/[0.11] bg-td-violet/[0.025] text-center">
+              <p className="text-4xl font-semibold text-td-violet">
                 {report.score}
               </p>
-              <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+              <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-td-muted">
                 Deck Health
               </p>
             </div>
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4">
-              <p className="text-[14px] leading-6 text-slate-300">
+            <div className="rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-4">
+              <p className="text-[14px] leading-6 text-td-secondary">
                 {report.summary}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {report.strengths.map((strength) => (
                   <span
                     key={strength}
-                    className="rounded-full border border-emerald-300/[0.11] bg-emerald-400/[0.025] px-3 py-2 text-[11px] text-emerald-200"
+                    className="rounded-full border border-td-success/[0.11] bg-td-success/[0.025] px-3 py-2 text-[11px] text-td-success"
                   >
                     {strength}
                   </span>
@@ -4575,36 +4575,36 @@ function DeckDoctorRecommendations({
           </div>
 
           <div className="mt-5">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-td-secondary">
               Issues detected
             </p>
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {report.issues.map((issue) => (
                 <div
                   key={`${issue.role}-${issue.target}`}
-                  className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-4"
+                  className="rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-4"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-[14px] font-semibold text-white">
+                    <p className="text-[14px] font-semibold text-td-primary">
                       {issue.role}
                     </p>
                     <span
                       className={[
-                        "rounded-full px-2 py-1 text-[6px] font-semibold uppercase tracking-[0.08em]",
+                        "rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em]",
                         issue.severity === "high"
-                          ? "bg-rose-400/[0.1] text-rose-200"
+                          ? "bg-td-danger/[0.1] text-td-danger"
                           : issue.severity === "medium"
-                            ? "bg-amber-400/[0.1] text-amber-200"
-                            : "bg-sky-400/[0.08] text-sky-200",
+                            ? "bg-td-warning/[0.1] text-td-warning"
+                            : "bg-td-accent/[0.08] text-td-accent-text",
                       ].join(" ")}
                     >
                       {issue.severity}
                     </span>
                   </div>
-                  <p className="mt-2 text-[12px] text-slate-400">
+                  <p className="mt-2 text-[12px] text-td-secondary">
                     Current {issue.current} · Target {issue.target}
                   </p>
-                  <p className="mt-2 text-[12px] leading-5 text-slate-500">
+                  <p className="mt-2 text-[12px] leading-5 text-td-muted">
                     {issue.explanation}
                   </p>
                 </div>
@@ -4613,15 +4613,15 @@ function DeckDoctorRecommendations({
           </div>
 
           <div className="mt-5">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-td-secondary">
               Recommended cards
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-emerald-300/[0.13] bg-emerald-400/[0.035] px-3 py-1.5 text-[10px] font-semibold text-emerald-200">
+              <span className="rounded-full border border-td-success/[0.13] bg-td-success/[0.035] px-3 py-1.5 text-[11px] font-semibold text-td-success">
                 Format legal verified
               </span>
               {(format === "EDH" || format === "Pauper EDH") ? (
-                <span className="rounded-full border border-cyan-300/[0.13] bg-cyan-400/[0.035] px-3 py-1.5 text-[10px] font-semibold text-cyan-200">
+                <span className="rounded-full border border-td-accent/[0.13] bg-td-accent/[0.035] px-3 py-1.5 text-[11px] font-semibold text-td-accent-text">
                   Commander colors verified
                 </span>
               ) : null}
@@ -4630,7 +4630,7 @@ function DeckDoctorRecommendations({
               {report.recommendations.map((recommendation) => (
                 <article
                   key={`${recommendation.role}-${recommendation.cardName}`}
-                  className="flex gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-3 transition hover:border-cyan-300/[0.14] hover:bg-cyan-400/[0.02]"
+                  className="flex gap-3 rounded-2xl border border-td-ink/[0.06] bg-td-ink/[0.015] p-3 transition hover:border-td-accent/[0.14] hover:bg-td-accent/[0.02]"
                 >
                   {recommendation.image ? (
                     <img
@@ -4643,18 +4643,18 @@ function DeckDoctorRecommendations({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[14px] font-semibold text-white">
+                        <p className="text-[14px] font-semibold text-td-primary">
                           {recommendation.cardName}
                         </p>
-                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-cyan-300">
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-td-accent-text">
                           {recommendation.role}
                         </p>
                       </div>
-                      <span className="rounded-full border border-white/[0.06] px-2.5 py-1.5 text-[11px] text-slate-300">
+                      <span className="rounded-full border border-td-ink/[0.06] px-2.5 py-1.5 text-[11px] text-td-secondary">
                         {recommendation.confidence}%
                       </span>
                     </div>
-                    <p className="mt-2 text-[12px] leading-5 text-slate-400">
+                    <p className="mt-2 text-[12px] leading-5 text-td-secondary">
                       {recommendation.reason}
                     </p>
                     {recommendation.synergySignals?.length ? (
@@ -4662,7 +4662,7 @@ function DeckDoctorRecommendations({
                         {recommendation.synergySignals.map((signal) => (
                           <span
                             key={signal}
-                            className="rounded-md border border-violet-300/[0.1] bg-violet-400/[0.035] px-2 py-1 text-[9px] font-semibold capitalize text-violet-200"
+                            className="rounded-md border border-td-violet/[0.1] bg-td-violet/[0.035] px-2 py-1 text-[11px] font-semibold capitalize text-td-violet"
                           >
                             {signal} synergy
                           </span>
@@ -4670,17 +4670,17 @@ function DeckDoctorRecommendations({
                       </div>
                     ) : null}
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-td-muted">
                         Solves: {recommendation.issue}
                       </span>
                       {typeof recommendation.price === "number" ? (
-                        <span className="text-[12px] font-semibold text-emerald-200">
+                        <span className="text-[12px] font-semibold text-td-success">
                           ${recommendation.price.toFixed(2)}
                         </span>
                       ) : null}
                     </div>
                     {recommendation.replacement ? (
-                      <p className="mt-2 text-[11px] text-amber-200/80">
+                      <p className="mt-2 text-[11px] text-td-warning/80">
                         Consider replacing: {recommendation.replacement}
                       </p>
                     ) : null}
@@ -4703,11 +4703,11 @@ function HeaderMetric({
   value: string;
 }) {
   return (
-    <div className="min-w-[112px] rounded-xl border border-white/[0.08] bg-black/35 p-3 backdrop-blur">
-      <p className="text-[6px] uppercase tracking-[0.1em] text-slate-500">
+    <div className="min-w-[112px] rounded-xl border border-td-ink/[0.08] bg-black/35 p-3 backdrop-blur">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-td-muted">
         {label}
       </p>
-      <p className="mt-1 text-[10px] font-semibold text-white">
+      <p className="mt-1 text-[11px] font-semibold text-td-primary">
         {value}
       </p>
     </div>
@@ -4727,20 +4727,20 @@ function ReadinessCheck({
     <div className={[
       "rounded-xl border p-3",
       ready
-        ? "border-emerald-300/[0.1] bg-emerald-400/[0.025]"
-        : "border-amber-300/[0.11] bg-amber-400/[0.025]",
+        ? "border-td-success/[0.1] bg-td-success/[0.025]"
+        : "border-td-warning/[0.11] bg-td-warning/[0.025]",
     ].join(" ")}>
       <div className="flex items-center gap-2">
         {ready ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+          <CheckCircle2 className="h-4 w-4 text-td-success" />
         ) : (
-          <AlertTriangle className="h-4 w-4 text-amber-300" />
+          <AlertTriangle className="h-4 w-4 text-td-warning" />
         )}
-        <p className="text-[12px] font-semibold text-white">
+        <p className="text-[12px] font-semibold text-td-primary">
           {label}
         </p>
       </div>
-      <p className="mt-2 text-[11px] text-slate-500">
+      <p className="mt-2 text-[11px] text-td-muted">
         {detail}
       </p>
     </div>
@@ -4759,10 +4759,10 @@ function CommandMetric({
   tone: "cyan" | "violet" | "emerald" | "amber";
 }) {
   const toneClass = {
-    cyan: "border-cyan-300/[0.12] bg-cyan-400/[0.035] text-cyan-200",
-    violet: "border-violet-300/[0.12] bg-violet-400/[0.035] text-violet-200",
-    emerald: "border-emerald-300/[0.12] bg-emerald-400/[0.035] text-emerald-200",
-    amber: "border-amber-300/[0.12] bg-amber-400/[0.035] text-amber-200",
+    cyan: "border-td-accent/[0.12] bg-td-accent/[0.035] text-td-accent-text",
+    violet: "border-td-violet/[0.12] bg-td-violet/[0.035] text-td-violet",
+    emerald: "border-td-success/[0.12] bg-td-success/[0.035] text-td-success",
+    amber: "border-td-warning/[0.12] bg-td-warning/[0.035] text-td-warning",
   }[tone];
 
   return (
@@ -4772,10 +4772,10 @@ function CommandMetric({
         toneClass,
       ].join(" ")}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] opacity-70">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] opacity-70">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-white">
+      <p className="mt-2 text-2xl font-semibold text-td-primary">
         {value}
       </p>
       <p className="mt-1 text-[11px] opacity-70">
@@ -4799,15 +4799,15 @@ function StatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-[24px] border border-white/[0.07] bg-[#06131f] p-5">
-      <Icon className="h-5 w-5 text-sky-300" />
-      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.11em] text-slate-500">
+    <div className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
+      <Icon className="h-5 w-5 text-td-accent-text" />
+      <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.11em] text-td-muted">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-white">
+      <p className="mt-2 text-2xl font-semibold text-td-primary">
         {value}
       </p>
-      <p className="mt-2 text-[12px] text-slate-500">
+      <p className="mt-2 text-[12px] text-td-muted">
         {detail}
       </p>
     </div>
@@ -4828,16 +4828,16 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[28px] border border-white/[0.07] bg-[#06131f] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+    <section className="rounded-[28px] border border-td-ink/[0.07] bg-td-surface p-6 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/0.018)]">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.035]">
-          <Icon className="h-5 w-5 text-sky-300" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.035]">
+          <Icon className="h-5 w-5 text-td-accent-text" />
         </div>
         <div>
-          <p className="text-[18px] font-semibold text-white">
+          <p className="text-[18px] font-semibold text-td-primary">
             {title}
           </p>
-          <p className="mt-1 text-[12px] text-slate-500">
+          <p className="mt-1 text-[12px] text-td-muted">
             {subtitle}
           </p>
         </div>
@@ -4862,16 +4862,16 @@ function MetricBars({
       {rows.map((item) => (
         <div key={item.label}>
           <div className="flex items-center justify-between text-[12px]">
-            <span className="font-medium text-slate-400">
+            <span className="font-medium text-td-secondary">
               {item.label}
             </span>
-            <span className="font-semibold text-slate-200">
+            <span className="font-semibold text-td-primary">
               {item.value} cards
             </span>
           </div>
-          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/[0.045]">
+          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-td-ink/[0.045]">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-600 to-violet-400"
+              className="h-full rounded-full bg-gradient-to-r from-td-accent to-td-violet"
               style={{
                 width: `${Math.min(
                   100,
@@ -4896,15 +4896,15 @@ function ReviewLine({
   tone: "good" | "warn";
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-white/[0.05] bg-white/[0.015] px-3 py-3 text-[8px]">
-      <span className="text-slate-600">
+    <div className="flex items-center justify-between rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.015] px-3 py-3 text-[11px]">
+      <span className="text-td-muted">
         {label}
       </span>
       <span
         className={
           tone === "good"
-            ? "text-emerald-300"
-            : "text-amber-300"
+            ? "text-td-success"
+            : "text-td-warning"
         }
       >
         {value}
@@ -4921,11 +4921,11 @@ function MiniMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.055] bg-black/[0.08] p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-600">
+    <div className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted">
         {label}
       </p>
-      <p className="mt-2 text-lg font-semibold text-slate-100">
+      <p className="mt-2 text-lg font-semibold text-td-primary">
         {value}
       </p>
     </div>

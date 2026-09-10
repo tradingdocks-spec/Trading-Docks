@@ -55,7 +55,7 @@
   content: "";
   position: absolute;
   inset: -80% -45%;
-  background: linear-gradient(110deg, transparent 38%, rgba(255,255,255,.09) 48%, transparent 58%);
+  background: linear-gradient(110deg, transparent 38%, rgb(var(--td-ink-rgb)/.09) 48%, transparent 58%);
   transform: translateX(-55%) rotate(7deg);
   transition: transform .75s cubic-bezier(.2,.85,.25,1);
   pointer-events: none;
@@ -67,8 +67,8 @@
 
 .priceGlow {
   background:
-    radial-gradient(circle at var(--td-mouse-x, 50%) var(--td-mouse-y, 30%), rgba(103,232,249,.12), transparent 34%),
-    linear-gradient(180deg, rgba(16,39,65,.96), rgba(5,17,29,.98));
+    radial-gradient(circle at var(--td-mouse-x, 50%) var(--td-mouse-y, 30%), rgb(var(--td-accent-rgb)/.12), transparent 34%),
+    linear-gradient(180deg, rgb(var(--td-accent-rgb)/.96), rgb(var(--td-surface-rgb)/.98));
 }
 
 @keyframes previewSwap {

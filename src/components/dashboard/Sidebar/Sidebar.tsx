@@ -92,7 +92,7 @@ export function Sidebar({
 
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/[0.06] bg-[#071017]/95 shadow-[24px_0_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl transition-[width,transform] duration-300 ease-out",
+          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-td-ink/[0.06] bg-td-surface/95 shadow-[24px_0_70px_rgb(var(--td-shadow-rgb)/calc(0.24*var(--td-shadow-strength)))] backdrop-blur-2xl transition-[width,transform] duration-300 ease-out",
           collapsed ? "lg:w-[76px]" : "lg:w-[244px]",
           "w-[264px]",
           mobileOpen
@@ -107,7 +107,7 @@ export function Sidebar({
             type="button"
             aria-label="Close sidebar"
             onClick={onCloseMobile}
-            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.03] text-slate-500 transition hover:bg-white/[0.06] hover:text-white lg:hidden"
+            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.03] text-td-muted transition hover:bg-td-ink/[0.06] hover:text-td-primary lg:hidden"
           >
             <X className="h-4 w-4" />
           </button>
@@ -125,10 +125,10 @@ export function Sidebar({
             ))}
           </div>
 
-          <div className="my-5 border-t border-white/[0.05]" />
+          <div className="my-5 border-t border-td-ink/[0.05]" />
 
           {!collapsed ? (
-            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">
+            <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-td-muted">
               Operations
             </p>
           ) : null}
@@ -145,7 +145,7 @@ export function Sidebar({
           </div>
         </nav>
 
-        <div className="border-t border-white/[0.06] p-3">
+        <div className="border-t border-td-ink/[0.06] p-3">
           <SidebarItem
             href="/dashboard/settings"
             label="Settings"
@@ -164,16 +164,16 @@ export function Sidebar({
           >
             {!collapsed ? (
               <div className="flex min-w-0 items-center gap-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.04]">
-                  <ReceiptText className="h-4 w-4 text-slate-500" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-td-ink/[0.07] bg-td-ink/[0.04]">
+                  <ReceiptText className="h-4 w-4 text-td-muted" />
                 </div>
 
                 <div className="min-w-0">
-                  <p className="truncate text-[11px] font-medium text-slate-400">
+                  <p className="truncate text-[11px] font-medium text-td-secondary">
                     Trading Docks
                   </p>
 
-                  <p className="truncate text-[10px] text-slate-700">
+                  <p className="truncate text-[11px] text-td-muted">
                     Seller Workspace
                   </p>
                 </div>
@@ -189,7 +189,7 @@ export function Sidebar({
                   ? "Expand sidebar"
                   : "Collapse sidebar"
               }
-              className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.025] text-slate-600 transition hover:border-white/[0.1] hover:bg-white/[0.06] hover:text-slate-200 lg:flex"
+              className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.025] text-td-muted transition hover:border-td-ink/[0.1] hover:bg-td-ink/[0.06] hover:text-td-primary lg:flex"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />

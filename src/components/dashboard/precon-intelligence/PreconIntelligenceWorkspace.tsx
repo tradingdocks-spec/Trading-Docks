@@ -147,63 +147,63 @@ export function PreconIntelligenceWorkspace() {
 
   const verdictTone = economics.recovery >= 1.4 ? "emerald" : economics.recovery >= 1.15 ? "cyan" : economics.recovery >= 1 ? "amber" : "rose";
   return (
-    <main className="min-h-screen bg-[#020b12] px-4 py-6 text-white sm:px-7 lg:px-10">
+    <main className="min-h-screen bg-td-canvas px-4 py-6 text-td-primary sm:px-7 lg:px-10">
       <div className="mx-auto max-w-[1500px]">
-        <header className="flex flex-col gap-5 border-b border-white/[0.07] pb-6 xl:flex-row xl:items-end xl:justify-between">
+        <header className="flex flex-col gap-5 border-b border-td-ink/[0.07] pb-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300">
+            <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-td-accent-text">
               <PackageOpen className="h-4 w-4" /> Purchasing Intelligence
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">Commander Precon Breakdowns</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-td-secondary">
               Compare a sealed deck&apos;s acquisition cost with the realistic value of the singles inside—after fees, low-value cards, and fulfillment.
             </p>
           </div>
-          <a href="https://deckcheck.co/app/precons" target="_blank" rel="noreferrer" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 text-xs font-semibold text-slate-300 hover:border-cyan-300/25 hover:text-cyan-200">
+          <a href="https://deckcheck.co/app/precons" target="_blank" rel="noreferrer" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-td-ink/[0.09] bg-td-ink/[0.025] px-4 text-xs font-semibold text-td-secondary hover:border-td-accent/25 hover:text-td-accent-text">
             Browse on DeckCheck <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </header>
 
         <section className="mt-6 grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <aside className="rounded-2xl border border-white/[0.07] bg-[#071522] p-4 xl:sticky xl:top-5 xl:h-[calc(100vh-40px)]">
+          <aside className="rounded-2xl border border-td-ink/[0.07] bg-td-surface p-4 xl:sticky xl:top-5 xl:h-[calc(100vh-40px)]">
             <div className="flex items-center justify-between">
-              <div><p className="text-sm font-semibold">Choose a precon</p><p className="mt-1 text-[10px] text-slate-500">{catalog.length || "—"} commander products</p></div>
-              <button type="button" onClick={loadCatalog} aria-label="Refresh commander decks" className="rounded-lg border border-white/[0.07] p-2 text-slate-500 hover:text-cyan-200"><RefreshCw className={`h-3.5 w-3.5 ${loadingCatalog ? "animate-spin" : ""}`} /></button>
+              <div><p className="text-sm font-semibold">Choose a precon</p><p className="mt-1 text-[11px] text-td-muted">{catalog.length || "—"} commander products</p></div>
+              <button type="button" onClick={loadCatalog} aria-label="Refresh commander decks" className="rounded-lg border border-td-ink/[0.07] p-2 text-td-muted hover:text-td-accent-text"><RefreshCw className={`h-3.5 w-3.5 ${loadingCatalog ? "animate-spin" : ""}`} /></button>
             </div>
-            <label className="mt-4 flex h-11 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/20 px-3 focus-within:border-cyan-300/25">
-              <Search className="h-4 w-4 text-slate-600" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search deck or set…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-700" />
+            <label className="mt-4 flex h-11 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 focus-within:border-td-accent/25">
+              <Search className="h-4 w-4 text-td-muted" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search deck or set…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-td-muted" />
             </label>
             <div className="mt-3 max-h-[calc(100vh-180px)] space-y-1 overflow-y-auto pr-1">
               {filteredDecks.map((deck) => (
-                <button key={deck.fileName} type="button" onClick={() => { setSelectedFile(deck.fileName); void analyze(deck.fileName); }} className={`w-full rounded-xl border px-3 py-3 text-left transition ${selectedFile === deck.fileName ? "border-cyan-300/25 bg-cyan-400/[0.07]" : "border-transparent hover:border-white/[0.07] hover:bg-white/[0.025]"}`}>
-                  <p className="truncate text-xs font-semibold text-slate-200">{deck.name}</p>
-                  <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-slate-600">{deck.code} · {formatDate(deck.releaseDate)}</p>
+                <button key={deck.fileName} type="button" onClick={() => { setSelectedFile(deck.fileName); void analyze(deck.fileName); }} className={`w-full rounded-xl border px-3 py-3 text-left transition ${selectedFile === deck.fileName ? "border-td-accent/25 bg-td-accent/[0.07]" : "border-transparent hover:border-td-ink/[0.07] hover:bg-td-ink/[0.025]"}`}>
+                  <p className="truncate text-xs font-semibold text-td-primary">{deck.name}</p>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-td-muted">{deck.code} · {formatDate(deck.releaseDate)}</p>
                 </button>
               ))}
             </div>
           </aside>
 
           <div className="min-w-0">
-            {error ? <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-400/20 bg-rose-400/[0.06] px-4 py-3 text-xs text-rose-200"><ShieldAlert className="h-4 w-4" />{error}</div> : null}
+            {error ? <div className="mb-4 flex items-center gap-2 rounded-xl border border-td-danger/20 bg-td-danger/[0.06] px-4 py-3 text-xs text-td-danger"><ShieldAlert className="h-4 w-4" />{error}</div> : null}
             {!analysis && !loadingDeck ? <EmptyState /> : null}
             {loadingDeck ? <LoadingState /> : null}
             {analysis && !loadingDeck ? (
               <>
-                <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.11),transparent_35%),#071522] p-5 sm:p-6">
+                <section className="overflow-hidden rounded-2xl border border-td-ink/[0.08] bg-[radial-gradient(circle_at_top_right,rgb(var(--td-accent-rgb)/0.11),transparent_35%),var(--td-surface-default)] p-5 sm:p-6">
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex min-w-0 gap-4">
-                      <div className="h-[142px] w-[100px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-950 shadow-2xl">
+                      <div className="h-[142px] w-[100px] shrink-0 overflow-hidden rounded-xl border border-td-ink/10 bg-td-canvas shadow-2xl">
                         {analysis.deck.cards[0]?.image ? <img src={analysis.deck.cards[0].image} alt="" className="h-full w-full object-cover" /> : null}
                       </div>
                       <div className="min-w-0 pt-1">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-300">{analysis.deck.code} · {formatDate(analysis.deck.releaseDate)}</p>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-accent-text">{analysis.deck.code} · {formatDate(analysis.deck.releaseDate)}</p>
                         <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em]">{analysis.deck.name}</h2>
-                        <p className="mt-2 text-xs text-slate-500">{analysis.deck.cardCount} cards · {analysis.deck.pricedCount} priced · Updated {formatTime(analysis.sources.pricedAt)}</p>
+                        <p className="mt-2 text-xs text-td-muted">{analysis.deck.cardCount} cards · {analysis.deck.pricedCount} priced · Updated {formatTime(analysis.sources.pricedAt)}</p>
                       </div>
                     </div>
                     <div className={`rounded-2xl border px-5 py-4 text-left lg:min-w-[210px] ${toneClasses(verdictTone)}`}>
-                      <p className="text-[9px] font-bold uppercase tracking-[0.16em] opacity-70">Breakdown verdict</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] opacity-70">Breakdown verdict</p>
                       <p className="mt-2 text-xl font-semibold">{economics.verdict}</p>
                       <p className="mt-1 text-xs opacity-70">{economics.roi >= 0 ? "+" : ""}{economics.roi.toFixed(1)}% estimated ROI</p>
                     </div>
@@ -224,63 +224,63 @@ export function PreconIntelligenceWorkspace() {
                   <ResultMetric icon={economics.profit >= 0 ? CheckCircle2 : ShieldAlert} label="Net profit" value={money(economics.profit)} detail={`Safe buy: ${money(economics.safeBuyPrice)}`} tone={economics.profit >= 0 ? "emerald" : "rose"} />
                 </section>
 
-                <section className="mt-4 overflow-hidden rounded-2xl border border-white/[0.07] bg-[#071522]">
+                <section className="mt-4 overflow-hidden rounded-2xl border border-td-ink/[0.07] bg-td-surface">
                   <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                      <p className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.15em] text-cyan-300"><ShoppingCart className="h-4 w-4" /> Average precon cost</p>
+                      <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] text-td-accent-text"><ShoppingCart className="h-4 w-4" /> Average precon cost</p>
                       <div className="mt-2 flex items-baseline gap-3">
                         <h3 className="text-3xl font-semibold tracking-[-0.04em]">{money(effectivePurchasePrice)}</h3>
-                        {bestQuote ? <span className="text-xs text-slate-500">Best found {money(bestQuote.delivered)}</span> : null}
+                        {bestQuote ? <span className="text-xs text-td-muted">Best found {money(bestQuote.delivered)}</span> : null}
                       </div>
-                      <p className="mt-2 text-xs text-slate-500">{averageDeckCost === null ? "Using your manual cost until a retailer price is verified." : `Average delivered price across ${verifiedQuotes.length} verified ${verifiedQuotes.length === 1 ? "source" : "sources"}. Automatically used in the profit estimate.`}</p>
+                      <p className="mt-2 text-xs text-td-muted">{averageDeckCost === null ? "Using your manual cost until a retailer price is verified." : `Average delivered price across ${verifiedQuotes.length} verified ${verifiedQuotes.length === 1 ? "source" : "sources"}. Automatically used in the profit estimate.`}</p>
                     </div>
-                    <button type="button" onClick={() => setShowPriceSources((current) => !current)} aria-expanded={showPriceSources} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/25 hover:text-cyan-200">
-                      {showPriceSources ? "Hide" : "View"} price sources <span className="text-slate-600">{verifiedQuotes.length}/{SEALED_SOURCES.length}</span><ChevronDown className={`h-4 w-4 transition ${showPriceSources ? "rotate-180" : ""}`} />
+                    <button type="button" onClick={() => setShowPriceSources((current) => !current)} aria-expanded={showPriceSources} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] px-4 text-xs font-semibold text-td-secondary transition hover:border-td-accent/25 hover:text-td-accent-text">
+                      {showPriceSources ? "Hide" : "View"} price sources <span className="text-td-muted">{verifiedQuotes.length}/{SEALED_SOURCES.length}</span><ChevronDown className={`h-4 w-4 transition ${showPriceSources ? "rotate-180" : ""}`} />
                     </button>
                   </div>
                   {showPriceSources ? <>
-                  <div className="hidden grid-cols-[minmax(190px,1fr)_110px_110px_120px_130px_48px] gap-3 border-b border-white/[0.05] px-5 py-2 text-[8px] font-bold uppercase tracking-[0.13em] text-slate-700 lg:grid">
+                  <div className="hidden grid-cols-[minmax(190px,1fr)_110px_110px_120px_130px_48px] gap-3 border-b border-td-ink/[0.05] px-5 py-2 text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted lg:grid">
                     <span>Source</span><span>Item price</span><span>Shipping</span><span>Availability</span><span className="text-right">Delivered</span><span />
                   </div>
-                  <div className="divide-y divide-white/[0.055]">
+                  <div className="divide-y divide-td-ink/[0.055]">
                     {SEALED_SOURCES.map((source) => {
                       const quote = quotes[source.id] ?? { itemPrice: null, shipping: null, stock: "unchecked" };
                       const delivered = quote.itemPrice === null ? null : quote.itemPrice + (quote.shipping ?? 0);
                       const isBest = bestQuote?.source.id === source.id;
                       const setQuote = (patch: Partial<RetailerQuote>) => setQuotes((current) => ({ ...current, [source.id]: { ...quote, ...patch } }));
-                      return <div key={source.id} className={`grid gap-3 px-5 py-4 lg:grid-cols-[minmax(190px,1fr)_110px_110px_120px_130px_48px] lg:items-center ${isBest ? "bg-emerald-400/[0.035]" : ""}`}>
-                        <div className="min-w-0"><div className="flex items-center gap-2"><p className="truncate text-xs font-semibold text-slate-200">{source.name}</p>{isBest ? <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-emerald-300">Best</span> : null}</div><p className="mt-1 text-[9px] text-slate-600">{source.kind}</p></div>
+                      return <div key={source.id} className={`grid gap-3 px-5 py-4 lg:grid-cols-[minmax(190px,1fr)_110px_110px_120px_130px_48px] lg:items-center ${isBest ? "bg-td-success/[0.035]" : ""}`}>
+                        <div className="min-w-0"><div className="flex items-center gap-2"><p className="truncate text-xs font-semibold text-td-primary">{source.name}</p>{isBest ? <span className="rounded-full bg-td-success/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-td-success">Best</span> : null}</div><p className="mt-1 text-[11px] text-td-muted">{source.kind}</p></div>
                         <PriceField label="Item price" value={quote.itemPrice} onChange={(value) => setQuote({ itemPrice: value, stock: value === null ? quote.stock : "in-stock" })} />
                         <PriceField label="Shipping" value={quote.shipping} onChange={(value) => setQuote({ shipping: value })} />
-                        <select aria-label={`${source.name} availability`} value={quote.stock} onChange={(event) => setQuote({ stock: event.target.value as RetailerQuote["stock"] })} className="h-10 rounded-lg border border-white/[0.07] bg-[#04101a] px-2 text-[10px] text-slate-300 outline-none focus:border-cyan-300/25"><option value="unchecked">Not checked</option><option value="in-stock">In stock</option><option value="out-of-stock">Out of stock</option></select>
-                        <div className="lg:text-right"><p className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-700 lg:hidden">Delivered</p><p className={`mt-1 text-sm font-semibold lg:mt-0 ${isBest ? "text-emerald-300" : "text-slate-300"}`}>{delivered === null ? "—" : money(delivered)}</p></div>
-                        <a href={source.search(analysis.deck.name)} target="_blank" rel="noreferrer" aria-label={`Check ${source.name}`} title={`Check ${source.name}`} className="inline-flex h-10 items-center justify-center rounded-lg border border-white/[0.07] text-slate-500 transition hover:border-cyan-300/25 hover:text-cyan-200"><ExternalLink className="h-3.5 w-3.5" /></a>
+                        <select aria-label={`${source.name} availability`} value={quote.stock} onChange={(event) => setQuote({ stock: event.target.value as RetailerQuote["stock"] })} className="h-10 rounded-lg border border-td-ink/[0.07] bg-td-surface px-2 text-[11px] text-td-secondary outline-none focus:border-td-accent/25"><option value="unchecked">Not checked</option><option value="in-stock">In stock</option><option value="out-of-stock">Out of stock</option></select>
+                        <div className="lg:text-right"><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-td-muted lg:hidden">Delivered</p><p className={`mt-1 text-sm font-semibold lg:mt-0 ${isBest ? "text-td-success" : "text-td-secondary"}`}>{delivered === null ? "—" : money(delivered)}</p></div>
+                        <a href={source.search(analysis.deck.name)} target="_blank" rel="noreferrer" aria-label={`Check ${source.name}`} title={`Check ${source.name}`} className="inline-flex h-10 items-center justify-center rounded-lg border border-td-ink/[0.07] text-td-muted transition hover:border-td-accent/25 hover:text-td-accent-text"><ExternalLink className="h-3.5 w-3.5" /></a>
                       </div>;
                     })}
                   </div>
-                  <div className="border-t border-white/[0.06] bg-black/10 px-5 py-3 text-[9px] leading-5 text-slate-600">Prices are saved only for the current comparison. Verify that listings are factory sealed, English, the correct deck—not a four-deck bundle—and immediately available. Cardsphere may serve as a community price reference when no sealed listing exists.</div>
+                  <div className="border-t border-td-ink/[0.06] bg-black/10 px-5 py-3 text-[11px] leading-5 text-td-muted">Prices are saved only for the current comparison. Verify that listings are factory sealed, English, the correct deck—not a four-deck bundle—and immediately available. Cardsphere may serve as a community price reference when no sealed listing exists.</div>
                   </> : null}
                 </section>
 
-                <section className="mt-4 rounded-2xl border border-white/[0.07] bg-[#071522]">
-                  <div className="flex flex-col gap-2 border-b border-white/[0.06] p-5 sm:flex-row sm:items-end sm:justify-between">
-                    <div><h3 className="text-base font-semibold">Value stack</h3><p className="mt-1 text-xs text-slate-500">Exact included printings, ranked by total value.</p></div>
-                    <p className="text-[10px] text-slate-600">{economics.subDollarCards} sub-$1 cards valued at {money(economics.bulkRecovery)} bulk recovery</p>
+                <section className="mt-4 rounded-2xl border border-td-ink/[0.07] bg-td-surface">
+                  <div className="flex flex-col gap-2 border-b border-td-ink/[0.06] p-5 sm:flex-row sm:items-end sm:justify-between">
+                    <div><h3 className="text-base font-semibold">Value stack</h3><p className="mt-1 text-xs text-td-muted">Exact included printings, ranked by total value.</p></div>
+                    <p className="text-[11px] text-td-muted">{economics.subDollarCards} sub-$1 cards valued at {money(economics.bulkRecovery)} bulk recovery</p>
                   </div>
-                  <div className="divide-y divide-white/[0.055]">
+                  <div className="divide-y divide-td-ink/[0.055]">
                     {analysis.deck.cards.slice(0, 30).map((card, index) => (
                       <div key={`${card.setCode}-${card.collectorNumber}-${card.name}`} className="grid grid-cols-[28px_minmax(0,1fr)_70px_85px] items-center gap-3 px-4 py-3 sm:grid-cols-[32px_42px_minmax(0,1fr)_90px_100px] sm:px-5">
-                        <span className="text-[10px] font-semibold text-slate-700">{String(index + 1).padStart(2, "0")}</span>
-                        <div className="hidden h-12 w-9 overflow-hidden rounded-md border border-white/[0.08] bg-slate-950 sm:block">{card.image ? <img src={card.image} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}</div>
-                        <div className="min-w-0"><p className="truncate text-xs font-semibold text-slate-200">{card.count > 1 ? `${card.count}× ` : ""}{card.name}</p><p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-slate-600">{card.setCode} #{card.collectorNumber}</p></div>
-                        <p className="text-right text-[10px] text-slate-500">{money(card.unitPrice)} ea.</p>
-                        <p className="text-right text-xs font-semibold text-slate-200">{money(card.totalPrice)}</p>
+                        <span className="text-[11px] font-semibold text-td-muted">{String(index + 1).padStart(2, "0")}</span>
+                        <div className="hidden h-12 w-9 overflow-hidden rounded-md border border-td-ink/[0.08] bg-td-canvas sm:block">{card.image ? <img src={card.image} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}</div>
+                        <div className="min-w-0"><p className="truncate text-xs font-semibold text-td-primary">{card.count > 1 ? `${card.count}× ` : ""}{card.name}</p><p className="mt-1 text-[11px] uppercase tracking-[0.1em] text-td-muted">{card.setCode} #{card.collectorNumber}</p></div>
+                        <p className="text-right text-[11px] text-td-muted">{money(card.unitPrice)} ea.</p>
+                        <p className="text-right text-xs font-semibold text-td-primary">{money(card.totalPrice)}</p>
                       </div>
                     ))}
                   </div>
                 </section>
 
-                <p className="mt-4 text-[10px] leading-5 text-slate-600">Deck composition is refreshed from MTGJSON and exact-printing price estimates from Scryfall. DeckCheck is linked as the precon discovery reference. Prices are estimates; verify listings, condition, demand, and sealed-product contents before purchasing.</p>
+                <p className="mt-4 text-[11px] leading-5 text-td-muted">Deck composition is refreshed from MTGJSON and exact-printing price estimates from Scryfall. DeckCheck is linked as the precon discovery reference. Prices are estimates; verify listings, condition, demand, and sealed-product contents before purchasing.</p>
               </>
             ) : null}
           </div>
@@ -291,31 +291,31 @@ export function PreconIntelligenceWorkspace() {
 }
 
 function EmptyState() {
-  return <div className="flex min-h-[500px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.09] bg-[#071522]/60 px-6 text-center"><div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.05] p-4 text-cyan-300"><PackageOpen className="h-7 w-7" /></div><h2 className="mt-5 text-xl font-semibold">Find the margin inside the box.</h2><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">Choose a commander precon to see the cards carrying its value and set your actual acquisition costs.</p></div>;
+  return <div className="flex min-h-[500px] flex-col items-center justify-center rounded-2xl border border-dashed border-td-ink/[0.09] bg-td-surface/60 px-6 text-center"><div className="rounded-2xl border border-td-accent/15 bg-td-accent/[0.05] p-4 text-td-accent-text"><PackageOpen className="h-7 w-7" /></div><h2 className="mt-5 text-xl font-semibold">Find the margin inside the box.</h2><p className="mt-2 max-w-md text-sm leading-6 text-td-muted">Choose a commander precon to see the cards carrying its value and set your actual acquisition costs.</p></div>;
 }
 
 function LoadingState() {
-  return <div className="flex min-h-[500px] items-center justify-center rounded-2xl border border-white/[0.07] bg-[#071522]"><div className="text-center"><RefreshCw className="mx-auto h-6 w-6 animate-spin text-cyan-300" /><p className="mt-3 text-xs text-slate-500">Resolving exact printings and live prices…</p></div></div>;
+  return <div className="flex min-h-[500px] items-center justify-center rounded-2xl border border-td-ink/[0.07] bg-td-surface"><div className="text-center"><RefreshCw className="mx-auto h-6 w-6 animate-spin text-td-accent-text" /><p className="mt-3 text-xs text-td-muted">Resolving exact printings and live prices…</p></div></div>;
 }
 
 function InputMetric({ label, value, prefix, suffix, step = "0.25", onChange }: { label: string; value: number; prefix?: string; suffix?: string; step?: string; onChange: (value: number) => void }) {
-  return <label className="rounded-xl border border-white/[0.07] bg-black/20 p-3"><span className="text-[8px] font-bold uppercase tracking-[0.13em] text-slate-600">{label}</span><span className="mt-2 flex items-center gap-1 text-sm font-semibold text-slate-200">{prefix}<input type="number" min="0" step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} className="min-w-0 flex-1 bg-transparent outline-none" />{suffix}</span></label>;
+  return <label className="rounded-xl border border-td-ink/[0.07] bg-black/20 p-3"><span className="text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted">{label}</span><span className="mt-2 flex items-center gap-1 text-sm font-semibold text-td-primary">{prefix}<input type="number" min="0" step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} className="min-w-0 flex-1 bg-transparent outline-none" />{suffix}</span></label>;
 }
 
 function PriceField({ label, value, onChange }: { label: string; value: number | null; onChange: (value: number | null) => void }) {
-  return <label className="flex h-10 items-center rounded-lg border border-white/[0.07] bg-black/20 px-3 focus-within:border-cyan-300/25"><span className="mr-1 text-[10px] text-slate-600">$</span><input aria-label={label} type="number" min="0" step="0.01" value={value ?? ""} placeholder="0.00" onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))} className="min-w-0 flex-1 bg-transparent text-xs text-slate-200 outline-none placeholder:text-slate-800" /></label>;
+  return <label className="flex h-10 items-center rounded-lg border border-td-ink/[0.07] bg-black/20 px-3 focus-within:border-td-accent/25"><span className="mr-1 text-[11px] text-td-muted">$</span><input aria-label={label} type="number" min="0" step="0.01" value={value ?? ""} placeholder="0.00" onChange={(event) => onChange(event.target.value === "" ? null : Number(event.target.value))} className="min-w-0 flex-1 bg-transparent text-xs text-td-primary outline-none placeholder:text-td-on-accent" /></label>;
 }
 
 function ResultMetric({ icon: Icon, label, value, detail, tone = "slate" }: { icon: typeof Boxes; label: string; value: string; detail: string; tone?: "slate" | "emerald" | "rose" }) {
-  const color = tone === "emerald" ? "text-emerald-300" : tone === "rose" ? "text-rose-300" : "text-cyan-300";
-  return <div className="rounded-2xl border border-white/[0.07] bg-[#071522] p-4"><div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.13em] text-slate-600"><Icon className={`h-4 w-4 ${color}`} />{label}</div><p className={`mt-3 text-2xl font-semibold tracking-[-0.03em] ${tone === "slate" ? "text-white" : color}`}>{value}</p><p className="mt-1 text-[10px] text-slate-600">{detail}</p></div>;
+  const color = tone === "emerald" ? "text-td-success" : tone === "rose" ? "text-td-danger" : "text-td-accent-text";
+  return <div className="rounded-2xl border border-td-ink/[0.07] bg-td-surface p-4"><div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.13em] text-td-muted"><Icon className={`h-4 w-4 ${color}`} />{label}</div><p className={`mt-3 text-2xl font-semibold tracking-[-0.03em] ${tone === "slate" ? "text-td-primary" : color}`}>{value}</p><p className="mt-1 text-[11px] text-td-muted">{detail}</p></div>;
 }
 
 function toneClasses(tone: string) {
-  if (tone === "emerald") return "border-emerald-300/20 bg-emerald-400/[0.07] text-emerald-200";
-  if (tone === "cyan") return "border-cyan-300/20 bg-cyan-400/[0.07] text-cyan-200";
-  if (tone === "amber") return "border-amber-300/20 bg-amber-400/[0.07] text-amber-200";
-  return "border-rose-300/20 bg-rose-400/[0.07] text-rose-200";
+  if (tone === "emerald") return "border-td-success/20 bg-td-success/[0.07] text-td-success";
+  if (tone === "cyan") return "border-td-accent/20 bg-td-accent/[0.07] text-td-accent-text";
+  if (tone === "amber") return "border-td-warning/20 bg-td-warning/[0.07] text-td-warning";
+  return "border-td-danger/20 bg-td-danger/[0.07] text-td-danger";
 }
 
 function money(value: number) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number.isFinite(value) ? value : 0); }

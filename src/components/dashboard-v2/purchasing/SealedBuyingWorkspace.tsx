@@ -214,29 +214,29 @@ export function SealedBuyingWorkspace() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020b12] px-5 py-7 text-white sm:px-8 lg:px-10">
+    <main className="min-h-screen bg-td-canvas px-5 py-7 text-td-primary sm:px-8 lg:px-10">
       <div className="mx-auto max-w-[1500px]">
-        <header className="rounded-[28px] border border-emerald-300/[0.12] bg-[#06141f] p-6">
+        <header className="rounded-[28px] border border-td-success/[0.12] bg-td-surface p-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-success">
                 Sealed Product Buying
               </p>
               <h1 className="mt-3 text-3xl font-semibold tracking-[-0.045em]">
                 Appraise sealed inventory with TCGCSV market data.
               </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-td-muted">
                 Search TCGplayer products, compare Market, Low, Mid, and Direct
                 Low prices, calculate fees and shipping, and protect the store’s
                 target margin before making an offer.
               </p>
             </div>
 
-            <div className="rounded-xl border border-cyan-300/[0.11] bg-cyan-400/[0.03] px-4 py-3">
-              <p className="text-[7px] uppercase tracking-[0.12em] text-slate-700">
+            <div className="rounded-xl border border-td-accent/[0.11] bg-td-accent/[0.03] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-[0.12em] text-td-muted">
                 Pricing Source
               </p>
-              <p className="mt-1 text-[10px] font-semibold text-cyan-200">
+              <p className="mt-1 text-[11px] font-semibold text-td-accent-text">
                 TCGCSV · Daily TCGplayer cache
               </p>
             </div>
@@ -244,13 +244,13 @@ export function SealedBuyingWorkspace() {
         </header>
 
         <div className="mt-5 grid gap-5 xl:grid-cols-[1.05fr_1.45fr_0.74fr]">
-          <section className="rounded-[24px] border border-white/[0.07] bg-[#06141f] p-5">
+          <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
             <div className="flex items-center justify-between">
-              <p className="text-[8px] font-semibold uppercase tracking-[0.15em] text-cyan-300">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-accent-text">
                 Live Product Search
               </p>
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin text-cyan-300" />
+                <Loader2 className="h-4 w-4 animate-spin text-td-accent-text" />
               ) : null}
             </div>
 
@@ -260,15 +260,15 @@ export function SealedBuyingWorkspace() {
                 onChange={(event) =>
                   setGame(event.target.value)
                 }
-                className="h-11 rounded-xl border border-white/[0.07] bg-[#07141e] px-3 text-[9px] text-slate-400 outline-none"
+                className="h-11 rounded-xl border border-td-ink/[0.07] bg-td-surface px-3 text-[11px] text-td-secondary outline-none"
               >
                 {GAME_OPTIONS.map((option) => (
                   <option key={option}>{option}</option>
                 ))}
               </select>
 
-              <label className="flex h-11 items-center gap-2 rounded-xl border border-white/[0.07] bg-black/[0.1] px-3">
-                <Search className="h-4 w-4 text-slate-700" />
+              <label className="flex h-11 items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-black/[0.1] px-3">
+                <Search className="h-4 w-4 text-td-muted" />
                 <input
                   value={query}
                   onChange={(event) =>
@@ -280,20 +280,20 @@ export function SealedBuyingWorkspace() {
                     }
                   }}
                   placeholder="Booster box, bundle, UPC..."
-                  className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-300 outline-none placeholder:text-slate-700"
+                  className="min-w-0 flex-1 bg-transparent text-[11px] text-td-secondary outline-none placeholder:text-td-muted"
                 />
               </label>
             </div>
 
             <button
               type="button"
-              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.035] text-[9px] font-semibold text-cyan-200"
+              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.035] text-[11px] font-semibold text-td-accent-text"
             >
               <Barcode className="h-4 w-4" />
               Scan UPC barcode
             </button>
 
-            <p className="mt-3 text-[7px] leading-4 text-slate-700">
+            <p className="mt-3 text-[11px] leading-4 text-td-muted">
               {status}
               {lastUpdated
                 ? ` Updated ${new Date(
@@ -313,7 +313,7 @@ export function SealedBuyingWorkspace() {
                 return (
                   <article
                     key={product.productId}
-                    className="group rounded-2xl border border-white/[0.07] bg-white/[0.018] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-emerald-300/[0.2] hover:bg-white/[0.025]"
+                    className="group rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.018] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-td-success/[0.2] hover:bg-td-ink/[0.025]"
                   >
                     <div className="flex gap-3">
                       <ProductImage product={product} searchLarge />
@@ -321,16 +321,16 @@ export function SealedBuyingWorkspace() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-[15px] font-semibold leading-5 text-white">
+                            <p className="text-[15px] font-semibold leading-5 text-td-primary">
                               {product.name}
                             </p>
-                            <p className="mt-1 text-[9px] leading-4 text-slate-500">
+                            <p className="mt-1 text-[11px] leading-4 text-td-muted">
                               {product.groupName}
                             </p>
                           </div>
                         </div>
 
-                        <span className="mt-2 inline-flex rounded-lg border border-cyan-300/[0.12] bg-cyan-400/[0.04] px-2 py-1 text-[7px] font-semibold uppercase tracking-[0.1em] text-cyan-200">
+                        <span className="mt-2 inline-flex rounded-lg border border-td-accent/[0.12] bg-td-accent/[0.04] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-accent-text">
                           {product.dataSource}
                         </span>
                       </div>
@@ -388,7 +388,7 @@ export function SealedBuyingWorkspace() {
                       />
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.055] pt-3">
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-td-ink/[0.055] pt-3">
                       <div className="flex min-w-0 flex-wrap gap-1.5">
                         <Badge>{product.productType}</Badge>
                         <Badge>{product.categoryName}</Badge>
@@ -398,7 +398,7 @@ export function SealedBuyingWorkspace() {
                       <button
                         type="button"
                         onClick={() => addProduct(product)}
-                        className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-300 px-5 text-[10px] font-semibold text-[#00140d] transition hover:bg-emerald-200"
+                        className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-td-success px-5 text-[11px] font-semibold text-td-on-accent transition hover:bg-td-success"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Add
@@ -411,24 +411,24 @@ export function SealedBuyingWorkspace() {
               {!loading &&
               query.trim().length >= 2 &&
               !results.length ? (
-                <div className="rounded-2xl border border-dashed border-white/[0.07] py-12 text-center text-[8px] text-slate-700">
+                <div className="rounded-2xl border border-dashed border-td-ink/[0.07] py-12 text-center text-[11px] text-td-muted">
                   No matching sealed products were found.
                 </div>
               ) : null}
             </div>
           </section>
 
-          <section className="rounded-[24px] border border-white/[0.07] bg-[#06141f] p-5">
+          <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[8px] font-semibold uppercase tracking-[0.15em] text-cyan-300">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-accent-text">
                   Sealed Appraisal
                 </p>
                 <h2 className="mt-2 text-lg font-semibold">
                   Products in offer
                 </h2>
               </div>
-              <span className="text-[8px] text-slate-700">
+              <span className="text-[11px] text-td-muted">
                 {lines.length} lines
               </span>
             </div>
@@ -459,16 +459,16 @@ export function SealedBuyingWorkspace() {
                 return (
                   <article
                     key={line.productId}
-                    className="rounded-2xl border border-white/[0.06] bg-black/[0.09] p-4"
+                    className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.09] p-4"
                   >
                     <div className="flex items-start gap-3">
                       <ProductImage product={line} large />
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-white">
+                        <p className="text-xs font-semibold text-td-primary">
                           {line.name}
                         </p>
-                        <p className="mt-1 text-[8px] text-slate-700">
+                        <p className="mt-1 text-[11px] text-td-muted">
                           {line.categoryName} · {line.groupName}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -491,7 +491,7 @@ export function SealedBuyingWorkspace() {
                             ),
                           )
                         }
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-300/[0.1] text-red-300/60"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-td-danger/[0.1] text-td-danger/60"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -524,7 +524,7 @@ export function SealedBuyingWorkspace() {
                               setLines,
                             )
                           }
-                          className="h-10 w-full rounded-xl border border-white/[0.06] bg-[#07141e] px-3 text-[8px] text-slate-400 outline-none"
+                          className="h-10 w-full rounded-xl border border-td-ink/[0.06] bg-td-surface px-3 text-[11px] text-td-secondary outline-none"
                         >
                           {Object.keys(
                             CONDITION_MULTIPLIER,
@@ -622,7 +622,7 @@ export function SealedBuyingWorkspace() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-between gap-3">
-                      <p className="text-[7px] text-slate-700">
+                      <p className="text-[11px] text-td-muted">
                         TCGCSV product #{line.productId}
                       </p>
 
@@ -631,7 +631,7 @@ export function SealedBuyingWorkspace() {
                           href={line.productUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[7px] font-semibold text-cyan-300"
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-td-accent-text"
                         >
                           View TCGplayer product
                           <ExternalLink className="h-3 w-3" />
@@ -643,12 +643,12 @@ export function SealedBuyingWorkspace() {
               })}
 
               {!lines.length ? (
-                <div className="rounded-2xl border border-dashed border-white/[0.07] py-20 text-center">
-                  <PackageCheck className="mx-auto h-6 w-6 text-slate-800" />
-                  <p className="mt-3 text-xs font-semibold text-slate-500">
+                <div className="rounded-2xl border border-dashed border-td-ink/[0.07] py-20 text-center">
+                  <PackageCheck className="mx-auto h-6 w-6 text-td-on-accent" />
+                  <p className="mt-3 text-xs font-semibold text-td-muted">
                     No sealed products added
                   </p>
-                  <p className="mt-1 text-[8px] text-slate-700">
+                  <p className="mt-1 text-[11px] text-td-muted">
                     Search TCGCSV or scan a UPC to begin.
                   </p>
                 </div>
@@ -657,8 +657,8 @@ export function SealedBuyingWorkspace() {
           </section>
 
           <aside className="space-y-4">
-            <section className="rounded-[24px] border border-emerald-300/[0.12] bg-[#06141f] p-5">
-              <p className="text-[8px] font-semibold uppercase tracking-[0.15em] text-emerald-300">
+            <section className="rounded-[24px] border border-td-success/[0.12] bg-td-surface p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-success">
                 Customer Offer
               </p>
 
@@ -678,7 +678,7 @@ export function SealedBuyingWorkspace() {
                 tone="credit"
               />
 
-              <div className="mt-3 rounded-xl border border-white/[0.06] bg-black/[0.1] p-3">
+              <div className="mt-3 rounded-xl border border-td-ink/[0.06] bg-black/[0.1] p-3">
                 <SummaryRow
                   label="Expected Fees"
                   value={totals.fees}
@@ -701,13 +701,13 @@ export function SealedBuyingWorkspace() {
               <button
                 type="button"
                 disabled={!lines.length}
-                className="mt-4 h-11 w-full rounded-xl bg-emerald-300 text-[9px] font-semibold text-[#00140d] disabled:opacity-40"
+                className="mt-4 h-11 w-full rounded-xl bg-td-success text-[11px] font-semibold text-td-on-accent disabled:opacity-40"
               >
                 Purchase and send to intake
               </button>
             </section>
 
-            <section className="rounded-[24px] border border-white/[0.07] bg-[#06141f] p-5">
+            <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5">
               <p className="text-sm font-semibold">
                 Buying controls
               </p>
@@ -730,14 +730,14 @@ export function SealedBuyingWorkspace() {
               />
             </section>
 
-            <section className="rounded-[24px] border border-amber-300/[0.11] bg-[#06141f] p-5">
+            <section className="rounded-[24px] border border-td-warning/[0.11] bg-td-surface p-5">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-amber-300" />
+                <ShieldAlert className="h-4 w-4 text-td-warning" />
                 <p className="text-sm font-semibold">
                   Purchase intelligence
                 </p>
               </div>
-              <p className="mt-3 text-[8px] leading-5 text-slate-600">
+              <p className="mt-3 text-[11px] leading-5 text-td-muted">
                 The offer combines TCGCSV Market Price with packaging
                 condition, store offer percentage, marketplace fees, shipping,
                 and current inventory. Daily syncs can save price history in
@@ -749,7 +749,7 @@ export function SealedBuyingWorkspace() {
               type="button"
               onClick={searchProducts}
               disabled={loading || query.trim().length < 2}
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.035] text-[8px] font-semibold text-cyan-200 disabled:opacity-40"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.035] text-[11px] font-semibold text-td-accent-text disabled:opacity-40"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Refresh TCGCSV results
@@ -784,7 +784,7 @@ function ProductImage({
   return (
     <div
       className={[
-        "shrink-0 overflow-hidden rounded-xl border border-white/[0.08] bg-gradient-to-br from-cyan-950 to-slate-950",
+        "shrink-0 overflow-hidden rounded-xl border border-td-ink/[0.08] bg-gradient-to-br from-td-accent to-td-canvas",
         large
           ? "h-[88px] w-[88px]"
           : searchLarge
@@ -800,7 +800,7 @@ function ProductImage({
           className="h-full w-full object-contain"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center px-2 text-center text-[7px] font-semibold text-cyan-200">
+        <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] font-semibold text-td-accent-text">
           {product.categoryName}
         </div>
       )}
@@ -819,16 +819,16 @@ function SearchPriceTile({
 }) {
   const classes = {
     market:
-      "border-emerald-300/[0.18] bg-emerald-400/[0.05] text-emerald-300",
+      "border-td-success/[0.18] bg-td-success/[0.05] text-td-success",
     cash:
-      "border-cyan-300/[0.18] bg-cyan-400/[0.05] text-cyan-200",
+      "border-td-accent/[0.18] bg-td-accent/[0.05] text-td-accent-text",
   }[tone];
 
   const compact = value.length >= 10;
 
   return (
     <div className={`min-w-0 overflow-hidden rounded-xl border px-4 py-3.5 ${classes}`}>
-      <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
         {label}
       </p>
       <p
@@ -853,14 +853,14 @@ function SearchInfoTile({
   tone: "profit" | "margin" | "inventory";
 }) {
   const valueClass = {
-    profit: "text-violet-200",
-    margin: "text-amber-200",
-    inventory: "text-slate-300",
+    profit: "text-td-violet",
+    margin: "text-td-warning",
+    inventory: "text-td-secondary",
   }[tone];
 
   return (
-    <div className="min-w-0 rounded-xl border border-white/[0.055] bg-black/[0.08] px-3 py-2.5">
-      <p className="text-[7px] font-semibold uppercase leading-3 tracking-[0.08em] text-slate-600">
+    <div className="min-w-0 rounded-xl border border-td-ink/[0.055] bg-black/[0.08] px-3 py-2.5">
+      <p className="text-[11px] font-semibold uppercase leading-3 tracking-[0.08em] text-td-muted">
         {label}
       </p>
       <p className={`mt-1.5 whitespace-nowrap text-sm font-semibold tabular-nums ${valueClass}`}>
@@ -878,23 +878,23 @@ function Quantity({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="flex h-10 items-center rounded-xl border border-white/[0.06] bg-white/[0.02]">
+    <div className="flex h-10 items-center rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02]">
       <button
         type="button"
         onClick={() =>
           onChange(Math.max(1, value - 1))
         }
-        className="flex h-full w-9 items-center justify-center text-slate-600"
+        className="flex h-full w-9 items-center justify-center text-td-muted"
       >
         <Minus className="h-3 w-3" />
       </button>
-      <span className="flex-1 text-center text-[10px]">
+      <span className="flex-1 text-center text-[11px]">
         {value}
       </span>
       <button
         type="button"
         onClick={() => onChange(value + 1)}
-        className="flex h-full w-9 items-center justify-center text-cyan-300"
+        className="flex h-full w-9 items-center justify-center text-td-accent-text"
       >
         <Plus className="h-3 w-3" />
       </button>
@@ -919,7 +919,7 @@ function NumberInput({
           Math.max(0, Number(event.target.value) || 0),
         )
       }
-      className="h-10 w-full rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 text-[9px] text-slate-300 outline-none"
+      className="h-10 w-full rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] px-3 text-[11px] text-td-secondary outline-none"
     />
   );
 }
@@ -932,8 +932,8 @@ function MoneyInput({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="flex h-10 items-center rounded-xl border border-white/[0.06] bg-white/[0.02] px-3">
-      <span className="text-[9px] text-slate-700">$</span>
+    <div className="flex h-10 items-center rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] px-3">
+      <span className="text-[11px] text-td-muted">$</span>
       <input
         type="number"
         min={0}
@@ -947,7 +947,7 @@ function MoneyInput({
             ),
           )
         }
-        className="min-w-0 flex-1 bg-transparent pl-1 text-[9px] text-slate-300 outline-none"
+        className="min-w-0 flex-1 bg-transparent pl-1 text-[11px] text-td-secondary outline-none"
       />
     </div>
   );
@@ -962,7 +962,7 @@ function Field({
 }) {
   return (
     <div>
-      <p className="mb-2 text-[7px] uppercase tracking-[0.11em] text-slate-700">
+      <p className="mb-2 text-[11px] uppercase tracking-[0.11em] text-td-muted">
         {label}
       </p>
       {children}
@@ -988,25 +988,25 @@ function ValueBox({
 }) {
   const toneClasses = {
     market:
-      "border-sky-300/[0.13] bg-sky-400/[0.035] text-sky-200",
+      "border-td-accent/[0.13] bg-td-accent/[0.035] text-td-accent-text",
     cash:
-      "border-emerald-300/[0.13] bg-emerald-400/[0.035] text-emerald-300",
+      "border-td-success/[0.13] bg-td-success/[0.035] text-td-success",
     neutral:
-      "border-white/[0.06] bg-white/[0.018] text-slate-300",
+      "border-td-ink/[0.06] bg-td-ink/[0.018] text-td-secondary",
     profit:
-      "border-violet-300/[0.13] bg-violet-400/[0.035] text-violet-200",
+      "border-td-violet/[0.13] bg-td-violet/[0.035] text-td-violet",
     risk:
-      "border-rose-300/[0.13] bg-rose-400/[0.035] text-rose-300",
+      "border-td-danger/[0.13] bg-td-danger/[0.035] text-td-danger",
   }[tone];
 
   return (
     <div
       className={`min-w-0 rounded-xl border p-3 ${toneClasses}`}
     >
-      <p className="truncate text-[6px] uppercase tracking-[0.1em] text-slate-700">
+      <p className="truncate text-[11px] uppercase tracking-[0.1em] text-td-muted">
         {label}
       </p>
-      <p className="mt-2 truncate text-[10px] font-semibold">
+      <p className="mt-2 truncate text-[11px] font-semibold">
         {percent
           ? `${value.toFixed(1)}%`
           : currency(value)}
@@ -1023,11 +1023,11 @@ function InfoBox({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] px-3 py-2">
-      <p className="text-[6px] uppercase tracking-[0.1em] text-slate-800">
+    <div className="rounded-xl border border-td-ink/[0.05] bg-td-ink/[0.015] px-3 py-2">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-td-on-accent">
         {label}
       </p>
-      <p className="mt-1 text-[8px] font-semibold text-slate-500">
+      <p className="mt-1 text-[11px] font-semibold text-td-muted">
         {value}
       </p>
     </div>
@@ -1040,7 +1040,7 @@ function Badge({
   children: React.ReactNode;
 }) {
   return (
-    <span className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[7px] text-slate-600">
+    <span className="rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.02] px-2 py-1 text-[11px] text-td-muted">
       {children}
     </span>
   );
@@ -1060,13 +1060,13 @@ function Summary({
       className={[
         "mt-3 rounded-xl border p-4",
         tone === "market"
-          ? "border-sky-300/[0.16] bg-sky-400/[0.04]"
+          ? "border-td-accent/[0.16] bg-td-accent/[0.04]"
           : tone === "cash"
-            ? "border-emerald-300/[0.16] bg-emerald-400/[0.04]"
+            ? "border-td-success/[0.16] bg-td-success/[0.04]"
             : "border-fuchsia-300/[0.16] bg-fuchsia-400/[0.04]",
       ].join(" ")}
     >
-      <p className="text-[7px] uppercase tracking-[0.11em] text-slate-700">
+      <p className="text-[11px] uppercase tracking-[0.11em] text-td-muted">
         {label}
       </p>
       <p className="mt-2 text-xl font-semibold">
@@ -1087,17 +1087,17 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-[8px] text-slate-600">
+      <span className="text-[11px] text-td-muted">
         {label}
       </span>
       <span
         className={[
-          "text-[9px] font-semibold",
+          "text-[11px] font-semibold",
           strong
             ? value >= 0
-              ? "text-emerald-300"
-              : "text-rose-300"
-            : "text-slate-300",
+              ? "text-td-success"
+              : "text-td-danger"
+            : "text-td-secondary",
         ].join(" ")}
       >
         {currency(value)}
@@ -1123,11 +1123,11 @@ function Range({
 }) {
   return (
     <label className="mt-4 block">
-      <div className="flex items-center justify-between text-[8px]">
-        <span className="text-slate-600">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="text-td-muted">
           {label}
         </span>
-        <span className="font-semibold text-cyan-200">
+        <span className="font-semibold text-td-accent-text">
           {value}
           {suffix}
         </span>
@@ -1140,7 +1140,7 @@ function Range({
         onChange={(event) =>
           setValue(Number(event.target.value))
         }
-        className="mt-3 w-full accent-cyan-300"
+        className="mt-3 w-full accent-td-accent"
       />
     </label>
   );

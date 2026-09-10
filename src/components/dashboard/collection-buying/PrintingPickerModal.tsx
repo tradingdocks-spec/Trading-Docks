@@ -158,16 +158,16 @@ export function PrintingPickerModal({
         aria-label="Close printing picker"
       />
 
-      <div className="relative z-10 max-h-[94vh] w-full max-w-[1120px] overflow-y-auto rounded-[30px] border border-cyan-300/[0.15] bg-[#06131d]/98 p-5 shadow-[0_40px_140px_rgba(0,0,0,0.68)] sm:p-6">
+      <div className="relative z-10 max-h-[94vh] w-full max-w-[1120px] overflow-y-auto rounded-[30px] border border-td-accent/[0.15] bg-td-surface/98 p-5 shadow-[0_40px_140px_rgb(var(--td-shadow-rgb)/calc(0.68*var(--td-shadow-strength)))] sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[8px] font-semibold uppercase tracking-[0.17em] text-cyan-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-td-accent-text">
               Printing Selection
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-white">
+            <h2 className="mt-2 text-xl font-semibold text-td-primary">
               Choose the exact printing
             </h2>
-            <p className="mt-2 text-[9px] text-slate-600">
+            <p className="mt-2 text-[11px] text-td-muted">
               {item.card?.name ?? item.name}
             </p>
           </div>
@@ -175,7 +175,7 @@ export function PrintingPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted"
           >
             <X className="h-4 w-4" />
           </button>
@@ -183,14 +183,14 @@ export function PrintingPickerModal({
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_0.42fr]">
           <div>
-            <label className="flex h-10 items-center gap-2 rounded-xl border border-white/[0.065] bg-white/[0.02] px-3">
-              <Search className="h-3.5 w-3.5 text-slate-700" />
+            <label className="flex h-10 items-center gap-2 rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3">
+              <Search className="h-3.5 w-3.5 text-td-muted" />
               <input
                 autoFocus
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search set name, code, or collector number..."
-                className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-300 outline-none placeholder:text-slate-700"
+                className="min-w-0 flex-1 bg-transparent text-[11px] text-td-secondary outline-none placeholder:text-td-muted"
               />
             </label>
 
@@ -223,8 +223,8 @@ export function PrintingPickerModal({
                     className={[
                       "relative overflow-hidden rounded-2xl border p-3 text-left transition",
                       isCurrent
-                        ? "border-cyan-300/[0.28] bg-cyan-400/[0.06]"
-                        : "border-white/[0.06] bg-black/[0.1] hover:border-cyan-300/[0.16]",
+                        ? "border-td-accent/[0.28] bg-td-accent/[0.06]"
+                        : "border-td-ink/[0.06] bg-black/[0.1] hover:border-td-accent/[0.16]",
                     ].join(" ")}
                   >
                     <div className="flex gap-3">
@@ -235,33 +235,33 @@ export function PrintingPickerModal({
                       />
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[10px] font-semibold text-slate-200">
+                        <p className="truncate text-[11px] font-semibold text-td-primary">
                           {printing.set_name}
                         </p>
-                        <p className="mt-1 text-[8px] text-slate-700">
+                        <p className="mt-1 text-[11px] text-td-muted">
                           {printing.set.toUpperCase()} #
                           {printing.collector_number}
                         </p>
-                        <p className="mt-3 text-sm font-semibold text-white">
+                        <p className="mt-3 text-sm font-semibold text-td-primary">
                           {price ? currency(price) : "No price"}
                         </p>
-                        <p className="mt-1 text-[7px] text-slate-700">
+                        <p className="mt-1 text-[11px] text-td-muted">
                           Released {printing.released_at ?? "Unknown"}
                         </p>
 
                         <div className="mt-3 flex flex-wrap gap-1">
                           {isPreferred ? (
-                            <span className="rounded-md border border-violet-300/[0.14] bg-violet-400/[0.05] px-1.5 py-0.5 text-[7px] text-violet-200">
+                            <span className="rounded-md border border-td-violet/[0.14] bg-td-violet/[0.05] px-1.5 py-0.5 text-[11px] text-td-violet">
                               Preferred set
                             </span>
                           ) : null}
                           {isCurrent ? (
-                            <span className="rounded-md border border-cyan-300/[0.14] bg-cyan-400/[0.05] px-1.5 py-0.5 text-[7px] text-cyan-200">
+                            <span className="rounded-md border border-td-accent/[0.14] bg-td-accent/[0.05] px-1.5 py-0.5 text-[11px] text-td-accent-text">
                               Current
                             </span>
                           ) : null}
                           {expensiveWarning ? (
-                            <span className="rounded-md border border-amber-300/[0.14] bg-amber-400/[0.05] px-1.5 py-0.5 text-[7px] text-amber-200">
+                            <span className="rounded-md border border-td-warning/[0.14] bg-td-warning/[0.05] px-1.5 py-0.5 text-[11px] text-td-warning">
                               Premium printing
                             </span>
                           ) : null}
@@ -270,7 +270,7 @@ export function PrintingPickerModal({
                     </div>
 
                     {expensiveWarning ? (
-                      <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300/[0.1] bg-amber-400/[0.035] px-2.5 py-2 text-[7px] leading-4 text-amber-100/80">
+                      <div className="mt-3 flex items-start gap-2 rounded-xl border border-td-warning/[0.1] bg-td-warning/[0.035] px-2.5 py-2 text-[11px] leading-4 text-td-warning/80">
                         <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                         This printing is significantly above the card’s median
                         printing price.
@@ -281,14 +281,14 @@ export function PrintingPickerModal({
               })}
 
               {!loading && !filtered.length ? (
-                <div className="col-span-full rounded-2xl border border-dashed border-white/[0.07] py-16 text-center text-[9px] text-slate-600">
+                <div className="col-span-full rounded-2xl border border-dashed border-td-ink/[0.07] py-16 text-center text-[11px] text-td-muted">
                   No matching printings found.
                 </div>
               ) : null}
 
               {loading ? (
-                <div className="col-span-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/[0.07] py-16 text-[9px] text-slate-600">
-                  <Loader2 className="h-4 w-4 animate-spin text-cyan-300" />
+                <div className="col-span-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-td-ink/[0.07] py-16 text-[11px] text-td-muted">
+                  <Loader2 className="h-4 w-4 animate-spin text-td-accent-text" />
                   Loading all printings...
                 </div>
               ) : null}
@@ -296,8 +296,8 @@ export function PrintingPickerModal({
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-2xl border border-white/[0.06] bg-black/[0.1] p-4">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-violet-300">
+            <div className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.1] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-violet">
                 Session defaults
               </p>
 
@@ -355,20 +355,20 @@ export function PrintingPickerModal({
                 onClick={() =>
                   onApplyDefaults(item.rowId, finish, condition)
                 }
-                className="mt-4 h-10 w-full rounded-xl border border-violet-300/[0.14] bg-violet-400/[0.04] text-[8px] font-semibold text-violet-200"
+                className="mt-4 h-10 w-full rounded-xl border border-td-violet/[0.14] bg-td-violet/[0.04] text-[11px] font-semibold text-td-violet"
               >
                 Apply finish and condition only
               </button>
             </div>
 
-            <div className="rounded-2xl border border-cyan-300/[0.1] bg-cyan-400/[0.03] p-4">
+            <div className="rounded-2xl border border-td-accent/[0.1] bg-td-accent/[0.03] p-4">
               <div className="flex items-start gap-2.5">
-                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-td-accent-text" />
                 <div>
-                  <p className="text-[9px] font-semibold text-cyan-100">
+                  <p className="text-[11px] font-semibold text-td-accent-text">
                     Smart set memory
                   </p>
-                  <p className="mt-2 text-[8px] leading-4 text-slate-600">
+                  <p className="mt-2 text-[11px] leading-4 text-td-muted">
                     Future cards will try the last selected set first. When
                     that card does not exist in the preferred set, Scryfall’s
                     normal printing is used.
@@ -378,7 +378,7 @@ export function PrintingPickerModal({
             </div>
 
             {error ? (
-              <div className="rounded-xl border border-red-300/[0.12] bg-red-400/[0.04] p-3 text-[8px] text-red-200">
+              <div className="rounded-xl border border-td-danger/[0.12] bg-td-danger/[0.04] p-3 text-[11px] text-td-danger">
                 {error}
               </div>
             ) : null}
@@ -402,14 +402,14 @@ function PickerSelect({
 }) {
   return (
     <label>
-      <span className="mb-2 block text-[7px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
         {label}
       </span>
       <span className="relative block">
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="h-10 w-full appearance-none rounded-xl border border-white/[0.065] bg-[#07141e] pl-3 pr-8 text-[9px] text-slate-400 outline-none"
+          className="h-10 w-full appearance-none rounded-xl border border-td-ink/[0.065] bg-td-surface pl-3 pr-8 text-[11px] text-td-secondary outline-none"
         >
           {options.map(([optionValue, optionLabel]) => (
             <option key={optionValue} value={optionValue}>
@@ -417,7 +417,7 @@ function PickerSelect({
             </option>
           ))}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-700" />
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
       </span>
     </label>
   );
@@ -436,15 +436,15 @@ function ToggleRow({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/[0.055] bg-white/[0.018] px-3 py-2.5 text-left"
+      className="flex w-full items-center justify-between gap-3 rounded-xl border border-td-ink/[0.055] bg-td-ink/[0.018] px-3 py-2.5 text-left"
     >
-      <span className="text-[8px] text-slate-500">{label}</span>
+      <span className="text-[11px] text-td-muted">{label}</span>
       <span
         className={[
           "flex h-5 w-5 items-center justify-center rounded-md border",
           checked
-            ? "border-cyan-300/[0.2] bg-cyan-400/[0.08] text-cyan-200"
-            : "border-white/[0.07] text-transparent",
+            ? "border-td-accent/[0.2] bg-td-accent/[0.08] text-td-accent-text"
+            : "border-td-ink/[0.07] text-transparent",
         ].join(" ")}
       >
         <Check className="h-3 w-3" />

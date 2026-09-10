@@ -32,10 +32,10 @@ export function VendorsWorkspace() {
             ["Southern Hobby", "Sealed TCG products", "Prepaid"],
             ["USPS Supplies", "Labels and shipping materials", "No charge"],
           ].map(([name, category, terms]) => (
-            <div key={name} className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4">
-              <p className="text-sm font-semibold text-white">{name}</p>
-              <p className="mt-2 text-[10px] text-slate-500">{category}</p>
-              <p className="mt-4 text-[9px] text-cyan-300">{terms}</p>
+            <div key={name} className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4">
+              <p className="text-sm font-semibold text-td-primary">{name}</p>
+              <p className="mt-2 text-[11px] text-td-muted">{category}</p>
+              <p className="mt-4 text-[11px] text-td-accent-text">{terms}</p>
             </div>
           ))}
         </div>

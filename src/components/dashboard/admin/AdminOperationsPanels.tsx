@@ -296,57 +296,57 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[24px] border border-white/[0.07] bg-[#06121b] p-5 sm:p-6">
+      <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.055] text-cyan-200"><Icon className="h-5 w-5" /></span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-td-accent/15 bg-td-accent/[0.055] text-td-accent-text"><Icon className="h-5 w-5" /></span>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">{section.eyebrow}</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">{section.title}</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{section.description}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-td-accent-text/65">{section.eyebrow}</p>
+              <h2 className="mt-1 text-xl font-semibold text-td-primary">{section.title}</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-td-muted">{section.description}</p>
             </div>
           </div>
-          <label className="flex h-10 min-w-56 items-center gap-2 rounded-xl border border-white/[0.08] bg-black/15 px-3">
-            <Search className="h-3.5 w-3.5 text-slate-600" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${section.title.toLowerCase()}…`} className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-slate-700" />
+          <label className="flex h-10 min-w-56 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-black/15 px-3">
+            <Search className="h-3.5 w-3.5 text-td-muted" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${section.title.toLowerCase()}…`} className="min-w-0 flex-1 bg-transparent text-xs text-td-primary outline-none placeholder:text-td-muted" />
           </label>
         </div>
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {section.stats.map(([label, value], index) => (
-          <div key={label} className="rounded-[22px] border border-white/[0.07] bg-[#06121b] p-5">
-            <div className="flex items-center justify-between"><p className="text-[9px] font-bold uppercase tracking-[0.17em] text-slate-600">{label}</p>{index === 0 ? <Activity className="h-4 w-4 text-cyan-300/55" /> : <CheckCircle2 className="h-4 w-4 text-emerald-300/45" />}</div>
-            <p className="mt-4 text-xl font-semibold text-white">{value}</p>
+          <div key={label} className="rounded-[22px] border border-td-ink/[0.07] bg-td-surface p-5">
+            <div className="flex items-center justify-between"><p className="text-[11px] font-bold uppercase tracking-[0.17em] text-td-muted">{label}</p>{index === 0 ? <Activity className="h-4 w-4 text-td-accent-text/55" /> : <CheckCircle2 className="h-4 w-4 text-td-success/45" />}</div>
+            <p className="mt-4 text-xl font-semibold text-td-primary">{value}</p>
           </div>
         ))}
       </div>
 
-      <section className="overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#06121b]">
-        <div className="border-b border-white/[0.06] p-5"><h3 className="text-base font-semibold text-white">Admin tools</h3><p className="mt-1 text-xs text-slate-600">These controls are now part of the panel and clearly show when an outside service still needs to be connected.</p></div>
+      <section className="overflow-hidden rounded-[24px] border border-td-ink/[0.07] bg-td-surface">
+        <div className="border-b border-td-ink/[0.06] p-5"><h3 className="text-base font-semibold text-td-primary">Admin tools</h3><p className="mt-1 text-xs text-td-muted">These controls are now part of the panel and clearly show when an outside service still needs to be connected.</p></div>
         <div className="grid gap-3 p-5 sm:grid-cols-2">
           {visibleCards.map((card) => (
-            <button key={card} type="button" onClick={() => acknowledge(card)} className="flex min-h-20 items-center justify-between rounded-2xl border border-white/[0.06] bg-black/10 p-4 text-left transition hover:border-cyan-300/15 hover:bg-cyan-300/[0.025]">
-              <div><p className="text-xs font-semibold text-slate-200">{card}</p><p className="mt-1 text-[10px] text-slate-600">{tab === "health" ? "Status available" : "Open workspace"}</p></div>
-              {tab === "data" ? <Download className="h-4 w-4 text-slate-600" /> : tab === "communications" ? <Mail className="h-4 w-4 text-slate-600" /> : tab === "health" ? <CloudCog className="h-4 w-4 text-emerald-300/60" /> : <BellRing className="h-4 w-4 text-slate-600" />}
+            <button key={card} type="button" onClick={() => acknowledge(card)} className="flex min-h-20 items-center justify-between rounded-2xl border border-td-ink/[0.06] bg-black/10 p-4 text-left transition hover:border-td-accent/15 hover:bg-td-accent/[0.025]">
+              <div><p className="text-xs font-semibold text-td-primary">{card}</p><p className="mt-1 text-[11px] text-td-muted">{tab === "health" ? "Status available" : "Open workspace"}</p></div>
+              {tab === "data" ? <Download className="h-4 w-4 text-td-muted" /> : tab === "communications" ? <Mail className="h-4 w-4 text-td-muted" /> : tab === "health" ? <CloudCog className="h-4 w-4 text-td-success/60" /> : <BellRing className="h-4 w-4 text-td-muted" />}
             </button>
           ))}
         </div>
       </section>
 
       {tab === "health" ? (
-        <section className="rounded-[24px] border border-cyan-300/[0.1] bg-[#06121b] p-5">
+        <section className="rounded-[24px] border border-td-accent/[0.1] bg-td-surface p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/65">Provider diagnostics</p>
-              <h3 className="mt-1 text-base font-semibold text-white">TCGTracking</h3>
-              <p className="mt-1.5 max-w-2xl text-xs leading-5 text-slate-500">Product identity, SKU pricing, sealed-product, scanner, and cross-market enrichment provider. Trading Docks remains the catalog and inventory authority.</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-td-accent-text/65">Provider diagnostics</p>
+              <h3 className="mt-1 text-base font-semibold text-td-primary">TCGTracking</h3>
+              <p className="mt-1.5 max-w-2xl text-xs leading-5 text-td-muted">Product identity, SKU pricing, sealed-product, scanner, and cross-market enrichment provider. Trading Docks remains the catalog and inventory authority.</p>
             </div>
             <span className={[
-              "rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+              "rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]",
               providerHealth?.status === "available"
-                ? "border-emerald-300/15 bg-emerald-300/[0.045] text-emerald-200"
-                : "border-slate-500/15 bg-slate-400/[0.04] text-slate-400",
+                ? "border-td-success/15 bg-td-success/[0.045] text-td-success"
+                : "border-td-line/15 bg-td-raised/[0.04] text-td-secondary",
             ].join(" ")}>
               {providerHealth?.status ?? "Checking"}
             </span>
@@ -371,27 +371,27 @@ export function OperationsSection({ tab }: { tab: OperationsTab }) {
           {catalogReconciliation ? (
             <CatalogReconciliationSummary report={catalogReconciliation} />
           ) : null}
-          <p className="mt-3 text-[11px] leading-5 text-slate-600">Local cache schema: {providerHealth?.localSchema ?? "proposal-only"}. Provider data may enrich products and pricing, but it does not create user inventory rows.</p>
-          {providerAction ? <p role="status" className="mt-3 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.045] px-3 py-2 text-[11px] text-cyan-100/70">{providerAction}</p> : null}
-          {providerError ? <p role="status" className="mt-3 rounded-xl border border-amber-300/15 bg-amber-300/[0.045] px-3 py-2 text-[11px] text-amber-100/70">{providerError}</p> : null}
+          <p className="mt-3 text-[11px] leading-5 text-td-muted">Local cache schema: {providerHealth?.localSchema ?? "proposal-only"}. Provider data may enrich products and pricing, but it does not create user inventory rows.</p>
+          {providerAction ? <p role="status" className="mt-3 rounded-xl border border-td-accent/15 bg-td-accent/[0.045] px-3 py-2 text-[11px] text-td-accent-text/70">{providerAction}</p> : null}
+          {providerError ? <p role="status" className="mt-3 rounded-xl border border-td-warning/15 bg-td-warning/[0.045] px-3 py-2 text-[11px] text-td-warning/70">{providerError}</p> : null}
         </section>
       ) : null}
 
-      <div className="flex gap-3 rounded-2xl border border-amber-300/[0.1] bg-amber-300/[0.025] p-4">
-        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-300/70" />
-        <p className="text-[11px] leading-5 text-amber-100/50">Actions that send email, process payments, or create remote backups remain disabled until their protected service is connected. The panel will not pretend those external actions succeeded.</p>
+      <div className="flex gap-3 rounded-2xl border border-td-warning/[0.1] bg-td-warning/[0.025] p-4">
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-td-warning/70" />
+        <p className="text-[11px] leading-5 text-td-warning/50">Actions that send email, process payments, or create remote backups remain disabled until their protected service is connected. The panel will not pretend those external actions succeeded.</p>
       </div>
-      {notice ? <div role="status" className="fixed bottom-5 right-5 z-[160] rounded-xl border border-cyan-300/15 bg-[#0a1a24] px-4 py-3 text-xs text-cyan-100 shadow-2xl">{notice}</div> : null}
+      {notice ? <div role="status" className="fixed bottom-5 right-5 z-[160] rounded-xl border border-td-accent/15 bg-td-surface px-4 py-3 text-xs text-td-accent-text shadow-2xl">{notice}</div> : null}
     </div>
   );
 }
 
 function CatalogReconciliationSummary({ report }: { report: CatalogReconciliation }) {
   const tone = report.readiness === "GREEN"
-    ? "border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-100"
+    ? "border-td-success/15 bg-td-success/[0.04] text-td-success"
     : report.readiness === "YELLOW"
-      ? "border-amber-300/15 bg-amber-300/[0.04] text-amber-100"
-      : "border-red-300/15 bg-red-300/[0.04] text-red-100";
+      ? "border-td-warning/15 bg-td-warning/[0.04] text-td-warning"
+      : "border-td-danger/15 bg-td-danger/[0.04] text-td-danger";
   const localCoverage = report.localCatalogCoverageRate ?? report.exactSkuMatchRate;
   const providerCoverage = report.providerSkuCoverageRate ?? report.exactSkuMatchRate;
   const providerOnlySkus = report.providerOnlySkus ?? report.missingLocalSkus;
@@ -404,22 +404,22 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
     .sort((left, right) => right[1] - left[1])
     .slice(0, 5);
   return (
-    <div className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
+    <div className="mt-4 rounded-2xl border border-td-ink/[0.07] bg-black/10 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Catalog reconciliation</p>
-          <p className="mt-1 text-sm font-semibold text-white">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">Catalog reconciliation</p>
+          <p className="mt-1 text-sm font-semibold text-td-primary">
             {report.status === "completed"
               ? `${localCoverage ?? 0}% local catalog coverage`
               : "Catalog reconciliation failed"}
           </p>
           {report.status === "completed" ? (
-            <p className="mt-1 text-[11px] leading-5 text-slate-500">
+            <p className="mt-1 text-[11px] leading-5 text-td-muted">
               {report.exactSkuMatches.toLocaleString("en-US")} / {report.localSkuRowsFound.toLocaleString("en-US")} sampled local SKUs matched by exact TCGTracking SKU ID.
             </p>
           ) : null}
         </div>
-        <span className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${tone}`}>
+        <span className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${tone}`}>
           {report.readiness}
         </span>
       </div>
@@ -439,24 +439,24 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
         <ProviderMetric label="Low within $0.01" value={percentValue(report.pricingDeltaSummary.percentLowWithinOneCent ?? null)} />
       </div>
       {languageBreakdown.length ? (
-        <div className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.025] p-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Additional provider language variants</p>
+        <div className="mt-3 rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.025] p-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">Additional provider language variants</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {languageBreakdown.map(([language, count]) => (
-              <span key={language} className="rounded-full border border-white/[0.07] bg-black/10 px-3 py-1 text-[11px] text-slate-300">
+              <span key={language} className="rounded-full border border-td-ink/[0.07] bg-black/10 px-3 py-1 text-[11px] text-td-secondary">
                 {language}: {count.toLocaleString("en-US")}
               </span>
             ))}
           </div>
-          <p className="mt-2 text-[11px] leading-5 text-slate-500">Provider SKU coverage is a secondary enrichment metric because TCGTracking includes languages and variants not present in the current TCGplayer Pricing Custom Export.</p>
+          <p className="mt-2 text-[11px] leading-5 text-td-muted">Provider SKU coverage is a secondary enrichment metric because TCGTracking includes languages and variants not present in the current TCGplayer Pricing Custom Export.</p>
         </div>
       ) : null}
       {report.failure ? (
-        <details className="mt-4 rounded-xl border border-red-300/10 bg-red-300/[0.025] p-3">
-          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.14em] text-red-100/75">
+        <details className="mt-4 rounded-xl border border-td-danger/10 bg-td-danger/[0.025] p-3">
+          <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-[0.14em] text-td-danger/75">
             Failure details
           </summary>
-          <div className="mt-3 grid gap-2 text-[11px] text-slate-400 sm:grid-cols-2">
+          <div className="mt-3 grid gap-2 text-[11px] text-td-secondary sm:grid-cols-2">
             <ProviderMetric label="Stage" value={report.failure.stage} />
             <ProviderMetric label="HTTP" value={report.failure.status ? String(report.failure.status) : "n/a"} />
             <ProviderMetric label="Content type" value={report.failure.contentType ?? "n/a"} />
@@ -464,24 +464,24 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
             <ProviderMetric label="Table" value={report.failure.table ?? "n/a"} />
             <ProviderMetric label="Code" value={report.failure.code ?? "n/a"} />
           </div>
-          <p className="mt-3 break-words text-[11px] leading-5 text-slate-500">{safeText(report.failure.message)}</p>
-          {report.failure.url ? <p className="mt-2 break-all text-[10px] text-slate-600">{report.failure.url}</p> : null}
-          {report.failure.requestedColumns ? <p className="mt-2 break-words text-[10px] text-slate-600">Columns: {safeText(report.failure.requestedColumns)}</p> : null}
-          {report.failure.details ? <p className="mt-2 break-words text-[10px] text-slate-600">{safeText(report.failure.details)}</p> : null}
-          {report.failure.hint ? <p className="mt-2 break-words text-[10px] text-slate-600">{safeText(report.failure.hint)}</p> : null}
-          {report.failure.bodyPreview ? <p className="mt-2 break-words text-[10px] text-slate-600">{safeText(report.failure.bodyPreview)}</p> : null}
+          <p className="mt-3 break-words text-[11px] leading-5 text-td-muted">{safeText(report.failure.message)}</p>
+          {report.failure.url ? <p className="mt-2 break-all text-[11px] text-td-muted">{report.failure.url}</p> : null}
+          {report.failure.requestedColumns ? <p className="mt-2 break-words text-[11px] text-td-muted">Columns: {safeText(report.failure.requestedColumns)}</p> : null}
+          {report.failure.details ? <p className="mt-2 break-words text-[11px] text-td-muted">{safeText(report.failure.details)}</p> : null}
+          {report.failure.hint ? <p className="mt-2 break-words text-[11px] text-td-muted">{safeText(report.failure.hint)}</p> : null}
+          {report.failure.bodyPreview ? <p className="mt-2 break-words text-[11px] text-td-muted">{safeText(report.failure.bodyPreview)}</p> : null}
         </details>
       ) : null}
       {report.conflicts.length ? (
-        <div className="mt-4 overflow-hidden rounded-xl border border-white/[0.06]">
-          <div className="grid grid-cols-[90px_90px_1fr_1fr] gap-2 border-b border-white/[0.06] bg-white/[0.025] px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">
+        <div className="mt-4 overflow-hidden rounded-xl border border-td-ink/[0.06]">
+          <div className="grid grid-cols-[90px_90px_1fr_1fr] gap-2 border-b border-td-ink/[0.06] bg-td-ink/[0.025] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-td-muted">
             <span>Product</span>
             <span>Field</span>
             <span>Local</span>
             <span>Provider</span>
           </div>
           {report.conflicts.slice(0, 8).map((conflict, index) => (
-            <div key={`${conflict.productId}-${conflict.skuId}-${conflict.field}-${index}`} className="grid grid-cols-[90px_90px_1fr_1fr] gap-2 px-3 py-2 text-[11px] text-slate-400">
+            <div key={`${conflict.productId}-${conflict.skuId}-${conflict.field}-${index}`} className="grid grid-cols-[90px_90px_1fr_1fr] gap-2 px-3 py-2 text-[11px] text-td-secondary">
               <span>{conflict.productId ?? "Unknown"}</span>
               <span>{conflict.field}</span>
               <span className="truncate">{displayValue(conflict.local)}</span>
@@ -490,7 +490,7 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
           ))}
         </div>
       ) : null}
-      {report.error ? <p className="mt-3 text-[11px] text-red-100/70">{safeText(report.error)}</p> : null}
+      {report.error ? <p className="mt-3 text-[11px] text-td-danger/70">{safeText(report.error)}</p> : null}
     </div>
   );
 }
@@ -498,17 +498,17 @@ function CatalogReconciliationSummary({ report }: { report: CatalogReconciliatio
 function LocalCatalogSummary({ status }: { status: LocalCatalogStatus | null }) {
   const available = status?.status === "available";
   return (
-    <div className="mt-4 rounded-2xl border border-white/[0.07] bg-black/10 p-4">
+    <div className="mt-4 rounded-2xl border border-td-ink/[0.07] bg-black/10 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Local catalog</p>
-          <p className="mt-1 text-sm font-semibold text-white">tcgplayer_magic_catalog</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">Local catalog</p>
+          <p className="mt-1 text-sm font-semibold text-td-primary">tcgplayer_magic_catalog</p>
         </div>
         <span className={[
-          "rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+          "rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em]",
           available
-            ? "border-emerald-300/15 bg-emerald-300/[0.04] text-emerald-100"
-            : "border-red-300/15 bg-red-300/[0.04] text-red-100",
+            ? "border-td-success/15 bg-td-success/[0.04] text-td-success"
+            : "border-td-danger/15 bg-td-danger/[0.04] text-td-danger",
         ].join(" ")}>
           {status?.status ?? "checking"}
         </span>
@@ -519,15 +519,15 @@ function LocalCatalogSummary({ status }: { status: LocalCatalogStatus | null }) 
         <ProviderMetric label="Smoke query" value={status?.sampleRowAvailable ? "Sample row found" : status ? "No sample row" : "Checking"} />
       </div>
       {status?.error ? (
-        <details className="mt-3 rounded-xl border border-red-300/10 bg-red-300/[0.025] p-3">
-          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.14em] text-red-100/75">Catalog read failure</summary>
+        <details className="mt-3 rounded-xl border border-td-danger/10 bg-td-danger/[0.025] p-3">
+          <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-[0.14em] text-td-danger/75">Catalog read failure</summary>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <ProviderMetric label="Code" value={status.error.code ?? "n/a"} />
             <ProviderMetric label="HTTP" value={status.error.status ? String(status.error.status) : status.error.statusCode ? String(status.error.statusCode) : "n/a"} />
           </div>
-          <p className="mt-3 text-[11px] leading-5 text-slate-500">{safeText(status.error.message)}</p>
-          {status.error.details ? <p className="mt-2 text-[10px] text-slate-600">{safeText(status.error.details)}</p> : null}
-          {status.error.hint ? <p className="mt-2 text-[10px] text-slate-600">{safeText(status.error.hint)}</p> : null}
+          <p className="mt-3 text-[11px] leading-5 text-td-muted">{safeText(status.error.message)}</p>
+          {status.error.details ? <p className="mt-2 text-[11px] text-td-muted">{safeText(status.error.details)}</p> : null}
+          {status.error.hint ? <p className="mt-2 text-[11px] text-td-muted">{safeText(status.error.hint)}</p> : null}
         </details>
       ) : null}
     </div>
@@ -536,9 +536,9 @@ function LocalCatalogSummary({ status }: { status: LocalCatalogStatus | null }) 
 
 function ProviderMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-black/10 p-4">
-      <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-600">{label}</p>
-      <p className="mt-2 truncate text-xs font-semibold text-slate-200">{value}</p>
+    <div className="rounded-2xl border border-td-ink/[0.06] bg-black/10 p-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">{label}</p>
+      <p className="mt-2 truncate text-xs font-semibold text-td-primary">{value}</p>
     </div>
   );
 }
@@ -557,7 +557,7 @@ function ProviderActionButton({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-300 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.045] hover:text-cyan-100 disabled:cursor-wait disabled:opacity-60"
+      className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-td-secondary transition hover:border-td-accent/20 hover:bg-td-accent/[0.045] hover:text-td-accent-text disabled:cursor-wait disabled:opacity-60"
     >
       <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} />
       {label}

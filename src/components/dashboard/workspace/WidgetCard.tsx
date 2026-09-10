@@ -54,51 +54,51 @@ export function WidgetCard({
       onDragStart={onDragStart}
       className={[
         SIZE_CLASSES[widget.size],
-        "group relative min-h-[180px] overflow-hidden rounded-[24px] border bg-[#06131d]/88 p-5 shadow-[0_22px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl transition duration-300",
+        "group relative min-h-[180px] overflow-hidden rounded-[24px] border bg-td-surface/88 p-5 shadow-[0_22px_70px_rgb(var(--td-shadow-rgb)/calc(0.24*var(--td-shadow-strength)))] backdrop-blur-2xl transition duration-300",
         locked
-          ? "border-amber-300/[0.12]"
-          : "border-white/[0.075] hover:-translate-y-0.5 hover:border-cyan-300/[0.16]",
+          ? "border-td-warning/[0.12]"
+          : "border-td-ink/[0.075] hover:-translate-y-0.5 hover:border-td-accent/[0.16]",
         editing && !locked ? "cursor-grab active:cursor-grabbing" : "",
       ].join(" ")}
     >
-      <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-cyan-400/[0.045] blur-[65px] transition group-hover:bg-cyan-400/[0.075]" />
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/30 to-transparent opacity-0 transition group-hover:opacity-100" />
+      <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-td-accent/[0.045] blur-[65px] transition group-hover:bg-td-accent/[0.075]" />
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-td-accent/30 to-transparent opacity-0 transition group-hover:opacity-100" />
 
       <header className="relative flex items-start gap-3">
         {editing ? (
           <button
             type="button"
             aria-label={`Drag ${definition.title}`}
-            className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-700"
+            className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.02] text-td-muted"
           >
             <GripVertical className="h-4 w-4" />
           </button>
         ) : null}
 
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-300">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-accent/[0.12] bg-td-accent/[0.05] text-td-accent-text">
           <Icon className="h-4.5 w-4.5" />
         </span>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-white">
+            <h2 className="truncate text-sm font-semibold text-td-primary">
               {definition.title}
             </h2>
 
             {locked ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/[0.12] bg-amber-300/[0.04] px-2 py-1 text-[7px] font-semibold uppercase tracking-[0.13em] text-amber-200/75">
+              <span className="inline-flex items-center gap-1 rounded-full border border-td-warning/[0.12] bg-td-warning/[0.04] px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.13em] text-td-warning/75">
                 <LockKeyhole className="h-2.5 w-2.5" />
                 {definition.minimumPlan}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[8px] font-medium text-emerald-300">
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-td-success">
                 <CircleDot className="h-2.5 w-2.5" />
                 Live
               </span>
             )}
           </div>
 
-          <p className="mt-1 truncate text-[10px] text-slate-600">
+          <p className="mt-1 truncate text-[11px] text-td-muted">
             {definition.description}
           </p>
         </div>
@@ -110,7 +110,7 @@ export function WidgetCard({
             <button
               type="button"
               onClick={onRemove}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-slate-600 transition hover:border-red-300/20 hover:text-red-300"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.02] text-td-muted transition hover:border-td-danger/20 hover:text-td-danger"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -142,14 +142,14 @@ function SizeMenu({
       <select
         value={size}
         onChange={(event) => onResize(event.target.value as WidgetSize)}
-        className="h-8 appearance-none rounded-lg border border-white/[0.06] bg-[#07141e] pl-2 pr-7 text-[9px] font-medium capitalize text-slate-500 outline-none"
+        className="h-8 appearance-none rounded-lg border border-td-ink/[0.06] bg-td-surface pl-2 pr-7 text-[11px] font-medium capitalize text-td-muted outline-none"
       >
         <option value="small">Small</option>
         <option value="medium">Medium</option>
         <option value="large">Large</option>
         <option value="wide">Wide</option>
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-700" />
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
     </label>
   );
 }
@@ -162,12 +162,12 @@ function LockedContent({
   minimumPlan: AccountPlan;
 }) {
   return (
-    <div className="flex min-h-[105px] flex-col items-center justify-center rounded-2xl border border-dashed border-amber-300/[0.12] bg-amber-300/[0.018] px-4 text-center">
-      <LockKeyhole className="h-5 w-5 text-amber-200/55" />
-      <p className="mt-3 text-xs font-semibold text-slate-300">
+    <div className="flex min-h-[105px] flex-col items-center justify-center rounded-2xl border border-dashed border-td-warning/[0.12] bg-td-warning/[0.018] px-4 text-center">
+      <LockKeyhole className="h-5 w-5 text-td-warning/55" />
+      <p className="mt-3 text-xs font-semibold text-td-secondary">
         Available on {minimumPlan}
       </p>
-      <p className="mt-1 text-[10px] text-slate-600">
+      <p className="mt-1 text-[11px] text-td-muted">
         Your current plan is {plan}. Upgrade to activate this module.
       </p>
     </div>
@@ -287,13 +287,13 @@ function Metric({
 }) {
   return (
     <div>
-      <p className="text-3xl font-semibold tracking-[-0.045em] text-white">{value}</p>
+      <p className="text-3xl font-semibold tracking-[-0.045em] text-td-primary">{value}</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/[0.13] bg-emerald-300/[0.04] px-2.5 py-1 text-[9px] font-semibold text-emerald-300">
+        <span className="inline-flex items-center gap-1 rounded-full border border-td-success/[0.13] bg-td-success/[0.04] px-2.5 py-1 text-[11px] font-semibold text-td-success">
           <TrendingUp className="h-3 w-3" />
           {change}
         </span>
-        <span className="text-[10px] text-slate-600">{detail}</span>
+        <span className="text-[11px] text-td-muted">{detail}</span>
       </div>
     </div>
   );
@@ -319,13 +319,13 @@ function AnimatedChart({ variant }: { variant: "growth" | "heatmap" }) {
   ];
 
   return (
-    <div className="relative h-[148px] overflow-hidden rounded-2xl border border-white/[0.05] bg-[#02090f] px-3 pb-7 pt-4">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(34,211,238,0.08),transparent_32%)]" />
+    <div className="relative h-[148px] overflow-hidden rounded-2xl border border-td-ink/[0.05] bg-td-canvas px-3 pb-7 pt-4">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgb(var(--td-accent-rgb)/0.08),transparent_32%)]" />
 
       {[30, 55, 80].map((top) => (
         <div
           key={top}
-          className="absolute inset-x-3 border-t border-dashed border-white/[0.045]"
+          className="absolute inset-x-3 border-t border-dashed border-td-ink/[0.045]"
           style={{ top: `${top}%` }}
         />
       ))}
@@ -334,7 +334,7 @@ function AnimatedChart({ variant }: { variant: "growth" | "heatmap" }) {
         {values.map((height, index) => (
           <div key={months[index]} className="flex h-full min-w-0 flex-1 items-end">
             <div
-              className="widget-bar w-full rounded-t-[5px] bg-gradient-to-t from-cyan-600/45 via-cyan-400/70 to-cyan-200/95 shadow-[0_0_12px_rgba(34,211,238,0.07)]"
+              className="widget-bar w-full rounded-t-[5px] bg-gradient-to-t from-td-accent/45 via-td-accent/70 to-td-accent/95 shadow-[0_0_12px_rgb(var(--td-accent-rgb)/0.07)]"
               style={{
                 height: `${height}%`,
                 animationDelay: `${index * 45}ms`,
@@ -348,7 +348,7 @@ function AnimatedChart({ variant }: { variant: "growth" | "heatmap" }) {
         {months.map((month) => (
           <span
             key={month}
-            className="truncate text-[6px] font-medium uppercase tracking-[0.06em] text-slate-700"
+            className="truncate text-[11px] font-medium uppercase tracking-[0.06em] text-td-muted"
           >
             {month}
           </span>
@@ -363,25 +363,25 @@ function BusinessCalendar() {
   const events: Record<number, Array<{ label: string; type: string }>> = {};
 
   const badgeClass: Record<string, string> = {
-    supplies: "border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-200",
-    operations: "border-blue-300/[0.1] bg-blue-400/[0.045] text-blue-200",
-    tournament: "border-violet-300/[0.1] bg-violet-400/[0.045] text-violet-200",
-    staff: "border-amber-300/[0.1] bg-amber-400/[0.045] text-amber-200",
+    supplies: "border-td-accent/[0.12] bg-td-accent/[0.05] text-td-accent-text",
+    operations: "border-td-accent/[0.1] bg-td-accent/[0.045] text-td-accent-text",
+    tournament: "border-td-violet/[0.1] bg-td-violet/[0.045] text-td-violet",
+    staff: "border-td-warning/[0.1] bg-td-warning/[0.045] text-td-warning",
   };
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white">July 2026</p>
-          <p className="mt-1 text-[9px] text-slate-600">
+          <p className="text-sm font-semibold text-td-primary">July 2026</p>
+          <p className="mt-1 text-[11px] text-td-muted">
             Supplies, operations, staffing, and events
           </p>
         </div>
 
         <button
           type="button"
-          className="inline-flex h-8 items-center gap-2 rounded-lg border border-cyan-300/[0.12] bg-cyan-400/[0.04] px-3 text-[9px] font-semibold text-cyan-200 transition hover:bg-cyan-400/[0.08]"
+          className="inline-flex h-8 items-center gap-2 rounded-lg border border-td-accent/[0.12] bg-td-accent/[0.04] px-3 text-[11px] font-semibold text-td-accent-text transition hover:bg-td-accent/[0.08]"
         >
           <CalendarDays className="h-3.5 w-3.5" />
           Add activity
@@ -392,7 +392,7 @@ function BusinessCalendar() {
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <span
             key={day}
-            className="py-1 text-[7px] font-semibold uppercase tracking-[0.1em] text-slate-700"
+            className="py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-td-muted"
           >
             {day}
           </span>
@@ -409,11 +409,11 @@ function BusinessCalendar() {
               className={[
                 "min-h-[58px] rounded-lg border p-1.5 text-left transition",
                 valid
-                  ? "border-white/[0.045] bg-black/[0.07] hover:border-cyan-300/[0.12] hover:bg-cyan-400/[0.02]"
+                  ? "border-td-ink/[0.045] bg-black/[0.07] hover:border-td-accent/[0.12] hover:bg-td-accent/[0.02]"
                   : "border-transparent opacity-20",
               ].join(" ")}
             >
-              <span className="text-[8px] font-semibold text-slate-500">
+              <span className="text-[11px] font-semibold text-td-muted">
                 {valid ? day : ""}
               </span>
 
@@ -421,7 +421,7 @@ function BusinessCalendar() {
                 {dayEvents.slice(0, 2).map((event) => (
                   <span
                     key={event.label}
-                    className={`block truncate rounded border px-1 py-0.5 text-[6px] font-medium ${badgeClass[event.type]}`}
+                    className={`block truncate rounded border px-1 py-0.5 text-[11px] font-medium ${badgeClass[event.type]}`}
                   >
                     {event.label}
                   </span>
@@ -432,12 +432,12 @@ function BusinessCalendar() {
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3 text-[8px] text-slate-600">
+      <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-td-muted">
         {[
-          ["Supplies", "bg-cyan-300"],
-          ["Operations", "bg-blue-300"],
-          ["Tournaments", "bg-violet-300"],
-          ["Staff", "bg-amber-300"],
+          ["Supplies", "bg-td-accent"],
+          ["Operations", "bg-td-accent"],
+          ["Tournaments", "bg-td-violet"],
+          ["Staff", "bg-td-warning"],
         ].map(([label, dot]) => (
           <span key={label} className="flex items-center gap-1.5">
             <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
@@ -459,13 +459,13 @@ function ListContent({ rows }: { rows: Array<[string, string]> }) {
       {rows.map(([title, detail]) => (
         <div
           key={title}
-          className="rounded-xl border border-white/[0.055] bg-black/[0.08] px-3.5 py-3 transition hover:border-cyan-300/[0.12] hover:bg-cyan-400/[0.02]"
+          className="rounded-xl border border-td-ink/[0.055] bg-black/[0.08] px-3.5 py-3 transition hover:border-td-accent/[0.12] hover:bg-td-accent/[0.02]"
         >
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.7)]" />
-            <p className="text-[11px] font-semibold text-slate-200">{title}</p>
+            <span className="h-1.5 w-1.5 rounded-full bg-td-success shadow-[0_0_8px_rgb(var(--td-accent-rgb)/0.7)]" />
+            <p className="text-[11px] font-semibold text-td-primary">{title}</p>
           </div>
-          <p className="mt-1 pl-3.5 text-[9px] text-slate-600">{detail}</p>
+          <p className="mt-1 pl-3.5 text-[11px] text-td-muted">{detail}</p>
         </div>
       ))}
     </div>
@@ -481,13 +481,13 @@ function ProgressRows({ rows }: { rows: Array<[string, number]> }) {
     <div className="space-y-4">
       {rows.map(([label, value]) => (
         <div key={label}>
-          <div className="flex items-center justify-between text-[10px]">
-            <span className="font-medium text-slate-400">{label}</span>
-            <span className="text-slate-600">{value}%</span>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="font-medium text-td-secondary">{label}</span>
+            <span className="text-td-muted">{value}%</span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.04]">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-td-ink/[0.04]">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.3)]"
+              className="h-full rounded-full bg-gradient-to-r from-td-accent to-td-accent shadow-[0_0_10px_rgb(var(--td-accent-rgb)/0.3)]"
               style={{ width: `${value}%` }}
             />
           </div>
@@ -500,9 +500,9 @@ function ProgressRows({ rows }: { rows: Array<[string, number]> }) {
 function AIInsights() {
   return (
     <div>
-      <div className="flex items-center gap-2 rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] px-3 py-2.5">
-        <Sparkles className="h-4 w-4 text-cyan-300" />
-        <p className="text-[10px] font-semibold text-cyan-100">
+      <div className="flex items-center gap-2 rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.025] px-3 py-2.5">
+        <Sparkles className="h-4 w-4 text-td-accent-text" />
+        <p className="text-[11px] font-semibold text-td-accent-text">
           Today&apos;s recommendations
         </p>
       </div>
@@ -516,9 +516,9 @@ function AIInsights() {
 
 function EmptyWidgetState() {
   return (
-    <div className="rounded-xl border border-dashed border-white/[0.07] bg-black/[0.06] px-4 py-6 text-center">
-      <p className="text-[11px] font-semibold text-slate-400">No account data yet</p>
-      <p className="mt-1 text-[9px] text-slate-600">Activity will appear after this account adds data.</p>
+    <div className="rounded-xl border border-dashed border-td-ink/[0.07] bg-black/[0.06] px-4 py-6 text-center">
+      <p className="text-[11px] font-semibold text-td-secondary">No account data yet</p>
+      <p className="mt-1 text-[11px] text-td-muted">Activity will appear after this account adds data.</p>
     </div>
   );
 }

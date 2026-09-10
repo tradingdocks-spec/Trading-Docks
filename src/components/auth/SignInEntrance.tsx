@@ -74,8 +74,8 @@ export function SignInEntrance() {
           place-items: center;
           overflow: hidden;
           background:
-            radial-gradient(circle at 50% 46%, rgba(16, 185, 210, 0.1), transparent 29rem),
-            rgba(2, 9, 14, 0.985);
+            radial-gradient(circle at 50% 46%, rgb(var(--td-accent-rgb)/0.1), transparent 29rem),
+            rgb(var(--td-surface-rgb)/0.985);
           opacity: 1;
           transition:
             opacity 360ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -93,7 +93,7 @@ export function SignInEntrance() {
           width: min(70vw, 48rem);
           aspect-ratio: 1.8;
           border-radius: 50%;
-          background: rgba(28, 211, 239, 0.08);
+          background: rgb(var(--td-accent-rgb)/0.08);
           filter: blur(90px);
           opacity: 0;
           animation: td-aurora 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -122,12 +122,12 @@ export function SignInEntrance() {
           width: 3.75rem;
           height: 5.25rem;
           place-items: center;
-          border: 1px solid rgba(103, 232, 249, 0.2);
+          border: 1px solid rgb(var(--td-accent-rgb)/0.2);
           border-radius: 0.72rem;
-          background: linear-gradient(145deg, rgba(13, 32, 42, 0.95), rgba(4, 13, 20, 0.98));
+          background: linear-gradient(145deg, rgb(var(--td-surface-rgb)/0.95), rgb(var(--td-surface-rgb)/0.98));
           box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.06),
-            0 18px 55px rgba(0, 0, 0, 0.38);
+            inset 0 1px 0 rgb(var(--td-ink-rgb)/0.06),
+            0 18px 55px rgb(var(--td-shadow-rgb)/calc(0.38*var(--td-shadow-strength)));
           transform: translate(-50%, -50%);
         }
 
@@ -140,7 +140,7 @@ export function SignInEntrance() {
         }
 
         .td-entrance__card--center {
-          border-color: rgba(103, 232, 249, 0.33);
+          border-color: rgb(var(--td-accent-rgb)/0.33);
           animation: td-card-center 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
@@ -148,7 +148,7 @@ export function SignInEntrance() {
           width: 3.1rem;
           height: 3.1rem;
           object-fit: contain;
-          filter: drop-shadow(0 0 18px rgba(34, 211, 238, 0.2));
+          filter: drop-shadow(0 0 18px rgb(var(--td-accent-rgb)/0.2));
         }
 
         .td-entrance__copy {
@@ -161,7 +161,7 @@ export function SignInEntrance() {
 
         .td-entrance__copy p {
           margin: 0;
-          color: rgba(226, 248, 252, 0.92);
+          color: rgb(var(--td-ink-rgb)/0.92);
           font-size: 0.62rem;
           font-weight: 650;
           letter-spacing: 0.26em;
@@ -170,7 +170,7 @@ export function SignInEntrance() {
         .td-entrance__copy span {
           display: block;
           margin-top: 0.35rem;
-          color: rgba(148, 177, 189, 0.76);
+          color: rgb(var(--td-accent-rgb)/0.76);
           font-size: 0.68rem;
           letter-spacing: 0.015em;
         }
@@ -180,14 +180,14 @@ export function SignInEntrance() {
           height: 1px;
           margin-top: 1rem;
           overflow: hidden;
-          background: rgba(103, 232, 249, 0.09);
+          background: rgb(var(--td-accent-rgb)/0.09);
         }
 
         .td-entrance__signal span {
           display: block;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.9), transparent);
+          background: linear-gradient(90deg, transparent, rgb(var(--td-accent-rgb)/0.9), transparent);
           transform: translateX(-100%);
           animation: td-signal 620ms 230ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
         }

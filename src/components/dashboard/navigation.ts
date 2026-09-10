@@ -14,6 +14,7 @@ import {
   Gem,
   History,
   LayoutDashboard,
+  Layers3,
   LibraryBig,
   MonitorSmartphone,
   PackageCheck,
@@ -75,11 +76,6 @@ export const PRIMARY_NAV: NavigationItem[] = [
     icon: Boxes,
   },
   {
-    href: "/dashboard/collector-portfolio",
-    label: "Collector Portfolio",
-    icon: Palette,
-  },
-  {
     href: "/dashboard/deck-vault",
     label: "Deck Vault",
     icon: LibraryBig,
@@ -98,6 +94,20 @@ export const CRM_NAV: NavigationItem[] = [
     icon: ContactRound,
   },
 ];
+
+export const CHAOS_SORT_NAV: NavigationSection = {
+  id: "chaos-sort",
+  label: "Chaos Sort",
+  icon: Layers3,
+  href: "/dashboard/inventory/chaos-sort",
+  children: [
+    {
+      href: "/dashboard/inventory/chaos-sort",
+      label: "Chaos Sort",
+      icon: Layers3,
+    },
+  ],
+};
 
 export const MARKETING_NAV: NavigationItem[] = [
   { href: "/dashboard/marketing", label: "Campaigns", icon: Megaphone },
@@ -352,12 +362,12 @@ const TIER_RANK: Record<AccountType, number> = {
   store: 3,
 };
 
-const COLLECTOR_WORKSPACE_NAV: NavigationItem[] = [
+const INVENTORY_WORKSPACE_NAV: NavigationItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/inventory", label: "Collection", icon: Boxes },
+  { href: "/dashboard/inventory", label: "Inventory", icon: Boxes },
   { href: "/dashboard/inventory/inbox", label: "Inventory Inbox", icon: ClipboardList },
   { href: "/dashboard/deck-vault", label: "Deck Vault", icon: LibraryBig },
-  { href: "/dashboard/collector-portfolio", label: "Portfolio", icon: Palette },
+  ...CHAOS_SORT_NAV.children,
 ];
 
 const ADMIN_NAV: NavigationItem[] = [
@@ -413,7 +423,7 @@ export function getAccountAwareNavigationGroups(
     ? hasCapability(clientAccess, "platform.admin")
     : isOwner;
   const groups: Array<AccountAwareNavigationGroup | null> = [
-    group("collector", "Collection", COLLECTOR_WORKSPACE_NAV, clientAccess),
+    group("collector", "Inventory", INVENTORY_WORKSPACE_NAV, clientAccess),
   ];
 
   if (isAtLeast(effectiveTier, "seller")) {

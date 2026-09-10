@@ -191,17 +191,24 @@ export function mappingForTemplate(headers: string[], selected?: CsvTemplate) {
   return mapped;
 }
 
-export function outputForTemplate(rows: CanonicalRow[], templateId: string) {
+export function outputForTemplate(rows: Array<CanonicalRow & { tcgplayerPrinting?: Pick<CanonicalRow, "name" | "setName" | "collectorNumber"> }>, templateId: string) {
   const selected = CSV_TEMPLATES.find((item) => item.id === templateId) ?? CSV_TEMPLATES.at(-1)!;
   return {
     headers: selected.headers,
-    values: rows.map((row) =>
-      selected.columns.map(([header, key]) => outputValue(row, key, selected.id, header)),
-    ),
+    values: rows.map((source) => {
+      const row = selected.id === "tcgplayer" ? { ...source, ...source.tcgplayerPrinting } : source;
+      return selected.columns.map(([header, key]) => outputValue(row, key, selected.id, header));
+    }),
   };
 }
 
 function outputValue(row: CanonicalRow, key: CanonicalKey, templateId: string, header: string) {
+  if (templateId === "tcgplayer" && header === "TCG Marketplace Price") {
+    // TCGplayer requires a listing price even when its market-price field is
+    // unavailable. Prefer the market price, then the lowest available seller
+    // price so matched rows remain importable without inventing a value.
+    return row.marketPrice || row.lowPrice || row.directLowPrice || "";
+  }
   const value = row[key] ?? "";
   if (key === "finish") {
     const normalizedFinish = value.trim().toLowerCase();

@@ -224,19 +224,19 @@ export function LabelStudioWorkspace() {
   }
 
   return (
-    <section className="space-y-6 text-slate-100">
+    <section className="space-y-6 text-td-primary">
       <style>{printCss(draft)}</style>
-      <header className="rounded-[2rem] border border-cyan-300/[0.13] bg-[#06121b] px-6 py-6 text-white shadow-[0_24px_80px_rgba(0,0,0,.28)]">
+      <header className="rounded-[2rem] border border-td-accent/[0.13] bg-td-surface px-6 py-6 text-td-primary shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.28*var(--td-shadow-strength)))]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">Operations</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-td-accent-text">Operations</p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight">Label Studio</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-td-secondary">
               Staging-backed labels for singles, sealed products, card shows, QR labels, barcode labels,
               bulk printing, repricing review, and future POS reprints.
             </p>
           </div>
-          <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.07] px-4 py-3 text-xs text-amber-100">
+          <div className="rounded-2xl border border-td-warning/20 bg-td-warning/[0.07] px-4 py-3 text-xs text-td-warning">
             Staging safety: {payload?.environment.supabaseHost ?? "host unavailable"}
           </div>
         </div>
@@ -250,19 +250,19 @@ export function LabelStudioWorkspace() {
             <div className="space-y-2">
               {(payload?.templates ?? []).map((template) => (
                 <button
-                  className={`w-full rounded-2xl border p-4 text-left transition ${selectedTemplateId === template.id ? "border-cyan-300/45 bg-cyan-300/[0.10] text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,.06)]" : "border-white/[0.08] bg-white/[0.025] text-slate-200 hover:border-cyan-300/25 hover:bg-white/[0.04]"}`}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${selectedTemplateId === template.id ? "border-td-accent/45 bg-td-accent/[0.10] text-td-primary shadow-[inset_0_0_0_1px_rgb(var(--td-accent-rgb)/.06)]" : "border-td-ink/[0.08] bg-td-ink/[0.025] text-td-primary hover:border-td-accent/25 hover:bg-td-ink/[0.04]"}`}
                   key={template.id}
                   onClick={() => setSelectedTemplateId(template.id)}
                 >
                   <p className="font-semibold">{template.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-td-muted">
                     {template.category.replace(/_/g, " ")} / {template.width} x {template.height} {template.unit}
                   </p>
                 </button>
               ))}
             </div>
             <button
-              className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.055] px-3 text-xs font-semibold text-cyan-100 transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.09]"
+              className="mt-3 inline-flex h-10 items-center gap-2 rounded-xl border border-td-accent/15 bg-td-accent/[0.055] px-3 text-xs font-semibold text-td-accent-text transition hover:border-td-accent/30 hover:bg-td-accent/[0.09]"
               onClick={() => {
                 const workspaceId = payload?.workspaceId ?? "workspace";
                 const template = createDefaultLabelTemplate({
@@ -284,16 +284,16 @@ export function LabelStudioWorkspace() {
             {draft ? (
               <div className="space-y-3">
                 <Field label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
-                <label className="block text-xs font-semibold text-slate-400">
+                <label className="block text-xs font-semibold text-td-secondary">
                   Category
-                  <select className="mt-1 h-10 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-sm text-white outline-none transition focus:border-cyan-300/40 disabled:opacity-45" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as LabelCategory })}>
+                  <select className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm text-td-primary outline-none transition focus:border-td-accent/40 disabled:opacity-45" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as LabelCategory })}>
                     {LABEL_CATEGORIES.map((category) => <option key={category} value={category}>{category.replace(/_/g, " ")}</option>)}
                   </select>
                 </label>
-                <label className="block text-xs font-semibold text-slate-400">
+                <label className="block text-xs font-semibold text-td-secondary">
                   Size
                   <select
-                    className="mt-1 h-10 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-sm text-white outline-none transition focus:border-cyan-300/40 disabled:opacity-45"
+                    className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm text-td-primary outline-none transition focus:border-td-accent/40 disabled:opacity-45"
                     value={draft.sizePresetId}
                     onChange={(event) => {
                       const preset = labelSizePreset(event.target.value as LabelTemplate["sizePresetId"]);
@@ -323,10 +323,10 @@ export function LabelStudioWorkspace() {
                     onChange={(minimumPrice) => setDraft({ ...draft, pricingRule: { ...(draft.pricingRule ?? { mode: "market_percentage" }), minimumPrice } })}
                   />
                 </div>
-                <button disabled={!payload?.capabilities.canManageTemplates || saving} onClick={saveTemplate} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 shadow-[0_10px_28px_rgba(34,211,238,.16)] transition hover:bg-cyan-200 disabled:opacity-40">
+                <button disabled={!payload?.capabilities.canManageTemplates || saving} onClick={saveTemplate} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent shadow-[0_10px_28px_rgb(var(--td-accent-rgb)/.16)] transition hover:bg-td-accent-hover disabled:opacity-40">
                   <Save className="h-4 w-4" /> {saving ? "Saving..." : "Save template"}
                 </button>
-                <button disabled={!payload?.capabilities.canManageTemplates || draft.id.startsWith("local-")} onClick={archiveTemplate} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-rose-300/20 bg-rose-400/[0.035] text-xs font-semibold text-rose-200 transition hover:bg-rose-400/[0.07] disabled:opacity-40">
+                <button disabled={!payload?.capabilities.canManageTemplates || draft.id.startsWith("local-")} onClick={archiveTemplate} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-td-danger/20 bg-td-danger/[0.035] text-xs font-semibold text-td-danger transition hover:bg-td-danger/[0.07] disabled:opacity-40">
                   <Archive className="h-4 w-4" /> Archive template
                 </button>
               </div>
@@ -336,7 +336,7 @@ export function LabelStudioWorkspace() {
 
         <main className="space-y-4">
           <Panel title="Live physical preview" icon={QrCode}>
-            <div className="rounded-[1.75rem] border border-white/[0.07] bg-[#030b12] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
+            <div className="rounded-[1.75rem] border border-td-ink/[0.07] bg-td-canvas p-4 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.035)]">
               {draft && renderItems[0] ? <PhysicalLabelPreview template={draft} item={renderItems[0]} /> : <Empty message="Select inventory to preview a real label." />}
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -365,14 +365,14 @@ export function LabelStudioWorkspace() {
             {payload?.priceReviews.length ? (
               <div className="space-y-2">
                 {payload.priceReviews.map((review) => (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4" key={review.id}>
-                    <p className="text-xs font-semibold text-slate-100">Inventory item {review.inventory_item_id}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                  <div className="rounded-2xl border border-td-ink/[0.08] bg-td-ink/[0.025] p-4" key={review.id}>
+                    <p className="text-xs font-semibold text-td-primary">Inventory item {review.inventory_item_id}</p>
+                    <p className="mt-1 text-xs text-td-muted">
                       Current {money(review.current_asking_price)} / Market {money(review.market_price)} / Proposed {money(review.proposed_asking_price)}
                     </p>
                     <div className="mt-3 flex gap-2">
-                      <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "approve")} className="h-9 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white disabled:opacity-40">Approve/update</button>
-                      <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "dismiss")} className="h-9 rounded-xl border border-white/[0.09] px-3 text-xs font-semibold text-slate-300 disabled:opacity-40">Dismiss</button>
+                      <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "approve")} className="h-9 rounded-xl bg-td-success px-3 text-xs font-bold text-td-primary disabled:opacity-40">Approve/update</button>
+                      <button disabled={!payload.capabilities.canReprice} onClick={() => void reviewPrice(review.id, "dismiss")} className="h-9 rounded-xl border border-td-ink/[0.09] px-3 text-xs font-semibold text-td-secondary disabled:opacity-40">Dismiss</button>
                     </div>
                   </div>
                 ))}
@@ -383,14 +383,14 @@ export function LabelStudioWorkspace() {
 
         <aside className="space-y-4">
           <Panel title="Selected inventory" icon={Layers3}>
-            <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#030b12]">
-              <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-[#07131d]/95 p-3 backdrop-blur">
+            <div className="overflow-hidden rounded-2xl border border-td-ink/[0.08] bg-td-canvas">
+              <div className="sticky top-0 z-10 border-b border-td-ink/[0.08] bg-td-surface/95 p-3 backdrop-blur">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-slate-200">{selectionSummary.selectedCount} selected</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">{selectionSummary.totalCount} visible inventory records</p>
+                    <p className="text-xs font-semibold text-td-primary">{selectionSummary.selectedCount} selected</p>
+                    <p className="mt-0.5 text-[11px] text-td-muted">{selectionSummary.totalCount} visible inventory records</p>
                   </div>
-                  <span className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${selectionSummary.allSelected ? "border-cyan-300/25 bg-cyan-300/[0.08] text-cyan-100" : selectionSummary.partiallySelected ? "border-amber-300/20 bg-amber-300/[0.07] text-amber-100" : "border-white/[0.08] bg-white/[0.025] text-slate-400"}`}>
+                  <span className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${selectionSummary.allSelected ? "border-td-accent/25 bg-td-accent/[0.08] text-td-accent-text" : selectionSummary.partiallySelected ? "border-td-warning/20 bg-td-warning/[0.07] text-td-warning" : "border-td-ink/[0.08] bg-td-ink/[0.025] text-td-secondary"}`}>
                     {selectionSummary.allSelected ? "All" : selectionSummary.partiallySelected ? "Partial" : "None"}
                   </span>
                 </div>
@@ -399,7 +399,7 @@ export function LabelStudioWorkspace() {
                     type="button"
                     disabled={!payload?.items.length || selectionSummary.allSelected}
                     onClick={() => setSelectedIds(selectAllInventoryItems(payload?.items ?? []))}
-                    className="h-9 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.055] px-3 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/[0.09] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-9 rounded-xl border border-td-accent/15 bg-td-accent/[0.055] px-3 text-xs font-bold text-td-accent-text transition hover:bg-td-accent/[0.09] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Select all
                   </button>
@@ -407,7 +407,7 @@ export function LabelStudioWorkspace() {
                     type="button"
                     disabled={!selectionSummary.selectedCount}
                     onClick={() => setSelectedIds(clearInventorySelection())}
-                    className="h-9 rounded-xl border border-white/[0.09] bg-white/[0.025] px-3 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-9 rounded-xl border border-td-ink/[0.09] bg-td-ink/[0.025] px-3 text-xs font-semibold text-td-secondary transition hover:bg-td-ink/[0.045] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Clear selection
                   </button>
@@ -415,16 +415,16 @@ export function LabelStudioWorkspace() {
               </div>
               <div className="max-h-[480px] space-y-2 overflow-auto p-2">
               {(payload?.items ?? []).map((item) => (
-                <label className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${selectedIds.includes(item.id) ? "border-cyan-300/30 bg-cyan-300/[0.075]" : "border-white/[0.07] bg-white/[0.025] hover:border-cyan-300/20 hover:bg-white/[0.04]"}`} key={item.id}>
+                <label className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition ${selectedIds.includes(item.id) ? "border-td-accent/30 bg-td-accent/[0.075]" : "border-td-ink/[0.07] bg-td-ink/[0.025] hover:border-td-accent/20 hover:bg-td-ink/[0.04]"}`} key={item.id}>
                   <input
-                    className="mt-1 h-4 w-4 accent-cyan-300"
+                    className="mt-1 h-4 w-4 accent-td-accent"
                     type="checkbox"
                     checked={selectedIds.includes(item.id)}
                     onChange={(event) => setSelectedIds((current) => toggleInventorySelection(current, item.id, event.target.checked))}
                   />
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-100">{item.sealed?.product_name || item.card?.name || "Inventory item"}</span>
-                    <span className="mt-1 block text-xs text-slate-500">{item.inventory?.sku || "No SKU yet"} / {item.identity ? "QR ready" : "Needs identity"}</span>
+                    <span className="block truncate text-sm font-semibold text-td-primary">{item.sealed?.product_name || item.card?.name || "Inventory item"}</span>
+                    <span className="mt-1 block text-xs text-td-muted">{item.inventory?.sku || "No SKU yet"} / {item.identity ? "QR ready" : "Needs identity"}</span>
                   </span>
                 </label>
               ))}
@@ -435,13 +435,13 @@ export function LabelStudioWorkspace() {
 
           <Panel title="Print controls" icon={Printer}>
             <div className="space-y-3 text-sm">
-              <button disabled={!payload?.capabilities.canPrint || !renderItems.length} onClick={resolveIdentities} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.07] text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/[0.11] disabled:opacity-40">
+              <button disabled={!payload?.capabilities.canPrint || !renderItems.length} onClick={resolveIdentities} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-td-accent/20 bg-td-accent/[0.07] text-xs font-bold text-td-accent-text transition hover:bg-td-accent/[0.11] disabled:opacity-40">
                 <QrCode className="h-4 w-4" /> Resolve real SKU + QR
               </button>
-              <button disabled={!payload?.capabilities.canPrint || printing || !labels.length} onClick={printLabels} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 text-xs font-bold text-slate-950 shadow-[0_14px_34px_rgba(34,211,238,.18)] transition hover:bg-cyan-200 disabled:opacity-40">
+              <button disabled={!payload?.capabilities.canPrint || printing || !labels.length} onClick={printLabels} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-td-accent text-xs font-bold text-td-on-accent shadow-[0_14px_34px_rgb(var(--td-accent-rgb)/.18)] transition hover:bg-td-accent-hover disabled:opacity-40">
                 <Printer className="h-4 w-4" /> {printing ? "Recording..." : "Print labels"}
               </button>
-              <p className="text-xs leading-5 text-slate-500">
+              <p className="text-xs leading-5 text-td-muted">
                 Printing uses browser print CSS with exact template dimensions. Print jobs store audit metadata only.
               </p>
             </div>
@@ -457,7 +457,8 @@ function PhysicalLabelPreview({ template, item }: { template: LabelTemplate; ite
   return (
     <div className="mx-auto max-w-full overflow-auto">
       <div
-        className="relative mx-auto bg-white text-slate-950 shadow-[0_18px_50px_rgba(0,0,0,.45)]"
+        data-print-surface
+        className="relative mx-auto bg-white text-td-on-accent shadow-[0_18px_50px_rgb(var(--td-shadow-rgb)/calc(.45*var(--td-shadow-strength)))]"
         style={{
           width: `min(${Math.min(template.width * 180, 620)}px, 100%)`,
           aspectRatio: `${template.width} / ${template.height}`,
@@ -497,8 +498,8 @@ function QrImage({ value, className, style }: { value: string | null; className?
     void QRCode.toDataURL(value, { margin: 1, width: 180, errorCorrectionLevel: "M" }).then(setSrc);
   }, [value]);
   return (
-    <div className={`${className ?? ""} flex items-center justify-center border border-slate-300 bg-white`} style={style}>
-      {src ? <img alt="Inventory QR code" className="h-full w-full object-contain" src={src} /> : <span className="text-[8px] font-bold text-slate-400">QR pending</span>}
+    <div className={`${className ?? ""} flex items-center justify-center border border-td-line bg-white`} style={style}>
+      {src ? <img alt="Inventory QR code" className="h-full w-full object-contain" src={src} /> : <span className="text-[8px] font-bold text-td-secondary">QR pending</span>}
     </div>
   );
 }
@@ -508,7 +509,7 @@ function Barcode({ value, className, style }: { value: string; className?: strin
     <div className={`${className ?? ""} flex flex-col justify-end overflow-hidden`} style={style}>
       <div className="flex h-8 items-end gap-px">
         {Array.from({ length: 34 }).map((_, index) => (
-          <span className="bg-slate-950" style={{ width: index % 5 === 0 ? 2 : 1, height: `${35 + ((index * 17) % 55)}%` }} key={index} />
+          <span className="bg-td-canvas" style={{ width: index % 5 === 0 ? 2 : 1, height: `${35 + ((index * 17) % 55)}%` }} key={index} />
         ))}
       </div>
       <span className="truncate text-[8px] font-mono">{value}</span>
@@ -519,7 +520,7 @@ function Barcode({ value, className, style }: { value: string; className?: strin
 function PrintedLabel({ label, item, template }: { label: ReturnType<typeof renderLabel>; item: LabelStudioItem | undefined; template: LabelTemplate | null }) {
   if (!template || !item) return null;
   return (
-    <div className="label-print-label relative border border-slate-300 bg-white">
+    <div data-print-surface className="label-print-label relative border border-td-line bg-white">
       {label.elements.map((element) => (
         <LabelElement key={element.id} element={element} item={item} />
       ))}
@@ -529,10 +530,10 @@ function PrintedLabel({ label, item, template }: { label: ReturnType<typeof rend
 
 function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Tags; children: React.ReactNode }) {
   return (
-    <section className="rounded-[1.5rem] border border-white/[0.075] bg-[#07131d] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.035),0_18px_55px_rgba(0,0,0,.22)]">
+    <section className="rounded-[1.5rem] border border-td-ink/[0.075] bg-td-surface p-5 shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/.035),0_18px_55px_rgb(var(--td-shadow-rgb)/calc(.22*var(--td-shadow-strength)))]">
       <div className="mb-4 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-cyan-200" />
-        <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-300">{title}</h2>
+        <Icon className="h-4 w-4 text-td-accent-text" />
+        <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-td-secondary">{title}</h2>
       </div>
       {children}
     </section>
@@ -541,7 +542,7 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: typeof Ta
 
 function StatusBanner({ status, loading }: { status: Status; loading: boolean }) {
   return (
-    <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${status.tone === "error" ? "border-rose-300/25 bg-rose-400/[0.07] text-rose-100" : "border-cyan-300/20 bg-cyan-300/[0.07] text-cyan-100"}`}>
+    <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${status.tone === "error" ? "border-td-danger/25 bg-td-danger/[0.07] text-td-danger" : "border-td-accent/20 bg-td-accent/[0.07] text-td-accent-text"}`}>
       {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
       {status.message}
     </div>
@@ -550,42 +551,42 @@ function StatusBanner({ status, loading }: { status: Status; loading: boolean })
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
-    <label className="block text-xs font-semibold text-slate-400">
+    <label className="block text-xs font-semibold text-td-secondary">
       {label}
-      <input className="mt-1 h-10 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/40 disabled:opacity-45" value={value} onChange={(event) => onChange(event.target.value)} />
+      <input className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm text-td-primary outline-none transition placeholder:text-td-muted focus:border-td-accent/40 disabled:opacity-45" value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
 
 function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
-    <label className="block text-xs font-semibold text-slate-400">
+    <label className="block text-xs font-semibold text-td-secondary">
       {label}
-      <input className="mt-1 h-10 w-full rounded-xl border border-white/[0.09] bg-[#091823] px-3 text-sm text-white outline-none transition focus:border-cyan-300/40 disabled:opacity-45" type="number" min="0" step="0.01" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <input className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.09] bg-td-surface px-3 text-sm text-td-primary outline-none transition focus:border-td-accent/40 disabled:opacity-45" type="number" min="0" step="0.01" value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
-    <label className="flex h-10 items-center justify-between rounded-xl border border-white/[0.09] bg-white/[0.025] px-3 text-xs font-semibold text-slate-300">
+    <label className="flex h-10 items-center justify-between rounded-xl border border-td-ink/[0.09] bg-td-ink/[0.025] px-3 text-xs font-semibold text-td-secondary">
       {label}
-      <input className="h-4 w-4 accent-cyan-300" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <input className="h-4 w-4 accent-td-accent" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/[0.075] bg-white/[0.025] p-4">
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
+    <div className="rounded-2xl border border-td-ink/[0.075] bg-td-ink/[0.025] p-4">
+      <p className="text-xs uppercase tracking-[0.2em] text-td-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-td-primary">{value}</p>
     </div>
   );
 }
 
 function Empty({ message }: { message: string }) {
-  return <p className="rounded-2xl border border-dashed border-white/[0.10] bg-white/[0.025] p-4 text-sm text-slate-500">{message}</p>;
+  return <p className="rounded-2xl border border-dashed border-td-ink/[0.10] bg-td-ink/[0.025] p-4 text-sm text-td-muted">{message}</p>;
 }
 
 function labelsPerPage(template: LabelTemplate | null) {

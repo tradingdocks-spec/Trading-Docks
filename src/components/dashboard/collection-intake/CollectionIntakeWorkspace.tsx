@@ -280,12 +280,12 @@ export function CollectionIntakeWorkspace() {
             <Field label="Intake name" value={title} onChange={setTitle} />
             <Field label="Seller" value={sellerName} onChange={setSellerName} />
             <Field label="Contact" value={sellerContact} onChange={setSellerContact} />
-            <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
+            <label className="grid gap-1.5 text-xs font-semibold text-td-secondary">
               Scenario
               <select
                 value={scenarioKey}
                 onChange={(event) => setScenarioKey(event.target.value as CollectionIntakeScenarioKey)}
-                className="h-10 rounded-xl border border-white/[0.08] bg-slate-950/80 px-3 text-sm text-slate-100 outline-none focus:border-cyan-300/40"
+                className="h-10 rounded-xl border border-td-ink/[0.08] bg-td-canvas/80 px-3 text-sm text-td-primary outline-none focus:border-td-accent/40"
               >
                 <option value="conservative">Conservative</option>
                 <option value="standard">Standard</option>
@@ -296,8 +296,8 @@ export function CollectionIntakeWorkspace() {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-black uppercase tracking-[0.12em] text-slate-100">Intake lines</h2>
-              <p className="mt-1 text-xs text-slate-400">Keep exact printing, condition, finish, and language separate. Ambiguous rows stay in review.</p>
+              <h2 className="text-sm font-black uppercase tracking-[0.12em] text-td-primary">Intake lines</h2>
+              <p className="mt-1 text-xs text-td-secondary">Keep exact printing, condition, finish, and language separate. Ambiguous rows stay in review.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href="/dashboard/purchasing-intelligence?action=add-inventory" className="td-button-secondary h-10 px-3 text-xs">
@@ -311,9 +311,9 @@ export function CollectionIntakeWorkspace() {
             </div>
           </div>
 
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/[0.06]">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-td-ink/[0.06]">
             <table className="min-w-[980px] w-full border-collapse text-left">
-              <thead className="bg-white/[0.03] text-[10px] uppercase tracking-[0.12em] text-slate-400">
+              <thead className="bg-td-ink/[0.03] text-[11px] uppercase tracking-[0.12em] text-td-secondary">
                 <tr>
                   <th className="px-3 py-3">Card / product</th>
                   <th className="px-3 py-3">Printing</th>
@@ -325,9 +325,9 @@ export function CollectionIntakeWorkspace() {
                   <th className="px-3 py-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.05]">
+              <tbody className="divide-y divide-td-ink/[0.05]">
                 {rows.map((row) => (
-                  <tr key={row.id} className="bg-slate-950/20 align-top">
+                  <tr key={row.id} className="bg-td-canvas/20 align-top">
                     <td className="px-3 py-3">
                       <input value={row.cardName} onChange={(event) => updateRow(row.id, { cardName: event.target.value })} placeholder="Card name" className="td-input h-10 w-56" />
                       <input value={row.language} onChange={(event) => updateRow(row.id, { language: event.target.value })} placeholder="Language" className="td-input mt-2 h-9 w-32 text-xs" />
@@ -343,7 +343,7 @@ export function CollectionIntakeWorkspace() {
                       <input value={row.condition ?? ""} onChange={(event) => updateRow(row.id, { condition: event.target.value })} className="td-input h-10 w-32" />
                     </td>
                     <td className="px-3 py-3">
-                      <select value={row.finish ?? ""} onChange={(event) => updateRow(row.id, { finish: event.target.value })} className="h-10 rounded-xl border border-white/[0.08] bg-slate-950/80 px-3 text-sm text-slate-100 outline-none">
+                      <select value={row.finish ?? ""} onChange={(event) => updateRow(row.id, { finish: event.target.value })} className="h-10 rounded-xl border border-td-ink/[0.08] bg-td-canvas/80 px-3 text-sm text-td-primary outline-none">
                         <option value="">Unknown</option>
                         <option value="nonfoil">Nonfoil</option>
                         <option value="foil">Foil</option>
@@ -355,18 +355,18 @@ export function CollectionIntakeWorkspace() {
                     </td>
                     <td className="px-3 py-3">
                       <input value={row.unitMarketValueInput} onChange={(event) => updateRow(row.id, { unitMarketValueInput: event.target.value })} inputMode="decimal" placeholder="0.00" className="td-input h-10 w-24" />
-                      <p className="mt-1 text-[11px] text-slate-500">{money((normalizeNullableMoney(row.unitMarketValueInput) ?? 0) * normalizeQuantity(row.quantityInput))}</p>
+                      <p className="mt-1 text-[11px] text-td-muted">{money((normalizeNullableMoney(row.unitMarketValueInput) ?? 0) * normalizeQuantity(row.quantityInput))}</p>
                     </td>
                     <td className="px-3 py-3">
                       <ReviewBadge state={row.reviewState} />
                       {row.reviewState !== "ready" ? (
-                        <button type="button" onClick={() => updateRow(row.id, { reviewState: "ready" })} className="mt-2 text-[11px] font-semibold text-cyan-200 hover:text-cyan-100">
+                        <button type="button" onClick={() => updateRow(row.id, { reviewState: "ready" })} className="mt-2 text-[11px] font-semibold text-td-accent-text hover:text-td-accent-text">
                           Mark reviewed
                         </button>
                       ) : null}
                     </td>
                     <td className="px-3 py-3 text-right">
-                      <button type="button" onClick={() => setRows((current) => current.filter((item) => item.id !== row.id))} className="rounded-lg p-2 text-slate-500 transition hover:bg-red-500/10 hover:text-red-200" aria-label="Remove line">
+                      <button type="button" onClick={() => setRows((current) => current.filter((item) => item.id !== row.id))} className="rounded-lg p-2 text-td-muted transition hover:bg-td-danger/10 hover:text-td-danger" aria-label="Remove line">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </td>
@@ -376,9 +376,9 @@ export function CollectionIntakeWorkspace() {
             </table>
           </div>
 
-          <label className="mt-4 grid gap-1.5 text-xs font-semibold text-slate-300">
+          <label className="mt-4 grid gap-1.5 text-xs font-semibold text-td-secondary">
             Purchase notes
-            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} className="rounded-xl border border-white/[0.08] bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-300/40" />
+            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} className="rounded-xl border border-td-ink/[0.08] bg-td-canvas/80 px-3 py-2 text-sm text-td-primary outline-none focus:border-td-accent/40" />
           </label>
 
           {error ? <Status tone="red" text={error} /> : null}
@@ -390,10 +390,10 @@ export function CollectionIntakeWorkspace() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="td-kicker">Running valuation</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-50">{money(valuation.marketValue)}</h2>
-                <p className="mt-1 text-xs text-slate-400">{valuation.totalQuantity} cards / {valuation.uniqueLines} exact lines</p>
+                <h2 className="mt-2 text-2xl font-black text-td-primary">{money(valuation.marketValue)}</h2>
+                <p className="mt-1 text-xs text-td-secondary">{valuation.totalQuantity} cards / {valuation.uniqueLines} exact lines</p>
               </div>
-              <Database className="h-5 w-5 text-cyan-200" />
+              <Database className="h-5 w-5 text-td-accent-text" />
             </div>
 
             <div className="mt-4 grid gap-2">
@@ -403,7 +403,7 @@ export function CollectionIntakeWorkspace() {
               <Metric label="Calculated max offer" value={money(valuation.calculatedMaxOffer)} strong />
             </div>
 
-            <label className="mt-4 grid gap-1.5 text-xs font-semibold text-slate-300">
+            <label className="mt-4 grid gap-1.5 text-xs font-semibold text-td-secondary">
               Your offer
               <input value={actualOfferInput} onChange={(event) => setActualOfferInput(event.target.value)} placeholder={String(valuation.calculatedMaxOffer)} inputMode="decimal" className="td-input h-11 text-base font-bold" />
             </label>
@@ -414,8 +414,8 @@ export function CollectionIntakeWorkspace() {
               <Mini label="% market" value={percent(valuation.offerPercentOfMarket)} />
             </div>
 
-            <div className="mt-4 rounded-2xl bg-slate-950/45 p-3">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-300">Review queue</p>
+            <div className="mt-4 rounded-2xl bg-td-canvas/45 p-3">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-td-secondary">Review queue</p>
               <div className="mt-3 grid gap-2 text-xs">
                 <Metric label="Blocking" value={String(valuation.blockingReviewCount)} />
                 <Metric label="Warnings" value={String(valuation.warningReviewCount)} />
@@ -434,26 +434,26 @@ export function CollectionIntakeWorkspace() {
                 Complete purchase
               </button>
               {!canComplete && valuation.blockingReviewCount > 0 ? (
-                <p className="text-xs text-amber-200">Resolve blocking review lines before inventory creation.</p>
+                <p className="text-xs text-td-warning">Resolve blocking review lines before inventory creation.</p>
               ) : null}
             </div>
           </div>
 
           <div className={`${styles.glassPanel} mt-4 rounded-[18px] p-4`}>
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-300">Recent intakes</p>
-              <button type="button" onClick={() => void loadIntakes()} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[0.06] hover:text-slate-100" aria-label="Refresh intakes">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-td-secondary">Recent intakes</p>
+              <button type="button" onClick={() => void loadIntakes()} className="rounded-lg p-1.5 text-td-secondary hover:bg-td-ink/[0.06] hover:text-td-primary" aria-label="Refresh intakes">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
               </button>
             </div>
             <div className="mt-3 grid gap-2">
               {savedIntakes.slice(0, 5).map((intake) => (
-                <button key={intake.id} type="button" onClick={() => loadDraft(intake)} className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 text-left transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.04]">
-                  <span className="block text-sm font-bold text-slate-100">{intake.title}</span>
-                  <span className="mt-1 block text-xs text-slate-400">{intake.status.replaceAll("_", " ")} / {intake.items.length} lines</span>
+                <button key={intake.id} type="button" onClick={() => loadDraft(intake)} className="rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.03] p-3 text-left transition hover:border-td-accent/20 hover:bg-td-accent/[0.04]">
+                  <span className="block text-sm font-bold text-td-primary">{intake.title}</span>
+                  <span className="mt-1 block text-xs text-td-secondary">{intake.status.replaceAll("_", " ")} / {intake.items.length} lines</span>
                 </button>
               ))}
-              {!savedIntakes.length ? <p className="text-xs text-slate-500">No server-backed intakes yet.</p> : null}
+              {!savedIntakes.length ? <p className="text-xs text-td-muted">No server-backed intakes yet.</p> : null}
             </div>
           </div>
         </aside>
@@ -463,12 +463,12 @@ export function CollectionIntakeWorkspace() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="td-kicker">Completion contract</p>
-            <h2 className="mt-2 text-lg font-black text-slate-50">Inventory creation is tied to purchase history and event history.</h2>
-            <p className="mt-2 max-w-3xl text-sm text-slate-400">
+            <h2 className="mt-2 text-lg font-black text-td-primary">Inventory creation is tied to purchase history and event history.</h2>
+            <p className="mt-2 max-w-3xl text-sm text-td-secondary">
               Completion uses the existing inventory mutation authority, allocates cost proportionally by market value, and writes source-linked inventory events. Missing prices are warnings; unresolved identity, ambiguous printing, unknown condition/finish, and high-value review are blockers.
             </p>
           </div>
-          <div className="flex gap-2 text-xs font-semibold text-slate-300">
+          <div className="flex gap-2 text-xs font-semibold text-td-secondary">
             <Pill icon={ShieldCheck} text="User/workspace scoped" />
             <Pill icon={CheckCircle2} text="Idempotent completion" />
             <Pill icon={AlertTriangle} text="Review queue enforced" />
@@ -481,7 +481,7 @@ export function CollectionIntakeWorkspace() {
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
-    <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
+    <label className="grid gap-1.5 text-xs font-semibold text-td-secondary">
       {label}
       <input value={value} onChange={(event) => onChange(event.target.value)} className="td-input h-10" />
     </label>
@@ -491,17 +491,17 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
 function Metric({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-slate-400">{label}</span>
-      <span className={strong ? "text-sm font-black text-cyan-100" : "text-sm font-bold text-slate-100"}>{value}</span>
+      <span className="text-xs text-td-secondary">{label}</span>
+      <span className={strong ? "text-sm font-black text-td-accent-text" : "text-sm font-bold text-td-primary"}>{value}</span>
     </div>
   );
 }
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white/[0.04] p-2">
-      <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-black text-slate-100">{value}</p>
+    <div className="rounded-xl bg-td-ink/[0.04] p-2">
+      <p className="text-[11px] uppercase tracking-[0.12em] text-td-muted">{label}</p>
+      <p className="mt-1 text-sm font-black text-td-primary">{value}</p>
     </div>
   );
 }
@@ -509,7 +509,7 @@ function Mini({ label, value }: { label: string; value: string }) {
 function ReviewBadge({ state }: { state: CollectionIntakeItem["reviewState"] }) {
   const ready = state === "ready";
   return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] ${ready ? "bg-emerald-400/10 text-emerald-200" : state === "missing_price" ? "bg-amber-400/10 text-amber-200" : "bg-red-400/10 text-red-200"}`}>
+    <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${ready ? "bg-td-success/10 text-td-success" : state === "missing_price" ? "bg-td-warning/10 text-td-warning" : "bg-td-danger/10 text-td-danger"}`}>
       {state.replaceAll("_", " ")}
     </span>
   );
@@ -517,7 +517,7 @@ function ReviewBadge({ state }: { state: CollectionIntakeItem["reviewState"] }) 
 
 function Status({ tone, text }: { tone: "red" | "cyan"; text: string }) {
   return (
-    <div className={`mt-4 rounded-xl border px-3 py-2 text-sm ${tone === "red" ? "border-red-300/20 bg-red-500/10 text-red-100" : "border-cyan-300/20 bg-cyan-500/10 text-cyan-100"}`}>
+    <div className={`mt-4 rounded-xl border px-3 py-2 text-sm ${tone === "red" ? "border-td-danger/20 bg-td-danger/10 text-td-danger" : "border-td-accent/20 bg-td-accent/10 text-td-accent-text"}`}>
       {text}
     </div>
   );
@@ -525,8 +525,8 @@ function Status({ tone, text }: { tone: "red" | "cyan"; text: string }) {
 
 function Pill({ icon: Icon, text }: { icon: ComponentType<{ className?: string }>; text: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-white/[0.05] px-3 py-1.5">
-      <Icon className="h-3.5 w-3.5 text-cyan-200" />
+    <span className="inline-flex items-center gap-2 rounded-full bg-td-ink/[0.05] px-3 py-1.5">
+      <Icon className="h-3.5 w-3.5 text-td-accent-text" />
       {text}
     </span>
   );

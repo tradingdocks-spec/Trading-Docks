@@ -260,26 +260,26 @@ export function TcgplayerCatalogManager() {
   }, [paused, result, working]);
 
   return (
-    <main className="min-h-screen bg-[#02070d] px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-td-canvas px-4 py-6 text-td-primary sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <div className="rounded-[28px] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(8,22,33,.96),rgba(3,9,15,.98))] p-5 shadow-[0_24px_90px_rgba(0,0,0,.28)] sm:p-7">
+        <div className="rounded-[28px] border border-td-ink/[0.08] bg-[linear-gradient(145deg,rgb(var(--td-surface-rgb)/.96),rgb(var(--td-surface-rgb)/.98))] p-5 shadow-[0_24px_90px_rgb(var(--td-shadow-rgb)/calc(.28*var(--td-shadow-strength)))] sm:p-7">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/[0.14] bg-cyan-400/[0.05] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">
+              <div className="inline-flex items-center gap-2 rounded-full border border-td-accent/[0.14] bg-td-accent/[0.05] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-td-accent-text">
                 <Database className="h-3.5 w-3.5" />
                 Catalog Management
               </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-white sm:text-4xl">
+              <h1 className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-td-primary sm:text-4xl">
                 TCGplayer Magic Catalog
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-td-secondary">
                 Canonical condition and finish-specific TCGplayer reference rows for matching, pricing, exports, scanner workflows, and seller operations. These records are not user inventory.
               </p>
             </div>
 
             <a
               href="/dashboard/admin"
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] px-4 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/[0.16] hover:text-white"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-td-ink/[0.08] bg-td-ink/[0.025] px-4 text-xs font-semibold text-td-secondary transition hover:border-td-accent/[0.16] hover:text-td-primary"
             >
               Back to Command Center
             </a>
@@ -294,57 +294,57 @@ export function TcgplayerCatalogManager() {
         </div>
 
         <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="rounded-[24px] border border-white/[0.08] bg-[#06111b] p-5">
+          <div className="rounded-[24px] border border-td-ink/[0.08] bg-td-surface p-5">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-300/[0.12] bg-cyan-400/[0.05] text-cyan-200">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-td-accent/[0.12] bg-td-accent/[0.05] text-td-accent-text">
                 <FileUp className="h-5 w-5" />
               </span>
               <div>
-                <h2 className="text-base font-semibold text-white">Upload canonical CSV</h2>
-                <p className="mt-1 text-xs text-slate-500">Validate first, then import/update the catalog by TCGplayer ID.</p>
+                <h2 className="text-base font-semibold text-td-primary">Upload canonical CSV</h2>
+                <p className="mt-1 text-xs text-td-muted">Validate first, then import/update the catalog by TCGplayer ID.</p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-cyan-300/[0.12] bg-cyan-300/[0.035] p-4">
+            <div className="mt-5 rounded-2xl border border-td-accent/[0.12] bg-td-accent/[0.035] p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold text-cyan-50">Supabase Storage import</h3>
-                  <p className="mt-1 text-xs leading-5 text-cyan-100/55">
+                  <h3 className="text-sm font-semibold text-td-accent-text">Supabase Storage import</h3>
+                  <p className="mt-1 text-xs leading-5 text-td-accent-text/55">
                     Treats the three uploaded CSV parts as one logical catalog import. Files stay in Supabase Storage and are streamed server-side.
                   </p>
                 </div>
-                <span className="shrink-0 rounded-full border border-cyan-200/15 bg-black/15 px-2.5 py-1 text-[10px] font-bold text-cyan-100">
+                <span className="shrink-0 rounded-full border border-td-accent/15 bg-black/15 px-2.5 py-1 text-[11px] font-bold text-td-accent-text">
                   {formatNumber(799149)} expected rows
                 </span>
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
                 <label className="block">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">Bucket</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-accent-text/45">Bucket</span>
                   <input
                     value={storageBucket}
                     onChange={(event) => {
                       setStorageBucket(event.target.value);
                       setStorageVerified(false);
                     }}
-                    className="mt-1 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30"
+                    className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 text-xs text-td-primary outline-none focus:border-td-accent/30"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">Folder prefix</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-accent-text/45">Folder prefix</span>
                   <input
                     value={storagePrefix}
                     onChange={(event) => {
                       setStoragePrefix(event.target.value);
                       setStorageVerified(false);
                     }}
-                    className="mt-1 h-10 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 text-xs text-white outline-none focus:border-cyan-300/30"
+                    className="mt-1 h-10 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 text-xs text-td-primary outline-none focus:border-td-accent/30"
                   />
                 </label>
               </div>
 
               <label className="mt-3 block">
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/45">CSV objects, processed in order</span>
+                <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-accent-text/45">CSV objects, processed in order</span>
                 <textarea
                   value={storagePaths.join("\n")}
                   onChange={(event) => {
@@ -352,7 +352,7 @@ export function TcgplayerCatalogManager() {
                     setStorageVerified(false);
                   }}
                   rows={4}
-                  className="mt-1 w-full rounded-xl border border-white/[0.08] bg-black/20 px-3 py-2 text-xs leading-5 text-white outline-none focus:border-cyan-300/30"
+                  className="mt-1 w-full rounded-xl border border-td-ink/[0.08] bg-black/20 px-3 py-2 text-xs leading-5 text-td-primary outline-none focus:border-td-accent/30"
                 />
               </label>
 
@@ -361,7 +361,7 @@ export function TcgplayerCatalogManager() {
                   type="button"
                   disabled={working !== null}
                   onClick={() => void runStorage("storage-verify")}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-black/15 px-4 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-td-accent/[0.16] bg-black/15 px-4 text-xs font-semibold text-td-accent-text transition hover:bg-td-accent/[0.06] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {working === "storage-verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   Verify storage parts
@@ -373,7 +373,7 @@ export function TcgplayerCatalogManager() {
                     setPaused(false);
                     void runStorage("storage-start");
                   }}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-[#001018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent transition hover:bg-td-accent-hover disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {working === "storage-start" || working === "storage-advance" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
                   Import all parts
@@ -385,7 +385,7 @@ export function TcgplayerCatalogManager() {
                   <button
                     type="button"
                     onClick={() => setPaused(true)}
-                    className="inline-flex h-9 items-center justify-center rounded-xl border border-white/[0.08] bg-black/15 px-4 text-xs font-semibold text-slate-300"
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-td-ink/[0.08] bg-black/15 px-4 text-xs font-semibold text-td-secondary"
                   >
                     Pause
                   </button>
@@ -396,7 +396,7 @@ export function TcgplayerCatalogManager() {
                       setPaused(false);
                       void runStorage("storage-advance");
                     }}
-                    className="inline-flex h-9 items-center justify-center rounded-xl border border-cyan-300/[0.16] bg-cyan-400/[0.055] px-4 text-xs font-semibold text-cyan-100 disabled:opacity-45"
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-td-accent/[0.16] bg-td-accent/[0.055] px-4 text-xs font-semibold text-td-accent-text disabled:opacity-45"
                   >
                     Resume
                   </button>
@@ -407,7 +407,7 @@ export function TcgplayerCatalogManager() {
                       setPaused(false);
                       void runStorage("storage-advance");
                     }}
-                    className="inline-flex h-9 items-center justify-center rounded-xl border border-amber-300/[0.16] bg-amber-300/[0.055] px-4 text-xs font-semibold text-amber-100 disabled:opacity-45"
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-td-warning/[0.16] bg-td-warning/[0.055] px-4 text-xs font-semibold text-td-warning disabled:opacity-45"
                   >
                     Retry failed batch
                   </button>
@@ -415,12 +415,12 @@ export function TcgplayerCatalogManager() {
               ) : null}
             </div>
 
-            <label className="mt-5 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.12] bg-black/[0.14] p-6 text-center transition hover:border-cyan-300/[0.18] hover:bg-cyan-400/[0.025]">
-              <UploadCloud className="h-8 w-8 text-cyan-300/70" />
-              <span className="mt-3 text-sm font-semibold text-white">
+            <label className="mt-5 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-td-ink/[0.12] bg-black/[0.14] p-6 text-center transition hover:border-td-accent/[0.18] hover:bg-td-accent/[0.025]">
+              <UploadCloud className="h-8 w-8 text-td-accent-text/70" />
+              <span className="mt-3 text-sm font-semibold text-td-primary">
                 {file ? file.name : "Choose TCGplayer Magic CSV"}
               </span>
-              <span className="mt-1 text-xs text-slate-500">
+              <span className="mt-1 text-xs text-td-muted">
                 Expected columns must match the TCGplayer pricing export exactly.
               </span>
               <input
@@ -440,7 +440,7 @@ export function TcgplayerCatalogManager() {
                 type="button"
                 disabled={!file || working !== null}
                 onClick={() => void run("validate")}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-cyan-300/[0.16] bg-cyan-400/[0.055] px-5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.09] disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-td-accent/[0.16] bg-td-accent/[0.055] px-5 text-sm font-semibold text-td-accent-text transition hover:bg-td-accent/[0.09] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {working === "validate" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Validate file
@@ -449,7 +449,7 @@ export function TcgplayerCatalogManager() {
                 type="button"
                 disabled={!file || working !== null}
                 onClick={() => void run("import")}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 text-sm font-bold text-[#001018] transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-sm font-bold text-td-on-accent transition hover:bg-td-accent-hover disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {working === "import" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
                 Import/update catalog
@@ -457,21 +457,21 @@ export function TcgplayerCatalogManager() {
             </div>
 
             {error ? (
-              <div className="mt-5 rounded-2xl border border-rose-300/[0.18] bg-rose-400/[0.05] p-4 text-sm text-rose-100">
+              <div className="mt-5 rounded-2xl border border-td-danger/[0.18] bg-td-danger/[0.05] p-4 text-sm text-td-danger">
                 <div className="flex gap-2"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>
               </div>
             ) : null}
           </div>
 
-          <aside className="rounded-[24px] border border-white/[0.08] bg-[#06111b] p-5">
-            <h2 className="text-base font-semibold text-white">Import status</h2>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
+          <aside className="rounded-[24px] border border-td-ink/[0.08] bg-td-surface p-5">
+            <h2 className="text-base font-semibold text-td-primary">Import status</h2>
+            <p className="mt-1 text-xs leading-5 text-td-muted">
               Full exports refresh existing rows by TCGplayer ID instead of creating duplicates. Missing rows are not deleted automatically.
             </p>
 
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-td-ink/[0.06]">
               <div
-                className="h-full rounded-full bg-cyan-300 transition-all"
+                className="h-full rounded-full bg-td-accent transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -486,31 +486,31 @@ export function TcgplayerCatalogManager() {
             </div>
 
             {result?.result ? (
-              <div className="mt-4 rounded-2xl border border-cyan-300/[0.12] bg-cyan-300/[0.035] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/55">TCGplayer Magic Catalog</p>
-                <p className="mt-2 text-sm font-semibold text-cyan-50">
+              <div className="mt-4 rounded-2xl border border-td-accent/[0.12] bg-td-accent/[0.035] p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-accent-text/55">TCGplayer Magic Catalog</p>
+                <p className="mt-2 text-sm font-semibold text-td-accent-text">
                   {result.result.status === "completed" ? "Import complete" : `Processing part ${currentPartPosition} of ${result.result.parts.length}`}
                 </p>
-                <p className="mt-1 text-xs text-cyan-100/60">
+                <p className="mt-1 text-xs text-td-accent-text/60">
                   {formatNumber(result.result.summary.processedRows + result.result.summary.rejectedRows)} / {formatNumber(799149)} rows · {progress}%
                 </p>
-                <p className="mt-2 text-[11px] text-cyan-100/45">Current file: {currentPart ?? "All parts complete"}</p>
+                <p className="mt-2 text-[11px] text-td-accent-text/45">Current file: {currentPart ?? "All parts complete"}</p>
               </div>
             ) : null}
 
             {result?.parts?.length ? (
               <div className="mt-5 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Verified storage objects</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">Verified storage objects</p>
                 {result.parts.map((part) => (
-                  <div key={part.path} className="rounded-xl border border-white/[0.055] bg-black/[0.1] p-3">
+                  <div key={part.path} className="rounded-xl border border-td-ink/[0.055] bg-black/[0.1] p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="truncate text-[11px] font-semibold text-slate-300">{part.path}</span>
-                      <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${part.exists ? "border-emerald-300/15 text-emerald-200" : "border-rose-300/15 text-rose-200"}`}>{part.exists ? "Exists" : "Missing"}</span>
+                      <span className="truncate text-[11px] font-semibold text-td-secondary">{part.path}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase ${part.exists ? "border-td-success/15 text-td-success" : "border-td-danger/15 text-td-danger"}`}>{part.exists ? "Exists" : "Missing"}</span>
                     </div>
-                    <p className="mt-1 text-[10px] text-slate-600">
+                    <p className="mt-1 text-[11px] text-td-muted">
                       Size: {part.size == null ? "Unknown" : formatBytes(part.size)} · Type: {part.contentType ?? "Unknown"}
                     </p>
-                    {part.error ? <p className="mt-2 text-[10px] leading-4 text-rose-200">{part.error}</p> : null}
+                    {part.error ? <p className="mt-2 text-[11px] leading-4 text-td-danger">{part.error}</p> : null}
                   </div>
                 ))}
               </div>
@@ -518,26 +518,26 @@ export function TcgplayerCatalogManager() {
 
             {result?.result?.parts?.length ? (
               <div className="mt-5 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Storage parts</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">Storage parts</p>
                 {result.result.parts.map((part) => (
-                  <div key={part.path} className="rounded-xl border border-white/[0.055] bg-black/[0.1] p-3">
+                  <div key={part.path} className="rounded-xl border border-td-ink/[0.055] bg-black/[0.1] p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="truncate text-[11px] font-semibold text-slate-300">{part.path.split("/").pop()}</span>
-                      <span className="rounded-full border border-white/[0.08] px-2 py-0.5 text-[9px] font-bold uppercase text-slate-400">{part.status}</span>
+                      <span className="truncate text-[11px] font-semibold text-td-secondary">{part.path.split("/").pop()}</span>
+                      <span className="rounded-full border border-td-ink/[0.08] px-2 py-0.5 text-[11px] font-bold uppercase text-td-secondary">{part.status}</span>
                     </div>
-                    <p className="mt-1 text-[10px] text-slate-600">
+                    <p className="mt-1 text-[11px] text-td-muted">
                       {formatNumber(part.processedRows)} processed / {formatNumber(part.rejectedRows)} rejected
                     </p>
-                    {part.error ? <p className="mt-2 text-[10px] leading-4 text-rose-200">{part.error}</p> : null}
+                    {part.error ? <p className="mt-2 text-[11px] leading-4 text-td-danger">{part.error}</p> : null}
                   </div>
                 ))}
               </div>
             ) : null}
 
             {result?.summary?.errors?.length ? (
-              <div className="mt-5 rounded-2xl border border-amber-300/[0.14] bg-amber-300/[0.045] p-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200">Validation errors</p>
-                <ul className="mt-3 space-y-2 text-[11px] leading-4 text-amber-100/75">
+              <div className="mt-5 rounded-2xl border border-td-warning/[0.14] bg-td-warning/[0.045] p-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-warning">Validation errors</p>
+                <ul className="mt-3 space-y-2 text-[11px] leading-4 text-td-warning/75">
                   {result.summary.errors.slice(0, 5).map((item) => (
                     <li key={`${item.row}-${item.error}`}>Row {item.row}: {item.error}</li>
                   ))}
@@ -553,18 +553,18 @@ export function TcgplayerCatalogManager() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">{value}</p>
+    <div className="rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.025] p-4">
+      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-td-muted">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-td-primary">{value}</p>
     </div>
   );
 }
 
 function StatusLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.055] bg-black/[0.1] px-3 py-2.5">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-semibold text-slate-200">{value}</span>
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-td-ink/[0.055] bg-black/[0.1] px-3 py-2.5">
+      <span className="text-td-muted">{label}</span>
+      <span className="font-semibold text-td-primary">{value}</span>
     </div>
   );
 }

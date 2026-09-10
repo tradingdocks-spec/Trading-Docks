@@ -26,7 +26,7 @@ export function TasksWorkspace() {
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
         <div className="space-y-3">
-          <p className="py-10 text-center text-xs text-slate-600">No tasks have been created.</p>
+          <p className="py-10 text-center text-xs text-td-muted">No tasks have been created.</p>
         </div>
       </section>
     </WorkspaceFrame>

@@ -57,6 +57,7 @@ type SearchableInventoryItem = {
   listingStatus?: string;
   listingId?: string;
   sku?: string;
+  batchCode?: string;
 };
 
 type CardPlacement = {
@@ -150,9 +151,10 @@ function locationLabel(item: SearchableInventoryItem, location?: LocationRecord)
           ? "Binder · Pocket not assigned"
           : "Stored inventory";
 
+  const batchDetail = item.batchCode ? `Batch ${item.batchCode}` : "";
   return {
     name: location?.name ?? "Unassigned inventory",
-    detail: pocket,
+    detail: batchDetail ? `${batchDetail} · ${pocket}` : pocket,
     type: location?.type ?? "unassigned",
   };
 }
@@ -303,6 +305,7 @@ export function GlobalSearch() {
           placement.collectorNumber,
           placement.locationName,
           placement.condition,
+          placement.locationDetail,
         ]
           .filter(Boolean)
           .join(" "),
@@ -367,14 +370,14 @@ export function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 text-left transition hover:border-cyan-300/[0.16] hover:bg-cyan-400/[0.035] sm:max-w-[540px]"
+        className="group flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] px-3 text-left transition hover:border-td-accent/[0.16] hover:bg-td-accent/[0.035] sm:max-w-[540px]"
         aria-label="Search all cards and inventory"
       >
-        <Search className="h-4 w-4 shrink-0 text-slate-600 group-hover:text-cyan-300/75" />
-        <span className="min-w-0 flex-1 truncate text-xs text-slate-500">
+        <Search className="h-4 w-4 shrink-0 text-td-muted group-hover:text-td-accent-text/75" />
+        <span className="min-w-0 flex-1 truncate text-xs text-td-muted">
           Find any card across inventory, decks, binders, boxes...
         </span>
-        <kbd className="hidden items-center gap-1 rounded-md border border-white/[0.07] bg-black/20 px-1.5 py-0.5 font-sans text-[10px] text-slate-600 sm:inline-flex">
+        <kbd className="hidden items-center gap-1 rounded-md border border-td-ink/[0.07] bg-black/20 px-1.5 py-0.5 font-sans text-[11px] text-td-muted sm:inline-flex">
           <Command className="h-2.5 w-2.5" /> K
         </kbd>
       </button>
@@ -382,7 +385,7 @@ export function GlobalSearch() {
       {mounted && open
         ? createPortal(
         <div
-          className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-[#01070c]/95 px-3 py-4 backdrop-blur-md sm:px-6 sm:py-[7vh]"
+          className="fixed inset-0 z-[1000] flex items-start justify-center overflow-y-auto bg-td-canvas/95 px-3 py-4 backdrop-blur-md sm:px-6 sm:py-[7vh]"
           role="dialog"
           aria-modal="true"
           aria-label="Search Trading Docks"
@@ -390,22 +393,22 @@ export function GlobalSearch() {
             if (event.target === event.currentTarget) setOpen(false);
           }}
         >
-          <div className="relative isolate w-full max-w-5xl overflow-hidden rounded-[28px] border border-cyan-300/[0.14] bg-[#06131d] shadow-[0_35px_120px_rgba(0,0,0,0.82),0_0_50px_rgba(34,211,238,0.06)]">
-            <div className="bg-[#06131d] p-4 sm:p-5">
+          <div className="relative isolate w-full max-w-5xl overflow-hidden rounded-[28px] border border-td-accent/[0.14] bg-td-surface shadow-[0_35px_120px_rgb(var(--td-shadow-rgb)/calc(0.82*var(--td-shadow-strength))),0_0_50px_rgb(var(--td-accent-rgb)/0.06)]">
+            <div className="bg-td-surface p-4 sm:p-5">
               <div className="flex items-center gap-3">
-                <Search className="h-5 w-5 shrink-0 text-cyan-300" />
+                <Search className="h-5 w-5 shrink-0 text-td-accent-text" />
                 <input
                   ref={inputRef}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search a card name, set, collector number, or location..."
-                  className="h-11 min-w-0 flex-1 bg-transparent text-base font-semibold text-white outline-none placeholder:font-normal placeholder:text-slate-600 sm:text-lg"
+                  className="h-11 min-w-0 flex-1 bg-transparent text-base font-semibold text-td-primary outline-none placeholder:font-normal placeholder:text-td-muted sm:text-lg"
                 />
                 {query ? (
                   <button
                     type="button"
                     onClick={() => setQuery("")}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white/[0.05] hover:text-white"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-td-muted transition hover:bg-td-ink/[0.05] hover:text-td-primary"
                     aria-label="Clear search"
                   >
                     <X className="h-4 w-4" />
@@ -414,13 +417,13 @@ export function GlobalSearch() {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="hidden rounded-lg border border-white/[0.07] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-600 transition hover:text-slate-300 sm:block"
+                  className="hidden rounded-lg border border-td-ink/[0.07] px-2 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-td-muted transition hover:text-td-secondary sm:block"
                 >
                   Esc
                 </button>
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.07] pt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-td-ink/[0.07] pt-4">
                 {([
                   ["all", "Everywhere"],
                   ["inventory", "Inventory"],
@@ -432,21 +435,21 @@ export function GlobalSearch() {
                     type="button"
                     onClick={() => setActiveFilter(id)}
                     className={[
-                      "rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] transition",
+                      "rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] transition",
                       activeFilter === id
-                        ? "border-cyan-300/25 bg-cyan-300/[0.09] text-cyan-100"
-                        : "border-white/[0.08] bg-white/[0.025] text-slate-400 hover:text-white",
+                        ? "border-td-accent/25 bg-td-accent/[0.09] text-td-accent-text"
+                        : "border-td-ink/[0.08] bg-td-ink/[0.025] text-td-secondary hover:text-td-primary",
                     ].join(" ")}
                   >
                     {label}
                   </button>
                 ))}
-                <button type="button" className="rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400" title="Sealed products, vendors, events, orders, and tasks are coming next">
+                <button type="button" className="rounded-lg border border-td-ink/[0.08] bg-td-ink/[0.025] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-td-secondary" title="Sealed products, vendors, events, orders, and tasks are coming next">
                   <span className="inline-flex items-center gap-1.5">More <MoreHorizontal className="h-3 w-3" /></span>
                 </button>
-                <label className="ml-auto flex items-center gap-2 text-[10px] text-slate-400">
+                <label className="ml-auto flex items-center gap-2 text-[11px] text-td-secondary">
                   <span>Sort</span>
-                  <select value={sort} onChange={(event) => setSort(event.target.value as ResultSort)} className="h-8 rounded-lg border border-white/[0.08] bg-[#081a26] px-2 text-[11px] text-slate-200 outline-none">
+                  <select value={sort} onChange={(event) => setSort(event.target.value as ResultSort)} className="h-8 rounded-lg border border-td-ink/[0.08] bg-td-surface px-2 text-[11px] text-td-primary outline-none">
                     <option value="relevance">Relevance</option>
                     <option value="name">Card name</option>
                     <option value="quantity">Quantity</option>
@@ -460,16 +463,16 @@ export function GlobalSearch() {
             <div className="max-h-[68vh] min-h-[360px] overflow-y-auto p-3 sm:p-5">
               {loading ? (
                 <div className="flex min-h-[330px] flex-col items-center justify-center text-center">
-                  <Loader2 className="h-7 w-7 animate-spin text-cyan-300" />
-                  <p className="mt-3 text-sm font-semibold text-slate-300">Checking every card location…</p>
+                  <Loader2 className="h-7 w-7 animate-spin text-td-accent-text" />
+                  <p className="mt-3 text-sm font-semibold text-td-secondary">Checking every card location…</p>
                 </div>
               ) : query.trim().length < 2 ? (
                 <SearchEmpty />
               ) : filteredGroups.length ? (
                 <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-3 px-1 text-[12px] text-slate-300">
+                  <div className="flex flex-wrap items-center gap-3 px-1 text-[12px] text-td-secondary">
                     <span className="inline-flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-td-success" />
                       {resultQuantity} {resultQuantity === 1 ? "copy" : "copies"} found
                     </span>
                     <span>across {locationCount} {locationCount === 1 ? "location" : "locations"}</span>
@@ -483,17 +486,17 @@ export function GlobalSearch() {
                 </div>
               ) : (
                 <div className="flex min-h-[330px] flex-col items-center justify-center px-6 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.025]">
-                    <Search className="h-6 w-6 text-slate-600" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.025]">
+                    <Search className="h-6 w-6 text-td-muted" />
                   </div>
-                  <SearchX className="mt-4 h-5 w-5 text-slate-500" />
-                  <p className="mt-3 text-base font-semibold text-slate-100">No cards found for “{query.trim()}”</p>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
+                  <SearchX className="mt-4 h-5 w-5 text-td-muted" />
+                  <p className="mt-3 text-base font-semibold text-td-primary">No cards found for “{query.trim()}”</p>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-td-secondary">
                     Try another spelling, printing, set code, collector number, or location name.
                   </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <Link href="/dashboard/inventory" onClick={() => setOpen(false)} className="rounded-lg border border-cyan-300/20 bg-cyan-300/[0.07] px-3 py-2 text-xs font-semibold text-cyan-100">Add to inventory</Link>
-                    <a href={`https://scryfall.com/search?q=${encodeURIComponent(query.trim())}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-3 py-2 text-xs font-semibold text-slate-300">Search Scryfall <ExternalLink className="h-3.5 w-3.5" /></a>
+                    <Link href="/dashboard/inventory" onClick={() => setOpen(false)} className="rounded-lg border border-td-accent/20 bg-td-accent/[0.07] px-3 py-2 text-xs font-semibold text-td-accent-text">Add to inventory</Link>
+                    <a href={`https://scryfall.com/search?q=${encodeURIComponent(query.trim())}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-td-ink/[0.08] px-3 py-2 text-xs font-semibold text-td-secondary">Search Scryfall <ExternalLink className="h-3.5 w-3.5" /></a>
                   </div>
                 </div>
               )}
@@ -511,11 +514,11 @@ function SearchEmpty() {
   return (
     <div className="grid min-h-[330px] place-items-center">
       <div className="max-w-xl text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] border border-cyan-300/[0.13] bg-cyan-400/[0.045]">
-          <MapPin className="h-7 w-7 text-cyan-300/75" />
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] border border-td-accent/[0.13] bg-td-accent/[0.045]">
+          <MapPin className="h-7 w-7 text-td-accent-text/75" />
         </div>
-        <h2 className="mt-5 text-lg font-semibold text-white">Find any card, wherever it lives</h2>
-        <p className="mt-2 text-xs leading-5 text-slate-500">
+        <h2 className="mt-5 text-lg font-semibold text-td-primary">Find any card, wherever it lives</h2>
+        <p className="mt-2 text-xs leading-5 text-td-muted">
           Search checks binders and pocket addresses, bulk boxes, decks, the Put-Away Queue,
           unassigned inventory, and marketplace listing details stored with each card.
         </p>
@@ -524,7 +527,7 @@ function SearchEmpty() {
             <button
               key={example}
               type="button"
-              className="rounded-lg border border-white/[0.06] bg-white/[0.018] px-3 py-1.5 text-[10px] text-slate-500"
+              className="rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.018] px-3 py-1.5 text-[11px] text-td-muted"
               disabled
             >
               {example}
@@ -551,49 +554,49 @@ function CardResult({
     placement.set || placement.collectorNumber || placement.finish,
   );
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/[0.075] bg-[#020c13]/75">
-      <div className="flex gap-3 border-b border-white/[0.06] p-3.5 sm:gap-4 sm:p-4">
-        <div className="group/image relative h-[86px] w-[62px] shrink-0 overflow-visible rounded-lg border border-white/[0.09] bg-white/[0.025]">
+    <section className="overflow-hidden rounded-2xl border border-td-ink/[0.075] bg-td-canvas/75">
+      <div className="flex gap-3 border-b border-td-ink/[0.06] p-3.5 sm:gap-4 sm:p-4">
+        <div className="group/image relative h-[86px] w-[62px] shrink-0 overflow-visible rounded-lg border border-td-ink/[0.09] bg-td-ink/[0.025]">
           {group.imageUrl ? (
             <>
               <Image src={group.imageUrl} alt="" fill sizes="62px" className="rounded-lg object-cover" unoptimized />
-              <div className="pointer-events-none absolute left-full top-0 z-30 ml-3 hidden h-[310px] w-[223px] overflow-hidden rounded-2xl border border-white/15 bg-[#020912] shadow-2xl group-hover/image:block">
+              <div className="pointer-events-none absolute left-full top-0 z-30 ml-3 hidden h-[310px] w-[223px] overflow-hidden rounded-2xl border border-td-ink/15 bg-td-canvas shadow-2xl group-hover/image:block">
                 <Image src={group.imageUrl} alt={`${group.name} preview`} fill sizes="223px" className="object-cover" unoptimized />
               </div>
             </>
           ) : (
             <div className="flex h-full items-center justify-center">
-              <Grid3X3 className="h-5 w-5 text-slate-700" />
+              <Grid3X3 className="h-5 w-5 text-td-muted" />
             </div>
           )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 className="text-sm font-semibold text-white sm:text-base">{group.name}</h3>
-              <p className="mt-1 text-[12px] text-slate-300">
+              <h3 className="text-sm font-semibold text-td-primary sm:text-base">{group.name}</h3>
+              <p className="mt-1 text-[12px] text-td-secondary">
                 {printing?.set ? `${printing.set}` : "Printing not recorded"}
                 {printing?.collectorNumber ? ` · #${printing.collectorNumber}` : ""}
                 {printing?.finish ? ` · ${printing.finish}` : ""}
               </p>
-              <p className="mt-1 text-[11px] text-slate-400">
+              <p className="mt-1 text-[11px] text-td-secondary">
                 {group.quantity} total {group.quantity === 1 ? "copy" : "copies"} across {group.placements.length}{" "}
                 {group.placements.length === 1 ? "location" : "locations"}
               </p>
             </div>
-            <div className="rounded-xl border border-emerald-300/[0.12] bg-emerald-300/[0.045] px-3 py-2 text-right">
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-300/75">Total value</p>
-              <p className="mt-0.5 text-sm font-semibold text-emerald-100">${group.value.toFixed(2)}</p>
+            <div className="rounded-xl border border-td-success/[0.12] bg-td-success/[0.045] px-3 py-2 text-right">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-td-success/75">Total value</p>
+              <p className="mt-0.5 text-sm font-semibold text-td-success">${group.value.toFixed(2)}</p>
             </div>
           </div>
         </div>
       </div>
 
       <div>
-        <p className="border-b border-white/[0.055] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.13em] text-cyan-200/70">
+        <p className="border-b border-td-ink/[0.055] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.13em] text-td-accent-text/70">
           Found in {group.placements.length} {group.placements.length === 1 ? "location" : "locations"}
         </p>
-        <div className="divide-y divide-white/[0.055]">
+        <div className="divide-y divide-td-ink/[0.055]">
         {group.placements.map((placement, placementIndex) => (
           <Link
             key={placement.id}
@@ -603,39 +606,39 @@ function CardResult({
             className={[
               "group flex items-center gap-3 border-l-2 px-3.5 py-3.5 transition sm:px-4",
               activeResult === startIndex + placementIndex
-                ? "border-cyan-300 bg-cyan-400/[0.08]"
-                : "border-transparent hover:border-cyan-300/60 hover:bg-cyan-400/[0.045]",
+                ? "border-td-accent bg-td-accent/[0.08]"
+                : "border-transparent hover:border-td-accent/60 hover:bg-td-accent/[0.045]",
             ].join(" ")}
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-cyan-300/75">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-td-accent-text/75">
               <PlacementIcon type={placement.locationType} />
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <p className="truncate text-sm font-semibold text-white">{placement.locationName}</p>
-                <span className="rounded-md bg-white/[0.035] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                <p className="truncate text-sm font-semibold text-td-primary">{placement.locationName}</p>
+                <span className="rounded-md bg-td-ink/[0.035] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-td-muted">
                   {placement.source === "deck" ? "Deck" : placement.locationType === "marketplace" ? "Listed" : "Inventory"}
                 </span>
               </div>
-              <p className="mt-1 truncate text-[12px] text-slate-300">
+              <p className="mt-1 truncate text-[12px] text-td-secondary">
                 {placement.locationDetail}
                 {placement.condition ? ` · ${placement.condition}` : ""}
               </p>
             </div>
             <div className="hidden shrink-0 items-center gap-4 sm:flex">
               <span className="text-right">
-                <span className="block text-[9px] uppercase tracking-[0.1em] text-slate-500">Quantity</span>
-                <span className="text-sm font-semibold text-white">{placement.quantity}</span>
+                <span className="block text-[11px] uppercase tracking-[0.1em] text-td-muted">Quantity</span>
+                <span className="text-sm font-semibold text-td-primary">{placement.quantity}</span>
               </span>
               <span className="text-right">
-                <span className="block text-[9px] uppercase tracking-[0.1em] text-slate-500">Value here</span>
-                <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-200">
-                  <CircleDollarSign className="h-3 w-3 text-emerald-300/55" />
+                <span className="block text-[11px] uppercase tracking-[0.1em] text-td-muted">Value here</span>
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-td-primary">
+                  <CircleDollarSign className="h-3 w-3 text-td-success/55" />
                   {(placement.unitValue * placement.quantity).toFixed(2)}
                 </span>
               </span>
             </div>
-            <span className="hidden shrink-0 items-center gap-1 text-[11px] font-semibold text-cyan-200 sm:inline-flex">Open location <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
+            <span className="hidden shrink-0 items-center gap-1 text-[11px] font-semibold text-td-accent-text sm:inline-flex">Open location <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
           </Link>
         ))}
         </div>

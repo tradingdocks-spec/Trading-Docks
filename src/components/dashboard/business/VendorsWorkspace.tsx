@@ -26,7 +26,7 @@ export function VendorsWorkspace() {
 
       <section className={`${styles.glassPanel} mt-5 rounded-[26px] p-5`}>
         <div className="grid gap-3 lg:grid-cols-3">
-          <p className="col-span-full py-10 text-center text-xs text-slate-600">No vendors have been added.</p>
+          <p className="col-span-full py-10 text-center text-xs text-td-muted">No vendors have been added.</p>
         </div>
       </section>
     </WorkspaceFrame>

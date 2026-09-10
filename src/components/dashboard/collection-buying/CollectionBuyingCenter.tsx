@@ -319,7 +319,7 @@ export function CollectionBuyingCenter() {
       return {
         score: 0,
         label: "Not calculated",
-        tone: "text-slate-500",
+        tone: "text-td-muted",
         reasons: ["Add and price cards to calculate collection risk."],
       };
     }
@@ -377,10 +377,10 @@ export function CollectionBuyingCenter() {
             : "Higher risk",
       tone:
         score >= 72
-          ? "text-emerald-300"
+          ? "text-td-success"
           : score >= 52
-            ? "text-amber-300"
-            : "text-red-300",
+            ? "text-td-warning"
+            : "text-td-danger",
       reasons,
     };
   }, [readyCards]);
@@ -969,10 +969,10 @@ export function CollectionBuyingCenter() {
       <section className={`${styles.glassPanel} print-hide mt-5 rounded-[24px] p-4`}>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[8px] font-semibold uppercase tracking-[0.15em] text-violet-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-td-violet">
               Session Defaults
             </p>
-            <p className="mt-1 text-[9px] text-slate-600">
+            <p className="mt-1 text-[11px] text-td-muted">
               New cards inherit the preferred set, finish, and condition when available.
             </p>
           </div>
@@ -1014,7 +1014,7 @@ export function CollectionBuyingCenter() {
               <button
                 type="button"
                 onClick={clearPreferredSet}
-                className="h-9 rounded-xl border border-white/[0.065] bg-white/[0.02] px-3 text-[8px] font-semibold text-slate-500 hover:text-red-200"
+                className="h-9 rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3 text-[11px] font-semibold text-td-muted hover:text-td-danger"
               >
                 Clear preferred set
               </button>
@@ -1174,8 +1174,8 @@ export function CollectionBuyingCenter() {
 
         @media print {
           body {
-            background: #ffffff !important;
-            color: #111827 !important;
+            background: var(--td-surface-elevated) !important;
+            color: var(--td-on-accent) !important;
           }
 
           body * {
@@ -1193,8 +1193,8 @@ export function CollectionBuyingCenter() {
             inset: 0;
             width: 100%;
             padding: 28px 34px;
-            background: #ffffff;
-            color: #111827;
+            background: var(--td-surface-elevated);
+            color: var(--td-on-accent);
             font-family: Arial, Helvetica, sans-serif;
           }
 
@@ -1254,7 +1254,7 @@ export function CollectionBuyingCenter() {
           .print-totals {
             width: 320px;
             margin: 24px 0 0 auto;
-            border: 1px solid #111827;
+            border: 1px solid var(--td-surface-default);
           }
 
           .print-totals > div {
@@ -1298,8 +1298,8 @@ export function CollectionBuyingCenter() {
       `}</style>
 
       {toast ? (
-        <div className="fixed bottom-5 right-5 z-[150] flex items-center gap-2 rounded-xl border border-cyan-300/[0.15] bg-[#06131d]/96 px-4 py-3 text-[10px] font-semibold text-cyan-100 shadow-[0_18px_55px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <Check className="h-4 w-4 text-emerald-300" />
+        <div className="fixed bottom-5 right-5 z-[150] flex items-center gap-2 rounded-xl border border-td-accent/[0.15] bg-td-surface/96 px-4 py-3 text-[11px] font-semibold text-td-accent-text shadow-[0_18px_55px_rgb(var(--td-shadow-rgb)/calc(0.45*var(--td-shadow-strength)))] backdrop-blur-xl">
+          <Check className="h-4 w-4 text-td-success" />
           {toast}
         </div>
       ) : null}
@@ -1326,23 +1326,23 @@ function CollectionEntryPanel({
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
             Quick Entry
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-white">
+          <h2 className="mt-2 text-lg font-semibold text-td-primary">
             Paste 20–30 cards
           </h2>
         </div>
-        <PackageSearch className="h-4 w-4 text-cyan-300" />
+        <PackageSearch className="h-4 w-4 text-td-accent-text" />
       </div>
 
-      <p className="mt-2 text-[9px] leading-4 text-slate-600">
+      <p className="mt-2 text-[11px] leading-4 text-td-muted">
         One card per line. Use quantity, optional set code, finish, and
         condition.
       </p>
 
-      <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/[0.1] px-3 py-2.5 text-[8px] leading-4 text-slate-600">
-        <span className="text-slate-400">Examples:</span>
+      <div className="mt-4 rounded-xl border border-td-ink/[0.06] bg-black/[0.1] px-3 py-2.5 text-[11px] leading-4 text-td-muted">
+        <span className="text-td-secondary">Examples:</span>
         <br />
         2 Rhystic Study [WOT] NM
         <br />
@@ -1355,20 +1355,20 @@ function CollectionEntryPanel({
         value={rawInput}
         onChange={(event) => setRawInput(event.target.value)}
         placeholder="Enter collection cards here..."
-        className="mt-4 min-h-[260px] w-full resize-y rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4 text-[11px] leading-6 text-slate-300 outline-none placeholder:text-slate-700 focus:border-cyan-300/[0.22]"
+        className="mt-4 min-h-[260px] w-full resize-y rounded-2xl border border-td-ink/[0.07] bg-td-ink/[0.02] p-4 text-[11px] leading-6 text-td-secondary outline-none placeholder:text-td-muted focus:border-td-accent/[0.22]"
       />
 
       {isPricing ? (
         <div className="mt-4">
-          <div className="flex justify-between text-[8px] text-slate-600">
+          <div className="flex justify-between text-[11px] text-td-muted">
             <span>Retrieving Scryfall prices</span>
             <span>
               {progress.current}/{progress.total}
             </span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-td-ink/[0.05]">
             <div
-              className="h-full rounded-full bg-cyan-300 transition-all"
+              className="h-full rounded-full bg-td-accent transition-all"
               style={{
                 width: `${
                   progress.total
@@ -1385,7 +1385,7 @@ function CollectionEntryPanel({
         <button
           type="button"
           onClick={onDemo}
-          className="h-10 rounded-xl border border-white/[0.07] bg-white/[0.025] text-[9px] font-semibold text-slate-500"
+          className="h-10 rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-[11px] font-semibold text-td-muted"
         >
           Load example
         </button>
@@ -1393,7 +1393,7 @@ function CollectionEntryPanel({
           type="button"
           onClick={onPrice}
           disabled={isPricing}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 text-[9px] font-semibold text-[#001018] disabled:opacity-50"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent text-[11px] font-semibold text-td-on-accent disabled:opacity-50"
         >
           {isPricing ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1443,23 +1443,23 @@ function CustomerPanel({
   return (
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
       <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-300/[0.1] bg-violet-400/[0.04] text-violet-300">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-violet/[0.1] bg-td-violet/[0.04] text-td-violet">
           <UserRound className="h-4 w-4" />
         </span>
         <div>
-          <p className="text-xs font-semibold text-slate-200">
+          <p className="text-xs font-semibold text-td-primary">
             Customer details
           </p>
-          <p className="mt-1 text-[8px] text-slate-700">
+          <p className="mt-1 text-[11px] text-td-muted">
             Appraisal and loyalty information
           </p>
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-cyan-300/[0.1] bg-cyan-400/[0.025] p-3.5">
+      <div className="mt-4 rounded-2xl border border-td-accent/[0.1] bg-td-accent/[0.025] p-3.5">
         <div className="flex items-center gap-2">
-          <Search className="h-3.5 w-3.5 text-cyan-300" />
-          <p className="text-[9px] font-semibold text-cyan-100">
+          <Search className="h-3.5 w-3.5 text-td-accent-text" />
+          <p className="text-[11px] font-semibold text-td-accent-text">
             Find customer by phone
           </p>
         </div>
@@ -1473,47 +1473,47 @@ function CustomerPanel({
             }}
             placeholder="Search phone number"
             inputMode="tel"
-            className="h-10 min-w-0 flex-1 rounded-xl border border-white/[0.065] bg-white/[0.02] px-3 text-[10px] text-slate-300 outline-none placeholder:text-slate-700 focus:border-cyan-300/[0.18]"
+            className="h-10 min-w-0 flex-1 rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3 text-[11px] text-td-secondary outline-none placeholder:text-td-muted focus:border-td-accent/[0.18]"
           />
           <button
             type="button"
             onClick={onLookup}
-            className="h-10 shrink-0 rounded-xl border border-cyan-300/[0.15] bg-cyan-400/[0.05] px-3 text-[8px] font-semibold text-cyan-200"
+            className="h-10 shrink-0 rounded-xl border border-td-accent/[0.15] bg-td-accent/[0.05] px-3 text-[11px] font-semibold text-td-accent-text"
           >
             Search
           </button>
         </div>
 
         {lookupResult ? (
-          <div className="mt-3 rounded-xl border border-white/[0.055] bg-black/[0.1] p-3">
+          <div className="mt-3 rounded-xl border border-td-ink/[0.055] bg-black/[0.1] p-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[10px] font-semibold text-slate-200">
+                <p className="truncate text-[11px] font-semibold text-td-primary">
                   {lookupResult.name}
                 </p>
-                <p className="mt-1 text-[8px] text-slate-700">
+                <p className="mt-1 text-[11px] text-td-muted">
                   {lookupResult.visits
                     ? `${lookupResult.visits} previous visits`
                     : "No previous visits"}
                 </p>
               </div>
-              <span className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[7px] text-slate-600">
+              <span className="rounded-lg border border-td-ink/[0.06] bg-td-ink/[0.02] px-2 py-1 text-[11px] text-td-muted">
                 {lookupResult.visits ? "Existing" : "New"}
               </span>
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-violet-300/[0.09] bg-violet-400/[0.03] px-2.5 py-2">
-                <p className="text-[7px] uppercase tracking-[0.11em] text-violet-300/70">
+              <div className="rounded-lg border border-td-violet/[0.09] bg-td-violet/[0.03] px-2.5 py-2">
+                <p className="text-[11px] uppercase tracking-[0.11em] text-td-violet/70">
                   Loyalty points
                 </p>
-                <p className="mt-1 text-sm font-semibold text-violet-200">
+                <p className="mt-1 text-sm font-semibold text-td-violet">
                   {lookupResult.loyaltyPoints.toLocaleString("en-US")}
                 </p>
               </div>
 
               <div className="rounded-lg border border-fuchsia-300/[0.09] bg-fuchsia-400/[0.03] px-2.5 py-2">
-                <p className="text-[7px] uppercase tracking-[0.11em] text-fuchsia-300/70">
+                <p className="text-[11px] uppercase tracking-[0.11em] text-fuchsia-300/70">
                   Store credit
                 </p>
                 <p className="mt-1 text-sm font-semibold text-fuchsia-200">
@@ -1523,7 +1523,7 @@ function CustomerPanel({
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-[7px] leading-4 text-slate-700">
+          <p className="mt-2 text-[11px] leading-4 text-td-muted">
             Prepared for future loyalty points, customer history, and store
             credit balances.
           </p>
@@ -1550,7 +1550,7 @@ function CustomerPanel({
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Collection notes..."
-          className="min-h-[88px] w-full resize-none rounded-xl border border-white/[0.065] bg-white/[0.02] px-3 py-3 text-[10px] text-slate-300 outline-none placeholder:text-slate-700"
+          className="min-h-[88px] w-full resize-none rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3 py-3 text-[11px] text-td-secondary outline-none placeholder:text-td-muted"
         />
       </div>
     </section>
@@ -1616,19 +1616,19 @@ function CollectionTable({
     <section className={`${styles.glassPanel} min-w-0 rounded-[26px] p-5`}>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
             Collection Breakdown
           </p>
-          <h2 className="mt-2 text-lg font-semibold text-white">
+          <h2 className="mt-2 text-lg font-semibold text-td-primary">
             Priced inventory
           </h2>
-          <p className="mt-1 max-w-xl text-[9px] leading-4 text-slate-600">
+          <p className="mt-1 max-w-xl text-[11px] leading-4 text-td-muted">
             The card is the focal point. Staff can verify the printing, adjust only the essential details, and see a simple market-versus-offer comparison.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[8px] text-slate-600">
+          <span className="rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] px-3 py-2 text-[11px] text-td-muted">
             {filteredCards.length.toLocaleString("en-US")} lines
           </span>
           <label className="relative">
@@ -1637,26 +1637,26 @@ function CollectionTable({
               onChange={(event) =>
                 setRowsPerPage(Number(event.target.value))
               }
-              className="h-9 appearance-none rounded-xl border border-white/[0.065] bg-[#07141e] pl-3 pr-8 text-[8px] text-slate-500 outline-none"
+              className="h-9 appearance-none rounded-xl border border-td-ink/[0.065] bg-td-surface pl-3 pr-8 text-[11px] text-td-muted outline-none"
             >
               <option value={10}>10 per page</option>
               <option value={20}>20 per page</option>
               <option value={50}>50 per page</option>
               <option value={100}>100 per page</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-700" />
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
           </label>
         </div>
       </div>
 
       <div className="mt-5 flex flex-col gap-2 lg:flex-row">
-        <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/[0.065] bg-white/[0.02] px-3">
-          <Search className="h-3.5 w-3.5 text-slate-700" />
+        <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3">
+          <Search className="h-3.5 w-3.5 text-td-muted" />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search this collection..."
-            className="min-w-0 flex-1 bg-transparent text-[9px] text-slate-300 outline-none placeholder:text-slate-700"
+            className="min-w-0 flex-1 bg-transparent text-[11px] text-td-secondary outline-none placeholder:text-td-muted"
           />
         </label>
 
@@ -1664,10 +1664,10 @@ function CollectionTable({
           type="button"
           onClick={() => setHighValueOnly(!highValueOnly)}
           className={[
-            "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-[8px] font-semibold",
+            "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-[11px] font-semibold",
             highValueOnly
-              ? "border-amber-300/[0.16] bg-amber-400/[0.05] text-amber-200"
-              : "border-white/[0.065] bg-white/[0.02] text-slate-600",
+              ? "border-td-warning/[0.16] bg-td-warning/[0.05] text-td-warning"
+              : "border-td-ink/[0.065] bg-td-ink/[0.02] text-td-muted",
           ].join(" ")}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -1690,26 +1690,26 @@ function CollectionTable({
       </div>
 
       {!cards.length ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-white/[0.07] bg-white/[0.012] px-4 py-16 text-center">
-          <ShoppingCart className="mx-auto h-6 w-6 text-slate-800" />
-          <p className="mt-3 text-xs font-semibold text-slate-500">
+        <div className="mt-5 rounded-2xl border border-dashed border-td-ink/[0.07] bg-td-ink/[0.012] px-4 py-16 text-center">
+          <ShoppingCart className="mx-auto h-6 w-6 text-td-on-accent" />
+          <p className="mt-3 text-xs font-semibold text-td-muted">
             No collection priced yet
           </p>
-          <p className="mt-1 text-[9px] text-slate-700">
+          <p className="mt-1 text-[11px] text-td-muted">
             Enter cards manually or import a CSV.
           </p>
         </div>
       ) : null}
 
       {cards.length && !filteredCards.length ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-white/[0.07] py-10 text-center text-[9px] text-slate-600">
+        <div className="mt-5 rounded-2xl border border-dashed border-td-ink/[0.07] py-10 text-center text-[11px] text-td-muted">
           No collection rows match the current filters.
         </div>
       ) : null}
 
       {filteredCards.length > rowsPerPage ? (
-        <div className="mt-5 flex flex-col gap-3 border-t border-white/[0.055] pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[8px] text-slate-700">
+        <div className="mt-5 flex flex-col gap-3 border-t border-td-ink/[0.055] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[11px] text-td-muted">
             Showing {pageStart + 1}–
             {Math.min(pageStart + rowsPerPage, filteredCards.length)} of{" "}
             {filteredCards.length}
@@ -1720,12 +1720,12 @@ function CollectionTable({
               type="button"
               disabled={safePage <= 1}
               onClick={() => setPage(Math.max(1, safePage - 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.065] bg-white/[0.02] text-slate-500 disabled:opacity-35"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] text-td-muted disabled:opacity-35"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
 
-            <span className="min-w-[84px] text-center text-[8px] text-slate-500">
+            <span className="min-w-[84px] text-center text-[11px] text-td-muted">
               Page {safePage} of {totalPages}
             </span>
 
@@ -1733,7 +1733,7 @@ function CollectionTable({
               type="button"
               disabled={safePage >= totalPages}
               onClick={() => setPage(Math.min(totalPages, safePage + 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.065] bg-white/[0.02] text-slate-500 disabled:opacity-35"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] text-td-muted disabled:opacity-35"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -1769,14 +1769,14 @@ function InventoryCardRow({
     : 0;
 
   return (
-    <article className="relative overflow-visible rounded-2xl border border-white/[0.06] bg-black/[0.085] p-4 transition hover:border-cyan-300/[0.12]">
+    <article className="relative overflow-visible rounded-2xl border border-td-ink/[0.06] bg-black/[0.085] p-4 transition hover:border-td-accent/[0.12]">
       <div className="inventory-card-layout grid min-w-0 gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
             onClick={() => onRemove(item.rowId)}
             title="Remove this card"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-300/[0.1] bg-red-400/[0.025] text-red-300/60 transition hover:border-red-300/[0.25] hover:bg-red-400/[0.08] hover:text-red-200"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-td-danger/[0.1] bg-td-danger/[0.025] text-td-danger/60 transition hover:border-td-danger/[0.25] hover:bg-td-danger/[0.08] hover:text-td-danger"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -1804,25 +1804,25 @@ function InventoryCardRow({
               <img
                 src={cardImage(item.card)}
                 alt={item.card?.name ?? item.name}
-                className="h-[92px] w-[66px] cursor-zoom-in rounded-xl object-cover ring-1 ring-white/[0.08] shadow-[0_14px_35px_rgba(0,0,0,0.35)] transition hover:scale-[1.03] hover:ring-cyan-300/35"
+                className="h-[92px] w-[66px] cursor-zoom-in rounded-xl object-cover ring-1 ring-td-ink/[0.08] shadow-[0_14px_35px_rgb(var(--td-shadow-rgb)/calc(0.35*var(--td-shadow-strength)))] transition hover:scale-[1.03] hover:ring-td-accent/35"
               />
             ) : (
-              <span className="flex h-[92px] w-[66px] items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.02]">
+              <span className="flex h-[92px] w-[66px] items-center justify-center rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02]">
                 {item.status === "loading" ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />
+                  <Loader2 className="h-5 w-5 animate-spin text-td-accent-text" />
                 ) : (
-                  <AlertTriangle className="h-5 w-5 text-amber-300" />
+                  <AlertTriangle className="h-5 w-5 text-td-warning" />
                 )}
               </span>
             )}
           </button>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-white">
+            <p className="truncate text-sm font-semibold text-td-primary">
               {item.card?.name ?? item.name}
             </p>
 
-            <p className="mt-1 truncate text-[8px] text-slate-600">
+            <p className="mt-1 truncate text-[11px] text-td-muted">
               {item.card
                 ? `${item.card.set_name} · ${item.card.set.toUpperCase()} #${item.card.collector_number}`
                 : item.error ?? "Looking up card..."}
@@ -1834,22 +1834,22 @@ function InventoryCardRow({
                 <button
                   type="button"
                   onClick={() => onChangePrinting(item)}
-                  className="flex min-h-10 w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-white/[0.065] bg-[#07141e] px-3 py-2 text-left transition hover:border-cyan-300/[0.18]"
+                  className="flex min-h-10 w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-td-ink/[0.065] bg-td-surface px-3 py-2 text-left transition hover:border-td-accent/[0.18]"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate text-[9px] font-semibold text-slate-300">
+                    <span className="block truncate text-[11px] font-semibold text-td-secondary">
                       {item.card.set.toUpperCase()} #{item.card.collector_number}
                     </span>
-                    <span className="mt-0.5 block truncate text-[7px] text-slate-700">
+                    <span className="mt-0.5 block truncate text-[11px] text-td-muted">
                       {item.card.set_name}
                     </span>
                   </span>
-                  <span className="shrink-0 rounded-lg border border-cyan-300/[0.11] bg-cyan-400/[0.035] px-2 py-1 text-[7px] font-semibold text-cyan-200">
+                  <span className="shrink-0 rounded-lg border border-td-accent/[0.11] bg-td-accent/[0.035] px-2 py-1 text-[11px] font-semibold text-td-accent-text">
                     Change printing
                   </span>
                 </button>
               ) : (
-                <div className="flex h-10 items-center rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 text-[8px] text-slate-700">
+                <div className="flex h-10 items-center rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] px-3 text-[11px] text-td-muted">
                   Printing unavailable
                 </div>
               )}
@@ -1857,17 +1857,17 @@ function InventoryCardRow({
 
             <div className="mt-2 flex flex-wrap gap-1.5">
               {item.card?.reserved ? (
-                <span className="rounded-md border border-amber-300/[0.12] bg-amber-400/[0.04] px-2 py-1 text-[7px] text-amber-300">
+                <span className="rounded-md border border-td-warning/[0.12] bg-td-warning/[0.04] px-2 py-1 text-[11px] text-td-warning">
                   Reserved List
                 </span>
               ) : null}
               {item.card?.rarity ? (
-                <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[7px] capitalize text-slate-600">
+                <span className="rounded-md border border-td-ink/[0.06] bg-td-ink/[0.02] px-2 py-1 text-[11px] capitalize text-td-muted">
                   {item.card.rarity}
                 </span>
               ) : null}
               {item.card?.edhrec_rank ? (
-                <span className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[7px] text-slate-600">
+                <span className="rounded-md border border-td-ink/[0.06] bg-td-ink/[0.02] px-2 py-1 text-[11px] text-td-muted">
                   EDHREC #{item.card.edhrec_rank.toLocaleString("en-US")}
                 </span>
               ) : null}
@@ -1974,16 +1974,16 @@ function PriceSummaryBox({
 }) {
   const toneClasses = {
     market:
-      "border-sky-300/[0.22] bg-sky-400/[0.045] text-sky-300",
+      "border-td-accent/[0.22] bg-td-accent/[0.045] text-td-accent-text",
     cash:
-      "border-emerald-300/[0.24] bg-emerald-400/[0.055] text-emerald-300",
+      "border-td-success/[0.24] bg-td-success/[0.055] text-td-success",
     credit:
       "border-fuchsia-300/[0.24] bg-fuchsia-400/[0.055] text-fuchsia-300",
   }[tone];
 
   return (
     <div className={`min-w-0 rounded-xl border px-3 py-2.5 ${toneClasses}`}>
-      <p className="truncate text-[7px] font-semibold uppercase tracking-[0.12em]">
+      <p className="truncate text-[11px] font-semibold uppercase tracking-[0.12em]">
         {label}
       </p>
       <p className="mt-1 truncate text-base font-semibold">{value}</p>
@@ -1993,7 +1993,7 @@ function PriceSummaryBox({
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-1.5 block text-[7px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+    <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
       {children}
     </span>
   );
@@ -2016,7 +2016,7 @@ function LargeNumber({
       onChange={(event) =>
         onChange(Math.max(min, Number(event.target.value) || min))
       }
-      className="h-10 w-full rounded-xl border border-white/[0.065] bg-white/[0.02] px-3 text-[9px] text-slate-300 outline-none focus:border-cyan-300/[0.18]"
+      className="h-10 w-full rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3 text-[11px] text-td-secondary outline-none focus:border-td-accent/[0.18]"
     />
   );
 }
@@ -2035,7 +2035,7 @@ function LargeSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full appearance-none rounded-xl border border-white/[0.065] bg-[#07141e] pl-3 pr-8 text-[8px] text-slate-400 outline-none focus:border-cyan-300/[0.18]"
+        className="h-10 w-full appearance-none rounded-xl border border-td-ink/[0.065] bg-td-surface pl-3 pr-8 text-[11px] text-td-secondary outline-none focus:border-td-accent/[0.18]"
       >
         {options.map(([optionValue, label]) => (
           <option key={optionValue} value={optionValue}>
@@ -2043,7 +2043,7 @@ function LargeSelect({
           </option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-700" />
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-td-muted" />
     </label>
   );
 }
@@ -2148,32 +2148,32 @@ function OfferSummary({
 }) {
   return (
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
-      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-success">
         Customer Offer
       </p>
-      <p className="mt-4 text-[9px] text-slate-600">
+      <p className="mt-4 text-[11px] text-td-muted">
         Recommended cash offer
       </p>
-      <p className="mt-2 text-4xl font-semibold tracking-tight text-white">
+      <p className="mt-2 text-4xl font-semibold tracking-tight text-td-primary">
         {currency(totals.cashOffer)}
       </p>
-      <div className="mt-3 flex items-center justify-between rounded-xl border border-cyan-300/[0.1] bg-cyan-400/[0.03] px-3 py-2.5">
-        <span className="text-[8px] text-slate-600">
+      <div className="mt-3 flex items-center justify-between rounded-xl border border-td-accent/[0.1] bg-td-accent/[0.03] px-3 py-2.5">
+        <span className="text-[11px] text-td-muted">
           Blended collection offer
         </span>
-        <span className="text-sm font-semibold text-cyan-200">
+        <span className="text-sm font-semibold text-td-accent-text">
           {totals.averageOfferPercent.toFixed(1)}%
         </span>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-violet-300/[0.1] bg-violet-400/[0.035] p-4">
-        <p className="text-[8px] uppercase tracking-[0.14em] text-violet-300">
+      <div className="mt-5 rounded-2xl border border-td-violet/[0.1] bg-td-violet/[0.035] p-4">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-td-violet">
           Store credit alternative
         </p>
-        <p className="mt-2 text-xl font-semibold text-violet-100">
+        <p className="mt-2 text-xl font-semibold text-td-violet">
           {currency(totals.storeCreditOffer)}
         </p>
-        <p className="mt-1 text-[8px] text-slate-600">
+        <p className="mt-1 text-[11px] text-td-muted">
           Includes {settings.storeCreditBonusPercent}% bonus
         </p>
       </div>
@@ -2186,10 +2186,10 @@ function OfferSummary({
               type="button"
               onClick={() => setAppraisalStatus(status)}
               className={[
-                "h-9 rounded-xl border text-[8px] font-semibold capitalize",
+                "h-9 rounded-xl border text-[11px] font-semibold capitalize",
                 appraisalStatus === status
-                  ? "border-cyan-300/[0.17] bg-cyan-400/[0.05] text-cyan-200"
-                  : "border-white/[0.06] bg-white/[0.02] text-slate-600",
+                  ? "border-td-accent/[0.17] bg-td-accent/[0.05] text-td-accent-text"
+                  : "border-td-ink/[0.06] bg-td-ink/[0.02] text-td-muted",
               ].join(" ")}
             >
               {status}
@@ -2201,14 +2201,14 @@ function OfferSummary({
       <button
         type="button"
         onClick={() => onSave(appraisalStatus)}
-        className="mt-3 h-10 w-full rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 text-[9px] font-semibold text-[#001018]"
+        className="mt-3 h-10 w-full rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent text-[11px] font-semibold text-td-on-accent"
       >
         Save {appraisalStatus} appraisal
       </button>
       <button
         type="button"
         onClick={onPurchase}
-        className="mt-2 h-10 w-full rounded-xl border border-emerald-300/[0.18] bg-emerald-400/[0.06] text-[9px] font-semibold text-emerald-200 hover:bg-emerald-400/[0.1]"
+        className="mt-2 h-10 w-full rounded-xl border border-td-success/[0.18] bg-td-success/[0.06] text-[11px] font-semibold text-td-success hover:bg-td-success/[0.1]"
       >
         Purchase and send to intake
       </button>
@@ -2232,21 +2232,21 @@ function RiskPanel({
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-300">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-warning">
             Buying Risk
           </p>
           <p className={`mt-2 text-lg font-semibold ${profile.tone}`}>
             {profile.label}
           </p>
         </div>
-        <span className="text-2xl font-semibold text-white">
+        <span className="text-2xl font-semibold text-td-primary">
           {Math.round(profile.score)}
         </span>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.05]">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-td-ink/[0.05]">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-red-400 via-amber-300 to-emerald-300"
+          className="h-full rounded-full bg-gradient-to-r from-td-danger via-td-warning to-td-success"
           style={{ width: `${profile.score}%` }}
         />
       </div>
@@ -2255,15 +2255,15 @@ function RiskPanel({
         {profile.reasons.map((reason) => (
           <div
             key={reason}
-            className="flex items-start gap-2 text-[8px] leading-4 text-slate-600"
+            className="flex items-start gap-2 text-[11px] leading-4 text-td-muted"
           >
-            <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-amber-300" />
+            <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-td-warning" />
             {reason}
           </div>
         ))}
       </div>
 
-      <p className="mt-4 text-[7px] leading-4 text-slate-800">
+      <p className="mt-4 text-[11px] leading-4 text-td-on-accent">
         Demand is estimated from Scryfall metadata such as EDHREC rank,
         Reserved List status, price tier, and reprint information. It is not a
         guarantee of sell-through.
@@ -2289,7 +2289,7 @@ function ProfitPanel({
 
   return (
     <section className={`${styles.glassPanel} rounded-[26px] p-5`}>
-      <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-accent-text">
         Profit Simulation
       </p>
 
@@ -2297,12 +2297,12 @@ function ProfitPanel({
         {rows.map(([label, amount]) => (
           <div
             key={label}
-            className="flex items-center justify-between text-[9px]"
+            className="flex items-center justify-between text-[11px]"
           >
-            <span className="text-slate-600">{label}</span>
+            <span className="text-td-muted">{label}</span>
             <span
               className={
-                amount >= 0 ? "text-slate-300" : "text-red-300/80"
+                amount >= 0 ? "text-td-secondary" : "text-td-danger/80"
               }
             >
               {amount < 0 ? "−" : ""}
@@ -2312,16 +2312,16 @@ function ProfitPanel({
         ))}
       </div>
 
-      <div className="mt-4 border-t border-white/[0.06] pt-4">
+      <div className="mt-4 border-t border-td-ink/[0.06] pt-4">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-semibold text-slate-300">
+          <span className="text-[11px] font-semibold text-td-secondary">
             Projected profit
           </span>
-          <span className="text-lg font-semibold text-emerald-300">
+          <span className="text-lg font-semibold text-td-success">
             {currency(totals.projectedProfit)}
           </span>
         </div>
-        <p className="mt-1 text-right text-[8px] text-slate-700">
+        <p className="mt-1 text-right text-[11px] text-td-muted">
           {totals.projectedMargin.toFixed(1)}% projected net margin
         </p>
       </div>
@@ -2357,7 +2357,7 @@ function BuyingIntelligence({
         title: "Strong liquidity detected",
         detail: `${highDemand.length} line${highDemand.length === 1 ? "" : "s"} rank within the top 1,000 EDHREC cards. A balanced or aggressive offer may be reasonable.`,
         icon: TrendingUp,
-        tone: "text-emerald-300",
+        tone: "text-td-success",
       });
     }
 
@@ -2366,7 +2366,7 @@ function BuyingIntelligence({
         title: "Existing inventory exposure",
         detail: `${overstocked.length} line${overstocked.length === 1 ? "" : "s"} have 10 or more copies already owned. Consider reducing those line offers.`,
         icon: AlertTriangle,
-        tone: "text-amber-300",
+        tone: "text-td-warning",
       });
     }
 
@@ -2375,7 +2375,7 @@ function BuyingIntelligence({
         title: "Labor-heavy inventory",
         detail: `${lowValue.length} line${lowValue.length === 1 ? "" : "s"} are under $1 after condition adjustment. These may cost more to process than they generate.`,
         icon: ClipboardCheck,
-        tone: "text-amber-300",
+        tone: "text-td-warning",
       });
     }
 
@@ -2384,7 +2384,7 @@ function BuyingIntelligence({
         title: "High-value verification",
         detail: `${highEnd.length} card line${highEnd.length === 1 ? "" : "s"} exceed $100 each. Require condition review and authentication before final payment.`,
         icon: ShieldCheck,
-        tone: "text-cyan-300",
+        tone: "text-td-accent-text",
       });
     }
 
@@ -2393,7 +2393,7 @@ function BuyingIntelligence({
         title: "Reserved List value",
         detail: `${reserved.length} line${reserved.length === 1 ? "" : "s"} are Reserved List cards and may justify a stronger offer after authentication.`,
         icon: Store,
-        tone: "text-violet-300",
+        tone: "text-td-violet",
       });
     }
 
@@ -2403,7 +2403,7 @@ function BuyingIntelligence({
         detail:
           "No major concentration warnings were detected. Review physical condition before making the final offer.",
         icon: Sparkles,
-        tone: "text-cyan-300",
+        tone: "text-td-accent-text",
       });
     }
 
@@ -2413,10 +2413,10 @@ function BuyingIntelligence({
   return (
     <section className={`${styles.glassPanel} print-hide mt-5 rounded-[26px] p-5`}>
       <div>
-        <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-violet-300">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-td-violet">
           Buying Intelligence
         </p>
-        <h2 className="mt-2 text-lg font-semibold text-white">
+        <h2 className="mt-2 text-lg font-semibold text-td-primary">
           Collection-level recommendations
         </h2>
       </div>
@@ -2427,13 +2427,13 @@ function BuyingIntelligence({
           return (
             <div
               key={item.title}
-              className="rounded-2xl border border-white/[0.06] bg-black/[0.08] p-4"
+              className="rounded-2xl border border-td-ink/[0.06] bg-black/[0.08] p-4"
             >
               <Icon className={`h-4 w-4 ${item.tone}`} />
-              <p className="mt-3 text-xs font-semibold text-slate-200">
+              <p className="mt-3 text-xs font-semibold text-td-primary">
                 {item.title}
               </p>
-              <p className="mt-2 text-[9px] leading-4 text-slate-600">
+              <p className="mt-2 text-[11px] leading-4 text-td-muted">
                 {item.detail}
               </p>
             </div>
@@ -2590,7 +2590,7 @@ function SettingsModal({
         />
       </div>
 
-      <div className="mt-6 rounded-xl border border-amber-300/[0.1] bg-amber-400/[0.03] p-4 text-[8px] leading-4 text-slate-600">
+      <div className="mt-6 rounded-xl border border-td-warning/[0.1] bg-td-warning/[0.03] p-4 text-[11px] leading-4 text-td-muted">
         The suggested percentages are internal decision-support estimates.
         Final offers should account for physical condition, authenticity,
         current store inventory, local demand, taxes, and marketplace rules.
@@ -2599,7 +2599,7 @@ function SettingsModal({
       <button
         type="button"
         onClick={onClose}
-        className="mt-5 h-10 w-full rounded-xl bg-gradient-to-b from-cyan-300 via-cyan-400 to-sky-500 text-[9px] font-semibold text-[#001018]"
+        className="mt-5 h-10 w-full rounded-xl bg-gradient-to-b from-td-accent via-td-accent to-td-accent text-[11px] font-semibold text-td-on-accent"
       >
         Apply buying rules
       </button>
@@ -2646,7 +2646,7 @@ function HistoryModal({
           return (
             <div
               key={appraisal.id}
-              className="flex flex-col gap-4 rounded-2xl border border-white/[0.06] bg-black/[0.09] p-4 sm:flex-row sm:items-center"
+              className="flex flex-col gap-4 rounded-2xl border border-td-ink/[0.06] bg-black/[0.09] p-4 sm:flex-row sm:items-center"
             >
               <button
                 type="button"
@@ -2654,18 +2654,18 @@ function HistoryModal({
                 className="min-w-0 flex-1 text-left"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-xs font-semibold text-slate-200">
+                  <p className="text-xs font-semibold text-td-primary">
                     {appraisal.customerName}
                   </p>
-                  <span className="rounded-md border border-white/[0.06] bg-white/[0.025] px-1.5 py-0.5 text-[7px] capitalize text-slate-600">
+                  <span className="rounded-md border border-td-ink/[0.06] bg-td-ink/[0.025] px-1.5 py-0.5 text-[11px] capitalize text-td-muted">
                     {appraisal.status}
                   </span>
                 </div>
-                <p className="mt-1 text-[8px] text-slate-700">
+                <p className="mt-1 text-[11px] text-td-muted">
                   {new Date(appraisal.createdAt).toLocaleString()} ·{" "}
                   {appraisal.cards.length} lines
                 </p>
-                <p className="mt-2 text-[9px] text-slate-500">
+                <p className="mt-2 text-[11px] text-td-muted">
                   Market {currency(market)} · Offer {currency(offer)}
                 </p>
               </button>
@@ -2673,7 +2673,7 @@ function HistoryModal({
               <button
                 type="button"
                 onClick={() => onDelete(appraisal.id)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] text-slate-700 hover:text-red-300"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-td-ink/[0.06] text-td-muted hover:text-td-danger"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -2682,9 +2682,9 @@ function HistoryModal({
         })}
 
         {!appraisals.length ? (
-          <div className="rounded-2xl border border-dashed border-white/[0.07] py-14 text-center">
-            <History className="mx-auto h-5 w-5 text-slate-800" />
-            <p className="mt-3 text-xs text-slate-600">
+          <div className="rounded-2xl border border-dashed border-td-ink/[0.07] py-14 text-center">
+            <History className="mx-auto h-5 w-5 text-td-on-accent" />
+            <p className="mt-3 text-xs text-td-muted">
               No saved appraisals yet
             </p>
           </div>
@@ -2702,11 +2702,11 @@ function SessionPill({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-      <p className="text-[7px] uppercase tracking-[0.11em] text-slate-700">
+    <div className="rounded-xl border border-td-ink/[0.06] bg-td-ink/[0.02] px-3 py-2">
+      <p className="text-[11px] uppercase tracking-[0.11em] text-td-muted">
         {label}
       </p>
-      <p className="mt-1 text-[9px] font-semibold text-slate-300">
+      <p className="mt-1 text-[11px] font-semibold text-td-secondary">
         {value}
       </p>
     </div>
@@ -2726,7 +2726,7 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/[0.065] bg-white/[0.02] px-3 text-[8px] font-semibold text-slate-500 transition hover:border-cyan-300/[0.12] hover:text-cyan-200"
+      className="inline-flex h-9 items-center gap-2 rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3 text-[11px] font-semibold text-td-muted transition hover:border-td-accent/[0.12] hover:text-td-accent-text"
     >
       <Icon className="h-3.5 w-3.5" />
       {label}
@@ -2748,7 +2748,7 @@ function Input({
       value={value}
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
-      className="h-10 w-full rounded-xl border border-white/[0.065] bg-white/[0.02] px-3 text-[10px] text-slate-300 outline-none placeholder:text-slate-700"
+      className="h-10 w-full rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3 text-[11px] text-td-secondary outline-none placeholder:text-td-muted"
     />
   );
 }
@@ -2772,12 +2772,12 @@ function SettingNumber({
 }) {
   return (
     <label>
-      <span className="mb-2 block text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
         {label}
       </span>
-      <span className="flex h-10 items-center rounded-xl border border-white/[0.065] bg-white/[0.02] px-3">
+      <span className="flex h-10 items-center rounded-xl border border-td-ink/[0.065] bg-td-ink/[0.02] px-3">
         {prefix ? (
-          <span className="mr-1 text-[9px] text-slate-700">{prefix}</span>
+          <span className="mr-1 text-[11px] text-td-muted">{prefix}</span>
         ) : null}
         <input
           type="number"
@@ -2785,10 +2785,10 @@ function SettingNumber({
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(Number(event.target.value) || 0)}
-          className="min-w-0 flex-1 bg-transparent text-[10px] text-slate-300 outline-none disabled:opacity-40"
+          className="min-w-0 flex-1 bg-transparent text-[11px] text-td-secondary outline-none disabled:opacity-40"
         />
         {suffix ? (
-          <span className="ml-1 text-[9px] text-slate-700">{suffix}</span>
+          <span className="ml-1 text-[11px] text-td-muted">{suffix}</span>
         ) : null}
       </span>
     </label>
@@ -2808,13 +2808,13 @@ function SettingSelect({
 }) {
   return (
     <label>
-      <span className="mb-2 block text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-700">
+      <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-td-muted">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-xl border border-white/[0.065] bg-[#07141e] px-3 text-[10px] text-slate-400 outline-none"
+        className="h-10 w-full rounded-xl border border-td-ink/[0.065] bg-td-surface px-3 text-[11px] text-td-secondary outline-none"
       >
         {options.map(([optionValue, optionLabel]) => (
           <option key={optionValue} value={optionValue}>
@@ -2844,7 +2844,7 @@ function ModalFrame({
         aria-label="Close"
       />
       <div
-        className={`relative z-10 max-h-[92vh] w-full ${maxWidth} overflow-y-auto rounded-[28px] border border-cyan-300/[0.13] bg-[#06131d]/98 p-5 shadow-[0_38px_120px_rgba(0,0,0,0.58)] sm:p-6`}
+        className={`relative z-10 max-h-[92vh] w-full ${maxWidth} overflow-y-auto rounded-[28px] border border-td-accent/[0.13] bg-td-surface/98 p-5 shadow-[0_38px_120px_rgb(var(--td-shadow-rgb)/calc(0.58*var(--td-shadow-strength)))] sm:p-6`}
       >
         {children}
       </div>
@@ -2864,15 +2864,15 @@ function ModalHeader({
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <p className="text-[8px] font-semibold uppercase tracking-[0.17em] text-cyan-300">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.17em] text-td-accent-text">
           {eyebrow}
         </p>
-        <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
+        <h2 className="mt-2 text-xl font-semibold text-td-primary">{title}</h2>
       </div>
       <button
         type="button"
         onClick={onClose}
-        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-slate-500"
+        className="flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[0.07] bg-td-ink/[0.025] text-td-muted"
       >
         <X className="h-4 w-4" />
       </button>
