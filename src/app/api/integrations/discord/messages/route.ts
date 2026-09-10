@@ -93,11 +93,15 @@ export async function POST(request: Request) {
       error_code: summary.code ?? `http_${summary.status}`,
       error_summary: summary.message.slice(0, 240),
     });
-    const message = summary.status === 429
-      ? "Discord is rate limiting posts. Wait a moment and try again."
+    const message = summary.status === 401
+      ? "The Discord connection is no longer valid. Reconnect Discord and try again."
       : summary.status === 403
-        ? "Discord rejected this post. Check the bot's channel permissions."
-        : "Discord could not accept this post. Check the integration and try again.";
+        ? "The bot cannot send messages to this channel. Check the bot's channel permissions."
+        : summary.status === 404
+          ? "Discord could not find this channel. Refresh channels and try again."
+          : summary.status === 429
+            ? "Discord is rate limiting posts. Wait a moment and try again."
+            : "Unable to send announcement.";
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
