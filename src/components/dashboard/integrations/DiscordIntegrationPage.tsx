@@ -75,6 +75,7 @@ export function DiscordIntegrationPage({
   const [logs, setLogs] = useState(initialLogs);
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [dismissedQueryError, setDismissedQueryError] = useState(false);
   const [type, setType] = useState<AnnouncementType>("general");
   const [title, setTitle] = useState(templates.general.title);
   const [body, setBody] = useState(templates.general.body);
@@ -108,6 +109,7 @@ export function DiscordIntegrationPage({
     try {
       const result = await requestJson("/api/integrations/discord/channels/discover", { method: "POST" });
       setChannels(result.channels ?? []);
+      setDismissedQueryError(true);
       setFeedback("Discord channels refreshed.");
     } catch (error) { setFeedback(error instanceof Error ? error.message : "Channels could not be refreshed."); }
     finally { setBusy(null); }
@@ -152,6 +154,7 @@ export function DiscordIntegrationPage({
   }
 
   const errorMessage = queryError ? ({ configuration_required: "Discord is not configured on this deployment yet. Add the server-side Discord Developer Portal values before connecting.", admin_required: "Only a workspace owner or admin can connect or manage Discord.", oauth_cancelled: "Discord authorization was cancelled.", oauth_state_invalid: "The Discord authorization expired or was already used. Start again.", oauth_exchange_failed: "Discord authorization could not be completed. Check the app configuration and try again.", integration_save_failed: "Discord authorized the app, but the workspace connection could not be saved.", state_unavailable: "A secure Discord authorization state could not be created." } as Record<string, string>)[queryError] ?? "Discord connection could not be completed." : null;
+  const visibleErrorMessage = integration?.status === "connected" || dismissedQueryError ? null : errorMessage;
 
   return (
     <main className="dashboard-responsive mx-auto max-w-[1200px] px-4 py-7 sm:px-7 sm:py-9">
@@ -163,7 +166,7 @@ export function DiscordIntegrationPage({
         </div>
         {integration?.status === "connected" ? <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[.07] px-3 py-1.5 text-xs font-bold text-emerald-300"><span className="h-2 w-2 rounded-full bg-emerald-300" /> Connected</span> : null}
       </div>
-      {errorMessage || connected ? <div className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${connected ? "border-emerald-400/20 bg-emerald-400/[.06] text-emerald-100" : "border-amber-300/20 bg-amber-300/[.06] text-amber-100"}`} role="status">{connected ? "Discord is connected. Refresh channels to choose where Trading Docks may post." : errorMessage}</div> : null}
+      {visibleErrorMessage || connected ? <div className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${connected ? "border-emerald-400/20 bg-emerald-400/[.06] text-emerald-100" : "border-amber-300/20 bg-amber-300/[.06] text-amber-100"}`} role="status">{connected ? "Discord is connected. Refresh channels to choose where Trading Docks may post." : visibleErrorMessage}</div> : null}
       {feedback ? <div className="mt-4 rounded-2xl border border-td-accent/20 bg-td-accent/[.06] px-4 py-3 text-sm text-td-secondary" role="status">{feedback}</div> : null}
 
       {!integration || integration.status !== "connected" ? (

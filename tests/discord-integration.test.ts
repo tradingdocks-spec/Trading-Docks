@@ -90,3 +90,27 @@ test("manual V1 deliberately has no automatic inventory trigger or scheduler", (
   assert.match(component, /Choose recent inventory/);
   assert.doesNotMatch(migration, /pg_cron|schedule|inventory.*trigger/i);
 });
+
+test("channel discovery returns persisted binding field names to the UI", () => {
+  const route = read("src/app/api/integrations/discord/channels/discover/route.ts");
+  assert.match(route, /\.select\("id,channel_id,channel_name,purpose,enabled,can_view,can_send,can_embed,unavailable_reason"\)/);
+  assert.match(route, /return NextResponse\.json\(\{ channels: bindings \?\? \[\] \}\)/);
+  assert.match(route, /onConflict: "discord_integration_id,channel_id"/);
+});
+
+test("successful connection or channel refresh clears stale OAuth errors", () => {
+  const component = read("src/components/dashboard/integrations/DiscordIntegrationPage.tsx");
+  assert.match(component, /dismissedQueryError/);
+  assert.match(component, /setDismissedQueryError\(true\)/);
+  assert.match(component, /integration\?\.status === "connected" \|\| dismissedQueryError/);
+});
+
+test("channel authorization and purpose updates feed the authorized composer", () => {
+  const route = read("src/app/api/integrations/discord/channels/route.ts");
+  const component = read("src/components/dashboard/integrations/DiscordIntegrationPage.tsx");
+  assert.match(route, /\.update\(\{ enabled: body\.enabled, purpose \}\)/);
+  assert.match(route, /\.eq\("id", bindingId\).*\.eq\("workspace_id", actor\.workspaceId\)/s);
+  assert.match(component, /option value="showcase">Showcase/);
+  assert.match(component, /enabledChannels\.map\(\(channel\) => <option key=\{channel\.id\} value=\{channel\.id\}># \{channel\.channel_name\}/);
+  assert.match(component, /aria-label=\{`Purpose for \$\{channel\.channel_name\}`\}/);
+});

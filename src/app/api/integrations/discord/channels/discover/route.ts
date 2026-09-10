@@ -34,7 +34,14 @@ export async function POST() {
       if (error) throw error;
     }
     await actor.supabase.from("discord_channel_bindings").update({ last_seen_at: null, enabled: false }).eq("discord_integration_id", integration.id).lt("last_seen_at", now);
-    return NextResponse.json({ channels });
+    const { data: bindings, error: bindingError } = await actor.supabase
+      .from("discord_channel_bindings")
+      .select("id,channel_id,channel_name,purpose,enabled,can_view,can_send,can_embed,unavailable_reason")
+      .eq("workspace_id", actor.workspaceId)
+      .eq("discord_integration_id", integration.id)
+      .order("channel_name", { ascending: true });
+    if (bindingError) throw bindingError;
+    return NextResponse.json({ channels: bindings ?? [] });
   } catch (error) {
     console.error("Discord channel discovery failed", { workspaceId: actor.workspaceId, integrationId: integration.id, error: error instanceof Error ? error.message : error });
     return NextResponse.json({ error: "Discord channels could not be refreshed. Check that the bot is still installed." }, { status: 502 });
