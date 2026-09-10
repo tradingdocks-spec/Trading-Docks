@@ -94,7 +94,7 @@ export function hashDiscordOAuthState(value: string) {
 export function discordAuthorizeUrl(state: string) {
   const params = new URLSearchParams({
     client_id: applicationId(),
-    scope: "bot applications.commands",
+    scope: "bot",
     permissions: String(Number(VIEW_CHANNEL | SEND_MESSAGES | EMBED_LINKS)),
     response_type: "code",
     redirect_uri: redirectUri(),

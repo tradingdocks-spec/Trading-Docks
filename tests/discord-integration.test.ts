@@ -45,7 +45,7 @@ test("Discord authorization requests only server-configured application identity
   const url = new URL(discordAuthorizeUrl("state-value"));
   assert.equal(url.searchParams.get("client_id"), "app-test");
   assert.equal(url.searchParams.get("state"), "state-value");
-  assert.equal(url.searchParams.get("scope"), "bot applications.commands");
+  assert.equal(url.searchParams.get("scope"), "bot");
   if (previous.id === undefined) delete process.env.DISCORD_APPLICATION_ID; else process.env.DISCORD_APPLICATION_ID = previous.id;
   if (previous.redirect === undefined) delete process.env.DISCORD_REDIRECT_URI; else process.env.DISCORD_REDIRECT_URI = previous.redirect;
   if (previous.site === undefined) delete process.env.NEXT_PUBLIC_SITE_URL; else process.env.NEXT_PUBLIC_SITE_URL = previous.site;

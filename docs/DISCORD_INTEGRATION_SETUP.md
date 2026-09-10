@@ -10,7 +10,7 @@ Trading Docks uses one centrally managed Discord application. Each workspace ins
 4. Add the redirect URI for every environment:
    - Local: `http://localhost:3000/api/integrations/discord/callback`
    - Production: `https://www.tradingdocks.com/api/integrations/discord/callback`
-5. The install URL requests the `bot` and `applications.commands` scopes and the minimum bot permissions needed for V1: View Channel, Send Messages, and Embed Links.
+5. The Trading Docks Connect button requests only the `bot` scope and the minimum bot permissions needed for V1: View Channel, Send Messages, and Embed Links. V1 does not use slash commands.
 
 ## Server configuration
 
