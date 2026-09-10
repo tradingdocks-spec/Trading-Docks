@@ -3,10 +3,12 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 const migration = readFileSync("supabase/migrations/202609090003_showcase_operations.sql", "utf8");
+const pairingFixMigration = readFileSync("supabase/migrations/202609100001_showcase_kiosk_pairing_consume_fix.sql", "utf8");
 const foundation = readFileSync("supabase/migrations/202609090001_showcase_v1.sql", "utf8");
 const kioskRoute = readFileSync("src/app/api/showcase/kiosk/route.ts", "utf8");
 const requestRoute = readFileSync("src/app/api/showcase/requests/route.ts", "utf8");
 const pairRoute = readFileSync("src/app/api/showcase/kiosks/pair/route.ts", "utf8");
+const pairingLib = readFileSync("src/lib/showcase-pairing.ts", "utf8");
 const ownerKioskRoute = readFileSync("src/app/api/showcase/kiosks/route.ts", "utf8");
 const kioskManagementPage = readFileSync("src/app/dashboard/showcase/kiosks/page.tsx", "utf8");
 const settingsRoute = readFileSync("src/app/api/showcase/settings/route.ts", "utf8");
@@ -43,7 +45,7 @@ test("kiosk requests use the validated kiosk tenant and never expose dashboard a
 
 test("owner pairing generation is secure and separate from public consumption", () => {
   assert.match(ownerKioskRoute, /randomInt\(100000, 1000000\)/);
-  assert.match(ownerKioskRoute, /createHash\("sha256"\)/);
+  assert.match(pairingLib, /createHash\("sha256"\)/);
   assert.match(ownerKioskRoute, /expiresAt/);
   assert.match(ownerKioskRoute, /workspace admin access required/i);
   assert.match(ownerKioskRoute, /pairingCode/);
@@ -52,6 +54,17 @@ test("owner pairing generation is secure and separate from public consumption", 
   assert.match(ownerKioskRoute, /showcase_kiosk_pairing_codes/);
   assert.match(ownerKioskRoute, /create_pairing_code/);
   assert.match(pairRoute, /action !== "consume"/);
+});
+
+test("pairing generation and consumption share formatted six-digit normalization", () => {
+  assert.match(pairingLib, /replace\(\/\[\^0-9\]\/g, ""\)/);
+  assert.match(pairingLib, /update\(normalizeShowcasePairingCode\(value\), "utf8"\)/);
+  assert.match(pairRoute, /normalizedCode/);
+  assert.match(migration, /extensions\.digest/);
+  assert.match(migration, /convert_to/);
+  assert.match(pairingFixMigration, /P0003/);
+  assert.match(pairingFixMigration, /P0004/);
+  assert.match(pairRoute, /PAIRING_CODE_ALREADY_USED/);
 });
 
 test("owner kiosk navigation resolves to the existing Showcase management component", () => {

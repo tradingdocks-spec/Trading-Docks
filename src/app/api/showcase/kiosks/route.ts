@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { createHash, randomInt } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { hashShowcasePairingCode } from "@/lib/showcase-pairing";
 
 type DatabaseError = { code?: string; message?: string; details?: string };
 
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   const { error } = await supabase.from("showcase_kiosk_pairing_codes").insert({
     workspace_id: workspaceId,
-    code_hash: createHash("sha256").update(code).digest("hex"),
+    code_hash: hashShowcasePairingCode(code),
     created_by: user.id,
     expires_at: expiresAt,
   });
