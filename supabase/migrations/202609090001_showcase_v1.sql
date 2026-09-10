@@ -93,7 +93,9 @@ create or replace function public.get_public_showcase_inventory(
 returns table (
   public_id text, game text, name text, set_name text, set_code text,
   collector_number text, rarity text, condition text, finish text,
-  language text, image_url text, public_price numeric, sellable_quantity integer
+  language text, image_url text, provider_image_url text, scryfall_id text,
+  provider_product_id text, tcgplayer_product_id bigint,
+  public_price numeric, sellable_quantity integer
 )
 language sql stable security definer set search_path = public
 as $$
@@ -101,7 +103,14 @@ as $$
     i.id::text, coalesce(nullif(i.data->>'game',''),'Magic: The Gathering'),
     i.card_name, coalesce(i.data->>'setName', i.set_code), i.set_code,
     i.collector_number, i.data->>'rarity', i.data->>'condition', i.data->>'finish',
-    i.data->>'language', i.data->>'imageUrl',
+    i.data->>'language',
+    coalesce(nullif(i.data->>'imageUrl',''), nullif(i.data->>'image_url',''), nullif(i.data->>'photoUrl',''), nullif(i.data->>'photo_url','')),
+    coalesce(nullif(i.data->>'imageUrl',''), nullif(i.data->>'image_url',''), nullif(i.data->>'photoUrl',''), nullif(i.data->>'photo_url','')),
+    i.scryfall_id,
+    coalesce(nullif(i.data->>'providerProductId',''), nullif(i.data->>'provider_product_id','')),
+    case when coalesce(i.data->>'tcgplayerProductId', i.data->>'tcgplayer_product_id') ~ '^[0-9]+$'
+      then coalesce(i.data->>'tcgplayerProductId', i.data->>'tcgplayer_product_id')::bigint
+      else null end,
     greatest(0, coalesce(nullif(i.data->>'marketPrice','')::numeric, i.inventory_value, 0)),
     greatest(0, i.quantity)
   from public.showcase_profiles p

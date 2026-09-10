@@ -12,11 +12,25 @@ const kioskManagementPage = readFileSync("src/app/dashboard/showcase/kiosks/page
 const settingsRoute = readFileSync("src/app/api/showcase/settings/route.ts", "utf8");
 const settingsComponent = readFileSync("src/components/dashboard/showcase/ShowcaseSettings.tsx", "utf8");
 const dashboardComponent = readFileSync("src/components/dashboard/showcase/ShowcaseDashboard.tsx", "utf8");
+const imageMigration = readFileSync("supabase/migrations/202609100003_showcase_image_projection.sql", "utf8");
+const publicExperience = readFileSync("src/components/showcase/ShowcasePublicExperience.tsx", "utf8");
 
 test("Showcase public projection omits private inventory fields", () => {
   assert.match(foundation, /get_public_showcase_inventory/);
   assert.match(foundation, /data->>'private'/);
   assert.doesNotMatch(foundation.slice(foundation.indexOf("returns table"), foundation.indexOf("language sql")), /costBasis|inventory_value|location_id|user_id/);
+});
+
+test("Showcase public inventory exposes safe image identity and resolves fallback artwork", async () => {
+  assert.match(foundation, /provider_image_url text/);
+  assert.match(foundation, /i\.scryfall_id/);
+  assert.match(imageMigration, /drop function if exists public\.get_public_showcase_inventory/);
+  assert.match(imageMigration, /tcgplayer_product_id bigint/);
+  assert.match(publicExperience, /ShowcaseCardImage/);
+  const { showcaseImageCandidates } = await import("../src/lib/showcase-image.ts");
+  const candidates = showcaseImageCandidates({ game: "Magic: The Gathering", scryfall_id: "999b5185-7e5c-428a-827c-b7d963b679b7" });
+  assert.equal(candidates[0], "https://api.scryfall.com/cards/999b5185-7e5c-428a-827c-b7d963b679b7?format=image&version=normal");
+  assert.match(candidates[1], /version=small$/);
 });
 
 test("Showcase operations have durable picking and reservation state", () => {
