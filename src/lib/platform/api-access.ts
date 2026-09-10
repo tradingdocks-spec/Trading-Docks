@@ -47,6 +47,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "marketing-unsubscribe", pattern: /^\/api\/marketing\/unsubscribe(\/|$)/, kind: "public", label: "Marketing unsubscribe API" },
   { id: "marketing", pattern: /^\/api\/marketing(\/|$)/, kind: "capability", capability: "crm.manage", label: "CRM marketing APIs" },
   { id: "binder-shares", pattern: /^\/api\/binder-shares(\/|$)/, kind: "capability", capability: "binder.manage", label: "Binder share API" },
+  { id: "showcase", pattern: /^\/api\/showcase(\/|$)/, kind: "public", label: "Showcase public and guarded APIs" },
   { id: "tcgcsv-sync", pattern: /^\/api\/tcgcsv\/sync(\/|$)/, kind: "server-only", label: "TCGCSV server sync" },
 ];
 

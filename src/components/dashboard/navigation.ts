@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   Layers3,
   LibraryBig,
+  MonitorSmartphone,
   PackageCheck,
   PackageOpen,
   PackageSearch,
@@ -78,6 +79,11 @@ export const PRIMARY_NAV: NavigationItem[] = [
     href: "/dashboard/deck-vault",
     label: "Deck Vault",
     icon: LibraryBig,
+  },
+  {
+    href: "/dashboard/showcase",
+    label: "Showcase",
+    icon: MonitorSmartphone,
   },
 ];
 

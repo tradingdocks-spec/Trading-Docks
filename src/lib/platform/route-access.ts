@@ -34,6 +34,7 @@ export const ROUTE_ACCESS_REGISTRY: RouteAccessRule[] = [
   { id: "collector-profile-public", pattern: /^\/collectors(\/|$)/, kind: "public", label: "Public collector profile" },
   { id: "share", pattern: /^\/share\/(binder|portfolio)(\/|$)/, kind: "public", label: "Shared collection link" },
   { id: "dashboard", pattern: /^\/dashboard\/?$/, kind: "authenticated", label: "Dashboard" },
+  { id: "showcase", pattern: /^\/dashboard\/showcase(\/|$)/, kind: "authenticated", label: "Showcase" },
   { id: "dashboard-plans", pattern: /^\/dashboard\/(plans|billing\/success)(\/|$)/, kind: "authenticated", label: "Plans and billing" },
   { id: "dashboard-chaos-sort-redirect", pattern: /^\/dashboard\/imports\/chaos-sort\/?$/, kind: "authenticated", label: "Chaos Sort redirect" },
   { id: "card-workspace", pattern: /^\/dashboard\/cards(\/|$)/, kind: "capability", capability: "collection.read", label: "Card Workspace" },
