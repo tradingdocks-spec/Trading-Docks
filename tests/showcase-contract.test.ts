@@ -100,6 +100,9 @@ test("reservation lifecycle is guarded and idempotent", () => {
 test("Showcase routes are registered with explicit access rules", async () => {
   const { routeAccessRuleForPath } = await import("../src/lib/platform/route-access.ts");
   const { apiAccessRuleForPath } = await import("../src/lib/platform/api-access.ts");
+  const { apiRequiresAuthentication } = await import("../src/lib/supabase/proxy-routing.ts");
   assert.notEqual(routeAccessRuleForPath("/dashboard/showcase")?.id, "dashboard-fallback");
   assert.notEqual(apiAccessRuleForPath("/api/showcase/kiosks/pair")?.id, "api-fallback");
+  assert.equal(apiRequiresAuthentication("/api/showcase/kiosks/pair"), false);
+  assert.equal(apiRequiresAuthentication("/api/showcase/kiosk"), false);
 });

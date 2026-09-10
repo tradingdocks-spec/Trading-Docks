@@ -17,7 +17,7 @@ create or replace function public.consume_showcase_pairing_code(input_code text,
 declare code_row record; token text; device_id uuid; begin
   select * into code_row from public.showcase_kiosk_pairing_codes where code_hash = encode(extensions.digest(convert_to(regexp_replace(coalesce(input_code, ''), '[^0-9]', '', 'g'), 'UTF8'), 'sha256'), 'hex') and consumed_at is null and expires_at > now() for update;
   if not found then raise exception using errcode = 'P0002', message = 'Pairing code is invalid or expired.'; end if;
-  token := encode(gen_random_bytes(32), 'hex');
+  token := encode(extensions.gen_random_bytes(32), 'hex');
   insert into public.showcase_kiosk_devices(workspace_id, display_name, token_hash) values (code_row.workspace_id, coalesce(nullif(trim(device_name),''),'Front Counter'), encode(extensions.digest(convert_to(token, 'UTF8'), 'sha256'), 'hex')) returning id into device_id;
   update public.showcase_kiosk_pairing_codes set consumed_at = now() where id = code_row.id;
   return jsonb_build_object('device_id', device_id, 'token', token);

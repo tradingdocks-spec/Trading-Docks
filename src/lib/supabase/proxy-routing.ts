@@ -14,6 +14,8 @@ const API_AUTH_EXEMPT_PREFIXES = [
   "/api/webhooks/",
   "/api/marketplaces/",
   "/api/scanner/",
+  "/api/showcase/kiosks/pair",
+  "/api/showcase/kiosk",
 ];
 
 export function apiRequiresAuthentication(pathname: string) {
