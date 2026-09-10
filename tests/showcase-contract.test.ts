@@ -7,6 +7,7 @@ const foundation = readFileSync("supabase/migrations/202609090001_showcase_v1.sq
 const kioskRoute = readFileSync("src/app/api/showcase/kiosk/route.ts", "utf8");
 const requestRoute = readFileSync("src/app/api/showcase/requests/route.ts", "utf8");
 const pairRoute = readFileSync("src/app/api/showcase/kiosks/pair/route.ts", "utf8");
+const ownerKioskRoute = readFileSync("src/app/api/showcase/kiosks/route.ts", "utf8");
 const kioskManagementPage = readFileSync("src/app/dashboard/showcase/kiosks/page.tsx", "utf8");
 
 test("Showcase public projection omits private inventory fields", () => {
@@ -35,6 +36,15 @@ test("kiosk requests use the validated kiosk tenant and never expose dashboard a
   assert.match(requestRoute, /source: "kiosk"/);
   assert.match(pairRoute, /httpOnly: true/);
   assert.doesNotMatch(kioskRoute, /dashboard|admin/i);
+});
+
+test("owner pairing generation is secure and separate from public consumption", () => {
+  assert.match(ownerKioskRoute, /randomInt\(100000, 1000000\)/);
+  assert.match(ownerKioskRoute, /createHash\("sha256"\)/);
+  assert.match(ownerKioskRoute, /expiresAt/);
+  assert.match(ownerKioskRoute, /workspace admin access required/i);
+  assert.match(ownerKioskRoute, /pairingCode/);
+  assert.match(pairRoute, /action !== "consume"/);
 });
 
 test("owner kiosk navigation resolves to the existing Showcase management component", () => {
