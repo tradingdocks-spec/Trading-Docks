@@ -7,6 +7,7 @@ const foundation = readFileSync("supabase/migrations/202609090001_showcase_v1.sq
 const kioskRoute = readFileSync("src/app/api/showcase/kiosk/route.ts", "utf8");
 const requestRoute = readFileSync("src/app/api/showcase/requests/route.ts", "utf8");
 const pairRoute = readFileSync("src/app/api/showcase/kiosks/pair/route.ts", "utf8");
+const kioskManagementPage = readFileSync("src/app/dashboard/showcase/kiosks/page.tsx", "utf8");
 
 test("Showcase public projection omits private inventory fields", () => {
   assert.match(foundation, /get_public_showcase_inventory/);
@@ -34,6 +35,12 @@ test("kiosk requests use the validated kiosk tenant and never expose dashboard a
   assert.match(requestRoute, /source: "kiosk"/);
   assert.match(pairRoute, /httpOnly: true/);
   assert.doesNotMatch(kioskRoute, /dashboard|admin/i);
+});
+
+test("owner kiosk navigation resolves to the existing Showcase management component", () => {
+  assert.match(kioskManagementPage, /KioskManagement/);
+  assert.match(kioskManagementPage, /showcase_kiosk_devices/);
+  assert.doesNotMatch(kioskManagementPage, /\/dashboard\/kiosk/);
 });
 
 test("reservation lifecycle is guarded and idempotent", () => {
