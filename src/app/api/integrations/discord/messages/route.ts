@@ -10,6 +10,7 @@ type MessageBody = {
   body?: unknown;
   link?: unknown;
   featuredCards?: unknown;
+  tournamentId?: unknown;
 };
 
 function safeText(value: unknown, max: number) {
@@ -53,6 +54,11 @@ export async function POST(request: Request) {
   ]);
   if (!binding || !integration || binding.discord_integration_id !== integration.id) return NextResponse.json({ error: "The selected Discord channel is not authorized for this workspace." }, { status: 409 });
   if (!binding.enabled || !binding.can_send) return NextResponse.json({ error: "Enable this channel after granting the bot permission to post." }, { status: 422 });
+  const tournamentId = typeof body?.tournamentId === "string" ? body.tournamentId : null;
+  if (tournamentId) {
+    const { data: tournament } = await actor.supabase.from("tournaments").select("id").eq("id", tournamentId).eq("workspace_id", actor.workspaceId).maybeSingle();
+    if (!tournament) return NextResponse.json({ error: "The selected tournament is not available in this workspace." }, { status: 409 });
+  }
 
   const showcaseUrl = profile?.enabled && profile.slug
     ? `${(process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/$/, "")}/s/${encodeURIComponent(profile.slug)}?utm_source=discord&utm_medium=community`
@@ -72,6 +78,7 @@ export async function POST(request: Request) {
       title,
       message_preview: preview,
       discord_message_id: sent.id,
+      tournament_id: tournamentId,
       status: "sent",
       sent_by: actor.user.id,
     });
@@ -89,6 +96,7 @@ export async function POST(request: Request) {
       title,
       message_preview: preview,
       status: "failed",
+      tournament_id: tournamentId,
       sent_by: actor.user.id,
       error_code: summary.code ?? `http_${summary.status}`,
       error_summary: summary.message.slice(0, 240),

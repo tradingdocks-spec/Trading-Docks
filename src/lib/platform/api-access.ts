@@ -48,6 +48,8 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "marketing", pattern: /^\/api\/marketing(\/|$)/, kind: "capability", capability: "crm.manage", label: "CRM marketing APIs" },
   { id: "binder-shares", pattern: /^\/api\/binder-shares(\/|$)/, kind: "capability", capability: "binder.manage", label: "Binder share API" },
   { id: "showcase", pattern: /^\/api\/showcase(\/|$)/, kind: "public", label: "Showcase public and guarded APIs" },
+  { id: "public-tournament-registration", pattern: /^\/api\/events\/[^/]+\/register\/?$/, kind: "public", label: "Public tournament registration" },
+  { id: "tournament-operations", pattern: /^\/api\/dashboard\/tournaments(\/|$)/, kind: "capability", capability: "events.manage", label: "Tournament operations" },
   { id: "discord-integrations", pattern: /^\/api\/integrations\/discord(\/|$)/, kind: "authenticated", label: "Discord integration" },
   { id: "tcgcsv-sync", pattern: /^\/api\/tcgcsv\/sync(\/|$)/, kind: "server-only", label: "TCGCSV server sync" },
 ];
