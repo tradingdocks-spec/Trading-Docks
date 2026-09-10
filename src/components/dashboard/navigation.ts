@@ -25,6 +25,7 @@ import {
   Percent,
   MessageSquarePlus,
   Megaphone,
+  PlugZap,
   Scale,
   Settings,
   ShoppingBag,
@@ -121,6 +122,10 @@ export const MARKETING_NAV: NavigationItem[] = [
   { href: "/dashboard/marketing/audiences", label: "Audiences", icon: Users },
   { href: "/dashboard/marketing/templates", label: "Templates", icon: FileBarChart2 },
   { href: "/dashboard/marketing/suppression", label: "Suppression", icon: ShieldCheck },
+];
+
+export const INTEGRATIONS_NAV: NavigationItem[] = [
+  { href: "/dashboard/integrations/discord", label: "Discord", icon: PlugZap },
 ];
 
 export const PURCHASING_NAV: NavigationSection = {
@@ -440,6 +445,7 @@ export function getAccountAwareNavigationGroups(
       group("purchasing", PURCHASING_NAV.label, PURCHASING_NAV.children, clientAccess),
       group("selling", SELLING_NAV.label, SELLING_NAV.children, clientAccess),
       group("marketing", "Marketing", MARKETING_NAV, clientAccess),
+      group("integrations", "Integrations", INTEGRATIONS_NAV, clientAccess),
       group("insights", INSIGHTS_NAV.label, INSIGHTS_NAV.children, clientAccess),
       group(
         "operations",
