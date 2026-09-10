@@ -15,6 +15,7 @@ import {
   History,
   LayoutDashboard,
   LibraryBig,
+  MonitorSmartphone,
   PackageCheck,
   PackageOpen,
   PackageSearch,
@@ -70,6 +71,11 @@ export const PRIMARY_NAV: NavigationItem[] = [
     href: "/dashboard/inventory",
     label: "Inventory",
     icon: Boxes,
+  },
+  {
+    href: "/dashboard/showcase",
+    label: "Showcase",
+    icon: MonitorSmartphone,
   },
   {
     href: "/dashboard/collector-portfolio",

@@ -1,0 +1,9 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ requestId: string; itemId: string }> }) {
+  const { requestId, itemId } = await params; const body = await request.json().catch(() => null) as { pickedQuantity?: unknown } | null; const picked = typeof body?.pickedQuantity === "number" ? Math.floor(body.pickedQuantity) : -1; const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+  const { data: preference } = await supabase.from("user_preferences").select("active_workspace_id").eq("user_id", user.id).maybeSingle(); const { data: row } = await supabase.from("showcase_request_items").select("id,requested_quantity,request:showcase_requests!inner(workspace_id,status)").eq("id", itemId).eq("request_id", requestId).maybeSingle(); const parent = Array.isArray(row?.request) ? row?.request[0] : row?.request;
+  if (!row || !parent || parent.workspace_id !== preference?.active_workspace_id) return NextResponse.json({ error: "Request item not found." }, { status: 404 }); if (parent.status !== "picking" || picked < 0 || picked > row.requested_quantity) return NextResponse.json({ error: "Invalid picked quantity." }, { status: 409 });
+  const { data, error } = await supabase.from("showcase_request_items").update({ picked_quantity: picked, picked_at: picked === row.requested_quantity ? new Date().toISOString() : null, picked_by: user.id }).eq("id", itemId).select("id,picked_quantity,picked_at").single(); if (error) return NextResponse.json({ error: "Pick state could not be saved." }, { status: 400 }); return NextResponse.json({ item: data });
+}

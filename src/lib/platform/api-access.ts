@@ -43,6 +43,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "marketplaces", pattern: /^\/api\/marketplaces(\/|$)/, kind: "capability", capability: "marketplaces.manage", label: "Marketplace APIs" },
   { id: "orders", pattern: /^\/api\/orders(\/|$)/, kind: "capability", capability: "orders.manage", label: "Order APIs" },
   { id: "binder-shares", pattern: /^\/api\/binder-shares(\/|$)/, kind: "capability", capability: "binder.manage", label: "Binder share API" },
+  { id: "showcase", pattern: /^\/api\/showcase(\/|$)/, kind: "public", label: "Showcase public and guarded APIs" },
   { id: "tcgcsv-sync", pattern: /^\/api\/tcgcsv\/sync(\/|$)/, kind: "server-only", label: "TCGCSV server sync" },
 ];
 
