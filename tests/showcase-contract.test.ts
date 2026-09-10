@@ -9,6 +9,9 @@ const requestRoute = readFileSync("src/app/api/showcase/requests/route.ts", "utf
 const pairRoute = readFileSync("src/app/api/showcase/kiosks/pair/route.ts", "utf8");
 const ownerKioskRoute = readFileSync("src/app/api/showcase/kiosks/route.ts", "utf8");
 const kioskManagementPage = readFileSync("src/app/dashboard/showcase/kiosks/page.tsx", "utf8");
+const settingsRoute = readFileSync("src/app/api/showcase/settings/route.ts", "utf8");
+const settingsComponent = readFileSync("src/components/dashboard/showcase/ShowcaseSettings.tsx", "utf8");
+const dashboardComponent = readFileSync("src/components/dashboard/showcase/ShowcaseDashboard.tsx", "utf8");
 
 test("Showcase public projection omits private inventory fields", () => {
   assert.match(foundation, /get_public_showcase_inventory/);
@@ -55,6 +58,23 @@ test("owner kiosk navigation resolves to the existing Showcase management compon
   assert.match(kioskManagementPage, /KioskManagement/);
   assert.match(kioskManagementPage, /showcase_kiosk_devices/);
   assert.doesNotMatch(kioskManagementPage, /\/dashboard\/kiosk/);
+});
+
+test("Showcase onboarding creates and edits one workspace profile", () => {
+  assert.match(settingsRoute, /upsert/);
+  assert.match(settingsRoute, /onConflict: "workspace_id"/);
+  assert.match(settingsRoute, /Display name is required/);
+  assert.match(settingsRoute, /already in use/);
+  assert.match(settingsComponent, /Create Showcase/);
+  assert.match(settingsComponent, /Save changes/);
+  assert.match(settingsComponent, /showcaseSlugError/);
+});
+
+test("Showcase checklist uses persisted profile and paired-device state", () => {
+  assert.match(dashboardComponent, /pairedKioskCount > 0/);
+  assert.match(dashboardComponent, /\/dashboard\/showcase\/settings/);
+  assert.match(kioskManagementPage, /Create Showcase Profile/);
+  assert.match(kioskManagementPage, /\/dashboard\/showcase\/settings/);
 });
 
 test("reservation lifecycle is guarded and idempotent", () => {
