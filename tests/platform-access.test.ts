@@ -510,6 +510,9 @@ test("dashboard navigation preserves the full account-aware feature surface", ()
     assert.ok(ownerHrefs.includes(href), `Owner navigation missing ${href}`);
     assert.ok(adminHrefs.includes(href), `Admin navigation missing ${href}`);
   }
+  assert.ok(ownerHrefs.includes("/dashboard/showcase"));
+  assert.ok(ownerHrefs.includes("/dashboard/showcase/kiosks"));
+  assert.ok(ownerLabels.includes("Kiosk"));
   assert.ok(ownerLabels.includes("Command Center"));
   assert.equal(ownerHrefs.includes("/dashboard/deck-architect"), false);
   assert.equal(adminHrefs.includes("/dashboard/deck-architect"), false);
@@ -554,6 +557,16 @@ test("Deck Architect is hidden from normal navigation but remains admin-accessib
   assert.match(routeSource, /DECK_ARCHITECT_VISIBLE/);
   assert.match(routeSource, /canAccessHiddenDeckArchitect\(access\)/);
   assert.match(routeSource, /redirect\("\/dashboard\/deck-vault"\)/);
+});
+
+test("Showcase and Kiosk navigation entries have distinct active scopes", () => {
+  const source = readFileSync(path.join(repoRoot, "src/components/dashboard/navigation.ts"), "utf8");
+  const sidebar = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/TieredSidebar.tsx"), "utf8");
+  const mobile = readFileSync(path.join(repoRoot, "src/components/dashboard/shell/MobileBottomNav.tsx"), "utf8");
+  assert.match(source, /href: "\/dashboard\/showcase",[\s\S]*exact: true/);
+  assert.match(source, /href: "\/dashboard\/showcase\/kiosks",[\s\S]*label: "Kiosk"/);
+  assert.match(sidebar, /item\.exact/);
+  assert.match(mobile, /item\.exact/);
 });
 
 test("account-aware dashboard navigation does not duplicate route entries", () => {
