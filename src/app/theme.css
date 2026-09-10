@@ -12,6 +12,7 @@
   --td-surface-default: #121e30;
   --td-surface-elevated: #1a2a40;
   --td-surface-floating: #233750;
+  --td-surface-hover: #20344f;
   --td-text-primary: #eff6ff;
   --td-text-secondary: #b9cae1;
   --td-text-muted: #92aac7;
@@ -22,9 +23,16 @@
   --td-action-primary: #35cafa;
   --td-action-primary-hover: #80e1ff;
   --td-action-primary-pressed: #18afe3;
+  --td-accent: var(--td-action-primary);
+  --td-accent-hover: var(--td-action-primary-hover);
+  --td-accent-subtle: rgb(var(--td-accent-rgb) / 0.1);
+  --td-accent-foreground: var(--td-on-accent);
   --td-accent-text: #77ddff;
   --td-on-accent: #061526;
   --td-border-focus: #35cafa;
+  --td-focus-ring: var(--td-border-focus);
+  --td-input-background: var(--td-background-secondary);
+  --td-input-border: var(--td-border-default);
   --td-success: #84d6af;
   --td-warning: #e0b67a;
   --td-danger: #f69aa5;
@@ -54,6 +62,7 @@
   --td-surface-default: #ffffff;
   --td-surface-elevated: #e7effa;
   --td-surface-floating: #dbe7f7;
+  --td-surface-hover: #dfeaf8;
   --td-text-primary: #14243b;
   --td-text-secondary: #405978;
   --td-text-muted: #536985;
@@ -64,9 +73,16 @@
   --td-action-primary: #0065d9;
   --td-action-primary-hover: #0055ba;
   --td-action-primary-pressed: #00469c;
+  --td-accent: var(--td-action-primary);
+  --td-accent-hover: var(--td-action-primary-hover);
+  --td-accent-subtle: rgb(var(--td-accent-rgb) / 0.1);
+  --td-accent-foreground: var(--td-on-accent);
   --td-accent-text: #005bbb;
   --td-on-accent: #ffffff;
   --td-border-focus: #0065d9;
+  --td-focus-ring: var(--td-border-focus);
+  --td-input-background: var(--td-background-secondary);
+  --td-input-border: var(--td-border-default);
   --td-success: #21734c;
   --td-warning: #8c5a1b;
   --td-danger: #b43449;
@@ -97,6 +113,11 @@
   --color-td-line: var(--td-border-default);
   --color-td-accent: var(--td-action-primary);
   --color-td-accent-hover: var(--td-action-primary-hover);
+  --color-td-accent-subtle: var(--td-accent-subtle);
+  --color-td-surface-hover: var(--td-surface-hover);
+  --color-td-input: var(--td-input-background);
+  --color-td-input-border: var(--td-input-border);
+  --color-td-focus: var(--td-focus-ring);
   --color-td-accent-text: var(--td-accent-text);
   --color-td-success: var(--td-success);
   --color-td-warning: var(--td-warning);
@@ -212,6 +233,23 @@ select {
     right: 12px;
   }
 }
+
+/* Legacy Showcase/Kiosk utility bridge. These selectors keep the existing
+   component structure stable while routing its generic product colors through
+   the shared semantic palette. Artwork is intentionally not affected. */
+main[class~="bg-[#071017]"] { background-color: var(--td-background-primary) !important; color: var(--td-text-primary); }
+main[class~="bg-[#071017]"] [class~="bg-[#0b1821]"] { background-color: var(--td-surface-default) !important; }
+main[class~="bg-[#071017]"] [class~="bg-[#0d202b]"] { background-color: var(--td-surface-elevated) !important; }
+main[class~="bg-[#071017]"] [class~="bg-cyan-300"] { background-color: var(--td-action-primary) !important; }
+main[class~="bg-[#071017]"] [class~="bg-cyan-300"]:hover { background-color: var(--td-action-primary-hover) !important; }
+main[class~="bg-[#071017]"] [class~="text-slate-950"] { color: var(--td-on-accent) !important; }
+main[class~="bg-[#071017]"] [class~="text-cyan-200"],
+main[class~="bg-[#071017]"] [class~="text-cyan-100"] { color: var(--td-accent-text) !important; }
+main[class~="bg-[#071017]"] [class~="text-white"] { color: var(--td-text-primary) !important; }
+main[class~="bg-[#071017]"] [class~="text-white/50"],
+main[class~="bg-[#071017]"] [class~="text-white/45"],
+main[class~="bg-[#071017]"] [class~="text-white/35"] { color: var(--td-text-muted) !important; }
+main[class~="bg-[#071017]"] [class~="border-white/10"] { border-color: var(--td-border-default) !important; }
 /* Physical labels and QR codes are paper artifacts in either screen theme. */
 [data-print-surface] {
   --td-text-primary: #101010;

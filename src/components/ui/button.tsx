@@ -13,12 +13,12 @@ const buttonVariants = cva(
         outline:
           "border-td-ink/[0.09] bg-td-ink/[0.025] text-td-primary shadow-[inset_0_1px_0_rgb(var(--td-ink-rgb)/0.025)] hover:border-td-accent/25 hover:bg-td-accent/[0.055] hover:text-td-primary aria-expanded:border-td-accent/25 aria-expanded:bg-td-accent/[0.07]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "border border-td-line bg-td-surface-hover text-td-primary hover:bg-td-surface-floating aria-expanded:bg-td-surface-hover aria-expanded:text-td-primary",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-td-surface-hover hover:text-td-primary aria-expanded:bg-td-surface-hover aria-expanded:text-td-primary",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-td-accent-text underline-offset-4 hover:underline",
       },
       size: {
         default:
