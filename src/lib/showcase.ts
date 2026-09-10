@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
+export type ShowcaseProfile = { display_name: string; description: string | null; logo_url: string | null; show_prices: boolean; show_quantities: boolean; allow_requests: boolean; };
+
 export type ShowcaseCard = {
   public_id: string; game: string; name: string; set_name: string | null;
   set_code: string | null; collector_number: string | null; rarity: string | null;

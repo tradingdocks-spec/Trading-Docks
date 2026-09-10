@@ -1,14 +1,16 @@
 "use client";
+/* Store-provided image URLs are arbitrary; native img avoids a remote-host allowlist. */
+/* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, ShoppingBag, Sparkles, X } from "lucide-react";
-import type { ShowcaseCard } from "@/lib/showcase";
+import type { ShowcaseCard, ShowcaseProfile } from "@/lib/showcase";
 
 function money(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value) : "Price on request";
 }
 
-export function ShowcasePublicExperience({ slug, profile, cards, initialQuery, kioskMode = false, onStartOver }: { slug: string; profile: Record<string, any>; cards: ShowcaseCard[]; initialQuery: string; kioskMode?: boolean; onStartOver?: () => void }) {
+export function ShowcasePublicExperience({ slug, profile, cards, initialQuery, kioskMode = false, onStartOver }: { slug: string; profile: ShowcaseProfile; cards: ShowcaseCard[]; initialQuery: string; kioskMode?: boolean; onStartOver?: () => void }) {
   const [query, setQuery] = useState(initialQuery);
   const [cart, setCart] = useState<Record<string, number>>({});
   const [cartOpen, setCartOpen] = useState(false);
