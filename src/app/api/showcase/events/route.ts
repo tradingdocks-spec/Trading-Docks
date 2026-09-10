@@ -1,0 +1,3 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+export async function POST(request: Request) { const body = await request.json().catch(() => null) as { slug?: unknown; eventType?: unknown; metadata?: unknown } | null; if (typeof body?.slug !== "string" || typeof body.eventType !== "string") return NextResponse.json({ ok: false }, { status: 400 }); const supabase = await createClient(); const { error } = await supabase.rpc("record_showcase_event", { requested_slug: body.slug, requested_event: body.eventType, event_metadata: body.metadata && typeof body.metadata === "object" ? body.metadata : {} }); return NextResponse.json({ ok: !error }); }
