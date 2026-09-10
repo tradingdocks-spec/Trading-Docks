@@ -114,3 +114,22 @@ test("channel authorization and purpose updates feed the authorized composer", (
   assert.match(component, /enabledChannels\.map\(\(channel\) => <option key=\{channel\.id\} value=\{channel\.id\}># \{channel\.channel_name\}/);
   assert.match(component, /aria-label=\{`Purpose for \$\{channel\.channel_name\}`\}/);
 });
+
+test("send button validates the selected binding and protects duplicate clicks", () => {
+  const component = read("src/components/dashboard/integrations/DiscordIntegrationPage.tsx");
+  assert.match(component, /Choose an authorized channel before sending\./);
+  assert.match(component, /onClick=\{\(\) => void sendMessage\(\)\}/);
+  assert.match(component, /disabled=\{busy === "send"\}/);
+  assert.match(component, /setFeedback\(`Sent to #\$\{channel\.channel_name\}`\)/);
+});
+
+test("message endpoint maps Discord failures to safe actionable messages", () => {
+  const route = read("src/app/api/integrations/discord/messages/route.ts");
+  assert.match(route, /summary\.status === 401/);
+  assert.match(route, /summary\.status === 403/);
+  assert.match(route, /summary\.status === 404/);
+  assert.match(route, /summary\.status === 429/);
+  assert.match(route, /The bot cannot send messages to this channel/);
+  assert.match(route, /Unable to send announcement/);
+  assert.match(route, /status: "failed"/);
+});
