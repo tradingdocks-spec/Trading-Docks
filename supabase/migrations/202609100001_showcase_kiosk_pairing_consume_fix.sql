@@ -37,7 +37,7 @@ begin
     raise exception using errcode = 'P0002', message = 'Pairing code is invalid or expired.';
   end if;
 
-  token := encode(gen_random_bytes(32), 'hex');
+  token := encode(extensions.gen_random_bytes(32), 'hex');
   insert into public.showcase_kiosk_devices(workspace_id, display_name, token_hash)
   values (code_row.workspace_id, coalesce(nullif(trim(device_name), ''), 'Front Counter'), encode(extensions.digest(convert_to(token, 'UTF8'), 'sha256'), 'hex'))
   returning id into device_id;
