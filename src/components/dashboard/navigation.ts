@@ -54,6 +54,7 @@ export type NavigationItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
 };
 
 export type NavigationSection = {
@@ -83,6 +84,12 @@ export const PRIMARY_NAV: NavigationItem[] = [
   {
     href: "/dashboard/showcase",
     label: "Showcase",
+    icon: MonitorSmartphone,
+    exact: true,
+  },
+  {
+    href: "/dashboard/showcase/kiosks",
+    label: "Kiosk",
     icon: MonitorSmartphone,
   },
 ];
@@ -367,6 +374,8 @@ const INVENTORY_WORKSPACE_NAV: NavigationItem[] = [
   { href: "/dashboard/inventory", label: "Inventory", icon: Boxes },
   { href: "/dashboard/inventory/inbox", label: "Inventory Inbox", icon: ClipboardList },
   { href: "/dashboard/deck-vault", label: "Deck Vault", icon: LibraryBig },
+  { href: "/dashboard/showcase", label: "Showcase", icon: MonitorSmartphone, exact: true },
+  { href: "/dashboard/showcase/kiosks", label: "Kiosk", icon: MonitorSmartphone },
   ...CHAOS_SORT_NAV.children,
 ];
 
