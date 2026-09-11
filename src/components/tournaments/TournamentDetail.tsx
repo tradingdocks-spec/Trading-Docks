@@ -16,8 +16,9 @@ type Tournament = {
 type Registration = { id: string; player_name: string; email: string | null; phone: string | null; discord_username: string | null; status: string; waitlist_position: number | null; registered_at: string; checked_in_at: string | null };
 type Player = { id: string; display_name: string; player_status: string; checked_in: boolean; seed_order: number | null };
 type Round = { id: string; round_number: number; stage: string; status: string; started_at: string | null; ends_at: string | null; completed_at: string | null };
+type Match = { id: string; round_id: string; match_number: number; player_one_id: string; player_two_id: string | null; is_bye: boolean; result_status: string; player_one_games_won: number; player_two_games_won: number; game_draws: number; player_one_match_points: number | null; player_two_match_points: number | null; version: number };
 
-export function TournamentDetail({ tournament: initialTournament, registrations: initial, checkedInCount, players: initialPlayers, rounds: initialRounds }: { tournament: Tournament; registrations: Registration[]; checkedInCount: number; players: Player[]; rounds: Round[] }) {
+export function TournamentDetail({ tournament: initialTournament, registrations: initial, checkedInCount, players: initialPlayers, rounds: initialRounds, matches }: { tournament: Tournament; registrations: Registration[]; checkedInCount: number; players: Player[]; rounds: Round[]; matches: Match[] }) {
   const [tournament, setTournament] = useState(initialTournament);
   const [registrations, setRegistrations] = useState(initial);
   const [operationalPlayerCount, setOperationalPlayerCount] = useState(initialPlayers.length);

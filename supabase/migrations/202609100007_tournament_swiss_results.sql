@@ -43,15 +43,23 @@ begin
   if next_round < 1 or next_round > coalesce(tournament_row.planned_rounds, 20) then raise exception using message = 'Round is outside the planned tournament range.'; end if;
   select * into round_row from public.tournament_rounds where tournament_id = target_tournament_id and round_number = next_round for update;
   if found then
-    return query select round_row.id, round_row.round_number,
-      (select count(*)::integer from public.tournament_matches where round_id = round_row.id),
-      (select player_one_id from public.tournament_matches where round_id = round_row.id and is_bye limit 1), true;
-    return;
+    if exists (select 1 from public.tournament_matches where round_id = round_row.id) then
+      return query select round_row.id, round_row.round_number,
+        (select count(*)::integer from public.tournament_matches where round_id = round_row.id),
+        (select player_one_id from public.tournament_matches where round_id = round_row.id and is_bye limit 1), true;
+      return;
+    end if;
+    if next_round > 1 then raise exception using message = 'The previous round must be completed before generating pairings.'; end if;
+    update public.tournament_rounds set status = 'active', started_at = coalesce(started_at, now()), ends_at = coalesce(ends_at, now() + make_interval(mins => tournament_row.round_duration_minutes)) where id = round_row.id;
   end if;
-
-  insert into public.tournament_rounds (tournament_id, workspace_id, round_number, stage, status, started_at, ends_at, created_by)
-  values (target_tournament_id, tournament_row.workspace_id, next_round, 'swiss', 'active', now(), now() + make_interval(mins => tournament_row.round_duration_minutes), auth.uid())
-  returning * into round_row;
+  if next_round > 1 and not exists (select 1 from public.tournament_rounds where tournament_id = target_tournament_id and round_number = next_round - 1 and status = 'completed') then
+    raise exception using message = 'The previous round must be completed before generating pairings.';
+  end if;
+  if round_row.id is null then
+    insert into public.tournament_rounds (tournament_id, workspace_id, round_number, stage, status, started_at, ends_at, created_by)
+    values (target_tournament_id, tournament_row.workspace_id, next_round, 'swiss', 'active', now(), now() + make_interval(mins => tournament_row.round_duration_minutes), auth.uid())
+    returning * into round_row;
+  end if;
 
   create temp table pg_temp.tournament_pairing_candidates (id uuid primary key, seed_order integer, match_points integer, bye_count integer) on commit drop;
   insert into pg_temp.tournament_pairing_candidates (id, seed_order, match_points, bye_count)
@@ -119,7 +127,9 @@ begin
   if not public.can_manage_workspace(tournament_workspace) then raise exception using message = 'Not authorized to report match results.'; end if;
   if match_row.version <> target_version then raise exception using message = 'Match changed; refresh before submitting.'; end if;
   if match_row.result_status = 'void' then raise exception using message = 'Void matches cannot receive results.'; end if;
+  if exists (select 1 from public.tournament_rounds later where later.tournament_id = match_row.tournament_id and later.round_number > (select round_number from public.tournament_rounds where id = match_row.round_id)) then raise exception using message = 'Results are locked after the next round is generated.'; end if;
   if target_player_one_games < 0 or target_player_two_games < 0 or target_game_draws < 0 then raise exception using message = 'Game scores cannot be negative.'; end if;
+  if target_game_draws > 1 or target_player_one_games + target_player_two_games + target_game_draws < 1 or target_player_one_games + target_player_two_games + target_game_draws > 3 then raise exception using message = 'That game score is not possible.'; end if;
   if match_row.is_bye then p1 := 3; p2 := 0;
   elsif target_player_one_games = target_player_two_games then p1 := 1; p2 := 1;
   elsif target_player_one_games > target_player_two_games then p1 := 3; p2 := 0;
@@ -147,8 +157,37 @@ begin
   if not public.can_manage_workspace(workspace_id) then raise exception using message = 'Not authorized to complete this round.'; end if;
   if exists (select 1 from public.tournament_matches where round_id = target_round_id and result_status not in ('reported', 'corrected')) then raise exception using message = 'Every match must have a result before the round can complete.'; end if;
   update public.tournament_rounds set status = 'completed', completed_at = coalesce(completed_at, now()) where id = target_round_id;
+  insert into public.tournament_event_log (workspace_id, tournament_id, actor_id, event_type, dedupe_key, metadata)
+  values (workspace_id, round_row.tournament_id, auth.uid(), 'round_completed', 'round-' || round_row.round_number || '-completed', jsonb_build_object('round_number', round_row.round_number))
+  on conflict (tournament_id, dedupe_key) do nothing;
   next_round := round_row.round_number + 1;
   return query select target_round_id, 'completed'::text, next_round;
+end;
+$$;
+
+create or replace function public.drop_tournament_player(target_player_id uuid)
+returns table (player_id uuid, player_status text, dropped_at_round integer)
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  player_row public.tournament_players%rowtype;
+  tournament_workspace uuid;
+  current_round integer;
+begin
+  select p, t.workspace_id, t.current_round_number into player_row, tournament_workspace, current_round
+  from public.tournament_players p join public.tournaments t on t.id = p.tournament_id
+  where p.id = target_player_id for update;
+  if not found then raise exception using message = 'Player not found.'; end if;
+  if not public.can_manage_workspace(tournament_workspace) then raise exception using message = 'Not authorized to drop this player.'; end if;
+  if player_row.player_status = 'dropped' then
+    return query select player_row.id, player_row.player_status, player_row.dropped_at_round;
+    return;
+  end if;
+  update public.tournament_players set player_status = 'dropped', dropped_at = coalesce(dropped_at, now()), dropped_at_round = coalesce(dropped_at_round, greatest(current_round, 1)), updated_at = now() where id = target_player_id;
+  insert into public.tournament_event_log (workspace_id, tournament_id, actor_id, event_type, dedupe_key, metadata)
+  values (tournament_workspace, player_row.tournament_id, auth.uid(), 'player_dropped', 'player-' || target_player_id || '-dropped', jsonb_build_object('player_id', target_player_id, 'round_number', greatest(current_round, 1)))
+  on conflict (tournament_id, dedupe_key) do nothing;
+  return query select target_player_id, 'dropped'::text, greatest(current_round, 1);
 end;
 $$;
 
@@ -158,3 +197,5 @@ revoke all on function public.report_tournament_match(uuid, integer, integer, in
 grant execute on function public.report_tournament_match(uuid, integer, integer, integer, integer) to authenticated;
 revoke all on function public.complete_tournament_round(uuid) from public;
 grant execute on function public.complete_tournament_round(uuid) to authenticated;
+revoke all on function public.drop_tournament_player(uuid) from public;
+grant execute on function public.drop_tournament_player(uuid) to authenticated;

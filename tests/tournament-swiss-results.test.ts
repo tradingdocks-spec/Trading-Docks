@@ -41,3 +41,23 @@ test("pairing generation is idempotent and records only one round pairing event"
   assert.match(migration, /on conflict \(tournament_id, dedupe_key\) do nothing/);
 });
 
+test("generated round invariants hold for every field size from two through twelve", () => {
+  for (let size = 2; size <= 12; size += 1) {
+    const players = Array.from({ length: size }, (_, index) => ({ id: `p${index + 1}`, seedOrder: index + 1, matchPoints: index % 4, opponents: [] as string[] }));
+    const pairings = pairSwissPlayers(players, 2);
+    const appearances = pairings.flatMap((pair) => [pair.playerOneId, ...(pair.playerTwoId ? [pair.playerTwoId] : [])]);
+    assert.equal(new Set(appearances).size, size, `no duplicate player for ${size}`);
+    assert.equal(pairings.filter((pair) => pair.isBye).length, size % 2, `bye parity for ${size}`);
+    assert.equal(pairings.some((pair) => pair.playerOneId === pair.playerTwoId), false, `no self-pair for ${size}`);
+  }
+});
+
+test("Swiss migration gates sequence, drops, corrections, and cross-workspace access server-side", () => {
+  assert.match(migration, /previous round must be completed/);
+  assert.match(migration, /create or replace function public\.drop_tournament_player/);
+  assert.match(migration, /player_status = 'dropped'/);
+  assert.match(migration, /player_dropped/);
+  assert.match(migration, /Match changed; refresh before submitting/);
+  assert.match(migration, /public\.can_manage_workspace/);
+  assert.match(migration, /result_status not in \('reported', 'corrected'\)/);
+});
