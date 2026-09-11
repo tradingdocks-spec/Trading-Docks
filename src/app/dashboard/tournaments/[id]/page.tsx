@@ -11,10 +11,13 @@ export default async function TournamentDetailPage({ params }: { params: Promise
   if (!user) redirect(`/sign-in?next=/dashboard/tournaments/${id}`);
   const { data: preference } = await supabase.from("user_preferences").select("active_workspace_id").eq("user_id", user.id).maybeSingle();
   if (!preference?.active_workspace_id) notFound();
-  const [{ data: tournament }, { data: registrations }] = await Promise.all([
-    supabase.from("tournaments").select("id,slug,name,game,format,status,starts_at,ends_at,entry_fee,location,description,prize_support,max_players,registration_deadline,decklist_required,public_registration_enabled,waitlist_enabled").eq("id", id).eq("workspace_id", preference.active_workspace_id).maybeSingle(),
+  const [{ data: tournament }, { data: registrations }, { count: checkedInCount }, { data: players }, { data: rounds }] = await Promise.all([
+    supabase.from("tournaments").select("id,slug,name,game,format,status,lifecycle_status,pairing_system,planned_rounds,recommended_rounds,round_duration_minutes,top_cut_size,registration_locked_at,started_at,completed_at,current_round_number,starts_at,ends_at,entry_fee,location,description,prize_support,max_players,registration_deadline,decklist_required,public_registration_enabled,waitlist_enabled").eq("id", id).eq("workspace_id", preference.active_workspace_id).maybeSingle(),
     supabase.from("tournament_registrations").select("id,player_name,email,phone,discord_username,status,waitlist_position,registered_at,checked_in_at").eq("tournament_id", id).eq("workspace_id", preference.active_workspace_id).order("registered_at"),
+    supabase.from("tournament_registrations").select("id", { count: "exact", head: true }).eq("tournament_id", id).eq("workspace_id", preference.active_workspace_id).eq("status", "checked_in"),
+    supabase.from("tournament_players").select("id,display_name,player_status,checked_in,seed_order").eq("tournament_id", id).eq("workspace_id", preference.active_workspace_id).order("seed_order"),
+    supabase.from("tournament_rounds").select("id,round_number,stage,status,started_at,ends_at,completed_at").eq("tournament_id", id).eq("workspace_id", preference.active_workspace_id).order("round_number"),
   ]);
   if (!tournament) notFound();
-  return <TournamentDetail tournament={tournament} registrations={registrations ?? []} />;
+  return <TournamentDetail tournament={tournament} registrations={registrations ?? []} checkedInCount={checkedInCount ?? 0} players={players ?? []} rounds={rounds ?? []} />;
 }

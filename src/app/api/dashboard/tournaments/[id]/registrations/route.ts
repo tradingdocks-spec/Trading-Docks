@@ -28,10 +28,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   } else if (action === "add") {
     const playerName = typeof body?.playerName === "string" ? body.playerName.trim().slice(0, 120) : "";
     if (playerName.length < 2) return NextResponse.json({ error: "Player name is required." }, { status: 400 });
-    const { data: tournament } = await actor.supabase.from("tournaments").select("max_players").eq("id", id).eq("workspace_id", actor.workspaceId).maybeSingle();
-    const { count } = await actor.supabase.from("tournament_registrations").select("id", { count: "exact", head: true }).eq("tournament_id", id).in("status", ["registered", "checked_in"]);
-    if (tournament?.max_players && (count ?? 0) >= tournament.max_players) return NextResponse.json({ error: "This tournament is full." }, { status: 409 });
-    const { error } = await actor.supabase.from("tournament_registrations").insert({ workspace_id: actor.workspaceId, tournament_id: id, player_name: playerName, email: typeof body?.email === "string" ? body.email.trim() : null, discord_username: typeof body?.discordUsername === "string" ? body.discordUsername.trim() : null, status: "registered", source: "other" });
+    const { error } = await actor.supabase.rpc("add_staff_tournament_registration", {
+      target_tournament_id: id,
+      player_name: playerName,
+      player_email: typeof body?.email === "string" ? body.email.trim() : null,
+      player_discord_username: typeof body?.discordUsername === "string" ? body.discordUsername.trim() : null,
+    });
     if (error) return NextResponse.json({ error: "Player could not be added." }, { status: 400 });
   } else return NextResponse.json({ error: "Unknown registration action." }, { status: 400 });
   return NextResponse.json({ ok: true });

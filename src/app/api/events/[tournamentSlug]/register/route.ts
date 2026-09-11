@@ -35,7 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tou
     });
     if (error) {
       const message = error.message ?? "Registration could not be completed.";
-      const status = /full/i.test(message) ? 409 : /closed|not open/i.test(message) ? 422 : 400;
+      const status = /full/i.test(message) ? 409 : /closed|not open|started/i.test(message) ? 422 : 400;
       return NextResponse.json({ error: message }, { status });
     }
     const registration = Array.isArray(data) ? data[0] : data;
