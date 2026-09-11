@@ -9,7 +9,7 @@ export default async function PublicTournamentPage({ params, searchParams }: { p
   const query = await searchParams;
   const registrationSource = query.utm_source === "discord" ? "discord" : query.utm_source === "qr" ? "qr" : "direct";
   const supabase = createAdminClient();
-  const { data: tournament } = await supabase.from("tournaments").select("id,slug,name,game,format,starts_at,ends_at,entry_fee,location,description,prize_support,max_players,registration_deadline,decklist_required,waitlist_enabled,workspace_id").eq("slug", decodeURIComponent(tournamentSlug)).eq("status", "published").eq("public_registration_enabled", true).maybeSingle();
+  const { data: tournament } = await supabase.from("tournaments").select("id,slug,name,game,format,starts_at,ends_at,entry_fee,location,description,prize_support,max_players,registration_deadline,decklist_required,waitlist_enabled,registration_locked_at,workspace_id").eq("slug", decodeURIComponent(tournamentSlug)).eq("status", "published").eq("public_registration_enabled", true).maybeSingle();
   if (!tournament) notFound();
   const [{ data: workspace }, { count: registeredCount }, { count: waitlistCount }] = await Promise.all([
     supabase.from("workspaces").select("name").eq("id", tournament.workspace_id).maybeSingle(),

@@ -31,6 +31,10 @@ export function canSendDiscord(role: DiscordRole | null) {
   return canManageDiscord(role) || role === "manager" || role === "employee";
 }
 
+export function canManageTournamentOperations(role: DiscordRole | null) {
+  return role === "owner" || role === "admin" || role === "manager";
+}
+
 export function discordRedirect(request: Request, query: string) {
   const url = new URL("/dashboard/integrations/discord", request.url);
   url.search = query;
