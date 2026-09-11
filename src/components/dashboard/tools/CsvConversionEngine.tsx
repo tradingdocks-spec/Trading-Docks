@@ -42,6 +42,14 @@ import {
 import { reviewCollectionLocationImportRow } from "@/lib/collection-location-import";
 
 type CsvRow = Record<string, string>;
+type TcgplayerCandidate = {
+  tcgplayerId: string;
+  setName: string;
+  productName: string;
+  collectorNumber: string;
+  condition?: string;
+  finish?: string;
+};
 type EnrichedRow = Partial<CanonicalRow> & {
   tcgplayerResolveReason?: string;
   tcgplayerResolveReasonCode?: string;
@@ -49,6 +57,7 @@ type EnrichedRow = Partial<CanonicalRow> & {
   tcgplayerSourceSetCode?: string;
   tcgplayerSourceCollectorNumber?: string;
   tcgplayerPrinting?: { name: string; setName: string; collectorNumber: string };
+  tcgplayerCandidates?: TcgplayerCandidate[];
 };
 type LocationRecord = {
   id: string;
@@ -462,6 +471,7 @@ export function CsvConversionEngine({
             lowPrice?: string;
             marketplacePrice?: string;
             photoUrl?: string;
+            candidates?: TcgplayerCandidate[];
           }>;
         };
         if (!response.ok || !payload.results) throw new Error(payload.error ?? "TCGplayer catalog resolution failed.");
@@ -490,6 +500,7 @@ export function CsvConversionEngine({
               imageUrl: result.photoUrl || converted[rowIndex]?.imageUrl || "",
               tcgplayerResolveReason: "",
               tcgplayerResolveReasonCode: "",
+              tcgplayerCandidates: [],
               tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
               tcgplayerSourceSetCode: result.diagnostics?.sourceSetCode,
               tcgplayerSourceCollectorNumber: result.diagnostics?.sourceCollectorNumber,
@@ -504,6 +515,7 @@ export function CsvConversionEngine({
               tcgplayerPrinting: undefined,
               tcgplayerResolveReason: result.reason ?? "Multiple TCGplayer variants matched.",
               tcgplayerResolveReasonCode: reasonCode,
+              tcgplayerCandidates: result.candidates ?? [],
               tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
               tcgplayerSourceSetCode: result.diagnostics?.sourceSetCode,
               tcgplayerSourceCollectorNumber: result.diagnostics?.sourceCollectorNumber,
@@ -518,6 +530,7 @@ export function CsvConversionEngine({
               tcgplayerPrinting: undefined,
               tcgplayerResolveReason: result.reason ?? "No exact TCGplayer SKU matched.",
               tcgplayerResolveReasonCode: reasonCode,
+              tcgplayerCandidates: [],
               tcgplayerTranslatedSetName: result.diagnostics?.translatedSetName ?? "",
               tcgplayerSourceSetCode: result.diagnostics?.sourceSetCode,
               tcgplayerSourceCollectorNumber: result.diagnostics?.sourceCollectorNumber,
@@ -536,6 +549,25 @@ export function CsvConversionEngine({
     } finally {
       setWorking(false);
     }
+  }
+
+  function chooseTcgplayerCandidate(rowIndex: number, candidate: TcgplayerCandidate) {
+    setEnrichedRows((current) => ({
+      ...current,
+      [rowIndex]: {
+        ...(current[rowIndex] ?? {}),
+        tcgplayerId: candidate.tcgplayerId,
+        tcgplayerPrinting: {
+          name: candidate.productName,
+          setName: candidate.setName,
+          collectorNumber: candidate.collectorNumber,
+        },
+        tcgplayerResolveReason: "",
+        tcgplayerResolveReasonCode: "",
+        tcgplayerCandidates: [],
+      },
+    }));
+    setNotice(`${candidate.productName} · ${candidate.setName} #${candidate.collectorNumber} selected.`);
   }
 
   useEffect(() => {
@@ -692,7 +724,7 @@ export function CsvConversionEngine({
           <div className="mt-3 overflow-x-auto rounded-2xl border border-td-ink/[.07]">
             <table className="w-full min-w-[700px] text-left text-[11px]">
               <thead className="bg-td-ink/[.025] text-td-muted"><tr>{["Card", "Set", "#", "Condition", "Finish", "Qty", ...(tcgplayerMode && hasAttemptedTcgplayerMatch ? ["TCGplayer Match"] : [])].map((value) => <th key={value} className="px-3 py-2.5 font-semibold">{value}</th>)}</tr></thead>
-              <tbody>{converted.slice(0, showAllRows ? converted.length : 5).map((row, index) => <tr key={`${row.name}-${index}`} className="border-t border-td-ink/[.055] text-td-secondary"><td className="max-w-60 truncate px-3 py-2.5 font-medium text-td-primary">{row.name || <span className="text-td-warning">Missing name</span>}</td><td className="px-3 py-2.5">{row.set || row.setName}</td><td className="px-3 py-2.5">{row.collectorNumber}</td><td className="px-3 py-2.5">{row.condition}</td><td className="px-3 py-2.5">{row.finish}</td><td className="px-3 py-2.5">{row.quantity || "1"}</td>{tcgplayerMode && hasAttemptedTcgplayerMatch ? <td className="px-3 py-2.5">{row.tcgplayerId.trim() ? <span className="rounded-full bg-td-success/10 px-2 py-1 text-[11px] font-semibold text-td-success">Matched</span> : <span className="rounded-full bg-td-warning/10 px-2 py-1 text-[11px] font-semibold text-td-warning">{tcgplayerReasonLabel(row)}</span>}</td> : null}</tr>)}</tbody>
+              <tbody>{converted.slice(0, showAllRows ? converted.length : 5).map((row, index) => <tr key={`${row.name}-${index}`} className="border-t border-td-ink/[.055] text-td-secondary"><td className="max-w-60 truncate px-3 py-2.5 font-medium text-td-primary">{row.name || <span className="text-td-warning">Missing name</span>}</td><td className="px-3 py-2.5">{row.set || row.setName}</td><td className="px-3 py-2.5">{row.collectorNumber}</td><td className="px-3 py-2.5">{row.condition}</td><td className="px-3 py-2.5">{row.finish}</td><td className="px-3 py-2.5">{row.quantity || "1"}</td>{tcgplayerMode && hasAttemptedTcgplayerMatch ? <td className="px-3 py-2.5">{row.tcgplayerId.trim() ? <span className="rounded-full bg-td-success/10 px-2 py-1 text-[11px] font-semibold text-td-success">Matched</span> : row.tcgplayerCandidates?.length ? <label className="block min-w-56"><span className="sr-only">Choose TCGplayer printing for {row.name}</span><select defaultValue="" onChange={(event) => { const candidate = row.tcgplayerCandidates?.find((item) => item.tcgplayerId === event.target.value); if (candidate) chooseTcgplayerCandidate(index, candidate); }} className="h-8 w-full rounded-lg border border-td-warning/20 bg-td-canvas px-2 text-[11px] text-td-secondary"><option value="">Choose printing…</option>{row.tcgplayerCandidates.map((candidate) => <option key={candidate.tcgplayerId} value={candidate.tcgplayerId}>{candidate.setName} · #{candidate.collectorNumber} · {candidate.condition}{candidate.finish === "Foil" ? " Foil" : ""}</option>)}</select></label> : <span className="rounded-full bg-td-warning/10 px-2 py-1 text-[11px] font-semibold text-td-warning">{tcgplayerReasonLabel(row)}</span>}</td> : null}</tr>)}</tbody>
             </table>
           </div>
           {converted.length > 5 ? <button type="button" onClick={() => setShowAllRows((value) => !value)} className="mt-3 inline-flex items-center gap-2 text-[11px] font-semibold text-td-accent-text"><Eye className="h-3.5 w-3.5" />{showAllRows ? "Show fewer cards" : `Review all ${converted.length.toLocaleString()} cards`}</button> : null}
