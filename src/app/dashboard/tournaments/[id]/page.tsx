@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { TournamentDetail } from "@/components/tournaments/TournamentDetail";
 import { TournamentSwissOperations } from "@/components/tournaments/TournamentSwissOperations";
+import { TournamentStandingsPanel } from "@/components/tournaments/TournamentStandingsPanel";
 import { createClient } from "@/lib/supabase/server";
+import { standingFromRpc } from "@/lib/tournament-standings";
 
 export const dynamic = "force-dynamic";
 
@@ -21,5 +23,6 @@ export default async function TournamentDetailPage({ params }: { params: Promise
     supabase.from("tournament_matches").select("id,round_id,match_number,player_one_id,player_two_id,is_bye,result_status,player_one_games_won,player_two_games_won,game_draws,player_one_match_points,player_two_match_points,version").eq("tournament_id", id).eq("workspace_id", preference.active_workspace_id).order("match_number"),
   ]);
   if (!tournament) notFound();
-  return <><TournamentDetail tournament={tournament} registrations={registrations ?? []} checkedInCount={checkedInCount ?? 0} players={players ?? []} rounds={rounds ?? []} matches={matches ?? []} /><TournamentSwissOperations tournamentId={tournament.id} currentRound={tournament.current_round_number} players={players ?? []} rounds={rounds ?? []} matches={matches ?? []} /></>;
+  const { data: standings } = await supabase.rpc("get_tournament_standings", { target_tournament_id: id });
+  return <><TournamentDetail tournament={tournament} registrations={registrations ?? []} checkedInCount={checkedInCount ?? 0} players={players ?? []} rounds={rounds ?? []} matches={matches ?? []} /><TournamentSwissOperations tournamentId={tournament.id} currentRound={tournament.current_round_number} players={players ?? []} rounds={rounds ?? []} matches={matches ?? []} /><TournamentStandingsPanel standings={(standings ?? []).map(standingFromRpc)} currentRound={tournament.current_round_number} /></>;
 }

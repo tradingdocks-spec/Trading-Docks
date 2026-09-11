@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, ChevronRight, UserMinus } from "lucide-react";
 
 type Player = { id: string; display_name: string; player_status: string; seed_order: number | null };
@@ -13,6 +14,7 @@ export function TournamentSwissOperations({ tournamentId, currentRound, players:
   const [matches, setMatches] = useState(initialMatches);
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
+  const router = useRouter();
   const names = useMemo(() => new Map(players.map((player) => [player.id, player.display_name])), [players]);
   const activeRound = rounds.find((round) => round.round_number === currentRound && round.status !== "completed") ?? rounds.at(-1);
   const activeMatches = matches.filter((match) => match.round_id === activeRound?.id).sort((a, b) => a.match_number - b.match_number);
@@ -36,7 +38,7 @@ export function TournamentSwissOperations({ tournamentId, currentRound, players:
       const response = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error ?? "Tournament operation failed.");
-      await reload(); setFeedback(action === "pair" ? "Pairings generated." : action === "complete" ? "Round completed. The next round is ready to generate." : "Operation completed.");
+      await reload(); router.refresh(); setFeedback(action === "pair" ? "Pairings generated." : action === "complete" ? "Round completed. The next round is ready to generate." : "Operation completed.");
     } catch (error) { setFeedback(error instanceof Error ? error.message : "Tournament operation failed."); }
     finally { setBusy(null); }
   }
