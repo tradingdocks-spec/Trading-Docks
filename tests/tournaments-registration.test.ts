@@ -94,3 +94,16 @@ test("staff registration operations keep capacity and cancellation semantics ser
   assert.match(route, /cancel_tournament_registration/);
   assert.match(detail, /Cancel registration/);
 });
+
+test("pre-start start gate follows refreshed checked-in registrations, not operational players", () => {
+  const detail = read("src/components/tournaments/TournamentDetail.tsx");
+  const page = read("src/app/dashboard/tournaments/[id]/page.tsx");
+  const foundation = read("supabase/migrations/202609100006_tournament_operations_foundation.sql");
+  assert.match(detail, /const checkedIn = registrations\.filter\(\(item\) => item\.status === "checked_in"\)\.length/);
+  assert.match(detail, /disabled=\{checkedIn < 2 \|\| busy === "start"\}/);
+  assert.match(detail, /\$\{checkedIn\} checked-in players/);
+  assert.match(detail, /!plannedRounds && checkedIn > 0/);
+  assert.doesNotMatch(detail, /disabled=\{checkedInCount < 2/);
+  assert.match(page, /tournament_registrations.*status.*checked_in/s);
+  assert.match(foundation, /where tournament_id = target_tournament_id and status = 'checked_in'/);
+});
