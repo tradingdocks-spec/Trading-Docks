@@ -107,3 +107,14 @@ test("pre-start start gate follows refreshed checked-in registrations, not opera
   assert.match(page, /tournament_registrations.*status.*checked_in/s);
   assert.match(foundation, /where tournament_id = target_tournament_id and status = 'checked_in'/);
 });
+
+test("corrective start RPC qualifies every tournament and round reference", () => {
+  const migration = read("supabase/migrations/202609110003_fix_start_tournament_ambiguity.sql");
+  assert.match(migration, /create or replace function public\.start_tournament\(\s*target_tournament_id uuid/);
+  assert.match(migration, /from public\.tournament_registrations as tr\s+where tr\.tournament_id = target_tournament_id\s+and tr\.status = 'checked_in'/s);
+  assert.match(migration, /from public\.tournament_rounds as trn\s+where trn\.tournament_id = target_tournament_id\s+and trn\.round_number = 1/s);
+  assert.match(migration, /update public\.tournaments as t[\s\S]*where t\.id = target_tournament_id/);
+  assert.doesNotMatch(migration, /from public\.tournament_registrations\s+where tournament_id =/);
+  assert.doesNotMatch(migration, /from public\.tournament_rounds\s+where tournament_id =/);
+  assert.match(migration, /on conflict \(tournament_id, round_number\) do nothing/);
+});
