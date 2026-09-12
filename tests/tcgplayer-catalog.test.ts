@@ -1030,6 +1030,21 @@ test("authoritative set-code mapping narrows generic Duel Decks labels", async (
   assert.equal(result.status === "matched" ? result.tcgplayerId : null, 403168);
 });
 
+test("catalog fallback resolves a Duel Decks product when the catalog set label is generic", async () => {
+  const row = { ...mappedRecord(403200, "Duel Decks", "Mausoleum Guard", "13", "Moderately Played"), normalized_set_name: "duel decks" };
+  const result = await resolveTcgplayerVariant(new FakeResolverClient([row]), {
+    productName: "Mausoleum Guard",
+    setName: "Duel Decks: Venser vs. Koth",
+    setCode: "ddk",
+    collectorNumber: "13",
+    condition: "Moderately Played",
+    finish: "normal",
+    setIdentities: [{ code: "ddk", name: "Duel Decks: Venser vs. Koth" }],
+  });
+  assert.equal(result.status, "matched");
+  assert.equal(result.status === "matched" ? result.tcgplayerId : null, 403200);
+});
+
 test("only trusted Owner/Admin platform users may mutate the canonical TCGplayer catalog", () => {
   const route = readFileSync(path.join(repoRoot, "src/app/api/admin/tcgplayer-catalog/route.ts"), "utf8");
   assert.match(route, /requireServerPlatformRole\("admin"\)/);

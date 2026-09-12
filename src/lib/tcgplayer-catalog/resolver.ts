@@ -206,7 +206,17 @@ export async function resolveTcgplayerVariant(
     const narrowed = translated.status === "matched"
       ? narrowToTranslatedSet(exactTranslated, translated.name)
       : exactTranslated;
+    if (narrowed.status === "matched") return narrowed;
     return narrowed;
+  }
+  if (translated.status === "matched") {
+    const fallback = await matchByProductAndCollector(client, translated.name, input, normalized.normalizedCondition, normalized.normalizedFinish, {
+      ...diagnostics,
+      stage: "printing-identity",
+      sourceSet,
+      translatedSetName: translated.name,
+    });
+    if (fallback) return fallback;
   }
   if (translated.status === "unknown") {
     return unresolved("UNKNOWN_SET_CODE", `Unknown Magic set code or set alias: ${sourceSet}.`, {
@@ -235,16 +245,45 @@ function narrowToTranslatedSet(
   translatedSetName: string,
 ): ResolveTcgplayerVariantResult {
   const wanted = normalizeSetName(translatedSetName);
-  const wantedIsAnthology = wanted.includes("anthology");
-  const candidates = result.candidates.filter((candidate) => {
-    const candidateSet = normalizeSetName(candidate.set_name);
-    return candidateSet === wanted || (wantedIsAnthology && candidateSet.includes("anthology"));
-  });
+  const candidates = result.candidates.filter((candidate) => matchesTranslatedSet(candidate.set_name, wanted));
   if (!candidates.length) return result;
   return selectCandidates(candidates, {
     ...result.diagnostics,
     translatedSetName,
   });
+}
+
+async function matchByProductAndCollector(
+  client: SupabaseCatalogResolverClient,
+  translatedSetName: string,
+  input: ResolveTcgplayerVariantInput,
+  normalizedCondition: string,
+  normalizedFinish: string,
+  diagnostics: TcgplayerResolveDiagnostics,
+) {
+  const productName = normalizeProductName(input.productName);
+  const collectorNumber = normalizeCollectorNumber(input.collectorNumber);
+  if (!productName || !collectorNumber) return null;
+
+  const rows = await fetchCandidates(client, { normalized_product_name: productName }, 1000);
+  const printingRows = rows.filter((row) => printingNumber(row.collector_number) === printingNumber(collectorNumber));
+  const wanted = normalizeSetName(translatedSetName);
+  const setRows = printingRows.filter((row) => matchesTranslatedSet(row.set_name, wanted));
+  const genericDuelDeckRows = printingRows.filter((row) => normalizeSetName(row.set_name) === "duel decks");
+  if (!setRows.length && genericDuelDeckRows.length === 1 && wanted.includes("duel decks")) setRows.push(genericDuelDeckRows[0]);
+  if (!setRows.length) return null;
+  return selectCandidates(setRows, { ...diagnostics, collectorNumber: input.collectorNumber, translatedSetName });
+}
+
+function matchesTranslatedSet(candidateSetName: string, wantedSetName: string) {
+  const candidate = normalizeSetName(candidateSetName);
+  if (candidate === wantedSetName) return true;
+  if (!candidate.includes("duel decks") || !wantedSetName.includes("duel decks")) return false;
+  if (wantedSetName.includes("anthology") && candidate.includes("anthology")) return true;
+  const distinctiveTokens = wantedSetName
+    .split(" ")
+    .filter((token) => token.length > 2 && token !== "duel" && token !== "decks" && token !== "the" && token !== "vs");
+  return distinctiveTokens.length > 0 && distinctiveTokens.every((token) => candidate.includes(token));
 }
 
 function isMagicResolverGame(value: string | number | null | undefined) {
