@@ -175,6 +175,10 @@ export async function resolveTcgplayerVariant(
   const identities = input.setIdentities ?? fallbackMtgSetIdentities();
   const sourceSet = input.setCode?.trim() || input.setName?.trim() || "";
   const translated = resolveMtgSetIdentity(sourceSet, identities);
+  if (translated.status === "matched" && exactDirect.status === "ambiguous") {
+    const narrowed = narrowToTranslatedSet(exactDirect, translated.name);
+    if (narrowed.status === "matched") return narrowed;
+  }
   const isList = [sourceSet, input.setName].some((value) => /^(plst|list|the list|the list reprints)$/i.test(value?.trim() ?? "")) || (translated.status === "matched" && translated.code === "plst");
   const compound = isList ? parseListCollector(input.collectorNumber) : null;
   let exactTranslated: ResolveTcgplayerVariantResult = exactDirect;
@@ -198,7 +202,12 @@ export async function resolveTcgplayerVariant(
     }
     return unresolved("PLST_COMPOUND_COLLECTOR_UNRESOLVED", `The List printing could not be linked to a catalog product (source ${compound.sourceSetCode.toUpperCase()} #${compound.sourceCollectorNumber}).`, specialDiagnostics);
   }
-  if (exactTranslated.status === "ambiguous") return exactTranslated;
+  if (exactTranslated.status === "ambiguous") {
+    const narrowed = translated.status === "matched"
+      ? narrowToTranslatedSet(exactTranslated, translated.name)
+      : exactTranslated;
+    return narrowed;
+  }
   if (translated.status === "unknown") {
     return unresolved("UNKNOWN_SET_CODE", `Unknown Magic set code or set alias: ${sourceSet}.`, {
       stage: "set-code-bridge",
@@ -218,6 +227,19 @@ export async function resolveTcgplayerVariant(
     collectorNumber: input.collectorNumber,
     normalizedCondition: normalized.normalizedCondition,
     normalizedFinish: normalized.normalizedFinish,
+  });
+}
+
+function narrowToTranslatedSet(
+  result: Extract<ResolveTcgplayerVariantResult, { status: "ambiguous" }>,
+  translatedSetName: string,
+): ResolveTcgplayerVariantResult {
+  const wanted = normalizeSetName(translatedSetName);
+  const candidates = result.candidates.filter((candidate) => normalizeSetName(candidate.set_name) === wanted);
+  if (!candidates.length) return result;
+  return selectCandidates(candidates, {
+    ...result.diagnostics,
+    translatedSetName,
   });
 }
 
