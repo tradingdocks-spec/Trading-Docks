@@ -1012,6 +1012,24 @@ test("catalog resolver reports unknown sets missing products and ambiguous print
   assert.equal(ambiguous.status === "ambiguous" ? ambiguous.reasonCode : null, "AMBIGUOUS_PRINTING");
 });
 
+test("authoritative set-code mapping narrows generic Duel Decks labels", async () => {
+  const rows = [
+    { ...mappedRecord(403168, "Duel Decks Anthology: Divine vs. Demonic", "Icatian Priest", "2", "Moderately Played"), normalized_set_name: "duel decks" },
+    { ...mappedRecord(403174, "Duel Decks: Divine vs. Demonic", "Icatian Priest", "2", "Moderately Played"), normalized_set_name: "duel decks" },
+  ];
+  const result = await resolveTcgplayerVariant(new FakeResolverClient(rows), {
+    productName: "Icatian Priest",
+    setName: "Duel Decks",
+    setCode: "dvd",
+    collectorNumber: "2",
+    condition: "Moderately Played",
+    finish: "normal",
+    setIdentities: [{ code: "dvd", name: "Duel Decks Anthology: Divine vs. Demonic" }],
+  });
+  assert.equal(result.status, "matched");
+  assert.equal(result.status === "matched" ? result.tcgplayerId : null, 403168);
+});
+
 test("only trusted Owner/Admin platform users may mutate the canonical TCGplayer catalog", () => {
   const route = readFileSync(path.join(repoRoot, "src/app/api/admin/tcgplayer-catalog/route.ts"), "utf8");
   assert.match(route, /requireServerPlatformRole\("admin"\)/);
