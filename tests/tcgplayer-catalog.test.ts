@@ -1014,7 +1014,7 @@ test("catalog resolver reports unknown sets missing products and ambiguous print
 
 test("authoritative set-code mapping narrows generic Duel Decks labels", async () => {
   const rows = [
-    { ...mappedRecord(403168, "Duel Decks Anthology: Divine vs. Demonic", "Icatian Priest", "2", "Moderately Played"), normalized_set_name: "duel decks" },
+    { ...mappedRecord(403168, "Duel Decks: Anthology", "Icatian Priest", "2", "Moderately Played"), normalized_set_name: "duel decks" },
     { ...mappedRecord(403174, "Duel Decks: Divine vs. Demonic", "Icatian Priest", "2", "Moderately Played"), normalized_set_name: "duel decks" },
   ];
   const result = await resolveTcgplayerVariant(new FakeResolverClient(rows), {
