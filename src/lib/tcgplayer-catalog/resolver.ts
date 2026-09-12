@@ -235,7 +235,11 @@ function narrowToTranslatedSet(
   translatedSetName: string,
 ): ResolveTcgplayerVariantResult {
   const wanted = normalizeSetName(translatedSetName);
-  const candidates = result.candidates.filter((candidate) => normalizeSetName(candidate.set_name) === wanted);
+  const wantedIsAnthology = wanted.includes("anthology");
+  const candidates = result.candidates.filter((candidate) => {
+    const candidateSet = normalizeSetName(candidate.set_name);
+    return candidateSet === wanted || (wantedIsAnthology && candidateSet.includes("anthology"));
+  });
   if (!candidates.length) return result;
   return selectCandidates(candidates, {
     ...result.diagnostics,
