@@ -76,3 +76,18 @@ test("TCGplayer export fills required marketplace price from the lowest availabl
     "2.10",
   );
 });
+
+test("TCGplayer export consolidates repeated SKU rows and preserves total quantity", () => {
+  const base = Object.fromEntries(CANONICAL_FIELDS.map(({ key }) => [key, ""])) as CanonicalRow;
+  const output = outputForTemplate([
+    { ...base, name: "Icatian Priest", tcgplayerId: "403168", quantity: "2", addQuantity: "2" },
+    { ...base, name: "Icatian Priest", tcgplayerId: "403168", quantity: "1", addQuantity: "1", marketPrice: "1.57" },
+  ], "tcgplayer");
+  const quantityIndex = output.headers.indexOf("Total Quantity");
+  const addQuantityIndex = output.headers.indexOf("Add to Quantity");
+  const marketplacePriceIndex = output.headers.indexOf("TCG Marketplace Price");
+  assert.equal(output.values.length, 1);
+  assert.equal(output.values[0][quantityIndex], "3");
+  assert.equal(output.values[0][addQuantityIndex], "3");
+  assert.equal(output.values[0][marketplacePriceIndex], "1.57");
+});
