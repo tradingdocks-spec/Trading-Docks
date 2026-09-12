@@ -104,6 +104,10 @@ export async function POST(request: Request) {
               collectorNumber: candidate.collector_number ?? "",
               condition: candidate.condition,
               finish: candidate.finish,
+              marketPrice: money(candidate.tcg_market_price),
+              directLowPrice: money(candidate.tcg_direct_low),
+              lowPrice: money(candidate.tcg_low_price_with_shipping ?? candidate.tcg_low_price),
+              marketplacePrice: money(candidate.tcg_marketplace_price),
             }))
             : [],
         });

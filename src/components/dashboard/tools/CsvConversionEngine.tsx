@@ -49,6 +49,10 @@ type TcgplayerCandidate = {
   collectorNumber: string;
   condition?: string;
   finish?: string;
+  marketPrice?: string;
+  directLowPrice?: string;
+  lowPrice?: string;
+  marketplacePrice?: string;
 };
 type EnrichedRow = Partial<CanonicalRow> & {
   tcgplayerResolveReason?: string;
@@ -476,10 +480,46 @@ export function CsvConversionEngine({
         };
         if (!response.ok || !payload.results) throw new Error(payload.error ?? "TCGplayer catalog resolution failed.");
 
+        const missingPriceRows = payload.results
+          .map((result, index) => ({ result, index }))
+          .filter(({ result }) => result.status === "matched" && !(
+            result.marketplacePrice || result.marketPrice || result.lowPrice || result.directLowPrice
+          ));
+        const fallbackPrices = new Map<number, { marketPrice: string; lowPrice: string; directLowPrice: string }>();
+        if (missingPriceRows.length) {
+          const fallbackResponse = await fetch("/api/tools/csv/tcgplayer-enrich", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rows: missingPriceRows.map(({ result, index }) => ({
+                name: result.productName ?? chunk[index]?.name,
+                setName: result.setName ?? chunk[index]?.setName,
+                collectorNumber: result.collectorNumber ?? chunk[index]?.collectorNumber,
+              })),
+            }),
+          });
+          const fallbackPayload = await fallbackResponse.json() as {
+            results?: Array<{ matched?: boolean; marketPrice?: string; lowPrice?: string; directLowPrice?: string }>;
+          };
+          if (fallbackResponse.ok && fallbackPayload.results) {
+            missingPriceRows.forEach(({ index }, fallbackIndex) => {
+              const fallback = fallbackPayload.results?.[fallbackIndex];
+              if (fallback?.matched && (fallback.marketPrice || fallback.lowPrice || fallback.directLowPrice)) {
+                fallbackPrices.set(offset + index, {
+                  marketPrice: fallback.marketPrice ?? "",
+                  lowPrice: fallback.lowPrice ?? "",
+                  directLowPrice: fallback.directLowPrice ?? "",
+                });
+              }
+            });
+          }
+        }
+
         payload.results.forEach((result, index) => {
           const rowIndex = offset + index;
           if (result.status === "matched") {
             const finish = result.finish === "Foil" ? "Foil" : "Nonfoil";
+            const fallback = fallbackPrices.get(rowIndex);
             matched += 1;
             next[rowIndex] = {
               ...(next[rowIndex] ?? {}),
@@ -494,9 +534,9 @@ export function CsvConversionEngine({
               rarity: result.rarity ?? converted[rowIndex]?.rarity ?? "",
               condition: finish === "Foil" && result.condition ? `${result.condition} Foil` : result.condition ?? converted[rowIndex]?.condition ?? "",
               finish,
-              marketPrice: result.marketplacePrice || result.marketPrice || converted[rowIndex]?.marketPrice || "",
-              directLowPrice: result.directLowPrice || converted[rowIndex]?.directLowPrice || "",
-              lowPrice: result.lowPrice || converted[rowIndex]?.lowPrice || "",
+              marketPrice: result.marketplacePrice || result.marketPrice || fallback?.marketPrice || converted[rowIndex]?.marketPrice || "",
+              directLowPrice: result.directLowPrice || fallback?.directLowPrice || converted[rowIndex]?.directLowPrice || "",
+              lowPrice: result.lowPrice || fallback?.lowPrice || converted[rowIndex]?.lowPrice || "",
               imageUrl: result.photoUrl || converted[rowIndex]?.imageUrl || "",
               tcgplayerResolveReason: "",
               tcgplayerResolveReasonCode: "",
@@ -562,6 +602,9 @@ export function CsvConversionEngine({
           setName: candidate.setName,
           collectorNumber: candidate.collectorNumber,
         },
+        marketPrice: candidate.marketplacePrice || candidate.marketPrice || candidate.lowPrice || "",
+        lowPrice: candidate.lowPrice || "",
+        directLowPrice: candidate.directLowPrice || "",
         tcgplayerResolveReason: "",
         tcgplayerResolveReasonCode: "",
         tcgplayerCandidates: [],
