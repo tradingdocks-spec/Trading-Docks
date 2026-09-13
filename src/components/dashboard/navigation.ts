@@ -16,6 +16,9 @@ import {
   LayoutDashboard,
   Layers3,
   LibraryBig,
+  MapPinned,
+  Mail,
+  Megaphone,
   MonitorSmartphone,
   PackageCheck,
   PackageOpen,
@@ -24,7 +27,6 @@ import {
   Rocket,
   Percent,
   MessageSquarePlus,
-  Megaphone,
   PlugZap,
   Scale,
   Settings,
@@ -387,6 +389,13 @@ const INVENTORY_WORKSPACE_NAV: NavigationItem[] = [
 const ADMIN_NAV: NavigationItem[] = [
   { href: "/dashboard/admin", label: "Command Center", icon: ShieldCheck },
   { href: "/dashboard/admin/catalog/tcgplayer", label: "TCGplayer Catalog", icon: DatabaseZap },
+  { href: "/dashboard/admin/marketing", label: "Marketing Overview", icon: Megaphone },
+  { href: "/dashboard/admin/marketing/store-finder", label: "Store Finder", icon: MapPinned },
+  { href: "/dashboard/admin/marketing/prospects", label: "Prospects", icon: Users },
+  { href: "/dashboard/admin/marketing/campaigns", label: "Campaigns", icon: Mail },
+  { href: "/dashboard/admin/marketing/templates", label: "Email Templates", icon: Mail },
+  { href: "/dashboard/admin/marketing/sequences", label: "Sequences", icon: History },
+  { href: "/dashboard/admin/marketing/analytics", label: "Marketing Analytics", icon: BarChart3 },
 ];
 
 function isAtLeast(tier: AccountType, minimum: AccountType) {
