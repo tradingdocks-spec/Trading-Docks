@@ -22,6 +22,7 @@ import {
   LayoutGrid,
   Loader2,
   LockKeyhole,
+  MapPinned,
   Megaphone,
   PlugZap,
   ReceiptText,
@@ -596,6 +597,13 @@ function Overview({ features, adminIdentityLabel, accounts, onNavigate }: { feat
             </button>
           );
         })}
+      </div>
+      <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-td-accent/15 bg-gradient-to-r from-td-accent/[0.08] to-transparent p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-td-accent/20 bg-td-accent/[0.08] text-td-accent-text"><MapPinned className="h-4 w-4" /></span>
+          <div><p className="text-sm font-semibold text-td-primary">Store Outreach &amp; Marketing</p><p className="mt-1 text-xs leading-5 text-td-muted">Find nearby trading-card stores, save prospects, and manage the outreach pipeline.</p></div>
+        </div>
+        <Link href="/dashboard/admin/marketing" className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-td-accent px-4 text-xs font-bold text-td-on-accent transition hover:bg-td-accent/90">Open marketing workspace <ChevronRight className="ml-1 h-3.5 w-3.5" /></Link>
       </div>
     </section>
     <section className="rounded-[24px] border border-td-ink/[0.07] bg-td-surface p-5 sm:p-6">
