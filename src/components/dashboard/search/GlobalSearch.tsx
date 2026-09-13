@@ -29,6 +29,7 @@ import { loadDeckVault } from "@/lib/deck-vault/persistence";
 import { loadInventorySnapshot } from "@/lib/inventory-persistence";
 
 const PUT_AWAY_QUEUE_ID = "__trading-docks-put-away-queue__";
+const SEARCH_LOAD_TIMEOUT_MS = 10_000;
 
 type LocationRecord = {
   id: string;
@@ -91,6 +92,15 @@ type ResultSort = "relevance" | "name" | "quantity" | "value" | "location";
 
 function normalize(value: string) {
   return value.toLocaleLowerCase().replace(/[’']/g, "").replace(/\s+/g, " ").trim();
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error("Search data took too long to load.")), timeoutMs);
+    }),
+  ]);
 }
 
 function editDistance(left: string, right: string) {
@@ -174,6 +184,8 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [inventoryAvailable, setInventoryAvailable] = useState(false);
   const [placements, setPlacements] = useState<CardPlacement[]>([]);
   const [activeFilter, setActiveFilter] = useState<"all" | "inventory" | "deck" | "listed">("all");
   const [sort, setSort] = useState<ResultSort>("relevance");
@@ -224,11 +236,41 @@ export function GlobalSearch() {
     if (!open) return;
     let active = true;
     setLoading(true);
+    setLoadError("");
+    setInventoryAvailable(false);
 
-    void Promise.all([
-      loadInventorySnapshot(),
-      loadDeckVault(),
-    ]).then(async ([inventorySnapshot, decks]) => {
+    void Promise.allSettled([
+      withTimeout(loadInventorySnapshot(), SEARCH_LOAD_TIMEOUT_MS),
+      withTimeout(loadDeckVault(), SEARCH_LOAD_TIMEOUT_MS),
+    ]).then(([inventoryResult, deckResult]) => {
+      if (!active) return;
+      const inventorySnapshot = inventoryResult.status === "fulfilled" ? inventoryResult.value : null;
+      const decks = deckResult.status === "fulfilled" ? deckResult.value : [];
+      if (!inventorySnapshot && deckResult.status === "rejected") {
+        setLoadError("Inventory could not be loaded. Try closing search and opening it again.");
+      } else if (!inventorySnapshot) {
+        setLoadError("Inventory could not be loaded. Your inventory results may be incomplete.");
+      }
+      setInventoryAvailable(Boolean(inventorySnapshot));
+      if (!inventorySnapshot) {
+        setPlacements(decks.flatMap((deck) => deck.cards.map((card) => ({
+          id: `deck:${deck.id}:${card.id}`,
+          source: "deck" as const,
+          sourceId: deck.id,
+          cardName: card.name,
+          quantity: Math.max(1, card.quantity || 1),
+          locationName: deck.name,
+          locationDetail: card.board === "commander" ? "Commander" : card.board === "sideboard" ? "Sideboard" : card.board === "maybeboard" ? "Maybeboard" : "Main deck",
+          locationType: "deck",
+          set: card.setCode?.toUpperCase(),
+          collectorNumber: card.collectorNumber,
+          imageUrl: card.image,
+          unitValue: card.price || 0,
+          href: `/dashboard/deck-vault/decks/${encodeURIComponent(deck.id)}`,
+        }))));
+        setLoading(false);
+        return;
+      }
       const locations = inventorySnapshot.locations as unknown as LocationRecord[];
       const items = inventorySnapshot.items as unknown as SearchableInventoryItem[];
       const locationMap = new Map(locations.map((location) => [location.id, location]));
@@ -282,10 +324,8 @@ export function GlobalSearch() {
         })),
       );
 
-      if (active) {
-        setPlacements([...inventoryPlacements, ...deckPlacements]);
-        setLoading(false);
-      }
+      setPlacements([...inventoryPlacements, ...deckPlacements]);
+      setLoading(false);
     });
 
     return () => {
@@ -466,6 +506,12 @@ export function GlobalSearch() {
                   <Loader2 className="h-7 w-7 animate-spin text-td-accent-text" />
                   <p className="mt-3 text-sm font-semibold text-td-secondary">Checking every card location…</p>
                 </div>
+              ) : loadError ? (
+                <div className="flex min-h-[330px] flex-col items-center justify-center px-6 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-td-warning/[0.14] bg-td-warning/[0.05]"><SearchX className="h-6 w-6 text-td-warning" /></div>
+                  <p className="mt-4 text-base font-semibold text-td-primary">Search data is unavailable</p>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-td-secondary">{loadError}</p>
+                </div>
               ) : query.trim().length < 2 ? (
                 <SearchEmpty />
               ) : filteredGroups.length ? (
@@ -490,9 +536,9 @@ export function GlobalSearch() {
                     <Search className="h-6 w-6 text-td-muted" />
                   </div>
                   <SearchX className="mt-4 h-5 w-5 text-td-muted" />
-                  <p className="mt-3 text-base font-semibold text-td-primary">No cards found for “{query.trim()}”</p>
+                  <p className="mt-3 text-base font-semibold text-td-primary">{activeFilter === "inventory" && inventoryAvailable ? `“${query.trim()}” is not in your inventory` : `Nothing in ${activeFilter === "all" ? "your inventory, decks, or listings" : activeFilter === "deck" ? "your decks" : "your listings"} matches “${query.trim()}”`}</p>
                   <p className="mt-2 max-w-md text-sm leading-6 text-td-secondary">
-                    Try another spelling, printing, set code, collector number, or location name.
+                    {activeFilter === "inventory" && inventoryAvailable ? "This search checked your saved inventory and found no matching cards." : "We finished checking the selected card locations. Try another spelling, printing, set code, collector number, or location name."}
                   </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     <Link href="/dashboard/inventory" onClick={() => setOpen(false)} className="rounded-lg border border-td-accent/20 bg-td-accent/[0.07] px-3 py-2 text-xs font-semibold text-td-accent-text">Add to inventory</Link>
