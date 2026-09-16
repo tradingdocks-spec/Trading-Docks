@@ -16,8 +16,10 @@ declare
   location_id text := nullif(batch_payload->>'destinationLocationId', '');
   item jsonb;
   item_id text;
+  position_id text;
   inventory_id text;
-  existing_identity boolean;
+  existing_inventory public.inventory_items%rowtype;
+  item_quantity_value numeric;
   item_quantity integer;
   committed integer := 0;
   new_positions integer := 0;
@@ -31,18 +33,18 @@ begin
     raise exception 'At least one reviewed card is required';
   end if;
 
-  if session_id is null then
-    insert into public.chaos_sort_sessions (user_id, session_code, source, target_batch_size)
-    values (actor, 'CS-SESSION-' || upper(left(replace(batch_id::text, '-', ''), 8)), coalesce(batch_payload->>'source', 'Other'), coalesce((batch_payload->>'targetBatchSize')::integer, 100))
-    returning id into session_id;
-  end if;
-
   select * into existing_batch from public.chaos_sort_batches
     where user_id = actor and id = batch_id for update;
   if existing_batch.id is not null and existing_batch.status_v2 = 'CLOSED' then
     return jsonb_build_object('ok', true, 'replayed', true, 'batchId', batch_id,
       'committedCount', existing_batch.current_quantity, 'initialQuantity', existing_batch.initial_quantity,
       'newPositions', 0, 'increasedIdentities', 0);
+  end if;
+
+  if session_id is null then
+    insert into public.chaos_sort_sessions (user_id, session_code, source, target_batch_size)
+    values (actor, 'CS-SESSION-' || upper(left(replace(batch_id::text, '-', ''), 8)), coalesce(batch_payload->>'source', 'Other'), coalesce((batch_payload->>'targetBatchSize')::integer, 100))
+    returning id into session_id;
   end if;
 
   if not exists (select 1 from public.chaos_sort_sessions where id = session_id and user_id = actor and status = 'active') then
@@ -66,35 +68,60 @@ begin
       or coalesce(item->>'recognitionState', '') = 'unknown' then
       raise exception 'Every committed card must be resolved';
     end if;
-    item_quantity := greatest(1, coalesce((item->>'quantity')::integer, 1));
     item_id := nullif(item->>'id', '');
     if item_id is null then raise exception 'Card item id is required'; end if;
+    if coalesce(length(trim(item->>'cardName')), 0) = 0
+      or (nullif(item->>'scryfallId', '') is null and (nullif(item->>'setCode', '') is null or nullif(item->>'collectorNumber', '') is null)) then
+      raise exception 'A resolved card needs a name and canonical printing identity';
+    end if;
+    item_quantity_value := case when jsonb_typeof(item->'quantity') = 'number' then (item->>'quantity')::numeric else null end;
+    if item_quantity_value is null
+      or item_quantity_value <> trunc(item_quantity_value)
+      or item_quantity_value < 1
+      or item_quantity_value > 1000 then
+      raise exception 'Card quantity must be a whole number between 1 and 1000';
+    end if;
+    item_quantity := item_quantity_value::integer;
     inventory_id := 'chaos-' || replace(batch_id::text, '-', '') || '-' || left(replace(item_id, '-', ''), 16);
-    existing_identity := exists (
-      select 1 from public.inventory_items
-      where user_id = actor
-        and lower(card_name) = lower(coalesce(item->>'cardName', ''))
-        and coalesce(set_code, '') = coalesce(item->>'setCode', '')
-        and coalesce(collector_number, '') = coalesce(item->>'collectorNumber', '')
-    );
+    position_id := 'chaos-position-' || replace(batch_id::text, '-', '') || '-' || left(replace(item_id, '-', ''), 16);
+    select * into existing_inventory from public.inventory_items as candidate
+      where candidate.user_id = actor
+        and lower(candidate.card_name) = lower(coalesce(item->>'cardName', ''))
+        and coalesce(candidate.scryfall_id, '') = coalesce(item->>'scryfallId', '')
+        and coalesce(candidate.set_code, '') = coalesce(item->>'setCode', '')
+        and coalesce(candidate.collector_number, '') = coalesce(item->>'collectorNumber', '')
+        and coalesce(candidate.data->>'game_id', '') = coalesce(item->>'gameId', '')
+        and coalesce(candidate.data->>'finish', '') = coalesce(item->>'finish', '')
+        and coalesce(candidate.data->>'condition', '') = coalesce(item->>'condition', '')
+        and coalesce(candidate.data->>'language', '') = coalesce(item->>'language', '')
+        and coalesce(candidate.location_id, '') = coalesce(location_id, '')
+      order by id
+      limit 1
+      for update;
+    if existing_inventory.id is not null then
+      inventory_id := existing_inventory.id;
+    end if;
 
     insert into public.inventory_items (id, user_id, card_name, sku, location_id, scryfall_id, set_code, collector_number, quantity, inventory_value, data)
     values (
       inventory_id, actor, coalesce(item->>'cardName', ''), 'CHAOS-' || coalesce(batch_payload->>'batchCode', batch_id::text), location_id,
       nullif(item->>'scryfallId', ''), nullif(item->>'setCode', ''), nullif(item->>'collectorNumber', ''), item_quantity,
       greatest(0, coalesce((item->>'marketPrice')::numeric, 0) * item_quantity),
-      jsonb_build_object('source', 'chaos_sort', 'batch_id', batch_id, 'batch_code', batch_payload->>'batchCode', 'condition', item->>'condition', 'finish', item->>'finish')
-    ) on conflict (user_id, id) do update set quantity = excluded.quantity, updated_at = now(), location_id = excluded.location_id;
+      jsonb_build_object('source', 'chaos_sort', 'batch_id', batch_id, 'batch_code', batch_payload->>'batchCode', 'game_id', item->>'gameId', 'condition', item->>'condition', 'finish', item->>'finish', 'language', item->>'language')
+    ) on conflict (user_id, id) do update set quantity = public.inventory_items.quantity + excluded.quantity,
+      inventory_value = public.inventory_items.inventory_value + excluded.inventory_value,
+      updated_at = now(), location_id = excluded.location_id,
+      data = public.inventory_items.data || excluded.data;
 
-    insert into public.chaos_sort_inventory_positions (id, user_id, batch_id, item_id, card_name, scryfall_id, set_code, collector_number, finish, condition, quantity, location_id)
-    values (inventory_id, actor, batch_id, inventory_id, coalesce(item->>'cardName', ''), nullif(item->>'scryfallId', ''), nullif(item->>'setCode', ''), nullif(item->>'collectorNumber', ''), nullif(item->>'finish', ''), nullif(item->>'condition', ''), item_quantity, location_id)
+    insert into public.chaos_sort_inventory_positions (id, user_id, batch_id, item_id, card_name, scryfall_id, set_code, collector_number, finish, condition, language, quantity, location_id)
+    values (position_id, actor, batch_id, inventory_id, coalesce(item->>'cardName', ''), nullif(item->>'scryfallId', ''), nullif(item->>'setCode', ''), nullif(item->>'collectorNumber', ''), nullif(item->>'finish', ''), nullif(item->>'condition', ''), nullif(item->>'language', ''), item_quantity, location_id)
     on conflict (user_id, id) do update set quantity = excluded.quantity, updated_at = now(), location_id = excluded.location_id;
 
-    insert into public.inventory_events (user_id, inventory_item_id, event_type, source, related_entity_type, related_entity_id, quantity_before, quantity_change, quantity_after, next_location_id, card_name, scryfall_id, set_code, collector_number, condition, finish, idempotency_key, metadata)
-    values (actor, inventory_id, 'inventory_created', 'scanner', 'chaos_sort_batch', batch_id::text, 0, item_quantity, item_quantity, location_id, item->>'cardName', nullif(item->>'scryfallId', ''), nullif(item->>'setCode', ''), nullif(item->>'collectorNumber', ''), nullif(item->>'condition', ''), nullif(item->>'finish', ''), 'chaos-sort-commit:' || batch_id::text || ':' || item_id, jsonb_build_object('session_id', session_id, 'batch_id', batch_id));
+    insert into public.inventory_events (user_id, inventory_item_id, event_type, source, related_entity_type, related_entity_id, quantity_before, quantity_change, quantity_after, next_location_id, card_name, game_id, scryfall_id, set_code, collector_number, condition, finish, language, idempotency_key, metadata)
+    values (actor, inventory_id, case when existing_inventory.id is null then 'inventory_created' else 'quantity_added' end, 'scanner', 'chaos_sort_batch', batch_id::text, coalesce(existing_inventory.quantity, 0), item_quantity, coalesce(existing_inventory.quantity, 0) + item_quantity, location_id, item->>'cardName', nullif(item->>'gameId', ''), nullif(item->>'scryfallId', ''), nullif(item->>'setCode', ''), nullif(item->>'collectorNumber', ''), nullif(item->>'condition', ''), nullif(item->>'finish', ''), nullif(item->>'language', ''), 'chaos-sort-commit:' || batch_id::text || ':' || item_id, jsonb_build_object('session_id', session_id, 'batch_id', batch_id));
 
     committed := committed + item_quantity;
-    if existing_identity then increased_identities := increased_identities + 1; else new_positions := new_positions + 1; end if;
+    if existing_inventory.id is not null then increased_identities := increased_identities + 1; else new_positions := new_positions + 1; end if;
   end loop;
 
   update public.chaos_sort_batches set status = 'committed', status_v2 = 'CLOSED', source_count = committed,
