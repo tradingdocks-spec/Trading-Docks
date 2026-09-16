@@ -1,4 +1,4 @@
-import { getActiveWorkspaceContext } from "@/lib/active-workspace";
+import { getActiveWorkspaceContext } from "./active-workspace";
 
 export async function loadAccountDocument<T>(documentKey: string): Promise<T | null> {
   const { supabase, workspaceId } = await getActiveWorkspaceContext();

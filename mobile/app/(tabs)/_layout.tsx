@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAccount } from '@/providers/account';
-import { color, edge, elevation, radius, semanticColor, surface } from '@/design';
+import { color, edge, elevation, radius, semanticColor, space, surface } from '@/design';
 import {
   getMobileBottomNavVisualModel,
   getMobileTabOptions,
@@ -52,6 +52,10 @@ export default function Layout() {
               height: navModel.height,
               paddingBottom: navModel.paddingBottom,
               paddingTop: navModel.paddingTop,
+              left: space.sm,
+              right: space.sm,
+              bottom: Math.max(insets.bottom, 10),
+              borderRadius: radius.xl,
             },
           ],
           tabBarItemStyle: s.item,
@@ -108,10 +112,10 @@ export default function Layout() {
       }}
     >
       <Tabs.Screen name="index" options={optionsFor('index')} />
+      <Tabs.Screen name="search" options={optionsFor('search')} />
       <Tabs.Screen name="collection" options={optionsFor('collection')} />
-      <Tabs.Screen name="scan" options={optionsFor('scan')} />
       <Tabs.Screen name="sell" options={optionsFor('sell')} />
-      <Tabs.Screen name="profile" options={optionsFor('profile')} />
+      <Tabs.Screen name="scan" options={optionsFor('scan')} />
     </Tabs>
   );
 }
@@ -131,18 +135,15 @@ const s = StyleSheet.create({
   },
   tab: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: `${surface.dock}FA`,
-    borderTopWidth: 1,
+    backgroundColor: `${surface.dock}F5`,
+    borderWidth: 1,
+    borderColor: edge.subtle,
     borderTopColor: edge.highlight,
-    borderWidth: 0,
-    borderRadius: 0,
+    borderRadius: radius.xl,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.24,
-    shadowRadius: 12,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
     elevation: 18,
     ...elevation.raised,
   },
@@ -151,7 +152,7 @@ const s = StyleSheet.create({
   },
   item: {
     minHeight: 48,
-    paddingTop: 2,
+    paddingTop: 4,
   },
   tabPressArea: {
     minHeight: 48,
@@ -164,14 +165,14 @@ const s = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
     lineHeight: 12,
     marginTop: 1,
     maxWidth: 76,
   },
   center: {
     borderRadius: radius.control,
-    backgroundColor: `${semanticColor.scanner}18`,
+    backgroundColor: `${semanticColor.scanner}16`,
     borderWidth: 1,
     borderColor: semanticColor.scanner + '44',
     alignItems: 'center',
@@ -185,6 +186,6 @@ const s = StyleSheet.create({
   centerActive: {
     backgroundColor: semanticColor.primaryAction,
     borderColor: semanticColor.activeNavigation,
-    transform: [{ translateY: -1 }],
+    transform: [{ translateY: -2 }],
   },
 });

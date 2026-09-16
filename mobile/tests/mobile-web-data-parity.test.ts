@@ -40,7 +40,9 @@ test('scanner review finalization writes canonical shared inventory records', ()
 test('scanner sessions remain local-only until finalized', () => {
   assert.match(scannerSession, /continuousScannerSessionKey\(userId\)/);
   assert.match(scannerSession, /appStorage\.setItem/);
-  assert.match(scannerSession, /bulkConfirmReviewedCards/);
+  assert.match(scannerSession, /readySessionLines/);
+  assert.match(scannerSession, /Store .*ready cards/);
+  assert.match(scannerSession, /destinationSyncState/);
 });
 
 test('Trade Binder and Wishlist use shared backend tables scoped by user', () => {

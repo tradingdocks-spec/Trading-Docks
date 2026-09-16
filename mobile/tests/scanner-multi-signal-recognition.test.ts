@@ -132,9 +132,9 @@ test('OCR-only strong identity becomes review when visual evidence is unavailabl
     ocr: createOcrIdentitySignal({ rawText: 'Goblin War Strike', normalizedText: 'Goblin War Strike', confidence: 92 }),
     printingCandidates: [goblinPrinting],
   });
-  assert.equal(result.status, 'review');
+  assert.equal(result.status, 'append_identity');
   assert.equal(result.identityName, 'Goblin War Strike');
-  assert.equal(result.confidence.requiresConfirmation, true);
+  assert.equal(result.confidence.requiresConfirmation, false);
 });
 
 test('visual and OCR conflict routes to review instead of silently choosing a card', () => {
@@ -146,12 +146,145 @@ test('visual and OCR conflict routes to review instead of silently choosing a ca
     ocr: createOcrIdentitySignal({ rawText: 'Incinerate', normalizedText: 'Incinerate', confidence: 95 }),
     printingCandidates: [goblinPrinting, incineratePrinting],
   });
-  assert.equal(result.status, 'review');
-  assert.equal(result.diagnostics.conflict, true);
-  assert.match(result.confidence.conflicts[0], /Visual and OCR/);
+  assert.equal(result.status, 'append_identity');
+  assert.equal(result.identityName, 'Incinerate');
+  assert.equal(result.diagnostics.visualCandidate, null);
 });
 
-test('unusable geometry rejects the frame before identity fusion', () => {
+test('strong OCR title beats an unrelated visual nearest neighbor', () => {
+  const index = buildVisualReferenceIndex([
+    {
+      oracleId: 'raff-oracle',
+      scryfallId: 'raff-visual',
+      name: 'Raff Security Officer',
+      setCode: 'MSH',
+      collectorNumber: '0033',
+      descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'aaaaaaaaaaaaaaaa', source: 'reference_image' },
+    },
+    {
+      oracleId: 'mycoloth-oracle',
+      scryfallId: 'mycoloth-visual',
+      name: 'Mycoloth',
+      setCode: 'ALA',
+      collectorNumber: '163',
+      descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'aaaaaaaaaaaaaaab', source: 'reference_image' },
+    },
+  ]);
+  const result = recognizeWithMultiSignal({
+    geometry: goodGeometry('aaaaaaaaaaaaaaaa'),
+    descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'aaaaaaaaaaaaaaab', source: 'live_normalized_crop' },
+    visualIndex: index,
+    ocr: createOcrIdentitySignal({ rawText: 'Raff Security Officer', normalizedText: 'Raff Security Officer', confidence: 96 }),
+    printingCandidates: [{
+      id: 'raff-security-officer-printing',
+      oracleId: 'raff-oracle',
+      name: 'Raff Security Officer',
+      setCode: 'MSH',
+      setName: 'Mystery Set',
+      collectorNumber: '0033',
+      finishes: ['normal'],
+      language: 'en',
+      imageUrl: null,
+      confidence: 0.9,
+      recognitionMode: 'assisted_capture',
+      legalFinishes: ['normal'],
+      layout: 'portrait',
+      colorIdentity: ['W', 'U'],
+    }],
+  });
+
+  assert.equal(result.status, 'append_identity');
+  assert.equal(result.identityName, result.diagnostics.ocrCandidate);
+  assert.notEqual(result.identityName, 'Mycoloth');
+  assert.equal(result.diagnostics.visualCandidate, null);
+});
+
+test('low absolute visual similarity does not surface a named guess', () => {
+  const index = buildVisualReferenceIndex([
+    {
+      oracleId: 'low-a',
+      scryfallId: 'low-a',
+      name: 'Card Alpha',
+      setCode: 'TST',
+      collectorNumber: '1',
+      descriptor: { algorithm: 'luma_phash_8x8_v1', hash: '0000000000000000', source: 'reference_image' },
+    },
+    {
+      oracleId: 'low-b',
+      scryfallId: 'low-b',
+      name: 'Card Beta',
+      setCode: 'TST',
+      collectorNumber: '2',
+      descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'ffffffffffffffff', source: 'reference_image' },
+    },
+  ]);
+  const result = recognizeWithMultiSignal({
+    geometry: goodGeometry('aaaaaaaaaaaaaaaa'),
+    descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'aaaaaaaaaaaaaaaa', source: 'live_normalized_crop' },
+    visualIndex: index,
+    ocr: createOcrIdentitySignal({ rawText: null, normalizedText: null, confidence: null }),
+  });
+
+  assert.equal(result.status, 'continue_scanning');
+  assert.equal(result.identityName, null);
+  assert.equal(result.diagnostics.visualCandidate, null);
+});
+
+test('small top-1 top-2 visual margin keeps the scanner reading instead of guessing', () => {
+  const index = buildVisualReferenceIndex([
+    {
+      oracleId: 'margin-a',
+      scryfallId: 'margin-a',
+      name: 'Margin Card A',
+      setCode: 'TST',
+      collectorNumber: '10',
+      descriptor: { algorithm: 'luma_phash_8x8_v1', hash: '0000000000000000', source: 'reference_image' },
+    },
+    {
+      oracleId: 'margin-b',
+      scryfallId: 'margin-b',
+      name: 'Margin Card B',
+      setCode: 'TST',
+      collectorNumber: '11',
+      descriptor: { algorithm: 'luma_phash_8x8_v1', hash: '0000000000000001', source: 'reference_image' },
+    },
+  ]);
+  const result = recognizeWithMultiSignal({
+    geometry: goodGeometry('0000000000000000'),
+    descriptor: { algorithm: 'luma_phash_8x8_v1', hash: '0000000000000007', source: 'live_normalized_crop' },
+    visualIndex: index,
+    ocr: createOcrIdentitySignal({ rawText: null, normalizedText: null, confidence: null }),
+  });
+
+  assert.equal(result.status, 'continue_scanning');
+  assert.equal(result.identityName, null);
+  assert.equal(result.visualCandidates.length, 2);
+  assert.equal(result.diagnostics.visualCandidate, null);
+});
+
+test('visual-only identification still works when the match is strong and unambiguous', () => {
+  const index = buildVisualReferenceIndex([
+    {
+      oracleId: 'visual-only',
+      scryfallId: 'visual-only',
+      name: 'Visual Only Card',
+      setCode: 'TST',
+      collectorNumber: '99',
+      descriptor: { algorithm: 'luma_phash_8x8_v1', hash: '1234567890abcdef', source: 'reference_image' },
+    },
+  ]);
+  const result = recognizeWithMultiSignal({
+    geometry: goodGeometry('1234567890abcdef'),
+    descriptor: { algorithm: 'luma_phash_8x8_v1', hash: '1234567890abcdef', source: 'live_normalized_crop' },
+    visualIndex: index,
+    ocr: createOcrIdentitySignal({ rawText: null, normalizedText: null, confidence: null }),
+  });
+
+  assert.equal(result.status, 'append_identity');
+  assert.equal(result.identityName, 'Visual Only Card');
+});
+
+test('weak geometry still carries identity evidence through fusion instead of hard rejection', () => {
   const index = buildVisualReferenceIndex(visualRecords);
   const result = recognizeWithMultiSignal({
     geometry: { ...goodGeometry('ff00aa55ff00aa55'), cardDetected: false, qualityScore: 0.2, normalizedCrop: null, blockers: ['NO_CARD'] },
@@ -159,6 +292,19 @@ test('unusable geometry rejects the frame before identity fusion', () => {
     visualIndex: index,
     ocr: createOcrIdentitySignal({ rawText: 'Goblin War Strike', normalizedText: 'Goblin War Strike', confidence: 95 }),
   });
+  assert.equal(result.status, 'append_identity');
+  assert.equal(result.identityName, 'Goblin War Strike');
+  assert.equal(result.diagnostics.blockers.includes('NO_CARD'), true);
+});
+
+test('purely unusable frames still reject when no identity evidence exists', () => {
+  const result = recognizeWithMultiSignal({
+    geometry: { cardDetected: false, geometryScore: 0.05, qualityScore: 0.12, perspectiveCorrected: false, normalizedCrop: null, blockers: ['NO_CARD', 'NO_NORMALIZED_CROP'] },
+    descriptor: null,
+    visualIndex: null,
+    ocr: createOcrIdentitySignal({ rawText: null, normalizedText: null, confidence: null }),
+  });
+
   assert.equal(result.status, 'reject_frame');
   assert.equal(result.diagnostics.blockers.includes('NO_CARD'), true);
 });

@@ -115,6 +115,7 @@ function HomeHeader({ workspaceLabel }: { workspaceLabel: string }) {
         <TDText variant="caption" tone="muted">Trading Docks</TDText>
         <TDText variant="title">{workspaceLabel}</TDText>
       </View>
+      <TDBadge tone="info">Blue system</TDBadge>
     </View>
   );
 }
@@ -165,6 +166,11 @@ function QuickActions({ actions }: { actions: HomeAction[] }) {
   const secondary = actions.slice(1);
   return (
     <DockSurface accessibilityLabel="Primary workspace actions" material="raisedControl" level="raised" style={s.quickActions}>
+      <DockHeader
+        eyebrow="Primary actions"
+        title="Move fast"
+        subtitle="Open the routes you use most without hunting through menus."
+      />
       <DockAction
         label={primary.label}
         iconName={primary.icon as keyof typeof Ionicons.glyphMap}
@@ -172,18 +178,16 @@ function QuickActions({ actions }: { actions: HomeAction[] }) {
         prominent
         style={s.scanAction}
       />
-      <View style={s.actionRail}>
-        <DockRail compact>
-          {secondary.map((action) => (
-            <DockAction
-              key={action.key}
-              label={action.label}
-              iconName={action.icon as keyof typeof Ionicons.glyphMap}
-              onPress={() => go(action)}
-            />
-          ))}
-        </DockRail>
-      </View>
+      <DockRail compact style={s.actionRail}>
+        {secondary.map((action) => (
+          <DockAction
+            key={action.key}
+            label={action.label}
+            iconName={action.icon as keyof typeof Ionicons.glyphMap}
+            onPress={() => go(action)}
+          />
+        ))}
+      </DockRail>
     </DockSurface>
   );
 }
@@ -191,7 +195,7 @@ function QuickActions({ actions }: { actions: HomeAction[] }) {
 function RecentAddsCarousel({ cards }: { cards: HomeRecentCard[] }) {
   return (
     <DockSection
-      title="Recent Adds"
+      title="Recent cards"
       action={<TDText variant="caption" tone="muted">Latest inventory</TDText>}
     >
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.recentList}>
@@ -245,10 +249,12 @@ function ActionableInsight({
   activeSessionVisible: boolean;
   activeSessionRoute: '/(tabs)/scan' | '/deal-desk';
 }) {
+  const iconName = tone === 'warning' ? 'alert-circle-outline' : tone === 'success' ? 'checkmark-circle-outline' : 'sparkles-outline';
+  const iconColor = tone === 'warning' ? color.warning : tone === 'success' ? color.success : color.primaryBright;
   return (
     <DockTray style={s.insight}>
       <View style={[s.insightIcon, tone === 'warning' && s.insightWarning, tone === 'success' && s.insightSuccess]}>
-        <Ionicons name={tone === 'warning' ? 'alert-circle-outline' : tone === 'success' ? 'checkmark-circle-outline' : 'sparkles-outline'} size={20} color={tone === 'warning' ? color.warning : tone === 'success' ? color.success : color.primaryBright} />
+        <Ionicons name={iconName} size={20} color={iconColor} />
       </View>
       <View style={s.flex}>
         <TDText variant="small">{title}</TDText>
@@ -264,7 +270,7 @@ function ActionableInsight({
           }}
           style={({ pressed }) => [s.resumeButton, pressed && s.pressed]}
         >
-          <Ionicons name="arrow-forward" size={18} color={color.primaryBright} />
+          <TDText variant="caption" tone="info">Resume</TDText>
         </Pressable>
       ) : null}
     </DockTray>
@@ -273,7 +279,7 @@ function ActionableInsight({
 
 function go(action: HomeAction) {
   tap();
-  router.push(action.route);
+  router.push(action.route as never);
 }
 
 function tap() {
@@ -293,7 +299,7 @@ const s = StyleSheet.create({
   header: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   headerTitle: { flex: 1, minWidth: 0 },
   flex: { flex: 1, minWidth: 0 },
-  heroShell: { minHeight: 224, justifyContent: 'center' },
+  heroShell: { minHeight: 212, justifyContent: 'center' },
   heroBackplate: {
     position: 'absolute',
     left: 12,
@@ -339,9 +345,9 @@ const s = StyleSheet.create({
   },
   heroValue: { marginTop: space.xs, textShadowColor: color.primaryBright + '24', textShadowRadius: 18 },
   heroSkeleton: { marginTop: space.sm },
-  quickActions: { gap: 0, padding: space.xs, overflow: 'hidden' },
-  scanAction: { minHeight: 62, marginBottom: space.xs, borderBottomColor: '#00000088' },
-  actionRail: { borderTopWidth: 1, borderTopColor: color.primaryBright + '18', paddingTop: space.xs },
+  quickActions: { gap: space.sm, padding: space.sm, overflow: 'hidden' },
+  scanAction: { minHeight: 64, marginBottom: space.xs, borderBottomColor: '#00000088' },
+  actionRail: { borderTopWidth: 1, borderTopColor: color.primaryBright + '16', paddingTop: space.xs },
   recentList: { gap: space.sm, paddingRight: space.md },
   recentCard: { width: 148 },
   emptySkeleton: { minHeight: 118 },
@@ -351,6 +357,6 @@ const s = StyleSheet.create({
   insightIcon: { width: 38, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: color.primary + '16' },
   insightWarning: { backgroundColor: color.warning + '18' },
   insightSuccess: { backgroundColor: color.success + '18' },
-  resumeButton: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised },
+  resumeButton: { minHeight: 44, borderRadius: radius.pill, borderWidth: 1, borderColor: color.border, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvasRaised, paddingHorizontal: space.md },
   pressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },
 });

@@ -70,6 +70,15 @@ const goblinVisualRecords: VisualReferenceRecord[] = [{
   descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'ff00aa55ff00aa55', source: 'reference_image' },
 }];
 
+const unrelatedVisualRecords: VisualReferenceRecord[] = [{
+  oracleId: 'oracle-mycoloth',
+  scryfallId: 'sf-mycoloth',
+  name: 'Mycoloth',
+  setCode: 'ALA',
+  collectorNumber: '163',
+  descriptor: { algorithm: 'luma_phash_8x8_v1', hash: 'aaaaaaaaaaaaaaaa', source: 'reference_image' },
+}];
+
 const ocr: NativeOcrResult & { ok: true } = {
   ok: true,
   provider: 'apple_vision',
@@ -520,6 +529,27 @@ test('Single Scan uses multi-signal fusion for visual-only recovery', async () =
   assert.equal(result.selected?.name, 'Goblin War Strike');
   assert.equal(result.multiSignal?.status, 'append_identity');
   assert.equal(result.lookupDiagnostics.outcome, 'success');
+});
+
+test('strong OCR still-capture does not prepend an unrelated visual nearest neighbor', async () => {
+  const result = await recognizeMagicStillCapture({
+    imageUri: 'file:///tmp/card.jpg',
+    preview: { width: 390, height: 440 },
+    image: { width: 3024, height: 4032 },
+    guide: { left: 50, top: 78, width: 290, height: 405 },
+    online: true,
+    recognize: async () => ocr,
+    searchCatalog: async () => [rhystic, rhysticMystery, brainstorm],
+    cleanup: async () => ({ ok: true, deleted: true }),
+    visualIndex: buildVisualReferenceIndex(unrelatedVisualRecords),
+    vision: visionResult('aaaaaaaaaaaaaaaa'),
+  });
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.selected?.name, 'Rhystic Study');
+  assert.equal(result.candidates[0]?.name, 'Rhystic Study');
+  assert.equal(result.multiSignal?.diagnostics.visualCandidate, null);
 });
 
 test('Single Scan uses the production default visual index when no test index is injected', async () => {

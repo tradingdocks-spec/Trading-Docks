@@ -54,4 +54,4 @@
 - Implemented: Membership tier is separate from platform role and resolves to `free | collector | seller | store`.
 - Implemented: Billing status is separate from membership tier and is read from `billing_subscriptions` when available.
 - Implemented: Entitlement sets are derived from resolved membership tier, with `admin.command-center` added only by platform role.
-- Implemented: Admin users with Free membership keep Free product entitlements and gain Command Center access separately.
+- Implemented: Trusted platform owners/admins keep truthful commercial membership for billing display while the shared platform-access resolver grants full platform capabilities separately.

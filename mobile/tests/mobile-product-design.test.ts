@@ -84,7 +84,7 @@ test('Wave 2 routes consume mobile design OS primitives for remaining customer s
 
   assert.match(tradeBinder, /TDSegmentedControl[\s\S]*Exchange view/);
   assert.match(wishlist, /Exact target|Flexible target/);
-  assert.match(scannerSession, /Save and mark reviewed/);
+  assert.match(scannerSession, /Save and next|Save changes/);
   assert.doesNotMatch(scannerSession, /Finalize reviewed cards/);
   assert.match(dealDesk, /Review counts and margin reporting require real priced session lines/);
   assert.match(sell, /Deck Vault/);
@@ -143,6 +143,7 @@ test('release candidate docs and customer-facing routes avoid development leakag
 test('Wave 1 routes consume mobile design OS primitives for high-traffic surfaces', () => {
   const shell = readFileSync(join(root, 'app', '(tabs)', '_layout.tsx'), 'utf8');
   const home = readFileSync(join(root, 'app', '(tabs)', 'index.tsx'), 'utf8');
+  const search = readFileSync(join(root, 'app', '(tabs)', 'search.tsx'), 'utf8');
   const scanModes = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
   const automaticScanner = readFileSync(join(root, 'components', 'scanner', 'automatic-scanner-screen.tsx'), 'utf8');
   const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
@@ -153,6 +154,8 @@ test('Wave 1 routes consume mobile design OS primitives for high-traffic surface
   assert.match(home, /HomeHero/);
   assert.match(home, /QuickActions/);
   assert.match(home, /RecentAddsCarousel/);
+  assert.match(search, /Find exact cards/);
+  assert.match(search, /TDSegmentedControl/);
   assert.equal(home.includes('TDListRow'), false);
   assert.match(scanModes, /Trading Docks Scanner/);
   assert.match(scanModes, /Open scanner/);
@@ -168,6 +171,8 @@ test('Wave 1 routes consume mobile design OS primitives for high-traffic surface
 
 test('release polish pass removes beta copy and elevates primary scanner and inventory hierarchy', () => {
   const home = readFileSync(join(root, 'app', '(tabs)', 'index.tsx'), 'utf8');
+  const search = readFileSync(join(root, 'app', '(tabs)', 'search.tsx'), 'utf8');
+  const homeModel = readFileSync(join(root, 'services', 'mobile-home.ts'), 'utf8');
   const collection = readFileSync(join(root, 'app', '(tabs)', 'collection.tsx'), 'utf8');
   const scanModes = readFileSync(join(root, 'app', '(tabs)', 'scan.tsx'), 'utf8');
   const decks = readFileSync(join(root, 'app', '(tabs)', 'sell.tsx'), 'utf8');
@@ -177,6 +182,11 @@ test('release polish pass removes beta copy and elevates primary scanner and inv
   assert.doesNotMatch(home, /<TDBadge tone=\{tone\}>\{state\}<\/TDBadge>/);
   assert.match(home, /Latest inventory/);
   assert.match(home, /heroStateLabel/);
+  assert.match(homeModel, /label: 'Search'/);
+
+  assert.match(search, /Search filters/);
+  assert.match(search, /Find exact cards/);
+  assert.doesNotMatch(search, /generic SaaS/);
 
   assert.match(collection, /Your cards/);
   assert.match(collection, /filterRail/);
@@ -184,7 +194,7 @@ test('release polish pass removes beta copy and elevates primary scanner and inv
   assert.doesNotMatch(collection, /<TDSegmentedControl label="Sort"/);
 
   assert.match(scanModes, /PrimaryScanMode/);
-  assert.match(scanModes, /Place card\. Hold steady\. Review exact printing\./);
+  assert.match(scanModes, /Open the scanner, keep the camera moving, and review exact printing later\./);
   assert.match(scanModes, /Open scanner/);
 
   assert.match(decks, /Deck Vault/);
@@ -219,7 +229,6 @@ test('Stage B mobile Design OS V2 recomposes core routes with Dock primitives', 
   assert.match(decks, /DockMetric label="Value"/);
   assert.doesNotMatch(decks, /value="Soon"/);
   assert.match(profile, /DockSurface[\s\S]*Manage Membership/);
-  assert.match(singleScan, /UnifiedScannerScreen/);
-  assert.match(singleScan, /automatic-scanner-screen/);
+  assert.match(singleScan, /prebuilt-scanner-screen/);
   assert.doesNotMatch(singleScan, /SingleResultSheet/);
 });

@@ -9,13 +9,15 @@ import {
   MOBILE_PRODUCTION_IOS_BUNDLE_ID,
   getMobileReleaseLinks,
   isDevelopmentToolEnabled,
+  resolveMobileCanonicalSiteUrl,
   publicEnvLooksSecret,
 } from '../services/mobile-release-config.ts';
 import { SCANNER_DIAGNOSTICS_DEV_FLAG, isScannerDiagnosticsEnabled } from '../services/native-scanner-calibration.ts';
 import { SCANNER_BENCHMARK_BUILDER_FLAG, isScannerBenchmarkBuilderEnabled } from '../services/scanner-benchmark-builder.ts';
 
 const require = createRequire(import.meta.url);
-const root = process.cwd();
+const repoRoot = process.cwd().replace(/\\/g, '/').endsWith('/mobile') ? join(process.cwd(), '..') : process.cwd();
+const mobileRoot = join(repoRoot, 'mobile');
 type JsonObject = Record<string, unknown>;
 const { verifyProductionRelease } = require('../scripts/verify-production-release.js') as {
   verifyProductionRelease: (input?: {
@@ -27,7 +29,7 @@ const { verifyProductionRelease } = require('../scripts/verify-production-releas
 };
 
 test('production app identifiers are canonical and not placeholders', () => {
-  const app = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo;
+  const app = JSON.parse(readFileSync(join(mobileRoot, 'app.json'), 'utf8')).expo;
 
   assert.equal(app.ios.bundleIdentifier, MOBILE_PRODUCTION_IOS_BUNDLE_ID);
   assert.equal(app.android.package, MOBILE_PRODUCTION_ANDROID_PACKAGE);
@@ -50,9 +52,9 @@ test('development tools are disabled in production even when flags are set', () 
 });
 
 test('dev route entries redirect when production gates are closed', () => {
-  const design = readFileSync(join(root, 'app', 'dev', 'design-system.tsx'), 'utf8');
-  const camera = readFileSync(join(root, 'app', 'dev', 'camera-qa.tsx'), 'utf8');
-  const benchmark = readFileSync(join(root, 'app', 'dev', 'scanner-benchmark.tsx'), 'utf8');
+  const design = readFileSync(join(mobileRoot, 'app', 'dev', 'design-system.tsx'), 'utf8');
+  const camera = readFileSync(join(mobileRoot, 'app', 'dev', 'camera-qa.tsx'), 'utf8');
+  const benchmark = readFileSync(join(mobileRoot, 'app', 'dev', 'scanner-benchmark.tsx'), 'utf8');
 
   for (const source of [design, camera, benchmark]) {
     assert.match(source, /<Redirect href="\/\(tabs\)" \/>/);
@@ -60,7 +62,7 @@ test('dev route entries redirect when production gates are closed', () => {
 });
 
 test('account deletion route is a request contract, not client-side destructive deletion', () => {
-  const source = readFileSync(join(root, 'app', 'account-delete.tsx'), 'utf8');
+  const source = readFileSync(join(mobileRoot, 'app', 'account-delete.tsx'), 'utf8');
 
   assert.match(source, /Request account deletion/);
   assert.match(source, /Backend self-service deletion is Planned/);
@@ -68,8 +70,8 @@ test('account deletion route is a request contract, not client-side destructive 
 });
 
 test('profile and settings expose legal support delete account and version surfaces', () => {
-  const profile = readFileSync(join(root, 'app', '(tabs)', 'profile.tsx'), 'utf8');
-  const settings = readFileSync(join(root, 'app', 'settings.tsx'), 'utf8');
+  const profile = readFileSync(join(mobileRoot, 'app', '(tabs)', 'profile.tsx'), 'utf8');
+  const settings = readFileSync(join(mobileRoot, 'app', 'settings.tsx'), 'utf8');
 
   for (const source of [profile, settings]) {
     assert.match(source, /Support/);
@@ -81,7 +83,7 @@ test('profile and settings expose legal support delete account and version surfa
 });
 
 test('root error boundary avoids raw implementation details', () => {
-  const rootLayout = readFileSync(join(root, 'app', '_layout.tsx'), 'utf8');
+  const rootLayout = readFileSync(join(mobileRoot, 'app', '_layout.tsx'), 'utf8');
 
   assert.match(rootLayout, /Something went wrong/);
   assert.match(rootLayout, /Try again/);
@@ -100,6 +102,17 @@ test('release links use documented defaults without localhost or development URL
   }
 });
 
+test('mobile canonical site url can be overridden only outside production', () => {
+  assert.equal(resolveMobileCanonicalSiteUrl({
+    NODE_ENV: 'development',
+    EXPO_PUBLIC_MOBILE_CANONICAL_SITE_URL: 'http://192.168.1.116:3000',
+  }), 'http://192.168.1.116:3000');
+  assert.equal(resolveMobileCanonicalSiteUrl({
+    NODE_ENV: 'production',
+    EXPO_PUBLIC_MOBILE_CANONICAL_SITE_URL: 'http://192.168.1.116:3000',
+  }), 'https://www.tradingdocks.com');
+});
+
 test('public env secret detection catches service role and secret keys', () => {
   assert.equal(publicEnvLooksSecret('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'sb_publishable_123'), false);
   assert.equal(publicEnvLooksSecret('EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY', 'abc'), true);
@@ -107,9 +120,9 @@ test('public env secret detection catches service role and secret keys', () => {
 });
 
 test('production release validator fails unsafe inputs and passes canonical config', () => {
-  const app = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo;
-  const eas = JSON.parse(readFileSync(join(root, 'eas.json'), 'utf8'));
-  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  const app = JSON.parse(readFileSync(join(mobileRoot, 'app.json'), 'utf8')).expo;
+  const eas = JSON.parse(readFileSync(join(mobileRoot, 'eas.json'), 'utf8'));
+  const pkg = JSON.parse(readFileSync(join(mobileRoot, 'package.json'), 'utf8'));
 
   const ok = verifyProductionRelease({
     appConfig: app,
@@ -140,9 +153,9 @@ test('production release validator fails unsafe inputs and passes canonical conf
 });
 
 test('production release validator requires public RevenueCat SDK configuration once purchases are enabled', () => {
-  const app = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo;
-  const eas = JSON.parse(readFileSync(join(root, 'eas.json'), 'utf8'));
-  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  const app = JSON.parse(readFileSync(join(mobileRoot, 'app.json'), 'utf8')).expo;
+  const eas = JSON.parse(readFileSync(join(mobileRoot, 'eas.json'), 'utf8'));
+  const pkg = JSON.parse(readFileSync(join(mobileRoot, 'package.json'), 'utf8'));
 
   const result = verifyProductionRelease({
     appConfig: app,

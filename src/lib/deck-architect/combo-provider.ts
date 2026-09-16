@@ -77,7 +77,7 @@ export class CommanderSpellbookProvider implements ComboKnowledgeProvider {
 
     try {
       this.logger.info("Commander Spellbook request started", { stage: "spellbook-request", cardCount: normalizedDeckNames.length });
-      const response = await this.fetchImpl(this.endpoint, {
+      const requestInit: RequestInit & { next?: { revalidate: number } } = {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
@@ -86,7 +86,8 @@ export class CommanderSpellbookProvider implements ComboKnowledgeProvider {
         }),
         signal: AbortSignal.timeout(this.timeoutMs),
         next: { revalidate: Math.floor(this.cacheTtlMs / 1000) },
-      });
+      };
+      const response = await this.fetchImpl(this.endpoint, requestInit);
 
       if (!response.ok) {
         throw new Error(`Commander Spellbook returned HTTP ${response.status}.`);

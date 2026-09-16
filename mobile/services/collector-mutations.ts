@@ -99,6 +99,8 @@ export type MutationValidationContext = {
   membershipTier: unknown;
   currentTotalQuantity: number;
   currentCardQuantity: number;
+  /** Set only from a trusted server/platform-access resolution. */
+  hasFullPlatformAccess?: boolean;
   requestedUserId: string;
   authenticatedUserId: string;
 };
@@ -176,13 +178,12 @@ export function validateCollectorMutation(
       return { ok: false, code: 'invalid_quantity', reason: 'Quantity must be a whole number at or above zero.' };
     }
 
-    const plan = MEMBERSHIP_PLANS[normalizeMembershipTier(context.membershipTier)];
-    const nextTotal = context.currentTotalQuantity - context.currentCardQuantity + mutation.quantity;
-    if (plan.limits.cardLimit !== null && nextTotal > plan.limits.cardLimit) {
+    const limit = collectionQuantityLimitDecision(context, mutation.quantity);
+    if (!limit.ok) {
       return {
         ok: false,
         code: 'free_limit',
-        reason: `Free plan collections are limited to ${plan.limits.cardLimit} cards.`,
+        reason: limit.reason,
       };
     }
   }
@@ -209,6 +210,27 @@ export function validateCollectorMutation(
   }
 
   return { ok: true };
+}
+
+export function collectionQuantityLimitDecision(
+  context: Pick<MutationValidationContext, 'membershipTier' | 'currentTotalQuantity' | 'currentCardQuantity' | 'hasFullPlatformAccess'>,
+  requestedQuantity: number,
+): { ok: true } | { ok: false; reason: string } {
+  if (context.hasFullPlatformAccess) return { ok: true };
+
+  const plan = MEMBERSHIP_PLANS[normalizeMembershipTier(context.membershipTier)];
+  const limit = plan.limits.cardLimit;
+  if (limit === null) return { ok: true };
+
+  // Limits govern growth only. Existing over-limit collections remain editable
+  // and can always be reduced back toward the plan limit.
+  const isGrowth = requestedQuantity > context.currentCardQuantity;
+  const nextTotal = context.currentTotalQuantity - context.currentCardQuantity + requestedQuantity;
+  if (!isGrowth || nextTotal <= limit) return { ok: true };
+  return {
+    ok: false,
+    reason: `Collection limit reached: Free accounts can hold up to ${limit} total owned cards. Reduce quantity or upgrade to add more.`,
+  };
 }
 
 export function applyCollectorMutationOptimistically(
@@ -288,7 +310,7 @@ export function classifyCollectorAuthoritativeError(error: unknown): CollectorAu
 function authoritativeMessage(code: CollectorAuthoritativeErrorCode) {
   const messages: Record<CollectorAuthoritativeErrorCode, string> = {
     TD_COLLECTOR_UNAUTHORIZED: 'This queued change is not authorized for the signed-in user.',
-    TD_COLLECTOR_FREE_LIMIT_EXCEEDED: 'Free plan collections are limited to 500 total owned cards.',
+    TD_COLLECTOR_FREE_LIMIT_EXCEEDED: 'Collection limit reached: Free accounts can hold up to 500 total owned cards. Reduce quantity or upgrade to add more.',
     TD_COLLECTOR_INVALID_QUANTITY: 'Quantity must be a whole number at or above zero.',
     TD_COLLECTOR_MISSING_MEMBERSHIP: 'Membership could not be resolved for this collection change.',
     TD_COLLECTOR_INVALID_MUTATION: 'This queued collection change is not supported.',

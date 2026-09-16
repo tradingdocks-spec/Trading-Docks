@@ -841,8 +841,8 @@ export function ChaosSortWorkspace() {
               <div className="space-y-2">
                 <TDBadge tone="info">Batch {batch.batchCode}</TDBadge>
                 <TDText as="h2" variant="heading">Drop scanner photos here</TDText>
-                <TDText tone="secondary" className="max-w-2xl">
-                  JPG, JPEG, PNG, and WebP are supported. Duplicates are flagged, recognition stays separate from human confirmation, and no cards are written to inventory until you commit.
+                  <TDText tone="secondary" className="max-w-2xl">
+                  Scan → Review → Choose location → Import into inventory. JPG, JPEG, PNG, and WebP are supported. Duplicates are flagged, recognition stays separate from human confirmation, and no cards are written to inventory until you import the batch. Needs review, could-not-identify, and failed items stay visible until you resolve, remove, or retry them.
                 </TDText>
               </div>
               <div className="flex flex-wrap gap-2">

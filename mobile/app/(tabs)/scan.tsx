@@ -73,7 +73,7 @@ export default function ScanModesScreen() {
       <View style={s.header}>
         <TDText variant="caption" tone="info">{accountType === 'store' ? 'Store intake' : accountType === 'seller' ? 'Seller intake' : 'Collection intake'}</TDText>
         <TDText variant="display">Scan</TDText>
-        <TDText variant="small" tone="muted">Place card. Hold steady. Review exact printing.</TDText>
+        <TDText variant="small" tone="muted">Open the scanner, keep the camera moving, and review exact printing later.</TDText>
       </View>
 
       <DockSurface material="activeInstrument" level="raised" style={s.modeList}>
@@ -152,6 +152,7 @@ function PrimaryScanMode({
           <Ionicons name="scan-outline" size={26} color={color.text} />
         </View>
         <DockHeader
+          eyebrow="Production scanner"
           title="Trading Docks Scanner"
           subtitle={lock.instruction}
           style={s.modeText}
@@ -189,7 +190,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: color.canvas + 'AA',
+    backgroundColor: color.canvasRaised + 'DD',
     borderWidth: 1,
     borderTopColor: color.primaryBright + '48',
     borderColor: color.primaryBright + '22',

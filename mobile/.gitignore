@@ -48,3 +48,8 @@ app-example
 .env
 .env.*
 !.env.example
+
+# Trading Docks scanner benchmark and private fixture data
+fixtures/private-scanner/
+fixtures/magic-scanner-private/
+benchmark-output/
