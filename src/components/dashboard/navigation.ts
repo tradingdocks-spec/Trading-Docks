@@ -147,11 +147,6 @@ export const PURCHASING_NAV: NavigationSection = {
       icon: ScanLine,
     },
     {
-      href: "/dashboard/inventory/chaos-sort",
-      label: "Chaos Sort",
-      icon: ScanSearch,
-    },
-    {
       href: "/dashboard/collection-buying",
       label: "Collection Buying",
       icon: WalletCards,

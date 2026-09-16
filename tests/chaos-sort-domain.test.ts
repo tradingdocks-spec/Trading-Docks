@@ -65,13 +65,11 @@ test("inventory events are user-scoped and uniquely idempotent", () => {
   assert.match(migration, /using \(user_id = auth\.uid\(\)\) with check \(user_id = auth\.uid\(\)\)/);
 });
 
-test("batch label print CSS renders one bounded label sheet", () => {
+test("batch detail delegates to the isolated bounded label print route", () => {
   const detail = readFileSync("src/components/dashboard/inventory/ChaosSortBatchDetail.tsx", "utf8");
-  assert.match(detail, /@page \{ size: var\(--label-width\) var\(--label-height\); margin: 0; \}/);
-  assert.match(detail, /body \* \{ visibility: hidden !important; \}/);
-  assert.match(detail, /\.label-sheet, \.label-sheet \* \{ visibility: visible !important; \}/);
-  assert.match(detail, /height: var\(--label-height\)/);
-  assert.doesNotMatch(detail, /window\.print\(\).*window\.print\(\)/s);
+  assert.match(detail, /<a href=\{chaosSortLabelPrintHref\(data\.batch\.id, media\)\}/);
+  assert.match(detail, /<img key=\{data\.batch\.id\}/);
+  assert.doesNotMatch(detail, /window\.print|@media print|label-sheet|QRCode/);
 });
 
 function item(overrides: Partial<ChaosSortItem>): ChaosSortItem {

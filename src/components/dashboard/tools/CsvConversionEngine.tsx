@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   Boxes,
@@ -40,6 +41,12 @@ import {
   type CanonicalRow,
 } from "@/lib/csv-conversion/templates";
 import { reviewCollectionLocationImportRow } from "@/lib/collection-location-import";
+import {
+  ContextHelp,
+  EmptyState,
+  FeatureIntro,
+  WorkflowSteps,
+} from "@/components/dashboard/help/HelpPrimitives";
 
 type CsvRow = Record<string, string>;
 type TcgplayerCandidate = {
@@ -129,6 +136,7 @@ export function CsvConversionEngine({
   const [defaultCondition, setDefaultCondition] = useState("Near Mint");
   const [defaultFinish, setDefaultFinish] = useState("Nonfoil");
   const [notice, setNotice] = useState("");
+  const [completion, setCompletion] = useState<{ units: number; locationName: string } | null>(null);
   const [working, setWorking] = useState(false);
   const [showPaste, setShowPaste] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -293,6 +301,7 @@ export function CsvConversionEngine({
       setNotice(
         "That reference file does not match the required 16-column TCGplayer Pricing export.",
       );
+      setCompletion({ units: quantityTotal, locationName: selectedLocation?.label ?? "Unassigned" });
       return;
     }
     const referenceRows = matrix
@@ -715,6 +724,7 @@ export function CsvConversionEngine({
     setDetectedTemplate("Unknown / Generic");
     setEnrichedRows({});
     setNotice("");
+    setCompletion(null);
     setShowPaste(false);
     setShowAdvanced(false);
     setShowAllRows(false);
@@ -728,12 +738,20 @@ export function CsvConversionEngine({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.2em] text-td-accent-text"><WandSparkles className="h-3.5 w-3.5" />Seller & Store Tools</div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-td-primary">CSV Converter</h1>
-            <p className="mt-1 text-xs text-td-muted">Upload, review, then convert or save your cards.</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-td-primary">Import or convert inventory files</h1>
+            <p className="mt-1 text-xs text-td-muted">Upload a marketplace or inventory export, review the matches, then download it or add the cards to Trading Docks.</p>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-td-success/65"><ShieldCheck className="h-4 w-4 text-td-success" />Nothing changes until you confirm</div>
         </div>
       </section>
+
+      <FeatureIntro
+        eyebrow="How it works"
+        title="Your file stays unchanged until you choose an outcome."
+        description="Trading Docks reads the columns, matches card details where it can, and shows you anything that needs attention before an inventory import."
+      >
+        <WorkflowSteps steps={["Upload file", "Review matches", "Choose destination", "Download or import"]} />
+      </FeatureIntro>
 
       <section className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5">
         <SectionTitle step="1" title="Upload your CSV" detail="We automatically detect supported marketplace and collection formats." />
@@ -745,19 +763,23 @@ export function CsvConversionEngine({
         </div>
         {showPaste ? <div className="mt-3 space-y-3 rounded-2xl border border-td-ink/[.07] bg-black/10 p-3"><textarea value={rawText} onChange={(event) => setRawText(event.target.value)} placeholder={"Name,Set,Collector Number,Condition,Quantity\nSol Ring,CMM,396,Near Mint,2"} className="min-h-36 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas p-4 font-mono text-[11px] leading-5 text-td-secondary outline-none placeholder:text-td-muted focus:border-td-accent/25" /><button type="button" onClick={() => loadCsv(rawText)} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-[11px] font-bold text-td-on-accent"><FileSpreadsheet className="h-4 w-4" />Read pasted CSV</button></div> : null}
         {headers.length ? <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-td-success/10 bg-td-success/[.025] px-4 py-3 text-[11px]"><Check className="h-4 w-4 text-td-success" /><strong className="text-td-primary">{fileName}</strong><span className="text-td-muted">•</span><span className="text-td-secondary">{rows.length.toLocaleString()} rows</span><span className="text-td-muted">•</span><span className="text-td-success">{detectedTemplate}</span></div> : null}
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <ContextHelp label="What files can I upload?">Upload a CSV export from a marketplace or inventory app, or a simple file with card name and quantity. Other files can use manual column mapping.</ContextHelp>
+          <ContextHelp label="What does importing change?">Downloading a converted file changes nothing in Trading Docks. Choosing “Import into inventory” writes the reviewed rows to the storage location you provide.</ContextHelp>
+        </div>
       </section>
 
       <section className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5">
         <SectionTitle step="2" title="Choose the result" detail="Pick where the reviewed cards should go." />
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <button type="button" onClick={() => setDestination("download")} className={`rounded-2xl border p-4 text-left ${destination === "download" ? "border-td-accent/25 bg-td-accent/[.055]" : "border-td-ink/[.07] bg-black/10"}`}><Download className="h-5 w-5 text-td-accent-text" /><p className="mt-3 text-sm font-semibold text-td-primary">Download converted CSV</p><p className="mt-1 text-[11px] leading-4 text-td-muted">Create a clean file for another platform without changing inventory.</p></button>
-          <button type="button" onClick={() => setDestination("inventory")} className={`rounded-2xl border p-4 text-left ${destination === "inventory" ? "border-td-accent/25 bg-td-accent/[.055]" : "border-td-ink/[.07] bg-black/10"}`}><Boxes className="h-5 w-5 text-td-accent-text" /><p className="mt-3 text-sm font-semibold text-td-primary">Save into Trading Docks</p><p className="mt-1 text-[11px] leading-4 text-td-muted">File cards into a Bulk Box or another named storage location.</p></button>
+          <button type="button" onClick={() => setDestination("inventory")} className={`rounded-2xl border p-4 text-left ${destination === "inventory" ? "border-td-accent/25 bg-td-accent/[.055]" : "border-td-ink/[.07] bg-black/10"}`}><Boxes className="h-5 w-5 text-td-accent-text" /><p className="mt-3 text-sm font-semibold text-td-primary">Import into inventory</p><p className="mt-1 text-[11px] leading-4 text-td-muted">Add reviewed cards to a named storage location. Nothing is written before you confirm.</p></button>
         </div>
       </section>
 
       <section className="rounded-[24px] border border-td-ink/[.08] bg-td-surface p-5">
         <SectionTitle step="3" title="Review and finish" detail={headers.length ? `${validRows.length.toLocaleString()} valid rows · ${quantityTotal.toLocaleString()} total cards` : "Upload a CSV to continue."} />
-        {!headers.length ? <div className="mt-4 flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-td-ink/[.07] text-center"><FileSpreadsheet className="h-6 w-6 text-td-muted" /><p className="mt-2 text-xs font-semibold text-td-muted">Waiting for a CSV</p></div> : <>
+        {!headers.length ? <EmptyState title="Upload a CSV to review your cards" description="We will detect the format, show the mapped fields, and wait for your confirmation before importing anything." /> : <>
           <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-td-ink/[.07] bg-black/10 p-4 lg:flex-row lg:items-end">
             <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Default condition if missing</span><select value={defaultCondition} onChange={(event) => setDefaultCondition(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary"><option>Near Mint</option><option>Lightly Played</option><option>Moderately Played</option><option>Heavily Played</option><option>Damaged</option></select></label>
             <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Default finish if missing</span><select value={defaultFinish} onChange={(event) => setDefaultFinish(event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-canvas px-3 text-xs text-td-secondary"><option>Nonfoil</option><option>Foil</option><option>Etched</option></select></label>
@@ -820,7 +842,7 @@ export function CsvConversionEngine({
                 setLocationName(next?.label ?? "Unassigned");
               }} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option value="__unassigned__">Unassigned</option>{availableLocations.map((location) => <option key={location.id} value={location.id}>{location.label}</option>)}</select></div></label>
               <label className="flex-1"><span className="text-[11px] font-semibold text-td-muted">Listing allocation</span><div className="mt-1.5 flex h-11 items-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-canvas px-3"><Store className="h-4 w-4 text-td-accent-text" /><select value={marketplace} onChange={(event) => setMarketplace(event.target.value)} className="min-w-0 flex-1 bg-transparent text-xs text-td-secondary outline-none"><option>Unlisted</option><option>TCGplayer</option><option>eBay</option><option>Mana Pool</option><option>Trading Docks</option><option>In-Store</option></select></div></label>
-              <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working || locationsLoading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Save cards</button>
+              <button type="button" onClick={() => void saveToInventory()} disabled={!validRows.length || working || locationsLoading} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-td-accent px-5 text-xs font-bold text-td-on-accent disabled:opacity-40">{working ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}Import {quantityTotal.toLocaleString()} cards</button>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[11px] leading-5 text-td-muted"><strong className="text-td-secondary">Destination:</strong> {importDestinationLabel}. {locationsLoading ? "Loading your storage locations..." : `${availableLocations.length.toLocaleString()} active locations available.`}</p>
@@ -835,6 +857,7 @@ export function CsvConversionEngine({
           </div>}
         </>}
       </section>
+      {completion ? <section className="rounded-[24px] border border-td-success/15 bg-td-success/[.035] p-5" aria-live="polite"><h2 className="text-sm font-semibold text-td-primary">Cards imported into inventory</h2><p className="mt-1 text-xs leading-5 text-td-secondary">{completion.units.toLocaleString()} cards saved in <strong>{completion.locationName}</strong>. Your original file was not changed.</p><Link href="/dashboard/inventory" className="mt-3 inline-flex min-h-9 items-center rounded-lg bg-td-accent px-3 text-[11px] font-bold text-td-on-accent">View inventory</Link></section> : null}
       {notice ? <div role="status" className="fixed bottom-5 right-5 z-[180] max-w-sm rounded-2xl border border-td-accent/15 bg-td-surface px-4 py-3 text-xs leading-5 text-td-accent-text shadow-2xl">{notice}</div> : null}
     </div>
   );
