@@ -36,6 +36,7 @@ import type {
   PricePoint,
 } from "@/lib/card-photo-scanner/types";
 import { GameContextControl } from "@/components/dashboard/multi-tcg/GameContextControl";
+import { ContextHelp, FeatureIntro, WorkflowSteps } from "@/components/dashboard/help/HelpPrimitives";
 import {
   displayGameBadge,
   marketSourcesForGame,
@@ -76,23 +77,23 @@ const sourceBrand: Record<
 > = {
   Scryfall: {
     short: "SC",
-    accent: "text-emerald-300",
-    badge: "border-emerald-300/15 bg-emerald-300/[.045]",
+    accent: "text-td-success",
+    badge: "border-td-success/15 bg-td-success/[.045]",
   },
   TCGplayer: {
     short: "TCG",
-    accent: "text-blue-300",
-    badge: "border-blue-300/15 bg-blue-300/[.045]",
+    accent: "text-td-accent-text",
+    badge: "border-td-accent/15 bg-td-accent/[.045]",
   },
   TCGTracking: {
     short: "TRK",
-    accent: "text-cyan-300",
-    badge: "border-cyan-300/15 bg-cyan-300/[.045]",
+    accent: "text-td-accent-text",
+    badge: "border-td-accent/15 bg-td-accent/[.045]",
   },
   "Mana Pool": {
     short: "MP",
-    accent: "text-violet-300",
-    badge: "border-violet-300/15 bg-violet-300/[.045]",
+    accent: "text-td-violet",
+    badge: "border-td-violet/15 bg-td-violet/[.045]",
   },
   CardSphere: {
     short: "CS",
@@ -101,8 +102,8 @@ const sourceBrand: Record<
   },
   Cardmarket: {
     short: "CM",
-    accent: "text-amber-300",
-    badge: "border-amber-300/15 bg-amber-300/[.045]",
+    accent: "text-td-warning",
+    badge: "border-td-warning/15 bg-td-warning/[.045]",
   },
 };
 
@@ -380,9 +381,19 @@ export function CardPhotoScanner() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020914] px-4 py-5 text-white sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-td-canvas px-4 py-5 text-td-primary sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1540px] space-y-5">
         <Hero />
+        <FeatureIntro
+          eyebrow="Card image lookup"
+          title="Identify one card before you decide what to pay."
+          description="Upload a clear card photo or enter its name. Trading Docks suggests exact printings and market context; you confirm the result before using it in a buying decision. This tool does not add cards to inventory."
+        >
+          <div className="space-y-3">
+            <WorkflowSteps steps={["Upload or name the card", "Review suggested printings", "Confirm the printing", "Use the buying context"]} />
+            <ContextHelp label="Card could not be identified?">Try a brighter, full-card photo with less sleeve glare, or enter the card name manually. If the exact printing is still uncertain, choose from the suggestions rather than relying on an automatic guess.</ContextHelp>
+          </div>
+        </FeatureIntro>
 
         {!result ? (
           <ScanWorkspace
@@ -484,20 +495,20 @@ export function CardPhotoScanner() {
 
 function Hero() {
   return (
-    <header className="relative overflow-hidden rounded-[28px] border border-blue-300/[.14] bg-[#07121f] px-6 py-7 shadow-[0_28px_90px_rgba(0,0,0,.3)] sm:px-8">
-      <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-blue-500/[.11] blur-3xl" />
-      <div className="pointer-events-none absolute right-52 top-6 h-44 w-44 rounded-full bg-cyan-300/[.055] blur-3xl" />
+    <header className="relative overflow-hidden rounded-[28px] border border-td-accent/[.14] bg-td-surface px-6 py-7 shadow-[0_28px_90px_rgb(var(--td-shadow-rgb)/calc(.3*var(--td-shadow-strength)))] sm:px-8">
+      <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-td-accent/[.11] blur-3xl" />
+      <div className="pointer-events-none absolute right-52 top-6 h-44 w-44 rounded-full bg-td-accent/[.055] blur-3xl" />
 
       <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.18em] text-blue-300">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.18em] text-td-accent-text">
             <WandSparkles className="h-4 w-4" />
             Trading Docks Vision
           </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-[-.045em] sm:text-4xl">
             Purchasing Intelligence
           </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-td-secondary">
             Identify the exact printing, compare available markets, and turn a
             card photo into a transparent buying decision.
           </p>
@@ -547,18 +558,18 @@ function ScanWorkspace({
 }: ScanWorkspaceProps) {
   return (
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,.8fr)]">
-      <div className="rounded-[28px] border border-white/[.075] bg-[#07121f] p-5 shadow-[0_24px_80px_rgba(0,0,0,.25)] sm:p-6">
+      <div className="rounded-[28px] border border-td-ink/[.075] bg-td-surface p-5 shadow-[0_24px_80px_rgb(var(--td-shadow-rgb)/calc(.25*var(--td-shadow-strength)))] sm:p-6">
         <SectionKicker icon={UploadCloud} label="Scan stage" />
         <div className="mt-2 flex items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold tracking-tight">
               Drop in the card front
             </h2>
-            <p className="mt-1 text-[10px] leading-5 text-slate-600">
+            <p className="mt-1 text-[11px] leading-5 text-td-muted">
               Full-card photos with even lighting produce the strongest result.
             </p>
           </div>
-          <span className="rounded-full border border-white/[.07] bg-white/[.025] px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[.1em] text-slate-500">
+          <span className="rounded-full border border-td-ink/[.07] bg-td-ink/[.025] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[.1em] text-td-muted">
             JPG · PNG · WebP
           </span>
         </div>
@@ -579,8 +590,8 @@ function ScanWorkspace({
           }}
           className={`relative mt-5 flex min-h-[510px] w-full overflow-hidden rounded-[24px] border transition ${
             dragging
-              ? "border-cyan-300/55 bg-blue-400/[.08]"
-              : "border-dashed border-blue-300/[.18] bg-[#030c17] hover:border-blue-300/38 hover:bg-blue-400/[.025]"
+              ? "border-td-accent/55 bg-td-accent/[.08]"
+              : "border-dashed border-td-accent/[.18] bg-td-surface hover:border-td-accent/38 hover:bg-td-accent/[.025]"
           }`}
         >
           {preview ? (
@@ -589,25 +600,25 @@ function ScanWorkspace({
               <img
                 src={preview}
                 alt="Uploaded card"
-                className="max-h-[455px] max-w-full rounded-2xl object-contain shadow-[0_24px_70px_rgba(0,0,0,.52)]"
+                className="max-h-[455px] max-w-full rounded-2xl object-contain shadow-[0_24px_70px_rgb(var(--td-shadow-rgb)/calc(.52*var(--td-shadow-strength)))]"
               />
-              <span className="absolute right-4 top-4 rounded-xl border border-white/[.1] bg-black/70 px-3 py-2 text-[9px] font-semibold text-white backdrop-blur">
+              <span className="absolute right-4 top-4 rounded-xl border border-td-ink/[.1] bg-black/70 px-3 py-2 text-[11px] font-semibold text-white backdrop-blur">
                 Replace image
               </span>
             </div>
           ) : (
             <div className="m-auto max-w-md px-6 py-14 text-center">
-              <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] border border-blue-300/[.16] bg-blue-400/[.055] text-blue-300 shadow-[0_0_55px_rgba(59,130,246,.12)]">
+              <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-[28px] border border-td-accent/[.16] bg-td-accent/[.055] text-td-accent-text shadow-[0_0_55px_rgb(var(--td-accent-rgb)/.12)]">
                 <ImagePlus className="h-9 w-9" />
               </span>
               <p className="mt-6 text-xl font-semibold">
                 Drop a card photo here
               </p>
-              <p className="mt-3 text-xs leading-6 text-slate-500">
+              <p className="mt-3 text-xs leading-6 text-td-muted">
                 Keep the full border visible, avoid sleeve glare, and use the
                 highest-resolution image available.
               </p>
-              <span className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-300 px-5 text-[10px] font-semibold text-[#020914]">
+              <span className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-td-accent to-td-accent px-5 text-[11px] font-semibold text-td-on-accent">
                 <FileImage className="h-4 w-4" />
                 Choose image
               </span>
@@ -627,12 +638,12 @@ function ScanWorkspace({
       </div>
 
       <div className="space-y-5">
-        <div className="rounded-[28px] border border-white/[.075] bg-[#07121f] p-5 sm:p-6">
+        <div className="rounded-[28px] border border-td-ink/[.075] bg-td-surface p-5 sm:p-6">
           <SectionKicker icon={Sparkles} label="Recognition assist" />
           <h2 className="mt-2 text-xl font-semibold tracking-tight">
             Confirm the scan input
           </h2>
-          <p className="mt-2 text-[10px] leading-5 text-slate-600">
+          <p className="mt-2 text-[11px] leading-5 text-td-muted">
             Entering the name is optional, but it is a reliable fallback when
             small text is obscured.
           </p>
@@ -646,18 +657,18 @@ function ScanWorkspace({
           </div>
 
           <label className="mt-5 block">
-            <span className="text-[9px] font-semibold uppercase tracking-[.13em] text-slate-600">
+            <span className="text-[11px] font-semibold uppercase tracking-[.13em] text-td-muted">
               Optional card name
             </span>
             <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-td-muted" />
               <input
                 value={manualName}
                 onChange={(event) =>
                   setManualName(event.target.value)
                 }
                 placeholder="Example: Rhystic Study"
-                className="h-12 w-full rounded-xl border border-white/[.08] bg-[#030c17] pl-10 pr-3 text-sm text-white outline-none placeholder:text-slate-700"
+                className="h-12 w-full rounded-xl border border-td-ink/[.08] bg-td-surface pl-10 pr-3 text-sm text-td-primary outline-none placeholder:text-td-muted"
               />
             </div>
           </label>
@@ -666,7 +677,7 @@ function ScanWorkspace({
             type="button"
             onClick={analyze}
             disabled={loading}
-            className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-300 px-4 text-[11px] font-semibold text-[#020914] shadow-[0_14px_36px_rgba(37,99,235,.22)] disabled:opacity-50"
+            className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-td-accent to-td-accent px-4 text-[11px] font-semibold text-td-on-accent shadow-[0_14px_36px_rgb(var(--td-accent-rgb)/.22)] disabled:opacity-50"
           >
             {loading ? (
               <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -677,7 +688,7 @@ function ScanWorkspace({
           </button>
 
           {error ? (
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-300/15 bg-rose-400/[.04] p-3 text-[10px] leading-5 text-rose-200">
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-td-danger/15 bg-td-danger/[.04] p-3 text-[11px] leading-5 text-td-danger">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               {error}
             </div>
@@ -686,7 +697,7 @@ function ScanWorkspace({
 
         <QualityPanel quality={quality} />
 
-        <div className="rounded-[28px] border border-white/[.075] bg-[#07121f] p-5 sm:p-6">
+        <div className="rounded-[28px] border border-td-ink/[.075] bg-td-surface p-5 sm:p-6">
           <SectionKicker icon={ShieldCheck} label="Accuracy standard" />
           <div className="mt-4 space-y-3">
             <AccuracyItem
@@ -718,25 +729,25 @@ function RecognitionSummary(props: {
   gameContext: GameContextId;
 }) {
   return (
-    <section className="rounded-[26px] border border-white/[.075] bg-[#07121f] p-5 shadow-[0_22px_70px_rgba(0,0,0,.24)]">
+    <section className="rounded-[26px] border border-td-ink/[.075] bg-td-surface p-5 shadow-[0_22px_70px_rgb(var(--td-shadow-rgb)/calc(.24*var(--td-shadow-strength)))]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <SectionKicker icon={ScanLine} label="Recognition" />
-          <span className="rounded-full border border-cyan-300/16 bg-cyan-300/[.045] px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[.1em] text-cyan-200">
+          <span className="rounded-full border border-td-accent/16 bg-td-accent/[.045] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[.1em] text-td-accent-text">
             {displayGameBadge(props.gameContext)}
           </span>
         </div>
         <button
           type="button"
           onClick={props.reset}
-          className="flex h-9 items-center gap-2 rounded-xl border border-white/[.08] bg-white/[.025] px-3 text-[9px] font-semibold text-slate-500 hover:text-white"
+          className="flex h-9 items-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-ink/[.025] px-3 text-[11px] font-semibold text-td-muted hover:text-td-primary"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           New scan
         </button>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-[22px] border border-white/[.07] bg-[#030c17] p-4">
+      <div className="mt-5 overflow-hidden rounded-[22px] border border-td-ink/[.07] bg-td-surface p-4">
         {props.preview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -751,7 +762,7 @@ function RecognitionSummary(props: {
         <p className="text-lg font-semibold">
           {props.selected?.name ?? props.result.identification.name}
         </p>
-        <p className="mt-1 text-[10px] leading-5 text-slate-500">
+        <p className="mt-1 text-[11px] leading-5 text-td-muted">
           {props.selected
             ? `${props.selected.setName} · ${props.selected.setCode} #${props.selected.collectorNumber}`
             : "Select a version match"}
@@ -785,7 +796,7 @@ function CandidateList(props: {
   onImageError: (id: string) => void;
 }) {
   return (
-    <section className="rounded-[26px] border border-white/[.075] bg-[#07121f] p-5">
+    <section className="rounded-[26px] border border-td-ink/[.075] bg-td-surface p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <SectionKicker icon={Layers3} label="Version matches" />
@@ -793,7 +804,7 @@ function CandidateList(props: {
             Confirm the exact product version
           </p>
         </div>
-        <span className="rounded-full border border-white/[.07] px-2.5 py-1 text-[8px] font-semibold text-slate-600">
+        <span className="rounded-full border border-td-ink/[.07] px-2.5 py-1 text-[11px] font-semibold text-td-muted">
           {props.candidates.length} matches
         </span>
       </div>
@@ -808,11 +819,11 @@ function CandidateList(props: {
               onClick={() => props.onSelect(candidate.id)}
               className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
                 selected
-                  ? "border-blue-300/38 bg-blue-400/[.07]"
-                  : "border-white/[.06] bg-black/[.13] hover:border-blue-300/18"
+                  ? "border-td-accent/38 bg-td-accent/[.07]"
+                  : "border-td-ink/[.06] bg-black/[.13] hover:border-td-accent/18"
               }`}
             >
-              <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-[#020914]">
+              <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-td-canvas">
                 {candidate.imageUrl && !props.failedImages.has(candidate.id) ? (
                   <Image
                     src={candidate.imageUrl}
@@ -825,10 +836,10 @@ function CandidateList(props: {
                   />
                 ) : (
                   <div className="flex h-full flex-col items-center justify-center gap-1 px-1 text-center">
-                    <span className="text-[9px] font-bold text-cyan-300">
+                    <span className="text-[11px] font-bold text-td-accent-text">
                       {props.gameContext === "pokemon" ? "PKM" : "TCG"}
                     </span>
-                    <span className="text-[7px] leading-3 text-slate-700">
+                    <span className="text-[11px] leading-3 text-td-muted">
                       Image unavailable
                     </span>
                   </div>
@@ -836,28 +847,28 @@ function CandidateList(props: {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[8px] font-semibold text-slate-700">
+                  <span className="text-[11px] font-semibold text-td-muted">
                     #{index + 1}
                   </span>
                   <span className="truncate text-xs font-semibold">
                     {candidate.setName}
                   </span>
                 </div>
-                <p className="mt-1 text-[9px] uppercase tracking-[.08em] text-blue-300">
+                <p className="mt-1 text-[11px] uppercase tracking-[.08em] text-td-accent-text">
                   {candidate.setCode} #{candidate.collectorNumber}
                 </p>
-                <p className="mt-1 text-[8px] text-slate-700">
+                <p className="mt-1 text-[11px] text-td-muted">
                   {[candidate.rarity, candidate.finishes.join(" · ")]
                     .filter(Boolean)
                     .join(" · ") || "Variant unavailable"}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-sm font-semibold text-blue-200">
+                <p className="text-sm font-semibold text-td-accent-text">
                   {Math.round(candidate.confidence * 100)}%
                 </p>
                 {selected ? (
-                  <CheckCircle2 className="ml-auto mt-2 h-4 w-4 text-cyan-300" />
+                  <CheckCircle2 className="ml-auto mt-2 h-4 w-4 text-td-accent-text" />
                 ) : null}
               </div>
             </button>
@@ -896,8 +907,8 @@ function DecisionHero(props: {
   const finishOptions = variantOptionsForGame(props.gameContext);
 
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-blue-300/[.16] bg-[#07121f] p-5 shadow-[0_26px_90px_rgba(37,99,235,.08)] sm:p-6">
-      <div className="pointer-events-none absolute -right-16 -top-20 h-60 w-60 rounded-full bg-blue-500/[.1] blur-3xl" />
+    <section className="relative overflow-hidden rounded-[28px] border border-td-accent/[.16] bg-td-surface p-5 shadow-[0_26px_90px_rgb(var(--td-accent-rgb)/.08)] sm:p-6">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-60 w-60 rounded-full bg-td-accent/[.1] blur-3xl" />
 
       <div className="relative">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -906,46 +917,46 @@ function DecisionHero(props: {
               icon={BadgeDollarSign}
               label="Purchase recommendation"
             />
-            <span className="mt-3 inline-flex rounded-full border border-white/[.08] bg-white/[.025] px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[.1em] text-slate-400">
+            <span className="mt-3 inline-flex rounded-full border border-td-ink/[.08] bg-td-ink/[.025] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[.1em] text-td-secondary">
               {shortGameLabel(props.gameContext)}
             </span>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight">
               {props.selected.name}
             </h2>
-            <p className="mt-1 text-[10px] text-slate-500">
+            <p className="mt-1 text-[11px] text-td-muted">
               {props.selected.setName} · {props.selected.setCode} #
               {props.selected.collectorNumber}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl border border-white/[.07] bg-black/[.15] px-4 py-3 text-right">
-              <p className="text-[8px] font-semibold uppercase tracking-[.12em] text-slate-600">
+            <div className="rounded-2xl border border-td-ink/[.07] bg-black/[.15] px-4 py-3 text-right">
+              <p className="text-[11px] font-semibold uppercase tracking-[.12em] text-td-muted">
                 Confidence
               </p>
-              <p className="mt-1 text-lg font-semibold text-blue-200">
+              <p className="mt-1 text-lg font-semibold text-td-accent-text">
                 {props.confidence}%
               </p>
             </div>
             <div
               className={`rounded-2xl border px-5 py-3 ${
                 recommendation === "BUY"
-                  ? "border-emerald-300/18 bg-emerald-300/[.055]"
+                  ? "border-td-success/18 bg-td-success/[.055]"
                   : recommendation === "CONSIDER"
-                    ? "border-amber-300/18 bg-amber-300/[.055]"
-                    : "border-white/[.08] bg-white/[.025]"
+                    ? "border-td-warning/18 bg-td-warning/[.055]"
+                    : "border-td-ink/[.08] bg-td-ink/[.025]"
               }`}
             >
-              <p className="text-[8px] font-semibold uppercase tracking-[.12em] text-slate-600">
+              <p className="text-[11px] font-semibold uppercase tracking-[.12em] text-td-muted">
                 Recommendation
               </p>
               <p
                 className={`mt-1 text-lg font-semibold ${
                   recommendation === "BUY"
-                    ? "text-emerald-300"
+                    ? "text-td-success"
                     : recommendation === "CONSIDER"
-                      ? "text-amber-300"
-                      : "text-slate-300"
+                      ? "text-td-warning"
+                      : "text-td-secondary"
                 }`}
               >
                 {recommendation}
@@ -996,7 +1007,7 @@ function DecisionHero(props: {
           <button
             type="button"
             onClick={() => props.setAdvancedOpen(!props.advancedOpen)}
-            className="mt-auto inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[.08] bg-white/[.025] px-4 text-[10px] font-semibold text-slate-300"
+            className="mt-auto inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-td-ink/[.08] bg-td-ink/[.025] px-4 text-[11px] font-semibold text-td-secondary"
           >
             Buying rules
             <ChevronDown
@@ -1008,17 +1019,17 @@ function DecisionHero(props: {
         </div>
 
         {props.advancedOpen ? (
-          <div className="mt-4 rounded-2xl border border-white/[.07] bg-black/[.15] p-4">
+          <div className="mt-4 rounded-2xl border border-td-ink/[.07] bg-black/[.15] p-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[.13em] text-slate-600">
+                <p className="text-[11px] font-semibold uppercase tracking-[.13em] text-td-muted">
                   Buying-rule percentage
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-td-secondary">
                   Pay {props.offerPercent}% of adjusted reference
                 </p>
               </div>
-              <span className="text-lg font-semibold text-blue-300">
+              <span className="text-lg font-semibold text-td-accent-text">
                 {props.offerPercent}%
               </span>
             </div>
@@ -1031,7 +1042,7 @@ function DecisionHero(props: {
               onChange={(event) =>
                 props.setOfferPercent(Number(event.target.value))
               }
-              className="mt-4 w-full accent-blue-400"
+              className="mt-4 w-full accent-td-accent"
             />
           </div>
         ) : null}
@@ -1048,30 +1059,30 @@ function MarketIntelligence(props: {
   const rows = buildMarketRows(props.candidate.prices, props.gameContext);
 
   return (
-    <section className="rounded-[28px] border border-white/[.075] bg-[#07121f] p-5 sm:p-6">
+    <section className="rounded-[28px] border border-td-ink/[.075] bg-td-surface p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <SectionKicker icon={BarChart3} label="Market intelligence" />
           <h2 className="mt-2 text-xl font-semibold tracking-tight">
             Compare exact-printing markets
           </h2>
-          <p className="mt-1 text-[10px] leading-5 text-slate-600">
+          <p className="mt-1 text-[11px] leading-5 text-td-muted">
             Sources are scoped to {displayGameBadge(props.gameContext)} so Magic-only providers stay out of other games.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-emerald-300/14 bg-emerald-300/[.04] px-3 py-1.5 text-[8px] font-semibold text-emerald-300">
+          <span className="rounded-full border border-td-success/14 bg-td-success/[.04] px-3 py-1.5 text-[11px] font-semibold text-td-success">
             {props.coverage.available} live
           </span>
-          <span className="rounded-full border border-amber-300/14 bg-amber-300/[.04] px-3 py-1.5 text-[8px] font-semibold text-amber-300">
+          <span className="rounded-full border border-td-warning/14 bg-td-warning/[.04] px-3 py-1.5 text-[11px] font-semibold text-td-warning">
             {props.coverage.checked - props.coverage.available} pending
           </span>
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-[22px] border border-white/[.07]">
-        <div className="hidden grid-cols-[1.35fr_.8fr_.8fr_.8fr_.55fr] border-b border-white/[.06] bg-white/[.018] px-4 py-3 text-[8px] font-semibold uppercase tracking-[.11em] text-slate-700 md:grid">
+      <div className="mt-5 overflow-hidden rounded-[22px] border border-td-ink/[.07]">
+        <div className="hidden grid-cols-[1.35fr_.8fr_.8fr_.8fr_.55fr] border-b border-td-ink/[.06] bg-td-ink/[.018] px-4 py-3 text-[11px] font-semibold uppercase tracking-[.11em] text-td-muted md:grid">
           <span>Marketplace</span>
           <span>Lowest / market</span>
           <span>Buylist</span>
@@ -1079,7 +1090,7 @@ function MarketIntelligence(props: {
           <span className="text-right">Open</span>
         </div>
 
-        <div className="divide-y divide-white/[.055]">
+        <div className="divide-y divide-td-ink/[.055]">
           {rows.map((row) => (
             <MarketRow key={row.name} row={row} />
           ))}
@@ -1122,11 +1133,11 @@ function ActionBar(props: {
   setNotice: (value: string) => void;
 }) {
   return (
-    <section className="rounded-[24px] border border-white/[.075] bg-[#07121f] p-4">
+    <section className="rounded-[24px] border border-td-ink/[.075] bg-td-surface p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-sm font-semibold">Ready to continue?</p>
-          <p className="mt-1 text-[9px] text-slate-600">
+          <p className="mt-1 text-[11px] text-td-muted">
             Confirmed printing · Suggested offer{" "}
             {currency(props.suggestedOffer)}
           </p>
@@ -1140,24 +1151,24 @@ function ActionBar(props: {
                 "Purchase draft is staged. The next workflow step can write this exact printing into Collection Buying.",
               )
             }
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-300 px-5 text-[10px] font-semibold text-[#020914]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-td-accent to-td-accent px-5 text-[11px] font-semibold text-td-on-accent"
           >
             <ShoppingCart className="h-4 w-4" />
             Add to collection purchase
           </button>
           <Link
             href="/dashboard/inventory"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/[.09] bg-white/[.025] px-5 text-[10px] font-semibold text-white"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-td-ink/[.09] bg-td-ink/[.025] px-5 text-[11px] font-semibold text-td-primary"
           >
-            <CircleDollarSign className="h-4 w-4 text-blue-300" />
+            <CircleDollarSign className="h-4 w-4 text-td-accent-text" />
             Open inventory intake
           </Link>
         </div>
       </div>
 
       {props.notice ? (
-        <div className="mt-3 flex items-start gap-2 rounded-xl border border-blue-300/15 bg-blue-400/[.04] p-3 text-[10px] leading-5 text-blue-100/75">
-          <Check className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-td-accent/15 bg-td-accent/[.04] p-3 text-[11px] leading-5 text-td-accent-text/75">
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-td-accent-text" />
           {props.notice}
         </div>
       ) : null}
@@ -1277,32 +1288,32 @@ function MarketRow({
     <div className="grid gap-3 px-4 py-4 md:grid-cols-[1.35fr_.8fr_.8fr_.8fr_.55fr] md:items-center">
       <div className="flex items-center gap-3">
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-[9px] font-bold ${brand.badge} ${brand.accent}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-[11px] font-bold ${brand.badge} ${brand.accent}`}
         >
           {brand.short}
         </span>
         <div>
           <p className="text-xs font-semibold">{row.name}</p>
-          <p className="mt-1 text-[8px] text-slate-700">{row.note}</p>
+          <p className="mt-1 text-[11px] text-td-muted">{row.note}</p>
         </div>
       </div>
 
       <div>
-        <p className="text-[8px] uppercase tracking-[.09em] text-slate-700 md:hidden">
+        <p className="text-[11px] uppercase tracking-[.09em] text-td-muted md:hidden">
           Lowest / market
         </p>
         <p className="mt-1 text-xs font-semibold md:mt-0">
           {row.price == null ? "—" : currency(row.price)}
         </p>
         {row.secondary != null ? (
-          <p className="mt-1 text-[8px] text-slate-700">
+          <p className="mt-1 text-[11px] text-td-muted">
             Foil {currency(row.secondary)}
           </p>
         ) : null}
       </div>
 
       <div>
-        <p className="text-[8px] uppercase tracking-[.09em] text-slate-700 md:hidden">
+        <p className="text-[11px] uppercase tracking-[.09em] text-td-muted md:hidden">
           Buylist
         </p>
         <p className="mt-1 text-xs font-semibold md:mt-0">
@@ -1312,10 +1323,10 @@ function MarketRow({
 
       <div>
         <span
-          className={`inline-flex rounded-full border px-2.5 py-1 text-[8px] font-semibold ${
+          className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
             ready
-              ? "border-emerald-300/14 bg-emerald-300/[.04] text-emerald-300"
-              : "border-amber-300/14 bg-amber-300/[.04] text-amber-300"
+              ? "border-td-success/14 bg-td-success/[.04] text-td-success"
+              : "border-td-warning/14 bg-td-warning/[.04] text-td-warning"
           }`}
         >
           {row.status}
@@ -1328,12 +1339,12 @@ function MarketRow({
             href={row.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/[.08] bg-white/[.025] text-blue-300 hover:bg-blue-400/[.08]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-td-ink/[.08] bg-td-ink/[.025] text-td-accent-text hover:bg-td-accent/[.08]"
           >
             <ArrowUpRight className="h-4 w-4" />
           </a>
         ) : (
-          <span className="text-[8px] text-slate-800">—</span>
+          <span className="text-[11px] text-td-on-accent">—</span>
         )}
       </div>
     </div>
@@ -1342,7 +1353,7 @@ function MarketRow({
 
 function QualityPanel({ quality }: { quality: Quality | null }) {
   return (
-    <div className="rounded-[28px] border border-white/[.075] bg-[#07121f] p-5 sm:p-6">
+    <div className="rounded-[28px] border border-td-ink/[.075] bg-td-surface p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <SectionKicker icon={Camera} label="Image quality" />
@@ -1352,10 +1363,10 @@ function QualityPanel({ quality }: { quality: Quality | null }) {
         </div>
         {quality ? (
           <span
-            className={`rounded-full px-3 py-1.5 text-[8px] font-semibold ${
+            className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${
               quality.score >= 80
-                ? "bg-emerald-300/[.06] text-emerald-300"
-                : "bg-amber-300/[.06] text-amber-300"
+                ? "bg-td-success/[.06] text-td-success"
+                : "bg-td-warning/[.06] text-td-warning"
             }`}
           >
             {quality.width} × {quality.height}
@@ -1372,12 +1383,12 @@ function QualityPanel({ quality }: { quality: Quality | null }) {
         ]).map((message) => (
           <div
             key={message.label}
-            className="flex items-start gap-2 text-[9px] leading-5 text-slate-500"
+            className="flex items-start gap-2 text-[11px] leading-5 text-td-muted"
           >
             {message.status === "good" ? (
-              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-td-success" />
             ) : (
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-td-warning" />
             )}
             {message.label}
           </div>
@@ -1395,8 +1406,8 @@ function HeroBadge({
   label: string;
 }) {
   return (
-    <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[.07] bg-black/[.14] px-3 text-[9px] font-semibold text-slate-400">
-      <Icon className="h-3.5 w-3.5 text-blue-300" />
+    <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-td-ink/[.07] bg-black/[.14] px-3 text-[11px] font-semibold text-td-secondary">
+      <Icon className="h-3.5 w-3.5 text-td-accent-text" />
       {label}
     </span>
   );
@@ -1410,7 +1421,7 @@ function SectionKicker({
   label: string;
 }) {
   return (
-    <div className="flex items-center gap-2 text-[8px] font-semibold uppercase tracking-[.15em] text-blue-300">
+    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.15em] text-td-accent-text">
       <Icon className="h-3.5 w-3.5" />
       {label}
     </div>
@@ -1419,11 +1430,11 @@ function SectionKicker({
 
 function AccuracyItem({ title, text }: { title: string; text: string }) {
   return (
-    <div className="flex gap-3 rounded-2xl border border-white/[.06] bg-black/[.12] p-3">
-      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+    <div className="flex gap-3 rounded-2xl border border-td-ink/[.06] bg-black/[.12] p-3">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-td-success" />
       <div>
-        <p className="text-[10px] font-semibold">{title}</p>
-        <p className="mt-1 text-[8px] leading-4 text-slate-700">{text}</p>
+        <p className="text-[11px] font-semibold">{title}</p>
+        <p className="mt-1 text-[11px] leading-4 text-td-muted">{text}</p>
       </div>
     </div>
   );
@@ -1440,16 +1451,16 @@ function RecognitionMetric({
 }) {
   const toneClass =
     tone === "blue"
-      ? "text-blue-200"
+      ? "text-td-accent-text"
       : tone === "green"
-        ? "text-emerald-300"
+        ? "text-td-success"
         : tone === "amber"
-          ? "text-amber-300"
-          : "text-white";
+          ? "text-td-warning"
+          : "text-td-primary";
 
   return (
-    <div className="rounded-xl border border-white/[.06] bg-black/[.13] p-3">
-      <p className="text-[8px] uppercase tracking-[.1em] text-slate-700">
+    <div className="rounded-xl border border-td-ink/[.06] bg-black/[.13] p-3">
+      <p className="text-[11px] uppercase tracking-[.1em] text-td-muted">
         {label}
       </p>
       <p className={`mt-1 text-xs font-semibold ${toneClass}`}>{value}</p>
@@ -1472,21 +1483,21 @@ function DecisionMetric({
     <div
       className={`rounded-2xl border p-4 ${
         featured
-          ? "border-blue-300/26 bg-blue-400/[.075]"
-          : "border-white/[.07] bg-black/[.14]"
+          ? "border-td-accent/26 bg-td-accent/[.075]"
+          : "border-td-ink/[.07] bg-black/[.14]"
       }`}
     >
-      <p className="text-[8px] font-semibold uppercase tracking-[.11em] text-slate-600">
+      <p className="text-[11px] font-semibold uppercase tracking-[.11em] text-td-muted">
         {label}
       </p>
       <p
         className={`mt-2 text-2xl font-semibold ${
-          featured ? "text-cyan-200" : "text-white"
+          featured ? "text-td-accent-text" : "text-td-primary"
         }`}
       >
         {value}
       </p>
-      <p className="mt-1 text-[8px] text-slate-700">{detail}</p>
+      <p className="mt-1 text-[11px] text-td-muted">{detail}</p>
     </div>
   );
 }
@@ -1499,13 +1510,13 @@ function SelectField(props: {
 }) {
   return (
     <label>
-      <span className="text-[9px] font-semibold uppercase tracking-[.13em] text-slate-600">
+      <span className="text-[11px] font-semibold uppercase tracking-[.13em] text-td-muted">
         {props.label}
       </span>
       <select
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
-        className="mt-2 h-11 w-full rounded-xl border border-white/[.08] bg-[#030c17] px-3 text-xs text-white outline-none"
+        className="mt-2 h-11 w-full rounded-xl border border-td-ink/[.08] bg-td-surface px-3 text-xs text-td-primary outline-none"
       >
         {props.options.map((option) => (
           <option key={option}>{option}</option>
@@ -1527,13 +1538,13 @@ function MarketSummary({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[.06] bg-black/[.13] p-4">
-      <Icon className="h-4 w-4 text-blue-300" />
-      <p className="mt-3 text-[8px] font-semibold uppercase tracking-[.11em] text-slate-700">
+    <div className="rounded-2xl border border-td-ink/[.06] bg-black/[.13] p-4">
+      <Icon className="h-4 w-4 text-td-accent-text" />
+      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[.11em] text-td-muted">
         {label}
       </p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
-      <p className="mt-1 text-[8px] text-slate-700">{detail}</p>
+      <p className="mt-1 text-[11px] text-td-muted">{detail}</p>
     </div>
   );
 }

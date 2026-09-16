@@ -110,7 +110,7 @@ export const PURCHASING_NAV: NavigationSection = {
     },
     {
       href: "/dashboard/card-photo-scanner",
-      label: "Image Lookup",
+      label: "Card Image Lookup",
       icon: ScanLine,
     },
     {
@@ -245,7 +245,7 @@ export const TOOLS_NAV: NavigationItem[] = [
   },
   {
     href: "/dashboard/tools/csv-converter",
-    label: "CSV Conversion Engine",
+    label: "Import & Export",
     icon: FileSpreadsheet,
   },
 ];
