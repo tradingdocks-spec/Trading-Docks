@@ -86,7 +86,7 @@ Recommended user-facing vocabulary:
 
 ## Chaos Sort assessment
 
-The requested web workflow is not currently implemented. The available web scanner is `/dashboard/card-photo-scanner`, an image lookup surface with manual confirmation and explicit beta limitations. Historical mobile scanner documentation describes review-safe recognition states, but that does not establish a supported web batch-intake contract.
+The requested web workflow was not reachable in the starting checkout. The available web scanner is `/dashboard/card-photo-scanner`, an image lookup surface with manual confirmation and explicit beta limitations. Historical mobile scanner documentation describes review-safe recognition states, but that does not establish a supported web batch-intake contract.
 
 Required product decision before implementation:
 
@@ -97,15 +97,44 @@ Required product decision before implementation:
 
 Until those decisions are accepted, the safe correction is to avoid exposing a misleading “Chaos Sort” CTA and make the existing scanner's purpose and limitations explicit.
 
+## Chaos Sort Implementation Trace
+
+### Current route status
+
+The starting checkout had no current files for `/dashboard/inventory/chaos-sort`, `/dashboard/imports/chaos-sort`, or `/dashboard/inventory/batches/[batchId]`. The active inventory route is `/dashboard/inventory`, rendered by the collector workspace. The old imports path was also not a live entry point.
+
+### Existing implementation
+
+Git history contains a previously built authenticated web vertical slice, including `ChaosSortWorkspace`, batch detail and label printing, the Chaos Sort domain and bounded recognition queue, CSV parsing, pick/retire/commit API routes, and focused domain tests. The historical workspace supports image staging, CSV intake, recognition states, duplicate detection, exception review, retry actions, manual candidate selection, destination storage selection, batch targets, and a batch-level inventory commit.
+
+The historical recognition path calls the existing web `/api/purchasing/card-photo-scan` endpoint. That endpoint supports the currently available Magic and Pokémon image/manual candidate paths, so restoring the workflow does not require inventing a second recognition provider. This is separate from the mobile-oriented `/api/scanner/tcgtracking` route and should not be described as a mobile handoff.
+
+### Missing connections and dead code
+
+The implementation had been disconnected from this checkout rather than merely hidden: its route, components, API namespace, domain helpers, and migrations were absent. It therefore had no active navigation entry and no route-level first-use guidance. The historical commit API also retained older direct-write helpers beside the current RPC call; those helpers are not part of the supported commit path and should remain unused or be removed during hardening.
+
+### Database and API support
+
+The current checkout has `inventory_locations`, `inventory_items`, the separate CSV inventory commit RPC, and the image-lookup/scanner APIs, but no current Chaos Sort tables or commit RPC. The historical migrations create `chaos_sort_batches`, `chaos_sort_items`, `chaos_sort_rules`, `chaos_sort_sessions`, `chaos_sort_inventory_positions`, and inventory event support, with user-scoped RLS and a security-definer `commit_chaos_sort_batch` RPC. The restored code is therefore honest only after the migrations are applied to the target Supabase project; this branch does not apply them remotely or change deployment configuration.
+
+### Navigation status
+
+The active account-aware navigation in `src/components/dashboard/navigation.ts` did not link Chaos Sort. A separate older navigation catalog contains dead historical routes and is not the active source of truth. The restoration adds a contextual Inventory entry and a single Acquire link, keeping the workflow discoverable without adding a new sidebar section.
+
+### Recommended restoration path
+
+Restore the historical web vertical slice, reconnect it to the existing image-lookup provider and current authenticated capability checks, scope all reads and writes to the signed-in user, add compact “Scan → Review → Choose location → Import into inventory” guidance, and keep batch detail as the filing/reprint destination. Treat the database migration as Requires Production Configuration until it is reviewed and applied. Do not expose the workflow as a production-ready recognition promise beyond the providers and games the existing scanner actually supports.
+
 ## Implementation scope for this branch
 
-This branch implements the P0/P1 corrections that are safe without changing schemas, recognition authority, or deployment configuration:
+This branch implements the P0/P1 corrections and restores the previously existing Chaos Sort web vertical slice without applying production configuration:
 
 - reusable first-use guidance primitives: `FeatureIntro`, `WorkflowSteps`, `ContextHelp`, and `EmptyState`;
 - clearer CSV/import copy, detected-format messaging, field guidance, human-readable review reasons, and explicit inventory-write CTAs;
 - an inline import completion summary with next actions;
 - honest scanner purpose copy and recovery guidance;
+- authenticated Chaos Sort batch intake, review, location selection, commit summary, and batch filing/reprint links;
 - removal of navigation links that currently point to unavailable routes;
 - targeted tests for the new terminology and import guidance contracts.
 
-The following remain intentionally unimplemented: a new web Chaos Sort recognition pipeline, new Supabase schema, marketplace API connections, and production deployment.
+The following remain intentionally unimplemented: a new recognition pipeline, marketplace API connections, and production deployment. The restored Chaos Sort migrations require production review and application before the persisted batch workflow can operate against Supabase.
