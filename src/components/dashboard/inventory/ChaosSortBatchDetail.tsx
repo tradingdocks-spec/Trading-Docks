@@ -11,7 +11,7 @@ export type ChaosSortBatchDetailData = {
     session_id: string | null; destination_location_id: string | null; destination_label: string;
     initial_quantity: number; current_quantity: number; created_at: string; completed_at: string | null;
   };
-  positions: Array<{ id: string; item_id: string | null; card_name: string; scryfall_id: string | null; set_code: string | null; collector_number: string | null; finish: string | null; condition: string | null; quantity: number; location_id: string | null; status: string; created_at: string }>;
+  positions: Array<{ id: string; item_id: string | null; card_name: string; scryfall_id: string | null; set_code: string | null; collector_number: string | null; finish: string | null; condition: string | null; language: string | null; quantity: number; location_id: string | null; status: string; created_at: string }>;
   session: { session_code: string; source: string; reference: string | null } | null;
 };
 

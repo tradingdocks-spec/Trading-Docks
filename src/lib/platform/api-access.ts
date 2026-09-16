@@ -37,6 +37,7 @@ export const API_ACCESS_REGISTRY: ApiAccessRule[] = [
   { id: "label-studio", pattern: /^\/api\/label-studio(\/|$)/, kind: "capability", capability: "label.view", label: "Label Studio APIs" },
   { id: "collector-portfolio", pattern: /^\/api\/collector-portfolio(\/|$)/, kind: "capability", capability: "binder.manage", label: "Collector portfolio APIs" },
   { id: "inventory", pattern: /^\/api\/inventory(\/|$)/, kind: "capability", capability: "collection.read", label: "Inventory APIs" },
+  { id: "chaos-sort", pattern: /^\/api\/chaos-sort(\/|$)/, kind: "capability", capability: "collection.write", label: "Chaos Sort inventory intake" },
   { id: "deck-vault", pattern: /^\/api\/deck-vault(\/|$)/, kind: "capability", capability: "deck.manage", label: "Deck Vault APIs" },
   { id: "deck-architect", pattern: /^\/api\/deck-architect(\/|$)/, kind: "capability", capability: "deck.manage", label: "Deck Architect APIs" },
   { id: "csv", pattern: /^\/api\/(csv-converter|tools\/csv)(\/|$)/, kind: "capability", capability: "csv.export", label: "CSV APIs" },
